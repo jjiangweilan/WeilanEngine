@@ -7,7 +7,7 @@
 4. Git
 
 ## Build and Compile Tools
-- [x] Windows: Clang 12+ with x86_64-w64-windows-gnu
+- [x] Windows: MSVC
 - [x] Macos: Clang 12+
 
 ## How to Build
