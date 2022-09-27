@@ -1,0 +1,40 @@
+#include "GfxEnums.hpp"
+
+namespace Engine::Gfx::Utils
+{
+    uint32_t MapImageFormatToBitSize(ImageFormat format)
+    {
+        switch (format)
+        {
+            case ImageFormat::R16G16B16A16_SFloat: return 64;
+            case ImageFormat::R8G8B8A8_UNorm: return 32;
+            case ImageFormat::B8G8R8A8_UNorm: return 32;
+            case ImageFormat::B8G8R8A8_SRgb: return 32;
+            case ImageFormat::D16_UNorm: return 16;
+            case ImageFormat::D16_UNorm_S8_UInt: return 24;
+            case ImageFormat::D24_UNorm_S8_UInt: return 32;
+            default:
+                assert(0 && "Not implemented");
+        }
+
+        return 64;
+    };
+
+    uint32_t MapImageFormatToByteSize(ImageFormat format)
+    {
+        switch (format)
+        {
+            case ImageFormat::R16G16B16A16_SFloat: return 8;
+            case ImageFormat::R8G8B8A8_UNorm: return 4;
+            case ImageFormat::B8G8R8A8_UNorm: return 4;
+            case ImageFormat::B8G8R8A8_SRgb: return 4;
+            case ImageFormat::D16_UNorm: return 2;
+            case ImageFormat::D16_UNorm_S8_UInt: return 3;
+            case ImageFormat::D24_UNorm_S8_UInt: return 4;
+            default:
+                assert(0 && "Not implemented");
+        }
+
+        return 64;
+    };
+}

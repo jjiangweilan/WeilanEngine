@@ -1,0 +1,255 @@
+#include "AssetDatabase.hpp"
+#include <fstream>
+#include <spdlog/spdlog.h>
+#include "AssetImporter.hpp"
+#include <nlohmann/json.hpp>
+#include "Core/Global/Global.hpp"
+#if GAME_EDITOR
+#include "Editor/ProjectManagement/ProjectManagement.hpp"
+#endif
+namespace Engine
+{
+    AssetDatabase* AssetDatabase::instance = nullptr;
+
+    AssetDatabase::AssetDatabase(){}
+
+    std::vector<unsigned char> AssetDatabase::ReadAsBinary(const std::string& path)
+    {
+        std::error_code errorCode;
+        uintmax_t fileSize = std::filesystem::file_size(path, errorCode);
+
+        std::vector<unsigned char> fileContent;
+
+        if (errorCode.value() != 0)
+        {
+            SPDLOG_ERROR("Failed to get file size. {} File path: {}", errorCode.message(), path);
+            return fileContent;
+        }
+
+        fileContent.resize(fileSize);
+
+        std::ifstream fs;
+        fs.open(path, std::ios::in | std::ios::binary);
+
+        fs.read(reinterpret_cast<char*>(&fileContent[0]), fileSize);
+
+        return fileContent;
+    }
+
+    void AssetDatabase::Refresh_Internal(const std::filesystem::path& path)
+    {
+        for (const auto& dirEntry : std::filesystem::directory_iterator(path))
+        {
+            auto ext = dirEntry.path().extension();
+            if (dirEntry.is_directory())
+            {
+                Refresh_Internal(dirEntry);
+            }
+            else if (ext != ".meta")
+            {
+                auto asset = Load(dirEntry);
+
+                if (ext == ".shad")
+                {
+                    if (asset != nullptr)
+                        shaderMap[asset->GetName()] = asset;
+                    else
+                        SPDLOG_WARN("Shader loading failed, {}", dirEntry.path().string());
+                }
+            }
+        }
+    }
+
+    void AssetDatabase::SaveAll()
+    {
+        for (auto& iter : assetFiles)
+        {
+            iter.second->Save();
+        }
+    }
+
+    RefPtr<Shader> AssetDatabase::GetShader(const std::string& name)
+    {
+        auto iter = shaderMap.find(name);
+        if (iter != shaderMap.end())
+        {
+            return iter->second;
+        }
+
+        return nullptr;
+    }
+
+    RefPtr<AssetObject> AssetDatabase::Save(UniPtr<AssetObject>&& assetObject, const std::filesystem::path& path)
+    {
+        UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(assetObject), path);
+
+        RefPtr<AssetObject> temp = assetFile->GetRoot();
+        assetObjects[temp->GetUUID()] = temp;
+        assetFile->Save();
+
+        for(RefPtr<AssetObject> contained : assetFile->GetAllContainedAssets())
+        {
+            assetObjects[contained->GetUUID()] = contained;
+        }
+        assetFiles[assetFile->GetRoot()->GetUUID()] = std::move(assetFile);
+
+        return temp;
+    }
+
+    RefPtr<AssetDatabase> AssetDatabase::Instance()
+    {
+        return instance;
+    }
+
+    void AssetDatabase::InitSingleton()
+    {
+        if (instance == nullptr)
+            instance = new AssetDatabase();
+    }
+
+    void AssetDatabase::Deinit()
+    {
+        if (instance != nullptr)
+        {
+            delete instance;
+            instance = nullptr;
+        }
+    }
+
+    RefPtr<AssetObject> AssetDatabase::GetAssetObject(const UUID& uuid)
+    {
+        auto iter = assetObjects.find(uuid);
+        if (iter != assetObjects.end())
+        {
+            return iter->second;
+        }
+
+        return nullptr;
+    }
+
+#if GAME_EDITOR
+    void AssetDatabase::LoadInternalAssets()
+    {
+        Refresh_Internal(Editor::GetSysConfigPath() / "Assets");
+    }
+#endif
+
+    bool AssetDatabase::GetObjectPath(const UUID& uuid, std::filesystem::path& path)
+    {
+        auto iter = assetFiles.find(uuid);
+        if (iter != assetFiles.end())
+        {
+            path = iter->second->GetPath();
+            return true;
+        }
+
+        return false;
+    }
+
+    void AssetDatabase::LoadAllAssets()
+    {
+        Refresh_Internal("Assets");
+    }
+
+    RefPtr<AssetObject> AssetDatabase::LoadInternal(const std::filesystem::path& path)
+    {
+        if (!std::filesystem::exists(path)) return nullptr;
+
+        // try load the meta file
+        auto metaPath = path;
+        metaPath.replace_extension(path.extension().string() + ".meta");
+        bool isNewExternalAsset = false;
+        bool isMetaValid = false;
+        UUID uuid;
+        std::unordered_map<std::string, UUID> containedUUIDs;
+        if (std::filesystem::is_regular_file(metaPath))
+        {
+            // try to read from the meta file
+            std::ifstream inputFile(metaPath);
+            bool isValidJsonFile = false;
+            nlohmann::json metaJson;
+            try
+            {
+                metaJson = nlohmann::json::parse(inputFile);
+                isValidJsonFile = true;
+            }
+            catch(nlohmann::json::parse_error& ex)
+            {
+                SPDLOG_ERROR("{} is not parsable as a meta file", metaPath.string());
+                isNewExternalAsset = true;
+            }
+            if (isValidJsonFile)
+            {
+                if(metaJson.contains("uuid"))
+                {
+                    std::string uuidStr = metaJson["uuid"];
+                    uuid = UUID(uuidStr);
+                    isMetaValid = true;
+                }
+                else
+                {
+                    isNewExternalAsset = true;
+                }
+
+                if (metaJson.contains("contained"))
+                {
+                    for(auto it = metaJson["contained"].begin(); it != metaJson["contained"].end(); ++it)
+                    {
+                        containedUUIDs[it.key()] = UUID(it->get<std::string>());
+                    }
+                }
+            }
+        }
+        else
+        {
+            isNewExternalAsset = true;
+        }
+
+        // see if this asset already loaded
+        auto iter = assetFiles.find(uuid);
+        if (iter != assetFiles.end())
+        {
+            return iter->second->GetRoot();
+        }
+
+        // if this is a new external asset, write the meta to disk
+        if (isNewExternalAsset)
+        {
+            std::ofstream metaFileOutput(metaPath);
+
+            if (metaFileOutput.good())
+            {
+                nlohmann::json j;
+                j["uuid"] = uuid.ToString();
+                metaFileOutput << j.dump();
+                isMetaValid = true;
+            }
+        }
+
+        if (isMetaValid)
+        {
+            auto ext = path.extension();
+            if (ext.empty()) return nullptr;
+            auto importer = AssetImporter::GetImporter(ext.string().substr(1));
+            if (importer == nullptr) return nullptr;
+            UniPtr<AssetObject> obj = importer->Import(path, refResolver, uuid, containedUUIDs);
+            if (obj != nullptr)
+            {
+                UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), path);
+                assetObjects[assetFile->GetRoot()->GetUUID()] = assetFile->GetRoot();
+                for(RefPtr<AssetObject> contained : assetFile->GetAllContainedAssets())
+                {
+                    assetObjects[contained->GetUUID()] = contained;
+                }
+                AssetFile* temp = assetFile.Get();
+                assetFiles[uuid] = std::move(assetFile);
+
+                refResolver.ResolveAllPending(*this);
+
+                return temp->GetRoot(); 
+            }
+        }
+
+        return nullptr;
+    }
+}

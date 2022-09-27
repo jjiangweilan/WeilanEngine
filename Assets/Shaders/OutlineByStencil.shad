@@ -1,0 +1,44 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Internal/OutlineByStencil
+interleaved: False
+depth:
+    testEnable: True
+    writeEnable : False
+    compOp: never
+stencil:
+    testEnable : True
+    front:
+        failOp: replace
+        passOp: replace
+        depthFailOp: replace
+        compareOp: always
+        reference: 1
+cull: back
+#endif
+
+#if VERT
+layout(location = 0) in vec3 i_Position;
+
+out gl_PerVertex
+{
+    vec4 gl_Position;
+};
+
+void main()
+{
+    gl_Position = scene.viewProjection * pushConstant.model * vec4(i_Position, 1);
+}
+#endif
+
+#if FRAG
+
+layout(location = 0) out vec4 o_Color;
+
+void main() {
+    o_Color = vec4(0,0,0,0);
+}
+
+#endif
