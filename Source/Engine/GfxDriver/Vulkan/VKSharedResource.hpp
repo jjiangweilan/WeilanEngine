@@ -5,12 +5,8 @@
 
 namespace Engine::Gfx
 {
-    struct VKContext;
+    class VKContext;
     class VKImage;
-    namespace Exp
-    {
-        class VKShaderModule;
-    }
     class VKSharedResource
     {
         public:

@@ -22,12 +22,13 @@ namespace Engine
             UniPtr(const UniPtr<T>& other) = delete;
             template<class U>
             UniPtr<T>& operator=(UniPtr<U>&& other);
+            UniPtr<T>& operator=(UniPtr<T>&& other);
             UniPtr<T>& operator=(std::nullptr_t);
             
             ~UniPtr();
             
             T* Get() {return ptr;}
-            UniPtr<T>& operator=(UniPtr<T>&& other);
+            inline void Release() { ptr = nullptr; }
             bool operator!=(std::nullptr_t) const {return ptr != nullptr;}
             bool operator==(std::nullptr_t) const {return ptr == nullptr;}
             T* operator->() const {return ptr;}
@@ -86,15 +87,30 @@ namespace Engine
     template<class T>
     UniPtr<T>& UniPtr<T>::operator=(std::nullptr_t)
     {
-        delete ptr;
-        ptr = nullptr;
+        if (ptr != nullptr)
+        {
+            delete ptr;
+            ptr = nullptr;
+        }
+
+        return *this;
+    }
+
+    template<class T>
+    template<class U>
+    UniPtr<T>& UniPtr<T>::operator=(UniPtr<U>&& other)
+    {
+        if (ptr != nullptr)
+            delete ptr;
+        ptr = std::exchange(other.ptr, nullptr);
         return *this;
     }
 
     template<class T>
     UniPtr<T>& UniPtr<T>::operator=(UniPtr<T>&& other)
     {
-        delete ptr;
+        if (ptr != nullptr)
+            delete ptr;
         ptr = std::exchange(other.ptr, nullptr);
         return *this;
     }

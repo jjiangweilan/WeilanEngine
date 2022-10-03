@@ -1,8 +1,12 @@
 #pragma once
 #include "Code/Ptr.hpp"
-#include <vulkan/vulkan.h>
-#include <vector>
-#include <functional>
+#include "Internal/VKDevice.hpp"
+#include "Internal/VKMemAllocator.hpp"
+#include "Internal/VKObjectManager.hpp"
+#include "Internal/VKSwapChain.hpp"
+#include "VKDescriptorPool.hpp"
+#include "VKSharedResource.hpp"
+#include "VKStructs.hpp"
 namespace Engine::Gfx
 {
     class VKDevice;
@@ -10,18 +14,20 @@ namespace Engine::Gfx
     class VKObjectManager;
     class VKSharedResource;
     class VKSwapChain;
-    struct VKContext
+    class VKDriver;
+    class VKContext
     {
-        RefPtr<VKDevice> device;
-        RefPtr<VKMemAllocator> allocator;
-        RefPtr<VKObjectManager> objManager;
-        RefPtr<VKSharedResource> sharedResource;
-        RefPtr<VKSwapChain> swapchain;
-
-        void AppendFramePrepareCommands(std::function<void(VkCommandBuffer)>&& cmdBuf);
-        void RecordFramePrepareCommands(VkCommandBuffer cmdBuf);
-
+        public:
+            static inline RefPtr<VKContext> Instance() { return context; }
+            RefPtr<VKDevice> device;
+            RefPtr<VKMemAllocator> allocator;
+            RefPtr<VKObjectManager> objManager;
+            RefPtr<VKSharedResource> sharedResource;
+            RefPtr<VKSwapChain> swapchain;
+            RefPtr<const DeviceQueue> mainQueue;
+            RefPtr<VKDescriptorPoolCache> descriptorPoolCache;
         private:
-        std::vector<std::function<void(VkCommandBuffer)>> pendingPrepareCommands;
+            static RefPtr<VKContext> context;
+            friend class VKDriver;
     };
 }

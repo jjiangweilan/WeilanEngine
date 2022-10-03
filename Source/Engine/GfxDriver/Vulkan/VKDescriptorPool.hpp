@@ -5,7 +5,7 @@
 #include <unordered_map>
 namespace Engine::Gfx
 {
-    struct VKContext;
+    class VKContext;
     class VKDescriptorPool
     {
         public:
@@ -38,26 +38,10 @@ namespace Engine::Gfx
 
     struct VKDescriptorPoolCache
     {
-        static RefPtr<VKDescriptorPoolCache> Instance() {return singleton;}
-
-        static void Init(RefPtr<VKContext> c)
-        {
-            if (singleton == nullptr)
-            {
-                singleton = UniPtr<VKDescriptorPoolCache>( new VKDescriptorPoolCache(c));
-            }
-        }
-
-        static void Deinit()
-        {
-            singleton->descriptorLayoutPoolCache.clear();
-            singleton = nullptr;
-        }
-
+        VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context) {}
         VKDescriptorPool& RequestDescriptorPool(VkDescriptorSetLayoutCreateInfo createInfo);
 
         private:
-            VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context){}
             struct VkDescriptorSetLayoutCreateInfoHash
             {
                 std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
@@ -67,8 +51,6 @@ namespace Engine::Gfx
             RefPtr<VKContext> context;
 
         private:
-            static UniPtr<VKDescriptorPoolCache> singleton;
-            friend UniPtr<VKDescriptorPoolCache> MakeUnique<VKDescriptorPoolCache, RefPtr<VKContext>&>(RefPtr<VKContext>& context);
     };
 }
 

@@ -15,7 +15,11 @@
 #include <chrono>
 #include <numeric>
 #include <atomic>
+#ifdef __cpp_lib_span
+#include <span>
+#else
 #include "span"
+#endif
 
 #ifdef _WIN32
 

@@ -1,20 +1,15 @@
 #pragma once
 #include <cinttypes>
-#include "../Internal/VKMemAllocator.hpp"
-#include "../../Buffer.hpp"
+#include "Internal/VKMemAllocator.hpp"
+#include "../GfxBuffer.hpp"
 
 namespace Engine::Gfx
 {
-    struct VKContext;
-}
-
-namespace Engine::Gfx::Exp
-{
-    class VKBuffer : public Buffer
+    class VKBuffer : public GfxBuffer
     {
         public:
-            VKBuffer(RefPtr<VKContext> context, uint32_t size, BufferUsage usage, bool readback);
-            VKBuffer(RefPtr<VKContext> context, uint32_t size, VkBufferUsageFlags usage, bool readback);
+            VKBuffer(uint32_t size, BufferUsage usage, bool readback);
+            VKBuffer(uint32_t size, VkBufferUsageFlags usage, bool readback);
 
             ~VKBuffer() override;
 
@@ -25,10 +20,9 @@ namespace Engine::Gfx::Exp
             VkBuffer GetVKBuffer();
 
         private:
+            RefPtr<VKMemAllocator> allocator;
             VkBuffer buffer = VK_NULL_HANDLE;
             VmaAllocation allocation = nullptr;
-
-            RefPtr<VKContext> context;
 
             VkBufferUsageFlags usage = 0;
             VmaMemoryUsage vmaMemUsage = VMA_MEMORY_USAGE_AUTO;

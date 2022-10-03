@@ -3,16 +3,16 @@
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 #include <vector>
-#include "../VKDescriptorSetSlot.hpp"
-#include "../VKShaderInfo.hpp"
-#include "../../ShaderModule.hpp"
+#include "VKDescriptorSetSlot.hpp"
+#include "VKShaderInfo.hpp"
+#include "../ShaderModule.hpp"
 
 namespace Engine::Gfx
 {
     class VKObjectManager;
-    struct VKContext;
+    class VKContext;
 }
-namespace Engine::Gfx::Exp
+namespace Engine::Gfx
 {
     struct ShaderModuleGraphicsPipelineCreateInfos
     {
@@ -27,7 +27,7 @@ namespace Engine::Gfx::Exp
     class VKShaderModule : public ShaderModule
     {
         public:
-            VKShaderModule(RefPtr<VKContext> context, const std::string& name, unsigned char* code, uint32_t codeByteSize, bool vertInterleaved);
+            VKShaderModule(const std::string& name, unsigned char* code, uint32_t codeByteSize, bool vertInterleaved);
             ~VKShaderModule();
 
             const ShaderModuleGraphicsPipelineCreateInfos& GetShaderModuleGraphicsPipelineCreateInfos();

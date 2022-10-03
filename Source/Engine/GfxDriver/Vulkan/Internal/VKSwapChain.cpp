@@ -1,24 +1,24 @@
 #include "VKSwapChain.hpp"
 #include "VKDevice.hpp"
 #include "VKSurface.hpp"
+#include "VKEnumMapper.hpp"
 #include "../VKContext.hpp"
 #include <iostream>
 #include <spdlog/spdlog.h>
 namespace Engine::Gfx
 {
-    VKSwapChain::VKSwapChain(VKContext* context, VKPhysicalDevice& gpu, VKSurface& surface) : context(context), attachedDevice(*context->device), swapChain(VK_NULL_HANDLE)
+    VKSwapChain::VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface) : attachedDevice(VKContext::Instance()->device), swapChain(VK_NULL_HANDLE), graphicsQueueFamilyIndex(graphicsQueueFamilyIndex)
     {
-        CreateOrOverrideSwapChain(context->device.Get(), &gpu, &surface);
+        CreateOrOverrideSwapChain(VKContext::Instance()->device.Get(), gpu.Get(), &surface);
     }
 
     VKSwapChain::~VKSwapChain()
     {
-        vkDestroySwapchainKHR(attachedDevice.GetHandle(), swapChain, VK_NULL_HANDLE);
+        vkDestroySwapchainKHR(attachedDevice->GetHandle(), swapChain, VK_NULL_HANDLE);
     }
 
     void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
     {
-
         swapChainInfo.surfaceFormat = GetFormat(surface);
         swapChainInfo.extent = surface->GetSurfaceCapabilities().currentExtent;
         swapChainInfo.imageUsageFlags = GetUsageFlags(surface);
@@ -108,18 +108,18 @@ namespace Engine::Gfx
         swapChainImages.clear();
         uint32_t imageCount = 0;
 
-        vkGetSwapchainImagesKHR(attachedDevice.GetHandle(), swapChain, &imageCount, VK_NULL_HANDLE);
+        vkGetSwapchainImagesKHR(attachedDevice->GetHandle(), swapChain, &imageCount, VK_NULL_HANDLE);
 
         std::vector<VkImage> swapChainImagesTemp(imageCount);
 
-        if (vkGetSwapchainImagesKHR(attachedDevice.GetHandle(), swapChain, &imageCount, swapChainImagesTemp.data()) != VK_SUCCESS)
+        if (vkGetSwapchainImagesKHR(attachedDevice->GetHandle(), swapChain, &imageCount, swapChainImagesTemp.data()) != VK_SUCCESS)
         {
             return false;
         }
 
         for(uint32_t i = 0; i < imageCount; ++i)
         {
-            swapChainImages.emplace_back(context, swapChainImagesTemp[i], swapChainInfo.surfaceFormat.format, swapChainInfo.extent.width, swapChainInfo.extent.height);
+            swapChainImages.emplace_back(swapChainImagesTemp[i], swapChainInfo.surfaceFormat.format, swapChainInfo.extent.width, swapChainInfo.extent.height);
         }
         
         return true;
@@ -169,10 +169,11 @@ namespace Engine::Gfx
         return static_cast<VkPresentModeKHR>(-1);
     }
 
-    void VKSwapChain::AcquireNextImage(uint32_t& nextPresentImageIndex, VKImage*& nextPresentImage, VkSemaphore semaphoreToSignal)
+    void VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal)
     {
-        VkResult result = vkAcquireNextImageKHR(attachedDevice.GetHandle(), swapChain, -1, semaphoreToSignal, VK_NULL_HANDLE, &nextPresentImageIndex);
-        nextPresentImage = static_cast<VKImage*>(&swapChainImages[nextPresentImageIndex]);
+        uint32_t nextPresentImageIndex;
+        VkResult result = vkAcquireNextImageKHR(attachedDevice->GetHandle(), swapChain, -1, semaphoreToSignal, VK_NULL_HANDLE, &nextPresentImageIndex);
+        swapChainImageProxy->SetActiveSwapChainImage(&swapChainImages[nextPresentImageIndex], nextPresentImageIndex);
         switch (result)
         {
             case VK_SUCCESS:
@@ -185,20 +186,20 @@ namespace Engine::Gfx
         }
     }
 
-    VkResult VKSwapChain::PresentImage(VkQueue queue, uint32_t presentImageIndex, uint32_t waitSemaphoreCount, VkSemaphore* waitSemaphores)
+    VKSwapChain::VKSwapChainImage::VKSwapChainImage(VkImage image, VkFormat format, uint32_t width, uint32_t height) : VKImage()
     {
-        VkPresentInfoKHR presentInfo = {
-            VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            nullptr,
-            waitSemaphoreCount,
-            waitSemaphores,
-            1,
-            &swapChain,
-            &presentImageIndex,
-            nullptr                                 
-        };
+        this->image_vk = image;
+        imageDescription.format = VKEnumMapper::MapVKFormat(format);
+        imageDescription.width = width;
+        imageDescription.height = height;
+        format_vk = format;
+        layout = VK_IMAGE_LAYOUT_UNDEFINED;
+        CreateImageView();
+        defaultSubResourceRange = GenerateDefaultSubresourceRange();
+    }
 
-        VkResult result = vkQueuePresentKHR(queue, &presentInfo);
-        return result;
+    VKSwapChain::VKSwapChainImage::~VKSwapChainImage()
+    {
+        image_vk = VK_NULL_HANDLE; // avoid swaph chain image being deleted by VKImage
     }
 }

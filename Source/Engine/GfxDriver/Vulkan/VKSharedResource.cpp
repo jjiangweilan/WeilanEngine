@@ -38,18 +38,7 @@ namespace Engine::Gfx
                             255, 255, 255, 255,    255, 255, 255, 255};
         desc.data = (unsigned char*)pxls; 
         desc.multiSampling = MultiSampling::Sample_Count_1;
-        defaultTexture = MakeUnique<VKImage>(context, desc, ImageUsage::Texture | ImageUsage::TransferDst);
-
-        context->AppendFramePrepareCommands([=](VkCommandBuffer cmd)
-        {
-            defaultTexture->TransformLayoutIfNeeded(
-                cmd,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                0,
-                0);
-        });
+        defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
     }
 
 

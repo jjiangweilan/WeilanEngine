@@ -6,11 +6,10 @@ namespace Engine::Gfx
 {
     class VKRenderPass;
     class VKImage;
-    struct VKContext;
     class VKFrameBuffer : public FrameBuffer
     {
         public:
-            VKFrameBuffer(RefPtr<VKContext> context, RefPtr<RenderPass> baseRenderPass);
+            VKFrameBuffer(RefPtr<RenderPass> baseRenderPass);
             VKFrameBuffer(const VKFrameBuffer& other) = delete;
             ~VKFrameBuffer() override;
 
@@ -26,7 +25,6 @@ namespace Engine::Gfx
             uint32_t height;
             VkFramebuffer frameBuffer = VK_NULL_HANDLE;
             RefPtr<VKRenderPass> baseRenderPass;
-            RefPtr<VKContext> context;
             
             std::vector<RefPtr<VKImage>> attachments;
             void CreateFrameBuffer();

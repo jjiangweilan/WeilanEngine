@@ -1,24 +1,25 @@
 #pragma once
 #include "GfxDriver/ShaderResource.hpp"
-#include "../VKDescriptorSetSlot.hpp"
-#include "../VKShaderInfo.hpp"
+#include "VKDescriptorSetSlot.hpp"
+#include "VKShaderInfo.hpp"
+#include "VKSharedResource.hpp"
+#include "Internal/VKMemAllocator.hpp"
+#include "Internal/VKDevice.hpp"
 #include <vma/vk_mem_alloc.h>
 #include <unordered_map>
 
 namespace Engine::Gfx
 {
-    struct VKContext;
+    class VKBuffer;
     class VKImage;
     class VKShaderProgram;
     class VKDescriptorPool;
-}
-namespace Engine::Gfx::Exp
-{
-    class VKBuffer;
+    class VKDriver;
     class VKShaderResource : public ShaderResource
     {
         public:
-            VKShaderResource(RefPtr<VKContext> context, RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency);
+            VKShaderResource(
+                    RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency);
             ~VKShaderResource() override;
 
             VkDescriptorSet GetDescriptorSet();
@@ -32,8 +33,9 @@ namespace Engine::Gfx::Exp
             const std::unordered_map<std::string, VkPushConstantRange>* pushConstantRanges = nullptr;
             bool pushConstantIsUsed = false;
 
-            RefPtr<VKContext> context;
             RefPtr<VKShaderProgram> shaderProgram;
+            RefPtr<VKSharedResource> sharedResource;
+            RefPtr<VKDevice> device;
 
             VkDescriptorSet descriptorSet;
             VKDescriptorPool* descriptorPool = nullptr;

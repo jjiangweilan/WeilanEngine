@@ -46,7 +46,6 @@ namespace Engine::Editor
             RefPtr<Gfx::GfxDriver> gfxDriver;
             UniPtr<Gfx::RenderPass> editorPass;
             UniPtr<Gfx::FrameBuffer> frameBuffer;
-            RefPtr<RenderContext> renderContext;
             RefPtr<Gfx::Image> colorImage;
             UniPtr<Gfx::RenderPass> scenePass;
             UniPtr<Gfx::FrameBuffer> sceneFrameBuffer;
@@ -61,8 +60,8 @@ namespace Engine::Editor
 
             struct ImGuiData
             {
-                UniPtr<Gfx::Buffer> vertexBuffer; // use single buffer to capture all the vertices
-                UniPtr<Gfx::Buffer> indexBuffer;
+                UniPtr<Gfx::GfxBuffer> vertexBuffer; // use single buffer to capture all the vertices
+                UniPtr<Gfx::GfxBuffer> indexBuffer;
                 UniPtr<Gfx::Image> fontTex;
                 UniPtr<Gfx::Image> editorRT;
                 UniPtr<Gfx::ShaderResource> generalShaderRes;

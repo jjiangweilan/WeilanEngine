@@ -5,12 +5,12 @@
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
 {
-    struct VKContext;
+    class VKContext;
     class VKImage;
     class VKRenderPass : public RenderPass
     {
         public:
-            VKRenderPass(RefPtr<VKContext> context);
+            VKRenderPass();
             VKRenderPass(const VKRenderPass& renderPass) = delete;
             VKRenderPass(VKRenderPass&& renderPass) = delete;
             ~VKRenderPass() override;
@@ -22,8 +22,6 @@ namespace Engine::Gfx
 
             VkRenderPass GetHandle();
         protected:
-            RefPtr<VKContext> context;
-
             std::vector<VkAttachmentDescription> colorAttachments;
             std::optional<VkAttachmentDescription> depthAttachment;
 

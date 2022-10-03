@@ -2,15 +2,24 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "VKPhysicalDevice.hpp"
+#include "../VKStructs.hpp"
 
 namespace Engine::Gfx
 {
     class VKInstance;
     class VKSurface;
+
     class VKDevice
     {
         public:
-            VKDevice(VKInstance* instance, VKSurface* surface);
+            struct QueueRequest
+            {
+                VkQueueFlags flags;
+                bool requireSurfaceSupport;
+                float priority;
+            };
+
+            VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* requests, int requestsCount);
             ~VKDevice();
 
             VKPhysicalDevice& GetGPU() { return gpu; }
@@ -18,9 +27,7 @@ namespace Engine::Gfx
             void WaitForDeviceIdle();
 
             VkDevice GetHandle() const { return deviceHandle; }
-            VkQueue GetGraphicsQueue() const {return graphicsQueue;}
-            VkQueue GetTransferQueue() const {return transferQueue;}
-            VkQueue GetComputeQueue() const {return computeQueue;}
+            const DeviceQueue& GetQueue(int i) { return queues[i]; }
 
             uint32_t GetBufferingCount() const {return BUFFERING_COUNT;}
 
@@ -35,9 +42,7 @@ namespace Engine::Gfx
             VkPhysicalDeviceFeatures requiredDeviceFeatures{}; // no feature required yet
             std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-            VkQueue graphicsQueue = VK_NULL_HANDLE;
-            VkQueue transferQueue = VK_NULL_HANDLE;
-            VkQueue computeQueue = VK_NULL_HANDLE;
+            std::vector<DeviceQueue> queues;
 
             friend class GfxContext;
     };

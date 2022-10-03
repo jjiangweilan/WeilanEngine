@@ -1,20 +1,22 @@
 #include "VKShaderResource.hpp"
 #include "VKBuffer.hpp"
-#include "../VKShaderProgram.hpp"
-#include "../Internal/VKMemAllocator.hpp"
-#include "../VKContext.hpp"
-#include "../Internal/VKDevice.hpp"
-#include "../VKSharedResource.hpp"
-#include "../VKDescriptorPool.hpp"
+#include "VKContext.hpp"
+#include "VKShaderProgram.hpp"
+#include "Internal/VKMemAllocator.hpp"
+#include "Internal/VKDevice.hpp"
+#include "VKBuffer.hpp"
+#include "VKSharedResource.hpp"
+#include "VKDescriptorPool.hpp"
+#include "VKDriver.hpp"
 #include <spdlog/spdlog.h>
-namespace Engine::Gfx::Exp
+namespace Engine::Gfx
 {
     DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
     {
         switch (frequency)
         {
-            case ShaderResourceFrequency::View:
-                return Scene_Descriptor_Set;
+            case ShaderResourceFrequency::Global:
+                return Global_Descriptor_Set;
             case ShaderResourceFrequency::Shader:
                 return Shader_Descriptor_Set;
             case ShaderResourceFrequency::Material:
@@ -26,7 +28,7 @@ namespace Engine::Gfx::Exp
         }
     }
 
-    VKShaderResource::VKShaderResource(RefPtr<VKContext> context, RefPtr<ShaderProgram> shaderProgram_, ShaderResourceFrequency frequency) : context(context), shaderProgram(static_cast<VKShaderProgram*>(shaderProgram_.Get()))
+    VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) : shaderProgram(static_cast<VKShaderProgram*>(shader.Get())), sharedResource(VKContext::Instance()->sharedResource), device(VKContext::Instance()->device)
     {
         slot = MapDescriptorSetSlot(frequency);
         descriptorPool = &shaderProgram->GetDescriptorPool(MapDescriptorSetSlot(frequency));
@@ -66,7 +68,7 @@ namespace Engine::Gfx::Exp
                 {
                     case ShaderInfo::BindingType::UBO:
                     {
-                        auto buffer = Engine::MakeUnique<VKBuffer>(context, b.second.binding.ubo.data.size, BufferUsage::Uniform, false);
+                        auto buffer = Engine::MakeUnique<VKBuffer>(b.second.binding.ubo.data.size, BufferUsage::Uniform, false);
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                         bufferInfo.buffer = buffer->GetVKBuffer();
                         bufferInfo.offset = 0;
@@ -79,10 +81,10 @@ namespace Engine::Gfx::Exp
                     {
                         VkDescriptorImageInfo imageInfo;
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfo.sampler = context->sharedResource->GetDefaultSampler();
-                        imageInfo.imageView = context->sharedResource->GetDefaultTexture()->GetDefaultImageView();
+                        imageInfo.sampler = sharedResource->GetDefaultSampler();
+                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
-                        textures["_default_uTexutre"] = context->sharedResource->GetDefaultTexture();
+                        textures["_default_uTexutre"] = sharedResource->GetDefaultTexture();
                         break;
                     }
                     case ShaderInfo::BindingType::SeparateImage:
@@ -90,16 +92,16 @@ namespace Engine::Gfx::Exp
                         VkDescriptorImageInfo imageInfo;
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfo.sampler = VK_NULL_HANDLE;
-                        imageInfo.imageView = context->sharedResource->GetDefaultTexture()->GetDefaultImageView();
+                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
-                        textures["_default_uTexutre"] = context->sharedResource->GetDefaultTexture();
+                        textures["_default_uTexutre"] = sharedResource->GetDefaultTexture();
                         break;
                     }
                     case ShaderInfo::BindingType::SeparateSampler:
                     {
                         VkDescriptorImageInfo imageInfo;
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfo.sampler = context->sharedResource->GetDefaultSampler();
+                        imageInfo.sampler = sharedResource->GetDefaultSampler();
                         imageInfo.imageView = VK_NULL_HANDLE;
                         writes[writeCount].pImageInfo = &imageInfo;
                         break;
@@ -113,7 +115,7 @@ namespace Engine::Gfx::Exp
             }
         }
 
-        vkUpdateDescriptorSets(context->device->GetHandle(), writeCount, writes, 0, VK_NULL_HANDLE);
+        vkUpdateDescriptorSets(device->GetHandle(), writeCount, writes, 0, VK_NULL_HANDLE);
     }
 
     VKShaderResource::~VKShaderResource()
@@ -242,7 +244,7 @@ namespace Engine::Gfx::Exp
             case ShaderInfo::BindingType::Texture:
                 {
                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.sampler = context->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
+                    imageInfo.sampler = sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
                     imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
                     write.pImageInfo = &imageInfo;
                     break;
@@ -258,7 +260,7 @@ namespace Engine::Gfx::Exp
             default:
                 assert(0 && "Wrong type");
         }
-        vkUpdateDescriptorSets(context->device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
+        vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
         textures[param] = (VKImage*)image.Get();
     }
 

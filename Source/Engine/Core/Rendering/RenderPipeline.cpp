@@ -4,9 +4,8 @@
 #include "Core/Globals.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/Graphics/RenderContext.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 
@@ -24,8 +23,6 @@ namespace Engine::Rendering
 
     void RenderPipeline::Init()
     {
-        renderContext = gfxDriver->GetRenderContext();
-
         // create color and depth
         ImageDescription imageDescription{};
         imageDescription.format = ImageFormat::R16G16B16A16_SFloat;
@@ -33,13 +30,13 @@ namespace Engine::Rendering
         imageDescription.height = gfxDriver->GetWindowSize().height;
         imageDescription.multiSampling = MultiSampling::Sample_Count_1;
         imageDescription.mipLevels = 1;
-        colorImage = Gfx::GfxFactory::Instance()->CreateImage(imageDescription, ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::Texture);
+        colorImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription, ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::Texture);
 
         imageDescription.format = ImageFormat::D24_UNorm_S8_UInt;
-        depthImage = Gfx::GfxFactory::Instance()->CreateImage(imageDescription, ImageUsage::DepthStencilAttachment | ImageUsage::TransferSrc);
+        depthImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription, ImageUsage::DepthStencilAttachment | ImageUsage::TransferSrc);
 
         // create frameBuffer and renderPass
-        renderPass = Gfx::GfxFactory::Instance()->CreateRenderPass();
+        renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
         RenderPass::Attachment colorAttachment;
         colorAttachment.format = ImageFormat::R16G16B16A16_SFloat;
         colorAttachment.multiSampling = MultiSampling::Sample_Count_1;
@@ -58,12 +55,11 @@ namespace Engine::Rendering
         subpass.colors.push_back(0);
         subpass.depthAttachment = 1;
         renderPass->SetSubpass({subpass});
-        frameBuffer = Gfx::GfxFactory::Instance()->CreateFrameBuffer(renderPass);
+        frameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(renderPass);
         frameBuffer->SetAttachments({colorImage, depthImage});
-        gfxDriver->SetPresentImage(colorImage);
 
         // create global shader resource
-        globalResource = Gfx::GfxFactory::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::View);
+        globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
     }
 
     RefPtr<Gfx::Image> RenderPipeline::GetOutputDepth()
@@ -86,9 +82,7 @@ namespace Engine::Rendering
             globalResource->SetUniform("SceneInfo", "viewProjection", &vp);
         }
 
-        auto cmdBuf = renderContext->CreateCommandBuffer();
-
-        renderContext->BeginFrame(globalResource);
+        auto cmdBuf = gfxDriver->CreateCommandBuffer();
 
         std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
@@ -96,6 +90,7 @@ namespace Engine::Rendering
         clears[1].depthStencil.stencil = 0;
         Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
         cmdBuf->SetScissor(0, 1, &scissor);
+        cmdBuf->BindResource(globalResource);
         cmdBuf->BeginRenderPass(renderPass, frameBuffer, clears);
         if (gameScene)
         {
@@ -106,9 +101,10 @@ namespace Engine::Rendering
             }
         }
         cmdBuf->EndRenderPass();
-        renderContext->EndFrame();
+        if (!offscreenOutput)
+            cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 
-        renderContext->ExecuteCommandBuffer(std::move(cmdBuf));
+        gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
     }
 
     void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd)
@@ -127,7 +123,13 @@ namespace Engine::Rendering
             if (mesh && material)
             {
                 material->SetMatrix("Transform", "model", meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
-                cmd->Render(*mesh, *material);
+                auto& meshBindingInfo = mesh->GetMeshBindingInfo();
+                auto& vertexInfo = mesh->GetVertexDescription();
+                cmd->BindVertexBuffer(meshBindingInfo.bindingBuffers, meshBindingInfo.bindingOffsets, 0);
+                cmd->BindIndexBuffer(meshBindingInfo.indexBuffer, meshBindingInfo.indexBufferOffset);
+                cmd->BindResource(material->GetShaderResource());
+                cmd->BindShaderProgram(material->GetShader()->GetShaderProgram(), material->GetShaderConfig());
+                cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
             }
         }
     }

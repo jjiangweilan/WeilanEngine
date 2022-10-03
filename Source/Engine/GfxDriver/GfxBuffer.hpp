@@ -2,11 +2,11 @@
 #include "GfxEnums.hpp"
 namespace Engine::Gfx
 {
-    class Buffer
+    class GfxBuffer
     {
         public:
-            Buffer(uint32_t size) : size(size) {};
-            virtual ~Buffer() {};
+            GfxBuffer(uint32_t size) : size(size) {};
+            virtual ~GfxBuffer() {};
             virtual void Write(void* data, uint32_t dataSize, uint32_t offsetInDst) = 0;
             virtual void* GetCPUVisibleAddress() = 0;
             virtual void Resize(uint32_t size) = 0;

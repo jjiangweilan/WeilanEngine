@@ -8,7 +8,7 @@ namespace Engine
 {
 namespace Gfx
 {
-    class Buffer;
+    class GfxBuffer;
 } // namespace Engine::Gfx
 
     struct DataRange
@@ -21,9 +21,9 @@ namespace Gfx
     struct MeshBindingInfo
     {
         uint32_t firstBinding;
-        RefPtr<Gfx::Buffer> indexBuffer;
+        RefPtr<Gfx::GfxBuffer> indexBuffer;
         uint32_t indexBufferOffset;
-        std::vector<RefPtr<Gfx::Buffer>> bindingBuffers;
+        std::vector<RefPtr<Gfx::GfxBuffer>> bindingBuffers;
         std::vector<uint64_t> bindingOffsets;
     };
 
@@ -69,8 +69,8 @@ namespace Gfx
         protected:
 
             MeshBindingInfo meshBindingInfo;
-            UniPtr<Gfx::Buffer> vertexBuffer;
-            UniPtr<Gfx::Buffer> indexBuffer;
+            UniPtr<Gfx::GfxBuffer> vertexBuffer;
+            UniPtr<Gfx::GfxBuffer> indexBuffer;
             VertexDescription vertexDescription;
             void UpdateMeshBindingInfo(std::vector<DataRange>& ranges);
             void GetAttributesDataRangesAndBufSize(std::vector<DataRange>& ranges, uint32_t& bufSize);

@@ -1,5 +1,4 @@
 #include "GameScene.hpp"
-#include "Core/Graphics/RenderContext.hpp"
 namespace Engine
 {
     GameScene::GameScene() : AssetObject()

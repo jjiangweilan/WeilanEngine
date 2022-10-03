@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/Graphics/RenderContext.hpp"
 #include "Core/AssetObject.hpp"
 #include "Core/GameObject.hpp"
 namespace Engine

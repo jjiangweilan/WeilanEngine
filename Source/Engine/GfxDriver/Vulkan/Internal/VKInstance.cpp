@@ -7,7 +7,7 @@ namespace Engine::Gfx
 {
     VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
     {
-        bool enableValidationLayers = false;
+        bool enableValidationLayers = true;
 
         // Create vulkan application info
         VkApplicationInfo appInfo{};

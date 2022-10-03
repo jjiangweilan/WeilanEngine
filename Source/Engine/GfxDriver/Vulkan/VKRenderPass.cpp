@@ -7,7 +7,7 @@
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
 {
-    VKRenderPass::VKRenderPass(RefPtr<VKContext> context) : context(context),
+    VKRenderPass::VKRenderPass() :
         colorAttachments(),
         subpassDescriptions(),
         dependencies()
@@ -18,7 +18,7 @@ namespace Engine::Gfx
     VKRenderPass::~VKRenderPass()
     {
         if (renderPass != VK_NULL_HANDLE)
-            context->objManager->DestroyRenderPass(renderPass);
+            VKContext::Instance()->objManager->DestroyRenderPass(renderPass);
     }
 
 
@@ -141,7 +141,7 @@ namespace Engine::Gfx
         createInfo.dependencyCount = 0;
         createInfo.pDependencies = VK_NULL_HANDLE;
 
-        context->objManager->CreateRenderPass(createInfo, renderPass);
+        VKContext::Instance()->objManager->CreateRenderPass(createInfo, renderPass);
     }
 
     void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf, std::vector<RefPtr<VKImage>>& attachments)

@@ -3,16 +3,13 @@
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include "Core/GameObject.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "Core/AssetDatabase/Importers/glbImporter.hpp" 
 #include "Core/AssetDatabase/Importers/GeneralImporter.hpp"
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/Global/Global.hpp"
-
-// test
-#include "Core/Component/Camera.hpp"
 
 namespace Engine
 {
@@ -25,13 +22,13 @@ namespace Engine
         // register importers
         RegisterAssetImporters();
         // drivers
-        vkDriver = MakeUnique<Gfx::VKDriver>();
-        vkDriver->Init();
+        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan);
+        gfxDriver = Gfx::GfxDriver::Instance();
 
         // modules
-        renderPipeline = MakeUnique<Rendering::RenderPipeline>(vkDriver.Get());
+        renderPipeline = MakeUnique<Rendering::RenderPipeline>(gfxDriver.Get());
 #if GAME_EDITOR
-        gameEditor = MakeUnique<Editor::GameEditor>(vkDriver.Get());
+        gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get());
 #endif
 
         ConfigureProjectPath();
@@ -47,16 +44,9 @@ namespace Engine
         // main loop
         SDL_Event sdlEvent;
         bool shouldBreak = false;
-        auto start = std::chrono::steady_clock::now();
-        auto preTime = std::chrono::steady_clock::now();
 
         while (!shouldBreak)
         {
-            auto current = std::chrono::steady_clock::now();
-            float time = std::chrono::duration<float>(current - start).count();
-            float delta = std::chrono::duration<float>(current - preTime).count();
-            preTime = current;
-            float speed = delta * 1000;
 
             while (SDL_PollEvent(&sdlEvent)) {
 #if GAME_EDITOR
@@ -78,10 +68,8 @@ namespace Engine
             gameEditor->Tick();
             gameEditor->Render();
 #endif
-            vkDriver->DispatchGPUWork();
+            gfxDriver->DispatchGPUWork();
         }
-
-        int i = 0;
     }
 
     WeilanEngine::~WeilanEngine()
@@ -89,6 +77,7 @@ namespace Engine
         gameEditor = nullptr;
         renderPipeline = nullptr;
         AssetDatabase::Deinit();
+        Gfx::GfxDriver::DestroyGfxDriver();
     }
 
     void WeilanEngine::RegisterAssetImporters()

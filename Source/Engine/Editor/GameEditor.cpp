@@ -5,7 +5,7 @@
 
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderLoader.hpp"
 #include "EditorRegister.hpp"
 #include "Extension/Inspector/BuildInInspectors.hpp"
@@ -38,7 +38,6 @@ namespace Engine::Editor
     {
         ImGui::CreateContext();
         ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
-        renderContext = gfxDriver->GetRenderContext();
         editorContext = MakeUnique<EditorContext>();
         sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
         inspector = MakeUnique<InspectorWindow>(editorContext);
@@ -48,10 +47,10 @@ namespace Engine::Editor
 
         InitializeBuiltInInspector();
 
-        imGuiData.indexBuffer = Gfx::GfxFactory::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Index, true);
-        imGuiData.vertexBuffer = Gfx::GfxFactory::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Vertex, true);
+        imGuiData.indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Index, true);
+        imGuiData.vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Vertex, true);
         imGuiData.shaderProgram = AssetDatabase::Instance()->GetShader("ImGui")->GetShaderProgram();
-        imGuiData.generalShaderRes = Gfx::GfxFactory::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::View);
+        imGuiData.generalShaderRes = Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
 
         // imGuiData.editorRT creation
         {
@@ -59,7 +58,7 @@ namespace Engine::Editor
             editorRTDesc.width = gfxDriver->GetWindowSize().width;
             editorRTDesc.height = gfxDriver->GetWindowSize().height;
             editorRTDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-            imGuiData.editorRT = Gfx::GfxFactory::Instance()->CreateImage(editorRTDesc, Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc);
+            imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(editorRTDesc, Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc);
         }
 
         // imGuiData.fontTex creation
@@ -72,7 +71,7 @@ namespace Engine::Editor
         fontTexDesc.width = width;
         fontTexDesc.height = height;
         fontTexDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-        imGuiData.fontTex = Gfx::GfxFactory::Instance()->CreateImage(fontTexDesc, Gfx::ImageUsage::Texture);
+        imGuiData.fontTex = Gfx::GfxDriver::Instance()->CreateImage(fontTexDesc, Gfx::ImageUsage::Texture);
         imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex);
         imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
 
@@ -82,7 +81,7 @@ namespace Engine::Editor
         gameDepthImage = renderPipeline->GetOutputDepth();
 
         /* imgui render pass */
-        editorPass = Gfx::GfxFactory::Instance()->CreateRenderPass();
+        editorPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
         Gfx::RenderPass::Attachment colorAttachment;
         colorAttachment.format = imGuiData.editorRT->GetDescription().format;
         colorAttachment.loadOp = Gfx::AttachmentLoadOperation::Clear;
@@ -92,16 +91,16 @@ namespace Engine::Editor
         Gfx::RenderPass::Subpass subpass;
         subpass.colors.push_back(0);
         editorPass->SetSubpass({subpass});
-        frameBuffer = Gfx::GfxFactory::Instance()->CreateFrameBuffer(editorPass);
+        frameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(editorPass);
         frameBuffer->SetAttachments({imGuiData.editorRT});
 
         /* game depth image*/
         Gfx::ImageDescription ourGameDepthDesc = gameDepthImage->GetDescription();
         ourGameDepthDesc.format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
-        ourGameDepthImage = Gfx::GfxFactory::Instance()->CreateImage(ourGameDepthDesc, Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::TransferDst);
+        ourGameDepthImage = Gfx::GfxDriver::Instance()->CreateImage(ourGameDepthDesc, Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::TransferDst);
 
         /* scene pass data */
-        scenePass = Gfx::GfxFactory::Instance()->CreateRenderPass();
+        scenePass = Gfx::GfxDriver::Instance()->CreateRenderPass();
         Gfx::RenderPass::Attachment sceneDepthAttachment;
         sceneDepthAttachment.format = gameDepthImage->GetDescription().format;
         sceneDepthAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
@@ -116,12 +115,11 @@ namespace Engine::Editor
         editorPass0.colors.push_back(0);
         editorPass0.depthAttachment = 1;
         scenePass->SetSubpass({editorPass0});
-        sceneFrameBuffer = Gfx::GfxFactory::Instance()->CreateFrameBuffer(scenePass);
+        sceneFrameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(scenePass);
         sceneFrameBuffer->SetAttachments({colorImage, ourGameDepthImage});
 
         outlineByStencil = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencil");
         outlineByStencilDrawOutline = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencilDrawOutline");
-        gfxDriver->SetPresentImage(imGuiData.editorRT);
     }
 
     void GameEditor::ProcessEvent(const SDL_Event& event)
@@ -157,10 +155,11 @@ namespace Engine::Editor
     {
         ImGui::Render();
 
-        auto cmdBuf = renderContext->CreateCommandBuffer();
+        auto cmdBuf = gfxDriver->CreateCommandBuffer();
         RenderSceneGUI(cmdBuf);
         RenderEditor(cmdBuf);
-        renderContext->ExecuteCommandBuffer(std::move(cmdBuf));
+        cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
+        gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
     }
 
     void GameEditor::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
@@ -309,7 +308,7 @@ namespace Engine::Editor
 
         if (imageResourcesCache.size() <= currCacheIndex)
         {
-            imageResourcesCache.push_back(Gfx::GfxFactory::Instance()->CreateShaderResource(shaderProgram, Gfx::ShaderResourceFrequency::View));
+            imageResourcesCache.push_back(Gfx::GfxDriver::Instance()->CreateShaderResource(shaderProgram, Gfx::ShaderResourceFrequency::Global));
             assert(currCacheIndex + 1 == imageResourcesCache.size());
             return imageResourcesCache.back();
         }

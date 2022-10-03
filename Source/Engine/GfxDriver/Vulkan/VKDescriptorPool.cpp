@@ -145,6 +145,4 @@ namespace Engine::Gfx
 
         return rlt;
     }
-
-    UniPtr<VKDescriptorPoolCache> VKDescriptorPoolCache::singleton = nullptr;
 }

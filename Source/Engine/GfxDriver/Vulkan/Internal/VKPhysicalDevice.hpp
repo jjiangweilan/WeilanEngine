@@ -17,10 +17,6 @@ namespace Engine::Gfx
 
         const std::vector<VkExtensionProperties>& GetAvailableExtensions() const { return availableExtensions; }
 
-        uint32_t GetGraphicsQueueFamilyIndex() const { return graphicsQueueFamilyIndex; }
-
-        uint32_t GetPresentQueueFamilyIndex() const { return presentQueueFamilyIndex; }
-
         //const uint32_t& GetTransferQueueFamilyIndex() const { return graphicsQueueFamilyIndex; }
 
         VkPhysicalDevice GetHandle() const { return gpu; }
@@ -44,9 +40,6 @@ namespace Engine::Gfx
 
         std::vector<VkQueueFamilyProperties> queueFamilyProperties;
         std::vector<VkExtensionProperties> availableExtensions;
-
-        uint32_t graphicsQueueFamilyIndex;
-        uint32_t presentQueueFamilyIndex;
 
         static std::vector<VKPhysicalDevice> GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface);
         void GetRequiredQueuesFamilyIndices(VKPhysicalDevice& physicalDevice);

@@ -133,13 +133,12 @@ namespace Engine::Gfx
             }
     };
 
-    VKRenderTarget::VKRenderTarget(VKContext* context, VKAppWindow* window, uint32_t queueFamilyIndex, const RenderTargetDescription& renderTargetDescription) : 
+    VKRenderTarget::VKRenderTarget(VKContext* context, VKAppWindow* window, const RenderTargetDescription& renderTargetDescription) : 
         RenderTarget(),
-        context(context),
         memAllocator(context->allocator.Get()),
-        objectManager(context->objManager.Get()),
         window(window),
-        queueFamilyIndex(queueFamilyIndex)
+        objectManager(context->objManager.Get()),
+        context(context)
     {
         SetRenderTargetDescription(renderTargetDescription);
     }
@@ -192,7 +191,7 @@ namespace Engine::Gfx
                 imageDesc.multiSampling = color.multiSampling;
                 imageDesc.mipLevels = color.mipLevels;
                 // TODO: if this render target is a transient target, maybe it doesn't need to be sampled?
-                attachments.emplace_back(context, imageDesc, ImageUsage::ColorAttachment | ImageUsage::Texture);
+                attachments.emplace_back(imageDesc, ImageUsage::ColorAttachment | ImageUsage::Texture);
                 attachmentImageViews.push_back(attachments.back().GetDefaultImageView());
             }
 
@@ -207,7 +206,7 @@ namespace Engine::Gfx
                 imageDesc.multiSampling = dsDescription->multiSampling;
                 imageDesc.mipLevels = dsDescription->mipLevels;
 
-                attachments.emplace_back(context, imageDesc, ImageUsage::DepthStencilAttachment | ImageUsage::Texture);
+                attachments.emplace_back(imageDesc, ImageUsage::DepthStencilAttachment | ImageUsage::Texture);
                 VkImageView imageView = attachments.back().GetDefaultImageView();
                 attachmentImageViews.push_back(imageView);
             }

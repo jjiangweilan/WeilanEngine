@@ -1,5 +1,5 @@
 #include "Material.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
@@ -67,7 +67,7 @@ namespace Engine
         {
             this->shaderName = shaderName;
             shaderConfig = shader->GetDefaultShaderConfig();
-            shaderResource = Gfx::GfxFactory::Instance()->CreateShaderResource(shader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
+            shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(shader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
         }
     }
 

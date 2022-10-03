@@ -19,10 +19,8 @@ namespace Engine
             void Launch();
 
         private:
-            UniPtr<Gfx::VKDriver> vkDriver;
+            RefPtr<Gfx::GfxDriver> gfxDriver;
 
-            // when no camera is in the world, engine uses it's own virtual camera
-            void SetVirtualCamera();
             std::shared_ptr<RenderTarget> virtualRenderTarget;
             UniPtr<AssetDatabase> assetDatabase;
             UniPtr<Rendering::RenderPipeline> renderPipeline;

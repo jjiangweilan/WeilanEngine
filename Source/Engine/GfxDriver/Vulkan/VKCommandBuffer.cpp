@@ -4,8 +4,8 @@
 #include "VKShaderProgram.hpp"
 #include "VKRenderPass.hpp"
 #include "VKFrameBuffer.hpp"
-#include "Exp/VKShaderResource.hpp"
-#include "Exp/VKBuffer.hpp"
+#include "VKShaderResource.hpp"
+#include "VKBuffer.hpp"
 #include <spdlog/spdlog.h>
 namespace Engine::Gfx
 {
@@ -87,7 +87,7 @@ namespace Engine::Gfx
         pendingCommands.push_back(std::move(f));
     }
 
-    void VKCommandBuffer::ExecutePendingCommands(VkCommandBuffer cmd)
+    void VKCommandBuffer::RecordToVulkanCmdBuf(VkCommandBuffer cmd)
     {
         executeContext.currentPass = VK_NULL_HANDLE;
         executeContext.subpass = 0;
@@ -98,39 +98,6 @@ namespace Engine::Gfx
         }
 
         pendingCommands.clear();
-    }
-
-    void VKCommandBuffer::Render(Mesh& mesh, Material& material)
-    {
-        Mesh* pMesh = &mesh;
-        Exp::VKShaderResource* shaderResource = static_cast<Exp::VKShaderResource*>(material.GetShaderResource().Get());
-        VKShaderProgram* shader = static_cast<VKShaderProgram*>(material.GetShader()->GetShaderProgram().Get());
-
-        BindResource(shaderResource);
-        auto f = [=, &material](VkCommandBuffer cmd, ExecuteContext& context) mutable
-        {
-            // binding pipeline
-            auto pipeline = shader->RequestPipeline(material.GetShaderConfig(), context.currentPass, context.subpass);
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-            // binding mesh
-            const auto& meshBindingInfo = pMesh->GetMeshBindingInfo();
-            VkBuffer buffers[32];
-            uint32_t i = 0;
-            for(auto b : meshBindingInfo.bindingBuffers)
-            {
-                buffers[i] = static_cast<Exp::VKBuffer*>(b.Get())->GetVKBuffer();
-                i += 1;
-            }
-            vkCmdBindVertexBuffers(cmd, 0, meshBindingInfo.bindingBuffers.size(), buffers, meshBindingInfo.bindingOffsets.data());
-            VkBuffer indexBuf = static_cast<Exp::VKBuffer*>(meshBindingInfo.indexBuffer.Get())->GetVKBuffer();
-            vkCmdBindIndexBuffer(cmd, indexBuf, meshBindingInfo.indexBufferOffset, VK_INDEX_TYPE_UINT16);
-
-            auto& vertDesc = pMesh->GetVertexDescription();
-            vkCmdDrawIndexed(cmd, vertDesc.index.count, 1, 0, 0, 0);
-        };
-
-        pendingCommands.push_back(std::move(f));
     }
 
     void VKCommandBuffer::Blit(RefPtr<Gfx::Image> from_Base, RefPtr<Gfx::Image> to_Base)
@@ -164,7 +131,7 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
     {
-        Exp::VKShaderResource* resource = (Exp::VKShaderResource*)resource_.Get();
+        VKShaderResource* resource = (VKShaderResource*)resource_.Get();
         if (recordContext.currentPass != VK_NULL_HANDLE)
         {
             recordContext.bindedResources[recordContext.currentPass].push_back(resource);
@@ -217,14 +184,14 @@ namespace Engine::Gfx
         pendingCommands.push_back(std::move(f));
     }
 
-    void VKCommandBuffer::BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex)
+    void VKCommandBuffer::BindVertexBuffer(const std::vector<RefPtr<Gfx::GfxBuffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex)
     {
         assert(buffers.size() < 16);
         VkBuffer vkBuffers[16];
         uint64_t vkOffsets[16];
         for(uint32_t i = 0; i < buffers.size(); ++i)
         {
-            vkBuffers[i] = static_cast<Exp::VKBuffer*>(buffers[i].Get())->GetVKBuffer();
+            vkBuffers[i] = static_cast<VKBuffer*>(buffers[i].Get())->GetVKBuffer();
             vkOffsets[i] = offsets[i];
         }
 
@@ -236,11 +203,11 @@ namespace Engine::Gfx
         pendingCommands.push_back(std::move(f));
     }
 
-    void VKCommandBuffer::BindIndexBuffer(Gfx::Buffer* buffer, uint64_t offset)
+    void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset)
     {
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
         {
-            VkBuffer indexBuf = static_cast<Exp::VKBuffer*>(buffer)->GetVKBuffer();
+            VkBuffer indexBuf = static_cast<VKBuffer*>(buffer.Get())->GetVKBuffer();
             vkCmdBindIndexBuffer(cmd, indexBuf, offset, VK_INDEX_TYPE_UINT16);
         };
 

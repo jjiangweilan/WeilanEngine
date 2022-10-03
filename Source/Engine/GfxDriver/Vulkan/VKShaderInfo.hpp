@@ -37,8 +37,8 @@ namespace Engine::Gfx::ShaderInfo
         Member(const Member& other) :
             name(other.name),
             data(MakeUnique<StructuredData>(*other.data)),
-            dimension(other.dimension),
-            offset(other.offset){};
+            offset(other.offset),
+            dimension(other.dimension){};
 
         Member& operator=(const Member& other)
         {

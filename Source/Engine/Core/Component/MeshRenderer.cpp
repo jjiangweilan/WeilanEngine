@@ -1,6 +1,6 @@
 #include "MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 namespace Engine
 {
     MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material) : Component("MeshRenderer", parent), mesh(mesh), material(material)
@@ -45,7 +45,7 @@ namespace Engine
     {
         if (material != nullptr && material->GetShader() != nullptr)
         {
-            objectShaderResource = Gfx::GfxFactory::Instance()->CreateShaderResource(material->GetShader()->GetShaderProgram(), Gfx::ShaderResourceFrequency::Object);
+            objectShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(material->GetShader()->GetShaderProgram(), Gfx::ShaderResourceFrequency::Object);
         }
     }
 }

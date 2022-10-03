@@ -24,38 +24,6 @@ namespace Engine::Gfx
 
         availableExtensions.resize(count);
         vkEnumerateDeviceExtensionProperties(gpu, nullptr, &count, availableExtensions.data());
-
-        // Get queue families
-        int queueFamilyIndex = 0;
-        const int INVALID_INDEX = -1;
-        graphicsQueueFamilyIndex = INVALID_INDEX;
-        presentQueueFamilyIndex = INVALID_INDEX;
-
-        for (; queueFamilyIndex < queueFamilyProperties.size(); ++queueFamilyIndex)
-        {
-            if ((queueFamilyProperties[queueFamilyIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                graphicsQueueFamilyIndex == INVALID_INDEX)
-            {
-                VkBool32 surfaceSupport = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(gpu, queueFamilyIndex, surface->GetHandle(), &surfaceSupport);
-                if (surfaceSupport)
-                {
-                    graphicsQueueFamilyIndex = queueFamilyIndex;
-                }
-            }
-
-            if(graphicsQueueFamilyIndex == INVALID_INDEX)
-            {
-                std::runtime_error("Can't find a queue that support both graphics and present");
-            }
-
-            presentQueueFamilyIndex = graphicsQueueFamilyIndex;
-        }
-
-        if (graphicsQueueFamilyIndex == INVALID_INDEX || presentQueueFamilyIndex == INVALID_INDEX)
-        {
-            std::runtime_error("Can't find graphicsQueueFamilyIndex or presentQueueIndex or both");
-        }
     }
 
     std::vector<VKPhysicalDevice> VKPhysicalDevice::GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface)

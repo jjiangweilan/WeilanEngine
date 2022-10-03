@@ -2,10 +2,11 @@
 
 #include <vulkan/vulkan.hpp>
 #include <vma/vk_mem_alloc.h>
-#include "../VKCommandBuffer.hpp"
 #include <functional>
 #include <vector>
 #include <utility>
+#include "Code/Ptr.hpp"
+#include "VKDevice.hpp"
 
 namespace Engine::Gfx
 {
@@ -17,14 +18,15 @@ namespace Engine::Gfx
     };
 
     class Image;
+    class VKImage;
     class VKMemAllocator
     {
         public:
-            VKMemAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex);
+            VKMemAllocator(VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex);
             VKMemAllocator(const VKMemAllocator& other) = delete;
             ~VKMemAllocator();
 
-            void UploadData(VkBuffer dst, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
+            void UploadBuffer(VkBuffer dst, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
             void UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data);
 
             void CreateBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocCreateInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo = nullptr);
@@ -35,12 +37,12 @@ namespace Engine::Gfx
 
             void RecordPendingCommands(VkCommandBuffer cmd);
             void DestroyPendingResources();
-            VkDevice GetDevice() {return device;}
+            RefPtr<VKDevice> GetDevice() {return device;}
 
         private:
             VmaAllocator allocator_vma;
 
-            VkDevice device;
+            RefPtr<VKDevice> device;
             uint32_t queueFamilyIndex;
 
             std::vector<std::function<void(VkCommandBuffer)>> pendingCommands;

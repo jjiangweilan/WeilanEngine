@@ -3,7 +3,6 @@
 #include "Code/Ptr.hpp"
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/Component/Transform.hpp"
-#include "Core/Graphics/RenderContext.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Graphics/FrameContext.hpp"
 namespace Engine
@@ -26,7 +25,6 @@ namespace Engine::Rendering
 
         private:
 
-            RenderContext* renderContext;
             RefPtr<Gfx::GfxDriver> gfxDriver;
 
             void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd);

@@ -1,14 +1,12 @@
 #include "VKShaderModule.hpp"
 #include "Code/Ptr.hpp"
-#include "../Internal/VKObjectManager.hpp"
-#include "../VKContext.hpp"
-#include "../Internal/VKDevice.hpp"
+#include "VKContext.hpp"
 #include <spirv_cross/spirv_reflect.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace Engine::Gfx::ShaderInfo;
 
-namespace Engine::Gfx::Exp
+namespace Engine::Gfx
 {
     ShaderDataType MapShaderDataType(const std::string& typeStr)
     {
@@ -83,10 +81,9 @@ namespace Engine::Gfx::Exp
         return (VkFormat)0;
     }
 
-    VKShaderModule::VKShaderModule(RefPtr<VKContext> context, const std::string& name, unsigned char* code, uint32_t codeByteSize, bool vertInterleaved) :
-        context(context),
+    VKShaderModule::VKShaderModule(const std::string& name, unsigned char* code, uint32_t codeByteSize, bool vertInterleaved) :
         vertInterleaved(vertInterleaved),
-        gpuProperties(context->device->GetGPU().GetPhysicalDeviceProperties())
+        gpuProperties(VKContext::Instance()->device->GetGPU().GetPhysicalDeviceProperties())
     {
         spirv_cross::CompilerReflection compilerReflection((const uint32_t*) code, codeByteSize / sizeof(uint32_t));
         nlohmann::json jsonInfo = nlohmann::json::parse(compilerReflection.compile());
@@ -103,7 +100,7 @@ namespace Engine::Gfx::Exp
         createInfo.flags = 0;
         createInfo.codeSize = codeByteSize;
         createInfo.pCode = reinterpret_cast<uint32_t*>(code);
-        context->objManager->CreateShaderModule(createInfo, shaderModule);
+        VKContext::Instance()->objManager->CreateShaderModule(createInfo, shaderModule);
 
         jsonInfo["spvPath"] = name;
         // Create shader info
@@ -114,7 +111,7 @@ namespace Engine::Gfx::Exp
 
     VKShaderModule::~VKShaderModule() 
     {
-        context->objManager->DestroyShaderModule(shaderModule);
+        VKContext::Instance()->objManager->DestroyShaderModule(shaderModule);
     }
 
     const ShaderModuleGraphicsPipelineCreateInfos& VKShaderModule::GetShaderModuleGraphicsPipelineCreateInfos()

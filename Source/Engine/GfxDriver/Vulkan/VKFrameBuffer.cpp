@@ -5,13 +5,13 @@
 #include "Internal/VKObjectManager.hpp"
 namespace Engine::Gfx
 {
-    VKFrameBuffer::VKFrameBuffer(RefPtr<VKContext> context, RefPtr<RenderPass> baseRenderPass) : baseRenderPass((VKRenderPass*)baseRenderPass.Get()), context(context)
+    VKFrameBuffer::VKFrameBuffer(RefPtr<RenderPass> baseRenderPass) : baseRenderPass((VKRenderPass*)baseRenderPass.Get())
     {}
 
     VKFrameBuffer::~VKFrameBuffer()
     {
         if (frameBuffer != VK_NULL_HANDLE)
-            context->objManager->DestroyFramebuffer(frameBuffer);
+            VKContext::Instance()->objManager->DestroyFramebuffer(frameBuffer);
     }
 
     void VKFrameBuffer::SetAttachments(const std::vector<RefPtr<Image>> &attachments)
@@ -61,6 +61,6 @@ namespace Engine::Gfx
         createInfo.height = height;
         createInfo.layers = 1;
 
-        context->objManager->CreateFramebuffer(createInfo, frameBuffer);
+        VKContext::Instance()->objManager->CreateFramebuffer(createInfo, frameBuffer);
     }
 }

@@ -14,7 +14,7 @@ namespace Engine::Gfx
 
     enum class ShaderResourceFrequency
     {
-        View,
+        Global,
         Shader,
         Material,
         Object

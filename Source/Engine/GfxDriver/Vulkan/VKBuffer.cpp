@@ -4,7 +4,7 @@
 #include "GfxDriver/Vulkan/Internal/VKMemAllocator.hpp"
 
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
-namespace Engine::Gfx::Exp
+namespace Engine::Gfx
 {
     VkBufferUsageFlags MapBufferUsage(BufferUsage usageIn)
     {
@@ -21,8 +21,8 @@ namespace Engine::Gfx::Exp
         return usage;
     }
 
-    VKBuffer::VKBuffer(RefPtr<VKContext> context, uint32_t size, VkBufferUsageFlags usage, bool readback):
-        Buffer(size), context(context), usage(usage), allocationInfo{}
+    VKBuffer::VKBuffer(uint32_t size, VkBufferUsageFlags usage, bool readback):
+        GfxBuffer(size), allocator(VKContext::Instance()->allocator), usage(usage), allocationInfo{}
     {
         if (readback)
         {
@@ -35,13 +35,13 @@ namespace Engine::Gfx::Exp
         }
     }
 
-    VKBuffer::VKBuffer(RefPtr<VKContext> context, uint32_t size, BufferUsage bu, bool readback) : 
-        VKBuffer(context, size, MapBufferUsage(bu), readback) {}
+    VKBuffer::VKBuffer(uint32_t size, BufferUsage bu, bool readback) : 
+        VKBuffer(size, MapBufferUsage(bu), readback) {}
 
     VKBuffer::~VKBuffer()
     {
         if (buffer != VK_NULL_HANDLE)
-            context->allocator->DestroyBuffer(buffer, allocation);
+            allocator->DestroyBuffer(buffer, allocation);
     }
 
     VkBuffer VKBuffer::GetVKBuffer()
@@ -61,7 +61,7 @@ namespace Engine::Gfx::Exp
         range.data = data;
         range.offsetInSrc = 0;
         range.size = dataSize;
-        context->allocator->UploadData(buffer, offsetInDst, dataSize, &range, 1);
+        allocator->UploadBuffer(buffer, offsetInDst, dataSize, &range, 1);
     }
 
     void* VKBuffer::GetCPUVisibleAddress()
@@ -84,21 +84,21 @@ namespace Engine::Gfx::Exp
         createInfo.usage = usage;
         createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         createInfo.queueFamilyIndexCount = 1;
-        uint32_t queueFamily = context->device->GetGPU().GetGraphicsQueueFamilyIndex();
+        uint32_t queueFamily = VKContext::Instance()->mainQueue->queueFamilyIndex;
         createInfo.pQueueFamilyIndices = &queueFamily;
 
         VmaAllocationCreateInfo allocationCreateInfo{};
         allocationCreateInfo.usage = vmaMemUsage;
         allocationCreateInfo.flags = vmaAllocationCreateFlags;
 
-        context->allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
+        allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
     }
 
     void VKBuffer::Resize(uint32_t size)
     {
         if (buffer != VK_NULL_HANDLE)
         {
-            context->allocator->DestroyBuffer(buffer, allocation);
+            allocator->DestroyBuffer(buffer, allocation);
         }
 
         this->size = size;

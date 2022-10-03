@@ -3,9 +3,8 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKUtils.hpp"
-#include "VKContext.hpp"
 #include "Internal/VKEnumMapper.hpp"
-#include "Internal/VKDevice.hpp"
+#include "VKContext.hpp"
 #include <vma/vk_mem_alloc.h>
 
 #include <spdlog/spdlog.h>
@@ -13,13 +12,10 @@
 namespace Engine::Gfx
 {
     VKImage::VKImage(
-            RefPtr<VKContext> context,
             const ImageDescription& imageDescription,
             ImageUsageFlags usageFlags
             ):
-            queueFamilyIndex(context->device->GetGPU().GetGraphicsQueueFamilyIndex()),
             usageFlags(VKEnumMapper::MapImageUsage(usageFlags)),
-            context(context),
             imageDescription(imageDescription)
     {
         defaultSubResourceRange = GenerateDefaultSubresourceRange();
@@ -31,7 +27,7 @@ namespace Engine::Gfx
         defaultSubResourceRange = GenerateDefaultSubresourceRange();
         if (imageDescription.data)
         {
-            context->allocator->UploadImage(
+            VKContext::Instance()->allocator->UploadImage(
                 this,
                     Utils::MapImageFormatToByteSize(imageDescription.format) *
                     imageDescription.width *
@@ -43,13 +39,11 @@ namespace Engine::Gfx
     VKImage::VKImage(VKImage&& other) : 
         mipLevels(other.mipLevels),
         arrayLayers(other.arrayLayers),
-        queueFamilyIndex(other.queueFamilyIndex),
         imageType_vk(other.imageType_vk),
         usageFlags(other.usageFlags),
         image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
         imageView_vk(std::exchange(other.imageView_vk, VK_NULL_HANDLE)),
         defaultSubResourceRange(other.defaultSubResourceRange),
-        context(other.context),
         allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)),
         layout(other.layout),
         imageDescription(other.imageDescription)
@@ -59,9 +53,9 @@ namespace Engine::Gfx
     VKImage::~VKImage()
     {
         if (imageView_vk != VK_NULL_HANDLE)
-            context->objManager->DestroyImageView(imageView_vk);
+            VKContext::Instance()->objManager->DestroyImageView(imageView_vk);
         if(image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
-            context->allocator->DestoryImage(image_vk, allocation_vma);
+            VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
     }
 
     void VKImage::TransformLayoutIfNeeded(
@@ -81,7 +75,6 @@ namespace Engine::Gfx
             dstAccessMask,
             defaultSubResourceRange);
     }
-
 
     void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout targetLayout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange)
     {
@@ -104,7 +97,6 @@ namespace Engine::Gfx
         }
     }
 
-
     void VKImage::MakeVkObjects()
     {
         // create the image
@@ -122,11 +114,11 @@ namespace Engine::Gfx
         imageCreateInfo.usage = usageFlags;
         imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE ;
         imageCreateInfo.queueFamilyIndexCount = 1;
-        imageCreateInfo.pQueueFamilyIndices = &queueFamilyIndex;
+        imageCreateInfo.pQueueFamilyIndices = &VKContext::Instance()->mainQueue->queueFamilyIndex;
         imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        context->allocator->CreateImage(imageCreateInfo, image_vk, allocation_vma, &allocationInfo_vma);
+        VKContext::Instance()->allocator->CreateImage(imageCreateInfo, image_vk, allocation_vma, &allocationInfo_vma);
 
         CreateImageView();
     }
@@ -143,7 +135,7 @@ namespace Engine::Gfx
         createInfo.components = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
         createInfo.subresourceRange = GenerateDefaultSubresourceRange();
 
-        context->objManager->CreateImageView(createInfo, imageView_vk);
+        VKContext::Instance()->objManager->CreateImageView(createInfo, imageView_vk);
     }
 
     VkImageSubresourceRange VKImage::GenerateDefaultSubresourceRange()

@@ -1,5 +1,6 @@
 #pragma once
-#include "../VKSwapChainImage.hpp"
+#include "VKDevice.hpp"
+#include "../VKImage.hpp"
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <unordered_map>
@@ -23,21 +24,26 @@ namespace Engine::Gfx
             } swapChainInfo;
 
         public:
-            VKSwapChain(VKContext* context, VKPhysicalDevice& gpu, VKSurface& surface);
+            VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
             ~VKSwapChain();
             void RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
-            void AcquireNextImage(uint32_t& imageIndex,  VKImage*& nextPresentImage, VkSemaphore semaphoreToSignal);
-            VkResult PresentImage(VkQueue queue, uint32_t presentImageIndex, uint32_t waitSemaphoreCount, VkSemaphore* waitSemaphores);
-            std::vector<VKSwapChainImage>& GetSwapChainImages() { return swapChainImages; };
-            const VkSwapchainKHR& GetHandle() const {return swapChain; };
+            void AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal);
+            VkSwapchainKHR GetHandle() const {return swapChain; };
             const SwapChainInfo& GetSwapChainInfo() const { return swapChainInfo; };
 
         private:
-            VKContext* context;
+            class VKSwapChainImage : public VKImage
+            {
+                public:
+                    VKSwapChainImage(VkImage image, VkFormat format, uint32_t width, uint32_t height);
+                    VKSwapChainImage(VKSwapChainImage&& other) : VKImage(std::move(other)){};
+                    VKSwapChainImage() = default;
+                    ~VKSwapChainImage() override;
+            };
             VkSwapchainKHR swapChain;
-            VKDevice& attachedDevice;
-
+            RefPtr<VKDevice> attachedDevice;
             std::vector<VKSwapChainImage> swapChainImages;
+            uint32_t graphicsQueueFamilyIndex;
 
             bool GetSwapChainImagesFromVulkan();
 

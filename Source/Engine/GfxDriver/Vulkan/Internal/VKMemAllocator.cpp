@@ -8,7 +8,7 @@
 
 namespace Engine::Gfx
 {
-    VKMemAllocator::VKMemAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex) :
+    VKMemAllocator::VKMemAllocator(VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex) :
         device(device),
         queueFamilyIndex(transferQueueIndex)
     {
@@ -16,7 +16,7 @@ namespace Engine::Gfx
         VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
         vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
         vmaAllocatorCreateInfo.physicalDevice = physicalDevice;
-        vmaAllocatorCreateInfo.device = device;
+        vmaAllocatorCreateInfo.device = device->GetHandle();
         vmaAllocatorCreateInfo.instance = instance;
 
         VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));
@@ -146,7 +146,7 @@ namespace Engine::Gfx
         return srcBuf;
     }
 
-    void VKMemAllocator::UploadData(VkBuffer dst, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
+    void VKMemAllocator::UploadBuffer(VkBuffer dst, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
     {
         // create stage buffer
         VmaAllocation allocation;

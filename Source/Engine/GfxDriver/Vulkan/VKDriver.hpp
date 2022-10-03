@@ -14,8 +14,6 @@
 
 #include "VKShaderProgram.hpp"
 #include "VKRenderTarget.hpp"
-#include "VKRenderContext.hpp"
-#include "VKContext.hpp"
 
 namespace Engine::Gfx
 {
@@ -29,24 +27,38 @@ namespace Engine::Gfx
     class VKFrameBuffer;
     class VKRenderPass;
     class VKSharedResource;
+    class VKSwapChainImageProxy;
+    class VKContext;
+    class VKDescriptorPoolCache;
     class VKDriver : public Gfx::GfxDriver
     {
         public:
             VKDriver();
             ~VKDriver() override;
 
-            // Gfx api
-            void InitGfxFactory() override;
-            std::unique_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDescription& renderTargetDescription) override;
-            RenderContext* GetRenderContext() override;
-            void SetPresentImage(RefPtr<Image> presentImage) override;
+            void ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf) override;
             Extent2D GetWindowSize() override;
-            GfxBackend GetGfxBackendType() override;
-
+            Backend GetGfxBackendType() override;
             void ForceSyncResources() override;
             void DispatchGPUWork() override;
-
             SDL_Window* GetSDLWindow() override;
+            RefPtr<Image> GetSwapChainImageProxy() override;
+            UniPtr<CommandBuffer> CreateCommandBuffer() override;
+            UniPtr<GfxBuffer> CreateBuffer(uint32_t size, BufferUsage usage, bool cpuVisible = false) override;
+            UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) override;
+            UniPtr<RenderPass> CreateRenderPass() override;
+            UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
+            UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
+            UniPtr<ShaderProgram> CreateShaderProgram(
+                    const std::string& name, 
+                    const ShaderConfig* config,
+                    unsigned char* vert,
+                    uint32_t vertSize,
+                    unsigned char* frag,
+                    uint32_t fragSize) override;
+            
+            RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
+
         private:
             VKInstance* instance;
             VKDevice* device;
@@ -56,30 +68,27 @@ namespace Engine::Gfx
             VKSwapChain* swapchain;
 
             VKMemAllocator* memAllocator;
-            VKRenderContext* renderContext;
             VKObjectManager* objectManager;
 
             VkDevice device_vk;
             UniPtr<VKContext> context;
             UniPtr<VKSharedResource> sharedResource;
-            // Vulkan objects
-
-            // TODO: first we can extend this to multi command buffer, then we will do multithreading
+            UniPtr<VKSwapChainImageProxy> swapChainImageProxy;
+            UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
             VkCommandPool commandPool;
-            VkQueue mainQueue;
-            VkCommandBuffer mainCommandBuffer;
-
-            std::function<void(VkCommandBuffer)> presentImageFunc;
+            VkCommandBuffer renderingCmdBuf;
+            VkCommandBuffer resourceCmdBuf;
             VKRenderTarget* finalRenderTarget;
+            RefPtr<const DeviceQueue> mainQueue;
+
             struct InFlightFrame
             {
                 uint32_t imageIndex = -1;
-                VKImage* presentImage = nullptr;
                 VkSemaphore imageAcquireSemaphore = VK_NULL_HANDLE;
                 VkSemaphore renderingFinishedSemaphore = VK_NULL_HANDLE;
                 VkFence mainQueueFinishedFence = VK_NULL_HANDLE;
             } inFlightFrame;
 
-            std::shared_ptr<VKCommandBuffer> CreateCommandBuffer(VKCommandUsage usage);
+            std::vector<UniPtr<VKCommandBuffer>> pendingCmdBufs;
     };
 }

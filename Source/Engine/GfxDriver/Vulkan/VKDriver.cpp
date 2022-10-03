@@ -1,4 +1,3 @@
-#include "Code/Ptr.hpp"
 #include "VKDriver.hpp"
 
 #include "Internal/VKInstance.hpp"
@@ -10,14 +9,15 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKSwapChain.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "Exp/VKShaderModule.hpp"
+#include "VKShaderResource.hpp"
+#include "VKBuffer.hpp"
+#include "VKShaderModule.hpp"
+#include "VKContext.hpp"
 
 #include "VKFrameBuffer.hpp"
 #include "VKRenderPass.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKSharedResource.hpp"
-
-#include "VKFactory.hpp"
 
 #include <spdlog/spdlog.h>
 #if !_MSC_VER
@@ -31,7 +31,9 @@
 #if !_MSC_VER
 #pragma GCC diagnostic pop
 #endif
-
+#if defined(_WIN32) || defined(_WIN64)
+#undef CreateSemaphore
+#endif
 
 namespace Engine::Gfx
 {
@@ -45,21 +47,34 @@ namespace Engine::Gfx
 
     VKDriver::VKDriver()
     {
+        context = MakeUnique1<VKContext>();
+        VKContext::context = context;
         appWindow = new VKAppWindow();
         instance = new VKInstance(appWindow->GetVkRequiredExtensions());
         surface = new VKSurface(*instance, appWindow);
-        device = new VKDevice(instance, surface);
+        VKDevice::QueueRequest queueRequest[] = 
+        {
+            {
+                VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT,
+                true,
+                1
+            }
+        };
+        device = new VKDevice(instance, surface, queueRequest, 1);
+        context->device = device;
+        mainQueue = &device->GetQueue(0);
+        context->mainQueue = mainQueue;
         gpu = &device->GetGPU();
         device_vk = device->GetHandle();
-
         objectManager = new VKObjectManager(device_vk);
-
+        context->objManager = objectManager;
+        swapChainImageProxy = MakeUnique1<VKSwapChainImageProxy>();
         // create commands
         VkCommandPoolCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         createInfo.pNext = VK_NULL_HANDLE;
-        createInfo.queueFamilyIndex = gpu->GetGraphicsQueueFamilyIndex();
-        createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+        createInfo.queueFamilyIndex = mainQueue->queueFamilyIndex;
+        createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         vkCreateCommandPool(device->GetHandle(), &createInfo, VK_NULL_HANDLE, &commandPool);
         VkCommandBufferAllocateInfo cmdAllocInfo;
         cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -67,19 +82,14 @@ namespace Engine::Gfx
         cmdAllocInfo.commandPool = commandPool;
         cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         cmdAllocInfo.commandBufferCount = 1;
-        vkAllocateCommandBuffers(device_vk, &cmdAllocInfo, &mainCommandBuffer);
+        vkAllocateCommandBuffers(device_vk, &cmdAllocInfo, &renderingCmdBuf);
 
         // Create other objects
-        memAllocator = new VKMemAllocator(instance->GetHandle(), device->GetHandle(), gpu->GetHandle(), gpu->GetGraphicsQueueFamilyIndex());
-        mainQueue = device->GetGraphicsQueue();
-        renderContext = new VKRenderContext();
-        context = MakeUnique1<VKContext>();
+        memAllocator = new VKMemAllocator(instance->GetHandle(), device, gpu->GetHandle(), mainQueue->queueFamilyIndex);
         context->allocator = memAllocator;
-        context->device = device;
-        context->objManager = objectManager;
         sharedResource = MakeUnique1<VKSharedResource>(context);
         context->sharedResource = sharedResource;
-        swapchain = new VKSwapChain(context.Get(), *gpu, *surface);
+        swapchain = new VKSwapChain(mainQueue->queueFamilyIndex, gpu, *surface);
         context->swapchain = swapchain;
 
         // create inflight data
@@ -95,8 +105,9 @@ namespace Engine::Gfx
         fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         vkCreateFence(device_vk, &fenceCreateInfo, VK_NULL_HANDLE, &inFlightFrame.mainQueueFinishedFence);
 
-        // Initialize other modules
-        VKDescriptorPoolCache::Init(context);
+        // descriptor pool cache
+        descriptorPoolCache = MakeUnique1<VKDescriptorPoolCache>(context);
+        context->descriptorPoolCache = descriptorPoolCache;
     }
 
     VKDriver::~VKDriver()
@@ -109,14 +120,13 @@ namespace Engine::Gfx
         objectManager->DestroySemaphore(inFlightFrame.renderingFinishedSemaphore);
         vkDestroyFence(device_vk, inFlightFrame.mainQueueFinishedFence, VK_NULL_HANDLE);
          
-        VKDescriptorPoolCache::Deinit();
+        descriptorPoolCache = nullptr;
         objectManager->DestroyPendingResources();
         memAllocator->DestroyPendingResources();
 
         delete swapchain;
         delete memAllocator;
         delete objectManager;
-        delete renderContext;
         delete surface;
         delete appWindow;
         delete device;
@@ -128,14 +138,9 @@ namespace Engine::Gfx
         return appWindow->GetDefaultWindowSize();
     }
 
-    std::unique_ptr<RenderTarget> VKDriver::CreateRenderTarget(const RenderTargetDescription& renderTargetDescription)
+    Backend VKDriver::GetGfxBackendType()
     {
-        return std::make_unique<VKRenderTarget>(context.Get(), appWindow, gpu->GetGraphicsQueueFamilyIndex(), renderTargetDescription);
-    }
-
-    GfxBackend VKDriver::GetGfxBackendType()
-    {
-        return GfxBackend::Vulkan;
+        return Backend::Vulkan;
     }
 
     SDL_Window* VKDriver::GetSDLWindow()
@@ -143,58 +148,15 @@ namespace Engine::Gfx
         return appWindow->GetSDLWindow();
     }
 
-    RenderContext* VKDriver::GetRenderContext()
+    RefPtr<Image> VKDriver::GetSwapChainImageProxy()
     {
-        return renderContext;
-    }
-
-    void VKDriver::SetPresentImage(RefPtr<Image> presentImageSource)
-    {
-        VKImage **swapchainImage = &inFlightFrame.presentImage;
-        presentImageFunc = [=](VkCommandBuffer cmdBuf)
-        {   
-            VKImage* imageToPresent = static_cast<VKImage*>(presentImageSource.Get());
-
-            VkImageSubresourceLayers layer;
-            layer.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            layer.mipLevel = 0;
-            layer.baseArrayLayer = 0;
-            layer.layerCount = 1;
-
-            VkImageSubresourceRange range;
-            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            range.baseMipLevel = 0;
-            range.levelCount = 1;
-            range.baseArrayLayer = 0;
-            range.layerCount = 1;
-
-            imageToPresent->TransformLayoutIfNeeded(
-                cmdBuf,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_TRANSFER_READ_BIT,
-                range);
-            (*swapchainImage)->TransformLayoutIfNeeded(cmdBuf,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                0, 0, range);
-
-            VkImageBlit imageBlit;
-            imageBlit.srcSubresource = layer;
-            imageBlit.srcOffsets[0] = {0,0,0};
-            imageBlit.srcOffsets[1] = {(int32_t)imageToPresent->GetDescription().width,(int32_t)imageToPresent->GetDescription().height,1};
-            imageBlit.dstSubresource = layer;
-            imageBlit.dstOffsets[0] = {0,0,0};
-            imageBlit.dstOffsets[1] = {(int32_t)swapchain->GetSwapChainInfo().extent.width, (int32_t)swapchain->GetSwapChainInfo().extent.height, 1};
-            vkCmdBlitImage(cmdBuf, imageToPresent->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, (*swapchainImage)->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlit, VK_FILTER_NEAREST);
-          };
+        return swapChainImageProxy.Get();
     }
 
     void VKDriver::ForceSyncResources()
     {
-        vkDeviceWaitIdle(device->GetHandle());
+        return; // TODO: reimplementation needed
+        // graphicsQueue->WaitForIdle();
 
         vkResetCommandPool(device_vk, commandPool, 0);
 
@@ -204,11 +166,11 @@ namespace Engine::Gfx
         cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
 
-        vkBeginCommandBuffer(mainCommandBuffer, &cmdBeginInfo);
+        vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
 
-        memAllocator->RecordPendingCommands(mainCommandBuffer);
+        memAllocator->RecordPendingCommands(renderingCmdBuf);
 
-        vkEndCommandBuffer(mainCommandBuffer);
+        vkEndCommandBuffer(renderingCmdBuf);
 
         VkSubmitInfo submitInfo;
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -217,22 +179,28 @@ namespace Engine::Gfx
         submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
         submitInfo.pWaitDstStageMask = 0;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &mainCommandBuffer;
+        submitInfo.pCommandBuffers = &renderingCmdBuf;
         submitInfo.signalSemaphoreCount = 0;
         submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
-        vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        // vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
 
         vkDeviceWaitIdle(device->GetHandle());
     }
 
+    void VKDriver::ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf)
+    {
+        VKCommandBuffer* vkCmdBuf = static_cast<VKCommandBuffer*>(cmdBuf.Get());
+        cmdBuf.Release();
+        pendingCmdBufs.emplace_back(vkCmdBuf);
+    }
+
     void VKDriver::DispatchGPUWork()
     {
-        vkQueueWaitIdle(mainQueue);
-        swapchain->AcquireNextImage(inFlightFrame.imageIndex, inFlightFrame.presentImage, inFlightFrame.imageAcquireSemaphore);
+        vkQueueWaitIdle(mainQueue->queue);
+        swapchain->AcquireNextImage(swapChainImageProxy, inFlightFrame.imageAcquireSemaphore);
 
         vkWaitForFences(device_vk, 1, &inFlightFrame.mainQueueFinishedFence, true, -1);
         vkResetFences(device_vk, 1, &inFlightFrame.mainQueueFinishedFence);
-        vkResetCommandPool(device_vk, commandPool, 0);
 
         VkCommandBufferBeginInfo cmdBeginInfo;
         cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -240,43 +208,36 @@ namespace Engine::Gfx
         cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
 
-        vkBeginCommandBuffer(mainCommandBuffer, &cmdBeginInfo);
+        vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
         objectManager->DestroyPendingResources();
         memAllocator->DestroyPendingResources();
-        memAllocator->RecordPendingCommands(mainCommandBuffer);
+        memAllocator->RecordPendingCommands(renderingCmdBuf);
         // this function should appear after memAllocator and objectManager's DestoryXXX and RecordXXX,
         // because from user's perspective, all resources should be already when calling this function
-        context->RecordFramePrepareCommands(mainCommandBuffer);
 
         vkCmdPipelineBarrier(
-                mainCommandBuffer, 
+                renderingCmdBuf, 
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
                 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
-        renderContext->Render(mainCommandBuffer);
 
-        // copy from game output to swapchain image
-        if (presentImageFunc) presentImageFunc(mainCommandBuffer);
+        for(auto& cmdBuf : pendingCmdBufs)
+        {
+            cmdBuf->RecordToVulkanCmdBuf(renderingCmdBuf);
+        }
 
-        // render game ui directly in swapchain image
-
-        renderContext->Render(mainCommandBuffer);
-
-        // change present image's layout
         VkImageSubresourceRange range;
         range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         range.baseMipLevel = 0;
         range.levelCount = 1;
         range.baseArrayLayer = 0;
         range.layerCount = 1;
-        inFlightFrame.presentImage->TransformLayoutIfNeeded(mainCommandBuffer,
+        swapChainImageProxy->TransformLayoutIfNeeded(renderingCmdBuf,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
             VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, range);
-
-        vkEndCommandBuffer(mainCommandBuffer);
-
+        vkEndCommandBuffer(renderingCmdBuf);
         VkPipelineStageFlags waitForPresentState = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         VkSubmitInfo submitInfo;
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -285,18 +246,65 @@ namespace Engine::Gfx
         submitInfo.pWaitSemaphores = &inFlightFrame.imageAcquireSemaphore;
         submitInfo.pWaitDstStageMask = &waitForPresentState;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &mainCommandBuffer;
+        submitInfo.pCommandBuffers = &renderingCmdBuf;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = &inFlightFrame.renderingFinishedSemaphore;
-        vkQueueSubmit(mainQueue, 1, &submitInfo, inFlightFrame.mainQueueFinishedFence);
+        vkQueueSubmit(mainQueue->queue, 1, &submitInfo, inFlightFrame.mainQueueFinishedFence);
 
-        swapchain->PresentImage(mainQueue, inFlightFrame.imageIndex, 1, &inFlightFrame.renderingFinishedSemaphore);
+        // present
+        // change present image's layout
+        uint32_t activeIndex = swapChainImageProxy->GetActiveIndex();
+        VkSwapchainKHR swapChainHandle = swapchain->GetHandle();
+        VkPresentInfoKHR presentInfo = {
+            VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            nullptr,
+            1,
+            &inFlightFrame.renderingFinishedSemaphore,
+            1,
+            &swapChainHandle,
+            &activeIndex,
+            nullptr                                 
+        };
+        vkQueuePresentKHR(mainQueue->queue, &presentInfo);
     }
 
-    void VKDriver::InitGfxFactory()
+    UniPtr<GfxBuffer> VKDriver::CreateBuffer(uint32_t size, BufferUsage usage, bool cpuVisible)
     {
-        auto factory = MakeUnique1<VKFactory>();
-        factory->context = context;
-        GfxFactory::Init(std::move(factory));
+        return MakeUnique1<VKBuffer>(size, usage, cpuVisible);
     }
+
+    UniPtr<ShaderResource> VKDriver::CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
+    {
+        return MakeUnique1<VKShaderResource>(shader, frequency);
+    }
+
+    UniPtr<RenderPass> VKDriver::CreateRenderPass()
+    {
+        return MakeUnique1<VKRenderPass>();
+    }
+
+    UniPtr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
+    {
+        return MakeUnique1<VKFrameBuffer>(renderPass);
+    }
+
+    UniPtr<CommandBuffer> VKDriver::CreateCommandBuffer()
+    {
+        return MakeUnique1<VKCommandBuffer>();
+    }
+
+    UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUsageFlags usages)
+    {
+        return MakeUnique1<VKImage>(description, usages);
+    }
+    UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(const std::string& name, 
+            const ShaderConfig* config,
+            unsigned char* vert,
+            uint32_t vertSize,
+            unsigned char* frag,
+            uint32_t fragSize)
+    {
+        return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
+    }
+
 }

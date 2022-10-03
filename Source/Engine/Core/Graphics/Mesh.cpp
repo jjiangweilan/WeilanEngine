@@ -1,6 +1,6 @@
 #include "Mesh.hpp"
-#include "GfxDriver/GfxFactory.hpp"
-#include "GfxDriver/Buffer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/GfxBuffer.hpp"
 #include "Code/Utils.hpp"
 namespace Engine
 {
@@ -13,10 +13,10 @@ namespace Engine
         std::vector<DataRange> ranges;
 
         GetAttributesDataRangesAndBufSize(ranges, bufSize);
-        vertexBuffer = Gfx::GfxFactory::Instance()->CreateBuffer(bufSize, Gfx::BufferUsage::Vertex);
+        vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufSize, Gfx::BufferUsage::Vertex);
 
         uint32_t indexBufSize = vertexDescription.index.count * sizeof(uint16_t);
-        indexBuffer = Gfx::GfxFactory::Instance()->CreateBuffer(indexBufSize, Gfx::BufferUsage::Index);
+        indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(indexBufSize, Gfx::BufferUsage::Index);
 
         // load data to gpu buffer
         unsigned char* temp = new unsigned char[bufSize];

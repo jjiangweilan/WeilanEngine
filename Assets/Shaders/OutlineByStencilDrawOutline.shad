@@ -29,8 +29,8 @@ out gl_PerVertex
 
 void main()
 {
-    vec4 posVS = scene.view * pushConstant.model * vec4(i_Position, 1);
-    vec3 normVS = mat3(scene.view) * mat3(pushConstant.model) * i_Normal;
+    vec4 posVS = scene.view * pconst.model * vec4(i_Position, 1);
+    vec3 normVS = mat3(scene.view) * mat3(pconst.model) * i_Normal;
     posVS.xyz = posVS.xyz + normalize(vec3(normVS.x, normVS.y, 0)) * 0.1;
     gl_Position = scene.projection * vec4(posVS.xyz, 1);
 }

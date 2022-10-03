@@ -11,12 +11,12 @@ namespace Engine::Gfx
     class VKMemAllocator;
     class VKObjectManager;
     class VKAppWindow;
-    struct VKContext;
+    class VKContext;
 
     class VKRenderTarget : public RenderTarget
     {
         public:
-            VKRenderTarget(VKContext* context, VKAppWindow* window, uint32_t queueFamilyIndex,  const RenderTargetDescription& renderTargetDescription);
+            VKRenderTarget(VKContext* context, VKAppWindow* window, const RenderTargetDescription& renderTargetDescription);
             VKRenderTarget(const VKRenderTarget& other) = delete;
             virtual ~VKRenderTarget() override;
 
@@ -47,7 +47,6 @@ namespace Engine::Gfx
             std::vector<VKImage> attachments;
             std::vector<VkImageView> attachmentImageViews;
             std::vector<VkClearValue> clearValues;
-            uint32_t queueFamilyIndex;
             VKContext* context;
             VkExtent2D resolution;
             friend class VKDriver;

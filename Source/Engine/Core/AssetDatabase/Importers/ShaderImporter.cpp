@@ -1,5 +1,5 @@
 #include "ShaderImporter.hpp"
-#include "GfxDriver/GfxFactory.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Core/Graphics/Shader.hpp"
 #include "Utils/EnumStringMapping.hpp"
 #include "Utils/InternalAssets.hpp"
@@ -307,7 +307,7 @@ yamlEnd:
         uint32_t vertSize = sizeof(shaderc::SpvCompilationResult::element_type) * (vertResult.end() - vertResult.begin());
         uint32_t fragSize = sizeof(shaderc::SpvCompilationResult::element_type) * (fragResult.end() - fragResult.begin());
 
-        auto shaderProgram = Gfx::GfxFactory::Instance()->CreateShaderProgram(name,
+        auto shaderProgram = Gfx::GfxDriver::Instance()->CreateShaderProgram(name,
                 &config,
                 (unsigned char*)vertResult.begin(),
                 vertSize,

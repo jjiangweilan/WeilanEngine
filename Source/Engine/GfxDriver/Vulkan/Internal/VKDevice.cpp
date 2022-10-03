@@ -8,24 +8,54 @@
 
 namespace Engine::Gfx
 {
-    VKDevice::VKDevice(VKInstance* instance, VKSurface* surface) : 
+    VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queueRequests, int requestsCount) : 
         gpu(VKPhysicalDevice::SelectGPUAndQueryDataForSurface(*instance, *surface))
     {
-        auto requiredQueueFamilyIndex = std::vector<uint32_t>{gpu.GetGraphicsQueueFamilyIndex()};
-        float queuePriorities[] = {1, 0.9};
-        auto queueCreateInfos = std::vector<VkDeviceQueueCreateInfo>();
-
-        // TODO, Jiehong Jiang: This is probably a problen what if the two family index are the same?. 2021-11-18
-        for (int i = 0; i < requiredQueueFamilyIndex.size(); ++i)
+        assert(requestsCount < 16);
+        uint32_t queueFamilyIndices[16];
+        float queuePriorities[16];
+        auto& queueFamilyProperties = gpu.GetQueueFamilyProperties();
+        for(int i = 0; i < requestsCount; ++i)
         {
-            uint32_t queueFamilyIndex = requiredQueueFamilyIndex[i];
-            VkDeviceQueueCreateInfo queueCreateInfo{};
-            queueCreateInfo.flags = 0;
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
-            queueCreateInfo.queueCount = 1;
-            queueCreateInfo.pQueuePriorities = queuePriorities;
-            queueCreateInfos.push_back(queueCreateInfo);
+            QueueRequest request = queueRequests[i];
+            int queueFamilyIndex = 0;
+            bool found = false;
+            for (; queueFamilyIndex < queueFamilyProperties.size(); ++queueFamilyIndex)
+            {
+                if (queueFamilyProperties[queueFamilyIndex].queueFlags & request.flags)
+                {
+                    VkBool32 surfaceSupport = false;
+                    vkGetPhysicalDeviceSurfaceSupportKHR(gpu.GetHandle(), queueFamilyIndex, surface->GetHandle(), &surfaceSupport);
+                    if (surfaceSupport && request.requireSurfaceSupport)
+                    {
+                        found = true;
+                        break;
+                    }
+
+                    if (!request.requireSurfaceSupport)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found)
+                throw std::runtime_error("Vulkan: Can't find required queue family index");
+            
+            queueFamilyIndices[i] = queueFamilyIndex;
+            queuePriorities[i] = queueRequests[i].priority;
+        }
+
+        VkDeviceQueueCreateInfo queueCreateInfos[16];
+
+        for (int i = 0; i < requestsCount; ++i)
+        {
+            queueCreateInfos[i].flags = 0;
+            queueCreateInfos[i].pNext = VK_NULL_HANDLE;
+            queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfos[i].queueFamilyIndex = queueFamilyIndices[i];
+            queueCreateInfos[i].queueCount = 1;
+            queueCreateInfos[i].pQueuePriorities = queuePriorities;
         }
 
         VkDeviceCreateInfo deviceCreateInfo = {};
@@ -40,8 +70,8 @@ namespace Engine::Gfx
 
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCreateInfo.pNext = VK_NULL_HANDLE;
-        deviceCreateInfo.queueCreateInfoCount = queueCreateInfos.size();
-        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+        deviceCreateInfo.queueCreateInfoCount = requestsCount;
+        deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
         deviceCreateInfo.pEnabledFeatures = &requiredDeviceFeatures;
         deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
@@ -52,7 +82,23 @@ namespace Engine::Gfx
         vkCreateDevice(gpu.GetHandle(), &deviceCreateInfo, VK_NULL_HANDLE, &deviceHandle);
 
         // Get the device' queue
-        vkGetDeviceQueue(deviceHandle, gpu.GetGraphicsQueueFamilyIndex(), 0, &graphicsQueue);
+        for (int i = 0; i < requestsCount; ++i)
+        {
+            VkQueue queue = VK_NULL_HANDLE;
+            uint32_t queueIndex = 0;
+            // make sure each queue is unique
+            for(int j = 0; j < queues.size(); ++j)
+            {
+                if (queues[j].queueIndex == queueIndex)
+                {
+                    queueIndex += 1;
+                }
+            }
+            vkGetDeviceQueue(deviceHandle, queueFamilyIndices[i], queueIndex, &queue);
+
+            assert(queue != VK_NULL_HANDLE);
+            queues.push_back({queue, queueIndex, queueFamilyIndices[i]});
+        }
     }
 
     VKDevice::~VKDevice()

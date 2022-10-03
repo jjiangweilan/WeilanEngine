@@ -8,15 +8,12 @@
 #include <unordered_map>
 namespace Engine::Gfx
 {
-namespace Exp
-{
     class VKShaderModule;
-}
     class VKSwapChain;
     class VKObjectManager;
     class VKDescriptorPool;
     class VKShaderBufferStrategy;
-    struct VKContext;
+    class VKContext;
     struct ShaderPushConstant;
     class VKShaderProgram : public ShaderProgram
     {
@@ -51,8 +48,8 @@ namespace Exp
             typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
 
             VKObjectManager* objManager;
-            UniPtr<Exp::VKShaderModule> vertShaderModule;
-            UniPtr<Exp::VKShaderModule> fragShaderModule;
+            UniPtr<VKShaderModule> vertShaderModule;
+            UniPtr<VKShaderModule> fragShaderModule;
             VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
             VKSwapChain* swapchain;
 

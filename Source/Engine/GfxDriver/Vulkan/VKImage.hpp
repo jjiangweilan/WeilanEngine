@@ -2,41 +2,41 @@
 
 #include "../Image.hpp"
 #include "GfxDriver/GfxEnums.hpp"
+#include "Internal/VKDevice.hpp"
+#include "Internal/VKObjectManager.hpp"
+#include "Internal/VKMemAllocator.hpp"
 #include "Code/Ptr.hpp"
+
 #include <vma/vk_mem_alloc.h>
-#include <cinttypes>
 #include <vulkan/vulkan.h>
+
+#include <cinttypes>
+#include <vector>
 namespace Engine::Gfx
 {
-    struct VKContext;
     class VKImage : public Image
     {
         public:
-            VKImage(RefPtr<VKContext> context,
-                    const ImageDescription& imageDescription,
+            VKImage(const ImageDescription& imageDescription,
                     ImageUsageFlags usageFlags
                     );
             VKImage(const VKImage& other) = delete;
             VKImage(VKImage&& other);
-            
             ~VKImage() override;
 
-            // defualt image view created according to the creation parameters
-            VkImageView GetDefaultImageView();
+            virtual VkImageView GetDefaultImageView();
+            virtual VkImage GetImage() {return image_vk;}
+            virtual VkImageLayout GetLayout() {return layout;}
+            virtual const ImageDescription& GetDescription() override { return imageDescription; }
+            virtual VkImageSubresourceRange GetDefaultSubresourceRange() {return defaultSubResourceRange;}
 
-            VkImageSubresourceRange GetDefaultSubresourceRange() {return defaultSubResourceRange;}
-            VkImage GetImage() {return image_vk;}
-            VkImageLayout GetLayout() {return layout;}
-            const ImageDescription& GetDescription() override { return imageDescription; }
-
-            void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
-            void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
 
         protected:
-            VKImage(){};
+            VKImage() = default;
             uint32_t mipLevels = 1;
             uint32_t arrayLayers = 1;
-            uint32_t queueFamilyIndex;
             VkImageType imageType_vk = VK_IMAGE_TYPE_2D;
             VkImageUsageFlags usageFlags;
             VkImage image_vk = VK_NULL_HANDLE;
@@ -44,16 +44,44 @@ namespace Engine::Gfx
             VkDevice device_vk = VK_NULL_HANDLE;
             VkFormat format_vk = VK_FORMAT_UNDEFINED;
             VkImageSubresourceRange defaultSubResourceRange;
-            RefPtr<VKContext> context = nullptr;
 
             VmaAllocationInfo allocationInfo_vma;
             VmaAllocation allocation_vma = nullptr;
 
             VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
             ImageDescription imageDescription;
+
             VkImageViewType GenerateDefaultImageViewViewType();
             VkImageSubresourceRange GenerateDefaultSubresourceRange();
             void MakeVkObjects();
             void CreateImageView();
+    };
+
+    class VKSwapChainImageProxy : public VKImage
+    {
+        public:
+            VKSwapChainImageProxy() = default;
+            ~VKSwapChainImageProxy() = default;
+
+            void SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index)
+            { 
+                this->activeImage = activeImage;
+                this->activeIndex = index;
+            };
+            uint32_t GetActiveIndex() { return activeIndex; }
+            virtual VkImageView GetDefaultImageView() override { return activeImage->GetDefaultImageView(); }
+            virtual VkImage GetImage() override { return activeImage->GetImage(); }
+            virtual VkImageLayout GetLayout() override { return activeImage->GetLayout(); }
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange) override { activeImage->TransformLayoutIfNeeded(cmdBuf, layout, srcStageMask, dskStageMask, srcAccessMask, dstAccessMask, subresourceRange); }
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override
+            {
+                activeImage->TransformLayoutIfNeeded(cmdBuf, layout, srcStageMask, dskStageMask, srcAccessMask, dstAccessMask);
+            }
+
+            virtual const ImageDescription& GetDescription() override { return activeImage->GetDescription(); }
+            virtual VkImageSubresourceRange GetDefaultSubresourceRange() override { return activeImage->GetDefaultSubresourceRange();}
+        private:
+            uint32_t activeIndex;
+            RefPtr<VKImage> activeImage;
     };
 }

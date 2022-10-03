@@ -2,11 +2,10 @@
 
 #include "VKShaderProgram.hpp"
 #include "Internal/VKMemAllocator.hpp"
-#include "Exp/VKShaderModule.hpp"
+#include "VKShaderModule.hpp"
 #include "Internal/VKSwapChain.hpp"
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "VKDescriptorPool.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKContext.hpp"
 #include <spdlog/spdlog.h>
@@ -62,8 +61,8 @@ namespace Engine::Gfx
         if (config != nullptr) vertInterleaved = config->vertexInterleaved;
 
 
-        vertShaderModule = Engine::MakeUnique<Exp::VKShaderModule>(context, name, vertCode, vertSize, vertInterleaved); // the Engine:: namespace is necessary to pass MSVC compilation
-        fragShaderModule = Engine::MakeUnique<Exp::VKShaderModule>(context, name, fragCode, fragSize, vertInterleaved);
+        vertShaderModule = Engine::MakeUnique<VKShaderModule>(name, vertCode, vertSize, vertInterleaved); // the Engine:: namespace is necessary to pass MSVC compilation
+        fragShaderModule = Engine::MakeUnique<VKShaderModule>(name, fragCode, fragSize, vertInterleaved);
 
         // combine ShaderStageInfo into ShaderInfo
         ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
@@ -137,7 +136,7 @@ namespace Engine::Gfx
         pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
         pipelineLayoutCreateInfo.flags = 0;
 
-        std::vector<RefPtr<Exp::VKShaderModule>> modules;
+        std::vector<RefPtr<VKShaderModule>> modules;
         if (vertShaderModule != nullptr) modules.push_back(vertShaderModule);
         if (fragShaderModule != nullptr) modules.push_back(fragShaderModule);
 
@@ -153,7 +152,7 @@ namespace Engine::Gfx
             descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
             descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
             
-            auto& pool = VKDescriptorPoolCache::Instance()->RequestDescriptorPool(descriptorSetLayoutCreateInfo);
+            auto& pool = VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(descriptorSetLayoutCreateInfo);
             descriptorPools.push_back(&pool);
             layouts[i] = pool.GetLayout();
         }
@@ -211,8 +210,8 @@ namespace Engine::Gfx
         createInfo.flags = 0;
         createInfo.stageCount = 2;
 
-        const Exp::ShaderModuleGraphicsPipelineCreateInfos& vertGPInfos = vertShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
-        const Exp::ShaderModuleGraphicsPipelineCreateInfos& fragGPInfos = fragShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
+        const ShaderModuleGraphicsPipelineCreateInfos& vertGPInfos = vertShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
+        const ShaderModuleGraphicsPipelineCreateInfos& fragGPInfos = fragShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
 
         VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {vertGPInfos.pipelineShaderStageCreateInfo, fragGPInfos.pipelineShaderStageCreateInfo};
         createInfo.pStages = shaderStageCreateInfos;

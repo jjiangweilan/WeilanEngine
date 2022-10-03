@@ -29,7 +29,7 @@ out gl_PerVertex
 
 void main()
 {
-    gl_Position = scene.viewProjection * pushConstant.model * vec4(i_Position, 1);
+    gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
 }
 #endif
 

@@ -2,6 +2,7 @@
 #include "Core/Model.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/AssetObject.hpp"
+#include "Core/Graphics/Material.hpp"
 #include "../EditorRegister.hpp"
 #include "../imgui/imgui.h"
 #include "../Extension/CustomExplore/ModelExplorer.hpp"
