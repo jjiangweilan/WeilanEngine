@@ -38,6 +38,7 @@ namespace Engine::Editor
     {
         ImGui::CreateContext();
         ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
+        ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         editorContext = MakeUnique<EditorContext>();
         sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
         inspector = MakeUnique<InspectorWindow>(editorContext);
@@ -178,8 +179,10 @@ namespace Engine::Editor
         if (mesh == nullptr || material == nullptr) return;
 
         cmdBuf->Blit(gameDepthImage, ourGameDepthImage);
-        cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, {});
-            // draw outline using stencil
+        cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, clears);
+        // draw 3D Scene GUI
+
+        // draw outline using stencil
         if (mesh != nullptr && material != nullptr)
         {
             cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
@@ -191,11 +194,11 @@ namespace Engine::Editor
             cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
         }
         cmdBuf->EndRenderPass();
+
     }
 
     void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf)
     {
-
         std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
         clears[1].depthStencil.depth = 1;
