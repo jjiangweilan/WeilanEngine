@@ -105,6 +105,7 @@ namespace Engine::Rendering
             cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 
         gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
+        gfxDriver->DispatchGPUWork();
     }
 
     void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd)

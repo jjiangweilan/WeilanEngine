@@ -68,7 +68,6 @@ namespace Engine
             gameEditor->Tick();
             gameEditor->Render();
 #endif
-            gfxDriver->DispatchGPUWork();
         }
     }
 
