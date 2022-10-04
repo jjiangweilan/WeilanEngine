@@ -226,6 +226,7 @@ namespace Engine::Gfx
         {
             cmdBuf->RecordToVulkanCmdBuf(renderingCmdBuf);
         }
+        pendingCmdBufs.clear();
 
         VkImageSubresourceRange range;
         range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
