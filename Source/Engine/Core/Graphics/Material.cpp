@@ -61,10 +61,11 @@ namespace Engine
 
     void Material::SetShaderNoProtection(std::string_view shaderName)
     {
-        shader = AssetDatabase::Instance()->GetShader(std::string(shaderName));
+        auto newShader = AssetDatabase::Instance()->GetShader(std::string(shaderName));
 
-        if (shader)
+        if (newShader)
         {
+            this->shader = newShader;
             this->shaderName = shaderName;
             shaderConfig = shader->GetDefaultShaderConfig();
             shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(shader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
