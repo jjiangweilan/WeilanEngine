@@ -38,17 +38,17 @@ namespace Engine::Gfx
         private:
             struct ExecuteContext
             {
-                VkRenderPass currentPass;
-                uint32_t subpass;
+                VkRenderPass currentPass = VK_NULL_HANDLE;
+                uint32_t subpass = -1;
             } executeContext;
 
             struct RecordContext
             {
-                VkRenderPass currentPass;
+                VkRenderPass currentPass = VK_NULL_HANDLE;
                 std::unordered_map<VkRenderPass, std::vector<VKShaderResource*>> bindedResources;
             } recordContext;
 
 
-            std::vector<std::function<void(VkCommandBuffer, ExecuteContext& context)>> pendingCommands;
+            std::vector<std::function<void(VkCommandBuffer, ExecuteContext& context, RecordContext& recordContext)>> pendingCommands;
     };
 }

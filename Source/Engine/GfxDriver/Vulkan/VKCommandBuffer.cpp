@@ -28,7 +28,7 @@ namespace Engine::Gfx
         Gfx::VKFrameBuffer* vFrameBuffer = static_cast<Gfx::VKFrameBuffer*>(frameBuffer.Get());
         recordContext.currentPass = vRenderPass->GetHandle();
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             // make sure all the resource needed are in the correct format before the render pass begin
             // the first need of this is because we need a way to implictly make sure RT from previous render pass 
@@ -69,7 +69,7 @@ namespace Engine::Gfx
     void VKCommandBuffer::EndRenderPass()
     {
         recordContext.currentPass = nullptr;
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             vkCmdEndRenderPass(cmd);
         };
@@ -79,7 +79,7 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::AppendCustomCommand(std::function<void(VkCommandBuffer)>&& ff)
     {
-        auto f = [=, customF = std::move(ff)](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=, customF = std::move(ff)](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             customF(cmd);
         };
@@ -94,7 +94,7 @@ namespace Engine::Gfx
 
         for(auto& f : pendingCommands)
         {
-            f(cmd, executeContext);
+            f(cmd, executeContext, recordContext);
         }
 
         pendingCommands.clear();
@@ -105,7 +105,7 @@ namespace Engine::Gfx
         VKImage* from = static_cast<VKImage*>(from_Base.Get());
         VKImage* to = static_cast<VKImage*>(to_Base.Get());
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context) mutable
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
         {
             from->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             to->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
@@ -131,13 +131,15 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
     {
+        if (resource_ == nullptr) return;
+
         VKShaderResource* resource = (VKShaderResource*)resource_.Get();
         if (recordContext.currentPass != VK_NULL_HANDLE)
         {
             recordContext.bindedResources[recordContext.currentPass].push_back(resource);
         }
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context) mutable
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
         {
             VkDescriptorSet descSet = resource->GetDescriptorSet();
             resource->PrepareResource(cmd);
@@ -153,7 +155,7 @@ namespace Engine::Gfx
     {
         VKShaderProgram* program = (VKShaderProgram*)program_.Get();
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             // binding pipeline
             auto pipeline = program->RequestPipeline(config, context.currentPass, context.subpass);
@@ -176,7 +178,7 @@ namespace Engine::Gfx
             vkRects[i].extent.height = rect->extent.height;
         }
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             vkCmdSetScissor(cmd, firstScissor, scissorCount, vkRects);
         };
@@ -195,7 +197,7 @@ namespace Engine::Gfx
             vkOffsets[i] = offsets[i];
         }
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             vkCmdBindVertexBuffers(cmd, firstBindingIndex, buffers.size(), vkBuffers, vkOffsets);
         };
@@ -205,7 +207,7 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset)
     {
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             VkBuffer indexBuf = static_cast<VKBuffer*>(buffer.Get())->GetVKBuffer();
             vkCmdBindIndexBuffer(cmd, indexBuf, offset, VK_INDEX_TYPE_UINT16);
@@ -216,7 +218,7 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
     {
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context)
+        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
         };
