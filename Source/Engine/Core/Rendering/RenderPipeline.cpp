@@ -120,8 +120,8 @@ namespace Engine::Rendering
         {
             auto mesh = meshRenderer->GetMesh();
             auto material = meshRenderer->GetMaterial();
-
-            if (mesh && material)
+            auto shader = material->GetShader();
+            if (mesh && material && shader)
             {
                 material->SetMatrix("Transform", "model", meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
                 auto& meshBindingInfo = mesh->GetMeshBindingInfo();
@@ -129,7 +129,7 @@ namespace Engine::Rendering
                 cmd->BindVertexBuffer(meshBindingInfo.bindingBuffers, meshBindingInfo.bindingOffsets, 0);
                 cmd->BindIndexBuffer(meshBindingInfo.indexBuffer, meshBindingInfo.indexBufferOffset);
                 cmd->BindResource(material->GetShaderResource());
-                cmd->BindShaderProgram(material->GetShader()->GetShaderProgram(), material->GetShaderConfig());
+                cmd->BindShaderProgram(shader->GetShaderProgram(), material->GetShaderConfig());
                 cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
             }
         }
