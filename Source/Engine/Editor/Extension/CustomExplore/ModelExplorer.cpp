@@ -6,7 +6,7 @@ namespace Engine::Editor
     void ModelExplorer::Tick(RefPtr<EditorContext> editorContext, const std::filesystem::path& path)
     {
         RefPtr<Model> model = target;
-        if (ImGui::TreeNode((const char*)path.filename().c_str()))
+        if (ImGui::TreeNode(path.filename().string().c_str()))
         {
             for(const auto& name : model->GetMeshNames())
             {
