@@ -9,7 +9,19 @@ namespace Engine::Internal
         if (str == "VEC4") return 4;
         else if (str == "VEC3") return 3;
         else if (str == "VEC2") return 2;
+        else if (str == "MAT2") return 4;
+        else if (str == "MAT3") return 9;
+        else if (str == "MAT4") return 16;
         else if (str == "SCALAR") return 1;
+        assert(0);
+        return 0;
+    }
+
+    static int MapComponentTypeBitSize(const uint32_t& componentType)
+    {
+        if (componentType == 5120 || componentType == 5121) return 8;
+        else if (componentType == 5122 || componentType == 5123) return 16;
+        else if (componentType == 5125 || componentType == 5126) return 32;
         assert(0);
         return 0;
     }
@@ -58,6 +70,20 @@ namespace Engine::Internal
         attr.count = acce["count"];
         attr.data = (T*)((char*)bufChunkData + bufView["byteOffset"].get<int>());
         attr.componentCount = MapTypeToComponentCount(acce["type"]);
+    }
+
+    void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex, UntypedVertexAttribute& attr, uint32_t typeCheck)
+    {
+        auto& acce = accessors[accessorIndex];
+
+        assert(typeCheck == 0 || acce["componentType"] == typeCheck);
+
+        auto& bufView = bufferViews[acce["bufferView"].get<int>()];
+        attr.count = acce["count"];
+        attr.data = (char*)bufChunkData + bufView["byteOffset"].get<int>();
+        attr.componentCount = MapTypeToComponentCount(acce["type"]);
+        const int ByteToBit = 8;
+        attr.dataByteSize = MapComponentTypeBitSize(acce["componentType"]) / ByteToBit;
     }
 
     void glbImportHelper::Load(const std::filesystem::path& path)
@@ -133,6 +159,11 @@ namespace Engine::Internal
             AddDataToVertexDescription(prim["indices"], vertDesc.index, 5123);
             AddDataToVertexDescription(attrs["POSITION"], vertDesc.position, 5126);
             AddDataToVertexDescription(attrs["NORMAL"], vertDesc.normal, 5126);
+            if (attrs.contains("COLOR_0"))
+            {
+                vertDesc.colors.emplace_back();
+                AddDataToVertexDescription(attrs["COLOR_0"], vertDesc.colors[0]);
+            }
 
             UUID uuid = UUID::empty;
             auto uuidIter = preloadedUUIDs->find(meshName);

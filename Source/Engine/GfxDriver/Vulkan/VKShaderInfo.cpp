@@ -27,7 +27,8 @@ namespace Utils
         uint32_t baseTypeSize = sizeof(float);
         if (lowerName.find("color") != lowerName.npos)
         {
-            baseTypeSize = sizeof(char);
+            if (lowerName.find("16") != lowerName.npos) baseTypeSize = 2;
+            else baseTypeSize = sizeof(char);
         }
         if (typeName == "vec4") return baseTypeSize * 4;
         else if (typeName == "vec3") return baseTypeSize * 3;

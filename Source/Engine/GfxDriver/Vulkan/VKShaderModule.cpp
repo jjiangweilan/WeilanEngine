@@ -58,22 +58,38 @@ namespace Engine::Gfx
         std::string lowerName = str_tolower(name);
         if (str == "vec4")
         {
-            if (lowerName.find("color") != lowerName.npos) return VK_FORMAT_R8G8B8A8_UNORM;
+            if (lowerName.find("color") != lowerName.npos)
+            {
+                if (lowerName.find("16") != lowerName.npos) return VK_FORMAT_R16G16B16A16_UNORM;
+                return VK_FORMAT_R8G8B8A8_UNORM;
+            }
             return VK_FORMAT_R32G32B32A32_SFLOAT;
         }
         else if (str == "vec3")
         {
-            if (lowerName.find("color") != lowerName.npos) return VK_FORMAT_R8G8B8_UNORM;
+            if (lowerName.find("color") != lowerName.npos)
+            {
+                if(lowerName.find("16") != lowerName.npos) return VK_FORMAT_R16G16B16_UNORM;
+                return VK_FORMAT_R8G8B8_UNORM;
+            }
             return VK_FORMAT_R32G32B32_SFLOAT;
         }
         else if (str == "vec2")
         {
-            if (lowerName.find("color") != lowerName.npos) return VK_FORMAT_R8G8_UNORM;
+            if (lowerName.find("color") != lowerName.npos)
+            {
+                if(lowerName.find("16") != lowerName.npos) return VK_FORMAT_R16G16_UNORM;
+                return VK_FORMAT_R8G8_UNORM;
+            }
             return VK_FORMAT_R32G32_SFLOAT;
         }
         else if (str == "float")
         {
-            if (lowerName.find("color") != lowerName.npos) return VK_FORMAT_R8_UNORM;
+            if (lowerName.find("color") != lowerName.npos)
+            {
+                if(lowerName.find("16") != lowerName.npos) return VK_FORMAT_R16_UNORM;
+                return VK_FORMAT_R8_UNORM;
+            }
             return VK_FORMAT_R32_SFLOAT;
         }
 
