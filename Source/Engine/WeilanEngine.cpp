@@ -44,7 +44,6 @@ namespace Engine
         // main loop
         SDL_Event sdlEvent;
         bool shouldBreak = false;
-
         while (!shouldBreak)
         {
 
@@ -61,13 +60,18 @@ namespace Engine
                 }
             }
 
+            // update
             auto activeGameScene = GameSceneManager::Instance()->GetActiveGameScene();
-            renderPipeline->Render(activeGameScene);
-
 #if GAME_EDITOR
             gameEditor->Tick();
+#endif
+
+            // rendering
+            renderPipeline->Render(activeGameScene);
+#if GAME_EDITOR
             gameEditor->Render();
 #endif
+            gfxDriver->DispatchGPUWork();
         }
     }
 

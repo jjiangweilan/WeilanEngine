@@ -161,7 +161,6 @@ namespace Engine::Editor
         RenderEditor(cmdBuf);
         cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
         gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
-        gfxDriver->DispatchGPUWork();
     }
 
     void GameEditor::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
