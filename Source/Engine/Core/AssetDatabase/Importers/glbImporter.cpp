@@ -68,8 +68,9 @@ namespace Engine::Internal
 
         auto& bufView = bufferViews[acce["bufferView"].get<int>()];
         attr.count = acce["count"];
-        attr.data = (T*)((char*)bufChunkData + bufView["byteOffset"].get<int>());
+        char* startAddr = ((char*)bufChunkData + bufView["byteOffset"].get<int>());
         attr.componentCount = MapTypeToComponentCount(acce["type"]);
+        attr.data = std::vector<unsigned char>(startAddr, startAddr + attr.count * (uint32_t)attr.componentCount * sizeof(T));
     }
 
     void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex, UntypedVertexAttribute& attr, uint32_t typeCheck)
@@ -80,10 +81,11 @@ namespace Engine::Internal
 
         auto& bufView = bufferViews[acce["bufferView"].get<int>()];
         attr.count = acce["count"];
-        attr.data = (char*)bufChunkData + bufView["byteOffset"].get<int>();
+        char* startAddr = (char*)bufChunkData + bufView["byteOffset"].get<int>();
         attr.componentCount = MapTypeToComponentCount(acce["type"]);
         const int ByteToBit = 8;
         attr.dataByteSize = MapComponentTypeBitSize(acce["componentType"]) / ByteToBit;
+        attr.data = std::vector<unsigned char>(startAddr, startAddr + attr.count * attr.componentCount * attr.dataByteSize);
     }
 
     void glbImportHelper::Load(const std::filesystem::path& path)
@@ -172,7 +174,7 @@ namespace Engine::Internal
                 uuid = uuidIter->second;
             }
 
-            UniPtr<Mesh> mesh = MakeUnique<Mesh>(vertDesc, meshName, uuid);
+            UniPtr<Mesh> mesh = MakeUnique<Mesh>(std::move(vertDesc), meshName, uuid);
 
             meshes[meshName] = std::move(mesh);
         }

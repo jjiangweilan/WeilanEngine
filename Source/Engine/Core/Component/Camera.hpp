@@ -14,6 +14,13 @@ namespace Engine
             ~Camera() override{};
             glm::mat4 GetViewMatrix();
             const glm::mat4& GetProjectionMatrix();
+
+            static RefPtr<Camera> mainCamera;
+
+            float GetProjectionRight();
+            float GetProjectionTop();
+            float GetNear();
+            float GetFar();
         
         private:
             EDITABLE(glm::mat4, projectionMatrix);

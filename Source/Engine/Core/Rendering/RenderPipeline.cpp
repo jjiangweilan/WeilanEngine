@@ -69,7 +69,7 @@ namespace Engine::Rendering
 
     void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
-        Camera* mainCamera = Globals::GetMainCamera();
+        Camera* mainCamera = Camera::mainCamera.Get();
         if (mainCamera != nullptr)
         {
             RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();

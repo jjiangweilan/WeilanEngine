@@ -20,9 +20,9 @@ namespace Gfx
 
     struct MeshBindingInfo
     {
-        uint32_t firstBinding;
+        uint32_t firstBinding = -1;
         RefPtr<Gfx::GfxBuffer> indexBuffer;
-        uint32_t indexBufferOffset;
+        uint32_t indexBufferOffset = -1;
         std::vector<RefPtr<Gfx::GfxBuffer>> bindingBuffers;
         std::vector<uint64_t> bindingOffsets;
     };
@@ -30,14 +30,14 @@ namespace Gfx
     template<class T>
     struct VertexAttribute
     {
-        T* data = nullptr;
+        std::vector<unsigned char> data;
         uint32_t count = 1;
         uint8_t componentCount = 1; // we only use float for vertex
     };
 
     struct UntypedVertexAttribute
     {
-        void* data = nullptr;
+        std::vector<unsigned char> data;
         uint8_t dataByteSize = 0;
         uint8_t componentCount = 1; // we only use float for vertex
         uint32_t count = 1;
@@ -45,6 +45,18 @@ namespace Gfx
 
     struct VertexDescription
     {
+        VertexDescription() = default;
+        VertexDescription(const VertexDescription& other) = default;
+        VertexDescription(VertexDescription&& other) :
+            position(std::move(other.position)),
+            normal(std::move(other.normal)),
+            tangent(std::move(other.tangent)),
+            index(std::move(other.index)),
+            texCoords(std::move(other.texCoords)),
+            colors(std::move(other.colors)),
+            joins(std::move(other.joins)),
+            weights(std::move(other.weights))
+        {}
         VertexAttribute<float> position;
         VertexAttribute<float> normal;
         VertexAttribute<float> tangent;
@@ -59,7 +71,7 @@ namespace Gfx
     {
         public:
             Mesh() {}
-            Mesh(const VertexDescription& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
+            Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
             ~Mesh();
             void UpdateVertexData(float* data);
 

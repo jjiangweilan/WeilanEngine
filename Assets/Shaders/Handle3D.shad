@@ -1,0 +1,48 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Internal/Handle3D
+interleaved: False
+depth:
+    testEnable: True
+    writeEnable : True
+    compOp: lessOrEqual
+#endif
+
+#if VERT
+    layout(location = 0) in vec3 i_Position;
+    layout(location = 1) in vec3 i_Normal;
+    layout(location = 2) in vec4 i_Color_16;
+
+    layout(location = 0) out vec3 v_Color;
+    layout(location = 1) out vec3 v_NormalWS;
+
+    out gl_PerVertex
+    {
+        vec4 gl_Position;
+    };
+
+    void main()
+    {
+        v_Color = i_Color_16.xyz;
+
+        mat3 normalMat = transpose(inverse(mat3(pconst.model)));
+        v_NormalWS = normalMat * i_Normal;
+
+        gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
+    }
+#endif
+
+#if FRAG
+    layout(location = 0) in vec3 v_Color;
+    layout(location = 1) in vec3 v_NormalWS;
+    layout(location = 0) out vec4 o_Color;
+
+    void main()
+    {
+        vec3 viewDir = scene.view[2].xyz;
+        float theta = clamp(dot(viewDir, v_NormalWS), 0, 1);
+        o_Color = vec4(v_Color.xyz * theta, 1.0);
+    }
+#endif

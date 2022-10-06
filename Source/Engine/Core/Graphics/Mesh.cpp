@@ -4,9 +4,9 @@
 #include "Code/Utils.hpp"
 namespace Engine
 {
-    Mesh::Mesh(const VertexDescription& vertexDescription, const std::string& name, const UUID& uuid) :
+    Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const UUID& uuid) :
         AssetObject(uuid),
-        vertexDescription(vertexDescription)
+        vertexDescription(std::move(vertexDescription))
     {
         this->name = name;
         uint32_t bufSize = 0;
@@ -15,7 +15,7 @@ namespace Engine
         GetAttributesDataRangesAndBufSize(ranges, bufSize);
         vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufSize, Gfx::BufferUsage::Vertex);
 
-        uint32_t indexBufSize = vertexDescription.index.count * sizeof(uint16_t);
+        uint32_t indexBufSize = this->vertexDescription.index.count * sizeof(uint16_t);
         indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(indexBufSize, Gfx::BufferUsage::Index);
 
         // load data to gpu buffer
@@ -29,7 +29,7 @@ namespace Engine
         }
 
         vertexBuffer->Write(temp, bufSize, 0);
-        indexBuffer->Write(vertexDescription.index.data, indexBufSize, 0);
+        indexBuffer->Write((void*)this->vertexDescription.index.data.data(), indexBufSize, 0);
 
         delete[] temp;
 
@@ -46,11 +46,11 @@ namespace Engine
         uint32_t size = 0;
         uint32_t alignmentPadding = Utils::GetPadding(offset, sizeof(T));
 
-        if (attr.data != nullptr)
+        if (!attr.data.empty())
         {
             DataRange range;
 
-            range.data = attr.data;
+            range.data = attr.data.data();
             range.offsetInSrc = offset + alignmentPadding;
             range.size = attr.count * sizeof(T) * attr.componentCount;
             size += (range.size + alignmentPadding);
@@ -66,13 +66,13 @@ namespace Engine
 
         for(auto& attr : attrs)
         {
-            if (attr.data != nullptr)
+            if (!attr.data.empty())
             {
                 uint32_t alignmentPadding = Utils::GetPadding(offset, attr.dataByteSize);
                 DataRange range;
-                range.data = attr.data;
                 range.offsetInSrc = offset + size + alignmentPadding;
                 range.size = attr.count * attr.dataByteSize * attr.componentCount;
+                range.data = attr.data.data();
                 size += (range.size + alignmentPadding);
                 ranges.push_back(range);
             }
@@ -84,7 +84,7 @@ namespace Engine
     {
         ranges.clear();
         bufSize = 0;
-        assert(vertexDescription.index.data != nullptr);
+        assert(!vertexDescription.index.data.empty());
 
         bufSize += AddVertexAttribute(ranges, vertexDescription.position, bufSize);
         bufSize += AddVertexAttribute(ranges, vertexDescription.normal, bufSize);
