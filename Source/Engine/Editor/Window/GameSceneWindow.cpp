@@ -94,18 +94,22 @@ namespace Engine::Editor
                     glm::vec3 mouseInGameViewVS = glm::vec3((normalizedMouseInGameView - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{Camera::mainCamera->GetProjectionRight(), Camera::mainCamera->GetProjectionTop()}, -Camera::mainCamera->GetNear());
                     Utils::Ray ray;
                     ray.origin = Camera::mainCamera->GetGameObject()->GetTransform()->GetPosition();
-                    ray.direction = Camera::mainCamera->GetGameObject()->GetTransform()->GetModelMatrix() * glm::vec4(mouseInGameViewVS, 1.0);
+                    glm::mat4 camModelMatrix = Camera::mainCamera->GetGameObject()->GetTransform()->GetModelMatrix();
+                    glm::vec3 clickInWS = camModelMatrix * glm::vec4(mouseInGameViewVS, 1.0);
+                    ray.direction = clickInWS - ray.origin;
                     GetClickedGameObject(ray, g, gameObjectsClicked);
                 }
                 if (gameObjectsClicked.size())
                 {
                     auto min = std::min_element(
-                            gameObjectsClicked.begin(),
-                            gameObjectsClicked.end(),
-                            [](const ClickedGameObjectHelperStruct& left, const ClickedGameObjectHelperStruct& right) { return left.distance < right.distance;});
+                        gameObjectsClicked.begin(),
+                        gameObjectsClicked.end(),
+                        [](const ClickedGameObjectHelperStruct& left, const ClickedGameObjectHelperStruct& right) { return left.distance < right.distance; });
 
                     editorContext->currentSelected = min->go;
                 }
+                else
+                    editorContext->currentSelected = nullptr;
             }
         }
         ImGui::End();
