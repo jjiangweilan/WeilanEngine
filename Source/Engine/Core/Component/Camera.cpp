@@ -1,5 +1,4 @@
 #include "Camera.hpp"
-#include "Core/Globals.hpp"
 #include "Core/GameObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 namespace Engine
