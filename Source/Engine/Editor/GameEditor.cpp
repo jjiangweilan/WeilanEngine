@@ -78,7 +78,7 @@ namespace Engine::Editor
 
         /* initialize rendering resources */
         renderPipeline->SetOffScreenOutput(true);
-        colorImage = renderPipeline->GetOutputColor();
+        gameColorImage = renderPipeline->GetOutputColor();
         gameDepthImage = renderPipeline->GetOutputDepth();
 
         /* imgui render pass */
@@ -95,32 +95,6 @@ namespace Engine::Editor
         frameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(editorPass);
         frameBuffer->SetAttachments({imGuiData.editorRT});
 
-        /* game depth image*/
-        Gfx::ImageDescription ourGameDepthDesc = gameDepthImage->GetDescription();
-        ourGameDepthDesc.format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
-        ourGameDepthImage = Gfx::GfxDriver::Instance()->CreateImage(ourGameDepthDesc, Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::TransferDst);
-
-        /* scene pass data */
-        scenePass = Gfx::GfxDriver::Instance()->CreateRenderPass();
-        Gfx::RenderPass::Attachment sceneDepthAttachment;
-        sceneDepthAttachment.format = gameDepthImage->GetDescription().format;
-        sceneDepthAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
-        sceneDepthAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
-        Gfx::RenderPass::Attachment sceneColorAttachment;
-        sceneColorAttachment.format = colorImage->GetDescription().format;
-        sceneColorAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
-        sceneColorAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
-        scenePass->SetAttachments({sceneColorAttachment}, sceneDepthAttachment);
-
-        Gfx::RenderPass::Subpass editorPass0;
-        editorPass0.colors.push_back(0);
-        editorPass0.depthAttachment = 1;
-        scenePass->SetSubpass({editorPass0});
-        sceneFrameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(scenePass);
-        sceneFrameBuffer->SetAttachments({colorImage, ourGameDepthImage});
-
-        outlineByStencil = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencil");
-        outlineByStencilDrawOutline = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencilDrawOutline");
     }
 
     void GameEditor::ProcessEvent(const SDL_Event& event)
@@ -141,7 +115,7 @@ namespace Engine::Editor
             sceneTreeWindow->Tick();
             inspector->Tick();
             assetExplorer->Tick();
-            gameSceneWindow->Tick(colorImage);
+            gameSceneWindow->Tick(gameColorImage, gameDepthImage);
         }
         if (projectWindow != nullptr)
         {
@@ -157,7 +131,7 @@ namespace Engine::Editor
         ImGui::Render();
 
         auto cmdBuf = gfxDriver->CreateCommandBuffer();
-        RenderSceneGUI(cmdBuf);
+        gameSceneWindow->RenderSceneGUI(cmdBuf);
         RenderEditor(cmdBuf);
         cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
         gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
@@ -165,34 +139,6 @@ namespace Engine::Editor
 
     void GameEditor::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
     {
-        std::vector<Gfx::ClearValue> clears(2);
-        clears[0].color = {{0,0,0,0}};
-        clears[1].depthStencil.depth = 1;
-
-        GameObject* obj = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
-        if (obj == nullptr) return;
-        auto meshRenderer = obj->GetComponent<MeshRenderer>();
-        if (meshRenderer == nullptr) return;
-        auto mesh = meshRenderer->GetMesh();
-        auto material = meshRenderer->GetMaterial();
-        if (mesh == nullptr || material == nullptr) return;
-
-        cmdBuf->Blit(gameDepthImage, ourGameDepthImage);
-        cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, clears);
-        // draw 3D Scene GUI
-
-        // draw outline using stencil
-        if (mesh != nullptr && material != nullptr)
-        {
-            cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
-            cmdBuf->BindResource(material->GetShaderResource());
-            cmdBuf->BindShaderProgram(outlineByStencil->GetShaderProgram(), outlineByStencil->GetDefaultShaderConfig());
-            cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset);
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-            cmdBuf->BindShaderProgram(outlineByStencilDrawOutline->GetShaderProgram(), outlineByStencilDrawOutline->GetDefaultShaderConfig());
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-        }
-        cmdBuf->EndRenderPass();
 
     }
 

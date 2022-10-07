@@ -46,13 +46,8 @@ namespace Engine::Editor
             RefPtr<Gfx::GfxDriver> gfxDriver;
             UniPtr<Gfx::RenderPass> editorPass;
             UniPtr<Gfx::FrameBuffer> frameBuffer;
-            RefPtr<Gfx::Image> colorImage;
-            UniPtr<Gfx::RenderPass> scenePass;
-            UniPtr<Gfx::FrameBuffer> sceneFrameBuffer;
+            RefPtr<Gfx::Image> gameColorImage;
             RefPtr<Gfx::Image> gameDepthImage;
-            // we are using stencils, but we can't assume gameDepthImage has stencil buffer, so we create our own's
-            UniPtr<Gfx::Image> ourGameDepthImage;
-            RefPtr<Shader> outlineByStencil, outlineByStencilDrawOutline;
             void DrawMainMenu();
             void RenderEditor(RefPtr<CommandBuffer> cmdBuf);
             void RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf);
