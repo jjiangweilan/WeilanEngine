@@ -47,7 +47,7 @@ namespace Engine
             }
             else if (ext != ".meta")
             {
-                auto asset = Load(dirEntry);
+                auto asset = LoadInternal(dirEntry, Editor::GetSysConfigPath());
 
                 if (ext == ".shad")
                 {
@@ -151,7 +151,7 @@ namespace Engine
         Refresh_Internal("Assets");
     }
 
-    RefPtr<AssetObject> AssetDatabase::LoadInternal(const std::filesystem::path& path)
+    RefPtr<AssetObject> AssetDatabase::LoadInternal(const std::filesystem::path& path, const std::filesystem::path& relativeBase)
     {
         if (!std::filesystem::exists(path)) return nullptr;
 
@@ -235,7 +235,11 @@ namespace Engine
             UniPtr<AssetObject> obj = importer->Import(path, refResolver, uuid, containedUUIDs);
             if (obj != nullptr)
             {
-                UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), path);
+                std::filesystem::path pathStored = path;
+                if (!relativeBase.empty())
+                    pathStored = std::filesystem::proximate(path, relativeBase);
+                UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), pathStored);
+                pathToAssetFile[pathStored] = assetFile;
                 assetObjects[assetFile->GetRoot()->GetUUID()] = assetFile->GetRoot();
                 for(RefPtr<AssetObject> contained : assetFile->GetAllContainedAssets())
                 {
@@ -251,5 +255,16 @@ namespace Engine
         }
 
         return nullptr;
+    }
+
+    RefPtr<AssetFile> AssetDatabase::GetAssetFile(const std::filesystem::path& path)
+    {
+        auto iter = pathToAssetFile.find(path);
+        if (iter == pathToAssetFile.end())
+        {
+            return nullptr;
+        }
+
+        return iter->second;
     }
 }

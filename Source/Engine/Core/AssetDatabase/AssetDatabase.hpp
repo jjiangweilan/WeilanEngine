@@ -23,6 +23,7 @@ namespace Engine
             static void Deinit();
 
             RefPtr<AssetObject> GetAssetObject(const UUID& uuid);
+            RefPtr<AssetFile> GetAssetFile(const std::filesystem::path& path);
             RefPtr<Shader> GetShader(const std::string& name);
 
             /**
@@ -53,7 +54,7 @@ namespace Engine
             AssetDatabase();
             static AssetDatabase* instance;
 
-            RefPtr<AssetObject> LoadInternal(const std::filesystem::path& path);
+            RefPtr<AssetObject> LoadInternal(const std::filesystem::path& path, const std::filesystem::path& relativeBase = "");
 
             using Path = std::filesystem::path;
             // from: https://en.cppreference.com/w/cpp/filesystem/path/hash_value
@@ -63,6 +64,7 @@ namespace Engine
                 }
             };
 
+            std::unordered_map<std::filesystem::path, RefPtr<AssetFile>, PathHash> pathToAssetFile;
             std::unordered_map<UUID, UniPtr<AssetFile>> assetFiles;
             std::unordered_map<UUID, RefPtr<AssetObject>> assetObjects;
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
