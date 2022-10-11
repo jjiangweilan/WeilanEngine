@@ -54,7 +54,7 @@ namespace Engine
             AssetDatabase();
             static AssetDatabase* instance;
 
-            RefPtr<AssetObject> LoadInternal(const std::filesystem::path& path, const std::filesystem::path& relativeBase = "");
+            RefPtr<AssetObject> LoadInternal(const std::filesystem::path& path, bool useRelativeBase = false, const std::filesystem::path& relativeBase = "");
 
             using Path = std::filesystem::path;
             // from: https://en.cppreference.com/w/cpp/filesystem/path/hash_value
@@ -70,7 +70,7 @@ namespace Engine
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
             ReferenceResolver refResolver;
 
-            void Refresh_Internal(const Path& path);
+            void Refresh_Internal(const Path& path, bool isEngineInternal);
             void ProcessAssetFile(const Path& path);
     };
 

@@ -36,18 +36,18 @@ namespace Engine
         return fileContent;
     }
 
-    void AssetDatabase::Refresh_Internal(const std::filesystem::path& path)
+    void AssetDatabase::Refresh_Internal(const std::filesystem::path& path, bool isEngineInternal)
     {
         for (const auto& dirEntry : std::filesystem::directory_iterator(path))
         {
             auto ext = dirEntry.path().extension();
             if (dirEntry.is_directory())
             {
-                Refresh_Internal(dirEntry);
+                Refresh_Internal(dirEntry, isEngineInternal);
             }
             else if (ext != ".meta")
             {
-                auto asset = LoadInternal(dirEntry, Editor::GetSysConfigPath());
+                auto asset = LoadInternal(dirEntry, isEngineInternal, Editor::GetSysConfigPath());
 
                 if (ext == ".shad")
                 {
@@ -130,7 +130,7 @@ namespace Engine
 #if GAME_EDITOR
     void AssetDatabase::LoadInternalAssets()
     {
-        Refresh_Internal(Editor::GetSysConfigPath() / "Assets");
+        Refresh_Internal(Editor::GetSysConfigPath() / "Assets", true);
     }
 #endif
 
@@ -148,10 +148,10 @@ namespace Engine
 
     void AssetDatabase::LoadAllAssets()
     {
-        Refresh_Internal("Assets");
+        Refresh_Internal("Assets", false);
     }
 
-    RefPtr<AssetObject> AssetDatabase::LoadInternal(const std::filesystem::path& path, const std::filesystem::path& relativeBase)
+    RefPtr<AssetObject> AssetDatabase::LoadInternal(const std::filesystem::path& path, bool useRelativeBase, const std::filesystem::path& relativeBase)
     {
         if (!std::filesystem::exists(path)) return nullptr;
 
@@ -236,7 +236,7 @@ namespace Engine
             if (obj != nullptr)
             {
                 std::filesystem::path pathStored = path;
-                if (!relativeBase.empty())
+                if (useRelativeBase)
                     pathStored = std::filesystem::proximate(path, relativeBase);
                 UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), pathStored);
                 pathToAssetFile[pathStored] = assetFile;

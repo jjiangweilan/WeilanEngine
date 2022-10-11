@@ -43,7 +43,7 @@ namespace Engine
         AssetSerializer ser;
         if(root->Serialize(ser))
         {
-            ser.WriteToDisk(path.string());
+            ser.WriteToDisk(path);
         }
     }
 }

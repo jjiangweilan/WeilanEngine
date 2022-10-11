@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <unordered_map>
 #include <glm/glm.hpp>
+#include <filesystem>
 #include "Code/UUID.hpp"
 namespace Engine
 {
@@ -59,8 +60,8 @@ namespace Engine
             SerializerReadFromMem(mem + offset, val, SerializerGetTypeSize(val));
         }
 
-        void WriteToDisk(const std::string& path);
-        bool LoadFromDisk(const std::string& path);
+        void WriteToDisk(const std::filesystem::path& path);
+        bool LoadFromDisk(const std::filesystem::path& path);
     protected:
         using Offset = size_t;
         std::unordered_map<std::string, Offset> dataOffset;

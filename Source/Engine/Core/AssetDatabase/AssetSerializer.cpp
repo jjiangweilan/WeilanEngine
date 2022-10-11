@@ -29,24 +29,33 @@ namespace Engine
         delete []temp;
     }
 
-    void AssetSerializer::WriteToDisk(const std::string& path)
+    void AssetSerializer::WriteToDisk(const std::filesystem::path& path)
     {
         nlohmann::json j;
         for(auto& iter : dataOffset)
         {
             j[iter.first] = iter.second;
         }
-
+        std::filesystem::path p = path;
+        p = std::filesystem::absolute(p);
         std::string jsonStr = j.dump();
-        std::ofstream output(path, std::ios::binary | std::ios::out);
-        output.write((char*)&currentSize, sizeof(uint64_t));
-        uint64_t strSize = jsonStr.size() + 1;
-        output.write((char*)&strSize, sizeof(uint64_t));
-        output.write((char*)jsonStr.c_str(), strSize);
-        output.write((const char *)mem, currentSize);
+        std::ofstream output(path, std::ios::binary | std::ios::trunc);
+
+        if (output.good() && output.is_open())
+        {
+            output.write((char*)&currentSize, sizeof(uint64_t));
+            uint64_t strSize = jsonStr.size() + 1;
+            output.write((char*)&strSize, sizeof(uint64_t));
+            output.write((char*)jsonStr.c_str(), strSize);
+            output.write((const char*)mem, currentSize);
+        }
+        else
+        {
+            SPDLOG_ERROR("Failed to write to disk: {}", path.string());
+        }
     }
 
-    bool AssetSerializer::LoadFromDisk(const std::string& path)
+    bool AssetSerializer::LoadFromDisk(const std::filesystem::path& path)
     {
         std::ifstream input(path, std::ios::binary | std::ios::in);
         if (!input.is_open() || !input.good()) return false;
