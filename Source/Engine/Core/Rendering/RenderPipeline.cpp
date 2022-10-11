@@ -1,7 +1,6 @@
 #include "RenderPipeline.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "Core/Globals.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
@@ -119,7 +118,7 @@ namespace Engine::Rendering
         {
             auto mesh = meshRenderer->GetMesh();
             auto material = meshRenderer->GetMaterial();
-            auto shader = material->GetShader();
+            auto shader = material ? material->GetShader() : nullptr;
             if (mesh && material && shader)
             {
                 material->SetMatrix("Transform", "model", meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
