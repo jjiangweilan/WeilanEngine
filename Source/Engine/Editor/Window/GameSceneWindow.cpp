@@ -4,6 +4,8 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "Core/Graphics/Shader.hpp"
+#include "Core/Model.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Utils/Intersection.hpp"
 #include "../imgui/imgui.h"
@@ -11,6 +13,54 @@
 
 namespace Engine::Editor
 {
+    class MoveSceneHandle : public GameSceneHandle
+    {
+        public:
+            MoveSceneHandle()
+            {
+                RefPtr<Model> handleModel = AssetDatabase::Instance()->GetAssetFile("Assets/EngineInternal/GameEditor/Meshes/MoveHandle.glb")->GetRoot();
+                mesh = handleModel ? handleModel->GetMesh("MoveHandle") : nullptr;
+                handleShader = AssetDatabase::Instance()->GetShader("Internal/Handle3D");
+            }
+            void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override 
+            {
+                if (mesh && handleShader)
+                {
+                    Mesh::CommandBindMesh(cmdBuf, mesh);
+                    cmdBuf->BindShaderProgram(handleShader->GetShaderProgram(), handleShader->GetDefaultShaderConfig());
+                    cmdBuf->SetPushConstant(handleShader->GetShaderProgram(), &goModelMatrix);
+                    cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
+                }
+            }
+            void Interact(RefPtr<GameObject> go) override
+            {
+                auto mouseDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+                auto transform = go->GetTransform();
+                glm::vec3 pos = transform->GetPosition();
+                // go->GetTransform()->SetPostion();
+                goModelMatrix = go->GetTransform()->GetModelMatrix();
+            }
+            std::string GetNameID() override { return "MoveSceneHandle"; }
+        private:
+            RefPtr<Shader> handleShader;
+            RefPtr<Mesh> mesh;
+            glm::mat4 goModelMatrix;
+    };
+
+    class RotateSceneHandle : public GameSceneHandle
+    {
+            void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
+            void Interact(RefPtr<GameObject> go) override {};
+            std::string GetNameID() override { return "RotateSceneHandle"; }
+    };
+
+    class ScaleSceneHandle : public GameSceneHandle
+    {
+            void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
+            void Interact(RefPtr<GameObject> go) override {};
+            std::string GetNameID() override { return "ScaleSceneHandle"; }
+    };
+
     struct ClickedGameObjectHelperStruct
     {
         RefPtr<GameObject> go;
@@ -56,21 +106,10 @@ namespace Engine::Editor
         // show handle menu
         {
             ImGui::BeginMenuBar();
-            if(ImGui::MenuItem("Move"))
-            {
 
-            }
-
-            if(ImGui::MenuItem("Rotate"))
-            {
-
-            }
-
-            if(ImGui::MenuItem("Scale"))
-            {
-
-            }
-
+            if(ImGui::MenuItem("Move")) activeHandle = MakeUnique<MoveSceneHandle>();
+            if(ImGui::MenuItem("Rotate")) activeHandle = MakeUnique<RotateSceneHandle>();
+            if(ImGui::MenuItem("Scale")) activeHandle = MakeUnique<ScaleSceneHandle>();
             ImGui::EndMenuBar();
         }
 
@@ -145,8 +184,49 @@ namespace Engine::Editor
                 else
                     editorContext->currentSelected = nullptr;
             }
+
+        }
+        RefPtr<GameObject> go = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
+        if (go != nullptr && activeHandle != nullptr)
+        {
+            activeHandle->Interact(go);
         }
         ImGui::End();
+    }
+
+    void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
+    {
+        std::vector<Gfx::ClearValue> clears(2);
+        clears[0].color = {{0,0,0,0}};
+        clears[1].depthStencil.depth = 1;
+
+        GameObject* obj = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
+        cmdBuf->Blit(sceneColor, newSceneColor);
+        cmdBuf->Blit(sceneDepth, newSceneDepth);
+        cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, clears);
+
+        // draw handles
+        if (obj != nullptr && activeHandle != nullptr)
+        {
+            activeHandle->DrawHandle(cmdBuf);
+        }
+
+        auto meshRenderer = obj ? obj->GetComponent<MeshRenderer>() : nullptr;
+        auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
+        auto material = meshRenderer ? meshRenderer->GetMaterial() : nullptr;
+        // draw outline using stencil
+        if (mesh != nullptr && material != nullptr)
+        {
+            cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
+            cmdBuf->BindResource(material->GetShaderResource());
+            cmdBuf->BindShaderProgram(outlineByStencil->GetShaderProgram(), outlineByStencil->GetDefaultShaderConfig());
+            cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset, mesh->GetIndexBufferType());
+            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
+            cmdBuf->BindShaderProgram(outlineByStencilDrawOutline->GetShaderProgram(), outlineByStencilDrawOutline->GetDefaultShaderConfig());
+            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
+        }
+
+        cmdBuf->EndRenderPass();
     }
 
     void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
@@ -188,42 +268,6 @@ namespace Engine::Editor
             sceneFrameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(scenePass);
             sceneFrameBuffer->SetAttachments({newSceneColor, newSceneDepth});
         }
-    }
-
-    void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
-    {
-        std::vector<Gfx::ClearValue> clears(2);
-        clears[0].color = {{0,0,0,0}};
-        clears[1].depthStencil.depth = 1;
-
-        GameObject* obj = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
-        auto meshRenderer = obj ? obj->GetComponent<MeshRenderer>() : nullptr;
-        auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
-        auto material = meshRenderer ? meshRenderer->GetMaterial() : nullptr;
-
-        if (mesh == nullptr || material == nullptr)
-        {
-            cmdBuf->Blit(sceneColor, newSceneColor);
-            return;
-        }
-
-        cmdBuf->Blit(sceneColor, newSceneColor);
-        cmdBuf->Blit(sceneDepth, newSceneDepth);
-        cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, clears);
-        // draw 3D Scene GUI
-
-        // draw outline using stencil
-        if (mesh != nullptr && material != nullptr)
-        {
-            cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
-            cmdBuf->BindResource(material->GetShaderResource());
-            cmdBuf->BindShaderProgram(outlineByStencil->GetShaderProgram(), outlineByStencil->GetDefaultShaderConfig());
-            cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset);
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-            cmdBuf->BindShaderProgram(outlineByStencilDrawOutline->GetShaderProgram(), outlineByStencilDrawOutline->GetDefaultShaderConfig());
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-        }
-        cmdBuf->EndRenderPass();
     }
 
 }

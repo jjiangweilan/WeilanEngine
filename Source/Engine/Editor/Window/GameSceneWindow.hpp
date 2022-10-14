@@ -5,6 +5,14 @@
 #include "Core/Graphics/Shader.hpp"
 #include "../EditorContext.hpp"
 namespace Engine::Editor {
+    class GameSceneHandle
+    {
+        public:
+            virtual void DrawHandle(RefPtr<CommandBuffer> cmdBuf) = 0;
+            virtual void Interact(RefPtr<GameObject> go) = 0;
+            virtual std::string GetNameID() = 0;
+    };
+
     class GameSceneWindow {
         public:
             GameSceneWindow(RefPtr<EditorContext> editorContext);
@@ -20,6 +28,7 @@ namespace Engine::Editor {
             UniPtr<Gfx::Image> newSceneColor;
             UniPtr<Gfx::Image> newSceneDepth;
             UniPtr<Gfx::RenderPass> scenePass;
+            UniPtr<GameSceneHandle> activeHandle;
             UniPtr<Gfx::FrameBuffer> sceneFrameBuffer;
             RefPtr<Shader> outlineByStencil, outlineByStencilDrawOutline;
 

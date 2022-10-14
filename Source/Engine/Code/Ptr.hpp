@@ -27,7 +27,7 @@ namespace Engine
             
             ~UniPtr();
             
-            T* Get() {return ptr;}
+            T* Get() const {return ptr;}
             inline void Release() { ptr = nullptr; }
             bool operator!=(std::nullptr_t) const {return ptr != nullptr;}
             bool operator==(std::nullptr_t) const {return ptr == nullptr;}

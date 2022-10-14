@@ -21,15 +21,16 @@ namespace Engine::Gfx
             void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass,
                     RefPtr<Gfx::FrameBuffer> frameBuffer,
                     const std::vector<Gfx::ClearValue>& clearValues) override;
+            void EndRenderPass() override;
 
             void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to) override;
             // renderpass and framebuffer have to be compatible. https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
             void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
             void BindVertexBuffer(const std::vector<RefPtr<Gfx::GfxBuffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex) override;
             void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
-            void BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset) override;
+            void BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;
             void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) override;
-            void EndRenderPass() override;
+            void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
             void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
 
             void AppendCustomCommand(std::function<void(VkCommandBuffer)>&& f);

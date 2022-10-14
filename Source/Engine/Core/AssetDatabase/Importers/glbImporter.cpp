@@ -158,7 +158,7 @@ namespace Engine::Internal
             VertexDescription vertDesc;
             auto& attrs = prim["attributes"];
 
-            AddDataToVertexDescription(prim["indices"], vertDesc.index, 5123);
+            AddDataToVertexDescription(prim["indices"], vertDesc.index);
             AddDataToVertexDescription(attrs["POSITION"], vertDesc.position, 5126);
             AddDataToVertexDescription(attrs["NORMAL"], vertDesc.normal, 5126);
             if (attrs.contains("COLOR_0"))

@@ -36,8 +36,8 @@ namespace Engine::Editor
         }
 
         char shaderNameText[256];
-        assert(shaderName.length() < 256);
-        strcpy(shaderNameText, shaderName.c_str());
+        int shaderNameSize = shaderName.size() < 255 ? shaderName.size() : 255;
+        strncpy(shaderNameText, shaderName.c_str(), shaderNameSize + 1);
         ImGui::Text("%s", "Shader: ");
         ImGui::SameLine();
         if (ImGui::InputText("##ShaderNameText", shaderNameText, 256))
@@ -48,6 +48,16 @@ namespace Engine::Editor
 
     void GameSceneInspector::Tick(RefPtr<EditorContext> editorContext)
     {
+        char goNameArea[256];
+        auto& goName = target->GetName();
+        int shaderNameSize = goName.size() < 255 ? goName.size() : 255;
+        strncpy(goNameArea, goName.c_str(), shaderNameSize + 1);
+        ImGui::Text("%s", "Name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##SceneName", goNameArea, 255))
+        {
+            target->SetName(goNameArea);
+        }
         if (ImGui::Button("Set as Active"))
         {
             GameSceneManager::Instance()->SetActiveGameScene(target);
@@ -131,6 +141,16 @@ namespace Engine::Editor
         RefPtr<GameObject> activeObject = target;
         auto& components = activeObject->GetComponents();
         uint32_t id = 0;
+        char goNameArea[256];
+        auto& goName = activeObject->GetName();
+        int shaderNameSize = goName.size() < 255 ? goName.size() : 255;
+        strncpy(goNameArea, goName.c_str(), shaderNameSize + 1);
+        ImGui::Text("%s", "Name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##GameObjectName", goNameArea, 255))
+        {
+            activeObject->SetName(goNameArea);
+        }
         for(auto& comp : components)
         {
             std::string title = comp->GetName() + "##" + std::to_string(id);
@@ -173,7 +193,7 @@ namespace Engine::Editor
 
         for(auto& blend : config.color.blends)
         {
-             ImGui::Text("Blend: %s", blend.blendEnable ? "true" : "false");
+            ImGui::Text("Blend: %s", blend.blendEnable ? "true" : "false");
             if (blend.blendEnable)
             {
                 ImGui::Text("srcColorBlendFactor: %s", Utils::MapStrBlendFactor(blend.srcColorBlendFactor));

@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/AssetObject.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include "Utils/Structs.hpp"
 #include <vector>
 #include <string>
@@ -60,7 +61,7 @@ namespace Gfx
         VertexAttribute<float> position;
         VertexAttribute<float> normal;
         VertexAttribute<float> tangent;
-        VertexAttribute<uint16_t> index;
+        UntypedVertexAttribute index;
         std::vector<UntypedVertexAttribute> texCoords;
         std::vector<UntypedVertexAttribute> colors;
         std::vector<UntypedVertexAttribute> joins;
@@ -73,14 +74,16 @@ namespace Gfx
             Mesh() {}
             Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
             ~Mesh();
-            void UpdateVertexData(float* data);
 
             const MeshBindingInfo& GetMeshBindingInfo() {return meshBindingInfo;}
             const VertexDescription& GetVertexDescription();
             const std::string& GetName() {return name;}
+            IndexBufferType GetIndexBufferType() { return indexBufferType; }
+            static void CommandBindMesh(RefPtr<CommandBuffer> cmdBuf, RefPtr<Mesh> mesh);
         protected:
 
             MeshBindingInfo meshBindingInfo;
+            IndexBufferType indexBufferType;
             UniPtr<Gfx::GfxBuffer> vertexBuffer;
             UniPtr<Gfx::GfxBuffer> indexBuffer;
             VertexDescription vertexDescription;

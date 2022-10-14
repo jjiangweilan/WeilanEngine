@@ -205,12 +205,13 @@ namespace Engine::Gfx
         pendingCommands.push_back(std::move(f));
     }
 
-    void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset)
+    void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType)
     {
+        VkIndexType indexType = indexBufferType == IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             VkBuffer indexBuf = static_cast<VKBuffer*>(buffer.Get())->GetVKBuffer();
-            vkCmdBindIndexBuffer(cmd, indexBuf, offset, VK_INDEX_TYPE_UINT16);
+            vkCmdBindIndexBuffer(cmd, indexBuf, offset, indexType);
         };
 
         pendingCommands.push_back(std::move(f));
@@ -221,6 +222,34 @@ namespace Engine::Gfx
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
+        };
+
+        pendingCommands.push_back(std::move(f));
+    }
+
+    void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_, void* data)
+    {
+        VKShaderProgram* shaderProgram = static_cast<VKShaderProgram*>(shaderProgram_.Get());
+
+        VkShaderStageFlags stages = 0;
+        uint32_t totalSize = 0;
+        for(auto& ps : shaderProgram->GetShaderInfo().pushConstants)
+        {
+            auto& pushConstant = ps.second;
+            stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
+            totalSize += pushConstant.data.size;
+        }
+
+        // std::function requires the callables to be copy constructable, thus requires it's member to be copy constructable
+        // so we can't simple use a UniPtr https://stackoverflow.com/questions/32486623/moving-a-lambda-once-youve-move-captured-a-move-only-type-how-can-the-lambda
+        // TODO: this has to be optimized away, the ptr may lost tracking
+        char* byteData = new char[totalSize];
+        memcpy(byteData, data, totalSize);
+
+        auto f = [=, byteData = std::move(byteData)](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
+        {
+            vkCmdPushConstants(cmd, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, byteData);
+            delete byteData;
         };
 
         pendingCommands.push_back(std::move(f));

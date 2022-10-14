@@ -121,13 +121,13 @@ namespace Engine::Rendering
             auto shader = material ? material->GetShader() : nullptr;
             if (mesh && material && shader)
             {
-                material->SetMatrix("Transform", "model", meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
-                auto& meshBindingInfo = mesh->GetMeshBindingInfo();
+                // material->SetMatrix("Transform", "model", meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
                 auto& vertexInfo = mesh->GetVertexDescription();
-                cmd->BindVertexBuffer(meshBindingInfo.bindingBuffers, meshBindingInfo.bindingOffsets, 0);
-                cmd->BindIndexBuffer(meshBindingInfo.indexBuffer, meshBindingInfo.indexBufferOffset);
+                Mesh::CommandBindMesh(cmd, mesh);
                 cmd->BindResource(material->GetShaderResource());
                 cmd->BindShaderProgram(shader->GetShaderProgram(), material->GetShaderConfig());
+                auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
+                cmd->SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
                 cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
             }
         }

@@ -196,7 +196,7 @@ namespace Engine::Editor
 
         cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
         cmdBuf->BindResource(imGuiData.generalShaderRes);
-        cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0);
+        cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16);
         // hard coded ImGui shader's vertex input
         cmdBuf->BindVertexBuffer({imGuiData.vertexBuffer}, {0}, 0);
 

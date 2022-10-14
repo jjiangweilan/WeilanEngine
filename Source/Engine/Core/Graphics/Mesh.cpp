@@ -15,7 +15,7 @@ namespace Engine
         GetAttributesDataRangesAndBufSize(ranges, bufSize);
         vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufSize, Gfx::BufferUsage::Vertex);
 
-        uint32_t indexBufSize = this->vertexDescription.index.count * sizeof(uint16_t);
+        uint32_t indexBufSize = this->vertexDescription.index.count * vertexDescription.index.dataByteSize;
         indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(indexBufSize, Gfx::BufferUsage::Index);
 
         // load data to gpu buffer
@@ -32,6 +32,10 @@ namespace Engine
         indexBuffer->Write((void*)this->vertexDescription.index.data.data(), indexBufSize, 0);
 
         delete[] temp;
+
+        if (vertexDescription.index.dataByteSize == 2) indexBufferType = IndexBufferType::UInt16;
+        else if (vertexDescription.index.dataByteSize == 4) indexBufferType = IndexBufferType::UInt32;
+        else assert(0);
 
         // update mesh binding
         UpdateMeshBindingInfo(ranges);
@@ -116,5 +120,12 @@ namespace Engine
     const VertexDescription& Mesh::GetVertexDescription()
     {
         return vertexDescription;
+    }
+
+    void Mesh::CommandBindMesh(RefPtr<CommandBuffer> cmdBuf, RefPtr<Mesh> mesh)
+    {
+        auto& meshBindingInfo = mesh->GetMeshBindingInfo();
+        cmdBuf->BindVertexBuffer(meshBindingInfo.bindingBuffers, meshBindingInfo.bindingOffsets, 0);
+        cmdBuf->BindIndexBuffer(meshBindingInfo.indexBuffer, meshBindingInfo.indexBufferOffset, mesh->indexBufferType);
     }
 }
