@@ -26,7 +26,6 @@ namespace Engine::Gfx
             RefPtr<ShaderProgram> GetShader() override;
             void SetUniform(std::string_view obj, std::string_view member, void* value) override;
             void SetTexture(const std::string& param, RefPtr<Image> image) override;
-            void UpdatePushConstant(VkCommandBuffer cmd);
             DescriptorSetSlot GetDescriptorSetSlot() const { return slot; }
             void PrepareResource(VkCommandBuffer cmdBuf);
         protected:

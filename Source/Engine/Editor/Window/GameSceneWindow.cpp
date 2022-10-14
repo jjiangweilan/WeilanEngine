@@ -221,6 +221,8 @@ namespace Engine::Editor
             cmdBuf->BindResource(material->GetShaderResource());
             cmdBuf->BindShaderProgram(outlineByStencil->GetShaderProgram(), outlineByStencil->GetDefaultShaderConfig());
             cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset, mesh->GetIndexBufferType());
+            auto modelMatrix = obj->GetTransform()->GetModelMatrix();
+            cmdBuf->SetPushConstant(material->GetShader()->GetShaderProgram(), &modelMatrix);
             cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
             cmdBuf->BindShaderProgram(outlineByStencilDrawOutline->GetShaderProgram(), outlineByStencilDrawOutline->GetDefaultShaderConfig());
             cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);

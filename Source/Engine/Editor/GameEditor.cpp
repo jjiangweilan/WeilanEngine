@@ -151,16 +151,6 @@ namespace Engine::Editor
 
         ImDrawData* drawData = ImGui::GetDrawData();
 
-        // update scale  and translate
-        float scale[2];
-        scale[0] = 2.0f / drawData->DisplaySize.x;
-        scale[1] = 2.0f / drawData->DisplaySize.y;
-        float translate[2];
-        translate[0] = -1.0f - drawData->DisplayPos.x * scale[0];
-        translate[1] = -1.0f - drawData->DisplayPos.y * scale[1];
-        imGuiData.generalShaderRes->SetUniform("uPushConstant.uScale", &scale);
-        imGuiData.generalShaderRes->SetUniform("uPushConstant.uTranslate", &translate);
-
         if (drawData->TotalVtxCount > 0)
         {
             // Create or resize the vertex/index buffers
@@ -197,6 +187,13 @@ namespace Engine::Editor
         cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
         cmdBuf->BindResource(imGuiData.generalShaderRes);
         cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16);
+        // update scale  and translate
+        float scale2Translate2[4];
+        scale2Translate2[0] = 2.0f / drawData->DisplaySize.x;
+        scale2Translate2[1] = 2.0f / drawData->DisplaySize.y;
+        scale2Translate2[2] = -1.0f - drawData->DisplayPos.x * scale2Translate2[0];
+        scale2Translate2[3] = -1.0f - drawData->DisplayPos.y * scale2Translate2[1];
+        cmdBuf->SetPushConstant(imGuiData.shaderProgram, &scale2Translate2);
         // hard coded ImGui shader's vertex input
         cmdBuf->BindVertexBuffer({imGuiData.vertexBuffer}, {0}, 0);
 

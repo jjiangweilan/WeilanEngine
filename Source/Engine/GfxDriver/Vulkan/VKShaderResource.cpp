@@ -177,23 +177,6 @@ namespace Engine::Gfx
         buf->Write(value, memIter->second.data->size, memIter->second.offset);
     }
 
-    void VKShaderResource::UpdatePushConstant(VkCommandBuffer cmd)
-    {
-        if (pushConstantIsUsed)
-        {
-            VkShaderStageFlags stages = 0;
-            uint32_t totalSize = 0;
-            for(auto& ps : shaderProgram->GetShaderInfo().pushConstants)
-            {
-                auto& pushConstant = ps.second;
-                stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
-                totalSize += pushConstant.data.size;
-            }
-
-            vkCmdPushConstants(cmd, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, pushConstantBuffer);
-        }
-    }
-
     VkDescriptorSet VKShaderResource::GetDescriptorSet()
     {
         return descriptorSet;

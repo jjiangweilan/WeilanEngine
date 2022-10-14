@@ -145,8 +145,6 @@ namespace Engine::Gfx
             resource->PrepareResource(cmd);
             if (descSet != VK_NULL_HANDLE)
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(), resource->GetDescriptorSetSlot(), 1, &descSet, 0, VK_NULL_HANDLE);
-            resource->UpdatePushConstant(cmd);
-
         };
         pendingCommands.push_back(std::move(f));
     }
