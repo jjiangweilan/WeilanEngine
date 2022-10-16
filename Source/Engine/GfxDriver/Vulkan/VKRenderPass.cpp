@@ -67,8 +67,6 @@ namespace Engine::Gfx
             data.subpass.flags = 0;
             data.subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
-            VkAttachmentReference inputs[16];
-            VkAttachmentReference colors[16];
             for(uint32_t input : subpass.inputs)
             {
                 VkAttachmentReference r;

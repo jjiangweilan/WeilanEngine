@@ -47,7 +47,8 @@ namespace Engine::Gfx
                 std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
             };
 
-            std::unordered_map<VkDescriptorSetLayoutCreateInfo, VKDescriptorPool, VkDescriptorSetLayoutCreateInfoHash> descriptorLayoutPoolCache;
+            // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
+            std::unordered_map<std::size_t, VKDescriptorPool> descriptorLayoutPoolCache;
             RefPtr<VKContext> context;
 
         private:

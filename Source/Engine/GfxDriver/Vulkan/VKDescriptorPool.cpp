@@ -117,14 +117,15 @@ namespace Engine::Gfx
     
     VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(VkDescriptorSetLayoutCreateInfo createInfo)
     {
-        auto it = descriptorLayoutPoolCache.find(createInfo);
+        std::size_t hash = VkDescriptorSetLayoutCreateInfoHash()(createInfo);
+        auto it = descriptorLayoutPoolCache.find(hash);
         if (it != descriptorLayoutPoolCache.end())
         {
             return it->second;
         }
         else
         {
-            auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(createInfo, VKDescriptorPool(context, createInfo)));
+            auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(hash, VKDescriptorPool(context, createInfo)));
             return pair.first->second;
         }
     }
