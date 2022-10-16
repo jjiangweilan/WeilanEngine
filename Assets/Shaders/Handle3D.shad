@@ -5,9 +5,9 @@
 name: Internal/Handle3D
 interleaved: False
 depth:
-    testEnable: False
-    writeEnable : False
-    compOp: always
+    testEnable: True
+    writeEnable : True
+    compOp: lessOrEqual
 #endif
 
 #if VERT

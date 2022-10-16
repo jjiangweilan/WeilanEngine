@@ -1,5 +1,6 @@
 #pragma once
 #include "Code/Ptr.hpp"
+#include "GfxDriver/Image.hpp"
 #include "GfxEnums.hpp"
 #include <optional>
 #include <vector>
@@ -55,6 +56,8 @@ namespace Engine::Gfx
         virtual ~RenderPass(){}
 
         virtual void SetAttachments(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
+        virtual void AddSubpass(std::vector<RefPtr<Image>>&& colors, RefPtr<Image> depth) = 0;
+
         virtual void SetSubpass(const std::vector<Subpass>& subpasses) = 0;
         virtual void AddSubpassDependency(const SubpassDependency& subpassDependency) = 0;
     private:

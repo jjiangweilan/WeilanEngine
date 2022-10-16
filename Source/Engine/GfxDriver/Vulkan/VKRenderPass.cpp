@@ -107,6 +107,10 @@ namespace Engine::Gfx
         }
     }
 
+    void VKRenderPass::AddSubpass(std::vector<RefPtr<Image>>&& colors, RefPtr<Image> depth)
+    {
+    }
+
     void VKRenderPass::CreateRenderPass()
     {
         VkRenderPassCreateInfo createInfo;

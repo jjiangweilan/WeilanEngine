@@ -30,7 +30,16 @@ namespace Engine::Editor {
             UniPtr<Gfx::RenderPass> scenePass;
             UniPtr<GameSceneHandle> activeHandle;
             UniPtr<Gfx::FrameBuffer> sceneFrameBuffer;
-            RefPtr<Shader> outlineByStencil, outlineByStencilDrawOutline;
+
+            RefPtr<Shader> simpleBlendShader;
+            UniPtr<Gfx::Image> editorOverlayoutColor;
+            UniPtr<Gfx::Image> outlineOffscreenColor;
+            UniPtr<Gfx::Image> outlineOffscreenDepth;
+            UniPtr<Gfx::RenderPass> outlinePass;
+            UniPtr<Gfx::FrameBuffer> outlineFrameBuffer;
+            UniPtr<Gfx::ShaderResource> outlineResource;
+
+            RefPtr<Shader> outlineRawColor, outlineFullScreen;
 
             void UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth);
     };

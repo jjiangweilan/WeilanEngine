@@ -16,12 +16,16 @@ namespace Engine::Gfx
             ~VKRenderPass() override;
             void SetAttachments(const std::vector<Attachment>& colors, std::optional<Attachment> depth) override;
             void SetSubpass(const std::vector<Subpass>& subpasses) override;
+            void AddSubpass(std::vector<RefPtr<Image>>&& colors, RefPtr<Image> depth) override;
             void AddSubpassDependency(const SubpassDependency& dependency) override {assert(0 && "Not implemented");}
 
             void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf, std::vector<RefPtr<VKImage>>& attachments);
 
             VkRenderPass GetHandle();
         protected:
+            std::vector<RefPtr<Image>> colors;
+            std::vector<RefPtr<Image>> depths;
+
             std::vector<VkAttachmentDescription> colorAttachments;
             std::optional<VkAttachmentDescription> depthAttachment;
 
