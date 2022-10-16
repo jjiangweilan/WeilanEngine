@@ -225,6 +225,28 @@ namespace Engine::Gfx
         pendingCommands.push_back(std::move(f));
     }
 
+    void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
+        {
+            vkCmdDraw(cmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
+        };
+
+        pendingCommands.push_back(std::move(f));
+    }
+
+    void VKCommandBuffer::NextRenderPass()
+    {
+        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
+        {
+            context.subpass += 1;
+            vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
+        };
+
+        pendingCommands.push_back(std::move(f));
+
+    }
+
     void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_, void* data)
     {
         VKShaderProgram* shaderProgram = static_cast<VKShaderProgram*>(shaderProgram_.Get());

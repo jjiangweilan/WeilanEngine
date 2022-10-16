@@ -89,8 +89,9 @@ namespace Engine::Editor
 
     GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext)
     {
-        outlineByStencil = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencil");
-        outlineByStencilDrawOutline = AssetDatabase::Instance()->GetShader("Internal/OutlineByStencilDrawOutline");
+        outlineRawColor = AssetDatabase::Instance()->GetShader("Internal/OutlineRawColorPass");
+        outlineFullScreen = AssetDatabase::Instance()->GetShader("Internal/OutlineFullScreenPass");
+        simpleBlendShader = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend");
     }
 
     void GameSceneWindow::Tick(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
@@ -196,13 +197,35 @@ namespace Engine::Editor
 
     void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
     {
-        std::vector<Gfx::ClearValue> clears(2);
+        static std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
         clears[1].depthStencil.depth = 1;
 
         GameObject* obj = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
         cmdBuf->Blit(sceneColor, newSceneColor);
         cmdBuf->Blit(sceneDepth, newSceneDepth);
+
+        auto meshRenderer = obj ? obj->GetComponent<MeshRenderer>() : nullptr;
+        auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
+        auto material = meshRenderer ? meshRenderer->GetMaterial() : nullptr;
+        // draw outline
+        bool drawOutline = false;
+        if (mesh != nullptr && material != nullptr)
+        {
+            cmdBuf->BeginRenderPass(outlinePass, outlineFrameBuffer, clears);
+
+            cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
+            cmdBuf->BindShaderProgram(outlineRawColor->GetShaderProgram(), outlineRawColor->GetDefaultShaderConfig());
+            cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset, mesh->GetIndexBufferType());
+            auto modelMatrix = obj->GetTransform()->GetModelMatrix();
+            cmdBuf->SetPushConstant(material->GetShader()->GetShaderProgram(), &modelMatrix);
+            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
+            cmdBuf->EndRenderPass();
+            drawOutline = true;
+        }
+
+
+        // scene pass
         cmdBuf->BeginRenderPass(scenePass, sceneFrameBuffer, clears);
 
         // draw handles
@@ -211,28 +234,63 @@ namespace Engine::Editor
             activeHandle->DrawHandle(cmdBuf);
         }
 
-        auto meshRenderer = obj ? obj->GetComponent<MeshRenderer>() : nullptr;
-        auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
-        auto material = meshRenderer ? meshRenderer->GetMaterial() : nullptr;
-        // draw outline using stencil
-        if (mesh != nullptr && material != nullptr)
-        {
-            cmdBuf->BindVertexBuffer(mesh->GetMeshBindingInfo().bindingBuffers, mesh->GetMeshBindingInfo().bindingOffsets, 0);
-            cmdBuf->BindResource(material->GetShaderResource());
-            cmdBuf->BindShaderProgram(outlineByStencil->GetShaderProgram(), outlineByStencil->GetDefaultShaderConfig());
-            cmdBuf->BindIndexBuffer(mesh->GetMeshBindingInfo().indexBuffer.Get(), mesh->GetMeshBindingInfo().indexBufferOffset, mesh->GetIndexBufferType());
-            auto modelMatrix = obj->GetTransform()->GetModelMatrix();
-            cmdBuf->SetPushConstant(material->GetShader()->GetShaderProgram(), &modelMatrix);
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-            cmdBuf->BindShaderProgram(outlineByStencilDrawOutline->GetShaderProgram(), outlineByStencilDrawOutline->GetDefaultShaderConfig());
-            cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
-        }
+        cmdBuf->NextRenderPass();
 
+        // blend in outline
+        if (drawOutline)
+        {
+            cmdBuf->BindShaderProgram(outlineFullScreen->GetShaderProgram(), outlineFullScreen->GetDefaultShaderConfig());
+            cmdBuf->BindResource(outlineResource);
+            cmdBuf->Draw(6, 1, 0, 0);
+        }
         cmdBuf->EndRenderPass();
     }
 
     void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
     {
+
+        if (outlineOffscreenColor == nullptr)
+        {
+            outlineOffscreenColor = Gfx::GfxDriver::Instance()->CreateImage(sceneColor->GetDescription(), Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture);
+        }
+
+        if (outlineOffscreenDepth == nullptr)
+        {
+            auto desc = sceneDepth->GetDescription();
+            desc.format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
+            outlineOffscreenDepth = Gfx::GfxDriver::Instance()->CreateImage(desc, Gfx::ImageUsage::DepthStencilAttachment);
+        }
+
+        if (outlinePass == nullptr)
+        {
+            outlinePass = Gfx::GfxDriver::Instance()->CreateRenderPass();
+            Gfx::RenderPass::Attachment color;
+            color.format = outlineOffscreenColor->GetDescription().format;
+            color.loadOp = Gfx::AttachmentLoadOperation::Clear;
+            color.storeOp = Gfx::AttachmentStoreOperation::Store;
+            Gfx::RenderPass::Attachment depth;
+            depth.format = outlineOffscreenDepth->GetDescription().format;
+            depth.loadOp = Gfx::AttachmentLoadOperation::Clear;
+            depth.storeOp = Gfx::AttachmentStoreOperation::DontCare;
+            Gfx::RenderPass::Subpass subpass0;
+            subpass0.colors.push_back(0);
+            subpass0.depthAttachment = 1;
+            outlinePass->SetAttachments({color}, depth);
+            outlinePass->SetSubpass({subpass0});
+        }
+
+        if (outlineResource == nullptr)
+        {
+            outlineResource = Gfx::GfxDriver::Instance()->CreateShaderResource(simpleBlendShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Shader);
+            outlineResource->SetTexture("mainTex", outlineOffscreenColor);
+        }
+
+        if (outlineFrameBuffer == nullptr)
+        {
+            outlineFrameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(outlinePass);
+            outlineFrameBuffer->SetAttachments({outlineOffscreenColor, outlineOffscreenDepth});
+        }
+
         if (newSceneColor == nullptr)
         {
             const Gfx::ImageDescription& newSceneColorDesc = sceneColor->GetDescription();
@@ -250,25 +308,32 @@ namespace Engine::Editor
         {
             /* scene pass data */
             scenePass = Gfx::GfxDriver::Instance()->CreateRenderPass();
-            Gfx::RenderPass::Attachment sceneDepthAttachment;
-            sceneDepthAttachment.format = sceneDepth->GetDescription().format;
-            sceneDepthAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
-            sceneDepthAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
             Gfx::RenderPass::Attachment sceneColorAttachment;
             sceneColorAttachment.format = sceneColor->GetDescription().format;
             sceneColorAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
             sceneColorAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
+            Gfx::RenderPass::Attachment sceneDepthAttachment;
+            sceneDepthAttachment.format = sceneDepth->GetDescription().format;
+            sceneDepthAttachment.loadOp = Gfx::AttachmentLoadOperation::Clear;
+            sceneDepthAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
+            Gfx::RenderPass::Attachment outlineAttachmentAttachment;
+            sceneDepthAttachment.format = sceneDepth->GetDescription().format;
+            sceneDepthAttachment.loadOp = Gfx::AttachmentLoadOperation::Load;
+            sceneDepthAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
             scenePass->SetAttachments({sceneColorAttachment}, sceneDepthAttachment);
+            Gfx::RenderPass::Subpass handlePass;
+            handlePass.colors.push_back(0);
+            handlePass.depthAttachment = 2;
+            Gfx::RenderPass::Subpass outlinePass;
+            handlePass.colors.push_back(0);
+            handlePass.depthAttachment = 1;
+            scenePass->SetSubpass({handlePass, outlinePass});
         }
 
         if (sceneFrameBuffer == nullptr)
         {
-            Gfx::RenderPass::Subpass editorPass0;
-            editorPass0.colors.push_back(0);
-            editorPass0.depthAttachment = 1;
-            scenePass->SetSubpass({editorPass0});
             sceneFrameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(scenePass);
-            sceneFrameBuffer->SetAttachments({newSceneColor, newSceneDepth});
+            sceneFrameBuffer->SetAttachments({newSceneColor, newSceneDepth, outlineOffscreenDepth});
         }
     }
 

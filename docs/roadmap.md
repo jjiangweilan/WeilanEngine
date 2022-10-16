@@ -21,7 +21,8 @@ Editor
 - [x] Shader config file (default blending mode, vertex interleaving etc...)
 
 Drivers
-- [ ] Set push constant in GfxDriver API. Currently we can only update implicitly through ShaderResource
+- [ ] RenderPass should be able to set multiple depth texture
+- [x] Set push constant in GfxDriver API. Currently we can only update implicitly through ShaderResource
 - [x] Vulkan rendering backend
 
 CMake

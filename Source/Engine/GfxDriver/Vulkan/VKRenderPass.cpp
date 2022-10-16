@@ -107,6 +107,16 @@ namespace Engine::Gfx
         }
     }
 
+    VkFramebuffer VKRenderPass::GetFrameBuffer()
+    {
+
+    }
+
+    void VKRenderPass::AddSubpass(const std::vector<RefPtr<Image>>& colors, RefPtr<Image> depth)
+    {
+        subpasses.emplace_back(colors, depth);
+    }
+
     void VKRenderPass::CreateRenderPass()
     {
         VkRenderPassCreateInfo createInfo;
@@ -114,27 +124,63 @@ namespace Engine::Gfx
         createInfo.pNext = VK_NULL_HANDLE;
         createInfo.flags = 0;
 
-        if (depthAttachment.has_value())
+        VkAttachmentDescription attachmentDescriptions[64];
+
+        uint32_t attachmentCount = 0;
+        for(auto& subpass : subpasses)
         {
-            colorAttachments.reserve(colorAttachments.size() + 1);
-            colorAttachments.push_back(depthAttachment.value());
+            attachmentCount += subpass.colors.size();
+            if (subpass.depth != nullptr)
+            {
+                attachmentCount += 1;
+            }
         }
+        assert(attachmentCount <= 64);
 
-        createInfo.attachmentCount = colorAttachments.size();
-        createInfo.pAttachments = colorAttachments.data();
+        createInfo.attachmentCount = attachmentCount;
+        createInfo.pAttachments = attachmentDescriptions;
 
-        std::vector<VkSubpassDescription> finalSubpassDescriptions(subpassDescriptions.size());
+        VkSubpassDescription subpassDescriptions[64];
+        assert(subpasses.size() <= 64);
 
         uint32_t i = 0;
-        for(auto& v : subpassDescriptions)
+        for(auto& subpass : subpasses)
         {
+            VkSubpassDescription subpassDescription;
+            VkAttachmentReference colorAttaRef[16];
+            assert(subpass.colors.size() <= 16);
+            VkAttachmentReference depthAttaRef;
+
+            for(RefPtr<Image> color : subpass.colors)
+            {
+                attachmentDescriptions[i].flags = 0;
+                attachmentDescriptions[i].format = VKEnumMapper::MapFormat(color->GetDescription().format);
+                attachmentDescriptions[i].samples = VKEnumMapper::MapSampleCount(color->GetDescription().multiSampling);
+                attachmentDescriptions[i].loadOp = VKEnumMapper::MapAttachmentLoadOp(color->GetDescription().loadOp);
+                attachmentDescriptions[i].storeOp = VKEnumMapper::MapAttachmentStoreOp(color->GetDescription().storeOp);
+                attachmentDescriptions[i].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(color->GetDescription().stencilLoadOp);
+                attachmentDescriptions[i].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(color->GetDescription().storeOp);
+                attachmentDescriptions[i].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachmentDescriptions[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            }
+
+            subpassDescription.flags = 0;
+            subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpassDescription.inputAttachmentCount = 0;
+            subpassDescription.pInputAttachments = VK_NULL_HANDLE;
+            subpassDescription.colorAttachmentCount = subpass.colors.size();
+            subpassDescription.pColorAttachments = ;
+            subpassDescription.pResolveAttachments;
+            subpassDescription.pDepthStencilAttachment;
+            subpassDescription.preserveAttachmentCount;
+            subpassDescription.pPreserveAttachments;
             // we don't use implicit subpass dependency between renderpass, so the finalLayout and the initialLayout are set to the same value
             v.depthStencil.layout = depthAttachment != std::nullopt ? depthAttachment->finalLayout : VK_IMAGE_LAYOUT_UNDEFINED;
             finalSubpassDescriptions[i] = v.subpass;
         }
 
-        createInfo.subpassCount = finalSubpassDescriptions.size();
-        createInfo.pSubpasses = finalSubpassDescriptions.data();
+        createInfo.subpassCount = subpasses.size();
+        createInfo.pSubpasses = subpassDescriptions;
 
         createInfo.dependencyCount = 0;
         createInfo.pDependencies = VK_NULL_HANDLE;
