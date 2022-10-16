@@ -45,7 +45,7 @@ namespace Engine::Gfx
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         createInfo.pNext = VK_NULL_HANDLE;
         createInfo.flags = 0;
-        createInfo.renderPass = baseRenderPass->GetHandle();
+        // createInfo.renderPass = baseRenderPass->GetHandle();
 
         assert(attachments.size() <= 32);
         VkImageView imageViews[32] = {};

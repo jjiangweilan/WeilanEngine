@@ -7,7 +7,7 @@ depth:
     testEnable: false
     compOp: always
 blend:
-    - one zero
+    - srcAlpha oneMinusSrcAlpha
 blendOp:
     - add
 #endif
@@ -29,7 +29,7 @@ blendOp:
         };
 
         gl_Position = c_Positions[gl_VertexIndex];
-        o_uv = gl_Position.xy * 0.5 + 1;
+        o_uv = gl_Position.xy * 0.5 + 0.5;
     }
 #endif
 

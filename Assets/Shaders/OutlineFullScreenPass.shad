@@ -46,9 +46,9 @@ layout(set = SET_SHADER, binding = 0) uniform sampler2D mainTex;
 
 void main() {
     ivec2 coord = ivec2(gl_FragCoord.xy);
-    for(int i = -2; i < 2; ++i)
+    for(int i = -5; i < 5; ++i)
     {
-        for (int j = -2; j < 2; ++j)
+        for (int j = -5; j < 5; ++j)
         {
             vec4 col = texelFetch(mainTex, coord + ivec2(i,j), 0);
             if (col.x != 0)

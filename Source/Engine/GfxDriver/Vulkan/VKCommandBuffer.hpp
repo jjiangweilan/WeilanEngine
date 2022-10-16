@@ -19,7 +19,6 @@ namespace Engine::Gfx
             ~VKCommandBuffer();
 
             void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass,
-                    RefPtr<Gfx::FrameBuffer> frameBuffer,
                     const std::vector<Gfx::ClearValue>& clearValues) override;
             void EndRenderPass() override;
 

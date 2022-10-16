@@ -37,25 +37,19 @@ namespace Engine::Rendering
         // create frameBuffer and renderPass
         renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
         RenderPass::Attachment colorAttachment;
-        colorAttachment.format = ImageFormat::R16G16B16A16_SFloat;
+        colorAttachment.image = colorImage;
         colorAttachment.multiSampling = MultiSampling::Sample_Count_1;
         colorAttachment.loadOp = AttachmentLoadOperation::Clear;
         colorAttachment.storeOp = AttachmentStoreOperation::Store;
 
         RenderPass::Attachment depthAttachment;
-        depthAttachment.format = ImageFormat::D24_UNorm_S8_UInt;
+        depthAttachment.image = depthImage;
         depthAttachment.multiSampling = MultiSampling::Sample_Count_1;
         depthAttachment.loadOp = AttachmentLoadOperation::Clear;
         depthAttachment.storeOp = AttachmentStoreOperation::Store;
         depthAttachment.stencilLoadOp = AttachmentLoadOperation::Clear;
         depthAttachment.stencilStoreOp = AttachmentStoreOperation::Store;
-        renderPass->SetAttachments({colorAttachment}, depthAttachment);
-        RenderPass::Subpass subpass;
-        subpass.colors.push_back(0);
-        subpass.depthAttachment = 1;
-        renderPass->SetSubpass({subpass});
-        frameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(renderPass);
-        frameBuffer->SetAttachments({colorImage, depthImage});
+        renderPass->AddSubpass({colorAttachment}, depthAttachment);
 
         // create global shader resource
         globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
@@ -90,7 +84,7 @@ namespace Engine::Rendering
         Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
         cmdBuf->SetScissor(0, 1, &scissor);
         cmdBuf->BindResource(globalResource);
-        cmdBuf->BeginRenderPass(renderPass, frameBuffer, clears);
+        cmdBuf->BeginRenderPass(renderPass, clears);
         if (gameScene)
         {
             auto& roots = gameScene->GetRootObjects();

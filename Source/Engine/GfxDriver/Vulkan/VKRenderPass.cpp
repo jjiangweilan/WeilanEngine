@@ -7,114 +7,59 @@
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
 {
-    VKRenderPass::VKRenderPass() :
-        colorAttachments(),
-        subpassDescriptions(),
-        dependencies()
+    VKRenderPass::VKRenderPass()
     {
-
     }
 
     VKRenderPass::~VKRenderPass()
     {
         if (renderPass != VK_NULL_HANDLE)
             VKContext::Instance()->objManager->DestroyRenderPass(renderPass);
+
+        if (frameBuffer != VK_NULL_HANDLE)
+            VKContext::Instance()->objManager->DestroyFramebuffer(frameBuffer);
     }
 
-
-    void VKRenderPass::SetAttachments(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
-    {
-        colorAttachments.clear();
-        for(auto& attachment : colors)
-        {
-            VkAttachmentDescription desc;
-            desc.flags = 0;
-            desc.format = VKEnumMapper::MapFormat(attachment.format);
-            desc.samples = VKEnumMapper::MapSampleCount(attachment.multiSampling);
-            desc.loadOp = VKEnumMapper::MapAttachmentLoadOp(attachment.loadOp);
-            desc.storeOp = VKEnumMapper::MapAttachmentStoreOp(attachment.storeOp);
-            desc.stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(attachment.stencilLoadOp);
-            desc.stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(attachment.storeOp);
-            desc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            desc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            colorAttachments.push_back(desc);
-        }
-
-        if (depth.has_value())
-        {
-            depthAttachment = VkAttachmentDescription();
-            depthAttachment->flags = 0;
-            depthAttachment->format = VKEnumMapper::MapFormat(depth->format);
-            depthAttachment->samples = VKEnumMapper::MapSampleCount(depth->multiSampling);
-            depthAttachment->loadOp = VKEnumMapper::MapAttachmentLoadOp(depth->loadOp);
-            depthAttachment->storeOp = VKEnumMapper::MapAttachmentStoreOp(depth->storeOp);
-            depthAttachment->stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(depth->stencilLoadOp);
-            depthAttachment->stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(depth->storeOp);
-            depthAttachment->initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depthAttachment->finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        }
-    }
-
-    void VKRenderPass::SetSubpass(const std::vector<Subpass>& subpasses)
-    {
-        subpassDescriptions.clear();
-        subpassDescriptions.resize(subpasses.size());
-        uint32_t i = 0;
-        for(auto& subpass : subpasses)
-        {
-            SubpassDescriptionData& data = subpassDescriptions[i];
-            data.subpass.flags = 0;
-            data.subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-            for(uint32_t input : subpass.inputs)
-            {
-                VkAttachmentReference r;
-                r.attachment = input;
-                r.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                data.inputs.push_back(r);
-            }
-
-            for(uint32_t color : subpass.colors)
-            {
-                VkAttachmentReference r;
-                r.attachment = color;
-                r.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                data.colors.push_back(r);
-            }
-
-
-            data.resolves.clear();
-            data.subpass.colorAttachmentCount = data.colors.size();
-            data.subpass.pColorAttachments = data.colors.data();
-            data.subpass.flags = 0;
-            data.subpass.inputAttachmentCount = data.inputs.size();
-            data.subpass.pInputAttachments = data.inputs.data();
-            if (subpass.depthAttachment == -1)
-                data.subpass.pDepthStencilAttachment = VK_NULL_HANDLE;
-            else
-            {
-                data.depthStencil.attachment = subpass.depthAttachment;
-                // actual value is resolved in CreateRenderPass
-                data.depthStencil.layout = VK_IMAGE_LAYOUT_UNDEFINED;
-                data.subpass.pDepthStencilAttachment = &data.depthStencil;
-            }
-            data.subpass.preserveAttachmentCount = 0;
-            data.subpass.pPreserveAttachments = VK_NULL_HANDLE;
-            data.subpass.pResolveAttachments = VK_NULL_HANDLE;
-
-            i += 1;
-        }
-    }
-
-    VkFramebuffer VKRenderPass::GetFrameBuffer()
-    {
-
-    }
-
-    void VKRenderPass::AddSubpass(const std::vector<RefPtr<Image>>& colors, RefPtr<Image> depth)
+    void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
     {
         subpasses.emplace_back(colors, depth);
+    }
+
+    void VKRenderPass::CreateFrameBuffer()
+    {
+        VkFramebufferCreateInfo createInfo;
+        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        createInfo.pNext = VK_NULL_HANDLE;
+        createInfo.flags = 0;
+        createInfo.renderPass = renderPass;
+
+        VkImageView imageViews[64] = {};
+        uint32_t attaIndex = 0;
+        // same way to order pAttachments as in CreateRenderPass
+        for(auto& subpass : subpasses)
+        {
+            // color attachments
+            for(Attachment& colorAtta : subpass.colors)
+            {
+                imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
+                attaIndex += 1;
+            }
+
+            // depth attachment
+            if (subpass.depth != std::nullopt)
+            {
+                imageViews[attaIndex] = static_cast<VKImage*>(subpass.depth->image.Get())->GetDefaultImageView();
+                attaIndex += 1;
+            }
+
+        }
+        createInfo.attachmentCount = attaIndex;
+        createInfo.pAttachments = imageViews;
+        createInfo.width = subpasses[0].colors[0].image->GetDescription().width;
+        createInfo.height = subpasses[0].colors[0].image->GetDescription().height;
+        createInfo.layers = 1;
+
+        VKContext::Instance()->objManager->CreateFramebuffer(createInfo, frameBuffer);
     }
 
     void VKRenderPass::CreateRenderPass()
@@ -130,7 +75,7 @@ namespace Engine::Gfx
         for(auto& subpass : subpasses)
         {
             attachmentCount += subpass.colors.size();
-            if (subpass.depth != nullptr)
+            if (subpass.depth != std::nullopt)
             {
                 attachmentCount += 1;
             }
@@ -141,42 +86,75 @@ namespace Engine::Gfx
         createInfo.pAttachments = attachmentDescriptions;
 
         VkSubpassDescription subpassDescriptions[64];
+        VkAttachmentReference attachmentReference[128];
         assert(subpasses.size() <= 64);
 
-        uint32_t i = 0;
+        uint32_t subpassDescIndex = 0;
+        uint32_t attachmentDescIndex = 0;
+        uint32_t refIndex = 0;
         for(auto& subpass : subpasses)
         {
-            VkSubpassDescription subpassDescription;
-            VkAttachmentReference colorAttaRef[16];
-            assert(subpass.colors.size() <= 16);
-            VkAttachmentReference depthAttaRef;
+            subpassDescriptions[subpassDescIndex].flags = 0;
+            subpassDescriptions[subpassDescIndex].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpassDescriptions[subpassDescIndex].inputAttachmentCount = 0;
+            subpassDescriptions[subpassDescIndex].pInputAttachments = VK_NULL_HANDLE;
+            subpassDescriptions[subpassDescIndex].pResolveAttachments = VK_NULL_HANDLE;
+            subpassDescriptions[subpassDescIndex].preserveAttachmentCount = 0;
+            subpassDescriptions[subpassDescIndex].pPreserveAttachments = VK_NULL_HANDLE;
 
-            for(RefPtr<Image> color : subpass.colors)
+            // color attachments
+            subpassDescriptions[subpassDescIndex].colorAttachmentCount = subpass.colors.size();
+            subpassDescriptions[subpassDescIndex].pColorAttachments = attachmentReference + refIndex;
+            for(Attachment& colorAtta : subpass.colors)
             {
-                attachmentDescriptions[i].flags = 0;
-                attachmentDescriptions[i].format = VKEnumMapper::MapFormat(color->GetDescription().format);
-                attachmentDescriptions[i].samples = VKEnumMapper::MapSampleCount(color->GetDescription().multiSampling);
-                attachmentDescriptions[i].loadOp = VKEnumMapper::MapAttachmentLoadOp(color->GetDescription().loadOp);
-                attachmentDescriptions[i].storeOp = VKEnumMapper::MapAttachmentStoreOp(color->GetDescription().storeOp);
-                attachmentDescriptions[i].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(color->GetDescription().stencilLoadOp);
-                attachmentDescriptions[i].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(color->GetDescription().storeOp);
-                attachmentDescriptions[i].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                attachmentDescriptions[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachmentDescriptions[attachmentDescIndex].flags = 0;
+                attachmentDescriptions[attachmentDescIndex].format = VKEnumMapper::MapFormat(colorAtta.image->GetDescription().format);
+                attachmentDescriptions[attachmentDescIndex].samples = VKEnumMapper::MapSampleCount(colorAtta.image->GetDescription().multiSampling);
+                attachmentDescriptions[attachmentDescIndex].loadOp = VKEnumMapper::MapAttachmentLoadOp(colorAtta.loadOp);
+                attachmentDescriptions[attachmentDescIndex].storeOp = VKEnumMapper::MapAttachmentStoreOp(colorAtta.storeOp);
+                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(colorAtta.stencilLoadOp);
+                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(colorAtta.storeOp);
+                attachmentDescriptions[attachmentDescIndex].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                attachmentDescriptions[attachmentDescIndex].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+                attachmentReference[refIndex].attachment = attachmentDescIndex;
+                attachmentReference[refIndex].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+                attachmentDescIndex += 1;
+                refIndex += 1;
             }
 
-            subpassDescription.flags = 0;
-            subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpassDescription.inputAttachmentCount = 0;
-            subpassDescription.pInputAttachments = VK_NULL_HANDLE;
-            subpassDescription.colorAttachmentCount = subpass.colors.size();
-            subpassDescription.pColorAttachments = ;
-            subpassDescription.pResolveAttachments;
-            subpassDescription.pDepthStencilAttachment;
-            subpassDescription.preserveAttachmentCount;
-            subpassDescription.pPreserveAttachments;
-            // we don't use implicit subpass dependency between renderpass, so the finalLayout and the initialLayout are set to the same value
-            v.depthStencil.layout = depthAttachment != std::nullopt ? depthAttachment->finalLayout : VK_IMAGE_LAYOUT_UNDEFINED;
-            finalSubpassDescriptions[i] = v.subpass;
+            // depth attachment
+            if (subpass.depth != std::nullopt)
+            {
+                subpassDescriptions[subpassDescIndex].pDepthStencilAttachment = attachmentReference + refIndex;
+
+                attachmentDescriptions[attachmentDescIndex].flags = 0;
+                attachmentDescriptions[attachmentDescIndex].format = VKEnumMapper::MapFormat(subpass.depth->image->GetDescription().format);
+                attachmentDescriptions[attachmentDescIndex].samples = VKEnumMapper::MapSampleCount(subpass.depth->image->GetDescription().multiSampling);
+                attachmentDescriptions[attachmentDescIndex].loadOp = VKEnumMapper::MapAttachmentLoadOp(subpass.depth->loadOp);
+                attachmentDescriptions[attachmentDescIndex].storeOp = VKEnumMapper::MapAttachmentStoreOp(subpass.depth->storeOp);
+                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(subpass.depth->stencilLoadOp);
+                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(subpass.depth->storeOp);
+                attachmentDescriptions[attachmentDescIndex].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                attachmentDescriptions[attachmentDescIndex].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+                attachmentReference[refIndex].attachment = attachmentDescIndex;
+                attachmentReference[refIndex].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+                attachmentDescIndex += 1;
+                refIndex += 1;
+            }
+            else
+            {
+                subpassDescriptions[subpassDescIndex].pDepthStencilAttachment = VK_NULL_HANDLE;
+            }
+
+            if (subpassDescIndex != 0)
+            {
+            }
+
+            subpassDescIndex += 1;
         }
 
         createInfo.subpassCount = subpasses.size();
@@ -188,34 +166,52 @@ namespace Engine::Gfx
         VKContext::Instance()->objManager->CreateRenderPass(createInfo, renderPass);
     }
 
-    void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf, std::vector<RefPtr<VKImage>>& attachments)
+
+    Extent2D VKRenderPass::GetExtent()
     {
-        if (subpassDescriptions.size() > 0)
+        if (subpasses.size() > 0 && subpasses[0].colors.size() > 0 && subpasses[0].colors[0].image != nullptr)
         {
-            auto& desc = subpassDescriptions[0];
-            for(auto cRef : desc.colors)
+            auto& desc = subpasses[0].colors[0].image->GetDescription();
+            return { desc.width, desc.height };
+        }
+
+        return {0,0};
+    }
+
+    void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf)
+    {
+        for(auto& subpass : subpasses)
+        {
+            for(auto& atta : subpass.colors)
             {
-                auto subRscRange = attachments[cRef.attachment]->GetDefaultSubresourceRange();
-                attachments[cRef.attachment]->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+                auto image = static_cast<VKImage*>(atta.image.Get());
+                auto subRscRange = image->GetDefaultSubresourceRange();
+                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
             }
 
-            if (depthAttachment.has_value())
+            if (subpass.depth != std::nullopt)
             {
-                auto& depth = attachments[desc.depthStencil.attachment];
-                auto subRscRange = depth->GetDefaultSubresourceRange();
-                depth->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+                auto image = static_cast<VKImage*>(subpass.depth->image.Get());
+                auto subRscRange = image->GetDefaultSubresourceRange();
+                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
             }
         }
     }
 
-    VkRenderPass VKRenderPass::GetHandle()
+    void VKRenderPass::GetHandle(VkRenderPass& renderPass, VkFramebuffer& frameBuffer)
     {
-        if (renderPass == VK_NULL_HANDLE)
+        if (this->renderPass == VK_NULL_HANDLE)
         {
             CreateRenderPass();
         }
 
-        return renderPass;
+        if (this->frameBuffer == VK_NULL_HANDLE)
+        {
+            CreateFrameBuffer();
+        }
+
+        renderPass = this->renderPass;
+        frameBuffer = this->frameBuffer;
     }
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "../RenderPass.hpp"
+#include "VKFrameBuffer.hpp"
 #include <vector>
 #include <optional>
 #include <vulkan/vulkan.h>
@@ -14,46 +15,25 @@ namespace Engine::Gfx
             VKRenderPass(const VKRenderPass& renderPass) = delete;
             VKRenderPass(VKRenderPass&& renderPass) = delete;
             ~VKRenderPass() override;
-            void AddSubpass(const std::vector<RefPtr<Attachment>>& colors, RefPtr<Attachment> depth) override;
+            void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) override;
 
-            void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf, std::vector<RefPtr<VKImage>>& attachments);
+            void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf);
 
-            VkRenderPass GetHandle();
-            VkFramebuffer GetFrameBuffer();
+
+            void GetHandle(VkRenderPass& renderPass, VkFramebuffer& frameBuffer);
+            Extent2D GetExtent();
         protected:
-            std::vector<RefPtr<Image>> colors;
-            std::vector<RefPtr<Image>> depths;
-
-            std::vector<VkAttachmentDescription> colorAttachments;
-            std::optional<VkAttachmentDescription> depthAttachment;
-
-            struct SubpassDescriptionData
-            {
-                VkSubpassDescription subpass;
-
-                std::vector<VkAttachmentReference> inputs;
-                std::vector<VkAttachmentReference> colors;
-                std::vector<VkAttachmentReference> resolves;
-                VkAttachmentReference depthStencil;
-            };
-            std::vector<SubpassDescriptionData> subpassDescriptions;
-            std::vector<VkSubpassDependency> dependencies;
-
-            // to keep code clean, ubpass is processed inplace when the renderPass object is created
             void CreateRenderPass();
+            void CreateFrameBuffer();
 
             VkRenderPass renderPass = VK_NULL_HANDLE;
-
-
-
-
-            std::vector<RefPtr<Image>> colors;
-            std::vector<RefPtr<Image>> depths;
+            VkFramebuffer frameBuffer = VK_NULL_HANDLE;
 
             struct Subpass
             {
-                std::vector<RefPtr<Image>> colors;
-                RefPtr<Image> depth;
+                Subpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) : colors(colors), depth(depth) {}
+                std::vector<Attachment> colors;
+                std::optional<Attachment> depth;
             };
             std::vector<Subpass> subpasses;
     };

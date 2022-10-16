@@ -25,7 +25,7 @@ namespace Engine
             virtual void BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType) = 0;
             virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const Gfx::ShaderConfig& config) = 0;
 
-            virtual void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, RefPtr<Gfx::FrameBuffer> frameBuffer, const std::vector<Gfx::ClearValue>& clearValues) = 0;
+            virtual void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues) = 0;
             virtual void NextRenderPass() = 0;
             virtual void EndRenderPass() = 0;
 

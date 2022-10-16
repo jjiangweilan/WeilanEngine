@@ -84,16 +84,10 @@ namespace Engine::Editor
         /* imgui render pass */
         editorPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
         Gfx::RenderPass::Attachment colorAttachment;
-        colorAttachment.format = imGuiData.editorRT->GetDescription().format;
+        colorAttachment.image = imGuiData.editorRT;
         colorAttachment.loadOp = Gfx::AttachmentLoadOperation::Clear;
         colorAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
-
-        editorPass->SetAttachments({colorAttachment}, std::nullopt);
-        Gfx::RenderPass::Subpass subpass;
-        subpass.colors.push_back(0);
-        editorPass->SetSubpass({subpass});
-        frameBuffer = Gfx::GfxDriver::Instance()->CreateFrameBuffer(editorPass);
-        frameBuffer->SetAttachments({imGuiData.editorRT});
+        editorPass->AddSubpass({colorAttachment}, std::nullopt);
 
     }
 
@@ -147,7 +141,7 @@ namespace Engine::Editor
         std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
         clears[1].depthStencil.depth = 1;
-        cmdBuf->BeginRenderPass(editorPass, frameBuffer, clears);
+        cmdBuf->BeginRenderPass(editorPass, clears);
 
         ImDrawData* drawData = ImGui::GetDrawData();
 

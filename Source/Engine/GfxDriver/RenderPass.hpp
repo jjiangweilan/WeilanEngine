@@ -2,6 +2,7 @@
 #include "Code/Ptr.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxEnums.hpp"
+#include "Utils/Structs.hpp"
 #include <optional>
 #include <vector>
 namespace Engine::Gfx
@@ -41,8 +42,7 @@ namespace Engine::Gfx
 
         virtual ~RenderPass(){}
 
-        virtual void AddSubpass(const std::vector<RefPtr<Attachment>>& colors, RefPtr<Attachment> depth) = 0;
-
+        virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
     private:
     };
 }

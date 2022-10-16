@@ -45,7 +45,6 @@ namespace Engine::Editor
             /* Rendering Structures */
             RefPtr<Gfx::GfxDriver> gfxDriver;
             UniPtr<Gfx::RenderPass> editorPass;
-            UniPtr<Gfx::FrameBuffer> frameBuffer;
             RefPtr<Gfx::Image> gameColorImage;
             RefPtr<Gfx::Image> gameDepthImage;
             void DrawMainMenu();

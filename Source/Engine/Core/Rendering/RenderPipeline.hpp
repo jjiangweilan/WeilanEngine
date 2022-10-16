@@ -31,7 +31,6 @@ namespace Engine::Rendering
             FrameContext* frameContext;
 
             UniPtr<Gfx::RenderPass> renderPass;
-            UniPtr<Gfx::FrameBuffer> frameBuffer;
             UniPtr<Gfx::Image> colorImage;
             UniPtr<Gfx::Image> depthImage;
             UniPtr<Gfx::ShaderResource> globalResource;
