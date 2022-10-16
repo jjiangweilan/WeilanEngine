@@ -89,7 +89,7 @@ namespace Engine::Internal
 
         ryml::NodeRef root = tree.rootref();
         root["name"] >> name;
-        root["interleaved"] >> config.vertexInterleaved;
+        root.get_if("interleaved", &config.vertexInterleaved);
         config.depth.boundTestEnable = false;
 
         if (root.has_child("blend"))
