@@ -14,14 +14,12 @@ namespace Engine::Gfx
             VKRenderPass(const VKRenderPass& renderPass) = delete;
             VKRenderPass(VKRenderPass&& renderPass) = delete;
             ~VKRenderPass() override;
-            void SetAttachments(const std::vector<Attachment>& colors, std::optional<Attachment> depth) override;
-            void SetSubpass(const std::vector<Subpass>& subpasses) override;
-            void AddSubpass(std::vector<RefPtr<Image>>&& colors, RefPtr<Image> depth) override;
-            void AddSubpassDependency(const SubpassDependency& dependency) override {assert(0 && "Not implemented");}
+            void AddSubpass(const std::vector<RefPtr<Attachment>>& colors, RefPtr<Attachment> depth) override;
 
             void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf, std::vector<RefPtr<VKImage>>& attachments);
 
             VkRenderPass GetHandle();
+            VkFramebuffer GetFrameBuffer();
         protected:
             std::vector<RefPtr<Image>> colors;
             std::vector<RefPtr<Image>> depths;
@@ -45,5 +43,18 @@ namespace Engine::Gfx
             void CreateRenderPass();
 
             VkRenderPass renderPass = VK_NULL_HANDLE;
+
+
+
+
+            std::vector<RefPtr<Image>> colors;
+            std::vector<RefPtr<Image>> depths;
+
+            struct Subpass
+            {
+                std::vector<RefPtr<Image>> colors;
+                RefPtr<Image> depth;
+            };
+            std::vector<Subpass> subpasses;
     };
 }
