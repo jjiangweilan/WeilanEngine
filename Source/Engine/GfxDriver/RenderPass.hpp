@@ -1,6 +1,8 @@
 #pragma once
 #include "Code/Ptr.hpp"
+#include "GfxDriver/Image.hpp"
 #include "GfxEnums.hpp"
+#include "Utils/Structs.hpp"
 #include <optional>
 #include <vector>
 namespace Engine::Gfx
@@ -30,7 +32,7 @@ namespace Engine::Gfx
     public:
         struct Attachment
         {
-            ImageFormat format;
+            RefPtr<Image> image;
             MultiSampling multiSampling = MultiSampling::Sample_Count_1;
             AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
             AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
@@ -38,25 +40,9 @@ namespace Engine::Gfx
             AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::Store;
         };
 
-        struct Subpass
-        {
-            std::vector<uint32_t> colors;
-            std::vector<uint32_t> inputs;
-
-            // -1 for not used
-            int depthAttachment = -1;
-        };
-
-        struct SubpassDependency
-        {
-
-        };
-
         virtual ~RenderPass(){}
 
-        virtual void SetAttachments(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
-        virtual void SetSubpass(const std::vector<Subpass>& subpasses) = 0;
-        virtual void AddSubpassDependency(const SubpassDependency& subpassDependency) = 0;
+        virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
     private:
     };
 }

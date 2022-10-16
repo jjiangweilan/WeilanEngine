@@ -19,7 +19,6 @@ namespace Engine::Gfx
             ~VKCommandBuffer();
 
             void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass,
-                    RefPtr<Gfx::FrameBuffer> frameBuffer,
                     const std::vector<Gfx::ClearValue>& clearValues) override;
             void EndRenderPass() override;
 
@@ -32,6 +31,8 @@ namespace Engine::Gfx
             void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) override;
             void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
             void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
+            void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+            void NextRenderPass() override;
 
             void AppendCustomCommand(std::function<void(VkCommandBuffer)>&& f);
             void RecordToVulkanCmdBuf(VkCommandBuffer cmd);

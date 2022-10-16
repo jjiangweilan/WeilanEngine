@@ -19,33 +19,34 @@ namespace Engine::Gfx
 
     }
 
-    void VKCommandBuffer::BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, RefPtr<Gfx::FrameBuffer> frameBuffer, const std::vector<Gfx::ClearValue>& clearValues)
+    void VKCommandBuffer::BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues)
     {
         assert(renderPass != nullptr);
-        assert(frameBuffer != nullptr);
 
         Gfx::VKRenderPass* vRenderPass = static_cast<Gfx::VKRenderPass*>(renderPass.Get());
-        Gfx::VKFrameBuffer* vFrameBuffer = static_cast<Gfx::VKFrameBuffer*>(frameBuffer.Get());
-        recordContext.currentPass = vRenderPass->GetHandle();
+        VkRenderPass vkRenderPass;
+        VkFramebuffer vkFramebuffer;
+        vRenderPass->GetHandle(vkRenderPass, vkFramebuffer);
+        recordContext.currentPass = vkRenderPass;
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             // make sure all the resource needed are in the correct format before the render pass begin
             // the first need of this is because we need a way to implictly make sure RT from previous render pass 
             // are correctly transformed into correct memory layout
-            auto res = recordContext.bindedResources[vRenderPass->GetHandle()];
+            auto res = recordContext.bindedResources[vkRenderPass];
             for(auto& r : res)
             {
                 r->PrepareResource(cmd);
             }
 
+            auto extent = vRenderPass->GetExtent();
             VkRenderPassBeginInfo renderPassBeginInfo;
-
             renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             renderPassBeginInfo.pNext = VK_NULL_HANDLE;
-            renderPassBeginInfo.renderPass = vRenderPass->GetHandle();
-            renderPassBeginInfo.framebuffer = vFrameBuffer->GetHandle();
-            renderPassBeginInfo.renderArea= {{0, 0}, {vFrameBuffer->GetWidth(), vFrameBuffer->GetHeight()}};
+            renderPassBeginInfo.renderPass = vkRenderPass;
+            renderPassBeginInfo.framebuffer = vkFramebuffer;
+            renderPassBeginInfo.renderArea= {{0, 0}, {extent.width, extent.height}};
             renderPassBeginInfo.clearValueCount = clearValues.size();
             VkClearValue vkClearValues[16];
             int i = 0;
@@ -59,7 +60,7 @@ namespace Engine::Gfx
             renderPassBeginInfo.pClearValues = vkClearValues;
             context.currentPass = renderPassBeginInfo.renderPass;
 
-            vRenderPass->TransformAttachmentIfNeeded(cmd, vFrameBuffer->GetAttachments());
+            vRenderPass->TransformAttachmentIfNeeded(cmd);
             vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
         };
 
@@ -223,6 +224,28 @@ namespace Engine::Gfx
         };
 
         pendingCommands.push_back(std::move(f));
+    }
+
+    void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+    {
+        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
+        {
+            vkCmdDraw(cmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
+        };
+
+        pendingCommands.push_back(std::move(f));
+    }
+
+    void VKCommandBuffer::NextRenderPass()
+    {
+        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
+        {
+            context.subpass += 1;
+            vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
+        };
+
+        pendingCommands.push_back(std::move(f));
+
     }
 
     void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_, void* data)

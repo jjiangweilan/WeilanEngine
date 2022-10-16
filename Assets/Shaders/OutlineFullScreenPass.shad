@@ -1,0 +1,64 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Internal/OutlineFullScreenPass
+depth:
+    testEnable: False
+stencil:
+    testEnable: True
+    back:
+        passOp: keep
+        compareOp: notEqual
+        reference: 1
+blend:
+    - srcAlpha oneMinusSrcAlpha
+cull: front
+#endif
+
+#if VERT
+layout(location = 0) out vec2 o_uv;
+
+void main()
+{
+    vec4 c_Positions[6] = 
+    {
+        {-1, 1,0.5,1},
+        {-1,-1,0.5,1},
+        { 1, 1,0.5,1},
+
+        {1,  1,0.5,1},
+        {-1,-1,0.5,1},
+        { 1,-1,0.5,1}
+    };
+
+    gl_Position = c_Positions[gl_VertexIndex];
+    o_uv = gl_Position.xy * 0.5 + 1;
+}
+#endif
+
+#if FRAG
+
+layout(location = 0) in vec2 i_uv;
+layout(location = 0) out vec4 o_Color;
+
+layout(set = SET_SHADER, binding = 0) uniform sampler2D mainTex;
+
+void main() {
+    ivec2 coord = ivec2(gl_FragCoord.xy);
+    for(int i = -5; i < 5; ++i)
+    {
+        for (int j = -5; j < 5; ++j)
+        {
+            vec4 col = texelFetch(mainTex, coord + ivec2(i,j), 0);
+            if (col.x != 0)
+            {
+                o_Color = vec4(1, 0.647, 0, 1);
+                return;
+            }
+        }
+    }
+    o_Color = vec4(0,0,0,0);
+}
+
+#endif

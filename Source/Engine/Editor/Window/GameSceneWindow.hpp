@@ -25,12 +25,24 @@ namespace Engine::Editor {
             RefPtr<EditorContext> editorContext;
             RefPtr<Gfx::Image> sceneColor;
             RefPtr<Gfx::Image> sceneDepth;
+            RefPtr<Shader> blendBackShader;
+
             UniPtr<Gfx::Image> newSceneColor;
-            UniPtr<Gfx::Image> newSceneDepth;
-            UniPtr<Gfx::RenderPass> scenePass;
+            UniPtr<Gfx::RenderPass> handlePass;
+            UniPtr<Gfx::RenderPass> outlineFullScreenPass;
+            UniPtr<Gfx::RenderPass> blendBackPass;
+            UniPtr<Gfx::ShaderResource> blendBackResource;
             UniPtr<GameSceneHandle> activeHandle;
-            UniPtr<Gfx::FrameBuffer> sceneFrameBuffer;
-            RefPtr<Shader> outlineByStencil, outlineByStencilDrawOutline;
+
+            UniPtr<Gfx::Image> editorOverlayColor;
+            UniPtr<Gfx::Image> editorOverlayDepth;
+            UniPtr<Gfx::Image> outlineOffscreenColor;
+            UniPtr<Gfx::Image> outlineOffscreenDepth;
+
+            UniPtr<Gfx::RenderPass> outlinePass;
+            UniPtr<Gfx::ShaderResource> outlineResource;
+
+            RefPtr<Shader> outlineRawColor, outlineFullScreen;
 
             void UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth);
     };
