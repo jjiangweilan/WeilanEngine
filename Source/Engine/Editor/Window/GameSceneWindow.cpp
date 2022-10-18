@@ -7,12 +7,23 @@
 #include "Core/Graphics/Shader.hpp"
 #include "Core/Model.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Utils/Intersection.hpp"
+#include "Core/Math/Geometry.hpp"
 #include "../imgui/imgui.h"
 #include <algorithm>
 
 namespace Engine::Editor
 {
+    glm::vec2 GetScreenUV(glm::vec4 gameViewRect)
+    {
+        auto windowPos = ImGui::GetWindowPos();
+        auto mousePos = ImGui::GetMousePos();
+        glm::vec2 mouseInWindow { mousePos.x - windowPos.x, mousePos.y - windowPos.y };
+        glm::vec2 gameViewSpace {mouseInWindow.x - gameViewRect.x, mouseInWindow.y - gameViewRect.y};
+        glm::vec2 normalizedMouseInGameView = { gameViewSpace.x / gameViewRect.z, gameViewSpace.y / gameViewRect.w };
+
+        return normalizedMouseInGameView;
+    }
+
     class MoveSceneHandle : public GameSceneHandle
     {
         public:
@@ -32,32 +43,70 @@ namespace Engine::Editor
                     cmdBuf->DrawIndexed(mesh->GetVertexDescription().index.count, 1, 0, 0, 0);
                 }
             }
-            void Interact(RefPtr<GameObject> go) override
+            void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override
             {
-                auto mouseDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-                auto transform = go->GetTransform();
-                glm::vec3 pos = transform->GetPosition();
-                // go->GetTransform()->SetPostion();
                 goModelMatrix = go->GetTransform()->GetModelMatrix();
+                Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseInSceneViewUVSpace);
+                if (mesh)
+                {
+                    float distance;
+                    glm::vec3 p0, p1, p2;
+                    if (inFlight.isPressing == false && ImGui::IsMouseClicked(0) && RayMeshIntersection(ray, mesh, go->GetTransform()->GetModelMatrix(), distance, p0, p1, p2))
+                    {
+                        ImVec2 delta = ImGui::GetMouseDragDelta();
+                        inFlight.moveDir = {0, 0, 0};
+                        // just take any trianle vertex to see which axis it belongs to
+                        if (p0.x > p0.y && p0.x > p0.z)
+                            inFlight.moveDir = goModelMatrix[0];
+                        else if (p0.y > p0.x && p0.y > p0.z)
+                            inFlight.moveDir = goModelMatrix[1];
+                        else if (p0.z > p0.x && p0.z > p0.y)
+                            inFlight.moveDir = goModelMatrix[2];
+                        inFlight.moveDir = glm::normalize(inFlight.moveDir);
+                        inFlight.startPos = go->GetTransform()->GetPosition();
+                        inFlight.isPressing = true;
+                        return;
+                    }
+                }
+
+                if (inFlight.isPressing == true)
+                {
+                    glm::vec3 newPos = inFlight.startPos + inFlight.moveDir * ImGui::GetMouseDragDelta().x * 0.01f;
+                    go->GetTransform()->SetPostion(newPos);
+
+                }
+
+                if (inFlight.isPressing == true && ImGui::IsMouseReleased(0))
+                {
+                    inFlight.isPressing = false;
+                    return;
+                }
             }
             std::string GetNameID() override { return "MoveSceneHandle"; }
         private:
             RefPtr<Shader> handleShader;
             RefPtr<Mesh> mesh;
             glm::mat4 goModelMatrix;
+
+            struct InFlightData
+            {
+                bool isPressing = false;
+                glm::vec3 startPos;
+                glm::vec3 moveDir;
+            } inFlight;
     };
 
     class RotateSceneHandle : public GameSceneHandle
     {
             void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
-            void Interact(RefPtr<GameObject> go) override {};
+            void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
             std::string GetNameID() override { return "RotateSceneHandle"; }
     };
 
     class ScaleSceneHandle : public GameSceneHandle
     {
             void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
-            void Interact(RefPtr<GameObject> go) override {};
+            void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
             std::string GetNameID() override { return "ScaleSceneHandle"; }
     };
 
@@ -67,7 +116,7 @@ namespace Engine::Editor
         float distance;
     };
 
-    void GetClickedGameObject(Utils::Ray ray, RefPtr<GameObject> root, std::vector<ClickedGameObjectHelperStruct>& clickedObjs)
+    void GetClickedGameObject(Ray ray, RefPtr<GameObject> root, std::vector<ClickedGameObjectHelperStruct>& clickedObjs)
     {
         auto meshRenderer = root->GetComponent<MeshRenderer>();
         auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
@@ -108,9 +157,30 @@ namespace Engine::Editor
         {
             ImGui::BeginMenuBar();
 
-            if(ImGui::MenuItem("Move")) activeHandle = MakeUnique<MoveSceneHandle>();
-            if(ImGui::MenuItem("Rotate")) activeHandle = MakeUnique<RotateSceneHandle>();
-            if(ImGui::MenuItem("Scale")) activeHandle = MakeUnique<ScaleSceneHandle>();
+            if(ImGui::MenuItem("Move")) 
+            {
+                if (activeHandle != nullptr && activeHandle->GetNameID() == "MoveSceneHandle")
+                {
+                    activeHandle = nullptr;
+                }
+                else activeHandle = MakeUnique<MoveSceneHandle>();
+            }
+            if(ImGui::MenuItem("Rotate"))
+            {
+                if (activeHandle != nullptr && activeHandle->GetNameID() == "RotateSceneHandle")
+                {
+                    activeHandle = nullptr;
+                }
+                else activeHandle = MakeUnique<RotateSceneHandle>();
+            }
+            if(ImGui::MenuItem("Scale"))
+            {
+                if (activeHandle != nullptr && activeHandle->GetNameID() == "ScaleSceneHandle")
+                {
+                    activeHandle = nullptr;
+                }
+                activeHandle = MakeUnique<ScaleSceneHandle>();
+            }
             ImGui::EndMenuBar();
         }
 
@@ -124,7 +194,7 @@ namespace Engine::Editor
             ImVec2 regMax = ImGui::GetWindowContentRegionMax();
             ImVec2 regMin = ImGui::GetWindowContentRegionMin();
             ImVec2 size = {regMax.x - regMin.x, regMax.y - regMin.y};
- 
+
             // calculate size and pos
             float startingY = ImGui::GetCursorStartPos().y;
             float startingX = ImGui::GetCursorStartPos().x;
@@ -151,34 +221,25 @@ namespace Engine::Editor
             ImGui::Image(newSceneColor.Get(), size, ImVec2(0,0), ImVec2(1,1), ImVec4(1,1,1,1), ImVec4(0.3, 0.3, 0.3, 1));
         }
 
+        glm::vec2 mouseClickInScreenUV = GetScreenUV(glm::vec4(gameViewRect.x, gameViewRect.y, gameViewRect.z, gameViewRect.w));
         // pick object in scene
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && GameSceneManager::Instance()->GetActiveGameScene())
         {
-            auto windowPos = ImGui::GetWindowPos();
-            auto mousePos = ImGui::GetMousePos();
-            glm::vec2 mouseInWindow { mousePos.x - windowPos.x, mousePos.y - windowPos.y };
-            glm::vec2 gameViewSpace {mouseInWindow.x - gameViewRect.x, mouseInWindow.y - gameViewRect.y};
-            glm::vec2 normalizedMouseInGameView = { gameViewSpace.x / gameViewRect.z, gameViewSpace.y / gameViewRect.w };
 
-            if (normalizedMouseInGameView.x > 0 && normalizedMouseInGameView.y > 0 && normalizedMouseInGameView.x < 1 && normalizedMouseInGameView.y < 1)
+            if (mouseClickInScreenUV.x > 0 && mouseClickInScreenUV.y > 0 && mouseClickInScreenUV.x < 1 && mouseClickInScreenUV.y < 1)
             {
                 std::vector<ClickedGameObjectHelperStruct> gameObjectsClicked;
                 for(auto& g : GameSceneManager::Instance()->GetActiveGameScene()->GetRootObjects())
                 {
-                    glm::vec3 mouseInGameViewVS = glm::vec3((normalizedMouseInGameView - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{Camera::mainCamera->GetProjectionRight(), Camera::mainCamera->GetProjectionTop()}, -Camera::mainCamera->GetNear());
-                    Utils::Ray ray;
-                    ray.origin = Camera::mainCamera->GetGameObject()->GetTransform()->GetPosition();
-                    glm::mat4 camModelMatrix = Camera::mainCamera->GetGameObject()->GetTransform()->GetModelMatrix();
-                    glm::vec3 clickInWS = camModelMatrix * glm::vec4(mouseInGameViewVS, 1.0);
-                    ray.direction = clickInWS - ray.origin;
+                    Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseClickInScreenUV);
                     GetClickedGameObject(ray, g, gameObjectsClicked);
                 }
                 if (gameObjectsClicked.size())
                 {
                     auto min = std::min_element(
-                        gameObjectsClicked.begin(),
-                        gameObjectsClicked.end(),
-                        [](const ClickedGameObjectHelperStruct& left, const ClickedGameObjectHelperStruct& right) { return left.distance < right.distance; });
+                            gameObjectsClicked.begin(),
+                            gameObjectsClicked.end(),
+                            [](const ClickedGameObjectHelperStruct& left, const ClickedGameObjectHelperStruct& right) { return left.distance < right.distance; });
 
                     editorContext->currentSelected = min->go;
                 }
@@ -190,7 +251,7 @@ namespace Engine::Editor
         RefPtr<GameObject> go = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
         if (go != nullptr && activeHandle != nullptr)
         {
-            activeHandle->Interact(go);
+            activeHandle->Interact(go, mouseClickInScreenUV);
         }
         ImGui::End();
     }
@@ -208,6 +269,7 @@ namespace Engine::Editor
         auto meshRenderer = obj ? obj->GetComponent<MeshRenderer>() : nullptr;
         auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
         auto material = meshRenderer ? meshRenderer->GetMaterial() : nullptr;
+        bool outlineDrew = false;
         cmdBuf->BeginRenderPass(outlinePass, clears);
 
         if (mesh != nullptr && material != nullptr)
@@ -226,22 +288,26 @@ namespace Engine::Editor
             cmdBuf->BindShaderProgram(outlineFullScreen->GetShaderProgram(), outlineFullScreen->GetDefaultShaderConfig());
             cmdBuf->BindResource(outlineResource);
             cmdBuf->Draw(6, 1, 0, 0);
+            outlineDrew = true;
         }
         cmdBuf->EndRenderPass();
 
         cmdBuf->BeginRenderPass(handlePass, clears);
         // draw handles
-        if (obj != nullptr && activeHandle != nullptr)
+        if (obj != nullptr && activeHandle != nullptr && obj != Camera::mainCamera->GetGameObject().Get())
         {
             activeHandle->DrawHandle(cmdBuf);
         }
         cmdBuf->EndRenderPass();
 
-        cmdBuf->BeginRenderPass(blendBackPass, clears);
-        cmdBuf->BindShaderProgram(blendBackShader->GetShaderProgram(), blendBackShader->GetDefaultShaderConfig());
-        cmdBuf->BindResource(blendBackResource);
-        cmdBuf->Draw(6, 1, 0, 0);
-        cmdBuf->EndRenderPass();
+        if (outlineDrew)
+        {
+            cmdBuf->BeginRenderPass(blendBackPass, clears);
+            cmdBuf->BindShaderProgram(blendBackShader->GetShaderProgram(), blendBackShader->GetDefaultShaderConfig());
+            cmdBuf->BindResource(blendBackResource);
+            cmdBuf->Draw(6, 1, 0, 0);
+            cmdBuf->EndRenderPass();
+        }
     }
 
     void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
@@ -295,6 +361,8 @@ namespace Engine::Editor
             depth.image = outlineOffscreenDepth;
             depth.loadOp = Gfx::AttachmentLoadOperation::Clear;
             depth.storeOp = Gfx::AttachmentStoreOperation::Store;
+            depth.stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
+            depth.stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
             outlinePass->AddSubpass({color}, depth);
         }
 

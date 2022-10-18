@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.hpp"
+#include "Core/Math/Geometry.hpp"
 #include <glm/glm.hpp>
 namespace Engine
 {
@@ -14,6 +15,8 @@ namespace Engine
             ~Camera() override{};
             glm::mat4 GetViewMatrix();
             const glm::mat4& GetProjectionMatrix();
+            glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
+            Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
 
             static RefPtr<Camera> mainCamera;
 
@@ -21,7 +24,7 @@ namespace Engine
             float GetProjectionTop();
             float GetNear();
             float GetFar();
-        
+
         private:
             EDITABLE(glm::mat4, projectionMatrix);
             EDITABLE(glm::mat4, viewMatrix);

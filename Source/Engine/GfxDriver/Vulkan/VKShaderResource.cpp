@@ -253,7 +253,7 @@ namespace Engine::Gfx
         {
             tex.second->TransformLayoutIfNeeded(cmdBuf,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                     0,
                     0);

@@ -9,7 +9,7 @@ namespace Engine::Editor {
     {
         public:
             virtual void DrawHandle(RefPtr<CommandBuffer> cmdBuf) = 0;
-            virtual void Interact(RefPtr<GameObject> go) = 0;
+            virtual void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) = 0;
             virtual std::string GetNameID() = 0;
     };
 
