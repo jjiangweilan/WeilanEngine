@@ -150,23 +150,25 @@ namespace Engine::Gfx
 
     VkPresentModeKHR VKSwapChain::GetPresentMode(VKSurface* surface)
     {
-        for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
-        {
-            if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-            {
-                return presentMode;
-            }
-        }
+        return VK_PRESENT_MODE_FIFO_KHR; // expericing screen-split when using VK_PRESENT_MODE_FIFO_KHR
 
-        for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
-        {
-            if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
-            {
-                return presentMode;
-            }
-        }
-
-        return static_cast<VkPresentModeKHR>(-1);
+        // for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
+        // {
+        //     if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+        //     {
+        //         return presentMode;
+        //     }
+        // }
+        //
+        // for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
+        // {
+        //     if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
+        //     {
+        //         return presentMode;
+        //     }
+        // }
+        //
+        // return static_cast<VkPresentModeKHR>(-1);
     }
 
     void VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal)
