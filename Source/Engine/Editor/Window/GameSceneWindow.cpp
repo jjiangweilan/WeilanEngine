@@ -193,7 +193,7 @@ namespace Engine::Editor
         {
             ImGui::BeginMenuBar();
 
-            if(ImGui::MenuItem("Move")) 
+            if(ImGui::MenuItem("Move", "", activeHandle != nullptr)) 
             {
                 if (activeHandle != nullptr && activeHandle->GetNameID() == "MoveSceneHandle")
                 {
@@ -216,6 +216,13 @@ namespace Engine::Editor
                     activeHandle = nullptr;
                 }
                 activeHandle = MakeUnique<ScaleSceneHandle>();
+            }
+            const char* gameCam = "Game Camera";
+            const char* editorCam = "Editor Camera";
+            if (ImGui::MenuItem((gameSceneCam.IsActive() ? gameCam : editorCam), "v(V)", gameSceneCam.IsActive()))
+            {
+                if (gameSceneCam.IsActive()) gameSceneCam.Deactivate();
+                else gameSceneCam.Activate(false);
             }
             ImGui::EndMenuBar();
         }
@@ -264,7 +271,7 @@ namespace Engine::Editor
         {
             if (!gameSceneCam.IsActive())
             {
-                bool gameCamPos = ImGui::IsKeyPressed(ImGuiKey_LeftShift, false);
+                bool gameCamPos = ImGui::IsKeyDown(ImGuiKey_LeftShift);
                 gameSceneCam.Activate(gameCamPos);
             }
             else
@@ -480,7 +487,7 @@ namespace Engine::Editor
         {
             camera->GetGameObject()->GetTransform()->SetPostion(oriCam->GetGameObject()->GetTransform()->GetPosition());
             camera->GetGameObject()->GetTransform()->SetRotation(oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
-            initialActive = true;
+            initialActive = false;
         }
         else if (gameCamPos)
         {
