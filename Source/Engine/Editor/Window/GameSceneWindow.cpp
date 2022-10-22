@@ -9,6 +9,9 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Math/Geometry.hpp"
 #include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_sdl.h"
+#include <glm/gtc/quaternion.hpp>
+#include <SDL2/SDL.h>
 #include <algorithm>
 
 namespace Engine::Editor
@@ -53,27 +56,49 @@ namespace Engine::Editor
                     glm::vec3 p0, p1, p2;
                     if (inFlight.isPressing == false && ImGui::IsMouseClicked(0) && RayMeshIntersection(ray, mesh, go->GetTransform()->GetModelMatrix(), distance, p0, p1, p2))
                     {
-                        ImVec2 delta = ImGui::GetMouseDragDelta();
                         inFlight.moveDir = {0, 0, 0};
                         // just take any trianle vertex to see which axis it belongs to
                         if (p0.x > p0.y && p0.x > p0.z)
+                        {
                             inFlight.moveDir = goModelMatrix[0];
+                        }
                         else if (p0.y > p0.x && p0.y > p0.z)
+                        {
                             inFlight.moveDir = goModelMatrix[1];
+                        }
                         else if (p0.z > p0.x && p0.z > p0.y)
+                        {
                             inFlight.moveDir = goModelMatrix[2];
+                        }
                         inFlight.moveDir = glm::normalize(inFlight.moveDir);
                         inFlight.startPos = go->GetTransform()->GetPosition();
-                        inFlight.isPressing = true;
+                        inFlight.planeNorm = glm::cross(glm::vec3(Camera::mainCamera->GetGameObject()->GetTransform()->GetModelMatrix()[1]), inFlight.moveDir);
+                        Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseInSceneViewUVSpace);
+                        float distance;
+                        if (glm::intersectRayPlane(ray.origin, ray.direction, inFlight.startPos, inFlight.planeNorm, distance))
+                        {
+                            glm::vec3 p = ray.origin + ray.direction * distance;
+                            glm::vec3 newPos = ClosestPointOnLine(p, inFlight.startPos, inFlight.moveDir);
+                            inFlight.offset = newPos - inFlight.startPos;
+                            inFlight.isPressing = true;
+                        }
+                        lastMouseInViewUVSpace = mouseInSceneViewUVSpace;
                         return;
                     }
                 }
 
                 if (inFlight.isPressing == true)
                 {
-                    glm::vec3 newPos = inFlight.startPos + inFlight.moveDir * ImGui::GetMouseDragDelta().x * 0.01f;
-                    go->GetTransform()->SetPostion(newPos);
-
+                    const glm::vec3 planeNorm = inFlight.planeNorm;
+                    glm::vec3 planeOrigin = inFlight.startPos;
+                    Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseInSceneViewUVSpace);
+                    float distance;
+                    if (glm::intersectRayPlane(ray.origin, ray.direction, planeOrigin, planeNorm, distance))
+                    {
+                        glm::vec3 p = ray.origin + ray.direction * distance;
+                        glm::vec3 newPos = ClosestPointOnLine(p, inFlight.startPos, inFlight.moveDir) - inFlight.offset;
+                        go->GetTransform()->SetPostion(newPos);
+                    }
                 }
 
                 if (inFlight.isPressing == true && ImGui::IsMouseReleased(0))
@@ -87,27 +112,38 @@ namespace Engine::Editor
             RefPtr<Shader> handleShader;
             RefPtr<Mesh> mesh;
             glm::mat4 goModelMatrix;
+            glm::vec2 lastMouseInViewUVSpace;
 
             struct InFlightData
             {
                 bool isPressing = false;
                 glm::vec3 startPos;
                 glm::vec3 moveDir;
+                glm::vec3 planeNorm;
+                glm::vec3 offset;
             } inFlight;
+
+            glm::vec3 ClosestPointOnLine(glm::vec3 p0, glm::vec3 l0, glm::vec3 l)
+            {
+                float dotln = dot(l,p0 - l0);
+                if (dotln == 0) return glm::vec3(0);
+
+                return l0 + l * dotln;
+            }
     };
 
     class RotateSceneHandle : public GameSceneHandle
     {
-            void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
-            void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
-            std::string GetNameID() override { return "RotateSceneHandle"; }
+        void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
+        void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
+        std::string GetNameID() override { return "RotateSceneHandle"; }
     };
 
     class ScaleSceneHandle : public GameSceneHandle
     {
-            void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
-            void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
-            std::string GetNameID() override { return "ScaleSceneHandle"; }
+        void DrawHandle(RefPtr<CommandBuffer> cmdBuf) override {};
+        void Interact(RefPtr<GameObject> go, glm::vec2 mouseInSceneViewUVSpace) override {};
+        std::string GetNameID() override { return "ScaleSceneHandle"; }
     };
 
     struct ClickedGameObjectHelperStruct
@@ -221,17 +257,39 @@ namespace Engine::Editor
             ImGui::Image(newSceneColor.Get(), size, ImVec2(0,0), ImVec2(1,1), ImVec4(1,1,1,1), ImVec4(0.3, 0.3, 0.3, 1));
         }
 
-        glm::vec2 mouseClickInScreenUV = GetScreenUV(glm::vec4(gameViewRect.x, gameViewRect.y, gameViewRect.z, gameViewRect.w));
-        // pick object in scene
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && GameSceneManager::Instance()->GetActiveGameScene())
-        {
+        glm::vec2 mouseInSceneViewUV = GetScreenUV(glm::vec4(gameViewRect.x, gameViewRect.y, gameViewRect.z, gameViewRect.w));
 
-            if (mouseClickInScreenUV.x > 0 && mouseClickInScreenUV.y > 0 && mouseClickInScreenUV.x < 1 && mouseClickInScreenUV.y < 1)
+        // scene cam movement
+        if (ImGui::IsKeyPressed(ImGuiKey_V, false))
+        {
+            if (!gameSceneCam.IsActive())
+            {
+                bool gameCamPos = ImGui::IsKeyPressed(ImGuiKey_LeftShift, false);
+                gameSceneCam.Activate(gameCamPos);
+            }
+            else
+                gameSceneCam.Deactivate();
+        }
+        if (gameSceneCam.IsActive())
+        {
+            gameSceneCam.Tick(mouseInSceneViewUV);
+        }
+
+        // handle
+        RefPtr<GameObject> go = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
+        if (go != nullptr && activeHandle != nullptr)
+        {
+            activeHandle->Interact(go, mouseInSceneViewUV);
+        }
+        // pick object in scene
+        else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && GameSceneManager::Instance()->GetActiveGameScene())
+        {
+            if (mouseInSceneViewUV.x > 0 && mouseInSceneViewUV.y > 0 && mouseInSceneViewUV.x < 1 && mouseInSceneViewUV.y < 1)
             {
                 std::vector<ClickedGameObjectHelperStruct> gameObjectsClicked;
                 for(auto& g : GameSceneManager::Instance()->GetActiveGameScene()->GetRootObjects())
                 {
-                    Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseClickInScreenUV);
+                    Ray ray = Camera::mainCamera->ScreenUVToWorldSpaceRay(mouseInSceneViewUV);
                     GetClickedGameObject(ray, g, gameObjectsClicked);
                 }
                 if (gameObjectsClicked.size())
@@ -246,12 +304,6 @@ namespace Engine::Editor
                 else
                     editorContext->currentSelected = nullptr;
             }
-
-        }
-        RefPtr<GameObject> go = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
-        if (go != nullptr && activeHandle != nullptr)
-        {
-            activeHandle->Interact(go, mouseClickInScreenUV);
         }
         ImGui::End();
     }
@@ -412,6 +464,151 @@ namespace Engine::Editor
             blendBackResource->SetTexture("mainTex", editorOverlayColor);
         }
 
+    }
+
+    GameSceneCamera::GameSceneCamera()
+    {
+        gameObject = MakeUnique<GameObject>();
+        camera = gameObject->AddComponent<Camera>();
+    }
+
+    void GameSceneCamera::Activate(bool gameCamPos)
+    {
+        oriCam = Camera::mainCamera;
+        Camera::mainCamera = camera;
+        if (initialActive)
+        {
+            camera->GetGameObject()->GetTransform()->SetPostion(oriCam->GetGameObject()->GetTransform()->GetPosition());
+            camera->GetGameObject()->GetTransform()->SetRotation(oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
+            initialActive = true;
+        }
+        else if (gameCamPos)
+        {
+            camera->GetGameObject()->GetTransform()->SetPostion(oriCam->GetGameObject()->GetTransform()->GetPosition());
+            camera->GetGameObject()->GetTransform()->SetRotation(oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
+        }
+        else
+        {
+            camera->GetGameObject()->GetTransform()->SetPostion(lastActivePos);
+            camera->GetGameObject()->GetTransform()->SetRotation(lastActiveRotation);
+        }
+        isActive = true;
+    }
+
+    void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
+    {
+        auto transform = camera->GetGameObject()->GetTransform();
+        switch (operationType) {
+            case OperationType::Pan:
+                {
+                    if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+                    {
+                        auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
+
+                        glm::vec3 xAxis = transform->GetModelMatrix()[0];
+                        glm::vec3 yAxis = transform->GetModelMatrix()[1];
+
+                        glm::vec3 newPos = transform->GetPosition() + xAxis * delta.x * 0.001f + yAxis * -delta.y * 0.001f;
+                        transform->SetPostion(newPos);
+                        ImGui::GetIO().MousePos = imguiInitialMousePos;
+                        ImGui::GetIO().WantSetMousePos = true;
+                        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
+                    }
+                    else
+                    {
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                        SDL_WarpMouseGlobal(initialMousePos.x, initialMousePos.y);
+                        operationType = OperationType::None;
+                    }
+                }
+                break;
+            case OperationType::LookAround:
+                {
+                    if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+                    {
+                        auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+                        glm::vec3 xAxis = transform->GetModelMatrix()[0];
+                        glm::mat4 rotation = glm::rotate(glm::mat4(1), glm::radians(-delta.x * 0.05f), glm::vec3(0,1,0));
+                        rotation = glm::rotate(rotation, glm::radians(-delta.y * 0.05f), xAxis);
+
+                        auto finalRot = rotation * glm::mat4_cast(transform->GetRotationQuat());
+                        transform->SetRotation(finalRot);
+                        ImGui::GetIO().MousePos = imguiInitialMousePos;
+                        ImGui::GetIO().WantSetMousePos = true;
+                        ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+                    }
+                    else
+                    {
+                        SDL_SetRelativeMouseMode(SDL_FALSE);
+                        SDL_WarpMouseGlobal(initialMousePos.x, initialMousePos.y);
+                        operationType = OperationType::None;
+                    }
+                }
+                break;
+            case OperationType::None:
+                break;
+        }
+
+        // zAxis Move
+        float scroll = ImGui::GetIO().MouseWheel;
+        if (scroll != 0)
+        {
+            glm::vec3 zAxis = transform->GetModelMatrix()[2];
+            auto newPos = transform->GetPosition() + zAxis * -scroll;
+            transform->SetPostion(newPos);
+        }
+        // right click move
+        if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
+        {
+            glm::mat3 modelMatrix = transform->GetModelMatrix();
+            glm::vec3 movement = glm::vec3(0);
+            if (ImGui::IsKeyDown(ImGuiKey_A))
+            {
+                movement -= modelMatrix[0] * 0.1f;
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_D))
+            {
+                movement += modelMatrix[0] * 0.1f;
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_W))
+            {
+                movement -= modelMatrix[2] * 0.1f;
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_S))
+            {
+                movement += modelMatrix[2] * 0.1f;
+            }
+            transform->SetPostion(transform->GetPosition() + movement);
+        }
+
+        bool isMouseWithInGameScene = mouseInSceneViewUV.x > 0 && mouseInSceneViewUV.x < 1 && mouseInSceneViewUV.y > 0 && mouseInSceneViewUV.y < 1;
+        bool wantToPan = ImGui::IsMouseClicked(ImGuiMouseButton_Middle);
+        bool wantToLookAround = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+        if (isMouseWithInGameScene && (wantToPan || wantToLookAround))
+        {
+            if (wantToPan)
+            {
+                operationType = OperationType::Pan;
+                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
+            }
+            else if (wantToLookAround)
+            {
+                operationType = OperationType::LookAround;
+                ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+            }
+            SDL_GetGlobalMouseState(&initialMousePos.x, &initialMousePos.y);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            imguiInitialMousePos = ImGui::GetMousePos();
+        }
+
+        lastActivePos = transform->GetPosition();
+        lastActiveRotation = transform->GetRotationQuat();
+    }
+
+    void GameSceneCamera::Deactivate()
+    {
+        Camera::mainCamera = oriCam;
+        isActive = false;
     }
 
 }
