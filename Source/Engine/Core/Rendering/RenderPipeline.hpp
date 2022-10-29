@@ -36,6 +36,9 @@ namespace Engine::Rendering
             UniPtr<Gfx::ShaderResource> globalResource;
             bool offscreenOutput;
 
+            void WS();
+            void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
+
 
     };
 }

@@ -14,6 +14,7 @@ namespace Engine::Gfx
             case BufferUsage::Index : usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT; break;
             case BufferUsage::Vertex : usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT; break;
             case BufferUsage::Uniform : usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT; break;
+            case BufferUsage::Storage : usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; break;
             case BufferUsage::Unknown : assert(0 && "Buffer usage is not handled");
         }
 

@@ -102,6 +102,11 @@ namespace Engine::Gfx::ShaderInfo
         StructuredData data {};
     };
 
+    struct SSBO
+    {
+        StructuredData data {};
+    };
+
     struct Texture
     {
     };
@@ -131,7 +136,7 @@ namespace Engine::Gfx::ShaderInfo
 
     enum class BindingType
     {
-        UBO, Texture, SeparateImage, SeparateSampler
+        UBO, SSBO, Texture, SeparateImage, SeparateSampler
     };
 
     struct Binding
@@ -156,6 +161,13 @@ namespace Engine::Gfx::ShaderInfo
                     binding.ubo = other.binding.ubo;
                     break;
                 }
+                case BindingType::SSBO:
+                    if (type != BindingType::SSBO)
+                    {
+                        new (&binding.ssbo) SSBO();
+                    }
+                    binding.ssbo = other.binding.ssbo;
+                    break;
                 case BindingType::Texture :
                 {
                     if (type != BindingType::Texture)
@@ -204,6 +216,9 @@ namespace Engine::Gfx::ShaderInfo
                 case BindingType::SeparateSampler:
                     binding.separateSampler.~SeparateSampler();
                     break;
+                case BindingType::SSBO:
+                    binding.ssbo.~SSBO();
+                    break;
             }
         }
 
@@ -221,6 +236,7 @@ namespace Engine::Gfx::ShaderInfo
             SeparateImage separateImage;
             SeparateSampler separateSampler;
             UBO ubo;
+            SSBO ssbo;
         } binding;
     };
 

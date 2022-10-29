@@ -9,6 +9,7 @@ namespace Engine::Gfx
         Vertex = 0x0001,
         Index = 0x0002,
         Uniform = 0x0004,
+        Storage = 0x0008,
         Unknown = 0xffff
     };
 

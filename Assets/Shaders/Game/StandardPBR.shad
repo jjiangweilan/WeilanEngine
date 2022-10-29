@@ -1,0 +1,30 @@
+// Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Game/StandardPBR
+#endif
+
+#if VERT
+layout(location = 0) in vec3 i_Position;
+layout(location = 1) in vec3 i_Normal;
+
+layout(location = 0) out vec4 o_Color;
+void main()
+{
+    gl_Position = scene.viewProjection * pconst.model * vec4(i_Position,1);
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec4 i_Color;
+layout(location = 1) out vec4 o_Color;
+
+void main()
+{
+    o_Color = vec4(1,1,1,1);
+}
+#endif
+
+

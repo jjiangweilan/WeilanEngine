@@ -63,6 +63,7 @@ namespace Engine::Rendering
     void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
         Camera* mainCamera = Camera::mainCamera.Get();
+
         if (mainCamera != nullptr)
         {
             RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();
@@ -76,6 +77,8 @@ namespace Engine::Rendering
         }
 
         auto cmdBuf = gfxDriver->CreateCommandBuffer();
+
+        ProcessLights(gameScene, cmdBuf);
 
         std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
@@ -135,5 +138,10 @@ namespace Engine::Rendering
         }
 
         return nullptr;
+    }
+
+    void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf)
+    {
+        auto lights = gameScene->GetActiveLights();
     }
 }

@@ -26,6 +26,8 @@ namespace Engine::Internal
                 std::string sourceName;
             };
 
+            std::filesystem::path requestingSourceRelativeFullPath;
+
         public:
             virtual shaderc_include_result* GetInclude(
                     const char* requested_source,
@@ -33,23 +35,29 @@ namespace Engine::Internal
                     const char* requesting_source,
                     size_t include_depth) override
             {
-                char shaderPath[1024] ="Assets/Shaders/";
-                strcat(shaderPath, requested_source);
-
-                // if the we can't find the included file in the project, try find it in the internal assets
-#if GAME_EDITOR
-                if (!std::filesystem::exists(shaderPath))
+                std::filesystem::path requestingSource(requesting_source);
+                if (include_depth == 1)
                 {
-                    std::fstream internalf;
-                    shaderPath[0] = '\0';
-                    strcpy(shaderPath, Utils::InternalAssets::GetInternalAssetPath().string().c_str());
-                    strcat(shaderPath, "/Assets/Shaders/");
-                    strcat(shaderPath, requested_source);
-#endif
+                    requestingSourceRelativeFullPath = "Assets/Shaders/";
+                }
+                else
+                {
+                    requestingSourceRelativeFullPath /= requestingSource.parent_path();
                 }
 
+
+                // if the we can't find the included file in the project, try find it in the internal assets
+                std::filesystem::path relativePath = requestingSourceRelativeFullPath / std::filesystem::path(requested_source);
+#if GAME_EDITOR
+                if (!std::filesystem::exists(relativePath))
+                {
+                    std::filesystem::path enginePath = Utils::InternalAssets::GetInternalAssetPath();
+                    relativePath = enginePath / relativePath;
+                }
+#endif
+
                 std::fstream f;
-                f.open(shaderPath, std::ios::in);
+                f.open(relativePath, std::ios::in);
                 if (f.fail())
                 {
                     return new shaderc_include_result{"", 0, "Can't find requested shader file."};

@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/ShaderResource.hpp"
 #include "VKDescriptorSetSlot.hpp"
+#include "VKStorageBuffer.hpp"
 #include "VKShaderInfo.hpp"
 #include "VKSharedResource.hpp"
 #include "Internal/VKMemAllocator.hpp"
@@ -25,6 +26,7 @@ namespace Engine::Gfx
             VkDescriptorSet GetDescriptorSet();
             RefPtr<ShaderProgram> GetShader() override;
             void SetUniform(std::string_view obj, std::string_view member, void* value) override;
+            void SetStorage(std::string_view obj, RefPtr<StorageBuffer> storage) override;
             void SetTexture(const std::string& param, RefPtr<Image> image) override;
             DescriptorSetSlot GetDescriptorSetSlot() const { return slot; }
             void PrepareResource(VkCommandBuffer cmdBuf);
@@ -43,5 +45,6 @@ namespace Engine::Gfx
             unsigned char* pushConstantBuffer = nullptr;
             std::unordered_map<std::string, RefPtr<VKImage>> textures;
             std::unordered_map<std::string, UniPtr<VKBuffer>> uniformBuffers;
+            std::unordered_map<std::string, RefPtr<VKStorageBuffer>> storageBuffers;
     };
 }
