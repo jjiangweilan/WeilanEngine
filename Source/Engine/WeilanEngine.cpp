@@ -67,7 +67,7 @@ namespace Engine
 #endif
 
             // rendering
-            renderPipeline->Render(activeGameScene);
+            if (activeGameScene) renderPipeline->Render(activeGameScene);
 #if GAME_EDITOR
             gameEditor->Render();
 #endif
