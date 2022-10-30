@@ -196,6 +196,7 @@ namespace Utils
                     case BindingType::SSBO:
                         new (&b.binding.ssbo) SSBO();
                         Process(b.binding.ssbo.data, bindingJson["type"], root, "");
+                        break;
                     case BindingType::Texture:
                         new (&b.binding.texture) Texture();
                         break;

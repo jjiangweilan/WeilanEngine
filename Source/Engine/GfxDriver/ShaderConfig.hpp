@@ -33,13 +33,13 @@ namespace Engine::Gfx
 
     struct ShaderConfig
     {
-        bool vertexInterleaved = true;
+        bool vertexInterleaved = false;
         CullMode cullMode = CullMode::Back;
 
         struct
         {
-            bool writeEnable = false;
-            bool testEnable = false;
+            bool writeEnable = true;
+            bool testEnable = true;
             CompareOp compOp = CompareOp::Less_or_Equal;
             bool boundTestEnable = false;
             float minBounds = 0;

@@ -45,7 +45,10 @@ namespace Engine::Gfx
         fullPools(std::exchange(other.fullPools, {})),
         freeSets(std::exchange(other.freeSets, {})),
         freePool(std::exchange(other.freePool, VK_NULL_HANDLE))
-    {}
+    {
+        createInfo.poolSizeCount = this->poolSizes.size();
+        createInfo.pPoolSizes = this->poolSizes.data();
+    }
 
     VkDescriptorSet VKDescriptorPool::Allocate()
     {
@@ -71,7 +74,7 @@ namespace Engine::Gfx
         {
             // create a new pool and allocate again
             if (freePool != VK_NULL_HANDLE) fullPools.push_back(freePool);
-            context->objManager->CreateDescriptorPool(createInfo, freePool);
+            freePool = CreateNewPool();
             allocateInfo.descriptorPool = freePool;
             VkResult result = vkAllocateDescriptorSets(context->objManager->GetDevice(), &allocateInfo, &set);
 
@@ -115,17 +118,17 @@ namespace Engine::Gfx
     }
 
     
-    VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(VkDescriptorSetLayoutCreateInfo createInfo)
+    VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo)
     {
-        std::size_t hash = VkDescriptorSetLayoutCreateInfoHash()(createInfo);
-        auto it = descriptorLayoutPoolCache.find(hash);
+        std::size_t h = VkDescriptorSetLayoutCreateInfoHash()(createInfo);
+        auto it = descriptorLayoutPoolCache.find(h);
         if (it != descriptorLayoutPoolCache.end())
         {
             return it->second;
         }
         else
         {
-            auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(hash, VKDescriptorPool(context, createInfo)));
+            auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(h, VKDescriptorPool(context, createInfo)));
             return pair.first->second;
         }
     }
@@ -137,9 +140,7 @@ namespace Engine::Gfx
         for (uint32_t i = 0; i < c.bindingCount; i++)
         {
             auto& b = c.pBindings[i];
-            size_t bHash = b.stageFlags << 30 | b.descriptorCount << 24 | b.descriptorType << 16  | b.binding;
-
-            assert(b.pImmutableSamplers == VK_NULL_HANDLE && "Immutable samplers are not handled");
+            size_t bHash = b.stageFlags << 30 | b.descriptorCount << 24 | b.descriptorType << 16  | reinterpret_cast<std::uintptr_t>(b.pImmutableSamplers) << 8 | b.binding;
 
             rlt ^= bHash;
         }
