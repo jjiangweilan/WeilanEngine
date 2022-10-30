@@ -71,9 +71,11 @@ namespace Engine::Rendering
             glm::mat4 viewMatrix = mainCamera->GetViewMatrix();
             glm::mat4 projectionMatrix = mainCamera->GetProjectionMatrix();
             glm::mat4 vp = projectionMatrix * viewMatrix;
+            glm::vec3 viewPos = camTsm->GetPosition();
             globalResource->SetUniform("SceneInfo", "view", &viewMatrix);
             globalResource->SetUniform("SceneInfo", "projection", &projectionMatrix);
             globalResource->SetUniform("SceneInfo", "viewProjection", &vp);
+            globalResource->SetUniform("SceneInfo", "viewPos", &viewPos);
         }
 
         auto cmdBuf = gfxDriver->CreateCommandBuffer();
