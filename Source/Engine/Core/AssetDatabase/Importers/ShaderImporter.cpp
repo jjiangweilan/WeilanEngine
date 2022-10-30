@@ -266,6 +266,11 @@ namespace Engine::Internal
         shaderc::CompileOptions vertOption;
         vertOption.AddMacroDefinition("VERT", "1");
         vertOption.SetIncluder(std::make_unique<ShaderIncluder>());
+
+        // TODO: this needs to be configurable so that it can be not included in the release code
+        vertOption.SetGenerateDebugInfo();
+        vertOption.SetOptimizationLevel(shaderc_optimization_level_zero);
+
         shaderc::SpvCompilationResult vertResult = compiler.CompileGlslToSpv((const char*)buf.Get(), fSize, shaderc_shader_kind::shaderc_vertex_shader, path.relative_path().string().c_str(), vertOption);
         if (vertResult.GetCompilationStatus() != shaderc_compilation_status::shaderc_compilation_status_success)
         {
@@ -277,6 +282,11 @@ namespace Engine::Internal
         shaderc::CompileOptions fragOption;
         fragOption.AddMacroDefinition("FRAG", "1");
         fragOption.SetIncluder(std::make_unique<ShaderIncluder>());
+
+        // TODO: this needs to be configurable so that it can be not included in the release code
+        fragOption.SetGenerateDebugInfo();
+        fragOption.SetOptimizationLevel(shaderc_optimization_level_zero);
+
         shaderc::SpvCompilationResult fragResult = compiler.CompileGlslToSpv((const char*)buf.Get(), fSize, shaderc_shader_kind::shaderc_fragment_shader, path.relative_path().string().c_str(), fragOption);
         if (fragResult.GetCompilationStatus() != shaderc_compilation_status::shaderc_compilation_status_success)
         {
