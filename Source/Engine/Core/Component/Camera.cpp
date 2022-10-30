@@ -52,4 +52,25 @@ namespace Engine
     }
 
     RefPtr<Camera> Camera::mainCamera = nullptr;
+
+    glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
+    {
+        return glm::vec3((screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), GetProjectionTop()}, -GetNear());
+    }
+
+    glm::vec3 Camera::ScreenUVToWorldPos(glm::vec2 screenUV)
+    {
+        glm::mat4 camModelMatrix = GetGameObject()->GetTransform()->GetModelMatrix();
+        return camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
+    }
+
+    Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
+    {
+        Ray ray;
+        ray.origin = GetGameObject()->GetTransform()->GetPosition();
+        glm::mat4 camModelMatrix = GetGameObject()->GetTransform()->GetModelMatrix();
+        glm::vec3 clickInWS = camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
+        ray.direction = clickInWS - ray.origin;
+        return ray;
+    }
 }

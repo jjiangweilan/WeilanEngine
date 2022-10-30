@@ -2,6 +2,7 @@
 
 #include "Core/AssetObject.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Component/Light.hpp"
 namespace Engine
 {
     class GameScene : public AssetObject
@@ -18,6 +19,8 @@ namespace Engine
             void MoveGameObjectToRoot(RefPtr<GameObject> obj);
             void RemoveGameObjectFromRoot(RefPtr<GameObject> obj);
             void Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver) override;
+
+            std::vector<RefPtr<Light>> GetActiveLights();
 
         private:
             EDITABLE(std::vector<UniPtr<GameObject>>, gameObjects);

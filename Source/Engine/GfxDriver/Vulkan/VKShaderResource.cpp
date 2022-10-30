@@ -77,6 +77,16 @@ namespace Engine::Gfx
                         uniformBuffers.insert(std::make_pair(b.second.name, std::move(buffer)));
                         break;
                     }
+                    case ShaderInfo::BindingType::SSBO:
+                    {
+                        VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                        bufferInfo.buffer = sharedResource->GetDefaultStorageBuffer()->GetVKBuffer();
+                        bufferInfo.offset = 0;
+                        bufferInfo.range = b.second.binding.ubo.data.size;
+                        writes[writeCount].pBufferInfo = &bufferInfo;
+                        storageBuffers.insert(std::make_pair(b.second.name, sharedResource->GetDefaultStorageBuffer()));
+                        break;
+                    }
                     case ShaderInfo::BindingType::Texture:
                     {
                         VkDescriptorImageInfo imageInfo;
@@ -247,13 +257,46 @@ namespace Engine::Gfx
         textures[param] = (VKImage*)image.Get();
     }
 
+    void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
+    {
+        std::string paramStr(param);
+        VKStorageBuffer* storageBuffer = static_cast<VKStorageBuffer*>(storage.Get());
+        VkDescriptorBufferInfo bufferInfo;
+        bufferInfo.buffer = storageBuffer->GetVKBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = storageBuffer->GetSize();
+
+        auto& shaderInfo = shaderProgram->GetShaderInfo();
+        auto iter = shaderInfo.bindings.find(paramStr);
+        if (iter == shaderInfo.bindings.end())
+        {
+            SPDLOG_ERROR("Failed to find storage binding");
+            return;
+        }
+
+        VkWriteDescriptorSet write;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = VK_NULL_HANDLE;
+        write.dstSet = descriptorSet;
+        write.descriptorType = ShaderInfo::Utils::MapBindingType(iter->second.type);
+        write.dstBinding = iter->second.bindingNum;
+        write.dstArrayElement = 0;
+        write.descriptorCount = iter->second.count;
+        write.pImageInfo = VK_NULL_HANDLE;
+        write.pBufferInfo = VK_NULL_HANDLE;
+        write.pTexelBufferView = VK_NULL_HANDLE;
+        vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
+
+        storageBuffers[paramStr] = storage;
+    }
+
     void VKShaderResource::PrepareResource(VkCommandBuffer cmdBuf)
     {
         for(auto& tex : textures)
         {
             tex.second->TransformLayoutIfNeeded(cmdBuf,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                     0,
                     0);

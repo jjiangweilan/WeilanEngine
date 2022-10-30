@@ -21,11 +21,14 @@ namespace Engine
             RefPtr<Transform> GetParent();
             void SetParent(RefPtr<Transform> transform);
             void SetRotation(const glm::vec3& rotation);
+            void SetRotation(const glm::quat& rotation);
             void SetPostion(const glm::vec3& position);
             void SetScale(const glm::vec3& scale);
             const glm::vec3& GetPosition();
             const glm::vec3& GetScale();
             const glm::vec3& GetRotation();
+
+            const glm::quat& GetRotationQuat();
 
             glm::mat4 GetModelMatrix();
         private:

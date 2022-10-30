@@ -158,33 +158,33 @@ namespace Engine::Gfx
         return; // TODO: reimplementation needed
         // graphicsQueue->WaitForIdle();
 
-        vkResetCommandPool(device_vk, commandPool, 0);
+        //vkResetCommandPool(device_vk, commandPool, 0);
 
-        VkCommandBufferBeginInfo cmdBeginInfo;
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.pNext = VK_NULL_HANDLE;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
+        //VkCommandBufferBeginInfo cmdBeginInfo;
+        //cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        //cmdBeginInfo.pNext = VK_NULL_HANDLE;
+        //cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        //cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
 
-        vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
+        //vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
 
-        memAllocator->RecordPendingCommands(renderingCmdBuf);
+        //memAllocator->RecordPendingCommands(renderingCmdBuf);
 
-        vkEndCommandBuffer(renderingCmdBuf);
+        //vkEndCommandBuffer(renderingCmdBuf);
 
-        VkSubmitInfo submitInfo;
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = VK_NULL_HANDLE;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-        submitInfo.pWaitDstStageMask = 0;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &renderingCmdBuf;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
-        // vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+        //VkSubmitInfo submitInfo;
+        //submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        //submitInfo.pNext = VK_NULL_HANDLE;
+        //submitInfo.waitSemaphoreCount = 0;
+        //submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+        //submitInfo.pWaitDstStageMask = 0;
+        //submitInfo.commandBufferCount = 1;
+        //submitInfo.pCommandBuffers = &renderingCmdBuf;
+        //submitInfo.signalSemaphoreCount = 0;
+        //submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+        //// vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
 
-        vkDeviceWaitIdle(device->GetHandle());
+        //vkDeviceWaitIdle(device->GetHandle());
     }
 
     void VKDriver::ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf)

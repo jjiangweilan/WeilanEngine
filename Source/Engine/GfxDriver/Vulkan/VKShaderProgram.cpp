@@ -152,7 +152,7 @@ namespace Engine::Gfx
             descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
             descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
             
-            auto& pool = VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(descriptorSetLayoutCreateInfo);
+            auto& pool = VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);
             descriptorPools.push_back(&pool);
             layouts[i] = pool.GetLayout();
         }

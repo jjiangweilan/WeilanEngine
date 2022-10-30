@@ -169,6 +169,7 @@ namespace Utils
 
         if(sr.contains("push_constants")) Process(out.pushConstants, out.stage, sr["push_constants"], sr);
         if(sr.contains("ubos")) Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr);
+        if(sr.contains("ssbos")) Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr);
         if(sr.contains("textures")) Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr);
         if(sr.contains("separate_images")) Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr);
         if(sr.contains("separate_samplers")) Process(out.bindings, BindingType::SeparateSampler, out.stage, sr["separate_samplers"], sr);
@@ -191,6 +192,10 @@ namespace Utils
                     case BindingType::UBO:
                         new (&b.binding.ubo) UBO();
                         Process(b.binding.ubo.data, bindingJson["type"], root, "");
+                        break;
+                    case BindingType::SSBO:
+                        new (&b.binding.ssbo) SSBO();
+                        Process(b.binding.ssbo.data, bindingJson["type"], root, "");
                         break;
                     case BindingType::Texture:
                         new (&b.binding.texture) Texture();
@@ -269,10 +274,11 @@ namespace Utils
     {
         switch (type)
         {
-        case BindingType::Texture: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        case BindingType::UBO: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        case BindingType::SeparateImage: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        case BindingType::SeparateSampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
+            case BindingType::SSBO: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            case BindingType::Texture: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case BindingType::UBO: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            case BindingType::SeparateImage: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            case BindingType::SeparateSampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
         default:
             assert(0 && "Map BindingType failed");
         }

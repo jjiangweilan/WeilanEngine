@@ -57,6 +57,31 @@ namespace Engine
         }
     }
 
+    void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
+    {
+        for(auto& child : tsm->GetChildren())
+        {
+            GetLights(child, lights);
+        }
+
+        auto light = tsm->GetGameObject()->GetComponent<Light>();
+        if (light != nullptr)
+        {
+            lights.push_back(light);
+        }
+    }
+
+    std::vector<RefPtr<Light>> GameScene::GetActiveLights()
+    {
+        std::vector<RefPtr<Light>> lights;
+        for(auto child : roots)
+        {
+            GetLights(child->GetTransform(), lights);
+        }
+
+        return lights;
+    }
+
     void GameScene::Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver)
     {
         AssetObject::Deserialize(serializer, refResolver);

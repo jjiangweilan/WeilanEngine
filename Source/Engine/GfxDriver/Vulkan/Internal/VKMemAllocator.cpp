@@ -151,7 +151,8 @@ namespace Engine::Gfx
         // create stage buffer
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
-        VkBuffer stageBuffer = GetStageBuffer(dstSize, allocation, allocationInfo);
+
+        VkBuffer stageBuffer = GetStageBuffer(dstSize, allocation, allocationInfo); // TODO: we can use a persistent staging buffer, and may be use 16 bit alignment boundary?
 
         // copy data to stage buffer
         void* mappedData;

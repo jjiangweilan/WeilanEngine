@@ -152,7 +152,7 @@ namespace Engine::Gfx
     {
         for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
         {
-            if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+            if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
             {
                 return presentMode;
             }
@@ -160,7 +160,7 @@ namespace Engine::Gfx
 
         for (const VkPresentModeKHR &presentMode : surface->GetSurfacePresentModes())
         {
-            if (presentMode == VK_PRESENT_MODE_FIFO_KHR)
+            if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
             {
                 return presentMode;
             }

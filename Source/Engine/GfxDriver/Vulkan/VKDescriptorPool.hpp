@@ -21,7 +21,6 @@ namespace Engine::Gfx
             }
 
             ~VKDescriptorPool();
-        
         private:
 
             VkDescriptorPoolCreateInfo createInfo{};
@@ -39,7 +38,7 @@ namespace Engine::Gfx
     struct VKDescriptorPoolCache
     {
         VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context) {}
-        VKDescriptorPool& RequestDescriptorPool(VkDescriptorSetLayoutCreateInfo createInfo);
+        VKDescriptorPool& RequestDescriptorPool(const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo);
 
         private:
             struct VkDescriptorSetLayoutCreateInfoHash

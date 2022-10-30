@@ -67,6 +67,11 @@ namespace Engine
         this->rotation = glm::quat(rotation);
     }
 
+    void Transform::SetRotation(const glm::quat& rotation)
+    {
+        this->rotation = rotation;
+    }
+
     void Transform::SetPostion(const glm::vec3& position)
     {
         this->position = position;
@@ -90,6 +95,11 @@ namespace Engine
     const glm::vec3& Transform::GetRotation()
     {
         return rotationEuler;
+    }
+
+    const glm::quat& Transform::GetRotationQuat()
+    {
+        return rotation;
     }
 
     glm::mat4 Transform::GetModelMatrix()
