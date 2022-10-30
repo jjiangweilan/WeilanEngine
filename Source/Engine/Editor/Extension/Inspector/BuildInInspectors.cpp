@@ -29,6 +29,17 @@ namespace Engine::Editor
         RefPtr<Material> mat = target;
         RefPtr<Shader> shader = mat->GetShader();
 
+        char goNameArea[256];
+        auto& goName = mat->GetName();
+        int matNameSize = goName.size() < 255 ? goName.size() : 255;
+        strncpy(goNameArea, goName.c_str(), matNameSize + 1);
+        ImGui::Text("%s", "Name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##GameObjectName", goNameArea, 255))
+        {
+            mat->SetName(goNameArea);
+        }
+
         std::string shaderName = "";
         if (shader)
         {
