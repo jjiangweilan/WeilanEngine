@@ -1,0 +1,68 @@
+// Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Game/StandardPBR
+#endif
+
+#if VERT
+layout(location = 0) in vec3 i_Position;
+layout(location = 1) in vec3 i_Normal;
+layout(location = 0) out vec3 o_PositionWS;
+layout(location = 1) out vec3 o_NormalWS;
+
+layout(location = 0) out vec4 o_Color;
+void main()
+{
+    gl_Position = scene.viewProjection * pconst.model * vec4(i_Position,1);
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec4 i_Color;
+layout(location = 0) out vec4 o_Color;
+layout(set = SET_MATERIAL, binding = 0) uniform MaterialParams
+{
+    float roughness;
+    float f0;
+} matParams;
+
+#define Rougness matParams.roughness;
+#define F0 matParams.f0;
+
+float pow2(float x)
+{
+    return x * x;
+}
+
+float CookTorranceBRDF(vec3 l, vec3 n, vec3 v)
+{
+
+}
+
+void main()
+{
+
+    vec3 h = normalize((l + v) / 2);
+    float dotNH = dot(n,h);
+    float dotNV = dot(n,v);
+    float dotNL = dot(n,l);
+    float dotVH = dot(v,h);
+    float r2 = Roughness * Roughness;
+
+// ndf
+    float ndf = r2 / (pi * pow2((dotNH * dotNH) * (r2 - 1) + 1))
+
+// geometry
+    float k = pow2(Rougness + 1) / 8;
+    float Gv = dotNV / (dotNV * (1 - k) + k)
+    float Gl = dotNL / (dotNL * (1 - k) + k)
+    float G = Gv * Gl;
+
+// fresnel
+    float F = F0 + (1 - F0) * pow(2, (-5.55472 * dotNH - 6.98316) * (dotVH));
+}
+#endif
+
+
