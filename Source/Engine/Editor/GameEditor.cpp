@@ -39,6 +39,8 @@ namespace Engine::Editor
         ImGui::CreateContext();
         ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
         ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+        ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+
         editorContext = MakeUnique<EditorContext>();
         sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
         inspector = MakeUnique<InspectorWindow>(editorContext);
@@ -101,6 +103,7 @@ namespace Engine::Editor
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
         // ImGui::ShowDemoWindow(nullptr);
+        ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
         DrawMainMenu();
 
