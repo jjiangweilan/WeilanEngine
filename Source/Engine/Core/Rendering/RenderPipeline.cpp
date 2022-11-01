@@ -9,7 +9,7 @@
 #include "GfxDriver/ShaderProgram.hpp"
 
 #if GAME_EDITOR
-#include "Editor/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #endif
 
 using namespace Engine::Gfx;

@@ -12,7 +12,7 @@
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "ProjectManagement/ProjectManagement.hpp"
-#include "imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include <SDL2/SDL.h>
 #include "Code/Ptr.hpp"
 #include <memory>

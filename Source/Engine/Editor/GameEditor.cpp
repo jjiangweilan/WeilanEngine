@@ -1,7 +1,7 @@
 #include "GameEditor.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
-#include "imgui/imgui_impl_sdl.h"
-#include "imgui/imgui.h"
+#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui.h"
 
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/Component/MeshRenderer.hpp"

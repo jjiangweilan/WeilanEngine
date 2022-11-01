@@ -1,5 +1,5 @@
 #include "ModelExplorer.hpp"
-#include "Editor/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include "Core/Model.hpp"
 namespace Engine::Editor
 {

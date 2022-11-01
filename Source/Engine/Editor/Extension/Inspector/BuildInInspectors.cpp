@@ -1,6 +1,6 @@
 #include "BuildInInspectors.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "../../imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include "../../EditorRegister.hpp"
 #include "../../ProjectManagement/ProjectManagement.hpp"
 #include "Core/Graphics/Shader.hpp"
@@ -24,6 +24,10 @@ namespace Engine::Editor
         REGISTER(GameScene);
     }
 
+    static void MaterialInspectorShowStructureData(Material& mat, const std::string& bindingName, Gfx::ShaderInfo::StructuredData& data)
+    {
+    }
+
     void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
     {
         RefPtr<Material> mat = target;
@@ -40,6 +44,7 @@ namespace Engine::Editor
             mat->SetName(goNameArea);
         }
 
+        // pick shader
         std::string shaderName = "";
         if (shader)
         {
@@ -55,6 +60,71 @@ namespace Engine::Editor
         {
             mat->SetShader(shaderNameText);
         }
+
+        // show shader parameters
+        auto& shaderInfo = shader->GetShaderProgram()->GetShaderInfo();
+        for(auto& b : shaderInfo.bindings)
+        {
+            if (b.second.setNum != Gfx::Material_Descriptor_Set) continue;
+            if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
+            {
+                for (auto& uniMem : b.second.binding.ubo.data.members)
+                {
+                    std::string bindingName = b.second.name + "." + uniMem.second.name;
+                    ImGui::Text("%s", bindingName.c_str());
+                    switch (uniMem.second.data->type)
+                    {
+                        case Gfx::ShaderInfo::ShaderDataType::Half:
+                        case Gfx::ShaderInfo::ShaderDataType::Float:
+                            {
+                                float val = mat->GetFloat(b.first, uniMem.second.name);
+                                if(ImGui::DragFloat(("##" + bindingName).c_str(), &val))
+                                {
+                                    mat->SetFloat(b.first, uniMem.second.name, val);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec2:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                if(ImGui::DragFloat2(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.first, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec3:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                ImGui::Text("%s", bindingName.c_str());
+                                ImGui::SameLine();
+                                if(ImGui::DragFloat3(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.first, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec4:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                if(ImGui::DragFloat4(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.first, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        default:
+                            ImGui::LabelText("Type Not Implemented", "%s", uniMem.second.name.c_str());
+                            break;
+                    }
+                }
+            }
+            else if (b.second.type == Gfx::ShaderInfo::BindingType::Texture)
+            {
+            }
+
+        }
+
     }
 
     void GameSceneInspector::Tick(RefPtr<EditorContext> editorContext)
