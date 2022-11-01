@@ -1,6 +1,6 @@
 #pragma once
 #include "../ShaderProgram.hpp"
-#include "VKDescriptorSetSlot.hpp"
+#include "../DescriptorSetSlot.hpp"
 #include "VKShaderInfo.hpp"
 #include <vulkan/vulkan.h>
 #include <vector>
@@ -38,7 +38,7 @@ namespace Engine::Gfx
 
             const ShaderConfig& GetDefaultShaderConfig() override;
 
-            const ShaderInfo::ShaderInfo& GetShaderInfo() { return shaderInfo; }
+            const ShaderInfo::ShaderInfo& GetShaderInfo() override { return shaderInfo; }
             const std::string& GetName() override {return name;}
         private:
             std::string name;

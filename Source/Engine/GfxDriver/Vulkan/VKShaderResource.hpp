@@ -1,6 +1,6 @@
 #pragma once
 #include "GfxDriver/ShaderResource.hpp"
-#include "VKDescriptorSetSlot.hpp"
+#include "../DescriptorSetSlot.hpp"
 #include "VKStorageBuffer.hpp"
 #include "VKShaderInfo.hpp"
 #include "VKSharedResource.hpp"

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "ShaderConfig.hpp"
+#include "ShaderInfo.hpp"
 #include "Code/Ptr.hpp"
 namespace Engine::Gfx
 {
@@ -19,6 +20,7 @@ namespace Engine::Gfx
             virtual ~ShaderProgram() {};
             virtual const ShaderConfig& GetDefaultShaderConfig() = 0;
             virtual const std::string& GetName() = 0;
+            virtual const ShaderInfo::ShaderInfo& GetShaderInfo() = 0;
 
         protected:
     };

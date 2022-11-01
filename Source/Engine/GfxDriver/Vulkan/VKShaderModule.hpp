@@ -3,7 +3,7 @@
 #include <nlohmann/json.hpp>
 #include <unordered_map>
 #include <vector>
-#include "VKDescriptorSetSlot.hpp"
+#include "../DescriptorSetSlot.hpp"
 #include "VKShaderInfo.hpp"
 #include "../ShaderModule.hpp"
 
