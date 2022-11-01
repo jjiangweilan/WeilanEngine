@@ -1,6 +1,6 @@
 #include "SceneTreeWindow.hpp"
 #include "Core/Component/Components.hpp"
-#include "../imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 
 #include <spdlog/spdlog.h>
 namespace Engine::Editor

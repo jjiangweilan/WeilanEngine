@@ -1,5 +1,5 @@
 #include "ProjectWindow.hpp"
-#include "../imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 
 namespace Engine::Editor
 {

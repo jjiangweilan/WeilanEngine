@@ -8,8 +8,8 @@
 #include "Core/Model.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Math/Geometry.hpp"
-#include "../imgui/imgui.h"
-#include "../imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <glm/gtc/quaternion.hpp>
 #include <SDL2/SDL.h>
 #include <algorithm>

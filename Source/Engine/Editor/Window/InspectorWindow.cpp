@@ -3,7 +3,7 @@
 #include "Core/Component/Transform.hpp"
 #include "Core/Component/Components.hpp"
 #include "Core/Model.hpp"
-#include "../imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include "../EditorRegister.hpp"
 #include "GfxDriver/ShaderLoader.hpp"
 namespace Engine::Editor

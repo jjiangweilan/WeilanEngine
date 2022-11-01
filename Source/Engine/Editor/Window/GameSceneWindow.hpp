@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Editor/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include "GfxDriver/Image.hpp"
 #include "Core/Component/Camera.hpp"
 #include "GfxDriver/CommandBuffer.hpp"

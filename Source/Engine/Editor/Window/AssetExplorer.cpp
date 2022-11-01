@@ -4,7 +4,7 @@
 #include "Core/AssetObject.hpp"
 #include "Core/Graphics/Material.hpp"
 #include "../EditorRegister.hpp"
-#include "../imgui/imgui.h"
+#include "ThirdParty/imgui/imgui.h"
 #include "../Extension/CustomExplore/ModelExplorer.hpp"
 #include "Core/Global/Global.hpp"
 #include <spdlog/spdlog.h>
@@ -82,7 +82,7 @@ namespace Engine::Editor
                     else
                     {
                         auto assetObjectName = assetObject->GetName();
-                        if (ImGui::Button(assetObjectName.c_str()))
+                        if (ImGui::Button(path.filename().string().c_str()))
                         {
                             editorContext->currentSelected = assetObject;
                         }
