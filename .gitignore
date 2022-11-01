@@ -6,7 +6,7 @@ release/
 Doxygen
 compile_commands.json
 .DS_Store
-ThirdParty
+/ThirdParty
 *.meta
 imgui.ini
 neovim.json
