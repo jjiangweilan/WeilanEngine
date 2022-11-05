@@ -54,10 +54,11 @@ namespace Engine
         void Read(const std::string& name, T& val)
         {
             auto iter = dataOffset.find(name);
-            assert(iter != dataOffset.end());
-
-            Offset offset = iter->second;
-            SerializerReadFromMem(mem + offset, val, SerializerGetTypeSize(val));
+            if (iter != dataOffset.end())
+            {
+                Offset offset = iter->second;
+                SerializerReadFromMem(mem + offset, val, SerializerGetTypeSize(val));
+            }
         }
 
         void WriteToDisk(const std::filesystem::path& path);

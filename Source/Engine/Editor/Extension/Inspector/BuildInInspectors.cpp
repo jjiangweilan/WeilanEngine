@@ -10,6 +10,7 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Utils/EnumStringMapping.hpp"
 
+#define DYNAMIC_CAST_PAYLOAD(data, Type) dynamic_cast<Type*>(*(AssetObject**)data)
 namespace Engine::Editor
 {
 #define REGISTER(Name) EditorRegister::Instance()->RegisterInspector<Name, Name##Inspector>();
@@ -121,6 +122,23 @@ namespace Engine::Editor
             }
             else if (b.second.type == Gfx::ShaderInfo::BindingType::Texture)
             {
+                auto tex = mat->GetTexture(b.first);
+                std::string label = b.first;
+                if (tex)
+                    label += tex->GetName();
+                ImGui::Button(b.first.c_str());
+                if (ImGui::BeginDragDropTarget())
+                {
+                    auto payload = ImGui::GetDragDropPayload();
+                    if (Texture* asTexture = DYNAMIC_CAST_PAYLOAD(payload->Data, Texture))
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
+                        {
+                            mat->SetTexture(b.first, asTexture);
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
             }
 
         }
@@ -182,7 +200,6 @@ namespace Engine::Editor
             ImGui::Button("Mesh: null");
         if (ImGui::BeginDragDropTarget())
         {
-#define DYNAMIC_CAST_PAYLOAD(data, Type) dynamic_cast<Type*>(*(AssetObject**)data)
 
             auto payload = ImGui::GetDragDropPayload();
             if (Mesh* asMesh = DYNAMIC_CAST_PAYLOAD(payload->Data, Mesh))
@@ -202,7 +219,6 @@ namespace Engine::Editor
             ImGui::Button("Material: null");
         if (ImGui::BeginDragDropTarget())
         {
-#define DYNAMIC_CAST_PAYLOAD(data, Type) dynamic_cast<Type*>(*(AssetObject**)data)
 
             auto payload = ImGui::GetDragDropPayload();
             if (Material* asMaterial = DYNAMIC_CAST_PAYLOAD(payload->Data, Material))

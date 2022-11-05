@@ -9,6 +9,7 @@
 #include "Core/AssetDatabase/Importers/glbImporter.hpp" 
 #include "Core/AssetDatabase/Importers/GeneralImporter.hpp"
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
+#include "Core/AssetDatabase/Importers/TextureImporter.hpp"
 #include "Core/Global/Global.hpp"
 
 namespace Engine
@@ -89,6 +90,9 @@ namespace Engine
         AssetImporter::RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
         AssetImporter::RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
         AssetImporter::RegisterImporter("shad", []() { return MakeUnique<Internal::ShaderImporter>(); });
+        AssetImporter::RegisterImporter("png", []() { return MakeUnique<Internal::TextureImporter>(); });
+        AssetImporter::RegisterImporter("jpeg", []() { return MakeUnique<Internal::TextureImporter>(); });
+        AssetImporter::RegisterImporter("jpg", []() { return MakeUnique<Internal::TextureImporter>(); });
     }
 
     void WeilanEngine::ConfigureProjectPath()

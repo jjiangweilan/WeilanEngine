@@ -161,6 +161,11 @@ namespace Engine::Internal
             AddDataToVertexDescription(prim["indices"], vertDesc.index);
             AddDataToVertexDescription(attrs["POSITION"], vertDesc.position, 5126);
             AddDataToVertexDescription(attrs["NORMAL"], vertDesc.normal, 5126);
+            if (attrs.contains("TEXCOORD_0"))
+            {
+                vertDesc.texCoords.emplace_back();
+                AddDataToVertexDescription(attrs["TEXCOORD_0"], vertDesc.texCoords[0]);
+            }
             if (attrs.contains("COLOR_0"))
             {
                 vertDesc.colors.emplace_back();

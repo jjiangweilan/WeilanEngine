@@ -19,6 +19,12 @@ namespace Engine
     {
     };
 
+    void Material::SetTexture(const std::string& param, RefPtr<Texture> texture)
+    {
+        textureValues[param] = texture;
+        shaderResource->SetTexture(param, texture->GetGfxImage());
+    }
+
     void Material::SetTexture(const std::string& param, RefPtr<Gfx::Image> image)
     {
         shaderResource->SetTexture(param, image);
@@ -32,23 +38,54 @@ namespace Engine
 
     void Material::SetFloat(const std::string& param, const std::string& member, float value)
     {
-        //floatValues[param] = value;
+        floatValues[param + "." + member] = value;
         shaderResource->SetUniform(param, member, (void*)&value);
     }
 
     void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
     {
+        vectorValues[param + "." + member] = value;
         shaderResource->SetUniform(param, member, (void*)&value);
     }
 
-    const glm::mat4& Material::GetMatrix(const std::string& param)
+    glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
     {
-        return matrixValues[param];
+        auto iter = matrixValues.find(param + "." + member);
+        if (iter != matrixValues.end())
+        {
+            return iter->second;
+        }
+        return glm::mat4(0);
     }
 
-    float Material::GetFloat(const std::string& param)
+    glm::vec4 Material::GetVector(const std::string &param, const std::string &member)
     {
-        return floatValues[param];
+        auto iter = vectorValues.find(param + "." + member);
+        if (iter != vectorValues.end())
+        {
+            return iter->second;
+        }
+        return glm::vec4(0);
+    }
+
+    RefPtr<Texture> Material::GetTexture(const std::string& param)
+    {
+        auto iter = textureValues.find(param);
+        if (iter != textureValues.end())
+        {
+            return iter->second;
+        }
+        return 0;
+    }
+
+    float Material::GetFloat(const std::string& param, const std::string& member)
+    {
+        auto iter = floatValues.find(param + "." + member);
+        if (iter != floatValues.end())
+        {
+            return iter->second;
+        }
+        return 0;
     }
 
     void Material::SetShader(std::string_view shaderName)
@@ -85,6 +122,7 @@ namespace Engine
 
     void Material::UpdateResources()
     {
+        if (shaderResource == nullptr) return;
         for(auto& v : floatValues)
         {
             shaderResource->SetUniform(v.first, &v.second);
@@ -94,5 +132,12 @@ namespace Engine
         {
             shaderResource->SetUniform(v.first, &v.second);
         }
+
+        for(auto& v : vectorValues)
+        {
+            shaderResource->SetUniform(v.first, &v.second);
+        }
+
+        // todo texture reference needs to be resolved
     }
 }
