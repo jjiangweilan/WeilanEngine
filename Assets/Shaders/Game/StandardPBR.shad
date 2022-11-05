@@ -10,13 +10,16 @@ name: Game/StandardPBR
 #if VERT
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
+layout(location = 2) in vec2 i_UV;
 
 layout(location = 0) out vec3 o_PositionWS;
 layout(location = 1) out vec3 o_NormalWS;
+layout(location = 2) out vec2 o_UV;
 void main()
 {
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
     o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal,1)).xyz;
+    o_UV = i_UV;
 
     gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
 }
@@ -25,17 +28,22 @@ void main()
 #if FRAG
 layout(location = 0) in vec3 i_PositionWS;
 layout(location = 1) in vec3 i_NormalWS;
+layout(location = 2) in vec2 i_UV;
 
 layout(location = 0) out vec4 o_Color;
 
-layout(set = SET_MATERIAL, binding = 0) uniform MaterialParams
+layout(set = SET_MATERIAL, binding = 0) uniform PBR
 {
     float roughness;
-    float f0;
+    float metallic;
 } matParams;
 
-#define Roughness 0.1f// matParams.roughness
-#define F0 0.1f // matParams.f0
+layout(set = SET_MATERIAL, binding = 1) uniform sampler2D albedoMap;
+layout(set = SET_MATERIAL, binding = 2) uniform sampler2D roughnessMap;
+layout(set = SET_MATERIAL, binding = 3) uniform sampler2D metallicMap;
+
+#define Roughness matParams.roughness
+#define Metallic matParams.metallic
 #define NearZero 0.000001
 
 float pow2(float x)
@@ -45,6 +53,8 @@ float pow2(float x)
 
 void main()
 {
+    float roughness = Roughness * texture(roughnessMap, i_UV).r;
+    float metallic = Metallic * texture(metallicMap, i_UV).r;
     vec3 v = normalize(scene.viewPos - i_PositionWS);
     vec3 l = normalize(vec3(0.5,0.5,0.5));
     vec3 n = normalize(i_NormalWS);
@@ -54,23 +64,25 @@ void main()
     float dotNV = max(dot(n,v), NearZero);
     float dotNL = max(dot(n,l), 0);
     float dotVH = max(dot(v,h), NearZero);
-    float r2 = Roughness * Roughness;
+    float r2 = roughness * roughness;
 
 // ndf
     float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
 
 // geometry
-    float k = pow2(Roughness + 1) / 8;
+    float k = pow2(roughness + 1) / 8;
     float Gv = dotNV / (dotNV * (1 - k) + k);
     float Gl = dotNL / (dotNL * (1 - k) + k);
     float G = Gv * Gl;
 
 // fresnel
-    float F = F0 + (1 - F0) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    float F = metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
 
     float brdf = (G * F * D) / (4 * dotNL * dotNV);
+    float light = dotNL;
+    vec3 finalColor = light * (texture(albedoMap, i_UV).xyz / M_PI + brdf);
 
-    o_Color = vec4((dotNL * (1 / M_PI + brdf)).xxx, 1);
+    o_Color = vec4(finalColor, 1);
 
     
 }
