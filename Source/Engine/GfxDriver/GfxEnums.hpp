@@ -26,7 +26,11 @@ namespace Engine::Gfx
         R16G16B16A16_SFloat,
         R8G8B8A8_UNorm,
         B8G8R8A8_UNorm,
-        B8G8R8A8_SRgb,
+        B8G8R8A8_SRGB,
+        R8G8B8A8_SRGB,
+        R8G8B8_SRGB,
+        R8G8_SRGB,
+        R8_SRGB,
         D16_UNorm,
         D16_UNorm_S8_UInt,
         D24_UNorm_S8_UInt

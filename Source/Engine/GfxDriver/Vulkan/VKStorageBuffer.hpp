@@ -11,6 +11,7 @@ namespace Engine::Gfx
             void UpdateData(void* data) override;
             VkBuffer GetVKBuffer() { return buffer->GetVKBuffer(); }
             uint32_t GetSize() override {return size;}
+            void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
 
         private:
 

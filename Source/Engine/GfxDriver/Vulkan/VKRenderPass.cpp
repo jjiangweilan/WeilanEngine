@@ -185,15 +185,20 @@ namespace Engine::Gfx
             for(auto& atta : subpass.colors)
             {
                 auto image = static_cast<VKImage*>(atta.image.Get());
-                auto subRscRange = image->GetDefaultSubresourceRange();
-                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+                VkAccessFlags accessFlag = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                if (atta.loadOp == AttachmentLoadOperation::Load) {
+                    accessFlag |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+                }
+                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, accessFlag);
             }
 
             if (subpass.depth != std::nullopt)
             {
                 auto image = static_cast<VKImage*>(subpass.depth->image.Get());
-                auto subRscRange = image->GetDefaultSubresourceRange();
-                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+                VkAccessFlags accessFlag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                if (subpass.depth->loadOp == AttachmentLoadOperation::Load || subpass.depth->stencilLoadOp == AttachmentLoadOperation::Load) accessFlag |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+                image->TransformLayoutIfNeeded(cmdBuf, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT, accessFlag);
             }
         }
     }

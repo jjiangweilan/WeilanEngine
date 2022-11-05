@@ -30,8 +30,11 @@ namespace Engine::Gfx
             virtual const ImageDescription& GetDescription() override { return imageDescription; }
             virtual VkImageSubresourceRange GetDefaultSubresourceRange() {return defaultSubResourceRange;}
 
-            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
-            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+            // TODO: obsolate
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
+            // TODO: obsolate
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange = nullptr);
 
         protected:
             VKImage() = default;
@@ -49,6 +52,8 @@ namespace Engine::Gfx
             VmaAllocation allocation_vma = nullptr;
 
             VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            VkAccessFlags accessMask = VK_ACCESS_MEMORY_READ_BIT;
             ImageDescription imageDescription;
 
             VkImageViewType GenerateDefaultImageViewViewType();
@@ -76,6 +81,12 @@ namespace Engine::Gfx
             virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dskStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask) override
             {
                 activeImage->TransformLayoutIfNeeded(cmdBuf, layout, srcStageMask, dskStageMask, srcAccessMask, dstAccessMask);
+            }
+
+            virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf,
+                    VkImageLayout layout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange = nullptr) override
+            {
+                activeImage->TransformLayoutIfNeeded(cmdBuf, layout, dstStageMask, dstAccessMask, subresourceRange);
             }
 
             virtual const ImageDescription& GetDescription() override { return activeImage->GetDescription(); }

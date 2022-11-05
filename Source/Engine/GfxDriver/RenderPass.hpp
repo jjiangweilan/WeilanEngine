@@ -36,8 +36,8 @@ namespace Engine::Gfx
             MultiSampling multiSampling = MultiSampling::Sample_Count_1;
             AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
             AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
-            AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::Load;
-            AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::Store;
+            AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::DontCare;
+            AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
         };
 
         virtual ~RenderPass(){}

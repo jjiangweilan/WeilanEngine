@@ -36,6 +36,27 @@ namespace Engine::Gfx
         }
     }
 
+    void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask)
+    {
+        if (this->stageMask != stageMask || this->accessMask != accessMask)
+        {
+            VkBufferMemoryBarrier memoryBarrier;
+            memoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            memoryBarrier.pNext = VK_NULL_HANDLE;
+            memoryBarrier.srcAccessMask = this->accessMask;
+            memoryBarrier.dstAccessMask = accessMask;
+            memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            memoryBarrier.buffer = buffer;
+            memoryBarrier.offset = 0;
+            memoryBarrier.size = VK_WHOLE_SIZE;
+            vkCmdPipelineBarrier(cmdBuf, this->stageMask, stageMask, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 1, &memoryBarrier, 0, VK_NULL_HANDLE);
+
+            this->stageMask = stageMask;
+            this->accessMask = accessMask;
+        }
+    }
+
     VKBuffer::VKBuffer(uint32_t size, BufferUsage bu, bool readback) : 
         VKBuffer(size, MapBufferUsage(bu), readback) {}
 
@@ -62,7 +83,7 @@ namespace Engine::Gfx
         range.data = data;
         range.offsetInSrc = 0;
         range.size = dataSize;
-        allocator->UploadBuffer(buffer, offsetInDst, dataSize, &range, 1);
+        allocator->UploadBuffer(this, offsetInDst, dataSize, &range, 1);
     }
 
     void* VKBuffer::GetCPUVisibleAddress()

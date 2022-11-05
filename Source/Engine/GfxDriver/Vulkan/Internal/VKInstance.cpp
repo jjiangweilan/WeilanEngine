@@ -31,10 +31,9 @@ namespace Engine::Gfx
         std::vector<const char*> extensions = requiredExtension;
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
-        std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+        std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation", "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled and overrided in vkconfig app in VulkanSDK
         if (enableValidationLayers)
         {
-
             if (!CheckAvalibilityOfValidationLayers(validationLayers))
             {
                 throw std::runtime_error("validation layers requested, but not available!");

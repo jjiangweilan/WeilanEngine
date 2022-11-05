@@ -252,15 +252,13 @@ namespace Engine::Gfx
         uint32_t colorCount = attachments.size() - (rtDescription.HasDepth() ? 1 : 0);
         for(;i < colorCount;++i)
         {
-            auto subRscRange = attachments[i].GetDefaultSubresourceRange();
-            attachments[i].TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+            attachments[i].TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
         }
 
         if (rtDescription.HasDepth())
         {
             auto& depth = attachments.back();
-            auto subRscRange = depth.GetDefaultSubresourceRange();
-            depth.TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_NONE_KHR, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, subRscRange);
+            depth.TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
         }
     }
 

@@ -44,10 +44,22 @@ namespace Engine::Gfx
                 uint32_t subpass = -1;
             } executeContext;
 
+            struct RenderPassResources
+            {
+                std::vector<VKShaderResource*> bindedResources;
+                std::vector<VKBuffer*> vertexBuffers;
+                std::vector<VKBuffer*> indexBuffers;
+            };
+
             struct RecordContext
             {
                 VkRenderPass currentPass = VK_NULL_HANDLE;
-                std::unordered_map<VkRenderPass, std::vector<VKShaderResource*>> bindedResources;
+                std::unordered_map<VkRenderPass, RenderPassResources> renderPassResources;
+
+                // these data will be moved to renderPassResources in EndRenderPass()
+                std::vector<VKShaderResource*> bindedResources;
+                std::vector<VKBuffer*> vertexBuffers;
+                std::vector<VKBuffer*> indexBuffers;
             } recordContext;
 
 

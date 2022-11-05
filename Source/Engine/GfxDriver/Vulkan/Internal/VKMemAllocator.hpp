@@ -19,6 +19,7 @@ namespace Engine::Gfx
 
     class Image;
     class VKImage;
+    class VKBuffer;
     class VKMemAllocator
     {
         public:
@@ -26,7 +27,7 @@ namespace Engine::Gfx
             VKMemAllocator(const VKMemAllocator& other) = delete;
             ~VKMemAllocator();
 
-            void UploadBuffer(VkBuffer dst, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
+            void UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
             void UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data);
 
             void CreateBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocCreateInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo = nullptr);

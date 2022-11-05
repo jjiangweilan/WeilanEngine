@@ -13,6 +13,7 @@ namespace Engine::Gfx
 
             ~VKBuffer() override;
 
+            void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
             void Write(void* data, uint32_t dataSize, uint32_t offsetInDst) override;
             void* GetCPUVisibleAddress() override;
             void Resize(uint32_t size) override;
@@ -28,6 +29,8 @@ namespace Engine::Gfx
             VmaMemoryUsage vmaMemUsage = VMA_MEMORY_USAGE_AUTO;
             VmaAllocationCreateFlags vmaAllocationCreateFlags = 0;
             VmaAllocationInfo allocationInfo;
+            VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            VkAccessFlags accessMask = VK_ACCESS_2_MEMORY_READ_BIT;
             void CreateBuffer();
     };
 }

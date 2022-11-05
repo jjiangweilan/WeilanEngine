@@ -292,14 +292,25 @@ namespace Engine::Gfx
 
     void VKShaderResource::PrepareResource(VkCommandBuffer cmdBuf)
     {
+        // TODO: the pipeline stage can be simplified by querying the binding usage from shader info
+
         for(auto& tex : textures)
         {
             tex.second->TransformLayoutIfNeeded(cmdBuf,
                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                    0,
-                    0);
+                    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_ACCESS_SHADER_READ_BIT
+                    );
+        }
+
+        for(auto& buf : uniformBuffers)
+        {
+            buf.second->PutMemoryBarrierIfNeeded(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+        }
+
+        for(auto& buf : storageBuffers)
+        {
+            buf.second->PutMemoryBarrierIfNeeded(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
         }
     }
 

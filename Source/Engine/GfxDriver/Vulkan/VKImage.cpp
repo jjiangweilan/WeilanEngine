@@ -41,6 +41,8 @@ namespace Engine::Gfx
         arrayLayers(other.arrayLayers),
         imageType_vk(other.imageType_vk),
         usageFlags(other.usageFlags),
+        stageMask(other.stageMask),
+        accessMask(other.accessMask),
         image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
         imageView_vk(std::exchange(other.imageView_vk, VK_NULL_HANDLE)),
         defaultSubResourceRange(other.defaultSubResourceRange),
@@ -94,6 +96,35 @@ namespace Engine::Gfx
             vkCmdPipelineBarrier(cmdBuf, srcStageMask, dstStageMask, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
 
             layout = targetLayout;
+            stageMask = dstStageMask;
+            accessMask = dstAccessMask;
+        }
+    }
+
+    void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout newLayout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange)
+    {
+        if (this->layout != newLayout)
+        {
+            VkImageMemoryBarrier barrier{};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.pNext = VK_NULL_HANDLE;
+            barrier.srcAccessMask = this->accessMask;
+            barrier.dstAccessMask = dstAccessMask;
+            barrier.oldLayout = this->layout;
+            barrier.newLayout = newLayout;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = image_vk;
+
+            if (subresourceRange)
+                barrier.subresourceRange = *subresourceRange;
+            else
+                barrier.subresourceRange = defaultSubResourceRange;
+            vkCmdPipelineBarrier(cmdBuf, this->stageMask, dstStageMask, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &barrier);
+
+            this->layout = newLayout;
+            this->stageMask = dstStageMask;
+            this->accessMask = dstAccessMask;
         }
     }
 

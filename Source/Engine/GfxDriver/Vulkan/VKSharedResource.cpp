@@ -41,6 +41,7 @@ namespace Engine::Gfx
         desc.multiSampling = MultiSampling::Sample_Count_1;
         defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
 
+        // default storage buffer
         defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
     }
 

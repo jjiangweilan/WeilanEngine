@@ -1,5 +1,6 @@
 #include "VKMemAllocator.hpp"
 #include "../VKImage.hpp"
+#include "../VKBuffer.hpp"
 #include <spdlog/spdlog.h>
 #include <cassert>
 #define VK_CHECK(x) \
@@ -103,10 +104,8 @@ namespace Engine::Gfx
                 image->TransformLayoutIfNeeded(
                     cmd, 
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                    VK_ACCESS_MEMORY_WRITE_BIT,
-                    VK_ACCESS_MEMORY_READ_BIT);
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT);
 
                 vkCmdCopyBufferToImage(
                     cmd,
@@ -146,7 +145,7 @@ namespace Engine::Gfx
         return srcBuf;
     }
 
-    void VKMemAllocator::UploadBuffer(VkBuffer dst, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
+    void VKMemAllocator::UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
     {
         // create stage buffer
         VmaAllocation allocation;
@@ -173,7 +172,9 @@ namespace Engine::Gfx
                     0, dstOffset, dstSize
                 };
 
-                vkCmdCopyBuffer(cmd, stageBuffer, dst, 1, &region);
+                buffer->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+
+                vkCmdCopyBuffer(cmd, stageBuffer, buffer->GetVKBuffer(), 1, &region);
             }
 
             this->pendingBuffersToDelete.emplace_back(stageBuffer, allocation);

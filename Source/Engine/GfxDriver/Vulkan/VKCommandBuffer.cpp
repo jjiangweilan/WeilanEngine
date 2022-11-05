@@ -31,13 +31,23 @@ namespace Engine::Gfx
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
+            auto& renderPassResources = recordContext.renderPassResources[vkRenderPass];
             // make sure all the resource needed are in the correct format before the render pass begin
             // the first need of this is because we need a way to implictly make sure RT from previous render pass 
             // are correctly transformed into correct memory layout
-            auto res = recordContext.bindedResources[vkRenderPass];
-            for(auto& r : res)
+            for(auto& r : renderPassResources.bindedResources)
             {
                 r->PrepareResource(cmd);
+            }
+
+            for(auto& b : renderPassResources.vertexBuffers)
+            {
+                b->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
+            }
+
+            for(auto& b : renderPassResources.indexBuffers)
+            {
+                b->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT);
             }
 
             auto extent = vRenderPass->GetExtent();
@@ -69,6 +79,11 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::EndRenderPass()
     {
+        auto& res = recordContext.renderPassResources[recordContext.currentPass];
+        res.bindedResources = std::move(recordContext.bindedResources);
+        res.indexBuffers = std::move(recordContext.indexBuffers);
+        res.vertexBuffers = std::move(recordContext.vertexBuffers);
+
         recordContext.currentPass = nullptr;
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
@@ -108,8 +123,9 @@ namespace Engine::Gfx
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
         {
-            from->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
-            to->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_WRITE_BIT);
+            from->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
+            to->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_WRITE_BIT);
+
             VkImageBlit blit;
             blit.dstOffsets[0] = {0,0,0};
             blit.dstOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
@@ -135,15 +151,11 @@ namespace Engine::Gfx
         if (resource_ == nullptr) return;
 
         VKShaderResource* resource = (VKShaderResource*)resource_.Get();
-        if (recordContext.currentPass != VK_NULL_HANDLE)
-        {
-            recordContext.bindedResources[recordContext.currentPass].push_back(resource);
-        }
+        recordContext.bindedResources.push_back(resource);
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
         {
             VkDescriptorSet descSet = resource->GetDescriptorSet();
-            resource->PrepareResource(cmd);
             if (descSet != VK_NULL_HANDLE)
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(), resource->GetDescriptorSetSlot(), 1, &descSet, 0, VK_NULL_HANDLE);
         };
@@ -192,8 +204,10 @@ namespace Engine::Gfx
         uint64_t vkOffsets[16];
         for(uint32_t i = 0; i < buffers.size(); ++i)
         {
-            vkBuffers[i] = static_cast<VKBuffer*>(buffers[i].Get())->GetVKBuffer();
+            VKBuffer* vkbuf = static_cast<VKBuffer*>(buffers[i].Get());
+            vkBuffers[i] = vkbuf->GetVKBuffer();
             vkOffsets[i] = offsets[i];
+            recordContext.vertexBuffers.push_back(vkbuf);
         }
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
@@ -207,6 +221,8 @@ namespace Engine::Gfx
     void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType)
     {
         VkIndexType indexType = indexBufferType == IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+        recordContext.indexBuffers.push_back(static_cast<VKBuffer*>(buffer.Get()));
+
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
             VkBuffer indexBuf = static_cast<VKBuffer*>(buffer.Get())->GetVKBuffer();
