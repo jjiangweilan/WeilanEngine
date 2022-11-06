@@ -19,9 +19,13 @@ namespace Engine
     template<typename T, typename U> struct ArgumentType<T(U)> { typedef U ElementType; };
     #define SINGLE_ARG(...) __VA_ARGS__
 
+#define EDITABLE(type, name) \
+            type name; \
+            Editable<ArgumentType<void(type)>::ElementType> _Editable_##name = Editable<ArgumentType<void(type)>::ElementType>(this, #name, name);
+
     class AssetDatabase;
     class AssetFileData;
-    class AssetObject : public Object
+    class AssetObject : public Object, IReferenceResolveListener
     {
         DECLARE_ENGINE_OBJECT();
         public:
@@ -72,7 +76,7 @@ namespace Engine
                 virtual void Serialize(const std::string& nameChain, AssetSerializer& serializer) = 0;
                 virtual void Deserialize(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver) = 0;
 
-            private:
+            protected:
                 std::string name;
                 AssetObject* parent;
             };
@@ -247,13 +251,27 @@ namespace Engine
                 template<class U>
                 void DeserializePrivate(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver, U& val)
                 {
-                    // case: where T is an RefPtr or raw pointer
-                    if constexpr(IsRefPtr<U>::value || std::is_pointer<U>::value)
+                    // case: where T is a raw pointer
+                    if constexpr(std::is_pointer<U>::value)
                     {
                         UUID id = UUID::empty;
                         serializer.Read(nameChain,id);
                         if (id != UUID::empty)
-                            refResolver.ResolveReference(id, reinterpret_cast<AssetObject*&>(val));
+                        {
+                            refResolver.ResolveReference(id, reinterpret_cast<AssetObject*&>(val), parent);
+                        }
+                        else
+                            val = nullptr;
+                    }
+                    // case: where T is an RefPtr
+                    else if constexpr (IsRefPtr<U>::value)
+                    {
+                        UUID id = UUID::empty;
+                        serializer.Read(nameChain, id);
+                        if (id != UUID::empty)
+                        {
+                            refResolver.ResolveReference(id, reinterpret_cast<AssetObject*&>(val.GetPtrRef()), parent);
+                        }
                         else
                             val = nullptr;
                     }
@@ -334,8 +352,8 @@ namespace Engine
                             std::ostringstream oss;
                             oss << nameChain << "." << key;
                             typename U::mapped_type element;
-                            DeserializePrivate(oss.str(), serializer, refResolver, element);
-                            val[key] = std::move(element);
+                            val[key] = typename U::mapped_type();
+                            DeserializePrivate(oss.str(), serializer, refResolver, val[key]);
                         }
                     }
                     else
@@ -344,9 +362,8 @@ namespace Engine
                     }
                 }
             };
-#define EDITABLE(type, name) \
-            type name; \
-            Editable<ArgumentType<void(type)>::ElementType> _Editable_##name = Editable<ArgumentType<void(type)>::ElementType>(this, #name, name);
+
+            void OnReferenceResolve(void* ptr, AssetObject* resolved) override {}
 
         protected:
 

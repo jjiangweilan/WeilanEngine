@@ -45,21 +45,22 @@ namespace Engine
             // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
             Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
-            void Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver) override;
+            void DeserializeInternal(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver) override;
 
         private:
-            RefPtr<Shader> shader = nullptr;
-            UniPtr<Gfx::ShaderResource> shaderResource;
-            Gfx::ShaderConfig shaderConfig;
+                RefPtr<Shader> shader = nullptr;
+                UniPtr<Gfx::ShaderResource> shaderResource;
+                Gfx::ShaderConfig shaderConfig;
 
-            EDITABLE(std::string, shaderName);
-            EDITABLE(SINGLE_ARG(std::unordered_map<std::string, float>), floatValues);
-            EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::vec4>), vectorValues);
-            EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::mat4>), matrixValues);
-            EDITABLE(SINGLE_ARG(std::unordered_map<std::string, RefPtr<Texture>>), textureValues);
+                EDITABLE(std::string, shaderName);
+                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, float>), floatValues);
+                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::vec4>), vectorValues);
+                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::mat4>), matrixValues);
+                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, RefPtr<Texture>>), textureValues);
 
-            void UpdateResources();
-            void SetShaderNoProtection(std::string_view shader);
-            static int initImporter_;
+                void UpdateResources();
+                void SetShaderNoProtection(std::string_view shader);
+                void OnReferenceResolve(void* ptr, AssetObject* resolved) override;
+                static int initImporter_;
     };
 }

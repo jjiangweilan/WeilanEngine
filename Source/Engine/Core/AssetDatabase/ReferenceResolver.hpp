@@ -8,16 +8,23 @@ namespace Engine
 {
     class AssetDatabase;
     class AssetObject;
+    class IReferenceResolveListener
+    {
+        public:
+            virtual void OnReferenceResolve(void* ptr, AssetObject* resolved) = 0;
+        private:
+    };
+
     class ReferenceResolver
     {
         public:
-            void ResolveReference(const UUID& uuid, AssetObject*& ptr);
-            template<class T>
-            void ResolveReference(const UUID& uuid, RefPtr<T>& ptr)
-            {
-                Pending p {PtrType::RefPtr, uuid, (void*)&ptr};
-                pending.push_back(p);
-            }
+            void ResolveReference(const UUID& uuid, AssetObject*& ptr, IReferenceResolveListener* resolveListener = nullptr);
+            //template<class T>
+            //void ResolveReference(const UUID& uuid, RefPtr<T>& ptr, IReferenceResolveListener* resolveListener = nullptr)
+            //{
+            //    Pending p {PtrType::Raw, uuid, (void*)&ptr.Get(), resolveListener};
+            //    pending.push_back(p);
+            //}
 
             /**
              * Used by AssetDatabase
@@ -28,7 +35,7 @@ namespace Engine
             enum class PtrType
             {
                 Raw,
-                RefPtr
+                //RefPtr
             };
 
             struct Pending
@@ -36,6 +43,7 @@ namespace Engine
                 PtrType type;
                 UUID uuid;
                 void* val;
+                IReferenceResolveListener* refListener = nullptr;
             };
 
             std::vector<Pending> pending;

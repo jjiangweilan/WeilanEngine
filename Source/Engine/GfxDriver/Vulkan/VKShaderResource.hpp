@@ -46,5 +46,6 @@ namespace Engine::Gfx
             std::unordered_map<std::string, RefPtr<VKImage>> textures;
             std::unordered_map<std::string, UniPtr<VKBuffer>> uniformBuffers;
             std::unordered_map<std::string, RefPtr<VKStorageBuffer>> storageBuffers;
+            std::vector<std::function<void()>> pendingTextureUpdates;
     };
 }

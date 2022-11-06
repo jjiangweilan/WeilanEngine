@@ -47,7 +47,7 @@ namespace Engine::Internal
             desc.format = Gfx::ImageFormat::R8_SRGB;
         }
 
-        auto tex = MakeUnique<Texture>(desc);
+        auto tex = MakeUnique<Texture>(desc, uuid);
         tex->SetName(path.filename().string());
         delete loaded;
         return tex;

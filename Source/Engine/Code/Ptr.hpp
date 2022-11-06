@@ -62,6 +62,7 @@ namespace Engine
             bool operator==(RefPtr<T> other) const;
             operator bool() const;
             T* Get() const {return ptr;}
+            T*& GetPtrRef() { return ptr; }
             inline T* operator->() const {return ptr;}
             inline T& operator*() const {return *ptr;}
         private:

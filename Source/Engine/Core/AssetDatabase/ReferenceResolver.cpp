@@ -2,9 +2,9 @@
 #include "AssetDatabase.hpp"
 namespace Engine
 {
-    void ReferenceResolver::ResolveReference(const UUID& uuid, AssetObject*& ptr)
+    void ReferenceResolver::ResolveReference(const UUID& uuid, AssetObject*& ptr, IReferenceResolveListener* resolveListener)
     {
-        Pending p {PtrType::Raw, uuid, (void*)&ptr};
+        Pending p {PtrType::Raw, uuid, (void*)&ptr, resolveListener};
         pending.push_back(p);
     }
 
@@ -17,11 +17,16 @@ namespace Engine
             {
                 if (p.type == PtrType::Raw)
                 {
-                    *(AssetObject**)p.val = assetObj.Get();
+                    *((AssetObject**)p.val) = assetObj.Get();
                 }
-                else if (p.type == PtrType::RefPtr)
+  /*            else if (p.type == PtrType::RefPtr)
                 {
                     *(RefPtr<AssetObject>*)p.val = assetObj.Get();
+                }*/
+
+                if (p.refListener != nullptr)
+                {
+                    p.refListener->OnReferenceResolve(p.val, assetObj.Get());
                 }
             }
             else

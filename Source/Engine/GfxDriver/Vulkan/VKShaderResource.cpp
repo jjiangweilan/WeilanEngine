@@ -218,43 +218,50 @@ namespace Engine::Gfx
         {
             return;
         }
-
-        // actually set the image to binding
-        VkWriteDescriptorSet write;
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = VK_NULL_HANDLE;
-        write.dstSet = descriptorSet;
-        write.descriptorType = ShaderInfo::Utils::MapBindingType(iter->second.type);
-        write.dstBinding = iter->second.bindingNum;
-        write.dstArrayElement = 0;
-        write.descriptorCount = iter->second.count;
-        write.pImageInfo = VK_NULL_HANDLE;
-        write.pBufferInfo = VK_NULL_HANDLE;
-        write.pTexelBufferView = VK_NULL_HANDLE;
-        VkDescriptorImageInfo imageInfo;
-        switch (iter->second.type)
-        {
-            case ShaderInfo::BindingType::Texture:
-                {
-                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.sampler = sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
-                    imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
-                    write.pImageInfo = &imageInfo;
-                    break;
-                }
-            case ShaderInfo::BindingType::SeparateImage:
-                {
-                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.sampler = VK_NULL_HANDLE;
-                    imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
-                    write.pImageInfo = &imageInfo;
-                    break;
-                }
-            default:
-                assert(0 && "Wrong type");
-        }
-        vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
         textures[param] = (VKImage*)image.Get();
+
+        ShaderInfo::BindingType descriptorType = iter->second.type;
+        uint32_t bindingNum = iter->second.bindingNum;
+        uint32_t count = iter->second.count;
+        VkDevice vkDevice = device->GetHandle();
+        pendingTextureUpdates.push_back([descriptorType, bindingNum, count, image, vkDevice, descriptorSet = this->descriptorSet]()
+        {
+            // actually set the image to binding
+            VkWriteDescriptorSet write;
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.pNext = VK_NULL_HANDLE;
+            write.dstSet = descriptorSet;
+            write.descriptorType = ShaderInfo::Utils::MapBindingType(descriptorType);
+            write.dstBinding = bindingNum;
+            write.dstArrayElement = 0;
+            write.descriptorCount = count;
+            write.pImageInfo = VK_NULL_HANDLE;
+            write.pBufferInfo = VK_NULL_HANDLE;
+            write.pTexelBufferView = VK_NULL_HANDLE;
+            VkDescriptorImageInfo imageInfo;
+            switch (descriptorType)
+            {
+            case ShaderInfo::BindingType::Texture:
+            {
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
+        imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+        write.pImageInfo = &imageInfo;
+        break;
+            }
+            case ShaderInfo::BindingType::SeparateImage:
+            {
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.sampler = VK_NULL_HANDLE;
+                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                write.pImageInfo = &imageInfo;
+                break;
+            }
+            default:
+            assert(0 && "Wrong type");
+            }
+            vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
+        });
     }
 
     void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
@@ -292,6 +299,13 @@ namespace Engine::Gfx
 
     void VKShaderResource::PrepareResource(VkCommandBuffer cmdBuf)
     {
+
+        for(auto& f : pendingTextureUpdates)
+        {
+            f();
+        }
+        pendingTextureUpdates.clear();
+
         // TODO: the pipeline stage can be simplified by querying the binding usage from shader info
 
         for(auto& tex : textures)

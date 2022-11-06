@@ -58,6 +58,22 @@ namespace Engine
         return glm::mat4(0);
     }
 
+    void Material::OnReferenceResolve(void* ptr, AssetObject* resolved)
+    {
+        Texture* casted = dynamic_cast<Texture*>(resolved);
+        if (casted)
+        {
+            for(auto& tex : textureValues)
+            {
+                if (tex.second.Get() == resolved)
+                {
+                    SetTexture(tex.first, tex.second);
+                    break;
+                }
+            }
+        }
+    }
+
     glm::vec4 Material::GetVector(const std::string &param, const std::string &member)
     {
         auto iter = vectorValues.find(param + "." + member);
@@ -109,9 +125,9 @@ namespace Engine
         }
     }
 
-    void Material::Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver)
+    void Material::DeserializeInternal(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver)
     {
-        AssetObject::Deserialize(serializer, refResolver);
+        AssetObject::DeserializeInternal(nameChain, serializer, refResolver);
 
         if (!shaderName.empty())
         {
