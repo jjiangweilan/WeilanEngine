@@ -9,7 +9,9 @@ namespace Engine
     {
         public:
             Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
+            ~Texture() override{};
             RefPtr<Gfx::Image> GetGfxImage() { return image; };
+            const TextureDescription& GetDescription() { return image->GetDescription(); }
         private:
 
             bool Serialize(AssetSerializer&) override{return false;} // disable saving

@@ -8,6 +8,7 @@ namespace Engine
     {
         public:
             Model(std::unordered_map<std::string, UniPtr<Mesh>>&& meshes, const UUID& uuid);
+            ~Model() override{}
 
             RefPtr<Mesh> GetMesh(const std::string& name);
             const std::vector<std::string>& GetMeshNames() const {return meshNames;}

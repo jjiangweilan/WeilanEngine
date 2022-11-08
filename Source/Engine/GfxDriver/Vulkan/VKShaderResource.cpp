@@ -218,6 +218,12 @@ namespace Engine::Gfx
         {
             return;
         }
+
+        // null image use default
+        if (image == nullptr)
+        {
+            image = VKContext::Instance()->sharedResource->GetDefaultTexture();
+        }
         textures[param] = (VKImage*)image.Get();
 
         ShaderInfo::BindingType descriptorType = iter->second.type;

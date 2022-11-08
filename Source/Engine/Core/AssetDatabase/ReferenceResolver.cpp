@@ -28,6 +28,8 @@ namespace Engine
                 {
                     p.refListener->OnReferenceResolve(p.val, assetObj.Get());
                 }
+
+                resolved[p.uuid].push_back(p);
             }
             else
             {
@@ -37,5 +39,26 @@ namespace Engine
 
         pending.clear();
         std::swap(pending, remain);
+    }
+
+    void ReferenceResolver::Reresolve(UUID uuid)
+    {
+        auto iter = resolved.find(uuid);
+        if (iter != resolved.end())
+        {
+            auto assetObj = AssetDatabase::Instance()->GetAssetObject(uuid);
+            for(auto& p : iter->second)
+            {
+                if (assetObj)
+                {
+                    *((AssetObject**)p.val) = assetObj.Get();
+                }
+
+                if (p.refListener != nullptr)
+                {
+                    p.refListener->OnReferenceResolve(p.val, assetObj.Get());
+                }
+            }
+        }
     }
 }

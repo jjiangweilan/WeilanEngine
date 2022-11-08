@@ -138,6 +138,11 @@ namespace Engine::Gfx
         return appWindow->GetDefaultWindowSize();
     }
 
+    void VKDriver::WaitForIdle()
+    {
+        vkDeviceWaitIdle(device->GetHandle());
+    }
+
     Backend VKDriver::GetGfxBackendType()
     {
         return Backend::Vulkan;

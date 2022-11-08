@@ -20,6 +20,14 @@ namespace Engine
         }
     }
 
+    void AssetObject::Reload(AssetObject&& loaded)
+    {
+        this->name = std::move(loaded.name);
+        this->uuid = std::exchange(loaded.uuid, UUID::empty);
+        this->editableMembers = std::move(loaded.editableMembers);
+        this->assetMembers = std::move(loaded.assetMembers);
+    }
+
     const UUID& AssetObject::GetUUID() const
     {
         return uuid;

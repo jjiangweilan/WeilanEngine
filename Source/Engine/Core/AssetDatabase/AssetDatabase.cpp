@@ -4,6 +4,7 @@
 #include "AssetImporter.hpp"
 #include <nlohmann/json.hpp>
 #include "Core/Global/Global.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #if GAME_EDITOR
 #include "Editor/ProjectManagement/ProjectManagement.hpp"
 #endif
@@ -68,6 +69,46 @@ namespace Engine
         }
     }
 
+    void AssetDatabase::Reload(RefPtr<AssetFile> target)
+    {
+        auto path = target->GetFullPath();
+        auto ext = path.extension();
+        auto importer = AssetImporter::GetImporter(ext.string().substr(1));
+        std::unordered_map<std::string, UUID> containedUUIDs;
+        for(auto& it : target->GetAllContainedAssets())
+        {
+            containedUUIDs[it->GetName()] = it->GetUUID();
+        }
+        UniPtr<AssetObject> obj = importer->Import(path, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
+        target->GetRoot()->Reload(std::move(*obj));
+        for(auto& iter : onAssetReloadCallbacks)
+        {
+            iter(target->GetRoot());
+        }
+    }
+
+    void AssetDatabase::EndOfFrameUpdate()
+    {
+        if (reloadShader)
+        {
+            Gfx::GfxDriver::Instance()->WaitForIdle();
+            ReloadShadersImpl();
+            reloadShader = false;
+        }
+    }
+
+    void AssetDatabase::ReloadShadersImpl()
+    {
+        for(auto& shader : shaderMap)
+        {
+            auto iter = assetFiles.find(shader.second->GetUUID());
+            if (iter != assetFiles.end())
+            {
+                Reload(iter->second);
+            }
+        }
+    }
+
     RefPtr<Shader> AssetDatabase::GetShader(const std::string& name)
     {
         auto iter = shaderMap.find(name);
@@ -81,7 +122,7 @@ namespace Engine
 
     RefPtr<AssetObject> AssetDatabase::Save(UniPtr<AssetObject>&& assetObject, const std::filesystem::path& path)
     {
-        UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(assetObject), path);
+        UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(assetObject), path, std::filesystem::current_path());
 
         RefPtr<AssetObject> temp = assetFile->GetRoot();
         assetObjects[temp->GetUUID()] = temp;
@@ -235,26 +276,29 @@ namespace Engine
             UniPtr<AssetObject> obj = importer->Import(path, refResolver, uuid, containedUUIDs);
             if (obj != nullptr)
             {
-                std::filesystem::path pathStored = path;
-                if (useRelativeBase)
-                    pathStored = std::filesystem::proximate(path, relativeBase);
-                UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), pathStored);
-                pathToAssetFile[pathStored] = assetFile;
-                assetObjects[assetFile->GetRoot()->GetUUID()] = assetFile->GetRoot();
-                for(RefPtr<AssetObject> contained : assetFile->GetAllContainedAssets())
-                {
-                    assetObjects[contained->GetUUID()] = contained;
-                }
-                AssetFile* temp = assetFile.Get();
-                assetFiles[uuid] = std::move(assetFile);
-
-                refResolver.ResolveAllPending(*this);
-
-                return temp->GetRoot(); 
+                return StoreImported(path, uuid, relativeBase, std::move(obj), useRelativeBase);
             }
         }
 
         return nullptr;
+    }
+
+    RefPtr<AssetObject> AssetDatabase::StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase)
+    {
+        std::filesystem::path pathStored = path;
+        if (useRelativeBase)
+            pathStored = std::filesystem::proximate(path, relativeBase);
+        UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), pathStored, relativeBase);
+        pathToAssetFile[pathStored] = assetFile;
+        assetObjects[assetFile->GetRoot()->GetUUID()] = assetFile->GetRoot();
+        for(RefPtr<AssetObject> contained : assetFile->GetAllContainedAssets())
+        {
+            assetObjects[contained->GetUUID()] = contained;
+        }
+        AssetFile* temp = assetFile.Get();
+        assetFiles[uuid] = std::move(assetFile);
+        refResolver.ResolveAllPending(*this);
+        return temp->GetRoot();
     }
 
     RefPtr<AssetFile> AssetDatabase::GetAssetFile(const std::filesystem::path& path)

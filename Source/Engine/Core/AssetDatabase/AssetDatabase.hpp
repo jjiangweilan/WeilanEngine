@@ -5,8 +5,10 @@
 #include "Code/Ptr.hpp"
 #include "AssetFile.hpp"
 #include "Core/Graphics/Shader.hpp"
+#include <list>
 #include <string>
 #include <filesystem>
+#include <list>
 #include <functional>
 #include <unordered_map>
 namespace Engine
@@ -15,9 +17,14 @@ namespace Engine
     {
         class GameEditor;
     }
+
+
     class AssetDatabase
     {
         public:
+            using OnAssetReload = std::function<void(RefPtr<AssetObject>)>;
+            using OnAssetReloadIterHandle = std::list<OnAssetReload>::iterator;
+
             static RefPtr<AssetDatabase> Instance();
             static void InitSingleton();
             static void Deinit();
@@ -25,6 +32,10 @@ namespace Engine
             RefPtr<AssetObject> GetAssetObject(const UUID& uuid);
             RefPtr<AssetFile> GetAssetFile(const std::filesystem::path& path);
             RefPtr<Shader> GetShader(const std::string& name);
+            OnAssetReloadIterHandle RegisterOnAssetReload(const OnAssetReload& callback) { return onAssetReloadCallbacks.insert(onAssetReloadCallbacks.end(), callback);}
+            void UnregisterOnAssetReload(OnAssetReloadIterHandle handle) { onAssetReloadCallbacks.erase(handle); }
+
+            void EndOfFrameUpdate();
 
             /**
              * @brief Save an AssetObject to disk
@@ -40,7 +51,7 @@ namespace Engine
             template<class T = AssetObject>
             RefPtr<T> Load(const std::filesystem::path& path);
             bool GetObjectPath(const UUID& uuid, std::filesystem::path& path);
-
+            void ReloadShaders() { reloadShader = true; }
             void LoadAllAssets();
 
 #if GAME_EDITOR
@@ -54,7 +65,11 @@ namespace Engine
             AssetDatabase();
             static AssetDatabase* instance;
 
-            RefPtr<AssetObject> LoadInternal(const std::filesystem::path& path, bool useRelativeBase = false, const std::filesystem::path& relativeBase = "");
+            RefPtr<AssetObject> LoadInternal(
+                    const std::filesystem::path& path,
+                    bool useRelativeBase = false,
+                    const std::filesystem::path& relativeBase = "");
+            void Reload(RefPtr<AssetFile> target);
 
             using Path = std::filesystem::path;
             // from: https://en.cppreference.com/w/cpp/filesystem/path/hash_value
@@ -64,14 +79,18 @@ namespace Engine
                 }
             };
 
+            std::list<OnAssetReload> onAssetReloadCallbacks;
             std::unordered_map<std::filesystem::path, RefPtr<AssetFile>, PathHash> pathToAssetFile;
             std::unordered_map<UUID, UniPtr<AssetFile>> assetFiles;
             std::unordered_map<UUID, RefPtr<AssetObject>> assetObjects;
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
             ReferenceResolver refResolver;
+            bool reloadShader = false;
 
             void Refresh_Internal(const Path& path, bool isEngineInternal);
             void ProcessAssetFile(const Path& path);
+            RefPtr<AssetObject> StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase);
+            void ReloadShadersImpl();
     };
 
     template<class T>

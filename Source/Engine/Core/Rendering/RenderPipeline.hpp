@@ -5,6 +5,7 @@
 #include "Core/Component/Transform.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Graphics/FrameContext.hpp"
+#include "Core/AssetDatabase/AssetDatabase.hpp"
 namespace Engine
 {
     class GameScene;
@@ -35,6 +36,7 @@ namespace Engine::Rendering
             UniPtr<Gfx::Image> depthImage;
             UniPtr<Gfx::ShaderResource> globalResource;
             bool offscreenOutput;
+            AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
             void WS();
             void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);

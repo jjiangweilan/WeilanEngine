@@ -73,6 +73,8 @@ namespace Engine
             gameEditor->Render();
 #endif
             gfxDriver->DispatchGPUWork();
+
+            AssetDatabase::Instance()->EndOfFrameUpdate();
         }
     }
 

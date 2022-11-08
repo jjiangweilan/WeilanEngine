@@ -13,7 +13,9 @@ namespace Gfx
     class Shader : public AssetObject
     {
         public:
-            Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram);
+            Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty);
+            void Reload(AssetObject&& loaded) override;
+            ~Shader() override {}
 
             inline RefPtr<Gfx::ShaderProgram> GetShaderProgram() { return shaderProgram; }
             inline const Gfx::ShaderConfig& GetDefaultShaderConfig() { return shaderProgram->GetDefaultShaderConfig(); }

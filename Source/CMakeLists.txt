@@ -15,6 +15,7 @@ target_link_libraries(WeilanEngine
 
 file(GLOB_RECURSE CORE_ENGINE_SRC "Engine/*.c" "Engine/*.cpp" "Engine/*.hpp" "Engine/*.h" "Engine/*.tpp")
 
+target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_DEBUG)
 if (${EDITOR_ON})
     target_compile_definitions(WeilanEngine PUBLIC GAME_EDITOR)
     target_compile_definitions(WeilanEngineLib PUBLIC GAME_EDITOR)

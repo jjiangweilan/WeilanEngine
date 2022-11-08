@@ -3,7 +3,6 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
@@ -18,7 +17,10 @@ namespace Engine::Rendering
     RenderPipeline::RenderPipeline(RefPtr<Gfx::GfxDriver> gfxDriver) : gfxDriver(gfxDriver)
     {
     }
-    RenderPipeline::~RenderPipeline() = default;
+    RenderPipeline::~RenderPipeline()
+    {
+        AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
+    }
 
     void RenderPipeline::Init()
     {
@@ -53,6 +55,15 @@ namespace Engine::Rendering
 
         // create global shader resource
         globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
+
+        assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj)
+                {
+                Shader* casted = dynamic_cast<Shader*>(obj.Get());
+                if (casted && casted->GetName() == "Internal/SceneLayout")
+                {
+                    this->globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
+                }
+                });
     }
 
     RefPtr<Gfx::Image> RenderPipeline::GetOutputDepth()

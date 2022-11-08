@@ -8,6 +8,7 @@ namespace Engine
     {
         public:
             virtual ~Object(){};
+            Object() :name() {}
 
             void SetName(const std::string& name);
             void SetName(const char* name);

@@ -4,6 +4,7 @@
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Core/Texture.hpp"
+#include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Shader.hpp"
 #include <string>
 #include <glm/glm.hpp>
@@ -35,6 +36,7 @@ namespace Engine
             void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
             void SetTexture(const std::string& param, RefPtr<Gfx::Image> image);
             void SetTexture(const std::string& param, RefPtr<Texture> texture);
+            void SetTexture(const std::string& param, std::nullptr_t);
 
             glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
             RefPtr<Texture> GetTexture(const std::string& param);
@@ -57,6 +59,7 @@ namespace Engine
                 EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::vec4>), vectorValues);
                 EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::mat4>), matrixValues);
                 EDITABLE(SINGLE_ARG(std::unordered_map<std::string, RefPtr<Texture>>), textureValues);
+                AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
                 void UpdateResources();
                 void SetShaderNoProtection(std::string_view shader);

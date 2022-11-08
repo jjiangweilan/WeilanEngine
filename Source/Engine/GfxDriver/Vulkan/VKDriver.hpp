@@ -41,6 +41,7 @@ namespace Engine::Gfx
             Backend GetGfxBackendType() override;
             void ForceSyncResources() override;
             void DispatchGPUWork() override;
+            void WaitForIdle() override;
             SDL_Window* GetSDLWindow() override;
             RefPtr<Image> GetSwapChainImageProxy() override;
             UniPtr<CommandBuffer> CreateCommandBuffer() override;

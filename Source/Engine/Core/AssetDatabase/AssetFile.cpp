@@ -13,7 +13,7 @@ namespace Engine
             GetAssets(a, assets);
         }
     }
-    AssetFile::AssetFile(UniPtr<AssetObject>&& root, const std::filesystem::path& path) : path(path), root(std::move(root)), containedAssetObjects()
+    AssetFile::AssetFile(UniPtr<AssetObject>&& root, const std::filesystem::path& path, const std::filesystem::path& relativeBase) : path(path), relativeBase(relativeBase), root(std::move(root)), containedAssetObjects()
     {
         GetAssets(this->root, containedAssetObjects);
     }

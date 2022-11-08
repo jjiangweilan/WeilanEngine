@@ -33,6 +33,7 @@ namespace Engine::Editor
         private:
             /* Data */
             UniPtr<ProjectManagement> projectManagement;
+            AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
             /* Windows */
             UniPtr<EditorContext> editorContext;
@@ -64,6 +65,7 @@ namespace Engine::Editor
 
                 RefPtr<Gfx::ShaderResource> GetImageResource();
                 void ResetImageResource() { currCacheIndex = -1; }
+                void ClearImageResource();
 
                 private:
                 int currCacheIndex = -1;

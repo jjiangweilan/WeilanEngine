@@ -177,6 +177,26 @@ namespace Engine::Editor
         outlineRawColor = AssetDatabase::Instance()->GetShader("Internal/OutlineRawColorPass");
         outlineFullScreen = AssetDatabase::Instance()->GetShader("Internal/OutlineFullScreenPass");
         blendBackShader = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend");
+        AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj)
+                {
+                Shader* casted = dynamic_cast<Shader*>(obj.Get());
+                if (casted && casted->GetName() == "Internal/OutlineRawColorPass")
+                {
+                    this->outlineRawColor = casted;
+                }
+                else if (casted && casted->GetName() == "Internal/OutlineFullScreenPass")
+                {
+                    this->outlineFullScreen = casted;
+                    outlineResource = Gfx::GfxDriver::Instance()->CreateShaderResource(outlineFullScreen->GetShaderProgram(), Gfx::ShaderResourceFrequency::Shader);
+                    outlineResource->SetTexture("mainTex", outlineOffscreenColor);
+                }
+                else if (casted && casted->GetName() == "Internal/SimpleBlend")
+                {
+                    this->blendBackShader = casted;
+                    blendBackResource = Gfx::GfxDriver::Instance()->CreateShaderResource(blendBackShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Shader);
+                    blendBackResource->SetTexture("mainTex", editorOverlayColor);
+                }
+                });
     }
 
     void GameSceneWindow::Tick(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)

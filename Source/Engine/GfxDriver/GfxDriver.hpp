@@ -31,6 +31,7 @@ namespace Engine::Gfx
             virtual Backend GetGfxBackendType() = 0;
             virtual Extent2D GetWindowSize() = 0;
             virtual void ForceSyncResources() = 0;
+            virtual void WaitForIdle() = 0;
             virtual void DispatchGPUWork() = 0;
             virtual SDL_Window* GetSDLWindow() = 0;
             virtual void ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf) = 0;

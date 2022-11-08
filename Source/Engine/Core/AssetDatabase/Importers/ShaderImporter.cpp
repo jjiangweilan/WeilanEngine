@@ -331,7 +331,7 @@ yamlEnd:
                 vertSize,
                 (unsigned char*)fragResult.begin(),
                 fragSize);
-        UniPtr<Shader> shader = MakeUnique<Shader>(name, std::move(shaderProgram));
+        UniPtr<Shader> shader = MakeUnique<Shader>(name, std::move(shaderProgram), uuid);
         return shader;
     }
 }

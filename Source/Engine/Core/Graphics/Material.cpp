@@ -5,19 +5,34 @@
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 namespace Engine
 {
-    Material::Material() : shaderResource(nullptr)
-    {}
+    Material::Material() : shaderResource(nullptr), shader(nullptr)
+    {
+        assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj) {
+            Shader* casted = dynamic_cast<Shader*>(obj.Get());
+            if (casted && this->shaderName == casted->GetName())
+            {
+                SetShaderNoProtection(this->shaderName);
+                UpdateResources();
+            }
+            });
+    }
 
     Material::Material(std::string_view shader):
-        shader(nullptr),
-        shaderResource(nullptr)
+        Material()
     {
         SetShader(shader);
     }
 
     Material::~Material()
     {
+        AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
     };
+
+    void Material::SetTexture(const std::string& param, std::nullptr_t)
+    {
+        textureValues.erase(param);
+        shaderResource->SetTexture(param, nullptr);
+    }
 
     void Material::SetTexture(const std::string& param, RefPtr<Texture> texture)
     {
@@ -122,6 +137,7 @@ namespace Engine
             this->shaderName = shaderName;
             shaderConfig = shader->GetDefaultShaderConfig();
             shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(shader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
+            UpdateResources();
         }
     }
 
@@ -132,7 +148,6 @@ namespace Engine
         if (!shaderName.empty())
         {
             SetShaderNoProtection(shaderName);
-            UpdateResources();
         }
     }
 
@@ -154,6 +169,12 @@ namespace Engine
             shaderResource->SetUniform(v.first, &v.second);
         }
 
-        // todo texture reference needs to be resolved
+        // Note: When materials are deserialized from disk, OnReferenceResolve also works to set textures
+        // That's why we check the existence of the "second"
+        for (auto& v : textureValues)
+        {
+            if (v.second != nullptr)
+                shaderResource->SetTexture(v.first, v.second->GetGfxImage());
+        }
     }
 }

@@ -64,6 +64,7 @@ namespace Engine::Editor
 
         // show shader parameters
         auto& shaderInfo = shader->GetShaderProgram()->GetShaderInfo();
+        int imguiID = 0;
         for(auto& b : shaderInfo.bindings)
         {
             if (b.second.setNum != Gfx::Material_Descriptor_Set) continue;
@@ -124,9 +125,21 @@ namespace Engine::Editor
             {
                 auto tex = mat->GetTexture(b.first);
                 std::string label = b.first;
+                if (tex) label += ":" + tex->GetName();
+                ImGui::Button(label.c_str());
                 if (tex)
-                    label += tex->GetName();
-                ImGui::Button(b.first.c_str());
+                {
+                    ImGui::SameLine();
+                    if(ImGui::Button(("x##" + std::to_string(imguiID)).c_str()))
+                    {
+                        mat->SetTexture(b.first, nullptr);
+                    }
+                    float width = ImGui::GetWindowSize().x;
+                    auto& desc = tex->GetDescription();
+                    float ratio = desc.width / (float)desc.height;
+                    ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
+                }
+
                 if (ImGui::BeginDragDropTarget())
                 {
                     auto payload = ImGui::GetDragDropPayload();
@@ -141,6 +154,7 @@ namespace Engine::Editor
                 }
             }
 
+            imguiID += 1;
         }
 
     }

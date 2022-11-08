@@ -4,6 +4,7 @@
 #include "Code/Ptr.hpp"
 #include <functional>
 #include <vector>
+#include <unordered_map>
 namespace Engine
 {
     class AssetDatabase;
@@ -30,6 +31,7 @@ namespace Engine
              * Used by AssetDatabase
              */
             void ResolveAllPending(AssetDatabase& assetDatabase);
+            void Reresolve(UUID uuid);
 
         private:
             enum class PtrType
@@ -48,6 +50,6 @@ namespace Engine
 
             std::vector<Pending> pending;
             std::vector<Pending> remain;
-
+            std::unordered_map<UUID, std::vector<Pending>> resolved;
     };
 }

@@ -36,6 +36,7 @@ namespace Engine
              * @param uuid 
              */
             AssetObject(const UUID& uuid = UUID::empty);
+            virtual void Reload(AssetObject&& loaded);
             virtual ~AssetObject() {};
 
             const UUID& GetUUID() const;
@@ -60,7 +61,6 @@ namespace Engine
             }
 
             std::vector<RefPtr<AssetObject>> GetAssetObjectMembers();
-
         protected:
             class EditableBase
             {
@@ -131,7 +131,7 @@ namespace Engine
                             ExtractContainedAssetObjects(sub, output);
                         }
                     }
-                    else if constexpr (IsUniPtr<U>::value || IsRefPtr<U>::value || std::is_pointer<U>::value)
+                    else if constexpr (IsUniPtr<U>::value)
                     {
                         ExtractContainedAssetObjects(*val, output);
                     }
@@ -372,9 +372,6 @@ namespace Engine
             virtual bool SerializeInternal(const std::string& nameChain, AssetSerializer& serializer);
 
         private:
-
-            UUID uuid;
-
             struct EditableMember
             {
                 EditableMember(
@@ -385,6 +382,7 @@ namespace Engine
                 EditableBase* editable;
                 void* editableVal;
             };
+            UUID uuid;
             std::unordered_map<std::string, EditableMember> editableMembers;
             std::vector<RefPtr<AssetObject>> assetMembers;
 

@@ -17,6 +17,7 @@ namespace Engine::Editor
 
     GameEditor::~GameEditor()
     {
+        AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
         projectManagement->Save();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
@@ -90,6 +91,18 @@ namespace Engine::Editor
         colorAttachment.loadOp = Gfx::AttachmentLoadOperation::Clear;
         colorAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
         editorPass->AddSubpass({colorAttachment}, std::nullopt);
+
+        assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj){
+                Shader* casted = dynamic_cast<Shader*>(obj.Get());
+                if (casted && casted->GetName() == "ImGui")
+                {
+                    this->imGuiData.shaderProgram = casted->GetShaderProgram();
+                    this->imGuiData.generalShaderRes = Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
+                    this->imGuiData.generalShaderRes->SetTexture("sTexture", this->imGuiData.fontTex);
+                    this->imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
+                    this->imGuiData.ClearImageResource();
+                }
+                });
 
     }
 
@@ -245,6 +258,11 @@ namespace Engine::Editor
         imGuiData.ResetImageResource();
     }
 
+    void GameEditor::ImGuiData::ClearImageResource()
+    {
+        imageResourcesCache.clear();
+    }
+
     RefPtr<Gfx::ShaderResource> GameEditor::ImGuiData::GetImageResource()
     {
         currCacheIndex += 1;
@@ -283,9 +301,9 @@ namespace Engine::Editor
             projectManagement->Save();
         }
 
-        if (ImGui::MenuItem("Load"))
+        if (ImGui::MenuItem("Reload Shader"))
         {
-
+            AssetDatabase::Instance()->ReloadShaders();
         }
         ImGui::EndMainMenuBar();
     }
