@@ -36,6 +36,11 @@ namespace Engine::Gfx
         }
     }
 
+    void VKBuffer::SetDebugName(const std::string& name)
+    {
+
+    }
+
     void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask)
     {
         if (this->stageMask != stageMask || this->accessMask != accessMask)

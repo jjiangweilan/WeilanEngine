@@ -249,11 +249,11 @@ namespace Engine::Gfx
             {
             case ShaderInfo::BindingType::Texture:
             {
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
-        imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
-        write.pImageInfo = &imageInfo;
-        break;
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
+                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                write.pImageInfo = &imageInfo;
+                break;
             }
             case ShaderInfo::BindingType::SeparateImage:
             {
@@ -263,8 +263,8 @@ namespace Engine::Gfx
                 write.pImageInfo = &imageInfo;
                 break;
             }
-            default:
-            assert(0 && "Wrong type");
+                default:
+                assert(0 && "Wrong type");
             }
             vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
         });

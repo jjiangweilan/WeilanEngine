@@ -5,6 +5,7 @@
 
 #include <vulkan/vulkan.h>
 #include <spdlog/spdlog.h>
+#include <format>
 
 namespace Engine::Gfx
 {

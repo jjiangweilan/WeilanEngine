@@ -73,5 +73,8 @@ namespace Engine::Editor
             };
 
             ImGuiData imGuiData;
+
+            UniPtr<Gfx::ShaderResource> res;
+            UniPtr<Gfx::RenderPass> renderPass;
     };
 }

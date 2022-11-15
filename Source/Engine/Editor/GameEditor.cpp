@@ -62,7 +62,8 @@ namespace Engine::Editor
             editorRTDesc.width = gfxDriver->GetWindowSize().width;
             editorRTDesc.height = gfxDriver->GetWindowSize().height;
             editorRTDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-            imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(editorRTDesc, Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc);
+            imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(editorRTDesc, Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture);
+            imGuiData.editorRT->SetName("Editor RT");
         }
 
         // imGuiData.fontTex creation
@@ -102,8 +103,20 @@ namespace Engine::Editor
                     this->imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
                     this->imGuiData.ClearImageResource();
                 }
-                });
 
+                if (casted && casted->GetName() == "Internal/SimpleBlend")
+                {
+                    res = Gfx::GfxDriver::Instance()->CreateShaderResource(casted->GetShaderProgram(), Gfx::ShaderResourceFrequency::Shader);
+                }
+                });
+        auto p = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend")->GetShaderProgram();
+        res = Gfx::GfxDriver::Instance()->CreateShaderResource(p, Gfx::ShaderResourceFrequency::Shader);
+        res->SetTexture("mainTex", imGuiData.editorRT);
+
+        renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
+        Gfx::RenderPass::Attachment c;
+        c.image = gfxDriver->GetSwapChainImageProxy();
+        renderPass->AddSubpass({c}, std::nullopt);
     }
 
     void GameEditor::ProcessEvent(const SDL_Event& event)
@@ -143,7 +156,18 @@ namespace Engine::Editor
         auto cmdBuf = gfxDriver->CreateCommandBuffer();
         gameSceneWindow->RenderSceneGUI(cmdBuf);
         RenderEditor(cmdBuf);
-        cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
+
+        static std::vector<Gfx::ClearValue> clears = {{{{0,0,0,0}}}};
+        Rect2D scissor;
+        scissor.offset = {0,0};
+        scissor.extent = {static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x), static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y)};
+        cmdBuf->SetScissor(0, 1, &scissor);
+        cmdBuf->BeginRenderPass(renderPass, clears);
+        cmdBuf->BindShaderProgram(res->GetShader(), res->GetShader()->GetDefaultShaderConfig());
+        cmdBuf->BindResource(res);
+        cmdBuf->Draw(6, 1, 0, 0);
+        cmdBuf->EndRenderPass();
+        // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
         gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
     }
 

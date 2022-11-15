@@ -1,4 +1,5 @@
 #include "VKInstance.hpp"
+#include "../VKDebugUtils.hpp"
 
 #include <cstring>
 #include <spdlog/spdlog.h>
@@ -79,6 +80,8 @@ namespace Engine::Gfx
                 throw std::runtime_error("failed to set up debug messenger!");
             }
         }
+
+        VKDebugUtils::Init(vulkanInstance);
     }
 
     VKInstance::~VKInstance()

@@ -4,6 +4,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKUtils.hpp"
 #include "Internal/VKEnumMapper.hpp"
+#include "VKDebugUtils.hpp"
 #include "VKContext.hpp"
 #include <vma/vk_mem_alloc.h>
 
@@ -190,6 +191,20 @@ namespace Engine::Gfx
         range.layerCount = arrayLayers;
 
         return range;
+    }
+
+    void VKImage::SetName(const std::string& name)
+    {
+        this->name = name;
+
+        VkDebugUtilsObjectNameInfoEXT nameInfo {
+            VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+            VK_NULL_HANDLE,
+            VK_OBJECT_TYPE_IMAGE,
+            (uint64_t)image_vk,
+            name.c_str()
+        };
+        VKDebugUtils::SetDebugUtilsObjectName(VKContext::Instance()->device->GetHandle(), &nameInfo);
     }
 
     // TODO: this needs improvement. Cube and some others are not handled 

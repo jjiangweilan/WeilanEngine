@@ -11,6 +11,7 @@
 #include <vulkan/vulkan.h>
 
 #include <cinttypes>
+#include <string>
 #include <vector>
 namespace Engine::Gfx
 {
@@ -29,6 +30,7 @@ namespace Engine::Gfx
             virtual VkImageLayout GetLayout() {return layout;}
             virtual const ImageDescription& GetDescription() override { return imageDescription; }
             virtual VkImageSubresourceRange GetDefaultSubresourceRange() {return defaultSubResourceRange;}
+            virtual void SetName(const std::string& name) override;
 
             // TODO: obsolate
             virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
@@ -44,7 +46,6 @@ namespace Engine::Gfx
             VkImageUsageFlags usageFlags;
             VkImage image_vk = VK_NULL_HANDLE;
             VkImageView imageView_vk = VK_NULL_HANDLE;
-            VkDevice device_vk = VK_NULL_HANDLE;
             VkFormat format_vk = VK_FORMAT_UNDEFINED;
             VkImageSubresourceRange defaultSubResourceRange;
 
@@ -55,6 +56,7 @@ namespace Engine::Gfx
             VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             VkAccessFlags accessMask = VK_ACCESS_MEMORY_READ_BIT;
             ImageDescription imageDescription;
+            std::string name;
 
             VkImageViewType GenerateDefaultImageViewViewType();
             VkImageSubresourceRange GenerateDefaultSubresourceRange();

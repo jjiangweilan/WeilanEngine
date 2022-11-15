@@ -26,6 +26,7 @@ namespace Engine::Gfx
         public:
             VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
             ~VKSwapChain();
+            RefPtr<Image> GetSwapChainImage(int index) { return &swapChainImages[index]; }
             void RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
             void AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal);
             VkSwapchainKHR GetHandle() const {return swapChain; };

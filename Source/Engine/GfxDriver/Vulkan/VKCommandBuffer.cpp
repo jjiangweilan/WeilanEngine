@@ -24,13 +24,14 @@ namespace Engine::Gfx
         assert(renderPass != nullptr);
 
         Gfx::VKRenderPass* vRenderPass = static_cast<Gfx::VKRenderPass*>(renderPass.Get());
-        VkRenderPass vkRenderPass;
-        VkFramebuffer vkFramebuffer;
-        vRenderPass->GetHandle(vkRenderPass, vkFramebuffer);
+        VkRenderPass vkRenderPass = vRenderPass->GetHandle();
         recordContext.currentPass = vkRenderPass;
 
         auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
         {
+            // framebuffer has to get inside the execution function due to how RenderPass handle swapchain image as framebuffer attachment
+            VkFramebuffer vkFramebuffer = vRenderPass->GetFrameBuffer();
+
             auto& renderPassResources = recordContext.renderPassResources[vkRenderPass];
             // make sure all the resource needed are in the correct format before the render pass begin
             // the first need of this is because we need a way to implictly make sure RT from previous render pass 

@@ -16,8 +16,8 @@ namespace Engine::Gfx
         if (renderPass != VK_NULL_HANDLE)
             VKContext::Instance()->objManager->DestroyRenderPass(renderPass);
 
-        if (frameBuffer != VK_NULL_HANDLE)
-            VKContext::Instance()->objManager->DestroyFramebuffer(frameBuffer);
+        for(auto fb : frameBuffers)
+            VKContext::Instance()->objManager->DestroyFramebuffer(fb);
     }
 
     void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
@@ -25,7 +25,7 @@ namespace Engine::Gfx
         subpasses.emplace_back(colors, depth);
     }
 
-    void VKRenderPass::CreateFrameBuffer()
+    VkFramebuffer VKRenderPass::CreateFrameBuffer()
     {
         VkFramebufferCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -41,6 +41,7 @@ namespace Engine::Gfx
             // color attachments
             for(Attachment& colorAtta : subpass.colors)
             {
+                if (swapChainProxy != nullptr) swapChainProxy = dynamic_cast<VKSwapChainImageProxy*>(colorAtta.image.Get());
                 imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
                 attaIndex += 1;
             }
@@ -59,7 +60,9 @@ namespace Engine::Gfx
         createInfo.height = subpasses[0].colors[0].image->GetDescription().height;
         createInfo.layers = 1;
 
-        VKContext::Instance()->objManager->CreateFramebuffer(createInfo, frameBuffer);
+        VkFramebuffer newFrameBuffer = VK_NULL_HANDLE;
+        VKContext::Instance()->objManager->CreateFramebuffer(createInfo, newFrameBuffer);
+        return newFrameBuffer;
     }
 
     void VKRenderPass::CreateRenderPass()
@@ -203,20 +206,38 @@ namespace Engine::Gfx
         }
     }
 
-    void VKRenderPass::GetHandle(VkRenderPass& renderPass, VkFramebuffer& frameBuffer)
+    VkFramebuffer VKRenderPass::GetFrameBuffer()
     {
-        if (this->renderPass == VK_NULL_HANDLE)
+        VkFramebuffer framebuffer = VK_NULL_HANDLE;
+        if (frameBuffers.empty() ||
+            (swapChainProxy != nullptr && (frameBuffers.size() <= swapChainProxy->GetActiveIndex() || frameBuffers[swapChainProxy->GetActiveIndex()] == VK_NULL_HANDLE)))
+        {
+            framebuffer = CreateFrameBuffer();
+            size_t index = swapChainProxy ? swapChainProxy->GetActiveIndex() : 0;
+
+            if (frameBuffers.size() <= index) frameBuffers.resize(index + 1);
+
+            frameBuffers[index] = framebuffer;
+        }
+        else
+        {
+            if (swapChainProxy != nullptr)
+                framebuffer = frameBuffers[swapChainProxy->GetActiveIndex()];
+            else
+                framebuffer = frameBuffers[0];
+        }
+
+        return framebuffer;
+    }
+
+    VkRenderPass VKRenderPass::GetHandle()
+    {
+        if (renderPass == VK_NULL_HANDLE)
         {
             CreateRenderPass();
         }
 
-        if (this->frameBuffer == VK_NULL_HANDLE)
-        {
-            CreateFrameBuffer();
-        }
-
-        renderPass = this->renderPass;
-        frameBuffer = this->frameBuffer;
+        return renderPass;
     }
 
 }

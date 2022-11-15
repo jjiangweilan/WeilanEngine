@@ -120,6 +120,8 @@ namespace Engine::Gfx
         for(uint32_t i = 0; i < imageCount; ++i)
         {
             swapChainImages.emplace_back(swapChainImagesTemp[i], swapChainInfo.surfaceFormat.format, swapChainInfo.extent.width, swapChainInfo.extent.height);
+
+            swapChainImages.back().SetName(std::format("SwapChainImage {}", i));
         }
         
         return true;

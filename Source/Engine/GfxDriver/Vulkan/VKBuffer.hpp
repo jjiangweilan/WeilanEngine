@@ -17,6 +17,7 @@ namespace Engine::Gfx
             void Write(void* data, uint32_t dataSize, uint32_t offsetInDst) override;
             void* GetCPUVisibleAddress() override;
             void Resize(uint32_t size) override;
+            void SetDebugName(const std::string& name) override;
 
             VkBuffer GetVKBuffer();
 

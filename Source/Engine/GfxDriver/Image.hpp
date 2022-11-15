@@ -11,6 +11,7 @@ namespace Engine::Gfx
     {
         public:
             virtual ~Image() {};
+            virtual void SetName(const std::string& name) = 0;
             virtual const ImageDescription& GetDescription() = 0;
         protected:
     };

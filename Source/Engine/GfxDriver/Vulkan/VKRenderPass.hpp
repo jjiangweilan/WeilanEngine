@@ -1,6 +1,6 @@
 #pragma once
 #include "../RenderPass.hpp"
-#include "VKFrameBuffer.hpp"
+#include "GfxDriver/Vulkan/VKImage.hpp"
 #include <vector>
 #include <optional>
 #include <vulkan/vulkan.h>
@@ -19,15 +19,18 @@ namespace Engine::Gfx
 
             void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf);
 
-
-            void GetHandle(VkRenderPass& renderPass, VkFramebuffer& frameBuffer);
+            VkFramebuffer GetFrameBuffer();
+            VkRenderPass GetHandle();
             Extent2D GetExtent();
         protected:
             void CreateRenderPass();
-            void CreateFrameBuffer();
+            VkFramebuffer CreateFrameBuffer();
 
             VkRenderPass renderPass = VK_NULL_HANDLE;
-            VkFramebuffer frameBuffer = VK_NULL_HANDLE;
+
+            // when one of the color attachment is a swap chain image proxy there will be multiple framebuffers, otherwise there is only one
+            std::vector<VkFramebuffer> frameBuffers;
+            VKSwapChainImageProxy* swapChainProxy;
 
             struct Subpass
             {

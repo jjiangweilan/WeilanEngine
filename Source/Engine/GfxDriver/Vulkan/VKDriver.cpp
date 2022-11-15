@@ -92,6 +92,9 @@ namespace Engine::Gfx
         swapchain = new VKSwapChain(mainQueue->queueFamilyIndex, gpu, *surface);
         context->swapchain = swapchain;
 
+        // just set a placeholder image so that others can use the information from the Image before the first frame
+        swapChainImageProxy->SetActiveSwapChainImage(swapchain->GetSwapChainImage(0), 0);
+
         // create inflight data
         VkSemaphoreCreateInfo semaphoreCreateInfo;
         semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -235,7 +238,7 @@ namespace Engine::Gfx
 
         swapChainImageProxy->TransformLayoutIfNeeded(renderingCmdBuf,
             VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
         vkEndCommandBuffer(renderingCmdBuf);
         VkPipelineStageFlags waitForPresentState = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         VkSubmitInfo submitInfo;
