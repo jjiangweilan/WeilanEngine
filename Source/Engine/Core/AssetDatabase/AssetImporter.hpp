@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "Code/Ptr.hpp"
@@ -24,8 +25,6 @@ namespace Engine
                     ReferenceResolver& refResolver,
                     const UUID& rootUUID,
                     const std::unordered_map<std::string, UUID>& containedUUIDs) = 0;
-
-            virtual uint32_t GetAssetSize() = 0;
 
             static int RegisterImporter(
                     const std::string& extension,

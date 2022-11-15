@@ -38,7 +38,6 @@ namespace Engine::Rendering
             bool offscreenOutput;
             AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
-            void WS();
             void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
 
 
