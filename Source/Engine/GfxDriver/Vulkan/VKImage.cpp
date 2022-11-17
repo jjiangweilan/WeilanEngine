@@ -197,14 +197,7 @@ namespace Engine::Gfx
     {
         this->name = name;
 
-        VkDebugUtilsObjectNameInfoEXT nameInfo {
-            VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-            VK_NULL_HANDLE,
-            VK_OBJECT_TYPE_IMAGE,
-            (uint64_t)image_vk,
-            name.c_str()
-        };
-        VKDebugUtils::SetDebugUtilsObjectName(VKContext::Instance()->device->GetHandle(), &nameInfo);
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE, (uint64_t)image_vk, name.c_str());
     }
 
     // TODO: this needs improvement. Cube and some others are not handled 

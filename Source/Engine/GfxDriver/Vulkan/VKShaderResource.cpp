@@ -325,7 +325,7 @@ namespace Engine::Gfx
 
         for(auto& buf : uniformBuffers)
         {
-            buf.second->PutMemoryBarrierIfNeeded(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
+            buf.second->PutMemoryBarrier(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
         }
 
         for(auto& buf : storageBuffers)

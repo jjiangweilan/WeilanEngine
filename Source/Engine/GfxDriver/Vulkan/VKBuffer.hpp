@@ -13,7 +13,7 @@ namespace Engine::Gfx
 
             ~VKBuffer() override;
 
-            void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
+            void PutMemoryBarrier(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
             void Write(void* data, uint32_t dataSize, uint32_t offsetInDst) override;
             void* GetCPUVisibleAddress() override;
             void Resize(uint32_t size) override;

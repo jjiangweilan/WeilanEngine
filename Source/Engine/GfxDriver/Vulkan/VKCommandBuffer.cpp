@@ -43,12 +43,12 @@ namespace Engine::Gfx
 
             for(auto& b : renderPassResources.vertexBuffers)
             {
-                b->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
+                b->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
             }
 
             for(auto& b : renderPassResources.indexBuffers)
             {
-                b->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT);
+                b->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT);
             }
 
             auto extent = vRenderPass->GetExtent();

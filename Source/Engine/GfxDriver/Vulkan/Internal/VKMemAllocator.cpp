@@ -172,7 +172,7 @@ namespace Engine::Gfx
                     0, dstOffset, dstSize
                 };
 
-                buffer->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+                buffer->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
                 vkCmdCopyBuffer(cmd, stageBuffer, buffer->GetVKBuffer(), 1, &region);
             }

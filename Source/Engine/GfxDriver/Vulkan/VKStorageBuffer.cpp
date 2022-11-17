@@ -10,7 +10,7 @@ namespace Engine::Gfx
 
     void VKStorageBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask)
     {
-        buffer->PutMemoryBarrierIfNeeded(cmdBuf, stageMask, accessMask);
+        buffer->PutMemoryBarrier(cmdBuf, stageMask, accessMask);
     }
 
     void VKStorageBuffer::UpdateData(void* data)
