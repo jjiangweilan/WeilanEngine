@@ -18,6 +18,14 @@ namespace Engine
             const std::filesystem::path& GetRelativeBase() { return relativeBase; }
             std::filesystem::path GetFullPath() { return relativeBase / path; }
 
+            void Reload(UniPtr<AssetObject>&& obj);
+            std::filesystem::file_time_type GetLastWriteTime() { return lastWriteTime; }
+            std::filesystem::file_time_type GetLatestWriteTime()
+            {
+                auto fullPath = relativeBase / path;
+                return std::filesystem::last_write_time(fullPath);
+            }
+
             void Save();
         private:
 
@@ -25,5 +33,8 @@ namespace Engine
             std::filesystem::path relativeBase;
             UniPtr<AssetObject> root;
             std::vector<RefPtr<AssetObject>> containedAssetObjects;
+            std::filesystem::file_time_type lastWriteTime;
+
+            void UpdateLastWriteTime();
     };
 }

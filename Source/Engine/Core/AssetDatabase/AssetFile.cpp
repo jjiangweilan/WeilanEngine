@@ -16,6 +16,19 @@ namespace Engine
     AssetFile::AssetFile(UniPtr<AssetObject>&& root, const std::filesystem::path& path, const std::filesystem::path& relativeBase) : path(path), relativeBase(relativeBase), root(std::move(root)), containedAssetObjects()
     {
         GetAssets(this->root, containedAssetObjects);
+        UpdateLastWriteTime();
+    }
+
+    void AssetFile::UpdateLastWriteTime()
+    {
+        auto fullPath = relativeBase / path;
+        lastWriteTime = std::filesystem::last_write_time(fullPath);
+    }
+
+    void AssetFile::Reload(UniPtr<AssetObject>&& obj)
+    {
+        root->Reload(std::move(*obj));
+        UpdateLastWriteTime();
     }
 
     std::vector<RefPtr<AssetObject>> AssetFile::GetAllContainedAssets()

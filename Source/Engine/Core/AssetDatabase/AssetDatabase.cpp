@@ -80,7 +80,7 @@ namespace Engine
             containedUUIDs[it->GetName()] = it->GetUUID();
         }
         UniPtr<AssetObject> obj = importer->Import(path, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
-        target->GetRoot()->Reload(std::move(*obj));
+        target->Reload(std::move(obj));
         for(auto& iter : onAssetReloadCallbacks)
         {
             iter(target->GetRoot());
@@ -104,7 +104,10 @@ namespace Engine
             auto iter = assetFiles.find(shader.second->GetUUID());
             if (iter != assetFiles.end())
             {
-                Reload(iter->second);
+                if (iter->second->GetLatestWriteTime() != iter->second->GetLastWriteTime())
+                {
+                    Reload(iter->second);
+                }
             }
         }
     }
@@ -171,7 +174,7 @@ namespace Engine
 #if GAME_EDITOR
     void AssetDatabase::LoadInternalAssets()
     {
-        Refresh_Internal(Editor::GetSysConfigPath() / "Assets", true);
+        Refresh_Internal(Editor::ProjectManagement::instance->GetInternalRootPath() / "Assets", true);
     }
 #endif
 
@@ -286,7 +289,7 @@ namespace Engine
     RefPtr<AssetObject> AssetDatabase::StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase)
     {
         std::filesystem::path pathStored = path;
-        if (useRelativeBase)
+        if (!useRelativeBase)
             pathStored = std::filesystem::proximate(path, relativeBase);
         UniPtr<AssetFile> assetFile = MakeUnique<AssetFile>(std::move(obj), pathStored, relativeBase);
         pathToAssetFile[pathStored] = assetFile;

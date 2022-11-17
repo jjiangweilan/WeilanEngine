@@ -9,7 +9,6 @@ namespace Engine
 }
 namespace Engine::Editor
 {
-
     std::filesystem::path GetSysConfigPath();
     class ProjectManagement
     {
@@ -23,7 +22,7 @@ namespace Engine::Editor
             ResultCode CreateNewProject(const std::filesystem::path& path);
             bool IsInitialized() { return initialized; }
             void RecoverLastProject();
-            std::filesystem::path& GetInternalAssetPath();
+            std::filesystem::path GetInternalRootPath();
             void SetLastActiveScene(RefPtr<GameScene> scene);
             void Save();
             ProjectManagement::ResultCode LoadProject();
@@ -31,7 +30,7 @@ namespace Engine::Editor
             static RefPtr<ProjectManagement> instance;
 
         private:
-            void InitializeProjectManagement(const std::filesystem::path& root);
+            void InitializeProject(const std::filesystem::path& root);
             bool initialized = false;
             nlohmann::json gameProj;
 

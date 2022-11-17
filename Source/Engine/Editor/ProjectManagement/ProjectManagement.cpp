@@ -30,11 +30,19 @@ namespace Engine::Editor
             out.open(path / "GameProj.json", std::ios::out | std::ios::trunc);
             out << gameProj.dump();
             out.close();
-            InitializeProjectManagement(path);
+            InitializeProject(path);
             return ResultCode::Success;
         }
         else
             return ResultCode::FilePathError;
+    }
+
+    std::filesystem::path ProjectManagement::GetInternalRootPath()
+    {
+#if ENGINE_DEV_BUILD
+        return ENGINE_SOURCE_PATH;
+#endif
+        return GetSysConfigPath();
     }
 
     void ProjectManagement::RecoverLastProject()
@@ -72,7 +80,7 @@ namespace Engine::Editor
             if (f.is_open() && f.good())
             {
                 gameProj = nlohmann::json::parse(f);
-                InitializeProjectManagement(gameProj["path"]);
+                InitializeProject(gameProj["path"]);
                 return ResultCode::Success;
             }
             else
@@ -82,7 +90,7 @@ namespace Engine::Editor
             return ResultCode::FilePathError;
     }
 
-    void ProjectManagement::InitializeProjectManagement(const std::filesystem::path& root)
+    void ProjectManagement::InitializeProject(const std::filesystem::path& root)
     {
         if (!std::filesystem::exists(root / "Assets")) std::filesystem::create_directory(root / "Assets");
         if (!std::filesystem::exists(root / "Library")) std::filesystem::create_directory(root / "Library");

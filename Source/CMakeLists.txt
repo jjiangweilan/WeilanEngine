@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.18.0)
 
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
+option(DEV_BUILD "use internal asset inside the source tree instead of installed location" ON)
 
 add_executable(WeilanEngine
     Engine/Launcher.cpp)
@@ -15,9 +16,12 @@ target_link_libraries(WeilanEngine
 
 file(GLOB_RECURSE CORE_ENGINE_SRC "Engine/*.c" "Engine/*.cpp" "Engine/*.hpp" "Engine/*.h" "Engine/*.tpp")
 
-target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_DEBUG)
+if (${DEV_BUILD})
+    target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_DEV_BUILD)
+    target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
+endif()
+
 if (${EDITOR_ON})
-    target_compile_definitions(WeilanEngine PUBLIC GAME_EDITOR)
     target_compile_definitions(WeilanEngineLib PUBLIC GAME_EDITOR)
 else()
     list(FILTER CORE_ENGINE_SRC EXCLUDE REGEX "${CMAKE_CURRENT_LIST_DIR}/Engine/Editor/*")
