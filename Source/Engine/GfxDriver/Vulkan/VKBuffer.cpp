@@ -37,9 +37,9 @@ namespace Engine::Gfx
         }
     }
 
-    void VKBuffer::SetDebugName(const std::string& name)
+    void VKBuffer::SetDebugName(const char* name)
     {
-
+        this->name = name;
     }
 
     void VKBuffer::PutMemoryBarrier(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask)
@@ -117,6 +117,7 @@ namespace Engine::Gfx
         allocationCreateInfo.flags = vmaAllocationCreateFlags;
 
         allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_BUFFER, (uint64_t)buffer, name.c_str());
     }
 
     void VKBuffer::Resize(uint32_t size)

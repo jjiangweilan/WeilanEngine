@@ -69,6 +69,7 @@ namespace Engine::Gfx
                     case ShaderInfo::BindingType::UBO:
                     {
                         auto buffer = Engine::MakeUnique<VKBuffer>(b.second.binding.ubo.data.size, BufferUsage::Uniform, false);
+                        buffer->SetDebugName(std::format("{}_UBO", shader->GetName()).c_str());
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                         bufferInfo.buffer = buffer->GetVKBuffer();
                         bufferInfo.offset = 0;

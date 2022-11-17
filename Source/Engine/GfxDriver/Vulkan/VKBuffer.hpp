@@ -17,11 +17,12 @@ namespace Engine::Gfx
             void Write(void* data, uint32_t dataSize, uint32_t offsetInDst) override;
             void* GetCPUVisibleAddress() override;
             void Resize(uint32_t size) override;
-            void SetDebugName(const std::string& name) override;
+            void SetDebugName(const char* name) override;
 
             VkBuffer GetVKBuffer();
 
         private:
+            std::string name;
             RefPtr<VKMemAllocator> allocator;
             VkBuffer buffer = VK_NULL_HANDLE;
             VmaAllocation allocation = nullptr;
