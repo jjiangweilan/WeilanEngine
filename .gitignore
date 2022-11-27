@@ -10,3 +10,4 @@ compile_commands.json
 *.meta
 imgui.ini
 neovim.json
+.luarc.json
