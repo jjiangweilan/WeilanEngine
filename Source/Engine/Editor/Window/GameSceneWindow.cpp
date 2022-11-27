@@ -337,6 +337,7 @@ namespace Engine::Editor
 
     void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
     {
+        if (sceneColor == nullptr) return;
         static std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
         clears[1].depthStencil.depth = 1;

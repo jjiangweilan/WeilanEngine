@@ -45,7 +45,7 @@ namespace Engine::Editor
         return GetSysConfigPath();
     }
 
-    void ProjectManagement::RecoverLastProject()
+    std::vector<std::filesystem::path> ProjectManagement::GetProjectLists()
     {
         std::filesystem::path sysConfigDirectory = GetSysConfigPath();
         if (std::filesystem::exists(sysConfigDirectory))
@@ -57,9 +57,11 @@ namespace Engine::Editor
                 f.open(engineJson);
                 nlohmann::json j = nlohmann::json::parse(f);
                 std::filesystem::path lastProjectPath = j["lastProjectPath"];
-                std::filesystem::current_path(lastProjectPath);
+                return {lastProjectPath};
             }
         }
+
+        return {};
     };
 
     void ProjectManagement::Save()
@@ -70,9 +72,9 @@ namespace Engine::Editor
         out.close();
     }
 
-    ProjectManagement::ResultCode ProjectManagement::LoadProject()
+    ProjectManagement::ResultCode ProjectManagement::LoadProject(const std::filesystem::path& root)
     {
-        auto projConfigPath = "GameProj.json";
+        auto projConfigPath = root / "GameProj.json";
         if (std::filesystem::exists(projConfigPath))
         {
             std::fstream f;
@@ -80,7 +82,7 @@ namespace Engine::Editor
             if (f.is_open() && f.good())
             {
                 gameProj = nlohmann::json::parse(f);
-                InitializeProject(gameProj["path"]);
+                InitializeProject(gameProj["path"].get<std::string>());
                 return ResultCode::Success;
             }
             else
@@ -95,7 +97,14 @@ namespace Engine::Editor
         if (!std::filesystem::exists(root / "Assets")) std::filesystem::create_directory(root / "Assets");
         if (!std::filesystem::exists(root / "Library")) std::filesystem::create_directory(root / "Library");
 
-        Global::Instance()->projectConfig.SetProjectRootPath(root);
+        std::filesystem::path imGuiDefaultIniPath(ENGINE_SOURCE_PATH);
+        imGuiDefaultIniPath /= "Resources/imgui.ini";
+
+        auto imGuiIniPath = root / "imgui.ini";
+        if (!std::filesystem::exists(imGuiIniPath))
+            std::filesystem::copy_file(imGuiDefaultIniPath, imGuiIniPath);
+
+        std::filesystem::current_path(root);
 
         // record project path to disk
         auto sysConfigPath = GetSysConfigPath();
@@ -119,11 +128,11 @@ namespace Engine::Editor
             f << engineJson.dump();
             f.close();
         }
+        AssetDatabase::Instance()->LoadAllAssets();
 
         // recover last active scene
         UUID lastActiveSceneUUID = gameProj.value("lastActiveScene", UUID::empty.ToString());
         GameSceneManager::Instance()->SetActiveGameScene(AssetDatabase::Instance()->GetAssetObject(lastActiveSceneUUID));
-
 
         initialized = true;
     }

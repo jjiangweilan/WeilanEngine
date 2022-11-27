@@ -13,6 +13,8 @@ namespace Engine::Editor
 {
     GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver) : gfxDriver(gfxDriver)
     {
+        projectManagement = MakeUnique<ProjectManagement>();
+        ProjectManagement::instance = projectManagement;
     }
 
     GameEditor::~GameEditor()
@@ -21,18 +23,6 @@ namespace Engine::Editor
         projectManagement->Save();
         ImGui_ImplSDL2_Shutdown();
         ImGui::DestroyContext();
-    }
-
-    void GameEditor::ConfigEditorPath()
-    {
-        projectManagement = MakeUnique<ProjectManagement>();
-        ProjectManagement::instance = projectManagement;
-        projectManagement->RecoverLastProject();
-    }
-
-    void GameEditor::LoadCurrentProject()
-    {
-        projectManagement->LoadProject();
     }
 
     void GameEditor::Init(RefPtr<Rendering::RenderPipeline> renderPipeline)
@@ -47,6 +37,7 @@ namespace Engine::Editor
         inspector = MakeUnique<InspectorWindow>(editorContext);
         assetExplorer = MakeUnique<AssetExplorer>(editorContext);
         gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
+        projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
         projectWindow = nullptr;
 
         InitializeBuiltInInspector();
@@ -117,11 +108,23 @@ namespace Engine::Editor
         Gfx::RenderPass::Attachment c;
         c.image = gfxDriver->GetSwapChainImageProxy();
         renderPass->AddSubpass({c}, std::nullopt);
+
+        auto projectList = projectManagement->GetProjectLists();
+        if (!projectList.empty())
+        {
+            projectManagement->LoadProject(projectList[0]);
+            ImGui::LoadIniSettingsFromDisk("imgui.ini");
+        }
     }
 
     void GameEditor::ProcessEvent(const SDL_Event& event)
     {
         ImGui_ImplSDL2_ProcessEvent(&event);
+    }
+
+    bool GameEditor::IsProjectInitialized()
+    {
+        return projectManagement->IsInitialized();
     }
 
     void GameEditor::Tick()
@@ -140,6 +143,10 @@ namespace Engine::Editor
             assetExplorer->Tick();
             gameSceneWindow->Tick(gameColorImage, gameDepthImage);
         }
+        else
+        {
+            projectManagementWindow->Tick();
+        }
         if (projectWindow != nullptr)
         {
             bool open = true;
@@ -154,6 +161,7 @@ namespace Engine::Editor
         ImGui::Render();
 
         auto cmdBuf = gfxDriver->CreateCommandBuffer();
+
         gameSceneWindow->RenderSceneGUI(cmdBuf);
         RenderEditor(cmdBuf);
 
@@ -313,21 +321,24 @@ namespace Engine::Editor
             ImGui::EndMenu();
         }
 
-        if (ImGui::MenuItem("Create Scene") && GameSceneManager::Instance()->GetActiveGameScene() == nullptr)
+        if (projectManagement->IsInitialized())
         {
-            auto newScene = MakeUnique<GameScene>();
-            auto refNewScene = AssetDatabase::Instance()->Save(std::move(newScene), "./Assets/test.game");
-            GameSceneManager::Instance()->SetActiveGameScene(refNewScene);
-        }
-        if (ImGui::MenuItem("Save"))
-        {
-            AssetDatabase::Instance()->SaveAll();
-            projectManagement->Save();
-        }
+            if (ImGui::MenuItem("Create Scene") && GameSceneManager::Instance()->GetActiveGameScene() == nullptr)
+            {
+                auto newScene = MakeUnique<GameScene>();
+                auto refNewScene = AssetDatabase::Instance()->Save(std::move(newScene), "./Assets/test.game");
+                GameSceneManager::Instance()->SetActiveGameScene(refNewScene);
+            }
+            if (ImGui::MenuItem("Save"))
+            {
+                AssetDatabase::Instance()->SaveAll();
+                projectManagement->Save();
+            }
 
-        if (ImGui::MenuItem("Reload Shader"))
-        {
-            AssetDatabase::Instance()->ReloadShaders();
+            if (ImGui::MenuItem("Reload Shader"))
+            {
+                AssetDatabase::Instance()->ReloadShaders();
+            }
         }
         ImGui::EndMainMenuBar();
     }

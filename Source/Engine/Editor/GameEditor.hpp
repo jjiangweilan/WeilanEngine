@@ -7,6 +7,7 @@
 #include "Window/ProjectWindow.hpp"
 #include "Window/AssetExplorer.hpp"
 #include "Window/GameSceneWindow.hpp"
+#include "Window/ProjectManagementWindow.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/GameScene/GameScene.hpp"
@@ -24,10 +25,10 @@ namespace Engine::Editor
             GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver);
             ~GameEditor();
 
-            void ConfigEditorPath();
-            void LoadCurrentProject();
             void Init(RefPtr<Rendering::RenderPipeline> renderPipeline);
             void ProcessEvent(const SDL_Event& event);
+            bool IsProjectInitialized();
+            void ShowProjectsWindow();
             void Tick();
             void Render();
         private:
@@ -42,6 +43,7 @@ namespace Engine::Editor
             UniPtr<AssetExplorer> assetExplorer;
             UniPtr<InspectorWindow> inspector;
             UniPtr<GameSceneWindow> gameSceneWindow;
+            UniPtr<ProjectManagementWindow> projectManagementWindow;
 
             /* Rendering Structures */
             RefPtr<Gfx::GfxDriver> gfxDriver;

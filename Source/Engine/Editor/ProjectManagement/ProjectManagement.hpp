@@ -21,11 +21,11 @@ namespace Engine::Editor
 
             ResultCode CreateNewProject(const std::filesystem::path& path);
             bool IsInitialized() { return initialized; }
-            void RecoverLastProject();
+            std::vector<std::filesystem::path> GetProjectLists();
             std::filesystem::path GetInternalRootPath();
             void SetLastActiveScene(RefPtr<GameScene> scene);
             void Save();
-            ProjectManagement::ResultCode LoadProject();
+            ProjectManagement::ResultCode LoadProject(const std::filesystem::path& root);
 
             static RefPtr<ProjectManagement> instance;
 

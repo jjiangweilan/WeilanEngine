@@ -32,12 +32,9 @@ namespace Engine
         gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get());
 #endif
 
-        ConfigureProjectPath();
-        // init
-#if GAME_EDITOR
         AssetDatabase::Instance()->LoadInternalAssets();
+#if !GAME_EDITOR
         AssetDatabase::Instance()->LoadAllAssets();
-        gameEditor->LoadCurrentProject();
 #endif
         renderPipeline->Init();
         gameEditor->Init(renderPipeline);
@@ -95,12 +92,5 @@ namespace Engine
         AssetImporter::RegisterImporter("png", []() { return MakeUnique<Internal::TextureImporter>(); });
         AssetImporter::RegisterImporter("jpeg", []() { return MakeUnique<Internal::TextureImporter>(); });
         AssetImporter::RegisterImporter("jpg", []() { return MakeUnique<Internal::TextureImporter>(); });
-    }
-
-    void WeilanEngine::ConfigureProjectPath()
-    {
-#if GAME_EDITOR
-        gameEditor->ConfigEditorPath();
-#endif
     }
 }

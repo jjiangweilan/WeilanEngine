@@ -102,7 +102,7 @@ namespace Engine::Editor
     void AssetExplorer::Tick()
     {
         ImGui::Begin("Asset");
-        ShowDirectory(Global::Instance()->projectConfig.GetProjectRootPath() / "Assets");
+        ShowDirectory("Assets");
         ImGui::End();
     }
 

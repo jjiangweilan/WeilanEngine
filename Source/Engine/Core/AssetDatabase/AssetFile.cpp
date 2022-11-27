@@ -22,7 +22,14 @@ namespace Engine
     void AssetFile::UpdateLastWriteTime()
     {
         auto fullPath = relativeBase / path;
-        lastWriteTime = std::filesystem::last_write_time(fullPath);
+        try
+        {
+            lastWriteTime = std::filesystem::last_write_time(fullPath);
+        }
+        catch (std::filesystem::filesystem_error e)
+        {
+            // pass
+        }
     }
 
     void AssetFile::Reload(UniPtr<AssetObject>&& obj)
