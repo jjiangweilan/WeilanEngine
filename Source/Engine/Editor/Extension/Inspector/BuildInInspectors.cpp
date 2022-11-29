@@ -1,5 +1,6 @@
 #include "BuildInInspectors.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Component/LuaScript.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "../../EditorRegister.hpp"
 #include "../../ProjectManagement/ProjectManagement.hpp"
@@ -23,6 +24,7 @@ namespace Engine::Editor
         REGISTER(GameObject);
         REGISTER(Shader);
         REGISTER(GameScene);
+        REGISTER(LuaScript);
     }
 
     static void MaterialInspectorShowStructureData(Material& mat, const std::string& bindingName, Gfx::ShaderInfo::StructuredData& data)
@@ -246,6 +248,20 @@ namespace Engine::Editor
         }
     }
 
+    void LuaScriptInspector::Tick(RefPtr<EditorContext> editorContext)
+    {
+        RefPtr<LuaScript> luaScript = target;
+        char textArea[256];
+        auto& name = luaScript->GetLuaClass();
+        strncpy(textArea, name.c_str(), name.size() + 1);
+        ImGui::Text("%s", "Name: ");
+        ImGui::SameLine();
+        if (ImGui::InputText("##LuaScriptName", textArea, 255))
+        {
+            luaScript->RefLuaClass(textArea);
+        }
+    }
+
 
     void GameObjectInspector::Tick(RefPtr<EditorContext> editorContext)
     {
@@ -286,6 +302,10 @@ namespace Engine::Editor
                 if (ImGui::Selectable("MeshRenderer"))
                 {
                     activeObject->AddComponent<MeshRenderer>();
+                }
+                if (ImGui::Selectable("LuaScript"))
+                {
+                    activeObject->AddComponent<LuaScript>();
                 }
                 ImGui::TreePop();
             }

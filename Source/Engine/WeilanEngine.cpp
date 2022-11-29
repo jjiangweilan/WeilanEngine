@@ -10,6 +10,7 @@
 #include "Core/AssetDatabase/Importers/GeneralImporter.hpp"
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/AssetDatabase/Importers/TextureImporter.hpp"
+#include "Core/AssetDatabase/Importers/LuaImporter.hpp"
 #include "Core/Global/Global.hpp"
 
 namespace Engine
@@ -60,6 +61,7 @@ namespace Engine
 
             // update
             auto activeGameScene = GameSceneManager::Instance()->GetActiveGameScene();
+            activeGameScene->Tick();
 #if GAME_EDITOR
             gameEditor->Tick();
 #endif
@@ -85,6 +87,7 @@ namespace Engine
 
     void WeilanEngine::RegisterAssetImporters()
     {
+        AssetImporter::RegisterImporter("lua", []() { return MakeUnique<Internal::LuaImporter>(); });
         AssetImporter::RegisterImporter("glb", []() { return MakeUnique<Internal::glbImporter>(); });
         AssetImporter::RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
         AssetImporter::RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
