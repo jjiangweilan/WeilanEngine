@@ -15,4 +15,7 @@ function ScriptTest:Destruct()
 end
 
 function ScriptTest:Tick()
+    local tsm = self.gameObject:GetComponent("Transform")
+    tsm:SetPosition({3,2,1})
+    GlobalReadbackTestTick = self.gameObject:GetName()
 end

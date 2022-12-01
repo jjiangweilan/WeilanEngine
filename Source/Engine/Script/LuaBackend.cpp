@@ -3,9 +3,10 @@
 #include <fstream>
 namespace Engine
 {
-    LuaBackend::LuaBackend()
+    LuaBackend::LuaBackend():
+        state(luaL_newstate()),
+        wraps(state)
     {
-        state = luaL_newstate();
         luaL_openlibs(state);
     }
 

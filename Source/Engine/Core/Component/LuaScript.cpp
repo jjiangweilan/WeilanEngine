@@ -1,6 +1,7 @@
 #include "LuaScript.hpp"
 
 #include "Script/LuaBackend.hpp"
+#include "Script/LuaWraps.hpp"
 #define L LuaBackend::Instance()->GetL()
 
 namespace Engine
@@ -12,7 +13,6 @@ namespace Engine
 
     LuaScript::LuaScript() : Component("LuaScript", nullptr)
     {
-
     }
 
     LuaScript::LuaScript(GameObject* gameObject): Component("LuaScript", gameObject)
@@ -32,25 +32,30 @@ namespace Engine
             return;
         }
 
+
         lua_getfield(L, -1, "New");
         lua_getglobal(L, luaClass);
         if (lua_isfunction(L, -2))
         {
-            lua_pcall(L, 1, 1, 0);
-
-            if (lua_istable(L, -1))
+            if (lua_pcall(L, 1, 1, 0) == 0)
             {
                 GetLuaMember(Construct);
                 GetLuaMember(Destruct);
                 GetLuaMember(Tick);
 
-                luaRef = luaL_ref(L, -1);
-                Construct();
-            } else lua_pop(L, 1);
-        }
-        else lua_pop(L, 1);
+                // gameObject
+                GameObject** goPP = (GameObject**)lua_newuserdata(L, sizeof(void*));
+                *goPP = gameObject.Get();
+                luaL_setmetatable(L, "GameObject");
+                lua_setfield(L, -2, "gameObject");
 
-        lua_pop(L, 1); // pop lua_getglobal(L, luaClass);
+                luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
+                Construct();
+            } else SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+        }
+        else lua_pop(L, 2);
+
+        lua_pop(L, 2); // pop lua_getglobal(L, luaClass);
     }
 
     void LuaScript::Construct()
@@ -59,7 +64,8 @@ namespace Engine
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRefConstruct);
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-            lua_pcall(L, 1, 0, 0); // no need to test if it's function, it's tested when we get the reference
+            if (lua_pcall(L, 1, 0, 0) != 0)
+                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
     }
 
@@ -69,7 +75,8 @@ namespace Engine
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRefTick);
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-            lua_pcall(L, 1, 0, 0); // no need to test if it's function, it's tested when we get the reference
+            if (lua_pcall(L, 1, 0, 0) != 0)
+                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
     }
 
@@ -79,7 +86,13 @@ namespace Engine
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRefDestruct);
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-            lua_pcall(L, 1, 0, 0); // no need to test if it's function, it's tested when we get the reference
+            if (lua_pcall(L, 1, 0, 0) != 0)
+                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
+
+        luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
+        luaL_unref(L, LUA_REGISTRYINDEX, luaRefConstruct);
+        luaL_unref(L, LUA_REGISTRYINDEX, luaRefDestruct);
+        luaL_unref(L, LUA_REGISTRYINDEX, luaRefTick);
     }
 }

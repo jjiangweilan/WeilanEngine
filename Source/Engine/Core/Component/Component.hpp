@@ -26,6 +26,8 @@ namespace Engine
             virtual void Tick() {};
             RefPtr<GameObject> GetGameObject();
 
+            // component name is used as an id when gameObject looks for component by name
+            void SetName(const std::string& name) final {Object::SetName(name);}
             const std::string& GetName();
             static UniPtr<Component> CreateDerived(const std::string& className);
         protected:
@@ -50,6 +52,7 @@ namespace Engine
             }
 
             template<class T>
+
             bool Register(std::string_view name)
             {
                 auto iter = registeredComponents.find(std::string(name));

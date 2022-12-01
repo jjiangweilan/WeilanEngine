@@ -24,6 +24,8 @@ namespace Engine
             template<class T>
             T* GetComponent();
 
+            RefPtr<Component> GetComponent(const char* name);
+
             std::vector<UniPtr<Component>>& GetComponents();
             void SetGameScene(RefPtr<GameScene> scene) { gameScene = scene; }
             RefPtr<GameScene> GetGameScene();
