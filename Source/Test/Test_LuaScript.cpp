@@ -62,7 +62,7 @@ TEST(LuaScript, CallToEngine)
 {
     std::string testName = "TestName";
     GameObject go;
-    go.GetTransform()->SetPostion({1,2,3});
+    go.GetTransform()->SetPosition({1,2,3});
     go.SetName(testName);
     LuaScript luaScript(&go);
     luaScript.RefLuaClass("ScriptTest");
