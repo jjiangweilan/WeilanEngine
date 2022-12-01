@@ -97,7 +97,7 @@ namespace Engine::Editor
                     {
                         glm::vec3 p = ray.origin + ray.direction * distance;
                         glm::vec3 newPos = ClosestPointOnLine(p, inFlight.startPos, inFlight.moveDir) - inFlight.offset;
-                        go->GetTransform()->SetPostion(newPos);
+                        go->GetTransform()->SetPosition(newPos);
                     }
                 }
 
@@ -506,18 +506,18 @@ namespace Engine::Editor
         Camera::mainCamera = camera;
         if (initialActive)
         {
-            camera->GetGameObject()->GetTransform()->SetPostion(oriCam->GetGameObject()->GetTransform()->GetPosition());
+            camera->GetGameObject()->GetTransform()->SetPosition(oriCam->GetGameObject()->GetTransform()->GetPosition());
             camera->GetGameObject()->GetTransform()->SetRotation(oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
             initialActive = false;
         }
         else if (gameCamPos)
         {
-            camera->GetGameObject()->GetTransform()->SetPostion(oriCam->GetGameObject()->GetTransform()->GetPosition());
+            camera->GetGameObject()->GetTransform()->SetPosition(oriCam->GetGameObject()->GetTransform()->GetPosition());
             camera->GetGameObject()->GetTransform()->SetRotation(oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
         }
         else
         {
-            camera->GetGameObject()->GetTransform()->SetPostion(lastActivePos);
+            camera->GetGameObject()->GetTransform()->SetPosition(lastActivePos);
             camera->GetGameObject()->GetTransform()->SetRotation(lastActiveRotation);
         }
         isActive = true;
@@ -537,7 +537,7 @@ namespace Engine::Editor
                         glm::vec3 yAxis = transform->GetModelMatrix()[1];
 
                         glm::vec3 newPos = transform->GetPosition() + xAxis * delta.x * 0.001f + yAxis * -delta.y * 0.001f;
-                        transform->SetPostion(newPos);
+                        transform->SetPosition(newPos);
                         ImGui::GetIO().MousePos = imguiInitialMousePos;
                         ImGui::GetIO().WantSetMousePos = true;
                         ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
@@ -583,7 +583,7 @@ namespace Engine::Editor
         {
             glm::vec3 zAxis = transform->GetModelMatrix()[2];
             auto newPos = transform->GetPosition() + zAxis * -scroll;
-            transform->SetPostion(newPos);
+            transform->SetPosition(newPos);
         }
         // right click move
         if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -606,7 +606,7 @@ namespace Engine::Editor
             {
                 movement += modelMatrix[2] * 0.1f;
             }
-            transform->SetPostion(transform->GetPosition() + movement);
+            transform->SetPosition(transform->GetPosition() + movement);
         }
 
         bool isMouseWithInGameScene = mouseInSceneViewUV.x > 0 && mouseInSceneViewUV.x < 1 && mouseInSceneViewUV.y > 0 && mouseInSceneViewUV.y < 1;

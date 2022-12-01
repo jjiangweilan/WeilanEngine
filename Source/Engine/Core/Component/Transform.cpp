@@ -72,7 +72,7 @@ namespace Engine
         this->rotation = rotation;
     }
 
-    void Transform::SetPostion(const glm::vec3& position)
+    void Transform::SetPosition(const glm::vec3& position)
     {
         this->position = position;
     }

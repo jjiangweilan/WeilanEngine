@@ -185,7 +185,7 @@ namespace Engine::Editor
         ImGui::Text("Position"); ImGui::SameLine();
         if(ImGui::DragFloat3("##Position", &pos.x, 0.01f))
         {
-            tsm->SetPostion(pos);
+            tsm->SetPosition(pos);
         }
 
         glm::vec3 scale = tsm->GetScale();

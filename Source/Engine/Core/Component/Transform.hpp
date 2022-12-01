@@ -22,7 +22,7 @@ namespace Engine
             void SetParent(RefPtr<Transform> transform);
             void SetRotation(const glm::vec3& rotation);
             void SetRotation(const glm::quat& rotation);
-            void SetPostion(const glm::vec3& position);
+            void SetPosition(const glm::vec3& position);
             void SetScale(const glm::vec3& scale);
             const glm::vec3& GetPosition();
             const glm::vec3& GetScale();
