@@ -39,21 +39,14 @@ namespace Engine
                 // register new lua binding here...
             }
 
-            static int GameObject_GetName(lua_State* L)
-            {
-                GameObject** gameObjectPtr = (GameObject**)luaL_checkudata(L, 1, "GameObject");
-                if (gameObjectPtr)
-                {
-                    GameObject* gameObject = *gameObjectPtr;
-                    const std::string& (GameObject::*ptr)()  = &GameObject::GetName;
-                    lua_pushstring(L, std::invoke(ptr, gameObject).c_str());
-                    return 1;
-                }
-
-                return 0;
-            }
-
         private:
+
+            template<class... Args>
+            static void WrapParam(lua_State* L, std::tuple<Args...>& args)
+            {
+                if constexpr (std::tuple_size_v<std::tuple<Args...>> > 0)
+                    WrapParamAtIndex<0, std::tuple_element<0, std::tuple<Args...>>::type, Args...>(L, args);
+            }
 
             template<int index, class Type, class... Args>
             static void WrapParamAtIndex(lua_State* L, std::tuple<Args...>& args)
@@ -82,13 +75,6 @@ namespace Engine
 
                 if constexpr (index + 1 < std::tuple_size_v<std::tuple<Args...>>)
                     WrapParamAtIndex<index + 1, std::tuple_element<index + 1, std::tuple<Args...>>::type, Args>(L, args);
-            }
-
-            template<class... Args>
-            static void WrapParam(lua_State* L, std::tuple<Args...>& args)
-            {
-                if constexpr (std::tuple_size_v<std::tuple<Args...>> > 0)
-                    WrapParamAtIndex<0, std::tuple_element<0, std::tuple<Args...>>::type, Args...>(L, args);
             }
 
             template<class R, class T>
@@ -126,7 +112,6 @@ namespace Engine
                 }
                 // extend return types here...
                 else static_assert(false);
-
             }
 
             template<auto ff, class T, class R, class... Args>
