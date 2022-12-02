@@ -61,7 +61,7 @@ namespace Engine
 
             // update
             auto activeGameScene = GameSceneManager::Instance()->GetActiveGameScene();
-            activeGameScene->Tick();
+            if (activeGameScene) activeGameScene->Tick();
 #if GAME_EDITOR
             gameEditor->Tick();
 #endif
