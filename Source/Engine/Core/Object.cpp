@@ -7,11 +7,6 @@ namespace Engine
         this->name = name;
     }
 
-    void Object::SetName(const char* name)
-    {
-        this->name = name;
-    }
-
     const std::string& Object::GetName()
     {
         return name;

@@ -10,8 +10,7 @@ namespace Engine
             virtual ~Object(){};
             Object() :name() {}
 
-            void SetName(const std::string& name);
-            void SetName(const char* name);
+            virtual void SetName(const std::string& name);
             const std::string& GetName();
             virtual const std::type_info& GetTypeInfo() = 0;
 

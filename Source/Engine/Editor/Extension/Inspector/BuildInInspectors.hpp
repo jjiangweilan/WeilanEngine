@@ -15,9 +15,11 @@ namespace Engine::Editor
     };
 
     DECLARE_INSPECTOR(Material);
-    DECLARE_INSPECTOR(Transform);
-    DECLARE_INSPECTOR(GameObject);
-    DECLARE_INSPECTOR(MeshRenderer);
     DECLARE_INSPECTOR(Shader);
     DECLARE_INSPECTOR(GameScene);
+
+    DECLARE_INSPECTOR(GameObject);
+    DECLARE_INSPECTOR(LuaScript);
+    DECLARE_INSPECTOR(MeshRenderer);
+    DECLARE_INSPECTOR(Transform);
 }

@@ -58,4 +58,17 @@ namespace Engine
             c->gameObject = this;
         }
     }
+
+    RefPtr<Component> GameObject::GetComponent(const char* name)
+    {
+        for(auto& c : components)
+        {
+            if (strcmp(c->GetName().c_str(), name) == 0)
+            {
+                return c;
+            }
+        }
+
+        return nullptr;
+    }
 }
