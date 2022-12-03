@@ -29,6 +29,7 @@ namespace Engine
             void Save();
         private:
 
+            std::filesystem::path fullPath; // relativeBase / path
             std::filesystem::path path;
             std::filesystem::path relativeBase;
             UniPtr<AssetObject> root;

@@ -15,13 +15,13 @@ namespace Engine
     }
     AssetFile::AssetFile(UniPtr<AssetObject>&& root, const std::filesystem::path& path, const std::filesystem::path& relativeBase) : path(path), relativeBase(relativeBase), root(std::move(root)), containedAssetObjects()
     {
+        fullPath = relativeBase / path;
         GetAssets(this->root, containedAssetObjects);
         UpdateLastWriteTime();
     }
 
     void AssetFile::UpdateLastWriteTime()
     {
-        auto fullPath = relativeBase / path;
         try
         {
             lastWriteTime = std::filesystem::last_write_time(fullPath);
@@ -45,7 +45,7 @@ namespace Engine
 
     void AssetFile::Save()
     {
-        auto metaPath = path;
+        auto metaPath = fullPath;
         metaPath.replace_extension(path.extension().string() + ".meta");
         std::ofstream metaFileOutput(metaPath);
 
@@ -63,7 +63,7 @@ namespace Engine
         AssetSerializer ser;
         if(root->Serialize(ser))
         {
-            ser.WriteToDisk(path);
+            ser.WriteToDisk(fullPath);
         }
     }
 }

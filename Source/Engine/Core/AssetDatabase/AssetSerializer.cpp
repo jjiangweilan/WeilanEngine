@@ -36,8 +36,7 @@ namespace Engine
         {
             j[iter.first] = iter.second;
         }
-        std::filesystem::path p = path;
-        p = std::filesystem::absolute(p);
+
         std::string jsonStr = j.dump();
         std::ofstream output(path, std::ios::binary | std::ios::trunc);
 
@@ -51,7 +50,9 @@ namespace Engine
         }
         else
         {
-            SPDLOG_ERROR("Failed to write to disk: {}", path.string());
+            std::filesystem::path p = path;
+            p = std::filesystem::absolute(p); // make it pretty
+            SPDLOG_ERROR("Failed to write to disk: {}, {}", p.string(), strerror(errno));
         }
     }
 
