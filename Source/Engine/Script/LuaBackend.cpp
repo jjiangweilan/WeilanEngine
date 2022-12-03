@@ -29,10 +29,14 @@ namespace Engine
         {
             std::stringstream ss;
             ss << f.rdbuf();
-            luaL_dostring(state, ss.str().c_str());
+            if (luaL_dostring(state, ss.str().c_str()) != 0)
+            {
+                const char* str = lua_tostring(state, -1);
+                SPDLOG_ERROR("Con't load lua file {}", str);
+            }
         }
         else
-            SPDLOG_ERROR("Can't load lua file {}", path.string());
+            SPDLOG_ERROR("Can't read lua file {}", path.string());
     }
 
     UniPtr<LuaBackend> LuaBackend::instance = nullptr;
