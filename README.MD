@@ -29,4 +29,4 @@ The build has some side-effect of installing resources into your system's data f
 2. `cd build`
 3. `cmake -DINSTALL_DEPENDENCE=ON ..`
 4. `cmake --build . --target WeilanGame`<br>
-(note: after the first successful build, you can set `INSTALL_DEPENDENCE` to `OFF`)
+note: after the first successful build, you can set `INSTALL_DEPENDENCE` to `OFF`. I recommand set shaderc's build type to RelWithDebugInfo, it's too slow in debug mode.
