@@ -21,6 +21,15 @@ namespace Engine
             lua_pushcfunction(L, (Wrap<static_cast<Return (ClassName::*)(__VA_ARGS__)>(&ClassName::Function), ClassName, Return, __VA_ARGS__>(&ClassName::Function))); \
             lua_setfield(L, -2, #Function);
 
+#define ELSE_IF_IS_COMPONENT(Type) \
+            else if constexpr (std::is_same_v<R, RefPtr<Type>>) \
+            { \
+                if (val) { \
+                        *((Type**)lua_newuserdata(L, sizeof(void*))) = val.Get(); \
+                        luaL_setmetatable(L, val->GetName().c_str()); \
+                    } \
+            }
+
     using LuaRef=int;
     class LuaWraps
     {
@@ -74,7 +83,7 @@ namespace Engine
                 else static_assert(false);
 
                 if constexpr (index + 1 < std::tuple_size_v<std::tuple<Args...>>)
-                    WrapParamAtIndex<index + 1, std::tuple_element<index + 1, std::tuple<Args...>>::type, Args>(L, args);
+                    WrapParamAtIndex<index + 1, std::tuple_element<index + 1, std::tuple<Args...>>::type, Args...>(L, args);
             }
 
             template<class R, class T>
@@ -94,22 +103,9 @@ namespace Engine
                 {
                     lua_pushstring(L, val.c_str());
                 }
-                else if constexpr (std::is_same_v<R, RefPtr<Transform>>)
-                {
-                    if (val)
-                    {
-                        *((Transform**)lua_newuserdata(L, sizeof(void*))) = val.Get();
-                        luaL_setmetatable(L, val->GetName().c_str());
-                    }
-                }
-                else if constexpr (std::is_same_v<R, RefPtr<Component>>)
-                {
-                    if (val)
-                    {
-                        *((Component**)lua_newuserdata(L, sizeof(void*))) = val.Get();
-                        luaL_setmetatable(L, val->GetName().c_str());
-                    }
-                }
+                ELSE_IF_IS_COMPONENT(Component)
+                ELSE_IF_IS_COMPONENT(Transform)
+                ELSE_IF_IS_COMPONENT(GameScene)
                 // extend return types here...
                 else static_assert(false);
             }
