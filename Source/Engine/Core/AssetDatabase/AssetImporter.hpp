@@ -29,14 +29,6 @@ namespace Engine
                     const std::unordered_map<std::string, UUID>& containedUUIDs) = 0;
 
             virtual nlohmann::json GetDefaultConfig() { return nlohmann::json{}; }
-
-            static int RegisterImporter(
-                    const std::string& extension,
-                    const std::function<UniPtr<AssetImporter>()>& importerFactory);
-
-            static RefPtr<AssetImporter> GetImporter(const std::string& extension);
-        
         private:
-            static std::unordered_map<std::string, UniPtr<AssetImporter>>& GetImporterPrototypes();
     };
 }

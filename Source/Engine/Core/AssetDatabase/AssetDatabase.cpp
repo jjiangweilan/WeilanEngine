@@ -73,13 +73,13 @@ namespace Engine
     {
         auto path = target->GetFullPath();
         auto ext = path.extension();
-        auto importer = AssetImporter::GetImporter(ext.string().substr(1));
+        auto importer = GetImporter(ext.string().substr(1));
         std::unordered_map<std::string, UUID> containedUUIDs;
         for(auto& it : target->GetAllContainedAssets())
         {
             containedUUIDs[it->GetName()] = it->GetUUID();
         }
-        UniPtr<AssetObject> obj = importer->Import(path, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
+        UniPtr<AssetObject> obj = importer->Import(path, {}, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
         target->Reload(std::move(obj));
         for(auto& iter : onAssetReloadCallbacks)
         {
@@ -274,9 +274,9 @@ namespace Engine
         {
             auto ext = path.extension();
             if (ext.empty()) return nullptr;
-            auto importer = AssetImporter::GetImporter(ext.string().substr(1));
+            auto importer = GetImporter(ext.string().substr(1));
             if (importer == nullptr) return nullptr;
-            UniPtr<AssetObject> obj = importer->Import(path, refResolver, uuid, containedUUIDs);
+            UniPtr<AssetObject> obj = importer->Import(path, {}, refResolver, uuid, containedUUIDs);
             if (obj != nullptr)
             {
                 return StoreImported(path, uuid, relativeBase, std::move(obj), useRelativeBase);
@@ -313,5 +313,18 @@ namespace Engine
         }
 
         return iter->second;
+    }
+
+    int AssetDatabase::RegisterImporter(const std::string& extension, const std::function<UniPtr<AssetImporter>()>& importerFactory)
+    {
+        auto iter = importerPrototypes.find(extension);
+        if (iter != importerPrototypes.end())
+        {
+            SPDLOG_WARN("can't register different importer with the same extension");
+            return 0;
+        }
+        importerPrototypes[extension] = importerFactory();
+
+        return 0;
     }
 }

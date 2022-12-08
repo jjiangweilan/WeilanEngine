@@ -5,6 +5,7 @@
 #include "Code/Ptr.hpp"
 #include "AssetFile.hpp"
 #include "Core/Graphics/Shader.hpp"
+#include "AssetImporter.hpp"
 #include <list>
 #include <string>
 #include <filesystem>
@@ -54,6 +55,11 @@ namespace Engine
             void ReloadShaders() { reloadShader = true; }
             void LoadAllAssets();
 
+            int RegisterImporter(
+                    const std::string& extension,
+                    const std::function<UniPtr<AssetImporter>()>& importerFactory);
+            RefPtr<AssetImporter> GetImporter(const std::string& extension) { return importerPrototypes[extension]; } 
+
 #if GAME_EDITOR
             void LoadInternalAssets();
 #endif
@@ -84,6 +90,8 @@ namespace Engine
             std::unordered_map<UUID, UniPtr<AssetFile>> assetFiles;
             std::unordered_map<UUID, RefPtr<AssetObject>> assetObjects;
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
+            std::unordered_map<std::string, UniPtr<AssetImporter>> importerPrototypes;
+
             ReferenceResolver refResolver;
             bool reloadShader = false;
 

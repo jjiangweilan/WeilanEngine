@@ -87,13 +87,14 @@ namespace Engine
 
     void WeilanEngine::RegisterAssetImporters()
     {
-        AssetImporter::RegisterImporter("lua", []() { return MakeUnique<Internal::LuaImporter>(); });
-        AssetImporter::RegisterImporter("glb", []() { return MakeUnique<Internal::glbImporter>(); });
-        AssetImporter::RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
-        AssetImporter::RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
-        AssetImporter::RegisterImporter("shad", []() { return MakeUnique<Internal::ShaderImporter>(); });
-        AssetImporter::RegisterImporter("png", []() { return MakeUnique<Internal::TextureImporter>(); });
-        AssetImporter::RegisterImporter("jpeg", []() { return MakeUnique<Internal::TextureImporter>(); });
-        AssetImporter::RegisterImporter("jpg", []() { return MakeUnique<Internal::TextureImporter>(); });
+        RefPtr<AssetDatabase> assetDb = AssetDatabase::Instance();
+        assetDb->RegisterImporter("lua", []() { return MakeUnique<Internal::LuaImporter>(); });
+        assetDb->RegisterImporter("glb", []() { return MakeUnique<Internal::glbImporter>(); });
+        assetDb->RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
+        assetDb->RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
+        assetDb->RegisterImporter("shad", []() { return MakeUnique<Internal::ShaderImporter>(); });
+        assetDb->RegisterImporter("png", []() { return MakeUnique<Internal::TextureImporter>(); });
+        assetDb->RegisterImporter("jpeg", []() { return MakeUnique<Internal::TextureImporter>(); });
+        assetDb->RegisterImporter("jpg", []() { return MakeUnique<Internal::TextureImporter>(); });
     }
 }

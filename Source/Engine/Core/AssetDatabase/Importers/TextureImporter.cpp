@@ -10,9 +10,6 @@ namespace Engine::Internal
             ReferenceResolver& refResolver,
             const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
-        // read config
-        bool genMipMap = config.value("genMipMap", false);
-
         size_t byteSize;
         UniPtr<char> data = ReadBinary(path, &byteSize);
         const stbi_uc* dataCast = (const stbi_uc*)data.Get();
