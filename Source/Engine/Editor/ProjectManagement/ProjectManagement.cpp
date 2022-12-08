@@ -131,7 +131,8 @@ namespace Engine::Editor
 
         // recover last active scene
         UUID lastActiveSceneUUID = gameProj.value("lastActiveScene", UUID::empty.ToString());
-        GameSceneManager::Instance()->SetActiveGameScene(AssetDatabase::Instance()->GetAssetObject(lastActiveSceneUUID));
+        if (!lastActiveSceneUUID.IsEmpty())
+            GameSceneManager::Instance()->SetActiveGameScene(AssetDatabase::Instance()->GetAssetObject(lastActiveSceneUUID));
 
         initialized = true;
     }

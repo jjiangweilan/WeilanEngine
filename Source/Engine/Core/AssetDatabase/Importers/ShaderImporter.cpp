@@ -245,6 +245,7 @@ namespace Engine::Internal
 
     UniPtr<AssetObject> ShaderImporter::Import(
             const std::filesystem::path& path,
+            RefPtr<AssetImportCache> importCache,
             const nlohmann::json& configJson,
             ReferenceResolver& refResolver,
             const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)

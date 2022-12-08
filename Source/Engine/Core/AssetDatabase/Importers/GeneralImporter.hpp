@@ -7,7 +7,8 @@ namespace Engine::Internal
     class GeneralImporter : public AssetImporter
     {
         UniPtr<AssetObject> Import(const std::filesystem::path& path,
-                                const nlohmann::json& json,
+                            RefPtr<AssetImportCache> importCache,
+                            const nlohmann::json& json,
                                    ReferenceResolver& refResolver,
                                    const UUID& uuid,
                                    const std::unordered_map<std::string, UUID>& containedUUIDs) override

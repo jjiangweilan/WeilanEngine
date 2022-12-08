@@ -9,6 +9,7 @@ namespace Engine::Internal
     {
         virtual UniPtr<AssetObject> Import(
                 const std::filesystem::path& path,
+                RefPtr<AssetImportCache> importCache,
                 const nlohmann::json& json,
                 ReferenceResolver& refResolver,
                 const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs) override;

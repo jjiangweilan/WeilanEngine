@@ -18,7 +18,15 @@ namespace Engine
     {
         spdlog::set_level(spdlog::level::info);
 
-        AssetDatabase::InitSingleton();
+        projectManagement = MakeUnique<Editor::ProjectManagement>();
+        Editor::ProjectManagement::instance = projectManagement;
+        auto projectList = projectManagement->GetProjectLists();
+        if (!projectList.empty())
+        {
+            projectManagement->LoadProject(projectList[0]);
+        }
+
+        AssetDatabase::InitSingleton(projectList[0]);
         // register importers
         RegisterAssetImporters();
         // drivers
@@ -28,8 +36,10 @@ namespace Engine
         // modules
         renderPipeline = MakeUnique<Rendering::RenderPipeline>(gfxDriver.Get());
 #if GAME_EDITOR
-        gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get());
+        gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get(), projectManagement);
 #endif
+
+
 
         AssetDatabase::Instance()->LoadInternalAssets();
 #if !GAME_EDITOR

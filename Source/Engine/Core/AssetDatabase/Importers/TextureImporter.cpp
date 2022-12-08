@@ -6,10 +6,17 @@ namespace Engine::Internal
 {
     UniPtr<AssetObject> TextureImporter::Import(
             const std::filesystem::path& path,
+            RefPtr<AssetImportCache> importCache,
             const nlohmann::json& config,
             ReferenceResolver& refResolver,
             const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
+        bool genMipMap = false;
+        if (!config.is_null())
+        {
+            genMipMap = config.value("genMipMap", false);
+        }
+
         size_t byteSize;
         UniPtr<char> data = ReadBinary(path, &byteSize);
         const stbi_uc* dataCast = (const stbi_uc*)data.Get();
@@ -52,6 +59,11 @@ namespace Engine::Internal
         tex->SetName(path.filename().string());
         delete loaded;
         return tex;
+    }
+
+    void TextureImporter::GenerateMipMap(unsigned char* image, int level)
+    {
+
     }
 
     nlohmann::json TextureImporter::GetDefaultConfig()

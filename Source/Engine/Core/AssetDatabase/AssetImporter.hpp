@@ -3,6 +3,7 @@
 
 #include "Code/Ptr.hpp"
 #include "AssetFile.hpp"
+#include "AssetImportCache.hpp"
 #include <string>
 #include <functional>
 #include <unordered_map>
@@ -23,6 +24,7 @@ namespace Engine
              */
             virtual UniPtr<AssetObject> Import(
                     const std::filesystem::path& path,
+                    RefPtr<AssetImportCache> importCache,
                     const nlohmann::json& json,
                     ReferenceResolver& refResolver,
                     const UUID& rootUUID,

@@ -22,4 +22,5 @@ namespace Engine::Editor
     DECLARE_INSPECTOR(LuaScript);
     DECLARE_INSPECTOR(MeshRenderer);
     DECLARE_INSPECTOR(Transform);
+    DECLARE_INSPECTOR(Texture);
 }

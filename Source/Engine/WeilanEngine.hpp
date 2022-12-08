@@ -8,6 +8,7 @@
 #include "Core/Rendering/RenderPipeline.hpp"
 
 #if GAME_EDITOR
+#include "Editor/ProjectManagement/ProjectManagement.hpp"
 #include "Editor/GameEditor.hpp"
 #endif
 namespace Engine
@@ -25,10 +26,10 @@ namespace Engine
             UniPtr<AssetDatabase> assetDatabase;
             UniPtr<Rendering::RenderPipeline> renderPipeline;
 #if GAME_EDITOR
+            UniPtr<Editor::ProjectManagement> projectManagement;
             UniPtr<Editor::GameEditor> gameEditor;
 #endif
 
             void RegisterAssetImporters();
-            void ConfigureProjectPath();
     };
 }

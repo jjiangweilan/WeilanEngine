@@ -5,7 +5,10 @@
 
 namespace Engine::Internal
 {
-    UniPtr<AssetObject> ModelImporter::Import(const std::filesystem::path& path, const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
+    UniPtr<AssetObject> ModelImporter::Import(
+        const std::filesystem::path& path,
+        RefPtr<AssetImportCache> importCache,
+        const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
         auto cached = ReadCache(uuid);
 

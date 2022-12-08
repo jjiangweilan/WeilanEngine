@@ -11,7 +11,7 @@ namespace Engine
 {
     AssetDatabase* AssetDatabase::instance = nullptr;
 
-    AssetDatabase::AssetDatabase(){}
+    AssetDatabase::AssetDatabase(const std::filesystem::path& root): cache(root), root(root){}
 
     std::vector<unsigned char> AssetDatabase::ReadAsBinary(const std::string& path)
     {
@@ -68,8 +68,14 @@ namespace Engine
         }
     }
 
-    void AssetDatabase::Reload(RefPtr<AssetFile> target)
+    void AssetDatabase::Reload(RefPtr<AssetFile> target, const nlohmann::json& config)
     {
+        const nlohmann::json* actualConfig = &target->GetImportConfig();
+        if (!config.empty())
+        {
+            actualConfig = &config;
+        }
+
         auto path = target->GetFullPath();
         auto ext = path.extension();
         auto importer = GetImporter(ext.string().substr(1));
@@ -78,7 +84,7 @@ namespace Engine
         {
             containedUUIDs[it->GetName()] = it->GetUUID();
         }
-        UniPtr<AssetObject> obj = importer->Import(path, {}, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
+        UniPtr<AssetObject> obj = importer->Import(path, &cache, *actualConfig, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
         target->Reload(std::move(obj));
         for(auto& iter : onAssetReloadCallbacks)
         {
@@ -144,10 +150,10 @@ namespace Engine
         return instance;
     }
 
-    void AssetDatabase::InitSingleton()
+    void AssetDatabase::InitSingleton(const std::filesystem::path& root)
     {
         if (instance == nullptr)
-            instance = new AssetDatabase();
+            instance = new AssetDatabase(root);
     }
 
     void AssetDatabase::Deinit()
@@ -177,16 +183,16 @@ namespace Engine
     }
 #endif
 
-    bool AssetDatabase::GetObjectPath(const UUID& uuid, std::filesystem::path& path)
+    const std::filesystem::path& AssetDatabase::GetObjectPath(const UUID& uuid)
     {
         auto iter = assetFiles.find(uuid);
         if (iter != assetFiles.end())
         {
-            path = iter->second->GetPath();
-            return true;
+            return iter->second->GetPath();
         }
 
-        return false;
+        static std::filesystem::path emptyPath;
+        return emptyPath;
     }
 
     void AssetDatabase::LoadAllAssets()
@@ -275,7 +281,7 @@ namespace Engine
             if (ext.empty()) return nullptr;
             auto importer = GetImporter(ext.string().substr(1));
             if (importer == nullptr) return nullptr;
-            UniPtr<AssetObject> obj = importer->Import(path, {}, refResolver, uuid, containedUUIDs);
+            UniPtr<AssetObject> obj = importer->Import(path, &cache, {}, refResolver, uuid, containedUUIDs);
             if (obj != nullptr)
             {
                 return StoreImported(path, uuid, relativeBase, std::move(obj), useRelativeBase);
