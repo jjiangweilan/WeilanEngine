@@ -6,6 +6,7 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
 namespace Engine
 {
     class AssetImporter
@@ -22,9 +23,12 @@ namespace Engine
              */
             virtual UniPtr<AssetObject> Import(
                     const std::filesystem::path& path,
+                    const nlohmann::json& json,
                     ReferenceResolver& refResolver,
                     const UUID& rootUUID,
                     const std::unordered_map<std::string, UUID>& containedUUIDs) = 0;
+
+            virtual nlohmann::json GetDefaultConfig() { return nlohmann::json{}; }
 
             static int RegisterImporter(
                     const std::string& extension,

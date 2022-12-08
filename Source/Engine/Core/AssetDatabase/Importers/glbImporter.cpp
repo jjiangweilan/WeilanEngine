@@ -45,7 +45,7 @@ namespace Engine::Internal
     };
 
 
-    UniPtr<AssetObject> glbImporter::Import(const std::filesystem::path& path, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
+    UniPtr<AssetObject> glbImporter::Import(const std::filesystem::path& path, const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
         std::ifstream input(path, std::ios::binary | std::ios::in);
         if (!input.is_open() || !input.good()) return nullptr;
