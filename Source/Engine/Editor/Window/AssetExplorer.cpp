@@ -6,7 +6,6 @@
 #include "../EditorRegister.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "../Extension/CustomExplore/ModelExplorer.hpp"
-#include "Core/Global/Global.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Engine::Editor

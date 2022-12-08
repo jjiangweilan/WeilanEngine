@@ -1,5 +1,4 @@
 #include "ProjectManagement.hpp"
-#include "Core/Global/Global.hpp"
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"

@@ -11,7 +11,6 @@
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/AssetDatabase/Importers/TextureImporter.hpp"
 #include "Core/AssetDatabase/Importers/LuaImporter.hpp"
-#include "Core/Global/Global.hpp"
 
 namespace Engine
 {
@@ -19,7 +18,6 @@ namespace Engine
     {
         spdlog::set_level(spdlog::level::info);
 
-        Global::InitSingleton();
         AssetDatabase::InitSingleton();
         // register importers
         RegisterAssetImporters();

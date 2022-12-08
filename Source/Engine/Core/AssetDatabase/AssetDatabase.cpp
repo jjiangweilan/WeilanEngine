@@ -3,7 +3,6 @@
 #include <spdlog/spdlog.h>
 #include "AssetImporter.hpp"
 #include <nlohmann/json.hpp>
-#include "Core/Global/Global.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #if GAME_EDITOR
 #include "Editor/ProjectManagement/ProjectManagement.hpp"
