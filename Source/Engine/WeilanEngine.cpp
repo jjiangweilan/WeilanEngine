@@ -41,8 +41,6 @@ namespace Engine
         if (!lastActiveSceneUUID.IsEmpty())
             GameSceneManager::Instance()->SetActiveGameScene(AssetDatabase::Instance()->GetAssetObject(lastActiveSceneUUID));
 
-
-
         // modules
         renderPipeline = MakeUnique<Rendering::RenderPipeline>(gfxDriver.Get());
 #if GAME_EDITOR

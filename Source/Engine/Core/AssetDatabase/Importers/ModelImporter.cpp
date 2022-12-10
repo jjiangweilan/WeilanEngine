@@ -1,4 +1,5 @@
 #include "ModelImporter.hpp"
+#include "Core/Model.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -65,5 +66,10 @@ namespace Engine::Internal
     void LoadMesh(aiScene* scene, aiMesh *mesh, aiNode *node, const aiMatrix4x4& chainTransform)
     {
 
+    }
+
+    const std::type_info& ModelImporter::GetObjectType()
+    {
+        return typeid(Model);
     }
 };

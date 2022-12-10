@@ -24,5 +24,7 @@ namespace Engine::Internal
                     const std::filesystem::path& path,
                     const std::filesystem::path& root,
                     const UUID& uuid) override;
+
+            const std::type_info& GetObjectType() override;
     };
 }

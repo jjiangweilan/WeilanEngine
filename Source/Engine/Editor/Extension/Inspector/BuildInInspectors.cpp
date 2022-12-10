@@ -342,13 +342,9 @@ namespace Engine::Editor
     void TextureInspector::Tick(RefPtr<EditorContext> editorContext)
     {
         RefPtr<Texture> tex = target;
-
-
-        if (ImGui::Button("Regenerate with MipMap"))
-        {
-            auto& path = AssetDatabase::Instance()->GetObjectPath(tex->GetUUID());
-            auto assetFile = AssetDatabase::Instance()->GetAssetFile(path);
-            AssetDatabase::Instance()->Reload(assetFile, R"({"genMipMap" : true})"_json);
-        }
+        float width = ImGui::GetWindowSize().x;
+        auto& desc = tex->GetDescription();
+        float ratio = desc.width / (float)desc.height;
+        ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
     }
 }

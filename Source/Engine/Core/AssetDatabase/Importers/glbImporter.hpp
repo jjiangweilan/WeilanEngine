@@ -21,6 +21,7 @@ namespace Engine::Internal
                     ReferenceResolver& refResolver,
                     const UUID& uuid) override;
 
+            const std::type_info& GetObjectType() override;
         private:
     };
 }

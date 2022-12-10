@@ -7,6 +7,7 @@
 #include <functional>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
+#include <typeinfo>
 namespace Engine
 {
     class AssetImporter
@@ -40,7 +41,12 @@ namespace Engine
                 return false;
             };
 
-            virtual nlohmann::json GetDefaultConfig() { return nlohmann::json{}; }
+            virtual const std::type_info& GetObjectType() = 0;
+
+            virtual const nlohmann::json& GetDefaultConfig() {
+                static nlohmann::json j = nlohmann::json::object();
+                return j;
+            }
         private:
     };
 }

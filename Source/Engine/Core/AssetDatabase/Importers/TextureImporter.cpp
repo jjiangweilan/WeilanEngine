@@ -44,11 +44,11 @@ namespace Engine::Internal
             stbi_write_jpg(output.string().c_str(), width, height, desiredChannels, (const void*)loaded, 0);
         }
 
+        auto outDir = root / "Library" / uuid.ToString();
         nlohmann::json info;
         info["name"] = path.filename();
-        std::ofstream outInfo(root / "Library" / uuid.ToString() / "info.json");
+        std::ofstream outInfo(outDir / "info.json");
         outInfo << info.dump();
-        // return tex;
     }
 
     UniPtr<AssetObject> TextureImporter::Load(
@@ -108,5 +108,21 @@ namespace Engine::Internal
     void TextureImporter::GenerateMipMap(unsigned char* image, int level)
     {
 
+    }
+
+    const std::type_info& TextureImporter::GetObjectType()
+    {
+        return typeid(Texture);
+    }
+
+    const nlohmann::json& TextureImporter::GetDefaultConfig()
+    {
+        static nlohmann::json defaultConfig = R"(
+            {
+                "genMipMap" : false
+            }
+        )"_json;
+
+        return defaultConfig;
     }
 }

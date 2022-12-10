@@ -35,5 +35,10 @@ namespace Engine::Internal
 
             return nullptr;
         }
+
+        const std::type_info& GetObjectType() override
+        {
+            return typeid(T);
+        }
     };
 }

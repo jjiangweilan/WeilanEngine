@@ -224,4 +224,5 @@ namespace Engine::Internal
         return model;
     }
 
+    const std::type_info& glbImporter::GetObjectType() { return typeid(Model); }
 }

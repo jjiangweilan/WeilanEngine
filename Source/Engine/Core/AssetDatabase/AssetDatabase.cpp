@@ -11,26 +11,23 @@ namespace Engine
 {
     AssetDatabase* AssetDatabase::instance = nullptr;
 
-    AssetDatabase::AssetDatabase(const std::filesystem::path& root): root(root)
+    AssetDatabase::AssetDatabase(const std::filesystem::path& root): root(root), ImportConfigPath(root / "Library/AssetDatabase/importConfig.json")
     {
-        const std::filesystem::path importInfoPath = root / "Library/importInfo.json";
-        if (std::filesystem::exists(importInfoPath))
+        if (!std::filesystem::exists(root / "Library/AssetDatabase"))
         {
-            std::fstream f;
-            f.open(importInfoPath);
-            if (f.good() && f.is_open())
-            {
-                try
-                {
-                    importInfo = nlohmann::json::parse(f);
-                }
-                catch (...)
-                {
-                    importInfo = "{}"_json;
-                }
-            }
+            std::filesystem::create_directory(root / "Library/AssetDatabase");
+            std::ofstream outImportConfigFile(ImportConfigPath);
+            outImportConfigFile << "{}";
         }
-        else importInfo = "{}"_json;
+
+        std::ifstream importConfigFile(ImportConfigPath);
+        importConfig = nlohmann::json::parse(importConfigFile);
+    }
+
+    AssetDatabase::~AssetDatabase()
+    {
+        std::ofstream configOut(root / "Library/AssetDatabase/importConfig.json");
+        configOut << importConfig.dump();
     }
 
     void AssetDatabase::Refresh_Internal(const std::filesystem::path& path, bool isEngineInternal)
@@ -63,16 +60,22 @@ namespace Engine
         {
             iter.second->Save();
         }
+
+        std::ofstream configOut(root / "Library/AssetDatabase/importConfig.json");
+        configOut << importConfig.dump();
     }
 
-    void AssetDatabase::Reload(RefPtr<AssetFile> target, const nlohmann::json& config)
+    void AssetDatabase::Reimport(const UUID& uuid, const nlohmann::json& config, bool force)
     {
-        const nlohmann::json* actualConfig = &target->GetImportConfig();
-        if (!config.empty())
+        auto iter = assetFiles.find(uuid);
+        if (iter != assetFiles.end())
         {
-            actualConfig = &config;
+            Reimport(iter->second, config, force);
         }
+    }
 
+    void AssetDatabase::Reimport(RefPtr<AssetFile> target, const nlohmann::json& config, bool force)
+    {
         auto path = target->GetFullPath();
         auto ext = path.extension();
         auto importer = GetImporter(ext.string().substr(1));
@@ -81,9 +84,19 @@ namespace Engine
         {
             containedUUIDs[it->GetName()] = it->GetUUID();
         }
-        if (importer->NeedReimport(path, root, target->GetRoot()->GetUUID()))
+        if (force || importer->NeedReimport(path, root, target->GetRoot()->GetUUID()) || importConfig[target->GetRoot()->GetUUID().ToString()] != config)
         {
-            importer->Import(path, root, *actualConfig, target->GetRoot()->GetUUID(), containedUUIDs);
+            if (!config.empty())
+            {
+                importer->Import(path, root, config, target->GetRoot()->GetUUID(), containedUUIDs);
+                importConfig[target->GetRoot()->GetUUID().ToString()] = config;
+            }
+            else
+            {
+                importer->Import(path, root, importer->GetDefaultConfig(), target->GetRoot()->GetUUID(), containedUUIDs);
+                importConfig[target->GetRoot()->GetUUID().ToString()] = importer->GetDefaultConfig();
+            }
+
         }
         UniPtr<AssetObject> obj = importer->Load(root, refResolver, target->GetRoot()->GetUUID());
         target->Reload(std::move(obj));
@@ -112,7 +125,7 @@ namespace Engine
             {
                 if (iter->second->GetLatestWriteTime() != iter->second->GetLastWriteTime())
                 {
-                    Reload(iter->second);
+                    Reimport(iter->second);
                 }
             }
         }
@@ -278,12 +291,16 @@ namespace Engine
                 j["uuid"] = uuid.ToString();
                 metaFileOutput << j.dump();
                 isMetaValid = true;
-                importer->Import(path, root, {}, uuid, containedUUIDs);
+                auto config = importer->GetDefaultConfig();
+                importer->Import(path, root, config, uuid, containedUUIDs);
+                importConfig[uuid.ToString()] = config;
             }
         }
         else if (importer->NeedReimport(path, root, uuid))
         {
-            importer->Import(path, root, {}, uuid, containedUUIDs);
+            auto config = importConfig.value(uuid.ToString(), importer->GetDefaultConfig());
+            importer->Import(path, root, config, uuid, containedUUIDs);
+            importConfig[uuid.ToString()] = config;
         }
 
         if (isMetaValid)
@@ -327,4 +344,20 @@ namespace Engine
         return iter->second;
     }
 
+    nlohmann::json AssetDatabase::GetImporterConfig(const UUID& uuid, const std::type_index& fallBackType)
+    {
+        auto configIter = importConfig.find(uuid.ToString());
+        if (configIter != importConfig.end())
+        {
+            return configIter.value();
+        }
+
+        auto importerIter = importersTypeMap.find(fallBackType);
+        if (importerIter != importersTypeMap.end())
+        {
+            return importerIter->second->GetDefaultConfig();
+        }
+
+        return nlohmann::json(nullptr);
+    }
 }

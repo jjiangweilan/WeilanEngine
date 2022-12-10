@@ -12,6 +12,8 @@
 #include <filesystem>
 #include <list>
 #include <functional>
+#include <typeinfo>
+#include <typeindex>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
 namespace Engine
@@ -19,6 +21,7 @@ namespace Engine
     class AssetDatabase
     {
         public:
+            ~AssetDatabase();
             using OnAssetReload = std::function<void(RefPtr<AssetObject>)>;
             using OnAssetReloadIterHandle = std::list<OnAssetReload>::iterator;
             enum class ImportAssetResult
@@ -54,10 +57,12 @@ namespace Engine
             const std::filesystem::path& GetObjectPath(const UUID& uuid);
             void ReloadShaders() { reloadShader = true; }
             void LoadAllAssets();
-            void Reload(RefPtr<AssetFile> target, const nlohmann::json& config = nlohmann::json{});
+            void Reimport(const UUID& uuid, const nlohmann::json& config = nlohmann::json::object(), bool force = false);
+            void Reimport(RefPtr<AssetFile> target, const nlohmann::json& config = nlohmann::json::object(), bool force = false);
             template<class ImporterType>
             int RegisterImporter(const std::string& extension);
-            RefPtr<AssetImporter> GetImporter(const std::string& extension) { return importerPrototypes[extension]; } 
+            nlohmann::json GetImporterConfig(const UUID& uuid, const std::type_index& fallBackType);
+
 #if GAME_EDITOR
             void LoadInternalAssets();
 #endif
@@ -80,8 +85,14 @@ namespace Engine
             RefPtr<AssetObject> StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase);
             void ReloadShadersImpl();
 
+            RefPtr<AssetImporter> GetImporter(const std::string& extension) { return importerExtMap[extension]; } 
+            template<class T>
+            RefPtr<AssetImporter> GetImporter() { return importersTypeMap[typeid(T)]; }
+            RefPtr<AssetImporter> GetImporter(const std::type_index& typeIndex) { return importersTypeMap[typeIndex]; }
+
             static AssetDatabase* instance;
             const std::filesystem::path root;
+            const std::filesystem::path ImportConfigPath;
             DirectoryNode databaseRoot;
             std::list<DirectoryNode> directories;
             std::list<OnAssetReload> onAssetReloadCallbacks;
@@ -89,10 +100,11 @@ namespace Engine
             std::unordered_map<UUID, UniPtr<AssetFile>> assetFiles;
             std::unordered_map<UUID, RefPtr<AssetObject>> assetObjects;
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
-            std::unordered_map<std::string, UniPtr<AssetImporter>> importerPrototypes;
+            std::unordered_map<std::string, UniPtr<AssetImporter>> importerExtMap;
+            std::unordered_map<std::type_index, RefPtr<AssetImporter>> importersTypeMap;
+            nlohmann::json importConfig;
             ReferenceResolver refResolver;
             bool reloadShader = false;
-            nlohmann::json importInfo;
     };
 
     template<class T>
@@ -104,13 +116,16 @@ namespace Engine
     template<class T>
     int AssetDatabase::RegisterImporter(const std::string& extension)
     {
-        auto iter = importerPrototypes.find(extension);
-        if (iter != importerPrototypes.end())
+        auto iter = importerExtMap.find(extension);
+        if (iter != importerExtMap.end())
         {
             SPDLOG_WARN("can't register different importer with the same extension");
             return 0;
         }
-        importerPrototypes[extension] = MakeUnique<T>();
+        auto imp = MakeUnique<T>();
+        auto temp = imp.Get();
+        importerExtMap[extension] = std::move(imp);
+        importersTypeMap[typeid(T)] = temp;
 
         return 0;
     }

@@ -13,5 +13,11 @@ namespace Engine::Editor
         
         private:
             RefPtr<EditorContext> editorContext;
+            enum class InspectorType
+            {
+                Object, Import
+            } type;
+            bool isFocused = false;
+            nlohmann::json importConfig;
     };
 }

@@ -6,4 +6,11 @@ namespace Engine
     {
         image = Gfx::GfxDriver::Instance()->CreateImage(texDesc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
     }
+
+    void Texture::Reload(AssetObject&& loaded)
+    {
+        Texture* newTex = static_cast<Texture*>(&loaded);
+        AssetObject::Reload(std::move(loaded));
+        image = std::move(newTex->image);
+    }
 }

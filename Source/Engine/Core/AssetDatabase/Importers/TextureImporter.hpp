@@ -19,6 +19,9 @@ namespace Engine::Internal
                     ReferenceResolver& refResolver,
                     const UUID& uuid) override;
 
+            const std::type_info& GetObjectType() override;
+            const nlohmann::json& GetDefaultConfig() override;
+
         protected:
             void GenerateMipMap(unsigned char* image, int level);
     };

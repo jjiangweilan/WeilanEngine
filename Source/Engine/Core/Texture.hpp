@@ -13,6 +13,7 @@ namespace Engine
             ~Texture() override{};
             RefPtr<Gfx::Image> GetGfxImage() { return image; };
             const TextureDescription& GetDescription() { return image->GetDescription(); }
+            void Reload(AssetObject&& loaded) override;
         private:
 
             bool Serialize(AssetSerializer&) override{return false;} // disable saving

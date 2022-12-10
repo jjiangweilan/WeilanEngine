@@ -13,18 +13,19 @@ namespace Engine::Internal
                     const std::filesystem::path& root,
                     const nlohmann::json& json,
                     const UUID& rootUUID,
-                    const std::unordered_map<std::string, UUID>& containedUUIDs);
+                    const std::unordered_map<std::string, UUID>& containedUUIDs) override;
 
             UniPtr<AssetObject> Load(
                     const std::filesystem::path& root,
                     ReferenceResolver& refResolver,
-                    const UUID& uuid);
+                    const UUID& uuid) override;
 
             virtual bool NeedReimport(
                 const std::filesystem::path& path,
                 const std::filesystem::path& root,
-                const UUID& uuid);
+                const UUID& uuid) override;
 
+            const std::type_info& GetObjectType() override;
         private:
 
             const char* YAML_FileName = "config.yaml";

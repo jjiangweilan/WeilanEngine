@@ -465,4 +465,6 @@ yamlEnd:
             }
         }
     }
+
+    const std::type_info& ShaderImporter::GetObjectType() { return typeid(Shader); }
 }
