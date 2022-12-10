@@ -327,16 +327,4 @@ namespace Engine
         return iter->second;
     }
 
-    int AssetDatabase::RegisterImporter(const std::string& extension, const std::function<UniPtr<AssetImporter>()>& importerFactory)
-    {
-        auto iter = importerPrototypes.find(extension);
-        if (iter != importerPrototypes.end())
-        {
-            SPDLOG_WARN("can't register different importer with the same extension");
-            return 0;
-        }
-        importerPrototypes[extension] = importerFactory();
-
-        return 0;
-    }
 }

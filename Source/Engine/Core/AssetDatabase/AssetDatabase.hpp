@@ -55,9 +55,8 @@ namespace Engine
             void ReloadShaders() { reloadShader = true; }
             void LoadAllAssets();
             void Reload(RefPtr<AssetFile> target, const nlohmann::json& config = nlohmann::json{});
-            int RegisterImporter(
-                    const std::string& extension,
-                    const std::function<UniPtr<AssetImporter>()>& importerFactory);
+            template<class ImporterType>
+            int RegisterImporter(const std::string& extension);
             RefPtr<AssetImporter> GetImporter(const std::string& extension) { return importerPrototypes[extension]; } 
 #if GAME_EDITOR
             void LoadInternalAssets();
@@ -97,10 +96,24 @@ namespace Engine
     };
 
     template<class T>
-        RefPtr<T> AssetDatabase::Load(const std::filesystem::path& path)
+    RefPtr<T> AssetDatabase::Load(const std::filesystem::path& path)
+    {
+        return static_cast<T*>(LoadInternal(path).Get());
+    }
+
+    template<class T>
+    int AssetDatabase::RegisterImporter(const std::string& extension)
+    {
+        auto iter = importerPrototypes.find(extension);
+        if (iter != importerPrototypes.end())
         {
-            return static_cast<T*>(LoadInternal(path).Get());
+            SPDLOG_WARN("can't register different importer with the same extension");
+            return 0;
         }
+        importerPrototypes[extension] = MakeUnique<T>();
+
+        return 0;
+    }
 }
 
 /*

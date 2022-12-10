@@ -100,12 +100,12 @@ namespace Engine
     void WeilanEngine::RegisterAssetImporters()
     {
         RefPtr<AssetDatabase> assetDb = AssetDatabase::Instance();
-        assetDb->RegisterImporter("glb", []() { return MakeUnique<Internal::glbImporter>(); });
-        assetDb->RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
-        assetDb->RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
-        assetDb->RegisterImporter("shad", []() { return MakeUnique<Internal::ShaderImporter>(); });
-        assetDb->RegisterImporter("png", []() { return MakeUnique<Internal::TextureImporter>(); });
-        assetDb->RegisterImporter("jpeg", []() { return MakeUnique<Internal::TextureImporter>(); });
-        assetDb->RegisterImporter("jpg", []() { return MakeUnique<Internal::TextureImporter>(); });
+        assetDb->RegisterImporter<Internal::glbImporter>("glb");
+        assetDb->RegisterImporter<Internal::GeneralImporter<Material>>("mat");
+        assetDb->RegisterImporter<Internal::GeneralImporter<GameScene>>("game");
+        assetDb->RegisterImporter<Internal::ShaderImporter>("shad");
+        assetDb->RegisterImporter<Internal::TextureImporter>("png");
+        assetDb->RegisterImporter<Internal::TextureImporter>("jpeg");
+        assetDb->RegisterImporter<Internal::TextureImporter>("jpg");
     }
 }
