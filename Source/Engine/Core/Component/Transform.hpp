@@ -34,13 +34,13 @@ namespace Engine
         private:
             void RemoveChild(RefPtr<Transform> child);
 
-            EDITABLE(glm::quat, rotation);
-            EDITABLE(glm::vec3, rotationEuler);
-            EDITABLE(glm::vec3, position);
-            EDITABLE(glm::vec3, scale);
+            glm::quat rotation;
+            glm::vec3 rotationEuler;
+            glm::vec3 position;
+            glm::vec3 scale;
 
-            EDITABLE(RefPtr<Transform>, parent);
-            EDITABLE(std::vector<RefPtr<Transform>>, children);
+            RefPtr<Transform> parent;
+            std::vector<RefPtr<Transform>> children;
     };
     DUPLICABLE(Transform);
 }

@@ -6,6 +6,7 @@ namespace Engine
 {
     Shader::Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid) : AssetObject(uuid), shaderProgram(std::move(shaderProgram))
     {
+        SERIALIZE_MEMBER(shaderName);
         this->name = name;
     }
 

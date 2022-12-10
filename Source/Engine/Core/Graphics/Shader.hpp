@@ -21,7 +21,7 @@ namespace Gfx
             inline const Gfx::ShaderConfig& GetDefaultShaderConfig() { return shaderProgram->GetDefaultShaderConfig(); }
 
         private:
-            EDITABLE(std::string, shaderName);
+            std::string shaderName;
 
             bool Serialize(AssetSerializer&) override{return false;} // disable model saving
 

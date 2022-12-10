@@ -8,6 +8,8 @@ namespace Engine
     {
         transform = AddComponent<Transform>();
         name = "New GameObject";
+
+        SERIALIZE_MEMBER(components);
     }
     GameObject::GameObject(GameObject&& other) :
     components(std::move(other.components)),
@@ -15,12 +17,14 @@ namespace Engine
     gameScene(std::exchange(other.gameScene, nullptr))
     {
         other.name = std::move(name);
+        SERIALIZE_MEMBER(components);
     }
 
     GameObject::GameObject(RefPtr<GameScene> gameScene) : gameScene(gameScene)
     {
         transform = AddComponent<Transform>();
         name = "New GameObject";
+        SERIALIZE_MEMBER(components);
     }
 
     GameObject::~GameObject(){}

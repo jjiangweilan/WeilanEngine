@@ -3,13 +3,26 @@
 #include "Core/GameScene/GameScene.hpp"
 namespace Engine
 {
-    Transform::Transform() : Component("Transform", nullptr){}
+#define SER_MEMS() \
+    SERIALIZE_MEMBER(rotation); \
+    SERIALIZE_MEMBER(rotationEuler); \
+    SERIALIZE_MEMBER(position); \
+    SERIALIZE_MEMBER(scale); \
+    SERIALIZE_MEMBER(parent); \
+    SERIALIZE_MEMBER(children); \
+
+    Transform::Transform() : Component("Transform", nullptr)
+    {
+        SER_MEMS();
+    }
     Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject)
     {
         position = glm::vec3(0,0,0);
         scale = glm::vec3(1,1,1);
         rotationEuler = glm::vec3(0,0,0);
         rotation = glm::quat(rotationEuler);
+
+        SER_MEMS();
     }
 
     const std::vector<RefPtr<Transform>>& Transform::GetChildren()

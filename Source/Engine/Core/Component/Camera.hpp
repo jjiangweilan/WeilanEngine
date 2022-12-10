@@ -27,7 +27,7 @@ namespace Engine
             float GetFar();
 
         private:
-            EDITABLE(glm::mat4, projectionMatrix);
-            EDITABLE(glm::mat4, viewMatrix);
+            glm::mat4 projectionMatrix;
+            glm::mat4 viewMatrix;
     };
 }

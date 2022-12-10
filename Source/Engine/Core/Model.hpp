@@ -17,7 +17,7 @@ namespace Engine
 
             bool Serialize(AssetSerializer&) override{return false;} // disable model saving
 
-            EDITABLE(SINGLE_ARG(std::unordered_map<std::string, UniPtr<Mesh>>), meshes);
+            std::unordered_map<std::string, UniPtr<Mesh>> meshes;
             std::vector<std::string> meshNames;
     };
 }

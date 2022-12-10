@@ -34,7 +34,7 @@ namespace Engine
 
         private:
 
-            EDITABLE(std::vector<UniPtr<Component>>, components);
+            std::vector<UniPtr<Component>> components;
             RefPtr<Transform> transform;
             RefPtr<GameScene> gameScene;
 

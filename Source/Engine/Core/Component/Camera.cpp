@@ -3,8 +3,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 namespace Engine
 {
+#define SER_MEMS() \
+    SERIALIZE_MEMBER(projectionMatrix);\
+    SERIALIZE_MEMBER(viewMatrix);
+
     Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projectionMatrix(), viewMatrix()
     {
+        SER_MEMS()
+
         if (mainCamera == nullptr)
         {
             mainCamera = this;
@@ -13,6 +19,15 @@ namespace Engine
         projectionMatrix = glm::perspective(45.f, 1920.0f / 1080.f, 0.01f, 1000.f);
         projectionMatrix[1][1] = -projectionMatrix[1][1];
     }
+
+    Camera::Camera() : Component("Camera", nullptr), projectionMatrix(), viewMatrix() {
+        SER_MEMS()
+
+        if (mainCamera == nullptr)
+        {
+            mainCamera = this;
+        }
+    };
 
     float Camera::GetProjectionRight()
     {
@@ -33,13 +48,6 @@ namespace Engine
     {
         return 1000.f;
     }
-
-    Camera::Camera() : Component("Camera", nullptr), projectionMatrix(), viewMatrix(){
-        if (mainCamera == nullptr)
-        {
-            mainCamera = this;
-        }
-    };
 
     glm::mat4 Camera::GetViewMatrix()
     {

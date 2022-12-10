@@ -14,15 +14,6 @@
 
 namespace Engine
 {
-    // from https://stackoverflow.com/questions/13842468/comma-in-c-c-macro
-    template<typename T> struct ArgumentType;
-    template<typename T, typename U> struct ArgumentType<T(U)> { typedef U ElementType; };
-    #define SINGLE_ARG(...) __VA_ARGS__
-
-#define EDITABLE(type, name) \
-            type name; \
-            Editable<ArgumentType<void(type)>::ElementType> _Editable_##name = Editable<ArgumentType<void(type)>::ElementType>(this, #name, name);
-
     class AssetDatabase;
     class AssetFileData;
     class AssetObject : public Object, IReferenceResolveListener
@@ -93,15 +84,6 @@ namespace Engine
                     std::vector<RefPtr<AssetObject>> assetMembers;
                     ExtractContainedAssetObjects(val, assetMembers);
                     parent->assetMembers.insert(parent->assetMembers.end(), assetMembers.begin(), assetMembers.end());
-                    parent->editableMembers.emplace(
-                        std::make_pair<std::string, EditableMember>(
-                        std::string(name),
-                        EditableMember(
-                            typeid(T),
-                            this,
-                            (void*)&val)
-                        )
-                    );
                 }
 
                 void Serialize(const std::string& nameChain, AssetSerializer& serializer) override
@@ -370,18 +352,22 @@ namespace Engine
             // this function gives subclass a chance to handle member dependencies when the object is inside a deserialization chain
             virtual void DeserializeInternal(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver);
             virtual bool SerializeInternal(const std::string& nameChain, AssetSerializer& serializer);
+            template<class T>
+            void SerializeMember(const char* name, T& member);
+#define SERIALIZE_MEMBER(member) SerializeMember(#member, member);
 
         private:
             struct EditableMember
             {
                 EditableMember(
                         const std::type_info& typeInfo,
-                        EditableBase* editable,
-                        void* editableVal) : typeInfo(typeInfo), editable(editable), editableVal(editableVal) {};
+                        UniPtr<EditableBase>&& editable,
+                        void* editableVal) : typeInfo(typeInfo), editable(std::move(editable)), editableVal(editableVal) {};
                 const std::type_info& typeInfo;
-                EditableBase* editable;
+                UniPtr<EditableBase> editable;
                 void* editableVal;
             };
+
             UUID uuid;
             std::unordered_map<std::string, EditableMember> editableMembers;
             std::vector<RefPtr<AssetObject>> assetMembers;
@@ -391,4 +377,20 @@ namespace Engine
             void DeserializePrivate(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver);
             void DeserializeSelf(const std::string& nameChain, AssetSerializer& serializer);
     };
+
+    template<class T>
+    void AssetObject::SerializeMember(const char* name, T& member)
+    {
+        auto m = MakeUnique<Editable<T>>(this, name, member);
+
+        this->editableMembers.emplace(
+                std::make_pair<std::string, EditableMember>(
+                    std::string(name),
+                    EditableMember(
+                        typeid(T),
+                        std::move(m),
+                        (void*)&member)
+                    )
+                );
+    }
 }

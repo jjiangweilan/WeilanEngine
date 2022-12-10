@@ -8,6 +8,8 @@ namespace Engine
         {
             meshNames.push_back(iter.first);
         }
+
+        SERIALIZE_MEMBER(meshes);
     }
 
     RefPtr<Mesh> Model::GetMesh(const std::string& name)

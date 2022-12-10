@@ -11,13 +11,17 @@ namespace Engine
     if (lua_isfunction(L, -1)) luaRef##luaRefName = luaL_ref(L, LUA_REGISTRYINDEX); \
     else lua_pop(L, 1);
 
+#define SERIALIZE_MEMBERS() \
+    SERIALIZE_MEMBER(luaClassName);
+
     LuaScript::LuaScript() : Component("LuaScript", nullptr)
     {
+        SERIALIZE_MEMBERS();
     }
 
     LuaScript::LuaScript(GameObject* gameObject): Component("LuaScript", gameObject)
     {
-
+        SERIALIZE_MEMBERS();
     }
 
     void LuaScript::RefLuaClass(const char* luaClass)

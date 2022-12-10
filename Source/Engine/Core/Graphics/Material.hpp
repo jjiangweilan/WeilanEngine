@@ -54,11 +54,12 @@ namespace Engine
                 UniPtr<Gfx::ShaderResource> shaderResource;
                 Gfx::ShaderConfig shaderConfig;
 
-                EDITABLE(std::string, shaderName);
-                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, float>), floatValues);
-                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::vec4>), vectorValues);
-                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, glm::mat4>), matrixValues);
-                EDITABLE(SINGLE_ARG(std::unordered_map<std::string, RefPtr<Texture>>), textureValues);
+                std::string shaderName;
+                std::unordered_map<std::string, float> floatValues;
+                std::unordered_map<std::string, glm::vec4> vectorValues;
+                std::unordered_map<std::string, glm::mat4> matrixValues;
+                std::unordered_map<std::string, RefPtr<Texture>> textureValues;
+
                 AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
                 void UpdateResources();

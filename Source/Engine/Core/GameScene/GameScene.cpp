@@ -4,6 +4,7 @@ namespace Engine
     GameScene::GameScene() : AssetObject()
     {
         name = "New GameScene";
+        SERIALIZE_MEMBER(gameObjects);
     }
 
     RefPtr<GameObject> GameScene::CreateGameObject()

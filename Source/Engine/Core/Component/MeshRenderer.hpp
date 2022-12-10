@@ -13,7 +13,7 @@ namespace Engine
         DECLARE_COMPONENT(MeshRenderer);
 
         public:
-            MeshRenderer() : Component("MeshRenderer", nullptr), mesh(nullptr), material(nullptr){};
+            MeshRenderer();
             MeshRenderer(GameObject* parent, Mesh* mesh, Material* material);
             MeshRenderer(GameObject* parent);
             ~MeshRenderer() override {};
@@ -26,8 +26,8 @@ namespace Engine
 
         private:
 
-            EDITABLE(Mesh*, mesh);
-            EDITABLE(Material*, material);
+            Mesh* mesh;
+            Material* material;
             AABB aabb;
             UniPtr<Gfx::ShaderResource> objectShaderResource; // TODO: should be an EDITABLE but we can't directly serialize a ShaderResource
 

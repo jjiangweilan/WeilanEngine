@@ -19,7 +19,7 @@ namespace Engine
         void Tick() override;
 
         private:
-            EDITABLE(std::string, luaClassName);
+            std::string luaClassName;
 
             using LuaRef = int;
 

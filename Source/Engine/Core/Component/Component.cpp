@@ -2,9 +2,15 @@
 
 namespace Engine
 {
-    Component::Component(std::string_view className, RefPtr<GameObject> gameObject) : gameObject(gameObject), className(className)
+    Component::Component()
     {
+        SERIALIZE_MEMBER(className);
+    }
 
+    Component::Component(std::string_view className, RefPtr<GameObject> gameObject) : Component()
+    {
+        this->gameObject = gameObject;
+        this->className = className;
     }
 
     Component::~Component(){}

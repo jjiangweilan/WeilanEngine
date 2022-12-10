@@ -5,21 +5,30 @@
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 namespace Engine
 {
-    Material::Material() : shaderResource(nullptr), shader(nullptr)
+#define SER_MEMS() \
+    SERIALIZE_MEMBER(shaderName);\
+    SERIALIZE_MEMBER(floatValues);\
+    SERIALIZE_MEMBER(vectorValues);\
+    SERIALIZE_MEMBER(matrixValues);\
+    SERIALIZE_MEMBER(textureValues);
+
+    Material::Material() : shader(nullptr), shaderResource(nullptr)
     {
+        SER_MEMS();
         assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj) {
-            Shader* casted = dynamic_cast<Shader*>(obj.Get());
-            if (casted && this->shaderName == casted->GetName())
-            {
-                SetShaderNoProtection(this->shaderName);
-                UpdateResources();
-            }
-            });
+        Shader* casted = dynamic_cast<Shader*>(obj.Get());
+        if (casted && this->shaderName == casted->GetName())
+        {
+            SetShaderNoProtection(this->shaderName);
+            UpdateResources();
+        }
+        });
     }
 
     Material::Material(std::string_view shader):
         Material()
     {
+        SER_MEMS();
         SetShader(shader);
     }
 

@@ -20,7 +20,7 @@ namespace Engine
     {
         DECLARE_ENGINE_OBJECT();
         public:
-            Component() = default;
+            Component();
             Component(std::string_view className, RefPtr<GameObject> gameObject);
             virtual ~Component() = 0;
             virtual void Tick() {};
@@ -34,7 +34,7 @@ namespace Engine
             RefPtr<GameObject> gameObject;
 
         private:
-            EDITABLE(std::string, className);
+            std::string className;
 
             friend class GameObject;
     };

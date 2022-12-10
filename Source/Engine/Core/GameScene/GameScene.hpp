@@ -23,7 +23,7 @@ namespace Engine
             std::vector<RefPtr<Light>> GetActiveLights();
 
         private:
-            EDITABLE(std::vector<UniPtr<GameObject>>, gameObjects);
+            std::vector<UniPtr<GameObject>> gameObjects;
             std::vector<RefPtr<GameObject>> roots;
 
             void TickGameObject(RefPtr<GameObject> obj);
