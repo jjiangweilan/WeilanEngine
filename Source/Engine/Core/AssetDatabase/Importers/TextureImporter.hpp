@@ -4,18 +4,22 @@
 
 namespace Engine::Internal
 {
-        class TextureImporter : public AssetImporter
-        {
-            virtual UniPtr<AssetObject> Import(
+    class TextureImporter : public AssetImporter
+    {
+        public:
+            void Import(
                     const std::filesystem::path& path,
-                    RefPtr<AssetImportCache> importCache,
+                    const std::filesystem::path& root,
                     const nlohmann::json& json,
+                    const UUID& rootUUID,
+                    const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+
+            UniPtr<AssetObject> Load(
+                    const std::filesystem::path& root,
                     ReferenceResolver& refResolver,
-                    const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+                    const UUID& uuid) override;
 
-            virtual nlohmann::json GetDefaultConfig() override;
-
-            protected:
-                void GenerateMipMap(unsigned char* image, int level);
-        };
+        protected:
+            void GenerateMipMap(unsigned char* image, int level);
+    };
 }

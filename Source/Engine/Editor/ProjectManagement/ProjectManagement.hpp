@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Code/Ptr.hpp"
+#include "Code/UUID.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 namespace Engine
@@ -19,10 +20,11 @@ namespace Engine::Editor
                 FilePathError
             };
 
+            UUID GetLastActiveScene() { return gameProj.value("lastActiveScene", UUID::empty.ToString()); }
             ResultCode CreateNewProject(const std::filesystem::path& path);
             bool IsInitialized() { return initialized; }
             std::vector<std::filesystem::path> GetProjectLists();
-            std::filesystem::path GetInternalRootPath();
+            static std::filesystem::path GetInternalRootPath();
             void SetLastActiveScene(RefPtr<GameScene> scene);
             void Save();
             ProjectManagement::ResultCode LoadProject(const std::filesystem::path& root);

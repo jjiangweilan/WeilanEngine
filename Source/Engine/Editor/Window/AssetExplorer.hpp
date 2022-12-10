@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include "../EditorContext.hpp"
+#include "Core/AssetDatabase/DirectoryNode.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 
 namespace Engine::Editor
@@ -13,8 +14,6 @@ namespace Engine::Editor
 
         private:
             RefPtr<EditorContext> editorContext;
-            void Refresh();
             void ShowDirectory(const std::filesystem::path& path);
-
     };
 }

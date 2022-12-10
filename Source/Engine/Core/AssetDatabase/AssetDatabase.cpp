@@ -11,29 +11,26 @@ namespace Engine
 {
     AssetDatabase* AssetDatabase::instance = nullptr;
 
-    AssetDatabase::AssetDatabase(const std::filesystem::path& root): cache(root), root(root){}
-
-    std::vector<unsigned char> AssetDatabase::ReadAsBinary(const std::string& path)
+    AssetDatabase::AssetDatabase(const std::filesystem::path& root): root(root)
     {
-        std::error_code errorCode;
-        uintmax_t fileSize = std::filesystem::file_size(path, errorCode);
-
-        std::vector<unsigned char> fileContent;
-
-        if (errorCode.value() != 0)
+        const std::filesystem::path importInfoPath = root / "Library/importInfo.json";
+        if (std::filesystem::exists(importInfoPath))
         {
-            SPDLOG_ERROR("Failed to get file size. {} File path: {}", errorCode.message(), path);
-            return fileContent;
+            std::fstream f;
+            f.open(importInfoPath);
+            if (f.good() && f.is_open())
+            {
+                try
+                {
+                    importInfo = nlohmann::json::parse(f);
+                }
+                catch (...)
+                {
+                    importInfo = "{}"_json;
+                }
+            }
         }
-
-        fileContent.resize(fileSize);
-
-        std::ifstream fs;
-        fs.open(path, std::ios::in | std::ios::binary);
-
-        fs.read(reinterpret_cast<char*>(&fileContent[0]), fileSize);
-
-        return fileContent;
+        else importInfo = "{}"_json;
     }
 
     void AssetDatabase::Refresh_Internal(const std::filesystem::path& path, bool isEngineInternal)
@@ -84,7 +81,11 @@ namespace Engine
         {
             containedUUIDs[it->GetName()] = it->GetUUID();
         }
-        UniPtr<AssetObject> obj = importer->Import(path, &cache, *actualConfig, refResolver, target->GetRoot()->GetUUID(), containedUUIDs);
+        if (importer->NeedReimport(path, root, target->GetRoot()->GetUUID()))
+        {
+            importer->Import(path, root, *actualConfig, target->GetRoot()->GetUUID(), containedUUIDs);
+        }
+        UniPtr<AssetObject> obj = importer->Load(root, refResolver, target->GetRoot()->GetUUID());
         target->Reload(std::move(obj));
         for(auto& iter : onAssetReloadCallbacks)
         {
@@ -261,6 +262,11 @@ namespace Engine
             return iter->second->GetRoot();
         }
 
+        auto ext = path.extension();
+        if (ext.empty()) return nullptr;
+        auto importer = GetImporter(ext.string().substr(1));
+        if (importer == nullptr) return nullptr;
+
         // if this is a new external asset, write the meta to disk
         if (isNewExternalAsset)
         {
@@ -272,16 +278,17 @@ namespace Engine
                 j["uuid"] = uuid.ToString();
                 metaFileOutput << j.dump();
                 isMetaValid = true;
+                importer->Import(path, root, {}, uuid, containedUUIDs);
             }
+        }
+        else if (importer->NeedReimport(path, root, uuid))
+        {
+            importer->Import(path, root, {}, uuid, containedUUIDs);
         }
 
         if (isMetaValid)
         {
-            auto ext = path.extension();
-            if (ext.empty()) return nullptr;
-            auto importer = GetImporter(ext.string().substr(1));
-            if (importer == nullptr) return nullptr;
-            UniPtr<AssetObject> obj = importer->Import(path, &cache, {}, refResolver, uuid, containedUUIDs);
+            UniPtr<AssetObject> obj = importer->Load(root, refResolver, uuid);
             if (obj != nullptr)
             {
                 return StoreImported(path, uuid, relativeBase, std::move(obj), useRelativeBase);

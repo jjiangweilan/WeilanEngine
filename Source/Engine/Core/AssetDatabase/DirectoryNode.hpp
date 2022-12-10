@@ -5,13 +5,9 @@
 
 namespace Engine
 {
-    class DirectoryNode
+    struct DirectoryNode
     {
-        public:
-
-        private:
-
-            std::list<DirectoryNode*> children;
-            std::list<RefPtr<AssetFile>> files;
+        std::list<DirectoryNode*> children;
+        std::list<RefPtr<AssetFile>> files;
     };
 }

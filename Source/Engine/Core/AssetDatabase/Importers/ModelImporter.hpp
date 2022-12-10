@@ -6,13 +6,23 @@ namespace Engine::Internal
     class ModelImporter : public AssetImporter
     {
         public:
-            virtual ~ModelImporter() override {};
-            UniPtr<AssetObject> Import(
-                const std::filesystem::path& path,
-                RefPtr<AssetImportCache> importCache,
-                const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+            ~ModelImporter() override {};
 
-        private:
-            UniPtr<AssetObject> ReadCache(const UUID& uuid);
+            void Import(
+                    const std::filesystem::path& path,
+                    const std::filesystem::path& root,
+                    const nlohmann::json& json,
+                    const UUID& rootUUID,
+                    const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+
+            UniPtr<AssetObject> Load(
+                    const std::filesystem::path& root,
+                    ReferenceResolver& refResolver,
+                    const UUID& uuid) override;
+
+            bool NeedReimport(
+                    const std::filesystem::path& path,
+                    const std::filesystem::path& root,
+                    const UUID& uuid) override;
     };
 }

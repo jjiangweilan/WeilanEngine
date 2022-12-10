@@ -10,12 +10,16 @@
 #include "Core/AssetDatabase/Importers/GeneralImporter.hpp"
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/AssetDatabase/Importers/TextureImporter.hpp"
-#include "Core/AssetDatabase/Importers/LuaImporter.hpp"
+#include "Script/LuaBackend.hpp"
 
 namespace Engine
 {
     void WeilanEngine::Launch()
     {
+        // drivers
+        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan);
+        gfxDriver = Gfx::GfxDriver::Instance();
+
         spdlog::set_level(spdlog::level::info);
 
         projectManagement = MakeUnique<Editor::ProjectManagement>();
@@ -25,13 +29,19 @@ namespace Engine
         {
             projectManagement->LoadProject(projectList[0]);
         }
+        LuaBackend::Instance()->LoadLuaInFolder(projectList[0] / "Assets");
 
         AssetDatabase::InitSingleton(projectList[0]);
-        // register importers
         RegisterAssetImporters();
-        // drivers
-        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan);
-        gfxDriver = Gfx::GfxDriver::Instance();
+        AssetDatabase::Instance()->LoadInternalAssets();
+        AssetDatabase::Instance()->LoadAllAssets();
+
+        // recover last active scene
+        UUID lastActiveSceneUUID = projectManagement->GetLastActiveScene();
+        if (!lastActiveSceneUUID.IsEmpty())
+            GameSceneManager::Instance()->SetActiveGameScene(AssetDatabase::Instance()->GetAssetObject(lastActiveSceneUUID));
+
+
 
         // modules
         renderPipeline = MakeUnique<Rendering::RenderPipeline>(gfxDriver.Get());
@@ -39,12 +49,6 @@ namespace Engine
         gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get(), projectManagement);
 #endif
 
-
-
-        AssetDatabase::Instance()->LoadInternalAssets();
-#if !GAME_EDITOR
-        AssetDatabase::Instance()->LoadAllAssets();
-#endif
         renderPipeline->Init();
         gameEditor->Init(renderPipeline);
 
@@ -96,7 +100,6 @@ namespace Engine
     void WeilanEngine::RegisterAssetImporters()
     {
         RefPtr<AssetDatabase> assetDb = AssetDatabase::Instance();
-        assetDb->RegisterImporter("lua", []() { return MakeUnique<Internal::LuaImporter>(); });
         assetDb->RegisterImporter("glb", []() { return MakeUnique<Internal::glbImporter>(); });
         assetDb->RegisterImporter("mat", []() { return MakeUnique<Internal::GeneralImporter<Material>>(); });
         assetDb->RegisterImporter("game", []() { return MakeUnique<Internal::GeneralImporter<GameScene>>(); });
