@@ -9,7 +9,17 @@ namespace Engine::Internal
     {
         public:
             virtual ~glbImporter() override {};
-            UniPtr<AssetObject> Import(const std::filesystem::path& path, const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+            void Import(
+                    const std::filesystem::path& path,
+                    const std::filesystem::path& root,
+                    const nlohmann::json& json,
+                    const UUID& rootUUID,
+                    const std::unordered_map<std::string, UUID>& containedUUIDs) override;
+
+            virtual UniPtr<AssetObject> Load(
+                    const std::filesystem::path& root,
+                    ReferenceResolver& refResolver,
+                    const UUID& uuid) override;
 
         private:
     };

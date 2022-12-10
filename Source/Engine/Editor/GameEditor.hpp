@@ -22,18 +22,19 @@ namespace Engine::Editor
     class GameEditor
     {
         public:
-            GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver);
+            GameEditor(
+                RefPtr<Gfx::GfxDriver> gfxDriver,
+                RefPtr<ProjectManagement> projectManagement);
             ~GameEditor();
 
             void Init(RefPtr<Rendering::RenderPipeline> renderPipeline);
             void ProcessEvent(const SDL_Event& event);
             bool IsProjectInitialized();
-            void ShowProjectsWindow();
             void Tick();
             void Render();
         private:
             /* Data */
-            UniPtr<ProjectManagement> projectManagement;
+            RefPtr<ProjectManagement> projectManagement;
             AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
             /* Windows */
@@ -53,7 +54,6 @@ namespace Engine::Editor
             void DrawMainMenu();
             void RenderEditor(RefPtr<CommandBuffer> cmdBuf);
             void RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf);
-            void InitRendering();
 
             struct ImGuiData
             {

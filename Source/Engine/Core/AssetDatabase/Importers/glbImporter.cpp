@@ -45,33 +45,44 @@ namespace Engine::Internal
     };
 
 
-    UniPtr<AssetObject> glbImporter::Import(const std::filesystem::path& path, const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
+    void glbImporter::Import(
+            const std::filesystem::path& path,
+            const std::filesystem::path& root,
+            const nlohmann::json& json,
+            const UUID& uuid,
+            const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
-        std::ifstream input(path, std::ios::binary | std::ios::in);
-        if (!input.is_open() || !input.good()) return nullptr;
+        auto outputDir = root / "Library" / uuid.ToString();
 
-        glbImportHelper importHelper;
-        importHelper.preloadedUUIDs = &containedUUIDs;
-        importHelper.Load(path);
+        if (!std::filesystem::exists(outputDir))
+        {
+            std::filesystem::create_directory(outputDir);
+        }
 
-        auto model = MakeUnique<Model>(std::move(importHelper.meshes), uuid);
-        model->SetName(path.filename().string());
-        return model;
+        std::filesystem::copy(path, outputDir / "main.glb");
+        nlohmann::json containedUUIDsJson;
+        for(const auto& uuid : containedUUIDs)
+        {
+            containedUUIDsJson[uuid.first] = uuid.second.ToString();
+        }
+
+        std::ofstream outputJ(outputDir / "desc.json", std::ios::trunc);
+        outputJ << containedUUIDsJson.dump();
     }
 
     template<class T>
-    void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex, VertexAttribute<T>& attr, uint32_t typeCheck)
-    {
-        auto& acce = accessors[accessorIndex];
+        void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex, VertexAttribute<T>& attr, uint32_t typeCheck)
+        {
+            auto& acce = accessors[accessorIndex];
 
-        assert(typeCheck == 0 || acce["componentType"] == typeCheck);
+            assert(typeCheck == 0 || acce["componentType"] == typeCheck);
 
-        auto& bufView = bufferViews[acce["bufferView"].get<int>()];
-        attr.count = acce["count"];
-        char* startAddr = ((char*)bufChunkData + bufView["byteOffset"].get<int>());
-        attr.componentCount = MapTypeToComponentCount(acce["type"]);
-        attr.data = std::vector<unsigned char>(startAddr, startAddr + attr.count * (uint32_t)attr.componentCount * sizeof(T));
-    }
+            auto& bufView = bufferViews[acce["bufferView"].get<int>()];
+            attr.count = acce["count"];
+            char* startAddr = ((char*)bufChunkData + bufView["byteOffset"].get<int>());
+            attr.componentCount = MapTypeToComponentCount(acce["type"]);
+            attr.data = std::vector<unsigned char>(startAddr, startAddr + attr.count * (uint32_t)attr.componentCount * sizeof(T));
+        }
 
     void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex, UntypedVertexAttribute& attr, uint32_t typeCheck)
     {
@@ -184,4 +195,33 @@ namespace Engine::Internal
             meshes[meshName] = std::move(mesh);
         }
     }
+
+    UniPtr<AssetObject> glbImporter::Load(
+            const std::filesystem::path& root,
+            ReferenceResolver& refResolver,
+            const UUID& uuid)
+    {
+        auto outputDir = root / "Library" / uuid.ToString();
+        auto path = outputDir / "main.glb";
+        auto descPath = outputDir / "desc.json";
+        std::ifstream descInput(descPath);
+        nlohmann::json desc = nlohmann::json::parse(descInput);
+        std::unordered_map<std::string, UUID> containedUUIDs;
+        for(auto it = desc.begin(); it != desc.end(); ++it)
+        {
+            containedUUIDs[it.key()] = it.value();
+        }
+
+        std::ifstream input(path, std::ios::binary | std::ios::in);
+        if (!input.is_open() || !input.good()) return nullptr;
+
+        glbImportHelper importHelper;
+        importHelper.preloadedUUIDs = &containedUUIDs;
+        importHelper.Load(path);
+
+        auto model = MakeUnique<Model>(std::move(importHelper.meshes), uuid);
+        model->SetName(path.filename().string());
+        return model;
+    }
+
 }

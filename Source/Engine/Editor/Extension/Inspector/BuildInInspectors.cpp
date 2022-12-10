@@ -6,6 +6,7 @@
 #include "../../ProjectManagement/ProjectManagement.hpp"
 #include "Core/Graphics/Shader.hpp"
 #include "Core/Component/Camera.hpp"
+#include "Core/Texture.hpp"
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
@@ -25,6 +26,7 @@ namespace Engine::Editor
         REGISTER(Shader);
         REGISTER(GameScene);
         REGISTER(LuaScript);
+        REGISTER(Texture);
     }
 
     static void MaterialInspectorShowStructureData(Material& mat, const std::string& bindingName, Gfx::ShaderInfo::StructuredData& data)
@@ -334,6 +336,19 @@ namespace Engine::Editor
                 ImGui::Text("alphaBlendOp: %s", Utils::MapStrBlendOp(blend.alphaBlendOp));
                 ImGui::Text("colorBlendOp: %s", Utils::MapStrBlendOp(blend.colorBlendOp));
             }
+        }
+    }
+
+    void TextureInspector::Tick(RefPtr<EditorContext> editorContext)
+    {
+        RefPtr<Texture> tex = target;
+
+
+        if (ImGui::Button("Regenerate with MipMap"))
+        {
+            auto& path = AssetDatabase::Instance()->GetObjectPath(tex->GetUUID());
+            auto assetFile = AssetDatabase::Instance()->GetAssetFile(path);
+            AssetDatabase::Instance()->Reload(assetFile, R"({"genMipMap" : true})"_json);
         }
     }
 }

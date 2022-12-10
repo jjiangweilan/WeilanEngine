@@ -11,10 +11,9 @@
 #include "Extension/Inspector/BuildInInspectors.hpp"
 namespace Engine::Editor
 {
-    GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver) : gfxDriver(gfxDriver)
+    GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement) : gfxDriver(gfxDriver), projectManagement(projectManagement)
     {
-        projectManagement = MakeUnique<ProjectManagement>();
-        ProjectManagement::instance = projectManagement;
+
     }
 
     GameEditor::~GameEditor()
@@ -31,6 +30,7 @@ namespace Engine::Editor
         ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
         ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
         ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+        ImGui::LoadIniSettingsFromDisk("imgui.ini");
 
         editorContext = MakeUnique<EditorContext>();
         sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
@@ -108,13 +108,6 @@ namespace Engine::Editor
         Gfx::RenderPass::Attachment c;
         c.image = gfxDriver->GetSwapChainImageProxy();
         renderPass->AddSubpass({c}, std::nullopt);
-
-        auto projectList = projectManagement->GetProjectLists();
-        if (!projectList.empty())
-        {
-            projectManagement->LoadProject(projectList[0]);
-            ImGui::LoadIniSettingsFromDisk("imgui.ini");
-        }
     }
 
     void GameEditor::ProcessEvent(const SDL_Event& event)

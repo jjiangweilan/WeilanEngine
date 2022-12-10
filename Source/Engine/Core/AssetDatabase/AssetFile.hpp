@@ -3,6 +3,7 @@
 #include "Core/AssetObject.hpp"
 #include <unordered_map>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 namespace Engine
 {
     class AssetFile
@@ -17,6 +18,7 @@ namespace Engine
             const std::filesystem::path& GetPath() { return path; }
             const std::filesystem::path& GetRelativeBase() { return relativeBase; }
             std::filesystem::path GetFullPath() { return relativeBase / path; }
+            const nlohmann::json& GetImportConfig() { return importConfig; }
 
             void Reload(UniPtr<AssetObject>&& obj);
             std::filesystem::file_time_type GetLastWriteTime() { return lastWriteTime; }
@@ -35,6 +37,7 @@ namespace Engine
             UniPtr<AssetObject> root;
             std::vector<RefPtr<AssetObject>> containedAssetObjects;
             std::filesystem::file_time_type lastWriteTime;
+            nlohmann::json importConfig;
 
             void UpdateLastWriteTime();
     };

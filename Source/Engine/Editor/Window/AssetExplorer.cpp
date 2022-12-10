@@ -47,13 +47,15 @@ namespace Engine::Editor
 
     void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
     {
-        if (std::filesystem::is_directory(path))
+        for (auto const& dir_entry : std::filesystem::directory_iterator(path))
         {
-            if (ImGui::TreeNode(path.filename().string().c_str()))
+            auto dirPath = dir_entry.path();
+            if (std::filesystem::is_directory(dir_entry))
             {
-                for (auto const& dir_entry : std::filesystem::directory_iterator(path)) 
+                if (ImGui::TreeNode(dirPath.filename().string().c_str()))
                 {
                     ShowDirectory(dir_entry);
+                    ImGui::TreePop();
                 }
 
                 if (ImGui::BeginPopupContextWindow("ContextWindow"))
@@ -61,14 +63,10 @@ namespace Engine::Editor
                     CreateNewAssetMenuItem<Material>("Material", path);
                     ImGui::EndPopup();
                 }
-                ImGui::TreePop();
             }
-        }
-        else
-        {
-            if (path.extension() != ".meta")
+            else if(dirPath.extension() != ".meta")
             {
-                RefPtr<AssetObject> assetObject = AssetDatabase::Instance()->Load(path);
+                RefPtr<AssetObject> assetObject = AssetDatabase::Instance()->Load(dirPath);
 
                 if (assetObject != nullptr)
                 {
@@ -76,12 +74,12 @@ namespace Engine::Editor
                     auto customExplorer = EditorRegister::Instance()->GetCustomExplorer(assetObject);
                     if (customExplorer != nullptr)
                     {
-                        customExplorer->Tick(editorContext, path);
+                        customExplorer->Tick(editorContext, dirPath);
                     }
                     else
                     {
                         auto assetObjectName = assetObject->GetName();
-                        if (ImGui::Button(path.filename().string().c_str()))
+                        if (ImGui::Button(dirPath.filename().string().c_str()))
                         {
                             editorContext->currentSelected = assetObject;
                         }
@@ -103,10 +101,5 @@ namespace Engine::Editor
         ImGui::Begin("Asset");
         ShowDirectory("Assets");
         ImGui::End();
-    }
-
-    void AssetExplorer::Refresh()
-    {
-
     }
 }

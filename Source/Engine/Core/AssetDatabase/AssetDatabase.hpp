@@ -4,6 +4,7 @@
 #include "Code/UUID.hpp"
 #include "Code/Ptr.hpp"
 #include "AssetFile.hpp"
+#include "DirectoryNode.hpp"
 #include "Core/Graphics/Shader.hpp"
 #include "AssetImporter.hpp"
 #include <list>
@@ -12,22 +13,21 @@
 #include <list>
 #include <functional>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
 namespace Engine
 {
-    namespace Editor
-    {
-        class GameEditor;
-    }
-
-
     class AssetDatabase
     {
         public:
             using OnAssetReload = std::function<void(RefPtr<AssetObject>)>;
             using OnAssetReloadIterHandle = std::list<OnAssetReload>::iterator;
+            enum class ImportAssetResult
+            {
+                Success, ImportFailed ,ExtensionNotSupported
+            };
 
             static RefPtr<AssetDatabase> Instance();
-            static void InitSingleton();
+            static void InitSingleton(const std::filesystem::path& root);
             static void Deinit();
 
             RefPtr<AssetObject> GetAssetObject(const UUID& uuid);
@@ -35,8 +35,9 @@ namespace Engine
             RefPtr<Shader> GetShader(const std::string& name);
             OnAssetReloadIterHandle RegisterOnAssetReload(const OnAssetReload& callback) { return onAssetReloadCallbacks.insert(onAssetReloadCallbacks.end(), callback);}
             void UnregisterOnAssetReload(OnAssetReloadIterHandle handle) { onAssetReloadCallbacks.erase(handle); }
-
             void EndOfFrameUpdate();
+
+            const DirectoryNode& GetDbRoot() { return databaseRoot; }
 
             /**
              * @brief Save an AssetObject to disk
@@ -48,35 +49,21 @@ namespace Engine
              */
             RefPtr<AssetObject> Save(UniPtr<AssetObject>&& assetObject, const std::filesystem::path& path);
             void SaveAll();
-
             template<class T = AssetObject>
-            RefPtr<T> Load(const std::filesystem::path& path);
-            bool GetObjectPath(const UUID& uuid, std::filesystem::path& path);
+                RefPtr<T> Load(const std::filesystem::path& path);
+            const std::filesystem::path& GetObjectPath(const UUID& uuid);
             void ReloadShaders() { reloadShader = true; }
             void LoadAllAssets();
-
+            void Reload(RefPtr<AssetFile> target, const nlohmann::json& config = nlohmann::json{});
             int RegisterImporter(
                     const std::string& extension,
                     const std::function<UniPtr<AssetImporter>()>& importerFactory);
             RefPtr<AssetImporter> GetImporter(const std::string& extension) { return importerPrototypes[extension]; } 
-
 #if GAME_EDITOR
             void LoadInternalAssets();
 #endif
 
-            // TODO: remove
-            std::vector<unsigned char> ReadAsBinary(const std::string& path);
         protected:
-
-            AssetDatabase();
-            static AssetDatabase* instance;
-
-            RefPtr<AssetObject> LoadInternal(
-                    const std::filesystem::path& path,
-                    bool useRelativeBase = false,
-                    const std::filesystem::path& relativeBase = "");
-            void Reload(RefPtr<AssetFile> target);
-
             using Path = std::filesystem::path;
             // from: https://en.cppreference.com/w/cpp/filesystem/path/hash_value
             struct PathHash {
@@ -84,28 +71,36 @@ namespace Engine
                     return std::filesystem::hash_value(p);
                 }
             };
+            AssetDatabase(const std::filesystem::path& root);
+            RefPtr<AssetObject> LoadInternal(
+                    const std::filesystem::path& path,
+                    bool useRelativeBase = false,
+                    const std::filesystem::path& relativeBase = "");
+            void Refresh_Internal(const Path& path, bool isEngineInternal);
+            void ProcessAssetFile(const Path& path);
+            RefPtr<AssetObject> StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase);
+            void ReloadShadersImpl();
 
+            static AssetDatabase* instance;
+            const std::filesystem::path root;
+            DirectoryNode databaseRoot;
+            std::list<DirectoryNode> directories;
             std::list<OnAssetReload> onAssetReloadCallbacks;
             std::unordered_map<std::filesystem::path, RefPtr<AssetFile>, PathHash> pathToAssetFile;
             std::unordered_map<UUID, UniPtr<AssetFile>> assetFiles;
             std::unordered_map<UUID, RefPtr<AssetObject>> assetObjects;
             std::unordered_map<std::string, RefPtr<Shader>> shaderMap;
             std::unordered_map<std::string, UniPtr<AssetImporter>> importerPrototypes;
-
             ReferenceResolver refResolver;
             bool reloadShader = false;
-
-            void Refresh_Internal(const Path& path, bool isEngineInternal);
-            void ProcessAssetFile(const Path& path);
-            RefPtr<AssetObject> StoreImported(std::filesystem::path path, UUID uuid, std::filesystem::path relativeBase, UniPtr<AssetObject>&& obj, bool useRelativeBase);
-            void ReloadShadersImpl();
+            nlohmann::json importInfo;
     };
 
     template<class T>
-    RefPtr<T> AssetDatabase::Load(const std::filesystem::path& path)
-    {
-        return static_cast<T*>(LoadInternal(path).Get());
-    }
+        RefPtr<T> AssetDatabase::Load(const std::filesystem::path& path)
+        {
+            return static_cast<T*>(LoadInternal(path).Get());
+        }
 }
 
 /*

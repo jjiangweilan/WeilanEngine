@@ -12,9 +12,11 @@ namespace Engine
             static RefPtr<LuaBackend> Instance();
 
             inline lua_State* GetL() { return state; }
+            void LoadLuaInFolder(const std::filesystem::path& folder);
             void LoadFile(const std::filesystem::path& path);
             void OpenL() { if (!state) state = luaL_newstate(); }
             void CloseL() { if (state) lua_close(state); }
+
         private:
             LuaBackend();
 
@@ -22,5 +24,7 @@ namespace Engine
             LuaWraps wraps;
 
             static UniPtr<LuaBackend> instance;
+
+            void LoadLuaInFolderIter(const std::filesystem::path& folder);
     };
 }

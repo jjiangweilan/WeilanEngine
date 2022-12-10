@@ -5,6 +5,7 @@
 namespace Engine
 {
     using TextureDescription = Gfx::ImageDescription;
+
     class Texture : public AssetObject
     {
         public:

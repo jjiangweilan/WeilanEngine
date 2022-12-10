@@ -3,9 +3,13 @@
 #include "Core/Graphics/Shader.hpp"
 #include "Utils/EnumStringMapping.hpp"
 #include "Utils/InternalAssets.hpp"
+#if GAME_EDITOR
+#include "Editor/ProjectManagement/ProjectManagement.hpp"
+#endif
 #include <fstream>
 #include <regex>
-#include <sstream>
+#include <string>
+#include <set>
 #include <ryml_std.hpp>
 #include <ryml.hpp>
 #include <filesystem>
@@ -27,8 +31,11 @@ namespace Engine::Internal
             };
 
             std::filesystem::path requestingSourceRelativeFullPath;
+            std::set<std::filesystem::path>* includedFiles;
 
         public:
+            ShaderIncluder(std::set<std::filesystem::path>* includedFileTrack) : includedFiles(includedFileTrack) {};
+
             virtual shaderc_include_result* GetInclude(
                     const char* requested_source,
                     shaderc_include_type type,
@@ -51,7 +58,7 @@ namespace Engine::Internal
 #if GAME_EDITOR
                 if (!std::filesystem::exists(relativePath))
                 {
-                    std::filesystem::path enginePath = Utils::InternalAssets::GetInternalAssetPath();
+                    std::filesystem::path enginePath = Editor::ProjectManagement::GetInternalRootPath();
                     relativePath = enginePath / relativePath;
                 }
 #endif
@@ -62,6 +69,7 @@ namespace Engine::Internal
                 {
                     return new shaderc_include_result{"", 0, "Can't find requested shader file."};
                 }
+                if (includedFiles) includedFiles->insert(std::filesystem::absolute(relativePath));
 
                 FileData* fileData = new FileData();
                 fileData->sourceName = std::string(requested_source);
@@ -86,6 +94,18 @@ namespace Engine::Internal
             virtual ~ShaderIncluder() = default;
     };
 
+    static void CompileShader(
+        const std::filesystem::path& path,
+        const std::filesystem::path& root,
+        const char* name,
+        const UUID& uuid,
+        shaderc_shader_kind kind,
+        shaderc::CompileOptions options);
+
+    static std::time_t GetLastWriteTime(const std::filesystem::path& path)
+    {
+        return std::chrono::system_clock::to_time_t(std::chrono::clock_cast<std::chrono::system_clock>(std::filesystem::last_write_time(path)));
+    }
 
     static ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name)
     {
@@ -139,7 +159,7 @@ namespace Engine::Internal
                             state.dstColorBlendFactor = state.dstAlphaBlendFactor;
 
                             if (state.srcAlphaBlendFactor == Gfx::BlendFactor::One &&
-                                state.dstAlphaBlendFactor == Gfx::BlendFactor::Zero) state.blendEnable = false;
+                                    state.dstAlphaBlendFactor == Gfx::BlendFactor::Zero) state.blendEnable = false;
                         }
 
                         config.color.blends.push_back(state);
@@ -243,61 +263,57 @@ namespace Engine::Internal
         return config;
     }
 
-    UniPtr<AssetObject> ShaderImporter::Import(
-            const std::filesystem::path& path,
-            const nlohmann::json& configJson,
-            ReferenceResolver& refResolver,
-            const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
+    bool ShaderImporter::NeedReimport(
+        const std::filesystem::path& path,
+        const std::filesystem::path& root,
+        const UUID& uuid)
     {
-        // read file
+        auto outputDir = root / "Library" / uuid.ToString();
+
+        if (!std::filesystem::exists(outputDir)) return true;
+
+        std::ifstream dep(outputDir / DEP_FileName, std::ios::in);
+        nlohmann::json depJ = nlohmann::json::parse(dep);
+
+        for (auto& p : depJ)
+        {
+            std::filesystem::path path = p.value<std::string>("path", "");
+            std::time_t lastWriteTime = p.value<std::time_t>("lastWriteTime", 0);
+            std::time_t currWriteTime = GetLastWriteTime(path);
+            if (!std::filesystem::exists(path) ||
+                (currWriteTime > lastWriteTime)) return true;
+        }
+
+        return false;
+    }
+
+    void ShaderImporter::Import(
+            const std::filesystem::path& path,
+            const std::filesystem::path& root,
+            const nlohmann::json& json,
+            const UUID& rootUUID,
+            const std::unordered_map<std::string, UUID>& containedUUIDs)
+    {
+        if (!std::filesystem::exists(path)) return;
+
+        auto outputDir = root / "Library" / rootUUID.ToString();
+        bool debug = true;
+
+        if (!std::filesystem::exists(outputDir))
+        {
+            std::filesystem::create_directory(outputDir);
+        }
+        // Config
         std::fstream f;
         f.open(path, std::ios::in | std::ios::binary);
-        if (!f.is_open() || !f.good()) return nullptr;
+        if (!f.is_open() || !f.good()) return;
 
         f.seekg(0, std::ios::end);
-        SPDLOG_INFO("{}", path.string());
         size_t fSize = std::filesystem::file_size(path);
         UniPtr<char> buf = UniPtr<char>(new char[fSize]);
         // shader Buffer
         f.seekg(0, std::ios::beg);
         f.read(buf.Get(), fSize);
-
-        // Vert
-        shaderc::Compiler compiler;
-        shaderc::CompileOptions vertOption;
-        vertOption.AddMacroDefinition("VERT", "1");
-        vertOption.SetIncluder(std::make_unique<ShaderIncluder>());
-
-        // TODO: this needs to be configurable so that it can be not included in the release code
-        vertOption.SetGenerateDebugInfo();
-        vertOption.SetOptimizationLevel(shaderc_optimization_level_zero);
-
-        shaderc::SpvCompilationResult vertResult = compiler.CompileGlslToSpv((const char*)buf.Get(), fSize, shaderc_shader_kind::shaderc_vertex_shader, path.relative_path().string().c_str(), vertOption);
-        if (vertResult.GetCompilationStatus() != shaderc_compilation_status::shaderc_compilation_status_success)
-        {
-            SPDLOG_ERROR("Failed to generate shader at {}, reason: {}", (const char*)path.c_str(), vertResult.GetErrorMessage().c_str());
-            return nullptr;
-        }
-
-        // Frag
-        shaderc::CompileOptions fragOption;
-        fragOption.AddMacroDefinition("FRAG", "1");
-        fragOption.SetIncluder(std::make_unique<ShaderIncluder>());
-
-        // TODO: this needs to be configurable so that it can be not included in the release code
-        fragOption.SetGenerateDebugInfo();
-        fragOption.SetOptimizationLevel(shaderc_optimization_level_zero);
-
-        shaderc::SpvCompilationResult fragResult = compiler.CompileGlslToSpv((const char*)buf.Get(), fSize, shaderc_shader_kind::shaderc_fragment_shader, path.relative_path().string().c_str(), fragOption);
-        if (fragResult.GetCompilationStatus() != shaderc_compilation_status::shaderc_compilation_status_success)
-        {
-            SPDLOG_ERROR("Failed to generate shader at {}, reason: {}", (const char*)path.c_str(), fragResult.GetErrorMessage().c_str());
-            return nullptr;
-        }
-
-
-        // config
-        // parse input first
         const int MAX_LENGTH = 1024;
         char* line = new char[MAX_LENGTH];
         std::stringstream yamlConfig;
@@ -318,21 +334,135 @@ namespace Engine::Internal
             }
         }
 yamlEnd:
-        f.close();
-        ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.str()));
-        std::string name;
-        ShaderConfig config = MapShaderConfig(tree, name);
+        std::ofstream outConfig;
+        outConfig.open(outputDir / YAML_FileName, std::ios::binary | std::ios::trunc | std::ios::out);
+        outConfig.write(yamlConfig.str().c_str(), yamlConfig.str().size());
+        std::set<std::filesystem::path> includedTrack;
 
-        uint32_t vertSize = sizeof(shaderc::SpvCompilationResult::element_type) * (vertResult.end() - vertResult.begin());
-        uint32_t fragSize = sizeof(shaderc::SpvCompilationResult::element_type) * (fragResult.end() - fragResult.begin());
+        // Vert
+        shaderc::CompileOptions vertOption;
+        vertOption.AddMacroDefinition("VERT", "1");
+        vertOption.SetIncluder(std::make_unique<ShaderIncluder>(&includedTrack));
+        if (debug)
+        {
+            vertOption.SetGenerateDebugInfo();
+            vertOption.SetOptimizationLevel(shaderc_optimization_level_zero);
+        }
+        CompileShader(path, root, "vert.spv", rootUUID, shaderc_shader_kind::shaderc_vertex_shader, vertOption);
 
-        auto shaderProgram = Gfx::GfxDriver::Instance()->CreateShaderProgram(name,
-                &config,
-                (unsigned char*)vertResult.begin(),
-                vertSize,
-                (unsigned char*)fragResult.begin(),
-                fragSize);
-        UniPtr<Shader> shader = MakeUnique<Shader>(name, std::move(shaderProgram), uuid);
-        return shader;
+        // Frag
+        shaderc::CompileOptions fragOption;
+        fragOption.AddMacroDefinition("FRAG", "1");
+        fragOption.SetIncluder(std::make_unique<ShaderIncluder>(&includedTrack));
+        if (debug)
+        {
+            fragOption.SetGenerateDebugInfo();
+            fragOption.SetOptimizationLevel(shaderc_optimization_level_zero);
+        }
+        CompileShader(path, root, "frag.spv", rootUUID, shaderc_shader_kind::shaderc_fragment_shader, fragOption);
+
+        // write included track
+        nlohmann::json dependencyTrack;
+        int i = 0;
+        for (auto& p : includedTrack)
+        {
+            nlohmann::json fileDep;
+            fileDep["path"] = p.string();
+            fileDep["lastWriteTime"] = GetLastWriteTime(p);
+            dependencyTrack[i] = fileDep;
+            i += 1;
+        }
+        std::ofstream depOut(outputDir / DEP_FileName, std::ios::trunc | std::ios::out);
+        depOut << dependencyTrack.dump();
+    }
+
+    static std::vector<char> ReadSpvFile(const std::filesystem::path& path)
+    {
+        std::ifstream file(path, std::ios::binary | std::ios::in);
+        std::vector<char> data{
+            std::istreambuf_iterator<char>(file),
+                std::istreambuf_iterator<char>() };
+        return data;
+    }
+
+    UniPtr<AssetObject> ShaderImporter::Load(
+            const std::filesystem::path& root,
+            ReferenceResolver& refResolver,
+            const UUID& uuid)
+    {
+        auto inputDir = root / "Library" / uuid.ToString();
+
+        if (std::filesystem::exists(inputDir))
+        {
+            // config
+            std::ifstream configFile(inputDir / YAML_FileName, std::ios::binary | std::ios::in);
+            std::string yamlConfig{
+                std::istreambuf_iterator<char>(configFile),
+                    std::istreambuf_iterator<char>()};
+
+            ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.c_str()));
+            std::string name;
+            ShaderConfig config = MapShaderConfig(tree, name);
+
+            auto vert = ReadSpvFile(inputDir / VERT_FileName);
+            auto frag = ReadSpvFile(inputDir / FRAG_FileName);
+
+            auto shaderProgram = Gfx::GfxDriver::Instance()->CreateShaderProgram(name,
+                    &config,
+                    (unsigned char*)&vert.front(),
+                    vert.size(),
+                    (unsigned char*)&frag.front(),
+                    frag.size());
+            UniPtr<Shader> shader = MakeUnique<Shader>(name, std::move(shaderProgram), uuid);
+            return shader;
+        }
+
+        return nullptr;
+    }
+
+    void CompileShader(
+            const std::filesystem::path& path,
+            const std::filesystem::path& root,
+            const char* name,
+            const UUID& uuid,
+            shaderc_shader_kind kind,
+            shaderc::CompileOptions options)
+    {
+        if (std::filesystem::exists(path))
+        {
+            // read file
+            std::fstream f;
+            f.open(path, std::ios::in | std::ios::binary);
+            if (!f.is_open() || !f.good()) return;
+
+            f.seekg(0, std::ios::end);
+            size_t fSize = std::filesystem::file_size(path);
+            UniPtr<char> buf = UniPtr<char>(new char[fSize]);
+            // shader Buffer
+            f.seekg(0, std::ios::beg);
+            f.read(buf.Get(), fSize);
+
+            shaderc::Compiler compiler;
+            auto outputPath = root / "Library" / uuid.ToString();
+            if (!std::filesystem::exists(outputPath))
+            {
+                std::filesystem::create_directory(outputPath);
+            }
+
+            std::ofstream output;
+            output.open(outputPath / name, std::ios::trunc | std::ios::out | std::ios::binary);
+
+            if (output.is_open() && output.good())
+            {
+                auto compiled = compiler.CompileGlslToSpv(
+                        (const char*)buf.Get(),
+                        fSize,
+                        kind,
+                        path.relative_path().string().c_str(),
+                        options);
+
+                output.write((const char*)compiled.begin(), sizeof(shaderc::SpvCompilationResult::element_type) * (compiled.end() - compiled.begin()));
+            }
+        }
     }
 }

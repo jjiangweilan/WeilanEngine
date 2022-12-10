@@ -5,30 +5,65 @@
 
 namespace Engine::Internal
 {
-    UniPtr<AssetObject> ModelImporter::Import(const std::filesystem::path& path, const nlohmann::json& config, ReferenceResolver& refResolver, const UUID& uuid, const std::unordered_map<std::string, UUID>& containedUUIDs)
+    static void ProcessNode(aiScene* scene, aiNode *node, aiMatrix4x4 chainTransform);
+    static void LoadMesh(aiScene* scene, aiMesh *mesh, aiNode *node, const aiMatrix4x4& chainTransform);
+
+    void ModelImporter::Import(
+            const std::filesystem::path& path,
+            const std::filesystem::path& root,
+            const nlohmann::json& json,
+            const UUID& rootUUID,
+            const std::unordered_map<std::string, UUID>& containedUUIDs)
     {
-        auto cached = ReadCache(uuid);
-
-        if (cached != nullptr) return cached;
-
         Assimp::Importer importer;
 
-        const aiScene* scene = importer.ReadFile(path.string(), 
-                aiProcess_CalcTangentSpace       | 
+        const aiScene* scene = importer.ReadFile(path.string(),
+                aiProcess_CalcTangentSpace       |
                 aiProcess_Triangulate            |
                 aiProcess_JoinIdenticalVertices  |
                 aiProcess_SortByPType);
-        
+
         if (!scene)
         {
-            return nullptr;
+            return;
         }
 
+        return;
+    }
+
+
+    UniPtr<AssetObject> ModelImporter::Load(
+            const std::filesystem::path& root,
+            ReferenceResolver& refResolver,
+            const UUID& uuid)
+    {
         return nullptr;
     }
 
-    UniPtr<AssetObject> ModelImporter::ReadCache(const UUID& uuid)
+    bool ModelImporter::NeedReimport(
+            const std::filesystem::path& path,
+            const std::filesystem::path& root,
+            const UUID& uuid)
     {
-        return nullptr;
+        return false;
+    }
+
+    void ProcessNode(aiScene* scene, aiNode *node, aiMatrix4x4 chainTransform)
+    {
+        auto transform =  chainTransform * node->mTransformation;// assimp is row major
+        for (size_t i = 0; i < node->mNumMeshes; i++)
+        {
+            aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+            LoadMesh(scene, mesh, node, transform);
+        }
+        for (size_t i = 0; i < node->mNumChildren; i++)
+        {
+            ProcessNode(scene, node->mChildren[i], transform);
+        }
+    }
+
+    void LoadMesh(aiScene* scene, aiMesh *mesh, aiNode *node, const aiMatrix4x4& chainTransform)
+    {
+
     }
 };
