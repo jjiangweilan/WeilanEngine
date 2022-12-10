@@ -102,11 +102,6 @@ namespace Engine::Internal
         shaderc_shader_kind kind,
         shaderc::CompileOptions options);
 
-    static std::time_t GetLastWriteTime(const std::filesystem::path& path)
-    {
-        return std::chrono::system_clock::to_time_t(std::chrono::clock_cast<std::chrono::system_clock>(std::filesystem::last_write_time(path)));
-    }
-
     static ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name)
     {
         ShaderConfig config;

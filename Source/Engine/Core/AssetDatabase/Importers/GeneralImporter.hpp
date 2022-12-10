@@ -15,6 +15,7 @@ namespace Engine::Internal
         {
             auto importPath = root / "Library" / uuid.ToString();
             std::filesystem::copy_file(path, importPath);
+            std::filesystem::last_write_time(importPath, std::filesystem::last_write_time(path));
         }
 
         UniPtr<AssetObject> Load(
@@ -40,5 +41,16 @@ namespace Engine::Internal
         {
             return typeid(T);
         }
+
+        bool NeedReimport(
+                const std::filesystem::path& path,
+                const std::filesystem::path& root,
+                const UUID& uuid) {
+            auto outputDir = root / "Library" / uuid.ToString();
+            auto t0 = GetLastWriteTime(path);
+            auto t1 = GetLastWriteTime(outputDir);
+            if (!std::filesystem::exists(outputDir) || t0 > t1) return true;
+            return false;
+        };
     };
 }

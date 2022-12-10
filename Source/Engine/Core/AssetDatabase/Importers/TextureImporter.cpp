@@ -30,7 +30,14 @@ namespace Engine::Internal
 
         if (genMipMap)
         {
+            if ((width % 2 != 0) || (width % 2 != 0))
+            {
+                SPDLOG_WARN("Can't generate mipmap when importing {}, not power of two image", path.string());
+                goto genMipMapOut;
+
+            }
         }
+genMipMapOut:
 
         auto extension = path.extension();
         auto outputDir = root / "Library" / uuid.ToString();
