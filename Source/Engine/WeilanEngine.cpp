@@ -100,6 +100,7 @@ namespace Engine
         RefPtr<AssetDatabase> assetDb = AssetDatabase::Instance();
         assetDb->RegisterImporter<Internal::glbImporter>("glb");
         assetDb->RegisterImporter<Internal::GeneralImporter<Material>>("mat");
+        assetDb->RegisterImporter<Internal::GeneralImporter<Rendering::RenderPipelineAsset>>("rp");
         assetDb->RegisterImporter<Internal::GeneralImporter<GameScene>>("game");
         assetDb->RegisterImporter<Internal::ShaderImporter>("shad");
         assetDb->RegisterImporter<Internal::TextureImporter>("png");

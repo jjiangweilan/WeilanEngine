@@ -19,6 +19,24 @@ namespace Engine
     class AssetObject : public Object, IReferenceResolveListener
     {
         DECLARE_ENGINE_OBJECT();
+        private:
+
+                template<class U> struct DecayPtr { using Type = U; };
+                template<class U> struct DecayPtr<UniPtr<U>> { using Type = U; };
+                template<class U> struct DecayPtr<RefPtr<U>> { using Type = U; };
+                template<class U> struct DecayPtr<U*> { using Type = U; };
+
+                template<class U> struct IsRefPtr : std::false_type {};
+                template<class U> struct IsRefPtr<RefPtr<U>> : std::true_type {};
+
+                template<class U> struct IsUniPtr : std::false_type {};
+                template<class U> struct IsUniPtr<UniPtr<U>> : std::true_type {};
+
+                template<class U> struct IsVector : std::false_type {};
+                template<class U> struct IsVector<std::vector<U>> : std::true_type {};
+
+                template<class U> struct IsUnorderedMap : std::false_type {};
+                template<class _Key, class _Value> struct IsUnorderedMap<std::unordered_map<_Key, _Value>> : std::true_type {};
         public:
             /**
              * @brief Construct a new Asset Object object
@@ -130,22 +148,6 @@ namespace Engine
                     }
                 }
 
-                template<class U> struct DecayPtr { using Type = U; };
-                template<class U> struct DecayPtr<UniPtr<U>> { using Type = U; };
-                template<class U> struct DecayPtr<RefPtr<U>> { using Type = U; };
-                template<class U> struct DecayPtr<U*> { using Type = U; };
-
-                template<class U> struct IsRefPtr : std::false_type {};
-                template<class U> struct IsRefPtr<RefPtr<U>> : std::true_type {};
-
-                template<class U> struct IsUniPtr : std::false_type {};
-                template<class U> struct IsUniPtr<UniPtr<U>> : std::true_type {};
-
-                template<class U> struct IsVector : std::false_type {};
-                template<class U> struct IsVector<std::vector<U>> : std::true_type {};
-
-                template<class U> struct IsUnorderedMap : std::false_type {};
-                template<class _Key, class _Value> struct IsUnorderedMap<std::unordered_map<_Key, _Value>> : std::true_type {};
 
                 template<class U>
                 void SerializePrivate(const std::string& nameChain, AssetSerializer& serializer, U& val)
@@ -362,20 +364,65 @@ namespace Engine
                 EditableMember(
                         const std::type_info& typeInfo,
                         UniPtr<EditableBase>&& editable,
-                        void* editableVal) : typeInfo(typeInfo), editable(std::move(editable)), editableVal(editableVal) {};
+                        void* editableVal, bool isAssetObjectPtr) : typeInfo(typeInfo), editable(std::move(editable)), editableVal(editableVal), isAssetObjectPtr(isAssetObjectPtr) {};
                 const std::type_info& typeInfo;
                 UniPtr<EditableBase> editable;
                 void* editableVal;
+                bool isAssetObjectPtr;
             };
 
             UUID uuid;
-            std::unordered_map<std::string, EditableMember> editableMembers;
+            using EditableMembers = std::unordered_map<std::string, EditableMember>;
+            EditableMembers editableMembers;
             std::vector<RefPtr<AssetObject>> assetMembers;
 
             void SerializePrivate(const std::string& nameChain, AssetSerializer& serializer);
             void SerializeSelf(const std::string& nameChain, AssetSerializer& serializer);
             void DeserializePrivate(const std::string& nameChain, AssetSerializer& serializer, ReferenceResolver& refResolver);
             void DeserializeSelf(const std::string& nameChain, AssetSerializer& serializer);
+
+        public:
+            struct AssetMemberIteratorValue
+            {
+                AssetMemberIteratorValue(const std::string& name, const std::type_info& typeInfo, bool isAssetObjectPtr, void* val): name(name), typeInfo(typeInfo), isAssetObjectPtr(isAssetObjectPtr), val(val){}
+                const std::string& name;
+                const std::type_info& typeInfo;
+                bool isAssetObjectPtr;
+                void* val;
+            };
+
+            struct AssetMemberIterator
+            {
+                AssetMemberIterator(
+                        EditableMembers::iterator begin) : curr(begin){}
+                using iterator_category = std::input_iterator_tag;
+                using difference_type   = std::ptrdiff_t;
+                using value_type        = AssetMemberIteratorValue;
+                using pointer           = AssetMemberIteratorValue;
+                using reference         = AssetMemberIteratorValue;
+
+                reference operator*() const {
+                    AssetMemberIteratorValue v(curr->first, curr->second.typeInfo, curr->second.isAssetObjectPtr, curr->second.editableVal);
+                    return v;
+                }
+
+                pointer operator->() const {
+                    AssetMemberIteratorValue v(curr->first, curr->second.typeInfo, curr->second.isAssetObjectPtr, curr->second.editableVal);
+                    return v;
+                }
+
+                AssetMemberIterator& operator++() { curr++; return *this; }
+
+                friend bool operator==(const AssetMemberIterator&a , const AssetMemberIterator& b) { return a.curr == b.curr;}
+                friend bool operator!=(const AssetMemberIterator&a , const AssetMemberIterator& b) { return a.curr != b.curr;}
+
+                private:
+                EditableMembers::iterator curr;
+            };
+
+            AssetMemberIterator begin()  { return AssetMemberIterator(editableMembers.begin()) ;}
+            AssetMemberIterator end()  { return AssetMemberIterator(editableMembers.end()) ;}
+
     };
 
     template<class T>
@@ -389,7 +436,8 @@ namespace Engine
                     EditableMember(
                         typeid(T),
                         std::move(m),
-                        (void*)&member)
+                        (void*)&member,
+                        (IsRefPtr<T>::value || std::is_pointer<T>::value) && std::is_base_of_v<AssetObject, typename DecayPtr<T>::Type>)
                     )
                 );
     }

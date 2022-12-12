@@ -6,12 +6,22 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Core/Graphics/FrameContext.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "Core/Texture.hpp"
 namespace Engine
 {
     class GameScene;
 }
 namespace Engine::Rendering
 {
+    class RenderPipelineAsset : public AssetObject
+    {
+        public:
+            RenderPipelineAsset();
+            RefPtr<Texture> virtualTexture;
+
+        private:
+    };
+
     class RenderPipeline
     {
         public:
@@ -23,10 +33,13 @@ namespace Engine::Rendering
             inline void SetOffScreenOutput(bool offscreen) { offscreenOutput = offscreen; }
             RefPtr<Gfx::Image> GetOutputColor();
             RefPtr<Gfx::Image> GetOutputDepth();
+            void ApplyAsset();
+            RefPtr<RenderPipelineAsset> userConfigAsset;
 
         private:
 
             RefPtr<Gfx::GfxDriver> gfxDriver;
+            UniPtr<RenderPipelineAsset> asset;
 
             void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd);
             FrameContext* frameContext;
@@ -39,7 +52,5 @@ namespace Engine::Rendering
             AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 
             void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
-
-
     };
 }

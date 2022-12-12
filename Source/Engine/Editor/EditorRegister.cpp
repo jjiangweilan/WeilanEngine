@@ -1,5 +1,6 @@
 #include "EditorRegister.hpp"
 #include "Core/AssetObject.hpp"
+
 namespace Engine::Editor
 {
     EditorRegister::EditorRegister() {}
@@ -30,6 +31,10 @@ namespace Engine::Editor
         if (iter != inspectors.end())
         {
             return iter->second(object);
+        }
+        else if (dynamic_cast<AssetObject*>(object.Get()))
+        {
+            return inspectors.find(typeid(AssetObject))->second(object);
         }
 
         return nullptr;

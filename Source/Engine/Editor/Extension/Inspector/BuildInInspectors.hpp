@@ -13,10 +13,12 @@ namespace Engine::Editor
             virtual void Tick(RefPtr<EditorContext> editorContext) override; \
         private: \
     };
+    DECLARE_INSPECTOR(AssetObject);
 
     DECLARE_INSPECTOR(Material);
     DECLARE_INSPECTOR(Shader);
     DECLARE_INSPECTOR(GameScene);
+    DECLARE_INSPECTOR(RenderPipelineAsset);
 
     DECLARE_INSPECTOR(GameObject);
     DECLARE_INSPECTOR(LuaScript);

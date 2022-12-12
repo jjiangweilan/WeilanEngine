@@ -9,6 +9,7 @@
 #include "Core/Texture.hpp"
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
+#include "Core/Rendering/RenderPipeline.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Utils/EnumStringMapping.hpp"
 
@@ -16,6 +17,32 @@
 namespace Engine::Editor
 {
 #define REGISTER(Name) EditorRegister::Instance()->RegisterInspector<Name, Name##Inspector>();
+
+    template<class T>
+    void AssetObjectField(const char* name, RefPtr<T>& assetObject)
+    {
+        ImGui::Text("%s", name);
+        ImGui::SameLine();
+        const char* buttonName = "null";
+        if (assetObject != nullptr) buttonName = assetObject->GetName().c_str();
+        ImGui::Button(buttonName);
+        if (ImGui::BeginDragDropTarget())
+        {
+            auto payload = ImGui::GetDragDropPayload();
+            if (AssetObject* aobj = DYNAMIC_CAST_PAYLOAD(payload->Data, AssetObject))
+            {
+                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload");
+                if ((aobj->GetTypeInfo() == typeid(T)) && payload)
+                {
+                    ImGui::EndDragDropTarget();
+                    assetObject = (T*)aobj;
+                    return;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+    }
 
     void InitializeBuiltInInspector()
     {
@@ -27,6 +54,8 @@ namespace Engine::Editor
         REGISTER(GameScene);
         REGISTER(LuaScript);
         REGISTER(Texture);
+        REGISTER(AssetObject);
+        EditorRegister::Instance()->RegisterInspector<Rendering::RenderPipelineAsset, RenderPipelineAssetInspector>();
     }
 
     static void MaterialInspectorShowStructureData(Material& mat, const std::string& bindingName, Gfx::ShaderInfo::StructuredData& data)
@@ -346,5 +375,24 @@ namespace Engine::Editor
         auto& desc = tex->GetDescription();
         float ratio = desc.width / (float)desc.height;
         ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
+    }
+
+    void AssetObjectInspector::Tick(RefPtr<EditorContext> editorContext)
+    {
+        RefPtr<AssetObject> assetObj = target;
+        for (auto it : *assetObj)
+        {
+            if (it.isAssetObjectPtr)
+            {
+
+            }
+        }
+    }
+
+    void RenderPipelineAssetInspector::Tick(RefPtr<EditorContext> editorContext)
+    {
+        RefPtr<Rendering::RenderPipelineAsset> asset = target;
+
+        AssetObjectField("virtual texture", asset->virtualTexture);
     }
 }

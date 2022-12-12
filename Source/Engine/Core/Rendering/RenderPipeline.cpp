@@ -157,4 +157,10 @@ namespace Engine::Rendering
     {
         auto lights = gameScene->GetActiveLights();
     }
+
+    void RenderPipeline::ApplyAsset()
+    {
+        asset = MakeUnique<RenderPipelineAsset>();
+        asset->virtualTexture = userConfigAsset->virtualTexture;
+    }
 }

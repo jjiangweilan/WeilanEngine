@@ -1,6 +1,7 @@
 #include "AssetExplorer.hpp"
 #include "Core/Model.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "Core/Rendering/RenderPipeline.hpp"
 #include "Core/AssetObject.hpp"
 #include "Core/Graphics/Material.hpp"
 #include "../EditorRegister.hpp"
@@ -16,7 +17,7 @@ namespace Engine::Editor
     }
 
     template<class T>
-    void CreateNewAssetMenuItem(const std::string& assetName, const std::filesystem::path& path)
+    void CreateNewAssetMenuItem(const std::string& assetName, const std::filesystem::path& path, const char* ext)
     {
         if(ImGui::MenuItem((std::string("Create ") + assetName).c_str()))
         {
@@ -31,12 +32,12 @@ namespace Engine::Editor
                 if (i == 0)
                 {
                     actualName = assetName;
-                    matPath.append(actualName + ".mat");
+                    matPath.append(actualName + ext);
                 }
                 else
                 {
                     actualName = assetName + std::to_string(i);
-                    matPath.append(actualName + ".mat");
+                    matPath.append(actualName + ext);
                 }
                 i++;
             } while (std::filesystem::exists(matPath));
@@ -47,6 +48,13 @@ namespace Engine::Editor
 
     void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
     {
+        if (ImGui::BeginPopupContextWindow("ContextWindow"))
+        {
+            CreateNewAssetMenuItem<Material>("Material", path, ".mat");
+            CreateNewAssetMenuItem<Rendering::RenderPipelineAsset>("RenderPipelineAsset", path, ".rp");
+            ImGui::EndPopup();
+        }
+
         for (auto const& dir_entry : std::filesystem::directory_iterator(path))
         {
             auto dirPath = dir_entry.path();
@@ -58,11 +66,6 @@ namespace Engine::Editor
                     ImGui::TreePop();
                 }
 
-                if (ImGui::BeginPopupContextWindow("ContextWindow"))
-                {
-                    CreateNewAssetMenuItem<Material>("Material", path);
-                    ImGui::EndPopup();
-                }
             }
             else if(dirPath.extension() != ".meta")
             {
