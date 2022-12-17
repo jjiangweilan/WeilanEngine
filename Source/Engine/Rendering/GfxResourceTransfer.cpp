@@ -7,17 +7,32 @@ namespace Engine::Internal
 
     void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
     {
-        std::vector<MemoryBarrier> memoryBarrier;
-
-        for(auto buffer : pending.buffers)
+        for(auto& [buffer, requests] : pendingBuffers)
         {
-            MemoryBarrier memBarrier;
-            memBarrier.buffer = buffer.val;
-            memBarrier.bufferInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-            memBarrier.bufferInfo.offset = 0;
-            memBarrier.bufferInfo.size = GFX_WHOLE_SIZE;
-            memBarrier.dstStageMask = buffer.request.dstStageMasks;
-            memBarrier.dstAccessMask
+            bufferCopyRegions.clear();
+
+            for(auto& request : requests)
+            {
+                bufferCopyRegions.push_back({request.srcOffset, request.userRequest.bufOffset, request.userRequest.size});
+            }
+
+            cmdBuf->CopyBuffer(stagingBuffer, buffer, bufferCopyRegions);
+        }
+
+        for(auto& [image, requests] : pendingImages)
+        {
+            bufferImageCopyRegions.clear();
+
+            for(auto& request : requests)
+            {
+                BufferImageCopyRegion region;
+                region.offset = {0,0,0};
+                region.extend = { image->GetDescription().width, image->GetDescription().height, 1 };
+                region.range = request.userRequest.subresourceRange;
+                region.srcOffset = request.srcOffset;
+            }
+
+            cmdBuf->CopyBufferToImage(stagingBuffer, image, bufferImageCopyRegions);
         }
     }
 }

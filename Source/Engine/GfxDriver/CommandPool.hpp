@@ -12,10 +12,11 @@ namespace Engine::Gfx
             {
                 RefPtr<CommandQueue> queue;
             };
-            virtual ~CommandPool();
+            virtual ~CommandPool() {};
 
-            virtual std::vector<UniPtr<CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count);
-            virtual void ReleaseCommandBuffer(RefPtr<CommandBuffer> cmdBuf);
+            virtual std::vector<UniPtr<CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
+            // virtual void ReleaseCommandBuffer(RefPtr<CommandBuffer> cmdBuf);
+            virtual void ResetCommandPool() = 0;
         private:
     };
 }

@@ -7,7 +7,7 @@ namespace Engine::Gfx
 {
     class VKContext;
     class VKImage;
-    class VKStorageBuffer;
+    //class VKStorageBuffer;
     class VKSharedResource
     {
         public:
@@ -15,13 +15,13 @@ namespace Engine::Gfx
             ~VKSharedResource();
             VkSampler GetDefaultSampler() {return defaultSampler; }
             RefPtr<VKImage> GetDefaultTexture() {return defaultTexture; }
-            RefPtr<VKStorageBuffer> GetDefaultStorageBuffer() {return defaultStorageBuffer; }
+            // RefPtr<VKStorageBuffer> GetDefaultStorageBuffer() {return defaultStorageBuffer; }
 
 
         private:
             RefPtr<VKContext> context;
 
-            UniPtr<VKStorageBuffer> defaultStorageBuffer;
+            //UniPtr<VKStorageBuffer> defaultStorageBuffer;
             VkSampler defaultSampler;
             UniPtr<VKImage> defaultTexture;
     };

@@ -46,7 +46,6 @@ namespace Engine::Gfx
 
             virtual UniPtr<CommandPool>    CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
             virtual UniPtr<Buffer>      CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
-            virtual UniPtr<CommandBuffer>  CreateCommandBuffer() = 0;
             virtual UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) = 0;
             virtual UniPtr<RenderPass>     CreateRenderPass() = 0;
             virtual UniPtr<FrameBuffer>    CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
@@ -61,19 +60,18 @@ namespace Engine::Gfx
             virtual UniPtr<Semaphore>      CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
             virtual UniPtr<Fence>          CreateFence(const Fence::CreateInfo& createInfo) = 0;
 
-            virtual void PrepareFrameResources(RefPtr<CommandQueue> queue) = 0;
             virtual void QueueSubmit(
                     RefPtr<CommandQueue> queue,
-                    std::vector<RefPtr<CommandBuffer>>& cmdBufs,
-                    std::vector<RefPtr<Semaphore>>& waitSemaphores,
-                    std::vector<Gfx::PipelineStageFlags>& waitDstStageMasks,
-                    std::vector<RefPtr<Semaphore>>& signalSemaphroes,
+                    std::vector<RefPtr<CommandBuffer>>&& cmdBufs,
+                    std::vector<RefPtr<Semaphore>>&& waitSemaphores,
+                    std::vector<Gfx::PipelineStageFlags>&& waitDstStageMasks,
+                    std::vector<RefPtr<Semaphore>>&& signalSemaphroes,
                     RefPtr<Fence> signalFence) = 0;
             virtual void ForceSyncResources() = 0;
             virtual void WaitForIdle() = 0;
-            virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>> semaphores) = 0;
-            virtual void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore);
-            virtual void ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf) = 0;
+            virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) = 0;
+            virtual void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
+            virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
         private:
             static UniPtr<GfxDriver> gfxDriver;

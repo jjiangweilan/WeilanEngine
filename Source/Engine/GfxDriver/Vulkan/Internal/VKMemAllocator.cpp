@@ -21,8 +21,6 @@ namespace Engine::Gfx
         vmaAllocatorCreateInfo.instance = instance;
 
         VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));
-
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     }
 
 
@@ -127,6 +125,16 @@ namespace Engine::Gfx
         VkBuffer srcBuf = VK_NULL_HANDLE;
         VK_CHECK(vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &srcBuf, &allocation, &allocationInfo));
         return srcBuf;
+    }
+
+    void VKMemAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
+    {
+        vmaDestroyBuffer(allocator_vma, buffer, allocation);
+    }
+
+    void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
+    {
+        vmaDestroyImage(allocator_vma, image, allocation);
     }
 
     //void VKMemAllocator::UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)

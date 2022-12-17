@@ -9,6 +9,7 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKSwapChain.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "VKCommandPool.hpp"
 #include "VKShaderResource.hpp"
 #include "VKBuffer.hpp"
 #include "VKShaderModule.hpp"
@@ -141,18 +142,10 @@ namespace Engine::Gfx
         return; // TODO: reimplementation needed
     }
 
-    void VKDriver::ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf)
+    RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
     {
-        VKCommandBuffer* vkCmdBuf = static_cast<VKCommandBuffer*>(cmdBuf.Get());
-        cmdBuf.Release();
-        pendingCmdBufs.emplace_back(vkCmdBuf);
-    }
-
-    RefPtr<Semaphore> VKDriver::Present(RefPtr<Semaphore>* semaphores, uint32_t semaphoreCount)
-    {
-        assert(semaphoreCount <= 16);
-        VkSemaphore vkSemaphores[16];
-        for(int i = 0; i < semaphoreCount; ++i)
+        std::vector<VkSemaphore> vkSemaphores;
+        for(int i = 0; i < semaphores.size(); ++i)
         {
             vkSemaphores[i] = static_cast<VKSemaphore*>(semaphores[i].Get())->GetHandle();
         }
@@ -162,8 +155,8 @@ namespace Engine::Gfx
         VkPresentInfoKHR presentInfo = {
             VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             nullptr,
-            semaphoreCount,
-            vkSemaphores,
+            (uint32_t)vkSemaphores.size(),
+            vkSemaphores.data(),
             1,
             &swapChainHandle,
             &activeIndex,
@@ -176,7 +169,8 @@ namespace Engine::Gfx
 
     void VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
     {
-        swapchain->AcquireNextImage(swapChainImageProxy, GetHandle());
+        VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
+        swapchain->AcquireNextImage(swapChainImageProxy, s->GetHandle());
     }
 
     UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
@@ -191,7 +185,7 @@ namespace Engine::Gfx
 
     UniPtr<Buffer> VKDriver::CreateBuffer(const Buffer::CreateInfo& createInfo)
     {
-        return MakeUnique1<VKBuffer>(createInfo.size, createInfo.usages, createInfo.visibleInCPU);
+        return MakeUnique1<VKBuffer>(createInfo);
     }
 
     UniPtr<ShaderResource> VKDriver::CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
@@ -207,11 +201,6 @@ namespace Engine::Gfx
     UniPtr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
     {
         return MakeUnique1<VKFrameBuffer>(renderPass);
-    }
-
-    UniPtr<CommandBuffer> VKDriver::CreateCommandBuffer()
-    {
-        return MakeUnique1<VKCommandBuffer>();
     }
 
     UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUsageFlags usages)
@@ -237,10 +226,10 @@ namespace Engine::Gfx
     }
 
     void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue,
-            std::vector<RefPtr<CommandBuffer>>& cmdBufs,
-            std::vector<RefPtr<Semaphore>>& waitSemaphores,
-            std::vector<Gfx::PipelineStageFlags>& waitDstStageMasks,
-            std::vector<RefPtr<Semaphore>>& signalSemaphroes,
+            std::vector<RefPtr<CommandBuffer>>&& cmdBufs,
+            std::vector<RefPtr<Semaphore>>&& waitSemaphores,
+            std::vector<Gfx::PipelineStageFlags>&& waitDstStageMasks,
+            std::vector<RefPtr<Semaphore>>&& signalSemaphroes,
             RefPtr<Fence> signalFence)
     {
         std::vector<VkSemaphore> vkWaitSemaphores;
@@ -286,5 +275,21 @@ namespace Engine::Gfx
         VkFence fence = signalFence == nullptr ? VK_NULL_HANDLE : static_cast<VKFence*>(signalFence.Get())->GetHandle();
 
         vkQueueSubmit(vkqueue->queue, 1, &submitInfo, fence);
+    }
+
+    UniPtr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::CreateInfo& createInfo)
+    {
+        return MakeUnique1<VKCommandPool>(createInfo);
+    }
+
+    void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, uint64_t timeout)
+    {
+        std::vector<VkFence> vkFences;
+        for(auto f : fences)
+        {
+            vkFences.push_back(static_cast<VKFence*>(f.Get())->GetHandle());
+        }
+
+        vkWaitForFences(device_vk, vkFences.size(), vkFences.data(), waitAll, timeout);
     }
 }

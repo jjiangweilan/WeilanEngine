@@ -4,6 +4,7 @@
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/Component/Transform.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include "Core/Graphics/FrameContext.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
@@ -33,16 +34,58 @@ namespace Engine::Rendering
             ~RenderPipeline();
 
             void Render(RefPtr<GameScene> gameScene);
-            inline void SetOffScreenOutput(bool offscreen) { offscreenOutput = offscreen; }
-            RefPtr<Gfx::Image> GetOutputColor();
-            RefPtr<Gfx::Image> GetOutputDepth();
             void ApplyAsset();
             RefPtr<RenderPipelineAsset> userConfigAsset;
 
 #if GAME_EDITOR
-            void RenderGameEditor(RefPtr<Editor::GameEditor> gameEditor);
+            void RenderGameEditor(RefPtr<Editor::GameEditor> gameEditor)
+            {
+                renderEditor = true;
+                this->gameEditor = gameEditor;
+            };
 #endif
         private:
+
+            // represent the global shader resource in the shader
+            // directly set the value of `v`
+            // data will be updated later in the pipeline
+            struct GlobalShaderResource
+            {
+                GlobalShaderResource()
+                {
+                    shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
+                    assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj){ this->OnAssetReload(obj); });
+                }
+
+                ~GlobalShaderResource()
+                {
+                    AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
+                }
+
+                struct Vals
+                {
+                    glm::mat4 view;
+                    glm::mat4 projection;
+                    glm::mat4 viewProjection;
+                    glm::vec3 viewPos;
+                } v;
+
+                void BindShaderResource(RefPtr<CommandBuffer> cmdBuf) { cmdBuf->BindResource(shaderResource); }
+                void QueueCommand(RefPtr<CommandBuffer> cmdBuf);
+                void OnAssetReload(RefPtr<AssetObject> obj)
+                {
+                    Shader* casted = dynamic_cast<Shader*>(obj.Get());
+                    if (casted && casted->GetName() == "Internal/SceneLayout")
+                    {
+                        this->shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
+                    }
+                }
+
+                private:
+                UniPtr<Gfx::ShaderResource> shaderResource;
+                AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
+
+            } globalShaderResoruce;
 
             RefPtr<Gfx::GfxDriver> gfxDriver;
             UniPtr<RenderPipelineAsset> asset;
@@ -53,12 +96,18 @@ namespace Engine::Rendering
             UniPtr<Gfx::RenderPass> renderPass;
             UniPtr<Gfx::Image> colorImage;
             UniPtr<Gfx::Image> depthImage;
-            UniPtr<Gfx::ShaderResource> globalResource;
             UniPtr<Gfx::Semaphore> imageAcquireSemaphore;
+            UniPtr<Gfx::Semaphore> mainCmdBufFinishedSemaphore;
+            UniPtr<Gfx::Fence> mainCmdBufFinishedFence;
+            UniPtr<Gfx::CommandPool> cmdPool;
+            UniPtr<CommandBuffer> cmdBuf;
             RefPtr<CommandQueue> mainQueue;
-            bool offscreenOutput;
-            AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
+#if GAME_EDITOR
+            RefPtr<Editor::GameEditor> gameEditor;
+            bool renderEditor;
+#endif
 
+            void PrepareFrameData(RefPtr<CommandBuffer> cmdBuf);
             void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
     };
 }

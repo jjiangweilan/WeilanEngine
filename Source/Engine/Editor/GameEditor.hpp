@@ -35,7 +35,7 @@ namespace Engine::Editor
             void ProcessEvent(const SDL_Event& event);
             bool IsProjectInitialized();
             void Tick();
-            void Render();
+            void Render(RefPtr<CommandBuffer> cmdBuf);
         private:
             /* Data */
             RefPtr<ProjectManagement> projectManagement;

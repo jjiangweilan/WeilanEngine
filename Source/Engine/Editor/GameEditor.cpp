@@ -144,11 +144,9 @@ namespace Engine::Editor
 
     }
 
-    void GameEditor::Render()
+    void GameEditor::Render(RefPtr<CommandBuffer> cmdBuf)
     {
         ImGui::Render();
-
-        auto cmdBuf = gfxDriver->CreateCommandBuffer();
 
         gameSceneWindow->RenderSceneGUI(cmdBuf);
         RenderEditor(cmdBuf);
@@ -164,7 +162,6 @@ namespace Engine::Editor
         cmdBuf->Draw(6, 1, 0, 0);
         cmdBuf->EndRenderPass();
         // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
-        gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
     }
 
     void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf)
@@ -183,9 +180,9 @@ namespace Engine::Editor
             size_t indexSize = drawData->TotalIdxCount * sizeof(ImDrawIdx);
 
             if (imGuiData.vertexBuffer->GetSize() < vertexSize)
-                imGuiData.vertexBuffer->Resize(vertexSize);
+                assert(0 && "Not implemented");// imGuiData.vertexBuffer->Resize(vertexSize);
             if (imGuiData.indexBuffer->GetSize() < indexSize)
-                imGuiData.indexBuffer->Resize(indexSize);
+                assert(0 && "Not implemented");// imGuiData.vertexBuffer->Resize(vertexSize);
 
             ImDrawVert* vtxDst = (ImDrawVert*)imGuiData.vertexBuffer->GetCPUVisibleAddress();
             ImDrawIdx* idxDst = (ImDrawIdx*)imGuiData.indexBuffer->GetCPUVisibleAddress();

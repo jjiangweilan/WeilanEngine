@@ -9,11 +9,11 @@ namespace Engine::Gfx
 {
     struct ImageSubresourceRange
     {
-        ImageAspectFlags    aspectMask;
-        uint32_t       baseMipLevel;
-        uint32_t       levelCount;
-        uint32_t       baseArrayLayer;
-        uint32_t       layerCount;
+        ImageAspectFlags    aspectMask = ImageAspectFlags::Color;
+        uint32_t       baseMipLevel = 0;
+        uint32_t       levelCount = 1;
+        uint32_t       baseArrayLayer = 0;
+        uint32_t       layerCount = 1;
     };
     class Image
     {

@@ -1,7 +1,6 @@
 #include "VKSharedResource.hpp"
 #include "VKContext.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "VKStorageBuffer.hpp"
 #include "VKImage.hpp"
 namespace Engine::Gfx
 {
@@ -42,7 +41,7 @@ namespace Engine::Gfx
         defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
 
         // default storage buffer
-        defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
+        // defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
     }
 
 

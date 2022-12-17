@@ -81,7 +81,6 @@ namespace Engine
             gameEditor->Tick();
 #endif
 
-            gfxDriver->PrepareFrameResources(mainQueue);
             // rendering
             if (activeGameScene) renderPipeline->Render(activeGameScene);
 #if GAME_EDITOR

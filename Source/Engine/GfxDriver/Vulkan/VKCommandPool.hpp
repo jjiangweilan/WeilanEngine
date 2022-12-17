@@ -11,9 +11,7 @@ namespace Engine::Gfx
             VKCommandPool(const CreateInfo& createInfo);
             ~VKCommandPool() override;
             std::vector<UniPtr<CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) override;
-            void ReleaseCommandBuffer(RefPtr<CommandBuffer> cmdBuf) override; // we reset the whole command pool per frame, so this is not used
-
-            void ResetCommandPool();
+            void ResetCommandPool() override;
         private:
             VkCommandPool commandPool;
     };

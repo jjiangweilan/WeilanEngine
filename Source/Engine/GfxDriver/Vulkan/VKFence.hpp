@@ -8,13 +8,13 @@ namespace Engine::Gfx
     class VKFence : public Fence
     {
         public:
-            VKFence(bool signaled)
+            VKFence(const Fence::CreateInfo& createInfo)
             {
-                VkFenceCreateInfo createInfo;
-                createInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-                createInfo.pNext = VK_NULL_HANDLE;
-                createInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
-                vkCreateFence(GetDevice()->GetHandle(), &createInfo, VK_NULL_HANDLE, &vkFence);
+                VkFenceCreateInfo vkCreateInfo;
+                vkCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+                vkCreateInfo.pNext = VK_NULL_HANDLE;
+                vkCreateInfo.flags = createInfo.signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+                vkCreateFence(GetDevice()->GetHandle(), &vkCreateInfo, VK_NULL_HANDLE, &vkFence);
             }
 
             ~VKFence()

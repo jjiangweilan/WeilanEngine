@@ -12,68 +12,74 @@ namespace Engine::Internal
     class GfxResourceTransfer
     {
         public:
-            struct TransferRequest
+            struct BufferTransferRequest
             {
                 void* data;
-                uint32_t size;
-                std::function<void(void* data, uint32_t size)> onTransferFinished;
-                Gfx::ImageLayout imageLayoutAfterTransfer;
-                Gfx::PipelineStageFlags dstStageMasks;
+                uint64_t bufOffset;
+                uint64_t size;
             };
 
-            void Transfer(RefPtr<Gfx::Buffer> buffer, const TransferRequest& request)
+            struct ImageTransferRequest
             {
-                pending.buffers.push_back({PendingType::Buffer, buffer, request});
+                void* data;
+                uint64_t size;
+                Gfx::ImageSubresourceRange subresourceRange;
+            };
+
+            void Transfer(RefPtr<Gfx::Buffer> buffer, const BufferTransferRequest& request)
+            {
+                memcpy((char*)stagingBuffer->GetCPUVisibleAddress() + stagingBufferOffset, request.data, request.size);
+                pendingBuffers[buffer.Get()].push_back({buffer, stagingBufferOffset, request});
+                stagingBufferOffset += request.size;
             }
 
-            void Transfer(RefPtr<Gfx::Image> image, const TransferRequest& request)
+            void Transfer(RefPtr<Gfx::Image> image, const ImageTransferRequest& request)
             {
-                pending.images.push_back({PendingType::Image, image ,request});
+                memcpy((char*)stagingBuffer->GetCPUVisibleAddress() + stagingBufferOffset, request.data, request.size);
+                pendingImages[image.Get()].push_back({image, stagingBufferOffset, request});
+                stagingBufferOffset += request.size;
             }
 
+            // method assumes all the memory are not in use
             void QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf);
 
         private:
+            GfxResourceTransfer() {};
             inline static RefPtr<GfxResourceTransfer> Instance()
             {
                 if (instance == nullptr)
                 {
-                    instance = MakeUnique<GfxResourceTransfer>();
+                    instance = UniPtr<GfxResourceTransfer>(new GfxResourceTransfer());
                 }
 
                 return instance;
             }
 
-            enum class PendingType
+            struct BufferTransferRequestInternalUse
             {
-                Image, Buffer
+                RefPtr<Gfx::Buffer> buf;
+                uint64_t srcOffset;
+                BufferTransferRequest userRequest;
+
             };
 
-            template<class T>
-            struct Pending
+            struct ImageTransferRequestInternalUse
             {
-                PendingType isImage;
-                RefPtr<T> val;
-                TransferRequest request;
+                RefPtr<Gfx::Image> image;
+                uint64_t srcOffset;
+                ImageTransferRequest userRequest;
             };
 
-            struct
-            {
-                std::vector<Pending<Gfx::Buffer>> buffers;
-                std::vector<Pending<Gfx::Image>> images;
-            } pending;
-
-            struct
-            {
-                UniPtr<Gfx::Buffer> stageBuffer;
-            } stageBufferCache;
-
-        private:
-            GfxResourceTransfer();
             static UniPtr<GfxResourceTransfer> instance;
 
-            friend RefPtr<GfxResourceTransfer> GetGfxResourceTransfer();
+            std::unordered_map<Gfx::Buffer*, std::vector<BufferTransferRequestInternalUse>> pendingBuffers;
+            std::unordered_map<Gfx::Image*, std::vector<ImageTransferRequestInternalUse>> pendingImages;
+            std::vector<BufferCopyRegion> bufferCopyRegions;
+            std::vector<BufferImageCopyRegion> bufferImageCopyRegions;
+            UniPtr<Gfx::Buffer> stagingBuffer;
+            uint32_t stagingBufferOffset = 0;
 
+            friend RefPtr<GfxResourceTransfer> GetGfxResourceTransfer();
     };
 
     inline RefPtr<GfxResourceTransfer> GetGfxResourceTransfer()

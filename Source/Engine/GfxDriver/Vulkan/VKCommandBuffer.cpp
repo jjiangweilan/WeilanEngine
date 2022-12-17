@@ -4,6 +4,7 @@
 #include "VKShaderProgram.hpp"
 #include "VKFrameBuffer.hpp"
 #include "VKShaderResource.hpp"
+#include "Internal/VKEnumMapper.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "Internal/VKEnumMapper.hpp"
@@ -181,46 +182,54 @@ namespace Engine::Gfx
         vkCmdPushConstants(vkCmdBuf, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, data);
     }
 
-    void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, uint64_t srcOffset, RefPtr<Gfx::Buffer> bDst, uint64_t dstOffset, uint64_t size)
+    void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions)
     {
         VKBuffer* src = static_cast<VKBuffer*>(bSrc.Get());
         VKBuffer* dst = static_cast<VKBuffer*>(bDst.Get());
 
-        VkBufferCopy region
+        std::vector<VkBufferCopy> regions;
+        for(auto& c : copyRegions)
         {
-            srcOffset, dstOffset, size
-        };
+            regions.push_back({c.srcOffset, c.dstOffset, c.size});
+        }
 
-        vkCmdCopyBuffer(vkCmdBuf, src->GetHandle(), dst->GetHandle(), 1, &region);
+        vkCmdCopyBuffer(vkCmdBuf, src->GetHandle(), dst->GetHandle(), regions.size(), regions.data());
     }
 
-    void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst)
+    void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, const std::vector<BufferImageCopyRegion>& regions)
     {
         auto image = static_cast<VKImage*>(dst.Get());
         auto stageBuf = static_cast<VKBuffer*>(src.Get());
 
-        VkBufferImageCopy region;
-        region.bufferOffset = 0;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = VkOffset3D{0, 0, 0};
-        region.imageExtent = VkExtent3D{
-            image->GetDescription().width,
-                image->GetDescription().height,
-                1
-        };
+        std::vector<VkBufferImageCopy> vkRegions;
+
+        for(auto& r : regions)
+        {
+            VkBufferImageCopy region;
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            region.imageSubresource.aspectMask = MapImageAspect(r.range.aspectMask);
+            region.imageSubresource.mipLevel = r.range.baseMipLevel;
+            region.imageSubresource.baseArrayLayer = r.range.baseArrayLayer;
+            region.imageSubresource.layerCount = r.range.layerCount;
+            region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
+            region.imageExtent = VkExtent3D{
+                r.extend.width,
+                    r.extend.height,
+                    r.extend.depth
+            };
+
+            vkRegions.push_back(region);
+        }
 
         vkCmdCopyBufferToImage(
                 vkCmdBuf,
                 stageBuf->GetHandle(),
                 image->GetImage(),
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1,
-                &region);
+                vkRegions.size(),
+                vkRegions.data());
     }
 
     void VKCommandBuffer::Barrier(MemoryBarrier *barriers, uint32_t barrierCount)
@@ -250,12 +259,12 @@ namespace Engine::Gfx
                 VkMemoryBarrier memBarrier;
                 memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
                 memBarrier.pNext = VK_NULL_HANDLE;
-                memBarrier.srcAccessMask = MapAccessMask(barrier.memoryInfo.srcStageMask);
+                memBarrier.srcAccessMask = MapAccessMask(barrier.memoryInfo.srcAccessMask);
                 memBarrier.dstAccessMask = MapAccessMask(barrier.memoryInfo.dstAccessMask);
                 memoryMemoryBarriers.push_back(memBarrier);
                 vkCmdPipelineBarrier(vkCmdBuf,
                         MapPipelineStage(barrier.memoryInfo.srcStageMask),
-                        MapPipelineStage(barrier.memoryInfo.dstAccessMask),
+                        MapPipelineStage(barrier.dstStageMask),
                         VK_DEPENDENCY_DEVICE_GROUP_BIT,
                         1, &memBarrier,
                         0, VK_NULL_HANDLE,

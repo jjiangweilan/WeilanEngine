@@ -52,8 +52,24 @@ struct MemoryBarrier
     struct MemoryInfo
     {
         Gfx::PipelineStageFlags srcStageMask;
+        Gfx::AccessMaskFlags srcAccessMask;
         Gfx::AccessMaskFlags dstAccessMask;
     } memoryInfo;
+};
+
+struct BufferCopyRegion
+{
+    uint64_t srcOffset;
+    uint64_t dstOffset;
+    uint64_t size;
+};
+
+struct BufferImageCopyRegion
+{
+    uint64_t srcOffset;
+    Gfx::ImageSubresourceRange range;
+    Offset3D offset;
+    Extent3D extend;
 };
 
 class CommandBuffer
@@ -75,8 +91,8 @@ class CommandBuffer
 
         virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;
         virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
-        virtual void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, uint64_t srcOffset, RefPtr<Gfx::Buffer> bDst, uint64_t dstOffset, uint64_t size) = 0;
-        virtual void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst) = 0;
-        virtual void Barrier(MemoryBarrier* barriers, uint32_t barrierCount);
+        virtual void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions) = 0;
+        virtual void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, const std::vector<BufferImageCopyRegion>& regions) = 0;
+        virtual void Barrier(MemoryBarrier* barriers, uint32_t barrierCount) = 0;
 };
 }

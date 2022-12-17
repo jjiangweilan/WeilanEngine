@@ -38,19 +38,20 @@ namespace Engine
             range.size);
         }
 
-        GfxResourceTransfer::TransferRequest request0
+        GfxResourceTransfer::BufferTransferRequest request0
         {
             .data = temp,
-            .size = bufSize,
-            .onTransferFinished = [](void* data, uint32_t size) {delete[] (unsigned char*)data;}
+            .bufOffset = 0,
+            .size = bufSize
         };
         GetGfxResourceTransfer()->Transfer(vertexBuffer, request0);
+        delete temp;
 
-        GfxResourceTransfer::TransferRequest request1
+        GfxResourceTransfer::BufferTransferRequest request1
         {
             .data = this->vertexDescription.index.data.data(),
+            .bufOffset = 0,
             .size = indexBufSize,
-            .onTransferFinished = nullptr
         };
         GetGfxResourceTransfer()->Transfer(indexBuffer, request1);
 

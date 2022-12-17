@@ -68,8 +68,14 @@ namespace Engine::Gfx
                 {
                     case ShaderInfo::BindingType::UBO:
                     {
-                        auto buffer = Engine::MakeUnique<VKBuffer>(b.second.binding.ubo.data.size, BufferUsage::Uniform, false);
-                        buffer->SetDebugName(std::format("{}_UBO", shader->GetName()).c_str());
+                        Buffer::CreateInfo createInfo
+                        {
+                            .usages = BufferUsage::Uniform,
+                            .size = b.second.binding.ubo.data.size,
+                            .visibleInCPU = false,
+                            .debugName = std::format("{}_UBO", shader->GetName()).c_str()
+                        };
+                        auto buffer = Engine::MakeUnique<VKBuffer>(createInfo);
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                         bufferInfo.buffer = buffer->GetHandle();
                         bufferInfo.offset = 0;
@@ -78,16 +84,16 @@ namespace Engine::Gfx
                         uniformBuffers.insert(std::make_pair(b.second.name, std::move(buffer)));
                         break;
                     }
-                    case ShaderInfo::BindingType::SSBO:
-                    {
-                        VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
-                        bufferInfo.buffer = sharedResource->GetDefaultStorageBuffer()->GetVKBuffer();
-                        bufferInfo.offset = 0;
-                        bufferInfo.range = b.second.binding.ubo.data.size;
-                        writes[writeCount].pBufferInfo = &bufferInfo;
-                        storageBuffers.insert(std::make_pair(b.second.name, sharedResource->GetDefaultStorageBuffer()));
-                        break;
-                    }
+                    //case ShaderInfo::BindingType::SSBO:
+                    //{
+                    //    VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                    //    bufferInfo.buffer = sharedResource->GetDefaultStorageBuffer()->GetVKBuffer();
+                    //    bufferInfo.offset = 0;
+                    //    bufferInfo.range = b.second.binding.ubo.data.size;
+                    //    writes[writeCount].pBufferInfo = &bufferInfo;
+                    //    storageBuffers.insert(std::make_pair(b.second.name, sharedResource->GetDefaultStorageBuffer()));
+                    //    break;
+                    //}
                     case ShaderInfo::BindingType::Texture:
                     {
                         VkDescriptorImageInfo imageInfo;
@@ -136,32 +142,30 @@ namespace Engine::Gfx
         descriptorPool->Free(descriptorSet);
     }
 
-    void VKShaderResource::SetUniform(std::string_view obj, std::string_view member, void* value)
+    bool VKShaderResource::HasPushConstnat(const std::string& obj)
     {
-        std::string objStr(obj);
-        std::string memStr(member);
         auto& shaderInfo = shaderProgram->GetShaderInfo();
-
         // find from push constant first
-        auto pushConstantIter = shaderInfo.pushConstants.find(objStr);
+        auto pushConstantIter = shaderInfo.pushConstants.find(obj);
         if (pushConstantIter != shaderInfo.pushConstants.end())
         {
-            auto memIter = pushConstantIter->second.data.members.find(memStr);
-            if (memIter != pushConstantIter->second.data.members.end())
-            {
-                pushConstantIsUsed = true;
-                memcpy(pushConstantBuffer + memIter->second.offset, value, memIter->second.data->size);
-                return;
-            }
+            return true;
         }
+
+        return false;
+    }
+
+    RefPtr<Buffer> VKShaderResource::GetBuffer(const std::string& object, BufferMemberInfoMap& memberInfo)
+    {
+        auto& shaderInfo = shaderProgram->GetShaderInfo();
 
         // find binding
         auto& bindings = shaderInfo.descriptorSetBinidngMap.at(slot).bindings;
-        auto iter = bindings.find(objStr);
+        auto iter = bindings.find(object);
         if (iter == bindings.end())
         {
             SPDLOG_WARN("SetUniform didn't find the binding");
-            return;
+            return nullptr;
         }
         auto& binding = iter->second;
 
@@ -169,23 +173,21 @@ namespace Engine::Gfx
         if (binding.type != ShaderInfo::BindingType::UBO)
         {
             SPDLOG_WARN("SetUniform is writing to a non-uniform binding");
-            return;
+            return nullptr;
         }
 
         // get buffer
         auto bufIter = uniformBuffers.find(binding.name);
-        if (bufIter == uniformBuffers.end()) return;
-        auto& buf = bufIter->second;
+        if (bufIter == uniformBuffers.end()) return nullptr;
 
         // write to buffer
         auto& mems = binding.binding.ubo.data.members;
-        auto memIter = mems.find(memStr);
-        if (memIter == mems.end())
+        for(auto& m : mems)
         {
-            SPDLOG_WARN("SetUniform didn't find the binding member");
-            return;
+            memberInfo[m.first] = { m.second.offset, m.second.data->size };
         }
-        buf->Write(value, memIter->second.data->size, memIter->second.offset);
+
+        return bufIter->second.Get();
     }
 
     VkDescriptorSet VKShaderResource::GetDescriptorSet()
@@ -269,7 +271,7 @@ namespace Engine::Gfx
         vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
     }
 
-    void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
+   /* void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
     {
         std::string paramStr(param);
         VKStorageBuffer* storageBuffer = static_cast<VKStorageBuffer*>(storage.Get());
@@ -300,7 +302,7 @@ namespace Engine::Gfx
         vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
 
         storageBuffers[paramStr] = storage;
-    }
+    }*/
 
     RefPtr<ShaderProgram> VKShaderResource::GetShader()
     {

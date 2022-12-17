@@ -37,18 +37,17 @@ namespace Engine::Gfx
             VKDriver();
             ~VKDriver() override;
 
-            void ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf) override;
             void ForceSyncResources() override;
             void WaitForIdle() override;
-            void PrepareFrameResources(RefPtr<CommandQueue> queue) override;
             void QueueSubmit(RefPtr<CommandQueue> queue,
-                    std::vector<RefPtr<CommandBuffer>>& cmdBufs,
-                    std::vector<RefPtr<Semaphore>>& waitSemaphores,
-                    std::vector<Gfx::PipelineStageFlags>& waitDstStageMasks,
-                    std::vector<RefPtr<Semaphore>>& signalSemaphroes,
+                    std::vector<RefPtr<CommandBuffer>>&& cmdBufs,
+                    std::vector<RefPtr<Semaphore>>&& waitSemaphores,
+                    std::vector<Gfx::PipelineStageFlags>&& waitDstStageMasks,
+                    std::vector<RefPtr<Semaphore>>&& signalSemaphroes,
                     RefPtr<Fence> signalFence
                     ) override;
-            RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>> semaphores) override;
+            RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
+            void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
             void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
 
             RefPtr<CommandQueue>     GetQueue(QueueType flags) override;
@@ -60,7 +59,6 @@ namespace Engine::Gfx
 
             virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
             virtual UniPtr<Fence>     CreateFence(const Fence::CreateInfo& createInfo) override;
-            UniPtr<CommandBuffer>     CreateCommandBuffer() override;
             UniPtr<Buffer>         CreateBuffer(const Buffer::CreateInfo& createInfo) override;
             UniPtr<ShaderResource>    CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) override;
             UniPtr<RenderPass>        CreateRenderPass() override;
@@ -73,6 +71,7 @@ namespace Engine::Gfx
                     uint32_t vertSize,
                     unsigned char* frag,
                     uint32_t fragSize) override;
+            UniPtr<CommandPool>       CreateCommandPool(const CommandPool::CreateInfo& createInfo);
 
         private:
             VKInstance* instance;
@@ -90,11 +89,6 @@ namespace Engine::Gfx
             UniPtr<VKContext> context;
             UniPtr<VKSharedResource> sharedResource;
             UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
-            VkCommandPool commandPool;
-            VkCommandBuffer cmdBufs[2];
-#define renderingCmdBuf cmdBufs[0]
-#define resourceCmdBuf cmdBufs[1]
-            VKRenderTarget* finalRenderTarget;
             RefPtr<const VKCommandQueue> mainQueue;
             RefPtr<const VKCommandQueue> graphics0queue;
 
@@ -102,7 +96,5 @@ namespace Engine::Gfx
             {
                 UniPtr<VKSemaphore> imageAcquireSemaphore;
             } inFlightFrame;
-
-            std::vector<UniPtr<VKCommandBuffer>> pendingCmdBufs;
     };
 }

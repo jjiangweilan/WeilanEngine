@@ -47,8 +47,4 @@ namespace Engine::Gfx
     {
         vkResetCommandPool(GetDevice()->GetHandle(), commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
     }
-
-    void VKCommandPool::ReleaseCommandBuffer(RefPtr<CommandBuffer> bCmdBuf)
-    {
-    }
 }

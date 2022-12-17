@@ -8,11 +8,11 @@ namespace Engine
     {
         image = Gfx::GfxDriver::Instance()->CreateImage(texDesc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
 
-        Internal::GfxResourceTransfer::TransferRequest request
+        Internal::GfxResourceTransfer::ImageTransferRequest request
         {
             .data = texDesc.data,
             .size = Gfx::Utils::MapImageFormatToByteSize(texDesc.format) * texDesc.width * texDesc.height,
-            .onTransferFinished = nullptr
+            // use default subresource range
         };
         Internal::GetGfxResourceTransfer()->Transfer(image, request);
     }

@@ -65,6 +65,7 @@ namespace Engine
                 void UpdateResources();
                 void SetShaderNoProtection(std::string_view shader);
                 void OnReferenceResolve(void* ptr, AssetObject* resolved) override;
+                void MakeBufferTransferRequest(const std::string& param, const std::string& member, void* data);
                 static int initImporter_;
     };
 }

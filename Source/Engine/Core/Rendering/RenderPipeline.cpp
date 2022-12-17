@@ -6,6 +6,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
+#include "Rendering/GfxResourceTransfer.hpp"
 
 #if GAME_EDITOR
 #include "ThirdParty/imgui/imgui.h"
@@ -19,7 +20,6 @@ namespace Engine::Rendering
     }
     RenderPipeline::~RenderPipeline()
     {
-        AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
     }
 
     void RenderPipeline::Init()
@@ -53,33 +53,19 @@ namespace Engine::Rendering
         depthAttachment.stencilStoreOp = AttachmentStoreOperation::Store;
         renderPass->AddSubpass({colorAttachment}, depthAttachment);
 
-        // create global shader resource
-        globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
-
-        assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj)
-                {
-                Shader* casted = dynamic_cast<Shader*>(obj.Get());
-                if (casted && casted->GetName() == "Internal/SceneLayout")
-                {
-                    this->globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
-                }
-                });
-
         mainQueue = gfxDriver->GetQueue(QueueType::Main);
         imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
-    }
-
-    RefPtr<Gfx::Image> RenderPipeline::GetOutputDepth()
-    {
-        return depthImage;
+        cmdPool = gfxDriver->CreateCommandPool({mainQueue});
+        cmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1).at(0));
     }
 
     void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
-        GetGfxDriver()->AcquireNextSwapChainImage(imageAcquireSemaphore);
+        gfxDriver->AcquireNextSwapChainImage(imageAcquireSemaphore);
+        gfxDriver->WaitForFence({mainCmdBufFinishedFence}, true, -1);
+        cmdPool->ResetCommandPool();
 
         Camera* mainCamera = Camera::mainCamera.Get();
-
         if (mainCamera != nullptr)
         {
             RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();
@@ -88,23 +74,25 @@ namespace Engine::Rendering
             glm::mat4 projectionMatrix = mainCamera->GetProjectionMatrix();
             glm::mat4 vp = projectionMatrix * viewMatrix;
             glm::vec3 viewPos = camTsm->GetPosition();
-            globalResource->SetUniform("SceneInfo", "view", &viewMatrix);
-            globalResource->SetUniform("SceneInfo", "projection", &projectionMatrix);
-            globalResource->SetUniform("SceneInfo", "viewProjection", &vp);
-            globalResource->SetUniform("SceneInfo", "viewPos", &viewPos);
+            globalShaderResoruce.v.projection = projectionMatrix;
+            globalShaderResoruce.v.viewProjection = vp;
+            globalShaderResoruce.v.viewPos = viewPos;
+            globalShaderResoruce.v.view = viewMatrix;
         }
 
-        auto cmdBuf = gfxDriver->CreateCommandBuffer();
-
+        PrepareFrameData(cmdBuf);
         ProcessLights(gameScene, cmdBuf);
 
+        // prepare
         std::vector<Gfx::ClearValue> clears(2);
         clears[0].color = {{0,0,0,0}};
         clears[1].depthStencil.depth = 1;
         clears[1].depthStencil.stencil = 0;
         Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
         cmdBuf->SetScissor(0, 1, &scissor);
-        cmdBuf->BindResource(globalResource);
+        globalShaderResoruce.BindShaderResource(cmdBuf);
+
+        // render scene object (opauqe + transparent)
         cmdBuf->BeginRenderPass(renderPass, clears);
         if (gameScene)
         {
@@ -115,11 +103,19 @@ namespace Engine::Rendering
             }
         }
         cmdBuf->EndRenderPass();
-        if (!offscreenOutput)
-            cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 
-        std::vector<RefPtr<CommandBuffer>> cmdBufs = {cmdBuf};
-        gfxDriver->QueueSubmit(mainQueue, cmdBufs, );
+#if GAME_EDITOR
+        if (renderEditor)
+        {
+            gameEditor->GameRenderOutput(colorImage, depthImage);
+            gameEditor->Render(cmdBuf);
+        }
+#else
+        cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
+#endif
+
+        gfxDriver->QueueSubmit(mainQueue, {cmdBuf}, {imageAcquireSemaphore}, {PipelineStage::Color_Attachment_Output}, {mainCmdBufFinishedSemaphore}, mainCmdBufFinishedFence);
+        gfxDriver->Present({mainCmdBufFinishedSemaphore});
     }
 
     void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd)
@@ -149,16 +145,6 @@ namespace Engine::Rendering
         }
     }
 
-    RefPtr<Gfx::Image> RenderPipeline::GetOutputColor()
-    {
-        if (offscreenOutput == true)
-        {
-            return colorImage;
-        }
-
-        return nullptr;
-    }
-
     void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf)
     {
         auto lights = gameScene->GetActiveLights();
@@ -169,4 +155,25 @@ namespace Engine::Rendering
         asset = MakeUnique<RenderPipelineAsset>();
         asset->virtualTexture = userConfigAsset->virtualTexture;
     }
+
+    void RenderPipeline::PrepareFrameData(RefPtr<CommandBuffer> cmdBuf)
+    {
+        Internal::GetGfxResourceTransfer()->QueueTransferCommands(cmdBuf);
+        globalShaderResoruce.QueueCommand(cmdBuf);
+
+        // resource prepare | draw commands
+        MemoryBarrier barrier;
+        barrier.memoryInfo.srcStageMask = PipelineStage::Transfer;
+        barrier.dstStageMask = PipelineStage::Vertex_Input | PipelineStage::Transfer;
+        barrier.memoryInfo.srcAccessMask = AccessMask::Transfer_Write;
+        barrier.memoryInfo.dstAccessMask = AccessMask::Memory_Read;
+
+        cmdBuf->Barrier(&barrier, 1);
+    }
+
+    void RenderPipeline::GlobalShaderResource::QueueCommand(RefPtr<CommandBuffer> cmdBuf)
+    {
+
+    }
+
 }

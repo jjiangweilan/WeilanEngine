@@ -17,7 +17,6 @@ namespace Engine::Gfx
         public:
             virtual ~Buffer() {};
             virtual void* GetCPUVisibleAddress() = 0;
-            virtual void Resize(uint32_t size) = 0;
             virtual void SetDebugName(const char* name) = 0;
             virtual uint32_t GetSize() = 0;
 

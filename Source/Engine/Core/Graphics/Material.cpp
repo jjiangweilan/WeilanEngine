@@ -3,6 +3,7 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "Rendering/GfxResourceTransfer.hpp"
 namespace Engine
 {
 #define SER_MEMS() \
@@ -54,22 +55,38 @@ namespace Engine
         shaderResource->SetTexture(param, image);
     }
 
+    void Material::MakeBufferTransferRequest(const std::string& param, const std::string& member, void* value)
+    {
+        Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+        auto buffer = shaderResource->GetBuffer("param", memberInfo);
+        auto memberInfoIter = memberInfo.find(member);
+        if (memberInfoIter == memberInfo.end()) return;
+
+        Internal::GfxResourceTransfer::BufferTransferRequest request
+        {
+            .data = value,
+            .bufOffset = memberInfoIter->second.offset,
+            .size = memberInfoIter->second.size,
+        };
+        Internal::GetGfxResourceTransfer()->Transfer(buffer, request);
+    }
+
     void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
     {
-        // matrixValues[param] = value;
-        shaderResource->SetUniform(param, member, (void*)&value);
+        matrixValues[param + "." + member] = value;
+        MakeBufferTransferRequest(param, member, (void*)&value);
     }
 
     void Material::SetFloat(const std::string& param, const std::string& member, float value)
     {
         floatValues[param + "." + member] = value;
-        shaderResource->SetUniform(param, member, (void*)&value);
+        MakeBufferTransferRequest(param, member, (void*)&value);
     }
 
     void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
     {
         vectorValues[param + "." + member] = value;
-        shaderResource->SetUniform(param, member, (void*)&value);
+        MakeBufferTransferRequest(param, member, (void*)&value);
     }
 
     glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
@@ -165,17 +182,29 @@ namespace Engine
         if (shaderResource == nullptr) return;
         for(auto& v : floatValues)
         {
-            shaderResource->SetUniform(v.first, &v.second);
+            auto dotIndex = v.first.find_first_of('.');
+            auto obj = v.first.substr(dotIndex + 1);
+            auto mem = v.first.substr(0, dotIndex);
+
+            MakeBufferTransferRequest(obj, mem, &v.second);
         }
 
         for(auto& v : matrixValues)
         {
-            shaderResource->SetUniform(v.first, &v.second);
+            auto dotIndex = v.first.find_first_of('.');
+            auto obj = v.first.substr(dotIndex + 1);
+            auto mem = v.first.substr(0, dotIndex);
+
+            MakeBufferTransferRequest(obj, mem, &v.second);
         }
 
         for(auto& v : vectorValues)
         {
-            shaderResource->SetUniform(v.first, &v.second);
+            auto dotIndex = v.first.find_first_of('.');
+            auto obj = v.first.substr(dotIndex + 1);
+            auto mem = v.first.substr(0, dotIndex);
+
+            MakeBufferTransferRequest(obj, mem, &v.second);
         }
 
         // Note: When materials are deserialized from disk, OnReferenceResolve also works to set textures

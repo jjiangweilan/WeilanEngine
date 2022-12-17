@@ -35,8 +35,8 @@ namespace Engine::Gfx
             void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
             void NextRenderPass() override;
 
-            void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, uint64_t srcOffset, RefPtr<Gfx::Buffer> bDst, uint64_t dstOffset, uint64_t size) override;
-            void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst) override;
+            void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions) override;
+            void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, const std::vector<BufferImageCopyRegion>& regions) override;
             void Barrier(MemoryBarrier* barriers, uint32_t barrierCount) override;
 
             VkCommandBuffer GetHandle() const { return vkCmdBuf; }

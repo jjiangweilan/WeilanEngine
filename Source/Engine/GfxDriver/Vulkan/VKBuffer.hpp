@@ -16,8 +16,8 @@ namespace Engine::Gfx
             void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
             void FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
             void* GetCPUVisibleAddress() override;
-            void Resize(uint32_t size) override;
             void SetDebugName(const char* name) override;
+            uint32_t GetSize() override { return size; }
 
             inline VkBuffer GetHandle() { return buffer; }
 
