@@ -3,6 +3,7 @@
 #include "VKRenderTarget.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "VKRenderPass.hpp"
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <functional>
@@ -14,7 +15,7 @@ namespace Engine::Gfx
     class VKCommandBuffer : public CommandBuffer
     {
         public:
-            VKCommandBuffer();
+            VKCommandBuffer(VkCommandBuffer vkCmdBuf);
             VKCommandBuffer(const VKCommandBuffer& other) = delete;
             ~VKCommandBuffer();
 
@@ -25,44 +26,29 @@ namespace Engine::Gfx
             void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to) override;
             // renderpass and framebuffer have to be compatible. https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
             void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
-            void BindVertexBuffer(const std::vector<RefPtr<Gfx::GfxBuffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex) override;
+            void BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex) override;
             void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
-            void BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;
+            void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;
             void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance) override;
             void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
             void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
             void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
             void NextRenderPass() override;
 
-            void AppendCustomCommand(std::function<void(VkCommandBuffer)>&& f);
-            void RecordToVulkanCmdBuf(VkCommandBuffer cmd);
+            void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, uint64_t srcOffset, RefPtr<Gfx::Buffer> bDst, uint64_t dstOffset, uint64_t size) override;
+            void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst) override;
+            void Barrier(MemoryBarrier* barriers, uint32_t barrierCount) override;
 
+            VkCommandBuffer GetHandle() const { return vkCmdBuf; }
         private:
-            struct ExecuteContext
-            {
-                VkRenderPass currentPass = VK_NULL_HANDLE;
-                uint32_t subpass = -1;
-            } executeContext;
 
-            struct RenderPassResources
-            {
-                std::vector<VKShaderResource*> bindedResources;
-                std::vector<VKBuffer*> vertexBuffers;
-                std::vector<VKBuffer*> indexBuffers;
-            };
+            VkCommandBuffer vkCmdBuf;
+            VKRenderPass* currentRenderPass = nullptr;
+            uint32_t currentRenderIndex = -1;
 
-            struct RecordContext
-            {
-                VkRenderPass currentPass = VK_NULL_HANDLE;
-                std::unordered_map<VkRenderPass, RenderPassResources> renderPassResources;
+            std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
+            std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
+            std::vector<VkMemoryBarrier> memoryMemoryBarriers;
 
-                // these data will be moved to renderPassResources in EndRenderPass()
-                std::vector<VKShaderResource*> bindedResources;
-                std::vector<VKBuffer*> vertexBuffers;
-                std::vector<VKBuffer*> indexBuffers;
-            } recordContext;
-
-
-            std::vector<std::function<void(VkCommandBuffer, ExecuteContext& context, RecordContext& recordContext)>> pendingCommands;
     };
 }

@@ -14,6 +14,7 @@
 
 #include "VKShaderProgram.hpp"
 #include "VKRenderTarget.hpp"
+#include "VKSemaphore.hpp"
 
 namespace Engine::Gfx
 {
@@ -29,7 +30,7 @@ namespace Engine::Gfx
     class VKSharedResource;
     class VKSwapChainImageProxy;
     class VKContext;
-    class VKDescriptorPoolCache;
+    struct VKDescriptorPoolCache;
     class VKDriver : public Gfx::GfxDriver
     {
         public:
@@ -37,28 +38,41 @@ namespace Engine::Gfx
             ~VKDriver() override;
 
             void ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf) override;
-            Extent2D GetWindowSize() override;
-            Backend GetGfxBackendType() override;
             void ForceSyncResources() override;
-            void DispatchGPUWork() override;
             void WaitForIdle() override;
-            SDL_Window* GetSDLWindow() override;
-            RefPtr<Image> GetSwapChainImageProxy() override;
-            UniPtr<CommandBuffer> CreateCommandBuffer() override;
-            UniPtr<GfxBuffer> CreateBuffer(uint32_t size, BufferUsage usage, bool cpuVisible = false) override;
-            UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) override;
-            UniPtr<RenderPass> CreateRenderPass() override;
-            UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
-            UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
-            UniPtr<ShaderProgram> CreateShaderProgram(
+            void PrepareFrameResources(RefPtr<CommandQueue> queue) override;
+            void QueueSubmit(RefPtr<CommandQueue> queue,
+                    std::vector<RefPtr<CommandBuffer>>& cmdBufs,
+                    std::vector<RefPtr<Semaphore>>& waitSemaphores,
+                    std::vector<Gfx::PipelineStageFlags>& waitDstStageMasks,
+                    std::vector<RefPtr<Semaphore>>& signalSemaphroes,
+                    RefPtr<Fence> signalFence
+                    ) override;
+            RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>> semaphores) override;
+            void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
+
+            RefPtr<CommandQueue>     GetQueue(QueueType flags) override;
+            SDL_Window*              GetSDLWindow() override;
+            RefPtr<Image>            GetSwapChainImageProxy() override;
+            Extent2D                 GetWindowSize() override;
+            Backend                  GetGfxBackendType() override;
+            RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
+
+            virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
+            virtual UniPtr<Fence>     CreateFence(const Fence::CreateInfo& createInfo) override;
+            UniPtr<CommandBuffer>     CreateCommandBuffer() override;
+            UniPtr<Buffer>         CreateBuffer(const Buffer::CreateInfo& createInfo) override;
+            UniPtr<ShaderResource>    CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency) override;
+            UniPtr<RenderPass>        CreateRenderPass() override;
+            UniPtr<FrameBuffer>       CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
+            UniPtr<Image>             CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
+            UniPtr<ShaderProgram>     CreateShaderProgram(
                     const std::string& name, 
                     const ShaderConfig* config,
                     unsigned char* vert,
                     uint32_t vertSize,
                     unsigned char* frag,
                     uint32_t fragSize) override;
-            
-            RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
 
         private:
             VKInstance* instance;
@@ -72,22 +86,21 @@ namespace Engine::Gfx
             VKObjectManager* objectManager;
 
             VkDevice device_vk;
+            UniPtr<VKSwapChainImageProxy> swapChainImageProxy;
             UniPtr<VKContext> context;
             UniPtr<VKSharedResource> sharedResource;
-            UniPtr<VKSwapChainImageProxy> swapChainImageProxy;
             UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
             VkCommandPool commandPool;
-            VkCommandBuffer renderingCmdBuf;
-            VkCommandBuffer resourceCmdBuf;
+            VkCommandBuffer cmdBufs[2];
+#define renderingCmdBuf cmdBufs[0]
+#define resourceCmdBuf cmdBufs[1]
             VKRenderTarget* finalRenderTarget;
-            RefPtr<const DeviceQueue> mainQueue;
+            RefPtr<const VKCommandQueue> mainQueue;
+            RefPtr<const VKCommandQueue> graphics0queue;
 
             struct InFlightFrame
             {
-                uint32_t imageIndex = -1;
-                VkSemaphore imageAcquireSemaphore = VK_NULL_HANDLE;
-                VkSemaphore renderingFinishedSemaphore = VK_NULL_HANDLE;
-                VkFence mainQueueFinishedFence = VK_NULL_HANDLE;
+                UniPtr<VKSemaphore> imageAcquireSemaphore;
             } inFlightFrame;
 
             std::vector<UniPtr<VKCommandBuffer>> pendingCmdBufs;

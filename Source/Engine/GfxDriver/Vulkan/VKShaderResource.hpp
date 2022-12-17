@@ -29,7 +29,6 @@ namespace Engine::Gfx
             void SetStorage(std::string_view obj, RefPtr<StorageBuffer> storage) override;
             void SetTexture(const std::string& param, RefPtr<Image> image) override;
             DescriptorSetSlot GetDescriptorSetSlot() const { return slot; }
-            void PrepareResource(VkCommandBuffer cmdBuf);
         protected:
             const std::unordered_map<std::string, VkPushConstantRange>* pushConstantRanges = nullptr;
             bool pushConstantIsUsed = false;

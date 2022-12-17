@@ -7,6 +7,9 @@
 #include "Core/Graphics/FrameContext.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
+#if GAME_EDITOR
+#include "Editor/GameEditor.hpp"
+#endif
 namespace Engine
 {
     class GameScene;
@@ -36,6 +39,9 @@ namespace Engine::Rendering
             void ApplyAsset();
             RefPtr<RenderPipelineAsset> userConfigAsset;
 
+#if GAME_EDITOR
+            void RenderGameEditor(RefPtr<Editor::GameEditor> gameEditor);
+#endif
         private:
 
             RefPtr<Gfx::GfxDriver> gfxDriver;
@@ -48,6 +54,8 @@ namespace Engine::Rendering
             UniPtr<Gfx::Image> colorImage;
             UniPtr<Gfx::Image> depthImage;
             UniPtr<Gfx::ShaderResource> globalResource;
+            UniPtr<Gfx::Semaphore> imageAcquireSemaphore;
+            RefPtr<CommandQueue> mainQueue;
             bool offscreenOutput;
             AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
 

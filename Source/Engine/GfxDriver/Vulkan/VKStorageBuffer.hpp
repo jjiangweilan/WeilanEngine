@@ -9,7 +9,7 @@ namespace Engine::Gfx
         public:
             VKStorageBuffer(int size);
             void UpdateData(void* data) override;
-            VkBuffer GetVKBuffer() { return buffer->GetVKBuffer(); }
+            VkBuffer GetVKBuffer() { return buffer->GetHandle(); }
             uint32_t GetSize() override {return size;}
             void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
 

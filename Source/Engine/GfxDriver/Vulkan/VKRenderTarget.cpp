@@ -88,10 +88,10 @@ namespace Engine::Gfx
                     const RenderTargetAttachmentDescription& attachmentDesc = rtDescription.colorsDescriptions[i];
 
                     attachmentDescriptions[i].flags = 0;
-                    attachmentDescriptions[i].format = VKEnumMapper::MapFormat(attachmentDesc.format);
-                    attachmentDescriptions[i].samples = VKEnumMapper::MapSampleCount(attachmentDesc.multiSampling);
-                    attachmentDescriptions[i].loadOp = VKEnumMapper::MapAttachmentLoadOp(renderPassConfig.colors[i].loadOp);
-                    attachmentDescriptions[i].storeOp = VKEnumMapper::MapAttachmentStoreOp(renderPassConfig.colors[i].storeOp);
+                    attachmentDescriptions[i].format = MapFormat(attachmentDesc.format);
+                    attachmentDescriptions[i].samples = MapSampleCount(attachmentDesc.multiSampling);
+                    attachmentDescriptions[i].loadOp = MapAttachmentLoadOp(renderPassConfig.colors[i].loadOp);
+                    attachmentDescriptions[i].storeOp = MapAttachmentStoreOp(renderPassConfig.colors[i].storeOp);
                     attachmentDescriptions[i].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                     attachmentDescriptions[i].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 }
@@ -102,18 +102,18 @@ namespace Engine::Gfx
                     auto& depthStencilAttachmentDescription = attachmentDescriptions.back();
 
                     depthStencilAttachmentDescription.flags = 0;
-                    depthStencilAttachmentDescription.format = VKEnumMapper::MapFormat(attachmentDesc.format);
-                    depthStencilAttachmentDescription.samples = VKEnumMapper::MapSampleCount(attachmentDesc.multiSampling);
-                    depthStencilAttachmentDescription.loadOp = VKEnumMapper::MapAttachmentLoadOp(renderPassConfig.depthStencil.loadOp);
-                    depthStencilAttachmentDescription.storeOp = VKEnumMapper::MapAttachmentStoreOp(renderPassConfig.depthStencil.storeOp);
+                    depthStencilAttachmentDescription.format = MapFormat(attachmentDesc.format);
+                    depthStencilAttachmentDescription.samples = MapSampleCount(attachmentDesc.multiSampling);
+                    depthStencilAttachmentDescription.loadOp = MapAttachmentLoadOp(renderPassConfig.depthStencil.loadOp);
+                    depthStencilAttachmentDescription.storeOp = MapAttachmentStoreOp(renderPassConfig.depthStencil.storeOp);
 
                     depthStencilAttachmentReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                     depthStencilAttachmentReference.attachment = attachmentDescriptions.size() - 1;
 
                     depthStencilAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                     depthStencilAttachmentDescription.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                    depthStencilAttachmentDescription.stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(renderPassConfig.depthStencil.stencilLoadOp);
-                    depthStencilAttachmentDescription.stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(renderPassConfig.depthStencil.stencilStoreOp);
+                    depthStencilAttachmentDescription.stencilLoadOp = MapAttachmentLoadOp(renderPassConfig.depthStencil.stencilLoadOp);
+                    depthStencilAttachmentDescription.stencilStoreOp = MapAttachmentStoreOp(renderPassConfig.depthStencil.stencilStoreOp);
                 }
 
                 subpassDescriptions = std::vector<VkSubpassDescription>(1);

@@ -2,7 +2,7 @@
 
 #include "../../GfxEnums.hpp"
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx::VKEnumMapper
+namespace Engine::Gfx
 {
     VkFormat MapFormat(ImageFormat format);
     ImageFormat MapVKFormat(VkFormat format);
@@ -16,5 +16,8 @@ namespace Engine::Gfx::VKEnumMapper
     VkBlendOp MapBlendOp(BlendOp op);
     VkColorComponentFlagBits MapColorComponentBits(ColorComponentBits bits);
     VkImageUsageFlags MapImageUsage(ImageUsageFlags in);
-
+    VkPipelineStageFlags MapPipelineStage(PipelineStageFlags stages);
+    VkAccessFlags MapAccessMask(AccessMaskFlags masks);
+    VkImageLayout MapImageLayout(ImageLayout layout);
+    VkImageAspectFlags MapImageAspect(ImageAspectFlags aspects);
 }

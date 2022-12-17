@@ -11,7 +11,7 @@
 #include "Extension/Inspector/BuildInInspectors.hpp"
 namespace Engine::Editor
 {
-    GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement) : gfxDriver(gfxDriver), projectManagement(projectManagement)
+    GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement) : projectManagement(projectManagement), gfxDriver(gfxDriver)
     {
 
     }
@@ -24,7 +24,7 @@ namespace Engine::Editor
         ImGui::DestroyContext();
     }
 
-    void GameEditor::Init(RefPtr<Rendering::RenderPipeline> renderPipeline)
+    void GameEditor::Init()
     {
         ImGui::CreateContext();
         ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
@@ -42,8 +42,8 @@ namespace Engine::Editor
 
         InitializeBuiltInInspector();
 
-        imGuiData.indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Index, true);
-        imGuiData.vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Vertex, true);
+        imGuiData.indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer({ Gfx::BufferUsage::Index, 1024, true });
+        imGuiData.vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer({ Gfx::BufferUsage::Vertex, 1024, true });
         imGuiData.shaderProgram = AssetDatabase::Instance()->GetShader("ImGui")->GetShaderProgram();
         imGuiData.generalShaderRes = Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
 
@@ -70,11 +70,6 @@ namespace Engine::Editor
         imGuiData.fontTex = Gfx::GfxDriver::Instance()->CreateImage(fontTexDesc, Gfx::ImageUsage::Texture);
         imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex);
         imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
-
-        /* initialize rendering resources */
-        renderPipeline->SetOffScreenOutput(true);
-        gameColorImage = renderPipeline->GetOutputColor();
-        gameDepthImage = renderPipeline->GetOutputDepth();
 
         /* imgui render pass */
         editorPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
@@ -170,11 +165,6 @@ namespace Engine::Editor
         cmdBuf->EndRenderPass();
         // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
         gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
-    }
-
-    void GameEditor::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
-    {
-
     }
 
     void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf)

@@ -11,7 +11,6 @@
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/GameScene/GameScene.hpp"
-#include "Core/Rendering/RenderPipeline.hpp"
 #include "ProjectManagement/ProjectManagement.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <SDL2/SDL.h>
@@ -26,8 +25,13 @@ namespace Engine::Editor
                 RefPtr<Gfx::GfxDriver> gfxDriver,
                 RefPtr<ProjectManagement> projectManagement);
             ~GameEditor();
+            void Init();
+            void GameRenderOutput(RefPtr<Gfx::Image> color, RefPtr<Gfx::Image> depth)
+            {
+                gameColorImage = color;
+                gameDepthImage = depth;
+            }
 
-            void Init(RefPtr<Rendering::RenderPipeline> renderPipeline);
             void ProcessEvent(const SDL_Event& event);
             bool IsProjectInitialized();
             void Tick();
@@ -53,12 +57,11 @@ namespace Engine::Editor
             RefPtr<Gfx::Image> gameDepthImage;
             void DrawMainMenu();
             void RenderEditor(RefPtr<CommandBuffer> cmdBuf);
-            void RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf);
 
             struct ImGuiData
             {
-                UniPtr<Gfx::GfxBuffer> vertexBuffer; // use single buffer to capture all the vertices
-                UniPtr<Gfx::GfxBuffer> indexBuffer;
+                UniPtr<Gfx::Buffer> vertexBuffer; // use single buffer to capture all the vertices
+                UniPtr<Gfx::Buffer> indexBuffer;
                 UniPtr<Gfx::Image> fontTex;
                 UniPtr<Gfx::Image> editorRT;
                 UniPtr<Gfx::ShaderResource> generalShaderRes;

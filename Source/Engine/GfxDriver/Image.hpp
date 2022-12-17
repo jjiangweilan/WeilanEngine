@@ -7,6 +7,14 @@
 
 namespace Engine::Gfx
 {
+    struct ImageSubresourceRange
+    {
+        ImageAspectFlags    aspectMask;
+        uint32_t       baseMipLevel;
+        uint32_t       levelCount;
+        uint32_t       baseArrayLayer;
+        uint32_t       layerCount;
+    };
     class Image
     {
         public:

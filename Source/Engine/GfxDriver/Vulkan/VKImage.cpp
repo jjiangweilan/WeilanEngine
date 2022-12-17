@@ -16,25 +16,16 @@ namespace Engine::Gfx
             const ImageDescription& imageDescription,
             ImageUsageFlags usageFlags
             ):
-            usageFlags(VKEnumMapper::MapImageUsage(usageFlags)),
+            usageFlags(MapImageUsage(usageFlags)),
             imageDescription(imageDescription)
     {
         defaultSubResourceRange = GenerateDefaultSubresourceRange();
-        format_vk = VKEnumMapper::MapFormat(imageDescription.format);
+        format_vk = MapFormat(imageDescription.format);
 
         if (imageDescription.data) this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         MakeVkObjects();
 
         defaultSubResourceRange = GenerateDefaultSubresourceRange();
-        if (imageDescription.data)
-        {
-            VKContext::Instance()->allocator->UploadImage(
-                this,
-                    Utils::MapImageFormatToByteSize(imageDescription.format) *
-                    imageDescription.width *
-                    imageDescription.height,
-                imageDescription.data);
-        }
     }
 
     VKImage::VKImage(VKImage&& other) : 
@@ -42,13 +33,13 @@ namespace Engine::Gfx
         arrayLayers(other.arrayLayers),
         imageType_vk(other.imageType_vk),
         usageFlags(other.usageFlags),
-        stageMask(other.stageMask),
-        accessMask(other.accessMask),
         image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
         imageView_vk(std::exchange(other.imageView_vk, VK_NULL_HANDLE)),
         defaultSubResourceRange(other.defaultSubResourceRange),
         allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)),
         layout(other.layout),
+        stageMask(other.stageMask),
+        accessMask(other.accessMask),
         imageDescription(other.imageDescription)
     {
     }
@@ -59,6 +50,33 @@ namespace Engine::Gfx
             VKContext::Instance()->objManager->DestroyImageView(imageView_vk);
         if(image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
             VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
+    }
+
+    void VKImage::FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barriers, VkImageLayout newLayout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange)
+    {
+        if (this->layout != newLayout)
+        {
+            barriers.emplace_back();
+            VkImageMemoryBarrier& barrier = barriers.back();
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.pNext = VK_NULL_HANDLE;
+            barrier.srcAccessMask = this->accessMask;
+            barrier.dstAccessMask = dstAccessMask;
+            barrier.oldLayout = this->layout;
+            barrier.newLayout = newLayout;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = image_vk;
+
+            if (subresourceRange)
+                barrier.subresourceRange = *subresourceRange;
+            else
+                barrier.subresourceRange = defaultSubResourceRange;
+
+            this->layout = newLayout;
+            this->stageMask = dstStageMask;
+            this->accessMask = dstAccessMask;
+        }
     }
 
     void VKImage::TransformLayoutIfNeeded(
@@ -141,7 +159,7 @@ namespace Engine::Gfx
         imageCreateInfo.extent = {imageDescription.width, imageDescription.height, 1};
         imageCreateInfo.mipLevels = mipLevels;
         imageCreateInfo.arrayLayers = arrayLayers;
-        imageCreateInfo.samples = VKEnumMapper::MapSampleCount(imageDescription.multiSampling);
+        imageCreateInfo.samples = MapSampleCount(imageDescription.multiSampling);
         imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCreateInfo.usage = usageFlags;
         imageCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE ;
@@ -172,7 +190,7 @@ namespace Engine::Gfx
 
     VkImageSubresourceRange VKImage::GenerateDefaultSubresourceRange()
     {
-        VkFormat format_vk = VKEnumMapper::MapFormat(imageDescription.format);
+        VkFormat format_vk = MapFormat(imageDescription.format);
         VkImageSubresourceRange range;
 
         range.aspectMask = 0;

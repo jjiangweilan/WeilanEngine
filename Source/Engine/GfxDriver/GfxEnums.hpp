@@ -2,15 +2,34 @@
 
 #include <cinttypes>
 #include <cassert>
+#include "Code/EnumFlags.hpp"
 namespace Engine::Gfx
 {
-    enum class BufferUsage : uint32_t
+    ENUM_FLAGS(BufferUsage, uint64_t)
     {
-        Vertex = 0x0001,
-        Index = 0x0002,
-        Uniform = 0x0004,
-        Storage = 0x0008,
-        Unknown = 0xffff
+        None = 0,
+        Transfer_Src = 0x00000001,
+        Transfer_Dst = 0x00000002,
+        Uniform_Texel = 0x00000004,
+        Storage_Texel = 0x00000008,
+        Uniform = 0x00000010,
+        Storage = 0x00000020,
+        Index = 0x00000040,
+        Vertex = 0x00000080,
+        Indirect = 0x00000100,
+    };
+
+    ENUM_FLAGS(ImageAspect, uint64_t)
+    {
+        None = 0,
+        Color = 0x00000001,
+        Depth = 0x00000002,
+        Stencil = 0x00000004,
+        Metadata = 0x00000008,
+        Memory_Plane_0 = 0x00000080,
+        Memory_Plane_1 = 0x00000100,
+        Memory_Plane_2 = 0x00000200,
+        Memory_Plane_3 = 0x00000400,
     };
 
     enum class ShaderResourceFrequency
@@ -19,6 +38,29 @@ namespace Engine::Gfx
         Shader,
         Material,
         Object
+    };
+
+    enum class ImageLayout
+    {
+        Undefined = 0,
+        General = 1,
+        Color_Attachment = 2,
+        Depth_Stencil_Attachment = 3,
+        Depth_Stencil_Read_Only = 4,
+        Shader_Read_Only = 5,
+        Transfer_Src = 6,
+        Transfer_Dst = 7,
+        Preinitialized = 8,
+
+        Depth_Read_Only_Stencil_Attachment = 1000117000,
+        Depth_Attachment_Stencil_Read_Only = 1000117001,
+        Depth_Attachment = 1000241000,
+        Depth_Read_Only = 1000241001,
+        Stencil_Attachment = 1000241002,
+        Stencil_Read_Only = 1000241003,
+        Read_Only = 1000314000,
+        Attachment = 1000314001,
+        Present_Src_Khr = 1000001002,
     };
 
     enum class ImageFormat
@@ -150,9 +192,53 @@ namespace Engine::Gfx
     }
     typedef uint32_t ColorComponentBits;
 
-namespace Utils
-{
-    uint32_t MapImageFormatToBitSize(ImageFormat format);
-    uint32_t MapImageFormatToByteSize(ImageFormat format);
-}
+    ENUM_FLAGS(AccessMask, uint64_t)
+    {
+        None                           = 0,
+                                       Indirect_Command_Read          = 0x00000001,
+                                       Index_Read                     = 0x00000002,
+                                       Vertex_Attribute_Read          = 0x00000004,
+                                       Uniform_Read                   = 0x00000008,
+                                       Input_Attachment_Read          = 0x00000010,
+                                       Shader_Read                    = 0x00000020,
+                                       Shader_Write                   = 0x00000040,
+                                       Color_Attachment_Read          = 0x00000080,
+                                       Color_Attachment_Write         = 0x00000100,
+                                       Depth_Stencil_Attachment_Read  = 0x00000200,
+                                       Depth_Stencil_Attachment_Write = 0x00000400,
+                                       Transfer_Read                  = 0x00000800,
+                                       Transfer_Write                 = 0x00001000,
+                                       Host_Read                      = 0x00002000,
+                                       Host_Write                     = 0x00004000,
+                                       Memory_Read                    = 0x00008000,
+                                       Memory_Write                   = 0x00010000,
+    };
+
+    ENUM_FLAGS(PipelineStage, uint64_t)
+    {
+        None                           = 0,
+                                       Top_Of_Pipe                    = 0x00000001,
+                                       Draw_Indirect                  = 0x00000002,
+                                       Vertex_Input                   = 0x00000004,
+                                       Vertex_Shader                  = 0x00000008,
+                                       Tessellation_Control_Shader    = 0x00000010,
+                                       Tessellation_Evaluation_Shader = 0x00000020,
+                                       Geometry_Shader                = 0x00000040,
+                                       Fragment_Shader                = 0x00000080,
+                                       Early_Fragment_Tests           = 0x00000100,
+                                       Late_Fragment_Tests            = 0x00000200,
+                                       Color_Attachment_Output        = 0x00000400,
+                                       Compute_Shader                 = 0x00000800,
+                                       Transfer                       = 0x00001000,
+                                       Bottom_Of_Pipe                 = 0x00002000,
+                                       Host                           = 0x00004000,
+                                       All_Graphics                   = 0x00008000,
+                                       All_Commands                   = 0x00010000,
+    };
+
+    namespace Utils
+    {
+        uint32_t MapImageFormatToBitSize(ImageFormat format);
+        uint32_t MapImageFormatToByteSize(ImageFormat format);
+    }
 }

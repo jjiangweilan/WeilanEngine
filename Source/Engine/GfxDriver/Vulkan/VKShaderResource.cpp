@@ -71,7 +71,7 @@ namespace Engine::Gfx
                         auto buffer = Engine::MakeUnique<VKBuffer>(b.second.binding.ubo.data.size, BufferUsage::Uniform, false);
                         buffer->SetDebugName(std::format("{}_UBO", shader->GetName()).c_str());
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
-                        bufferInfo.buffer = buffer->GetVKBuffer();
+                        bufferInfo.buffer = buffer->GetHandle();
                         bufferInfo.offset = 0;
                         bufferInfo.range = b.second.binding.ubo.data.size;
                         writes[writeCount].pBufferInfo = &bufferInfo;
@@ -231,44 +231,42 @@ namespace Engine::Gfx
         uint32_t bindingNum = iter->second.bindingNum;
         uint32_t count = iter->second.count;
         VkDevice vkDevice = device->GetHandle();
-        pendingTextureUpdates.push_back([descriptorType, bindingNum, count, image, vkDevice, descriptorSet = this->descriptorSet]()
+        //
+        // actually set the image to binding
+        VkWriteDescriptorSet write;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = VK_NULL_HANDLE;
+        write.dstSet = descriptorSet;
+        write.descriptorType = ShaderInfo::Utils::MapBindingType(descriptorType);
+        write.dstBinding = bindingNum;
+        write.dstArrayElement = 0;
+        write.descriptorCount = count;
+        write.pImageInfo = VK_NULL_HANDLE;
+        write.pBufferInfo = VK_NULL_HANDLE;
+        write.pTexelBufferView = VK_NULL_HANDLE;
+        VkDescriptorImageInfo imageInfo;
+        switch (descriptorType)
         {
-            // actually set the image to binding
-            VkWriteDescriptorSet write;
-            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write.pNext = VK_NULL_HANDLE;
-            write.dstSet = descriptorSet;
-            write.descriptorType = ShaderInfo::Utils::MapBindingType(descriptorType);
-            write.dstBinding = bindingNum;
-            write.dstArrayElement = 0;
-            write.descriptorCount = count;
-            write.pImageInfo = VK_NULL_HANDLE;
-            write.pBufferInfo = VK_NULL_HANDLE;
-            write.pTexelBufferView = VK_NULL_HANDLE;
-            VkDescriptorImageInfo imageInfo;
-            switch (descriptorType)
-            {
             case ShaderInfo::BindingType::Texture:
-            {
-                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
-                write.pImageInfo = &imageInfo;
-                break;
-            }
+                {
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from image(or a type called Texture maybe?)
+                    imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                    write.pImageInfo = &imageInfo;
+                    break;
+                }
             case ShaderInfo::BindingType::SeparateImage:
-            {
-                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.sampler = VK_NULL_HANDLE;
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
-                write.pImageInfo = &imageInfo;
-                break;
-            }
-                default:
+                {
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    imageInfo.sampler = VK_NULL_HANDLE;
+                    imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                    write.pImageInfo = &imageInfo;
+                    break;
+                }
+            default:
                 assert(0 && "Wrong type");
-            }
-            vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
-        });
+        }
+        vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
     }
 
     void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
@@ -302,37 +300,6 @@ namespace Engine::Gfx
         vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
 
         storageBuffers[paramStr] = storage;
-    }
-
-    void VKShaderResource::PrepareResource(VkCommandBuffer cmdBuf)
-    {
-
-        for(auto& f : pendingTextureUpdates)
-        {
-            f();
-        }
-        pendingTextureUpdates.clear();
-
-        // TODO: the pipeline stage can be simplified by querying the binding usage from shader info
-
-        for(auto& tex : textures)
-        {
-            tex.second->TransformLayoutIfNeeded(cmdBuf,
-                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                    VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                    VK_ACCESS_SHADER_READ_BIT
-                    );
-        }
-
-        for(auto& buf : uniformBuffers)
-        {
-            buf.second->PutMemoryBarrier(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
-        }
-
-        for(auto& buf : storageBuffers)
-        {
-            buf.second->PutMemoryBarrierIfNeeded(cmdBuf, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT);
-        }
     }
 
     RefPtr<ShaderProgram> VKShaderResource::GetShader()

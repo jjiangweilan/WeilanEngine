@@ -25,6 +25,7 @@ namespace Engine
             std::shared_ptr<RenderTarget> virtualRenderTarget;
             UniPtr<AssetDatabase> assetDatabase;
             UniPtr<Rendering::RenderPipeline> renderPipeline;
+            UniPtr<Gfx::Semaphore> imageAcquireSemaphore = nullptr;
 #if GAME_EDITOR
             UniPtr<Editor::ProjectManagement> projectManagement;
             UniPtr<Editor::GameEditor> gameEditor;

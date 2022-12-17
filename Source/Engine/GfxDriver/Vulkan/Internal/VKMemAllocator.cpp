@@ -21,19 +21,13 @@ namespace Engine::Gfx
         vmaAllocatorCreateInfo.instance = instance;
 
         VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));
+
+        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     }
 
 
     VKMemAllocator::~VKMemAllocator()
     {
-        // release pending staging buffers in commands
-        for(auto& f : pendingCommands)
-        {
-            f(VK_NULL_HANDLE);
-        }
-
-        DestroyPendingResources();
-
         vmaDestroyAllocator(allocator_vma);
     }
 
@@ -50,16 +44,6 @@ namespace Engine::Gfx
         VK_CHECK(vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo));
     }
 
-    void VKMemAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
-    {
-        pendingBuffersToDelete.emplace_back(buffer, allocation);
-    }
-
-    void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
-    {
-        pendingImagesToDelete.emplace_back(image, allocation);
-    }
-
     void VKMemAllocator::CreateImage(VkImageCreateInfo& imageCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo)
     {
         VmaAllocationCreateInfo allocationCreateInfo{};
@@ -68,59 +52,59 @@ namespace Engine::Gfx
         VK_CHECK(vmaCreateImage(allocator_vma, &imageCreateInfo, &allocationCreateInfo, &image, &allocation, allocationInfo));
     }
 
-    void VKMemAllocator::UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data)
-    {
-        // create stage buffer
-        VmaAllocation allocation;
-        VmaAllocationInfo allocationInfo;
-        VkBuffer stageBuffer = GetStageBuffer(imageSize, allocation, allocationInfo);
-        // copy data to stage buffer
+    //void VKMemAllocator::UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data)
+    //{
+    //    // create stage buffer
+    //    VmaAllocation allocation;
+    //    VmaAllocationInfo allocationInfo;
+    //    VkBuffer stageBuffer = GetStageBuffer(imageSize, allocation, allocationInfo);
+    //    // copy data to stage buffer
 
-        void* mappedData = nullptr;
-        vmaMapMemory(allocator_vma, allocation, &mappedData);
-        memcpy((char*)mappedData, data, imageSize);
+    //    void* mappedData = nullptr;
+    //    vmaMapMemory(allocator_vma, allocation, &mappedData);
+    //    memcpy((char*)mappedData, data, imageSize);
  
-        vmaUnmapMemory(allocator_vma, allocation);
+    //    vmaUnmapMemory(allocator_vma, allocation);
 
-        std::function<void(VkCommandBuffer)> pendingCommand = [=](VkCommandBuffer cmd)
-        {
-            if (cmd != VK_NULL_HANDLE)
-            {
-                VkBufferImageCopy region;
-                region.bufferOffset = 0;
-                region.bufferRowLength = 0;
-                region.bufferImageHeight = 0;
-                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                region.imageSubresource.mipLevel = 0;
-                region.imageSubresource.baseArrayLayer = 0;
-                region.imageSubresource.layerCount = 1;
-                region.imageOffset = VkOffset3D{0, 0, 0};
-                region.imageExtent = VkExtent3D{
-                    image->GetDescription().width,
-                    image->GetDescription().height,
-                    1
-                };
+    //    std::function<void(VkCommandBuffer)> pendingCommand = [=](VkCommandBuffer cmd)
+    //    {
+    //        if (cmd != VK_NULL_HANDLE)
+    //        {
+    //            VkBufferImageCopy region;
+    //            region.bufferOffset = 0;
+    //            region.bufferRowLength = 0;
+    //            region.bufferImageHeight = 0;
+    //            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //            region.imageSubresource.mipLevel = 0;
+    //            region.imageSubresource.baseArrayLayer = 0;
+    //            region.imageSubresource.layerCount = 1;
+    //            region.imageOffset = VkOffset3D{0, 0, 0};
+    //            region.imageExtent = VkExtent3D{
+    //                image->GetDescription().width,
+    //                image->GetDescription().height,
+    //                1
+    //            };
 
-                image->TransformLayoutIfNeeded(
-                    cmd, 
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_ACCESS_TRANSFER_WRITE_BIT);
+    //            image->TransformLayoutIfNeeded(
+    //                cmd, 
+    //                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //                VK_PIPELINE_STAGE_TRANSFER_BIT,
+    //                VK_ACCESS_TRANSFER_WRITE_BIT);
 
-                vkCmdCopyBufferToImage(
-                    cmd,
-                    stageBuffer,
-                    image->GetImage(),
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    1,
-                    &region);
-            }
+    //            vkCmdCopyBufferToImage(
+    //                cmd,
+    //                stageBuffer,
+    //                image->GetImage(),
+    //                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //                1,
+    //                &region);
+    //        }
 
-            this->pendingBuffersToDelete.emplace_back(stageBuffer, allocation);
-        };
+    //        this->pendingBuffersToDelete.emplace_back(stageBuffer, allocation);
+    //    };
 
-        pendingCommands.push_back(std::move(pendingCommand));
-    }
+    //    pendingCommands.push_back(std::move(pendingCommand));
+    //}
 
     VkBuffer VKMemAllocator::GetStageBuffer(uint32_t size,
         VmaAllocation& allocation,
@@ -145,68 +129,33 @@ namespace Engine::Gfx
         return srcBuf;
     }
 
-    void VKMemAllocator::UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
-    {
-        // create stage buffer
-        VmaAllocation allocation;
-        VmaAllocationInfo allocationInfo;
+    //void VKMemAllocator::UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dstSize, DataRange dataRange[], uint32_t rangeCount)
+    //{
+    //    // create stage buffer
+    //    VmaAllocation allocation;
+    //    VmaAllocationInfo allocationInfo;
 
-        VkBuffer stageBuffer = GetStageBuffer(dstSize, allocation, allocationInfo); // TODO: we can use a persistent staging buffer, and may be use 16 bit alignment boundary?
+    //    VkBuffer stageBuffer = GetStageBuffer(dstSize, allocation, allocationInfo); // TODO: we can use a persistent staging buffer, and may be use 16 bit alignment boundary?
 
-        // copy data to stage buffer
-        void* mappedData;
-        vmaMapMemory(allocator_vma, allocation, &mappedData);
-        for(uint32_t i = 0; i < rangeCount ; ++i)
-        {
-            DataRange* range = dataRange + i;
-            memcpy((char*)mappedData + range->offsetInSrc, range->data, range->size);
-        }
-        vmaUnmapMemory(allocator_vma, allocation);
+    //    // copy data to stage buffer
+    //    void* mappedData;
+    //    vmaMapMemory(allocator_vma, allocation, &mappedData);
+    //    for(uint32_t i = 0; i < rangeCount ; ++i)
+    //    {
+    //        DataRange* range = dataRange + i;
+    //        memcpy((char*)mappedData + range->offsetInSrc, range->data, range->size);
+    //    }
+    //    vmaUnmapMemory(allocator_vma, allocation);
 
-        std::function<void(VkCommandBuffer)> pendingCommand = [=](VkCommandBuffer cmd)
-        {
-            if (cmd != VK_NULL_HANDLE)
-            {
-                VkBufferCopy region
-                {
-                    0, dstOffset, dstSize
-                };
+    //    VkBufferCopy region
+    //    {
+    //        0, dstOffset, dstSize
+    //    };
 
-                buffer->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+    //    buffer->PutMemoryBarrierIfNeeded(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
 
-                vkCmdCopyBuffer(cmd, stageBuffer, buffer->GetVKBuffer(), 1, &region);
-            }
+    //    vkCmdCopyBuffer(cmd, stageBuffer, buffer->GetHandle(), 1, &region);
 
-            this->pendingBuffersToDelete.emplace_back(stageBuffer, allocation);
-        };
-
-        pendingCommands.push_back(std::move(pendingCommand));
-    }
-
-    void VKMemAllocator::RecordPendingCommands(VkCommandBuffer cmd)
-    {
-        for(auto& f : pendingCommands)
-        {
-            f(cmd);
-        }
-
-        pendingCommands.clear();
-    }
-
-    void VKMemAllocator::DestroyPendingResources()
-    {
-        for(auto& p : pendingBuffersToDelete)
-        {
-            vmaDestroyBuffer(allocator_vma, p.first, p.second);
-        }
-
-        for(auto& p : pendingImagesToDelete)
-        {
-            vmaDestroyImage(allocator_vma, p.first, p.second);
-        }
-
-        pendingBuffersToDelete.clear();
-        pendingImagesToDelete.clear();
-    }
-
+    //        this->pendingBuffersToDelete.emplace_back(stageBuffer, allocation);
+    //}
 }

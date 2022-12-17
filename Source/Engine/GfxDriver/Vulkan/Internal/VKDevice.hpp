@@ -2,7 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <vector>
 #include "VKPhysicalDevice.hpp"
-#include "../VKStructs.hpp"
+#include "../VKCommandQueue.hpp"
 
 namespace Engine::Gfx
 {
@@ -27,7 +27,7 @@ namespace Engine::Gfx
             void WaitForDeviceIdle();
 
             VkDevice GetHandle() const { return deviceHandle; }
-            const DeviceQueue& GetQueue(int i) { return queues[i]; }
+            const VKCommandQueue& GetQueue(int i) { return queues[i]; }
 
             uint32_t GetBufferingCount() const {return BUFFERING_COUNT;}
 
@@ -42,7 +42,7 @@ namespace Engine::Gfx
             VkPhysicalDeviceFeatures requiredDeviceFeatures{}; // no feature required yet
             std::vector<const char *> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-            std::vector<DeviceQueue> queues;
+            std::vector<VKCommandQueue> queues;
 
             friend class GfxContext;
     };

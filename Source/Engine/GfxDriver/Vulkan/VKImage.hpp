@@ -36,7 +36,9 @@ namespace Engine::Gfx
             virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange& subresourceRange);
             // TODO: obsolate
             virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
+
             virtual void TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange = nullptr);
+            virtual void FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barriers, VkImageLayout newLayout, VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask, const VkImageSubresourceRange* subresourceRange = nullptr);
 
         protected:
             VKImage() = default;

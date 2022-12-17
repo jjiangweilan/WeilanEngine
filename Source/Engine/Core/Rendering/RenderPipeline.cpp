@@ -64,6 +64,9 @@ namespace Engine::Rendering
                     this->globalResource = Gfx::GfxDriver::Instance()->CreateShaderResource(AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(), Gfx::ShaderResourceFrequency::Global);
                 }
                 });
+
+        mainQueue = gfxDriver->GetQueue(QueueType::Main);
+        imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
     }
 
     RefPtr<Gfx::Image> RenderPipeline::GetOutputDepth()
@@ -73,6 +76,8 @@ namespace Engine::Rendering
 
     void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
+        GetGfxDriver()->AcquireNextSwapChainImage(imageAcquireSemaphore);
+
         Camera* mainCamera = Camera::mainCamera.Get();
 
         if (mainCamera != nullptr)
@@ -113,7 +118,8 @@ namespace Engine::Rendering
         if (!offscreenOutput)
             cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 
-        gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
+        std::vector<RefPtr<CommandBuffer>> cmdBufs = {cmdBuf};
+        gfxDriver->QueueSubmit(mainQueue, cmdBufs, );
     }
 
     void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd)

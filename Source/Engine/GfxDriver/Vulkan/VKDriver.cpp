@@ -13,6 +13,7 @@
 #include "VKBuffer.hpp"
 #include "VKShaderModule.hpp"
 #include "VKContext.hpp"
+#include "VKFence.hpp"
 
 #include "VKFrameBuffer.hpp"
 #include "VKRenderPass.hpp"
@@ -58,31 +59,23 @@ namespace Engine::Gfx
                 VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT,
                 true,
                 1
+            },
+            {
+                VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT,
+                false,
+                1
             }
         };
-        device = new VKDevice(instance, surface, queueRequest, 1);
+        device = new VKDevice(instance, surface, queueRequest, sizeof(queueRequest) / sizeof(VKDevice::QueueRequest));
         context->device = device;
         mainQueue = &device->GetQueue(0);
+        graphics0queue = &device->GetQueue(1);
         context->mainQueue = mainQueue;
         gpu = &device->GetGPU();
         device_vk = device->GetHandle();
         objectManager = new VKObjectManager(device_vk);
         context->objManager = objectManager;
         swapChainImageProxy = MakeUnique1<VKSwapChainImageProxy>();
-        // create commands
-        VkCommandPoolCreateInfo createInfo;
-        createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        createInfo.pNext = VK_NULL_HANDLE;
-        createInfo.queueFamilyIndex = mainQueue->queueFamilyIndex;
-        createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-        vkCreateCommandPool(device->GetHandle(), &createInfo, VK_NULL_HANDLE, &commandPool);
-        VkCommandBufferAllocateInfo cmdAllocInfo;
-        cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cmdAllocInfo.pNext = VK_NULL_HANDLE;
-        cmdAllocInfo.commandPool = commandPool;
-        cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cmdAllocInfo.commandBufferCount = 1;
-        vkAllocateCommandBuffers(device_vk, &cmdAllocInfo, &renderingCmdBuf);
 
         // Create other objects
         memAllocator = new VKMemAllocator(instance->GetHandle(), device, gpu->GetHandle(), mainQueue->queueFamilyIndex);
@@ -95,19 +88,6 @@ namespace Engine::Gfx
         // just set a placeholder image so that others can use the information from the Image before the first frame
         swapChainImageProxy->SetActiveSwapChainImage(swapchain->GetSwapChainImage(0), 0);
 
-        // create inflight data
-        VkSemaphoreCreateInfo semaphoreCreateInfo;
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        semaphoreCreateInfo.pNext = VK_NULL_HANDLE;
-        semaphoreCreateInfo.flags = 0;
-        objectManager->CreateSemaphore(semaphoreCreateInfo, inFlightFrame.imageAcquireSemaphore);
-        objectManager->CreateSemaphore(semaphoreCreateInfo, inFlightFrame.renderingFinishedSemaphore);
-        VkFenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = VK_NULL_HANDLE;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        vkCreateFence(device_vk, &fenceCreateInfo, VK_NULL_HANDLE, &inFlightFrame.mainQueueFinishedFence);
-
         // descriptor pool cache
         descriptorPoolCache = MakeUnique1<VKDescriptorPoolCache>(context);
         context->descriptorPoolCache = descriptorPoolCache;
@@ -118,14 +98,9 @@ namespace Engine::Gfx
         vkDeviceWaitIdle(device_vk);
 
         sharedResource = nullptr;
-        vkDestroyCommandPool(device_vk, commandPool, VK_NULL_HANDLE);
-        objectManager->DestroySemaphore(inFlightFrame.imageAcquireSemaphore);
-        objectManager->DestroySemaphore(inFlightFrame.renderingFinishedSemaphore);
-        vkDestroyFence(device_vk, inFlightFrame.mainQueueFinishedFence, VK_NULL_HANDLE);
-         
+
         descriptorPoolCache = nullptr;
         objectManager->DestroyPendingResources();
-        memAllocator->DestroyPendingResources();
 
         delete swapchain;
         delete memAllocator;
@@ -164,35 +139,6 @@ namespace Engine::Gfx
     void VKDriver::ForceSyncResources()
     {
         return; // TODO: reimplementation needed
-        // graphicsQueue->WaitForIdle();
-
-        //vkResetCommandPool(device_vk, commandPool, 0);
-
-        //VkCommandBufferBeginInfo cmdBeginInfo;
-        //cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        //cmdBeginInfo.pNext = VK_NULL_HANDLE;
-        //cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        //cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
-
-        //vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
-
-        //memAllocator->RecordPendingCommands(renderingCmdBuf);
-
-        //vkEndCommandBuffer(renderingCmdBuf);
-
-        //VkSubmitInfo submitInfo;
-        //submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        //submitInfo.pNext = VK_NULL_HANDLE;
-        //submitInfo.waitSemaphoreCount = 0;
-        //submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-        //submitInfo.pWaitDstStageMask = 0;
-        //submitInfo.commandBufferCount = 1;
-        //submitInfo.pCommandBuffers = &renderingCmdBuf;
-        //submitInfo.signalSemaphoreCount = 0;
-        //submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
-        //// vkQueueSubmit(device->GetGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-
-        //vkDeviceWaitIdle(device->GetHandle());
     }
 
     void VKDriver::ExecuteCommandBuffer(UniPtr<CommandBuffer>&& cmdBuf)
@@ -202,77 +148,50 @@ namespace Engine::Gfx
         pendingCmdBufs.emplace_back(vkCmdBuf);
     }
 
-    void VKDriver::DispatchGPUWork()
+    RefPtr<Semaphore> VKDriver::Present(RefPtr<Semaphore>* semaphores, uint32_t semaphoreCount)
     {
-        vkQueueWaitIdle(mainQueue->queue);
-        swapchain->AcquireNextImage(swapChainImageProxy, inFlightFrame.imageAcquireSemaphore);
-
-        vkWaitForFences(device_vk, 1, &inFlightFrame.mainQueueFinishedFence, true, -1);
-        vkResetFences(device_vk, 1, &inFlightFrame.mainQueueFinishedFence);
-
-        VkCommandBufferBeginInfo cmdBeginInfo;
-        cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBeginInfo.pNext = VK_NULL_HANDLE;
-        cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        cmdBeginInfo.pInheritanceInfo = VK_NULL_HANDLE;
-
-        vkBeginCommandBuffer(renderingCmdBuf, &cmdBeginInfo);
-        objectManager->DestroyPendingResources();
-        memAllocator->DestroyPendingResources();
-        memAllocator->RecordPendingCommands(renderingCmdBuf);
-        // this function should appear after memAllocator and objectManager's DestoryXXX and RecordXXX,
-        // because from user's perspective, all resources should be already when calling this function
-
-        vkCmdPipelineBarrier(
-                renderingCmdBuf, 
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                VK_DEPENDENCY_BY_REGION_BIT,
-                0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
-
-        for(auto& cmdBuf : pendingCmdBufs)
+        assert(semaphoreCount <= 16);
+        VkSemaphore vkSemaphores[16];
+        for(int i = 0; i < semaphoreCount; ++i)
         {
-            cmdBuf->RecordToVulkanCmdBuf(renderingCmdBuf);
+            vkSemaphores[i] = static_cast<VKSemaphore*>(semaphores[i].Get())->GetHandle();
         }
-        pendingCmdBufs.clear();
 
-        swapChainImageProxy->TransformLayoutIfNeeded(renderingCmdBuf,
-            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
-        vkEndCommandBuffer(renderingCmdBuf);
-        VkPipelineStageFlags waitForPresentState = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        VkSubmitInfo submitInfo;
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = VK_NULL_HANDLE;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &inFlightFrame.imageAcquireSemaphore;
-        submitInfo.pWaitDstStageMask = &waitForPresentState;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &renderingCmdBuf;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &inFlightFrame.renderingFinishedSemaphore;
-        vkQueueSubmit(mainQueue->queue, 1, &submitInfo, inFlightFrame.mainQueueFinishedFence);
-
-        // present
-        // change present image's layout
         uint32_t activeIndex = swapChainImageProxy->GetActiveIndex();
         VkSwapchainKHR swapChainHandle = swapchain->GetHandle();
         VkPresentInfoKHR presentInfo = {
             VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             nullptr,
-            1,
-            &inFlightFrame.renderingFinishedSemaphore,
+            semaphoreCount,
+            vkSemaphores,
             1,
             &swapChainHandle,
             &activeIndex,
-            nullptr                                 
+            nullptr
         };
         vkQueuePresentKHR(mainQueue->queue, &presentInfo);
+
+        return inFlightFrame.imageAcquireSemaphore.Get();
     }
 
-    UniPtr<GfxBuffer> VKDriver::CreateBuffer(uint32_t size, BufferUsage usage, bool cpuVisible)
+    void VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
     {
-        return MakeUnique1<VKBuffer>(size, usage, cpuVisible);
+        swapchain->AcquireNextImage(swapChainImageProxy, GetHandle());
+    }
+
+    UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
+    {
+        return MakeUnique1<VKSemaphore>(createInfo.signaled);
+    }
+
+    UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
+    {
+        return MakeUnique1<VKFence>(createInfo);
+    }
+
+    UniPtr<Buffer> VKDriver::CreateBuffer(const Buffer::CreateInfo& createInfo)
+    {
+        return MakeUnique1<VKBuffer>(createInfo.size, createInfo.usages, createInfo.visibleInCPU);
     }
 
     UniPtr<ShaderResource> VKDriver::CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
@@ -309,4 +228,63 @@ namespace Engine::Gfx
         return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
     }
 
+    RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
+    {
+        switch (type) {
+            case Engine::QueueType::Main: return const_cast<VKCommandQueue*>(mainQueue.Get());
+            case Engine::QueueType::Graphics0: return const_cast<VKCommandQueue*>(graphics0queue.Get());
+        }
+    }
+
+    void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue,
+            std::vector<RefPtr<CommandBuffer>>& cmdBufs,
+            std::vector<RefPtr<Semaphore>>& waitSemaphores,
+            std::vector<Gfx::PipelineStageFlags>& waitDstStageMasks,
+            std::vector<RefPtr<Semaphore>>& signalSemaphroes,
+            RefPtr<Fence> signalFence)
+    {
+        std::vector<VkSemaphore> vkWaitSemaphores;
+        std::vector<VkSemaphore> vkSignalSemaphores;
+        std::vector<VkPipelineStageFlags> vkPipelineStageFlags;
+        std::vector<VkCommandBuffer> vkCmdBufs;
+
+        for(auto w : waitSemaphores)
+        {
+            auto vkWaitSemaphore = static_cast<VKSemaphore*>(w.Get());
+            vkWaitSemaphores.push_back(vkWaitSemaphore->GetHandle());
+        }
+
+        for(auto s : signalSemaphroes)
+        {
+            auto vkSignalSemaphore = static_cast<VKSemaphore*>(s.Get());
+            vkSignalSemaphores.push_back(vkSignalSemaphore->GetHandle());
+        }
+
+        for(auto p : waitDstStageMasks)
+        {
+            vkPipelineStageFlags.push_back(MapPipelineStage(p));
+        }
+
+        for(auto c : cmdBufs)
+        {
+            vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c.Get())->GetHandle());
+        }
+
+        auto vkqueue = static_cast<VKCommandQueue*>(queue.Get());
+
+        VkSubmitInfo submitInfo;
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pNext = VK_NULL_HANDLE;
+        submitInfo.waitSemaphoreCount = vkWaitSemaphores.size();
+        submitInfo.pWaitSemaphores = vkWaitSemaphores.data();
+        submitInfo.pWaitDstStageMask = vkPipelineStageFlags.data();
+        submitInfo.commandBufferCount = vkCmdBufs.size();
+        submitInfo.pCommandBuffers = vkCmdBufs.data();
+        submitInfo.signalSemaphoreCount = vkSignalSemaphores.size();
+        submitInfo.pSignalSemaphores = vkSignalSemaphores.data();
+
+        VkFence fence = signalFence == nullptr ? VK_NULL_HANDLE : static_cast<VKFence*>(signalFence.Get())->GetHandle();
+
+        vkQueueSubmit(vkqueue->queue, 1, &submitInfo, fence);
+    }
 }

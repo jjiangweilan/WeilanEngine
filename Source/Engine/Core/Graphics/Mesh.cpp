@@ -1,7 +1,10 @@
 #include "Mesh.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "GfxDriver/GfxBuffer.hpp"
+#include "GfxDriver/Buffer.hpp"
 #include "Code/Utils.hpp"
+#include "Rendering/GfxResourceTransfer.hpp"
+
+using namespace Engine::Internal;
 namespace Engine
 {
     Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const UUID& uuid) :
@@ -13,10 +16,17 @@ namespace Engine
         std::vector<DataRange> ranges;
 
         GetAttributesDataRangesAndBufSize(ranges, bufSize);
-        vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufSize, Gfx::BufferUsage::Vertex);
+        Gfx::Buffer::CreateInfo bufCreateInfo;
+        bufCreateInfo.size = bufSize;
+        bufCreateInfo.usages = Gfx::BufferUsage::Vertex;
+        bufCreateInfo.debugName = name.c_str();
+        vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
         uint32_t indexBufSize = this->vertexDescription.index.count * vertexDescription.index.dataByteSize;
-        indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(indexBufSize, Gfx::BufferUsage::Index);
+        bufCreateInfo.size = indexBufSize;
+        bufCreateInfo.usages = Gfx::BufferUsage::Index;
+        bufCreateInfo.debugName = name.c_str();
+        indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
         // load data to gpu buffer
         unsigned char* temp = new unsigned char[bufSize];
@@ -28,10 +38,21 @@ namespace Engine
             range.size);
         }
 
-        vertexBuffer->Write(temp, bufSize, 0);
-        indexBuffer->Write((void*)this->vertexDescription.index.data.data(), indexBufSize, 0);
+        GfxResourceTransfer::TransferRequest request0
+        {
+            .data = temp,
+            .size = bufSize,
+            .onTransferFinished = [](void* data, uint32_t size) {delete[] (unsigned char*)data;}
+        };
+        GetGfxResourceTransfer()->Transfer(vertexBuffer, request0);
 
-        delete[] temp;
+        GfxResourceTransfer::TransferRequest request1
+        {
+            .data = this->vertexDescription.index.data.data(),
+            .size = indexBufSize,
+            .onTransferFinished = nullptr
+        };
+        GetGfxResourceTransfer()->Transfer(indexBuffer, request1);
 
         if (vertexDescription.index.dataByteSize == 2) indexBufferType = IndexBufferType::UInt16;
         else if (vertexDescription.index.dataByteSize == 4) indexBufferType = IndexBufferType::UInt32;

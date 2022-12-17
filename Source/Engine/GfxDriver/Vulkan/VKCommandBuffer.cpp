@@ -2,16 +2,22 @@
 #include "Internal/VKDevice.hpp"
 #include "VKRenderTarget.hpp"
 #include "VKShaderProgram.hpp"
-#include "VKRenderPass.hpp"
 #include "VKFrameBuffer.hpp"
 #include "VKShaderResource.hpp"
 #include "VKBuffer.hpp"
+#include "VKContext.hpp"
+#include "Internal/VKEnumMapper.hpp"
 #include <spdlog/spdlog.h>
+
+#ifdef _WIN32
+#undef MemoryBarrier
+#endif
+
 namespace Engine::Gfx
 {
-    VKCommandBuffer::VKCommandBuffer() 
-    {
 
+    VKCommandBuffer::VKCommandBuffer(VkCommandBuffer vkCmdBuf) : vkCmdBuf (vkCmdBuf)
+    {
     }
 
     VKCommandBuffer::~VKCommandBuffer()
@@ -21,160 +27,86 @@ namespace Engine::Gfx
 
     void VKCommandBuffer::BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues)
     {
-        assert(renderPass != nullptr);
-
         Gfx::VKRenderPass* vRenderPass = static_cast<Gfx::VKRenderPass*>(renderPass.Get());
         VkRenderPass vkRenderPass = vRenderPass->GetHandle();
-        recordContext.currentPass = vkRenderPass;
+        currentRenderPass = vRenderPass;
+        currentRenderIndex = 0;
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
+        // framebuffer has to get inside the execution function due to how RenderPass handle swapchain image as framebuffer attachment
+        VkFramebuffer vkFramebuffer = vRenderPass->GetFrameBuffer();
+
+        auto extent = vRenderPass->GetExtent();
+        VkRenderPassBeginInfo renderPassBeginInfo;
+        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassBeginInfo.pNext = VK_NULL_HANDLE;
+        renderPassBeginInfo.renderPass = vkRenderPass;
+        renderPassBeginInfo.framebuffer = vkFramebuffer;
+        renderPassBeginInfo.renderArea= {{0, 0}, {extent.width, extent.height}};
+        renderPassBeginInfo.clearValueCount = clearValues.size();
+        VkClearValue vkClearValues[16];
+        int i = 0;
+        for(auto& v : clearValues)
         {
-            // framebuffer has to get inside the execution function due to how RenderPass handle swapchain image as framebuffer attachment
-            VkFramebuffer vkFramebuffer = vRenderPass->GetFrameBuffer();
+            memcpy(&vkClearValues[i].color, &v.color, sizeof(v.color));
+            vkClearValues[i].depthStencil.stencil = v.depthStencil.stencil;
+            vkClearValues[i].depthStencil.depth = v.depthStencil.depth;
+            ++i;
+        }
+        renderPassBeginInfo.pClearValues = vkClearValues;
 
-            auto& renderPassResources = recordContext.renderPassResources[vkRenderPass];
-            // make sure all the resource needed are in the correct format before the render pass begin
-            // the first need of this is because we need a way to implictly make sure RT from previous render pass 
-            // are correctly transformed into correct memory layout
-            for(auto& r : renderPassResources.bindedResources)
-            {
-                r->PrepareResource(cmd);
-            }
-
-            for(auto& b : renderPassResources.vertexBuffers)
-            {
-                b->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT);
-            }
-
-            for(auto& b : renderPassResources.indexBuffers)
-            {
-                b->PutMemoryBarrier(cmd, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, VK_ACCESS_INDEX_READ_BIT);
-            }
-
-            auto extent = vRenderPass->GetExtent();
-            VkRenderPassBeginInfo renderPassBeginInfo;
-            renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassBeginInfo.pNext = VK_NULL_HANDLE;
-            renderPassBeginInfo.renderPass = vkRenderPass;
-            renderPassBeginInfo.framebuffer = vkFramebuffer;
-            renderPassBeginInfo.renderArea= {{0, 0}, {extent.width, extent.height}};
-            renderPassBeginInfo.clearValueCount = clearValues.size();
-            VkClearValue vkClearValues[16];
-            int i = 0;
-            for(auto& v : clearValues)
-            {
-                memcpy(&vkClearValues[i].color, &v.color, sizeof(v.color));
-                vkClearValues[i].depthStencil.stencil = v.depthStencil.stencil;
-                vkClearValues[i].depthStencil.depth = v.depthStencil.depth;
-                ++i;
-            }
-            renderPassBeginInfo.pClearValues = vkClearValues;
-            context.currentPass = renderPassBeginInfo.renderPass;
-
-            vRenderPass->TransformAttachmentIfNeeded(cmd);
-            vkCmdBeginRenderPass(cmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vRenderPass->TransformAttachmentIfNeeded(vkCmdBuf);
+        vkCmdBeginRenderPass(vkCmdBuf, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     }
 
     void VKCommandBuffer::EndRenderPass()
     {
-        auto& res = recordContext.renderPassResources[recordContext.currentPass];
-        res.bindedResources = std::move(recordContext.bindedResources);
-        res.indexBuffers = std::move(recordContext.indexBuffers);
-        res.vertexBuffers = std::move(recordContext.vertexBuffers);
-
-        recordContext.currentPass = nullptr;
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            vkCmdEndRenderPass(cmd);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vkCmdEndRenderPass(vkCmdBuf);
+        currentRenderPass = nullptr;
     }
 
-    void VKCommandBuffer::AppendCustomCommand(std::function<void(VkCommandBuffer)>&& ff)
+    void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
     {
-        auto f = [=, customF = std::move(ff)](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            customF(cmd);
-        };
+        VKImage* from = static_cast<VKImage*>(bFrom.Get());
+        VKImage* to = static_cast<VKImage*>(bTo.Get());
 
-        pendingCommands.push_back(std::move(f));
-    }
+        from->TransformLayoutIfNeeded(vkCmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
+        to->TransformLayoutIfNeeded(vkCmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_WRITE_BIT);
 
-    void VKCommandBuffer::RecordToVulkanCmdBuf(VkCommandBuffer cmd)
-    {
-        executeContext.currentPass = VK_NULL_HANDLE;
-        executeContext.subpass = 0;
+        VkImageBlit blit;
+        blit.dstOffsets[0] = {0,0,0};
+        blit.dstOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
+        VkImageSubresourceLayers dstLayers;
+        dstLayers.aspectMask = from->GetDefaultSubresourceRange().aspectMask;
+        dstLayers.baseArrayLayer = 0;
+        dstLayers.layerCount = from->GetDefaultSubresourceRange().layerCount;
+        dstLayers.mipLevel = 0;
+        blit.dstSubresource = dstLayers;
 
-        for(auto& f : pendingCommands)
-        {
-            f(cmd, executeContext, recordContext);
-        }
+        blit.srcOffsets[0] = {0,0,0};
+        blit.srcOffsets[1] = {(int32_t)to->GetDescription().width, (int32_t)to->GetDescription().height, 1};
+        blit.srcSubresource = dstLayers; // basically copy the resources from dst without much configuration
 
-        pendingCommands.clear();
-    }
+        vkCmdBlitImage(vkCmdBuf, from->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
 
-    void VKCommandBuffer::Blit(RefPtr<Gfx::Image> from_Base, RefPtr<Gfx::Image> to_Base)
-    {
-        VKImage* from = static_cast<VKImage*>(from_Base.Get());
-        VKImage* to = static_cast<VKImage*>(to_Base.Get());
-
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
-        {
-            from->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_READ_BIT);
-            to->TransformLayoutIfNeeded(cmd, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_WRITE_BIT);
-
-            VkImageBlit blit;
-            blit.dstOffsets[0] = {0,0,0};
-            blit.dstOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
-            VkImageSubresourceLayers dstLayers;
-            dstLayers.aspectMask = from->GetDefaultSubresourceRange().aspectMask;
-            dstLayers.baseArrayLayer = 0;
-            dstLayers.layerCount = from->GetDefaultSubresourceRange().layerCount;
-            dstLayers.mipLevel = 0;
-            blit.dstSubresource = dstLayers;
-
-            blit.srcOffsets[0] = {0,0,0};
-            blit.srcOffsets[1] = {(int32_t)to->GetDescription().width, (int32_t)to->GetDescription().height, 1};
-            blit.srcSubresource = dstLayers; // basically copy the resources from dst without much configuration
-        
-            vkCmdBlitImage(cmd, from->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
-        };
-
-        pendingCommands.push_back(std::move(f));
     }
 
     void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
     {
-        if (resource_ == nullptr) return;
-
         VKShaderResource* resource = (VKShaderResource*)resource_.Get();
-        recordContext.bindedResources.push_back(resource);
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext) mutable
-        {
-            VkDescriptorSet descSet = resource->GetDescriptorSet();
-            if (descSet != VK_NULL_HANDLE)
-                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(), resource->GetDescriptorSetSlot(), 1, &descSet, 0, VK_NULL_HANDLE);
-        };
-        pendingCommands.push_back(std::move(f));
+        VkDescriptorSet descSet = resource->GetDescriptorSet();
+        if (descSet != VK_NULL_HANDLE)
+            vkCmdBindDescriptorSets(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(), resource->GetDescriptorSetSlot(), 1, &descSet, 0, VK_NULL_HANDLE);
     }
 
-    void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> program_, const ShaderConfig& config)
+    void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const ShaderConfig& config)
     {
-        VKShaderProgram* program = (VKShaderProgram*)program_.Get();
+        assert(currentRenderPass != nullptr);
+        VKShaderProgram* program = static_cast<VKShaderProgram*>(bProgram.Get());
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            // binding pipeline
-            auto pipeline = program->RequestPipeline(config, context.currentPass, context.subpass);
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        // binding pipeline
+        auto pipeline = program->RequestPipeline(config, currentRenderPass->GetHandle(), currentRenderIndex);
+        vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
     }
 
     void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect)
@@ -190,15 +122,10 @@ namespace Engine::Gfx
             vkRects[i].extent.height = rect->extent.height;
         }
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            vkCmdSetScissor(cmd, firstScissor, scissorCount, vkRects);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vkCmdSetScissor(vkCmdBuf, firstScissor, scissorCount, vkRects);
     }
 
-    void VKCommandBuffer::BindVertexBuffer(const std::vector<RefPtr<Gfx::GfxBuffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex)
+    void VKCommandBuffer::BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers, const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex)
     {
         assert(buffers.size() < 16);
         VkBuffer vkBuffers[16];
@@ -206,63 +133,36 @@ namespace Engine::Gfx
         for(uint32_t i = 0; i < buffers.size(); ++i)
         {
             VKBuffer* vkbuf = static_cast<VKBuffer*>(buffers[i].Get());
-            vkBuffers[i] = vkbuf->GetVKBuffer();
+            vkBuffers[i] = vkbuf->GetHandle();
             vkOffsets[i] = offsets[i];
-            recordContext.vertexBuffers.push_back(vkbuf);
         }
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            vkCmdBindVertexBuffers(cmd, firstBindingIndex, buffers.size(), vkBuffers, vkOffsets);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vkCmdBindVertexBuffers(vkCmdBuf, firstBindingIndex, buffers.size(), vkBuffers, vkOffsets);
     }
 
-    void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::GfxBuffer> buffer, uint64_t offset, IndexBufferType indexBufferType)
+    void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> bBuffer, uint64_t offset, IndexBufferType indexBufferType)
     {
+        VKBuffer* buffer = static_cast<VKBuffer*>(bBuffer.Get());
         VkIndexType indexType = indexBufferType == IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
-        recordContext.indexBuffers.push_back(static_cast<VKBuffer*>(buffer.Get()));
 
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            VkBuffer indexBuf = static_cast<VKBuffer*>(buffer.Get())->GetVKBuffer();
-            vkCmdBindIndexBuffer(cmd, indexBuf, offset, indexType);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        VkBuffer indexBuf = buffer->GetHandle();
+        vkCmdBindIndexBuffer(vkCmdBuf, indexBuf, offset, indexType);
     }
 
     void VKCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
     {
-        auto f = [=](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
-        {
-            vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vkCmdDrawIndexed(vkCmdBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
     }
 
     void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
-        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
-        {
-            vkCmdDraw(cmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
-        };
-
-        pendingCommands.push_back(std::move(f));
+        vkCmdDraw(vkCmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void VKCommandBuffer::NextRenderPass()
     {
-        auto f = [=](VkCommandBuffer cmdBuf, ExecuteContext& context, RecordContext& recordContext)
-        {
-            context.subpass += 1;
-            vkCmdNextSubpass(cmdBuf, VK_SUBPASS_CONTENTS_INLINE);
-        };
-
-        pendingCommands.push_back(std::move(f));
-
+        currentRenderIndex += 1;
+        vkCmdNextSubpass(vkCmdBuf, VK_SUBPASS_CONTENTS_INLINE);
     }
 
     void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_, void* data)
@@ -278,18 +178,89 @@ namespace Engine::Gfx
             totalSize += pushConstant.data.size;
         }
 
-        // std::function requires the callables to be copy constructable, thus requires it's member to be copy constructable
-        // so we can't simple use a UniPtr https://stackoverflow.com/questions/32486623/moving-a-lambda-once-youve-move-captured-a-move-only-type-how-can-the-lambda
-        // TODO: this has to be optimized away, the ptr may lost tracking
-        char* byteData = new char[totalSize];
-        memcpy(byteData, data, totalSize);
+        vkCmdPushConstants(vkCmdBuf, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, data);
+    }
 
-        auto f = [=, byteData = std::move(byteData)](VkCommandBuffer cmd, ExecuteContext& context, RecordContext& recordContext)
+    void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, uint64_t srcOffset, RefPtr<Gfx::Buffer> bDst, uint64_t dstOffset, uint64_t size)
+    {
+        VKBuffer* src = static_cast<VKBuffer*>(bSrc.Get());
+        VKBuffer* dst = static_cast<VKBuffer*>(bDst.Get());
+
+        VkBufferCopy region
         {
-            vkCmdPushConstants(cmd, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, byteData);
-            delete byteData;
+            srcOffset, dstOffset, size
         };
 
-        pendingCommands.push_back(std::move(f));
+        vkCmdCopyBuffer(vkCmdBuf, src->GetHandle(), dst->GetHandle(), 1, &region);
+    }
+
+    void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst)
+    {
+        auto image = static_cast<VKImage*>(dst.Get());
+        auto stageBuf = static_cast<VKBuffer*>(src.Get());
+
+        VkBufferImageCopy region;
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = VkOffset3D{0, 0, 0};
+        region.imageExtent = VkExtent3D{
+            image->GetDescription().width,
+                image->GetDescription().height,
+                1
+        };
+
+        vkCmdCopyBufferToImage(
+                vkCmdBuf,
+                stageBuf->GetHandle(),
+                image->GetImage(),
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &region);
+    }
+
+    void VKCommandBuffer::Barrier(MemoryBarrier *barriers, uint32_t barrierCount)
+    {
+        for(int i = 0; i < barrierCount; ++i)
+        {
+            const MemoryBarrier& barrier = barriers[i];
+            if (barrier.buffer != nullptr)
+            {
+                auto buffer = static_cast<VKBuffer*>(barrier.buffer.Get());
+                buffer->PutMemoryBarrierIfNeeded(vkCmdBuf, MapPipelineStage(barrier.dstStageMask), MapAccessMask(barrier.bufferInfo.dstAccessMask));
+            }
+            else if (barrier.image != nullptr)
+            {
+                auto image = static_cast<VKImage*>(barrier.image.Get());
+                VkImageSubresourceRange range;
+                const ImageSubresourceRange& r = barrier.imageInfo.subresourceRange;
+                range.aspectMask = MapImageAspect(r.aspectMask);
+                range.baseMipLevel = r.baseMipLevel;
+                range.levelCount = r.levelCount;
+                range.baseArrayLayer = r.baseArrayLayer;
+                range.layerCount = r.layerCount;
+                image->TransformLayoutIfNeeded(vkCmdBuf, MapImageLayout(barrier.imageInfo.newLayout), MapPipelineStage(barrier.dstStageMask), MapAccessMask(barrier.imageInfo.dstAccessMask), &range);
+            }
+            else
+            {
+                VkMemoryBarrier memBarrier;
+                memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+                memBarrier.pNext = VK_NULL_HANDLE;
+                memBarrier.srcAccessMask = MapAccessMask(barrier.memoryInfo.srcStageMask);
+                memBarrier.dstAccessMask = MapAccessMask(barrier.memoryInfo.dstAccessMask);
+                memoryMemoryBarriers.push_back(memBarrier);
+                vkCmdPipelineBarrier(vkCmdBuf,
+                        MapPipelineStage(barrier.memoryInfo.srcStageMask),
+                        MapPipelineStage(barrier.memoryInfo.dstAccessMask),
+                        VK_DEPENDENCY_DEVICE_GROUP_BIT,
+                        1, &memBarrier,
+                        0, VK_NULL_HANDLE,
+                        0, VK_NULL_HANDLE);
+            }
+        }
     }
 }

@@ -1,9 +1,5 @@
 #include "WeilanEngine.hpp"
-#include <glm/gtc/matrix_transform.hpp>
-#include <chrono>
-#include <spdlog/spdlog.h>
 #include "Core/GameObject.hpp"
-#include "GfxDriver/GfxDriver.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "Core/AssetDatabase/Importers/glbImporter.hpp" 
@@ -11,6 +7,13 @@
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/AssetDatabase/Importers/TextureImporter.hpp"
 #include "Script/LuaBackend.hpp"
+#include "GfxDriver/GfxDriver.hpp"
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+#include <spdlog/spdlog.h>
+
+#undef CreateSemaphore;
 
 namespace Engine
 {
@@ -19,6 +22,7 @@ namespace Engine
         // drivers
         Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan);
         gfxDriver = Gfx::GfxDriver::Instance();
+        imageAcquireSemaphore = gfxDriver->CreateSemaphore({false});
 
         spdlog::set_level(spdlog::level::info);
 
@@ -48,7 +52,8 @@ namespace Engine
 #endif
 
         renderPipeline->Init();
-        gameEditor->Init(renderPipeline);
+        gameEditor->Init();
+        auto mainQueue = gfxDriver->GetQueue(QueueType::Main);
 
         // main loop
         SDL_Event sdlEvent;
@@ -76,12 +81,12 @@ namespace Engine
             gameEditor->Tick();
 #endif
 
+            gfxDriver->PrepareFrameResources(mainQueue);
             // rendering
             if (activeGameScene) renderPipeline->Render(activeGameScene);
 #if GAME_EDITOR
-            gameEditor->Render();
+            renderPipeline->RenderGameEditor(gameEditor);
 #endif
-            gfxDriver->DispatchGPUWork();
 
             AssetDatabase::Instance()->EndOfFrameUpdate();
         }

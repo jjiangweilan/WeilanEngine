@@ -191,7 +191,7 @@ namespace Engine::Gfx
     VKSwapChain::VKSwapChainImage::VKSwapChainImage(VkImage image, VkFormat format, uint32_t width, uint32_t height) : VKImage()
     {
         this->image_vk = image;
-        imageDescription.format = VKEnumMapper::MapVKFormat(format);
+        imageDescription.format = MapVKFormat(format);
         imageDescription.width = width;
         imageDescription.height = height;
         format_vk = format;

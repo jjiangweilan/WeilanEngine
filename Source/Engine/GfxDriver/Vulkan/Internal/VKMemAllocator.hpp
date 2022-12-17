@@ -27,8 +27,8 @@ namespace Engine::Gfx
             VKMemAllocator(const VKMemAllocator& other) = delete;
             ~VKMemAllocator();
 
-            void UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
-            void UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data);
+            //void UploadBuffer(RefPtr<VKBuffer> buffer, uint32_t dstOffset, size_t dataSize, DataRange data[], uint32_t rangeCount);
+            //void UploadImage(RefPtr<VKImage> image, uint32_t imageSize, void* data);
 
             void CreateBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocCreateInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo = nullptr);
             void CreateBuffer(VkBufferCreateInfo& createInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo = nullptr);
@@ -36,22 +36,12 @@ namespace Engine::Gfx
             void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);
             void DestoryImage(VkImage image, VmaAllocation allocation);
 
-            void RecordPendingCommands(VkCommandBuffer cmd);
-            void DestroyPendingResources();
             RefPtr<VKDevice> GetDevice() {return device;}
+            inline VmaAllocator GetHandle() { return allocator_vma; };
 
-        private:
             VmaAllocator allocator_vma;
-
             RefPtr<VKDevice> device;
             uint32_t queueFamilyIndex;
-
-            std::vector<std::function<void(VkCommandBuffer)>> pendingCommands;
-
-            std::vector<std::pair<VkBuffer, VmaAllocation>> pendingBuffersToDelete;
-            std::vector<std::pair<VkImage, VmaAllocation>> pendingImagesToDelete;
-
-            std::vector<std::function<void()>> cleanUps;
 
             VkBuffer GetStageBuffer(uint32_t size,
                 VmaAllocation& allocation,
