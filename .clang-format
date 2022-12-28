@@ -24,7 +24,7 @@ AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 # AlwaysBreakAfterDefinitionReturnType: None
 # AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
-# AlwaysBreakTemplateDeclarations: MultiLine
+AlwaysBreakTemplateDeclarations: Yes
 # AttributeMacros:
   # - __capability
 # BinPackArguments: true
@@ -58,7 +58,7 @@ BreakBeforeBraces: Custom
 # BreakConstructorInitializers: BeforeColon
 # BreakAfterJavaFieldAnnotations: false
 # BreakStringLiterals: true
-# ColumnLimit:     80
+ColumnLimit:     120
 # CommentPragmas:  '^ IWYU pragma:'
 # QualifierAlignment: Leave
 # CompactNamespaces: false
@@ -99,8 +99,8 @@ BreakBeforeBraces: Custom
 # IncludeIsMainRegex: '(Test)?$'
 # IncludeIsMainSourceRegex: ''
 # IndentAccessModifiers: false
-# IndentCaseLabels: false
-# IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentCaseBlocks: true
 # IndentGotoLabels: true
 # IndentPPDirectives: None
 # IndentExternBlock: AfterExternBlock
@@ -131,7 +131,7 @@ IndentWidth:     4
 # PenaltyExcessCharacter: 1000000
 # PenaltyReturnTypeOnItsOwnLine: 60
 # PenaltyIndentedWhitespace: 0
-# PointerAlignment: Right
+PointerAlignment: Left
 # PPIndentWidth:   -1
 # ReferenceAlignment: Pointer
 # ReflowComments:  true

@@ -1,12 +1,12 @@
 #pragma once
-#include <gtest/gtest.h>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-#include <string>
-#include "GfxDriver/GfxDriver.hpp"
-#include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Code/UUID.hpp"
+#include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
+#include "GfxDriver/GfxDriver.hpp"
+#include <filesystem>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <sstream>
+#include <string>
 
 TEST(Importer, ShaderImport)
 {
