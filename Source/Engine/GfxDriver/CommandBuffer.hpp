@@ -9,7 +9,7 @@
 #include "ShaderResource.hpp"
 #include "Utils/Structs.hpp"
 #include <memory>
-
+#include <span>
 namespace Engine
 {
 enum class IndexBufferType
@@ -70,12 +70,18 @@ struct BufferImageCopyRegion
     Extent3D extend;
 };
 
+struct VertexBufferBinding
+{
+    Gfx::Buffer* buffer;
+    uint64_t offset;
+};
+
 class CommandBuffer
 {
 public:
     virtual ~CommandBuffer(){};
     virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
-    virtual void BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers, const std::vector<uint64_t>& offsets,
+    virtual void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings,
                                   uint32_t firstBindingIndex) = 0;
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const Gfx::ShaderConfig& config) = 0;

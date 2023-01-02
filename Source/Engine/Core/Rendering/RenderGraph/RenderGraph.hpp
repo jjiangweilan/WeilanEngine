@@ -5,11 +5,10 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/RenderPass.hpp"
 
-#include "Nodes/CommandBufferBeginNode.hpp"
-#include "Nodes/CommandBufferEndNode.hpp"
+#include "Nodes/BlitNode.hpp"
+#include "Nodes/GPUBarrierNode.hpp"
 #include "Nodes/ImageNode.hpp"
-#include "Nodes/RenderPassBeginNode.hpp"
-#include "Nodes/RenderPassEndNode.hpp"
+#include "Nodes/RenderPassNode.hpp"
 
 #include <format>
 #include <functional>
@@ -52,7 +51,7 @@ class RenderGraph
 {
 public:
     bool Compile();
-    bool Execute();
+    bool Execute(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack);
 
     template <class T, class... Args>
     T* AddNode(const Args&... args)

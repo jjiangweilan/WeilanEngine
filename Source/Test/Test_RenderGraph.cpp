@@ -22,7 +22,7 @@ TEST(RenderGraph, Test0)
     depth->height = color->height;
     depth->format = Engine::Gfx::ImageFormat::D24_UNorm_S8_UInt;
 
-    auto rpBegin = renderGraph.AddNode<RenderPassBeginNode>();
+    auto rpBegin = renderGraph.AddNode<RenderPassNode>();
     auto rpEnd = renderGraph.AddNode<RenderPassEndNode>();
 
     // color->GetPortOutput()->Connect(rpBegin->GetPortColor(0));

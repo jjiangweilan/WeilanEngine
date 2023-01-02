@@ -1,11 +1,48 @@
 #pragma once
 #include "../Node.hpp"
+#include "Core/Component/MeshRenderer.hpp"
 #include <optional>
 #include <span>
-
+#include <tuple>
 namespace Engine::RGraph
 {
-class RenderPassBeginNode : Node
+
+struct DrawIndex
+{
+    uint32_t elementCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    uint32_t vertexOffset;
+    uint32_t firstInstance;
+};
+
+struct IndexBuffer
+{
+    Gfx::Buffer* buffer;
+    uint64_t offset = 0;
+    IndexBufferType bufferType = IndexBufferType::UInt16;
+};
+
+struct PushConstant
+{
+    Gfx::ShaderProgram* shaderProgram;
+    glm::mat4 mat0;
+    glm::mat4 mat1;
+};
+
+struct DrawData
+{
+    Gfx::ShaderProgram* shader = nullptr;
+    Gfx::ShaderConfig* shaderConfig = nullptr;
+    Gfx::ShaderResource* shaderResource = nullptr;
+    std::optional<IndexBuffer> indexBuffer = std::nullopt;
+    std::optional<std::vector<VertexBufferBinding>> vertexBuffer = std::nullopt;
+    std::optional<PushConstant> pushConstant = std::nullopt;
+    std::optional<Rect2D> scissor = std::nullopt;
+    std::optional<DrawIndex> drawIndexed = std::nullopt;
+};
+
+class RenderPassNode : Node
 {
 public:
     struct AttachmentOps
@@ -26,27 +63,36 @@ public:
         }
     };
 
-    RenderPassBeginNode();
+    RenderPassNode();
     bool Preprocess(ResourceStateTrack& stateTrack) override;
     bool Compile(ResourceStateTrack& stateTrack) override;
-    bool Execute(ResourceStateTrack& stateTrack) override;
+    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
 
-    Port* GetPortColor(int index)
+    Port* GetPortColorIn(int index)
     {
-        if (index <= colorPorts.size()) return colorPorts[index];
+        if (index <= colorPortsIn.size()) return colorPortsIn[index];
+        else return nullptr;
+    }
+
+    Port* GetPortColorOut(int index)
+    {
+        if (index <= colorPortsOut.size()) return colorPortsOut[index];
         else return nullptr;
     }
 
     void SetColorCount(uint32_t count);
+    auto& GetDrawList() { return drawList; }
+    auto& GetClearValues() { return clearValues; }
 
-    Port* GetPortDepth() { return renderPassOut; }
-    Port* GetPortRenderPassOut() { return renderPassOut; }
+    Port* GetPortDepthIn() { return depthPortIn; }
+    Port* GetPortDependentAttachmentsIn() { return dependentAttachmentIn; }
     std::span<AttachmentOps> GetColorAttachmentOps() { return colorAttachmentOps; }
-    AttachmentOps& GetDepthAttachmentOp();
+    AttachmentOps& GetDepthAttachmentOp() { return depthAttachmentOp; }
 
 private:
-    Port* commandBufferPortIn;
-    Port* commandBufferPortOut;
+    Port* dependentAttachmentIn;
+
+    std::vector<DrawData> drawList;
 
     /**
      * describe color attachment operations in render pass
@@ -57,20 +103,18 @@ private:
      * describe depth attachment operation
      */
     AttachmentOps depthAttachmentOp;
-    /**
-     * renderPass output port
-     */
-    Port* renderPassOut;
 
     /**
      * representation of the color ports of the node
      */
-    std::vector<Port*> colorPorts;
+    std::vector<Port*> colorPortsIn;
+    std::vector<Port*> colorPortsOut;
 
     /**
      * representation of the depth port of the node
      */
-    Port* depthPort;
+    Port* depthPortIn;
+    Port* depthPortOut;
 
     /* Compiled data */
     UniPtr<Gfx::RenderPass> renderPass;

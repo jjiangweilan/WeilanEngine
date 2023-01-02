@@ -44,6 +44,7 @@ public:
     {
         renderEditor = true;
         this->gameEditor = gameEditor;
+        gameEditor->GameRenderOutput(colorImage, depthImage);
     };
 #endif
 private:
@@ -71,7 +72,7 @@ private:
             glm::vec3 viewPos;
         } v;
 
-        void BindShaderResource(RefPtr<CommandBuffer> cmdBuf) { cmdBuf->BindResource(shaderResource); }
+        UniPtr<Gfx::ShaderResource>& GetShaderResource() { return shaderResource; }
         void QueueCommand(RefPtr<CommandBuffer> cmdBuf);
         void OnAssetReload(RefPtr<AssetObject> obj)
         {
@@ -93,7 +94,7 @@ private:
     RefPtr<Gfx::GfxDriver> gfxDriver;
     UniPtr<RenderPipelineAsset> asset;
 
-    void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd);
+    void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd, std::vector<RGraph::DrawData>& drawList);
     FrameContext* frameContext;
 
     UniPtr<Gfx::RenderPass> renderPass;
@@ -112,11 +113,11 @@ private:
 
     RGraph::RenderGraph graph;
     RGraph::ImageNode* colorImageNode;
+    RGraph::ImageNode* swapChainImageNode;
     RGraph::ImageNode* depthImageNode;
-    RGraph::RenderPassBeginNode* renderPassBeginNode;
-    RGraph::RenderPassEndNode* renderPassEndNode;
-    RGraph::CommandBufferBeginNode* commandBufferBeginNode;
-    RGraph::CommandBufferEndNode* commandBufferEndNode;
+    RGraph::RenderPassNode* renderPassNode;
+    RGraph::BlitNode* blitNode;
+    RGraph::GPUBarrierNode* swapChainToPesentNode;
 
     void PrepareFrameData(RefPtr<CommandBuffer> cmdBuf);
     void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);

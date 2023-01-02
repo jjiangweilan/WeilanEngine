@@ -27,12 +27,14 @@ void RenderPipeline::Init()
     imageDescription.height = gfxDriver->GetWindowSize().height;
     imageDescription.multiSampling = MultiSampling::Sample_Count_1;
     imageDescription.mipLevels = 1;
-    colorImage = Gfx::GfxDriver::Instance()->CreateImage(
-        imageDescription, ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::Texture);
-
+    colorImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription,
+                                                         ImageUsage::ColorAttachment | ImageUsage::TransferSrc |
+                                                             ImageUsage::Texture);
+    colorImage->SetName("Color Image");
     imageDescription.format = ImageFormat::D24_UNorm_S8_UInt;
     depthImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription,
                                                          ImageUsage::DepthStencilAttachment | ImageUsage::TransferSrc);
+    depthImage->SetName("Depth Image");
 
     // create frameBuffer and renderPass
     renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
@@ -53,6 +55,8 @@ void RenderPipeline::Init()
 
     mainQueue = gfxDriver->GetQueue(QueueType::Main);
     imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
+    mainCmdBufFinishedSemaphore = GetGfxDriver()->CreateSemaphore({false});
+    mainCmdBufFinishedFence = gfxDriver->CreateFence({true});
     cmdPool = gfxDriver->CreateCommandPool({mainQueue});
     cmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1).at(0));
 
@@ -71,25 +75,47 @@ void RenderPipeline::Init()
     depthImageNode->multiSampling = colorImageNode->multiSampling;
     depthImageNode->format = ImageFormat::D24_UNorm_S8_UInt;
 
-    renderPassBeginNode = graph.AddNode<RGraph::RenderPassBeginNode>();
-    renderPassBeginNode->SetColorCount(1);
-    renderPassBeginNode->GetColorAttachmentOps()[0].loadOp = AttachmentLoadOperation::Clear;
-    renderPassBeginNode->GetColorAttachmentOps()[0].storeOp = AttachmentStoreOperation::Store;
-    renderPassBeginNode->GetColorAttachmentOps()[0].stencilLoadOp = AttachmentLoadOperation::Clear;
-    renderPassBeginNode->GetColorAttachmentOps()[0].stencilStoreOp = AttachmentStoreOperation::Store;
+    renderPassNode = graph.AddNode<RGraph::RenderPassNode>();
+    renderPassNode->SetColorCount(1);
+    renderPassNode->GetColorAttachmentOps()[0].loadOp = AttachmentLoadOperation::Clear;
+    renderPassNode->GetColorAttachmentOps()[0].storeOp = AttachmentStoreOperation::Store;
+    renderPassNode->GetColorAttachmentOps()[0].stencilLoadOp = AttachmentLoadOperation::Clear;
+    renderPassNode->GetColorAttachmentOps()[0].stencilStoreOp = AttachmentStoreOperation::Store;
+    Gfx::ClearValue clearValue;
+    clearValue.color = {{0, 0, 0, 0}};
+    clearValue.depthStencil.depth = 1;
+    clearValue.depthStencil.stencil = 0;
+    renderPassNode->GetClearValues().push_back(clearValue);
 
-    renderPassEndNode = graph.AddNode<RGraph::RenderPassEndNode>();
+    colorImageNode->GetPortOutput()->Connect(renderPassNode->GetPortColorIn(0));
+    depthImageNode->GetPortOutput()->Connect(renderPassNode->GetPortDepthIn());
 
-    commandBufferBeginNode = graph.AddNode<CommandBufferBeginNode>();
-    commandBufferEndNode = graph.AddNode<CommandBufferEndNode>();
+    swapChainImageNode = graph.AddNode<RGraph::ImageNode>();
+    swapChainImageNode->SetExternalImage(GetGfxDriver()->GetSwapChainImageProxy().Get());
+    swapChainImageNode->initialState = {Gfx::PipelineStage::Bottom_Of_Pipe,
+                                        Gfx::AccessMask::None,
+                                        Gfx::ImageLayout::Undefined,
+                                        GFX_QUEUE_FAMILY_IGNORED,
+                                        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
 
-    //    graph.Compile();
+    blitNode = graph.AddNode<RGraph::BlitNode>();
+    blitNode->GetPortSrcImageIn()->Connect(renderPassNode->GetPortColorOut(0));
+    blitNode->GetPortDstImageIn()->Connect(swapChainImageNode->GetPortOutput());
+
+    swapChainToPesentNode = graph.AddNode<RGraph::GPUBarrierNode>();
+    swapChainToPesentNode->GetPortImageIn()->Connect(blitNode->GetPortDstImageOut());
+    swapChainToPesentNode->layout = Gfx::ImageLayout::Present_Src_Khr;
+    swapChainToPesentNode->stageFlags = Gfx::PipelineStage::Top_Of_Pipe;
+    swapChainToPesentNode->accessFlags = Gfx::AccessMask::None;
+
+    graph.Compile();
 }
 
 void RenderPipeline::Render(RefPtr<GameScene> gameScene)
 {
     gfxDriver->AcquireNextSwapChainImage(imageAcquireSemaphore);
     gfxDriver->WaitForFence({mainCmdBufFinishedFence}, true, -1);
+    mainCmdBufFinishedFence->Reset();
     cmdPool->ResetCommandPool();
 
     Camera* mainCamera = Camera::mainCamera.Get();
@@ -107,50 +133,72 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
         globalShaderResoruce.v.view = viewMatrix;
     }
 
+    cmdBuf->Begin();
     PrepareFrameData(cmdBuf);
     ProcessLights(gameScene, cmdBuf);
 
     // prepare
-    std::vector<Gfx::ClearValue> clears(2);
-    clears[0].color = {{0, 0, 0, 0}};
-    clears[1].depthStencil.depth = 1;
-    clears[1].depthStencil.stencil = 0;
+    auto& drawList = renderPassNode->GetDrawList();
+    drawList.clear();
+
     Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
-    cmdBuf->SetScissor(0, 1, &scissor);
-    globalShaderResoruce.BindShaderResource(cmdBuf);
+    DrawData drawData;
+    // cmdBuf->SetScissor(0, 1, &scissor);
+    drawData.scissor = scissor;
+    drawData.shaderResource = globalShaderResoruce.GetShaderResource().Get();
+    drawList.push_back(drawData);
 
     // render scene object (opauqe + transparent)
-    cmdBuf->BeginRenderPass(renderPass, clears);
+    // cmdBuf->BeginRenderPass(renderPass, clears);
     if (gameScene)
     {
         auto& roots = gameScene->GetRootObjects();
         for (auto root : roots)
         {
-            RenderObject(root->GetTransform(), cmdBuf);
+            RenderObject(root->GetTransform(), cmdBuf, drawList);
         }
     }
-    cmdBuf->EndRenderPass();
+    // cmdBuf->EndRenderPass();
+    RGraph::ResourceStateTrack stateTrack;
+    graph.Execute(cmdBuf.Get(), stateTrack);
 
 #if GAME_EDITOR
     if (renderEditor)
     {
-        gameEditor->GameRenderOutput(colorImage, depthImage);
-        gameEditor->Render(cmdBuf);
+        gameEditor->Render(cmdBuf, stateTrack);
     }
 #else
-    cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
+    // cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 #endif
 
-    gfxDriver->QueueSubmit(mainQueue, {cmdBuf}, {imageAcquireSemaphore}, {PipelineStage::Color_Attachment_Output},
-                           {mainCmdBufFinishedSemaphore}, mainCmdBufFinishedFence);
+    cmdBuf->End();
+
+    RefPtr<CommandBuffer> cmdBufs[] = {cmdBuf};
+    RefPtr<Semaphore> semaphores[] = {imageAcquireSemaphore};
+    Gfx::PipelineStageFlags pipelineStageFlags[] = {PipelineStage::Color_Attachment_Output};
+    RefPtr<Semaphore> signalSemaphores[] = {mainCmdBufFinishedSemaphore};
+    gfxDriver->QueueSubmit(mainQueue,
+                           cmdBufs,
+                           semaphores,
+                           pipelineStageFlags,
+                           signalSemaphores,
+                           mainCmdBufFinishedFence); // Queue submit
     gfxDriver->Present({mainCmdBufFinishedSemaphore});
+
+    // overide swapChainImageNode's initial state after the first frame
+    swapChainImageNode->initialState = {Gfx::PipelineStage::Bottom_Of_Pipe,
+                                        Gfx::AccessMask::None,
+                                        Gfx::ImageLayout::Undefined,
+                                        GFX_QUEUE_FAMILY_IGNORED,
+                                        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
 }
 
-void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd)
+void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd,
+                                  std::vector<RGraph::DrawData>& drawList)
 {
     for (auto child : transform->GetChildren())
     {
-        RenderObject(child, cmd);
+        RenderObject(child, cmd, drawList);
     }
 
     MeshRenderer* meshRenderer = transform->GetGameObject()->GetComponent<MeshRenderer>();
@@ -164,12 +212,30 @@ void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuf
             // material->SetMatrix("Transform", "model",
             // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
             auto& vertexInfo = mesh->GetVertexDescription();
-            Mesh::CommandBindMesh(cmd, mesh);
-            cmd->BindResource(material->GetShaderResource());
-            cmd->BindShaderProgram(shader->GetShaderProgram(), material->GetShaderConfig());
+            auto& meshBindingInfo = mesh->GetMeshBindingInfo();
+            DrawData drawData;
+
+            drawData.vertexBuffer = std::vector<VertexBufferBinding>();
+            for (int i = 0; i < meshBindingInfo.bindingBuffers.size(); ++i)
+            {
+                drawData.vertexBuffer = meshBindingInfo.bindingBuffers;
+            }
+            drawData.indexBuffer = RGraph::IndexBuffer{meshBindingInfo.indexBuffer.Get(),
+                                                       meshBindingInfo.indexBufferOffset,
+                                                       mesh->GetIndexBufferType()};
+
+            drawData.shaderResource = material->GetShaderResource().Get();
+            drawData.shader = shader->GetShaderProgram().Get();
+            drawData.shaderConfig = &material->GetShaderConfig();
             auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
-            cmd->SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
-            cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
+            drawData.pushConstant =
+                RGraph::PushConstant{material->GetShader()->GetShaderProgram().Get(), modelMatrix, glm::mat4(0)};
+            drawData.drawIndexed = RGraph::DrawIndex{vertexInfo.index.count, 1, 0, 0, 0};
+            drawList.push_back(drawData);
+            // cmd->BindResource(material->GetShaderResource());
+            // cmd->BindShaderProgram(shader->GetShaderProgram(), material->GetShaderConfig());
+            // cmd->SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
+            // cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
         }
     }
 }

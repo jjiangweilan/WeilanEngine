@@ -1,6 +1,4 @@
 #pragma once
-#include "NodeGraph/NodeGraph.hpp"
-
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>

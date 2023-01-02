@@ -14,17 +14,17 @@ bool RenderGraph::Compile()
 
     for (auto& n : nodes)
     {
-        if (n.get()->Compile(stateTrack) == false) return false;
+        if (n->Compile(stateTrack) == false) return false;
     }
 
     return true;
 }
-bool RenderGraph::Execute()
+bool RenderGraph::Execute(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack)
 {
-    ResourceStateTrack stateTrack;
+    // handle memory depenednecy before the node is executed
     for (auto& n : nodes)
     {
-        if (n.get()->Execute(stateTrack) == false) return false;
+        if (n->Execute(cmdBuf, stateTrack) == false) return false;
     }
 
     return true;

@@ -143,24 +143,23 @@ if (INSTALL_DEPENDENCY)
     list(APPEND DEPEND_NAMES shaderc)
 
 
-    # ExternalProject_Add(ASSIMP
-    #     PREFIX "ThirdParty/assimp"
-    #     GIT_REPOSITORY "https://github.com/assimp/assimp.git"
-    #     GIT_TAG "v5.2.3"
-    #     SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/assimp"
-    #     INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
-    #     CMAKE_ARGS 
-    #         "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
-    #         # it seems assimp can't use clang 12.0 right now, maybe we should use different compilers for different libraries
-    #         "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
-    #         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-    #         "-DBUILD_SHARED_LIBS=ON"
-    #         "-DASSIMP_BUILD_TESTS=OFF"
-    #         # "-DASSIMP_BUILD_ZLIB=ON"
-    #         "-DASSIMP_BUILD_ASSIMP_TOOLS=OFF"
-    #         "-DASSIMP_INSTALL_PDB=OFF"
-    # )
-    # list(APPEND DEPEND_NAMES ASSIMP)
+    ExternalProject_Add(ASSIMP
+        PREFIX "ThirdParty/assimp"
+        GIT_REPOSITORY "https://github.com/assimp/assimp.git"
+        GIT_TAG "v5.2.5"
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/assimp"
+        INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+        CMAKE_ARGS 
+            "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+            "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+            "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DBUILD_SHARED_LIBS=ON"
+            "-DASSIMP_BUILD_TESTS=OFF"
+            # "-DASSIMP_BUILD_ZLIB=ON"
+            "-DASSIMP_BUILD_ASSIMP_TOOLS=OFF"
+            "-DASSIMP_INSTALL_PDB=OFF"
+    )
+    list(APPEND DEPEND_NAMES ASSIMP)
 
     ExternalProject_Add(nlohmann-json
         PREFIX "ThirdParty/nlohmann-json"

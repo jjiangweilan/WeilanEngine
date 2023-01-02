@@ -66,11 +66,6 @@ void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
     VKImage* from = static_cast<VKImage*>(bFrom.Get());
     VKImage* to = static_cast<VKImage*>(bTo.Get());
 
-    from->TransformLayoutIfNeeded(vkCmdBuf, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                  VK_ACCESS_MEMORY_READ_BIT);
-    to->TransformLayoutIfNeeded(vkCmdBuf, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                VK_ACCESS_MEMORY_WRITE_BIT);
-
     VkImageBlit blit;
     blit.dstOffsets[0] = {0, 0, 0};
     blit.dstOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
@@ -86,8 +81,14 @@ void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
     blit.srcSubresource = dstLayers; // basically copy the resources from dst
                                      // without much configuration
 
-    vkCmdBlitImage(vkCmdBuf, from->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, to->GetImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+    vkCmdBlitImage(vkCmdBuf,
+                   from->GetImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   to->GetImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                   1,
+                   &blit,
+                   VK_FILTER_NEAREST);
 }
 
 void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
@@ -96,9 +97,14 @@ void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
 
     VkDescriptorSet descSet = resource->GetDescriptorSet();
     if (descSet != VK_NULL_HANDLE)
-        vkCmdBindDescriptorSets(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindDescriptorSets(vkCmdBuf,
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(),
-                                resource->GetDescriptorSetSlot(), 1, &descSet, 0, VK_NULL_HANDLE);
+                                resource->GetDescriptorSetSlot(),
+                                1,
+                                &descSet,
+                                0,
+                                VK_NULL_HANDLE);
 }
 
 void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const ShaderConfig& config)
@@ -127,20 +133,20 @@ void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, R
     vkCmdSetScissor(vkCmdBuf, firstScissor, scissorCount, vkRects);
 }
 
-void VKCommandBuffer::BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers,
-                                       const std::vector<uint64_t>& offsets, uint32_t firstBindingIndex)
+void VKCommandBuffer::BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings,
+                                       uint32_t firstBindingIndex)
 {
-    assert(buffers.size() < 16);
+    assert(vertexBufferBindings.size() <= 16);
     VkBuffer vkBuffers[16];
     uint64_t vkOffsets[16];
-    for (uint32_t i = 0; i < buffers.size(); ++i)
+    for (uint32_t i = 0; i < vertexBufferBindings.size(); ++i)
     {
-        VKBuffer* vkbuf = static_cast<VKBuffer*>(buffers[i].Get());
+        VKBuffer* vkbuf = static_cast<VKBuffer*>(vertexBufferBindings[i].buffer);
         vkBuffers[i] = vkbuf->GetHandle();
-        vkOffsets[i] = offsets[i];
+        vkOffsets[i] = vertexBufferBindings[i].offset;
     }
 
-    vkCmdBindVertexBuffers(vkCmdBuf, firstBindingIndex, buffers.size(), vkBuffers, vkOffsets);
+    vkCmdBindVertexBuffers(vkCmdBuf, firstBindingIndex, vertexBufferBindings.size(), vkBuffers, vkOffsets);
 }
 
 void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> bBuffer, uint64_t offset, IndexBufferType indexBufferType)
@@ -203,6 +209,7 @@ void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> b
 void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst,
                                         const std::vector<BufferImageCopyRegion>& regions)
 {
+    assert(!regions.empty());
     auto image = static_cast<VKImage*>(dst.Get());
     auto stageBuf = static_cast<VKBuffer*>(src.Get());
 
@@ -224,8 +231,12 @@ void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Ima
         vkRegions.push_back(region);
     }
 
-    vkCmdCopyBufferToImage(vkCmdBuf, stageBuf->GetHandle(), image->GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           vkRegions.size(), vkRegions.data());
+    vkCmdCopyBufferToImage(vkCmdBuf,
+                           stageBuf->GetHandle(),
+                           image->GetImage(),
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           vkRegions.size(),
+                           vkRegions.data());
 }
 
 void VKCommandBuffer::Begin()
@@ -259,9 +270,16 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             memoryBarrier.buffer = buffer->GetHandle();
             memoryBarrier.offset = 0;
             memoryBarrier.size = VK_WHOLE_SIZE;
-            vkCmdPipelineBarrier(vkCmdBuf, MapPipelineStage(barrier.srcStageMask),
-                                 MapPipelineStage(barrier.dstStageMask), VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE,
-                                 1, &memoryBarrier, 0, VK_NULL_HANDLE);
+            vkCmdPipelineBarrier(vkCmdBuf,
+                                 MapPipelineStage(barrier.srcStageMask),
+                                 MapPipelineStage(barrier.dstStageMask),
+                                 VK_DEPENDENCY_BY_REGION_BIT,
+                                 0,
+                                 VK_NULL_HANDLE,
+                                 1,
+                                 &memoryBarrier,
+                                 0,
+                                 VK_NULL_HANDLE);
         }
         else if (barrier.image != nullptr)
         {
@@ -287,9 +305,18 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             vkBarrier.image = image->GetImage();
             vkBarrier.subresourceRange = range;
 
-            vkCmdPipelineBarrier(vkCmdBuf, MapPipelineStage(barrier.srcStageMask),
-                                 MapPipelineStage(barrier.dstStageMask), VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE,
-                                 0, VK_NULL_HANDLE, 1, &vkBarrier);
+            image->ChangeLayout(vkBarrier.newLayout, MapPipelineStage(barrier.dstStageMask), vkBarrier.dstAccessMask);
+
+            vkCmdPipelineBarrier(vkCmdBuf,
+                                 MapPipelineStage(barrier.srcStageMask),
+                                 MapPipelineStage(barrier.dstStageMask),
+                                 VK_DEPENDENCY_BY_REGION_BIT,
+                                 0,
+                                 VK_NULL_HANDLE,
+                                 0,
+                                 VK_NULL_HANDLE,
+                                 1,
+                                 &vkBarrier);
         }
         else
         {
@@ -299,9 +326,16 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             memBarrier.srcAccessMask = MapAccessMask(barrier.srcAccessMask);
             memBarrier.dstAccessMask = MapAccessMask(barrier.dstAccessMask);
             memoryMemoryBarriers.push_back(memBarrier);
-            vkCmdPipelineBarrier(vkCmdBuf, MapPipelineStage(barrier.srcStageMask),
-                                 MapPipelineStage(barrier.dstStageMask), VK_DEPENDENCY_DEVICE_GROUP_BIT, 1, &memBarrier,
-                                 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE);
+            vkCmdPipelineBarrier(vkCmdBuf,
+                                 MapPipelineStage(barrier.srcStageMask),
+                                 MapPipelineStage(barrier.dstStageMask),
+                                 VK_DEPENDENCY_DEVICE_GROUP_BIT,
+                                 1,
+                                 &memBarrier,
+                                 0,
+                                 VK_NULL_HANDLE,
+                                 0,
+                                 VK_NULL_HANDLE);
         }
     }
 }

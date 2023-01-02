@@ -29,7 +29,7 @@ endif()
 
 target_sources(WeilanEngineLib PRIVATE ${CORE_ENGINE_SRC})
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
+find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngineLib
     PUBLIC

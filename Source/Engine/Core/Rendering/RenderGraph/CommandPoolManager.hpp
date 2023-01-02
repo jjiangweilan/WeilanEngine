@@ -11,7 +11,7 @@ public:
     UniPtr<CommandBuffer> GetCommandBuffer(int threadID);
 
 private:
-    static CommandPoolManager* GetCommandPoolManager();
+    std::unordered_map<int, UniPtr<Gfx::CommandPool>> pools;
     static UniPtr<CommandPoolManager> instance;
 };
 } // namespace Engine::RGraph

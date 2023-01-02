@@ -27,7 +27,7 @@ public:
     // renderpass and framebuffer have to be compatible.
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
-    void BindVertexBuffer(const std::vector<RefPtr<Gfx::Buffer>>& buffers, const std::vector<uint64_t>& offsets,
+    void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings,
                           uint32_t firstBindingIndex) override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;

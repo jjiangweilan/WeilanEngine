@@ -8,10 +8,10 @@ namespace Engine::RGraph
 {
 struct ResourceState
 {
-    Gfx::PipelineStageFlags stage;
-    Gfx::AccessMaskFlags accessMask;
-    Gfx::ImageLayout layout;
-    int queueFamilyIndex;
+    Gfx::PipelineStageFlags stage = Gfx::PipelineStage::Bottom_Of_Pipe;
+    Gfx::AccessMaskFlags accessMask = Gfx::AccessMask::None;
+    Gfx::ImageLayout layout = Gfx::ImageLayout::Undefined;
+    uint32_t queueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
 
     /**
      * any one uses this resource should append it's usage
@@ -24,10 +24,10 @@ struct ResourceState
 class ResourceStateTrack
 {
 public:
-    ResourceState& GetState(ResourceRef ref) { return resourceStateMap[ref]; };
+    ResourceState& GetState(ResourceRef* ref) { return resourceStateMap[ref->GetUUID()]; };
 
 private:
-    std::unordered_map<ResourceRef, ResourceState, ResourceRefHash> resourceStateMap;
+    std::unordered_map<UUID, ResourceState> resourceStateMap;
 };
 class Node
 {
@@ -39,25 +39,26 @@ public:
 
     virtual bool Preprocess(ResourceStateTrack& stateTrack) { return true; }
     virtual bool Compile(ResourceStateTrack& stateTrack) { return true; }
-    virtual bool Execute(ResourceStateTrack& stateTrack) { return true; }
+    virtual bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) { return true; }
 
     void AddDepth(uint32_t delta)
     {
         depth += delta;
         for (auto& o : outputPorts)
         {
-            Port* connected = o->GetConnectedPort();
-            if (connected)
+            std::span<Port*> connected = o->GetConnectedPorts();
+            for (auto c : connected)
             {
-                connected->GetNode()->AddDepth(delta);
+                c->GetNode()->AddDepth(delta);
             }
         }
     }
 
 protected:
-    Port* AddPort(const char* name, Port::Type type, const std::type_info& dataType)
+    Port* AddPort(const char* name, Port::Type type, const std::type_info& dataType, bool isMultiPort = false,
+                  Port::ConnectionCallBack connectionCallback = nullptr)
     {
-        auto port = new Port(this, name, type, dataType);
+        auto port = new Port(this, name, type, dataType, isMultiPort, connectionCallback);
 
         switch (port->GetType())
         {
@@ -74,9 +75,9 @@ protected:
         {
             if (port == other.get())
             {
-                if (Port* connected = port->GetConnectedPort())
+                for (auto c : port->GetConnectedPorts())
                 {
-                    port->Disconnect();
+                    c->Disconnect(port);
                 }
                 return true;
             }
@@ -89,37 +90,41 @@ protected:
         }
     }
 
-    template <class T>
-    T* GetResourceFromPort(Port* port)
+    bool InsertImageBarrierIfNeeded(ResourceStateTrack& stateTrack, ResourceRef* imageRes,
+                                    std::vector<GPUBarrier>& barriers, Gfx::ImageLayout layout,
+                                    Gfx::PipelineStageFlags stageFlags, Gfx::AccessMaskFlags accessFlags,
+                                    std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange = std::nullopt)
     {
-        if (port)
+        if (imageRes)
         {
-            auto res = port->GetResource();
-            if (!res.IsNull())
+            auto& resourceState = stateTrack.GetState(imageRes);
+            if (resourceState.layout != layout)
             {
-                return res.GetVal();
+                GPUBarrier barrier;
+                barrier.image = (Gfx::Image*)imageRes->GetVal();
+                barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
+                barrier.imageInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
+                barrier.imageInfo.oldLayout = resourceState.layout;
+                barrier.imageInfo.newLayout = layout;
+                barrier.imageInfo.subresourceRange =
+                    imageSubresourceRange.value_or(((Gfx::Image*)imageRes->GetVal())->GetSubresourceRange());
+                barrier.dstStageMask = stageFlags;
+                barrier.dstAccessMask = accessFlags;
+                barrier.srcStageMask = resourceState.stage;
+                barrier.srcAccessMask = resourceState.accessMask;
+
+                barriers.push_back(barrier);
+
+                // set the new state
+                resourceState.stage |= stageFlags;
+                resourceState.layout = layout;
+                resourceState.accessMask |= accessFlags;
+                resourceState.queueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
+                return true;
             }
         }
 
-        return nullptr;
-    }
-
-    void* GetResourceFromConnected(Port* port)
-    {
-        if (port)
-        {
-            auto connected = port->GetConnectedPort();
-            if (connected)
-            {
-                auto res = connected->GetResource();
-                if (!res.IsNull())
-                {
-                    return res.GetVal();
-                }
-            }
-        }
-
-        return nullptr;
+        return false;
     }
 
 private:
