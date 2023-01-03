@@ -12,7 +12,7 @@ AccessModifierOffset: -4
 # AlignEscapedNewlines: Right
 # AlignOperands:   Align
 # AlignTrailingComments: true
-# AllowAllArgumentsOnNextLine: true
+AllowAllArgumentsOnNextLine: false
 # AllowAllParametersOfDeclarationOnNextLine: true
 # AllowShortEnumsOnASingleLine: true
 AllowShortBlocksOnASingleLine: Empty
@@ -21,14 +21,14 @@ AllowShortFunctionsOnASingleLine: All
 # AllowShortLambdasOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 # AllowShortLoopsOnASingleLine: false
-# AlwaysBreakAfterDefinitionReturnType: None
-# AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
 # AlwaysBreakBeforeMultilineStrings: false
 # AlwaysBreakTemplateDeclarations: MultiLine
 # AttributeMacros:
   # - __capability
-# BinPackArguments: true
-# BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
   # AfterCaseLabel:  false
   AfterClass:      true
@@ -129,7 +129,7 @@ IndentWidth:     4
 # PenaltyBreakString: 1000
 # PenaltyBreakTemplateDeclaration: 10
 # PenaltyExcessCharacter: 1000000
-# PenaltyReturnTypeOnItsOwnLine: 60
+PenaltyReturnTypeOnItsOwnLine: 10000
 # PenaltyIndentedWhitespace: 0
 # PointerAlignment: Right
 # PPIndentWidth:   -1
