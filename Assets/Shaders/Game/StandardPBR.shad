@@ -62,7 +62,7 @@ void main()
     vec3 h = normalize(l + v);
     float dotNH = max(dot(n,h), NearZero);
     float dotNV = max(dot(n,v), NearZero);
-    float dotNL = max(dot(n,l), 0);
+    float dotNL = max(dot(n,l), NearZero);
     float dotVH = max(dot(v,h), NearZero);
     float r2 = roughness * roughness;
 

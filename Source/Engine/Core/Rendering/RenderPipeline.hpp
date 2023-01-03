@@ -32,21 +32,13 @@ class RenderPipeline
 {
 public:
     RenderPipeline(RefPtr<Gfx::GfxDriver> gfxDriver);
-    void Init();
+    void Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer);
     ~RenderPipeline();
 
     void Render(RefPtr<GameScene> gameScene);
     void ApplyAsset();
     RefPtr<RenderPipelineAsset> userConfigAsset;
 
-#if GAME_EDITOR
-    void RenderGameEditor(RefPtr<Editor::GameEditor> gameEditor)
-    {
-        renderEditor = true;
-        this->gameEditor = gameEditor;
-        gameEditor->GameRenderOutput(colorImage, depthImage);
-    };
-#endif
 private:
     // represent the global shader resource in the shader
     // directly set the value of `v`
@@ -107,7 +99,7 @@ private:
     UniPtr<CommandBuffer> cmdBuf;
     RefPtr<CommandQueue> mainQueue;
 #if GAME_EDITOR
-    RefPtr<Editor::GameEditor> gameEditor;
+    RefPtr<Editor::GameEditorRenderer> gameEditorRenderer;
     bool renderEditor;
 #endif
 

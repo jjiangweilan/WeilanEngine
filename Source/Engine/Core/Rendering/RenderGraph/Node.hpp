@@ -41,6 +41,8 @@ public:
     virtual bool Compile(ResourceStateTrack& stateTrack) { return true; }
     virtual bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) { return true; }
 
+    virtual void SetName(std::string_view name) { this->name = name; }
+    std::string_view GetName() { return name; };
     void AddDepth(uint32_t delta)
     {
         depth += delta;
@@ -55,7 +57,10 @@ public:
     }
 
 protected:
-    Port* AddPort(const char* name, Port::Type type, const std::type_info& dataType, bool isMultiPort = false,
+    Port* AddPort(const char* name,
+                  Port::Type type,
+                  const std::type_info& dataType,
+                  bool isMultiPort = false,
                   Port::ConnectionCallBack connectionCallback = nullptr)
     {
         auto port = new Port(this, name, type, dataType, isMultiPort, connectionCallback);
@@ -90,9 +95,12 @@ protected:
         }
     }
 
-    bool InsertImageBarrierIfNeeded(ResourceStateTrack& stateTrack, ResourceRef* imageRes,
-                                    std::vector<GPUBarrier>& barriers, Gfx::ImageLayout layout,
-                                    Gfx::PipelineStageFlags stageFlags, Gfx::AccessMaskFlags accessFlags,
+    bool InsertImageBarrierIfNeeded(ResourceStateTrack& stateTrack,
+                                    ResourceRef* imageRes,
+                                    std::vector<GPUBarrier>& barriers,
+                                    Gfx::ImageLayout layout,
+                                    Gfx::PipelineStageFlags stageFlags,
+                                    Gfx::AccessMaskFlags accessFlags,
                                     std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange = std::nullopt)
     {
         if (imageRes)
@@ -126,6 +134,8 @@ protected:
 
         return false;
     }
+
+    std::string name = "";
 
 private:
     uint32_t depth = 0;

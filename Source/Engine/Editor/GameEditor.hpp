@@ -25,16 +25,12 @@ public:
     GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement);
     ~GameEditor();
     void Init();
-    void GameRenderOutput(RefPtr<Gfx::Image> color, RefPtr<Gfx::Image> depth)
-    {
-        gameColorImage = color;
-        gameDepthImage = depth;
-    }
 
     void ProcessEvent(const SDL_Event& event);
     bool IsProjectInitialized();
     void Tick();
-    void Render(RefPtr<CommandBuffer> cmdBuf, RGraph::ResourceStateTrack& stateTrack);
+    void BuildRenderGraph(RGraph::RenderGraph* graph, RGraph::Port* finalColorPort, RGraph::Port* finalDepthPort);
+    GameEditorRenderer* GetGameEditorRenderer() { return gameEditorRenderer.Get(); }
 
 private:
     /* Data */

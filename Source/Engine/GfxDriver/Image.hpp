@@ -20,7 +20,7 @@ class Image
 {
 public:
     virtual ~Image(){};
-    virtual void SetName(const std::string& name) = 0;
+    virtual void SetName(std::string_view name) = 0;
     virtual const ImageDescription& GetDescription() = 0;
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
 

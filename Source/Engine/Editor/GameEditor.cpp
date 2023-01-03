@@ -18,6 +18,7 @@ GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagemen
 
 GameEditor::~GameEditor()
 {
+    gameEditorRenderer = nullptr;
     projectManagement->Save();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -31,13 +32,14 @@ void GameEditor::Init()
     ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
     ImGui::LoadIniSettingsFromDisk("imgui.ini");
 
-    gameEditorRenderer = MakeUnique<GameEditorRenderer>();
     editorContext = MakeUnique<EditorContext>();
     sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
     inspector = MakeUnique<InspectorWindow>(editorContext);
     assetExplorer = MakeUnique<AssetExplorer>(editorContext);
     gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
     projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
+    gameEditorRenderer = MakeUnique<GameEditorRenderer>();
+    gameEditorRenderer->SetGameSceneImageTarget(gameSceneWindow->GetGameSceneImageTarget());
     projectWindow = nullptr;
 
     InitializeBuiltInInspector();
@@ -70,7 +72,7 @@ void GameEditor::Tick()
         sceneTreeWindow->Tick();
         inspector->Tick();
         assetExplorer->Tick();
-        gameSceneWindow->Tick(gameColorImage, gameDepthImage);
+        gameSceneWindow->Tick();
     }
     else
     {
@@ -82,30 +84,37 @@ void GameEditor::Tick()
         projectWindow->Tick(open);
         if (!open) projectWindow = nullptr;
     }
+
+    ImGui::EndFrame();
 }
 
-void GameEditor::Render(RefPtr<CommandBuffer> cmdBuf, RGraph::ResourceStateTrack& stateTrack)
+void GameEditor::BuildRenderGraph(RGraph::RenderGraph* graph,
+                                  RGraph::Port* finalColorPort,
+                                  RGraph::Port* finalDepthPort)
 {
-    ImGui::Render();
-    return;
-    gameEditorRenderer->Render(cmdBuf.Get(), stateTrack);
-
-    // gameSceneWindow->RenderSceneGUI(cmdBuf);
-    // RenderEditor(cmdBuf);
-
-    // static std::vector<Gfx::ClearValue> clears = {{{{0, 0, 0, 0}}}};
-    // Rect2D scissor;
-    // scissor.offset = {0, 0};
-    // scissor.extent = {static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x),
-    //                   static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y)};
-    // cmdBuf->SetScissor(0, 1, &scissor);
-    // cmdBuf->BeginRenderPass(renderPass, clears);
-    // cmdBuf->BindShaderProgram(res->GetShader(), res->GetShader()->GetDefaultShaderConfig());
-    // cmdBuf->BindResource(res);
-    // cmdBuf->Draw(6, 1, 0, 0);
-    // cmdBuf->EndRenderPass();
-    // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
+    gameEditorRenderer->BuildGraph(graph, finalColorPort, finalDepthPort);
 }
+
+// void GameEditor::Render(RefPtr<CommandBuffer> cmdBuf, RGraph::ResourceStateTrack& stateTrack)
+// {
+//     gameEditorRenderer->Render(cmdBuf.Get(), stateTrack);
+
+// gameSceneWindow->RenderSceneGUI(cmdBuf);
+// RenderEditor(cmdBuf);
+
+// static std::vector<Gfx::ClearValue> clears = {{{{0, 0, 0, 0}}}};
+// Rect2D scissor;
+// scissor.offset = {0, 0};
+// scissor.extent = {static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x),
+//                   static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y)};
+// cmdBuf->SetScissor(0, 1, &scissor);
+// cmdBuf->BeginRenderPass(renderPass, clears);
+// cmdBuf->BindShaderProgram(res->GetShader(), res->GetShader()->GetDefaultShaderConfig());
+// cmdBuf->BindResource(res);
+// cmdBuf->Draw(6, 1, 0, 0);
+// cmdBuf->EndRenderPass();
+// cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
+// }
 
 void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf) {}
 

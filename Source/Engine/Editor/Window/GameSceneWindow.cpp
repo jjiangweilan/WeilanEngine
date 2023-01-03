@@ -208,13 +208,22 @@ GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext) : editorCo
                 blendBackResource->SetTexture("mainTex", editorOverlayColor);
             }
         });
+
+    Gfx::ImageDescription imageDescription{.data = nullptr, // this pointer needs to be managed
+                                           .width = GetGfxDriver()->GetWindowSize().width,
+                                           .height = GetGfxDriver()->GetWindowSize().height,
+                                           .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                                           .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                                           .mipLevels = 1};
+    gameSceneImage = GetGfxDriver()->CreateImage(imageDescription,
+                                                 Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst |
+                                                     Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc);
+    gameSceneImage->SetName("GameSceneWindow-GameSceneImage");
 }
 
-void GameSceneWindow::Tick(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
+void GameSceneWindow::Tick()
 {
-    UpdateRenderingResources(sceneColor, sceneDepth);
-    this->sceneColor = sceneColor;
-    this->sceneDepth = sceneDepth;
+    // UpdateRenderingResources(sceneColor, sceneDepth);
 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.2, 0.2, 0.2, 1));
     ImGui::Begin("Game Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar);
@@ -261,7 +270,7 @@ void GameSceneWindow::Tick(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sce
     // draw game view
     ImVec4 gameViewRect;
     {
-        const auto& sceneDesc = sceneColor->GetDescription();
+        const auto& sceneDesc = gameSceneImage->GetDescription();
         float w = sceneDesc.width;
         float h = sceneDesc.height;
         float whRatio = sceneDesc.width / (float)sceneDesc.height;
@@ -292,7 +301,7 @@ void GameSceneWindow::Tick(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sce
         gameViewRect.z = w;
         gameViewRect.w = h;
 
-        ImGui::Image(newSceneColor.Get(),
+        ImGui::Image(gameSceneImage.Get(),
                      size,
                      ImVec2(0, 0),
                      ImVec2(1, 1),

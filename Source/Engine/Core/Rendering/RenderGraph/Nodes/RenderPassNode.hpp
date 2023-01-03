@@ -85,6 +85,7 @@ public:
     auto& GetClearValues() { return clearValues; }
 
     Port* GetPortDepthIn() { return depthPortIn; }
+    Port* GetPortDepthOut() { return depthPortOut; }
     Port* GetPortDependentAttachmentsIn() { return dependentAttachmentIn; }
     std::span<AttachmentOps> GetColorAttachmentOps() { return colorAttachmentOps; }
     AttachmentOps& GetDepthAttachmentOp() { return depthAttachmentOp; }

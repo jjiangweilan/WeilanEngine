@@ -49,13 +49,12 @@ void WeilanEngine::Launch()
     renderPipeline = MakeUnique<Rendering::RenderPipeline>(gfxDriver.Get());
 #if GAME_EDITOR
     gameEditor = MakeUnique<Editor::GameEditor>(gfxDriver.Get(), projectManagement);
+    gameEditor->Init();
+    renderPipeline->Init(gameEditor->GetGameEditorRenderer());
+#else
+    renderPipeline->Init(nullptr);
 #endif
 
-    renderPipeline->Init();
-    gameEditor->Init();
-#if GAME_EDITOR
-    renderPipeline->RenderGameEditor(gameEditor);
-#endif
     auto mainQueue = gfxDriver->GetQueue(QueueType::Main);
 
     // main loop

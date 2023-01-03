@@ -2,6 +2,8 @@
 #include "Code/Ptr.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "GfxDriver/CommandPool.hpp"
+#include "GfxDriver/Fence.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Image.hpp"
 #include <functional>
@@ -23,22 +25,28 @@ public:
     {
         void* data;
         uint64_t size;
+        bool keepData = false;
         Gfx::ImageSubresourceRange subresourceRange;
     };
 
-    void Transfer(RefPtr<Gfx::Buffer> buffer, const BufferTransferRequest& request)
+    void Transfer(Gfx::ShaderResource* shaderResource, const std::string& param, const std::string& member, void* value)
     {
-        memcpy((char*)stagingBuffer->GetCPUVisibleAddress() + stagingBufferOffset, request.data, request.size);
-        pendingBuffers[buffer.Get()].push_back({buffer, stagingBufferOffset, request});
-        stagingBufferOffset += request.size;
+        Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+        auto buffer = shaderResource->GetBuffer(param, memberInfo);
+        auto memberInfoIter = memberInfo.find(member);
+        if (memberInfoIter == memberInfo.end()) return;
+
+        Internal::GfxResourceTransfer::BufferTransferRequest request{
+            .data = value,
+            .bufOffset = memberInfoIter->second.offset,
+            .size = memberInfoIter->second.size,
+        };
+        Transfer(buffer, request);
     }
 
-    void Transfer(RefPtr<Gfx::Image> image, const ImageTransferRequest& request)
-    {
-        memcpy((char*)stagingBuffer->GetCPUVisibleAddress() + stagingBufferOffset, request.data, request.size);
-        pendingImages[image.Get()].push_back({image, stagingBufferOffset, request});
-        stagingBufferOffset += request.size;
-    }
+    void Transfer(RefPtr<Gfx::Buffer> buffer, const BufferTransferRequest& request);
+
+    void Transfer(RefPtr<Gfx::Image> image, const ImageTransferRequest& request);
 
     // method assumes all the memory are not in use
     void QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf);
@@ -56,6 +64,9 @@ private:
         return instance;
     }
 
+    // used when staging buffer is full and we call this method to upload all the data to gpu
+    void ImmediateSubmit();
+
     struct BufferTransferRequestInternalUse
     {
         RefPtr<Gfx::Buffer> buf;
@@ -71,13 +82,16 @@ private:
     };
 
     static UniPtr<GfxResourceTransfer> instance;
-
     std::unordered_map<Gfx::Buffer*, std::vector<BufferTransferRequestInternalUse>> pendingBuffers;
     std::unordered_map<Gfx::Image*, std::vector<ImageTransferRequestInternalUse>> pendingImages;
     std::vector<BufferCopyRegion> bufferCopyRegions;
     std::vector<BufferImageCopyRegion> bufferImageCopyRegions;
     UniPtr<Gfx::Buffer> stagingBuffer;
     uint32_t stagingBufferOffset = 0;
+    const uint32_t stagingBufferSize = 1024 * 1024 * 30;
+    UniPtr<Gfx::CommandPool> cmdPool;
+    UniPtr<CommandBuffer> cmdBuf;
+    UniPtr<Gfx::Fence> fence;
 
     friend RefPtr<GfxResourceTransfer> GetGfxResourceTransfer();
 };

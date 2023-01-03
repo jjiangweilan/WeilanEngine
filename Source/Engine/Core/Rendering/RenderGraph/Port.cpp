@@ -11,7 +11,9 @@ void Port::Connect(Port* other)
 
     Port* input = type == Type::Input ? this : other;
     Port* output = type == Type::Output ? this : other;
-    input->SetResource(output->GetResource());
+    if (!input->IsMultiPort()) input->SetResource(output->GetResource());
+    else input->AddResource(output->GetResource());
+
     input->parent->AddDepth(other->parent->GetDepth() + 1);
 
     connected.push_back(other);

@@ -19,8 +19,8 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
 
     if (imageDescription.data) this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     MakeVkObjects();
-
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
+
     SetName("Unnamed");
 }
 
@@ -40,8 +40,10 @@ VKImage::~VKImage()
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
 }
 
-void VKImage::FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barriers, VkImageLayout newLayout,
-                                        VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask,
+void VKImage::FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barriers,
+                                        VkImageLayout newLayout,
+                                        VkPipelineStageFlags dstStageMask,
+                                        VkAccessFlags dstAccessMask,
                                         const VkImageSubresourceRange* subresourceRange)
 {
     if (this->layout != newLayout)
@@ -67,8 +69,11 @@ void VKImage::FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barri
     }
 }
 
-void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layout, VkPipelineStageFlags srcStageMask,
-                                      VkPipelineStageFlags dstStageMask, VkAccessFlags srcAccessMask,
+void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf,
+                                      VkImageLayout layout,
+                                      VkPipelineStageFlags srcStageMask,
+                                      VkPipelineStageFlags dstStageMask,
+                                      VkAccessFlags srcAccessMask,
                                       VkAccessFlags dstAccessMask)
 {
     TransformLayoutIfNeeded(cmdBuf,
@@ -80,9 +85,12 @@ void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout layo
                             defaultSubResourceRange);
 }
 
-void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout targetLayout,
-                                      VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
-                                      VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf,
+                                      VkImageLayout targetLayout,
+                                      VkPipelineStageFlags srcStageMask,
+                                      VkPipelineStageFlags dstStageMask,
+                                      VkAccessFlags srcAccessMask,
+                                      VkAccessFlags dstAccessMask,
                                       const VkImageSubresourceRange& subresourceRange)
 {
     if (layout != targetLayout)
@@ -115,8 +123,10 @@ void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout targ
     }
 }
 
-void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf, VkImageLayout newLayout,
-                                      VkPipelineStageFlags dstStageMask, VkAccessFlags dstAccessMask,
+void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf,
+                                      VkImageLayout newLayout,
+                                      VkPipelineStageFlags dstStageMask,
+                                      VkAccessFlags dstAccessMask,
                                       const VkImageSubresourceRange* subresourceRange)
 {
     if (this->layout != newLayout)
@@ -234,11 +244,11 @@ VkImageSubresourceRange VKImage::GenerateDefaultSubresourceRange()
     return range;
 }
 
-void VKImage::SetName(const std::string& name)
+void VKImage::SetName(std::string_view name)
 {
     this->name = name;
 
-    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE, (uint64_t)image_vk, name.c_str());
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE, (uint64_t)image_vk, this->name.c_str());
 }
 
 // TODO: this needs improvement. Cube and some others are not handled

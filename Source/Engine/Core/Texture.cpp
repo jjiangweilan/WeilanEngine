@@ -11,6 +11,7 @@ Texture::Texture(TextureDescription texDesc, const UUID& uuid) : AssetObject(uui
     Internal::GfxResourceTransfer::ImageTransferRequest request{
         .data = texDesc.data,
         .size = Gfx::Utils::MapImageFormatToByteSize(texDesc.format) * texDesc.width * texDesc.height,
+        .keepData = texDesc.keepData
         // use default subresource range
     };
     Internal::GetGfxResourceTransfer()->Transfer(image, request);

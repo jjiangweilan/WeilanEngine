@@ -19,7 +19,6 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore
 #endif

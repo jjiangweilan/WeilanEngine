@@ -18,8 +18,14 @@ namespace Engine::Rendering
 RenderPipeline::RenderPipeline(RefPtr<Gfx::GfxDriver> gfxDriver) : gfxDriver(gfxDriver) {}
 RenderPipeline::~RenderPipeline() {}
 
-void RenderPipeline::Init()
+void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 {
+    if (gameEditorRenderer != nullptr)
+    {
+        renderEditor = true;
+        this->gameEditorRenderer = gameEditorRenderer;
+    }
+
     // create color and depth
     ImageDescription imageDescription{};
     imageDescription.format = ImageFormat::R16G16B16A16_SFloat;
@@ -57,7 +63,7 @@ void RenderPipeline::Init()
     imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
     mainCmdBufFinishedSemaphore = GetGfxDriver()->CreateSemaphore({false});
     mainCmdBufFinishedFence = gfxDriver->CreateFence({true});
-    cmdPool = gfxDriver->CreateCommandPool({mainQueue});
+    cmdPool = gfxDriver->CreateCommandPool({mainQueue->GetFamilyIndex()});
     cmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1).at(0));
 
     // build render graph
@@ -79,16 +85,24 @@ void RenderPipeline::Init()
     renderPassNode->SetColorCount(1);
     renderPassNode->GetColorAttachmentOps()[0].loadOp = AttachmentLoadOperation::Clear;
     renderPassNode->GetColorAttachmentOps()[0].storeOp = AttachmentStoreOperation::Store;
-    renderPassNode->GetColorAttachmentOps()[0].stencilLoadOp = AttachmentLoadOperation::Clear;
-    renderPassNode->GetColorAttachmentOps()[0].stencilStoreOp = AttachmentStoreOperation::Store;
-    Gfx::ClearValue clearValue;
-    clearValue.color = {{0, 0, 0, 0}};
-    clearValue.depthStencil.depth = 1;
-    clearValue.depthStencil.stencil = 0;
-    renderPassNode->GetClearValues().push_back(clearValue);
+    renderPassNode->GetDepthAttachmentOp().loadOp = AttachmentLoadOperation::Clear;
+    renderPassNode->GetDepthAttachmentOp().storeOp = AttachmentStoreOperation::Store;
+    Gfx::ClearValue colorClear;
+    colorClear.color = {{0, 0, 0, 0}};
+    renderPassNode->GetClearValues().push_back(colorClear);
+    Gfx::ClearValue depthClear;
+    depthClear.depthStencil.depth = 1;
+    depthClear.depthStencil.stencil = 0;
+    renderPassNode->GetClearValues().push_back(depthClear);
 
     colorImageNode->GetPortOutput()->Connect(renderPassNode->GetPortColorIn(0));
     depthImageNode->GetPortOutput()->Connect(renderPassNode->GetPortDepthIn());
+
+    Port* finalOutput = renderPassNode->GetPortColorOut(0);
+#if GAME_EDITOR
+    finalOutput =
+        gameEditorRenderer->BuildGraph(&graph, renderPassNode->GetPortColorOut(0), renderPassNode->GetPortDepthOut());
+#endif
 
     swapChainImageNode = graph.AddNode<RGraph::ImageNode>();
     swapChainImageNode->SetExternalImage(GetGfxDriver()->GetSwapChainImageProxy().Get());
@@ -99,7 +113,8 @@ void RenderPipeline::Init()
                                         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
 
     blitNode = graph.AddNode<RGraph::BlitNode>();
-    blitNode->GetPortSrcImageIn()->Connect(renderPassNode->GetPortColorOut(0));
+    blitNode->SetName("RenderPipeline-Blit-FinalOutputToSwapChain");
+    blitNode->GetPortSrcImageIn()->Connect(finalOutput);
     blitNode->GetPortDstImageIn()->Connect(swapChainImageNode->GetPortOutput());
 
     swapChainToPesentNode = graph.AddNode<RGraph::GPUBarrierNode>();
@@ -131,6 +146,22 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
         globalShaderResoruce.v.viewProjection = vp;
         globalShaderResoruce.v.viewPos = viewPos;
         globalShaderResoruce.v.view = viewMatrix;
+        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
+                                                     "SceneInfo",
+                                                     "viewProjection",
+                                                     &globalShaderResoruce.v.viewProjection);
+        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
+                                                     "SceneInfo",
+                                                     "projection",
+                                                     &globalShaderResoruce.v.projection);
+        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
+                                                     "SceneInfo",
+                                                     "viewPos",
+                                                     &globalShaderResoruce.v.viewPos);
+        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
+                                                     "SceneInfo",
+                                                     "view",
+                                                     &globalShaderResoruce.v.view);
     }
 
     cmdBuf->Begin();
@@ -159,18 +190,18 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
         }
     }
     // cmdBuf->EndRenderPass();
-    RGraph::ResourceStateTrack stateTrack;
-    graph.Execute(cmdBuf.Get(), stateTrack);
 
 #if GAME_EDITOR
     if (renderEditor)
     {
-        gameEditor->Render(cmdBuf, stateTrack);
+        gameEditorRenderer->Render();
     }
 #else
     // cmdBuf->Blit(colorImage, gfxDriver->GetSwapChainImageProxy());
 #endif
 
+    RGraph::ResourceStateTrack stateTrack;
+    graph.Execute(cmdBuf.Get(), stateTrack);
     cmdBuf->End();
 
     RefPtr<CommandBuffer> cmdBufs[] = {cmdBuf};
@@ -193,7 +224,8 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
                                         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
 }
 
-void RenderPipeline::RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd,
+void RenderPipeline::RenderObject(RefPtr<Transform> transform,
+                                  UniPtr<CommandBuffer>& cmd,
                                   std::vector<RGraph::DrawData>& drawList)
 {
     for (auto child : transform->GetChildren())
@@ -259,9 +291,9 @@ void RenderPipeline::PrepareFrameData(RefPtr<CommandBuffer> cmdBuf)
     // resource prepare | draw commands
     GPUBarrier barrier;
     barrier.srcStageMask = PipelineStage::Transfer;
-    barrier.dstStageMask = PipelineStage::Vertex_Input | PipelineStage::Transfer;
+    barrier.dstStageMask = PipelineStage::All_Commands;
     barrier.srcAccessMask = AccessMask::Transfer_Write;
-    barrier.dstAccessMask = AccessMask::Memory_Read;
+    barrier.dstAccessMask = AccessMask::Memory_Read | AccessMask::Memory_Write;
 
     cmdBuf->Barrier(&barrier, 1);
 }

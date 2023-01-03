@@ -257,6 +257,8 @@ bool ShaderImporter::NeedReimport(const std::filesystem::path& path, const std::
 
     if (!std::filesystem::exists(outputDir)) return true;
 
+    if (GetLastWriteTime(outputDir / YAML_FileName) < GetLastWriteTime(path)) return true;
+
     std::ifstream dep(outputDir / DEP_FileName, std::ios::in);
     nlohmann::json depJ = nlohmann::json::parse(dep);
 
@@ -319,6 +321,7 @@ yamlEnd:
     std::ofstream outConfig;
     outConfig.open(outputDir / YAML_FileName, std::ios::binary | std::ios::trunc | std::ios::out);
     outConfig.write(yamlConfig.str().c_str(), yamlConfig.str().size());
+    std::filesystem::last_write_time(outputDir / YAML_FileName, std::filesystem::last_write_time(path));
     std::set<std::filesystem::path> includedTrack;
 
     // Vert
@@ -383,8 +386,12 @@ UniPtr<AssetObject> ShaderImporter::Load(const std::filesystem::path& root, Refe
         auto vert = ReadSpvFile(inputDir / VERT_FileName);
         auto frag = ReadSpvFile(inputDir / FRAG_FileName);
 
-        auto shaderProgram = Gfx::GfxDriver::Instance()->CreateShaderProgram(
-            name, &config, (unsigned char*)&vert.front(), vert.size(), (unsigned char*)&frag.front(), frag.size());
+        auto shaderProgram = Gfx::GfxDriver::Instance()->CreateShaderProgram(name,
+                                                                             &config,
+                                                                             (unsigned char*)&vert.front(),
+                                                                             vert.size(),
+                                                                             (unsigned char*)&frag.front(),
+                                                                             frag.size());
         UniPtr<Shader> shader = MakeUnique<Shader>(name, std::move(shaderProgram), uuid);
         return shader;
     }
@@ -421,8 +428,11 @@ void CompileShader(const std::filesystem::path& path, const std::filesystem::pat
 
         if (output.is_open() && output.good())
         {
-            auto compiled = compiler.CompileGlslToSpv((const char*)buf.Get(), fSize, kind,
-                                                      path.relative_path().string().c_str(), options);
+            auto compiled = compiler.CompileGlslToSpv((const char*)buf.Get(),
+                                                      fSize,
+                                                      kind,
+                                                      path.relative_path().string().c_str(),
+                                                      options);
 
             output.write((const char*)compiled.begin(),
                          sizeof(shaderc::SpvCompilationResult::element_type) * (compiled.end() - compiled.begin()));

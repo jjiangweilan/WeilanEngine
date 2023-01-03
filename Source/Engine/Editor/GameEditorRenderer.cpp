@@ -26,12 +26,16 @@ GameEditorRenderer::GameEditorRenderer()
     // imGuiData.fontTex creation
     Gfx::ImageDescription fontTexDesc;
     int width, height;
-    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontTexDesc.data, &width, &height);
+    unsigned char* fontData;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height);
+    int fontTexSize = 4 * width * height;
+    fontTexDesc.data = new unsigned char[fontTexSize];
+    memcpy(fontTexDesc.data, fontData, fontTexSize);
     fontTexDesc.width = width;
     fontTexDesc.height = height;
     fontTexDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-    imGuiData.fontTex = Gfx::GfxDriver::Instance()->CreateImage(fontTexDesc, Gfx::ImageUsage::Texture);
-    imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex);
+    imGuiData.fontTex = MakeUnique<Texture>(fontTexDesc);
+    imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex->GetGfxImage());
     imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
 
     assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload(
@@ -44,7 +48,7 @@ GameEditorRenderer::GameEditorRenderer()
                 this->imGuiData.generalShaderRes =
                     Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram,
                                                                      Gfx::ShaderResourceFrequency::Global);
-                this->imGuiData.generalShaderRes->SetTexture("sTexture", this->imGuiData.fontTex);
+                this->imGuiData.generalShaderRes->SetTexture("sTexture", this->imGuiData.fontTex->GetGfxImage());
                 this->imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
                 this->imGuiData.ClearImageResource();
             }
@@ -55,8 +59,6 @@ GameEditorRenderer::GameEditorRenderer()
                 //     Gfx::ShaderResourceFrequency::Shader);
             }
         });
-
-    gameEditorPass = renderGraph.AddNode<RGraph::RenderPassNode>();
 }
 
 RefPtr<Gfx::ShaderResource> GameEditorRenderer::ImGuiData::GetImageResource()
@@ -74,11 +76,55 @@ RefPtr<Gfx::ShaderResource> GameEditorRenderer::ImGuiData::GetImageResource()
     return imageResourcesCache[currCacheIndex];
 }
 
+void GameEditorRenderer::Tick() {}
+
 void GameEditorRenderer::ImGuiData::ClearImageResource() { imageResourcesCache.clear(); }
 
-void GameEditorRenderer::Render(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack)
+RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
+                                             RGraph::Port* finalColorPort,
+                                             RGraph::Port* finalDepthPort)
 {
-    auto& drawList = gameEditorPass->GetDrawList();
+    auto gameSceneImageNode = graph->AddNode<RGraph::ImageNode>();
+    gameSceneImageNode->SetName("GameEditorRenderer-GameSceneImage");
+    gameSceneImageNode->SetExternalImage(gameSceneImageTarget);
+    gameSceneImageNode->initialState = {Gfx::PipelineStage::Bottom_Of_Pipe,
+                                        Gfx::AccessMask::None,
+                                        Gfx::ImageLayout::Undefined,
+                                        GFX_QUEUE_FAMILY_IGNORED,
+                                        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
+
+    auto gameColorBlitNode = graph->AddNode<RGraph::BlitNode>();
+    gameColorBlitNode->SetName("GameEditorRenderer-GameColorToColorTarget");
+    gameColorBlitNode->GetPortSrcImageIn()->Connect(finalColorPort);
+    gameColorBlitNode->GetPortDstImageIn()->Connect(gameSceneImageNode->GetPortOutput());
+
+    auto gameEditorColorNode = graph->AddNode<RGraph::ImageNode>();
+    gameEditorColorNode->width = GetGfxDriver()->GetWindowSize().width;
+    gameEditorColorNode->height = GetGfxDriver()->GetWindowSize().height;
+    gameEditorColorNode->mipLevels = 1;
+    gameEditorColorNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    gameEditorColorNode->format = Gfx::ImageFormat::R16G16B16A16_SFloat;
+
+    auto gameEditorDepthNode = graph->AddNode<RGraph::ImageNode>();
+    gameEditorDepthNode->width = GetGfxDriver()->GetWindowSize().width;
+    gameEditorDepthNode->height = GetGfxDriver()->GetWindowSize().height;
+    gameEditorDepthNode->mipLevels = 1;
+    gameEditorDepthNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    gameEditorDepthNode->format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
+
+    gameEditorPassNode = graph->AddNode<RGraph::RenderPassNode>();
+    gameEditorPassNode->GetPortColorIn(0)->Connect(gameEditorColorNode->GetPortOutput());
+    gameEditorPassNode->GetPortDepthIn()->Connect(gameEditorDepthNode->GetPortOutput());
+    gameEditorPassNode->GetPortDependentAttachmentsIn()->Connect(gameColorBlitNode->GetPortDstImageOut());
+
+    return gameEditorPassNode->GetPortColorOut(0);
+}
+
+void GameEditorRenderer::Render()
+{
+    ImGui::Render();
+
+    auto& drawList = gameEditorPassNode->GetDrawList();
     drawList.clear();
 
     std::vector<Gfx::ClearValue> clears(2);
@@ -95,9 +141,17 @@ void GameEditorRenderer::Render(CommandBuffer* cmdBuf, RGraph::ResourceStateTrac
         size_t indexSize = imguiDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 
         if (imGuiData.vertexBuffer->GetSize() < vertexSize)
-            assert(0 && "Not implemented"); // imGuiData.vertexBuffer->Resize(vertexSize);
+        {
+            GetGfxDriver()->WaitForIdle();
+            imGuiData.vertexBuffer =
+                Gfx::GfxDriver::Instance()->CreateBuffer({Gfx::BufferUsage::Vertex, vertexSize, true});
+        }
         if (imGuiData.indexBuffer->GetSize() < indexSize)
-            assert(0 && "Not implemented"); // imGuiData.vertexBuffer->Resize(vertexSize);
+        {
+            GetGfxDriver()->WaitForIdle();
+            imGuiData.indexBuffer =
+                Gfx::GfxDriver::Instance()->CreateBuffer({Gfx::BufferUsage::Index, indexSize, true});
+        }
 
         ImDrawVert* vtxDst = (ImDrawVert*)imGuiData.vertexBuffer->GetCPUVisibleAddress();
         ImDrawIdx* idxDst = (ImDrawIdx*)imGuiData.indexBuffer->GetCPUVisibleAddress();
@@ -223,6 +277,5 @@ void GameEditorRenderer::Render(CommandBuffer* cmdBuf, RGraph::ResourceStateTrac
     }
     // cmdBuf->EndRenderPass();
     imGuiData.ResetImageResource();
-    renderGraph.Execute(cmdBuf, stateTrack);
 }
 } // namespace Engine::Editor

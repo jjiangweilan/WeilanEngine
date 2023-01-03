@@ -84,7 +84,7 @@ VKDriver::VKDriver()
     context->descriptorPoolCache = descriptorPoolCache;
 
     VKCommandPool::CreateInfo cmdPoolCreateInfo;
-    cmdPoolCreateInfo.queue = mainQueue.Get();
+    cmdPoolCreateInfo.queueFamilyIndex = mainQueue->GetFamilyIndex();
     commandPool = MakeUnique<VKCommandPool>(cmdPoolCreateInfo);
     auto cmdBufs = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1);
     auto& cmdBuf = cmdBufs[0];
@@ -213,8 +213,8 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
 {
     switch (type)
     {
-        case Engine::QueueType::Main: return const_cast<VKCommandQueue*>(mainQueue.Get());
-        case Engine::QueueType::Graphics0: return const_cast<VKCommandQueue*>(graphics0queue.Get());
+        case Engine::QueueType::Main: return static_cast<CommandQueue*>(mainQueue.Get());
+        case Engine::QueueType::Graphics0: return static_cast<CommandQueue*>(graphics0queue.Get());
     }
 }
 

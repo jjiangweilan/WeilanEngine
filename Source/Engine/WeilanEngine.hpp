@@ -22,7 +22,6 @@ public:
 private:
     RefPtr<Gfx::GfxDriver> gfxDriver;
 
-    std::shared_ptr<RenderTarget> virtualRenderTarget;
     UniPtr<AssetDatabase> assetDatabase;
     UniPtr<Rendering::RenderPipeline> renderPipeline;
 #if GAME_EDITOR

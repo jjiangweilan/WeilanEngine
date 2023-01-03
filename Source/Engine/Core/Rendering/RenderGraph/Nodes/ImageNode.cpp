@@ -26,6 +26,7 @@ bool ImageNode::Compile(ResourceStateTrack& stateTrack)
         auto usageFlags = stateTrack.GetState(outputPort->GetResource()).usages;
         assert(usageFlags != 0);
         image = GetGfxDriver()->CreateImage(description, usageFlags);
+        image->SetName(name);
         imageRes.SetVal(image.Get());
     }
     else imageRes.SetVal(externalImage);

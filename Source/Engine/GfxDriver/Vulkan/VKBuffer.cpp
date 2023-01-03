@@ -3,7 +3,6 @@
 #include "GfxDriver/Vulkan/Internal/VKMemAllocator.hpp"
 #include "GfxDriver/Vulkan/VKContext.hpp"
 #include "VKDebugUtils.hpp"
-#include <spdlog/spdlog.h>
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 namespace Engine::Gfx
 {
@@ -27,8 +26,6 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 
 VKBuffer::VKBuffer(const CreateInfo& createInfo) : allocator(VKContext::Instance()->allocator)
 {
-    SPDLOG_INFO("b {}", ++b);
-
     usage = MapBufferUsage(createInfo.usages);
     size = createInfo.size;
 
@@ -67,8 +64,6 @@ VKBuffer::VKBuffer(const CreateInfo& createInfo) : allocator(VKContext::Instance
 VKBuffer::VKBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocationCreateInfo, const char* debugName)
     : Buffer(), allocator(VKContext::Instance()->allocator), usage(createInfo.usage), allocationInfo{}
 {
-    SPDLOG_INFO("b {}", ++b);
-
     allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
     if (debugName)
     {
@@ -137,8 +132,6 @@ void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageF
 
 VKBuffer::~VKBuffer()
 {
-    SPDLOG_INFO("b {}", --b);
-
     if (buffer != VK_NULL_HANDLE) allocator->DestroyBuffer(buffer, allocation);
 }
 

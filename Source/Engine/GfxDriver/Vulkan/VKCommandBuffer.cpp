@@ -218,7 +218,7 @@ void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Ima
     for (auto& r : regions)
     {
         VkBufferImageCopy region;
-        region.bufferOffset = 0;
+        region.bufferOffset = r.srcOffset;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
         region.imageSubresource.aspectMask = MapImageAspect(r.range.aspectMask);

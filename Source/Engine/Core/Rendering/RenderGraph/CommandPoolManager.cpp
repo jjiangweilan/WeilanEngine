@@ -17,7 +17,7 @@ UniPtr<CommandBuffer> CommandPoolManager::GetCommandBuffer(int threadID)
     if (iter == pools.end())
     {
         Gfx::CommandPool::CreateInfo createInfo;
-        createInfo.queue = GetGfxDriver()->GetQueue(QueueType::Main);
+        createInfo.queueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
         pools.emplace(threadID, GetGfxDriver()->CreateCommandPool(createInfo));
     }
 

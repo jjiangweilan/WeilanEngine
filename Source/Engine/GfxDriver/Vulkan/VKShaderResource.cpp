@@ -64,10 +64,11 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
             {
                 case ShaderInfo::BindingType::UBO:
                     {
-                        Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform,
+                        std::string bufferName = std::format("{}_UBO", shader->GetName());
+                        Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
                                                       .size = b.second.binding.ubo.data.size,
                                                       .visibleInCPU = false,
-                                                      .debugName = std::format("{}_UBO", shader->GetName()).c_str()};
+                                                      .debugName = bufferName.c_str()};
                         auto buffer = Engine::MakeUnique<VKBuffer>(createInfo);
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                         bufferInfo.buffer = buffer->GetHandle();
