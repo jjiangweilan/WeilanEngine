@@ -8,11 +8,13 @@
 #include "Core/Math/Geometry.hpp"
 #include "Core/Model.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <SDL2/SDL.h>
 #include <algorithm>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Engine::Editor
 {
@@ -158,6 +160,31 @@ struct ClickedGameObjectHelperStruct
     float distance;
 };
 
+void EditTransform(glm::mat4& matrix, ImVec4 rect)
+{
+
+    static bool useSnap(false);
+    // if (ImGui::IsKeyPressed(83)) useSnap = !useSnap;
+    // ImGui::Checkbox("", &useSnap);
+    // ImGui::SameLine();
+    // vec_t snap;
+    // switch (mCurrentGizmoOperation)
+    // {
+    //     case ImGuizmo::TRANSLATE:
+    //         snap = config.mSnapTranslation;
+    //         ImGui::InputFloat3("Snap", &snap.x);
+    //         break;
+    //     case ImGuizmo::ROTATE:
+    //         snap = config.mSnapRotation;
+    //         ImGui::InputFloat("Angle Snap", &snap.x);
+    //         break;
+    //     case ImGuizmo::SCALE:
+    //         snap = config.mSnapScale;
+    //         ImGui::InputFloat("Scale Snap", &snap.x);
+    //         break;
+    // }
+}
+
 void GetClickedGameObject(Ray ray, RefPtr<GameObject> root, std::vector<ClickedGameObjectHelperStruct>& clickedObjs)
 {
     auto meshRenderer = root->GetComponent<MeshRenderer>();
@@ -229,33 +256,39 @@ void GameSceneWindow::Tick()
     ImGui::Begin("Game Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar);
     ImGui::PopStyleColor();
 
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+
     // show handle menu
     {
         ImGui::BeginMenuBar();
 
-        if (ImGui::MenuItem("Move", "", activeHandle != nullptr))
+        if (ImGui::MenuItem("Translate", "", activeHandle != nullptr))
         {
-            if (activeHandle != nullptr && activeHandle->GetNameID() == "MoveSceneHandle")
+            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+            /*if (activeHandle != nullptr && activeHandle->GetNameID() == "MoveSceneHandle")
             {
                 activeHandle = nullptr;
             }
-            else activeHandle = MakeUnique<MoveSceneHandle>();
+            else activeHandle = MakeUnique<MoveSceneHandle>();*/
         }
         if (ImGui::MenuItem("Rotate"))
         {
-            if (activeHandle != nullptr && activeHandle->GetNameID() == "RotateSceneHandle")
+            mCurrentGizmoOperation = ImGuizmo::ROTATE;
+            /*if (activeHandle != nullptr && activeHandle->GetNameID() == "RotateSceneHandle")
             {
                 activeHandle = nullptr;
             }
-            else activeHandle = MakeUnique<RotateSceneHandle>();
+            else activeHandle = MakeUnique<RotateSceneHandle>();*/
         }
         if (ImGui::MenuItem("Scale"))
         {
-            if (activeHandle != nullptr && activeHandle->GetNameID() == "ScaleSceneHandle")
+            mCurrentGizmoOperation = ImGuizmo::SCALE;
+            /*if (activeHandle != nullptr && activeHandle->GetNameID() == "ScaleSceneHandle")
             {
                 activeHandle = nullptr;
             }
-            activeHandle = MakeUnique<ScaleSceneHandle>();
+            activeHandle = MakeUnique<ScaleSceneHandle>();*/
         }
         const char* gameCam = "Game Camera";
         const char* editorCam = "Editor Camera";
@@ -269,6 +302,7 @@ void GameSceneWindow::Tick()
 
     // draw game view
     ImVec4 gameViewRect;
+    ImVec4 gizmoRect;
     {
         const auto& sceneDesc = gameSceneImage->GetDescription();
         float w = sceneDesc.width;
@@ -301,6 +335,8 @@ void GameSceneWindow::Tick()
         gameViewRect.z = w;
         gameViewRect.w = h;
 
+        gizmoRect = ImVec4(ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y, size.x, size.y);
+
         ImGui::Image(gameSceneImage.Get(),
                      size,
                      ImVec2(0, 0),
@@ -308,7 +344,6 @@ void GameSceneWindow::Tick()
                      ImVec4(1, 1, 1, 1),
                      ImVec4(0.3, 0.3, 0.3, 1));
     }
-
     glm::vec2 mouseInSceneViewUV =
         GetScreenUV(glm::vec4(gameViewRect.x, gameViewRect.y, gameViewRect.z, gameViewRect.w));
 
@@ -327,14 +362,26 @@ void GameSceneWindow::Tick()
         gameSceneCam.Tick(mouseInSceneViewUV);
     }
 
-    // handle
     RefPtr<GameObject> go = dynamic_cast<GameObject*>(editorContext->currentSelected.Get());
-    if (go != nullptr && activeHandle != nullptr)
+
+    if (go != nullptr)
     {
-        activeHandle->Interact(go, mouseInSceneViewUV);
+        auto matrix = go->GetTransform()->GetModelMatrix();
+        ImGuizmo::SetRect(gizmoRect.x, gizmoRect.y, gizmoRect.z, gizmoRect.w);
+        glm::mat4 viewMatrix = Camera::mainCamera->GetViewMatrix();
+        glm::mat4 projectionMatrix = Camera::mainCamera->GetProjectionMatrix();
+        projectionMatrix[1][1] = -projectionMatrix[1][1];
+        ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
+                             glm::value_ptr(projectionMatrix),
+                             mCurrentGizmoOperation,
+                             mCurrentGizmoMode,
+                             glm::value_ptr(matrix),
+                             NULL,
+                             NULL); // useSnap ? &snap.x : NULL);
+        go->GetTransform()->SetModelMatrix(matrix);
     }
     // pick object in scene
-    else if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && GameSceneManager::Instance()->GetActiveGameScene())
+    if (ImGui::IsMouseClicked(0) && !ImGuizmo::IsUsing() && GameSceneManager::Instance()->GetActiveGameScene())
     {
         if (mouseInSceneViewUV.x > 0 && mouseInSceneViewUV.y > 0 && mouseInSceneViewUV.x < 1 &&
             mouseInSceneViewUV.y < 1)

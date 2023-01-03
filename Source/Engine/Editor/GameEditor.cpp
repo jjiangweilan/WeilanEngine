@@ -1,5 +1,6 @@
 #include "GameEditor.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 
@@ -62,6 +63,7 @@ void GameEditor::Tick()
 {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
     // ImGui::ShowDemoWindow(nullptr);
     ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
