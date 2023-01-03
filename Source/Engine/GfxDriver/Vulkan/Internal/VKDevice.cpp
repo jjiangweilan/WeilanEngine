@@ -14,7 +14,7 @@ namespace Engine::Gfx
     {
         assert(requestsCount < 16);
         uint32_t queueFamilyIndices[16];
-        float queuePriorities[16];
+        float queuePriorities[16][16];
         auto& queueFamilyProperties = gpu.GetQueueFamilyProperties();
         for(int i = 0; i < requestsCount; ++i)
         {
@@ -44,19 +44,37 @@ namespace Engine::Gfx
                 throw std::runtime_error("Vulkan: Can't find required queue family index");
             
             queueFamilyIndices[i] = queueFamilyIndex;
-            queuePriorities[i] = queueRequests[i].priority;
+            queuePriorities[i][0] = request.priority;
         }
 
         VkDeviceQueueCreateInfo queueCreateInfos[16];
 
+        int queueCreateInfoCount = 0;
         for (int i = 0; i < requestsCount; ++i)
         {
-            queueCreateInfos[i].flags = 0;
-            queueCreateInfos[i].pNext = VK_NULL_HANDLE;
-            queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfos[i].queueFamilyIndex = queueFamilyIndices[i];
-            queueCreateInfos[i].queueCount = 1;
-            queueCreateInfos[i].pQueuePriorities = queuePriorities;
+            bool skip = false;
+            // found duplicate queueFamilyIndex
+            for (int j = 0; j < i; ++j)
+            {
+                if (queueCreateInfos[j].queueFamilyIndex == queueFamilyIndices[i])
+                {
+                    queueCreateInfos[j].queueCount += 1;
+                    queuePriorities[j][queueCreateInfos[j].queueCount - 1] = queueRequests[i].priority;
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (!skip)
+            {
+                queueCreateInfos[i].flags = 0;
+                queueCreateInfos[i].pNext = VK_NULL_HANDLE;
+                queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+                queueCreateInfos[i].queueFamilyIndex = queueFamilyIndices[i];
+                queueCreateInfos[i].queueCount = 1;
+                queueCreateInfos[i].pQueuePriorities = queuePriorities[i];
+                queueCreateInfoCount += 1;
+            }
         }
 
         VkDeviceCreateInfo deviceCreateInfo = {};
@@ -71,7 +89,7 @@ namespace Engine::Gfx
 
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCreateInfo.pNext = VK_NULL_HANDLE;
-        deviceCreateInfo.queueCreateInfoCount = requestsCount;
+        deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
         deviceCreateInfo.pEnabledFeatures = &requiredDeviceFeatures;
@@ -98,7 +116,11 @@ namespace Engine::Gfx
             vkGetDeviceQueue(deviceHandle, queueFamilyIndices[i], queueIndex, &queue);
 
             assert(queue != VK_NULL_HANDLE);
-            queues.push_back({queue, queueIndex, queueFamilyIndices[i]});
+            VKCommandQueue q;
+            q.queue = queue;
+            q.queueIndex = queueIndex;
+            q.queueFamilyIndex = queueFamilyIndices[i];
+            queues.push_back(q);
         }
     }
 

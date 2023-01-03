@@ -1,20 +1,22 @@
 #pragma once
-#include <gtest/gtest.h>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
 #include "Core/Component/LuaScript.hpp"
 #include "Core/GameObject.hpp"
 #include "Script/LuaBackend.hpp"
+#include <filesystem>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <sstream>
 
 using namespace Engine;
 #define L LuaBackend::Instance()->GetL()
 
-class LuaScript_F: public ::testing::Test { 
-public: 
+class LuaScript_F : public ::testing::Test
+{
+public:
     inline static bool init = false;
 
-    LuaScript_F( ) { 
+    LuaScript_F()
+    {
         // read file
         if (!init)
         {
@@ -27,16 +29,13 @@ public:
             luaL_dostring(L, ss.str().c_str());
             init = true;
         }
-    } 
-
-    void SetUp( ) { 
     }
 
-    void TearDown( ) { 
-    }
+    void SetUp() {}
 
-    ~LuaScript_F( )  { 
-    }
+    void TearDown() {}
+
+    ~LuaScript_F() {}
 };
 
 TEST_F(LuaScript_F, CallFromEngine)
@@ -55,19 +54,18 @@ TEST_F(LuaScript_F, CallFromEngine)
         FAIL();
         lua_pop(L, 1);
     }
-
 }
 
 TEST(LuaScript, CallToEngine)
 {
     std::string testName = "TestName";
     GameObject go;
-    go.GetTransform()->SetPosition({1,2,3});
+    go.GetTransform()->SetPosition({1, 2, 3});
     go.SetName(testName);
     LuaScript luaScript(&go);
     luaScript.RefLuaClass("ScriptTest");
     luaScript.Tick();
-    EXPECT_EQ(go.GetTransform()->GetPosition(), glm::vec3(3,2,1));
+    EXPECT_EQ(go.GetTransform()->GetPosition(), glm::vec3(3, 2, 1));
 
     lua_getglobal(L, "GlobalReadbackTestTick");
     if (lua_isstring(L, -1))

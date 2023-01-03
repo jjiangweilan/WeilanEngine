@@ -6,7 +6,6 @@
 #include "Internal/VKSwapChain.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKSharedResource.hpp"
-#include "VKStructs.hpp"
 namespace Engine::Gfx
 {
     class VKDevice;
@@ -24,10 +23,14 @@ namespace Engine::Gfx
             RefPtr<VKObjectManager> objManager;
             RefPtr<VKSharedResource> sharedResource;
             RefPtr<VKSwapChain> swapchain;
-            RefPtr<const DeviceQueue> mainQueue;
+            RefPtr<const VKCommandQueue> mainQueue;
             RefPtr<VKDescriptorPoolCache> descriptorPoolCache;
         private:
             static RefPtr<VKContext> context;
             friend class VKDriver;
     };
+
+    inline RefPtr<VKDevice> GetDevice() { return VKContext::Instance()->device; }
+    inline RefPtr<VKMemAllocator> GetMemAllocator() { return VKContext::Instance()->allocator; }
+    inline RefPtr<VKObjectManager> GetObjManager() { return VKContext::Instance()->objManager; }
 }

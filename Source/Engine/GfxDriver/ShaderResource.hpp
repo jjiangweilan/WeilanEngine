@@ -2,6 +2,7 @@
 
 #include "GfxEnums.hpp"
 #include "StorageBuffer.hpp"
+#include "Buffer.hpp"
 #include "Code/Ptr.hpp"
 #include <unordered_map>
 #include <string>
@@ -14,11 +15,18 @@ namespace Engine::Gfx
     class ShaderResource
     {
         public:
+            struct BufferMemberInfo 
+            {
+                uint32_t offset;
+                uint32_t size;
+            };
+            using BufferMemberInfoMap = std::unordered_map<std::string, BufferMemberInfo>;
+
             virtual ~ShaderResource() {};
-            void SetUniform(std::string_view param, void* value);
-            virtual void SetUniform(std::string_view obj, std::string_view member, void* value) = 0;
+            virtual RefPtr<Buffer> GetBuffer(const std::string& obj, BufferMemberInfoMap& memberInfo) = 0;
             virtual void SetTexture(const std::string& name, RefPtr<Image> texture) = 0;
-            virtual void SetStorage(std::string_view name, RefPtr<StorageBuffer> storageBuffer) = 0;
+            // virtual void SetStorage(std::string_view name, RefPtr<StorageBuffer> storageBuffer) = 0;
+            virtual bool HasPushConstnat(const std::string& obj) = 0;
             virtual RefPtr<ShaderProgram> GetShader() = 0;
     };
 }

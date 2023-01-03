@@ -20,8 +20,8 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
     vec3 viewPos;
 } scene;
 
-layout(std140, set = SET_GLOBAL, binding = 1) readonly buffer SceneLights {
-    Light lights[];
-} lights;
+// layout(std140, set = SET_GLOBAL, binding = 1) readonly buffer SceneLights {
+//     Light lights[];
+// } lights;
 
 #endif

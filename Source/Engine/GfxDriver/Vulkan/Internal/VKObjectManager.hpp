@@ -33,6 +33,8 @@ namespace Engine::Gfx
             void CreateSampler(VkSamplerCreateInfo& createInfo, VkSampler& sampler);
             void DestroySampler(VkSampler sampler);
 
+            void DestroyCommandPool(VkCommandPool pool);
+
             void DestroyPendingResources();
 
             VkDevice GetDevice() {return device;}
@@ -48,6 +50,7 @@ namespace Engine::Gfx
             std::vector<VkDescriptorPool> pendingDescriptorPools;
             std::vector<VkSemaphore> pendingSemaphores;
             std::vector<VkSampler> pendingSamplers;
+            std::vector<VkCommandPool> pendingCommandPools;
             VkDevice device;
     };
 }

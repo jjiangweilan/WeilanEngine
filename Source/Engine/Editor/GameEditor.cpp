@@ -1,338 +1,157 @@
 #include "GameEditor.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui_impl_sdl.h"
 
-#include "Core/GameScene/GameScene.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "GfxDriver/GfxDriver.hpp"
-#include "GfxDriver/ShaderLoader.hpp"
+#include "Core/GameScene/GameScene.hpp"
 #include "EditorRegister.hpp"
 #include "Extension/Inspector/BuildInInspectors.hpp"
+#include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/ShaderLoader.hpp"
+
 namespace Engine::Editor
 {
-    GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement) : gfxDriver(gfxDriver), projectManagement(projectManagement)
-    {
+GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement)
+    : projectManagement(projectManagement), gfxDriver(gfxDriver)
+{}
 
-    }
-
-    GameEditor::~GameEditor()
-    {
-        AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle);
-        projectManagement->Save();
-        ImGui_ImplSDL2_Shutdown();
-        ImGui::DestroyContext();
-    }
-
-    void GameEditor::Init(RefPtr<Rendering::RenderPipeline> renderPipeline)
-    {
-        ImGui::CreateContext();
-        ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
-        ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-        ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
-        ImGui::LoadIniSettingsFromDisk("imgui.ini");
-
-        editorContext = MakeUnique<EditorContext>();
-        sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
-        inspector = MakeUnique<InspectorWindow>(editorContext);
-        assetExplorer = MakeUnique<AssetExplorer>(editorContext);
-        gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
-        projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
-        projectWindow = nullptr;
-
-        InitializeBuiltInInspector();
-
-        imGuiData.indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Index, true);
-        imGuiData.vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(1024, Gfx::BufferUsage::Vertex, true);
-        imGuiData.shaderProgram = AssetDatabase::Instance()->GetShader("ImGui")->GetShaderProgram();
-        imGuiData.generalShaderRes = Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
-
-        // imGuiData.editorRT creation
-        {
-            Gfx::ImageDescription editorRTDesc;
-            editorRTDesc.width = gfxDriver->GetWindowSize().width;
-            editorRTDesc.height = gfxDriver->GetWindowSize().height;
-            editorRTDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-            imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(editorRTDesc, Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture);
-            imGuiData.editorRT->SetName("Editor RT");
-        }
-
-        // imGuiData.fontTex creation
-        Gfx::ImageDescription fontTexDesc;
-        int width, height;
-        ImGui::GetIO().Fonts->GetTexDataAsRGBA32(
-                &fontTexDesc.data,
-                &width,
-                &height);
-        fontTexDesc.width = width;
-        fontTexDesc.height = height;
-        fontTexDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-        imGuiData.fontTex = Gfx::GfxDriver::Instance()->CreateImage(fontTexDesc, Gfx::ImageUsage::Texture);
-        imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex);
-        imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
-
-        /* initialize rendering resources */
-        renderPipeline->SetOffScreenOutput(true);
-        gameColorImage = renderPipeline->GetOutputColor();
-        gameDepthImage = renderPipeline->GetOutputDepth();
-
-        /* imgui render pass */
-        editorPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
-        Gfx::RenderPass::Attachment colorAttachment;
-        colorAttachment.image = imGuiData.editorRT;
-        colorAttachment.loadOp = Gfx::AttachmentLoadOperation::Clear;
-        colorAttachment.storeOp = Gfx::AttachmentStoreOperation::Store;
-        editorPass->AddSubpass({colorAttachment}, std::nullopt);
-
-        assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj){
-                Shader* casted = dynamic_cast<Shader*>(obj.Get());
-                if (casted && casted->GetName() == "ImGui")
-                {
-                    this->imGuiData.shaderProgram = casted->GetShaderProgram();
-                    this->imGuiData.generalShaderRes = Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
-                    this->imGuiData.generalShaderRes->SetTexture("sTexture", this->imGuiData.fontTex);
-                    this->imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();
-                    this->imGuiData.ClearImageResource();
-                }
-
-                if (casted && casted->GetName() == "Internal/SimpleBlend")
-                {
-                    res = Gfx::GfxDriver::Instance()->CreateShaderResource(casted->GetShaderProgram(), Gfx::ShaderResourceFrequency::Shader);
-                }
-                });
-        auto p = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend")->GetShaderProgram();
-        res = Gfx::GfxDriver::Instance()->CreateShaderResource(p, Gfx::ShaderResourceFrequency::Shader);
-        res->SetTexture("mainTex", imGuiData.editorRT);
-
-        renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
-        Gfx::RenderPass::Attachment c;
-        c.image = gfxDriver->GetSwapChainImageProxy();
-        renderPass->AddSubpass({c}, std::nullopt);
-    }
-
-    void GameEditor::ProcessEvent(const SDL_Event& event)
-    {
-        ImGui_ImplSDL2_ProcessEvent(&event);
-    }
-
-    bool GameEditor::IsProjectInitialized()
-    {
-        return projectManagement->IsInitialized();
-    }
-
-    void GameEditor::Tick()
-    {
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
-        // ImGui::ShowDemoWindow(nullptr);
-        ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-
-        DrawMainMenu();
-
-        if (projectManagement->IsInitialized())
-        {
-            sceneTreeWindow->Tick();
-            inspector->Tick();
-            assetExplorer->Tick();
-            gameSceneWindow->Tick(gameColorImage, gameDepthImage);
-        }
-        else
-        {
-            projectManagementWindow->Tick();
-        }
-        if (projectWindow != nullptr)
-        {
-            bool open = true;
-            projectWindow->Tick(open);
-            if (!open) projectWindow = nullptr;
-        }
-
-    }
-
-    void GameEditor::Render()
-    {
-        ImGui::Render();
-
-        auto cmdBuf = gfxDriver->CreateCommandBuffer();
-
-        gameSceneWindow->RenderSceneGUI(cmdBuf);
-        RenderEditor(cmdBuf);
-
-        static std::vector<Gfx::ClearValue> clears = {{{{0,0,0,0}}}};
-        Rect2D scissor;
-        scissor.offset = {0,0};
-        scissor.extent = {static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x), static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y)};
-        cmdBuf->SetScissor(0, 1, &scissor);
-        cmdBuf->BeginRenderPass(renderPass, clears);
-        cmdBuf->BindShaderProgram(res->GetShader(), res->GetShader()->GetDefaultShaderConfig());
-        cmdBuf->BindResource(res);
-        cmdBuf->Draw(6, 1, 0, 0);
-        cmdBuf->EndRenderPass();
-        // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
-        gfxDriver->ExecuteCommandBuffer(std::move(cmdBuf));
-    }
-
-    void GameEditor::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
-    {
-
-    }
-
-    void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf)
-    {
-        std::vector<Gfx::ClearValue> clears(2);
-        clears[0].color = {{0,0,0,0}};
-        clears[1].depthStencil.depth = 1;
-        cmdBuf->BeginRenderPass(editorPass, clears);
-
-        ImDrawData* drawData = ImGui::GetDrawData();
-
-        if (drawData->TotalVtxCount > 0)
-        {
-            // Create or resize the vertex/index buffers
-            size_t vertexSize = drawData->TotalVtxCount * sizeof(ImDrawVert);
-            size_t indexSize = drawData->TotalIdxCount * sizeof(ImDrawIdx);
-
-            if (imGuiData.vertexBuffer->GetSize() < vertexSize)
-                imGuiData.vertexBuffer->Resize(vertexSize);
-            if (imGuiData.indexBuffer->GetSize() < indexSize)
-                imGuiData.indexBuffer->Resize(indexSize);
-
-            ImDrawVert* vtxDst = (ImDrawVert*)imGuiData.vertexBuffer->GetCPUVisibleAddress();
-            ImDrawIdx* idxDst = (ImDrawIdx*)imGuiData.indexBuffer->GetCPUVisibleAddress();
-            for (int n = 0; n < drawData->CmdListsCount; n++)
-            {
-                const ImDrawList* cmd_list = drawData->CmdLists[n];
-                memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-                memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-                vtxDst += cmd_list->VtxBuffer.Size;
-                idxDst += cmd_list->IdxBuffer.Size;
-            }
-        }
-
-        // draw
-        // Will project scissor/clipping rectangles into framebuffer space
-        int fbWidth = (int)(drawData->DisplaySize.x * drawData->FramebufferScale.x);
-        int fbHeight = (int)(drawData->DisplaySize.y * drawData->FramebufferScale.y);
-        ImVec2 clipOff = drawData->DisplayPos;         // (0,0) unless using multi-viewports
-        ImVec2 clipScale = drawData->FramebufferScale; // (1,1) unless using retina display which are often (2,2)
-                                                       //
-        uint32_t globalIdxOffset = 0;
-        uint32_t globalVtxOffset = 0;
-
-        cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
-        cmdBuf->BindResource(imGuiData.generalShaderRes);
-        cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16);
-        // update scale  and translate
-        float scale2Translate2[4];
-        scale2Translate2[0] = 2.0f / drawData->DisplaySize.x;
-        scale2Translate2[1] = 2.0f / drawData->DisplaySize.y;
-        scale2Translate2[2] = -1.0f - drawData->DisplayPos.x * scale2Translate2[0];
-        scale2Translate2[3] = -1.0f - drawData->DisplayPos.y * scale2Translate2[1];
-        cmdBuf->SetPushConstant(imGuiData.shaderProgram, &scale2Translate2);
-        // hard coded ImGui shader's vertex input
-        cmdBuf->BindVertexBuffer({imGuiData.vertexBuffer}, {0}, 0);
-
-        bool isGeneralResourceBinded = true;
-        for(int i = 0 ; i < drawData->CmdListsCount; ++i)
-        {
-            const ImDrawList* cmdList = drawData->CmdLists[i];
-            for (int cmdI = 0; cmdI < cmdList->CmdBuffer.Size; cmdI++)
-            {
-                const ImDrawCmd* pcmd = &cmdList->CmdBuffer[cmdI];
-
-                // project scissor/clipping rectangles into framebuffer space
-                ImVec2 clip_min((pcmd->ClipRect.x - clipOff.x) * clipScale.x, (pcmd->ClipRect.y - clipOff.y) * clipScale.y);
-                ImVec2 clip_max((pcmd->ClipRect.z - clipOff.x) * clipScale.x, (pcmd->ClipRect.w - clipOff.y) * clipScale.y);
-
-                Gfx::Image* image = (Gfx::Image*)pcmd->TextureId;
-                if (image != nullptr)
-                {
-                    auto imageRes = imGuiData.GetImageResource();
-                    imageRes->SetTexture("sTexture", image);
-                    cmdBuf->BindResource(imageRes);
-                    isGeneralResourceBinded = false;
-                }
-                else if (isGeneralResourceBinded == false)
-                {
-                    isGeneralResourceBinded = true;
-                    cmdBuf->BindResource(imGuiData.generalShaderRes);
-                }
-
-                // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds
-                if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
-                if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
-                if (clip_max.x > fbWidth) { clip_max.x = (float)fbWidth; }
-                if (clip_max.y > fbHeight) { clip_max.y = (float)fbHeight; }
-                if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
-                    continue;
-
-                // apply scissor/clipping rectangle
-                Rect2D scissor;
-                scissor.offset.x = (int32_t)(clip_min.x);
-                scissor.offset.y = (int32_t)(clip_min.y);
-                scissor.extent.width = (uint32_t)(clip_max.x - clip_min.x);
-                scissor.extent.height = (uint32_t)(clip_max.y - clip_min.y);
-                cmdBuf->SetScissor(0, 1, &scissor);
-
-                cmdBuf->DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + globalIdxOffset, pcmd->VtxOffset + globalVtxOffset, 0);
-            }
-            globalIdxOffset += cmdList->IdxBuffer.Size;
-            globalVtxOffset += cmdList->VtxBuffer.Size;
-        }
-        cmdBuf->EndRenderPass();
-        imGuiData.ResetImageResource();
-    }
-
-    void GameEditor::ImGuiData::ClearImageResource()
-    {
-        imageResourcesCache.clear();
-    }
-
-    RefPtr<Gfx::ShaderResource> GameEditor::ImGuiData::GetImageResource()
-    {
-        currCacheIndex += 1;
-
-        if (imageResourcesCache.size() <= currCacheIndex)
-        {
-            imageResourcesCache.push_back(Gfx::GfxDriver::Instance()->CreateShaderResource(shaderProgram, Gfx::ShaderResourceFrequency::Global));
-            assert(currCacheIndex + 1 == imageResourcesCache.size());
-            return imageResourcesCache.back();
-        }
-
-        return imageResourcesCache[currCacheIndex];
-    }
-
-    void GameEditor::DrawMainMenu()
-    {
-        ImGui::BeginMainMenuBar();
-
-        if (ImGui::BeginMenu("File"))
-        {
-            if (ImGui::MenuItem("Project")) {
-                projectWindow = MakeUnique<ProjectWindow>(editorContext, projectManagement);
-            }
-            ImGui::EndMenu();
-        }
-
-        if (projectManagement->IsInitialized())
-        {
-            if (ImGui::MenuItem("Create Scene") && GameSceneManager::Instance()->GetActiveGameScene() == nullptr)
-            {
-                auto newScene = MakeUnique<GameScene>();
-                auto refNewScene = AssetDatabase::Instance()->Save(std::move(newScene), "./Assets/test.game");
-                GameSceneManager::Instance()->SetActiveGameScene(refNewScene);
-            }
-            if (ImGui::MenuItem("Save"))
-            {
-                AssetDatabase::Instance()->SaveAll();
-                projectManagement->Save();
-            }
-
-            if (ImGui::MenuItem("Reload Shader"))
-            {
-                AssetDatabase::Instance()->ReloadShaders();
-            }
-        }
-        ImGui::EndMainMenuBar();
-    }
+GameEditor::~GameEditor()
+{
+    gameEditorRenderer = nullptr;
+    projectManagement->Save();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
 }
+
+void GameEditor::Init()
+{
+    ImGui::CreateContext();
+    ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
+    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+    ImGui::LoadIniSettingsFromDisk("imgui.ini");
+
+    editorContext = MakeUnique<EditorContext>();
+    sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
+    inspector = MakeUnique<InspectorWindow>(editorContext);
+    assetExplorer = MakeUnique<AssetExplorer>(editorContext);
+    gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
+    projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
+    gameEditorRenderer = MakeUnique<GameEditorRenderer>();
+    gameEditorRenderer->SetGameSceneImageTarget(gameSceneWindow->GetGameSceneImageTarget());
+    projectWindow = nullptr;
+
+    InitializeBuiltInInspector();
+
+    // auto p = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend")->GetShaderProgram();
+    // res = Gfx::GfxDriver::Instance()->CreateShaderResource(p, Gfx::ShaderResourceFrequency::Shader);
+    // res->SetTexture("mainTex", imGuiData.editorRT);
+
+    renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
+    Gfx::RenderPass::Attachment c;
+    c.image = gfxDriver->GetSwapChainImageProxy();
+    renderPass->AddSubpass({c}, std::nullopt);
+}
+
+void GameEditor::ProcessEvent(const SDL_Event& event) { ImGui_ImplSDL2_ProcessEvent(&event); }
+
+bool GameEditor::IsProjectInitialized() { return projectManagement->IsInitialized(); }
+
+void GameEditor::Tick()
+{
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
+    // ImGui::ShowDemoWindow(nullptr);
+    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+
+    DrawMainMenu();
+
+    if (projectManagement->IsInitialized())
+    {
+        sceneTreeWindow->Tick();
+        inspector->Tick();
+        assetExplorer->Tick();
+        gameSceneWindow->Tick();
+    }
+    else
+    {
+        projectManagementWindow->Tick();
+    }
+    if (projectWindow != nullptr)
+    {
+        bool open = true;
+        projectWindow->Tick(open);
+        if (!open) projectWindow = nullptr;
+    }
+
+    ImGui::EndFrame();
+}
+
+void GameEditor::BuildRenderGraph(RGraph::RenderGraph* graph,
+                                  RGraph::Port* finalColorPort,
+                                  RGraph::Port* finalDepthPort)
+{
+    gameEditorRenderer->BuildGraph(graph, finalColorPort, finalDepthPort);
+}
+
+// void GameEditor::Render(RefPtr<CommandBuffer> cmdBuf, RGraph::ResourceStateTrack& stateTrack)
+// {
+//     gameEditorRenderer->Render(cmdBuf.Get(), stateTrack);
+
+// gameSceneWindow->RenderSceneGUI(cmdBuf);
+// RenderEditor(cmdBuf);
+
+// static std::vector<Gfx::ClearValue> clears = {{{{0, 0, 0, 0}}}};
+// Rect2D scissor;
+// scissor.offset = {0, 0};
+// scissor.extent = {static_cast<uint32_t>(ImGui::GetIO().DisplaySize.x),
+//                   static_cast<uint32_t>(ImGui::GetIO().DisplaySize.y)};
+// cmdBuf->SetScissor(0, 1, &scissor);
+// cmdBuf->BeginRenderPass(renderPass, clears);
+// cmdBuf->BindShaderProgram(res->GetShader(), res->GetShader()->GetDefaultShaderConfig());
+// cmdBuf->BindResource(res);
+// cmdBuf->Draw(6, 1, 0, 0);
+// cmdBuf->EndRenderPass();
+// cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
+// }
+
+void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf) {}
+
+void GameEditor::DrawMainMenu()
+{
+    ImGui::BeginMainMenuBar();
+
+    if (ImGui::BeginMenu("File"))
+    {
+        if (ImGui::MenuItem("Project"))
+        {
+            projectWindow = MakeUnique<ProjectWindow>(editorContext, projectManagement);
+        }
+        ImGui::EndMenu();
+    }
+
+    if (projectManagement->IsInitialized())
+    {
+        if (ImGui::MenuItem("Create Scene") && GameSceneManager::Instance()->GetActiveGameScene() == nullptr)
+        {
+            auto newScene = MakeUnique<GameScene>();
+            auto refNewScene = AssetDatabase::Instance()->Save(std::move(newScene), "./Assets/test.game");
+            GameSceneManager::Instance()->SetActiveGameScene(refNewScene);
+        }
+        if (ImGui::MenuItem("Save"))
+        {
+            AssetDatabase::Instance()->SaveAll();
+            projectManagement->Save();
+        }
+
+        if (ImGui::MenuItem("Reload Shader"))
+        {
+            AssetDatabase::Instance()->ReloadShaders();
+        }
+    }
+    ImGui::EndMainMenuBar();
+}
+} // namespace Engine::Editor

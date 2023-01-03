@@ -118,6 +118,11 @@ namespace Engine::Gfx
         pendingSamplers.push_back(sampler);
     }
 
+    void VKObjectManager::DestroyCommandPool(VkCommandPool pool)
+    {
+
+    }
+
     void VKObjectManager::DestroyPendingResources()
     {
         for(auto v : pendingImageViews)

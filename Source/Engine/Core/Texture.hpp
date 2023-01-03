@@ -1,22 +1,28 @@
 #pragma once
-#include "GfxDriver/GfxDriver.hpp"
 #include "AssetObject.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 
 namespace Engine
 {
-    using TextureDescription = Gfx::ImageDescription;
+using TextureDescription = Gfx::ImageDescription;
 
-    class Texture : public AssetObject
+class Texture : public AssetObject
+{
+public:
+    Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
+    ~Texture() override
     {
-        public:
-            Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
-            ~Texture() override{};
-            RefPtr<Gfx::Image> GetGfxImage() { return image; };
-            const TextureDescription& GetDescription() { return image->GetDescription(); }
-            void Reload(AssetObject&& loaded) override;
-        private:
+        if (image->GetDescription().keepData)
+        {
+            delete image->GetDescription().data;
+        }
+    }
+    RefPtr<Gfx::Image> GetGfxImage() { return image; };
+    const TextureDescription& GetDescription() { return image->GetDescription(); }
+    void Reload(AssetObject&& loaded) override;
 
-            bool Serialize(AssetSerializer&) override{return false;} // disable saving
-            UniPtr<Gfx::Image> image;
-    };
-}
+private:
+    bool Serialize(AssetSerializer&) override { return false; } // disable saving
+    UniPtr<Gfx::Image> image;
+};
+} // namespace Engine

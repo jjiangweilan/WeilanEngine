@@ -111,12 +111,12 @@ namespace Engine::Gfx
             for(Attachment& colorAtta : subpass.colors)
             {
                 attachmentDescriptions[attachmentDescIndex].flags = 0;
-                attachmentDescriptions[attachmentDescIndex].format = VKEnumMapper::MapFormat(colorAtta.image->GetDescription().format);
-                attachmentDescriptions[attachmentDescIndex].samples = VKEnumMapper::MapSampleCount(colorAtta.image->GetDescription().multiSampling);
-                attachmentDescriptions[attachmentDescIndex].loadOp = VKEnumMapper::MapAttachmentLoadOp(colorAtta.loadOp);
-                attachmentDescriptions[attachmentDescIndex].storeOp = VKEnumMapper::MapAttachmentStoreOp(colorAtta.storeOp);
-                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(colorAtta.stencilLoadOp);
-                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(colorAtta.storeOp);
+                attachmentDescriptions[attachmentDescIndex].format = MapFormat(colorAtta.image->GetDescription().format);
+                attachmentDescriptions[attachmentDescIndex].samples = MapSampleCount(colorAtta.image->GetDescription().multiSampling);
+                attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(colorAtta.loadOp);
+                attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(colorAtta.storeOp);
+                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = MapAttachmentLoadOp(colorAtta.stencilLoadOp);
+                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = MapAttachmentStoreOp(colorAtta.storeOp);
                 attachmentDescriptions[attachmentDescIndex].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
                 attachmentDescriptions[attachmentDescIndex].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -133,12 +133,12 @@ namespace Engine::Gfx
                 subpassDescriptions[subpassDescIndex].pDepthStencilAttachment = attachmentReference + refIndex;
 
                 attachmentDescriptions[attachmentDescIndex].flags = 0;
-                attachmentDescriptions[attachmentDescIndex].format = VKEnumMapper::MapFormat(subpass.depth->image->GetDescription().format);
-                attachmentDescriptions[attachmentDescIndex].samples = VKEnumMapper::MapSampleCount(subpass.depth->image->GetDescription().multiSampling);
-                attachmentDescriptions[attachmentDescIndex].loadOp = VKEnumMapper::MapAttachmentLoadOp(subpass.depth->loadOp);
-                attachmentDescriptions[attachmentDescIndex].storeOp = VKEnumMapper::MapAttachmentStoreOp(subpass.depth->storeOp);
-                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = VKEnumMapper::MapAttachmentLoadOp(subpass.depth->stencilLoadOp);
-                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = VKEnumMapper::MapAttachmentStoreOp(subpass.depth->storeOp);
+                attachmentDescriptions[attachmentDescIndex].format = MapFormat(subpass.depth->image->GetDescription().format);
+                attachmentDescriptions[attachmentDescIndex].samples = MapSampleCount(subpass.depth->image->GetDescription().multiSampling);
+                attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(subpass.depth->loadOp);
+                attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(subpass.depth->storeOp);
+                attachmentDescriptions[attachmentDescIndex].stencilLoadOp = MapAttachmentLoadOp(subpass.depth->stencilLoadOp);
+                attachmentDescriptions[attachmentDescIndex].stencilStoreOp = MapAttachmentStoreOp(subpass.depth->storeOp);
                 attachmentDescriptions[attachmentDescIndex].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 attachmentDescriptions[attachmentDescIndex].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -163,8 +163,17 @@ namespace Engine::Gfx
         createInfo.subpassCount = subpasses.size();
         createInfo.pSubpasses = subpassDescriptions;
 
-        createInfo.dependencyCount = 0;
-        createInfo.pDependencies = VK_NULL_HANDLE;
+        VkSubpassDependency externalDependency;
+        externalDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        externalDependency.dstSubpass = 0;
+        externalDependency.srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT;
+        externalDependency.dstStageMask = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        externalDependency.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+        externalDependency.dstAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT;
+        externalDependency.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        createInfo.dependencyCount = 1;
+        createInfo.pDependencies = &externalDependency;
 
         VKContext::Instance()->objManager->CreateRenderPass(createInfo, renderPass);
     }
@@ -210,7 +219,7 @@ namespace Engine::Gfx
     {
         VkFramebuffer framebuffer = VK_NULL_HANDLE;
         if (frameBuffers.empty() ||
-            (swapChainProxy != nullptr && (frameBuffers.size() <= swapChainProxy->GetActiveIndex() || frameBuffers[swapChainProxy->GetActiveIndex()] == VK_NULL_HANDLE)))
+                (swapChainProxy != nullptr && (frameBuffers.size() <= swapChainProxy->GetActiveIndex() || frameBuffers[swapChainProxy->GetActiveIndex()] == VK_NULL_HANDLE)))
         {
             framebuffer = CreateFrameBuffer();
             size_t index = swapChainProxy ? swapChainProxy->GetActiveIndex() : 0;

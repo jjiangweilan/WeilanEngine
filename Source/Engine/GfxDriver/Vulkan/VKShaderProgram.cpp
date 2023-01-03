@@ -20,10 +20,10 @@ namespace Engine::Gfx
         s.reference = stencilOpState.reference;
         s.writeMask = stencilOpState.writeMask;
         s.compareMask = stencilOpState.compareMask;
-        s.compareOp = VKEnumMapper::MapCompareOp(stencilOpState.compareOp);
-        s.depthFailOp = VKEnumMapper::MapStencilOp(stencilOpState.depthFailOp);
-        s.failOp = VKEnumMapper::MapStencilOp(stencilOpState.failOp);
-        s.passOp = VKEnumMapper::MapStencilOp(stencilOpState.passOp);
+        s.compareOp = MapCompareOp(stencilOpState.compareOp);
+        s.depthFailOp = MapStencilOp(stencilOpState.depthFailOp);
+        s.failOp = MapStencilOp(stencilOpState.failOp);
+        s.passOp = MapStencilOp(stencilOpState.passOp);
 
         return s;
     }
@@ -32,13 +32,13 @@ namespace Engine::Gfx
     {
         VkPipelineColorBlendAttachmentState state;
         state.blendEnable = c.blendEnable;
-        state.srcColorBlendFactor = VKEnumMapper::MapBlendFactor(c.srcColorBlendFactor);
-        state.dstColorBlendFactor = VKEnumMapper::MapBlendFactor(c.dstColorBlendFactor);
-        state.colorBlendOp = VKEnumMapper::MapBlendOp(c.colorBlendOp);
-        state.srcAlphaBlendFactor = VKEnumMapper::MapBlendFactor(c.srcAlphaBlendFactor);
-        state.dstAlphaBlendFactor = VKEnumMapper::MapBlendFactor(c.dstAlphaBlendFactor);
-        state.alphaBlendOp = VKEnumMapper::MapBlendOp(c.alphaBlendOp);
-        state.colorWriteMask = VKEnumMapper::MapColorComponentBits(c.colorWriteMask);
+        state.srcColorBlendFactor = MapBlendFactor(c.srcColorBlendFactor);
+        state.dstColorBlendFactor = MapBlendFactor(c.dstColorBlendFactor);
+        state.colorBlendOp = MapBlendOp(c.colorBlendOp);
+        state.srcAlphaBlendFactor = MapBlendFactor(c.srcAlphaBlendFactor);
+        state.dstAlphaBlendFactor = MapBlendFactor(c.dstAlphaBlendFactor);
+        state.alphaBlendOp = MapBlendOp(c.alphaBlendOp);
+        state.colorWriteMask = MapColorComponentBits(c.colorWriteMask);
 
         return state;
     }
@@ -257,7 +257,7 @@ namespace Engine::Gfx
         pipelineRasterizationStateCreateInfo.depthClampEnable = false;
         pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
         pipelineRasterizationStateCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;
-        pipelineRasterizationStateCreateInfo.cullMode = VKEnumMapper::MapCullMode(config.cullMode);
+        pipelineRasterizationStateCreateInfo.cullMode = MapCullMode(config.cullMode);
         pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         pipelineRasterizationStateCreateInfo.depthBiasEnable = false;
         pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0;
@@ -284,7 +284,7 @@ namespace Engine::Gfx
         depthStencilStateCreateInfo.flags = 0;
         depthStencilStateCreateInfo.depthTestEnable = config.depth.testEnable;
         depthStencilStateCreateInfo.depthWriteEnable = config.depth.writeEnable;
-        depthStencilStateCreateInfo.depthCompareOp = VKEnumMapper::MapCompareOp(config.depth.compOp);
+        depthStencilStateCreateInfo.depthCompareOp = MapCompareOp(config.depth.compOp);
         depthStencilStateCreateInfo.depthBoundsTestEnable = config.depth.boundTestEnable;
         depthStencilStateCreateInfo.stencilTestEnable = config.stencil.testEnable;
         depthStencilStateCreateInfo.front = MapVKStencilOpState(config.stencil.front);

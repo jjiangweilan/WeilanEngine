@@ -14,7 +14,7 @@ namespace Engine::Internal
                 const std::unordered_map<std::string, UUID>& containedUUIDs) override
         {
             auto importPath = root / "Library" / uuid.ToString();
-            std::filesystem::copy_file(path, importPath);
+            std::filesystem::copy_file(path, importPath, std::filesystem::copy_options::overwrite_existing);
             std::filesystem::last_write_time(importPath, std::filesystem::last_write_time(path));
         }
 
@@ -46,6 +46,8 @@ namespace Engine::Internal
                 const std::filesystem::path& path,
                 const std::filesystem::path& root,
                 const UUID& uuid) {
+            if (AssetImporter::NeedReimport(path, root, uuid)) return true;
+
             auto outputDir = root / "Library" / uuid.ToString();
             auto t0 = GetLastWriteTime(path);
             auto t1 = GetLastWriteTime(outputDir);
