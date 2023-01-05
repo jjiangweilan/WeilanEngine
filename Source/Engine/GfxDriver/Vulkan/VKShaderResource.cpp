@@ -69,7 +69,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                                                       .size = b.second.binding.ubo.data.size,
                                                       .visibleInCPU = false,
                                                       .debugName = bufferName.c_str()};
-                        auto buffer = Engine::MakeUnique<VKBuffer>(createInfo);
+                        auto buffer = MakeUnique<VKBuffer>(createInfo);
                         VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                         bufferInfo.buffer = buffer->GetHandle();
                         bufferInfo.offset = 0;
