@@ -6,7 +6,7 @@
 #include <nlohmann/json.hpp>
 #include <utility>
 
-#include "Code/Ptr.hpp"
+#include "Libs/Ptr.hpp"
 #include "DescriptorSetSlot.hpp"
 namespace Engine::Gfx::ShaderInfo
 {

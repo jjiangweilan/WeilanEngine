@@ -1,6 +1,6 @@
 #pragma once
-#include "Code/UUID.hpp"
-#include "Code/Ptr.hpp"
+#include "Libs/UUID.hpp"
+#include "Libs/Ptr.hpp"
 #include "Object.hpp"
 #include "AssetDatabase/AssetSerializer.hpp"
 #include "AssetDatabase/ReferenceResolver.hpp"

@@ -1,5 +1,5 @@
 #include "ShaderInfo.hpp"
-#include "Code/Utils.hpp"
+#include "Libs/Utils.hpp"
 #include <spdlog/spdlog.h>
 namespace Engine::Gfx::ShaderInfo
 {

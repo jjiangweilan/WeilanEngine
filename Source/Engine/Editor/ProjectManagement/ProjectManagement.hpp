@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Code/Ptr.hpp"
-#include "Code/UUID.hpp"
+#include "Libs/Ptr.hpp"
+#include "Libs/UUID.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 namespace Engine

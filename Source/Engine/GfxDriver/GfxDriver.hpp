@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Buffer.hpp"
-#include "Code/EnumFlags.hpp"
-#include "Code/Ptr.hpp"
+#include "Libs/EnumFlags.hpp"
+#include "Libs/Ptr.hpp"
 #include "CommandBuffer.hpp"
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"

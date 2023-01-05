@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ReferenceResolver.hpp"
-#include "Code/UUID.hpp"
-#include "Code/Ptr.hpp"
+#include "Libs/UUID.hpp"
+#include "Libs/Ptr.hpp"
 #include "AssetFile.hpp"
 #include "DirectoryNode.hpp"
 #include "Core/Graphics/Shader.hpp"

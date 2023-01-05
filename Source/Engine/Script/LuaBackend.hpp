@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ThirdParty/lua/lua.hpp"
-#include "Code/Ptr.hpp"
+#include "Libs/Ptr.hpp"
 #include "LuaWraps.hpp"
 #include <filesystem>
 namespace Engine

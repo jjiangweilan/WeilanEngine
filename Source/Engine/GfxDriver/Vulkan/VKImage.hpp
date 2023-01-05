@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Image.hpp"
-#include "Code/Ptr.hpp"
+#include "Libs/Ptr.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
