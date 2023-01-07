@@ -1,15 +1,26 @@
 #include "TextureImporter.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "Libs/Image/Processor.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include "ThirdParty/stb/stb_image_write.h"
 #include "Utils/ReadBinary.hpp"
+
 namespace Engine::Internal
 {
-void TextureImporter::Import(const std::filesystem::path& path, const std::filesystem::path& root,
-                             const nlohmann::json& config, const UUID& uuid,
+void TextureImporter::Import(const std::filesystem::path& path,
+                             const std::filesystem::path& root,
+                             const nlohmann::json& config,
+                             const UUID& uuid,
                              const std::unordered_map<std::string, UUID>& containedUUIDs)
 {
+    auto extension = path.extension();
+    auto outputDir = root / "Library" / uuid.ToString();
+    if (!std::filesystem::exists(outputDir))
+    {
+        std::filesystem::create_directory(outputDir);
+    }
+
     const nlohmann::json* actualConfig;
     nlohmann::json dummy = nlohmann::json::object();
     if (config.is_object()) actualConfig = &config;
@@ -36,12 +47,6 @@ void TextureImporter::Import(const std::filesystem::path& path, const std::files
     }
 genMipMapOut:
 
-    auto extension = path.extension();
-    auto outputDir = root / "Library" / uuid.ToString();
-    if (!std::filesystem::exists(outputDir))
-    {
-        std::filesystem::create_directory(outputDir);
-    }
     auto output = outputDir / path.filename();
     if (extension == ".jpg")
     {
@@ -55,7 +60,8 @@ genMipMapOut:
     outInfo << info.dump();
 }
 
-UniPtr<AssetObject> TextureImporter::Load(const std::filesystem::path& root, ReferenceResolver& refResolver,
+UniPtr<AssetObject> TextureImporter::Load(const std::filesystem::path& root,
+                                          ReferenceResolver& refResolver,
                                           const UUID& uuid)
 {
     std::ifstream inInfo(root / "Library" / uuid.ToString() / "info.json");
