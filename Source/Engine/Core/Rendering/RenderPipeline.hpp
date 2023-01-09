@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Libs/Ptr.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Transform.hpp"
 #include "Core/GameScene/GameScene.hpp"
@@ -8,6 +7,7 @@
 #include "Core/Texture.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Libs/Ptr.hpp"
 #include "RenderGraph/RenderGraph.hpp"
 
 #if GAME_EDITOR
@@ -89,9 +89,6 @@ private:
     void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd, std::vector<RGraph::DrawData>& drawList);
     FrameContext* frameContext;
 
-    UniPtr<Gfx::RenderPass> renderPass;
-    UniPtr<Gfx::Image> colorImage;
-    UniPtr<Gfx::Image> depthImage;
     UniPtr<Gfx::Semaphore> imageAcquireSemaphore;
     UniPtr<Gfx::Semaphore> mainCmdBufFinishedSemaphore;
     UniPtr<Gfx::Fence> mainCmdBufFinishedFence;

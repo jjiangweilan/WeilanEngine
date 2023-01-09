@@ -26,39 +26,6 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
         this->gameEditorRenderer = gameEditorRenderer;
     }
 
-    // create color and depth
-    ImageDescription imageDescription{};
-    imageDescription.format = ImageFormat::R16G16B16A16_SFloat;
-    imageDescription.width = gfxDriver->GetWindowSize().width;
-    imageDescription.height = gfxDriver->GetWindowSize().height;
-    imageDescription.multiSampling = MultiSampling::Sample_Count_1;
-    imageDescription.mipLevels = 1;
-    colorImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription,
-                                                         ImageUsage::ColorAttachment | ImageUsage::TransferSrc |
-                                                             ImageUsage::Texture);
-    colorImage->SetName("Color Image");
-    imageDescription.format = ImageFormat::D24_UNorm_S8_UInt;
-    depthImage = Gfx::GfxDriver::Instance()->CreateImage(imageDescription,
-                                                         ImageUsage::DepthStencilAttachment | ImageUsage::TransferSrc);
-    depthImage->SetName("Depth Image");
-
-    // create frameBuffer and renderPass
-    renderPass = Gfx::GfxDriver::Instance()->CreateRenderPass();
-    RenderPass::Attachment colorAttachment;
-    colorAttachment.image = colorImage;
-    colorAttachment.multiSampling = MultiSampling::Sample_Count_1;
-    colorAttachment.loadOp = AttachmentLoadOperation::Clear;
-    colorAttachment.storeOp = AttachmentStoreOperation::Store;
-
-    RenderPass::Attachment depthAttachment;
-    depthAttachment.image = depthImage;
-    depthAttachment.multiSampling = MultiSampling::Sample_Count_1;
-    depthAttachment.loadOp = AttachmentLoadOperation::Clear;
-    depthAttachment.storeOp = AttachmentStoreOperation::Store;
-    depthAttachment.stencilLoadOp = AttachmentLoadOperation::Clear;
-    depthAttachment.stencilStoreOp = AttachmentStoreOperation::Store;
-    renderPass->AddSubpass({colorAttachment}, depthAttachment);
-
     mainQueue = gfxDriver->GetQueue(QueueType::Main);
     imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
     mainCmdBufFinishedSemaphore = GetGfxDriver()->CreateSemaphore({false});
