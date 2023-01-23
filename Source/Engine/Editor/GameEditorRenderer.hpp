@@ -47,6 +47,7 @@ private:
     RGraph::Port* finalColorPort;
     RGraph::Port* finalDepthPort;
     RGraph::RenderPassNode* gameEditorPassNode;
+    RGraph::DrawList drawList;
     Gfx::Image* gameSceneImageTarget;
 };
 } // namespace Engine::Editor

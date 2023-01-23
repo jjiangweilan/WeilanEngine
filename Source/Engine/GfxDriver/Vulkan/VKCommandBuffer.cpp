@@ -61,6 +61,18 @@ void VKCommandBuffer::EndRenderPass()
     currentRenderPass = nullptr;
 }
 
+void VKCommandBuffer::SetViewport(const Viewport& viewport)
+{
+    VkViewport v{.x = viewport.x,
+                 .y = viewport.y,
+                 .width = viewport.width,
+                 .height = viewport.height,
+                 .minDepth = viewport.minDepth,
+                 .maxDepth = viewport.maxDepth};
+
+    vkCmdSetViewport(vkCmdBuf, 0, 1, &v);
+}
+
 void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
 {
     VKImage* from = static_cast<VKImage*>(bFrom.Get());
@@ -158,8 +170,8 @@ void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> bBuffer, uint64_t offs
     vkCmdBindIndexBuffer(vkCmdBuf, indexBuf, offset, indexType);
 }
 
-void VKCommandBuffer::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex,
-                                  uint32_t vertexOffset, uint32_t firstInstance)
+void VKCommandBuffer::DrawIndexed(
+    uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance)
 {
     vkCmdDrawIndexed(vkCmdBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
 }
@@ -191,7 +203,8 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_,
     vkCmdPushConstants(vkCmdBuf, shaderProgram->GetVKPipelineLayout(), stages, 0, totalSize, data);
 }
 
-void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst,
+void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc,
+                                 RefPtr<Gfx::Buffer> bDst,
                                  const std::vector<BufferCopyRegion>& copyRegions)
 {
     VKBuffer* src = static_cast<VKBuffer*>(bSrc.Get());
@@ -206,8 +219,9 @@ void VKCommandBuffer::CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> b
     vkCmdCopyBuffer(vkCmdBuf, src->GetHandle(), dst->GetHandle(), regions.size(), regions.data());
 }
 
-void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst,
-                                        const std::vector<BufferImageCopyRegion>& regions)
+void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src,
+                                        RefPtr<Gfx::Image> dst,
+                                        std::span<BufferImageCopyRegion> regions)
 {
     assert(!regions.empty());
     auto image = static_cast<VKImage*>(dst.Get());
@@ -338,5 +352,38 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
                                  VK_NULL_HANDLE);
         }
     }
+}
+
+void VKCommandBuffer::CopyImageToBuffer(RefPtr<Gfx::Image> src,
+                                        RefPtr<Gfx::Buffer> dst,
+                                        std::span<BufferImageCopyRegion> regions)
+{
+    std::vector<VkBufferImageCopy> vkRegions;
+
+    for (auto& r : regions)
+    {
+        VkBufferImageCopy region;
+        region.bufferOffset = r.srcOffset;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = MapImageAspect(r.range.aspectMask);
+        region.imageSubresource.mipLevel = r.range.baseMipLevel;
+        region.imageSubresource.baseArrayLayer = r.range.baseArrayLayer;
+        region.imageSubresource.layerCount = r.range.layerCount;
+        region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
+        region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
+
+        vkRegions.push_back(region);
+    }
+
+    VKImage* srcImage = static_cast<VKImage*>(src.Get());
+    VKBuffer* dstBuffer = static_cast<VKBuffer*>(dst.Get());
+
+    vkCmdCopyImageToBuffer(vkCmdBuf,
+                           srcImage->GetImage(),
+                           VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           dstBuffer->GetHandle(),
+                           vkRegions.size(),
+                           vkRegions.data());
 }
 } // namespace Engine::Gfx

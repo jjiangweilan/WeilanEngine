@@ -16,7 +16,8 @@ struct ResourceState
     /**
      * any one uses this resource should append it's usage
      */
-    Gfx::ImageUsageFlags usages;
+    Gfx::ImageUsageFlags imageUsages;
+    Gfx::BufferUsageFlags bufferUsages;
 };
 /**
  * Passed through Execute, all the resources stack are tracked by this class
@@ -95,6 +96,43 @@ protected:
         }
     }
 
+    bool InsertBufferBarrierIfNeeded(ResourceStateTrack& stateTrack,
+                                     ResourceRef* bufferRef,
+                                     std::vector<GPUBarrier>& barriers,
+                                     Gfx::PipelineStageFlags stageFlags,
+                                     Gfx::AccessMaskFlags accessFlags)
+    {
+
+        if (bufferRef)
+        {
+            auto& resourceState = stateTrack.GetState(bufferRef);
+            if ((Gfx::HasWriteAccessMask(accessFlags) || Gfx::HasWriteAccessMask(resourceState.accessMask)) &&
+                resourceState.accessMask != Gfx::AccessMask::None)
+            {
+                Gfx::Buffer* buf = (Gfx::Buffer*)bufferRef->GetVal();
+                GPUBarrier barrier;
+                barrier.buffer = buf;
+                barrier.bufferInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
+                barrier.bufferInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
+                barrier.bufferInfo.offset = 0;
+                barrier.bufferInfo.size = buf->GetSize();
+                barrier.srcStageMask = resourceState.stage;
+                barrier.srcAccessMask = resourceState.accessMask;
+                barrier.dstStageMask = stageFlags;
+                barrier.dstAccessMask = accessFlags;
+
+                barriers.push_back(barrier);
+
+                resourceState.stage |= stageFlags;
+                resourceState.accessMask |= accessFlags;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     bool InsertImageBarrierIfNeeded(ResourceStateTrack& stateTrack,
                                     ResourceRef* imageRes,
                                     std::vector<GPUBarrier>& barriers,
@@ -109,13 +147,13 @@ protected:
             if (resourceState.layout != layout)
             {
                 GPUBarrier barrier;
-                barrier.image = (Gfx::Image*)imageRes->GetVal();
+                Gfx::Image* image = (Gfx::Image*)imageRes->GetVal();
+                barrier.image = image;
                 barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
                 barrier.imageInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
                 barrier.imageInfo.oldLayout = resourceState.layout;
                 barrier.imageInfo.newLayout = layout;
-                barrier.imageInfo.subresourceRange =
-                    imageSubresourceRange.value_or(((Gfx::Image*)imageRes->GetVal())->GetSubresourceRange());
+                barrier.imageInfo.subresourceRange = imageSubresourceRange.value_or(image->GetSubresourceRange());
                 barrier.dstStageMask = stageFlags;
                 barrier.dstAccessMask = accessFlags;
                 barrier.srcStageMask = resourceState.stage;

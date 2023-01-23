@@ -9,11 +9,11 @@ std::unique_ptr<LinearImage> Processor::RowDownSample(RefPtr<LinearImage> sImage
     const auto sWidth = sImage->GetWidth();
     const auto sHeight = sImage->GetHeight();
     const auto channel = sImage->GetChannel();
-    auto tImage = std::make_unique<LinearImage>(sWidth / 2, sHeight, channel);
+    auto tImage = std::make_unique<LinearImage>(sWidth / 2, sHeight, channel, sizeof(float));
     const auto tWidth = tImage->GetWidth();
 
-    float* tData = tImage->GetData();
-    float* sData = sImage->GetData();
+    float* tData = (float*)tImage->GetData();
+    float* sData = (float*)sImage->GetData();
     float sxDelta = 1.0f / sWidth;
     for (uint32_t tj = 0; tj < sHeight; ++tj)
     {
@@ -48,10 +48,11 @@ std::unique_ptr<LinearImage> Processor::RowDownSample(RefPtr<LinearImage> sImage
 
 std::unique_ptr<LinearImage> Processor::Transpose(RefPtr<LinearImage> source)
 {
-    auto dst = std::make_unique<LinearImage>(source->GetHeight(), source->GetWidth(), source->GetChannel());
+    auto dst =
+        std::make_unique<LinearImage>(source->GetHeight(), source->GetWidth(), source->GetChannel(), sizeof(float));
 
-    float* s = source->GetData();
-    float* d = dst->GetData();
+    float* s = (float*)source->GetData();
+    float* d = (float*)dst->GetData();
 
     const uint32_t sWidth = source->GetWidth();
     const uint32_t sHeight = source->GetHeight();

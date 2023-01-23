@@ -36,8 +36,10 @@ private:
 public:
     ShaderIncluder(std::set<std::filesystem::path>* includedFileTrack) : includedFiles(includedFileTrack){};
 
-    virtual shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type,
-                                               const char* requesting_source, size_t include_depth) override
+    virtual shaderc_include_result* GetInclude(const char* requested_source,
+                                               shaderc_include_type type,
+                                               const char* requesting_source,
+                                               size_t include_depth) override
     {
         std::filesystem::path requestingSource(requesting_source);
         if (include_depth == 1)
@@ -90,8 +92,12 @@ public:
     virtual ~ShaderIncluder() = default;
 };
 
-static void CompileShader(const std::filesystem::path& path, const std::filesystem::path& root, const char* name,
-                          const UUID& uuid, shaderc_shader_kind kind, shaderc::CompileOptions options);
+static void CompileShader(const std::filesystem::path& path,
+                          const std::filesystem::path& root,
+                          const char* name,
+                          const UUID& uuid,
+                          shaderc_shader_kind kind,
+                          shaderc::CompileOptions options);
 
 static ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name)
 {
@@ -250,7 +256,8 @@ static ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name)
     return config;
 }
 
-bool ShaderImporter::NeedReimport(const std::filesystem::path& path, const std::filesystem::path& root,
+bool ShaderImporter::NeedReimport(const std::filesystem::path& path,
+                                  const std::filesystem::path& root,
                                   const UUID& uuid)
 {
     auto outputDir = root / "Library" / uuid.ToString();
@@ -273,8 +280,10 @@ bool ShaderImporter::NeedReimport(const std::filesystem::path& path, const std::
     return false;
 }
 
-void ShaderImporter::Import(const std::filesystem::path& path, const std::filesystem::path& root,
-                            const nlohmann::json& json, const UUID& rootUUID,
+void ShaderImporter::Import(const std::filesystem::path& path,
+                            const std::filesystem::path& root,
+                            const nlohmann::json& json,
+                            const UUID& rootUUID,
                             const std::unordered_map<std::string, UUID>& containedUUIDs)
 {
     if (!std::filesystem::exists(path)) return;
@@ -368,7 +377,8 @@ static std::vector<char> ReadSpvFile(const std::filesystem::path& path)
     return data;
 }
 
-UniPtr<AssetObject> ShaderImporter::Load(const std::filesystem::path& root, ReferenceResolver& refResolver,
+UniPtr<AssetObject> ShaderImporter::Load(const std::filesystem::path& root,
+                                         ReferenceResolver& refResolver,
                                          const UUID& uuid)
 {
     auto inputDir = root / "Library" / uuid.ToString();
@@ -399,8 +409,12 @@ UniPtr<AssetObject> ShaderImporter::Load(const std::filesystem::path& root, Refe
     return nullptr;
 }
 
-void CompileShader(const std::filesystem::path& path, const std::filesystem::path& root, const char* name,
-                   const UUID& uuid, shaderc_shader_kind kind, shaderc::CompileOptions options)
+void CompileShader(const std::filesystem::path& path,
+                   const std::filesystem::path& root,
+                   const char* name,
+                   const UUID& uuid,
+                   shaderc_shader_kind kind,
+                   shaderc::CompileOptions options)
 {
     if (std::filesystem::exists(path))
     {
@@ -433,7 +447,13 @@ void CompileShader(const std::filesystem::path& path, const std::filesystem::pat
                                                       kind,
                                                       path.relative_path().string().c_str(),
                                                       options);
-
+            if (compiled.GetNumErrors() > 0)
+            {
+                SPDLOG_ERROR("Shader compiled error [UUID: {}], [name: {}]: {}",
+                             uuid.ToString().c_str(),
+                             name,
+                             compiled.GetErrorMessage().c_str());
+            }
             output.write((const char*)compiled.begin(),
                          sizeof(shaderc::SpvCompilationResult::element_type) * (compiled.end() - compiled.begin()));
         }

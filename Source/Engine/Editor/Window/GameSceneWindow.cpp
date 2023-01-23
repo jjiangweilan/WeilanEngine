@@ -677,21 +677,22 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
     {
         glm::mat3 modelMatrix = transform->GetModelMatrix();
         glm::vec3 movement = glm::vec3(0);
+        float speed = 0.8;
         if (ImGui::IsKeyDown(ImGuiKey_A))
         {
-            movement -= modelMatrix[0] * 0.1f;
+            movement -= modelMatrix[0] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_D))
         {
-            movement += modelMatrix[0] * 0.1f;
+            movement += modelMatrix[0] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_W))
         {
-            movement -= modelMatrix[2] * 0.1f;
+            movement -= modelMatrix[2] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_S))
         {
-            movement += modelMatrix[2] * 0.1f;
+            movement += modelMatrix[2] * speed;
         }
         transform->SetPosition(transform->GetPosition() + movement);
     }

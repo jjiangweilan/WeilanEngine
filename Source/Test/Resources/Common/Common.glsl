@@ -2,7 +2,7 @@
 #define COMMON_INCLUDE
 #include "Lighting/Lighting.glsl"
 
-#define SET_GLOBAL 0   
+#define SET_GLOBAL 0
 #define SET_SHADER 1
 #define SET_MATERIAL 2
 #define SET_OBJECT 3
@@ -20,9 +20,11 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
     vec3 viewPos;
 } scene;
 
+layout(set = SET_GLOBAL, binding = 1) uniform sampler2D vtCache;
+layout(set = SET_GLOBAL, binding = 2) uniform sampler2D vtIndir_point;
+
 // layout(std140, set = SET_GLOBAL, binding = 1) readonly buffer SceneLights {
 //     Light lights[];
 // } lights;
 
-dawd
 #endif

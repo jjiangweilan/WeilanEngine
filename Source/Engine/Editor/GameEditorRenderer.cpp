@@ -113,10 +113,13 @@ RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
     gameEditorDepthNode->format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
 
     gameEditorPassNode = graph->AddNode<RGraph::RenderPassNode>();
+    gameEditorPassNode->GetColorAttachmentOps()[0].loadOp = Gfx::AttachmentLoadOperation::Clear;
+    gameEditorPassNode->GetClearValues()[0].color = {0, 0, 0, 0};
+    gameEditorPassNode->GetClearValues().back().depthStencil = {{1}, {0}};
     gameEditorPassNode->GetPortColorIn(0)->Connect(gameEditorColorNode->GetPortOutput());
     gameEditorPassNode->GetPortDepthIn()->Connect(gameEditorDepthNode->GetPortOutput());
     gameEditorPassNode->GetPortDependentAttachmentsIn()->Connect(gameColorBlitNode->GetPortDstImageOut());
-
+    gameEditorPassNode->SetDrawList(drawList);
     return gameEditorPassNode->GetPortColorOut(0);
 }
 
@@ -124,7 +127,6 @@ void GameEditorRenderer::Render()
 {
     ImGui::Render();
 
-    auto& drawList = gameEditorPassNode->GetDrawList();
     drawList.clear();
 
     std::vector<Gfx::ClearValue> clears(2);
