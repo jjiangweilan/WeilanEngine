@@ -31,7 +31,6 @@ void GameEditor::Init()
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(gfxDriver->GetSDLWindow());
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
     ImGui::LoadIniSettingsFromDisk("imgui.ini");
 
     editorContext = MakeUnique<EditorContext>();
@@ -109,9 +108,8 @@ void GameEditor::Tick()
 {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
-    ImGuizmo::BeginFrame();
     // ImGui::ShowDemoWindow(nullptr);
-    ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     DrawMainMenu();
 

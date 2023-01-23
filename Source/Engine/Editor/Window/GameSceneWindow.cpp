@@ -371,6 +371,8 @@ void GameSceneWindow::Tick()
         glm::mat4 viewMatrix = Camera::mainCamera->GetViewMatrix();
         glm::mat4 projectionMatrix = Camera::mainCamera->GetProjectionMatrix();
         projectionMatrix[1][1] = -projectionMatrix[1][1];
+        ImGui::PushClipRect({gizmoRect.x, gizmoRect.y}, {gizmoRect.z, gizmoRect.w}, true);
+        ImGuizmo::SetDrawlist();
         ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
                              glm::value_ptr(projectionMatrix),
                              mCurrentGizmoOperation,
