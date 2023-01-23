@@ -31,17 +31,26 @@ public:
                           uint32_t firstBindingIndex) override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;
-    void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset,
+    void DrawIndexed(uint32_t indexCount,
+                     uint32_t instanceCount,
+                     uint32_t firstIndex,
+                     uint32_t vertexOffset,
                      uint32_t firstInstance) override;
+    void SetViewport(const Viewport& viewport) override;
+    void CopyImageToBuffer(RefPtr<Gfx::Image> src,
+                           RefPtr<Gfx::Buffer> dst,
+                           std::span<BufferImageCopyRegion> regions) override;
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void NextRenderPass() override;
 
-    void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst,
+    void CopyBuffer(RefPtr<Gfx::Buffer> bSrc,
+                    RefPtr<Gfx::Buffer> bDst,
                     const std::vector<BufferCopyRegion>& copyRegions) override;
-    void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst,
-                           const std::vector<BufferImageCopyRegion>& regions) override;
+    void CopyBufferToImage(RefPtr<Gfx::Buffer> src,
+                           RefPtr<Gfx::Image> dst,
+                           std::span<BufferImageCopyRegion> regions) override;
     void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override;
     void Begin() override;
     void End() override;

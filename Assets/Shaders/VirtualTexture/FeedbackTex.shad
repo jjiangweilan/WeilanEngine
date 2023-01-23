@@ -1,0 +1,59 @@
+#version 450
+#include "Common/Common.glsl"
+
+#define MAX_LOD 6.0f
+#if CONFIG
+name: VirtualTexture/FeedbackTex
+#endif
+
+#if VERT
+    layout(location = 0) in vec3 i_Position;
+    layout(location = 2) in vec2 i_VtCoord;
+
+    layout(location = 0) out vec2 o_VtCoord;
+    out gl_PerVertex
+    {
+        vec4 gl_Position;
+    };
+
+    void main()
+    {
+        gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
+        o_VtCoord = i_VtCoord;
+    }
+#endif
+
+#if FRAG
+    float MipLevel(vec2 uv)
+    {
+        vec2 duvDx = dFdx(uv);
+        vec2 duvDy = dFdy(uv);
+
+        float p = max(
+                    duvDx.x * duvDx.x + duvDx.y * duvDx.y,
+                    duvDy.x * duvDy.x + duvDy.y * duvDy.y);
+
+        float log2_sqrtP = round(0.5 * log2(p)); 
+#ifdef LOD_CLAMP
+        return min(maxLod, max(log2_sqrtP, minLod));
+#else
+        return log2_sqrtP;
+#endif
+    }
+
+    layout(location = 0) in vec2 i_VtCoord;
+    layout(location = 0) out vec4 o_Color;
+
+    layout(set = SET_MATERIAL, binding = 0) uniform FeedbackTexParam
+    {
+        vec2 vtTexPixelExtent;
+        float mipBias;
+    } param;
+
+    void main()
+    {
+        o_Color.rg = i_VtCoord;
+        o_Color.b = (MipLevel(i_VtCoord * param.vtTexPixelExtent) + param.mipBias) / MAX_LOD;
+        o_Color.a = 0; // this should be the vt id, which I only have one for now
+    }
+#endif

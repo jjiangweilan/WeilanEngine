@@ -33,7 +33,7 @@ struct PushConstant
 struct DrawData
 {
     Gfx::ShaderProgram* shader = nullptr;
-    Gfx::ShaderConfig* shaderConfig = nullptr;
+    const Gfx::ShaderConfig* shaderConfig = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
     std::optional<IndexBuffer> indexBuffer = std::nullopt;
     std::optional<std::vector<VertexBufferBinding>> vertexBuffer = std::nullopt;
@@ -41,6 +41,7 @@ struct DrawData
     std::optional<Rect2D> scissor = std::nullopt;
     std::optional<DrawIndex> drawIndexed = std::nullopt;
 };
+using DrawList = std::vector<DrawData>;
 
 class RenderPassNode : Node
 {
@@ -48,7 +49,7 @@ public:
     struct AttachmentOps
     {
         Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
-        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Load;
+        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
         Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
         Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare;
         Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare;
@@ -68,6 +69,9 @@ public:
     bool Compile(ResourceStateTrack& stateTrack) override;
     bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
 
+    // render pass will prefer the data inside `drawData` to draw object
+    void OverrideDrawData(DrawData drawData) { this->drawDataOverride = drawData; }
+
     Port* GetPortColorIn(int index)
     {
         if (index <= colorPortsIn.size()) return colorPortsIn[index];
@@ -81,7 +85,7 @@ public:
     }
 
     void SetColorCount(uint32_t count);
-    auto& GetDrawList() { return drawList; }
+    void SetDrawList(DrawList& drawList) { this->drawList = &drawList; }
     auto& GetClearValues() { return clearValues; }
 
     Port* GetPortDepthIn() { return depthPortIn; }
@@ -93,7 +97,7 @@ public:
 private:
     Port* dependentAttachmentIn;
 
-    std::vector<DrawData> drawList;
+    DrawList* drawList = nullptr;
 
     /**
      * describe color attachment operations in render pass
@@ -125,6 +129,8 @@ private:
      * clearValues used in Execute
      */
     std::vector<Gfx::ClearValue> clearValues;
+
+    DrawData drawDataOverride;
 
     /**
      * used by renderPass in Execute,

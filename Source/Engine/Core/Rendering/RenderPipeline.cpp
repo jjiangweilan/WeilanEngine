@@ -28,10 +28,16 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 
     mainQueue = gfxDriver->GetQueue(QueueType::Main);
     imageAcquireSemaphore = GetGfxDriver()->CreateSemaphore({false});
+    imageAcquireSemaphore->SetName("Pipelineline-imageAcquireSemaphore");
     mainCmdBufFinishedSemaphore = GetGfxDriver()->CreateSemaphore({false});
+    mainCmdBufFinishedSemaphore->SetName("Pipelineline-mainCmdBufFinishedSemaphore");
+    resourceTransferFinishedSemaphore = GetGfxDriver()->CreateSemaphore({false});
+    resourceTransferFinishedSemaphore->SetName("Pipelineline-resourceTransferFinishedSemaphore");
     mainCmdBufFinishedFence = gfxDriver->CreateFence({true});
     cmdPool = gfxDriver->CreateCommandPool({mainQueue->GetFamilyIndex()});
-    cmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1).at(0));
+    auto cmdBufs = cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 2);
+    cmdBuf = std::move(cmdBufs[0]);
+    resourceTransferCmdBuf = std::move(cmdBufs[1]);
 
     // build render graph
     colorImageNode = graph.AddNode<RGraph::ImageNode>();
@@ -56,11 +62,12 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetDepthAttachmentOp().storeOp = AttachmentStoreOperation::Store;
     Gfx::ClearValue colorClear;
     colorClear.color = {{0, 0, 0, 0}};
-    renderPassNode->GetClearValues().push_back(colorClear);
+    renderPassNode->GetClearValues()[0] = colorClear;
     Gfx::ClearValue depthClear;
     depthClear.depthStencil.depth = 1;
     depthClear.depthStencil.stencil = 0;
-    renderPassNode->GetClearValues().push_back(depthClear);
+    renderPassNode->GetClearValues().back() = depthClear;
+    renderPassNode->SetDrawList(sceneDrawList);
 
     colorImageNode->GetPortOutput()->Connect(renderPassNode->GetPortColorIn(0));
     depthImageNode->GetPortOutput()->Connect(renderPassNode->GetPortDepthIn());
@@ -90,7 +97,50 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     swapChainToPesentNode->stageFlags = Gfx::PipelineStage::Top_Of_Pipe;
     swapChainToPesentNode->accessFlags = Gfx::AccessMask::None;
 
+    vt = MakeUnique<VirtualTexture>("VT", 16384, 8192, 3);
+    virtualTextureRenderer.SetVT(vt, GetGfxDriver()->GetWindowSize().width, GetGfxDriver()->GetWindowSize().height, 8);
+    virtualTextureRenderer.SetVTObjectDrawList(sceneDrawList);
+    virtualTextureRenderer.GetFinalTextures(vtCacheTex, vtIndirTex);
+
+    vtCacheTexStagingBuffer = graph.AddNode<RGraph::BufferNode>();
+    vtCacheTexStagingBuffer->props.debugName = "RenderPipeline-vtCacheTexStagingBuffer";
+    vtCacheTexStagingBuffer->props.size = vtCacheTex->GetSize();
+    vtCacheTexStagingBuffer->props.visibleInCPU = true;
+
+    vtIndirTexStagingBuffer = graph.AddNode<RGraph::BufferNode>();
+    vtIndirTexStagingBuffer->props.debugName = "RenderPipeline-vtIndirTexStagingBuffer";
+    vtIndirTexStagingBuffer->props.size = vtIndirTex->GetSize();
+    vtIndirTexStagingBuffer->props.visibleInCPU = true;
+
+    // TODO use the `if` node in render graph
+    auto vtCacheTexNode = graph.AddNode<RGraph::ImageNode>();
+    vtCacheTexNode->width = vtCacheTex->GetWidth();
+    vtCacheTexNode->height = vtCacheTex->GetHeight();
+    vtCacheTexNode->format = Gfx::ImageFormat::R8G8B8A8_SRGB;
+    vtCacheTexNode->SetName("RenderPipeline-vtCacheTexNode");
+    auto vtIndirTexNode = graph.AddNode<RGraph::ImageNode>();
+    vtIndirTexNode->width = vtIndirTex->GetWidth();
+    vtIndirTexNode->height = vtIndirTex->GetHeight();
+    vtIndirTexNode->format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+    vtIndirTexNode->SetName("RenderPipeline-vtIndirTexNode");
+    auto vtCacheTexTransferNode = graph.AddNode<RGraph::MemoryTransferNode>();
+    vtCacheTexTransferNode->in.srcBuffer->Connect(vtCacheTexStagingBuffer->out.buffer);
+    vtCacheTexTransferNode->in.dstImage->Connect(vtCacheTexNode->GetPortOutput());
+    auto vtIndirTexTransferNode = graph.AddNode<RGraph::MemoryTransferNode>();
+    vtIndirTexTransferNode->in.srcBuffer->Connect(vtIndirTexStagingBuffer->out.buffer);
+    vtIndirTexTransferNode->in.dstImage->Connect(vtIndirTexNode->GetPortOutput());
+
+    renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtCacheTexNode->GetPortOutput());
+    renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtIndirTexNode->GetPortOutput());
+
     graph.Compile();
+
+    globalShaderResoruce.GetShaderResource()->SetTexture(
+        "vtCache",
+        (Gfx::Image*)vtCacheTexNode->GetPortOutput()->GetResourceVal());
+    globalShaderResoruce.GetShaderResource()->SetTexture(
+        "vtIndir",
+        (Gfx::Image*)vtIndirTexNode->GetPortOutput()->GetResourceVal());
 }
 
 void RenderPipeline::Render(RefPtr<GameScene> gameScene)
@@ -131,20 +181,14 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
                                                      &globalShaderResoruce.v.view);
     }
 
-    cmdBuf->Begin();
-    PrepareFrameData(cmdBuf);
-    ProcessLights(gameScene, cmdBuf);
-
     // prepare
-    auto& drawList = renderPassNode->GetDrawList();
-    drawList.clear();
-
+    sceneDrawList.clear();
     Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
     DrawData drawData;
     // cmdBuf->SetScissor(0, 1, &scissor);
     drawData.scissor = scissor;
     drawData.shaderResource = globalShaderResoruce.GetShaderResource().Get();
-    drawList.push_back(drawData);
+    sceneDrawList.push_back(drawData);
 
     // render scene object (opauqe + transparent)
     // cmdBuf->BeginRenderPass(renderPass, clears);
@@ -153,7 +197,7 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
         auto& roots = gameScene->GetRootObjects();
         for (auto root : roots)
         {
-            RenderObject(root->GetTransform(), cmdBuf, drawList);
+            AppendDrawData(root->GetTransform(), sceneDrawList);
         }
     }
     // cmdBuf->EndRenderPass();
@@ -168,12 +212,31 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
 #endif
 
     RGraph::ResourceStateTrack stateTrack;
+
+    // transfer resources
+    resourceTransferCmdBuf->Begin();
+    PrepareFrameData(resourceTransferCmdBuf);
+    resourceTransferCmdBuf->End();
+    RefPtr<CommandBuffer> resTransCmdBufs[] = {resourceTransferCmdBuf};
+    RefPtr<Semaphore> resTransSignalSemaphores[] = {virtualTextureRenderer.GetFeedbackGenerationBeginSemaphore(),
+                                                    resourceTransferFinishedSemaphore};
+    gfxDriver->QueueSubmit(mainQueue, resTransCmdBufs, {}, {}, resTransSignalSemaphores,
+                           nullptr); // Queue submit
+
+    // vt
+    virtualTextureRenderer.RunAnalysis();
+    Gfx::Buffer* cacheTexBuf = (Gfx::Buffer*)vtCacheTexStagingBuffer->out.buffer->GetResourceVal();
+    memcpy(cacheTexBuf->GetCPUVisibleAddress(), vtCacheTex->GetData(), vtCacheTex->GetSize());
+    Gfx::Buffer* indirTexBuf = (Gfx::Buffer*)vtIndirTexStagingBuffer->out.buffer->GetResourceVal();
+    memcpy(indirTexBuf->GetCPUVisibleAddress(), vtIndirTex->GetData(), vtIndirTex->GetSize());
+
+    cmdBuf->Begin();
     graph.Execute(cmdBuf.Get(), stateTrack);
     cmdBuf->End();
 
     RefPtr<CommandBuffer> cmdBufs[] = {cmdBuf};
-    RefPtr<Semaphore> semaphores[] = {imageAcquireSemaphore};
-    Gfx::PipelineStageFlags pipelineStageFlags[] = {PipelineStage::Color_Attachment_Output};
+    RefPtr<Semaphore> semaphores[] = {imageAcquireSemaphore, resourceTransferFinishedSemaphore};
+    Gfx::PipelineStageFlags pipelineStageFlags[] = {PipelineStage::Color_Attachment_Output, PipelineStage::Transfer};
     RefPtr<Semaphore> signalSemaphores[] = {mainCmdBufFinishedSemaphore};
     gfxDriver->QueueSubmit(mainQueue,
                            cmdBufs,
@@ -191,13 +254,11 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
                                         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst};
 }
 
-void RenderPipeline::RenderObject(RefPtr<Transform> transform,
-                                  UniPtr<CommandBuffer>& cmd,
-                                  std::vector<RGraph::DrawData>& drawList)
+void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGraph::DrawData>& drawList)
 {
     for (auto child : transform->GetChildren())
     {
-        RenderObject(child, cmd, drawList);
+        AppendDrawData(child, drawList);
     }
 
     MeshRenderer* meshRenderer = transform->GetGameObject()->GetComponent<MeshRenderer>();
@@ -247,13 +308,12 @@ void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBu
 void RenderPipeline::ApplyAsset()
 {
     asset = MakeUnique<RenderPipelineAsset>();
-    asset->virtualTexture = userConfigAsset->virtualTexture;
+    //  asset->virtualTexture = userConfigAsset->virtualTexture;
 }
 
 void RenderPipeline::PrepareFrameData(RefPtr<CommandBuffer> cmdBuf)
 {
     Internal::GetGfxResourceTransfer()->QueueTransferCommands(cmdBuf);
-    globalShaderResoruce.QueueCommand(cmdBuf);
 
     // resource prepare | draw commands
     GPUBarrier barrier;
@@ -264,7 +324,5 @@ void RenderPipeline::PrepareFrameData(RefPtr<CommandBuffer> cmdBuf)
 
     cmdBuf->Barrier(&barrier, 1);
 }
-
-void RenderPipeline::GlobalShaderResource::QueueCommand(RefPtr<CommandBuffer> cmdBuf) {}
 
 } // namespace Engine::Rendering

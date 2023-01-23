@@ -31,14 +31,21 @@ bool RenderPassNode::Preprocess(ResourceStateTrack& stateTrack)
     {
         if (c)
         {
-            stateTrack.GetState(c->GetResource()).usages |= Gfx::ImageUsage::ColorAttachment;
+            stateTrack.GetState(c->GetResource()).imageUsages |= Gfx::ImageUsage::ColorAttachment;
         }
     }
 
     if (auto depthSourcePort = depthPortIn->GetConnectedPort())
     {
         auto& state = stateTrack.GetState(depthSourcePort->GetResource());
-        state.usages |= Gfx::ImageUsage::DepthStencilAttachment;
+        state.imageUsages |= Gfx::ImageUsage::DepthStencilAttachment;
+    }
+
+    auto resRefs = dependentAttachmentIn->GetResources();
+    for (auto res : resRefs)
+    {
+        auto& state = stateTrack.GetState(res);
+        state.imageUsages |= Gfx::ImageUsage::Texture;
     }
 
     return true;
@@ -130,49 +137,115 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
     cmdBuf->Barrier(barriers.data(), barriers.size());
     cmdBuf->BeginRenderPass(renderPass, clearValues);
 
-    for (auto& drawData : drawList)
+    ResourceRef* attaRes = color0Res ? color0Res : depthRes;
+    Gfx::Image* atta = (Gfx::Image*)attaRes->GetVal();
+    Viewport viewport{.x = 0,
+                      .y = 0,
+                      .width = static_cast<float>(atta->GetDescription().width),
+                      .height = static_cast<float>(atta->GetDescription().height),
+                      .minDepth = 0,
+                      .maxDepth = 1};
+
+    cmdBuf->SetViewport(viewport);
+
+    if (drawDataOverride.shader)
     {
-        if (drawData.shader)
-        {
-            cmdBuf->BindShaderProgram(drawData.shader,
-                                      drawData.shaderConfig ? *drawData.shaderConfig
-                                                            : drawData.shader->GetDefaultShaderConfig());
-        }
+        cmdBuf->BindShaderProgram(drawDataOverride.shader,
+                                  drawDataOverride.shaderConfig ? *drawDataOverride.shaderConfig
+                                                                : drawDataOverride.shader->GetDefaultShaderConfig());
+    }
 
-        if (drawData.shaderResource)
-        {
-            cmdBuf->BindResource(drawData.shaderResource);
-        }
+    if (drawDataOverride.shaderResource)
+    {
+        cmdBuf->BindResource(drawDataOverride.shaderResource);
+    }
 
-        if (drawData.indexBuffer)
-        {
-            cmdBuf->BindIndexBuffer(drawData.indexBuffer->buffer,
-                                    drawData.indexBuffer->offset,
-                                    drawData.indexBuffer->bufferType);
-        }
+    if (drawDataOverride.indexBuffer)
+    {
+        cmdBuf->BindIndexBuffer(drawDataOverride.indexBuffer->buffer,
+                                drawDataOverride.indexBuffer->offset,
+                                drawDataOverride.indexBuffer->bufferType);
+    }
 
-        if (drawData.vertexBuffer)
-        {
-            cmdBuf->BindVertexBuffer(drawData.vertexBuffer.value(), 0);
-        }
+    if (drawDataOverride.vertexBuffer)
+    {
+        cmdBuf->BindVertexBuffer(drawDataOverride.vertexBuffer.value(), 0);
+    }
 
-        if (drawData.pushConstant)
-        {
-            cmdBuf->SetPushConstant(drawData.pushConstant->shaderProgram, &drawData.pushConstant->mat0);
-        }
+    if (drawDataOverride.pushConstant)
+    {
+        cmdBuf->SetPushConstant(drawDataOverride.pushConstant->shaderProgram, &drawDataOverride.pushConstant->mat0);
+    }
 
-        if (drawData.scissor)
-        {
-            cmdBuf->SetScissor(0, 1, &*drawData.scissor);
-        }
+    if (drawDataOverride.scissor)
+    {
+        cmdBuf->SetScissor(0, 1, &*drawDataOverride.scissor);
+    }
+    else
+    {
+        Rect2D rect{{0, 0}, {atta->GetDescription().width, atta->GetDescription().height}};
+        cmdBuf->SetScissor(0, 1, &rect);
+    }
 
-        if (drawData.drawIndexed)
+    if (drawDataOverride.drawIndexed)
+    {
+        cmdBuf->DrawIndexed(drawDataOverride.drawIndexed->elementCount,
+                            drawDataOverride.drawIndexed->instanceCount,
+                            drawDataOverride.drawIndexed->firstIndex,
+                            drawDataOverride.drawIndexed->vertexOffset,
+                            drawDataOverride.drawIndexed->firstInstance);
+    }
+
+    if (drawList)
+    {
+        for (auto& drawData : *drawList)
         {
-            cmdBuf->DrawIndexed(drawData.drawIndexed->elementCount,
-                                drawData.drawIndexed->instanceCount,
-                                drawData.drawIndexed->firstIndex,
-                                drawData.drawIndexed->vertexOffset,
-                                drawData.drawIndexed->firstInstance);
+            if (drawData.shader && !drawDataOverride.shader)
+            {
+                cmdBuf->BindShaderProgram(drawData.shader,
+                                          drawData.shaderConfig ? *drawData.shaderConfig
+                                                                : drawData.shader->GetDefaultShaderConfig());
+            }
+
+            if (drawData.shaderResource)
+            {
+                if (!drawDataOverride.shaderResource ||
+                    drawDataOverride.shaderResource->GetFrequency() != drawData.shaderResource->GetFrequency())
+                {
+                    cmdBuf->BindResource(drawData.shaderResource);
+                }
+            }
+
+            if (drawData.indexBuffer && !drawDataOverride.indexBuffer)
+            {
+                cmdBuf->BindIndexBuffer(drawData.indexBuffer->buffer,
+                                        drawData.indexBuffer->offset,
+                                        drawData.indexBuffer->bufferType);
+            }
+
+            if (drawData.vertexBuffer && !drawDataOverride.vertexBuffer)
+            {
+                cmdBuf->BindVertexBuffer(drawData.vertexBuffer.value(), 0);
+            }
+
+            if (drawData.pushConstant && !drawDataOverride.pushConstant)
+            {
+                cmdBuf->SetPushConstant(drawData.pushConstant->shaderProgram, &drawData.pushConstant->mat0);
+            }
+
+            if (drawData.scissor && !drawDataOverride.scissor)
+            {
+                cmdBuf->SetScissor(0, 1, &*drawData.scissor);
+            }
+
+            if (drawData.drawIndexed && !drawDataOverride.drawIndexed)
+            {
+                cmdBuf->DrawIndexed(drawData.drawIndexed->elementCount,
+                                    drawData.drawIndexed->instanceCount,
+                                    drawData.drawIndexed->firstIndex,
+                                    drawData.drawIndexed->vertexOffset,
+                                    drawData.drawIndexed->firstInstance);
+            }
         }
     }
 
@@ -220,6 +293,7 @@ void RenderPassNode::SetColorCount(uint32_t count)
         }
     }
 
+    clearValues.resize(colorPortsIn.size() + 1);
     colorAttachmentOps.resize(colorPortsIn.size());
     colorAttachments.resize(colorPortsIn.size());
 }

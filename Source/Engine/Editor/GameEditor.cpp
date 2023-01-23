@@ -11,6 +11,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderLoader.hpp"
 
+#include "Libs/Image/VirtualTextureConverter.hpp"
 namespace Engine::Editor
 {
 GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement)
@@ -59,6 +60,51 @@ void GameEditor::ProcessEvent(const SDL_Event& event) { ImGui_ImplSDL2_ProcessEv
 
 bool GameEditor::IsProjectInitialized() { return projectManagement->IsInitialized(); }
 
+class VTWindow
+{
+public:
+    VTWindow()
+    {
+        srcImage = new char[256];
+        dstFolder = new char[256];
+
+        memset(srcImage, 0, 256);
+        memset(dstFolder, 0, 256);
+    }
+
+    ~VTWindow()
+    {
+        delete[] srcImage;
+        delete[] dstFolder;
+    }
+
+    void Tick()
+    {
+        ImGui::Begin("VT");
+
+        ImGui::InputText("srcImage", srcImage, 256);
+        ImGui::InputText("dstFolder", dstFolder, 256);
+        ImGui::InputInt("mip", &mip);
+        ImGui::InputInt("desiredChannels", &desiredChannels);
+        ImGui::InputInt("pageExtent", &pageExtent);
+
+        if (ImGui::Button("Generate"))
+        {
+            Libs::Image::VirtualTextureConverter converter;
+            converter.Convert(srcImage, dstFolder, mip, desiredChannels, pageExtent);
+        }
+
+        ImGui::End();
+    }
+
+private:
+    char* srcImage;
+    char* dstFolder;
+    int mip;
+    int desiredChannels;
+    int pageExtent;
+} vtWindow;
+
 void GameEditor::Tick()
 {
     ImGui_ImplSDL2_NewFrame();
@@ -75,6 +121,7 @@ void GameEditor::Tick()
         inspector->Tick();
         assetExplorer->Tick();
         gameSceneWindow->Tick();
+        // vtWindow.Tick();
     }
     else
     {

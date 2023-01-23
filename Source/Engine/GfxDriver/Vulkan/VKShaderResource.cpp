@@ -23,8 +23,8 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 }
 
 VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
-    : shaderProgram(static_cast<VKShaderProgram*>(shader.Get())), sharedResource(VKContext::Instance()->sharedResource),
-      device(VKContext::Instance()->device)
+    : ShaderResource(frequency), shaderProgram(static_cast<VKShaderProgram*>(shader.Get())),
+      sharedResource(VKContext::Instance()->sharedResource), device(VKContext::Instance()->device)
 {
     slot = MapDescriptorSetSlot(frequency);
     descriptorPool = &shaderProgram->GetDescriptorPool(MapDescriptorSetSlot(frequency));

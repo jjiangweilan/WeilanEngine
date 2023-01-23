@@ -76,6 +76,16 @@ struct VertexBufferBinding
     uint64_t offset;
 };
 
+struct Viewport
+{
+    float x;
+    float y;
+    float width;
+    float height;
+    float minDepth;
+    float maxDepth;
+};
+
 class CommandBuffer
 {
 public:
@@ -91,17 +101,26 @@ public:
     virtual void NextRenderPass() = 0;
     virtual void EndRenderPass() = 0;
 
-    virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset,
+    virtual void DrawIndexed(uint32_t indexCount,
+                             uint32_t instanceCount,
+                             uint32_t firstIndex,
+                             uint32_t vertexOffset,
                              uint32_t firstInstance) = 0;
     virtual void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to) = 0;
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
 
     virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;
     virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
-    virtual void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst,
+    virtual void SetViewport(const Viewport& viewport) = 0;
+    virtual void CopyBuffer(RefPtr<Gfx::Buffer> bSrc,
+                            RefPtr<Gfx::Buffer> bDst,
                             const std::vector<BufferCopyRegion>& copyRegions) = 0;
-    virtual void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst,
-                                   const std::vector<BufferImageCopyRegion>& regions) = 0;
+    virtual void CopyImageToBuffer(RefPtr<Gfx::Image> src,
+                                   RefPtr<Gfx::Buffer> dst,
+                                   std::span<BufferImageCopyRegion> regions) = 0;
+    virtual void CopyBufferToImage(RefPtr<Gfx::Buffer> src,
+                                   RefPtr<Gfx::Image> dst,
+                                   std::span<BufferImageCopyRegion> regions) = 0;
     virtual void Barrier(GPUBarrier* barriers, uint32_t barrierCount) = 0;
     virtual void Begin() = 0;
     virtual void End() = 0;

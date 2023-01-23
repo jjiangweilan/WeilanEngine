@@ -1,15 +1,16 @@
 #pragma once
+#include <string_view>
 namespace Engine::Gfx
 {
-    class Semaphore
+class Semaphore
+{
+public:
+    struct CreateInfo
     {
-        public:
-            struct CreateInfo
-            {
-                bool signaled;
-            };
-
-            virtual ~Semaphore()
-            {};
+        bool signaled;
     };
-}
+
+    virtual void SetName(std::string_view name) = 0;
+    virtual ~Semaphore(){};
+};
+} // namespace Engine::Gfx

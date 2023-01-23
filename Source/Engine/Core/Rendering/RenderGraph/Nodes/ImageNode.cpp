@@ -23,7 +23,7 @@ bool ImageNode::Compile(ResourceStateTrack& stateTrack)
             .mipLevels = 1,
         };
 
-        auto usageFlags = stateTrack.GetState(outputPort->GetResource()).usages;
+        auto usageFlags = stateTrack.GetState(outputPort->GetResource()).imageUsages;
         assert(usageFlags != 0);
         image = GetGfxDriver()->CreateImage(description, usageFlags);
         image->SetName(name);

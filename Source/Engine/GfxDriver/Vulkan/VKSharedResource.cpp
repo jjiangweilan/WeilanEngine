@@ -11,8 +11,8 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = VK_NULL_HANDLE;
     samplerCreateInfo.flags = 0;
-    samplerCreateInfo.magFilter = VK_FILTER_LINEAR;
-    samplerCreateInfo.minFilter = VK_FILTER_LINEAR;
+    samplerCreateInfo.magFilter = VK_FILTER_NEAREST; // VK_FILTER_LINEAR;
+    samplerCreateInfo.minFilter = VK_FILTER_NEAREST; // VK_FILTER_LINEAR;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
     samplerCreateInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerCreateInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;

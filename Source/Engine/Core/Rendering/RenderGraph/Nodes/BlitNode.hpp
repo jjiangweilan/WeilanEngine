@@ -44,8 +44,8 @@ public:
 
     bool Preprocess(ResourceStateTrack& stateTrack) override
     {
-        stateTrack.GetState(srcImageIn->GetResource()).usages |= Gfx::ImageUsage::TransferSrc;
-        stateTrack.GetState(dstImageIn->GetResource()).usages |= Gfx::ImageUsage::TransferDst;
+        stateTrack.GetState(srcImageIn->GetResource()).imageUsages |= Gfx::ImageUsage::TransferSrc;
+        stateTrack.GetState(dstImageIn->GetResource()).imageUsages |= Gfx::ImageUsage::TransferDst;
 
         return true;
     }

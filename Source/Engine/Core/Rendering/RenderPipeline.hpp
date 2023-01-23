@@ -2,13 +2,10 @@
 
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Transform.hpp"
-#include "Core/GameScene/GameScene.hpp"
-#include "Core/Graphics/FrameContext.hpp"
-#include "Core/Texture.hpp"
-#include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Ptr.hpp"
 #include "RenderGraph/RenderGraph.hpp"
+#include "VirtualTexture/VirtualTextureRenderer.hpp"
 
 #if GAME_EDITOR
 #include "Editor/GameEditor.hpp"
@@ -23,7 +20,7 @@ class RenderPipelineAsset : public AssetObject
 {
 public:
     RenderPipelineAsset();
-    RefPtr<Texture> virtualTexture;
+    // UniPtr<VirtualTexture> virtualTexture;
 
 private:
 };
@@ -65,7 +62,6 @@ private:
         } v;
 
         UniPtr<Gfx::ShaderResource>& GetShaderResource() { return shaderResource; }
-        void QueueCommand(RefPtr<CommandBuffer> cmdBuf);
         void OnAssetReload(RefPtr<AssetObject> obj)
         {
             Shader* casted = dynamic_cast<Shader*>(obj.Get());
@@ -86,14 +82,15 @@ private:
     RefPtr<Gfx::GfxDriver> gfxDriver;
     UniPtr<RenderPipelineAsset> asset;
 
-    void RenderObject(RefPtr<Transform> transform, UniPtr<CommandBuffer>& cmd, std::vector<RGraph::DrawData>& drawList);
-    FrameContext* frameContext;
+    void AppendDrawData(RefPtr<Transform> transform, std::vector<RGraph::DrawData>& drawList);
 
     UniPtr<Gfx::Semaphore> imageAcquireSemaphore;
     UniPtr<Gfx::Semaphore> mainCmdBufFinishedSemaphore;
+    UniPtr<Gfx::Semaphore> resourceTransferFinishedSemaphore;
     UniPtr<Gfx::Fence> mainCmdBufFinishedFence;
     UniPtr<Gfx::CommandPool> cmdPool;
     UniPtr<CommandBuffer> cmdBuf;
+    UniPtr<CommandBuffer> resourceTransferCmdBuf;
     RefPtr<CommandQueue> mainQueue;
 #if GAME_EDITOR
     RefPtr<Editor::GameEditorRenderer> gameEditorRenderer;
@@ -108,7 +105,17 @@ private:
     RGraph::BlitNode* blitNode;
     RGraph::GPUBarrierNode* swapChainToPesentNode;
 
+    RGraph::DrawList sceneDrawList;
+    UniPtr<VirtualTexture> vt;
+
     void PrepareFrameData(RefPtr<CommandBuffer> cmdBuf);
     void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
+
+    /* features */
+    VirtualTextureRenderer virtualTextureRenderer;
+    Libs::Image::LinearImage* vtCacheTex = nullptr;
+    Libs::Image::LinearImage* vtIndirTex = nullptr;
+    RGraph::BufferNode* vtCacheTexStagingBuffer;
+    RGraph::BufferNode* vtIndirTexStagingBuffer;
 };
 } // namespace Engine::Rendering

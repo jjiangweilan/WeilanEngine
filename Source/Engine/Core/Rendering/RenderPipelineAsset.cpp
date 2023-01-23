@@ -2,8 +2,8 @@
 
 namespace Engine::Rendering
 {
-    RenderPipelineAsset::RenderPipelineAsset()
-    {
-        SERIALIZE_MEMBER(virtualTexture);
-    }
+RenderPipelineAsset::RenderPipelineAsset()
+{
+    // SERIALIZE_MEMBER(virtualTexture);
 }
+} // namespace Engine::Rendering
