@@ -97,7 +97,6 @@ if (INSTALL_DEPENDENCY)
          CMAKE_ARGS 
              #"-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
              "-DSPIRV_SKIP_EXECUTABLES=ON"
-             "-DCMAKE_CXX_STANDARD_LIBRARIES=${ClangMinGWLibs}" # spirv-tools doesn't handle stdlib linking when using clang-mingw, we add it here
              "-DSKIP_SPIRV_TOOLS_INSTALL=ON"
              "-DSPIRV-Headers_SOURCE_DIR=${CMAKE_CURRENT_LIST_DIR}/ThirdParty/spirv-headers"
          #"-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
@@ -134,7 +133,6 @@ if (INSTALL_DEPENDENCY)
         "-DSHADERC_THIRD_PARTY_ROOT_DIR=${CMAKE_CURRENT_LIST_DIR}/ThirdParty"
         "-DSHADERC_ENABLE_SHARED_CRT=ON"
 
-        "-DCMAKE_CXX_STANDARD_LIBRARIES=${ClangMinGWLibs}"
         "-DENABLE_CTEST=OFF"
         "-DENABLE_GLSLANG_BINARIES=OFF"
         "-DSPIRV_SKIP_EXECUTABLES=ON"
