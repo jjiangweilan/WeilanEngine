@@ -7,6 +7,7 @@
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Core/Graphics/Shader.hpp"
+#include "Core/Model.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
@@ -54,6 +55,7 @@ void InitializeBuiltInInspector()
     REGISTER(LuaScript);
     REGISTER(Texture);
     REGISTER(AssetObject);
+    REGISTER(Model);
     EditorRegister::Instance()->RegisterInspector<Rendering::RenderPipelineAsset, RenderPipelineAssetInspector>();
 }
 
@@ -61,6 +63,8 @@ static void MaterialInspectorShowStructureData(Material& mat,
                                                const std::string& bindingName,
                                                Gfx::ShaderInfo::StructuredData& data)
 {}
+
+void ModelInspector::Tick(RefPtr<EditorContext> editorContext) {}
 
 void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
 {

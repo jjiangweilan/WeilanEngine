@@ -108,7 +108,7 @@ void GameEditor::Tick()
 {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
-    // ImGui::ShowDemoWindow(nullptr);
+    ImGui::ShowDemoWindow(nullptr);
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     DrawMainMenu();

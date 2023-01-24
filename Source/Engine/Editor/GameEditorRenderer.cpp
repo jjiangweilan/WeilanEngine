@@ -25,10 +25,16 @@ GameEditorRenderer::GameEditorRenderer()
 
     // imGuiData.fontTex creation
     Gfx::ImageDescription fontTexDesc;
-    int width, height;
     unsigned char* fontData;
-    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height);
-    int fontTexSize = 4 * width * height;
+    auto& io = ImGui::GetIO();
+    ImFontConfig config;
+    static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
+    ImFont* font =
+        ImGui::GetIO().Fonts->AddFontFromFileTTF("Cousine Regular Nerd Font Complete.ttf", 14, &config, icon_ranges);
+    io.FontDefault = font;
+    int width, height, bytePerPixel;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
+    int fontTexSize = bytePerPixel * width * height;
     fontTexDesc.data = new unsigned char[fontTexSize];
     memcpy(fontTexDesc.data, fontData, fontTexSize);
     fontTexDesc.width = width;

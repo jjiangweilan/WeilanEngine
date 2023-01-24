@@ -6,9 +6,9 @@
 #include "Core/Graphics/Material.hpp"
 #include "Core/Model.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
+#include "Editor/Icons.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <spdlog/spdlog.h>
-
 
 namespace Engine::Editor
 {
@@ -62,7 +62,8 @@ void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
         auto dirPath = dir_entry.path();
         if (std::filesystem::is_directory(dir_entry))
         {
-            if (ImGui::TreeNode(dirPath.filename().string().c_str()))
+            std::string dirPathLabel = dirPath.filename().string();
+            if (ImGui::TreeNodeEx(dirPathLabel.c_str()))
             {
                 ShowDirectory(dir_entry);
                 ImGui::TreePop();
@@ -83,10 +84,13 @@ void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
                 else
                 {
                     auto assetObjectName = assetObject->GetName();
-                    if (ImGui::Button(dirPath.filename().string().c_str()))
+                    std::string buttonLabel = std::format("{} {}", Icons::File, dirPath.filename().string());
+                    ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+                    if (ImGui::Button(buttonLabel.c_str()))
                     {
                         editorContext->currentSelected = assetObject;
                     }
+                    ImGui::PopStyleColor(1);
                     if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
                     {
                         AssetObject* payload = assetObject.Get();

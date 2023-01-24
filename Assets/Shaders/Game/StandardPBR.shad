@@ -82,9 +82,9 @@ void main()
     float light = dotNL;
     vec3 finalColor = light * (texture(albedoMap, i_UV).xyz / M_PI + brdf);
 
-    o_Color = vec4(finalColor, 1);
-
-    
+    vec4 scaleBias = texture(vtIndir, i_UV);
+    vec3 vtCacheData = texture(vtCache, i_UV * scaleBias.xy + scaleBias.zw).xyz;
+    o_Color = vec4(vtCacheData, 1); 
 }
 #endif
 

@@ -357,7 +357,7 @@ void GameSceneWindow::Tick()
         }
         else gameSceneCam.Deactivate();
     }
-    if (gameSceneCam.IsActive())
+    if (gameSceneCam.IsActive() && ImGui::IsWindowFocused())
     {
         gameSceneCam.Tick(mouseInSceneViewUV);
     }

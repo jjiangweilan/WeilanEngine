@@ -84,6 +84,7 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
 
 void GfxResourceTransfer::ImmediateSubmit()
 {
+    cmdPool->ResetCommandPool();
     cmdBuf->Begin();
     QueueTransferCommands(cmdBuf);
     cmdBuf->End();
