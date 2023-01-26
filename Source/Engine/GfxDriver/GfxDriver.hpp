@@ -5,7 +5,6 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "Fence.hpp"
-#include "GfxEventListener.hpp"
 #include "Image.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Ptr.hpp"
@@ -46,7 +45,6 @@ public:
 
     virtual ~GfxDriver(){};
 
-    virtual void RegisterGfxEentListener(GfxEventListener* listener) = 0;
     virtual RefPtr<Image> GetSwapChainImageProxy() = 0;
     virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;

@@ -226,8 +226,6 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
     }
 }
 
-void VKDriver::RegisterGfxEentListener(GfxEventListener* listener) { eventListeners.push_back(listener); }
-
 void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue,
                            std::span<RefPtr<CommandBuffer>> cmdBufs,
                            std::span<RefPtr<Semaphore>> waitSemaphores,
