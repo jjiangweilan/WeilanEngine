@@ -12,10 +12,7 @@
 
 namespace Engine::Editor
 {
-AssetExplorer::AssetExplorer(RefPtr<EditorContext> editorContext) : editorContext(editorContext)
-{
-    EditorRegister::Instance()->RegisterCustomExplorer<Model, ModelExplorer>();
-}
+AssetExplorer::AssetExplorer(RefPtr<EditorContext> editorContext) : editorContext(editorContext) {}
 
 template <class T>
 void CreateNewAssetMenuItem(const std::string& assetName, const std::filesystem::path& path, const char* ext)
@@ -50,6 +47,11 @@ void CreateNewAssetMenuItem(const std::string& assetName, const std::filesystem:
 
 void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
 {
+    directories.clear();
+    files.clear();
+
+    std::vector<std::filesystem::path> directories;
+    std::vector<std::filesystem::path> files;
     if (ImGui::BeginPopupContextWindow("ContextWindow"))
     {
         CreateNewAssetMenuItem<Material>("Material", path, ".mat");
@@ -59,45 +61,44 @@ void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
 
     for (auto const& dir_entry : std::filesystem::directory_iterator(path))
     {
-        auto dirPath = dir_entry.path();
-        if (std::filesystem::is_directory(dir_entry))
+        if (dir_entry.is_directory())
+            directories.push_back(dir_entry.path());
+        else
+            files.push_back(dir_entry.path());
+    }
+
+    for (auto& dir : directories)
+    {
+        std::string dirPathLabel = dir.filename().string();
+        if (ImGui::TreeNodeEx(dirPathLabel.c_str()))
         {
-            std::string dirPathLabel = dirPath.filename().string();
-            if (ImGui::TreeNodeEx(dirPathLabel.c_str()))
-            {
-                ShowDirectory(dir_entry);
-                ImGui::TreePop();
-            }
+            ShowDirectory(dir);
+            ImGui::TreePop();
         }
-        else if (dirPath.extension() != ".meta")
+    }
+
+    for (auto& file : files)
+    {
+        if (file.extension() != ".meta")
         {
-            RefPtr<AssetObject> assetObject = AssetDatabase::Instance()->Load(dirPath);
+            RefPtr<AssetObject> assetObject = AssetDatabase::Instance()->Load(file);
 
             if (assetObject != nullptr)
             {
-                // if we have a custom exploerer then use it. Otherwise, we use the default exploerer
-                auto customExplorer = EditorRegister::Instance()->GetCustomExplorer(assetObject);
-                if (customExplorer != nullptr)
+                auto assetObjectName = assetObject->GetName();
+                std::string buttonLabel = std::format("{} {}", Icons::File, file.filename().string());
+                ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+                if (ImGui::Button(buttonLabel.c_str()))
                 {
-                    customExplorer->Tick(editorContext, dirPath);
+                    editorContext->currentSelected = assetObject;
                 }
-                else
+                ImGui::PopStyleColor(1);
+                if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
                 {
-                    auto assetObjectName = assetObject->GetName();
-                    std::string buttonLabel = std::format("{} {}", Icons::File, dirPath.filename().string());
-                    ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
-                    if (ImGui::Button(buttonLabel.c_str()))
-                    {
-                        editorContext->currentSelected = assetObject;
-                    }
-                    ImGui::PopStyleColor(1);
-                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
-                    {
-                        AssetObject* payload = assetObject.Get();
-                        ImGui::SetDragDropPayload("GameEditorDNDPayload", &payload, sizeof(assetObject.Get()));
-                        ImGui::Text("%s", assetObjectName.c_str());
-                        ImGui::EndDragDropSource();
-                    }
+                    AssetObject* payload = assetObject.Get();
+                    ImGui::SetDragDropPayload("GameEditorDNDPayload", &payload, sizeof(assetObject.Get()));
+                    ImGui::Text("%s", assetObjectName.c_str());
+                    ImGui::EndDragDropSource();
                 }
             }
         }

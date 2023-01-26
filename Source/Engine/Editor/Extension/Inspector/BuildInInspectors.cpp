@@ -25,7 +25,8 @@ void AssetObjectField(const char* name, RefPtr<T>& assetObject)
     ImGui::Text("%s", name);
     ImGui::SameLine();
     const char* buttonName = "null";
-    if (assetObject != nullptr) buttonName = assetObject->GetName().c_str();
+    if (assetObject != nullptr)
+        buttonName = assetObject->GetName().c_str();
     ImGui::Button(buttonName);
     if (ImGui::BeginDragDropTarget())
     {
@@ -64,7 +65,25 @@ static void MaterialInspectorShowStructureData(Material& mat,
                                                Gfx::ShaderInfo::StructuredData& data)
 {}
 
-void ModelInspector::Tick(RefPtr<EditorContext> editorContext) {}
+void ModelInspector::Tick(RefPtr<EditorContext> editorContext)
+{
+    RefPtr<Model> model = target;
+    for (const auto& name : model->GetMeshNames())
+    {
+        if (ImGui::Button(name.c_str()))
+        {
+            editorContext->currentSelected = (AssetObject*)target.Get();
+        }
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            Mesh* data = model->GetMesh(name).Get();
+            ImGui::SetDragDropPayload("GameEditorDNDPayload", &data, sizeof(data));
+            ImGui::Text("%s", name.c_str());
+            ImGui::EndDragDropSource();
+        }
+    }
+}
 
 void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
 {
@@ -104,7 +123,8 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
     int imguiID = 0;
     for (auto& b : shaderInfo.bindings)
     {
-        if (b.second.setNum != Gfx::Material_Descriptor_Set) continue;
+        if (b.second.setNum != Gfx::Material_Descriptor_Set)
+            continue;
         if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
         {
             for (auto& uniMem : b.second.binding.ubo.data.members)
@@ -160,7 +180,8 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
         {
             auto tex = mat->GetTexture(b.first);
             std::string label = b.first;
-            if (tex) label += ":" + tex->GetName();
+            if (tex)
+                label += ":" + tex->GetName();
             ImGui::Button(label.c_str());
             if (tex)
             {
@@ -245,8 +266,10 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
     RefPtr<MeshRenderer> meshRenderer = target;
 
     Mesh* mesh = meshRenderer->GetMesh();
-    if (mesh) ImGui::Button(("Mesh: " + mesh->GetName()).c_str());
-    else ImGui::Button("Mesh: null");
+    if (mesh)
+        ImGui::Button(("Mesh: " + mesh->GetName()).c_str());
+    else
+        ImGui::Button("Mesh: null");
     if (ImGui::BeginDragDropTarget())
     {
 
@@ -262,8 +285,10 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
     }
 
     Material* mat = meshRenderer->GetMaterial();
-    if (mat) ImGui::Button(("Material: " + mat->GetName()).c_str());
-    else ImGui::Button("Material: null");
+    if (mat)
+        ImGui::Button(("Material: " + mat->GetName()).c_str());
+    else
+        ImGui::Button("Material: null");
     if (ImGui::BeginDragDropTarget())
     {
 
@@ -314,7 +339,8 @@ void GameObjectInspector::Tick(RefPtr<EditorContext> editorContext)
         if (ImGui::TreeNode(title.c_str()))
         {
             auto inspector = EditorRegister::Instance()->GetInspector(comp.Get());
-            if (inspector != nullptr) inspector->Tick(editorContext);
+            if (inspector != nullptr)
+                inspector->Tick(editorContext);
 
             ImGui::TreePop();
         }

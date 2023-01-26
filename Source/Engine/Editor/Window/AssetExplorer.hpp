@@ -15,5 +15,8 @@ public:
 private:
     RefPtr<EditorContext> editorContext;
     void ShowDirectory(const std::filesystem::path& path);
+
+    std::vector<std::filesystem::path> directories;
+    std::vector<std::filesystem::path> files;
 };
 } // namespace Engine::Editor
