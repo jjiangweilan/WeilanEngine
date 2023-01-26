@@ -19,7 +19,12 @@ public:
 
     /* return the port outputing the game editor's color target
      */
-    RGraph::Port* BuildGraph(RGraph::RenderGraph* graph, RGraph::Port* finalColorPort, RGraph::Port* finalDepthPort);
+    RGraph::Port* BuildGraph(RGraph::RenderGraph* graph,
+                             RGraph::Port* finalColorPort,
+                             RGraph::Port* finalDepthPort,
+                             Extent2D windowSize);
+
+    void ResizeWindow(Extent2D windowSize);
 
 private:
     struct ImGuiData
@@ -27,7 +32,6 @@ private:
         UniPtr<Gfx::Buffer> vertexBuffer; // use single buffer to capture all the vertices
         UniPtr<Gfx::Buffer> indexBuffer;
         UniPtr<Texture> fontTex;
-        UniPtr<Gfx::Image> editorRT;
         UniPtr<Gfx::ShaderResource> generalShaderRes;
         RefPtr<Gfx::ShaderProgram> shaderProgram;
         Gfx::ShaderConfig shaderConfig;
@@ -48,6 +52,8 @@ private:
     RGraph::Port* finalDepthPort;
     RGraph::RenderPassNode* gameEditorPassNode;
     RGraph::DrawList drawList;
+    RGraph::ImageNode* gameEditorColorNode;
+    RGraph::ImageNode* gameEditorDepthNode;
     Gfx::Image* gameSceneImageTarget;
 };
 } // namespace Engine::Editor

@@ -79,8 +79,6 @@ void WeilanEngine::Launch()
                     {
                         shouldBreak = true;
                     }
-                case SDL_WINDOWEVENT_RESIZED:
-                case SDL_WINDOWEVENT_SIZE_CHANGED: SPDLOG_INFO("123");
             }
         }
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Libs/Ptr.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/GameScene/GameScene.hpp"
 #include "GameEditorRenderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Libs/Ptr.hpp"
 #include "ProjectManagement/ProjectManagement.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "Window/AssetExplorer.hpp"
@@ -26,6 +26,7 @@ public:
     ~GameEditor();
     void Init();
 
+    void ChangeWindowSize();
     void ProcessEvent(const SDL_Event& event);
     bool IsProjectInitialized();
     void Tick();

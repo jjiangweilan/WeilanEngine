@@ -139,7 +139,8 @@ void GameEditor::BuildRenderGraph(RGraph::RenderGraph* graph,
                                   RGraph::Port* finalColorPort,
                                   RGraph::Port* finalDepthPort)
 {
-    gameEditorRenderer->BuildGraph(graph, finalColorPort, finalDepthPort);
+    Extent2D windowSize = gfxDriver->GetSurfaceSize();
+    gameEditorRenderer->BuildGraph(graph, finalColorPort, finalDepthPort, windowSize);
 }
 
 // void GameEditor::Render(RefPtr<CommandBuffer> cmdBuf, RGraph::ResourceStateTrack& stateTrack)

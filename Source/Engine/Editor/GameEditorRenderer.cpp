@@ -11,18 +11,6 @@ GameEditorRenderer::GameEditorRenderer()
     imGuiData.generalShaderRes =
         Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
 
-    // imGuiData.editorRT creation
-    {
-        Gfx::ImageDescription editorRTDesc;
-        editorRTDesc.width = GetGfxDriver()->GetSurfaceSize().width;
-        editorRTDesc.height = GetGfxDriver()->GetSurfaceSize().height;
-        editorRTDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-        imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(
-            editorRTDesc,
-            Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture);
-        imGuiData.editorRT->SetName("Editor RT");
-    }
-
     // imGuiData.fontTex creation
     Gfx::ImageDescription fontTexDesc;
     unsigned char* fontData;
@@ -86,9 +74,18 @@ void GameEditorRenderer::Tick() {}
 
 void GameEditorRenderer::ImGuiData::ClearImageResource() { imageResourcesCache.clear(); }
 
+void GameEditorRenderer::ResizeWindow(Extent2D windowSize)
+{
+    gameEditorColorNode->width = windowSize.width;
+    gameEditorColorNode->height = windowSize.height;
+    gameEditorDepthNode->width = windowSize.width;
+    gameEditorDepthNode->height = windowSize.height;
+}
+
 RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
                                              RGraph::Port* finalColorPort,
-                                             RGraph::Port* finalDepthPort)
+                                             RGraph::Port* finalDepthPor,
+                                             Extent2D windowSize)
 {
     auto gameSceneImageNode = graph->AddNode<RGraph::ImageNode>();
     gameSceneImageNode->SetName("GameEditorRenderer-GameSceneImage");
@@ -104,24 +101,24 @@ RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
     gameColorBlitNode->GetPortSrcImageIn()->Connect(finalColorPort);
     gameColorBlitNode->GetPortDstImageIn()->Connect(gameSceneImageNode->GetPortOutput());
 
-    auto gameEditorColorNode = graph->AddNode<RGraph::ImageNode>();
-    gameEditorColorNode->width = GetGfxDriver()->GetSurfaceSize().width;
-    gameEditorColorNode->height = GetGfxDriver()->GetSurfaceSize().height;
+    gameEditorColorNode = graph->AddNode<RGraph::ImageNode>();
+    gameEditorColorNode->width = windowSize.width;
+    gameEditorColorNode->height = windowSize.height;
     gameEditorColorNode->mipLevels = 1;
     gameEditorColorNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
     gameEditorColorNode->format = Gfx::ImageFormat::R16G16B16A16_SFloat;
 
-    auto gameEditorDepthNode = graph->AddNode<RGraph::ImageNode>();
-    gameEditorDepthNode->width = GetGfxDriver()->GetSurfaceSize().width;
-    gameEditorDepthNode->height = GetGfxDriver()->GetSurfaceSize().height;
+    gameEditorDepthNode = graph->AddNode<RGraph::ImageNode>();
+    gameEditorDepthNode->width = windowSize.width;
+    gameEditorDepthNode->height = windowSize.height;
     gameEditorDepthNode->mipLevels = 1;
     gameEditorDepthNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
     gameEditorDepthNode->format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
 
     gameEditorPassNode = graph->AddNode<RGraph::RenderPassNode>();
     gameEditorPassNode->GetColorAttachmentOps()[0].loadOp = Gfx::AttachmentLoadOperation::Clear;
-    gameEditorPassNode->GetClearValues()[0].color = {0, 0, 0, 0};
-    gameEditorPassNode->GetClearValues().back().depthStencil = {{1}, {0}};
+    gameEditorPassNode->GetClearValues()[0].color = {{0, 0, 0, 0}};
+    gameEditorPassNode->GetClearValues().back().depthStencil = {1, 0};
     gameEditorPassNode->GetPortColorIn(0)->Connect(gameEditorColorNode->GetPortOutput());
     gameEditorPassNode->GetPortDepthIn()->Connect(gameEditorDepthNode->GetPortOutput());
     gameEditorPassNode->GetPortDependentAttachmentsIn()->Connect(gameColorBlitNode->GetPortDstImageOut());

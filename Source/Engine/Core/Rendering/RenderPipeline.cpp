@@ -77,8 +77,10 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 
     Port* finalOutput = renderPassNode->GetPortColorOut(0);
 #if GAME_EDITOR
-    finalOutput =
-        gameEditorRenderer->BuildGraph(&graph, renderPassNode->GetPortColorOut(0), renderPassNode->GetPortDepthOut());
+    finalOutput = gameEditorRenderer->BuildGraph(&graph,
+                                                 renderPassNode->GetPortColorOut(0),
+                                                 renderPassNode->GetPortDepthOut(),
+                                                 gfxDriver->GetSurfaceSize());
 #endif
 
     swapChainImageNode = graph.AddNode<RGraph::ImageNode>();
@@ -144,6 +146,11 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 
 void RenderPipeline::CompileGraph()
 {
+    colorImageNode->width = gfxDriver->GetSurfaceSize().width;
+    colorImageNode->height = gfxDriver->GetSurfaceSize().height;
+    depthImageNode->width = colorImageNode->width;
+    depthImageNode->height = colorImageNode->height;
+    gameEditorRenderer->ResizeWindow(gfxDriver->GetSurfaceSize());
     graph.Compile();
     globalShaderResoruce.GetShaderResource()->SetTexture(
         "vtCache",
