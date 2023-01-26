@@ -51,7 +51,6 @@ void VKCommandBuffer::BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass,
     }
     renderPassBeginInfo.pClearValues = vkClearValues;
 
-    vRenderPass->TransformAttachmentIfNeeded(vkCmdBuf);
     vkCmdBeginRenderPass(vkCmdBuf, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
@@ -80,16 +79,16 @@ void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
 
     VkImageBlit blit;
     blit.dstOffsets[0] = {0, 0, 0};
-    blit.dstOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
+    blit.dstOffsets[1] = {(int32_t)to->GetDescription().width, (int32_t)to->GetDescription().height, 1};
     VkImageSubresourceLayers dstLayers;
-    dstLayers.aspectMask = from->GetDefaultSubresourceRange().aspectMask;
+    dstLayers.aspectMask = to->GetDefaultSubresourceRange().aspectMask;
     dstLayers.baseArrayLayer = 0;
-    dstLayers.layerCount = from->GetDefaultSubresourceRange().layerCount;
+    dstLayers.layerCount = to->GetDefaultSubresourceRange().layerCount;
     dstLayers.mipLevel = 0;
     blit.dstSubresource = dstLayers;
 
     blit.srcOffsets[0] = {0, 0, 0};
-    blit.srcOffsets[1] = {(int32_t)to->GetDescription().width, (int32_t)to->GetDescription().height, 1};
+    blit.srcOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
     blit.srcSubresource = dstLayers; // basically copy the resources from dst
                                      // without much configuration
 

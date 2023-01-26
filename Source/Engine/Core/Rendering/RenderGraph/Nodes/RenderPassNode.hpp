@@ -43,7 +43,7 @@ struct DrawData
 };
 using DrawList = std::vector<DrawData>;
 
-class RenderPassNode : Node
+class RenderPassNode : public Node
 {
 public:
     struct AttachmentOps

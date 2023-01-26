@@ -5,6 +5,7 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "Fence.hpp"
+#include "GfxEventListener.hpp"
 #include "Image.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Ptr.hpp"
@@ -33,17 +34,24 @@ enum class Backend
 class GfxDriver
 {
 public:
+    struct CreateInfo
+    {
+        // the initial window size used to create sdl window
+        Extent2D windowSize;
+    };
+
     static RefPtr<GfxDriver> Instance() { return gfxDriver; }
-    static void CreateGfxDriver(Backend backend);
+    static void CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
     static void DestroyGfxDriver() { gfxDriver = nullptr; }
 
     virtual ~GfxDriver(){};
 
+    virtual void RegisterGfxEentListener(GfxEventListener* listener) = 0;
     virtual RefPtr<Image> GetSwapChainImageProxy() = 0;
     virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;
-    virtual Extent2D GetWindowSize() = 0;
+    virtual Extent2D GetSurfaceSize() = 0;
 
     virtual UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
     virtual UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
@@ -70,7 +78,7 @@ public:
     virtual void ForceSyncResources() = 0;
     virtual void WaitForIdle() = 0;
     virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) = 0;
-    virtual void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
+    virtual bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
 private:

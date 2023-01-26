@@ -4,19 +4,15 @@
 
 namespace Engine::Gfx
 {
-    void GfxDriver::CreateGfxDriver(Backend backend)
+void GfxDriver::CreateGfxDriver(Backend backend, const CreateInfo& createInfo)
+{
+    switch (backend)
     {
-        switch (backend) {
-            case Backend::Vulkan:
-                gfxDriver = MakeUnique<VKDriver>();
-                break;
-            case Backend::OpenGL:
-                SPDLOG_ERROR("OpenGL backend is not implemented");
-                break;
-            default:
-                break;
-        }
+        case Backend::Vulkan: gfxDriver = MakeUnique<VKDriver>(createInfo); break;
+        case Backend::OpenGL: SPDLOG_ERROR("OpenGL backend is not implemented"); break;
+        default: break;
     }
-
-    UniPtr<GfxDriver> GfxDriver::gfxDriver = nullptr;
 }
+
+UniPtr<GfxDriver> GfxDriver::gfxDriver = nullptr;
+} // namespace Engine::Gfx

@@ -14,8 +14,8 @@ GameEditorRenderer::GameEditorRenderer()
     // imGuiData.editorRT creation
     {
         Gfx::ImageDescription editorRTDesc;
-        editorRTDesc.width = GetGfxDriver()->GetWindowSize().width;
-        editorRTDesc.height = GetGfxDriver()->GetWindowSize().height;
+        editorRTDesc.width = GetGfxDriver()->GetSurfaceSize().width;
+        editorRTDesc.height = GetGfxDriver()->GetSurfaceSize().height;
         editorRTDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
         imGuiData.editorRT = Gfx::GfxDriver::Instance()->CreateImage(
             editorRTDesc,
@@ -105,15 +105,15 @@ RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
     gameColorBlitNode->GetPortDstImageIn()->Connect(gameSceneImageNode->GetPortOutput());
 
     auto gameEditorColorNode = graph->AddNode<RGraph::ImageNode>();
-    gameEditorColorNode->width = GetGfxDriver()->GetWindowSize().width;
-    gameEditorColorNode->height = GetGfxDriver()->GetWindowSize().height;
+    gameEditorColorNode->width = GetGfxDriver()->GetSurfaceSize().width;
+    gameEditorColorNode->height = GetGfxDriver()->GetSurfaceSize().height;
     gameEditorColorNode->mipLevels = 1;
     gameEditorColorNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
     gameEditorColorNode->format = Gfx::ImageFormat::R16G16B16A16_SFloat;
 
     auto gameEditorDepthNode = graph->AddNode<RGraph::ImageNode>();
-    gameEditorDepthNode->width = GetGfxDriver()->GetWindowSize().width;
-    gameEditorDepthNode->height = GetGfxDriver()->GetWindowSize().height;
+    gameEditorDepthNode->width = GetGfxDriver()->GetSurfaceSize().width;
+    gameEditorDepthNode->height = GetGfxDriver()->GetSurfaceSize().height;
     gameEditorDepthNode->mipLevels = 1;
     gameEditorDepthNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
     gameEditorDepthNode->format = Gfx::ImageFormat::D24_UNorm_S8_UInt;

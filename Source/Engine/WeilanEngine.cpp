@@ -13,14 +13,18 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
-#undef CreateSemaphore;
+#undef CreateSemaphore
 
 namespace Engine
 {
 void WeilanEngine::Launch()
 {
     // drivers
-    Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan);
+    Gfx::GfxDriver::CreateInfo gfxDriverCreateInfo{
+        .windowSize = {1920, 1080},
+    };
+
+    Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxDriverCreateInfo);
     gfxDriver = Gfx::GfxDriver::Instance();
 
     spdlog::set_level(spdlog::level::info);
@@ -75,6 +79,8 @@ void WeilanEngine::Launch()
                     {
                         shouldBreak = true;
                     }
+                case SDL_WINDOWEVENT_RESIZED:
+                case SDL_WINDOWEVENT_SIZE_CHANGED: SPDLOG_INFO("123");
             }
         }
 

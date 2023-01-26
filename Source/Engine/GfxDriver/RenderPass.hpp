@@ -1,48 +1,51 @@
 #pragma once
-#include "Libs/Ptr.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxEnums.hpp"
+#include "Libs/Ptr.hpp"
 #include "Utils/Structs.hpp"
 #include <optional>
 #include <vector>
+
 namespace Engine::Gfx
 {
-    union ClearColor
+union ClearColor
+{
+    float float32[4];
+    int32_t int32[4];
+    uint32_t uint32[4];
+};
+
+struct ClearDepthStencil
+{
+    float depth;
+    uint32_t stencil;
+};
+
+// same as VkClearValue
+union ClearValue
+{
+    ClearColor color;
+    ClearDepthStencil depthStencil;
+};
+
+class RenderPass
+{
+public:
+    struct Attachment
     {
-        float       float32[4];
-        int32_t     int32[4];
-        uint32_t    uint32[4];
+        RefPtr<Image> image;
+        MultiSampling multiSampling = MultiSampling::Sample_Count_1;
+        AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
+        AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
+        AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::DontCare;
+        AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
     };
 
-    struct ClearDepthStencil
-    {
-        float       depth;
-        uint32_t    stencil;
-    };
+    virtual ~RenderPass() {}
 
-    // same as VkClearValue
-    union ClearValue
-    {
-        ClearColor color;
-        ClearDepthStencil depthStencil;
-    };
+    virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
+    virtual void ClearSubpass() = 0;
 
-    class RenderPass
-    {
-    public:
-        struct Attachment
-        {
-            RefPtr<Image> image;
-            MultiSampling multiSampling = MultiSampling::Sample_Count_1;
-            AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
-            AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
-            AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::DontCare;
-            AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
-        };
-
-        virtual ~RenderPass(){}
-
-        virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
-    private:
-    };
-}
+private:
+};
+} // namespace Engine::Gfx

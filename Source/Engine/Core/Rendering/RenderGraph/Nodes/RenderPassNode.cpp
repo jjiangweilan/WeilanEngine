@@ -21,8 +21,6 @@ RenderPassNode::RenderPassNode()
                           });
     depthPortOut = AddPort("Depth", Port::Type::Output, typeid(Gfx::Image));
     dependentAttachmentIn = AddPort("dependent attachment", Port::Type::Input, typeid(Gfx::Image), true);
-
-    renderPass = GetGfxDriver()->CreateRenderPass();
 }
 
 bool RenderPassNode::Preprocess(ResourceStateTrack& stateTrack)
@@ -53,6 +51,7 @@ bool RenderPassNode::Preprocess(ResourceStateTrack& stateTrack)
 
 bool RenderPassNode::Compile(ResourceStateTrack& stateTrack)
 {
+    renderPass = GetGfxDriver()->CreateRenderPass();
     int colorCount = 0;
     int hasDepth = 0;
 
@@ -134,7 +133,11 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
                                    Gfx::AccessMask::Shader_Read);
     }
 
-    cmdBuf->Barrier(barriers.data(), barriers.size());
+    if (!barriers.empty())
+    {
+
+        cmdBuf->Barrier(barriers.data(), barriers.size());
+    }
     cmdBuf->BeginRenderPass(renderPass, clearValues);
 
     ResourceRef* attaRes = color0Res ? color0Res : depthRes;

@@ -41,11 +41,12 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 
     // build render graph
     colorImageNode = graph.AddNode<RGraph::ImageNode>();
-    colorImageNode->width = gfxDriver->GetWindowSize().width;
-    colorImageNode->height = gfxDriver->GetWindowSize().height;
+    colorImageNode->width = gfxDriver->GetSurfaceSize().width;
+    colorImageNode->height = gfxDriver->GetSurfaceSize().height;
     colorImageNode->mipLevels = 1;
     colorImageNode->multiSampling = MultiSampling::Sample_Count_1;
     colorImageNode->format = ImageFormat::R16G16B16A16_SFloat;
+    colorImageNode->SetName("RenderPipeline-colorImageNode");
 
     depthImageNode = graph.AddNode<RGraph::ImageNode>();
     depthImageNode->width = colorImageNode->width;
@@ -53,6 +54,7 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     depthImageNode->mipLevels = colorImageNode->mipLevels;
     depthImageNode->multiSampling = colorImageNode->multiSampling;
     depthImageNode->format = ImageFormat::D24_UNorm_S8_UInt;
+    depthImageNode->SetName("RenderPipeline-depthImageNode");
 
     renderPassNode = graph.AddNode<RGraph::RenderPassNode>();
     renderPassNode->SetColorCount(1);
@@ -60,6 +62,7 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetColorAttachmentOps()[0].storeOp = AttachmentStoreOperation::Store;
     renderPassNode->GetDepthAttachmentOp().loadOp = AttachmentLoadOperation::Clear;
     renderPassNode->GetDepthAttachmentOp().storeOp = AttachmentStoreOperation::Store;
+    renderPassNode->SetName("RenderPipeline-renderPassNode");
     Gfx::ClearValue colorClear;
     colorClear.color = {{0, 0, 0, 0}};
     renderPassNode->GetClearValues()[0] = colorClear;
@@ -98,7 +101,10 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     swapChainToPesentNode->accessFlags = Gfx::AccessMask::None;
 
     vt = MakeUnique<VirtualTexture>("VT", 16384, 8192, 3);
-    virtualTextureRenderer.SetVT(vt, GetGfxDriver()->GetWindowSize().width, GetGfxDriver()->GetWindowSize().height, 8);
+    virtualTextureRenderer.SetVT(vt,
+                                 GetGfxDriver()->GetSurfaceSize().width,
+                                 GetGfxDriver()->GetSurfaceSize().height,
+                                 8);
     virtualTextureRenderer.SetVTObjectDrawList(sceneDrawList);
     virtualTextureRenderer.GetFinalTextures(vtCacheTex, vtIndirTex);
 
@@ -113,12 +119,12 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     vtIndirTexStagingBuffer->props.visibleInCPU = true;
 
     // TODO use the `if` node in render graph
-    auto vtCacheTexNode = graph.AddNode<RGraph::ImageNode>();
+    vtCacheTexNode = graph.AddNode<RGraph::ImageNode>();
     vtCacheTexNode->width = vtCacheTex->GetWidth();
     vtCacheTexNode->height = vtCacheTex->GetHeight();
     vtCacheTexNode->format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     vtCacheTexNode->SetName("RenderPipeline-vtCacheTexNode");
-    auto vtIndirTexNode = graph.AddNode<RGraph::ImageNode>();
+    vtIndirTexNode = graph.AddNode<RGraph::ImageNode>();
     vtIndirTexNode->width = vtIndirTex->GetWidth();
     vtIndirTexNode->height = vtIndirTex->GetHeight();
     vtIndirTexNode->format = Gfx::ImageFormat::R32G32B32A32_SFloat;
@@ -133,8 +139,12 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtCacheTexNode->GetPortOutput());
     renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtIndirTexNode->GetPortOutput());
 
-    graph.Compile();
+    CompileGraph();
+}
 
+void RenderPipeline::CompileGraph()
+{
+    graph.Compile();
     globalShaderResoruce.GetShaderResource()->SetTexture(
         "vtCache",
         (Gfx::Image*)vtCacheTexNode->GetPortOutput()->GetResourceVal());
@@ -145,7 +155,11 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
 
 void RenderPipeline::Render(RefPtr<GameScene> gameScene)
 {
-    gfxDriver->AcquireNextSwapChainImage(imageAcquireSemaphore);
+    bool swapchainRecreated = gfxDriver->AcquireNextSwapChainImage(imageAcquireSemaphore);
+    if (swapchainRecreated)
+    {
+        CompileGraph();
+    }
     gfxDriver->WaitForFence({mainCmdBufFinishedFence}, true, -1);
     mainCmdBufFinishedFence->Reset();
     cmdPool->ResetCommandPool();
@@ -183,7 +197,7 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
 
     // prepare
     sceneDrawList.clear();
-    Rect2D scissor = {{0, 0}, {gfxDriver->GetWindowSize().width, gfxDriver->GetWindowSize().height}};
+    Rect2D scissor = {{0, 0}, {gfxDriver->GetSurfaceSize().width, gfxDriver->GetSurfaceSize().height}};
     DrawData drawData;
     // cmdBuf->SetScissor(0, 1, &scissor);
     drawData.scissor = scissor;

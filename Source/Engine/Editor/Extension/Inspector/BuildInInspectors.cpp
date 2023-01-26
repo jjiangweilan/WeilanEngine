@@ -169,7 +169,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                 {
                     mat->SetTexture(b.first, nullptr);
                 }
-                float width = ImGui::GetWindowSize().x;
+                float width = ImGui::GetSurfaceSize().x;
                 auto& desc = tex->GetDescription();
                 float ratio = desc.width / (float)desc.height;
                 ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
@@ -369,7 +369,7 @@ void ShaderInspector::Tick(RefPtr<EditorContext> editorContext)
 void TextureInspector::Tick(RefPtr<EditorContext> editorContext)
 {
     RefPtr<Texture> tex = target;
-    float width = ImGui::GetWindowSize().x;
+    float width = ImGui::GetSurfaceSize().x;
     auto& desc = tex->GetDescription();
     float ratio = desc.width / (float)desc.height;
     ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});

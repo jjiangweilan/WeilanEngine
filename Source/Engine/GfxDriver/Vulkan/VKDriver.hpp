@@ -35,22 +35,26 @@ struct VKDescriptorPoolCache;
 class VKDriver : public Gfx::GfxDriver
 {
 public:
-    VKDriver();
+    VKDriver(const CreateInfo& createInfo);
     ~VKDriver() override;
 
     void ForceSyncResources() override;
     void WaitForIdle() override;
-    void QueueSubmit(RefPtr<CommandQueue> queue, std::span<RefPtr<CommandBuffer>> cmdBufs,
-                     std::span<RefPtr<Semaphore>> waitSemaphores, std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
-                     std::span<RefPtr<Semaphore>> signalSemaphroes, RefPtr<Fence> signalFence) override;
+    void QueueSubmit(RefPtr<CommandQueue> queue,
+                     std::span<RefPtr<CommandBuffer>> cmdBufs,
+                     std::span<RefPtr<Semaphore>> waitSemaphores,
+                     std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
+                     std::span<RefPtr<Semaphore>> signalSemaphroes,
+                     RefPtr<Fence> signalFence) override;
     RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
-    void AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
+    bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
+    void RegisterGfxEentListener(GfxEventListener* listener) override;
 
     RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
     RefPtr<Image> GetSwapChainImageProxy() override;
-    Extent2D GetWindowSize() override;
+    Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
     RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
 
@@ -62,8 +66,12 @@ public:
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
-    UniPtr<ShaderProgram> CreateShaderProgram(const std::string& name, const ShaderConfig* config, unsigned char* vert,
-                                              uint32_t vertSize, unsigned char* frag, uint32_t fragSize) override;
+    UniPtr<ShaderProgram> CreateShaderProgram(const std::string& name,
+                                              const ShaderConfig* config,
+                                              unsigned char* vert,
+                                              uint32_t vertSize,
+                                              unsigned char* frag,
+                                              uint32_t fragSize) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
 
 private:
@@ -91,5 +99,7 @@ private:
     {
         UniPtr<VKSemaphore> imageAcquireSemaphore;
     } inFlightFrame;
+
+    std::vector<GfxEventListener*> eventListeners;
 };
 } // namespace Engine::Gfx

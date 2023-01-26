@@ -1,11 +1,11 @@
 #pragma once
 
 #include "../Image.hpp"
-#include "Libs/Ptr.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "Libs/Ptr.hpp"
 
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
@@ -103,6 +103,8 @@ public:
         this->activeImage = activeImage;
         this->activeIndex = index;
     };
+
+    void UpdateImageDescription(const ImageDescription& desc) { this->imageDescription = desc; }
     uint32_t GetActiveIndex() { return activeIndex; }
     virtual VkImageView GetDefaultImageView() override { return activeImage->GetDefaultImageView(); }
     virtual VkImage GetImage() override { return activeImage->GetImage(); }

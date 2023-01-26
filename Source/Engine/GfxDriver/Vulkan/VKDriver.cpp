@@ -47,11 +47,11 @@ UniPtr<T> MakeUnique1(Args&&... args)
     return UniPtr<T>(new T(std::forward<Args>(args)...));
 }
 
-VKDriver::VKDriver()
+VKDriver::VKDriver(const CreateInfo& createInfo)
 {
     context = MakeUnique1<VKContext>();
     VKContext::context = context;
-    appWindow = new VKAppWindow();
+    appWindow = new VKAppWindow(createInfo.windowSize);
     instance = new VKInstance(appWindow->GetVkRequiredExtensions());
     surface = new VKSurface(*instance, appWindow);
     VKDevice::QueueRequest queueRequest[] = {
@@ -130,7 +130,11 @@ VKDriver::~VKDriver()
     delete instance;
 }
 
-Extent2D VKDriver::GetWindowSize() { return appWindow->GetDefaultWindowSize(); }
+Extent2D VKDriver::GetSurfaceSize()
+{
+    auto extent = surface->GetSurfaceCapabilities().currentExtent;
+    return {extent.width, extent.height};
+}
 
 void VKDriver::WaitForIdle() { vkDeviceWaitIdle(device->GetHandle()); }
 
@@ -168,10 +172,11 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
     return inFlightFrame.imageAcquireSemaphore.Get();
 }
 
-void VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
+bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
 {
     VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
-    swapchain->AcquireNextImage(swapChainImageProxy, s->GetHandle());
+    bool swapchainRecreated = swapchain->AcquireNextImage(swapChainImageProxy, s->GetHandle());
+    return swapchainRecreated;
 }
 
 UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
@@ -202,8 +207,11 @@ UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUs
 {
     return MakeUnique1<VKImage>(description, usages);
 }
-UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(const std::string& name, const ShaderConfig* config,
-                                                    unsigned char* vert, uint32_t vertSize, unsigned char* frag,
+UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(const std::string& name,
+                                                    const ShaderConfig* config,
+                                                    unsigned char* vert,
+                                                    uint32_t vertSize,
+                                                    unsigned char* frag,
                                                     uint32_t fragSize)
 {
     return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
@@ -218,10 +226,14 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
     }
 }
 
-void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue, std::span<RefPtr<CommandBuffer>> cmdBufs,
+void VKDriver::RegisterGfxEentListener(GfxEventListener* listener) { eventListeners.push_back(listener); }
+
+void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue,
+                           std::span<RefPtr<CommandBuffer>> cmdBufs,
                            std::span<RefPtr<Semaphore>> waitSemaphores,
                            std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
-                           std::span<RefPtr<Semaphore>> signalSemaphroes, RefPtr<Fence> signalFence)
+                           std::span<RefPtr<Semaphore>> signalSemaphroes,
+                           RefPtr<Fence> signalFence)
 {
     std::vector<VkSemaphore> vkWaitSemaphores;
     std::vector<VkSemaphore> vkSignalSemaphores;

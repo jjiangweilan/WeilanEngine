@@ -83,6 +83,7 @@ private:
     UniPtr<RenderPipelineAsset> asset;
 
     void AppendDrawData(RefPtr<Transform> transform, std::vector<RGraph::DrawData>& drawList);
+    void CompileGraph();
 
     UniPtr<Gfx::Semaphore> imageAcquireSemaphore;
     UniPtr<Gfx::Semaphore> mainCmdBufFinishedSemaphore;
@@ -98,6 +99,8 @@ private:
 #endif
 
     RGraph::RenderGraph graph;
+    RGraph::ImageNode* vtCacheTexNode;
+    RGraph::ImageNode* vtIndirTexNode;
     RGraph::ImageNode* colorImageNode;
     RGraph::ImageNode* swapChainImageNode;
     RGraph::ImageNode* depthImageNode;
