@@ -41,7 +41,6 @@ void WeilanEngine::Launch()
     AssetDatabase::InitSingleton(projectList[0]);
     RegisterAssetImporters();
     AssetDatabase::Instance()->LoadInternalAssets();
-    AssetDatabase::Instance()->LoadAllAssets();
 
     // recover last active scene
     UUID lastActiveSceneUUID = projectManagement->GetLastActiveScene();
@@ -91,8 +90,7 @@ void WeilanEngine::Launch()
 #endif
 
         // rendering
-        if (activeGameScene)
-            renderPipeline->Render(activeGameScene);
+        renderPipeline->Render(activeGameScene);
 
         AssetDatabase::Instance()->EndOfFrameUpdate();
     }

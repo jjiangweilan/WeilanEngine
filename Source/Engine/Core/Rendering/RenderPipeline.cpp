@@ -150,7 +150,9 @@ void RenderPipeline::CompileGraph()
     colorImageNode->height = gfxDriver->GetSurfaceSize().height;
     depthImageNode->width = colorImageNode->width;
     depthImageNode->height = colorImageNode->height;
+#if GAME_EDITOR
     gameEditorRenderer->ResizeWindow(gfxDriver->GetSurfaceSize());
+#endif
     graph.Compile();
     globalShaderResoruce.GetShaderResource()->SetTexture(
         "vtCache",
