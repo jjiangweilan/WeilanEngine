@@ -119,8 +119,9 @@ private:
         return [](lua_State* L) -> int
         {
             T** ptr = (T**)lua_touserdata(
-                L, 1); // maybe we can wrap the name in a class' template arg which can make this lambda a c comptiable
-                       // function, so that we can test the data using luaL_checkudata
+                L,
+                1); // maybe we can wrap the name in a class' template arg which can make this lambda a c comptiable
+                    // function, so that we can test the data using luaL_checkudata
             if (ptr != nullptr)
             {
                 std::tuple<typename std::remove_const<typename std::remove_reference<Args>::type>::type...> args;

@@ -2,11 +2,11 @@
 
 namespace Engine::Rendering
 {
-    class RenderDevice
-    {
-        public:
-            RenderDevice();
+class RenderDevice
+{
+public:
+    RenderDevice();
 
-        private:
-    };
-}
+private:
+};
+} // namespace Engine::Rendering

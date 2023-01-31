@@ -2,5 +2,5 @@
 
 namespace Engine::Gfx
 {
-    RefPtr<VKContext> VKContext::context = nullptr;
+RefPtr<VKContext> VKContext::context = nullptr;
 }

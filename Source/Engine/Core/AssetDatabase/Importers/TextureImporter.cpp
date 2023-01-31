@@ -23,8 +23,10 @@ void TextureImporter::Import(const std::filesystem::path& path,
 
     const nlohmann::json* actualConfig;
     nlohmann::json dummy = nlohmann::json::object();
-    if (config.is_object()) actualConfig = &config;
-    else actualConfig = &dummy;
+    if (config.is_object())
+        actualConfig = &config;
+    else
+        actualConfig = &dummy;
     bool genMipMap = actualConfig->value("genMipMap", false);
 
     size_t byteSize;
@@ -33,7 +35,8 @@ void TextureImporter::Import(const std::filesystem::path& path,
     int width, height, channels, desiredChannels;
     stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
 
-    if (desiredChannels == 3) desiredChannels = 4;
+    if (desiredChannels == 3)
+        desiredChannels = 4;
 
     stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
 
@@ -68,14 +71,16 @@ UniPtr<AssetObject> TextureImporter::Load(const std::filesystem::path& root,
     auto infoJson = nlohmann::json::parse(inInfo);
 
     auto input = root / "Library" / uuid.ToString() / infoJson.value("name", "???");
-    if (!std::filesystem::exists(input)) return nullptr;
+    if (!std::filesystem::exists(input))
+        return nullptr;
 
     size_t byteSize;
     UniPtr<char> data = ReadBinary(input, &byteSize);
     const stbi_uc* imageData = (const stbi_uc*)data.Get();
     int width, height, channels, desiredChannels;
     stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
-    if (desiredChannels == 3) desiredChannels = 4;
+    if (desiredChannels == 3)
+        desiredChannels = 4;
 
     stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
     bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);

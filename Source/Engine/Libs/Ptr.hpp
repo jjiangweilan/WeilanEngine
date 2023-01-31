@@ -108,7 +108,8 @@ template <class T>
 template <class U>
 UniPtr<T>& UniPtr<T>::operator=(UniPtr<U>&& other)
 {
-    if (ptr != nullptr) delete ptr;
+    if (ptr != nullptr)
+        delete ptr;
     ptr = std::exchange(other.ptr, nullptr);
     return *this;
 }
@@ -116,7 +117,8 @@ UniPtr<T>& UniPtr<T>::operator=(UniPtr<U>&& other)
 template <class T>
 UniPtr<T>& UniPtr<T>::operator=(UniPtr<T>&& other)
 {
-    if (ptr != nullptr) delete ptr;
+    if (ptr != nullptr)
+        delete ptr;
     ptr = std::exchange(other.ptr, nullptr);
     return *this;
 }

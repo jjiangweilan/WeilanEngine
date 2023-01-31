@@ -3,6 +3,6 @@
 
 namespace Engine::Gfx::ShaderInfo::Utils
 {
-    VkDescriptorType MapBindingType(BindingType type);
-    VkShaderStageFlags MapShaderStage(ShaderStageFlags stages);
-}
+VkDescriptorType MapBindingType(BindingType type);
+VkShaderStageFlags MapShaderStage(ShaderStageFlags stages);
+} // namespace Engine::Gfx::ShaderInfo::Utils

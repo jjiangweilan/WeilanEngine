@@ -3,42 +3,42 @@
 
 namespace Engine::Editor
 {
-    EditorRegister::EditorRegister() {}
+EditorRegister::EditorRegister() {}
 
-    RefPtr<EditorRegister> EditorRegister::Instance()
+RefPtr<EditorRegister> EditorRegister::Instance()
+{
+    if (instance == nullptr)
     {
-        if (instance == nullptr)
-        {
-            instance = new EditorRegister();
-        }
-        return instance;
+        instance = new EditorRegister();
     }
-
-    UniPtr<CustomExplorer> EditorRegister::GetCustomExplorer(RefPtr<Object> object)
-    {
-        auto iter = customExplorers.find(object->GetTypeInfo());
-        if (iter != customExplorers.end())
-        {
-            return iter->second(object);
-        }
-
-        return nullptr;
-    }
-
-    UniPtr<Inspector> EditorRegister::GetInspector(RefPtr<Object> object)
-    {
-        auto iter = inspectors.find(object->GetTypeInfo());
-        if (iter != inspectors.end())
-        {
-            return iter->second(object);
-        }
-        else if (dynamic_cast<AssetObject*>(object.Get()))
-        {
-            return inspectors.find(typeid(AssetObject))->second(object);
-        }
-
-        return nullptr;
-    }
-
-    EditorRegister* EditorRegister::instance = nullptr;
+    return instance;
 }
+
+UniPtr<CustomExplorer> EditorRegister::GetCustomExplorer(RefPtr<Object> object)
+{
+    auto iter = customExplorers.find(object->GetTypeInfo());
+    if (iter != customExplorers.end())
+    {
+        return iter->second(object);
+    }
+
+    return nullptr;
+}
+
+UniPtr<Inspector> EditorRegister::GetInspector(RefPtr<Object> object)
+{
+    auto iter = inspectors.find(object->GetTypeInfo());
+    if (iter != inspectors.end())
+    {
+        return iter->second(object);
+    }
+    else if (dynamic_cast<AssetObject*>(object.Get()))
+    {
+        return inspectors.find(typeid(AssetObject))->second(object);
+    }
+
+    return nullptr;
+}
+
+EditorRegister* EditorRegister::instance = nullptr;
+} // namespace Engine::Editor

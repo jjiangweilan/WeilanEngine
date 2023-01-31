@@ -22,7 +22,8 @@ public:
         int w, h, channels;
         stbi_uc* data = stbi_load(srcImage.string().c_str(), &w, &h, &channels, desiredChannels);
 
-        if (w % pageExtent != 0 || h % pageExtent != 0) return;
+        if (w % pageExtent != 0 || h % pageExtent != 0)
+            return;
 
         int pageXCount = std::ceil(w / (float)pageExtent);
         int pageYCount = std::ceil(h / (float)pageExtent);

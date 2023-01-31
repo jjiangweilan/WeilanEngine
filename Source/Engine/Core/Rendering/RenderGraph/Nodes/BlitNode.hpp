@@ -24,7 +24,8 @@ public:
                                  {
                                      node->srcImageOut->SetResource(other->GetResource());
                                  }
-                                 else node->srcImageOut->RemoveResource(other->GetResource());
+                                 else
+                                     node->srcImageOut->RemoveResource(other->GetResource());
                              });
         dstImageIn = AddPort("ImageDst",
                              Port::Type::Input,
@@ -38,7 +39,8 @@ public:
                                  {
                                      node->dstImageOut->SetResource(other->GetResource());
                                  }
-                                 else node->dstImageOut->RemoveResource(other->GetResource());
+                                 else
+                                     node->dstImageOut->RemoveResource(other->GetResource());
                              });
     }
 

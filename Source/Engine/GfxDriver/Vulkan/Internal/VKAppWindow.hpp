@@ -7,7 +7,6 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-
 namespace Engine::Gfx
 {
 class VKAppWindow

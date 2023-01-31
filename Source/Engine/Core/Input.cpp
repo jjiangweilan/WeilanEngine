@@ -2,15 +2,15 @@
 
 namespace Engine
 {
-    RefPtr<Input> Input::Instance()
+RefPtr<Input> Input::Instance()
+{
+    if (instance == nullptr)
     {
-        if (instance == nullptr)
-        {
-            instance = MakeUnique<Input>();
-        }
-
-        return instance;
+        instance = MakeUnique<Input>();
     }
 
-    UniPtr<Input> Input::instance = nullptr;
+    return instance;
 }
+
+UniPtr<Input> Input::instance = nullptr;
+} // namespace Engine

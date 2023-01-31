@@ -34,7 +34,8 @@ public:
 
     bool IsType(const std::type_info& type)
     {
-        if (typeInfo) return type == *typeInfo;
+        if (typeInfo)
+            return type == *typeInfo;
         return false;
     };
     void* GetVal() { return val; }
@@ -69,12 +70,17 @@ public:
 
     using ConnectionCallBack = std::function<void(Node* node, Port* port, ConnectionType type)>;
 
-    Port(Node* parent, const char* name, Type type, const std::type_info& resourceType, bool isMultiPort = false,
+    Port(Node* parent,
+         const char* name,
+         Type type,
+         const std::type_info& resourceType,
+         bool isMultiPort = false,
          ConnectionCallBack connectionCallback = nullptr)
         : parent(parent), resourceRefs(), type(type), resourceType(resourceType), name(name), isMultiPort(isMultiPort),
           connectionCallback(connectionCallback)
     {
-        if (type == Type::Output) assert(isMultiPort == false);
+        if (type == Type::Output)
+            assert(isMultiPort == false);
     }
     virtual ~Port() {}
 
@@ -102,7 +108,8 @@ public:
     {
         assert(!isMultiPort);
 
-        if (!resourceRefs.empty()) return resourceRefs[0]->GetVal();
+        if (!resourceRefs.empty())
+            return resourceRefs[0]->GetVal();
         return nullptr;
     }
 
@@ -131,8 +138,10 @@ public:
             return;
         }
 
-        if (resourceRefs.empty()) this->resourceRefs.push_back(resource);
-        else this->resourceRefs[0] = resource;
+        if (resourceRefs.empty())
+            this->resourceRefs.push_back(resource);
+        else
+            this->resourceRefs[0] = resource;
     }
 
     void AddResource(ResourceRef* resource)
@@ -150,7 +159,8 @@ public:
 
     bool CanConnect(Port* port)
     {
-        if (!isMultiPort && !connected.empty()) return false;
+        if (!isMultiPort && !connected.empty())
+            return false;
         return resourceType == port->resourceType;
     }
     bool IsMultiPort() { return isMultiPort; }

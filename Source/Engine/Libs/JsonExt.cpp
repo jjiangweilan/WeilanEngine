@@ -1,6 +1,6 @@
 // namespace glm
 // {
-//     void to_json(nlohmann::json& j, const glm::mat4& v) 
+//     void to_json(nlohmann::json& j, const glm::mat4& v)
 //     {
 //         j[0][0] = v[0][0];
 //         j[0][1] = v[0][1];
@@ -23,7 +23,7 @@
 //         j[3][3] = v[3][3];
 //     }
 
-//     void from_json(const nlohmann::json& j, glm::mat4& v) 
+//     void from_json(const nlohmann::json& j, glm::mat4& v)
 //     {
 //         v[0][0] = j[0][0];
 //         v[0][1] = j[0][1];

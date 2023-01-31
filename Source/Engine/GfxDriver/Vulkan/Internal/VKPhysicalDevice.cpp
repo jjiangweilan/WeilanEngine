@@ -52,7 +52,8 @@ std::vector<VKPhysicalDevice> VKPhysicalDevice::GetAllPhysicalDevices(VKInstance
         physicalDevices.emplace_back(vulkanPhysicalDevice, surface);
     }
 
-    if (physicalDevices.size() == 0) throw std::runtime_error("No physical device found!");
+    if (physicalDevices.size() == 0)
+        throw std::runtime_error("No physical device found!");
 
     return physicalDevices;
 }
@@ -69,7 +70,8 @@ VKPhysicalDevice VKPhysicalDevice::SelectGPUAndQueryDataForSurface(VKInstance& i
             requiredExtensions.erase(extension.extensionName);
         }
 
-        if (!requiredExtensions.empty()) continue; // early skip if this device is not suitable
+        if (!requiredExtensions.empty())
+            continue; // early skip if this device is not suitable
 
         // Check required device features
         if (!true) // no required feature yet

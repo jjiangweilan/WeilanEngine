@@ -129,7 +129,8 @@ void GameEditor::Tick()
     {
         bool open = true;
         projectWindow->Tick(open);
-        if (!open) projectWindow = nullptr;
+        if (!open)
+            projectWindow = nullptr;
     }
 
     ImGui::EndFrame();

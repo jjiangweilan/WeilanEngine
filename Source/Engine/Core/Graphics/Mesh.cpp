@@ -1,7 +1,7 @@
 #include "Mesh.hpp"
-#include "Libs/Utils.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Libs/Utils.hpp"
 #include "Rendering/GfxResourceTransfer.hpp"
 
 using namespace Engine::Internal;
@@ -46,9 +46,12 @@ Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const
     };
     GetGfxResourceTransfer()->Transfer(indexBuffer, request1);
 
-    if (vertexDescription.index.dataByteSize == 2) indexBufferType = IndexBufferType::UInt16;
-    else if (vertexDescription.index.dataByteSize == 4) indexBufferType = IndexBufferType::UInt32;
-    else assert(0);
+    if (vertexDescription.index.dataByteSize == 2)
+        indexBufferType = IndexBufferType::UInt16;
+    else if (vertexDescription.index.dataByteSize == 4)
+        indexBufferType = IndexBufferType::UInt32;
+    else
+        assert(0);
 
     // update mesh binding
     UpdateMeshBindingInfo(ranges);

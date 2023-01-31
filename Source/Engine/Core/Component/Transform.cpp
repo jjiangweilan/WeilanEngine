@@ -27,7 +27,8 @@ const std::vector<RefPtr<Transform>>& Transform::GetChildren() { return children
 
 void Transform::SetParent(RefPtr<Transform> parent)
 {
-    if (this->parent == parent) return;
+    if (this->parent == parent)
+        return;
 
     if (parent == nullptr)
     {

@@ -84,13 +84,15 @@ void WeilanEngine::Launch()
 
         // update
         auto activeGameScene = GameSceneManager::Instance()->GetActiveGameScene();
-        if (activeGameScene) activeGameScene->Tick();
+        if (activeGameScene)
+            activeGameScene->Tick();
 #if GAME_EDITOR
         gameEditor->Tick();
 #endif
 
         // rendering
-        if (activeGameScene) renderPipeline->Render(activeGameScene);
+        if (activeGameScene)
+            renderPipeline->Render(activeGameScene);
 
         AssetDatabase::Instance()->EndOfFrameUpdate();
     }

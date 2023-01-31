@@ -2,9 +2,9 @@
 
 namespace Engine::Gfx
 {
-    class ShaderModule
-    {
-        public:
-        private:
-    };
-}
+class ShaderModule
+{
+public:
+private:
+};
+} // namespace Engine::Gfx

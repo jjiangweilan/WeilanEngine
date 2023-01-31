@@ -5,19 +5,20 @@
 #include "Libs/Ptr.hpp"
 namespace Engine::Editor
 {
-    class InspectorWindow
+class InspectorWindow
+{
+public:
+    InspectorWindow(RefPtr<EditorContext> editorContext);
+    void Tick();
+
+private:
+    RefPtr<EditorContext> editorContext;
+    enum class InspectorType
     {
-        public:
-            InspectorWindow(RefPtr<EditorContext> editorContext);
-            void Tick();
-        
-        private:
-            RefPtr<EditorContext> editorContext;
-            enum class InspectorType
-            {
-                Object, Import
-            } type;
-            bool isFocused = false;
-            nlohmann::json importConfig;
-    };
-}
+        Object,
+        Import
+    } type;
+    bool isFocused = false;
+    nlohmann::json importConfig;
+};
+} // namespace Engine::Editor

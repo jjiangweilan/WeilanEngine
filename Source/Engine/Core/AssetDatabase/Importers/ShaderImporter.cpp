@@ -67,7 +67,8 @@ public:
         {
             return new shaderc_include_result{"", 0, "Can't find requested shader file."};
         }
-        if (includedFiles) includedFiles->insert(std::filesystem::absolute(relativePath));
+        if (includedFiles)
+            includedFiles->insert(std::filesystem::absolute(relativePath));
 
         FileData* fileData = new FileData();
         fileData->sourceName = std::string(requested_source);
@@ -85,7 +86,8 @@ public:
     // Handles shaderc_include_result_release_fn callbacks.
     virtual void ReleaseInclude(shaderc_include_result* data) override
     {
-        if (data->user_data != nullptr) delete (FileData*)data->user_data;
+        if (data->user_data != nullptr)
+            delete (FileData*)data->user_data;
         delete data;
     }
 
@@ -168,7 +170,8 @@ static ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name)
             uint32_t i = 0;
             for (const ryml::NodeRef& iter : root["blendOp"])
             {
-                if (i >= config.color.blends.size()) break;
+                if (i >= config.color.blends.size())
+                    break;
 
                 std::regex alphaOnly("(\\w+)");
                 std::regex withColor("(\\w+)\\s+(\\w+)");
@@ -262,9 +265,11 @@ bool ShaderImporter::NeedReimport(const std::filesystem::path& path,
 {
     auto outputDir = root / "Library" / uuid.ToString();
 
-    if (!std::filesystem::exists(outputDir)) return true;
+    if (!std::filesystem::exists(outputDir))
+        return true;
 
-    if (GetLastWriteTime(outputDir / YAML_FileName) < GetLastWriteTime(path)) return true;
+    if (GetLastWriteTime(outputDir / YAML_FileName) < GetLastWriteTime(path))
+        return true;
 
     std::ifstream dep(outputDir / DEP_FileName, std::ios::in);
     nlohmann::json depJ = nlohmann::json::parse(dep);
@@ -274,7 +279,8 @@ bool ShaderImporter::NeedReimport(const std::filesystem::path& path,
         std::filesystem::path path = p.value<std::string>("path", "");
         std::time_t lastWriteTime = p.value<std::time_t>("lastWriteTime", 0);
         std::time_t currWriteTime = GetLastWriteTime(path);
-        if (!std::filesystem::exists(path) || (currWriteTime > lastWriteTime)) return true;
+        if (!std::filesystem::exists(path) || (currWriteTime > lastWriteTime))
+            return true;
     }
 
     return false;
@@ -286,7 +292,8 @@ void ShaderImporter::Import(const std::filesystem::path& path,
                             const UUID& rootUUID,
                             const std::unordered_map<std::string, UUID>& containedUUIDs)
 {
-    if (!std::filesystem::exists(path)) return;
+    if (!std::filesystem::exists(path))
+        return;
 
     auto outputDir = root / "Library" / rootUUID.ToString();
     bool debug = true;
@@ -298,7 +305,8 @@ void ShaderImporter::Import(const std::filesystem::path& path,
     // Config
     std::fstream f;
     f.open(path, std::ios::in | std::ios::binary);
-    if (!f.is_open() || !f.good()) return;
+    if (!f.is_open() || !f.good())
+        return;
 
     f.seekg(0, std::ios::end);
     size_t fSize = std::filesystem::file_size(path);
@@ -322,7 +330,8 @@ void ShaderImporter::Import(const std::filesystem::path& path,
                 {
                     yamlConfig << line << '\n';
                 }
-                else goto yamlEnd;
+                else
+                    goto yamlEnd;
             }
         }
     }
@@ -421,7 +430,8 @@ void CompileShader(const std::filesystem::path& path,
         // read file
         std::fstream f;
         f.open(path, std::ios::in | std::ios::binary);
-        if (!f.is_open() || !f.good()) return;
+        if (!f.is_open() || !f.good())
+            return;
 
         f.seekg(0, std::ios::end);
         size_t fSize = std::filesystem::file_size(path);

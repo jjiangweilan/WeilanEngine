@@ -23,16 +23,19 @@ public:
 
     virtual void Import(const std::filesystem::path& path,
                         const std::filesystem::path& root, // root path of the project
-                        const nlohmann::json& config, const UUID& rootUUID,
+                        const nlohmann::json& config,
+                        const UUID& rootUUID,
                         const std::unordered_map<std::string, UUID>& containedUUIDs) = 0;
 
-    virtual UniPtr<AssetObject> Load(const std::filesystem::path& root, ReferenceResolver& refResolver,
+    virtual UniPtr<AssetObject> Load(const std::filesystem::path& root,
+                                     ReferenceResolver& refResolver,
                                      const UUID& uuid) = 0;
 
     virtual bool NeedReimport(const std::filesystem::path& path, const std::filesystem::path& root, const UUID& uuid)
     {
         auto outputDir = root / "Library" / uuid.ToString();
-        if (!std::filesystem::exists(outputDir)) return true;
+        if (!std::filesystem::exists(outputDir))
+            return true;
 
         return false;
     };

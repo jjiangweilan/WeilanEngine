@@ -66,10 +66,14 @@ public:
 
                         bool left = w % 2 == 0;
                         bool top = h % 2 == 0;
-                        if (left && top) parent->c00 = &currNode;
-                        else if (left && !top) parent->c01 = &currNode;
-                        else if (!left && top) parent->c10 = &currNode;
-                        else if (!left && !top) parent->c11 = &currNode;
+                        if (left && top)
+                            parent->c00 = &currNode;
+                        else if (left && !top)
+                            parent->c01 = &currNode;
+                        else if (!left && top)
+                            parent->c10 = &currNode;
+                        else if (!left && !top)
+                            parent->c11 = &currNode;
                     }
 
                     index += 1;

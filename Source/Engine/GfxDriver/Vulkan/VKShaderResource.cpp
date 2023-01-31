@@ -37,7 +37,8 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
     {
         pushConstantSize += ps.second.data.size;
     }
-    if (pushConstantSize != 0) pushConstantBuffer = new unsigned char[pushConstantSize];
+    if (pushConstantSize != 0)
+        pushConstantBuffer = new unsigned char[pushConstantSize];
 
     // create resources and write it to descriptor set
     VkWriteDescriptorSet writes[64];
@@ -129,7 +130,8 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
 
 VKShaderResource::~VKShaderResource()
 {
-    if (pushConstantBuffer != nullptr) delete pushConstantBuffer;
+    if (pushConstantBuffer != nullptr)
+        delete pushConstantBuffer;
     descriptorPool->Free(descriptorSet);
 }
 
@@ -169,7 +171,8 @@ RefPtr<Buffer> VKShaderResource::GetBuffer(const std::string& object, BufferMemb
 
     // get buffer
     auto bufIter = uniformBuffers.find(binding.name);
-    if (bufIter == uniformBuffers.end()) return nullptr;
+    if (bufIter == uniformBuffers.end())
+        return nullptr;
 
     // write to buffer
     auto& mems = binding.binding.ubo.data.members;

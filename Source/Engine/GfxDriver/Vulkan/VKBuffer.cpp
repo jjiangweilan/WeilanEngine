@@ -11,15 +11,24 @@ static int b = 0;
 VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 {
     VkBufferUsageFlags usage = 0;
-    if (HasFlag(usageIn, BufferUsage::Transfer_Dst)) usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    if (HasFlag(usageIn, BufferUsage::Transfer_Src)) usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    if (HasFlag(usageIn, BufferUsage::Uniform_Texel)) usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Storage_Texel)) usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Uniform)) usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Storage)) usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Index)) usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Vertex)) usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    if (HasFlag(usageIn, BufferUsage::Indirect)) usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Transfer_Dst))
+        usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    if (HasFlag(usageIn, BufferUsage::Transfer_Src))
+        usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    if (HasFlag(usageIn, BufferUsage::Uniform_Texel))
+        usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Storage_Texel))
+        usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Uniform))
+        usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Storage))
+        usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Index))
+        usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Vertex))
+        usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    if (HasFlag(usageIn, BufferUsage::Indirect))
+        usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
     return usage;
 }
@@ -77,7 +86,8 @@ void VKBuffer::SetDebugName(const char* name)
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_BUFFER, (uint64_t)buffer, name);
 }
 
-void VKBuffer::FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask,
+void VKBuffer::FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& barriers,
+                                         VkPipelineStageFlags stageMask,
                                          VkAccessFlags accessMask)
 {
     if (this->stageMask != stageMask || this->accessMask != accessMask)
@@ -99,7 +109,8 @@ void VKBuffer::FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& bar
     }
 }
 
-void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask,
+void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf,
+                                        VkPipelineStageFlags stageMask,
                                         VkAccessFlags accessMask)
 {
     if (this->stageMask != stageMask || this->accessMask != accessMask)
@@ -132,7 +143,8 @@ void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageF
 
 VKBuffer::~VKBuffer()
 {
-    if (buffer != VK_NULL_HANDLE) allocator->DestroyBuffer(buffer, allocation);
+    if (buffer != VK_NULL_HANDLE)
+        allocator->DestroyBuffer(buffer, allocation);
 }
 
 void* VKBuffer::GetCPUVisibleAddress() { return allocationInfo.pMappedData; }

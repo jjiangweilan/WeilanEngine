@@ -1,25 +1,25 @@
 #pragma once
 #include "Libs/UUID.hpp"
-#include <nlohmann/json.hpp>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 
 namespace Engine
 {
-    class AssetImportCache
+class AssetImportCache
+{
+public:
+    struct CacheData
     {
-        public:
-
-            struct CacheData
-            {
-                nlohmann::json importConfig;
-                unsigned char* data;
-            };
-
-            AssetImportCache(const std::filesystem::path& root) : root(root) {};
-            CacheData GetCache(const UUID& uuid);
-            void WriteCacheData(const UUID& uuid, CacheData cacheData);
-        private:
-            const std::filesystem::path root;
-            nlohmann::json importInfo;
+        nlohmann::json importConfig;
+        unsigned char* data;
     };
-}
+
+    AssetImportCache(const std::filesystem::path& root) : root(root){};
+    CacheData GetCache(const UUID& uuid);
+    void WriteCacheData(const UUID& uuid, CacheData cacheData);
+
+private:
+    const std::filesystem::path root;
+    nlohmann::json importInfo;
+};
+} // namespace Engine

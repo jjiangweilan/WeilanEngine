@@ -17,7 +17,8 @@ RenderPassNode::RenderPassNode()
                               {
                                   node->depthPortOut->SetResource(node->depthPortIn->GetResource());
                               }
-                              else node->depthPortOut->RemoveResource(node->depthPortIn->GetResource());
+                              else
+                                  node->depthPortOut->RemoveResource(node->depthPortIn->GetResource());
                           });
     depthPortOut = AddPort("Depth", Port::Type::Output, typeid(Gfx::Image));
     dependentAttachmentIn = AddPort("dependent attachment", Port::Type::Input, typeid(Gfx::Image), true);
@@ -57,12 +58,15 @@ bool RenderPassNode::Compile(ResourceStateTrack& stateTrack)
 
     for (auto& c : colorPortsIn)
     {
-        if (c->GetResource()) colorCount += 1;
+        if (c->GetResource())
+            colorCount += 1;
     }
-    if (depthPortIn->GetResource()) hasDepth = 1;
+    if (depthPortIn->GetResource())
+        hasDepth = 1;
 
     // at least one attachment is needed
-    if (colorCount + hasDepth == 0) return false;
+    if (colorCount + hasDepth == 0)
+        return false;
 
     colorAttachments.resize(colorCount);
     assert(colorAttachmentOps.size() == colorCount); // this is required for the following code path
@@ -90,7 +94,8 @@ bool RenderPassNode::Compile(ResourceStateTrack& stateTrack)
         depthAttachmentOp.FillAttachment(*depthAttachment);
         depthPortOut->SetResource(depthPortIn->GetResource());
     }
-    else depthAttachment = std::nullopt;
+    else
+        depthAttachment = std::nullopt;
 
     renderPass->AddSubpass(colorAttachments, depthAttachment);
 
@@ -104,7 +109,8 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
     ResourceRef* depthRes = depthPortIn->GetConnectedPort()->GetResource();
 
     // render pass need a color attachment
-    if (!color0Res) return false;
+    if (!color0Res)
+        return false;
 
     std::vector<GPUBarrier> barriers;
 
@@ -261,7 +267,8 @@ void RenderPassNode::SetColorCount(uint32_t count)
 {
     uint32_t val = count;
     uint32_t oldVal = colorPortsIn.size();
-    if (val > 8) return;
+    if (val > 8)
+        return;
     if (val > oldVal)
     {
         for (int i = oldVal; i < val; ++i)
@@ -278,7 +285,8 @@ void RenderPassNode::SetColorCount(uint32_t count)
                             {
                                 node->colorPortsOut.back()->SetResource(node->colorPortsIn.back()->GetResource());
                             }
-                            else node->colorPortsOut.back()->RemoveResource(node->colorPortsIn.back()->GetResource());
+                            else
+                                node->colorPortsOut.back()->RemoveResource(node->colorPortsIn.back()->GetResource());
                         }));
             colorPortsOut.push_back(AddPort("Color", Port::Type::Output, typeid(Gfx::Image)));
         }

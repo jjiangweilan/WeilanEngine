@@ -3,18 +3,18 @@
 
 namespace Engine::Rendering
 {
-    // Global shader resource that matches the layout of the first descriptor set in the shader
-    class GlobalShaderResource
+// Global shader resource that matches the layout of the first descriptor set in the shader
+class GlobalShaderResource
+{
+public:
+    struct ShaderInternalLayout
     {
-        public:
-            struct ShaderInternalLayout
-            {
-                glm::mat4 view;
-                glm::mat4 projection;
-                glm::mat4 viewProjection;
-                glm::vec3 viewPos;
-            };
-
-        private:
+        glm::mat4 view;
+        glm::mat4 projection;
+        glm::mat4 viewProjection;
+        glm::vec3 viewPos;
     };
-}
+
+private:
+};
+} // namespace Engine::Rendering

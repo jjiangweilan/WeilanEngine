@@ -1,11 +1,11 @@
 #pragma once
-#include "Libs/Ptr.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/CommandPool.hpp"
 #include "GfxDriver/Fence.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Image.hpp"
+#include "Libs/Ptr.hpp"
 #include <functional>
 #include <vector>
 
@@ -34,7 +34,8 @@ public:
         Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
         auto buffer = shaderResource->GetBuffer(param, memberInfo);
         auto memberInfoIter = memberInfo.find(member);
-        if (memberInfoIter == memberInfo.end()) return;
+        if (memberInfoIter == memberInfo.end())
+            return;
 
         Internal::GfxResourceTransfer::BufferTransferRequest request{
             .data = value,

@@ -253,7 +253,8 @@ void GameEditorRenderer::Render()
             {
                 clip_max.y = (float)fbHeight;
             }
-            if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
+            if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
+                continue;
 
             // apply scissor/clipping rectangle
             Rect2D scissor;

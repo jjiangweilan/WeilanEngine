@@ -54,7 +54,8 @@ VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
     : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {
     bool vertInterleaved = true;
-    if (config != nullptr) vertInterleaved = config->vertexInterleaved;
+    if (config != nullptr)
+        vertInterleaved = config->vertexInterleaved;
 
     vertShaderModule =
         MakeUnique<VKShaderModule>(name,
@@ -134,8 +135,10 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     pipelineLayoutCreateInfo.flags = 0;
 
     std::vector<RefPtr<VKShaderModule>> modules;
-    if (vertShaderModule != nullptr) modules.push_back(vertShaderModule);
-    if (fragShaderModule != nullptr) modules.push_back(fragShaderModule);
+    if (vertShaderModule != nullptr)
+        modules.push_back(vertShaderModule);
+    if (fragShaderModule != nullptr)
+        modules.push_back(fragShaderModule);
 
     // we use fixed amount of descriptor set. They are grouped by update frequency
     pipelineLayoutCreateInfo.setLayoutCount = Descriptor_Set_Count;
@@ -189,7 +192,8 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
 {
     for (auto& cache : caches)
     {
-        if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass) return cache.pipeline;
+        if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass)
+            return cache.pipeline;
     }
 
     VkGraphicsPipelineCreateInfo createInfo;

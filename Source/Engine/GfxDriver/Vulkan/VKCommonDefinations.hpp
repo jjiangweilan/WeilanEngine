@@ -2,9 +2,9 @@
 
 namespace Engine::Gfx
 {
-    enum class VKCommandUsage
-    {
-        Rendering,
-        Transient
-    };
+enum class VKCommandUsage
+{
+    Rendering,
+    Transient
+};
 }

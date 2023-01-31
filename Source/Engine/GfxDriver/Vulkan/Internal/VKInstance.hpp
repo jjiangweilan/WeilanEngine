@@ -1,26 +1,31 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include <vector>
+#include <vulkan/vulkan.h>
 namespace Engine::Gfx
 {
-    class VKInstance
-    {
-    public:
-        VKInstance(const std::vector<const char*>& requiredExtension);
-        ~VKInstance();
-        VkInstance GetHandle() { return vulkanInstance; }
+class VKInstance
+{
+public:
+    VKInstance(const std::vector<const char*>& requiredExtension);
+    ~VKInstance();
+    VkInstance GetHandle() { return vulkanInstance; }
 
-    private:
+private:
+    VkInstance vulkanInstance;
+    VkDebugUtilsMessengerEXT debugMessenger;
 
-        VkInstance vulkanInstance;
-        VkDebugUtilsMessengerEXT debugMessenger;
+    bool CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
 
-        bool CheckAvalibilityOfValidationLayers(const std::vector<const char *> &validationLayers);
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        void* pUserData);
+    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+                                          const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                          const VkAllocationCallbacks* pAllocator,
+                                          VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-        static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
-        VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo, const VkAllocationCallbacks *pAllocator, VkDebugUtilsMessengerEXT *pDebugMessenger);
+    class GfxContext;
+};
 
-        class GfxContext;
-    };
-
-}
+} // namespace Engine::Gfx

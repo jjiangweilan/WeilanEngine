@@ -2,5 +2,5 @@
 
 namespace Engine::Gfx
 {
-    RefPtr<ShaderLoader> ShaderLoader::singleton = nullptr;
+RefPtr<ShaderLoader> ShaderLoader::singleton = nullptr;
 }

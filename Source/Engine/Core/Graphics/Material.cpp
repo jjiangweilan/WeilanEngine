@@ -150,7 +150,8 @@ void Material::SetShaderNoProtection(std::string_view shaderName)
     }
 }
 
-void Material::DeserializeInternal(const std::string& nameChain, AssetSerializer& serializer,
+void Material::DeserializeInternal(const std::string& nameChain,
+                                   AssetSerializer& serializer,
                                    ReferenceResolver& refResolver)
 {
     AssetObject::DeserializeInternal(nameChain, serializer, refResolver);
@@ -163,7 +164,8 @@ void Material::DeserializeInternal(const std::string& nameChain, AssetSerializer
 
 void Material::UpdateResources()
 {
-    if (shaderResource == nullptr) return;
+    if (shaderResource == nullptr)
+        return;
     for (auto& v : floatValues)
     {
         auto dotIndex = v.first.find_first_of('.');
@@ -195,7 +197,8 @@ void Material::UpdateResources()
     // That's why we check the existence of the "second"
     for (auto& v : textureValues)
     {
-        if (v.second != nullptr) shaderResource->SetTexture(v.first, v.second->GetGfxImage());
+        if (v.second != nullptr)
+            shaderResource->SetTexture(v.first, v.second->GetGfxImage());
     }
 }
 } // namespace Engine

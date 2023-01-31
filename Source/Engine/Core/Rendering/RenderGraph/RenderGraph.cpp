@@ -9,12 +9,14 @@ bool RenderGraph::Compile()
     ResourceStateTrack stateTrack;
     for (auto& n : nodes)
     {
-        if (n->Preprocess(stateTrack) == false) return false;
+        if (n->Preprocess(stateTrack) == false)
+            return false;
     }
 
     for (auto& n : nodes)
     {
-        if (n->Compile(stateTrack) == false) return false;
+        if (n->Compile(stateTrack) == false)
+            return false;
     }
 
     return true;
@@ -24,7 +26,8 @@ bool RenderGraph::Execute(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& sta
     // handle memory depenednecy before the node is executed
     for (auto& n : nodes)
     {
-        if (n->Execute(cmdBuf, stateTrack) == false) return false;
+        if (n->Execute(cmdBuf, stateTrack) == false)
+            return false;
     }
 
     return true;

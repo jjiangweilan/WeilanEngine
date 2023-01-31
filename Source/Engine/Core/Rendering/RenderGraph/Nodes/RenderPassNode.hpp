@@ -74,14 +74,18 @@ public:
 
     Port* GetPortColorIn(int index)
     {
-        if (index <= colorPortsIn.size()) return colorPortsIn[index];
-        else return nullptr;
+        if (index <= colorPortsIn.size())
+            return colorPortsIn[index];
+        else
+            return nullptr;
     }
 
     Port* GetPortColorOut(int index)
     {
-        if (index <= colorPortsOut.size()) return colorPortsOut[index];
-        else return nullptr;
+        if (index <= colorPortsOut.size())
+            return colorPortsOut[index];
+        else
+            return nullptr;
     }
 
     void SetColorCount(uint32_t count);

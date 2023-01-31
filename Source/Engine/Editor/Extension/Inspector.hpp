@@ -1,19 +1,19 @@
 #pragma once
 
-#include <filesystem>
-#include "Libs/Ptr.hpp"
 #include "Editor/EditorContext.hpp"
+#include "Libs/Ptr.hpp"
+#include <filesystem>
 
 namespace Engine::Editor
 {
-    class Inspector
-    {
-        public:
-            Inspector(RefPtr<AssetObject> target) : target(target){};
-            virtual ~Inspector() {}
-            virtual void Tick(RefPtr<EditorContext> editorContext) = 0;
+class Inspector
+{
+public:
+    Inspector(RefPtr<AssetObject> target) : target(target){};
+    virtual ~Inspector() {}
+    virtual void Tick(RefPtr<EditorContext> editorContext) = 0;
 
-        protected:
-            RefPtr<Object> target;
-    };
-}
+protected:
+    RefPtr<Object> target;
+};
+} // namespace Engine::Editor

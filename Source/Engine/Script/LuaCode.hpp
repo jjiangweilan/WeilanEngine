@@ -3,10 +3,10 @@
 
 namespace Engine
 {
-    class LuaCode : public AssetObject
-    {
+class LuaCode : public AssetObject
+{
 
-        public:
-            LuaCode(const UUID& uuid = UUID::empty);
-    };
-}
+public:
+    LuaCode(const UUID& uuid = UUID::empty);
+};
+} // namespace Engine

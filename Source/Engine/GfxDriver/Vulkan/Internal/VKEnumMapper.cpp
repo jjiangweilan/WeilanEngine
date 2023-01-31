@@ -176,11 +176,16 @@ VkBlendFactor MapBlendFactor(BlendFactor bf)
 VkImageUsageFlags MapImageUsage(ImageUsageFlags in)
 {
     VkImageUsageFlags flags = 0;
-    if (in & ImageUsage::ColorAttachment) flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    if (in & ImageUsage::DepthStencilAttachment) flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    if (in & ImageUsage::Texture) flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    if (in & ImageUsage::TransferSrc) flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    if (in & ImageUsage::TransferDst) flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (in & ImageUsage::ColorAttachment)
+        flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    if (in & ImageUsage::DepthStencilAttachment)
+        flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    if (in & ImageUsage::Texture)
+        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+    if (in & ImageUsage::TransferSrc)
+        flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    if (in & ImageUsage::TransferDst)
+        flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     return flags;
 }
@@ -362,27 +367,43 @@ VkAccessFlags MapAccessMask(AccessMaskFlags masks)
 
 VkImageLayout MapImageLayout(ImageLayout layout)
 {
-    if (layout == ImageLayout::Undefined) return VK_IMAGE_LAYOUT_UNDEFINED;
-    if (layout == ImageLayout::General) return VK_IMAGE_LAYOUT_GENERAL;
-    if (layout == ImageLayout::Color_Attachment) return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    if (layout == ImageLayout::Depth_Stencil_Attachment) return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    if (layout == ImageLayout::Depth_Stencil_Read_Only) return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Shader_Read_Only) return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Transfer_Src) return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    if (layout == ImageLayout::Transfer_Dst) return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    if (layout == ImageLayout::Preinitialized) return VK_IMAGE_LAYOUT_PREINITIALIZED;
+    if (layout == ImageLayout::Undefined)
+        return VK_IMAGE_LAYOUT_UNDEFINED;
+    if (layout == ImageLayout::General)
+        return VK_IMAGE_LAYOUT_GENERAL;
+    if (layout == ImageLayout::Color_Attachment)
+        return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    if (layout == ImageLayout::Depth_Stencil_Attachment)
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    if (layout == ImageLayout::Depth_Stencil_Read_Only)
+        return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+    if (layout == ImageLayout::Shader_Read_Only)
+        return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    if (layout == ImageLayout::Transfer_Src)
+        return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    if (layout == ImageLayout::Transfer_Dst)
+        return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    if (layout == ImageLayout::Preinitialized)
+        return VK_IMAGE_LAYOUT_PREINITIALIZED;
 
     if (layout == ImageLayout::Depth_Read_Only_Stencil_Attachment)
         return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
     if (layout == ImageLayout::Depth_Attachment_Stencil_Read_Only)
         return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Depth_Attachment) return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    if (layout == ImageLayout::Depth_Read_Only) return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Stencil_Attachment) return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-    if (layout == ImageLayout::Stencil_Read_Only) return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Read_Only) return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-    if (layout == ImageLayout::Attachment) return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-    if (layout == ImageLayout::Present_Src_Khr) return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    if (layout == ImageLayout::Depth_Attachment)
+        return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    if (layout == ImageLayout::Depth_Read_Only)
+        return VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+    if (layout == ImageLayout::Stencil_Attachment)
+        return VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+    if (layout == ImageLayout::Stencil_Read_Only)
+        return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+    if (layout == ImageLayout::Read_Only)
+        return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+    if (layout == ImageLayout::Attachment)
+        return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+    if (layout == ImageLayout::Present_Src_Khr)
+        return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     return VK_IMAGE_LAYOUT_GENERAL;
 }
@@ -391,13 +412,20 @@ ImageAspectFlags MapVKImageAspect(VkImageAspectFlags aspects)
 {
     ImageAspectFlags flags = ImageAspectFlags::None;
 
-    if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) flags |= ImageAspectFlags::Color;
-    if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT) flags |= ImageAspectFlags::Depth;
-    if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) flags |= ImageAspectFlags::Stencil;
-    if (aspects & VK_IMAGE_ASPECT_METADATA_BIT) flags |= ImageAspectFlags::Metadata;
-    if (aspects & VK_IMAGE_ASPECT_PLANE_0_BIT) flags |= ImageAspectFlags::Memory_Plane_0;
-    if (aspects & VK_IMAGE_ASPECT_PLANE_1_BIT) flags |= ImageAspectFlags::Memory_Plane_1;
-    if (aspects & VK_IMAGE_ASPECT_PLANE_2_BIT) flags |= ImageAspectFlags::Memory_Plane_2;
+    if (aspects & VK_IMAGE_ASPECT_COLOR_BIT)
+        flags |= ImageAspectFlags::Color;
+    if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+        flags |= ImageAspectFlags::Depth;
+    if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
+        flags |= ImageAspectFlags::Stencil;
+    if (aspects & VK_IMAGE_ASPECT_METADATA_BIT)
+        flags |= ImageAspectFlags::Metadata;
+    if (aspects & VK_IMAGE_ASPECT_PLANE_0_BIT)
+        flags |= ImageAspectFlags::Memory_Plane_0;
+    if (aspects & VK_IMAGE_ASPECT_PLANE_1_BIT)
+        flags |= ImageAspectFlags::Memory_Plane_1;
+    if (aspects & VK_IMAGE_ASPECT_PLANE_2_BIT)
+        flags |= ImageAspectFlags::Memory_Plane_2;
 
     return flags;
 }

@@ -6,10 +6,10 @@
 
 namespace Engine::Utils
 {
-    std::filesystem::path InternalAssets::GetInternalAssetPath()
-    {
+std::filesystem::path InternalAssets::GetInternalAssetPath()
+{
 #if GAME_EDITOR
-        return Editor::GetSysConfigPath();
+    return Editor::GetSysConfigPath();
 #endif
-    }
 }
+} // namespace Engine::Utils

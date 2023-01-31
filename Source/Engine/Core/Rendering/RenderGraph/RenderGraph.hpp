@@ -33,8 +33,10 @@ public:
     inline NodeProperty<T>& operator=(const T& val)
     {
         T old = this->val;
-        if (onChange && onChange(node, val, old)) this->val = val;
-        else this->val = val;
+        if (onChange && onChange(node, val, old))
+            this->val = val;
+        else
+            this->val = val;
 
         return *this;
     }

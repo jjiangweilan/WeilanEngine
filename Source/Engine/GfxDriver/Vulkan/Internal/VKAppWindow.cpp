@@ -6,14 +6,17 @@ namespace Engine::Gfx
 {
 VKAppWindow::VKAppWindow(Extent2D windowSize) : windowSize(windowSize)
 {
-    if (!SDL_WasInit(SDL_INIT_VIDEO)) SDL_InitSubSystem(SDL_INIT_VIDEO);
+    if (!SDL_WasInit(SDL_INIT_VIDEO))
+        SDL_InitSubSystem(SDL_INIT_VIDEO);
 
     SDL_DisplayMode displayMode;
     // MacOS return points not pixels
     SDL_GetCurrentDisplayMode(0, &displayMode);
 
-    if (windowSize.width > displayMode.w) windowSize.width = displayMode.w * 0.8;
-    if (windowSize.height > displayMode.h) windowSize.height = displayMode.h * 0.8;
+    if (windowSize.width > displayMode.w)
+        windowSize.width = displayMode.w * 0.8;
+    if (windowSize.height > displayMode.h)
+        windowSize.height = displayMode.h * 0.8;
 
     window = SDL_CreateWindow("WeilanGame",
                               SDL_WINDOWPOS_UNDEFINED,

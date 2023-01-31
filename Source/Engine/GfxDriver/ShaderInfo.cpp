@@ -7,14 +7,22 @@ namespace Utils
 {
 ShaderDataType MapShaderDataType(const std::string& typeStr)
 {
-    if (typeStr == "vec4") return ShaderDataType::Vec4;
-    else if (typeStr == "vec3") return ShaderDataType::Vec3;
-    else if (typeStr == "vec2") return ShaderDataType::Vec2;
-    else if (typeStr == "mat4") return ShaderDataType::Mat4;
-    else if (typeStr == "mat3") return ShaderDataType::Mat3;
-    else if (typeStr == "mat2") return ShaderDataType::Mat2;
-    else if (typeStr == "float") return ShaderDataType::Float;
-    else if (typeStr[0] == '_') return ShaderDataType::Structure;
+    if (typeStr == "vec4")
+        return ShaderDataType::Vec4;
+    else if (typeStr == "vec3")
+        return ShaderDataType::Vec3;
+    else if (typeStr == "vec2")
+        return ShaderDataType::Vec2;
+    else if (typeStr == "mat4")
+        return ShaderDataType::Mat4;
+    else if (typeStr == "mat3")
+        return ShaderDataType::Mat3;
+    else if (typeStr == "mat2")
+        return ShaderDataType::Mat2;
+    else if (typeStr == "float")
+        return ShaderDataType::Float;
+    else if (typeStr[0] == '_')
+        return ShaderDataType::Structure;
 
     assert(0 && "Shader Data Type map failed");
     return ShaderDataType::Vec4;
@@ -27,16 +35,25 @@ uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberNam
     uint32_t baseTypeSize = sizeof(float);
     if (lowerName.find("color") != lowerName.npos)
     {
-        if (lowerName.find("16") != lowerName.npos) baseTypeSize = 2;
-        else baseTypeSize = sizeof(char);
+        if (lowerName.find("16") != lowerName.npos)
+            baseTypeSize = 2;
+        else
+            baseTypeSize = sizeof(char);
     }
-    if (typeName == "vec4") return baseTypeSize * 4;
-    else if (typeName == "vec3") return baseTypeSize * 3;
-    else if (typeName == "vec2") return baseTypeSize * 2;
-    else if (typeName == "mat2") return baseTypeSize * 4;
-    else if (typeName == "mat3") return baseTypeSize * 9;
-    else if (typeName == "mat4") return baseTypeSize * 16;
-    else if (typeName == "float") return baseTypeSize;
+    if (typeName == "vec4")
+        return baseTypeSize * 4;
+    else if (typeName == "vec3")
+        return baseTypeSize * 3;
+    else if (typeName == "vec2")
+        return baseTypeSize * 2;
+    else if (typeName == "mat2")
+        return baseTypeSize * 4;
+    else if (typeName == "mat3")
+        return baseTypeSize * 9;
+    else if (typeName == "mat4")
+        return baseTypeSize * 16;
+    else if (typeName == "float")
+        return baseTypeSize;
 
     SPDLOG_ERROR("Failed to map stride");
     return 0;
@@ -153,8 +170,10 @@ void Process(PushConstants& data, ShaderStage::Flag stage, nlohmann::json& pushC
 
 ShaderStage::Flag MapStage(const std::string& str)
 {
-    if (str == "vert") return ShaderStage::Vert;
-    if (str == "frag") return ShaderStage::Frag;
+    if (str == "vert")
+        return ShaderStage::Vert;
+    if (str == "frag")
+        return ShaderStage::Frag;
 
     assert(0 && "Map stage failed");
     return ShaderStage::Vert;
@@ -182,13 +201,19 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
     out.name = sr.at("spvPath");
     assert(sr["entryPoints"].size() == 1);
     out.stage = MapStage(sr["entryPoints"][0]["mode"]);
-    if (sr.contains("inputs")) Process(out.inputs, sr["inputs"], sr);
-    if (sr.contains("outputs")) Process(out.outputs, sr["outputs"], sr);
+    if (sr.contains("inputs"))
+        Process(out.inputs, sr["inputs"], sr);
+    if (sr.contains("outputs"))
+        Process(out.outputs, sr["outputs"], sr);
 
-    if (sr.contains("push_constants")) Process(out.pushConstants, out.stage, sr["push_constants"], sr);
-    if (sr.contains("ubos")) Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr);
-    if (sr.contains("ssbos")) Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr);
-    if (sr.contains("textures")) Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr);
+    if (sr.contains("push_constants"))
+        Process(out.pushConstants, out.stage, sr["push_constants"], sr);
+    if (sr.contains("ubos"))
+        Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr);
+    if (sr.contains("ssbos"))
+        Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr);
+    if (sr.contains("textures"))
+        Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr);
     if (sr.contains("separate_images"))
         Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr);
     if (sr.contains("separate_samplers"))

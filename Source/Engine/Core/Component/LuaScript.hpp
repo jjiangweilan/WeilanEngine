@@ -4,28 +4,28 @@
 
 namespace Engine
 {
-    class LuaScript : public Component
-    {
-        DECLARE_COMPONENT(LuaScript);
-        public:
+class LuaScript : public Component
+{
+    DECLARE_COMPONENT(LuaScript);
 
-        LuaScript();
-        LuaScript(GameObject* gameObject);
+public:
+    LuaScript();
+    LuaScript(GameObject* gameObject);
 
-        const std::string& GetLuaClass() {return luaClassName;}
-        void RefLuaClass(const char* luaClass);
-        void Construct();
-        void Destruct();
-        void Tick() override;
+    const std::string& GetLuaClass() { return luaClassName; }
+    void RefLuaClass(const char* luaClass);
+    void Construct();
+    void Destruct();
+    void Tick() override;
 
-        private:
-            std::string luaClassName;
+private:
+    std::string luaClassName;
 
-            using LuaRef = int;
+    using LuaRef = int;
 
-            LuaRef luaRef = LUA_REFNIL;
-            LuaRef luaRefConstruct = LUA_REFNIL;
-            LuaRef luaRefDestruct = LUA_REFNIL;
-            LuaRef luaRefTick = LUA_REFNIL;
-    };
-}
+    LuaRef luaRef = LUA_REFNIL;
+    LuaRef luaRefConstruct = LUA_REFNIL;
+    LuaRef luaRefDestruct = LUA_REFNIL;
+    LuaRef luaRefTick = LUA_REFNIL;
+};
+} // namespace Engine

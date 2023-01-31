@@ -47,7 +47,8 @@ public:
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
     Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
-    void DeserializeInternal(const std::string& nameChain, AssetSerializer& serializer,
+    void DeserializeInternal(const std::string& nameChain,
+                             AssetSerializer& serializer,
                              ReferenceResolver& refResolver) override;
 
 private:

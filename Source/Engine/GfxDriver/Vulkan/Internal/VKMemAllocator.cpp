@@ -9,7 +9,9 @@
 
 namespace Engine::Gfx
 {
-VKMemAllocator::VKMemAllocator(VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice,
+VKMemAllocator::VKMemAllocator(VkInstance instance,
+                               RefPtr<VKDevice> device,
+                               VkPhysicalDevice physicalDevice,
                                uint32_t transferQueueIndex)
     : device(device), queueFamilyIndex(transferQueueIndex)
 {
@@ -25,14 +27,19 @@ VKMemAllocator::VKMemAllocator(VkInstance instance, RefPtr<VKDevice> device, VkP
 
 VKMemAllocator::~VKMemAllocator() { vmaDestroyAllocator(allocator_vma); }
 
-void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo, VmaAllocationCreateInfo& allocationCreateInfo,
-                                  VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo)
+void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo,
+                                  VmaAllocationCreateInfo& allocationCreateInfo,
+                                  VkBuffer& buffer,
+                                  VmaAllocation& allocation,
+                                  VmaAllocationInfo* allocationInfo)
 {
     VK_CHECK(
         vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo));
 }
 
-void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo, VkBuffer& buffer, VmaAllocation& allocation,
+void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo,
+                                  VkBuffer& buffer,
+                                  VmaAllocation& allocation,
                                   VmaAllocationInfo* allocationInfo)
 {
     VmaAllocationCreateInfo allocationCreateInfo{};
@@ -42,7 +49,9 @@ void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo, VkBuffer
         vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo));
 }
 
-void VKMemAllocator::CreateImage(VkImageCreateInfo& imageCreateInfo, VkImage& image, VmaAllocation& allocation,
+void VKMemAllocator::CreateImage(VkImageCreateInfo& imageCreateInfo,
+                                 VkImage& image,
+                                 VmaAllocation& allocation,
                                  VmaAllocationInfo* allocationInfo)
 {
     VmaAllocationCreateInfo allocationCreateInfo{};

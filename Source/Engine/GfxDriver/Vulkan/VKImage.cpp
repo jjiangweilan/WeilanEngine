@@ -17,7 +17,8 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
     format_vk = MapFormat(imageDescription.format);
 
-    if (imageDescription.data) this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (imageDescription.data)
+        this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     MakeVkObjects();
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
 
@@ -35,7 +36,8 @@ VKImage::VKImage(VKImage&& other)
 
 VKImage::~VKImage()
 {
-    if (imageView_vk != VK_NULL_HANDLE) VKContext::Instance()->objManager->DestroyImageView(imageView_vk);
+    if (imageView_vk != VK_NULL_HANDLE)
+        VKContext::Instance()->objManager->DestroyImageView(imageView_vk);
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
 }
@@ -60,8 +62,10 @@ void VKImage::FillMemoryBarrierIfNeeded(std::vector<VkImageMemoryBarrier>& barri
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = image_vk;
 
-        if (subresourceRange) barrier.subresourceRange = *subresourceRange;
-        else barrier.subresourceRange = defaultSubResourceRange;
+        if (subresourceRange)
+            barrier.subresourceRange = *subresourceRange;
+        else
+            barrier.subresourceRange = defaultSubResourceRange;
 
         this->layout = newLayout;
         this->stageMask = dstStageMask;
@@ -142,8 +146,10 @@ void VKImage::TransformLayoutIfNeeded(VkCommandBuffer cmdBuf,
         barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         barrier.image = image_vk;
 
-        if (subresourceRange) barrier.subresourceRange = *subresourceRange;
-        else barrier.subresourceRange = defaultSubResourceRange;
+        if (subresourceRange)
+            barrier.subresourceRange = *subresourceRange;
+        else
+            barrier.subresourceRange = defaultSubResourceRange;
         vkCmdPipelineBarrier(cmdBuf,
                              this->stageMask,
                              dstStageMask,
@@ -212,9 +218,12 @@ ImageSubresourceRange VKImage::GetSubresourceRange()
 
     bool hasDepth = VKUtils::FormatHasDepth(format_vk);
     bool hasStencil = VKUtils::FormatHasStencil(format_vk);
-    if (hasDepth) range.aspectMask |= ImageAspect::Depth;
-    if (hasStencil) range.aspectMask |= ImageAspect::Stencil;
-    if (!hasDepth && !hasStencil) range.aspectMask |= ImageAspect::Color;
+    if (hasDepth)
+        range.aspectMask |= ImageAspect::Depth;
+    if (hasStencil)
+        range.aspectMask |= ImageAspect::Stencil;
+    if (!hasDepth && !hasStencil)
+        range.aspectMask |= ImageAspect::Color;
 
     range.baseMipLevel = 0;
     range.levelCount = mipLevels;
@@ -232,9 +241,12 @@ VkImageSubresourceRange VKImage::GenerateDefaultSubresourceRange()
     range.aspectMask = 0;
     bool hasDepth = VKUtils::FormatHasDepth(format_vk);
     bool hasStencil = VKUtils::FormatHasStencil(format_vk);
-    if (hasDepth) range.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-    if (hasStencil) range.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-    if (!hasDepth && !hasStencil) range.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+    if (hasDepth)
+        range.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+    if (hasStencil)
+        range.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    if (!hasDepth && !hasStencil)
+        range.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
 
     range.baseMipLevel = 0;
     range.levelCount = mipLevels;

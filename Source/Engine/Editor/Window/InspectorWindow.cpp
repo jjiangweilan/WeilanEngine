@@ -1,47 +1,47 @@
 #include "InspectorWindow.hpp"
+#include "../EditorRegister.hpp"
+#include "Core/Component/Components.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/Transform.hpp"
-#include "Core/Component/Components.hpp"
 #include "Core/Model.hpp"
-#include "ThirdParty/imgui/imgui.h"
-#include "../EditorRegister.hpp"
 #include "GfxDriver/ShaderLoader.hpp"
+#include "ThirdParty/imgui/imgui.h"
 namespace Engine::Editor
 {
-    InspectorWindow::InspectorWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext)
-    {
+InspectorWindow::InspectorWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext) {}
 
+void InspectorWindow::Tick()
+{
+    auto activeObject = editorContext->currentSelected;
+    std::string windowTitle = "Inspector";
+    windowTitle += activeObject == nullptr ? "" : (" - " + activeObject->GetName());
+    windowTitle += "###Inspector";
+    ImGuiWindowFlags_ windowFlags = ImGuiWindowFlags_None;
+
+    auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
+    if (asAssetObject)
+    {
+        windowFlags = ImGuiWindowFlags_MenuBar;
     }
+    ImGui::Begin(windowTitle.c_str(), nullptr, windowFlags);
 
-    void InspectorWindow::Tick()
+    if (asAssetObject)
     {
-        auto activeObject = editorContext->currentSelected;
-        std::string windowTitle = "Inspector";
-        windowTitle += activeObject == nullptr ? "" : (" - " + activeObject->GetName());
-        windowTitle += "###Inspector";
-        ImGuiWindowFlags_ windowFlags = ImGuiWindowFlags_None;
+        ImGui::BeginMenuBar();
+        if (ImGui::MenuItem("Object"))
+            type = InspectorType::Object;
+        if (ImGui::MenuItem("Import"))
+            type = InspectorType::Import;
+        ImGui::EndMenuBar();
+    }
+    else
+        type = InspectorType::Object;
 
-        auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
-        if (asAssetObject)
+    if (activeObject)
+    {
+        switch (type)
         {
-            windowFlags = ImGuiWindowFlags_MenuBar;
-        }
-        ImGui::Begin(windowTitle.c_str(), nullptr, windowFlags);
-
-        if (asAssetObject)
-        {
-            ImGui::BeginMenuBar();
-            if (ImGui::MenuItem("Object")) type = InspectorType::Object;
-            if (ImGui::MenuItem("Import")) type = InspectorType::Import;
-            ImGui::EndMenuBar();
-        }
-        else type = InspectorType::Object;
-
-        if (activeObject)
-        {
-            switch (type)
-            {
-                case InspectorType::Object:
+            case InspectorType::Object:
                 {
                     auto inspector = EditorRegister::Instance()->GetInspector(activeObject);
                     if (inspector != nullptr)
@@ -50,15 +50,16 @@ namespace Engine::Editor
                     }
                     break;
                 }
-                case InspectorType::Import:
+            case InspectorType::Import:
                 {
                     if (isFocused != ImGui::IsWindowFocused())
                     {
                         isFocused = ImGui::IsWindowFocused();
-                        importConfig = AssetDatabase::Instance()->GetImporterConfig(asAssetObject->GetUUID(), asAssetObject->GetTypeInfo());
+                        importConfig = AssetDatabase::Instance()->GetImporterConfig(asAssetObject->GetUUID(),
+                                                                                    asAssetObject->GetTypeInfo());
                     }
 
-                    for(auto c = importConfig.begin(); c != importConfig.end(); ++c)
+                    for (auto c = importConfig.begin(); c != importConfig.end(); ++c)
                     {
                         if (c.value().is_boolean())
                         {
@@ -79,12 +80,13 @@ namespace Engine::Editor
                     ImGui::SameLine();
                     if (ImGui::Button("Reset"))
                     {
-                        importConfig = AssetDatabase::Instance()->GetImporterConfig(asAssetObject->GetUUID(), asAssetObject->GetTypeInfo());
+                        importConfig = AssetDatabase::Instance()->GetImporterConfig(asAssetObject->GetUUID(),
+                                                                                    asAssetObject->GetTypeInfo());
                     }
                     break;
                 }
-            }
         }
-        ImGui::End();
     }
+    ImGui::End();
 }
+} // namespace Engine::Editor

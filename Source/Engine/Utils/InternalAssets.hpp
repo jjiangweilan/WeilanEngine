@@ -3,9 +3,9 @@
 
 namespace Engine::Utils
 {
-    class InternalAssets
-    {
-        public:
-            static std::filesystem::path GetInternalAssetPath();
-    };
-}
+class InternalAssets
+{
+public:
+    static std::filesystem::path GetInternalAssetPath();
+};
+} // namespace Engine::Utils

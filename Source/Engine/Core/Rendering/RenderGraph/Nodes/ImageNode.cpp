@@ -29,7 +29,8 @@ bool ImageNode::Compile(ResourceStateTrack& stateTrack)
         image->SetName(name);
         imageRes.SetVal(image.Get());
     }
-    else imageRes.SetVal(externalImage);
+    else
+        imageRes.SetVal(externalImage);
 
     outputPort->SetResource(&imageRes);
     return true;
