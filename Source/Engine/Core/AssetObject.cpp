@@ -1,9 +1,6 @@
 #include "AssetObject.hpp"
 #include <cassert>
 
-#include "Core/GameScene/GameScene.hpp"
-#include "Core/Graphics/Material.hpp"
-#include "Core/Graphics/Mesh.hpp"
 #include <spdlog/spdlog.h>
 #include <sstream>
 namespace Engine
