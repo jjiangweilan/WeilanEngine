@@ -70,6 +70,8 @@ void ModelInspector::Tick(RefPtr<EditorContext> editorContext)
     RefPtr<Model> model = target;
     for (const auto& name : model->GetMeshNames())
     {
+        ImGui::Text("uuid: %s", model->GetUUID().ToString().c_str());
+
         if (ImGui::Button(name.c_str()))
         {
             editorContext->currentSelected = (AssetObject*)target.Get();
