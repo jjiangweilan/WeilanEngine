@@ -2,6 +2,7 @@
 #include "../../EditorRegister.hpp"
 #include "../../ProjectManagement/ProjectManagement.hpp"
 #include "Core/Component/Camera.hpp"
+#include "Core/Component/Light.hpp"
 #include "Core/Component/LuaScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameScene/GameScene.hpp"
@@ -57,13 +58,19 @@ void InitializeBuiltInInspector()
     REGISTER(Texture);
     REGISTER(AssetObject);
     REGISTER(Model);
+    REGISTER(Light);
     EditorRegister::Instance()->RegisterInspector<Rendering::RenderPipelineAsset, RenderPipelineAssetInspector>();
 }
 
-static void MaterialInspectorShowStructureData(Material& mat,
-                                               const std::string& bindingName,
-                                               Gfx::ShaderInfo::StructuredData& data)
-{}
+void LightInspector::Tick(RefPtr<EditorContext> editorContext)
+{
+    RefPtr<Light> light = target;
+    ImGui::Text("intensity: ");
+    ImGui::SameLine();
+    float intensity = light->GetIntensity();
+    ImGui::DragFloat("##intensity", &intensity);
+    light->SetIntensity(intensity);
+}
 
 void ModelInspector::Tick(RefPtr<EditorContext> editorContext)
 {
@@ -359,6 +366,10 @@ void GameObjectInspector::Tick(RefPtr<EditorContext> editorContext)
             if (ImGui::Selectable("MeshRenderer"))
             {
                 activeObject->AddComponent<MeshRenderer>();
+            }
+            if (ImGui::Selectable("Light"))
+            {
+                activeObject->AddComponent<Light>();
             }
             if (ImGui::Selectable("LuaScript"))
             {

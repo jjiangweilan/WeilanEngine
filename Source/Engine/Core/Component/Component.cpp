@@ -12,7 +12,7 @@ Component::Component(std::string_view className, RefPtr<GameObject> gameObject) 
 
 Component::~Component() {}
 
-RefPtr<GameObject> Component::GetGameObject() { return gameObject; }
+GameObject* Component::GetGameObject() { return gameObject.Get(); }
 
 const std::string& Component::GetName() { return className; }
 

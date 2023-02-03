@@ -1,6 +1,7 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 #version 450
 #include "Common/Common.glsl"
+#include "VirtualTexture/VirtualTexture.glsl"
 #define M_PI 3.1415926535897932384626433832795
 
 #if CONFIG
@@ -41,6 +42,7 @@ layout(set = SET_MATERIAL, binding = 0) uniform PBR
 layout(set = SET_MATERIAL, binding = 1) uniform sampler2D albedoMap;
 layout(set = SET_MATERIAL, binding = 2) uniform sampler2D roughnessMap;
 layout(set = SET_MATERIAL, binding = 3) uniform sampler2D metallicMap;
+layout(set = SET_MATERIAL, binding = 4) uniform sampler2D normalMap;
 
 #define Roughness matParams.roughness
 #define Metallic matParams.metallic
@@ -53,38 +55,43 @@ float pow2(float x)
 
 void main()
 {
+    vec3 normalMap = texture(normalMap, i_UV).xyz;
     float roughness = Roughness * texture(roughnessMap, i_UV).r;
     float metallic = Metallic * texture(metallicMap, i_UV).r;
-    vec3 v = normalize(scene.viewPos - i_PositionWS);
-    vec3 l = normalize(vec3(0.5,0.5,0.5));
-    vec3 n = normalize(i_NormalWS);
+    vec3 finalColor = vec3(0,0,0);
 
-    vec3 h = normalize(l + v);
-    float dotNH = max(dot(n,h), NearZero);
-    float dotNV = max(dot(n,v), NearZero);
-    float dotNL = max(dot(n,l), NearZero);
-    float dotVH = max(dot(v,h), NearZero);
-    float r2 = roughness * roughness;
+    for (int i = 0; i < scene.lightCount; ++i)
+    {
+        vec4 lightPos = scene.lights[i].position;
+        vec3 v = normalize(scene.viewPos - i_PositionWS);
+        vec3 l = lightPos.xyz;
+        vec3 n = normalize(i_NormalWS);
 
-// ndf
-    float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
+        vec3 h = normalize(l + v);
+        float dotNH = max(dot(n,h), NearZero);
+        float dotNV = max(dot(n,v), NearZero);
+        float dotNL = max(dot(n,l), NearZero);
+        float dotVH = max(dot(v,h), NearZero);
+        float r2 = roughness * roughness;
 
-// geometry
-    float k = pow2(roughness + 1) / 8;
-    float Gv = dotNV / (dotNV * (1 - k) + k);
-    float Gl = dotNL / (dotNL * (1 - k) + k);
-    float G = Gv * Gl;
+    // ndf
+        float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
 
-// fresnel
-    float F = metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    // geometry
+        float k = pow2(roughness + 1) / 8;
+        float Gv = dotNV / (dotNV * (1 - k) + k);
+        float Gl = dotNL / (dotNL * (1 - k) + k);
+        float G = Gv * Gl;
 
-    float brdf = (G * F * D) / (4 * dotNL * dotNV);
-    float light = dotNL;
-    vec3 finalColor = light * (texture(albedoMap, i_UV).xyz / M_PI + brdf);
+    // fresnel
+        float F = metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
 
-    vec4 scaleBias = texture(vtIndir, i_UV);
-    vec3 vtCacheData = texture(vtCache, i_UV * scaleBias.xy + scaleBias.zw).xyz;
-    o_Color = vec4(vtCacheData, 1); 
+        float brdf = (G * F * D) / (4 * dotNL * dotNV);
+        float light = dotNL * scene.lights[i].intensity;
+        finalColor += texture(albedoMap, i_UV).xyz / M_PI + light * brdf;
+    }
+
+    o_Color = vec4(finalColor, 1);
 }
 #endif
 

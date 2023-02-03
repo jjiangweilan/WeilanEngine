@@ -178,30 +178,20 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
         RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();
 
+        ProcessLights(gameScene);
+
         glm::mat4 viewMatrix = mainCamera->GetViewMatrix();
         glm::mat4 projectionMatrix = mainCamera->GetProjectionMatrix();
         glm::mat4 vp = projectionMatrix * viewMatrix;
         glm::vec3 viewPos = camTsm->GetPosition();
-        globalShaderResoruce.v.projection = projectionMatrix;
-        globalShaderResoruce.v.viewProjection = vp;
-        globalShaderResoruce.v.viewPos = viewPos;
-        globalShaderResoruce.v.view = viewMatrix;
+        globalShaderResoruce.sceneInfo.projection = projectionMatrix;
+        globalShaderResoruce.sceneInfo.viewProjection = vp;
+        globalShaderResoruce.sceneInfo.viewPos = viewPos;
+        globalShaderResoruce.sceneInfo.view = viewMatrix;
+
         Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
                                                      "SceneInfo",
-                                                     "viewProjection",
-                                                     &globalShaderResoruce.v.viewProjection);
-        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
-                                                     "SceneInfo",
-                                                     "projection",
-                                                     &globalShaderResoruce.v.projection);
-        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
-                                                     "SceneInfo",
-                                                     "viewPos",
-                                                     &globalShaderResoruce.v.viewPos);
-        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
-                                                     "SceneInfo",
-                                                     "view",
-                                                     &globalShaderResoruce.v.view);
+                                                     &globalShaderResoruce.sceneInfo);
     }
 
     // prepare
@@ -241,17 +231,21 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     PrepareFrameData(resourceTransferCmdBuf);
     resourceTransferCmdBuf->End();
     RefPtr<CommandBuffer> resTransCmdBufs[] = {resourceTransferCmdBuf};
-    RefPtr<Semaphore> resTransSignalSemaphores[] = {virtualTextureRenderer.GetFeedbackGenerationBeginSemaphore(),
-                                                    resourceTransferFinishedSemaphore};
+    // virtualTextureRenderer.GetFeedbackGenerationBeginSemaphore();
+
+    RefPtr<Semaphore> resTransSignalSemaphores[] = {resourceTransferFinishedSemaphore};
     gfxDriver->QueueSubmit(mainQueue, resTransCmdBufs, {}, {}, resTransSignalSemaphores,
                            nullptr); // Queue submit
 
     // vt
-    virtualTextureRenderer.RunAnalysis();
-    Gfx::Buffer* cacheTexBuf = (Gfx::Buffer*)vtCacheTexStagingBuffer->out.buffer->GetResourceVal();
-    memcpy(cacheTexBuf->GetCPUVisibleAddress(), vtCacheTex->GetData(), vtCacheTex->GetSize());
-    Gfx::Buffer* indirTexBuf = (Gfx::Buffer*)vtIndirTexStagingBuffer->out.buffer->GetResourceVal();
-    memcpy(indirTexBuf->GetCPUVisibleAddress(), vtIndirTex->GetData(), vtIndirTex->GetSize());
+    if (false) // TODO: we need a feature toggle
+    {
+        virtualTextureRenderer.RunAnalysis();
+        Gfx::Buffer* cacheTexBuf = (Gfx::Buffer*)vtCacheTexStagingBuffer->out.buffer->GetResourceVal();
+        memcpy(cacheTexBuf->GetCPUVisibleAddress(), vtCacheTex->GetData(), vtCacheTex->GetSize());
+        Gfx::Buffer* indirTexBuf = (Gfx::Buffer*)vtIndirTexStagingBuffer->out.buffer->GetResourceVal();
+        memcpy(indirTexBuf->GetCPUVisibleAddress(), vtIndirTex->GetData(), vtIndirTex->GetSize());
+    }
 
     cmdBuf->Begin();
     graph.Execute(cmdBuf.Get(), stateTrack);
@@ -323,9 +317,17 @@ void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGr
     }
 }
 
-void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf)
+void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene)
 {
     auto lights = gameScene->GetActiveLights();
+
+    for (int i = 0; i < lights.size(); ++i)
+    {
+        globalShaderResoruce.sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
+        auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
+        globalShaderResoruce.sceneInfo.lights[i].position = glm::vec4(glm::normalize(glm::vec3(model[2])), 0);
+    }
+    globalShaderResoruce.sceneInfo.lightCount = lights.size();
 }
 
 void RenderPipeline::ApplyAsset()

@@ -3,6 +3,7 @@
 #include "ThirdParty/imgui/imgui.h"
 
 #include <spdlog/spdlog.h>
+#define DYNAMIC_CAST_PAYLOAD(data, Type) dynamic_cast<Type*>(*(AssetObject**)data)
 namespace Engine::Editor
 {
 SceneTreeWindow::SceneTreeWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext) {}
@@ -31,8 +32,6 @@ void SceneTreeWindow::Tick()
             ImGui::EndPopup();
         }
     }
-
-    ImGui::End();
 }
 
 void SceneTreeWindow::DisplayGameObject(RefPtr<GameObject> obj, uint32_t& id)

@@ -169,8 +169,8 @@ void Material::UpdateResources()
     for (auto& v : floatValues)
     {
         auto dotIndex = v.first.find_first_of('.');
-        auto obj = v.first.substr(dotIndex + 1);
-        auto mem = v.first.substr(0, dotIndex);
+        auto obj = v.first.substr(0, dotIndex);
+        auto mem = v.first.substr(dotIndex + 1);
 
         Internal::GetGfxResourceTransfer()->Transfer(shaderResource.Get(), obj, mem, (void*)&v.second);
     }
@@ -178,8 +178,8 @@ void Material::UpdateResources()
     for (auto& v : matrixValues)
     {
         auto dotIndex = v.first.find_first_of('.');
-        auto obj = v.first.substr(dotIndex + 1);
-        auto mem = v.first.substr(0, dotIndex);
+        auto obj = v.first.substr(0, dotIndex);
+        auto mem = v.first.substr(dotIndex + 1);
 
         Internal::GetGfxResourceTransfer()->Transfer(shaderResource.Get(), obj, mem, (void*)&v.second);
     }
@@ -187,8 +187,8 @@ void Material::UpdateResources()
     for (auto& v : vectorValues)
     {
         auto dotIndex = v.first.find_first_of('.');
-        auto obj = v.first.substr(dotIndex + 1);
-        auto mem = v.first.substr(0, dotIndex);
+        auto obj = v.first.substr(0, dotIndex);
+        auto mem = v.first.substr(dotIndex + 1);
 
         Internal::GetGfxResourceTransfer()->Transfer(shaderResource.Get(), obj, mem, (void*)&v.second);
     }

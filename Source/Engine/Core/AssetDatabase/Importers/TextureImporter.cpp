@@ -51,10 +51,7 @@ void TextureImporter::Import(const std::filesystem::path& path,
 genMipMapOut:
 
     auto output = outputDir / path.filename();
-    if (extension == ".jpg")
-    {
-        stbi_write_jpg(output.string().c_str(), width, height, desiredChannels, (const void*)loaded, 0);
-    }
+    std::filesystem::copy_file(path, output);
 
     auto outDir = root / "Library" / uuid.ToString();
     nlohmann::json info;

@@ -458,7 +458,7 @@ void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
 
     cmdBuf->BeginRenderPass(handlePass, clears);
     // draw handles
-    if (obj != nullptr && activeHandle != nullptr && obj != Camera::mainCamera->GetGameObject().Get())
+    if (obj != nullptr && activeHandle != nullptr && obj != Camera::mainCamera->GetGameObject())
     {
         activeHandle->DrawHandle(cmdBuf);
     }

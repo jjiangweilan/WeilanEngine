@@ -53,13 +53,23 @@ private:
 
         ~GlobalShaderResource() { AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle); }
 
-        struct Vals
+        static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
+        struct Light
+        {
+            glm::vec4 position;
+            float range;
+            float intensity;
+        };
+
+        struct SceneInfo
         {
             glm::mat4 view;
             glm::mat4 projection;
             glm::mat4 viewProjection;
             glm::vec3 viewPos;
-        } v;
+            float lightCount;
+            Light lights[MAX_LIGHT_COUNT];
+        } sceneInfo;
 
         UniPtr<Gfx::ShaderResource>& GetShaderResource() { return shaderResource; }
         void OnAssetReload(RefPtr<AssetObject> obj)
@@ -112,7 +122,7 @@ private:
     UniPtr<VirtualTexture> vt;
 
     void PrepareFrameData(RefPtr<CommandBuffer> cmdBuf);
-    void ProcessLights(RefPtr<GameScene> gameScene, RefPtr<CommandBuffer> cmdBuf);
+    void ProcessLights(RefPtr<GameScene> gameScene);
 
     /* features */
     VirtualTextureRenderer virtualTextureRenderer;

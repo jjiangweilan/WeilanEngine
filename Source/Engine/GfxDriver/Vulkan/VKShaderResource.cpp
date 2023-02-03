@@ -65,18 +65,21 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
             {
                 case ShaderInfo::BindingType::UBO:
                     {
-                        std::string bufferName = std::format("{}_UBO", shader->GetName());
-                        Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
-                                                      .size = b.second.binding.ubo.data.size,
-                                                      .visibleInCPU = false,
-                                                      .debugName = bufferName.c_str()};
-                        auto buffer = MakeUnique<VKBuffer>(createInfo);
-                        VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
-                        bufferInfo.buffer = buffer->GetHandle();
-                        bufferInfo.offset = 0;
-                        bufferInfo.range = b.second.binding.ubo.data.size;
-                        writes[writeCount].pBufferInfo = &bufferInfo;
-                        uniformBuffers.insert(std::make_pair(b.second.name, std::move(buffer)));
+                        for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                        {
+                            std::string bufferName = std::format("{}_UBO", shader->GetName());
+                            Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
+                                                          .size = b.second.binding.ubo.data.size,
+                                                          .visibleInCPU = false,
+                                                          .debugName = bufferName.c_str()};
+                            auto buffer = MakeUnique<VKBuffer>(createInfo);
+                            VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                            bufferInfo.buffer = buffer->GetHandle();
+                            bufferInfo.offset = i * b.second.binding.ubo.data.size;
+                            bufferInfo.range = b.second.binding.ubo.data.size;
+                            writes[writeCount].pBufferInfo = &bufferInfo;
+                            uniformBuffers.insert(std::make_pair(b.second.name, std::move(buffer)));
+                        }
                         break;
                     }
                 // case ShaderInfo::BindingType::SSBO:

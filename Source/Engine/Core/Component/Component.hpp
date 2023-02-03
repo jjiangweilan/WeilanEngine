@@ -30,7 +30,7 @@ public:
     Component(std::string_view className, RefPtr<GameObject> gameObject);
     virtual ~Component() = 0;
     virtual void Tick(){};
-    RefPtr<GameObject> GetGameObject();
+    GameObject* GetGameObject();
 
     // component name is used as an id when gameObject looks for component by name
     void SetName(const std::string& name) final { Object::SetName(name); }

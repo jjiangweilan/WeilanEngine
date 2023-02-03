@@ -29,6 +29,19 @@ public:
         Gfx::ImageSubresourceRange subresourceRange;
     };
 
+    void Transfer(Gfx::ShaderResource* shaderResource, const std::string& param, void* value)
+    {
+        Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+        auto buffer = shaderResource->GetBuffer(param, memberInfo);
+
+        Internal::GfxResourceTransfer::BufferTransferRequest request{
+            .data = value,
+            .bufOffset = 0,
+            .size = buffer->GetSize(),
+        };
+        Transfer(buffer, request);
+    }
+
     void Transfer(Gfx::ShaderResource* shaderResource, const std::string& param, const std::string& member, void* value)
     {
         Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
