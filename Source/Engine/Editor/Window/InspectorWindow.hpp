@@ -17,7 +17,30 @@ public:
     ImGuiWindowFlags_ GetWindowFlags() override;
 
 private:
+    struct LockedContext
+    {
+        EditorContext context;
+        bool isLocked = false;
+    } lockedContext;
+
+    void LockContext()
+    {
+        lockedContext.context = *editorContext;
+        lockedContext.isLocked = true;
+    }
+
+    EditorContext* GetContext()
+    {
+        if (lockedContext.isLocked)
+        {
+            return &lockedContext.context;
+        }
+        else
+            return editorContext.Get();
+    }
+
     RefPtr<EditorContext> editorContext;
+
     enum class InspectorType
     {
         Object,

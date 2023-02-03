@@ -44,7 +44,7 @@ private:
     template <class T>
     EditorWindow* CreateEditorWindow()
     {
-        InspectorWindow* win = new InspectorWindow(editorContext);
+        T* win = new T(editorContext);
         const std::type_info& typeInfo = typeid(T);
         std::size_t hashCode = typeInfo.hash_code();
 

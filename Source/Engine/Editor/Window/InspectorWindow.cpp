@@ -12,7 +12,7 @@ InspectorWindow::InspectorWindow(RefPtr<EditorContext> editorContext) : editorCo
 
 const char* InspectorWindow::GetWindowName()
 {
-    auto activeObject = editorContext->currentSelected;
+    auto activeObject = GetContext()->currentSelected;
     windowTitle = "Inspector";
     windowTitle += activeObject == nullptr ? "" : (" - " + activeObject->GetName());
     return windowTitle.c_str();
@@ -20,7 +20,7 @@ const char* InspectorWindow::GetWindowName()
 
 ImGuiWindowFlags_ InspectorWindow::GetWindowFlags()
 {
-    auto activeObject = editorContext->currentSelected;
+    auto activeObject = GetContext()->currentSelected;
     auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
     if (asAssetObject)
     {
@@ -31,20 +31,32 @@ ImGuiWindowFlags_ InspectorWindow::GetWindowFlags()
 
 void InspectorWindow::Tick()
 {
-    auto activeObject = editorContext->currentSelected;
+    auto activeObject = GetContext()->currentSelected;
     auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
+
+    ImGui::BeginMenuBar();
+    if (ImGui::MenuItem("Lock"))
+    {
+        if (!lockedContext.isLocked)
+            LockContext();
+        else
+            lockedContext.isLocked = false;
+    }
 
     if (asAssetObject)
     {
-        ImGui::BeginMenuBar();
-        if (ImGui::MenuItem("Object"))
-            type = InspectorType::Object;
-        if (ImGui::MenuItem("Import"))
-            type = InspectorType::Import;
-        ImGui::EndMenuBar();
+        if (ImGui::BeginMenu("AssetObject"))
+        {
+            if (ImGui::Button("Object"))
+                type = InspectorType::Object;
+            if (ImGui::Button("Import"))
+                type = InspectorType::Import;
+            ImGui::EndMenu();
+        }
     }
     else
         type = InspectorType::Object;
+    ImGui::EndMenuBar();
 
     if (activeObject)
     {
@@ -55,7 +67,7 @@ void InspectorWindow::Tick()
                     auto inspector = EditorRegister::Instance()->GetInspector(activeObject);
                     if (inspector != nullptr)
                     {
-                        inspector->Tick(editorContext);
+                        inspector->Tick(GetContext());
                     }
                     break;
                 }

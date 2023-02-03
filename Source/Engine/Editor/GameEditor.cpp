@@ -35,7 +35,7 @@ void GameEditor::Init()
 
     editorContext = MakeUnique<EditorContext>();
     sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
-    inspector = MakeUnique<InspectorWindow>(editorContext);
+    CreateEditorWindow<InspectorWindow>();
     assetExplorer = MakeUnique<AssetExplorer>(editorContext);
     gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
     projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
@@ -109,7 +109,7 @@ void GameEditor::Tick()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-
+    ImGui::ShowDemoWindow();
     DrawMainMenu();
 
     if (projectManagement->IsInitialized())

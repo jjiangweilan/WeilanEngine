@@ -134,7 +134,8 @@ private:
     glm::vec3 ClosestPointOnLine(glm::vec3 p0, glm::vec3 l0, glm::vec3 l)
     {
         float dotln = dot(l, p0 - l0);
-        if (dotln == 0) return glm::vec3(0);
+        if (dotln == 0)
+            return glm::vec3(0);
 
         return l0 + l * dotln;
     }
@@ -294,8 +295,10 @@ void GameSceneWindow::Tick()
         const char* editorCam = "Editor Camera";
         if (ImGui::MenuItem((gameSceneCam.IsActive() ? gameCam : editorCam), "v(V)", gameSceneCam.IsActive()))
         {
-            if (gameSceneCam.IsActive()) gameSceneCam.Deactivate();
-            else gameSceneCam.Activate(false);
+            if (gameSceneCam.IsActive())
+                gameSceneCam.Deactivate();
+            else
+                gameSceneCam.Activate(false);
         }
         ImGui::EndMenuBar();
     }
@@ -355,7 +358,8 @@ void GameSceneWindow::Tick()
             bool gameCamPos = ImGui::IsKeyDown(ImGuiKey_LeftShift);
             gameSceneCam.Activate(gameCamPos);
         }
-        else gameSceneCam.Deactivate();
+        else
+            gameSceneCam.Deactivate();
     }
     if (gameSceneCam.IsActive() && ImGui::IsWindowFocused())
     {
@@ -383,7 +387,8 @@ void GameSceneWindow::Tick()
         go->GetTransform()->SetModelMatrix(matrix);
     }
     // pick object in scene
-    if (ImGui::IsMouseClicked(0) && !ImGuizmo::IsUsing() && GameSceneManager::Instance()->GetActiveGameScene())
+    if (ImGui::IsWindowFocused() && ImGui::IsMouseClicked(0) && !ImGuizmo::IsUsing() &&
+        GameSceneManager::Instance()->GetActiveGameScene())
     {
         if (mouseInSceneViewUV.x > 0 && mouseInSceneViewUV.y > 0 && mouseInSceneViewUV.x < 1 &&
             mouseInSceneViewUV.y < 1)
@@ -404,7 +409,8 @@ void GameSceneWindow::Tick()
 
                 editorContext->currentSelected = min->go;
             }
-            else editorContext->currentSelected = nullptr;
+            else
+                editorContext->currentSelected = nullptr;
         }
     }
     ImGui::End();
@@ -412,7 +418,8 @@ void GameSceneWindow::Tick()
 
 void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
 {
-    if (sceneColor == nullptr) return;
+    if (sceneColor == nullptr)
+        return;
     static std::vector<Gfx::ClearValue> clears(2);
     clears[0].color = {{0, 0, 0, 0}};
     clears[1].depthStencil.depth = 1;

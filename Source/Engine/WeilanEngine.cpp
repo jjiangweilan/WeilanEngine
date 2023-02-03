@@ -41,6 +41,7 @@ void WeilanEngine::Launch()
     AssetDatabase::InitSingleton(projectList[0]);
     RegisterAssetImporters();
     AssetDatabase::Instance()->LoadInternalAssets();
+    AssetDatabase::Instance()->LoadAllAssets();
 
     // recover last active scene
     UUID lastActiveSceneUUID = projectManagement->GetLastActiveScene();
