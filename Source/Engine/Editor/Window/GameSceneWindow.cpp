@@ -375,7 +375,7 @@ void GameSceneWindow::Tick()
         glm::mat4 viewMatrix = Camera::mainCamera->GetViewMatrix();
         glm::mat4 projectionMatrix = Camera::mainCamera->GetProjectionMatrix();
         projectionMatrix[1][1] = -projectionMatrix[1][1];
-        ImGui::PushClipRect({gizmoRect.x, gizmoRect.y}, {gizmoRect.z, gizmoRect.w}, true);
+        ImGui::PushClipRect({gizmoRect.x, gizmoRect.y}, {gizmoRect.x + gizmoRect.z, gizmoRect.y + gizmoRect.w}, false);
         ImGuizmo::SetDrawlist();
         ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
                              glm::value_ptr(projectionMatrix),
@@ -384,6 +384,7 @@ void GameSceneWindow::Tick()
                              glm::value_ptr(matrix),
                              NULL,
                              NULL); // useSnap ? &snap.x : NULL);
+        ImGui::PopClipRect();
         go->GetTransform()->SetModelMatrix(matrix);
     }
     // pick object in scene
