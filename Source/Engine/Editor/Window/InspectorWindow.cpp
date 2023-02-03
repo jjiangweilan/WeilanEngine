@@ -10,7 +10,7 @@ namespace Engine::Editor
 {
 InspectorWindow::InspectorWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext) {}
 
-const char* InspectorWindow::GetWindowName()
+const char* InspectorWindow::GetDisplayWindowName()
 {
     auto activeObject = GetContext()->currentSelected;
     windowTitle = "Inspector";
@@ -18,7 +18,9 @@ const char* InspectorWindow::GetWindowName()
     return windowTitle.c_str();
 }
 
-ImGuiWindowFlags_ InspectorWindow::GetWindowFlags()
+const char* InspectorWindow::GetWindowName() { return "Inspector"; }
+
+ImGuiWindowFlags InspectorWindow::GetWindowFlags()
 {
     auto activeObject = GetContext()->currentSelected;
     auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
@@ -34,29 +36,31 @@ void InspectorWindow::Tick()
     auto activeObject = GetContext()->currentSelected;
     auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
 
-    ImGui::BeginMenuBar();
-    if (ImGui::MenuItem("Lock"))
+    if (ImGui::BeginMenuBar())
     {
-        if (!lockedContext.isLocked)
-            LockContext();
-        else
-            lockedContext.isLocked = false;
-    }
-
-    if (asAssetObject)
-    {
-        if (ImGui::BeginMenu("AssetObject"))
+        if (ImGui::MenuItem("Lock"))
         {
-            if (ImGui::Button("Object"))
-                type = InspectorType::Object;
-            if (ImGui::Button("Import"))
-                type = InspectorType::Import;
-            ImGui::EndMenu();
+            if (!lockedContext.isLocked)
+                LockContext();
+            else
+                lockedContext.isLocked = false;
         }
+
+        if (asAssetObject)
+        {
+            if (ImGui::BeginMenu("AssetObject"))
+            {
+                if (ImGui::Button("Object"))
+                    type = InspectorType::Object;
+                if (ImGui::Button("Import"))
+                    type = InspectorType::Import;
+                ImGui::EndMenu();
+            }
+        }
+        else
+            type = InspectorType::Object;
+        ImGui::EndMenuBar();
     }
-    else
-        type = InspectorType::Object;
-    ImGui::EndMenuBar();
 
     if (activeObject)
     {

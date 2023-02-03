@@ -3,6 +3,7 @@
 #include "../EditorContext.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Graphics/Shader.hpp"
+#include "Editor/Window/EditorWindow.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/Image.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -20,12 +21,14 @@ public:
 class GameSceneCamera
 {
 public:
-    GameSceneCamera();
+    GameSceneCamera(glm::vec3 initialPos, glm::quat initialRotation);
     void Activate(bool gameCamPos);
     void Deactivate();
 
     void Tick(glm::vec2 mouseInSceneViewUV);
     bool IsActive() { return isActive; }
+    glm::vec3 GetCameraPos() { return camera->GetGameObject()->GetTransform()->GetPosition(); }
+    glm::quat GetCameraRotation() { return camera->GetGameObject()->GetTransform()->GetRotationQuat(); }
 
 private:
     UniPtr<GameObject> gameObject;
@@ -45,18 +48,19 @@ private:
     glm::quat lastActiveRotation;
     glm::ivec2 initialMousePos;
     ImVec2 imguiInitialMousePos;
-    bool initialActive = true;
 };
 
-class GameSceneWindow
+class GameSceneWindow : public EditorWindow
 {
 public:
     GameSceneWindow(RefPtr<EditorContext> editorContext);
-
     // image: the image to display at this window
-    void Tick();
+    void Tick() override;
+    void OnDestroy() override;
+    const char* GetWindowName() override { return "Game Scene"; }
     void RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf);
     Gfx::Image* GetGameSceneImageTarget() { return gameSceneImage.Get(); };
+    ImGuiWindowFlags GetWindowFlags() override { return ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar; }
 
 private:
     RefPtr<EditorContext> editorContext;

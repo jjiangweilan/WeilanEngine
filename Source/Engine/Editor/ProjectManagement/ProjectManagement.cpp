@@ -44,6 +44,12 @@ std::filesystem::path ProjectManagement::GetInternalRootPath()
     return GetSysConfigPath();
 }
 
+glm::vec3 ProjectManagement::GetLastEditorCameraPos()
+{
+    auto vals = gameProj.value<std::array<float, 3>>("lastEditorCameraPos", {0, 0, 0});
+    return {vals[0], vals[1], vals[2]};
+}
+
 std::vector<std::filesystem::path> ProjectManagement::GetProjectLists()
 {
     std::filesystem::path sysConfigDirectory = GetSysConfigPath();
@@ -62,6 +68,22 @@ std::vector<std::filesystem::path> ProjectManagement::GetProjectLists()
 
     return {};
 };
+
+void ProjectManagement::SetLastEditorCameraPos(glm::vec3 pos)
+{
+    gameProj["lastEditorCameraPos"] = {pos.x, pos.y, pos.z};
+}
+
+void ProjectManagement::SetLastEditorCameraRotation(glm::quat rot)
+{
+    gameProj["lastEditorCameraRotation"] = {rot.x, rot.y, rot.z, rot.w};
+}
+
+glm::quat ProjectManagement::GetLastEditorCameraRotation()
+{
+    auto rot = gameProj.value<std::array<float, 4>>("lastEditorCameraRotation", {0, 0, 0, 1});
+    return {rot[3], rot[0], rot[1], rot[2]};
+}
 
 void ProjectManagement::Save()
 {

@@ -97,6 +97,8 @@ void WeilanEngine::Launch()
     }
 
     gfxDriver->WaitForIdle();
+
+    gameEditor->Deinit();
 }
 
 WeilanEngine::~WeilanEngine()

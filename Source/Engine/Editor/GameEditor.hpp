@@ -25,7 +25,7 @@ public:
     GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagement> projectManagement);
     ~GameEditor();
     void Init();
-
+    void Deinit();
     void ChangeWindowSize();
     void ProcessEvent(const SDL_Event& event);
     bool IsProjectInitialized();
@@ -97,8 +97,7 @@ private:
     UniPtr<SceneTreeWindow> sceneTreeWindow;
     UniPtr<ProjectWindow> projectWindow;
     UniPtr<AssetExplorer> assetExplorer;
-    UniPtr<InspectorWindow> inspector;
-    UniPtr<GameSceneWindow> gameSceneWindow;
+    GameSceneWindow* gameSceneWindow;
     UniPtr<ProjectManagementWindow> projectManagementWindow;
 
     /* Rendering Structures */
@@ -107,7 +106,6 @@ private:
     RefPtr<Gfx::Image> gameColorImage;
     RefPtr<Gfx::Image> gameDepthImage;
     void DrawMainMenu();
-    void RenderEditor(RefPtr<CommandBuffer> cmdBuf);
     UniPtr<GameEditorRenderer> gameEditorRenderer;
 
     UniPtr<Gfx::ShaderResource> res;

@@ -14,7 +14,8 @@ public:
 
     // configuration function
     const char* GetWindowName() override;
-    ImGuiWindowFlags_ GetWindowFlags() override;
+    const char* GetDisplayWindowName() override;
+    ImGuiWindowFlags GetWindowFlags() override;
 
 private:
     struct LockedContext

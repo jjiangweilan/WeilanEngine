@@ -3,7 +3,9 @@
 #include "Libs/Ptr.hpp"
 #include "Libs/UUID.hpp"
 #include <filesystem>
+#include <glm/glm.hpp>
 #include <nlohmann/json.hpp>
+
 namespace Engine
 {
 class GameScene;
@@ -27,6 +29,10 @@ public:
     static std::filesystem::path GetInternalRootPath();
     void SetLastActiveScene(RefPtr<GameScene> scene);
     void Save();
+    glm::vec3 GetLastEditorCameraPos();
+    glm::quat GetLastEditorCameraRotation();
+    void SetLastEditorCameraPos(glm::vec3 pos);
+    void SetLastEditorCameraRotation(glm::quat rot);
     ProjectManagement::ResultCode LoadProject(const std::filesystem::path& root);
 
     static RefPtr<ProjectManagement> instance;

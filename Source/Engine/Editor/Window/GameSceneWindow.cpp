@@ -7,6 +7,7 @@
 #include "Core/Graphics/Shader.hpp"
 #include "Core/Math/Geometry.hpp"
 #include "Core/Model.hpp"
+#include "Editor/ProjectManagement/ProjectManagement.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
@@ -206,7 +207,9 @@ void GetClickedGameObject(Ray ray, RefPtr<GameObject> root, std::vector<ClickedG
     }
 }
 
-GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext)
+GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext)
+    : editorContext(editorContext), gameSceneCam(ProjectManagement::instance->GetLastEditorCameraPos(),
+                                                 ProjectManagement::instance->GetLastEditorCameraRotation())
 {
     outlineRawColor = AssetDatabase::Instance()->GetShader("Internal/OutlineRawColorPass");
     outlineFullScreen = AssetDatabase::Instance()->GetShader("Internal/OutlineFullScreenPass");
@@ -247,23 +250,20 @@ GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext) : editorCo
                                                  Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst |
                                                      Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferSrc);
     gameSceneImage->SetName("GameSceneWindow-GameSceneImage");
+
+    gameSceneCam.Activate(false);
 }
 
 void GameSceneWindow::Tick()
 {
     // UpdateRenderingResources(sceneColor, sceneDepth);
 
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.2, 0.2, 0.2, 1));
-    ImGui::Begin("Game Scene", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar);
-    ImGui::PopStyleColor();
-
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::ROTATE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
 
     // show handle menu
+    if (ImGui::BeginMenuBar())
     {
-        ImGui::BeginMenuBar();
-
         if (ImGui::MenuItem("Translate", "", activeHandle != nullptr))
         {
             mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -414,7 +414,6 @@ void GameSceneWindow::Tick()
                 editorContext->currentSelected = nullptr;
         }
     }
-    ImGui::End();
 }
 
 void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
@@ -473,6 +472,12 @@ void GameSceneWindow::RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf)
         cmdBuf->Draw(6, 1, 0, 0);
         cmdBuf->EndRenderPass();
     }
+}
+
+void GameSceneWindow::OnDestroy()
+{
+    ProjectManagement::instance->SetLastEditorCameraPos(gameSceneCam.GetCameraPos());
+    ProjectManagement::instance->SetLastEditorCameraRotation(gameSceneCam.GetCameraRotation());
 }
 
 void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
@@ -589,24 +594,19 @@ void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, Re
     }
 }
 
-GameSceneCamera::GameSceneCamera()
+GameSceneCamera::GameSceneCamera(glm::vec3 initialPos, glm::quat initialRotation)
 {
     gameObject = MakeUnique<GameObject>();
     camera = gameObject->AddComponent<Camera>();
+    lastActivePos = initialPos;
+    lastActiveRotation = initialRotation;
 }
 
 void GameSceneCamera::Activate(bool gameCamPos)
 {
     oriCam = Camera::mainCamera;
     Camera::mainCamera = camera;
-    if (initialActive)
-    {
-        camera->GetGameObject()->GetTransform()->SetPosition(oriCam->GetGameObject()->GetTransform()->GetPosition());
-        camera->GetGameObject()->GetTransform()->SetRotation(
-            oriCam->GetGameObject()->GetTransform()->GetRotationQuat());
-        initialActive = false;
-    }
-    else if (gameCamPos)
+    if (gameCamPos)
     {
         camera->GetGameObject()->GetTransform()->SetPosition(oriCam->GetGameObject()->GetTransform()->GetPosition());
         camera->GetGameObject()->GetTransform()->SetRotation(
@@ -687,7 +687,12 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
     {
         glm::mat3 modelMatrix = transform->GetModelMatrix();
         glm::vec3 movement = glm::vec3(0);
-        float speed = 0.8;
+        float speed = 0.4;
+        if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
+            speed = 0.8;
+        if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
+            speed = 0.1;
+
         if (ImGui::IsKeyDown(ImGuiKey_A))
         {
             movement -= modelMatrix[0] * speed;

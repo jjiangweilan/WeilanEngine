@@ -18,13 +18,7 @@ GameEditor::GameEditor(RefPtr<Gfx::GfxDriver> gfxDriver, RefPtr<ProjectManagemen
     : projectManagement(projectManagement), gfxDriver(gfxDriver)
 {}
 
-GameEditor::~GameEditor()
-{
-    gameEditorRenderer = nullptr;
-    projectManagement->Save();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-}
+GameEditor::~GameEditor() {}
 
 void GameEditor::Init()
 {
@@ -36,8 +30,9 @@ void GameEditor::Init()
     editorContext = MakeUnique<EditorContext>();
     sceneTreeWindow = MakeUnique<SceneTreeWindow>(editorContext);
     CreateEditorWindow<InspectorWindow>();
+    gameSceneWindow = static_cast<GameSceneWindow*>(CreateEditorWindow<GameSceneWindow>());
+    // gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
     assetExplorer = MakeUnique<AssetExplorer>(editorContext);
-    gameSceneWindow = MakeUnique<GameSceneWindow>(editorContext);
     projectManagementWindow = MakeUnique<ProjectManagementWindow>(editorContext, projectManagement);
     gameEditorRenderer = MakeUnique<GameEditorRenderer>();
     gameEditorRenderer->SetGameSceneImageTarget(gameSceneWindow->GetGameSceneImageTarget());
@@ -55,54 +50,22 @@ void GameEditor::Init()
     renderPass->AddSubpass({c}, std::nullopt);
 }
 
+void GameEditor::Deinit()
+{
+    gameEditorRenderer = nullptr;
+    for (auto& winInfo : windows)
+    {
+        winInfo.window->OnDestroy();
+    }
+    windows.clear();
+    projectManagement->Save();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+}
+
 void GameEditor::ProcessEvent(const SDL_Event& event) { ImGui_ImplSDL2_ProcessEvent(&event); }
 
 bool GameEditor::IsProjectInitialized() { return projectManagement->IsInitialized(); }
-
-class VTWindow
-{
-public:
-    VTWindow()
-    {
-        srcImage = new char[256];
-        dstFolder = new char[256];
-
-        memset(srcImage, 0, 256);
-        memset(dstFolder, 0, 256);
-    }
-
-    ~VTWindow()
-    {
-        delete[] srcImage;
-        delete[] dstFolder;
-    }
-
-    void Tick()
-    {
-        ImGui::Begin("VT");
-
-        ImGui::InputText("srcImage", srcImage, 256);
-        ImGui::InputText("dstFolder", dstFolder, 256);
-        ImGui::InputInt("mip", &mip);
-        ImGui::InputInt("desiredChannels", &desiredChannels);
-        ImGui::InputInt("pageExtent", &pageExtent);
-
-        if (ImGui::Button("Generate"))
-        {
-            Libs::Image::VirtualTextureConverter converter;
-            converter.Convert(srcImage, dstFolder, mip, desiredChannels, pageExtent);
-        }
-
-        ImGui::End();
-    }
-
-private:
-    char* srcImage;
-    char* dstFolder;
-    int mip;
-    int desiredChannels;
-    int pageExtent;
-} vtWindow;
 
 void GameEditor::Tick()
 {
@@ -117,7 +80,6 @@ void GameEditor::Tick()
         sceneTreeWindow->Tick();
         // inspector->Tick();
         assetExplorer->Tick();
-        gameSceneWindow->Tick();
 
         static std::vector<WindowInfo*> windowToDestroy;
         windowToDestroy.clear();
@@ -125,9 +87,10 @@ void GameEditor::Tick()
         {
             auto& w = wInfo.window;
             bool isOpen = true;
+            const char* displayWindowName = w->GetDisplayWindowName();
             const char* windowName = w->GetWindowName();
-            ImGuiWindowFlags_ windowFlags = w->GetWindowFlags();
-            std::string windowNameWithID = std::format("{}###{}", windowName, wInfo.id);
+            std::string windowNameWithID = std::format("{}###{}{}", displayWindowName, windowName, wInfo.id);
+            ImGuiWindowFlags windowFlags = w->GetWindowFlags();
             ImGui::Begin(windowNameWithID.c_str(), &isOpen, windowFlags);
             w->Tick();
             ImGui::End();
@@ -184,8 +147,6 @@ void GameEditor::BuildRenderGraph(RGraph::RenderGraph* graph,
 // cmdBuf->EndRenderPass();
 // cmdBuf->Blit(imGuiData.editorRT, gfxDriver->GetSwapChainImageProxy());
 // }
-
-void GameEditor::RenderEditor(RefPtr<CommandBuffer> cmdBuf) {}
 
 void GameEditor::DrawMainMenu()
 {

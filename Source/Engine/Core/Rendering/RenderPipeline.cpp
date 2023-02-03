@@ -64,7 +64,7 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetDepthAttachmentOp().storeOp = AttachmentStoreOperation::Store;
     renderPassNode->SetName("RenderPipeline-renderPassNode");
     Gfx::ClearValue colorClear;
-    colorClear.color = {{0, 0, 0, 0}};
+    colorClear.color = {{0, 0, 0, 1}};
     renderPassNode->GetClearValues()[0] = colorClear;
     Gfx::ClearValue depthClear;
     depthClear.depthStencil.depth = 1;
