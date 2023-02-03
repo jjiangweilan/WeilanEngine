@@ -108,7 +108,6 @@ void GameEditor::Tick()
 {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
-    ImGui::ShowDemoWindow(nullptr);
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
     DrawMainMenu();
@@ -116,10 +115,31 @@ void GameEditor::Tick()
     if (projectManagement->IsInitialized())
     {
         sceneTreeWindow->Tick();
-        inspector->Tick();
+        // inspector->Tick();
         assetExplorer->Tick();
         gameSceneWindow->Tick();
-        // vtWindow.Tick();
+
+        static std::vector<WindowInfo*> windowToDestroy;
+        windowToDestroy.clear();
+        for (auto& wInfo : windows)
+        {
+            auto& w = wInfo.window;
+            bool isOpen = true;
+            const char* windowName = w->GetWindowName();
+            ImGuiWindowFlags_ windowFlags = w->GetWindowFlags();
+            std::string windowNameWithID = std::format("{}###{}", windowName, wInfo.id);
+            ImGui::Begin(windowNameWithID.c_str(), &isOpen, windowFlags);
+            w->Tick();
+            ImGui::End();
+
+            if (!isOpen)
+                windowToDestroy.push_back(&wInfo);
+        }
+
+        for (auto w : windowToDestroy)
+        {
+            DestroyEditorWindow(*w);
+        }
     }
     else
     {
@@ -176,6 +196,15 @@ void GameEditor::DrawMainMenu()
         if (ImGui::MenuItem("Project"))
         {
             projectWindow = MakeUnique<ProjectWindow>(editorContext, projectManagement);
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Window"))
+    {
+        if (ImGui::MenuItem("Inspector"))
+        {
+            CreateEditorWindow<InspectorWindow>();
         }
         ImGui::EndMenu();
     }

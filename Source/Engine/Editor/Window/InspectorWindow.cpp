@@ -10,20 +10,29 @@ namespace Engine::Editor
 {
 InspectorWindow::InspectorWindow(RefPtr<EditorContext> editorContext) : editorContext(editorContext) {}
 
-void InspectorWindow::Tick()
+const char* InspectorWindow::GetWindowName()
 {
     auto activeObject = editorContext->currentSelected;
-    std::string windowTitle = "Inspector";
+    windowTitle = "Inspector";
     windowTitle += activeObject == nullptr ? "" : (" - " + activeObject->GetName());
-    windowTitle += "###Inspector";
-    ImGuiWindowFlags_ windowFlags = ImGuiWindowFlags_None;
+    return windowTitle.c_str();
+}
 
+ImGuiWindowFlags_ InspectorWindow::GetWindowFlags()
+{
+    auto activeObject = editorContext->currentSelected;
     auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
     if (asAssetObject)
     {
-        windowFlags = ImGuiWindowFlags_MenuBar;
+        return ImGuiWindowFlags_MenuBar;
     }
-    ImGui::Begin(windowTitle.c_str(), nullptr, windowFlags);
+    return ImGuiWindowFlags_None;
+}
+
+void InspectorWindow::Tick()
+{
+    auto activeObject = editorContext->currentSelected;
+    auto asAssetObject = dynamic_cast<AssetObject*>(activeObject.Get());
 
     if (asAssetObject)
     {
@@ -87,6 +96,5 @@ void InspectorWindow::Tick()
                 }
         }
     }
-    ImGui::End();
 }
 } // namespace Engine::Editor
