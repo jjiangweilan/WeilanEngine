@@ -7,7 +7,9 @@
 #include "VKDriver.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
+
 namespace Engine::Gfx
 {
 DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
@@ -194,7 +196,9 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
     auto& shaderInfo = shaderProgram->GetShaderInfo();
 
     // find the binding
-    auto iter = shaderInfo.bindings.find(param);
+    auto iter = std::find_if(shaderInfo.bindings.begin(),
+                             shaderInfo.bindings.end(),
+                             [&param](auto& pair) { return pair.second.name == param; });
     if (iter == shaderInfo.bindings.end())
     {
         SPDLOG_WARN("SetTexture didn't find the texture in binding");
@@ -227,7 +231,7 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
     uint32_t bindingNum = iter->second.bindingNum;
     uint32_t count = iter->second.count;
     VkDevice vkDevice = device->GetHandle();
-    //
+
     // actually set the image to binding
     VkWriteDescriptorSet write;
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

@@ -63,6 +63,7 @@ private:
     };
     std::vector<PipelineCache> caches;
 
+    std::vector<VkSampler> immutableSamplers;
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;
 

@@ -8,11 +8,46 @@
 #include "VKDescriptorPool.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderProgram.hpp"
+#include <algorithm>
 #include <assert.h>
 #include <spdlog/spdlog.h>
 
 namespace Engine::Gfx
 {
+VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName)
+{
+    VkFilter filter = VK_FILTER_LINEAR;
+    // if (bindingName.find("linear")) filter = VK_FILTER_LINEAR;
+    if (lowerBindingName.find("_point") != lowerBindingName.npos)
+        filter = VK_FILTER_NEAREST;
+
+    VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
+        addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+
+    VkSamplerCreateInfo samplerCreateInfo;
+    samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerCreateInfo.pNext = VK_NULL_HANDLE;
+    samplerCreateInfo.flags = 0;
+    samplerCreateInfo.magFilter = filter; // VK_FILTER_NEAREST;
+    samplerCreateInfo.minFilter = filter; // VK_FILTER_NEAREST;
+    samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.addressModeU = addressMode;
+    samplerCreateInfo.addressModeV = addressMode;
+    samplerCreateInfo.addressModeW = addressMode;
+    samplerCreateInfo.mipLodBias = 0;
+    samplerCreateInfo.anisotropyEnable = VK_FALSE;
+    samplerCreateInfo.maxAnisotropy = 0;
+    samplerCreateInfo.compareEnable = VK_FALSE;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    samplerCreateInfo.minLod = 0;
+    samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+
+    return samplerCreateInfo;
+}
+
 VkStencilOpState MapVKStencilOpState(const StencilOpState& stencilOpState)
 {
     VkStencilOpState s;
@@ -71,6 +106,7 @@ VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
     // generate bindings
     DescriptorSetBindings descriptorSetBindings;
     descriptorSetBindings.resize(Descriptor_Set_Count);
+    std::vector<VkSampler> immutableSamplerHandles;
     for (auto& iter : shaderInfo.bindings)
     {
         ShaderInfo::Binding& binding = iter.second;
@@ -79,8 +115,39 @@ VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
         b.binding = binding.bindingNum;
         b.descriptorCount = binding.count;
         b.descriptorType = ShaderInfo::Utils::MapBindingType(binding.type);
-        b.pImmutableSamplers = VK_NULL_HANDLE;
+
+        std::string lowerBindingName = iter.first;
+        for (auto& c : lowerBindingName)
+        {
+            c = std::tolower(c);
+        }
+        if (lowerBindingName.find("sampler") != lowerBindingName.npos)
+        {
+            VkSamplerCreateInfo createInfo = GenerateSamplerCreateInfoFromString(lowerBindingName);
+            VkSampler sampler = VK_NULL_HANDLE;
+            VKContext::Instance()->objManager->CreateSampler(createInfo, sampler);
+            immutableSamplers.push_back(sampler);
+
+            std::vector<VkSampler> samplerHandles(b.descriptorCount, sampler);
+            int index = immutableSamplerHandles.size();
+            immutableSamplerHandles.insert(immutableSamplerHandles.end(), samplerHandles.begin(), samplerHandles.end());
+            b.pImmutableSamplers = reinterpret_cast<VkSampler*>(index + 1);
+        }
+        else
+            b.pImmutableSamplers = VK_NULL_HANDLE;
         descriptorSetBindings[iter.second.setNum].push_back(b);
+    }
+
+    for (auto& set : descriptorSetBindings)
+    {
+        for (auto& binding : set)
+        {
+            if (binding.pImmutableSamplers != VK_NULL_HANDLE)
+            {
+                binding.pImmutableSamplers =
+                    &immutableSamplerHandles[reinterpret_cast<int>(binding.pImmutableSamplers) - 1];
+            }
+        }
     }
 
     GeneratePipelineLayoutAndGetDescriptorPool(descriptorSetBindings);
@@ -124,6 +191,11 @@ VKShaderProgram::~VKShaderProgram()
     for (auto v : caches)
     {
         objManager->DestroyPipeline(v.pipeline);
+    }
+
+    for (auto v : immutableSamplers)
+    {
+        objManager->DestroySampler(v);
     }
 }
 

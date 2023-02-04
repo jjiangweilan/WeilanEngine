@@ -1,10 +1,27 @@
 #include "ShaderInfo.hpp"
 #include "Libs/Utils.hpp"
+#include <regex>
 #include <spdlog/spdlog.h>
+
 namespace Engine::Gfx::ShaderInfo
 {
 namespace Utils
 {
+// we use binding name to configure some vulkan states
+// we don't want these configure as part of the name
+// e.g. sampler binding have _point _clamp etc... we don't want them in our binding name
+std::string RemoveShaderNameConfigText(std::string text)
+{
+    const char* configPattern[] = {"_sampler", "_point", "_clamp", "_linear", "repeat"};
+
+    for (auto c : configPattern)
+    {
+        std::regex pattern(c);
+        text = std::regex_replace(text, pattern, "");
+    }
+
+    return text;
+}
 ShaderDataType MapShaderDataType(const std::string& typeStr)
 {
     if (typeStr == "vec4")
@@ -258,7 +275,7 @@ void Process(
                 default: assert(0 && "Not implemented");
             }
             b.count = bindingJson.value("array", std::vector<int>{1})[0];
-            b.name = bindingJson.at("name");
+            b.name = RemoveShaderNameConfigText(name);
             b.stages = stage;
         }
         else
