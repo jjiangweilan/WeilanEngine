@@ -160,10 +160,13 @@ void VKCommandBuffer::BindVertexBuffer(std::span<const VertexBufferBinding> vert
     vkCmdBindVertexBuffers(vkCmdBuf, firstBindingIndex, vertexBufferBindings.size(), vkBuffers, vkOffsets);
 }
 
-void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> bBuffer, uint64_t offset, IndexBufferType indexBufferType)
+void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> bBuffer,
+                                      uint64_t offset,
+                                      Gfx::IndexBufferType indexBufferType)
 {
     VKBuffer* buffer = static_cast<VKBuffer*>(bBuffer.Get());
-    VkIndexType indexType = indexBufferType == IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+    VkIndexType indexType =
+        indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
     VkBuffer indexBuf = buffer->GetHandle();
     vkCmdBindIndexBuffer(vkCmdBuf, indexBuf, offset, indexType);

@@ -3,13 +3,12 @@
 
 namespace Engine
 {
-bool RayMeshIntersection(Ray ray, RefPtr<Mesh> mesh, glm::mat4 transform, float& distance)
+bool RayMeshIntersection(Ray ray, RefPtr<Mesh2> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
-    auto& vertexDesc = mesh->GetVertexDescription();
-    uint16_t* indices = (uint16_t*)vertexDesc.index.data.data();
-    glm::vec3* positions = (glm::vec3*)vertexDesc.position.data.data();
-    for (int i = 0; i < vertexDesc.index.count; i += 3)
+    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferPtr();
+    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferPtr();
+    for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];
         uint32_t i1 = indices[i + 1];
@@ -32,7 +31,7 @@ bool RayMeshIntersection(Ray ray, RefPtr<Mesh> mesh, glm::mat4 transform, float&
 }
 
 bool RayMeshIntersection(Ray ray,
-                         RefPtr<Mesh> mesh,
+                         RefPtr<Mesh2> mesh,
                          glm::mat4 transform,
                          float& distance,
                          glm::vec3& outP0,
@@ -40,10 +39,9 @@ bool RayMeshIntersection(Ray ray,
                          glm::vec3& outP2)
 {
     glm::vec2 bary;
-    auto& vertexDesc = mesh->GetVertexDescription();
-    uint16_t* indices = (uint16_t*)vertexDesc.index.data.data();
-    glm::vec3* positions = (glm::vec3*)vertexDesc.position.data.data();
-    for (int i = 0; i < vertexDesc.index.count; i += 3)
+    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferPtr();
+    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferPtr();
+    for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];
         uint32_t i1 = indices[i + 1];

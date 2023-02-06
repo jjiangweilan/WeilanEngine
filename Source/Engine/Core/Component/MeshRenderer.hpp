@@ -2,7 +2,7 @@
 
 #include "Component.hpp"
 #include "Core/Graphics/Material.hpp"
-#include "Core/Graphics/Mesh.hpp"
+#include "Core/Graphics/Mesh2.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Utils/Structs.hpp"
 #include <memory>
@@ -14,18 +14,17 @@ class MeshRenderer : public Component
 
 public:
     MeshRenderer();
-    MeshRenderer(GameObject* parent, Mesh* mesh, Material* material);
+    MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material);
     MeshRenderer(GameObject* parent);
     ~MeshRenderer() override{};
 
-    void SetMesh(Mesh* mesh);
+    void SetMesh(Mesh2* mesh);
     void SetMaterial(Material* material);
-    Mesh* GetMesh();
+    Mesh2* GetMesh();
     Material* GetMaterial();
-    void Tick() override;
 
 private:
-    Mesh* mesh;
+    Mesh2* mesh;
     Material* material;
     AABB aabb;
     UniPtr<Gfx::ShaderResource>

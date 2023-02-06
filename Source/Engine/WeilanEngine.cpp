@@ -1,5 +1,6 @@
 #include "WeilanEngine.hpp"
 #include "Core/AssetDatabase/AssetDatabase.hpp"
+#include "Core/AssetDatabase/Importers/GLBImporter2.hpp"
 #include "Core/AssetDatabase/Importers/GeneralImporter.hpp"
 #include "Core/AssetDatabase/Importers/ShaderImporter.hpp"
 #include "Core/AssetDatabase/Importers/TextureImporter.hpp"
@@ -113,7 +114,7 @@ WeilanEngine::~WeilanEngine()
 void WeilanEngine::RegisterAssetImporters()
 {
     RefPtr<AssetDatabase> assetDb = AssetDatabase::Instance();
-    assetDb->RegisterImporter<Internal::glbImporter>("glb");
+    assetDb->RegisterImporter<Internal::GLBImporter2>("glb");
     assetDb->RegisterImporter<Internal::GeneralImporter<Material>>("mat");
     assetDb->RegisterImporter<Internal::GeneralImporter<Rendering::RenderPipelineAsset>>("rp");
     assetDb->RegisterImporter<Internal::GeneralImporter<GameScene>>("game");

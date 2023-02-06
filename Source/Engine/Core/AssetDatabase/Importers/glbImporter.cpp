@@ -103,7 +103,7 @@ void glbImportHelper::AddDataToVertexDescription(uint32_t accessorIndex,
 
     auto& bufView = bufferViews[acce["bufferView"].get<int>()];
     attr.count = acce["count"];
-    char* startAddr = (char*)bufChunkData + bufView["byteOffset"].get<int>();
+    char* startAddr = (char*)bufChunkData + bufView.value("byteOffset", 0);
     attr.componentCount = MapTypeToComponentCount(acce["type"]);
     const int ByteToBit = 8;
     attr.dataByteSize = MapComponentTypeBitSize(acce["componentType"]) / ByteToBit;

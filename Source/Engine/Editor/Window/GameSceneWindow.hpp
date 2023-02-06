@@ -58,7 +58,6 @@ public:
     void Tick() override;
     void OnDestroy() override;
     const char* GetWindowName() override { return "Game Scene"; }
-    void RenderSceneGUI(RefPtr<CommandBuffer> cmdBuf);
     Gfx::Image* GetGameSceneImageTarget() { return gameSceneImage.Get(); };
     ImGuiWindowFlags GetWindowFlags() override { return ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar; }
 

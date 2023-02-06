@@ -288,18 +288,15 @@ void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGr
         {
             // material->SetMatrix("Transform", "model",
             // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
-            auto& vertexInfo = mesh->GetVertexDescription();
-            auto& meshBindingInfo = mesh->GetMeshBindingInfo();
+            uint32_t indexCount = mesh->GetIndexCount();
             DrawData drawData;
 
             drawData.vertexBuffer = std::vector<VertexBufferBinding>();
-            for (int i = 0; i < meshBindingInfo.bindingBuffers.size(); ++i)
+            for (auto& binding : mesh->GetBindings())
             {
-                drawData.vertexBuffer = meshBindingInfo.bindingBuffers;
+                drawData.vertexBuffer->push_back({mesh->GetVertexBuffer(), binding.byteOffset});
             }
-            drawData.indexBuffer = RGraph::IndexBuffer{meshBindingInfo.indexBuffer.Get(),
-                                                       meshBindingInfo.indexBufferOffset,
-                                                       mesh->GetIndexBufferType()};
+            drawData.indexBuffer = RGraph::IndexBuffer{mesh->GetIndexBuffer(), 0, mesh->GetIndexBufferType()};
 
             drawData.shaderResource = material->GetShaderResource().Get();
             drawData.shader = shader->GetShaderProgram().Get();
@@ -307,12 +304,8 @@ void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGr
             auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
             drawData.pushConstant =
                 RGraph::PushConstant{material->GetShader()->GetShaderProgram().Get(), modelMatrix, glm::mat4(0)};
-            drawData.drawIndexed = RGraph::DrawIndex{vertexInfo.index.count, 1, 0, 0, 0};
+            drawData.drawIndexed = RGraph::DrawIndex{indexCount, 1, 0, 0, 0};
             drawList.push_back(drawData);
-            // cmd->BindResource(material->GetShaderResource());
-            // cmd->BindShaderProgram(shader->GetShaderProgram(), material->GetShaderConfig());
-            // cmd->SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
-            // cmd->DrawIndexed(vertexInfo.index.count, 1, 0, 0, 0);
         }
     }
 }

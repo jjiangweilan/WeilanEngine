@@ -12,12 +12,6 @@
 #include <span>
 namespace Engine
 {
-enum class IndexBufferType
-{
-    UInt16,
-    UInt32
-};
-
 enum class CommandBufferType
 {
     Primary,
@@ -93,7 +87,7 @@ public:
     virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
     virtual void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings,
                                   uint32_t firstBindingIndex) = 0;
-    virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) = 0;
+    virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const Gfx::ShaderConfig& config) = 0;
 
     virtual void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass,

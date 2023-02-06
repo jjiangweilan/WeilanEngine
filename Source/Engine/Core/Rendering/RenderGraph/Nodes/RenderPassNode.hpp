@@ -20,7 +20,7 @@ struct IndexBuffer
 {
     Gfx::Buffer* buffer;
     uint64_t offset = 0;
-    IndexBufferType bufferType = IndexBufferType::UInt16;
+    Gfx::IndexBufferType bufferType = Gfx::IndexBufferType::UInt16;
 };
 
 struct PushConstant

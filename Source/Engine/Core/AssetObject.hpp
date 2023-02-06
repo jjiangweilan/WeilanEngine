@@ -20,6 +20,9 @@ class AssetObject : public Object, IReferenceResolveListener
 {
     DECLARE_ENGINE_OBJECT();
 
+public:
+    void SetUUID(UUID uuid) { this->uuid = uuid; }
+
 private:
     template <class U>
     struct DecayPtr

@@ -7,7 +7,7 @@ namespace Engine
     SERIALIZE_MEMBER(mesh);                                                                                            \
     SERIALIZE_MEMBER(material);
 
-MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material)
+MeshRenderer::MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material)
     : Component("MeshRenderer", parent), mesh(mesh), material(material)
 {
     SER_MEMS();
@@ -18,7 +18,7 @@ MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, n
 
 MeshRenderer::MeshRenderer() : Component("MeshRenderer", nullptr), mesh(nullptr), material(nullptr) { SER_MEMS(); };
 
-void MeshRenderer::SetMesh(Mesh* mesh) { this->mesh = mesh; }
+void MeshRenderer::SetMesh(Mesh2* mesh) { this->mesh = mesh; }
 
 void MeshRenderer::SetMaterial(Material* material)
 {
@@ -26,18 +26,9 @@ void MeshRenderer::SetMaterial(Material* material)
     TryCreateObjectShaderResource();
 }
 
-Mesh* MeshRenderer::GetMesh() { return mesh; }
+Mesh2* MeshRenderer::GetMesh() { return mesh; }
 
 Material* MeshRenderer::GetMaterial() { return material; }
-
-void MeshRenderer::Tick()
-{
-    if (material)
-    {
-        glm::mat4 model = gameObject->GetTransform()->GetModelMatrix();
-        // material->SetMatrix("Transform", "model", model);
-    }
-}
 
 void MeshRenderer::TryCreateObjectShaderResource()
 {

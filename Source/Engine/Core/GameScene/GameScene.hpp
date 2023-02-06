@@ -22,7 +22,7 @@ public:
 
     std::vector<RefPtr<Light>> GetActiveLights();
 
-private:
+protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> roots;
 

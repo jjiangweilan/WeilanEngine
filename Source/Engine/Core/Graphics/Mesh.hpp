@@ -72,11 +72,11 @@ public:
     const MeshBindingInfo& GetMeshBindingInfo() { return meshBindingInfo; }
     const VertexDescription& GetVertexDescription();
     const std::string& GetName() { return name; }
-    IndexBufferType GetIndexBufferType() { return indexBufferType; }
+    Gfx::IndexBufferType GetIndexBufferType() { return indexBufferType; }
 
 protected:
     MeshBindingInfo meshBindingInfo;
-    IndexBufferType indexBufferType;
+    Gfx::IndexBufferType indexBufferType;
     UniPtr<Gfx::Buffer> vertexBuffer;
     UniPtr<Gfx::Buffer> indexBuffer;
     VertexDescription vertexDescription;

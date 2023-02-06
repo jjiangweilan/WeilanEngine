@@ -30,7 +30,7 @@ public:
     void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings,
                           uint32_t firstBindingIndex) override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
-    void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, IndexBufferType indexBufferType) override;
+    void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
     void DrawIndexed(uint32_t indexCount,
                      uint32_t instanceCount,
                      uint32_t firstIndex,

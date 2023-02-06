@@ -183,7 +183,7 @@ void GameEditorRenderer::Render()
     RGraph::DrawData drawData;
     drawData.shader = imGuiData.shaderProgram.Get();
     drawData.shaderResource = imGuiData.generalShaderRes.Get();
-    drawData.indexBuffer = RGraph::IndexBuffer{imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16};
+    drawData.indexBuffer = RGraph::IndexBuffer{imGuiData.indexBuffer.Get(), 0, Gfx::IndexBufferType::UInt16};
 
     // cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
     // cmdBuf->BindResource(imGuiData.generalShaderRes);

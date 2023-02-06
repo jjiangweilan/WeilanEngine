@@ -8,7 +8,7 @@
 #include "Core/GameScene/GameScene.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Core/Graphics/Shader.hpp"
-#include "Core/Model.hpp"
+#include "Core/Model2.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
@@ -57,7 +57,7 @@ void InitializeBuiltInInspector()
     REGISTER(LuaScript);
     REGISTER(Texture);
     REGISTER(AssetObject);
-    REGISTER(Model);
+    REGISTER(Model2);
     REGISTER(Light);
     EditorRegister::Instance()->RegisterInspector<Rendering::RenderPipelineAsset, RenderPipelineAssetInspector>();
 }
@@ -72,11 +72,13 @@ void LightInspector::Tick(RefPtr<EditorContext> editorContext)
     light->SetIntensity(intensity);
 }
 
-void ModelInspector::Tick(RefPtr<EditorContext> editorContext)
+void Model2Inspector::Tick(RefPtr<EditorContext> editorContext)
 {
-    RefPtr<Model> model = target;
-    for (const auto& name : model->GetMeshNames())
+    RefPtr<Model2> model = target;
+    auto meshes = model->GetMeshes();
+    for (const auto& mesh : meshes)
     {
+        std::string name = mesh->GetName();
         ImGui::Text("uuid: %s", model->GetUUID().ToString().c_str());
 
         if (ImGui::Button(name.c_str()))
@@ -86,7 +88,7 @@ void ModelInspector::Tick(RefPtr<EditorContext> editorContext)
 
         if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
         {
-            Mesh* data = model->GetMesh(name).Get();
+            Mesh2* data = mesh.Get();
             ImGui::SetDragDropPayload("GameEditorDNDPayload", &data, sizeof(data));
             ImGui::Text("%s", name.c_str());
             ImGui::EndDragDropSource();
@@ -274,7 +276,7 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
 {
     RefPtr<MeshRenderer> meshRenderer = target;
 
-    Mesh* mesh = meshRenderer->GetMesh();
+    Mesh2* mesh = meshRenderer->GetMesh();
     if (mesh)
         ImGui::Button(("Mesh: " + mesh->GetName()).c_str());
     else
@@ -283,7 +285,7 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
     {
 
         auto payload = ImGui::GetDragDropPayload();
-        if (Mesh* asMesh = DYNAMIC_CAST_PAYLOAD(payload->Data, Mesh))
+        if (Mesh2* asMesh = DYNAMIC_CAST_PAYLOAD(payload->Data, Mesh2))
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
             {

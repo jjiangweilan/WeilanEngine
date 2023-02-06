@@ -3,6 +3,12 @@
 #include <string>
 namespace Engine::Gfx
 {
+enum class IndexBufferType
+{
+    UInt16,
+    UInt32
+};
+
 class Buffer
 {
 public:
