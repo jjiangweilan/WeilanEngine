@@ -25,4 +25,6 @@ private:
     bool Serialize(AssetSerializer&) override { return false; } // disable saving
     UniPtr<Gfx::Image> image;
 };
+
+UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* byteData, std::size_t byteSize);
 } // namespace Engine

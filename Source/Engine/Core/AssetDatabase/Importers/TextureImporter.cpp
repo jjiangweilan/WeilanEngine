@@ -2,7 +2,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "Libs/Image/Processor.hpp"
-#include "Libs/Image/TextureLoader.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include "ThirdParty/stb/stb_image_write.h"
 #include "Utils/ReadBinary.hpp"
