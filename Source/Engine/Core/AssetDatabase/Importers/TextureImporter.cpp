@@ -21,34 +21,10 @@ void TextureImporter::Import(const std::filesystem::path& path,
         std::filesystem::create_directory(outputDir);
     }
 
-    const nlohmann::json* actualConfig;
     nlohmann::json dummy = nlohmann::json::object();
-    if (config.is_object())
-        actualConfig = &config;
-    else
-        actualConfig = &dummy;
-    bool genMipMap = actualConfig->value("genMipMap", false);
 
     size_t byteSize;
     UniPtr<char> data = ReadBinary(path, &byteSize);
-    const stbi_uc* imageData = (const stbi_uc*)data.Get();
-    int width, height, channels, desiredChannels;
-    stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
-
-    if (desiredChannels == 3)
-        desiredChannels = 4;
-
-    stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
-
-    if (genMipMap)
-    {
-        if ((width % 2 != 0) || (width % 2 != 0))
-        {
-            SPDLOG_WARN("Can't generate mipmap when importing {}, not power of two image", path.string());
-            goto genMipMapOut;
-        }
-    }
-genMipMapOut:
 
     auto output = outputDir / path.filename();
     std::filesystem::copy_file(path, output);
@@ -74,7 +50,7 @@ UniPtr<AssetObject> TextureImporter::Load(const std::filesystem::path& root,
     size_t byteSize;
     UniPtr<char> data = ReadBinary(input, &byteSize);
 
-    auto tex = Libs::Image::LoadTextureFromBinary((unsigned char*)data.Get(), byteSize);
+    auto tex = LoadTextureFromBinary((unsigned char*)data.Get(), byteSize);
     tex->SetName(infoJson["name"]);
     tex->SetUUID(uuid);
     return tex;
