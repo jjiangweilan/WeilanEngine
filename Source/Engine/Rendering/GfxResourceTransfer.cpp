@@ -109,6 +109,15 @@ void GfxResourceTransfer::Transfer(RefPtr<Gfx::Buffer> buffer, const BufferTrans
 void GfxResourceTransfer::Transfer(RefPtr<Gfx::Image> image, const ImageTransferRequest& request)
 {
     assert(request.size < stagingBufferSize);
+
+    /* pad the offset because ...
+    The Vulkan spec states: If dstImage does not have either a depth/stencil or a multi-planar format, then for
+    each element of pRegions, bufferOffset must be a multiple of the format's texel block size
+    (https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VUID-vkCmdCopyBufferToImage-bufferOffset-01558)
+    */
+    int byteSize = Gfx::Utils::MapImageFormatToByteSize(image->GetDescription().format);
+    stagingBufferOffset += byteSize - stagingBufferOffset % byteSize;
+
     if (stagingBufferOffset + request.size > stagingBufferSize)
     {
         ImmediateSubmit();
