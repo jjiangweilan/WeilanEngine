@@ -147,7 +147,7 @@ void GLBImporter2::Import(const std::filesystem::path& path,
     }
 
     // copy the original file to library
-    std::filesystem::copy(path, outputDir / "main.glb");
+    std::filesystem::copy(path, outputDir / "main.glb", std::filesystem::copy_options::overwrite_existing);
 
     // get glb json object
     std::vector<uint32_t> fullData;
@@ -164,19 +164,43 @@ void GLBImporter2::Import(const std::filesystem::path& path,
         uuidJson = nlohmann::json::parse(uuidJsonBinary);
     }
 
-    // generate uuid json file
     nlohmann::json newUUIDJson = nlohmann::json::object();
-    for (auto meshJson : jsonData["meshes"])
+    std::string assetGroupName = "meshes";
+    if (jsonData.contains(assetGroupName))
     {
-        std::string name = meshJson["name"];
-        // if uuid is already generated, then use it. Or we create a new uuid
-        newUUIDJson[name] = uuidJson.value(name, UUID().ToString());
+        if (uuidJson.contains(assetGroupName))
+        {
+            int i = 0;
+            newUUIDJson[assetGroupName] = nlohmann::json::array();
+            for (auto assetJson : jsonData[assetGroupName])
+            {
+                if (i < uuidJson[assetGroupName].size())
+                {
+                    newUUIDJson[assetGroupName].push_back(uuidJson[assetGroupName][i]);
+                }
+                else
+                {
+                    newUUIDJson[assetGroupName].push_back(UUID().ToString());
+                }
+                i += 1;
+            }
+        }
+        else
+        {
+            newUUIDJson[assetGroupName].push_back(UUID().ToString());
+        }
     }
+    else
+    {
+        newUUIDJson[assetGroupName].push_back(UUID().ToString());
+    }
+
+    // generate uuid json file
 
     // write the new uuid json file to disk
     std::ofstream uuidOut(outputDir / "uuid.json", std::ios::trunc);
     uuidOut << newUUIDJson.dump();
-}
+} // namespace Engine::Internal
 
 template <class T>
 UniPtr<T> CreateSubasset(nlohmann::json& j, nlohmann::json& uuidJson, const std::string& assetGroupName, int index)
@@ -187,7 +211,7 @@ UniPtr<T> CreateSubasset(nlohmann::json& j, nlohmann::json& uuidJson, const std:
     std::string meshName = meshJson["name"];
     asset->SetName(meshName);
 
-    UUID uuid = uuidJson.value(meshName, UUID::empty.ToString());
+    UUID uuid = uuidJson[assetGroupName][index];
     asset->SetUUID(uuid);
 
     return asset;
@@ -229,7 +253,17 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
     }
 
     // extract textures
-    std::vector<UniPtr<Material>> materials;
+    // std::vector<UniPtr<Texture>> textures;
+    // int textureSize = jsonData["images"].size();
+    // for (int i = 0; i < textureSize; ++i)
+    //{
+    //    int bufferViewIndex = jsonData["images"][i]["bufferView"];
+    //    nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
+    //    int byteLength = bufferViewJson["byteLength"];
+    //    int byteOffset = bufferViewJson["byteOffset"];
+
+    //    textures.push_back(LoadTextureFromBinary(binaryData + byteOffset, byteLength));
+    //}
 
     // extract materials
 

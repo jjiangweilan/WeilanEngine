@@ -20,6 +20,12 @@ public:
                                      const UUID& uuid) override;
 
     const std::type_info& GetObjectType() override { return typeid(Model2); }
+    bool NeedReimport(const std::filesystem::path& path, const std::filesystem::path& root, const UUID& uuid) override
+    {
+        bool need = AssetImporter::NeedReimport(path, root, uuid);
+
+        return need;
+    }
 
 private:
 };
