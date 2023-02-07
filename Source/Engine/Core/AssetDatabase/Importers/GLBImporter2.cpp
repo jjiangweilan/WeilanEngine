@@ -178,6 +178,20 @@ void GLBImporter2::Import(const std::filesystem::path& path,
     uuidOut << newUUIDJson.dump();
 }
 
+template <class T>
+UniPtr<T> CreateSubasset(nlohmann::json& j, nlohmann::json& uuidJson, const std::string& assetGroupName, int index)
+{
+    UniPtr<T> asset = MakeUnique<T>();
+    auto& meshJson = j[assetGroupName][index];
+
+    std::string meshName = meshJson["name"];
+    asset->SetName(meshName);
+
+    UUID uuid = uuidJson.value(meshName, UUID::empty.ToString());
+    asset->SetUUID(uuid);
+
+    return asset;
+}
 UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
                                        ReferenceResolver& refResolver,
                                        const UUID& uuid)
@@ -204,12 +218,7 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
     std::vector<UniPtr<Mesh2>> meshes;
     for (int i = 0; i < meshesSize; ++i)
     {
-        UniPtr<Mesh2> mesh = MakeUnique<Mesh2>();
-        auto& meshJson = jsonData["meshes"][i];
-        std::string meshName = meshJson["name"];
-        mesh->SetName(meshName);
-        UUID uuid = uuidJson.value(meshName, UUID::empty.ToString());
-        mesh->SetUUID(uuid);
+        UniPtr<Mesh2> mesh = CreateSubasset<Mesh2>(jsonData, uuidJson, "meshes", i);
 
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
@@ -219,7 +228,12 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
         meshes.push_back(std::move(mesh));
     }
 
-    auto model = MakeUnique<Model2>(std::move(meshes), std::move(uuid));
+    // extract textures
+    std::vector<UniPtr<Material>> materials;
+
+    // extract materials
+
+    auto model = MakeUnique<Model2>(std::move(meshes), uuid);
     return model;
 }
 } // namespace Engine::Internal
