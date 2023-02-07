@@ -69,8 +69,7 @@ std::size_t WriteAccessorDataToBuffer(
     return byteLength;
 }
 
-UniPtr<Mesh2> ExtractPrimitive(
-    nlohmann::json& j, nlohmann::json& uuidJson, unsigned char* binaryData, int meshIndex, int primitiveIndex)
+UniPtr<Submesh> ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex)
 {
     auto& meshJson = j["meshes"][meshIndex];
     auto& primitiveJson = meshJson["primitives"][primitiveIndex];
@@ -120,14 +119,10 @@ UniPtr<Mesh2> ExtractPrimitive(
     UniPtr<unsigned char> indexBuffer = UniPtr<unsigned char>(new unsigned char[indexBufferSize]);
     memcpy(indexBuffer.Get(), binaryData + indexBufferOffset, indexBufferSize);
 
-    Mesh2* mesh =
-        new Mesh2(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
+    Submesh* mesh =
+        new Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
 
-    std::string meshName = meshJson["name"];
-    UUID uuid = uuidJson.value(meshName, UUID::empty.ToString());
-    mesh->SetName(meshName);
-    mesh->SetUUID(uuid);
-    return UniPtr<Mesh2>(mesh);
+    return UniPtr<Submesh>(mesh);
 } // namespace Engine::Internal
 
 // we use a different naming system, our model is mesh in gltf
@@ -204,18 +199,27 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
     unsigned char* binaryData;
     GetGLBData(glbPath, fullData, jsonData, binaryData);
 
-    // extract meshes
-    std::vector<UniPtr<Mesh2>> meshes;
+    // extract mesh and submeshes
     int meshesSize = jsonData["meshes"].size();
+    std::vector<UniPtr<Mesh2>> meshes;
     for (int i = 0; i < meshesSize; ++i)
     {
+        UniPtr<Mesh2> mesh = MakeUnique<Mesh2>();
+        auto& meshJson = jsonData["meshes"][i];
+        std::string meshName = meshJson["name"];
+        mesh->SetName(meshName);
+        UUID uuid = uuidJson.value(meshName, UUID::empty.ToString());
+        mesh->SetUUID(uuid);
+
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
-            meshes.push_back(ExtractPrimitive(jsonData, uuidJson, binaryData, i, j));
+            mesh->submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
         }
+        meshes.push_back(std::move(mesh));
     }
 
-    return MakeUnique<Model2>(std::move(meshes), uuid);
+    auto model = MakeUnique<Model2>(std::move(meshes), std::move(uuid));
+    return model;
 }
 } // namespace Engine::Internal

@@ -4,14 +4,14 @@
 
 namespace Engine
 {
-Mesh2::Mesh2(UniPtr<unsigned char>&& vertexBuffer,
-             std::vector<VertexBinding>&& attributes,
-             UniPtr<unsigned char>&& indexBuffer,
-             Gfx::IndexBufferType indexBufferType,
-             int indexCount,
-             UUID uuid)
-    : AssetObject(uuid), vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)),
-      indexBufferType(indexBufferType), bindings(std::move(attributes)), indexCount(indexCount)
+Submesh::Submesh(UniPtr<unsigned char>&& vertexBuffer,
+                 std::vector<VertexBinding>&& attributes,
+                 UniPtr<unsigned char>&& indexBuffer,
+                 Gfx::IndexBufferType indexBufferType,
+                 int indexCount,
+                 std::string_view name)
+    : vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)), indexBufferType(indexBufferType),
+      bindings(std::move(attributes)), indexCount(indexCount), name(name)
 {
     // calculate vertex buffer size
     std::size_t vertexBufferSize = 0;
@@ -24,14 +24,14 @@ Mesh2::Mesh2(UniPtr<unsigned char>&& vertexBuffer,
     Gfx::Buffer::CreateInfo bufCreateInfo;
     bufCreateInfo.size = vertexBufferSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.c_str();
+    bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
     // calculate index buffer size
     std::size_t indexBufferSize = indexCount * (indexBufferType == Gfx::IndexBufferType::UInt16 ? 2 : 4);
     bufCreateInfo.size = indexBufferSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.c_str();
+    bufCreateInfo.debugName = name.data();
     gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
     // upload vertex buffer

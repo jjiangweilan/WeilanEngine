@@ -10,14 +10,10 @@ namespace Engine
 class Model2 : public AssetObject
 {
 public:
-    Model2(std::vector<UniPtr<Mesh2>> meshes_, UUID uuid = UUID::empty) : AssetObject(uuid), meshes(std::move(meshes_))
+    Model2(std::vector<UniPtr<Mesh2>>&& meshes_, UUID uuid = UUID::empty)
+        : AssetObject(uuid), meshes(std::move(meshes_))
     {
         SERIALIZE_MEMBER(meshes);
-    };
-    struct Group
-    {
-        Mesh2* mesh;
-        Material* material;
     };
 
     RefPtr<Mesh2> GetMesh(const std::string& name)

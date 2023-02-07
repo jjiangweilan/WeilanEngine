@@ -69,9 +69,12 @@ void GetClickedGameObject(Ray ray, RefPtr<GameObject> root, std::vector<ClickedG
     if (mesh)
     {
         float distance = std::numeric_limits<float>().infinity();
-        if (RayMeshIntersection(ray, mesh, root->GetTransform()->GetModelMatrix(), distance))
+        for (auto& submesh : mesh->submeshes)
         {
-            clickedObjs.push_back({root, distance});
+            if (RayMeshIntersection(ray, submesh.Get(), root->GetTransform()->GetModelMatrix(), distance))
+            {
+                clickedObjs.push_back({root, distance});
+            }
         }
     }
 

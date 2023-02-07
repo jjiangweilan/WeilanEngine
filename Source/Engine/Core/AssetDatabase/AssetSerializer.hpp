@@ -10,7 +10,7 @@ namespace Engine
 {
 // fundamental type
 template <class T>
-size_t SerializerGetTypeSize(const T val)
+size_t SerializerGetTypeSize(const T& val)
 {
     return sizeof(T);
 }

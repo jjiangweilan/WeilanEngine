@@ -321,10 +321,6 @@ RefPtr<AssetObject> AssetDatabase::StoreImported(std::filesystem::path path,
                                                  UniPtr<AssetObject>&& obj,
                                                  bool useRelativeBase)
 {
-    if (path.string().find("Monkey") != std::string::npos)
-    {
-        int i = 0;
-    }
     std::filesystem::path pathStored = path;
     if (!useRelativeBase)
         pathStored = std::filesystem::proximate(path, relativeBase);

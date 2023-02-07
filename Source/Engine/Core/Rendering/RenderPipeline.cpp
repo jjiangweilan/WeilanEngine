@@ -282,30 +282,41 @@ void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGr
     if (meshRenderer)
     {
         auto mesh = meshRenderer->GetMesh();
-        auto material = meshRenderer->GetMaterial();
-        auto shader = material ? material->GetShader() : nullptr;
-        if (mesh && material && shader)
+        if (mesh == nullptr)
+            return;
+
+        auto& submeshes = mesh->submeshes;
+        auto& materials = meshRenderer->GetMaterials();
+
+        for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
         {
-            // material->SetMatrix("Transform", "model",
-            // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
-            uint32_t indexCount = mesh->GetIndexCount();
-            DrawData drawData;
+            auto material = i < materials.size() ? materials[i] : nullptr;
+            auto submesh = i < submeshes.size() ? submeshes[i].Get() : nullptr;
+            auto shader = material ? material->GetShader() : nullptr;
 
-            drawData.vertexBuffer = std::vector<VertexBufferBinding>();
-            for (auto& binding : mesh->GetBindings())
+            if (submesh && material && shader)
             {
-                drawData.vertexBuffer->push_back({mesh->GetVertexBuffer(), binding.byteOffset});
-            }
-            drawData.indexBuffer = RGraph::IndexBuffer{mesh->GetIndexBuffer(), 0, mesh->GetIndexBufferType()};
+                // material->SetMatrix("Transform", "model",
+                // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+                uint32_t indexCount = submesh->GetIndexCount();
+                DrawData drawData;
 
-            drawData.shaderResource = material->GetShaderResource().Get();
-            drawData.shader = shader->GetShaderProgram().Get();
-            drawData.shaderConfig = &material->GetShaderConfig();
-            auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
-            drawData.pushConstant =
-                RGraph::PushConstant{material->GetShader()->GetShaderProgram().Get(), modelMatrix, glm::mat4(0)};
-            drawData.drawIndexed = RGraph::DrawIndex{indexCount, 1, 0, 0, 0};
-            drawList.push_back(drawData);
+                drawData.vertexBuffer = std::vector<VertexBufferBinding>();
+                for (auto& binding : submesh->GetBindings())
+                {
+                    drawData.vertexBuffer->push_back({submesh->GetVertexBuffer(), binding.byteOffset});
+                }
+                drawData.indexBuffer = RGraph::IndexBuffer{submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType()};
+
+                drawData.shaderResource = material->GetShaderResource().Get();
+                drawData.shader = shader->GetShaderProgram().Get();
+                drawData.shaderConfig = &material->GetShaderConfig();
+                auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
+                drawData.pushConstant =
+                    RGraph::PushConstant{material->GetShader()->GetShaderProgram().Get(), modelMatrix, glm::mat4(0)};
+                drawData.drawIndexed = RGraph::DrawIndex{indexCount, 1, 0, 0, 0};
+                drawList.push_back(drawData);
+            }
         }
     }
 }

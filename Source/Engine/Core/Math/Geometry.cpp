@@ -3,7 +3,7 @@
 
 namespace Engine
 {
-bool RayMeshIntersection(Ray ray, RefPtr<Mesh2> mesh, glm::mat4 transform, float& distance)
+bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
     uint16_t* indices = (uint16_t*)mesh->GetIndexBufferPtr();
@@ -31,7 +31,7 @@ bool RayMeshIntersection(Ray ray, RefPtr<Mesh2> mesh, glm::mat4 transform, float
 }
 
 bool RayMeshIntersection(Ray ray,
-                         RefPtr<Mesh2> mesh,
+                         RefPtr<Submesh> mesh,
                          glm::mat4 transform,
                          float& distance,
                          glm::vec3& outP0,

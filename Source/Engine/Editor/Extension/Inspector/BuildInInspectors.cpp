@@ -76,7 +76,7 @@ void Model2Inspector::Tick(RefPtr<EditorContext> editorContext)
 {
     RefPtr<Model2> model = target;
     auto meshes = model->GetMeshes();
-    for (const auto& mesh : meshes)
+    for (auto& mesh : meshes)
     {
         std::string name = mesh->GetName();
         ImGui::Text("uuid: %s", model->GetUUID().ToString().c_str());
@@ -283,7 +283,6 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
         ImGui::Button("Mesh: null");
     if (ImGui::BeginDragDropTarget())
     {
-
         auto payload = ImGui::GetDragDropPayload();
         if (Mesh2* asMesh = DYNAMIC_CAST_PAYLOAD(payload->Data, Mesh2))
         {
@@ -295,23 +294,27 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
         ImGui::EndDragDropTarget();
     }
 
-    Material* mat = meshRenderer->GetMaterial();
-    if (mat)
-        ImGui::Button(("Material: " + mat->GetName()).c_str());
-    else
-        ImGui::Button("Material: null");
-    if (ImGui::BeginDragDropTarget())
+    auto mats = meshRenderer->GetMaterials();
+    for (int i = 0; i < mats.size(); ++i)
     {
-
-        auto payload = ImGui::GetDragDropPayload();
-        if (Material* asMaterial = DYNAMIC_CAST_PAYLOAD(payload->Data, Material))
+        Material* mat = mats[i];
+        if (mat)
+            ImGui::Button(std::format("Material {}: {}", i, mat->GetName()).c_str());
+        else
+            ImGui::Button("Material: null");
+        if (ImGui::BeginDragDropTarget())
         {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
+            auto payload = ImGui::GetDragDropPayload();
+            if (Material* asMaterial = DYNAMIC_CAST_PAYLOAD(payload->Data, Material))
             {
-                meshRenderer->SetMaterial(asMaterial);
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
+                {
+                    mats[i] = asMaterial;
+                    meshRenderer->SetMaterials(mats);
+                }
             }
+            ImGui::EndDragDropTarget();
         }
-        ImGui::EndDragDropTarget();
     }
 }
 

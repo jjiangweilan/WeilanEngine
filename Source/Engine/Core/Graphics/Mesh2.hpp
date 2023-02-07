@@ -15,16 +15,16 @@ struct VertexBinding
     std::string name;
 };
 
-class Mesh2 : public AssetObject
+class Submesh
 {
 public:
-    Mesh2() {}
-    Mesh2(UniPtr<unsigned char>&& vertexBuffer,
-          std::vector<VertexBinding>&& bindings,
-          UniPtr<unsigned char>&& indexBuffer,
-          Gfx::IndexBufferType indexBufferType,
-          int indexCount,
-          UUID uuid = UUID::empty);
+    Submesh() {}
+    Submesh(UniPtr<unsigned char>&& vertexBuffer,
+            std::vector<VertexBinding>&& bindings,
+            UniPtr<unsigned char>&& indexBuffer,
+            Gfx::IndexBufferType indexBufferType,
+            int indexCount,
+            std::string_view name = "");
 
     int GetIndexCount() { return indexCount; }
 
@@ -43,5 +43,16 @@ private:
     Gfx::IndexBufferType indexBufferType;
     std::vector<VertexBinding> bindings;
     int indexCount = 0;
+    std::string name;
+};
+
+class Mesh2 : public AssetObject
+{
+public:
+    Mesh2(UUID uuid = UUID::empty) : AssetObject(uuid), submeshes() {}
+    std::vector<UniPtr<Submesh>> submeshes;
+
+private:
+    bool Serialize(AssetSerializer&) override { return false; } // disable model saving
 };
 } // namespace Engine
