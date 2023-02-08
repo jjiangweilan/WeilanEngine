@@ -238,7 +238,7 @@ void GameSceneWindow::Tick()
         else
             gameSceneCam.Deactivate();
     }
-    if (gameSceneCam.IsActive() && ImGui::IsWindowFocused())
+    if (gameSceneCam.IsActive() && ImGui::IsWindowHovered())
     {
         gameSceneCam.Tick(mouseInSceneViewUV);
     }

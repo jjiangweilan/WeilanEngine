@@ -147,10 +147,10 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                     case Gfx::ShaderInfo::ShaderDataType::Half:
                     case Gfx::ShaderInfo::ShaderDataType::Float:
                         {
-                            float val = mat->GetFloat(b.first, uniMem.second.name);
+                            float val = mat->GetFloat(b.second.name, uniMem.second.name);
                             if (ImGui::DragFloat(("##" + bindingName).c_str(), &val))
                             {
-                                mat->SetFloat(b.first, uniMem.second.name, val);
+                                mat->SetFloat(b.second.name, uniMem.second.name, val);
                             }
                         }
                         break;
@@ -159,7 +159,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                             glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
                             if (ImGui::DragFloat2(("##" + bindingName).c_str(), &vec.x))
                             {
-                                mat->SetVector(b.first, uniMem.second.name, vec);
+                                mat->SetVector(b.second.name, uniMem.second.name, vec);
                             }
                         }
                         break;
@@ -170,7 +170,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                             ImGui::SameLine();
                             if (ImGui::DragFloat3(("##" + bindingName).c_str(), &vec.x))
                             {
-                                mat->SetVector(b.first, uniMem.second.name, vec);
+                                mat->SetVector(b.second.name, uniMem.second.name, vec);
                             }
                         }
                         break;
@@ -179,7 +179,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                             glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
                             if (ImGui::DragFloat4(("##" + bindingName).c_str(), &vec.x))
                             {
-                                mat->SetVector(b.first, uniMem.second.name, vec);
+                                mat->SetVector(b.second.name, uniMem.second.name, vec);
                             }
                         }
                         break;
@@ -189,7 +189,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
         }
         else if (b.second.type == Gfx::ShaderInfo::BindingType::Texture)
         {
-            auto tex = mat->GetTexture(b.first);
+            auto tex = mat->GetTexture(b.second.name);
             std::string label = b.first;
             if (tex)
                 label += ":" + tex->GetName();
@@ -199,7 +199,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                 ImGui::SameLine();
                 if (ImGui::Button(("x##" + std::to_string(imguiID)).c_str()))
                 {
-                    mat->SetTexture(b.first, nullptr);
+                    mat->SetTexture(b.second.name, nullptr);
                 }
                 float width = ImGui::GetSurfaceSize().x;
                 auto& desc = tex->GetDescription();
@@ -214,7 +214,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                 {
                     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
                     {
-                        mat->SetTexture(b.first, asTexture);
+                        mat->SetTexture(b.second.name, asTexture);
                     }
                 }
                 ImGui::EndDragDropTarget();
