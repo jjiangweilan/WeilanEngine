@@ -101,6 +101,7 @@ UniPtr<Submesh> ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, i
     std::size_t dstOffset = 0;
     ATTRIBUTE_WRITE(POSITION);
     ATTRIBUTE_WRITE(NORMAL);
+    ATTRIBUTE_WRITE(TANGENT);
     ATTRIBUTE_WRITE(TEXCOORD_0);
 
     // get index buffer size and count
@@ -253,21 +254,29 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
     }
 
     // extract textures
-    // std::vector<UniPtr<Texture>> textures;
-    // int textureSize = jsonData["images"].size();
-    // for (int i = 0; i < textureSize; ++i)
-    //{
-    //    int bufferViewIndex = jsonData["images"][i]["bufferView"];
-    //    nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
-    //    int byteLength = bufferViewJson["byteLength"];
-    //    int byteOffset = bufferViewJson["byteOffset"];
+    std::vector<UniPtr<Texture>> textures;
+    int textureSize = jsonData["images"].size();
+    for (int i = 0; i < textureSize; ++i)
+    {
+        int bufferViewIndex = jsonData["images"][i]["bufferView"];
+        nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
+        int byteLength = bufferViewJson["byteLength"];
+        int byteOffset = bufferViewJson["byteOffset"];
 
-    //    textures.push_back(LoadTextureFromBinary(binaryData + byteOffset, byteLength));
-    //}
+        textures.push_back(LoadTextureFromBinary(binaryData + byteOffset, byteLength));
+    }
 
     // extract materials
+    std::vector<UniPtr<Material>> materials;
+    int materialSize = jsonData["materials"].size();
+    for (int i = 0; i < materialSize; ++i)
+    {
+        nlohmann::json& matJson = jsonData["materials"][i];
+        matJson["pbrMetallicRoughness"];
+    }
+    //
 
-    auto model = MakeUnique<Model2>(std::move(meshes), uuid);
+    auto model = MakeUnique<Model2>(std::move(meshes), std::move(textures), uuid);
     return model;
 }
 } // namespace Engine::Internal
