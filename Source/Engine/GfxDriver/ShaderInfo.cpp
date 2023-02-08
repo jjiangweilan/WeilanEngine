@@ -49,14 +49,18 @@ uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberNam
 {
     std::string lowerName = Engine::Utils::strTolower(memberName);
 
-    uint32_t baseTypeSize = sizeof(float);
-    if (lowerName.find("color") != lowerName.npos)
-    {
-        if (lowerName.find("16") != lowerName.npos)
-            baseTypeSize = 2;
-        else
-            baseTypeSize = sizeof(char);
-    }
+    uint32_t baseTypeSize = 4;
+    if (lowerName.find("_16") != lowerName.npos)
+        baseTypeSize = 2;
+    else if (lowerName.find("_8") != lowerName.npos)
+        baseTypeSize = 1;
+    // if (lowerName.find("color") != lowerName.npos)
+    //{
+    //     if (lowerName.find("16") != lowerName.npos)
+    //         baseTypeSize = 2;
+    //     else
+    //         baseTypeSize = sizeof(char);
+    // }
     if (typeName == "vec4")
         return baseTypeSize * 4;
     else if (typeName == "vec3")
