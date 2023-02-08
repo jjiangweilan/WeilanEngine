@@ -32,14 +32,18 @@ void Transform::SetParent(RefPtr<Transform> parent)
 
     if (parent == nullptr)
     {
-        gameObject->GetGameScene()->MoveGameObjectToRoot(gameObject);
+        GameScene* scene = gameObject->GetGameScene().Get();
+        if (scene)
+            scene->MoveGameObjectToRoot(gameObject);
         this->parent->RemoveChild(this);
         this->parent = nullptr;
         parent->children.push_back(this);
     }
     else if (this->parent == nullptr)
     {
-        gameObject->GetGameScene()->RemoveGameObjectFromRoot(gameObject);
+        GameScene* scene = gameObject->GetGameScene().Get();
+        if (scene)
+            scene->RemoveGameObjectFromRoot(gameObject);
         this->parent = parent;
         parent->children.push_back(this);
     }

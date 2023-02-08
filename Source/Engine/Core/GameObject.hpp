@@ -34,8 +34,8 @@ public:
 
 private:
     std::vector<UniPtr<Component>> components;
-    RefPtr<Transform> transform;
-    RefPtr<GameScene> gameScene;
+    RefPtr<Transform> transform = nullptr;
+    RefPtr<GameScene> gameScene = nullptr;
 
     void DeserializeInternal(const std::string& nameChain,
                              AssetSerializer& serializer,

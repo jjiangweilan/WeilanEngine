@@ -1,3 +1,4 @@
+#include "Core/GameObject.hpp"
 #include "Core/Graphics/Material.hpp"
 #include "Graphics/Mesh2.hpp"
 #include <glm/glm.hpp>
@@ -10,10 +11,18 @@ namespace Engine
 class Model2 : public AssetObject
 {
 public:
-    Model2(std::vector<UniPtr<Mesh2>>&& meshes_, UUID uuid = UUID::empty)
-        : AssetObject(uuid), meshes(std::move(meshes_))
+    Model2(std::vector<GameObject*>&& rootGameObjects,
+           std::vector<UniPtr<GameObject>>&& gameObjects,
+           std::vector<UniPtr<Mesh2>>&& meshes,
+           std::vector<UniPtr<Texture>> textures,
+           std::vector<UniPtr<Material>> materials,
+           UUID uuid = UUID::empty)
+        : AssetObject(uuid), rootGameObjects(std::move(rootGameObjects)), gameObjects(std::move(gameObjects)),
+          meshes(std::move(meshes)), textures(std::move(textures)), materials(std::move(materials))
     {
-        SERIALIZE_MEMBER(meshes);
+        SerializeMember("meshes", this->meshes);
+        SerializeMember("textures", this->textures);
+        SerializeMember("materials", this->materials);
     };
 
     RefPtr<Mesh2> GetMesh(const std::string& name)
@@ -27,11 +36,19 @@ public:
         return nullptr;
     }
 
+    std::span<GameObject*> GetRootGameObject() { return rootGameObjects; }
+    std::span<UniPtr<GameObject>> GetGameObject() { return gameObjects; }
     std::span<UniPtr<Mesh2>> GetMeshes() { return meshes; }
+    std::span<UniPtr<Texture>> GetTextures() { return textures; }
+    std::span<UniPtr<Material>> GetMaterials() { return materials; }
 
 private:
     bool Serialize(AssetSerializer&) override { return false; } // disable model saving
 
+    std::vector<GameObject*> rootGameObjects;
+    std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<UniPtr<Mesh2>> meshes;
+    std::vector<UniPtr<Texture>> textures;
+    std::vector<UniPtr<Material>> materials;
 };
 } // namespace Engine

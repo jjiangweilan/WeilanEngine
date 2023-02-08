@@ -1,5 +1,7 @@
 #pragma once
 #include "GLBImporter2.hpp"
+#include "Core/Component/MeshRenderer.hpp"
+#include "Core/GameObject.hpp"
 #include "Core/Texture.hpp"
 #include <fstream>
 #include <iterator>
@@ -134,6 +136,28 @@ UniPtr<Model2> ExtractMesh(nlohmann::json& j, uint32_t* binaryData, int meshInde
     return nullptr;
 }
 
+void OverrideUUIDFromDiskFile(nlohmann::json& jsonData,
+                              nlohmann::json& uuidJson,
+                              nlohmann::json& newUUIDJson,
+                              std::string assetGroupName)
+{
+    int i = 0;
+    bool hasGrupName = uuidJson.contains(assetGroupName);
+    newUUIDJson[assetGroupName] = nlohmann::json::array();
+    for (auto assetJson : jsonData[assetGroupName])
+    {
+        if (i < uuidJson[assetGroupName].size() && hasGrupName)
+        {
+            newUUIDJson[assetGroupName].push_back(uuidJson[assetGroupName][i]);
+        }
+        else
+        {
+            newUUIDJson[assetGroupName].push_back(UUID().ToString());
+        }
+        i += 1;
+    }
+}
+
 void GLBImporter2::Import(const std::filesystem::path& path,
                           const std::filesystem::path& root,
                           const nlohmann::json& json,
@@ -167,34 +191,11 @@ void GLBImporter2::Import(const std::filesystem::path& path,
 
     nlohmann::json newUUIDJson = nlohmann::json::object();
     std::string assetGroupName = "meshes";
-    if (jsonData.contains(assetGroupName))
-    {
-        if (uuidJson.contains(assetGroupName))
-        {
-            int i = 0;
-            newUUIDJson[assetGroupName] = nlohmann::json::array();
-            for (auto assetJson : jsonData[assetGroupName])
-            {
-                if (i < uuidJson[assetGroupName].size())
-                {
-                    newUUIDJson[assetGroupName].push_back(uuidJson[assetGroupName][i]);
-                }
-                else
-                {
-                    newUUIDJson[assetGroupName].push_back(UUID().ToString());
-                }
-                i += 1;
-            }
-        }
-        else
-        {
-            newUUIDJson[assetGroupName].push_back(UUID().ToString());
-        }
-    }
-    else
-    {
-        newUUIDJson[assetGroupName].push_back(UUID().ToString());
-    }
+    OverrideUUIDFromDiskFile(jsonData, uuidJson, newUUIDJson, "meshes");
+    OverrideUUIDFromDiskFile(jsonData, uuidJson, newUUIDJson, "images");
+    OverrideUUIDFromDiskFile(jsonData, uuidJson, newUUIDJson, "materials");
+    OverrideUUIDFromDiskFile(jsonData, uuidJson, newUUIDJson, "scenes");
+    OverrideUUIDFromDiskFile(jsonData, uuidJson, newUUIDJson, "nodes");
 
     // generate uuid json file
 
@@ -203,20 +204,63 @@ void GLBImporter2::Import(const std::filesystem::path& path,
     uuidOut << newUUIDJson.dump();
 } // namespace Engine::Internal
 
-template <class T>
-UniPtr<T> CreateSubasset(nlohmann::json& j, nlohmann::json& uuidJson, const std::string& assetGroupName, int index)
+void SetAssetNameAndUUID(
+    AssetObject* asset, nlohmann::json& j, nlohmann::json& uuidJson, const std::string& assetGroupName, int index)
 {
-    UniPtr<T> asset = MakeUnique<T>();
     auto& meshJson = j[assetGroupName][index];
 
-    std::string meshName = meshJson["name"];
-    asset->SetName(meshName);
+    if (meshJson.contains("name"))
+    {
+        std::string meshName = meshJson["name"];
+        asset->SetName(meshName);
+    }
+    else
+    {
+        asset->SetName(assetGroupName + std::to_string(index));
+    }
 
-    UUID uuid = uuidJson[assetGroupName][index];
+    UUID uuid = UUID(uuidJson[assetGroupName][index]);
     asset->SetUUID(uuid);
-
-    return asset;
 }
+
+UniPtr<GameObject> CreateGameObjectFromNode(nlohmann::json& j,
+                                            int nodeIndex,
+                                            std::unordered_map<int, Mesh2*> meshes,
+                                            std::unordered_map<int, Material*> materials)
+{
+    nlohmann::json& nodeJson = j["nodes"][nodeIndex];
+    auto gameObject = MakeUnique<GameObject>();
+
+    // name
+    gameObject->SetName(nodeJson.value("name", "A GameObject"));
+
+    // TRS
+    std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
+    std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
+    std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
+
+    gameObject->GetTransform()->SetPosition({position[0], position[1], position[2]});
+    gameObject->GetTransform()->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
+    gameObject->GetTransform()->SetScale({scale[0], scale[1], scale[2]});
+
+    // mesh renderer
+    if (nodeJson.contains("mesh"))
+    {
+        auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
+        int meshIndex = nodeJson["mesh"];
+        meshRenderer->SetMesh(meshes[meshIndex]);
+        int primitiveSize = j["meshes"][meshIndex]["primitives"].size();
+        std::vector<Material*> mats;
+        for (int i = 0; i < primitiveSize; ++i)
+        {
+            mats.push_back(materials[i]);
+            meshRenderer->SetMaterials(mats);
+        }
+    }
+
+    return gameObject;
+}
+
 UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
                                        ReferenceResolver& refResolver,
                                        const UUID& uuid)
@@ -240,20 +284,24 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
 
     // extract mesh and submeshes
     int meshesSize = jsonData["meshes"].size();
+    std::unordered_map<int, Mesh2*> toOurMesh;
     std::vector<UniPtr<Mesh2>> meshes;
     for (int i = 0; i < meshesSize; ++i)
     {
-        UniPtr<Mesh2> mesh = CreateSubasset<Mesh2>(jsonData, uuidJson, "meshes", i);
+        UniPtr<Mesh2> mesh = MakeUnique<Mesh2>();
+        SetAssetNameAndUUID(mesh.Get(), jsonData, uuidJson, "meshes", i);
 
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
             mesh->submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
         }
+        toOurMesh[i] = mesh.Get();
         meshes.push_back(std::move(mesh));
     }
 
     // extract textures
+    std::unordered_map<int, Texture*> toOurTexture;
     std::vector<UniPtr<Texture>> textures;
     int textureSize = jsonData["images"].size();
     for (int i = 0; i < textureSize; ++i)
@@ -262,21 +310,105 @@ UniPtr<AssetObject> GLBImporter2::Load(const std::filesystem::path& root,
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
+        auto tex = LoadTextureFromBinary(binaryData + byteOffset, byteLength);
+        SetAssetNameAndUUID(tex.Get(), jsonData, uuidJson, "images", i);
 
-        textures.push_back(LoadTextureFromBinary(binaryData + byteOffset, byteLength));
+        toOurTexture[i] = tex.Get();
+        textures.push_back(std::move(tex));
     }
 
     // extract materials
     std::vector<UniPtr<Material>> materials;
+    std::unordered_map<int, Material*> toOurMaterial;
     int materialSize = jsonData["materials"].size();
+    nlohmann::json& texJson = jsonData["textures"];
     for (int i = 0; i < materialSize; ++i)
     {
-        nlohmann::json& matJson = jsonData["materials"][i];
-        matJson["pbrMetallicRoughness"];
-    }
-    //
+        UniPtr<Material> mat = MakeUnique<Material>();
+        SetAssetNameAndUUID(mat.Get(), jsonData, uuidJson, "materials", i);
 
-    auto model = MakeUnique<Model2>(std::move(meshes), std::move(textures), uuid);
+        mat->SetShader("Game/StandardPBR");
+
+        nlohmann::json& matJson = jsonData["materials"][i];
+        mat->GetShaderConfig().cullMode =
+            matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
+
+        // baseColorFactor
+        std::array<float, 3> baseColorFactor =
+            matJson["pbrMetallicRoughness"].value("baseColorFactor", std::array<float, 3>{1, 1, 1});
+        mat->SetVector("PBR", "baseColorFactor", {baseColorFactor[0], baseColorFactor[1], baseColorFactor[2], 1});
+        mat->SetFloat("PBR", "roughness", 1.0);
+        mat->SetFloat("PBR", "metallic", 1.0);
+
+        // baseColorTex
+        if (matJson["pbrMetallicRoughness"].contains("baseColorTexture"))
+        {
+            int baseColorSamplerIndex = matJson["pbrMetallicRoughness"]["baseColorTexture"].value("index", -1);
+            if (baseColorSamplerIndex != -1)
+            {
+                int baseColorImageIndex = texJson[baseColorSamplerIndex]["source"];
+                mat->SetTexture("baseColorTex", toOurTexture[baseColorImageIndex]);
+            }
+        }
+
+        // normal map
+        if (matJson.contains("normalTexture"))
+        {
+            int normalTextureSamplerIndex = matJson["normalTexture"].value("index", -1);
+            if (normalTextureSamplerIndex != -1)
+            {
+                int normalTextureImageInex = texJson[normalTextureSamplerIndex]["source"];
+                mat->SetTexture("normalMap", toOurTexture[normalTextureImageInex]);
+            }
+        }
+        else
+        {
+            // TODO: disable shader feature for normal texture
+        }
+
+        // metallicRoughnessMap
+        if (matJson["pbrMetallicRoughness"].contains("metallicRoughnessTexture"))
+        {
+            int metallicRougnessSamplerIndex =
+                matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
+            if (metallicRougnessSamplerIndex != -1)
+            {
+                int metallicRoughnessImageIndex = texJson[metallicRougnessSamplerIndex]["source"];
+                mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
+            }
+        }
+
+        toOurMaterial[i] = mat.Get();
+        materials.push_back(std::move(mat));
+    }
+
+    // create game objects that are presented in glb file
+    nlohmann::json& scenesJson = jsonData["scenes"];
+    std::vector<UniPtr<GameObject>> gameObjects;
+    std::vector<GameObject*> rootGameObjects;
+    for (int i = 0; i < scenesJson.size(); ++i)
+    {
+        nlohmann::json& sceneJson = scenesJson[i];
+        UniPtr<GameObject> rootGameObject = MakeUnique<GameObject>();
+        SetAssetNameAndUUID(rootGameObject.Get(), jsonData, uuidJson, "scenes", i);
+        rootGameObject->SetName(sceneJson["name"]);
+
+        for (int nodeIndex : sceneJson["nodes"])
+        {
+            auto gameObject = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
+            gameObject->GetTransform()->SetParent(rootGameObject->GetTransform());
+            gameObjects.push_back(std::move(gameObject));
+        }
+
+        rootGameObjects.push_back(rootGameObject.Get());
+        gameObjects.push_back(std::move(rootGameObject));
+    }
+    auto model = MakeUnique<Model2>(std::move(rootGameObjects),
+                                    std::move(gameObjects),
+                                    std::move(meshes),
+                                    std::move(textures),
+                                    std::move(materials),
+                                    uuid);
     return model;
 }
 } // namespace Engine::Internal

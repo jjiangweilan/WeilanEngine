@@ -62,6 +62,15 @@ void InitializeBuiltInInspector()
     EditorRegister::Instance()->RegisterInspector<Rendering::RenderPipelineAsset, RenderPipelineAssetInspector>();
 }
 
+// Helpers
+void DrawTextureObject(Texture* tex)
+{
+    float width = ImGui::GetSurfaceSize().x;
+    auto& desc = tex->GetDescription();
+    float ratio = desc.width / (float)desc.height;
+    ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
+}
+
 void LightInspector::Tick(RefPtr<EditorContext> editorContext)
 {
     RefPtr<Light> light = target;
@@ -93,6 +102,25 @@ void Model2Inspector::Tick(RefPtr<EditorContext> editorContext)
             ImGui::Text("%s", name.c_str());
             ImGui::EndDragDropSource();
         }
+    }
+
+    auto gameObjects = model->GetRootGameObject();
+    int id = 0;
+    for (auto go : gameObjects)
+    {
+        if (ImGui::Button((go->GetName() + "##" + std::to_string(id)).c_str()))
+        {
+            editorContext->currentSelected = (AssetObject*)target.Get();
+        }
+
+        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None))
+        {
+            GameObject* data = go;
+            ImGui::SetDragDropPayload("GameObject", &data, sizeof(data));
+            ImGui::Text("%s", go->GetName().c_str());
+            ImGui::EndDragDropSource();
+        }
+        id += 1;
     }
 }
 
@@ -278,7 +306,10 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
 
     Mesh2* mesh = meshRenderer->GetMesh();
     if (mesh)
-        ImGui::Button(("Mesh: " + mesh->GetName()).c_str());
+    {
+        if (ImGui::Button(("Mesh: " + mesh->GetName()).c_str()))
+            editorContext->currentSelected = mesh;
+    }
     else
         ImGui::Button("Mesh: null");
     if (ImGui::BeginDragDropTarget())
@@ -299,7 +330,12 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
     {
         Material* mat = mats[i];
         if (mat)
-            ImGui::Button(std::format("Material {}: {}", i, mat->GetName()).c_str());
+        {
+            if (ImGui::Button(std::format("Material {}: {}", i, mat->GetName()).c_str()))
+            {
+                editorContext->currentSelected = mat;
+            }
+        }
         else
             ImGui::Button("Material: null");
         if (ImGui::BeginDragDropTarget())
@@ -413,10 +449,7 @@ void ShaderInspector::Tick(RefPtr<EditorContext> editorContext)
 void TextureInspector::Tick(RefPtr<EditorContext> editorContext)
 {
     RefPtr<Texture> tex = target;
-    float width = ImGui::GetSurfaceSize().x;
-    auto& desc = tex->GetDescription();
-    float ratio = desc.width / (float)desc.height;
-    ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
+    DrawTextureObject(tex.Get());
 }
 
 void AssetObjectInspector::Tick(RefPtr<EditorContext> editorContext)

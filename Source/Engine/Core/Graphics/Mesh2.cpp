@@ -5,13 +5,13 @@
 namespace Engine
 {
 Submesh::Submesh(UniPtr<unsigned char>&& vertexBuffer,
-                 std::vector<VertexBinding>&& attributes,
+                 std::vector<VertexBinding>&& bindings,
                  UniPtr<unsigned char>&& indexBuffer,
                  Gfx::IndexBufferType indexBufferType,
                  int indexCount,
                  std::string_view name)
     : vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)), indexBufferType(indexBufferType),
-      bindings(std::move(attributes)), indexCount(indexCount), name(name)
+      bindings(std::move(bindings)), indexCount(indexCount), name(name)
 {
     // calculate vertex buffer size
     std::size_t vertexBufferSize = 0;

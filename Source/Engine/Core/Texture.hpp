@@ -9,6 +9,7 @@ using TextureDescription = Gfx::ImageDescription;
 class Texture : public AssetObject
 {
 public:
+    Texture(){};
     Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
     ~Texture() override
     {

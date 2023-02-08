@@ -76,13 +76,18 @@ void ProjectManagement::SetLastEditorCameraPos(glm::vec3 pos)
 
 void ProjectManagement::SetLastEditorCameraRotation(glm::quat rot)
 {
-    gameProj["lastEditorCameraRotation"] = {rot.x, rot.y, rot.z, rot.w};
+    gameProj["lastEditorCameraRotation"] = {
+        rot.w,
+        rot.x,
+        rot.y,
+        rot.z,
+    };
 }
 
 glm::quat ProjectManagement::GetLastEditorCameraRotation()
 {
-    auto rot = gameProj.value<std::array<float, 4>>("lastEditorCameraRotation", {0, 0, 0, 1});
-    return {rot[3], rot[0], rot[1], rot[2]};
+    auto rot = gameProj.value<std::array<float, 4>>("lastEditorCameraRotation", {1, 0, 0, 0});
+    return {rot[0], rot[1], rot[2], rot[3]};
 }
 
 void ProjectManagement::Save()

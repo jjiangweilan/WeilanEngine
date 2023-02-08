@@ -115,8 +115,11 @@ void GfxResourceTransfer::Transfer(RefPtr<Gfx::Image> image, const ImageTransfer
     each element of pRegions, bufferOffset must be a multiple of the format's texel block size
     (https://vulkan.lunarg.com/doc/view/1.3.231.1/windows/1.3-extensions/vkspec.html#VUID-vkCmdCopyBufferToImage-bufferOffset-01558)
     */
-    int byteSize = Gfx::Utils::MapImageFormatToByteSize(image->GetDescription().format);
-    stagingBufferOffset += byteSize - stagingBufferOffset % byteSize;
+    if (stagingBufferOffset != 0)
+    {
+        int byteSize = Gfx::Utils::MapImageFormatToByteSize(image->GetDescription().format);
+        stagingBufferOffset += byteSize - stagingBufferOffset % byteSize;
+    }
 
     if (stagingBufferOffset + request.size > stagingBufferSize)
     {

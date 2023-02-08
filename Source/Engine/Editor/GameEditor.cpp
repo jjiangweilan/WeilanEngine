@@ -72,7 +72,7 @@ void GameEditor::Tick()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
     DrawMainMenu();
 
     if (projectManagement->IsInitialized())

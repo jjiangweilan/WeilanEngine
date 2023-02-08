@@ -24,7 +24,7 @@ public:
     {
         bool need = AssetImporter::NeedReimport(path, root, uuid);
 
-        return need;
+        return true;
     }
 
 private:

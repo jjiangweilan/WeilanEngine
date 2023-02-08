@@ -11,6 +11,7 @@ public:
     GameScene();
     ~GameScene() {}
     RefPtr<GameObject> CreateGameObject();
+    void AddGameObject(GameObject* newGameObject);
 
     const std::vector<RefPtr<GameObject>>& GetRootObjects();
 

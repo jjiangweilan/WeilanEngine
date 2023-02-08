@@ -16,6 +16,12 @@ RefPtr<GameObject> GameScene::CreateGameObject()
     return refObj;
 }
 
+void GameScene::AddGameObject(GameObject* newGameObject)
+{
+    newGameObject->SetGameScene(this);
+    roots.push_back(newGameObject);
+}
+
 const std::vector<RefPtr<GameObject>>& GameScene::GetRootObjects() { return roots; }
 
 void GameScene::Tick()
