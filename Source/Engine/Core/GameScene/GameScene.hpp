@@ -25,8 +25,11 @@ public:
 
 protected:
     std::vector<UniPtr<GameObject>> gameObjects;
+    std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
 
     void TickGameObject(RefPtr<GameObject> obj);
+
+    void OnReferenceResolve(void* ptr, AssetObject* resolved) override;
 };
 } // namespace Engine

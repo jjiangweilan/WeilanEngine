@@ -23,6 +23,8 @@ public:
         SerializeMember("meshes", this->meshes);
         SerializeMember("textures", this->textures);
         SerializeMember("materials", this->materials);
+        SerializeMember("gameObjects", this->gameObjects);
+        SerializeMember("rootGameObjects", this->rootGameObjects);
     };
 
     RefPtr<Mesh2> GetMesh(const std::string& name)

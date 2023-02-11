@@ -5,6 +5,7 @@ GameScene::GameScene() : AssetObject()
 {
     name = "New GameScene";
     SERIALIZE_MEMBER(gameObjects);
+    SERIALIZE_MEMBER(externalGameObjects);
 }
 
 RefPtr<GameObject> GameScene::CreateGameObject()
@@ -20,6 +21,7 @@ void GameScene::AddGameObject(GameObject* newGameObject)
 {
     newGameObject->SetGameScene(this);
     roots.push_back(newGameObject);
+    externalGameObjects.push_back(newGameObject);
 }
 
 const std::vector<RefPtr<GameObject>>& GameScene::GetRootObjects() { return roots; }
@@ -95,7 +97,37 @@ void GameScene::Deserialize(AssetSerializer& serializer, ReferenceResolver& refR
         {
             roots.push_back(obj);
         }
-        obj->SetGameScene(this);
+    }
+
+    for (auto obj : externalGameObjects)
+    {
+        if (obj)
+        {
+            obj->SetGameScene(this);
+            if (obj->GetTransform()->GetParent() == nullptr)
+            {
+                roots.push_back(obj);
+            }
+        }
+    }
+}
+
+void GameScene::OnReferenceResolve(void* ptr, AssetObject* resolved)
+{
+    for (auto externalGameObject : externalGameObjects)
+    {
+        if (externalGameObject.Get() == resolved)
+        {
+            if (auto go = static_cast<GameObject*>(externalGameObject.Get()))
+            {
+                go->SetGameScene(this);
+                Transform* goParent = go->GetTransform()->GetParent().Get();
+                if (!goParent)
+                {
+                    roots.push_back(go);
+                }
+            }
+        }
     }
 }
 
