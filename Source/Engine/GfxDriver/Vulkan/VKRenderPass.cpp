@@ -4,6 +4,7 @@
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
 #include "VKImage.hpp"
+#include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
 {
@@ -54,8 +55,12 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
     }
     createInfo.attachmentCount = attaIndex;
     createInfo.pAttachments = imageViews;
-    createInfo.width = subpasses[0].colors[0].image->GetDescription().width;
-    createInfo.height = subpasses[0].colors[0].image->GetDescription().height;
+
+    Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : subpasses[0].colors[0].image.Get();
+    if (image == nullptr)
+        image = subpasses[0].depth->image.Get();
+    createInfo.width = image->GetDescription().width;
+    createInfo.height = image->GetDescription().height;
     createInfo.layers = 1;
 
     VkFramebuffer newFrameBuffer = VK_NULL_HANDLE;
@@ -182,12 +187,24 @@ void VKRenderPass::CreateRenderPass()
 
 Extent2D VKRenderPass::GetExtent()
 {
-    if (subpasses.size() > 0 && subpasses[0].colors.size() > 0 && subpasses[0].colors[0].image != nullptr)
+    if (subpasses.size() > 0)
     {
-        auto& desc = subpasses[0].colors[0].image->GetDescription();
-        return {desc.width, desc.height};
+        if (subpasses[0].colors.size() > 0 && subpasses[0].colors[0].image != nullptr)
+        {
+            auto& desc = subpasses[0].colors[0].image->GetDescription();
+            return {desc.width, desc.height};
+        }
+        else
+        {
+            if (subpasses[0].depth.has_value())
+            {
+                auto& desc = subpasses[0].depth->image->GetDescription();
+                return {desc.width, desc.height};
+            }
+        }
     }
 
+    SPDLOG_WARN("VKRenderPass-GetExtent returns {0, 0}");
     return {0, 0};
 }
 

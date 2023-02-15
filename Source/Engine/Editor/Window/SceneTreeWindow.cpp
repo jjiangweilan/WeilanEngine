@@ -29,6 +29,7 @@ void SceneTreeWindow::Tick()
             {
                 gameScene->CreateGameObject();
             }
+
             ImGui::EndPopup();
         }
 

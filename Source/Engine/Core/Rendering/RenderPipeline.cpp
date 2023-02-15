@@ -64,7 +64,7 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetDepthAttachmentOp().storeOp = AttachmentStoreOperation::Store;
     renderPassNode->SetName("RenderPipeline-renderPassNode");
     Gfx::ClearValue colorClear;
-    colorClear.color = {{0, 0, 0, 1}};
+    colorClear.color = {{0.98, 0.98, 0.98, 1}};
     renderPassNode->GetClearValues()[0] = colorClear;
     Gfx::ClearValue depthClear;
     depthClear.depthStencil.depth = 1;
@@ -141,6 +141,33 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtCacheTexNode->GetPortOutput());
     renderPassNode->GetPortDependentAttachmentsIn()->Connect(vtIndirTexNode->GetPortOutput());
 
+    // shadow map
+    shadowMapDepth = graph.AddNode<RGraph::ImageNode>();
+    shadowMapDepth->width = 2048;
+    shadowMapDepth->height = 2048;
+    shadowMapDepth->format = Gfx::ImageFormat::D16_UNorm;
+    shadowMapDepth->SetName("RenderPipeline-shadowMapDepth");
+
+    shadowPassNode = graph.AddNode<RGraph::RenderPassNode>();
+    shadowPassNode->SetName("RenderPipeline-shadowPassNode");
+    shadowPassNode->GetDepthAttachmentOp().loadOp = Gfx::AttachmentLoadOperation::Clear;
+    shadowPassNode->GetDepthAttachmentOp().storeOp = Gfx::AttachmentStoreOperation::Store;
+    shadowPassNode->GetPortDepthIn()->Connect(shadowMapDepth->GetPortOutput());
+    shadowPassNode->SetDrawList(sceneDrawList);
+    DrawData shadowDrawDataOverride;
+    shadowDrawDataOverride.shader =
+        AssetDatabase::Instance()->GetShader(shadowResource.ShaderShadowMap)->GetShaderProgram().Get();
+    shadowDrawDataOverride.scissor = {{0, 0}, {2048, 2048}};
+    shadowDrawDataOverride.shaderResource = shadowResource.shaderResource.Get();
+    shadowPassNode->OverrideDrawData(shadowDrawDataOverride);
+    Gfx::ClearValue shadowDepthClear;
+    shadowDepthClear.depthStencil.depth = 1;
+    shadowDepthClear.depthStencil.stencil = 0;
+    shadowPassNode->SetColorCount(0);
+    shadowPassNode->GetClearValues().back() = depthClear;
+
+    renderPassNode->GetPortDependentAttachmentsIn()->Connect(shadowPassNode->GetPortDepthOut());
+
     CompileGraph();
 }
 
@@ -154,12 +181,12 @@ void RenderPipeline::CompileGraph()
     gameEditorRenderer->ResizeWindow(gfxDriver->GetSurfaceSize());
 #endif
     graph.Compile();
-    globalShaderResoruce.GetShaderResource()->SetTexture(
-        "vtCache",
-        (Gfx::Image*)vtCacheTexNode->GetPortOutput()->GetResourceVal());
-    globalShaderResoruce.GetShaderResource()->SetTexture(
-        "vtIndir",
-        (Gfx::Image*)vtIndirTexNode->GetPortOutput()->GetResourceVal());
+    sceneResource.GetShaderResource()->SetTexture("vtCache",
+                                                  (Gfx::Image*)vtCacheTexNode->GetPortOutput()->GetResourceVal());
+    sceneResource.GetShaderResource()->SetTexture("vtIndir",
+                                                  (Gfx::Image*)vtIndirTexNode->GetPortOutput()->GetResourceVal());
+    sceneResource.GetShaderResource()->SetTexture("shadowMap",
+                                                  (Gfx::Image*)shadowMapDepth->GetPortOutput()->GetResourceVal());
 }
 
 void RenderPipeline::Render(RefPtr<GameScene> gameScene)
@@ -178,20 +205,31 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     {
         RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();
 
-        ProcessLights(gameScene);
+        auto mainLight = ProcessLights(gameScene);
 
         glm::mat4 viewMatrix = mainCamera->GetViewMatrix();
         glm::mat4 projectionMatrix = mainCamera->GetProjectionMatrix();
         glm::mat4 vp = projectionMatrix * viewMatrix;
-        glm::vec3 viewPos = camTsm->GetPosition();
-        globalShaderResoruce.sceneInfo.projection = projectionMatrix;
-        globalShaderResoruce.sceneInfo.viewProjection = vp;
-        globalShaderResoruce.sceneInfo.viewPos = viewPos;
-        globalShaderResoruce.sceneInfo.view = viewMatrix;
+        glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+        sceneResource.sceneInfo.projection = projectionMatrix;
+        sceneResource.sceneInfo.viewProjection = vp;
+        sceneResource.sceneInfo.viewPos = viewPos;
+        sceneResource.sceneInfo.view = viewMatrix;
 
-        Internal::GetGfxResourceTransfer()->Transfer(globalShaderResoruce.GetShaderResource().Get(),
+        // shadow map
+        if (mainLight)
+        {
+            shadowResource.sceneShadow.worldToShadow = mainLight->WorldToShadowMatrix();
+            sceneResource.sceneInfo.worldToShadow = shadowResource.sceneShadow.worldToShadow;
+        }
+
+        Internal::GetGfxResourceTransfer()->Transfer(sceneResource.GetShaderResource().Get(),
                                                      "SceneInfo",
-                                                     &globalShaderResoruce.sceneInfo);
+                                                     &sceneResource.sceneInfo);
+
+        Internal::GetGfxResourceTransfer()->Transfer(shadowResource.shaderResource.Get(),
+                                                     "SceneShadow",
+                                                     &shadowResource.sceneShadow);
     }
 
     // prepare
@@ -200,7 +238,7 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     DrawData drawData;
     // cmdBuf->SetScissor(0, 1, &scissor);
     drawData.scissor = scissor;
-    drawData.shaderResource = globalShaderResoruce.GetShaderResource().Get();
+    drawData.shaderResource = sceneResource.GetShaderResource().Get();
     sceneDrawList.push_back(drawData);
 
     // render scene object (opauqe + transparent)
@@ -321,17 +359,28 @@ void RenderPipeline::AppendDrawData(RefPtr<Transform> transform, std::vector<RGr
     }
 }
 
-void RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene)
+RenderPipeline::MainLight* RenderPipeline::ProcessLights(RefPtr<GameScene> gameScene)
 {
     auto lights = gameScene->GetActiveLights();
 
+    MainLight* mainLight = nullptr;
     for (int i = 0; i < lights.size(); ++i)
     {
-        globalShaderResoruce.sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
+        sceneResource.sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
-        globalShaderResoruce.sceneInfo.lights[i].position = glm::vec4(glm::normalize(glm::vec3(model[2])), 0);
+        sceneResource.sceneInfo.lights[i].position = glm::vec4(glm::normalize(glm::vec3(model[2])), 0);
+
+        if (lights[i]->GetLightType() == LightType::Directional)
+        {
+            if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
+            {
+                mainLight = lights[i].Get();
+            }
+        }
     }
-    globalShaderResoruce.sceneInfo.lightCount = lights.size();
+
+    sceneResource.sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
+    return mainLight;
 }
 
 void RenderPipeline::ApplyAsset()

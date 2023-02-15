@@ -419,6 +419,11 @@ void GameObjectInspector::Tick(RefPtr<EditorContext> editorContext)
             ImGui::TreePop();
         }
 
+        if (ImGui::Selectable("Remove From Scene"))
+        {
+            activeObject->GetTransform()->SetParent(nullptr);
+        }
+
         ImGui::EndPopup();
     }
 }

@@ -181,8 +181,8 @@ public:
 
 protected:
     Node* parent;
-    std::vector<Port*> connected;
-    std::vector<ResourceRef*> resourceRefs;
+    std::vector<Port*> connected = {};
+    std::vector<ResourceRef*> resourceRefs = {};
     Type type;
     const std::type_info& resourceType;
     std::string name;

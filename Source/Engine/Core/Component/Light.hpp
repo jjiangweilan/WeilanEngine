@@ -22,13 +22,14 @@ public:
     void SetLightType(LightType type);
     void SetRange(float range) { this->range = range; }
     void SetIntensity(float intensity) { this->intensity = intensity; }
+    glm::mat4 WorldToShadowMatrix();
 
     LightType GetLightType() const { return lightType; }
     float GetRange() const { return range; }
     float GetIntensity() const { return intensity; }
 
 private:
-    LightType lightType = LightType::Point;
+    LightType lightType = LightType::Directional;
     float range; // valid when it's a point light
     float intensity;
 };

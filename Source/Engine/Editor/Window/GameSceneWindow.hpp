@@ -21,16 +21,42 @@ public:
 class GameSceneCamera
 {
 public:
-    GameSceneCamera(glm::vec3 initialPos, glm::quat initialRotation);
+    GameSceneCamera(glm::vec3 initialPos);
     void Activate(bool gameCamPos);
     void Deactivate();
 
     void Tick(glm::vec2 mouseInSceneViewUV);
     bool IsActive() { return isActive; }
     glm::vec3 GetCameraPos() { return camera->GetGameObject()->GetTransform()->GetPosition(); }
-    glm::quat GetCameraRotation() { return camera->GetGameObject()->GetTransform()->GetRotationQuat(); }
+    void GetCameraRotation(float& theta, float& phi)
+    {
+        theta = this->theta;
+        phi = this->phi;
+    }
+
+    void SetCameraRotation(float theta, float phi)
+    {
+        this->theta = theta;
+        this->phi = phi;
+
+        UpdateRotation();
+    }
 
 private:
+    void UpdateRotation()
+    {
+        auto transform = camera->GetGameObject()->GetTransform();
+
+        phi = glm::clamp(phi, 0.01f, glm::pi<float>() - 0.01f);
+
+        float x = glm::sin(phi) * glm::cos(theta);
+        float y = glm::cos(phi);
+        float z = glm::sin(phi) * glm::sin(theta);
+
+        auto rot = glm::quatLookAtRH(glm::vec3(x, y, z), {0., 1., 0.});
+        transform->SetRotation(rot);
+    }
+
     UniPtr<GameObject> gameObject;
     RefPtr<Camera> camera;
     RefPtr<Camera> oriCam;
@@ -44,8 +70,9 @@ private:
         LookAround
     } operationType;
 
+    float phi = 0;
+    float theta = 0;
     glm::vec3 lastActivePos;
-    glm::quat lastActiveRotation;
     glm::ivec2 initialMousePos;
     ImVec2 imguiInitialMousePos;
 };

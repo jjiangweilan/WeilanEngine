@@ -14,6 +14,7 @@
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -85,9 +86,11 @@ void GetClickedGameObject(Ray ray, RefPtr<GameObject> root, std::vector<ClickedG
 }
 
 GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext)
-    : editorContext(editorContext), gameSceneCam(ProjectManagement::instance->GetLastEditorCameraPos(),
-                                                 ProjectManagement::instance->GetLastEditorCameraRotation())
+    : editorContext(editorContext), gameSceneCam(ProjectManagement::instance->GetLastEditorCameraPos())
 {
+    float camTheta, camPhi;
+    ProjectManagement::instance->GetLastEditorCameraRotation(camTheta, camPhi);
+    gameSceneCam.SetCameraRotation(camTheta, camPhi);
     outlineRawColor = AssetDatabase::Instance()->GetShader("Internal/OutlineRawColorPass");
     outlineFullScreen = AssetDatabase::Instance()->GetShader("Internal/OutlineFullScreenPass");
     blendBackShader = AssetDatabase::Instance()->GetShader("Internal/SimpleBlend");
@@ -296,7 +299,9 @@ void GameSceneWindow::Tick()
 void GameSceneWindow::OnDestroy()
 {
     ProjectManagement::instance->SetLastEditorCameraPos(gameSceneCam.GetCameraPos());
-    ProjectManagement::instance->SetLastEditorCameraRotation(gameSceneCam.GetCameraRotation());
+    float theta, phi;
+    gameSceneCam.GetCameraRotation(theta, phi);
+    ProjectManagement::instance->SetLastEditorCameraRotation(theta, phi);
 }
 
 void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, RefPtr<Gfx::Image> sceneDepth)
@@ -413,12 +418,11 @@ void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, Re
     }
 }
 
-GameSceneCamera::GameSceneCamera(glm::vec3 initialPos, glm::quat initialRotation)
+GameSceneCamera::GameSceneCamera(glm::vec3 initialPos)
 {
     gameObject = MakeUnique<GameObject>();
     camera = gameObject->AddComponent<Camera>();
     lastActivePos = initialPos;
-    lastActiveRotation = initialRotation;
 }
 
 void GameSceneCamera::Activate(bool gameCamPos)
@@ -434,7 +438,6 @@ void GameSceneCamera::Activate(bool gameCamPos)
     else
     {
         camera->GetGameObject()->GetTransform()->SetPosition(lastActivePos);
-        camera->GetGameObject()->GetTransform()->SetRotation(lastActiveRotation);
     }
     isActive = true;
 }
@@ -471,13 +474,12 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
             {
                 if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
                 {
-                    auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-                    glm::vec3 xAxis = transform->GetModelMatrix()[0];
-                    glm::mat4 rotation = glm::rotate(glm::mat4(1), glm::radians(-delta.x * 0.05f), glm::vec3(0, 1, 0));
-                    rotation = glm::rotate(rotation, glm::radians(-delta.y * 0.05f), xAxis);
+                    ImVec2 deltaLR = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+                    phi += deltaLR.y / glm::two_pi<float>() / 20.0f;
+                    theta += deltaLR.x / glm::two_pi<float>() / 20.0f;
 
-                    auto finalRot = rotation * glm::mat4_cast(transform->GetRotationQuat());
-                    transform->SetRotation(finalRot);
+                    UpdateRotation();
+
                     ImGui::GetIO().MousePos = imguiInitialMousePos;
                     ImGui::GetIO().WantSetMousePos = true;
                     ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
@@ -506,11 +508,11 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
     {
         glm::mat3 modelMatrix = transform->GetModelMatrix();
         glm::vec3 movement = glm::vec3(0);
-        float speed = 0.4;
+        float speed = 0.1;
         if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
             speed = 0.8;
         if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
-            speed = 0.1;
+            speed = 0.4;
 
         if (ImGui::IsKeyDown(ImGuiKey_A))
         {
@@ -553,7 +555,6 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
     }
 
     lastActivePos = transform->GetPosition();
-    lastActiveRotation = transform->GetRotationQuat();
 }
 
 void GameSceneCamera::Deactivate()

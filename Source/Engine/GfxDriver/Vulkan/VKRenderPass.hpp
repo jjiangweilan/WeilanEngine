@@ -34,7 +34,7 @@ protected:
     // when one of the color attachment is a swap chain image proxy there will be multiple framebuffers, otherwise there
     // is only one
     std::vector<VkFramebuffer> frameBuffers;
-    VKSwapChainImageProxy* swapChainProxy;
+    VKSwapChainImageProxy* swapChainProxy = nullptr;
 
     struct Subpass
     {

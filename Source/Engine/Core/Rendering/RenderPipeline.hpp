@@ -45,8 +45,8 @@ private:
         GlobalShaderResource()
         {
             shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-                AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(),
-                Gfx::ShaderResourceFrequency::Global);
+                AssetDatabase::Instance()->GetShader(ShaderSceneLayout)->GetShaderProgram(),
+                frequency);
             assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj)
                                                                                      { this->OnAssetReload(obj); });
         }
@@ -63,11 +63,12 @@ private:
 
         struct SceneInfo
         {
+            glm::vec4 viewPos;
             glm::mat4 view;
             glm::mat4 projection;
             glm::mat4 viewProjection;
-            glm::vec3 viewPos;
-            float lightCount;
+            glm::mat4 worldToShadow;
+            glm::vec4 lightCount;
             Light lights[MAX_LIGHT_COUNT];
         } sceneInfo;
 
@@ -75,19 +76,58 @@ private:
         void OnAssetReload(RefPtr<AssetObject> obj)
         {
             Shader* casted = dynamic_cast<Shader*>(obj.Get());
-            if (casted && casted->GetName() == "Internal/SceneLayout")
+            if (casted && casted->GetName() == ShaderSceneLayout)
             {
                 this->shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-                    AssetDatabase::Instance()->GetShader("Internal/SceneLayout")->GetShaderProgram(),
-                    Gfx::ShaderResourceFrequency::Global);
+                    AssetDatabase::Instance()->GetShader(ShaderSceneLayout)->GetShaderProgram(),
+                    frequency);
             }
         }
 
     private:
         UniPtr<Gfx::ShaderResource> shaderResource;
         AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
+        const char* ShaderSceneLayout = "Internal/SceneLayout";
+        const Gfx::ShaderResourceFrequency frequency = Gfx::ShaderResourceFrequency::Global;
 
-    } globalShaderResoruce;
+    } sceneResource;
+
+    struct ShadowPassResource
+    {
+        struct SceneShadow
+        {
+            glm::mat4 worldToShadow;
+        } sceneShadow;
+        ShadowPassResource()
+        {
+            shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
+                AssetDatabase::Instance()->GetShader(ShaderShadowMap)->GetShaderProgram(),
+                frequency);
+            assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload([this](RefPtr<AssetObject> obj)
+                                                                                     { this->OnAssetReload(obj); });
+        }
+
+        ~ShadowPassResource() { AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle); }
+
+        UniPtr<Gfx::ShaderResource> shaderResource;
+        const char* ShaderShadowMap = "Game/ShadowMap";
+
+    private:
+        void OnAssetReload(RefPtr<AssetObject> obj)
+        {
+            Shader* casted = dynamic_cast<Shader*>(obj.Get());
+            if (casted && casted->GetName() == ShaderShadowMap)
+            {
+                this->shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
+                    AssetDatabase::Instance()->GetShader(ShaderShadowMap)->GetShaderProgram(),
+                    frequency);
+            }
+        }
+
+        AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
+
+        const Gfx::ShaderResourceFrequency frequency = Gfx::ShaderResourceFrequency::Global;
+    } shadowResource;
 
     RefPtr<Gfx::GfxDriver> gfxDriver;
     UniPtr<RenderPipelineAsset> asset;
@@ -109,6 +149,11 @@ private:
 #endif
 
     RGraph::RenderGraph graph;
+
+    // shadow map
+    RGraph::ImageNode* shadowMapDepth;
+    RGraph::RenderPassNode* shadowPassNode;
+
     RGraph::ImageNode* vtCacheTexNode;
     RGraph::ImageNode* vtIndirTexNode;
     RGraph::ImageNode* colorImageNode;
@@ -122,7 +167,8 @@ private:
     UniPtr<VirtualTexture> vt;
 
     void PrepareFrameData(RefPtr<CommandBuffer> cmdBuf);
-    void ProcessLights(RefPtr<GameScene> gameScene);
+    using MainLight = Light;
+    MainLight* ProcessLights(RefPtr<GameScene> gameScene);
 
     /* features */
     VirtualTextureRenderer virtualTextureRenderer;

@@ -30,9 +30,9 @@ public:
     void SetLastActiveScene(RefPtr<GameScene> scene);
     void Save();
     glm::vec3 GetLastEditorCameraPos();
-    glm::quat GetLastEditorCameraRotation();
+    void GetLastEditorCameraRotation(float& theta, float& phi);
     void SetLastEditorCameraPos(glm::vec3 pos);
-    void SetLastEditorCameraRotation(glm::quat rot);
+    void SetLastEditorCameraRotation(float theta, float phi);
     ProjectManagement::ResultCode LoadProject(const std::filesystem::path& root);
 
     static RefPtr<ProjectManagement> instance;

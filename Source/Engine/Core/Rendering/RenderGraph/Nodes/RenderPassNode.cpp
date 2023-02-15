@@ -28,7 +28,7 @@ bool RenderPassNode::Preprocess(ResourceStateTrack& stateTrack)
 {
     for (auto c : colorPortsIn)
     {
-        if (c)
+        if (c && c->GetResource() != nullptr)
         {
             stateTrack.GetState(c->GetResource()).imageUsages |= Gfx::ImageUsage::ColorAttachment;
         }
@@ -104,30 +104,45 @@ bool RenderPassNode::Compile(ResourceStateTrack& stateTrack)
 
 bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack)
 {
-    Port* colorPort0 = colorPortsIn.front();
-    ResourceRef* color0Res = colorPort0->GetConnectedPort()->GetResource();
-    ResourceRef* depthRes = depthPortIn->GetConnectedPort()->GetResource();
+    Port* colorPort0 = colorPortsIn.empty() ? nullptr : colorPortsIn.front();
+    Port* colorConnectedPort = colorPort0 ? colorPort0->GetConnectedPort() : colorPort0;
+    Port* depthConnectedPort = depthPortIn->GetConnectedPort();
+    ResourceRef* color0Res = colorConnectedPort ? colorConnectedPort->GetResource() : nullptr;
+    ResourceRef* depthRes = depthConnectedPort ? depthConnectedPort->GetResource() : nullptr;
 
-    // render pass need a color attachment
-    if (!color0Res)
-        return false;
+    ResourceRef* attaRes = color0Res ? color0Res : depthRes;
+    Gfx::Image* atta = (Gfx::Image*)attaRes->GetVal();
+    Viewport viewport{.x = 0,
+                      .y = 0,
+                      .width = static_cast<float>(atta->GetDescription().width),
+                      .height = static_cast<float>(atta->GetDescription().height),
+                      .minDepth = 0,
+                      .maxDepth = 1};
+
+    cmdBuf->SetViewport(viewport);
 
     std::vector<GPUBarrier> barriers;
 
-    InsertImageBarrierIfNeeded(stateTrack,
-                               color0Res,
-                               barriers,
-                               Gfx::ImageLayout::Color_Attachment,
-                               Gfx::PipelineStage::Color_Attachment_Output,
-                               Gfx::AccessMask::Color_Attachment_Read | Gfx::AccessMask::Color_Attachment_Write);
+    if (color0Res)
+    {
+        InsertImageBarrierIfNeeded(stateTrack,
+                                   color0Res,
+                                   barriers,
+                                   Gfx::ImageLayout::Color_Attachment,
+                                   Gfx::PipelineStage::Color_Attachment_Output,
+                                   Gfx::AccessMask::Color_Attachment_Read | Gfx::AccessMask::Color_Attachment_Write);
+    }
 
-    InsertImageBarrierIfNeeded(stateTrack,
-                               depthRes,
-                               barriers,
-                               Gfx::ImageLayout::Depth_Stencil_Attachment,
-                               Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
-                               Gfx::AccessMask::Depth_Stencil_Attachment_Read |
-                                   Gfx::AccessMask::Depth_Stencil_Attachment_Write);
+    if (depthRes)
+    {
+        InsertImageBarrierIfNeeded(stateTrack,
+                                   depthRes,
+                                   barriers,
+                                   Gfx::ImageLayout::Depth_Stencil_Attachment,
+                                   Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
+                                   Gfx::AccessMask::Depth_Stencil_Attachment_Read |
+                                       Gfx::AccessMask::Depth_Stencil_Attachment_Write);
+    }
 
     for (auto dep : dependentAttachmentIn->GetResources())
     {
@@ -145,17 +160,6 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
         cmdBuf->Barrier(barriers.data(), barriers.size());
     }
     cmdBuf->BeginRenderPass(renderPass, clearValues);
-
-    ResourceRef* attaRes = color0Res ? color0Res : depthRes;
-    Gfx::Image* atta = (Gfx::Image*)attaRes->GetVal();
-    Viewport viewport{.x = 0,
-                      .y = 0,
-                      .width = static_cast<float>(atta->GetDescription().width),
-                      .height = static_cast<float>(atta->GetDescription().height),
-                      .minDepth = 0,
-                      .maxDepth = 1};
-
-    cmdBuf->SetViewport(viewport);
 
     if (drawDataOverride.shader)
     {
@@ -218,8 +222,7 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
 
             if (drawData.shaderResource)
             {
-                if (!drawDataOverride.shaderResource ||
-                    drawDataOverride.shaderResource->GetFrequency() != drawData.shaderResource->GetFrequency())
+                if (!drawDataOverride.shaderResource)
                 {
                     cmdBuf->BindResource(drawData.shaderResource);
                 }
@@ -265,13 +268,13 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
 
 void RenderPassNode::SetColorCount(uint32_t count)
 {
-    uint32_t val = count;
-    uint32_t oldVal = colorPortsIn.size();
-    if (val > 8)
+    uint32_t newCount = count;
+    uint32_t oldCount = colorPortsIn.size();
+    if (newCount > 8)
         return;
-    if (val > oldVal)
+    if (newCount > oldCount)
     {
-        for (int i = oldVal; i < val; ++i)
+        for (int i = oldCount; i < newCount; ++i)
         {
             colorPortsIn.push_back(
                 AddPort(std::format("Color {}", i).c_str(),
@@ -291,16 +294,23 @@ void RenderPassNode::SetColorCount(uint32_t count)
             colorPortsOut.push_back(AddPort("Color", Port::Type::Output, typeid(Gfx::Image)));
         }
     }
-    else if (val < oldVal)
+    else if (newCount < oldCount)
     {
-        for (int i = oldVal; i >= val; --i)
+        for (int i = oldCount; i > newCount; --i)
         {
-            auto port = colorPortsIn.back();
-            RemovePort(port);
-            port = colorPortsOut.back();
-            RemovePort(port);
-            colorPortsIn.pop_back();
-            colorPortsOut.pop_back();
+            if (!colorPortsIn.empty())
+            {
+                auto port = colorPortsIn.back();
+                RemovePort(port);
+                colorPortsIn.pop_back();
+            }
+
+            if (!colorPortsOut.empty())
+            {
+                auto port = colorPortsOut.empty() ? nullptr : colorPortsOut.back();
+                RemovePort(port);
+                colorPortsOut.pop_back();
+            }
         }
     }
 

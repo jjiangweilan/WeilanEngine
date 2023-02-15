@@ -19,6 +19,7 @@ public:
 
     void MoveGameObjectToRoot(RefPtr<GameObject> obj);
     void RemoveGameObjectFromRoot(RefPtr<GameObject> obj);
+    void RemoveGameObject(GameObject* obj);
     void Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver) override;
 
     std::vector<RefPtr<Light>> GetActiveLights();

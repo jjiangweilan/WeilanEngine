@@ -1,0 +1,33 @@
+#version 450
+
+#if CONFIG
+name: Game/ShadowMap
+#endif
+
+// we can't directly use Common.glsl because it includeds shadow map as texture
+
+layout( push_constant ) uniform Transform
+{
+    mat4 model;
+} pconst;
+
+layout(set = 0, binding = 0) uniform SceneShadow
+{
+    mat4 worldToShadow;
+} shadow;
+
+#if VERT
+layout(location = 0) in vec3 i_Position;
+void main()
+{
+    vec3 positionWS = vec3(pconst.model * vec4(i_Position, 1));
+
+    gl_Position = shadow.worldToShadow * vec4(positionWS, 1);
+}
+#endif
+
+#if FRAG
+void main()
+{
+}
+#endif
