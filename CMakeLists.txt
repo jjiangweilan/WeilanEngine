@@ -195,6 +195,18 @@ if (INSTALL_DEPENDENCY)
         )
     list(APPEND DEPEND_NAMES vma)
 
+    ExternalProject_Add(ktx_software
+        PREFIX "ThirdParty/ktx"
+        GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
+        GIT_TAG "v4.0.0"
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/ktx_software"
+        INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+        CMAKE_ARGS
+        "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+        "-DKTX_FEATURE_TESTS=OFF"
+        )
+    list(APPEND DEPEND_NAMES ktx_software)
+
     ExternalProject_Add(googletest
         PREFIX "ThirdParty/googletest"
         GIT_REPOSITORY "https://github.com/google/googletest.git"
