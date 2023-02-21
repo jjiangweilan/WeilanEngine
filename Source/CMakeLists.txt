@@ -59,6 +59,7 @@ target_link_libraries( WeilanEngineLib
     spirv-cross-reflect$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-glsl$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     shaderc_shared
+    ktx
     ryml
     )
 
