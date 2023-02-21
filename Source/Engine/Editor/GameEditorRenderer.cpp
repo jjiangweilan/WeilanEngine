@@ -12,7 +12,7 @@ GameEditorRenderer::GameEditorRenderer()
         Gfx::GfxDriver::Instance()->CreateShaderResource(imGuiData.shaderProgram, Gfx::ShaderResourceFrequency::Global);
 
     // imGuiData.fontTex creation
-    Gfx::ImageDescription fontTexDesc;
+    TextureDescription fontTexDesc;
     unsigned char* fontData;
     auto& io = ImGui::GetIO();
     ImFontConfig config;
@@ -25,9 +25,9 @@ GameEditorRenderer::GameEditorRenderer()
     int fontTexSize = bytePerPixel * width * height;
     fontTexDesc.data = new unsigned char[fontTexSize];
     memcpy(fontTexDesc.data, fontData, fontTexSize);
-    fontTexDesc.width = width;
-    fontTexDesc.height = height;
-    fontTexDesc.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+    fontTexDesc.img.width = width;
+    fontTexDesc.img.height = height;
+    fontTexDesc.img.format = Gfx::ImageFormat::R8G8B8A8_UNorm;
     imGuiData.fontTex = MakeUnique<Texture>(fontTexDesc);
     imGuiData.generalShaderRes->SetTexture("sTexture", imGuiData.fontTex->GetGfxImage());
     imGuiData.shaderConfig = imGuiData.shaderProgram->GetDefaultShaderConfig();

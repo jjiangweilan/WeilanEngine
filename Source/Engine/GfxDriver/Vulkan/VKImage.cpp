@@ -17,8 +17,8 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
     format_vk = MapFormat(imageDescription.format);
 
-    if (imageDescription.data)
-        this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    // if (imageDescription.data)
+    //     this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     MakeVkObjects();
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
 

@@ -120,8 +120,7 @@ GameSceneWindow::GameSceneWindow(RefPtr<EditorContext> editorContext)
             }
         });
 
-    Gfx::ImageDescription imageDescription{.data = nullptr, // this pointer needs to be managed
-                                           .width = GetGfxDriver()->GetSurfaceSize().width,
+    Gfx::ImageDescription imageDescription{.width = GetGfxDriver()->GetSurfaceSize().width,
                                            .height = GetGfxDriver()->GetSurfaceSize().height,
                                            .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
                                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,

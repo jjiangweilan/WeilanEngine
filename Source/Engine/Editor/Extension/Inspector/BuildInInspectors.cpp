@@ -67,7 +67,7 @@ void DrawTextureObject(Texture* tex)
 {
     float width = ImGui::GetSurfaceSize().x;
     auto& desc = tex->GetDescription();
-    float ratio = desc.width / (float)desc.height;
+    float ratio = desc.img.width / (float)desc.img.height;
     ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
 }
 
@@ -231,7 +231,7 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
                 }
                 float width = ImGui::GetSurfaceSize().x;
                 auto& desc = tex->GetDescription();
-                float ratio = desc.width / (float)desc.height;
+                float ratio = desc.img.width / (float)desc.img.height;
                 ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
             }
 

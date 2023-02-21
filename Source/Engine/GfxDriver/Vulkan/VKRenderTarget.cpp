@@ -181,7 +181,6 @@ VkRenderPass VKRenderTarget::RequestRenderPass(const RenderPassConfig& config)
         for (const auto& color : rtDescription.colorsDescriptions)
         {
             ImageDescription imageDesc;
-            imageDesc.data = nullptr;
             imageDesc.width = width;
             imageDesc.height = height;
             imageDesc.format = color.format;
@@ -196,7 +195,6 @@ VkRenderPass VKRenderTarget::RequestRenderPass(const RenderPassConfig& config)
         {
             const auto& dsDescription = rtDescription.depthStencilDescription;
             ImageDescription imageDesc;
-            imageDesc.data = nullptr;
             imageDesc.width = width;
             imageDesc.height = height;
             imageDesc.format = dsDescription->format;

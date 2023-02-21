@@ -15,7 +15,6 @@ bool ImageNode::Compile(ResourceStateTrack& stateTrack)
     if (!externalImage)
     {
         Gfx::ImageDescription description{
-            .data = nullptr,
             .width = width,
             .height = height,
             .format = format,
