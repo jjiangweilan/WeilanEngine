@@ -9,10 +9,14 @@ struct TextureDescription
 {
     Gfx::ImageDescription img;
 
-    uint8_t* data = nullptr; // this pointer needs to be managed
-    bool keepData = false;   // not used by GfxDriver, it's provided for abstraction layer
-    bool isCubemap = false;
+    uint8_t* data = nullptr;
+    bool keepData = false;
+
+    // currently we can only create a 2D texture from texture description
+    // the following members started with _ are filled when creating uisng ktxTexture
+    bool _isCubemap = false;
 };
+
 struct KtxTexture
 {
     ktx_uint8_t* imageData;

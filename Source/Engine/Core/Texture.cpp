@@ -14,7 +14,7 @@ Texture::Texture(TextureDescription texDesc, const UUID& uuid) : AssetObject(uui
         .data = texDesc.data,
         .size = Gfx::Utils::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height,
         .keepData = texDesc.keepData
-        // use default subresource range
+        // use default subresource layer
     };
     Internal::GetGfxResourceTransfer()->Transfer(image, request);
 }
@@ -49,7 +49,7 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
                                              &texture);
 
         TextureDescription texDesc;
-        texDesc.isCubemap = texture->isCubemap;
+        texDesc._isCubemap = texture->isCubemap;
 
         if (ktxTexture_NeedsTranscoding(texture))
         {
@@ -129,8 +129,8 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
 void Texture::Reload(AssetObject&& loaded)
 {
     Texture* newTex = static_cast<Texture*>(&loaded);
-    AssetObject::Reload(std::move(loaded));
     image = std::move(newTex->image);
+    AssetObject::Reload(std::move(loaded));
 }
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)
