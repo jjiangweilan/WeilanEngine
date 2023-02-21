@@ -26,7 +26,7 @@ public:
         void* data;
         uint64_t size;
         bool keepData = false;
-        Gfx::ImageSubresourceRange subresourceRange;
+        Gfx::ImageSubresourceLayers subresourceLayers;
     };
 
     void Transfer(Gfx::ShaderResource* shaderResource, const std::string& param, void* value)

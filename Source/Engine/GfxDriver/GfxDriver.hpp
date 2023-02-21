@@ -30,6 +30,13 @@ enum class Backend
     OpenGL
 };
 
+struct GPUFeatures
+{
+    bool textureCompressionETC2 = false;
+    bool textureCompressionBC = false;
+    bool textureCompressionASTC4x4 = false;
+};
+
 class GfxDriver
 {
 public:
@@ -45,6 +52,7 @@ public:
 
     virtual ~GfxDriver(){};
 
+    virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual RefPtr<Image> GetSwapChainImageProxy() = 0;
     virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;

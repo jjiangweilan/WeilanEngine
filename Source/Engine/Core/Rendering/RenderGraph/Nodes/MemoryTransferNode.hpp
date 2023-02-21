@@ -69,9 +69,15 @@ public:
                 cmdBuf->Barrier(barriers.data(), barriers.size());
             }
 
+            Gfx::ImageSubresourceRange range = srcImage->GetSubresourceRange();
+            Gfx::ImageSubresourceLayers layers{.aspectMask = range.aspectMask,
+                                               .mipLevel = range.baseMipLevel,
+                                               .baseArrayLayer = range.baseArrayLayer,
+                                               .layerCount = range.layerCount};
+
             BufferImageCopyRegion region{
                 .srcOffset = 0,
-                .range = srcImage->GetSubresourceRange(),
+                .layers = layers,
                 .offset = {0, 0},
                 .extend = {srcImage->GetDescription().width, srcImage->GetDescription().height, 1},
             };
@@ -98,9 +104,14 @@ public:
                 cmdBuf->Barrier(barriers.data(), barriers.size());
             }
 
+            Gfx::ImageSubresourceRange range = dstImage->GetSubresourceRange();
+            Gfx::ImageSubresourceLayers layers{.aspectMask = range.aspectMask,
+                                               .mipLevel = range.baseMipLevel,
+                                               .baseArrayLayer = range.baseArrayLayer,
+                                               .layerCount = range.layerCount};
             BufferImageCopyRegion region{
                 .srcOffset = 0,
-                .range = dstImage->GetSubresourceRange(),
+                .layers = layers,
                 .offset = {0, 0},
                 .extend = {dstImage->GetDescription().width, dstImage->GetDescription().height, 1},
             };

@@ -45,7 +45,7 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
             BufferImageCopyRegion region;
             region.offset = {0, 0, 0};
             region.extend = {image->GetDescription().width, image->GetDescription().height, 1};
-            region.range = request.userRequest.subresourceRange;
+            region.layers = request.userRequest.subresourceLayers;
             region.srcOffset = request.srcOffset;
             bufferImageCopyRegions.push_back(region);
         }

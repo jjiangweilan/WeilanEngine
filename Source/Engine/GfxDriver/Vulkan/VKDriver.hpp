@@ -49,6 +49,7 @@ public:
     RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
     bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
+    const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
 
     RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
@@ -98,5 +99,6 @@ private:
     {
         UniPtr<VKSemaphore> imageAcquireSemaphore;
     } inFlightFrame;
+    GPUFeatures gpuFeatures;
 };
 } // namespace Engine::Gfx

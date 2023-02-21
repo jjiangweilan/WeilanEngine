@@ -237,10 +237,10 @@ void VKCommandBuffer::CopyBufferToImage(RefPtr<Gfx::Buffer> src,
         region.bufferOffset = r.srcOffset;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = MapImageAspect(r.range.aspectMask);
-        region.imageSubresource.mipLevel = r.range.baseMipLevel;
-        region.imageSubresource.baseArrayLayer = r.range.baseArrayLayer;
-        region.imageSubresource.layerCount = r.range.layerCount;
+        region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);
+        region.imageSubresource.mipLevel = r.layers.mipLevel;
+        region.imageSubresource.baseArrayLayer = r.layers.baseArrayLayer;
+        region.imageSubresource.layerCount = r.layers.layerCount;
         region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
         region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
 
@@ -368,10 +368,10 @@ void VKCommandBuffer::CopyImageToBuffer(RefPtr<Gfx::Image> src,
         region.bufferOffset = r.srcOffset;
         region.bufferRowLength = 0;
         region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = MapImageAspect(r.range.aspectMask);
-        region.imageSubresource.mipLevel = r.range.baseMipLevel;
-        region.imageSubresource.baseArrayLayer = r.range.baseArrayLayer;
-        region.imageSubresource.layerCount = r.range.layerCount;
+        region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);
+        region.imageSubresource.mipLevel = r.layers.mipLevel;
+        region.imageSubresource.baseArrayLayer = r.layers.baseArrayLayer;
+        region.imageSubresource.layerCount = r.layers.layerCount;
         region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
         region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
 
