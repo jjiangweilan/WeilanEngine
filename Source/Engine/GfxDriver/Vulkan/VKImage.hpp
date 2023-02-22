@@ -68,7 +68,6 @@ public:
 
 protected:
     VKImage() = default;
-    uint32_t mipLevels = 1;
     uint32_t arrayLayers = 1;
     VkImageType imageType_vk = VK_IMAGE_TYPE_2D;
     VkImageUsageFlags usageFlags;

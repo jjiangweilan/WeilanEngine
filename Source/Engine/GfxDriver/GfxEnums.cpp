@@ -28,33 +28,16 @@ bool HasReadAccessMask(AccessMaskFlags flags)
 
 namespace Engine::Gfx::Utils
 {
-uint32_t MapImageFormatToBitSize(ImageFormat format)
-{
-    switch (format)
-    {
-        case ImageFormat::R16G16B16A16_SFloat: return 64;
-        case ImageFormat::R32G32B32A32_SFloat: return 128;
-        case ImageFormat::R16G16B16A16_UNorm: return 64;
-        case ImageFormat::R8G8B8A8_UNorm:
-        case ImageFormat::B8G8R8A8_UNorm:
-        case ImageFormat::B8G8R8A8_SRGB: return 32;
-        case ImageFormat::R8_SRGB: return 8;
-        case ImageFormat::R8G8_SRGB: return 16;
-        case ImageFormat::R8G8B8_SRGB: return 24;
-        case ImageFormat::R8G8B8A8_SRGB: return 32;
-        case ImageFormat::D16_UNorm: return 16;
-        case ImageFormat::D16_UNorm_S8_UInt: return 24;
-        case ImageFormat::D24_UNorm_S8_UInt: return 32;
-        default: assert(0 && "Not implemented");
-    }
 
-    return 64;
-};
-
+// https://registry.khronos.org/vulkan/specs/1.3-khr-extensions/html/chap40.html#formats-definition
 uint32_t MapImageFormatToByteSize(ImageFormat format)
 {
     switch (format)
     {
+        case ImageFormat::BC7_UNorm_Block: return 16;
+        case ImageFormat::BC7_SRGB_UNorm_Block: return 16;
+        case ImageFormat::BC3_Unorm_Block: return 16;
+        case ImageFormat::BC3_SRGB_Block: return 16;
         case ImageFormat::R16G16B16A16_SFloat: return 8;
         case ImageFormat::R32G32B32A32_SFloat: return 16;
         case ImageFormat::R16G16B16A16_UNorm: return 8;

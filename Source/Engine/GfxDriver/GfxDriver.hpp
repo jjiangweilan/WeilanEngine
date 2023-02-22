@@ -33,7 +33,7 @@ enum class Backend
 struct GPUFeatures
 {
     bool textureCompressionETC2 = false;
-    bool textureCompressionBC = false;
+    bool textureCompressionBC = true;
     bool textureCompressionASTC4x4 = false;
 };
 

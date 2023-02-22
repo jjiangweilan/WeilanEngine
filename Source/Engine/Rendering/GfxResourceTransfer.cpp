@@ -42,9 +42,12 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
 
         for (auto& request : requests)
         {
+            float scale = std::pow(2, request.userRequest.subresourceLayers.mipLevel);
             BufferImageCopyRegion region;
             region.offset = {0, 0, 0};
-            region.extend = {image->GetDescription().width, image->GetDescription().height, 1};
+            uint32_t width = std::max(1.0f, std::floor(image->GetDescription().width / scale));
+            uint32_t height = std::max(1.0f, std::floor(image->GetDescription().height / scale));
+            region.extend = {width, height, 1};
             region.layers = request.userRequest.subresourceLayers;
             region.srcOffset = request.srcOffset;
             bufferImageCopyRegions.push_back(region);
@@ -60,6 +63,8 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
         barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
         barrier.imageInfo.oldLayout = Gfx::ImageLayout::Undefined;
         barrier.imageInfo.newLayout = Gfx::ImageLayout::Transfer_Dst;
+        barrier.imageInfo.subresourceRange.baseMipLevel = 0;
+        barrier.imageInfo.subresourceRange.levelCount = image->GetDescription().mipLevels;
 
         cmdBuf->Barrier(&barrier, 1);
         cmdBuf->CopyBufferToImage(stagingBuffer, image, bufferImageCopyRegions);
@@ -73,6 +78,8 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
         barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
         barrier.imageInfo.oldLayout = Gfx::ImageLayout::Transfer_Dst;
         barrier.imageInfo.newLayout = Gfx::ImageLayout::Shader_Read_Only;
+        barrier.imageInfo.subresourceRange.baseMipLevel = 0;
+        barrier.imageInfo.subresourceRange.levelCount = image->GetDescription().mipLevels;
 
         cmdBuf->Barrier(&barrier, 1);
     }

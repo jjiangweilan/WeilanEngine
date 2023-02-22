@@ -122,5 +122,7 @@ void WeilanEngine::RegisterAssetImporters()
     assetDb->RegisterImporter<Internal::TextureImporter>("png");
     assetDb->RegisterImporter<Internal::TextureImporter>("jpeg");
     assetDb->RegisterImporter<Internal::TextureImporter>("jpg");
+    assetDb->RegisterImporter<Internal::TextureImporter>("ktx");
+    assetDb->RegisterImporter<Internal::TextureImporter>("ktx2");
 }
 } // namespace Engine

@@ -50,7 +50,19 @@ UniPtr<AssetObject> TextureImporter::Load(const std::filesystem::path& root,
     size_t byteSize;
     UniPtr<char> data = ReadBinary(input, &byteSize);
 
-    auto tex = LoadTextureFromBinary((unsigned char*)data.Get(), byteSize);
+    UniPtr<Texture> tex = nullptr;
+    if (IsKTX1File((uint8_t*)data.Get()) || IsKTX2File((uint8_t*)data.Get()))
+    {
+        KtxTexture ktxTexture;
+        ktxTexture.imageData = (uint8_t*)data.Get();
+        ktxTexture.byteSize = byteSize;
+        tex = MakeUnique<Texture>(ktxTexture);
+    }
+    else
+    {
+        tex = LoadTextureFromBinary((unsigned char*)data.Get(), byteSize);
+    }
+
     tex->SetName(infoJson["name"]);
     tex->SetUUID(uuid);
     return tex;

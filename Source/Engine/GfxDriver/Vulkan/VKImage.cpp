@@ -14,6 +14,10 @@ namespace Engine::Gfx
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription)
 {
+    if (imageDescription.mipLevels != 1)
+    {
+        int x = 0;
+    }
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
     format_vk = MapFormat(imageDescription.format);
 
@@ -26,8 +30,8 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
 }
 
 VKImage::VKImage(VKImage&& other)
-    : mipLevels(other.mipLevels), arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk),
-      usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
+    : arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk), usageFlags(other.usageFlags),
+      image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
       imageView_vk(std::exchange(other.imageView_vk, VK_NULL_HANDLE)),
       defaultSubResourceRange(other.defaultSubResourceRange),
       allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), layout(other.layout),
@@ -177,7 +181,7 @@ void VKImage::MakeVkObjects()
     imageCreateInfo.imageType = imageType_vk;
     imageCreateInfo.format = format_vk;
     imageCreateInfo.extent = {imageDescription.width, imageDescription.height, 1};
-    imageCreateInfo.mipLevels = mipLevels;
+    imageCreateInfo.mipLevels = imageDescription.mipLevels;
     imageCreateInfo.arrayLayers = arrayLayers;
     imageCreateInfo.samples = MapSampleCount(imageDescription.multiSampling);
     imageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -226,7 +230,7 @@ ImageSubresourceRange VKImage::GetSubresourceRange()
         range.aspectMask |= ImageAspect::Color;
 
     range.baseMipLevel = 0;
-    range.levelCount = mipLevels;
+    range.levelCount = imageDescription.mipLevels;
     range.baseArrayLayer = 0;
     range.layerCount = arrayLayers;
 
@@ -249,7 +253,7 @@ VkImageSubresourceRange VKImage::GenerateDefaultSubresourceRange()
         range.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
 
     range.baseMipLevel = 0;
-    range.levelCount = mipLevels;
+    range.levelCount = imageDescription.mipLevels;
     range.baseArrayLayer = 0;
     range.layerCount = arrayLayers;
 

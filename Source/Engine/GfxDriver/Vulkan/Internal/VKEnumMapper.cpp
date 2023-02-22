@@ -7,6 +7,10 @@ VkFormat MapFormat(ImageFormat format)
 {
     switch (format)
     {
+        case ImageFormat::BC3_SRGB_Block: return VK_FORMAT_BC3_SRGB_BLOCK;
+        case ImageFormat::BC3_Unorm_Block: return VK_FORMAT_BC3_UNORM_BLOCK;
+        case ImageFormat::BC7_SRGB_UNorm_Block: return VK_FORMAT_BC7_SRGB_BLOCK;
+        case ImageFormat::BC7_UNorm_Block: return VK_FORMAT_BC7_UNORM_BLOCK;
         case ImageFormat::R16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
         case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
         case ImageFormat::R16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
@@ -31,6 +35,10 @@ ImageFormat MapVKFormat(VkFormat format)
 {
     switch (format)
     {
+        case VK_FORMAT_BC3_UNORM_BLOCK: return ImageFormat::BC3_Unorm_Block;
+        case VK_FORMAT_BC3_SRGB_BLOCK: return ImageFormat::BC3_SRGB_Block;
+        case VK_FORMAT_BC7_SRGB_BLOCK: return ImageFormat::BC7_SRGB_UNorm_Block;
+        case VK_FORMAT_BC7_UNORM_BLOCK: return ImageFormat::BC7_UNorm_Block;
         case VK_FORMAT_R16G16B16A16_SFLOAT: return ImageFormat::R16G16B16A16_SFloat;
         case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
         case VK_FORMAT_R16G16B16A16_UNORM: return ImageFormat::R16G16B16A16_UNorm;

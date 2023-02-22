@@ -39,8 +39,6 @@ public:
     const TextureDescription& GetDescription() { return desc; }
     void Reload(AssetObject&& loaded) override;
 
-    static UniPtr<Engine::Texture> LoadFromKtx(ktx_uint8_t* imageData, uint32_t byteSize);
-
 private:
     bool Serialize(AssetSerializer&) override { return false; } // disable saving
     TextureDescription desc;
@@ -48,4 +46,7 @@ private:
 };
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* byteData, std::size_t byteSize);
+
+bool IsKTX1File(ktx_uint8_t* imageData);
+bool IsKTX2File(ktx_uint8_t* imageData);
 } // namespace Engine

@@ -1,11 +1,13 @@
 #include "Texture.hpp"
 #include "GfxDriver/GfxEnums.hpp"
+#include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Rendering/GfxResourceTransfer.hpp"
 #include "ThirdParty/stb/stb_image.h"
+#include <ktxvulkan.h>
 
 namespace Engine
 {
-Texture::Texture(TextureDescription texDesc, const UUID& uuid) : AssetObject(uuid)
+Texture::Texture(TextureDescription texDesc, const UUID& uuid) : AssetObject(uuid), desc(texDesc)
 {
     image =
         Gfx::GfxDriver::Instance()->CreateImage(texDesc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
@@ -37,19 +39,16 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
 {
     ktx_uint8_t* imageData = texDesc.imageData;
     uint32_t imageByteSize = texDesc.byteSize;
-    if (IsKTX1File(imageData) || IsKTX1File(imageData))
+    if (IsKTX1File(imageData) || IsKTX2File(imageData))
     {
         ktxTexture* texture;
-        KTX_error_code result;
-        ktx_size_t offset;
-        ktx_uint32_t level, layer, faceSlice;
-        result = ktxTexture_CreateFromMemory((uint8_t*)imageData,
-                                             imageByteSize,
-                                             KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                             &texture);
-
-        TextureDescription texDesc;
-        texDesc._isCubemap = texture->isCubemap;
+        if (ktxTexture_CreateFromMemory((uint8_t*)imageData,
+                                        imageByteSize,
+                                        KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                                        &texture) != KTX_SUCCESS)
+        {
+            throw std::runtime_error("Texture-Failed to create texture from memory");
+        }
 
         if (ktxTexture_NeedsTranscoding(texture))
         {
@@ -70,6 +69,10 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
                     compressionMode = CompressionMode::UASTC;
                 else
                     compressionMode = CompressionMode::ETC1S;
+            }
+            else
+            {
+                throw std::runtime_error("Texture-failed to create ktx texture");
             }
 
             ktx_texture_transcode_fmt_e tf;
@@ -96,6 +99,12 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
                             tf = KTX_TTF_ASTC_4x4_RGBA;
                         else if (gpuFeatures.textureCompressionBC)
                             tf = KTX_TTF_BC7_RGBA;
+                        else
+                        {
+                            std::string message =
+                                "Vulkan implementation does not support any available transcode target.";
+                            throw std::runtime_error(message);
+                        }
                         break;
                     }
             }
@@ -106,23 +115,58 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
             }
         }
 
-        ktx_uint8_t* data = ktxTexture_GetData(texture);
+        TextureDescription texDesc;
+        texDesc._isCubemap = texture->isCubemap;
         texDesc.img.width = texture->baseWidth;
         texDesc.img.height = texture->baseHeight;
-        // Retrieve a pointer to the image for a specific mip level, array layer
-        // & face or depth slice.
-        level = 1;
-        layer = 0;
-        faceSlice = 3;
-        result = ktxTexture_GetImageOffset(texture, level, layer, faceSlice, &offset);
+        texDesc.img.mipLevels = texture->numLevels;
+        texDesc.img.format = Gfx::MapVKFormat(ktxTexture_GetVkFormat(texture));
+        texDesc.data = nullptr;
 
         image = Gfx::GfxDriver::Instance()->CreateImage(texDesc.img,
                                                         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
 
+        ktx_uint8_t* data = ktxTexture_GetData(texture);
+        if (texture->numDimensions == 1)
+        {
+            throw std::runtime_error("Texture-numDimensions not implemented");
+        }
+        else if (texture->numDimensions == 2)
+        {
+            assert(texture->numFaces == 1);
+            for (uint32_t level = 0; level < texture->numLevels; ++level)
+            {
+                for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
+                {
+                    // Retrieve a pointer to the image for a specific mip level, array layer
+                    // & face or depth slice.
+                    ktx_size_t offset = 0;
+                    if (ktxTexture_GetImageOffset(texture, level, layer, 0, &offset) != KTX_SUCCESS)
+                        throw std::runtime_error("Texture-failed to get image offset");
+                    uint32_t size = ktxTexture_GetImageSize(texture, level);
+
+                    Gfx::ImageSubresourceLayers layers{.aspectMask = Gfx::ImageAspectFlags::Color,
+                                                       .mipLevel = level,
+                                                       .baseArrayLayer = layer,
+                                                       .layerCount = 1};
+                    Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
+                                                                                .size = size,
+                                                                                .keepData = true,
+                                                                                .subresourceLayers = layers};
+                    Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                }
+            }
+        }
+        else
+        {
+            std::runtime_error("Texture-numDimensions not implemented");
+        }
         // ...
         // Do something with the texture image.
         // ...
         ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
+
+        this->desc = texDesc;
     }
 }
 
