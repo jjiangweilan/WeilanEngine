@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
 
-# set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" )
-project(WeilanEngine)
-
 option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
 cmake_policy(SET CMP0114 NEW)
 set(CMAKE_CXX_STANDARD 20)
@@ -151,6 +148,7 @@ if (INSTALL_DEPENDENCY)
             "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
             "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
             "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations"
             "-DBUILD_SHARED_LIBS=ON"
             "-DASSIMP_BUILD_TESTS=OFF"
             # "-DASSIMP_BUILD_ZLIB=ON"
@@ -202,7 +200,9 @@ if (INSTALL_DEPENDENCY)
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/ktx_software"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS
+        "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}"
         "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+        "-DBASISU_SUPPORT_SSE=${BASISU_SUPPORT_SSE}"
         "-DKTX_FEATURE_TESTS=OFF"
         )
     list(APPEND DEPEND_NAMES ktx_software)
@@ -221,4 +221,5 @@ if (INSTALL_DEPENDENCY)
         )
 endif()
 
+project(WeilanEngine)
 add_subdirectory(Source)
