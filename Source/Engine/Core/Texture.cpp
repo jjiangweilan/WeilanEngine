@@ -115,7 +115,7 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         }
 
         TextureDescription texDesc;
-        texDesc._isCubemap = texture->isCubemap;
+        texDesc.img.isCubemap = texture->isCubemap;
         texDesc.img.width = texture->baseWidth;
         texDesc.img.height = texture->baseHeight;
         texDesc.img.mipLevels = texture->numLevels;
@@ -134,33 +134,30 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         {
             assert(texture->numFaces == 1);
 
-            // if this texture is a cubemap texture, we change numLayers to match the terminologies of ktx and gfxDriver
-            int numLayers = texture->numLayers;
-            if (texture->isCubemap)
-            {
-                numLayers *= 6;
-            }
-
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
-                for (uint32_t layer = 0; layer < numLayers; ++layer)
+                for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
                 {
-                    // Retrieve a pointer to the image for a specific mip level, array layer
-                    // & face or depth slice.
-                    ktx_size_t offset = 0;
-                    if (ktxTexture_GetImageOffset(texture, level, layer, 0, &offset) != KTX_SUCCESS)
-                        throw std::runtime_error("Texture-failed to get image offset");
-                    uint32_t size = ktxTexture_GetImageSize(texture, level);
+                    for (uint32_t face = 0; face < texture->numFaces; ++face)
+                    {
+                        // Retrieve a pointer to the image for a specific mip level, array layer
+                        // & face or depth slice.
+                        ktx_size_t offset = 0;
+                        if (ktxTexture_GetImageOffset(texture, level, layer, face, &offset) != KTX_SUCCESS)
+                            throw std::runtime_error("Texture-failed to get image offset");
+                        uint32_t size = ktxTexture_GetImageSize(texture, level);
 
-                    Gfx::ImageSubresourceLayers layers{.aspectMask = Gfx::ImageAspectFlags::Color,
-                                                       .mipLevel = level,
-                                                       .baseArrayLayer = layer,
-                                                       .layerCount = 1};
-                    Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
-                                                                                .size = size,
-                                                                                .keepData = true,
-                                                                                .subresourceLayers = layers};
-                    Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                        Gfx::ImageSubresourceLayers layers{
+                            .aspectMask = Gfx::ImageAspectFlags::Color,
+                            .mipLevel = level,
+                            .baseArrayLayer = layer + face, // a multi-face texture (cubemap) can only have one layer
+                            .layerCount = 1};
+                        Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
+                                                                                    .size = size,
+                                                                                    .keepData = true,
+                                                                                    .subresourceLayers = layers};
+                        Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                    }
                 }
             }
         }

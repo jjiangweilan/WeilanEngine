@@ -14,7 +14,6 @@ struct TextureDescription
 
     // currently we can only create a 2D texture from texture description
     // the following members started with _ are filled when creating uisng ktxTexture
-    bool _isCubemap = false;
 };
 
 struct KtxTexture

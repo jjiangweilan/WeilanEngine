@@ -1,0 +1,42 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Examples/CubemapSampler
+interleaved: False
+depth:
+    testEnable: True
+    writeEnable : True
+    compOp: lessOrEqual
+cull:None
+#endif
+
+#if VERT
+    layout(location = 0) in vec3 i_Position;
+
+    layout(location = 0) out vec3 v_Position;
+
+    out gl_PerVertex
+    {
+        vec4 gl_Position;
+    };
+
+    void main()
+    {
+        gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
+
+        v_Position = i_Position;
+    }
+#endif
+
+#if FRAG
+    layout(location = 0) in vec3 v_Position;
+    layout(location = 0) out vec4 o_Color;
+    layout(set = SET_MATERIAL, binding = 0) uniform samplerCube CubemapTex_linear;
+
+    void main()
+    {
+        vec3 col = texture(CubemapTex_linear, v_Position).xyz;
+        o_Color = vec4(col, 1.0);
+    }
+#endif
