@@ -59,7 +59,6 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
                 UASTC,
                 ETC1S
             } compressionMode;
-
             if (KTX_SUCCESS == ktxHashList_FindValue(&texture->kvDataHead,
                                                      KTX_WRITER_SCPARAMS_KEY,
                                                      &valueLen,
@@ -116,7 +115,7 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         }
 
         TextureDescription texDesc;
-        texDesc._isCubemap = texture->isCubemap;
+        texDesc.img.isCubemap = texture->isCubemap;
         texDesc.img.width = texture->baseWidth;
         texDesc.img.height = texture->baseHeight;
         texDesc.img.mipLevels = texture->numLevels;
@@ -134,26 +133,31 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         else if (texture->numDimensions == 2)
         {
             assert(texture->numFaces == 1);
+
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
                 for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
                 {
-                    // Retrieve a pointer to the image for a specific mip level, array layer
-                    // & face or depth slice.
-                    ktx_size_t offset = 0;
-                    if (ktxTexture_GetImageOffset(texture, level, layer, 0, &offset) != KTX_SUCCESS)
-                        throw std::runtime_error("Texture-failed to get image offset");
-                    uint32_t size = ktxTexture_GetImageSize(texture, level);
+                    for (uint32_t face = 0; face < texture->numFaces; ++face)
+                    {
+                        // Retrieve a pointer to the image for a specific mip level, array layer
+                        // & face or depth slice.
+                        ktx_size_t offset = 0;
+                        if (ktxTexture_GetImageOffset(texture, level, layer, face, &offset) != KTX_SUCCESS)
+                            throw std::runtime_error("Texture-failed to get image offset");
+                        uint32_t size = ktxTexture_GetImageSize(texture, level);
 
-                    Gfx::ImageSubresourceLayers layers{.aspectMask = Gfx::ImageAspectFlags::Color,
-                                                       .mipLevel = level,
-                                                       .baseArrayLayer = layer,
-                                                       .layerCount = 1};
-                    Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
-                                                                                .size = size,
-                                                                                .keepData = true,
-                                                                                .subresourceLayers = layers};
-                    Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                        Gfx::ImageSubresourceLayers layers{
+                            .aspectMask = Gfx::ImageAspectFlags::Color,
+                            .mipLevel = level,
+                            .baseArrayLayer = layer + face, // a multi-face texture (cubemap) can only have one layer
+                            .layerCount = 1};
+                        Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
+                                                                                    .size = size,
+                                                                                    .keepData = true,
+                                                                                    .subresourceLayers = layers};
+                        Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                    }
                 }
             }
         }
@@ -185,9 +189,9 @@ UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::siz
         desiredChannels = 4;
 
     stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
+
     bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);
     bool isHDR = stbi_is_hdr_from_memory(imageData, byteSize);
-
     if (is16Bit && isHDR)
     {
         SPDLOG_ERROR("16 bits and hdr texture Not Implemented");

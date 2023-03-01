@@ -112,6 +112,7 @@ protected:
     {
     public:
         EditableBase(AssetObject* parent, const std::string& name) : name(name), parent(parent) {}
+        virtual ~EditableBase(){};
 
         const std::string& GetName() { return name; }
         AssetObject& GetParent() { return *parent; }

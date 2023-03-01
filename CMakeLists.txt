@@ -28,6 +28,22 @@ if (INSTALL_DEPENDENCY)
             "-DSPIRV_CROSS_ENABLE_TESTS=OFF"
     )
     list(APPEND DEPEND_NAMES SPIRV-Cross)
+
+    ExternalProject_Add(fmt_lib
+        PREFIX "ThirdParty/fmt"
+        GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
+        GIT_TAG "9.1.0"
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/fmt"
+        INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+        CMAKE_ARGS 
+            "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+            #"-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+            #"-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DFMT_DOC=OFF"
+            "-DFMT_TEST=OFF"
+            "-DFMT_SYSTEM_HEADERS=ON"
+    )
+    list(APPEND DEPEND_NAMES fmt_lib)
     
     ExternalProject_Add(SPDLOG
         PREFIX "ThirdParty/spdlog"
@@ -35,14 +51,16 @@ if (INSTALL_DEPENDENCY)
         GIT_TAG "v1.9.2"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/spdlog"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+        DEPENDS fmt_lib
         CMAKE_ARGS 
             "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
             #"-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
             #"-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
             "-DSPDLOG_BUILD_EXAMPLE=OFF"
+            "-DSPDLOG_FMT_EXTERNAL=ON"
     )
     list(APPEND DEPEND_NAMES SPDLOG)
-    
+
     ExternalProject_Add(SDL2
         PREFIX "ThirdParty/SDL2"
         GIT_REPOSITORY "https://github.com/libsdl-org/SDL.git"
@@ -196,7 +214,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(ktx_software
         PREFIX "ThirdParty/ktx"
         GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
-        GIT_TAG "v4.0.0"
+        GIT_TAG "f47d1a2e73f93c9433298c5de0a616419b567a4b"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/ktx_software"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS

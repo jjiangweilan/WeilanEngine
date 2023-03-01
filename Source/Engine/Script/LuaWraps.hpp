@@ -37,21 +37,6 @@ namespace Engine
 using LuaRef = int;
 class LuaWraps
 {
-public:
-    LuaWraps(lua_State* state) : L(state)
-    {
-        LUA_WRAP_REGISTER_CLASS(GameObject);
-        LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetName);
-        LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetTransform);
-        LUA_WRAP_REGISTER_CFUNCTION_OVERLOAD(GameObject, GetComponent, RefPtr<Component>, const char*);
-
-        LUA_WRAP_REGISTER_CLASS(Transform);
-        LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
-        LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
-
-        // register new lua binding here...
-    }
-
 private:
     template <class... Args>
     static void WrapParam(lua_State* L, std::tuple<Args...>& args)
@@ -145,5 +130,20 @@ private:
     }
 
     lua_State* L;
+
+public:
+    LuaWraps(lua_State* state) : L(state)
+    {
+        LUA_WRAP_REGISTER_CLASS(GameObject);
+        LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetName);
+        LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetTransform);
+        LUA_WRAP_REGISTER_CFUNCTION_OVERLOAD(GameObject, GetComponent, RefPtr<Component>, const char*);
+
+        LUA_WRAP_REGISTER_CLASS(Transform);
+        LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
+        LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
+
+        // register new lua binding here...
+    }
 };
 } // namespace Engine

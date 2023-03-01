@@ -8,6 +8,7 @@
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace Engine::Gfx
@@ -69,7 +70,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                     {
                         for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
                         {
-                            std::string bufferName = std::format("{}_UBO", shader->GetName());
+                            std::string bufferName = fmt::format("{}_UBO", shader->GetName());
                             Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
                                                           .size = b.second.binding.ubo.data.size,
                                                           .visibleInCPU = false,

@@ -3,6 +3,7 @@
 #include "VKDevice.hpp"
 #include "VKEnumMapper.hpp"
 #include "VKSurface.hpp"
+#include <fmt/format.h>
 #include <iostream>
 #include <spdlog/spdlog.h>
 namespace Engine::Gfx
@@ -125,7 +126,7 @@ bool VKSwapChain::GetSwapChainImagesFromVulkan()
                                      swapChainInfo.extent.width,
                                      swapChainInfo.extent.height);
 
-        swapChainImages.back().SetName(std::format("SwapChainImage {}", i));
+        swapChainImages.back().SetName(fmt::format("SwapChainImage {}", i));
     }
 
     return true;

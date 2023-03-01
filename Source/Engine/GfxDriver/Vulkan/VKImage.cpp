@@ -14,12 +14,13 @@ namespace Engine::Gfx
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription)
 {
-    if (imageDescription.mipLevels != 1)
-    {
-        int x = 0;
-    }
     defaultSubResourceRange = GenerateDefaultSubresourceRange();
     format_vk = MapFormat(imageDescription.format);
+
+    if (imageDescription.isCubemap)
+    {
+        arrayLayers = 6;
+    }
 
     // if (imageDescription.data)
     //     this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -177,7 +178,7 @@ void VKImage::MakeVkObjects()
     VkImageCreateInfo imageCreateInfo;
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageCreateInfo.pNext = VK_NULL_HANDLE;
-    imageCreateInfo.flags = 0;
+    imageCreateInfo.flags = imageDescription.isCubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
     imageCreateInfo.imageType = imageType_vk;
     imageCreateInfo.format = format_vk;
     imageCreateInfo.extent = {imageDescription.width, imageDescription.height, 1};
@@ -271,6 +272,11 @@ void VKImage::SetName(std::string_view name)
 // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkImageViewCreateInfo.html
 VkImageViewType VKImage::GenerateDefaultImageViewViewType()
 {
+    if (imageDescription.isCubemap)
+    {
+        return VK_IMAGE_VIEW_TYPE_CUBE;
+    }
+
     switch (imageType_vk)
     {
         case VK_IMAGE_TYPE_1D: return VK_IMAGE_VIEW_TYPE_1D;

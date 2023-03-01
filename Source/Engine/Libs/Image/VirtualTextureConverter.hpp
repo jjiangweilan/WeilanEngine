@@ -38,7 +38,7 @@ public:
                 pageRect.extent = {pageExtent, pageExtent};
                 LinearImage page = ExtractPage(data, srcWh, pageRect, channels);
 
-                std::string name = std::format("{}_{}_{}.jpg", mip, i, j);
+                std::string name = fmt::format("{}_{}_{}.jpg", mip, i, j);
                 std::filesystem::path dstPath = dstFolder / name;
                 stbi_write_jpg(dstPath.string().c_str(), pageExtent, pageExtent, channels, page.GetData(), 100);
             }

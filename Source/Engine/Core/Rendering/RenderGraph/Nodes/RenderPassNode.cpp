@@ -277,7 +277,7 @@ void RenderPassNode::SetColorCount(uint32_t count)
         for (int i = oldCount; i < newCount; ++i)
         {
             colorPortsIn.push_back(
-                AddPort(std::format("Color {}", i).c_str(),
+                AddPort(fmt::format("Color {}", i).c_str(),
                         Port::Type::Input,
                         typeid(Gfx::Image),
                         false,

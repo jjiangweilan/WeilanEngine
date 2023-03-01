@@ -158,98 +158,101 @@ void MaterialInspector::Tick(RefPtr<EditorContext> editorContext)
     }
 
     // show shader parameters
-    auto& shaderInfo = shader->GetShaderProgram()->GetShaderInfo();
-    int imguiID = 0;
-    for (auto& b : shaderInfo.bindings)
+    if (shader)
     {
-        if (b.second.setNum != Gfx::Material_Descriptor_Set)
-            continue;
-        if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
+        auto& shaderInfo = shader->GetShaderProgram()->GetShaderInfo();
+        int imguiID = 0;
+        for (auto& b : shaderInfo.bindings)
         {
-            for (auto& uniMem : b.second.binding.ubo.data.members)
+            if (b.second.setNum != Gfx::Material_Descriptor_Set)
+                continue;
+            if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
             {
-                std::string bindingName = b.second.name + "." + uniMem.second.name;
-                ImGui::Text("%s", bindingName.c_str());
-                switch (uniMem.second.data->type)
+                for (auto& uniMem : b.second.binding.ubo.data.members)
                 {
-                    case Gfx::ShaderInfo::ShaderDataType::Half:
-                    case Gfx::ShaderInfo::ShaderDataType::Float:
-                        {
-                            float val = mat->GetFloat(b.second.name, uniMem.second.name);
-                            if (ImGui::DragFloat(("##" + bindingName).c_str(), &val))
-                            {
-                                mat->SetFloat(b.second.name, uniMem.second.name, val);
-                            }
-                        }
-                        break;
-                    case Gfx::ShaderInfo::ShaderDataType::Vec2:
-                        {
-                            glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
-                            if (ImGui::DragFloat2(("##" + bindingName).c_str(), &vec.x))
-                            {
-                                mat->SetVector(b.second.name, uniMem.second.name, vec);
-                            }
-                        }
-                        break;
-                    case Gfx::ShaderInfo::ShaderDataType::Vec3:
-                        {
-                            glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
-                            ImGui::Text("%s", bindingName.c_str());
-                            ImGui::SameLine();
-                            if (ImGui::DragFloat3(("##" + bindingName).c_str(), &vec.x))
-                            {
-                                mat->SetVector(b.second.name, uniMem.second.name, vec);
-                            }
-                        }
-                        break;
-                    case Gfx::ShaderInfo::ShaderDataType::Vec4:
-                        {
-                            glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
-                            if (ImGui::DragFloat4(("##" + bindingName).c_str(), &vec.x))
-                            {
-                                mat->SetVector(b.second.name, uniMem.second.name, vec);
-                            }
-                        }
-                        break;
-                    default: ImGui::LabelText("Type Not Implemented", "%s", uniMem.second.name.c_str()); break;
-                }
-            }
-        }
-        else if (b.second.type == Gfx::ShaderInfo::BindingType::Texture)
-        {
-            auto tex = mat->GetTexture(b.second.name);
-            std::string label = b.first;
-            if (tex)
-                label += ":" + tex->GetName();
-            ImGui::Button(label.c_str());
-            if (tex)
-            {
-                ImGui::SameLine();
-                if (ImGui::Button(("x##" + std::to_string(imguiID)).c_str()))
-                {
-                    mat->SetTexture(b.second.name, nullptr);
-                }
-                float width = ImGui::GetSurfaceSize().x;
-                auto& desc = tex->GetDescription();
-                float ratio = desc.img.width / (float)desc.img.height;
-                ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
-            }
-
-            if (ImGui::BeginDragDropTarget())
-            {
-                auto payload = ImGui::GetDragDropPayload();
-                if (Texture* asTexture = DYNAMIC_CAST_PAYLOAD(payload->Data, Texture))
-                {
-                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
+                    std::string bindingName = b.second.name + "." + uniMem.second.name;
+                    ImGui::Text("%s", bindingName.c_str());
+                    switch (uniMem.second.data->type)
                     {
-                        mat->SetTexture(b.second.name, asTexture);
+                        case Gfx::ShaderInfo::ShaderDataType::Half:
+                        case Gfx::ShaderInfo::ShaderDataType::Float:
+                            {
+                                float val = mat->GetFloat(b.second.name, uniMem.second.name);
+                                if (ImGui::DragFloat(("##" + bindingName).c_str(), &val))
+                                {
+                                    mat->SetFloat(b.second.name, uniMem.second.name, val);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec2:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                if (ImGui::DragFloat2(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.second.name, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec3:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                ImGui::Text("%s", bindingName.c_str());
+                                ImGui::SameLine();
+                                if (ImGui::DragFloat3(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.second.name, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        case Gfx::ShaderInfo::ShaderDataType::Vec4:
+                            {
+                                glm::vec4 vec = mat->GetVector(b.second.name, uniMem.second.name);
+                                if (ImGui::DragFloat4(("##" + bindingName).c_str(), &vec.x))
+                                {
+                                    mat->SetVector(b.second.name, uniMem.second.name, vec);
+                                }
+                            }
+                            break;
+                        default: ImGui::LabelText("Type Not Implemented", "%s", uniMem.second.name.c_str()); break;
                     }
                 }
-                ImGui::EndDragDropTarget();
             }
-        }
+            else if (b.second.type == Gfx::ShaderInfo::BindingType::Texture)
+            {
+                auto tex = mat->GetTexture(b.second.name);
+                std::string label = b.first;
+                if (tex)
+                    label += ":" + tex->GetName();
+                ImGui::Button(label.c_str());
+                if (tex)
+                {
+                    ImGui::SameLine();
+                    if (ImGui::Button(("x##" + std::to_string(imguiID)).c_str()))
+                    {
+                        mat->SetTexture(b.second.name, nullptr);
+                    }
+                    float width = ImGui::GetSurfaceSize().x;
+                    auto& desc = tex->GetDescription();
+                    float ratio = desc.img.width / (float)desc.img.height;
+                    ImGui::Image(tex->GetGfxImage().Get(), {width, width / ratio});
+                }
 
-        imguiID += 1;
+                if (ImGui::BeginDragDropTarget())
+                {
+                    auto payload = ImGui::GetDragDropPayload();
+                    if (Texture* asTexture = DYNAMIC_CAST_PAYLOAD(payload->Data, Texture))
+                    {
+                        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GameEditorDNDPayload"))
+                        {
+                            mat->SetTexture(b.second.name, asTexture);
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+
+            imguiID += 1;
+        }
     }
 }
 
@@ -331,7 +334,7 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
         Material* mat = mats[i];
         if (mat)
         {
-            if (ImGui::Button(std::format("Material {}: {}", i, mat->GetName()).c_str()))
+            if (ImGui::Button(fmt::format("Material {}: {}", i, mat->GetName()).c_str()))
             {
                 editorContext->currentSelected = mat;
             }

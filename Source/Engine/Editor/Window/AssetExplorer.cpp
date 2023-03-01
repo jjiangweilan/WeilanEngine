@@ -86,7 +86,7 @@ void AssetExplorer::ShowDirectory(const std::filesystem::path& path)
             if (assetObject != nullptr)
             {
                 auto assetObjectName = assetObject->GetName();
-                std::string buttonLabel = std::format("{} {}", Icons::File, file.filename().string());
+                std::string buttonLabel = fmt::format("{} {}", Icons::File, file.filename().string());
                 ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
                 if (ImGui::Button(buttonLabel.c_str()))
                 {

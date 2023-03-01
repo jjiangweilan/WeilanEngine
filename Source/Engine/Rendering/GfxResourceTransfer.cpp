@@ -65,6 +65,8 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
         barrier.imageInfo.newLayout = Gfx::ImageLayout::Transfer_Dst;
         barrier.imageInfo.subresourceRange.baseMipLevel = 0;
         barrier.imageInfo.subresourceRange.levelCount = image->GetDescription().mipLevels;
+        barrier.imageInfo.subresourceRange.baseArrayLayer = 0;
+        barrier.imageInfo.subresourceRange.layerCount = image->GetDescription().isCubemap ? 6 : 1;
 
         cmdBuf->Barrier(&barrier, 1);
         cmdBuf->CopyBufferToImage(stagingBuffer, image, bufferImageCopyRegions);
@@ -80,6 +82,8 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
         barrier.imageInfo.newLayout = Gfx::ImageLayout::Shader_Read_Only;
         barrier.imageInfo.subresourceRange.baseMipLevel = 0;
         barrier.imageInfo.subresourceRange.levelCount = image->GetDescription().mipLevels;
+        barrier.imageInfo.subresourceRange.baseArrayLayer = 0;
+        barrier.imageInfo.subresourceRange.layerCount = image->GetDescription().isCubemap ? 6 : 1;
 
         cmdBuf->Barrier(&barrier, 1);
     }

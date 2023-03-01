@@ -10,5 +10,6 @@ struct ImageDescription
     Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
     Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
     uint32_t mipLevels = 1;
+    bool isCubemap = false;
 };
 } // namespace Engine::Gfx
