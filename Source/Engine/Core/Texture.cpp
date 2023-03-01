@@ -59,7 +59,6 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
                 UASTC,
                 ETC1S
             } compressionMode;
-
             if (KTX_SUCCESS == ktxHashList_FindValue(&texture->kvDataHead,
                                                      KTX_WRITER_SCPARAMS_KEY,
                                                      &valueLen,
@@ -134,9 +133,17 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         else if (texture->numDimensions == 2)
         {
             assert(texture->numFaces == 1);
+
+            // if this texture is a cubemap texture, we change numLayers to match the terminologies of ktx and gfxDriver
+            int numLayers = texture->numLayers;
+            if (texture->isCubemap)
+            {
+                numLayers *= 6;
+            }
+
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
-                for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
+                for (uint32_t layer = 0; layer < numLayers; ++layer)
                 {
                     // Retrieve a pointer to the image for a specific mip level, array layer
                     // & face or depth slice.
@@ -185,9 +192,9 @@ UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::siz
         desiredChannels = 4;
 
     stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
+
     bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);
     bool isHDR = stbi_is_hdr_from_memory(imageData, byteSize);
-
     if (is16Bit && isHDR)
     {
         SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
