@@ -334,7 +334,7 @@ void MeshRendererInspector::Tick(RefPtr<EditorContext> editorContext)
         Material* mat = mats[i];
         if (mat)
         {
-            if (ImGui::Button(std::format("Material {}: {}", i, mat->GetName()).c_str()))
+            if (ImGui::Button(fmt::format("Material {}: {}", i, mat->GetName()).c_str()))
             {
                 editorContext->currentSelected = mat;
             }

@@ -407,9 +407,9 @@ VkImageLayout MapImageLayout(ImageLayout layout)
     if (layout == ImageLayout::Stencil_Read_Only)
         return VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
     if (layout == ImageLayout::Read_Only)
-        return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        return VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR;
     if (layout == ImageLayout::Attachment)
-        return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
     if (layout == ImageLayout::Present_Src_Khr)
         return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 

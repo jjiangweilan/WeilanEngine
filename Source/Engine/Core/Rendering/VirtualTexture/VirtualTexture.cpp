@@ -26,7 +26,7 @@ VirtualTexture::Info VirtualTexture::GenInfo(const std::filesystem::path& vtFold
 
 Libs::Image::LinearImage VirtualTexture::Read(int x, int y, int mip, int desieredChannel)
 {
-    auto file = std::format("{}_{}_{}.jpg", mip, x, y);
+    auto file = fmt::format("{}_{}_{}.jpg", mip, x, y);
     auto path = vtFolder / file;
 
     int w, h, c;

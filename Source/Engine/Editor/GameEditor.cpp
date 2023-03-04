@@ -89,7 +89,7 @@ void GameEditor::Tick()
             bool isOpen = true;
             const char* displayWindowName = w->GetDisplayWindowName();
             const char* windowName = w->GetWindowName();
-            std::string windowNameWithID = std::format("{}###{}{}", displayWindowName, windowName, wInfo.id);
+            std::string windowNameWithID = fmt::format("{}###{}{}", displayWindowName, windowName, wInfo.id);
             ImGuiWindowFlags windowFlags = w->GetWindowFlags();
             ImGui::Begin(windowNameWithID.c_str(), &isOpen, windowFlags);
             w->Tick();

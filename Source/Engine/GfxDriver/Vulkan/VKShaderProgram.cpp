@@ -145,7 +145,7 @@ VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
             if (binding.pImmutableSamplers != VK_NULL_HANDLE)
             {
                 binding.pImmutableSamplers =
-                    &immutableSamplerHandles[reinterpret_cast<int>(binding.pImmutableSamplers) - 1];
+                    &immutableSamplerHandles[reinterpret_cast<uint64_t>(binding.pImmutableSamplers) - 1];
             }
         }
     }
