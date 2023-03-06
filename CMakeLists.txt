@@ -29,7 +29,7 @@ if (INSTALL_DEPENDENCY)
     )
     list(APPEND DEPEND_NAMES SPIRV-Cross)
 
-    ExternalProject_Add(fmt
+    ExternalProject_Add(fmt_lib
         PREFIX "ThirdParty/fmt"
         GIT_REPOSITORY "https://github.com/fmtlib/fmt.git"
         GIT_TAG "9.1.0"
@@ -43,7 +43,7 @@ if (INSTALL_DEPENDENCY)
             "-DFMT_TEST=OFF"
             "-DFMT_SYSTEM_HEADERS=ON"
     )
-    list(APPEND DEPEND_NAMES fmt)
+    list(APPEND DEPEND_NAMES fmt_lib)
     
     ExternalProject_Add(SPDLOG
         PREFIX "ThirdParty/spdlog"
@@ -51,7 +51,7 @@ if (INSTALL_DEPENDENCY)
         GIT_TAG "v1.9.2"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/spdlog"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
-        DEPENDS fmt
+        DEPENDS fmt_lib
         CMAKE_ARGS 
             "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
             #"-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
