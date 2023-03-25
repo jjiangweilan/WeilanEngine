@@ -8,6 +8,7 @@
 #include "Core/GameObject.hpp"
 #include "Core/Rendering/RenderPipeline.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Libs/FileSystem/FileSystem.hpp"
 #include "Rendering/GfxResourceTransfer.hpp"
 #include "Script/LuaBackend.hpp"
 #include <chrono>
@@ -18,7 +19,7 @@
 
 namespace Engine
 {
-void WeilanEngine::Launch()
+void WeilanEngine::Launch(std::filesystem::path path)
 {
     // drivers
     Gfx::GfxDriver::CreateInfo gfxDriverCreateInfo{
@@ -32,14 +33,22 @@ void WeilanEngine::Launch()
 
     projectManagement = MakeUnique<Editor::ProjectManagement>();
     Editor::ProjectManagement::instance = projectManagement;
-    auto projectList = projectManagement->GetProjectLists();
-    if (!projectList.empty())
-    {
-        projectManagement->LoadProject(projectList[0]);
-    }
-    LuaBackend::Instance()->LoadLuaInFolder(projectList[0] / "Assets");
 
-    AssetDatabase::InitSingleton(projectList[0]);
+    std::filesystem::current_path(path);
+
+    if (std::filesystem::exists(path) && std::filesystem::is_empty(path))
+    {
+        projectManagement->CreateNewProject(path);
+        SPDLOG_INFO("Creating project in {}", path.string());
+    }
+    else
+    {
+        SPDLOG_INFO("Loading project");
+        projectManagement->LoadProject(path);
+    }
+
+    LuaBackend::Instance()->LoadLuaInFolder(path / "Assets");
+    AssetDatabase::InitSingleton(path);
     RegisterAssetImporters();
     AssetDatabase::Instance()->LoadInternalAssets();
     AssetDatabase::Instance()->LoadAllAssets();
@@ -126,3 +135,4 @@ void WeilanEngine::RegisterAssetImporters()
     assetDb->RegisterImporter<Internal::TextureImporter>("ktx2");
 }
 } // namespace Engine
+

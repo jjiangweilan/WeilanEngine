@@ -21,7 +21,9 @@ std::filesystem::path GetSysConfigPath()
 
 ProjectManagement::ResultCode ProjectManagement::CreateNewProject(const std::filesystem::path& path)
 {
-    if (std::filesystem::exists(path))
+    bool isPathExist = std::filesystem::exists(path);
+    bool isPathEmpty = std::filesystem::is_empty(path);
+    if (isPathEmpty && isPathExist)
     {
         gameProj = nlohmann::json();
         gameProj["path"] = path;
@@ -33,7 +35,17 @@ ProjectManagement::ResultCode ProjectManagement::CreateNewProject(const std::fil
         return ResultCode::Success;
     }
     else
+    {
+        if (!isPathExist)
+        {
+            SPDLOG_ERROR("failed to create project because path doesn't exist {}", path.string());
+        }
+        else if (!isPathEmpty)
+        {
+            SPDLOG_ERROR("failed to create project because path is not empty {}", path.string());
+        }
         return ResultCode::FilePathError;
+    }
 }
 
 std::filesystem::path ProjectManagement::GetInternalRootPath()
@@ -126,7 +138,14 @@ void ProjectManagement::InitializeProject(const std::filesystem::path& root)
 
     auto imGuiIniPath = root / "imgui.ini";
     if (!std::filesystem::exists(imGuiIniPath))
-        std::filesystem::copy_file(imGuiDefaultIniPath, imGuiIniPath);
+    {
+        std::error_code ec;
+        if (!std::filesystem::copy_file(imGuiDefaultIniPath, imGuiIniPath, ec))
+        {
+            SPDLOG_ERROR("Failed to copy imgui.ini when initializing project, {}", ec.message());
+            throw std::runtime_error("");
+        }
+    }
 
     std::filesystem::current_path(root);
 

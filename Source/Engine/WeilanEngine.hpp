@@ -11,13 +11,14 @@
 #include "Editor/GameEditor.hpp"
 #include "Editor/ProjectManagement/ProjectManagement.hpp"
 #endif
+
 namespace Engine
 {
 class WeilanEngine
 {
 public:
     ~WeilanEngine();
-    void Launch();
+    void Launch(std::filesystem::path path);
 
 private:
     RefPtr<Gfx::GfxDriver> gfxDriver;

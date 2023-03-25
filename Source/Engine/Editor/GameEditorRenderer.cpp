@@ -17,8 +17,11 @@ GameEditorRenderer::GameEditorRenderer()
     auto& io = ImGui::GetIO();
     ImFontConfig config;
     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
-    ImFont* font =
-        ImGui::GetIO().Fonts->AddFontFromFileTTF("Cousine Regular Nerd Font Complete.ttf", 14, &config, icon_ranges);
+    ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+        (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf").string().c_str(),
+        14,
+        &config,
+        icon_ranges);
     io.FontDefault = font;
     int width, height, bytePerPixel;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
