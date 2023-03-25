@@ -55,8 +55,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     instance = new VKInstance(appWindow->GetVkRequiredExtensions());
     surface = new VKSurface(*instance, appWindow);
     VKDevice::QueueRequest queueRequest[] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1},
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT, false, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
     device = new VKDevice(instance, surface, queueRequest, sizeof(queueRequest) / sizeof(VKDevice::QueueRequest));
     context->device = device;
     mainQueue = &device->GetQueue(0);
