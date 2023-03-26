@@ -52,6 +52,7 @@ public:
 
     virtual ~GfxDriver(){};
 
+    virtual bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual RefPtr<Image> GetSwapChainImageProxy() = 0;
     virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;

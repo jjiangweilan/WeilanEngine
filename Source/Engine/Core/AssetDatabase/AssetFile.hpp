@@ -31,6 +31,8 @@ public:
 
     void Save();
 
+    void UpdateLastWriteTime();
+
 private:
     std::filesystem::path fullPath; // relativeBase / path
     std::filesystem::path path;
@@ -38,7 +40,5 @@ private:
     UniPtr<AssetObject> root;
     std::vector<RefPtr<AssetObject>> containedAssetObjects;
     std::filesystem::file_time_type lastWriteTime;
-
-    void UpdateLastWriteTime();
 };
 } // namespace Engine

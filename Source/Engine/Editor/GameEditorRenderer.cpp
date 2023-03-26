@@ -1,4 +1,5 @@
 #include "GameEditorRenderer.hpp"
+#include "Core/Rendering/Platform.hpp"
 #include <vector>
 namespace Engine::Editor
 {
@@ -18,7 +19,9 @@ GameEditorRenderer::GameEditorRenderer()
     ImFontConfig config;
     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
     ImFont* font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-        (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf").string().c_str(),
+        (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
+            .string()
+            .c_str(),
         14,
         &config,
         icon_ranges);
@@ -116,7 +119,8 @@ RGraph::Port* GameEditorRenderer::BuildGraph(RGraph::RenderGraph* graph,
     gameEditorDepthNode->height = windowSize.height;
     gameEditorDepthNode->mipLevels = 1;
     gameEditorDepthNode->multiSampling = Gfx::MultiSampling::Sample_Count_1;
-    gameEditorDepthNode->format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
+    gameEditorDepthNode->format = Rendering::Platform::GetImageFormat(Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                                                                      Gfx::ImageUsage::DepthStencilAttachment);
 
     gameEditorPassNode = graph->AddNode<RGraph::RenderPassNode>();
     gameEditorPassNode->GetColorAttachmentOps()[0].loadOp = Gfx::AttachmentLoadOperation::Clear;

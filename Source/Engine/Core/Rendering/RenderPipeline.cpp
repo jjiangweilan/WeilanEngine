@@ -2,6 +2,7 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Rendering/Platform.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
@@ -53,7 +54,8 @@ void RenderPipeline::Init(RefPtr<Editor::GameEditorRenderer> gameEditorRenderer)
     depthImageNode->height = colorImageNode->height;
     depthImageNode->mipLevels = colorImageNode->mipLevels;
     depthImageNode->multiSampling = colorImageNode->multiSampling;
-    depthImageNode->format = ImageFormat::D24_UNorm_S8_UInt;
+    depthImageNode->format = Rendering::Platform::GetImageFormat(Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                                                                 Gfx::ImageUsage::DepthStencilAttachment);
     depthImageNode->SetName("RenderPipeline-depthImageNode");
 
     renderPassNode = graph.AddNode<RGraph::RenderPassNode>();
@@ -200,8 +202,9 @@ void RenderPipeline::Render(RefPtr<GameScene> gameScene)
     mainCmdBufFinishedFence->Reset();
     cmdPool->ResetCommandPool();
 
+    // build rendering global state
     Camera* mainCamera = Camera::mainCamera.Get();
-    if (mainCamera != nullptr)
+    if (mainCamera != nullptr && gameScene)
     {
         RefPtr<Transform> camTsm = mainCamera->GetGameObject()->GetTransform();
 

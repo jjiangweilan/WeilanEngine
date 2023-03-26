@@ -59,7 +59,6 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     device = new VKDevice(instance, surface, queueRequest, sizeof(queueRequest) / sizeof(VKDevice::QueueRequest));
     context->device = device;
     mainQueue = &device->GetQueue(0);
-    graphics0queue = &device->GetQueue(1);
     context->mainQueue = mainQueue;
     gpu = &device->GetGPU();
     device_vk = device->GetHandle();
@@ -221,7 +220,6 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
     switch (type)
     {
         case Engine::QueueType::Main: return static_cast<CommandQueue*>(mainQueue.Get());
-        case Engine::QueueType::Graphics0: return static_cast<CommandQueue*>(graphics0queue.Get());
     }
 }
 
@@ -291,5 +289,19 @@ void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, u
     }
 
     vkWaitForFences(device_vk, vkFences.size(), vkFences.data(), waitAll, timeout);
+}
+
+bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
+{
+    VkImageFormatProperties props;
+    if (vkGetPhysicalDeviceImageFormatProperties(device->GetGPU().GetHandle(),
+                                                 MapFormat(format),
+                                                 VK_IMAGE_TYPE_2D,
+                                                 VK_IMAGE_TILING_OPTIMAL,
+                                                 MapImageUsage(usages),
+                                                 0,
+                                                 &props) == VK_SUCCESS)
+        return true;
+    return false;
 }
 } // namespace Engine::Gfx

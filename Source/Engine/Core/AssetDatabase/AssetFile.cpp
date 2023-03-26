@@ -1,4 +1,5 @@
 #include "AssetFile.hpp"
+#include <exception>
 #include <fstream>
 #include <nlohmann/json.hpp>
 namespace Engine
@@ -25,13 +26,12 @@ AssetFile::AssetFile(UniPtr<AssetObject>&& root,
 
 void AssetFile::UpdateLastWriteTime()
 {
-    try
+    std::error_code ec;
+    lastWriteTime = std::filesystem::last_write_time(fullPath, ec);
+
+    if (ec && ec != std::errc::no_such_file_or_directory)
     {
-        lastWriteTime = std::filesystem::last_write_time(fullPath);
-    }
-    catch (std::filesystem::filesystem_error e)
-    {
-        // pass
+        throw std::runtime_error("Failed to update last write time");
     }
 }
 

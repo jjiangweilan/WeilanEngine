@@ -7,6 +7,7 @@
 #include "Core/Graphics/Shader.hpp"
 #include "Core/Math/Geometry.hpp"
 #include "Core/Model.hpp"
+#include "Core/Rendering/Platform.hpp"
 #include "Editor/ProjectManagement/ProjectManagement.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
@@ -348,7 +349,8 @@ void GameSceneWindow::UpdateRenderingResources(RefPtr<Gfx::Image> sceneColor, Re
     if (editorOverlayDepth == nullptr)
     {
         Gfx::ImageDescription newDepthDesc = sceneColor->GetDescription();
-        newDepthDesc.format = Gfx::ImageFormat::D24_UNorm_S8_UInt;
+        newDepthDesc.format = Rendering::Platform::GetImageFormat(Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                                                                  Gfx::ImageUsage::DepthStencilAttachment);
         editorOverlayDepth =
             Gfx::GfxDriver::Instance()->CreateImage(newDepthDesc, Gfx::ImageUsage::DepthStencilAttachment);
     }

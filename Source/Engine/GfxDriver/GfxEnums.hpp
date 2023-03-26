@@ -74,11 +74,13 @@ enum class ImageFormat
     R8_SRGB,
     D16_UNorm,
     D16_UNorm_S8_UInt,
+    D32_SFLOAT_S8_UInt,
     D24_UNorm_S8_UInt,
     BC7_UNorm_Block,
     BC7_SRGB_UNorm_Block,
     BC3_Unorm_Block,
-    BC3_SRGB_Block
+    BC3_SRGB_Block,
+    Invalid
 };
 
 enum class MultiSampling

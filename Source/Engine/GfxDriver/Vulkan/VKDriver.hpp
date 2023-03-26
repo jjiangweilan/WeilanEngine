@@ -51,6 +51,8 @@ public:
     bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
     const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
 
+    bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages) override;
+    ;
     RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
     RefPtr<Image> GetSwapChainImageProxy() override;
@@ -91,7 +93,6 @@ private:
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
     RefPtr<VKCommandQueue> mainQueue;
-    RefPtr<VKCommandQueue> graphics0queue;
 
     UniPtr<VKCommandPool> commandPool;
 

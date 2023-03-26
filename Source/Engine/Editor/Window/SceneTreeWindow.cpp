@@ -49,6 +49,7 @@ void SceneTreeWindow::Tick()
             ImGui::EndDragDropTarget();
         }
     }
+    ImGui::End();
 }
 
 void SceneTreeWindow::DisplayGameObject(RefPtr<GameObject> obj, uint32_t& id)
