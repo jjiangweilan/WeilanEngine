@@ -76,7 +76,6 @@ void WeilanEngine::Launch(std::filesystem::path path)
     bool shouldBreak = false;
     while (!shouldBreak)
     {
-
         while (SDL_PollEvent(&sdlEvent))
         {
 #if GAME_EDITOR
@@ -84,11 +83,12 @@ void WeilanEngine::Launch(std::filesystem::path path)
 #endif
             switch (sdlEvent.type)
             {
-                case SDL_KEYDOWN:
-                    if (sdlEvent.key.keysym.scancode == SDL_SCANCODE_Q)
+                case SDL_WINDOWEVENT:
+                    if (sdlEvent.window.event == SDL_WINDOWEVENT_CLOSE)
                     {
                         shouldBreak = true;
                     }
+                    break;
             }
         }
 
@@ -135,4 +135,3 @@ void WeilanEngine::RegisterAssetImporters()
     assetDb->RegisterImporter<Internal::TextureImporter>("ktx2");
 }
 } // namespace Engine
-

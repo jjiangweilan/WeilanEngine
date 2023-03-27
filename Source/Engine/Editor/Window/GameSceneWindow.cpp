@@ -507,7 +507,7 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
     // right click move
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
-        glm::mat3 modelMatrix = transform->GetModelMatrix();
+        glm::mat4 modelMatrix = transform->GetModelMatrix();
         glm::vec3 movement = glm::vec3(0);
         float speed = 0.1;
         if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
@@ -517,19 +517,27 @@ void GameSceneCamera::Tick(glm::vec2 mouseInSceneViewUV)
 
         if (ImGui::IsKeyDown(ImGuiKey_A))
         {
-            movement -= modelMatrix[0] * speed;
+            movement -= (glm::vec3)modelMatrix[0] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_D))
         {
-            movement += modelMatrix[0] * speed;
+            movement += (glm::vec3)modelMatrix[0] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_W))
         {
-            movement -= modelMatrix[2] * speed;
+            movement -= (glm::vec3)modelMatrix[2] * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_S))
         {
-            movement += modelMatrix[2] * speed;
+            movement += (glm::vec3)modelMatrix[2] * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_E))
+        {
+            movement.y += speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_Q))
+        {
+            movement.y -= speed;
         }
         transform->SetPosition(transform->GetPosition() + movement);
     }
