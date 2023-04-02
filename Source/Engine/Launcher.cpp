@@ -18,6 +18,11 @@ public:
         {
             DispatchArgs(*argList, i);
         }
+
+        if (!hasAction)
+        {
+            SPDLOG_ERROR("No action taken, maybe you should set a project path using --project");
+        }
     }
 
     void DispatchArgs(ArgList& args, int& curr)
@@ -34,6 +39,8 @@ public:
             {
                 SPDLOG_ERROR("{} is not a valid path", path.string());
             }
+
+            hasAction = true;
         }
     }
 
@@ -47,6 +54,7 @@ public:
     }
 
     std::unique_ptr<ArgList> argList;
+    bool hasAction = false;
 };
 } // namespace Engine
   //

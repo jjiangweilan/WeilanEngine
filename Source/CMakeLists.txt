@@ -1,6 +1,16 @@
 # WeilanEngine
 cmake_minimum_required(VERSION 3.18.0)
+cmake_policy(SET CMP0114 NEW)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_EXPORT_COMPILE_COMMANDS True)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin" )
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin" )
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin" )
+endif()
 
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
@@ -36,6 +46,7 @@ target_include_directories( WeilanEngineLib
     "Engine/"
 
     SYSTEM
+    "${CMAKE_BINARY_DIR}/bin"
     "${CMAKE_BINARY_DIR}/include"
     ${Vulkan_INCLUDE_DIRS}
 )
@@ -58,9 +69,9 @@ target_link_libraries( WeilanEngineLib
     spirv-cross-core$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-reflect$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-glsl$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
+    fmt$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     shaderc_shared
     ktx
-    fmt
     ryml
     )
 

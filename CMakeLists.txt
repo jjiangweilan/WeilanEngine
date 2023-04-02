@@ -1,18 +1,29 @@
 cmake_minimum_required(VERSION 3.18)
 
 option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
-cmake_policy(SET CMP0114 NEW)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_EXPORT_COMPILE_COMMANDS True)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
-
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin" )
-endif()
 
 if (INSTALL_DEPENDENCY)
     include(ExternalProject)
+
+    if (NOT DEFINED ${TARGET_BUILD_PLATFORM})
+        if (WIN32)
+            set(TARGET_BUILD_PLATFORM "windows")
+        elseif (APPLE)
+            set(TARGET_BUILD_PLATFORM "mac")
+        endif ()
+    endif()
+
+    ExternalProject_Add(Bullet
+        PREFIX "ThirdParty/Bullet"
+        GIT_REPOSITORY "https://github.com/bulletphysics/bullet3.git"
+        GIT_TAG "3.25"
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/Bullet"
+        INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+        CMAKE_ARGS
+            "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+            "-DBUILD_UNIT_TESTS=OFF"
+    )
+    list(APPEND DEPEND_NAMES Bullet)
 
     ExternalProject_Add(SPIRV-Cross
         PREFIX "ThirdParty/SPIRV-Cross"
@@ -166,7 +177,7 @@ if (INSTALL_DEPENDENCY)
             "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
             "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
             "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-            "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations"
+            # "-DCMAKE_CXX_FLAGS=-Wno-deprecated-declarations"
             "-DBUILD_SHARED_LIBS=ON"
             "-DASSIMP_BUILD_TESTS=OFF"
             # "-DASSIMP_BUILD_ZLIB=ON"

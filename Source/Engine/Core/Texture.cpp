@@ -132,8 +132,6 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
         }
         else if (texture->numDimensions == 2)
         {
-            assert(texture->numFaces == 1);
-
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
                 for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
