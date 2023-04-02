@@ -5,14 +5,6 @@ option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
 if (INSTALL_DEPENDENCY)
     include(ExternalProject)
 
-    if (NOT DEFINED ${TARGET_BUILD_PLATFORM})
-        if (WIN32)
-            set(TARGET_BUILD_PLATFORM "windows")
-        elseif (APPLE)
-            set(TARGET_BUILD_PLATFORM "mac")
-        endif ()
-    endif()
-
     ExternalProject_Add(Bullet
         PREFIX "ThirdParty/Bullet"
         GIT_REPOSITORY "https://github.com/bulletphysics/bullet3.git"
@@ -21,7 +13,13 @@ if (INSTALL_DEPENDENCY)
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS
             "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
+            "-DINSTALL_LIBS=<INSTALL_DIR>"
             "-DBUILD_UNIT_TESTS=OFF"
+            "-DBUILD_CPU_DEMOS=OFF"
+            "-DBUILD_ENET=OFF"
+            "-DBUILD_CLSOCKET=OFF"
+            "-DBUILD_BULLET2_DEMOS=OFF"
+            "-DBUILD_OPENGL3_DEMOS=OFF"
     )
     list(APPEND DEPEND_NAMES Bullet)
 
