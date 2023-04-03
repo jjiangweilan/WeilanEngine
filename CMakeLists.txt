@@ -20,6 +20,8 @@ if (INSTALL_DEPENDENCY)
             "-DBUILD_CLSOCKET=OFF"
             "-DBUILD_BULLET2_DEMOS=OFF"
             "-DBUILD_OPENGL3_DEMOS=OFF"
+            "-DBUILD_EXTRAS=OFF"
+            "-DBUILD_EGL=OFF"
     )
     list(APPEND DEPEND_NAMES Bullet)
 
