@@ -64,6 +64,7 @@ target_link_directories(
 target_link_libraries( WeilanEngineLib
     # assimp
     ${Vulkan_LIBRARIES}
+    ${PHYSX_LIBS}
     sdl2$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spdlog$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-core$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>

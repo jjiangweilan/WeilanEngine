@@ -13,8 +13,9 @@ if (INSTALL_DEPENDENCY)
             set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
             set (PHYSX_LIB_PATH "./bin/mac.x86_64/${PHYSX_CONFIG_TYPE}")
             set (PHYSX_INSTALL_COMMAND 
-                    cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
+                    cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/phsyx/" &&
                     cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/")
+            set (PHYSX_LIBS PhysX_static_64 PhysXCommon_static_64 PhysXFoundation_static_64)
         endif()
     endif(APPLE)
 
@@ -24,7 +25,7 @@ if (INSTALL_DEPENDENCY)
         set (PHYSX_BUILD_COMMAND cmake --build ./compiler/vc16win64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
         set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.mt/${PHYSX_CONFIG_TYPE}")
         set (PHYSX_INSTALL_COMMAND 
-                cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
+                cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/phsyx/" &&
                 cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/" &&
                 cmake -E copy   "<INSTALL_DIR>/lib/PhysX_64.dll"
                                 "<INSTALL_DIR>/lib/PhysXCommon_64.dll"
@@ -43,8 +44,8 @@ if (INSTALL_DEPENDENCY)
         CONFIGURE_COMMAND ${PHYSX_CONFIG_COMMAND}
         BUILD_COMMAND ${PHYSX_BUILD_COMMAND}
         INSTALL_COMMAND ${PHYSX_INSTALL_COMMAND}
-            
     )
+    list(APPEND DEPEND_NAMES PhysX)
 
     ExternalProject_Add(SPIRV-Cross
         PREFIX "ThirdParty/SPIRV-Cross"
@@ -92,6 +93,13 @@ if (INSTALL_DEPENDENCY)
             "-DSPDLOG_FMT_EXTERNAL=ON"
     )
     list(APPEND DEPEND_NAMES SPDLOG)
+
+    # if (WIN32)
+    #     set (SDL2_INSTALL_COMMAND
+    #         cmake --install "<BINARY_DIR>" &&
+    #         cmake -E copy
+    #     )
+    # endif (WIND32)
 
     ExternalProject_Add(SDL2
         PREFIX "ThirdParty/SDL2"
