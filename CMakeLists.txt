@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.18)
 project(WeilanEngine)
 
 option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
-
 if (INSTALL_DEPENDENCY)
     include(ExternalProject)
 
@@ -11,10 +10,28 @@ if (INSTALL_DEPENDENCY)
         if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64")
             set (PHYSX_CONFIG_COMMAND sh ./generate_projects.sh mac-arm64)
             set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
-            set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --config "${PHYSX_CONFIG_TYPE}")
+            set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
             set (PHYSX_LIB_PATH "./bin/mac.x86_64/${PHYSX_CONFIG_TYPE}")
+            set (PHYSX_INSTALL_COMMAND 
+                    cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
+                    cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/")
         endif()
     endif(APPLE)
+
+    if (WIN32)
+        set (PHYSX_CONFIG_COMMAND ./generate_projects.bat vc16win64)
+        set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
+        set (PHYSX_BUILD_COMMAND cmake --build ./compiler/vc16win64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
+        set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.mt/${PHYSX_CONFIG_TYPE}")
+        set (PHYSX_INSTALL_COMMAND 
+                cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
+                cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/" &&
+                cmake -E copy   "<INSTALL_DIR>/lib/PhysX_64.dll"
+                                "<INSTALL_DIR>/lib/PhysXCommon_64.dll"
+                                "<INSTALL_DIR>/lib/PhysXFoundation_64.dll"
+                                "<INSTALL_DIR>/bin/")
+        set (PHYSX_LIBS PhysX_64 PhysXCommon_64 PhysXFoundation_64)
+    endif(WIN32)
 
     ExternalProject_Add(PhysX
         PREFIX "ThirdParty/PhysX"
@@ -25,9 +42,8 @@ if (INSTALL_DEPENDENCY)
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CONFIGURE_COMMAND ${PHYSX_CONFIG_COMMAND}
         BUILD_COMMAND ${PHYSX_BUILD_COMMAND}
-        INSTALL_COMMAND
-            cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
-            cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/"
+        INSTALL_COMMAND ${PHYSX_INSTALL_COMMAND}
+            
     )
 
     ExternalProject_Add(SPIRV-Cross
