@@ -1,29 +1,34 @@
 cmake_minimum_required(VERSION 3.18)
 
+project(WeilanEngine)
+
 option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
 
 if (INSTALL_DEPENDENCY)
     include(ExternalProject)
 
-    ExternalProject_Add(Bullet
-        PREFIX "ThirdParty/Bullet"
-        GIT_REPOSITORY "https://github.com/bulletphysics/bullet3.git"
-        GIT_TAG "3.25"
-        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/Bullet"
+    if (APPLE)
+        if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64")
+            set (PHYSX_CONFIG_COMMAND sh ./generate_projects.sh mac-arm64)
+            set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
+            set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --config "${PHYSX_CONFIG_TYPE}")
+            set (PHYSX_LIB_PATH "./bin/mac.x86_64/${PHYSX_CONFIG_TYPE}")
+        endif()
+    endif(APPLE)
+
+    ExternalProject_Add(PhysX
+        PREFIX "ThirdParty/PhysX"
+        GIT_REPOSITORY "https://github.com/o3de/PhysX.git"
+        GIT_TAG "60e7d82a3856740881d0c892a01df7fd4e0676f6"
+        SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX"
+        BINARY_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX/physx"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
-        CMAKE_ARGS
-            "-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
-            "-DINSTALL_LIBS=<INSTALL_DIR>"
-            "-DBUILD_UNIT_TESTS=OFF"
-            "-DBUILD_CPU_DEMOS=OFF"
-            "-DBUILD_ENET=OFF"
-            "-DBUILD_CLSOCKET=OFF"
-            "-DBUILD_BULLET2_DEMOS=OFF"
-            "-DBUILD_OPENGL3_DEMOS=OFF"
-            "-DBUILD_EXTRAS=OFF"
-            "-DBUILD_EGL=OFF"
+        CONFIGURE_COMMAND ${PHYSX_CONFIG_COMMAND}
+        BUILD_COMMAND ${PHYSX_BUILD_COMMAND}
+        INSTALL_COMMAND
+            cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/PhsyX/" &&
+            cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/"
     )
-    list(APPEND DEPEND_NAMES Bullet)
 
     ExternalProject_Add(SPIRV-Cross
         PREFIX "ThirdParty/SPIRV-Cross"
@@ -250,5 +255,5 @@ if (INSTALL_DEPENDENCY)
         )
 endif()
 
-project(WeilanEngine)
+
 add_subdirectory(Source)
