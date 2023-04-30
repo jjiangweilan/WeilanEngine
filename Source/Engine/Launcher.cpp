@@ -1,4 +1,8 @@
 #include "WeilanEngine.hpp"
+// test
+#include "Core/Resource.hpp"
+#include <iostream>
+// test
 
 #undef main
 
@@ -56,6 +60,7 @@ public:
     std::unique_ptr<ArgList> argList;
     bool hasAction = false;
 };
+
 } // namespace Engine
   //
   //

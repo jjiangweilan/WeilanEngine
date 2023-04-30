@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetSerializer.hpp"
 #include "AssetDatabase/ReferenceResolver.hpp"
 #include "Libs/Ptr.hpp"
+#include "Libs/Serialization/Serializable.hpp"
 #include "Libs/UUID.hpp"
 #include "Object.hpp"
 

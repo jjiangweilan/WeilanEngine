@@ -3,5 +3,7 @@
 namespace Engine
 {
 struct EngineSettings
-{};
+{
+
+};
 }; // namespace Engine
