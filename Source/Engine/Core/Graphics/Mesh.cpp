@@ -8,8 +8,9 @@ using namespace Engine::Internal;
 namespace Engine
 {
 Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const UUID& uuid)
-    : AssetObject(uuid), vertexDescription(std::move(vertexDescription))
+    : vertexDescription(std::move(vertexDescription))
 {
+    SetUUID(uuid);
     this->name = name;
     uint32_t bufSize = 0;
     std::vector<DataRange> ranges;

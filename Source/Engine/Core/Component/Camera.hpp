@@ -7,8 +7,6 @@ namespace Engine
 {
 class Camera : public Component
 {
-    DECLARE_COMPONENT(Camera);
-
 public:
     Camera();
     Camera(GameObject* gameObject);
@@ -29,5 +27,24 @@ public:
 private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
+
+    friend class SerializableField<Camera>;
+};
+template <>
+struct SerializableField<Camera>
+{
+    static void Serialize(Camera* v, Serializer* s)
+    {
+        SerializableField<Component>::Serialize(v, s);
+        s->Serialize(v->projectionMatrix);
+        s->Serialize(v->viewMatrix);
+    }
+
+    static void Deserialize(Camera* v, Serializer* s)
+    {
+        SerializableField<Component>::Deserialize(v, s);
+        s->Deserialize(v->projectionMatrix);
+        s->Deserialize(v->viewMatrix);
+    }
 };
 } // namespace Engine

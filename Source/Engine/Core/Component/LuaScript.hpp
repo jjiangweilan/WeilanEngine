@@ -6,8 +6,6 @@ namespace Engine
 {
 class LuaScript : public Component
 {
-    DECLARE_COMPONENT(LuaScript);
-
 public:
     LuaScript();
     LuaScript(GameObject* gameObject);

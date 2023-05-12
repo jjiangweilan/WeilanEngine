@@ -5,7 +5,7 @@
 #include <queue>
 #include <set>
 #include <thread>
-
+#include <spdlog/spdlog.h>
 using namespace Libs::Image;
 namespace Engine::Rendering
 {
@@ -377,7 +377,7 @@ void VirtualTextureRenderer::SetVT(RefPtr<VirtualTexture> vt,
     param.vt = vt.Get();
 
     // resource init
-    feedbackPassData.shader = AssetDatabase::Instance()->GetShader("VirtualTexture/FeedbackTex");
+    feedbackPassData.shader = nullptr;// TODO: AssetDatabase::Instance()->GetShader("VirtualTexture/FeedbackTex");
     feedbackPassData.resource = GetGfxDriver()->CreateShaderResource(feedbackPassData.shader->GetShaderProgram(),
                                                                      Gfx::ShaderResourceFrequency::Material);
 

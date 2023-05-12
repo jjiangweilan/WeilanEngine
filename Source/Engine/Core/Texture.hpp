@@ -1,5 +1,5 @@
 #pragma once
-#include "AssetObject.hpp"
+#include "Resource.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include <ktx.h>
 
@@ -21,7 +21,7 @@ struct KtxTexture
     ktx_uint8_t* imageData;
     uint32_t byteSize;
 };
-class Texture : public AssetObject
+class Texture : public Resource
 {
 public:
     Texture(){};
@@ -36,10 +36,9 @@ public:
     }
     RefPtr<Gfx::Image> GetGfxImage() { return image; };
     const TextureDescription& GetDescription() { return desc; }
-    void Reload(AssetObject&& loaded) override;
+    void Reload(Resource&& loaded) override;
 
 private:
-    bool Serialize(AssetSerializer&) override { return false; } // disable saving
     TextureDescription desc;
     UniPtr<Gfx::Image> image;
 };

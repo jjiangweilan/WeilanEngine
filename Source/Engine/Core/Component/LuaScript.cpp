@@ -2,6 +2,7 @@
 
 #include "Script/LuaBackend.hpp"
 #include "Script/LuaWraps.hpp"
+#include <spdlog/spdlog.h>
 #define L LuaBackend::Instance()->GetL()
 
 namespace Engine
@@ -15,9 +16,9 @@ namespace Engine
 
 #define SERIALIZE_MEMBERS() SERIALIZE_MEMBER(luaClassName);
 
-LuaScript::LuaScript() : Component("LuaScript", nullptr) { SERIALIZE_MEMBERS(); }
+LuaScript::LuaScript() : Component("LuaScript", nullptr) { }
 
-LuaScript::LuaScript(GameObject* gameObject) : Component("LuaScript", gameObject) { SERIALIZE_MEMBERS(); }
+LuaScript::LuaScript(GameObject* gameObject) : Component("LuaScript", gameObject) { }
 
 void LuaScript::RefLuaClass(const char* luaClass)
 {
@@ -44,7 +45,7 @@ void LuaScript::RefLuaClass(const char* luaClass)
 
             // gameObject
             GameObject** goPP = (GameObject**)lua_newuserdata(L, sizeof(void*));
-            *goPP = gameObject.Get();
+            *goPP = gameObject;
             luaL_setmetatable(L, "GameObject");
             lua_setfield(L, -2, "gameObject");
 

@@ -10,8 +10,6 @@ namespace Engine
 {
 class MeshRenderer : public Component
 {
-    DECLARE_COMPONENT(MeshRenderer);
-
 public:
     MeshRenderer();
     MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material);
@@ -33,5 +31,24 @@ private:
     // we need shader to create a shader resource, but it's not known untill user set one.
     // this is a helper function to create objectShaderResource if it doesn't exist
     void TryCreateObjectShaderResource();
+    friend class SerializableField<MeshRenderer>;
+};
+
+template<>
+struct SerializableField<MeshRenderer>
+{
+    static void Serialize(MeshRenderer* v, Serializer* s)
+    {
+        SerializableField<Component>::Serialize(v, s);
+        s->Serialize(v->mesh);
+        s->Serialize(v->materials);
+    }
+
+    static void Deserialize(MeshRenderer* v, Serializer* s)
+    {
+        SerializableField<Component>::Deserialize(v, s);
+        s->Deserialize(v->mesh);
+        s->Deserialize(v->materials);
+    }
 };
 } // namespace Engine

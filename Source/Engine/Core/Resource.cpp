@@ -1,30 +1,13 @@
+#pragma once
 #include "Resource.hpp"
-
 namespace Engine
 {
-std::unique_ptr<std::unordered_map<ResourceID, std::function<std::unique_ptr<Resource>()>>>
-    ResourceRegister::resourceRegisters = nullptr;
-
-char ResourceRegister::RegisterResource(const ResourceID& id, const std::function<std::unique_ptr<Resource>()>& f)
+char AssetRegister::RegisterAsset(const AssetID& assetID, const Creator& creator)
 {
-    GetResourceRegisters()->emplace(id, f);
+    registeredAsset[assetID] = creator;
     return '0';
 }
 
-std::unique_ptr<Resource> ResourceRegister::CreateResource(const ResourceID& id)
-{
-    return GetResourceRegisters()->at(id)();
-};
-
-const std::unique_ptr<std::unordered_map<ResourceID, std::function<std::unique_ptr<Resource>()>>>& ResourceRegister::
-    GetResourceRegisters()
-{
-    if (resourceRegisters == nullptr)
-    {
-        resourceRegisters =
-            std::make_unique<std::unordered_map<ResourceID, std::function<std::unique_ptr<Resource>()>>>();
-    }
-
-    return resourceRegisters;
-}
+std::unordered_map<AssetID, AssetRegister::Creator> AssetRegister::registeredAsset =
+    std::unordered_map<AssetID, AssetRegister::Creator>();
 } // namespace Engine

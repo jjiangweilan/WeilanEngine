@@ -1,6 +1,6 @@
 #pragma once
 #include "Component.hpp"
-
+#include <glm/glm.hpp>
 namespace Engine
 {
 class GameObject;
@@ -12,8 +12,6 @@ enum class LightType
 
 class Light : public Component
 {
-    DECLARE_COMPONENT(Light);
-
 public:
     Light();
     Light(GameObject* gameObject);
@@ -32,5 +30,25 @@ private:
     LightType lightType = LightType::Directional;
     float range; // valid when it's a point light
     float intensity;
+
+    friend struct SerializableField<Light>;
+};
+
+template <>
+struct SerializableField<Light>
+{
+    static void Serialize(Light* v, Serializer* s)
+    {
+        SerializableField<Component>::Serialize(v, s);
+        s->Serialize(v->range);
+        s->Serialize(v->intensity);
+    }
+
+    static void Deserialize(Light* v, Serializer* s)
+    {
+        SerializableField<Component>::Deserialize(v ,s);
+        s->Deserialize(v->range);
+        s->Deserialize(v->intensity);
+    }
 };
 } // namespace Engine

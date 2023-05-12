@@ -1,40 +1,27 @@
 #include "Material.hpp"
-#include "Core/AssetDatabase/AssetDatabase.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/GfxResourceTransfer.hpp"
 namespace Engine
 {
-#define SER_MEMS()                                                                                                     \
-    SERIALIZE_MEMBER(shaderName);                                                                                      \
-    SERIALIZE_MEMBER(floatValues);                                                                                     \
-    SERIALIZE_MEMBER(vectorValues);                                                                                    \
-    SERIALIZE_MEMBER(matrixValues);                                                                                    \
-    SERIALIZE_MEMBER(textureValues);
-
 Material::Material() : shader(nullptr), shaderResource(nullptr)
 {
-    SER_MEMS();
-    assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload(
-        [this](RefPtr<AssetObject> obj)
-        {
-            Shader* casted = dynamic_cast<Shader*>(obj.Get());
-            if (casted && this->shaderName == casted->GetName())
-            {
-                SetShaderNoProtection(this->shaderName);
-                UpdateResources();
-            }
-        });
+    // assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload(
+    //     [this](RefPtr<AssetObject> obj)
+    //     {
+    //         Shader* casted = dynamic_cast<Shader*>(obj.Get());
+    //         if (casted && this->shaderName == casted->GetName())
+    //         {
+    //             SetShaderNoProtection(this->shaderName);
+    //             UpdateResources();
+    //         }
+    //     });
 }
 
-Material::Material(std::string_view shader) : Material()
-{
-    SER_MEMS();
-    SetShader(shader);
-}
+Material::Material(RefPtr<Shader> shader) : Material() { SetShader(shader); }
 
-Material::~Material() { AssetDatabase::Instance()->UnregisterOnAssetReload(assetReloadIterHandle); };
+Material::~Material(){};
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
@@ -81,22 +68,6 @@ glm::mat4 Material::GetMatrix(const std::string& param, const std::string& membe
     return glm::mat4(0);
 }
 
-void Material::OnReferenceResolve(void* ptr, AssetObject* resolved)
-{
-    Texture* casted = dynamic_cast<Texture*>(resolved);
-    if (casted)
-    {
-        for (auto& tex : textureValues)
-        {
-            if (tex.second.Get() == resolved)
-            {
-                SetTexture(tex.first, tex.second);
-                break;
-            }
-        }
-    }
-}
-
 glm::vec4 Material::GetVector(const std::string& param, const std::string& member)
 {
     auto iter = vectorValues.find(param + "." + member);
@@ -127,39 +98,21 @@ float Material::GetFloat(const std::string& param, const std::string& member)
     return 0;
 }
 
-void Material::SetShader(std::string_view shaderName)
+void Material::SetShader(RefPtr<Shader> shader)
 {
-    if (this->shaderName != shaderName)
+    if (shader != nullptr)
     {
-        SetShaderNoProtection(shaderName);
+        SetShaderNoProtection(shader);
     }
 }
 
-void Material::SetShaderNoProtection(std::string_view shaderName)
+void Material::SetShaderNoProtection(RefPtr<Shader> shader)
 {
-    auto newShader = AssetDatabase::Instance()->GetShader(std::string(shaderName));
-
-    if (newShader)
-    {
-        this->shader = newShader;
-        this->shaderName = shaderName;
-        shaderConfig = shader->GetDefaultShaderConfig();
-        shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(shader->GetShaderProgram(),
-                                                                          Gfx::ShaderResourceFrequency::Material);
-        UpdateResources();
-    }
-}
-
-void Material::DeserializeInternal(const std::string& nameChain,
-                                   AssetSerializer& serializer,
-                                   ReferenceResolver& refResolver)
-{
-    AssetObject::DeserializeInternal(nameChain, serializer, refResolver);
-
-    if (!shaderName.empty())
-    {
-        SetShaderNoProtection(shaderName);
-    }
+    this->shader = shader;
+    shaderConfig = shader->GetDefaultShaderConfig();
+    shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(shader->GetShaderProgram(),
+                                                                      Gfx::ShaderResourceFrequency::Material);
+    UpdateResources();
 }
 
 void Material::UpdateResources()

@@ -2,46 +2,9 @@
 
 namespace Engine
 {
-Component::Component() { SERIALIZE_MEMBER(className); }
-
-Component::Component(std::string_view className, RefPtr<GameObject> gameObject) : Component()
-{
-    this->gameObject = gameObject;
-    this->className = className;
-}
+Component::Component(std::string_view name, RefPtr<GameObject> gameObject) : name(name), gameObject(gameObject.Get()) { this->gameObject = gameObject.Get(); }
 
 Component::~Component() {}
 
-GameObject* Component::GetGameObject() { return gameObject.Get(); }
-
-const std::string& Component::GetName() { return className; }
-
-UniPtr<Component> Component::CreateDerived(const std::string& className)
-{
-    return ComponentRegister::Instance()->CreateComponent(className);
-}
-
-ComponentRegister::ComponentRegister() {}
-
-UniPtr<ComponentRegister> ComponentRegister::CreateInstance()
-{
-    if (instance == nullptr)
-    {
-        return UniPtr<ComponentRegister>(new ComponentRegister());
-    }
-    else
-        return std::move(instance);
-}
-
-UniPtr<ComponentRegister> ComponentRegister::instance = CreateInstance();
-
-RefPtr<ComponentRegister> ComponentRegister::Instance()
-{
-    if (instance == nullptr)
-    {
-        instance = UniPtr<ComponentRegister>(new ComponentRegister());
-    }
-
-    return instance;
-}
+GameObject* Component::GetGameObject() { return gameObject; }
 } // namespace Engine

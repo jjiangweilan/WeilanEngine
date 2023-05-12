@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/AssetObject.hpp"
+#include "Core/Resource.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "Libs/Ptr.hpp"
 #include <glm/glm.hpp>
@@ -46,13 +46,12 @@ private:
     std::string name;
 };
 
-class Mesh2 : public AssetObject
+class Mesh2 : public Resource
 {
 public:
-    Mesh2(UUID uuid = UUID::empty) : AssetObject(uuid), submeshes() {}
+    Mesh2(UUID uuid = UUID::empty) : Resource(), submeshes() {
+        SetUUID(uuid);
+    }
     std::vector<UniPtr<Submesh>> submeshes;
-
-private:
-    bool Serialize(AssetSerializer&) override { return false; } // disable model saving
 };
 } // namespace Engine

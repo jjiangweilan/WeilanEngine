@@ -1,16 +1,15 @@
 #pragma once
-#include "Serializer.hpp"
+#include <string>
+#include <unordered_map>
 namespace Engine
 {
-
-// future-proof conversion define
-// for now it just pass the value through
-#define GENERATE_SERIALIZE_ID(x) x
-
-class Serializable
+#define GENERATE_SERIALIZABLE_FILE_ID(x) x
+class Serializer;
+template <class T>
+struct SerializableField
 {
-    virtual void Serialize(Serializer* s) = 0;
-    virtual void Deserialize(Serializer* s) = 0;
+    static void* Serialize(T* v, Serializer* s) { return nullptr; }
+    static void* Deserialize(T* v, Serializer* s) { return nullptr; }
 };
 
 } // namespace Engine

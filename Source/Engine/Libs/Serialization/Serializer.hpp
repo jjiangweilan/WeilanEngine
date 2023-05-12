@@ -3,7 +3,8 @@
 #include "Libs/Internal/uuids/uuid.h"
 #include "Libs/Ptr.hpp"
 #include "Libs/UUID.hpp"
-#include "ReferenceResolver.hpp"
+#include "Serializable.hpp"
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <string>
@@ -13,6 +14,22 @@ namespace Engine
 {
 
 using ReferenceResolveCallback = std::function<void(void* resource)>;
+
+class Serializer;
+template <class T>
+concept IsNotSerializableField = requires(void* v, Serializer* s) { T::Serialize(v, s); };
+
+template <class T>
+concept IsSerializableField = !
+IsNotSerializableField<T>;
+
+template <class T>
+struct HasUUIDContained : std::false_type
+{};
+
+template <template <class...> class T, HasUUID U>
+struct HasUUIDContained<T<U>> : std::true_type
+{};
 
 class Serializer
 {
@@ -45,17 +62,24 @@ public:
     template <class T>
     void Serialize(const std::vector<T>& val);
     template <class T>
-    void Deserialize(std::vector<T>& val);
+    void Deserialize(std::vector<T>& val, const ReferenceResolveCallback& callback = nullptr);
 
     template <class T, class U>
     void Serialize(const std::unordered_map<T, U>& val);
     template <class T, class U>
-    void Deserialize(std::unordered_map<T, U>& val);
+    void Deserialize(std::unordered_map<T, U>& val, const ReferenceResolveCallback& callback = nullptr);
 
     template <class T>
     void Serialize(const UniPtr<T> val);
     template <class T>
     void Deserialize(UniPtr<T>& val);
+
+    template <class T>
+        requires IsSerializableField<T>
+    void Serialize(T& val);
+    template <class T>
+        requires IsSerializableField<T>
+    void Deserialize(T& val);
 
     template <HasUUID T>
     void Serialize(T* val);
@@ -80,6 +104,10 @@ private:
     size_t readOffset = 0;
     std::unordered_map<UUID, std::vector<ReferenceResolve>> resolveCallbacks;
 };
+
+template <class T>
+concept HasReferenceResolveParamter =
+    requires(Serializer s, T v, Serializer::ReferenceResolve r) { s.Deserialize(v, r); };
 
 template <class T>
 void Serializer::Serialize(const T& val)
@@ -108,16 +136,60 @@ void Serializer::Serialize(const std::vector<T>& val)
         Serialize(val[i]);
     }
 }
+
 template <class T>
-void Serializer::Deserialize(std::vector<T>& val)
+void Serializer::Deserialize(std::vector<T>& val, const ReferenceResolveCallback& callback)
 {
     uint32_t size;
     Deserialize(size);
     val.resize(size);
     for (int i = 0; i < size; ++i)
     {
-        Deserialize(val[i]);
+        if constexpr (HasReferenceResolveParamter<T>)
+            Deserialize(val[i], callback);
+        else
+            Deserialize(val[i]);
     }
+}
+
+template <class T, class U>
+void Serializer::Serialize(const std::unordered_map<T, U>& val)
+{
+    uint32_t size = val.size();
+    Serialize(size);
+    for (auto& iter : val)
+    {
+        Serialize(iter.first);
+        Serialize(iter.second);
+    }
+}
+template <class T, class U>
+void Serializer::Deserialize(std::unordered_map<T, U>& val, const ReferenceResolveCallback& callback)
+{
+    uint32_t size;
+    Deserialize(size);
+    for (int i = 0; i < size; ++i)
+    {
+        T key;
+        U value;
+        Deserialize(key);
+        if constexpr (HasReferenceResolveParamter<U>)
+            Deserialize(val[key], callback);
+        else
+            Deserialize(val[key]);
+    }
+}
+
+template <class T>
+void Serializer::Serialize(const UniPtr<T> val)
+{
+    Serialize(*val);
+}
+
+template <class T>
+void Serializer::Deserialize(UniPtr<T>& val)
+{
+    Deserialize(*val);
 }
 
 template <HasUUID T>
@@ -134,6 +206,7 @@ void Serializer::Deserialize(T*& val, const ReferenceResolveCallback& callback)
 {
     UUID uuid;
     Deserialize(uuid);
+    val = nullptr;
     if (uuid != UUID::empty)
     {
         resolveCallbacks[uuid].emplace_back((void*&)val, uuid, callback);
@@ -156,5 +229,19 @@ template <HasUUID T>
 void Serializer::Deserialize(RefPtr<T>& val, const ReferenceResolveCallback& callback)
 {
     Deserialize(val.GetPtrRef(), callback);
+}
+
+template <class T>
+    requires IsSerializableField<T>
+void Serializer::Serialize(T& val)
+{
+    SerializableField<T>::Serialize(&val, this);
+}
+
+template <class T>
+    requires IsSerializableField<T>
+void Serializer::Deserialize(T& val)
+{
+    SerializableField<T>::Deserialize(&val, this);
 }
 } // namespace Engine

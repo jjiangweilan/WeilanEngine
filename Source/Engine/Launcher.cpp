@@ -1,13 +1,54 @@
-#include "WeilanEngine.hpp"
-// test
-#include "Core/Resource.hpp"
-#include <iostream>
-// test
-
-#undef main
+#include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/GameScene/GameSceneManager.hpp"
+#include "Editor/GameEditor.hpp"
+#include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/RenderGraph/RenderGraph.hpp"
+#include <filesystem>
+#include <spdlog/spdlog.h>
 
 namespace Engine
 {
+
+class WeilanEngie
+{
+public:
+    struct CreateInfo
+    {
+        std::filesystem::path projectPath;
+    };
+
+    WeilanEngie() {}
+
+    void Init(const CreateInfo& createInfo)
+    {
+        Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1920, 1080}};
+        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
+        gfxDriver = GetGfxDriver().Get();
+
+        assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
+        renderGraph = std::make_unique<RenderGraph>(assetDatabase);
+        gameSceneManager = std::make_unique<GameSceneManager>();
+        gameEditor = std::make_unique<Editor::GameEditor>(assetDatabase, gameSceneManager);
+    }
+
+    void Loop()
+    {
+        while (true)
+        {}
+    }
+
+private:
+    std::unique_ptr<AssetDatabase> assetDatabase;
+    std::unique_ptr<Editor::GameEditor> gameEditor;
+    std::unique_ptr<RenderGraph> renderGraph;
+    std::unique_ptr<GameSceneManager> gameSceneManager;
+    Gfx::GfxDriver* gfxDriver;
+
+#if GAME_EDITOR
+
+#endif
+};
+
 class Launcher
 {
     using ArgList = std::vector<std::string_view>;
@@ -48,14 +89,7 @@ public:
         }
     }
 
-    // I want to keep the data on the stack at minimum before I actually launch the engine
-    // this function should be called before launcher launches the game
-
-    void OpenProject(const std::filesystem::path& path)
-    {
-        Engine::WeilanEngine backend;
-        backend.Launch(path);
-    }
+    void OpenProject(const std::filesystem::path& path) {}
 
     std::unique_ptr<ArgList> argList;
     bool hasAction = false;

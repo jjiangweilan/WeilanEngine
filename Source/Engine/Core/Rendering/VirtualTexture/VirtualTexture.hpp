@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/AssetObject.hpp"
 #include "GfxDriver/Image.hpp"
 #include "Libs/Image/LinearImage.hpp"
 #include "Libs/Ptr.hpp"

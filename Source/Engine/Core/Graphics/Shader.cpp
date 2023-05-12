@@ -5,16 +5,16 @@
 namespace Engine
 {
 Shader::Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
-    : AssetObject(uuid), shaderProgram(std::move(shaderProgram))
+    : shaderProgram(std::move(shaderProgram))
 {
-    SERIALIZE_MEMBER(shaderName);
+    SetUUID(uuid);
     this->name = name;
 }
 
-void Shader::Reload(AssetObject&& other)
+void Shader::Reload(Resource&& other)
 {
     Shader* casted = static_cast<Shader*>(&other);
-    AssetObject::Reload(std::move(other));
+    Resource::Reload(std::move(other));
     shaderName = (std::move(casted->shaderName));
     shaderProgram = (std::move(casted->shaderProgram));
 }

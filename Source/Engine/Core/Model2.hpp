@@ -8,7 +8,7 @@
 
 namespace Engine
 {
-class Model2 : public AssetObject
+class Model2 : public Resource
 {
 public:
     Model2(std::vector<GameObject*>&& rootGameObjects,
@@ -17,14 +17,10 @@ public:
            std::vector<UniPtr<Texture>> textures,
            std::vector<UniPtr<Material>> materials,
            UUID uuid = UUID::empty)
-        : AssetObject(uuid), rootGameObjects(std::move(rootGameObjects)), gameObjects(std::move(gameObjects)),
+        : rootGameObjects(std::move(rootGameObjects)), gameObjects(std::move(gameObjects)),
           meshes(std::move(meshes)), textures(std::move(textures)), materials(std::move(materials))
     {
-        SerializeMember("meshes", this->meshes);
-        SerializeMember("textures", this->textures);
-        SerializeMember("materials", this->materials);
-        SerializeMember("gameObjects", this->gameObjects);
-        SerializeMember("rootGameObjects", this->rootGameObjects);
+        SetUUID(uuid);
     };
 
     RefPtr<Mesh2> GetMesh(const std::string& name)
@@ -45,12 +41,24 @@ public:
     std::span<UniPtr<Material>> GetMaterials() { return materials; }
 
 private:
-    bool Serialize(AssetSerializer&) override { return false; } // disable model saving
-
     std::vector<GameObject*> rootGameObjects;
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<UniPtr<Mesh2>> meshes;
     std::vector<UniPtr<Texture>> textures;
     std::vector<UniPtr<Material>> materials;
+
+    friend class SerializableField<Model2>;
 };
+// template<>
+// struct SerializableField<Model2>
+// {
+//     static void Serialize(Model2* v, Serializer* s)
+//     {
+//         // s->Serialize(v->meshes);
+//         // s->Serialize(v->textures);
+//         // s->Serialize(v->materials);
+//         // s->Serialize(v->gameObjects);
+//         // s->Serialize(v->rootGameObjects);
+//     }
+// }
 } // namespace Engine

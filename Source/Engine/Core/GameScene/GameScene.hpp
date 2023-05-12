@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Core/AssetObject.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Resource.hpp"
 namespace Engine
 {
-class GameScene : public AssetObject
+class GameScene : public Resource
 {
 public:
     GameScene();
@@ -20,7 +20,6 @@ public:
     void MoveGameObjectToRoot(RefPtr<GameObject> obj);
     void RemoveGameObjectFromRoot(RefPtr<GameObject> obj);
     void RemoveGameObject(GameObject* obj);
-    void Deserialize(AssetSerializer& serializer, ReferenceResolver& refResolver) override;
 
     std::vector<RefPtr<Light>> GetActiveLights();
 
@@ -31,6 +30,13 @@ protected:
 
     void TickGameObject(RefPtr<GameObject> obj);
 
-    void OnReferenceResolve(void* ptr, AssetObject* resolved) override;
+    friend class SerializableField<GameScene>;
+};
+
+template <>
+struct SerializableField<GameScene>
+{
+    static void Serialize(GameScene* v, Serializer* s);
+    static void Deserialize(GameScene* v, Serializer* s);
 };
 } // namespace Engine

@@ -3,14 +3,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 namespace Engine
 {
-#define SER_MEMS()                                                                                                     \
-    SERIALIZE_MEMBER(projectionMatrix);                                                                                \
-    SERIALIZE_MEMBER(viewMatrix);
-
 Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projectionMatrix(), viewMatrix()
 {
-    SER_MEMS()
-
     if (mainCamera == nullptr)
     {
         mainCamera = this;
@@ -22,8 +16,6 @@ Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projec
 
 Camera::Camera() : Component("Camera", nullptr), projectionMatrix(), viewMatrix()
 {
-    SER_MEMS()
-
     if (mainCamera == nullptr)
     {
         mainCamera = this;

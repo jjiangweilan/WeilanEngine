@@ -12,6 +12,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin" )
 endif()
 
+option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
 option(DEV_BUILD "use internal asset inside the source tree instead of installed location" ON)
@@ -140,17 +141,19 @@ source_group(
 #add_dependencies(WeilanEngineLib copyAsset)
 
 # move builtin assets files
-if (WIN32)
-    set(BuiltInAssetsDir $ENV{LOCALAPPDATA}/WeilanEngine/Assets/)
-elseif (APPLE)
-    set(BuiltInAssetsDir $ENV{HOME}/.config/WeilanEngine/Assets/)
-endif()
-add_custom_target(copyAssets ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_CURRENT_LIST_DIR}/../Assets
-    ${BuiltInAssetsDir}
-)
-add_dependencies(WeilanEngineLib copyAssets)
+# if (WIN32)
+#     set(BuiltInAssetsDir $ENV{LOCALAPPDATA}/WeilanEngine/Assets/)
+# elseif (APPLE)
+#     set(BuiltInAssetsDir $ENV{HOME}/.config/WeilanEngine/Assets/)
+# endif()
+# add_custom_target(copyAssets ALL
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     ${CMAKE_CURRENT_LIST_DIR}/../Assets
+#     ${BuiltInAssetsDir}
+# )
+# add_dependencies(WeilanEngineLib copyAssets)
 
 # Unit Test
-add_subdirectory(Test/)
+if (UNIT_TEST)
+    add_subdirectory(Test/)
+endif()

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Core/AssetDatabase/AssetDatabase.hpp"
-#include "Core/AssetObject.hpp"
+#include "Core/Resource.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
@@ -18,16 +17,14 @@ class ShaderResource;
 
 class AssetDatabase;
 class AssetFileData;
-class Material : public AssetObject
+class Material : public Resource
 {
-    DECLARE_ENGINE_OBJECT();
-
 public:
-    Material(std::string_view shader);
+    Material(RefPtr<Shader> shader);
     Material();
     ~Material() override;
 
-    void SetShader(std::string_view shader);
+    void SetShader(RefPtr<Shader> shader);
     RefPtr<Shader> GetShader() { return shader; }
     RefPtr<Gfx::ShaderResource> GetShaderResource() { return shaderResource; }
 
@@ -47,26 +44,62 @@ public:
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
     Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
-    void DeserializeInternal(const std::string& nameChain,
-                             AssetSerializer& serializer,
-                             ReferenceResolver& refResolver) override;
 
 private:
     RefPtr<Shader> shader = nullptr;
     UniPtr<Gfx::ShaderResource> shaderResource;
     Gfx::ShaderConfig shaderConfig;
 
-    std::string shaderName;
     std::unordered_map<std::string, float> floatValues;
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;
     std::unordered_map<std::string, RefPtr<Texture>> textureValues;
 
-    AssetDatabase::OnAssetReloadIterHandle assetReloadIterHandle;
-
     void UpdateResources();
-    void SetShaderNoProtection(std::string_view shader);
-    void OnReferenceResolve(void* ptr, AssetObject* resolved) override;
+    void SetShaderNoProtection(RefPtr<Shader> shader);
     static int initImporter_;
+
+    friend class SerializableField<Material>;
+};
+
+template <>
+struct SerializableField<Material>
+{
+    static SerializableFileID GetSerializableFileID() { return GENERATE_SERIALIZABLE_FILE_ID("Material"); }
+
+    static void Serilaize(Material* m, Serializer* s)
+    {
+        SerializableField<Resource>::Serialize(m, s);
+        s->Serialize(m->shader);
+        s->Serialize(m->floatValues);
+        s->Serialize(m->vectorValues);
+        s->Serialize(m->matrixValues);
+        s->Serialize(m->textureValues);
+    }
+
+    static void Deserialize(Material* m, Serializer* s)
+    {
+        SerializableField<Resource>::Deserialize(m, s);
+        s->Deserialize(m->shader, [m](void* res) { m->SetShader(m->shader); });
+        s->Deserialize(m->floatValues);
+        s->Deserialize(m->vectorValues);
+        s->Deserialize(m->matrixValues);
+        s->Deserialize(m->textureValues,
+                       [m](void* res)
+                       {
+                           if (res)
+                           {
+                               Texture* tex = (Texture*)res;
+                               for (auto& kv : m->textureValues)
+                               {
+                                   if (kv.second.Get() == tex)
+                                   {
+                                       m->SetTexture(kv.first, tex);
+                                       break;
+                                   }
+                               }
+                           }
+                       });
+    }
 };
 } // namespace Engine

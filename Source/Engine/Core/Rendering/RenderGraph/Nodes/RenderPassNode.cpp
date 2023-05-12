@@ -1,6 +1,7 @@
 #include "RenderPassNode.hpp"
 #include "Core/GameObject.hpp"
 #include <format>
+#include <spdlog/spdlog.h>
 namespace Engine::RGraph
 {
 RenderPassNode::RenderPassNode()

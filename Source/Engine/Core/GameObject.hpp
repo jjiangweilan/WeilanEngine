@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AssetObject.hpp"
 #include "Component/Transform.hpp"
 #include "Libs/Ptr.hpp"
+#include "Resource.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -11,7 +11,7 @@
 namespace Engine
 {
 class GameScene;
-class GameObject : public AssetObject
+class GameObject : public Resource
 {
 public:
     GameObject(RefPtr<GameScene> gameScene);
@@ -37,23 +37,12 @@ private:
     RefPtr<Transform> transform = nullptr;
     RefPtr<GameScene> gameScene = nullptr;
 
-    void DeserializeInternal(const std::string& nameChain,
-                             AssetSerializer& serializer,
-                             ReferenceResolver& refResolver) override;
+    friend class SerializableField<GameObject>;
 };
 
 template <class T, class... Args>
 T* GameObject::AddComponent(Args&&... args)
 {
-    if (!Duplicable<T>::value)
-    {
-        for (auto& p : components)
-        {
-            if (dynamic_cast<T*>(p.Get()) != nullptr)
-                return nullptr;
-        }
-    }
-
     auto p = MakeUnique<T>(this, args...);
     T* temp = p.Get();
     components.push_back(std::move(p));
@@ -71,4 +60,24 @@ T* GameObject::GetComponent()
     }
     return nullptr;
 }
+
+template <>
+struct SerializableField<GameObject>
+{
+    static void Serialize(GameObject* v, Serializer* s)
+    {
+        SerializableField<Resource>::Serialize(v, s);
+        s->Serialize(v->components);
+        s->Serialize(v->transform);
+        s->Serialize(v->gameScene);
+    }
+    static void Deserialize(GameObject* v, Serializer* s)
+    {
+        SerializableField<Resource>::Deserialize(v, s);
+        s->Deserialize(v->components);
+        s->Deserialize(v->transform);
+        s->Deserialize(v->gameScene);
+    }
+};
+
 } // namespace Engine

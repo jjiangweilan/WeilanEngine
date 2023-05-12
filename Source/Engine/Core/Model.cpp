@@ -3,14 +3,13 @@
 namespace Engine
 {
 Model::Model(std::unordered_map<std::string, UniPtr<Mesh>>&& meshes_, const UUID& uuid)
-    : AssetObject(uuid), meshes(std::move(meshes_))
+    : meshes(std::move(meshes_))
 {
+    SetUUID(uuid);
     for (auto& iter : meshes)
     {
         meshNames.push_back(iter.first);
     }
-
-    SERIALIZE_MEMBER(meshes);
 }
 
 RefPtr<Mesh> Model::GetMesh(const std::string& name)

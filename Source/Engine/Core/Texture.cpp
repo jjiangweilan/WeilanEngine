@@ -4,11 +4,12 @@
 #include "Rendering/GfxResourceTransfer.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include <ktxvulkan.h>
-
+#include <spdlog/spdlog.h>
 namespace Engine
 {
-Texture::Texture(TextureDescription texDesc, const UUID& uuid) : AssetObject(uuid), desc(texDesc)
+Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
 {
+    SetUUID(uuid);
     image =
         Gfx::GfxDriver::Instance()->CreateImage(texDesc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
     image->SetName(uuid.ToString());
@@ -35,8 +36,9 @@ bool IsKTX1File(ktx_uint8_t* imageData)
            imageData[8] == 0x0D && imageData[9] == 0x0A && imageData[10] == 0x1A && imageData[110] == 0x0A;
 }
 
-Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
+Texture::Texture(KtxTexture texDesc, const UUID& uuid)
 {
+    SetUUID(uuid);
     ktx_uint8_t* imageData = texDesc.imageData;
     uint32_t imageByteSize = texDesc.byteSize;
     if (IsKTX1File(imageData) || IsKTX2File(imageData))
@@ -172,11 +174,11 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid) : AssetObject(uuid)
     }
 }
 
-void Texture::Reload(AssetObject&& loaded)
+void Texture::Reload(Resource&& loaded)
 {
     Texture* newTex = static_cast<Texture*>(&loaded);
     image = std::move(newTex->image);
-    AssetObject::Reload(std::move(loaded));
+    Resource::Reload(std::move(loaded));
 }
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)

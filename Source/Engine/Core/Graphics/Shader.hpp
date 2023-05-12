@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/AssetObject.hpp"
+#include "Core/Resource.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Libs/Ptr.hpp"
 #include <string>
@@ -10,11 +10,11 @@ namespace Gfx
 class ShaderProgram;
 class ShaderLoader;
 } // namespace Gfx
-class Shader : public AssetObject
+class Shader : public Resource
 {
 public:
     Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty);
-    void Reload(AssetObject&& loaded) override;
+    void Reload(Resource&& loaded) override;
     ~Shader() override {}
 
     inline RefPtr<Gfx::ShaderProgram> GetShaderProgram() { return shaderProgram; }
@@ -23,8 +23,22 @@ public:
 private:
     std::string shaderName;
 
-    bool Serialize(AssetSerializer&) override { return false; } // disable model saving
-
     UniPtr<Gfx::ShaderProgram> shaderProgram;
+    friend class SerializableField<Shader>;
+};
+
+template <>
+struct SerializableField<Shader>
+{
+    static void Serialize(Shader* v, Serializer* s)
+    {
+        SerializableField<Resource>::Serialize(v, s);
+        s->Serialize(v->shaderName);
+    }
+    static void Deserialize(Shader* v, Serializer* s)
+    {
+        SerializableField<Resource>::Deserialize(v, s);
+        s->Deserialize(v->shaderName);
+    }
 };
 } // namespace Engine

@@ -1,4 +1,6 @@
 #include "Libs/Serialization/Serializable.hpp"
+#include "Libs/Serialization/Serializer.hpp"
+#include "Object.hpp"
 #include <functional>
 #include <memory>
 #pragma once
@@ -8,44 +10,48 @@ namespace Engine
 
 using ResourceID = std::string;
 
-class Resource : public Serializable
+class Resource : public Object
 {
 public:
-    const UUID& GetUUID() { return uuid; }
-    void SetUUID(const UUID& uuid) { this->uuid = uuid; }
+    void SetName(std::string_view name) { this->name = name; }
+    const std::string& GetName() { return name; }
     virtual ~Resource(){};
-    virtual void Serialize(Serializer* s) { s->Serialize(uuid); }
-    virtual void Deserialize(Serializer* s) { s->Deserialize(uuid); }
+    virtual void Reload(Resource&& resource)
+    {
+        uuid = std::move(resource.uuid);
+        name = std::move(resource.name);
+    }
 
 protected:
-    UUID uuid;
+    std::string name;
+
+    friend struct SerializableField<Resource>;
 };
 
-struct ResourceRegister
+using AssetID = std::string;
+struct AssetRegister
 {
-public:
-    static std::unique_ptr<Resource> CreateResource(const ResourceID& id);
-
 protected:
-    static char RegisterResource(const ResourceID& id, const std::function<std::unique_ptr<Resource>()>& f);
-
-private:
-    static const std::unique_ptr<std::unordered_map<ResourceID, std::function<std::unique_ptr<Resource>()>>>&
-    GetResourceRegisters();
-    static std::unique_ptr<std::unordered_map<ResourceID, std::function<std::unique_ptr<Resource>()>>>
-        resourceRegisters;
+    using Creator = std::function<std::unique_ptr<Resource>()>;
+    static char RegisterAsset(const AssetID& assetID, const Creator& creator);
+    static std::unordered_map<AssetID, std::function<std::unique_ptr<Resource>()>> registeredAsset;
 };
 
 template <class T>
-struct ResourceMeta : ResourceRegister
-{};
+struct SerializableAsset : public AssetRegister
+{
+    // inline static AssetID assetID = GENERATE_SERIALIZABLE_FILE_ID("xxx");
+    // inline static char reg = RegisterAsset(GetAssetID(), []() { return std::make_unique<T>(); })
+};
 
-#define REGISTER_RESOURCE(Type)                                                                                        \
-    template <>                                                                                                        \
-    struct ResourceMeta<Type> : ResourceRegister                                                                       \
-    {                                                                                                                  \
-        inline static const ResourceID resourceID = #Type;                                                             \
-        inline static const char resourceRegister =                                                                    \
-            RegisterResource(resourceID, []() { return std::unique_ptr<Resource>(new Type); });                        \
-    };
+template <>
+struct SerializableField<Resource>
+{
+    static void Serialize(Resource* v, Serializer* s) { s->Serialize(v->uuid); }
+    static void Deserialize(Resource* v, Serializer* s) { s->Deserialize(v->name); }
+};
+
+template <class T>
+concept IsResource = requires { std::derived_from<T, Resource>; };
+
 } // namespace Engine

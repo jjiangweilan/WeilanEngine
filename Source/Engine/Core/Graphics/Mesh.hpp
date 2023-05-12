@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/AssetObject.hpp"
+#include "Core/Resource.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Utils/Structs.hpp"
 #include <string>
@@ -62,7 +62,7 @@ struct VertexDescription
     std::vector<UntypedVertexAttribute> weights;
 };
 
-class Mesh : public AssetObject
+class Mesh : public Resource
 {
 public:
     Mesh() {}
