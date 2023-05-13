@@ -65,8 +65,6 @@ private:
 template <>
 struct SerializableField<Material>
 {
-    static SerializableFileID GetSerializableFileID() { return GENERATE_SERIALIZABLE_FILE_ID("Material"); }
-
     static void Serilaize(Material* m, Serializer* s)
     {
         SerializableField<Resource>::Serialize(m, s);

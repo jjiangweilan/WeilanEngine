@@ -20,8 +20,7 @@ template <class T>
 concept IsNotSerializableField = requires(void* v, Serializer* s) { T::Serialize(v, s); };
 
 template <class T>
-concept IsSerializableField = !
-IsNotSerializableField<T>;
+concept IsSerializableField = !std::is_same<T, void>::value && requires(T* v, Serializer* s) { T::Serialize(v, s); };
 
 template <class T>
 struct HasUUIDContained : std::false_type
@@ -34,6 +33,8 @@ struct HasUUIDContained<T<U>> : std::true_type
 class Serializer
 {
 public:
+    Serializer(std::vector<unsigned char>&& bytes) : bytes(std::move(bytes)) {}
+    Serializer() : bytes() {}
     struct ReferenceResolve
     {
         ReferenceResolve(void*& target, const UUID& targetUUID, const ReferenceResolveCallback& callback)
@@ -70,15 +71,13 @@ public:
     void Deserialize(std::unordered_map<T, U>& val, const ReferenceResolveCallback& callback = nullptr);
 
     template <class T>
-    void Serialize(const UniPtr<T> val);
+    void Serialize(const UniPtr<T>& val);
     template <class T>
     void Deserialize(UniPtr<T>& val);
 
-    template <class T>
-        requires IsSerializableField<T>
+    template <IsSerializableField T>
     void Serialize(T& val);
-    template <class T>
-        requires IsSerializableField<T>
+    template <IsSerializableField T>
     void Deserialize(T& val);
 
     template <HasUUID T>
@@ -93,7 +92,11 @@ public:
     template <HasUUID T>
     void Deserialize(RefPtr<T>& val, const ReferenceResolveCallback& callback);
 
-    unsigned char* GetBinary(size_t& size);
+    unsigned char* GetBinary(size_t& size)
+    {
+        size = bytes.size();
+        return &bytes[0];
+    }
     inline const std::unordered_map<UUID, std::vector<ReferenceResolve>>& GetResolveCallbacks()
     {
         return resolveCallbacks;
@@ -181,7 +184,7 @@ void Serializer::Deserialize(std::unordered_map<T, U>& val, const ReferenceResol
 }
 
 template <class T>
-void Serializer::Serialize(const UniPtr<T> val)
+void Serializer::Serialize(const UniPtr<T>& val)
 {
     Serialize(*val);
 }
@@ -231,15 +234,13 @@ void Serializer::Deserialize(RefPtr<T>& val, const ReferenceResolveCallback& cal
     Deserialize(val.GetPtrRef(), callback);
 }
 
-template <class T>
-    requires IsSerializableField<T>
+template <IsSerializableField T>
 void Serializer::Serialize(T& val)
 {
     SerializableField<T>::Serialize(&val, this);
 }
 
-template <class T>
-    requires IsSerializableField<T>
+template <IsSerializableField T>
 void Serializer::Deserialize(T& val)
 {
     SerializableField<T>::Deserialize(&val, this);

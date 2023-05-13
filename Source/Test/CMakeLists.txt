@@ -28,12 +28,10 @@ target_link_libraries(EngineUnitTest
     gtest
 )
 
-set (TempFileDir ${CMAKE_BINARY_DIR}/tmp)
+set (TempFileDir "${CMAKE_BINARY_DIR}/tmp")
 file(MAKE_DIRECTORY ${TempFileDir})
 
 target_compile_definitions(EngineUnitTest
     PRIVATE
-    TEMP_FILE_DIR=${TempFileDir}
+    TEMP_FILE_DIR="${TempFileDir}"
     )
-
-message("${TempFileDir}")

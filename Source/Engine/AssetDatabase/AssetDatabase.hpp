@@ -14,18 +14,24 @@ public:
 public:
     Asset* LoadAsset(const std::filesystem::path& path);
 
-    template <IsResource T>
-    Asset* SaveAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path);
+    template <class T>
+    Asset* CreateAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path);
 
 private:
     std::filesystem::path assetRootPath;
+    std::unordered_map<std::string, std::shared_ptr<Asset>> assets;
 };
 
-template <IsResource T>
-Asset* AssetDatabase::SaveAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path)
+template <class T>
+Asset* AssetDatabase::CreateAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path)
 {
-    AssetImpl<T> newAsset(std::move(resource), path);
+    std::shared_ptr<Asset> newAsset = std::make_unique<Asset>(std::move(resource), assetRootPath / path);
 
-    newAsset.Save();
+    newAsset->Save<T>();
+
+    Asset* temp = newAsset.get();
+    assets[path.string()] = std::move(newAsset);
+
+    return temp;
 }
 } // namespace Engine

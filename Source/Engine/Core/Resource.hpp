@@ -28,19 +28,24 @@ protected:
     friend struct SerializableField<Resource>;
 };
 
-using AssetID = std::string;
+using AssetTypeID = std::string;
 struct AssetRegister
 {
+public:
+    static std::unique_ptr<Resource> CreateAsset(const AssetTypeID& id);
+
 protected:
     using Creator = std::function<std::unique_ptr<Resource>()>;
-    static char RegisterAsset(const AssetID& assetID, const Creator& creator);
-    static std::unordered_map<AssetID, std::function<std::unique_ptr<Resource>()>> registeredAsset;
+    static char RegisterAsset(const AssetTypeID& assetID, const Creator& creator);
+
+private:
+    static std::unordered_map<AssetTypeID, std::function<std::unique_ptr<Resource>()>>* GetRegisteredAsset();
 };
 
 template <class T>
 struct SerializableAsset : public AssetRegister
 {
-    // inline static AssetID assetID = GENERATE_SERIALIZABLE_FILE_ID("xxx");
+    // inline static AssetID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("xxx");
     // inline static char reg = RegisterAsset(GetAssetID(), []() { return std::make_unique<T>(); })
 };
 
