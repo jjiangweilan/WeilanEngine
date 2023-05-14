@@ -50,4 +50,19 @@ RefPtr<Component> GameObject::GetComponent(const char* name)
 
     return nullptr;
 }
+
+void GameObject::Serialize(Serializer* s)
+{
+    Resource::Serialize(s);
+    s->Serialize(components);
+    s->Serialize(transform);
+    s->Serialize(gameScene);
+}
+void GameObject::Deserialize(Serializer* s)
+{
+    Resource::Deserialize(s);
+    s->Deserialize(components);
+    s->Deserialize(transform);
+    s->Deserialize(gameScene);
+}
 } // namespace Engine

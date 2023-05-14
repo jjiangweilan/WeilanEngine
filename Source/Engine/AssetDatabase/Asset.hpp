@@ -21,12 +21,12 @@ public:
 
     Asset(const std::filesystem::path& path) : path(path) {}
 
-    template <class T>
+    template<class T>
     void Save()
     {
         Serializer ser;
-        ser.Serialize(SerializableAsset<T>::assetTypeID);
-        SerializableField<T>::Serialize((T*)resource.get(), &ser);
+        ser.Serialize(AssetFactory<T>::assetTypeID);
+        resource->Serialize(&ser);
 
         std::ofstream out;
         out.open(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);

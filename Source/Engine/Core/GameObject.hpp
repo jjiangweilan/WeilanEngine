@@ -32,12 +32,13 @@ public:
     RefPtr<Transform> GetTransform();
     void Tick();
 
+    void Serialize(Serializer* s) override;
+    void Deserialize(Serializer* s) override;
+
 private:
     std::vector<UniPtr<Component>> components;
     RefPtr<Transform> transform = nullptr;
     RefPtr<GameScene> gameScene = nullptr;
-
-    friend class SerializableField<GameObject>;
 };
 
 template <class T, class... Args>
@@ -60,24 +61,5 @@ T* GameObject::GetComponent()
     }
     return nullptr;
 }
-
-template <>
-struct SerializableField<GameObject>
-{
-    static void Serialize(GameObject* v, Serializer* s)
-    {
-        SerializableField<Resource>::Serialize(v, s);
-        s->Serialize(v->components);
-        s->Serialize(v->transform);
-        s->Serialize(v->gameScene);
-    }
-    static void Deserialize(GameObject* v, Serializer* s)
-    {
-        SerializableField<Resource>::Deserialize(v, s);
-        s->Deserialize(v->components);
-        s->Deserialize(v->transform);
-        s->Deserialize(v->gameScene);
-    }
-};
 
 } // namespace Engine

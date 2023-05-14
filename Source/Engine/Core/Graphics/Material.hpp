@@ -45,6 +45,9 @@ public:
 
     Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
 
+    void Serialize(Serializer* s) override;
+    void Deserialize(Serializer* s) override;
+
 private:
     RefPtr<Shader> shader = nullptr;
     UniPtr<Gfx::ShaderResource> shaderResource;
@@ -58,46 +61,5 @@ private:
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
     static int initImporter_;
-
-    friend class SerializableField<Material>;
-};
-
-template <>
-struct SerializableField<Material>
-{
-    static void Serilaize(Material* m, Serializer* s)
-    {
-        SerializableField<Resource>::Serialize(m, s);
-        s->Serialize(m->shader);
-        s->Serialize(m->floatValues);
-        s->Serialize(m->vectorValues);
-        s->Serialize(m->matrixValues);
-        s->Serialize(m->textureValues);
-    }
-
-    static void Deserialize(Material* m, Serializer* s)
-    {
-        SerializableField<Resource>::Deserialize(m, s);
-        s->Deserialize(m->shader, [m](void* res) { m->SetShader(m->shader); });
-        s->Deserialize(m->floatValues);
-        s->Deserialize(m->vectorValues);
-        s->Deserialize(m->matrixValues);
-        s->Deserialize(m->textureValues,
-                       [m](void* res)
-                       {
-                           if (res)
-                           {
-                               Texture* tex = (Texture*)res;
-                               for (auto& kv : m->textureValues)
-                               {
-                                   if (kv.second.Get() == tex)
-                                   {
-                                       m->SetTexture(kv.first, tex);
-                                       break;
-                                   }
-                               }
-                           }
-                       });
-    }
 };
 } // namespace Engine

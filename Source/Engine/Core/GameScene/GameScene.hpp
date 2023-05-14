@@ -23,20 +23,14 @@ public:
 
     std::vector<RefPtr<Light>> GetActiveLights();
 
+    void Serialize(Serializer* s) override;
+    void Deserialize(Serializer* s) override;
+
 protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
 
     void TickGameObject(RefPtr<GameObject> obj);
-
-    friend class SerializableField<GameScene>;
-};
-
-template <>
-struct SerializableField<GameScene>
-{
-    static void Serialize(GameScene* v, Serializer* s);
-    static void Deserialize(GameScene* v, Serializer* s);
 };
 } // namespace Engine

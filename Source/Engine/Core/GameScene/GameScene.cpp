@@ -1,10 +1,7 @@
 #include "GameScene.hpp"
 namespace Engine
 {
-GameScene::GameScene() : Resource()
-{
-    name = "New GameScene";
-}
+GameScene::GameScene() : Resource() { name = "New GameScene"; }
 
 RefPtr<GameObject> GameScene::CreateGameObject()
 {
@@ -83,45 +80,47 @@ std::vector<RefPtr<Light>> GameScene::GetActiveLights()
     return lights;
 }
 
-void SerializableField<GameScene>::Serialize(GameScene* v, Serializer* s)
+void GameScene::Serialize(Serializer* s)
 {
-    s->Serialize(v->gameObjects);
-    s->Serialize(v->externalGameObjects);
+    s->Serialize(gameObjects);
+    s->Serialize(externalGameObjects);
 }
 
-void SerializableField<GameScene>::Deserialize(GameScene* v, Serializer* s)
+void GameScene::Deserialize(Serializer* s)
 {
-    s->Deserialize(v->gameObjects);
-    s->Deserialize(v->externalGameObjects, [v](void* resource){
-            if (auto go = static_cast<GameObject*>(resource))
-            {
-                go->SetGameScene(v);
-                Transform* goParent = go->GetTransform()->GetParent().Get();
-                if (!goParent)
-                {
-                    v->roots.push_back(go);
-                }
-            }
-    });
+    s->Deserialize(gameObjects);
+    s->Deserialize(externalGameObjects,
+                   [this](void* resource)
+                   {
+                       if (auto go = static_cast<GameObject*>(resource))
+                       {
+                           go->SetGameScene(this);
+                           Transform* goParent = go->GetTransform()->GetParent().Get();
+                           if (!goParent)
+                           {
+                               this->roots.push_back(go);
+                           }
+                       }
+                   });
 
     // find all the root object
-    for (auto& obj : v->gameObjects)
+    for (auto& obj : gameObjects)
     {
-        obj->SetGameScene(v);
+        obj->SetGameScene(this);
         if (obj->GetTransform()->GetParent() == nullptr)
         {
-            v->roots.push_back(obj);
+            roots.push_back(obj);
         }
     }
 
-    for (auto obj : v->externalGameObjects)
+    for (auto obj : externalGameObjects)
     {
         if (obj)
         {
-            obj->SetGameScene(v);
+            obj->SetGameScene(this);
             if (obj->GetTransform()->GetParent() == nullptr)
             {
-                v->roots.push_back(obj);
+                roots.push_back(obj);
             }
         }
     }

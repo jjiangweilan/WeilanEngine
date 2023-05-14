@@ -10,7 +10,7 @@ namespace Engine
 
 using ResourceID = std::string;
 
-class Resource : public Object
+class Resource : public Object, Serializable
 {
 public:
     void SetName(std::string_view name) { this->name = name; }
@@ -22,10 +22,20 @@ public:
         name = std::move(resource.name);
     }
 
+    void Serialize(Serializer* s) override
+    {
+        s->Serialize(uuid);
+        s->Serialize(name);
+    }
+
+    void Deserialize(Serializer* s) override
+    {
+        s->Serialize(uuid);
+        s->Deserialize(name);
+    }
+
 protected:
     std::string name;
-
-    friend struct SerializableField<Resource>;
 };
 
 using AssetTypeID = std::string;
@@ -43,17 +53,10 @@ private:
 };
 
 template <class T>
-struct SerializableAsset : public AssetRegister
+struct AssetFactory : public AssetRegister
 {
     // inline static AssetID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("xxx");
     // inline static char reg = RegisterAsset(GetAssetID(), []() { return std::make_unique<T>(); })
-};
-
-template <>
-struct SerializableField<Resource>
-{
-    static void Serialize(Resource* v, Serializer* s) { s->Serialize(v->uuid); }
-    static void Deserialize(Resource* v, Serializer* s) { s->Deserialize(v->name); }
 };
 
 template <class T>

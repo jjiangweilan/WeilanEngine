@@ -8,7 +8,7 @@
 namespace Engine
 {
 class GameObject;
-class Component : public Object
+class Component : public Object, Serializable
 {
 public:
     Component(std::string_view name, RefPtr<GameObject> gameObject);
@@ -17,28 +17,22 @@ public:
     GameObject* GetGameObject();
     const std::string& GetName() { return name; }
 
+    void Serialize(Serializer* s) override
+    {
+        s->Serialize(uuid);
+        s->Serialize(gameObject);
+    }
+
+    void Deserialize(Serializer* s) override
+    {
+        s->Deserialize(uuid);
+        s->Deserialize(gameObject);
+    }
+
 protected:
     GameObject* gameObject;
     std::string name;
 
     friend class GameObject;
-    friend struct SerializableField<Component>;
 };
-
-template <>
-struct SerializableField<Component>
-{
-    static void Serialize(Component* v, Serializer* s)
-    {
-        SerializableField<Object>::Serialize(v, s);
-        s->Serialize(v->gameObject);
-    }
-
-    static void Deserialize(Component* v, Serializer* s)
-    {
-        SerializableField<Object>::Deserialize(v, s);
-        s->Deserialize(v->gameObject);
-    }
-};
-
 } // namespace Engine

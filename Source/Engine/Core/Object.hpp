@@ -16,13 +16,5 @@ public:
 
 protected:
     UUID uuid;
-    friend class SerializableField<Object>;
-};
-
-template <>
-struct SerializableField<Object>
-{
-    static void Serialize(Object* v, Serializer* s) { s->Serialize(v->uuid); }
-    static void Deserialize(Object* v, Serializer* s) { s->Deserialize(v->uuid); }
 };
 } // namespace Engine

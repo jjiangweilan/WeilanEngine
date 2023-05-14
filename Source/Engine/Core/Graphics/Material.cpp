@@ -154,4 +154,38 @@ void Material::UpdateResources()
             shaderResource->SetTexture(v.first, v.second->GetGfxImage());
     }
 }
+
+void Material::Serialize(Serializer* s)
+{
+    Resource::Serialize(s);
+    s->Serialize(shader);
+    s->Serialize(floatValues);
+    s->Serialize(vectorValues);
+    s->Serialize(matrixValues);
+    s->Serialize(textureValues);
+}
+void Material::Deserialize(Serializer* s)
+{
+    Resource::Deserialize(s);
+    s->Deserialize(shader, [this](void* res) { this->SetShader(this->shader); });
+    s->Deserialize(floatValues);
+    s->Deserialize(vectorValues);
+    s->Deserialize(matrixValues);
+    s->Deserialize(textureValues,
+                   [this](void* res)
+                   {
+                       if (res)
+                       {
+                           Texture* tex = (Texture*)res;
+                           for (auto& kv : textureValues)
+                           {
+                               if (kv.second.Get() == tex)
+                               {
+                                   SetTexture(kv.first, tex);
+                                   break;
+                               }
+                           }
+                       }
+                   });
+}
 } // namespace Engine

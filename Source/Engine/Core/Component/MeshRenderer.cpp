@@ -5,12 +5,11 @@ namespace Engine
 {
 MeshRenderer::MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material)
     : Component("MeshRenderer", parent), mesh(mesh), materials({material})
-{
-}
+{}
 
-MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, nullptr) { }
+MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, nullptr) {}
 
-MeshRenderer::MeshRenderer() : Component("MeshRenderer", nullptr), mesh(nullptr), materials() {};
+MeshRenderer::MeshRenderer() : Component("MeshRenderer", nullptr), mesh(nullptr), materials(){};
 
 void MeshRenderer::SetMesh(Mesh2* mesh)
 {
@@ -26,5 +25,19 @@ void MeshRenderer::SetMaterials(std::span<Material*> materials)
 Mesh2* MeshRenderer::GetMesh() { return mesh; }
 
 const std::vector<Material*>& MeshRenderer::GetMaterials() { return materials; }
+
+void MeshRenderer::Serialize(Serializer* s)
+{
+
+    Component::Serialize(s);
+    s->Serialize(mesh);
+    s->Serialize(materials);
+}
+void MeshRenderer::Deserialize(Serializer* s)
+{
+    Component::Deserialize(s);
+    s->Deserialize(mesh);
+    s->Deserialize(materials);
+}
 
 } // namespace Engine

@@ -16,11 +16,9 @@ namespace Engine
 using ReferenceResolveCallback = std::function<void(void* resource)>;
 
 class Serializer;
-template <class T>
-concept IsNotSerializableField = requires(void* v, Serializer* s) { T::Serialize(v, s); };
 
 template <class T>
-concept IsSerializableField = !std::is_same<T, void>::value && requires(T* v, Serializer* s) { T::Serialize(v, s); };
+concept IsSerializable = std::derived_from<T, Serializable>;
 
 template <class T>
 struct HasUUIDContained : std::false_type
@@ -75,9 +73,9 @@ public:
     template <class T>
     void Deserialize(UniPtr<T>& val);
 
-    template <IsSerializableField T>
+    template <IsSerializable T>
     void Serialize(T& val);
-    template <IsSerializableField T>
+    template <IsSerializable T>
     void Deserialize(T& val);
 
     template <HasUUID T>
@@ -234,15 +232,15 @@ void Serializer::Deserialize(RefPtr<T>& val, const ReferenceResolveCallback& cal
     Deserialize(val.GetPtrRef(), callback);
 }
 
-template <IsSerializableField T>
+template <IsSerializable T>
 void Serializer::Serialize(T& val)
 {
-    SerializableField<T>::Serialize(&val, this);
+    val.Serialize(this);
 }
 
-template <IsSerializableField T>
+template <IsSerializable T>
 void Serializer::Deserialize(T& val)
 {
-    SerializableField<T>::Deserialize(&val, this);
+    val.Deserialize(this);
 }
 } // namespace Engine

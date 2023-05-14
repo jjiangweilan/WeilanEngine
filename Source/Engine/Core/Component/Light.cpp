@@ -4,13 +4,9 @@
 
 namespace Engine
 {
-Light::Light() : Component("Light", nullptr)
-{
-}
+Light::Light() : Component("Light", nullptr) {}
 
-Light::Light(GameObject* gameObject) : Component("Light", gameObject)
-{
-}
+Light::Light(GameObject* gameObject) : Component("Light", gameObject) {}
 
 Light::~Light() {}
 
@@ -20,5 +16,19 @@ glm::mat4 Light::WorldToShadowMatrix()
 {
     glm::mat4 proj = glm::ortho(-20., 20., -20., 20., -10., 100.);
     return proj * glm::inverse(gameObject->GetTransform()->GetModelMatrix());
+}
+
+void Light::Serialize(Serializer* s)
+{
+
+    Component::Serialize(s);
+    s->Serialize(range);
+    s->Serialize(intensity);
+}
+void Light::Deserialize(Serializer* s)
+{
+    Component::Deserialize(s);
+    s->Deserialize(range);
+    s->Deserialize(intensity);
 }
 } // namespace Engine

@@ -20,25 +20,12 @@ public:
     inline RefPtr<Gfx::ShaderProgram> GetShaderProgram() { return shaderProgram; }
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig() { return shaderProgram->GetDefaultShaderConfig(); }
 
+    void Serialize(Serializer* s) override;
+    void Deserialize(Serializer* s) override;
+
 private:
     std::string shaderName;
 
     UniPtr<Gfx::ShaderProgram> shaderProgram;
-    friend class SerializableField<Shader>;
-};
-
-template <>
-struct SerializableField<Shader>
-{
-    static void Serialize(Shader* v, Serializer* s)
-    {
-        SerializableField<Resource>::Serialize(v, s);
-        s->Serialize(v->shaderName);
-    }
-    static void Deserialize(Shader* v, Serializer* s)
-    {
-        SerializableField<Resource>::Deserialize(v, s);
-        s->Deserialize(v->shaderName);
-    }
 };
 } // namespace Engine

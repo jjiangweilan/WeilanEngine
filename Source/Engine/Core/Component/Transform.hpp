@@ -32,6 +32,9 @@ public:
     glm::mat4 GetModelMatrix();
     void SetModelMatrix(const glm::mat4& model);
 
+    void Serialize(Serializer* s) override;
+    void Deserialize(Serializer* s) override;
+
 private:
     void RemoveChild(RefPtr<Transform> child);
 
@@ -42,34 +45,6 @@ private:
 
     RefPtr<Transform> parent;
     std::vector<RefPtr<Transform>> children;
-
-    friend struct SerializableField<Transform>;
-};
-
-template <>
-struct SerializableField<Transform>
-{
-    static void Serialize(Transform* v, Serializer* s)
-    {
-        SerializableField<Component>::Serialize(v, s);
-        s->Serialize(v->rotation);
-        s->Serialize(v->rotationEuler);
-        s->Serialize(v->position);
-        s->Serialize(v->scale);
-        s->Serialize(v->parent);
-        s->Serialize(v->children);
-    }
-
-    static void Deserialize(Transform* v, Serializer* s)
-    {
-        SerializableField<Component>::Deserialize(v, s);
-        s->Deserialize(v->rotation);
-        s->Deserialize(v->rotationEuler);
-        s->Deserialize(v->position);
-        s->Deserialize(v->scale);
-        s->Deserialize(v->parent);
-        s->Deserialize(v->children);
-    }
 };
 
 } // namespace Engine

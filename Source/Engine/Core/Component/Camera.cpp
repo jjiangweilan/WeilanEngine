@@ -63,4 +63,17 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
     ray.direction = clickInWS - ray.origin;
     return ray;
 }
+
+void Camera::Serialize(Serializer* s)
+{
+    Component::Serialize(s);
+    s->Serialize(projectionMatrix);
+    s->Serialize(viewMatrix);
+}
+void Camera::Deserialize(Serializer* s)
+{
+    Component::Deserialize(s);
+    s->Deserialize(projectionMatrix);
+    s->Deserialize(viewMatrix);
+}
 } // namespace Engine

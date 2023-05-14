@@ -18,4 +18,16 @@ void Shader::Reload(Resource&& other)
     shaderName = (std::move(casted->shaderName));
     shaderProgram = (std::move(casted->shaderProgram));
 }
+
+void Shader::Serialize(Serializer* s)
+{
+    Resource::Serialize(s);
+    s->Serialize(shaderName);
+}
+
+void Shader::Deserialize(Serializer* s)
+{
+    Resource::Deserialize(s);
+    s->Deserialize(shaderName);
+}
 } // namespace Engine
