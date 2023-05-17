@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Libs/Serialization/Serializer.hpp"
 #include "Libs/UUID.hpp"
 #include <string>
 #include <typeinfo>

@@ -1,4 +1,3 @@
-#pragma once
 #include "RenderGraph.hpp"
 using namespace Engine::RenderGraphImpl;
 

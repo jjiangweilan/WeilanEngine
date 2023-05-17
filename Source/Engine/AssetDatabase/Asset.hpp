@@ -1,5 +1,7 @@
 #pragma once
 #include "Core/Resource.hpp"
+#include "Libs/Serialization/BinarySerializer.hpp"
+#include "Libs/Serialization/JsonSerializer.hpp"
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -21,61 +23,47 @@ public:
 
     Asset(const std::filesystem::path& path) : path(path) {}
 
-    template<class T>
-    void Save()
+    template <class T>
+    void Save(Serializer* ser)
     {
-        Serializer ser;
-        ser.Serialize(AssetFactory<T>::assetTypeID);
-        resource->Serialize(&ser);
+        ser->Serialize("asset_assetTypeID", AssetFactory<T>::assetTypeID);
+        resource->Serialize(ser);
 
         std::ofstream out;
         out.open(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
         if (out.is_open() && out.good())
         {
-            size_t size = 0;
-            auto binary = ser.GetBinary(size);
+            auto binary = ser->GetBinary();
 
-            if (size != 0)
+            if (binary.size() != 0)
             {
-                out.write((char*)binary, size);
+                out.write((char*)binary.data(), binary.size());
             }
         }
         out.close();
     }
 
-    bool Load()
+    bool Load(Serializer* ser)
     {
-        std::ifstream in;
-        in.open(path, std::ios_base::in | std::ios_base::binary);
-        if (in.is_open() && in.good())
+        AssetTypeID assetTypeID;
+        ser->Deserialize("asset_assetTypeID", assetTypeID);
+
+        resource = AssetRegister::CreateAsset(assetTypeID);
+        if (resource == nullptr)
         {
-            size_t size = std::filesystem::file_size(path);
-            if (size != 0)
-            {
-                std::vector<unsigned char> bytes(size);
-                in.read((char*)&bytes[0], size);
-
-                Serializer ser(std::move(bytes));
-                AssetTypeID assetTypeID;
-                ser.Deserialize(assetTypeID);
-
-                resource = AssetRegister::CreateAsset(assetTypeID);
-                if (resource == nullptr)
-                {
-                    return false;
-                }
-            }
+            return false;
         }
-        in.close();
+        resource->Deserialize(ser);
 
         return true;
     }
 
     Resource* GetResource() { return resource.get(); }
+    const std::filesystem::path& GetPath() { return path; }
 
 private:
-    std::function<void(Serializer* s)> serialize;
-    std::function<void(Serializer* s)> deserialize;
+    std::function<void(BinarySerializer* s)> serialize;
+    std::function<void(BinarySerializer* s)> deserialize;
 
     std::unique_ptr<Resource> resource;
     std::filesystem::path path;

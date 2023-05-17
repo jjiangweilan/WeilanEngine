@@ -24,14 +24,14 @@ public:
 
     void Serialize(Serializer* s) override
     {
-        s->Serialize(uuid);
-        s->Serialize(name);
+        s->Serialize("uuid", uuid);
+        s->Serialize("name", name);
     }
 
     void Deserialize(Serializer* s) override
     {
-        s->Serialize(uuid);
-        s->Deserialize(name);
+        s->Serialize("uuid", uuid);
+        s->Deserialize("name", name);
     }
 
 protected:

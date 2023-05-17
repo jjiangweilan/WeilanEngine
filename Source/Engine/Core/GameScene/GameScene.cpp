@@ -82,14 +82,15 @@ std::vector<RefPtr<Light>> GameScene::GetActiveLights()
 
 void GameScene::Serialize(Serializer* s)
 {
-    s->Serialize(gameObjects);
-    s->Serialize(externalGameObjects);
+    s->Serialize("gameObjects", gameObjects);
+    s->Serialize("externalGameObjects", externalGameObjects);
 }
 
 void GameScene::Deserialize(Serializer* s)
 {
-    s->Deserialize(gameObjects);
-    s->Deserialize(externalGameObjects,
+    s->Deserialize("gameObjects", gameObjects);
+    s->Deserialize("externalGameObjects",
+                   externalGameObjects,
                    [this](void* resource)
                    {
                        if (auto go = static_cast<GameObject*>(resource))

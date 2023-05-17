@@ -30,14 +30,14 @@ void MeshRenderer::Serialize(Serializer* s)
 {
 
     Component::Serialize(s);
-    s->Serialize(mesh);
-    s->Serialize(materials);
+    s->Serialize("mesh", mesh);
+    s->Serialize("materials", materials);
 }
 void MeshRenderer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize(mesh);
-    s->Deserialize(materials);
+    s->Deserialize("mesh", mesh);
+    s->Deserialize("materials", materials);
 }
 
 } // namespace Engine

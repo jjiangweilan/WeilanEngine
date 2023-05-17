@@ -158,20 +158,21 @@ void Material::UpdateResources()
 void Material::Serialize(Serializer* s)
 {
     Resource::Serialize(s);
-    s->Serialize(shader);
-    s->Serialize(floatValues);
-    s->Serialize(vectorValues);
-    s->Serialize(matrixValues);
-    s->Serialize(textureValues);
+    s->Serialize("shader", shader);
+    s->Serialize("floatValues", floatValues);
+    s->Serialize("vectorValues", vectorValues);
+    s->Serialize("matrixValues", matrixValues);
+    s->Serialize("textureValues", textureValues);
 }
 void Material::Deserialize(Serializer* s)
 {
     Resource::Deserialize(s);
-    s->Deserialize(shader, [this](void* res) { this->SetShader(this->shader); });
-    s->Deserialize(floatValues);
-    s->Deserialize(vectorValues);
-    s->Deserialize(matrixValues);
-    s->Deserialize(textureValues,
+    s->Deserialize("shader", shader, [this](void* res) { this->SetShader(this->shader); });
+    s->Deserialize("floatValues", floatValues);
+    s->Deserialize("vectorValues", vectorValues);
+    s->Deserialize("matrixValues", matrixValues);
+    s->Deserialize("textureValues",
+                   textureValues,
                    [this](void* res)
                    {
                        if (res)

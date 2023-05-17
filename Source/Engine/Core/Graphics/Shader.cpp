@@ -22,12 +22,12 @@ void Shader::Reload(Resource&& other)
 void Shader::Serialize(Serializer* s)
 {
     Resource::Serialize(s);
-    s->Serialize(shaderName);
+    s->Serialize("shaderName", shaderName);
 }
 
 void Shader::Deserialize(Serializer* s)
 {
     Resource::Deserialize(s);
-    s->Deserialize(shaderName);
+    s->Deserialize("shaderName", shaderName);
 }
 } // namespace Engine

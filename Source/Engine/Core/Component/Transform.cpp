@@ -99,22 +99,22 @@ glm::mat4 Transform::GetModelMatrix()
 void Transform::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize(rotation);
-    s->Deserialize(rotationEuler);
-    s->Deserialize(position);
-    s->Deserialize(scale);
-    s->Deserialize(parent);
-    s->Deserialize(children);
+    s->Deserialize("rotation", rotation);
+    s->Deserialize("rotationEuler", rotationEuler);
+    s->Deserialize("position", position);
+    s->Deserialize("scale", scale);
+    s->Deserialize("parent", parent);
+    s->Deserialize("children", children);
 }
 
 void Transform::Serialize(Serializer* s)
 {
     Component::Serialize(s);
-    s->Serialize(rotation);
-    s->Serialize(rotationEuler);
-    s->Serialize(position);
-    s->Serialize(scale);
-    s->Serialize(parent);
-    s->Serialize(children);
+    s->Serialize("rotation", rotation);
+    s->Serialize("rotationEuler", rotationEuler);
+    s->Serialize("position", position);
+    s->Serialize("scale", scale);
+    s->Serialize("parent", parent);
+    s->Serialize("children", children);
 }
 } // namespace Engine

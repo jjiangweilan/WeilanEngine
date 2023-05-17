@@ -19,14 +19,14 @@ public:
 
     void Serialize(Serializer* s) override
     {
-        s->Serialize(uuid);
-        s->Serialize(gameObject);
+        s->Serialize("uuid", uuid);
+        s->Serialize("gameObject", gameObject);
     }
 
     void Deserialize(Serializer* s) override
     {
-        s->Deserialize(uuid);
-        s->Deserialize(gameObject);
+        s->Deserialize("uuid", uuid);
+        s->Deserialize("gameObject", gameObject);
     }
 
 protected:

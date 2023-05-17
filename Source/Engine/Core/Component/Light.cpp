@@ -22,13 +22,13 @@ void Light::Serialize(Serializer* s)
 {
 
     Component::Serialize(s);
-    s->Serialize(range);
-    s->Serialize(intensity);
+    s->Serialize("range", range);
+    s->Serialize("intensity", intensity);
 }
 void Light::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize(range);
-    s->Deserialize(intensity);
+    s->Deserialize("range", range);
+    s->Deserialize("intensity", intensity);
 }
 } // namespace Engine

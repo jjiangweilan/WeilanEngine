@@ -54,15 +54,15 @@ RefPtr<Component> GameObject::GetComponent(const char* name)
 void GameObject::Serialize(Serializer* s)
 {
     Resource::Serialize(s);
-    s->Serialize(components);
-    s->Serialize(transform);
-    s->Serialize(gameScene);
+    s->Serialize("components", components);
+    s->Serialize("transform", transform);
+    s->Serialize("gameScene", gameScene);
 }
 void GameObject::Deserialize(Serializer* s)
 {
     Resource::Deserialize(s);
-    s->Deserialize(components);
-    s->Deserialize(transform);
-    s->Deserialize(gameScene);
+    s->Deserialize("components", components);
+    s->Deserialize("transform", transform);
+    s->Deserialize("gameScene", gameScene);
 }
 } // namespace Engine

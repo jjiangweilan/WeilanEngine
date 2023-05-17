@@ -67,13 +67,13 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
 void Camera::Serialize(Serializer* s)
 {
     Component::Serialize(s);
-    s->Serialize(projectionMatrix);
-    s->Serialize(viewMatrix);
+    s->Serialize("projectionMatrix", projectionMatrix);
+    s->Serialize("viewMatrix", viewMatrix);
 }
 void Camera::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize(projectionMatrix);
-    s->Deserialize(viewMatrix);
+    s->Deserialize("projectionMatrix", projectionMatrix);
+    s->Deserialize("viewMatrix", viewMatrix);
 }
 } // namespace Engine
