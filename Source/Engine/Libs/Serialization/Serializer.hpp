@@ -110,6 +110,10 @@ protected:
 
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
+
+    virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
+    virtual void Serialize(std::string_view name, Serializer* s) = 0;
+    virtual void Deserialize(std::string_view name, Serializer* s) = 0;
 };
 
 template <class T>
@@ -211,7 +215,9 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
 template <IsSerializable T>
 void Serializer::Serialize(std::string_view name, T& val)
 {
-    val.Serialize(name, this);
+    Serializer* s = CreateNewSerializer();
+    val.Serialize(s);
+    Serialize(name, s)
 }
 
 template <IsSerializable T>

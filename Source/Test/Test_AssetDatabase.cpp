@@ -11,12 +11,24 @@ public:
 
     UUID uuid;
 };
-class IAmSerializable : public Resource
+
+class IAmSerializable : public Serializable
+{
+public:
+    int x;
+
+    void Serialize(Serializer* s) override { s->Serialize("x", x); }
+
+    void Deserialize(Serializer* s) override { s->Deserialize("x", x); }
+};
+
+class IAmResource : public Resource
 {
 public:
     int x;
     glm::mat4 matrix;
     IAmReferencable* referencable;
+    std::vector<IAmSerializable> serializableArray;
 
     UUID callbackTest;
 
@@ -25,6 +37,7 @@ public:
         s->Serialize("x", x);
         s->Serialize("matrix", matrix);
         s->Serialize("referencable", referencable);
+        s->Serialize("serializableArray", serializableArray);
     }
 
     void Deserialize(Serializer* s) override
@@ -34,15 +47,15 @@ public:
         s->Deserialize("referencable",
                        referencable,
                        [this](void* res) { callbackTest = ((IAmReferencable*)res)->GetUUID(); });
+        s->Deserialize("serializableArray", serializableArray);
     }
 };
 
 template <>
-struct AssetFactory<IAmSerializable> : public AssetRegister
+struct AssetFactory<IAmResource> : public AssetRegister
 {
     inline static AssetTypeID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("IAmSerializable");
-    inline static char reg =
-        RegisterAsset(assetTypeID, []() { return std::unique_ptr<Resource>(new IAmSerializable()); });
+    inline static char reg = RegisterAsset(assetTypeID, []() { return std::unique_ptr<Resource>(new IAmResource()); });
 };
 
 } // namespace Engine
@@ -50,15 +63,20 @@ struct AssetFactory<IAmSerializable> : public AssetRegister
 TEST(AssetDatabase, SaveLoadFile)
 {
     Engine::IAmReferencable referencable;
-    auto v = std::make_unique<Engine::IAmSerializable>();
+    auto v = std::make_unique<Engine::IAmResource>();
     v->x = 10;
     v->referencable = &referencable;
     v->matrix = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
+    v->serializableArray.emplace_back();
+    v->serializableArray.emplace_back();
+    v->serializableArray[0].x = 10;
+    v->serializableArray[1].x = 100;
+
     Engine::Asset newAsset(std::move(v), std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
     Engine::JsonSerializer ser;
-    newAsset.Save<Engine::IAmSerializable>(&ser);
+    newAsset.Save<Engine::IAmResource>(&ser);
 
-    auto vv = (Engine::IAmSerializable*)newAsset.GetResource();
+    auto vv = (Engine::IAmResource*)newAsset.GetResource();
     Engine::Asset readAsset(std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
 
     std::ifstream in;
@@ -92,11 +110,12 @@ TEST(AssetDatabase, SaveLoadFile)
         }
     }
 
-    Engine::IAmSerializable* r = (Engine::IAmSerializable*)readAsset.GetResource();
+    Engine::IAmResource* r = (Engine::IAmResource*)readAsset.GetResource();
     EXPECT_EQ(r->x, vv->x);
     EXPECT_EQ(r->matrix, vv->matrix);
     EXPECT_EQ(r->referencable->GetUUID(), vv->referencable->GetUUID());
     EXPECT_EQ(r->callbackTest, vv->referencable->GetUUID());
+    EXPECT_EQ(r->serializableArray, vv->serializableArray);
 }
 
 TEST(AssetDatabse, LoadFile) {}
