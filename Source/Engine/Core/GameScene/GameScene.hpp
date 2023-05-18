@@ -23,7 +23,7 @@ public:
 
     std::vector<RefPtr<Light>> GetActiveLights();
 
-    void Serialize(Serializer* s) override;
+    void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
 protected:

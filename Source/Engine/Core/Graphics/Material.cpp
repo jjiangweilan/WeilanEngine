@@ -155,7 +155,7 @@ void Material::UpdateResources()
     }
 }
 
-void Material::Serialize(Serializer* s)
+void Material::Serialize(Serializer* s) const
 {
     Resource::Serialize(s);
     s->Serialize("shader", shader);

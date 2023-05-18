@@ -26,7 +26,7 @@ Mesh2* MeshRenderer::GetMesh() { return mesh; }
 
 const std::vector<Material*>& MeshRenderer::GetMaterials() { return materials; }
 
-void MeshRenderer::Serialize(Serializer* s)
+void MeshRenderer::Serialize(Serializer* s) const
 {
 
     Component::Serialize(s);

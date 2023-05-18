@@ -81,7 +81,7 @@ public:
     void Deserialize(std::string_view name, std::unique_ptr<T>& val);
 
     template <IsSerializable T>
-    void Serialize(std::string_view name, T& val);
+    void Serialize(std::string_view name, const T& val);
     template <IsSerializable T>
     void Deserialize(std::string_view name, T& val);
 
@@ -112,8 +112,8 @@ protected:
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
 
     virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
-    virtual void Serialize(std::string_view name, Serializer* s) = 0;
-    virtual void Deserialize(std::string_view name, Serializer* s) = 0;
+    virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
+    virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
 };
 
 template <class T>
@@ -124,19 +124,16 @@ template <class T, class U>
 void Serializer::Serialize(std::string_view name, const std::unordered_map<T, U>& val)
 {
     uint32_t size = val.size();
-    auto path = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(path), "{}/size", name);
+    std::string path = fmt::format("{}/size", name);
     Serialize(path.data(), size);
     int i = 0;
     for (auto& iter : val)
     {
-        auto keypath = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(keypath), "{}/{}_key", name, i);
-        Serialize(keypath.data(), iter.first);
+        std::string keypath = fmt::format("{}/{}_key", name, i);
+        Serialize(keypath, iter.first);
 
-        auto valuepath = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(valuepath), "{}/{}_value", name, i);
-        Serialize(valuepath.data(), iter.second);
+        std::string valuepath = fmt::format("{}/{}_value", name, i);
+        Serialize(valuepath, iter.second);
         i += 1;
     }
 }
@@ -147,37 +144,33 @@ void Serializer::Deserialize(std::string_view name,
                              const ReferenceResolveCallback& callback)
 {
     uint32_t size;
-    auto sizepath = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(sizepath), "{}/size", name);
-    Deserialize(name, size);
+    auto sizepath = fmt::format("{}/size", name);
+    Deserialize(sizepath.data(), size);
     for (int i = 0; i < size; ++i)
     {
         T key;
         U value;
-        auto keypath = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(keypath), "{}/{}_key", name, i);
-        Deserialize(keypath.data(), key);
+        std::string keypath = fmt::format("{}/{}_key", name, i);
+        Deserialize(keypath, key);
 
-        auto valuepath = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(valuepath), "{}/{}_value", name, i);
+        std::string valuepath = fmt::format("{}/{}_value", name, i);
         if constexpr (HasReferenceResolveParamter<U>)
-            Deserialize(val[key], callback);
+            Deserialize(valuepath, val[key], callback);
         else
-            Deserialize(valuepath.data(), val[key]);
+            Deserialize(valuepath, val[key]);
     }
 }
 
 template <class T>
 void Serializer::Serialize(std::string_view name, const std::vector<T>& val)
 {
-    uint32_t size;
-    auto path = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(path), "{}/size", name);
+    uint32_t size = val.size();
+    std::string sizepath = fmt::format("{}/size", name);
+    Serialize(sizepath, size);
     for (int i = 0; i < val.size(); ++i)
     {
-        auto path = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(path), "{}/{}", name, i);
-        Serialize(path.data(), val[i]);
+        std::string s = fmt::format("{}/data/{}", name, i);
+        Serialize(s, val[i]);
     }
 }
 
@@ -185,18 +178,16 @@ template <class T>
 void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback)
 {
     uint32_t size;
-    auto path = fmt::memory_buffer();
-    fmt::format_to(std::back_inserter(path), "{}/size", name);
-    Deserialize(path.data(), size);
+    std::string sizepath = fmt::format("{}/size", name);
+    Deserialize(sizepath, size);
     val.resize(size);
     for (int i = 0; i < size; ++i)
     {
-        auto path = fmt::memory_buffer();
-        fmt::format_to(std::back_inserter(path), "{}/{}", name, i);
+        std::string path = fmt::format("{}/data/{}", name, i);
         if constexpr (HasReferenceResolveParamter<T>)
-            Deserialize(path.data(), val[i], callback);
+            Deserialize(path, val[i], callback);
         else
-            Deserialize(path.data(), val[i]);
+            Deserialize(path, val[i]);
     }
 }
 
@@ -213,17 +204,18 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
 }
 
 template <IsSerializable T>
-void Serializer::Serialize(std::string_view name, T& val)
+void Serializer::Serialize(std::string_view name, const T& val)
 {
-    Serializer* s = CreateNewSerializer();
-    val.Serialize(s);
-    Serialize(name, s)
+    auto s = CreateSubserializer();
+    val.Serialize(s.get());
+    AppendSubserializer(name, s.get());
 }
 
 template <IsSerializable T>
 void Serializer::Deserialize(std::string_view name, T& val)
 {
-    val.Deserialize(name, this);
+    auto s = CreateSubdeserializer(name);
+    val.Deserialize(s.get());
 }
 
 template <HasUUID T>
@@ -250,7 +242,8 @@ void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceReso
 template <HasUUID T>
 void Serializer::Serialize(std::string_view name, RefPtr<T>& val)
 {
-    Serialize(name, val.Get());
+    const T* tval = val.Get();
+    Serialize(name, tval);
 }
 
 template <HasUUID T>

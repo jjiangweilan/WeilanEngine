@@ -21,7 +21,7 @@ public:
     Mesh2* GetMesh();
     const std::vector<Material*>& GetMaterials();
 
-    void Serialize(Serializer* s) override;
+    void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
 private:

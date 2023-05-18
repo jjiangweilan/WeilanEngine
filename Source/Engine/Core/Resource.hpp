@@ -22,7 +22,7 @@ public:
         name = std::move(resource.name);
     }
 
-    void Serialize(Serializer* s) override
+    void Serialize(Serializer* s) const override
     {
         s->Serialize("uuid", uuid);
         s->Serialize("name", name);

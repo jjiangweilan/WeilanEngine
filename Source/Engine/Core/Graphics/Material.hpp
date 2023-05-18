@@ -45,7 +45,7 @@ public:
 
     Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
 
-    void Serialize(Serializer* s) override;
+    void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
 private:

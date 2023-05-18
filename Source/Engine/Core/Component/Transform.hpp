@@ -32,7 +32,7 @@ public:
     glm::mat4 GetModelMatrix();
     void SetModelMatrix(const glm::mat4& model);
 
-    void Serialize(Serializer* s) override;
+    void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
 private:

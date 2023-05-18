@@ -80,7 +80,7 @@ std::vector<RefPtr<Light>> GameScene::GetActiveLights()
     return lights;
 }
 
-void GameScene::Serialize(Serializer* s)
+void GameScene::Serialize(Serializer* s) const
 {
     s->Serialize("gameObjects", gameObjects);
     s->Serialize("externalGameObjects", externalGameObjects);

@@ -64,7 +64,7 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
     return ray;
 }
 
-void Camera::Serialize(Serializer* s)
+void Camera::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     s->Serialize("projectionMatrix", projectionMatrix);

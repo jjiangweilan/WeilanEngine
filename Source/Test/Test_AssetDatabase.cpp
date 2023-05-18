@@ -17,7 +17,7 @@ class IAmSerializable : public Serializable
 public:
     int x;
 
-    void Serialize(Serializer* s) override { s->Serialize("x", x); }
+    void Serialize(Serializer* s) const override { s->Serialize("x", x); }
 
     void Deserialize(Serializer* s) override { s->Deserialize("x", x); }
 };
@@ -32,7 +32,7 @@ public:
 
     UUID callbackTest;
 
-    void Serialize(Serializer* s) override
+    void Serialize(Serializer* s) const override
     {
         s->Serialize("x", x);
         s->Serialize("matrix", matrix);
@@ -115,7 +115,8 @@ TEST(AssetDatabase, SaveLoadFile)
     EXPECT_EQ(r->matrix, vv->matrix);
     EXPECT_EQ(r->referencable->GetUUID(), vv->referencable->GetUUID());
     EXPECT_EQ(r->callbackTest, vv->referencable->GetUUID());
-    EXPECT_EQ(r->serializableArray, vv->serializableArray);
+    EXPECT_EQ(r->serializableArray[0].x, vv->serializableArray[0].x);
+    EXPECT_EQ(r->serializableArray[1].x, vv->serializableArray[1].x);
 }
 
 TEST(AssetDatabse, LoadFile) {}

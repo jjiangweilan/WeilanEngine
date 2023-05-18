@@ -17,7 +17,7 @@ public:
     GameObject* GetGameObject();
     const std::string& GetName() { return name; }
 
-    void Serialize(Serializer* s) override
+    void Serialize(Serializer* s) const override
     {
         s->Serialize("uuid", uuid);
         s->Serialize("gameObject", gameObject);

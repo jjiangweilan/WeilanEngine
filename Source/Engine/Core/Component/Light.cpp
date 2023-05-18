@@ -18,7 +18,7 @@ glm::mat4 Light::WorldToShadowMatrix()
     return proj * glm::inverse(gameObject->GetTransform()->GetModelMatrix());
 }
 
-void Light::Serialize(Serializer* s)
+void Light::Serialize(Serializer* s) const
 {
 
     Component::Serialize(s);

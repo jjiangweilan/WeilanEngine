@@ -19,7 +19,7 @@ void Shader::Reload(Resource&& other)
     shaderProgram = (std::move(casted->shaderProgram));
 }
 
-void Shader::Serialize(Serializer* s)
+void Shader::Serialize(Serializer* s) const
 {
     Resource::Serialize(s);
     s->Serialize("shaderName", shaderName);

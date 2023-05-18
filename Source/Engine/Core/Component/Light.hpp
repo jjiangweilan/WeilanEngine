@@ -31,7 +31,7 @@ private:
     float range; // valid when it's a point light
     float intensity;
 
-    void Serialize(Serializer* s) override;
+    void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 };
 } // namespace Engine

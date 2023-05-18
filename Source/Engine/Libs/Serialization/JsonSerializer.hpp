@@ -15,7 +15,7 @@ public:
         : Serializer(referenceResolveMap), j(j)
     {}
 
-    JsonSerializer() : Serializer(nullptr) {}
+    JsonSerializer() : j(nlohmann::json::object()), Serializer(nullptr) {}
 
     JsonSerializer(SerializeReferenceResolveMap* referenceResolveMap) : Serializer(referenceResolveMap) {}
 
@@ -36,7 +36,11 @@ protected:
     void Serialize(std::string_view name, unsigned char* p, size_t size) override;
     void Deserialize(std::string_view name, unsigned char* p, size_t size) override;
 
+    std::unique_ptr<Serializer> CreateSubserializer() override;
+    void AppendSubserializer(std::string_view name, Serializer* s) override;
+    std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) override;
 private:
     nlohmann::json j;
+
 };
 } // namespace Engine

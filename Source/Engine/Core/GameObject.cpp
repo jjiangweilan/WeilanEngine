@@ -51,7 +51,7 @@ RefPtr<Component> GameObject::GetComponent(const char* name)
     return nullptr;
 }
 
-void GameObject::Serialize(Serializer* s)
+void GameObject::Serialize(Serializer* s) const
 {
     Resource::Serialize(s);
     s->Serialize("components", components);

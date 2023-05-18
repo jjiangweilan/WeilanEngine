@@ -107,7 +107,7 @@ void Transform::Deserialize(Serializer* s)
     s->Deserialize("children", children);
 }
 
-void Transform::Serialize(Serializer* s)
+void Transform::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     s->Serialize("rotation", rotation);
