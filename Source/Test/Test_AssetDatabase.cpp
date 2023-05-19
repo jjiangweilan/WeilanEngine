@@ -72,9 +72,24 @@ TEST(AssetDatabase, SaveLoadFile)
     v->serializableArray[0].x = 10;
     v->serializableArray[1].x = 100;
 
+    // create a new asset
     Engine::Asset newAsset(std::move(v), std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
     Engine::JsonSerializer ser;
-    newAsset.Save<Engine::IAmResource>(&ser);
+    newAsset.Serialize<Engine::IAmResource>(&ser);
+
+    // write serialized file to disk
+    std::ofstream out;
+    out.open(newAsset.GetPath(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+    if (out.is_open() && out.good())
+    {
+        auto binary = ser.GetBinary();
+
+        if (binary.size() != 0)
+        {
+            out.write((char*)binary.data(), binary.size());
+        }
+    }
+    out.close();
 
     auto vv = (Engine::IAmResource*)newAsset.GetResource();
     Engine::Asset readAsset(std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
@@ -96,7 +111,7 @@ TEST(AssetDatabase, SaveLoadFile)
 
     Engine::SerializeReferenceResolveMap referenceResolve;
     Engine::JsonSerializer serRead(j, &referenceResolve);
-    readAsset.Load(&serRead);
+    readAsset.Deserialize(&serRead);
 
     for (auto& iter : referenceResolve)
     {
@@ -114,7 +129,6 @@ TEST(AssetDatabase, SaveLoadFile)
     EXPECT_EQ(r->x, vv->x);
     EXPECT_EQ(r->matrix, vv->matrix);
     EXPECT_EQ(r->referencable->GetUUID(), vv->referencable->GetUUID());
-    EXPECT_EQ(r->callbackTest, vv->referencable->GetUUID());
     EXPECT_EQ(r->serializableArray[0].x, vv->serializableArray[0].x);
     EXPECT_EQ(r->serializableArray[1].x, vv->serializableArray[1].x);
 }

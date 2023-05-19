@@ -27,7 +27,21 @@ Asset* AssetDatabase::CreateAsset(std::unique_ptr<T>&& resource, const std::file
 {
     std::shared_ptr<Asset> newAsset = std::make_unique<Asset>(std::move(resource), assetRootPath / path);
 
-    newAsset->Save<T>();
+    JsonSerializer ser;
+    newAsset->Serialize<T>(&ser);
+
+    std::ofstream out;
+    out.open(newAsset->GetPath(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+    if (out.is_open() && out.good())
+    {
+        auto binary = ser.GetBinary();
+
+        if (binary.size() != 0)
+        {
+            out.write((char*)binary.data(), binary.size());
+        }
+    }
+    out.close();
 
     Asset* temp = newAsset.get();
     assets[path.string()] = std::move(newAsset);

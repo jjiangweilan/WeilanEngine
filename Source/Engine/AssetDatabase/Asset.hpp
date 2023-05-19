@@ -24,26 +24,13 @@ public:
     Asset(const std::filesystem::path& path) : path(path) {}
 
     template <class T>
-    void Save(Serializer* ser)
+    void Serialize(Serializer* ser)
     {
         ser->Serialize("asset_assetTypeID", AssetFactory<T>::assetTypeID);
         resource->Serialize(ser);
-
-        std::ofstream out;
-        out.open(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-        if (out.is_open() && out.good())
-        {
-            auto binary = ser->GetBinary();
-
-            if (binary.size() != 0)
-            {
-                out.write((char*)binary.data(), binary.size());
-            }
-        }
-        out.close();
     }
 
-    bool Load(Serializer* ser)
+    bool Deserialize(Serializer* ser)
     {
         AssetTypeID assetTypeID;
         ser->Deserialize("asset_assetTypeID", assetTypeID);

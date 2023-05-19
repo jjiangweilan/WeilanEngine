@@ -57,6 +57,7 @@ public:
     {
         Serialize(name, (unsigned char*)&val, sizeof(T));
     }
+
     template <class T>
     void Deserialize(std::string_view name, T& val)
     {
