@@ -9,7 +9,7 @@ public:
     GameSceneManager(){};
     RefPtr<GameScene> GetActiveGameScene();
     void SetActiveGameScene(RefPtr<GameScene> scene) { activeGameScene = scene; }
-
+    void Tick();
 private:
     RefPtr<GameScene> activeGameScene = nullptr;
 };

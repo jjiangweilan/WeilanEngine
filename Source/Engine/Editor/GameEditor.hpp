@@ -9,5 +9,7 @@ class GameEditor
 {
 public:
     GameEditor(RefPtr<AssetDatabase> assetDatabase, RefPtr<GameSceneManager> gameSceneManager);
+
+    void Tick();
 };
 } // namespace Engine::Editor

@@ -2,7 +2,7 @@
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Editor/GameEditor.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/RenderGraph/RenderGraph.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
@@ -26,7 +26,7 @@ public:
         gfxDriver = GetGfxDriver().Get();
 
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
-        renderGraph = std::make_unique<RenderGraph>(assetDatabase);
+        //renderGraph = std::make_unique<RenderGraph>(assetDatabase);
         gameSceneManager = std::make_unique<GameSceneManager>();
         gameEditor = std::make_unique<Editor::GameEditor>(assetDatabase, gameSceneManager);
     }
@@ -34,13 +34,17 @@ public:
     void Loop()
     {
         while (true)
-        {}
+        {
+            gameSceneManager->Tick();
+            gameEditor->Tick();
+            //renderGraph->Render();
+        }
     }
 
 private:
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<Editor::GameEditor> gameEditor;
-    std::unique_ptr<RenderGraph> renderGraph;
+    //std::unique_ptr<RenderGraph> renderGraph;
     std::unique_ptr<GameSceneManager> gameSceneManager;
     Gfx::GfxDriver* gfxDriver;
 

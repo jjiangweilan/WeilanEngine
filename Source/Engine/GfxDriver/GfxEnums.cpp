@@ -57,4 +57,45 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
     return 64;
 };
 
+ImageFormat MapStringToImageFormat(std::string_view name)
+{
+    if (name == "R16G16B16A16_SFloat")
+        return ImageFormat::R16G16B16A16_SFloat;
+    else if (name == "R32G32B32A32_SFloat")
+        return ImageFormat::R32G32B32A32_SFloat;
+    else if (name == "R16G16B16A16_UNorm")
+        return ImageFormat::R16G16B16A16_UNorm;
+    else if (name == "R8G8B8A8_UNorm")
+        return ImageFormat::R8G8B8A8_UNorm;
+    else if (name == "B8G8R8A8_UNorm")
+        return ImageFormat::B8G8R8A8_UNorm;
+    else if (name == "B8G8R8A8_SRGB")
+        return ImageFormat::B8G8R8A8_SRGB;
+    else if (name == "R8G8B8A8_SRGB")
+        return ImageFormat::R8G8B8A8_SRGB;
+    else if (name == "R8G8B8_SRGB")
+        return ImageFormat::R8G8B8_SRGB;
+    else if (name == "R8G8_SRGB")
+        return ImageFormat::R8G8_SRGB;
+    else if (name == "R8_SRGB")
+        return ImageFormat::R8_SRGB;
+    else if (name == "D16_UNorm")
+        return ImageFormat::D16_UNorm;
+    else if (name == "D16_UNorm_S8_UInt")
+        return ImageFormat::D16_UNorm_S8_UInt;
+    else if (name == "D32_SFLOAT_S8_UInt")
+        return ImageFormat::D32_SFLOAT_S8_UInt;
+    else if (name == "D24_UNorm_S8_UInt")
+        return ImageFormat::D24_UNorm_S8_UInt;
+    else if (name == "BC7_UNorm_Block")
+        return ImageFormat::BC7_UNorm_Block;
+    else if (name == "BC7_SRGB_UNorm_Block")
+        return ImageFormat::BC7_SRGB_UNorm_Block;
+    else if (name == "BC3_Unorm_Block")
+        return ImageFormat::BC3_Unorm_Block;
+    else if (name == "BC3_SRGB_Block")
+        return ImageFormat::BC3_SRGB_Block;
+
+    return ImageFormat::Invalid;
+}
 } // namespace Engine::Gfx::Utils

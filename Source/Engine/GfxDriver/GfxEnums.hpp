@@ -3,6 +3,7 @@
 #include "Libs/EnumFlags.hpp"
 #include <cassert>
 #include <cinttypes>
+#include <string_view>
 namespace Engine::Gfx
 {
 ENUM_FLAGS(BufferUsage, uint64_t){
@@ -82,6 +83,7 @@ enum class ImageFormat
     BC3_SRGB_Block,
     Invalid
 };
+ImageFormat MapStringToImageFormat(std::string_view name);
 
 enum class MultiSampling
 {
