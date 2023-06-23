@@ -138,7 +138,7 @@ void GfxResourceTransfer::Transfer(RefPtr<Gfx::Image> image, const ImageTransfer
     }
     memcpy((char*)stagingBuffer->GetCPUVisibleAddress() + stagingBufferOffset, request.data, request.size);
     if (!request.keepData)
-        delete request.data;
+        delete (unsigned char*)request.data;
     pendingImages[image.Get()].push_back({image, stagingBufferOffset, request});
     stagingBufferOffset += request.size;
 }

@@ -22,14 +22,26 @@ public:
     VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* requests, int requestsCount);
     ~VKDevice();
 
-    VKPhysicalDevice& GetGPU() { return gpu; }
+    VKPhysicalDevice& GetGPU()
+    {
+        return gpu;
+    }
 
     void WaitForDeviceIdle();
 
-    VkDevice GetHandle() const { return deviceHandle; }
-    VKCommandQueue& GetQueue(int i) { return queues[i]; }
+    VkDevice GetHandle() const
+    {
+        return deviceHandle;
+    }
+    VKCommandQueue& GetQueue(int i)
+    {
+        return queues[i];
+    }
 
-    uint32_t GetBufferingCount() const { return BUFFERING_COUNT; }
+    uint32_t GetBufferingCount() const
+    {
+        return BUFFERING_COUNT;
+    }
 
     void ResetTransferBuffer();
     void TransferBuffer();
@@ -40,7 +52,9 @@ private:
     VKPhysicalDevice gpu;
 
     VkPhysicalDeviceFeatures requiredDeviceFeatures{}; // no feature required yet
-    std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
 
     std::vector<VKCommandQueue> queues;
 

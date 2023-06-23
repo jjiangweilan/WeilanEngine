@@ -5,11 +5,11 @@ namespace Engine::Gfx
 {
 struct ImageDescription
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
-    Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
-    Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
-    uint32_t mipLevels = 1;
-    bool isCubemap = false;
+    uint32_t width;
+    uint32_t height;
+    Gfx::ImageFormat format;
+    Gfx::MultiSampling multiSampling;
+    uint32_t mipLevels;
+    bool isCubemap;
 };
 } // namespace Engine::Gfx

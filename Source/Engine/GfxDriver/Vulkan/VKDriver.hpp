@@ -40,12 +40,14 @@ public:
 
     void ForceSyncResources() override;
     void WaitForIdle() override;
-    void QueueSubmit(RefPtr<CommandQueue> queue,
-                     std::span<RefPtr<CommandBuffer>> cmdBufs,
-                     std::span<RefPtr<Semaphore>> waitSemaphores,
-                     std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
-                     std::span<RefPtr<Semaphore>> signalSemaphroes,
-                     RefPtr<Fence> signalFence) override;
+    void QueueSubmit(
+        RefPtr<CommandQueue> queue,
+        std::span<RefPtr<CommandBuffer>> cmdBufs,
+        std::span<RefPtr<Semaphore>> waitSemaphores,
+        std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
+        std::span<RefPtr<Semaphore>> signalSemaphroes,
+        RefPtr<Fence> signalFence
+    ) override;
     RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
     bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
@@ -69,17 +71,26 @@ public:
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
     UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
-    UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader,
-                                                ShaderResourceFrequency frequency) override;
+    UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
+        override;
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
-    UniPtr<ShaderProgram> CreateShaderProgram(const std::string& name,
-                                              const ShaderConfig* config,
-                                              const unsigned char* vert,
-                                              uint32_t vertSize,
-                                              const unsigned char* frag,
-                                              uint32_t fragSize) override;
+    UniPtr<ShaderProgram> CreateShaderProgram(
+        const std::string& name,
+        const ShaderConfig* config,
+        const unsigned char* vert,
+        uint32_t vertSize,
+        const unsigned char* frag,
+        uint32_t fragSize
+    ) override;
+
+    std::unique_ptr<ShaderProgram> CreateShaderProgram(
+        const std::string& name,
+        const ShaderConfig* config,
+        const std::vector<uint32_t>& vert,
+        const std::vector<uint32_t>& frag
+    ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
 
 private:

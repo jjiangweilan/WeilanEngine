@@ -16,8 +16,8 @@ public:
     {
         BufferUsageFlags usages;
         size_t size;
-        bool visibleInCPU = false;
-        const char* debugName = nullptr;
+        bool visibleInCPU;
+        const char* debugName;
     };
 
 public:

@@ -82,6 +82,7 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
 
     VkDeviceCreateInfo deviceCreateInfo = {};
 
+#if __APPLE__
     for (auto extension : gpu.GetAvailableExtensions())
     {
         if (std::strcmp(extension.extensionName, "VK_KHR_portability_subset") == 0)
@@ -89,6 +90,7 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
             deviceExtensions.push_back("VK_KHR_portability_subset");
         }
     }
+#endif
 
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pNext = VK_NULL_HANDLE;

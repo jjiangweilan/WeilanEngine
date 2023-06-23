@@ -159,6 +159,16 @@ void VKDriver::ForceSyncResources()
     return; // TODO: reimplementation needed
 }
 
+std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
+    const std::string& name,
+    const ShaderConfig* config,
+    const std::vector<uint32_t>& vert,
+    const std::vector<uint32_t>& frag
+)
+{
+    return std::make_unique<VKShaderProgram>(config, context, name, vert, frag);
+}
+
 RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
 {
     std::vector<VkSemaphore> vkSemaphores(semaphores.size());
@@ -169,14 +179,15 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
 
     uint32_t activeIndex = swapChainImageProxy->GetActiveIndex();
     VkSwapchainKHR swapChainHandle = swapchain->GetHandle();
-    VkPresentInfoKHR presentInfo = {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                    nullptr,
-                                    (uint32_t)vkSemaphores.size(),
-                                    vkSemaphores.data(),
-                                    1,
-                                    &swapChainHandle,
-                                    &activeIndex,
-                                    nullptr};
+    VkPresentInfoKHR presentInfo = {
+        VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        nullptr,
+        (uint32_t)vkSemaphores.size(),
+        vkSemaphores.data(),
+        1,
+        &swapChainHandle,
+        &activeIndex,
+        nullptr};
     vkQueuePresentKHR(mainQueue->queue, &presentInfo);
 
     return inFlightFrame.imageAcquireSemaphore.Get();
@@ -223,12 +234,14 @@ UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUs
 {
     return MakeUnique1<VKImage>(description, usages);
 }
-UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(const std::string& name,
-                                                    const ShaderConfig* config,
-                                                    const unsigned char* vert,
-                                                    uint32_t vertSize,
-                                                    const unsigned char* frag,
-                                                    uint32_t fragSize)
+UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
+    const std::string& name,
+    const ShaderConfig* config,
+    const unsigned char* vert,
+    uint32_t vertSize,
+    const unsigned char* frag,
+    uint32_t fragSize
+)
 {
     return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
 }
@@ -241,12 +254,14 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
     }
 }
 
-void VKDriver::QueueSubmit(RefPtr<CommandQueue> queue,
-                           std::span<RefPtr<CommandBuffer>> cmdBufs,
-                           std::span<RefPtr<Semaphore>> waitSemaphores,
-                           std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
-                           std::span<RefPtr<Semaphore>> signalSemaphroes,
-                           RefPtr<Fence> signalFence)
+void VKDriver::QueueSubmit(
+    RefPtr<CommandQueue> queue,
+    std::span<RefPtr<CommandBuffer>> cmdBufs,
+    std::span<RefPtr<Semaphore>> waitSemaphores,
+    std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
+    std::span<RefPtr<Semaphore>> signalSemaphroes,
+    RefPtr<Fence> signalFence
+)
 {
     std::vector<VkSemaphore> vkWaitSemaphores;
     std::vector<VkSemaphore> vkSignalSemaphores;
@@ -312,13 +327,15 @@ void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, u
 bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
 {
     VkImageFormatProperties props;
-    if (vkGetPhysicalDeviceImageFormatProperties(device->GetGPU().GetHandle(),
-                                                 MapFormat(format),
-                                                 VK_IMAGE_TYPE_2D,
-                                                 VK_IMAGE_TILING_OPTIMAL,
-                                                 MapImageUsage(usages),
-                                                 0,
-                                                 &props) == VK_SUCCESS)
+    if (vkGetPhysicalDeviceImageFormatProperties(
+            device->GetGPU().GetHandle(),
+            MapFormat(format),
+            VK_IMAGE_TYPE_2D,
+            VK_IMAGE_TILING_OPTIMAL,
+            MapImageUsage(usages),
+            0,
+            &props
+        ) == VK_SUCCESS)
         return true;
     return false;
 }

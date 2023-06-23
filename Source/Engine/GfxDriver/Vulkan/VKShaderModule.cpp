@@ -62,7 +62,11 @@ uint32_t MapTypeToSize(const std::string& str)
 
 std::string str_tolower(std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); } // correct
+    std::transform(
+        s.begin(),
+        s.end(),
+        s.begin(),
+        [](unsigned char c) { return std::tolower(c); } // correct
     );
     return s;
 }
@@ -115,10 +119,13 @@ VkFormat MapFormat(const std::string& str, const std::string& name)
     return (VkFormat)0;
 }
 
-VKShaderModule::VKShaderModule(const std::string& name,
-                               const unsigned char* code,
-                               uint32_t codeByteSize,
-                               bool vertInterleaved)
+VKShaderModule::VKShaderModule(const std::string& name, const std::vector<uint32_t>& spv, bool vertInterleaved)
+    : VKShaderModule(name, (const unsigned char*)&spv[0], spv.size() * sizeof(uint32_t), vertInterleaved)
+{}
+
+VKShaderModule::VKShaderModule(
+    const std::string& name, const unsigned char* code, uint32_t codeByteSize, bool vertInterleaved
+)
     : vertInterleaved(vertInterleaved),
       gpuProperties(VKContext::Instance()->device->GetGPU().GetPhysicalDeviceProperties())
 {
@@ -146,7 +153,10 @@ VKShaderModule::VKShaderModule(const std::string& name,
     gpCreateInfos = GenerateShaderModuleGraphicsPipelineCreateInfos();
 }
 
-VKShaderModule::~VKShaderModule() { VKContext::Instance()->objManager->DestroyShaderModule(shaderModule); }
+VKShaderModule::~VKShaderModule()
+{
+    VKContext::Instance()->objManager->DestroyShaderModule(shaderModule);
+}
 
 const ShaderModuleGraphicsPipelineCreateInfos& VKShaderModule::GetShaderModuleGraphicsPipelineCreateInfos()
 {
@@ -167,8 +177,10 @@ ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModuleGrap
 
     if (stage == VK_SHADER_STAGE_VERTEX_BIT)
     {
-        assert(shaderInfo.inputs.size() < gpuProperties.limits.maxVertexInputBindings &&
-               "input attributes exceed binding limits");
+        assert(
+            shaderInfo.inputs.size() < gpuProperties.limits.maxVertexInputBindings &&
+            "input attributes exceed binding limits"
+        );
 
         if (vertInterleaved)
         {

@@ -15,43 +15,28 @@ class RenderPass
 public:
     using ResourceHandle = int;
 
+    // if this is a creational description, imageCreateInfo or bufferCreationInfo should be filled respectively
     struct ResourceDescription
     {
         std::string name;
         ResourceHandle handle;
         ResourceType type;
 
+        Gfx::AccessMaskFlags accessFlags;
+        Gfx::PipelineStageFlags stageFlags;
         union
         {
             Gfx::BufferUsageFlags bufferUsageFlags;
             Gfx::ImageUsageFlags imageUsagesFlags;
         };
-
-        Gfx::AccessMaskFlags accessFlags;
-        Gfx::PipelineStageFlags stageFlags;
         Gfx::ImageLayout imageLayout;
-    };
 
-    struct ResourceCreationRequest
-    {
-        std::string name;
-        ResourceHandle handle;
-        ResourceType type;
+        // creational info
         union
         {
-            Gfx::ImageUsageFlags imageUsagesFlags;
-            Gfx::BufferUsageFlags bufferUsageFlags;
+            Gfx::ImageDescription imageCreateInfo;
+            Gfx::Buffer::CreateInfo bufferCreateInfo;
         };
-
-        union
-        {
-            Gfx::ImageDescription image;
-            Gfx::Buffer::CreateInfo buffer;
-        };
-
-        Gfx::AccessMaskFlags accessFlags;
-        Gfx::PipelineStageFlags stageFlags;
-        Gfx::ImageLayout imageLayout;
     };
 
     struct Attachment
@@ -75,37 +60,58 @@ public:
     using Buffers = std::unordered_map<ResourceHandle, ResourceRef>;
     using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass& renderPass, const Buffers& buffers)>;
 
-    RenderPass(const ExecutionFunc& execute,
-               const std::vector<ResourceDescription>& resourceDescs,
-               const std::vector<ResourceCreationRequest>& creationRequests,
-               const std::vector<ResourceHandle>& inputs,
-               const std::vector<ResourceHandle>& outputs,
-               const std::vector<Subpass>& subpasses)
-        : resourceDescriptions(resourceDescs), creationRequests(creationRequests), inputs(inputs), outputs(outputs),
-          subpasses(subpasses), execute(execute)
+    RenderPass(
+        const ExecutionFunc& execute,
+        const std::vector<ResourceDescription>& resourceDescs,
+        const std::vector<ResourceHandle>& creationRequests,
+        const std::vector<ResourceHandle>& inputs,
+        const std::vector<ResourceHandle>& outputs,
+        const std::vector<Subpass>& subpasses
+    )
+        : creationRequests(creationRequests), inputs(inputs), outputs(outputs), subpasses(subpasses), execute(execute)
     {
+        for (const ResourceDescription& res : resourceDescs)
+        {
+            resourceDescriptions[res.handle] = res;
+        }
+
         resourceRefs.reserve(resourceDescs.size());
     }
     ~RenderPass() {}
     // Set resource that is needed by this node.framgraph
-    void SetResourceRef(ResourceHandle handle, ResourceRef resource) { resourceRefs[handle] = resource; }
+    void SetResourceRef(ResourceHandle handle, ResourceRef resource)
+    {
+        resourceRefs[handle] = resource;
+    }
 
     // Get a resource from the RenderPass.
-    ResourceRef GetResourceRef(ResourceHandle handle) { return resourceRefs[handle]; }
+    ResourceRef GetResourceRef(ResourceHandle handle)
+    {
+        return resourceRefs[handle];
+    }
 
     // Get ResourceCreationRequests, a ResourceCreationRequests describe
-    virtual std::span<const ResourceCreationRequest> GetResourceCreationRequests() { return creationRequests; }
+    virtual std::span<ResourceHandle> GetResourceCreationRequests()
+    {
+        return creationRequests;
+    }
 
-    virtual const ResourceDescription& GetReferenceResourceDescription(ResourceHandle handle)
+    virtual const ResourceDescription& GetResourceDescription(ResourceHandle handle)
     {
         return resourceDescriptions[handle];
     }
 
     // Get resource inputs, use GetReferenceResourceDescription to retrive information about this resource
-    std::span<const ResourceHandle> GetResourceInputs() { return inputs; }
+    std::span<const ResourceHandle> GetResourceInputs()
+    {
+        return inputs;
+    }
 
     // Get resource outputs, use GetReferenceResourceDescription to retrive information about this resource
-    std::span<const ResourceHandle> GetResourceOutputs() { return outputs; }
+    std::span<const ResourceHandle> GetResourceOutputs()
+    {
+        return outputs;
+    }
 
     // Recording all the gfx commands.
     // Don't insert any pipeline barriers for resources from outside, it's managed by the frame
@@ -146,11 +152,11 @@ public:
 
 protected:
     std::unique_ptr<Gfx::RenderPass> renderPass;
-    std::vector<ResourceCreationRequest> creationRequests;
+    std::vector<ResourceHandle> creationRequests;
     const std::vector<Subpass> subpasses;
     ResourceRefs resourceRefs;
     Buffers buffers;
-    std::vector<ResourceDescription> resourceDescriptions;
+    std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;
     std::vector<ResourceHandle> inputs;
     std::vector<ResourceHandle> outputs;
     ExecutionFunc execute;

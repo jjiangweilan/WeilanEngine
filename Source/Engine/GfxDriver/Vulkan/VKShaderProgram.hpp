@@ -18,13 +18,23 @@ struct ShaderPushConstant;
 class VKShaderProgram : public ShaderProgram
 {
 public:
-    VKShaderProgram(const ShaderConfig* config,
-                    RefPtr<VKContext> context,
-                    const std::string& name,
-                    const unsigned char* vert,
-                    uint32_t vertSize,
-                    const unsigned char* frag,
-                    uint32_t fragSize);
+    VKShaderProgram(
+        const ShaderConfig* config,
+        RefPtr<VKContext> context,
+        const std::string& name,
+        const unsigned char* vert,
+        uint32_t vertSize,
+        const unsigned char* frag,
+        uint32_t fragSize
+    );
+
+    VKShaderProgram(
+        const ShaderConfig* config,
+        RefPtr<VKContext> context,
+        const std::string& name,
+        const std::vector<uint32_t>& vert,
+        const std::vector<uint32_t>& frag
+    );
     VKShaderProgram(const VKShaderProgram& other) = delete;
     ~VKShaderProgram() override;
 
@@ -38,8 +48,14 @@ public:
 
     const ShaderConfig& GetDefaultShaderConfig() override;
 
-    const ShaderInfo::ShaderInfo& GetShaderInfo() override { return shaderInfo; }
-    const std::string& GetName() override { return name; }
+    const ShaderInfo::ShaderInfo& GetShaderInfo() override
+    {
+        return shaderInfo;
+    }
+    const std::string& GetName() override
+    {
+        return name;
+    }
 
 private:
     std::string name;

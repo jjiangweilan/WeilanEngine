@@ -77,26 +77,50 @@ VkPipelineColorBlendAttachmentState MapColorBlendAttachmentState(const ColorBlen
     return state;
 }
 
-VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot) { return *descriptorPools[slot]; }
+VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
+{
+    return *descriptorPools[slot];
+}
 
-VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
-                                 RefPtr<VKContext> context,
-                                 const std::string& name,
-                                 const unsigned char* vertCode,
-                                 uint32_t vertSize,
-                                 const unsigned char* fragCode,
-                                 uint32_t fragSize)
+VKShaderProgram::VKShaderProgram(
+    const ShaderConfig* config,
+    RefPtr<VKContext> context,
+    const std::string& name,
+    const std::vector<uint32_t>& vert,
+    const std::vector<uint32_t>& frag
+)
+    : VKShaderProgram(
+          config,
+          context,
+          name,
+          (const unsigned char*)&vert[0],
+          vert.size() * sizeof(uint32_t),
+          (const unsigned char*)&frag[0],
+          frag.size() * sizeof(uint32_t)
+      )
+{}
+
+VKShaderProgram::VKShaderProgram(
+    const ShaderConfig* config,
+    RefPtr<VKContext> context,
+    const std::string& name,
+    const unsigned char* vertCode,
+    uint32_t vertSize,
+    const unsigned char* fragCode,
+    uint32_t fragSize
+)
     : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {
     bool vertInterleaved = true;
     if (config != nullptr)
         vertInterleaved = config->vertexInterleaved;
 
-    vertShaderModule =
-        MakeUnique<VKShaderModule>(name,
-                                   vertCode,
-                                   vertSize,
-                                   vertInterleaved); // the Engine:: namespace is necessary to pass MSVC compilation
+    vertShaderModule = MakeUnique<VKShaderModule>(
+        name,
+        vertCode,
+        vertSize,
+        vertInterleaved
+    ); // the Engine:: namespace is necessary to pass MSVC compilation
     fragShaderModule = MakeUnique<VKShaderModule>(name, fragCode, fragSize, vertInterleaved);
 
     // combine ShaderStageInfo into ShaderInfo
@@ -250,9 +274,15 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     objManager->CreatePipelineLayout(pipelineLayoutCreateInfo, pipelineLayout);
 }
 
-VkPipelineLayout VKShaderProgram::GetVKPipelineLayout() { return pipelineLayout; }
+VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
+{
+    return pipelineLayout;
+}
 
-const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig() { return defaultShaderConfig; }
+const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
+{
+    return defaultShaderConfig;
+}
 
 VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()
 {
@@ -279,8 +309,9 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
     const ShaderModuleGraphicsPipelineCreateInfos& fragGPInfos =
         fragShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
 
-    VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {vertGPInfos.pipelineShaderStageCreateInfo,
-                                                                fragGPInfos.pipelineShaderStageCreateInfo};
+    VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {
+        vertGPInfos.pipelineShaderStageCreateInfo,
+        fragGPInfos.pipelineShaderStageCreateInfo};
     createInfo.pStages = shaderStageCreateInfos;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};

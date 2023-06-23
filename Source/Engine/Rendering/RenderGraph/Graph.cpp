@@ -23,8 +23,8 @@ bool RenderNode::Connect(Port& src, Port& dst)
 {
     RenderNode* srcNode = src.parent;
     RenderNode* dstNode = dst.parent;
-    auto& srcDesc = srcNode->pass->GetReferenceResourceDescription(src.handle);
-    auto& dstDesc = dstNode->pass->GetReferenceResourceDescription(dst.handle);
+    auto& srcDesc = srcNode->pass->GetResourceDescription(src.handle);
+    auto& dstDesc = dstNode->pass->GetResourceDescription(dst.handle);
 
     if (srcDesc.type != dstDesc.type)
         return false;
@@ -37,41 +37,53 @@ bool RenderNode::Connect(Port& src, Port& dst)
 
 void Graph::Process()
 {
-    std::vector<RenderNode*> nodesSorted(nodes.size());
-    std::transform(nodes.begin(), nodes.end(), nodesSorted.begin(), [](auto& n) { return n.get(); });
+    std::vector<RenderNode*> sortedNodes(nodes.size());
+    std::transform(nodes.begin(), nodes.end(), sortedNodes.begin(), [](auto& n) { return n.get(); });
 
     // recalculate depth
-    for (RenderNode* n : nodesSorted)
+    for (RenderNode* n : sortedNodes)
         n->depth = -1;
-    for (RenderNode* n : nodesSorted)
+    for (RenderNode* n : sortedNodes)
         n->depth = GetDepthOfNode(n);
 
     // sort nodes
-    std::sort(nodesSorted.begin(), nodesSorted.end(), [](RenderNode* l, RenderNode* r) { return l->depth < r->depth; });
-    for (int i = 0; i < nodesSorted.size(); ++i)
-        nodesSorted[i]->sortIndex = i;
+    std::sort(sortedNodes.begin(), sortedNodes.end(), [](RenderNode* l, RenderNode* r) { return l->depth < r->depth; });
+    for (int i = 0; i < sortedNodes.size(); ++i)
+        sortedNodes[i]->sortIndex = i;
 
     // preprocess
-    for (RenderNode* n : nodesSorted)
+    for (RenderNode* n : sortedNodes)
     {
         Preprocess(n);
     }
+
+    // copy
+    this->sortedNodes = sortedNodes;
+
+    submitFence = GetGfxDriver()->CreateFence({.signaled = true});
+    submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
+    swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
+    queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
+    commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
+    mainCmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
 }
 
-Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceCreationRequest& request, int originalNode)
+Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request, int originalNode)
 {
     if (request.type == ResourceType::Image)
     {
-        Gfx::Image* image = resourcePool.CreateImage();
+        Gfx::Image* image = resourcePool.CreateImage(request.imageCreateInfo, request.imageUsagesFlags);
         auto owner = std::make_unique<ResourceOwner>(image);
         resourceOwners.push_back(std::move(owner));
         return resourceOwners.back().get();
     }
     else if (request.type == ResourceType::Buffer)
     {
-        Gfx::Buffer* buffer = resourcePool.CreateBuffer();
-        auto owner = std::make_unique<ResourceOwner>(buffer);
-        resourceOwners.push_back(std::move(owner));
+        assert(false && "Not implemented");
+
+        // Gfx::Buffer* buffer = resourcePool.CreateBuffer();
+        // auto owner = std::make_unique<ResourceOwner>(buffer);
+        // resourceOwners.push_back(std::move(owner));
         return resourceOwners.back().get();
     }
 
@@ -107,8 +119,9 @@ void Graph::Preprocess(RenderNode* n)
 {
     // create resource
     auto creationRequests = n->pass->GetResourceCreationRequests();
-    for (auto& request : creationRequests)
+    for (auto& handle : creationRequests)
     {
+        auto& request = n->pass->GetResourceDescription(handle);
         ResourceOwner* owner = CreateResourceOwner(request, n->sortIndex);
         n->pass->SetResourceRef(request.handle, owner->resourceRef);
         owner->used[n->sortIndex] = true;
@@ -127,4 +140,48 @@ void Graph::Preprocess(RenderNode* n)
 }
 
 void Graph::Compile() {}
+
+Gfx::Buffer* Graph::ResourcePool::CreateBuffer()
+{
+    return nullptr;
+}
+Gfx::Image* Graph::ResourcePool::CreateImage(const Gfx::ImageDescription& imageDesc, Gfx::ImageUsageFlags usages)
+{
+    images.push_back(std::move(GetGfxDriver()->CreateImage(imageDesc, usages)));
+
+    return images.back().get();
+}
+
+void Graph::ResourcePool::ReleaseBuffer(Gfx::Buffer* handle) {}
+
+void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
+{
+    auto iter = std::find_if(
+        images.begin(),
+        images.end(),
+        [handle](std::unique_ptr<Gfx::Image>& p) { return p.get() == handle; }
+    );
+
+    if (iter != images.end())
+    {
+        images.erase(iter);
+    }
+}
+
+void Graph::Execute()
+{
+    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
+    for (auto n : sortedNodes)
+    {
+        n->pass->Execute(*mainCmd);
+    }
+
+    RefPtr<CommandBuffer> cmds[] = {mainCmd};
+    RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
+    Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
+    RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
+    GetGfxDriver()->QueueSubmit(queue, cmds, waitSemaphores, waitPipelineStages, submitSemaphores, submitFence);
+
+    GetGfxDriver()->Present({submitSemaphore});
+}
 } // namespace Engine::RenderGraph

@@ -31,37 +31,29 @@ public:
         }
         auto& vertSPV = shaderCompiler.GetVertexSPV();
         auto& fragSPV = shaderCompiler.GetFragSPV();
-        shaderProgram = GetGfxDriver()->CreateShaderProgram(
-            "shaderTest",
-            &shaderCompiler.GetConfig(),
-            vertSPV.data(),
-            vertSPV.size(),
-            fragSPV.data(),
-            fragSPV.size()
-        );
-
-        shaderProgram = nullptr;
-        Gfx::GfxDriver::DestroyGfxDriver();
-        return;
+        shaderProgram =
+            GetGfxDriver()->CreateShaderProgram("shaderTest", &shaderCompiler.GetConfig(), vertSPV, fragSPV);
 
         RenderNode* genUV = graph.AddNode(
             [this](auto& a, auto& b, auto& c) { GenUV(a, b, c); },
+            {{
+                .name = "uvOut",
+                .handle = 0,
+                .type = ResourceType::Image,
+                .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                .imageCreateInfo =
+                    {
+                        .width = 256,
+                        .height = 256,
+                        .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                        .mipLevels = 1,
+                    },
+            }},
             {},
-            {{.name = "uvOut",
-              .handle = 0,
-              .type = ResourceType::Image,
-              .image =
-                  {
-                      .width = 256,
-                      .height = 256,
-                      .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                      .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                      .mipLevels = 1,
-                  },
-              .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-              .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-              .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-              .imageLayout = Gfx::ImageLayout::Color_Attachment}},
             {},
             {0},
             {.colors = {{
@@ -78,25 +70,28 @@ public:
             {{.name = "uvTex",
               .handle = 0,
               .type = ResourceType::Image,
-              .imageUsagesFlags = Gfx::ImageUsage::Texture,
               .accessFlags = Gfx::AccessMask::Shader_Read,
               .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-              .imageLayout = Gfx::ImageLayout::Shader_Read_Only}},
-            {{.name = "sampleOut",
-              .handle = 1,
-              .type = ResourceType::Image,
-              .image =
-                  {
-                      .width = 256,
-                      .height = 256,
-                      .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                      .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                      .mipLevels = 1,
-                  },
-              .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-              .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-              .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-              .imageLayout = Gfx::ImageLayout::Color_Attachment}},
+              .imageUsagesFlags = Gfx::ImageUsage::Texture,
+              .imageLayout = Gfx::ImageLayout::Shader_Read_Only},
+             {
+                 .name = "sampleOut",
+                 .handle = 1,
+                 .type = ResourceType::Image,
+                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                 .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                 .imageCreateInfo =
+                     {
+                         .width = 256,
+                         .height = 256,
+                         .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                         .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                         .mipLevels = 1,
+                     },
+             }},
+            {1},
             {0},
             {1},
             {.colors = {{
@@ -107,19 +102,24 @@ public:
              }}}
         );
 
-        RenderNode::Connect(genUV->GetOutputPorts()[0], genUV->GetInputPorts()[0]);
+        RenderNode::Connect(genUV->GetOutputPorts()[0], sampleUV->GetInputPorts()[0]);
 
         graph.Process();
+        graph.Execute();
+
+        Gfx::GfxDriver::DestroyGfxDriver();
+        return;
     }
 
     void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers)
     {
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
-        // cmdBuf.BeginRenderPass(&renderPass, {clears});
-        // cmdBuf.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-        // cmdBuf.DrawIndexed(3, 1, 0, 0, 0);
-        // cmdBuf.End();
+        cmdBuf.BeginRenderPass(&renderPass, {clears});
+        cmdBuf.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+        cmdBuf.DrawIndexed(3, 1, 0, 0, 0);
+        cmdBuf.EndRenderPass();
     }
+
     static void SampleUV(CommandBuffer&, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers) {}
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
     std::string shader{R"(

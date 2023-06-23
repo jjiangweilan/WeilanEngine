@@ -15,8 +15,14 @@ class Port
 public:
     Port(RenderNode* parent, RenderPass::ResourceHandle handle) : parent(parent), handle(handle) {}
 
-    Port* GetConnected() { return connected; }
-    RenderNode* GetParent() { return parent; }
+    Port* GetConnected()
+    {
+        return connected;
+    }
+    RenderNode* GetParent()
+    {
+        return parent;
+    }
 
 private:
     RenderPass::ResourceHandle handle;
@@ -33,9 +39,18 @@ class RenderNode
 public:
     RenderNode(std::unique_ptr<RenderPass>&& pass);
 
-    RenderPass* GetPass() { return pass.get(); }
-    std::span<Port> GetInputPorts() { return inputPorts; }
-    std::span<Port> GetOutputPorts() { return outputPorts; }
+    RenderPass* GetPass()
+    {
+        return pass.get();
+    }
+    std::span<Port> GetInputPorts()
+    {
+        return inputPorts;
+    }
+    std::span<Port> GetOutputPorts()
+    {
+        return outputPorts;
+    }
 
     static bool Connect(Port& src, Port& dst);
 
@@ -54,20 +69,22 @@ private:
 class Graph
 {
 public:
-    template <class T>
-    RenderNode* AddNode()
-    {
-        std::unique_ptr<RenderPass> pass = std::unique_ptr<RenderPass>(new T());
-        nodes.emplace_back(new RenderNode(std::move(pass)));
-        return nodes.back().get();
-    }
-
-    RenderNode* AddNode(const RenderPass::ExecutionFunc& execute,
-                        const std::vector<RenderPass::ResourceDescription>& resourceDescs,
-                        const std::vector<RenderPass::ResourceCreationRequest>& creationRequests,
-                        const std::vector<RenderPass::ResourceHandle>& inputs,
-                        const std::vector<RenderPass::ResourceHandle>& outputs,
-                        const std::vector<RenderPass::Subpass>& subpasses)
+    // template <class T>
+    // RenderNode* AddNode()
+    // {
+    //     std::unique_ptr<RenderPass> pass = std::unique_ptr<RenderPass>(new T());
+    //     nodes.emplace_back(new RenderNode(std::move(pass)));
+    //     return nodes.back().get();
+    // }
+    //
+    RenderNode* AddNode(
+        const RenderPass::ExecutionFunc& execute,
+        const std::vector<RenderPass::ResourceDescription>& resourceDescs,
+        const std::vector<RenderPass::ResourceHandle>& creationRequests,
+        const std::vector<RenderPass::ResourceHandle>& inputs,
+        const std::vector<RenderPass::ResourceHandle>& outputs,
+        const std::vector<RenderPass::Subpass>& subpasses
+    )
     {
         std::unique_ptr<RenderPass> pass =
             std::make_unique<RenderPass>(execute, resourceDescs, creationRequests, inputs, outputs, subpasses);
@@ -75,19 +92,23 @@ public:
         return nodes.back().get();
     }
 
-    RenderNode* AddNode(const RenderPass::ExecutionFunc& execute,
-                        const std::vector<RenderPass::ResourceDescription>& resourceDescs,
-                        const std::vector<RenderPass::ResourceCreationRequest>& creationRequests,
-                        const std::vector<RenderPass::ResourceHandle>& inputs,
-                        const std::vector<RenderPass::ResourceHandle>& outputs,
-                        const RenderPass::Subpass& subpass)
+    RenderNode* AddNode(
+        const RenderPass::ExecutionFunc& execute,
+        const std::vector<RenderPass::ResourceDescription>& resourceDescs,
+        const std::vector<RenderPass::ResourceHandle>& creationRequests,
+        const std::vector<RenderPass::ResourceHandle>& inputs,
+        const std::vector<RenderPass::ResourceHandle>& outputs,
+        const RenderPass::Subpass& subpass
+    )
     {
-        std::unique_ptr<RenderPass> pass = std::make_unique<RenderPass>(execute,
-                                                                        resourceDescs,
-                                                                        creationRequests,
-                                                                        inputs,
-                                                                        outputs,
-                                                                        std::vector<RenderPass::Subpass>{subpass});
+        std::unique_ptr<RenderPass> pass = std::make_unique<RenderPass>(
+            execute,
+            resourceDescs,
+            creationRequests,
+            inputs,
+            outputs,
+            std::vector<RenderPass::Subpass>{subpass}
+        );
         nodes.emplace_back(new RenderNode(std::move(pass)));
         return nodes.back().get();
     }
@@ -102,11 +123,11 @@ private:
     class ResourcePool
     {
     public:
-        Gfx::Buffer* CreateBuffer() { return nullptr; }
-        Gfx::Image* CreateImage() { return nullptr; }
+        Gfx::Buffer* CreateBuffer();
+        Gfx::Image* CreateImage(const Gfx::ImageDescription& imageDesc, Gfx::ImageUsageFlags usages);
 
-        void ReleaseBuffer(Gfx::Image* handle);
-        void ReleaseImage(Gfx::Buffer* handle);
+        void ReleaseBuffer(Gfx::Buffer* handle);
+        void ReleaseImage(Gfx::Image* handle);
 
     private:
         std::vector<std::unique_ptr<Gfx::Image>> images;
@@ -124,6 +145,7 @@ private:
     };
 
     std::vector<std::unique_ptr<RenderNode>> nodes;
+    std::vector<RenderNode*> sortedNodes;
 
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
 
@@ -131,8 +153,17 @@ private:
     // It will create resource required. Set resources from input ports
     void Preprocess(RenderNode* node);
     void Compile();
-    ResourceOwner* CreateResourceOwner(const RenderPass::ResourceCreationRequest& request, int originalNode);
+    ResourceOwner* CreateResourceOwner(const RenderPass::ResourceDescription& request, int originalNode);
 
     static int GetDepthOfNode(RenderNode* node);
+
+    // rendering related stuffs, maybe factor out of Graph?
+private:
+    RefPtr<CommandQueue> queue;
+    std::unique_ptr<Gfx::Semaphore> submitSemaphore;
+    std::unique_ptr<Gfx::Fence> submitFence;
+    std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
+    std::unique_ptr<Gfx::CommandPool> commandPool;
+    std::unique_ptr<CommandBuffer> mainCmd;
 };
 } // namespace Engine::RenderGraph
