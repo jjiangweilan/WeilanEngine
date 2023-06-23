@@ -1,93 +1,130 @@
 #include "Graph.hpp"
-#include "GfxDriver/GfxDriver.hpp"
+#include "Errors.hpp"
+
+#include <algorithm>
 
 namespace Engine::RenderGraph
 {
-
-Graph::Graph() { context = std::make_unique<GraphContext>(); }
-
-Graph::~Graph() {}
-
-bool Graph::Connect(Port* p0, Port* p1)
+RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_) : pass(std::move(pass_))
 {
-    if (p0 == p1 || p0->parent == p1->parent || p0->type != p1->type)
+    auto inputs = pass->GetResourceInputs();
+    auto outputs = pass->GetResourceOutputs();
+    for (int i = 0; i < inputs.size(); ++i)
+    {
+        inputPorts.emplace_back(this, inputs[i]);
+    }
+    for (int i = 0; i < outputs.size(); ++i)
+    {
+        outputPorts.emplace_back(this, outputs[i]);
+    }
+}
+
+bool RenderNode::Connect(Port& src, Port& dst)
+{
+    RenderNode* srcNode = src.parent;
+    RenderNode* dstNode = dst.parent;
+    auto& srcDesc = srcNode->pass->GetReferenceResourceDescription(src.handle);
+    auto& dstDesc = dstNode->pass->GetReferenceResourceDescription(dst.handle);
+
+    if (srcDesc.type != dstDesc.type)
         return false;
 
-    Port* src = p0->isOutput ? p0 : p1;
-    Port* dst = p0->isOutput ? p1 : p0;
-
-    src->connected = dst;
-    dst->connected = src;
-
-    SetInputNodeResource(src, dst);
+    src.connected = &dst;
+    dst.connected = &src;
 
     return true;
 }
 
-void Graph::SetInputNodeResource(Port* src, Port* dst)
+void Graph::Process()
 {
-    dst->resourceRef = src->resourceRef;
+    std::vector<RenderNode*> nodesSorted(nodes.size());
+    std::transform(nodes.begin(), nodes.end(), nodesSorted.begin(), [](auto& n) { return n.get(); });
 
-    // record output ports' resource status
-    auto dstNodeOutputPorts = dst->GetParent()->GetOutputPorts();
-    std::vector<ResourceRef> res(dstNodeOutputPorts.size());
-    for (int i = 0; i < dstNodeOutputPorts.size(); ++i)
+    // recalculate depth
+    for (RenderNode* n : nodesSorted)
+        n->depth = -1;
+    for (RenderNode* n : nodesSorted)
+        n->depth = GetDepthOfNode(n);
+
+    // sort nodes
+    std::sort(nodesSorted.begin(), nodesSorted.end(), [](RenderNode* l, RenderNode* r) { return l->depth < r->depth; });
+    for (int i = 0; i < nodesSorted.size(); ++i)
+        nodesSorted[i]->sortIndex = i;
+
+    // preprocess
+    for (RenderNode* n : nodesSorted)
     {
-        res[i] = dstNodeOutputPorts[i]->resourceRef;
+        Preprocess(n);
+    }
+}
+
+Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceCreationRequest& request, int originalNode)
+{
+    if (request.type == ResourceType::Image)
+    {
+        Gfx::Image* image = resourcePool.CreateImage();
+        auto owner = std::make_unique<ResourceOwner>(image);
+        resourceOwners.push_back(std::move(owner));
+        return resourceOwners.back().get();
+    }
+    else if (request.type == ResourceType::Buffer)
+    {
+        Gfx::Buffer* buffer = resourcePool.CreateBuffer();
+        auto owner = std::make_unique<ResourceOwner>(buffer);
+        resourceOwners.push_back(std::move(owner));
+        return resourceOwners.back().get();
     }
 
-    if (dst->onResourceChange)
-        dst->onResourceChange(dst);
+    return nullptr;
+}
 
-    for (int i = 0; i < dstNodeOutputPorts.size(); ++i)
+int Graph::GetDepthOfNode(RenderNode* node)
+{
+    if (node)
     {
-        if (res[i] != dstNodeOutputPorts[i]->resourceRef)
+        if (node->depth != -1)
+            return node->depth;
+        else
         {
-            UpdateConnectedNode(dstNodeOutputPorts[i]);
+            int depth = 1;
+            for (Port& port : node->GetInputPorts())
+            {
+                Port* connected = port.GetConnected();
+                if (connected)
+                {
+                    depth += GetDepthOfNode(connected->GetParent());
+                }
+            }
+
+            return depth;
         }
     }
+
+    return 0;
 }
 
-void Graph::UpdateConnectedNode(Port* output)
+void Graph::Preprocess(RenderNode* n)
 {
-    if (output->connected)
+    // create resource
+    auto creationRequests = n->pass->GetResourceCreationRequests();
+    for (auto& request : creationRequests)
     {
-        SetInputNodeResource(output, output->connected);
+        ResourceOwner* owner = CreateResourceOwner(request, n->sortIndex);
+        n->pass->SetResourceRef(request.handle, owner->resourceRef);
+        owner->used[n->sortIndex] = true;
+    }
+
+    // set resource from connected
+    for (auto& inPort : n->GetInputPorts())
+    {
+        Port* connected = inPort.GetConnected();
+        if (connected == nullptr)
+            throw Errrors::GraphCompile("A node has unconnected port");
+
+        auto resRef = connected->parent->pass->GetResourceRef(connected->handle);
+        inPort.parent->pass->SetResourceRef(inPort.handle, resRef);
     }
 }
 
-static int GetNodeDepth(Node* node, std::unordered_map<Node*, int>& depth)
-{
-    auto depthIter = depth.find(node);
-    if (depthIter != depth.end())
-    {
-        return depthIter->second;
-    }
-
-    int depthNum = 1;
-    for (auto input : node->GetInputPorts())
-    {
-        if (input->GetConnected())
-        {
-            depthNum += GetNodeDepth(input->GetConnected()->GetParent(), depth);
-        }
-    }
-
-    depth[node] = depthNum;
-    return depthNum;
-}
-
-std::unordered_map<Node*, int> Graph::CalculateNodeDepth(std::vector<std::unique_ptr<Node>>& nodes)
-{
-    std::unordered_map<Node*, int> depth;
-
-    for (auto& n : nodes)
-    {
-        GetNodeDepth(n.get(), depth);
-    }
-
-    return depth;
-}
-
-void Graph::Preprocess() {}
+void Graph::Compile() {}
 } // namespace Engine::RenderGraph

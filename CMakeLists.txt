@@ -104,7 +104,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(SDL2
         PREFIX "ThirdParty/SDL2"
         GIT_REPOSITORY "https://github.com/libsdl-org/SDL.git"
-        GIT_TAG "release-2.0.18"
+        GIT_TAG "release-2.24.x"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/SDL2"
         INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS
@@ -242,7 +242,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(vma
         PREFIX "ThirdParty/vma"
         GIT_REPOSITORY "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
-        GIT_TAG "0c7ad4e85944b38ef6e4d2becfd58bf58385812e"
+        GIT_TAG "0aa3989b8f382f185fdf646cc83a1d16fa31d6ab"
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ""
         INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_directory

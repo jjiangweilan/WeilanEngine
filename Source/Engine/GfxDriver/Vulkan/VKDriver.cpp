@@ -134,13 +134,25 @@ Extent2D VKDriver::GetSurfaceSize()
     return {extent.width, extent.height};
 }
 
-void VKDriver::WaitForIdle() { vkDeviceWaitIdle(device->GetHandle()); }
+void VKDriver::WaitForIdle()
+{
+    vkDeviceWaitIdle(device->GetHandle());
+}
 
-Backend VKDriver::GetGfxBackendType() { return Backend::Vulkan; }
+Backend VKDriver::GetGfxBackendType()
+{
+    return Backend::Vulkan;
+}
 
-SDL_Window* VKDriver::GetSDLWindow() { return appWindow->GetSDLWindow(); }
+SDL_Window* VKDriver::GetSDLWindow()
+{
+    return appWindow->GetSDLWindow();
+}
 
-RefPtr<Image> VKDriver::GetSwapChainImageProxy() { return swapChainImageProxy.Get(); }
+RefPtr<Image> VKDriver::GetSwapChainImageProxy()
+{
+    return swapChainImageProxy.Get();
+}
 
 void VKDriver::ForceSyncResources()
 {
@@ -182,7 +194,10 @@ UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createI
     return MakeUnique1<VKSemaphore>(createInfo.signaled);
 }
 
-UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo) { return MakeUnique1<VKFence>(createInfo); }
+UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
+{
+    return MakeUnique1<VKFence>(createInfo);
+}
 
 UniPtr<Buffer> VKDriver::CreateBuffer(const Buffer::CreateInfo& createInfo)
 {
@@ -194,7 +209,10 @@ UniPtr<ShaderResource> VKDriver::CreateShaderResource(RefPtr<ShaderProgram> shad
     return MakeUnique1<VKShaderResource>(shader, frequency);
 }
 
-UniPtr<RenderPass> VKDriver::CreateRenderPass() { return MakeUnique1<VKRenderPass>(); }
+UniPtr<RenderPass> VKDriver::CreateRenderPass()
+{
+    return MakeUnique1<VKRenderPass>();
+}
 
 UniPtr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
 {
@@ -207,9 +225,9 @@ UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUs
 }
 UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(const std::string& name,
                                                     const ShaderConfig* config,
-                                                    unsigned char* vert,
+                                                    const unsigned char* vert,
                                                     uint32_t vertSize,
-                                                    unsigned char* frag,
+                                                    const unsigned char* frag,
                                                     uint32_t fragSize)
 {
     return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);

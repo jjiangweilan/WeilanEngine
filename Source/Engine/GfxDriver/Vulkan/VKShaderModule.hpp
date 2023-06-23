@@ -27,7 +27,7 @@ struct ShaderModuleGraphicsPipelineCreateInfos
 class VKShaderModule : public ShaderModule
 {
 public:
-    VKShaderModule(const std::string& name, unsigned char* code, uint32_t codeByteSize, bool vertInterleaved);
+    VKShaderModule(const std::string& name, const unsigned char* code, uint32_t codeByteSize, bool vertInterleaved);
     ~VKShaderModule();
 
     const ShaderModuleGraphicsPipelineCreateInfos& GetShaderModuleGraphicsPipelineCreateInfos();

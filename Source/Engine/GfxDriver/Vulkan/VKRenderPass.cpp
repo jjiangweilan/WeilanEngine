@@ -21,6 +21,19 @@ VKRenderPass::~VKRenderPass()
 
 void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
 {
+    // validation check
+    for (auto& c : colors)
+    {
+        if (c.image == nullptr)
+            throw std::logic_error("image shouldn't be null");
+    }
+
+    if (depth.has_value())
+    {
+        if (depth->image)
+            throw std::logic_error("image shouldn't be null");
+    }
+
     subpasses.emplace_back(colors, depth);
 }
 
@@ -220,10 +233,12 @@ void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf)
             {
                 accessFlag |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
             }
-            image->TransformLayoutIfNeeded(cmdBuf,
-                                           VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                           VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                           accessFlag);
+            image->TransformLayoutIfNeeded(
+                cmdBuf,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                accessFlag
+            );
         }
 
         if (subpass.depth != std::nullopt)
@@ -234,10 +249,12 @@ void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf)
                 subpass.depth->stencilLoadOp == AttachmentLoadOperation::Load)
                 accessFlag |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 
-            image->TransformLayoutIfNeeded(cmdBuf,
-                                           VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                           VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                                           accessFlag);
+            image->TransformLayoutIfNeeded(
+                cmdBuf,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                accessFlag
+            );
         }
     }
 }

@@ -21,9 +21,9 @@ public:
     VKShaderProgram(const ShaderConfig* config,
                     RefPtr<VKContext> context,
                     const std::string& name,
-                    unsigned char* vert,
+                    const unsigned char* vert,
                     uint32_t vertSize,
-                    unsigned char* frag,
+                    const unsigned char* frag,
                     uint32_t fragSize);
     VKShaderProgram(const VKShaderProgram& other) = delete;
     ~VKShaderProgram() override;

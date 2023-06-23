@@ -82,9 +82,9 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot) { r
 VKShaderProgram::VKShaderProgram(const ShaderConfig* config,
                                  RefPtr<VKContext> context,
                                  const std::string& name,
-                                 unsigned char* vertCode,
+                                 const unsigned char* vertCode,
                                  uint32_t vertSize,
-                                 unsigned char* fragCode,
+                                 const unsigned char* fragCode,
                                  uint32_t fragSize)
     : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {

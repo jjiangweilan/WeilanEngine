@@ -1,48 +1,25 @@
 {
-    "images" :
-    [
+    "nodes" :
+    {
         {
             "id" : "mainDepth",
+            "node" : "ImageNode",
             "format" : "D16_UNorm_S8_UInt",
             "size" : [1920,1080]
         },
         {
-            "id" : "shadowDepth",
-            "format" : "D24",
-            "size" : [1024, 1024]
-        }
-    ],
-    "passes" :
-    [
-        {
             "id" : "oapque",
-            "pass" : "Opaque",
-            "subpasses":
-            [
-                {
-                    "colors":
-                    [
-                        "_swapChainColor"
-                    ],
-                    "depth" : "mainDepth"
-                }
-            ],
-            "requires":
-            [
-                "shadow:shadowDepth"
-            ]
-        },
-        {
-            "id" : "shadow",
-            "pass" : "Shadow",
-            "subpasses":
-            [
-                {
-                    "depth":"shadowDepth"
-                }
-            ]
+            "node" : "OpaquePassNode",
+            "inputs" :
+            {
+                "colors":
+                [
+                    "_swapChainColor"
+                ],
+                "depth" : "mainDepth"
+            }
         }
-    ]
+    }
 }
 
 

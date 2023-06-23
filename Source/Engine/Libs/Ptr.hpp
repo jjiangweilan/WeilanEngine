@@ -11,6 +11,12 @@ template <class T>
 class UniPtr
 {
 public:
+    operator std::unique_ptr<T>()
+    {
+        std::unique_ptr<T> p(ptr);
+        ptr = nullptr;
+        return p;
+    }
     using Type = T;
     UniPtr() = default;
     explicit UniPtr(T* ptr);

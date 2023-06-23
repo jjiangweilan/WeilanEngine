@@ -46,9 +46,15 @@ public:
         Extent2D windowSize;
     };
 
-    static RefPtr<GfxDriver> Instance() { return gfxDriver; }
+    static RefPtr<GfxDriver> Instance()
+    {
+        return gfxDriver;
+    }
     static void CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
-    static void DestroyGfxDriver() { gfxDriver = nullptr; }
+    static void DestroyGfxDriver()
+    {
+        gfxDriver = nullptr;
+    }
 
     virtual ~GfxDriver(){};
 
@@ -69,9 +75,9 @@ public:
     virtual UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
     virtual UniPtr<ShaderProgram> CreateShaderProgram(const std::string& name,
                                                       const ShaderConfig* config,
-                                                      unsigned char* vert,
+                                                      const unsigned char* vert,
                                                       uint32_t vertSize,
-                                                      unsigned char* frag,
+                                                      const unsigned char* frag,
                                                       uint32_t fragSize) = 0;
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
@@ -95,5 +101,8 @@ private:
 
 namespace Engine
 {
-inline RefPtr<Gfx::GfxDriver> GetGfxDriver() { return Gfx::GfxDriver::Instance(); }
+inline RefPtr<Gfx::GfxDriver> GetGfxDriver()
+{
+    return Gfx::GfxDriver::Instance();
+}
 } // namespace Engine

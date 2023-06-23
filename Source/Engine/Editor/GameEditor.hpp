@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Libs/Ptr.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 
 namespace Engine::Editor
 {

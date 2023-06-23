@@ -116,7 +116,7 @@ VkFormat MapFormat(const std::string& str, const std::string& name)
 }
 
 VKShaderModule::VKShaderModule(const std::string& name,
-                               unsigned char* code,
+                               const unsigned char* code,
                                uint32_t codeByteSize,
                                bool vertInterleaved)
     : vertInterleaved(vertInterleaved),
@@ -136,7 +136,7 @@ VKShaderModule::VKShaderModule(const std::string& name,
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.flags = 0;
     createInfo.codeSize = codeByteSize;
-    createInfo.pCode = reinterpret_cast<uint32_t*>(code);
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
     VKContext::Instance()->objManager->CreateShaderModule(createInfo, shaderModule);
 
     jsonInfo["spvPath"] = name;

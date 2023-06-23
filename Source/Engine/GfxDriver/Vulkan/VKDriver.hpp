@@ -49,7 +49,10 @@ public:
     RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
     bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
-    const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
+    const GPUFeatures& GetGPUFeatures() override
+    {
+        return gpuFeatures;
+    }
 
     bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages) override;
     ;
@@ -58,7 +61,10 @@ public:
     RefPtr<Image> GetSwapChainImageProxy() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
-    RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
+    RefPtr<VKSharedResource> GetSharedResource()
+    {
+        return sharedResource;
+    }
 
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
@@ -70,9 +76,9 @@ public:
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
     UniPtr<ShaderProgram> CreateShaderProgram(const std::string& name,
                                               const ShaderConfig* config,
-                                              unsigned char* vert,
+                                              const unsigned char* vert,
                                               uint32_t vertSize,
-                                              unsigned char* frag,
+                                              const unsigned char* frag,
                                               uint32_t fragSize) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
 

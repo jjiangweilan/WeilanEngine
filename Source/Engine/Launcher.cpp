@@ -2,10 +2,10 @@
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Editor/GameEditor.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/RenderGraph/Graph.hpp"
+#include "Rendering/BuiltInRenderGraph.hpp"
 #include <filesystem>
+#include <iostream>
 #include <spdlog/spdlog.h>
-
 namespace Engine
 {
 
@@ -26,9 +26,10 @@ public:
         gfxDriver = GetGfxDriver().Get();
 
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
-        //renderGraph = std::make_unique<RenderGraph>(assetDatabase);
+        // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
         gameSceneManager = std::make_unique<GameSceneManager>();
         gameEditor = std::make_unique<Editor::GameEditor>(assetDatabase, gameSceneManager);
+        renderGraph = BuiltInRenderGraphBuilder::BuildGraph(true);
     }
 
     void Loop()
@@ -37,15 +38,16 @@ public:
         {
             gameSceneManager->Tick();
             gameEditor->Tick();
-            //renderGraph->Render();
+            // renderGraph->Render();
         }
     }
 
 private:
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<Editor::GameEditor> gameEditor;
-    //std::unique_ptr<RenderGraph> renderGraph;
+    // std::unique_ptr<RenderGraph> renderGraph;
     std::unique_ptr<GameSceneManager> gameSceneManager;
+    std::unique_ptr<RenderGraph::Graph> renderGraph;
     Gfx::GfxDriver* gfxDriver;
 
 #if GAME_EDITOR
@@ -100,8 +102,6 @@ public:
 };
 
 } // namespace Engine
-  //
-  //
 
 int main(int argc, char** argv)
 {
