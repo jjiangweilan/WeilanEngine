@@ -69,8 +69,18 @@ public:
         config = MapShaderConfig(tree, name);
 
         includedTrack.clear();
-        vertSpv = CompileShader("VERT", debug, "vertex shader", buf.c_str(), bufSize, includedTrack);
-        fragSpv = CompileShader("FRAG", debug, "fragment shader", buf.c_str(), bufSize, includedTrack);
+        vertSpv =
+            CompileShader("VERT", shaderc_vertex_shader, debug, "vertex shader", buf.c_str(), bufSize, includedTrack);
+
+        fragSpv = CompileShader(
+            "FRAG",
+            shaderc_fragment_shader,
+            debug,
+            "fragment shader",
+            buf.c_str(),
+            bufSize,
+            includedTrack
+        );
     }
 
     const std::vector<uint32_t>& GetVertexSPV()
@@ -112,6 +122,7 @@ private:
     // shaderStage: VERT for vertex shader, FRAG for fragment shader
     std::vector<uint32_t> CompileShader(
         const char* shaderStage,
+        shaderc_shader_kind kind,
         bool debug,
         const char* debugName,
         const char* buf,

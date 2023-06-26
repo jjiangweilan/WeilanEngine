@@ -14,7 +14,10 @@ VKCommandPool::VKCommandPool(const CreateInfo& gCreateInfo)
     vkCreateCommandPool(GetDevice()->GetHandle(), &createInfo, VK_NULL_HANDLE, &commandPool);
 }
 
-VKCommandPool::~VKCommandPool() { vkDestroyCommandPool(GetDevice()->GetHandle(), commandPool, VK_NULL_HANDLE); }
+VKCommandPool::~VKCommandPool()
+{
+    vkDestroyCommandPool(GetDevice()->GetHandle(), commandPool, VK_NULL_HANDLE);
+}
 
 std::vector<UniPtr<CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
 {
@@ -41,6 +44,6 @@ std::vector<UniPtr<CommandBuffer>> VKCommandPool::AllocateCommandBuffers(Command
 
 void VKCommandPool::ResetCommandPool()
 {
-    vkResetCommandPool(GetDevice()->GetHandle(), commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+    vkResetCommandPool(GetDevice()->GetHandle(), commandPool, 0);
 }
 } // namespace Engine::Gfx

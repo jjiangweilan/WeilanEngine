@@ -242,6 +242,7 @@ VKSwapChain::VKSwapChainImage::VKSwapChainImage(VkImage image, VkFormat format, 
     imageDescription.format = MapVKFormat(format);
     imageDescription.width = width;
     imageDescription.height = height;
+    imageDescription.mipLevels = 1;
     format_vk = format;
     layout = VK_IMAGE_LAYOUT_UNDEFINED;
     CreateImageView();

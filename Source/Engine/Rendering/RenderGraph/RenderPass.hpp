@@ -87,7 +87,7 @@ public:
     // Get a resource from the RenderPass.
     ResourceRef GetResourceRef(ResourceHandle handle)
     {
-        return resourceRefs[handle];
+        return resourceRefs.at(handle);
     }
 
     // Get ResourceCreationRequests, a ResourceCreationRequests describe

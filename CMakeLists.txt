@@ -50,7 +50,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(SPIRV-Cross
         PREFIX "ThirdParty/SPIRV-Cross"
         GIT_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Cross.git"
-        GIT_TAG "e9cc6403341baf0edd430a4027b074d0a06b782f"
+        GIT_TAG "7cb2f62e3ba4d9acff27fea40ddc5a2844f39d5e"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/SPIRV-Cross"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS 

@@ -17,7 +17,7 @@ public:
     {
         Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {1920, 1080}});
 
-        RenderGraphUnitTest graph;
+        std::unique_ptr<RenderGraphUnitTest> graph = std::make_unique<RenderGraphUnitTest>();
 
         ShaderCompiler shaderCompiler;
         try
@@ -34,7 +34,7 @@ public:
         shaderProgram =
             GetGfxDriver()->CreateShaderProgram("shaderTest", &shaderCompiler.GetConfig(), vertSPV, fragSPV);
 
-        RenderNode* genUV = graph.AddNode(
+        RenderNode* genUV = graph->AddNode(
             [this](auto& a, auto& b, auto& c) { GenUV(a, b, c); },
             {{
                 .name = "uvOut",
@@ -45,15 +45,14 @@ public:
                 .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
                 .imageCreateInfo =
-                    {
-                        .width = 256,
-                        .height = 256,
-                        .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                        .mipLevels = 1,
-                    },
+                    {.width = 256,
+                     .height = 256,
+                     .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                     .mipLevels = 1,
+                     .isCubemap = false},
             }},
-            {},
+            {0},
             {},
             {0},
             {.colors = {{
@@ -65,7 +64,7 @@ public:
 
         );
 
-        RenderNode* sampleUV = graph.AddNode(
+        RenderNode* sampleUV = graph->AddNode(
             SampleUV,
             {{.name = "uvTex",
               .handle = 0,
@@ -83,13 +82,12 @@ public:
                  .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
                  .imageLayout = Gfx::ImageLayout::Color_Attachment,
                  .imageCreateInfo =
-                     {
-                         .width = 256,
-                         .height = 256,
-                         .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                         .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                         .mipLevels = 1,
-                     },
+                     {.width = 256,
+                      .height = 256,
+                      .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                      .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                      .mipLevels = 1,
+                      .isCubemap = false},
              }},
             {1},
             {0},
@@ -104,8 +102,8 @@ public:
 
         RenderNode::Connect(genUV->GetOutputPorts()[0], sampleUV->GetInputPorts()[0]);
 
-        graph.Process();
-        graph.Execute();
+        graph->Process();
+        graph->Execute();
 
         Gfx::GfxDriver::DestroyGfxDriver();
         return;
@@ -116,14 +114,14 @@ public:
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
         cmdBuf.BeginRenderPass(&renderPass, {clears});
         cmdBuf.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-        cmdBuf.DrawIndexed(3, 1, 0, 0, 0);
+        cmdBuf.Draw(3, 1, 0, 0);
         cmdBuf.EndRenderPass();
     }
 
     static void SampleUV(CommandBuffer&, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers) {}
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
     std::string shader{R"(
-#version 450 core
+#version 450
 
 #if CONFIG
 name: TestShader
@@ -161,5 +159,14 @@ void main()
 TEST(RenderGraph, Process)
 {
     RenderGraphUnitTest t;
-    t.TestGraph();
+
+    try
+    {
+        t.TestGraph();
+    }
+    catch (std::logic_error e)
+    {
+        SPDLOG_ERROR(e.what());
+        ASSERT_TRUE(false);
+    }
 }

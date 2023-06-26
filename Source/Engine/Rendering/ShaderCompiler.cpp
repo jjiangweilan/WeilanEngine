@@ -51,6 +51,7 @@ shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
 }
 std::vector<uint32_t> ShaderCompiler::CompileShader(
     const char* shaderStage,
+    shaderc_shader_kind kind,
     bool debug,
     const char* debugName,
     const char* buf,
@@ -67,7 +68,7 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
         option.SetOptimizationLevel(shaderc_optimization_level_zero);
     }
     shaderc::Compiler compiler;
-    auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, shaderc_vertex_shader, debugName, option);
+    auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, debugName, option);
     if (compiled.GetNumErrors() > 0)
     {
         throw CompileError(fmt::format("Shader failed: {}", compiled.GetErrorMessage().c_str()));

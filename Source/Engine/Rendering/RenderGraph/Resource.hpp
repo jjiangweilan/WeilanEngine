@@ -19,9 +19,22 @@ public:
     ResourceRef(Gfx::Image* image, void* owner) : data(image), owner(owner), type(ResourceType::Image) {}
     ResourceRef(Gfx::Buffer* buffer, void* owner) : data(buffer), owner(owner), type(ResourceType::Buffer) {}
 
-    bool IsNull() { return data == nullptr; }
-    bool IsType(ResourceType type) const { return this->type == type; }
-    void* GetResource() const { return data; }
+    bool IsNull()
+    {
+        return data == nullptr;
+    }
+    bool IsType(ResourceType type) const
+    {
+        return this->type == type;
+    }
+    void* GetResource() const
+    {
+        return data;
+    }
+    void* GetOwner() const
+    {
+        return owner;
+    }
 
 protected:
     void* owner;

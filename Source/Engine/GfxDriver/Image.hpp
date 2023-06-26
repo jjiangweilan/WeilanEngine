@@ -7,6 +7,11 @@
 
 namespace Engine::Gfx
 {
+
+// this is from vulkan specs
+inline const uint32_t Remaining_Mip_Levels = (~0U);
+inline const uint32_t Remaining_Array_Layers = (~0U);
+
 struct ImageSubresourceRange
 {
     ImageAspectFlags aspectMask = ImageAspectFlags::Color;

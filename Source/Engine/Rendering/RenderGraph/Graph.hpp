@@ -10,6 +10,7 @@
 namespace Engine::RenderGraph
 {
 class RenderNode;
+using SortIndex = int;
 class Port
 {
 public:
@@ -61,7 +62,7 @@ private:
 
     // used by Graph
     int depth = -1;
-    int sortIndex = -1;
+    SortIndex sortIndex = -1;
 
     friend class Graph;
 };
@@ -134,26 +135,28 @@ private:
         std::vector<std::unique_ptr<Gfx::Buffer>> buffers;
     } resourcePool;
 
+    // keep track of where the resource is used in the node, so that we can create resource barriers for them
     class ResourceOwner
     {
     public:
         ResourceOwner(Gfx::Image* image) : resourceRef(image, this) {}
         ResourceOwner(Gfx::Buffer* buffer) : resourceRef(buffer, this) {}
 
+        Gfx::ImageLayout preFrameLayout = Gfx::ImageLayout::Undefined;
         ResourceRef resourceRef;
-        std::vector<bool> used;
+        std::vector<std::pair<SortIndex, RenderPass::ResourceHandle>> used;
     };
 
     std::vector<std::unique_ptr<RenderNode>> nodes;
     std::vector<RenderNode*> sortedNodes;
-
+    std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
 
     // preprocess the nodes, expect the graph already sorted.
     // It will create resource required. Set resources from input ports
     void Preprocess(RenderNode* node);
     void Compile();
-    ResourceOwner* CreateResourceOwner(const RenderPass::ResourceDescription& request, int originalNode);
+    ResourceOwner* CreateResourceOwner(const RenderPass::ResourceDescription& request, SortIndex originalNode);
 
     static int GetDepthOfNode(RenderNode* node);
 
