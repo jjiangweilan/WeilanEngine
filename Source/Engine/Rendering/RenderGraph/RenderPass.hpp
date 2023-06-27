@@ -131,12 +131,27 @@ public:
             std::vector<Gfx::RenderPass::Attachment> colors;
             std::optional<Gfx::RenderPass::Attachment> depth = std::nullopt;
 
-            for (Attachment colorHandle : subpass.colors)
+            for (Attachment colorAtta : subpass.colors)
             {
-                Gfx::Image* image = (Gfx::Image*)resourceRefs[colorHandle.handle].GetResource();
-                colors.push_back({
-                    .image = image,
-                });
+                Gfx::Image* image = (Gfx::Image*)resourceRefs[colorAtta.handle].GetResource();
+                colors.push_back(
+                    {.image = image,
+                     .multiSampling = colorAtta.multiSampling,
+                     .loadOp = colorAtta.loadOp,
+                     .storeOp = colorAtta.storeOp,
+                     .stencilLoadOp = colorAtta.stencilLoadOp,
+                     .stencilStoreOp = colorAtta.stencilStoreOp}
+                );
+            }
+
+            if (subpass.depth.has_value())
+            {
+                depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle].GetResource();
+                depth->multiSampling = subpass.depth->multiSampling;
+                depth->loadOp = subpass.depth->loadOp;
+                depth->storeOp = subpass.depth->storeOp;
+                depth->stencilLoadOp = subpass.depth->stencilLoadOp;
+                depth->stencilStoreOp = subpass.depth->stencilStoreOp;
             }
 
             renderPass->AddSubpass(colors, depth);

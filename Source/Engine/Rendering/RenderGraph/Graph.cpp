@@ -5,7 +5,8 @@
 
 namespace Engine::RenderGraph
 {
-RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_) : pass(std::move(pass_))
+RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
+    : pass(std::move(pass_)), debugDesc(debugDesc)
 {
     auto inputs = pass->GetResourceInputs();
     auto outputs = pass->GetResourceOutputs();
@@ -61,6 +62,10 @@ void Graph::Process()
     {
         n->pass->Finalize();
     }
+    for (auto& resourceOwner : resourceOwners)
+    {
+        resourceOwner->Finalize();
+    }
 
     // insert resources barriers
     std::unordered_map<SortIndex, std::vector<GPUBarrier>> barriers;
@@ -79,7 +84,7 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
-                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::None;
+                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Bottom_Of_Pipe;
                 Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
 
                 if (Gfx::HasWriteAccessMask(desc.accessFlags))
@@ -145,7 +150,14 @@ void Graph::Process()
         r->preFrameLayout = currentLayout;
     }
 
+    // convert map barriers to vector barriers so that we can safely insert into sortedNodes
+    std::vector<std::pair<SortIndex, std::vector<GPUBarrier>>> vecBarriers;
     for (auto& b : barriers)
+    {
+        vecBarriers.emplace_back(b.first, b.second);
+    }
+
+    for (auto& b : vecBarriers)
     {
         SortIndex sortIndex = b.first;
         std::vector<GPUBarrier>& gpuBarriers = b.second;
@@ -161,9 +173,17 @@ void Graph::Process()
             {}
         ));
 
-        barrierNodes.push_back(std::make_unique<RenderNode>(std::move(pass)));
+        barrierNodes.push_back(std::make_unique<RenderNode>(std::move(pass), "Barrier Node"));
 
         sortedNodes.insert(sortedNodes.begin() + sortIndex, barrierNodes.back().get());
+
+        for (auto& bb : vecBarriers)
+        {
+            if (bb.first >= sortIndex)
+            {
+                bb.first += 1;
+            }
+        }
     }
 
     // copy
@@ -176,6 +196,8 @@ void Graph::Process()
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     mainCmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
 }
+
+void Graph::ResourceOwner::Finalize() {}
 
 Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request, SortIndex originalNode)
 {

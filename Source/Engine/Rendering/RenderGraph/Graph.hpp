@@ -38,7 +38,7 @@ private:
 class RenderNode
 {
 public:
-    RenderNode(std::unique_ptr<RenderPass>&& pass);
+    RenderNode(std::unique_ptr<RenderPass>&& pass, const std::string& debugDesc = "");
 
     RenderPass* GetPass()
     {
@@ -56,6 +56,7 @@ public:
     static bool Connect(Port& src, Port& dst);
 
 private:
+    std::string debugDesc;
     std::unique_ptr<RenderPass> pass;
     std::vector<Port> inputPorts;
     std::vector<Port> outputPorts;
@@ -145,6 +146,7 @@ private:
         Gfx::ImageLayout preFrameLayout = Gfx::ImageLayout::Undefined;
         ResourceRef resourceRef;
         std::vector<std::pair<SortIndex, RenderPass::ResourceHandle>> used;
+        void Finalize();
     };
 
     std::vector<std::unique_ptr<RenderNode>> nodes;
