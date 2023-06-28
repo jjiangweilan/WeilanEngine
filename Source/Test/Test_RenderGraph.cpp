@@ -36,75 +36,49 @@ public:
 
         RenderNode* genUV = graph->AddNode(
             [this](auto& a, auto& b, auto& c) { GenUV(a, b, c); },
-            {{
-                .name = "uvOut",
-                .handle = 0,
-                .type = ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-                .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-                .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-                .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .imageCreateInfo =
-                    {.width = 256,
-                     .height = 256,
-                     .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                     .mipLevels = 1,
-                     .isCubemap = false},
-            }},
-            {0},
-            {},
-            {0},
-            {.colors = {{
-                 .handle = 0,
-                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                 .loadOp = Gfx::AttachmentLoadOperation::DontCare,
-                 .storeOp = Gfx::AttachmentStoreOperation::Store,
-             }}}
-
-        );
-
-        RenderNode* sampleUV = graph->AddNode(
-            SampleUV,
-            {{.name = "uvTex",
+            {{.name = "sampleOut",
               .handle = 0,
               .type = ResourceType::Image,
-              .accessFlags = Gfx::AccessMask::Shader_Read,
-              .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-              .imageUsagesFlags = Gfx::ImageUsage::Texture,
-              .imageLayout = Gfx::ImageLayout::Shader_Read_Only},
-             {
-                 .name = "sampleOut",
-                 .handle = 1,
-                 .type = ResourceType::Image,
-                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-                 .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                 .imageCreateInfo =
-                     {.width = 256,
-                      .height = 256,
-                      .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                      .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                      .mipLevels = 1,
-                      .isCubemap = false},
-             }},
-            {1},
+              .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+              .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+              .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+              .imageLayout = Gfx::ImageLayout::Color_Attachment,
+              .externalImage = GetGfxDriver()->GetSwapChainImageProxy().Get()}},
+            {},
+            {},
             {0},
-            {1},
-            {.colors = {{
-                 .handle = 1,
-                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                 .loadOp = Gfx::AttachmentLoadOperation::DontCare,
-                 .storeOp = Gfx::AttachmentStoreOperation::Store,
-             }}}
+            {{.colors = {{
+                  .handle = 0,
+                  .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                  .loadOp = Gfx::AttachmentLoadOperation::DontCare,
+                  .storeOp = Gfx::AttachmentStoreOperation::Store,
+              }}}}
         );
 
-        RenderNode::Connect(genUV->GetOutputPorts()[0], sampleUV->GetInputPorts()[0]);
+        graph->Process(&genUV->GetOutputPorts()[0]);
 
-        graph->Process();
-        graph->Execute();
+        bool shouldBreak = false;
+        SDL_Event sdlEvent;
+        while (!shouldBreak)
+        {
+            while (SDL_PollEvent(&sdlEvent))
+            {
+                switch (sdlEvent.type)
+                {
+                    case SDL_KEYDOWN:
+                        if (sdlEvent.key.keysym.scancode == SDL_SCANCODE_Q)
+                        {
+                            shouldBreak = true;
+                        }
+                }
+            }
 
+            graph->Execute();
+        }
+
+        GetGfxDriver()->WaitForIdle();
+        graph = nullptr;
+        shaderProgram = nullptr;
         Gfx::GfxDriver::DestroyGfxDriver();
         return;
     }
@@ -118,7 +92,6 @@ public:
         cmdBuf.EndRenderPass();
     }
 
-    static void SampleUV(CommandBuffer&, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers) {}
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
     std::string shader{R"(
 #version 450
@@ -132,8 +105,8 @@ layout(location = 0) out vec2 o_uv;
 
 vec4 vertices[3] = {
     {-1, -3, 0.5, 1.0},
-    {-1, -1, 0.5, 1.0},
-    {3, -1, 0.5, 1.0}
+    {-1, 1, 0.5, 1.0},
+    {3, 1, 0.5, 1.0}
 };
 
 void main()

@@ -37,6 +37,8 @@ public:
             Gfx::ImageDescription imageCreateInfo;
             Gfx::Buffer::CreateInfo bufferCreateInfo;
         };
+
+        Gfx::Image* externalImage;
     };
 
     struct Attachment
@@ -56,8 +58,8 @@ public:
     };
 
 public:
-    using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef>;
-    using Buffers = std::unordered_map<ResourceHandle, ResourceRef>;
+    using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
+    using Buffers = std::unordered_map<ResourceHandle, ResourceRef*>;
     using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass& renderPass, const Buffers& buffers)>;
 
     RenderPass(
@@ -73,19 +75,24 @@ public:
         for (const ResourceDescription& res : resourceDescs)
         {
             resourceDescriptions[res.handle] = res;
+
+            if (res.externalImage != nullptr)
+            {
+                externalResources.push_back(res.handle);
+            }
         }
 
         resourceRefs.reserve(resourceDescs.size());
     }
     ~RenderPass() {}
     // Set resource that is needed by this node.framgraph
-    void SetResourceRef(ResourceHandle handle, ResourceRef resource)
+    void SetResourceRef(ResourceHandle handle, ResourceRef* resource)
     {
         resourceRefs[handle] = resource;
     }
 
     // Get a resource from the RenderPass.
-    ResourceRef GetResourceRef(ResourceHandle handle)
+    ResourceRef* GetResourceRef(ResourceHandle handle)
     {
         return resourceRefs.at(handle);
     }
@@ -94,6 +101,11 @@ public:
     virtual std::span<ResourceHandle> GetResourceCreationRequests()
     {
         return creationRequests;
+    }
+
+    const auto& GetResourceDescriptions()
+    {
+        return resourceDescriptions;
     }
 
     virtual const ResourceDescription& GetResourceDescription(ResourceHandle handle)
@@ -111,6 +123,11 @@ public:
     std::span<const ResourceHandle> GetResourceOutputs()
     {
         return outputs;
+    }
+
+    std::span<const ResourceHandle> GetExternalResources()
+    {
+        return externalResources;
     }
 
     // Recording all the gfx commands.
@@ -133,7 +150,7 @@ public:
 
             for (Attachment colorAtta : subpass.colors)
             {
-                Gfx::Image* image = (Gfx::Image*)resourceRefs[colorAtta.handle].GetResource();
+                Gfx::Image* image = (Gfx::Image*)resourceRefs[colorAtta.handle]->GetResource();
                 colors.push_back(
                     {.image = image,
                      .multiSampling = colorAtta.multiSampling,
@@ -146,7 +163,7 @@ public:
 
             if (subpass.depth.has_value())
             {
-                depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle].GetResource();
+                depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
                 depth->multiSampling = subpass.depth->multiSampling;
                 depth->loadOp = subpass.depth->loadOp;
                 depth->storeOp = subpass.depth->storeOp;
@@ -158,7 +175,7 @@ public:
         }
         for (auto& r : resourceRefs)
         {
-            if (r.second.IsType(ResourceType::Buffer))
+            if (r.second->IsType(ResourceType::Buffer))
             {
                 buffers[r.first] = r.second;
             }
@@ -166,6 +183,7 @@ public:
     }
 
 protected:
+    std::vector<ResourceHandle> externalResources;
     std::unique_ptr<Gfx::RenderPass> renderPass;
     std::vector<ResourceHandle> creationRequests;
     const std::vector<Subpass> subpasses;

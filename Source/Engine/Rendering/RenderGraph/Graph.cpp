@@ -36,8 +36,36 @@ bool RenderNode::Connect(Port& src, Port& dst)
     return true;
 }
 
-void Graph::Process()
+void Graph::Process(Port* presentPort)
 {
+    if (presentPort != nullptr)
+    {
+        if (presentPort->parent->pass->GetResourceDescription(presentPort->handle).externalImage !=
+            GetGfxDriver()->GetSwapChainImageProxy().Get())
+        {
+            throw std::logic_error("present port needs to be swapchain image");
+        }
+
+        RenderNode* present = AddNode(
+            [](auto& cmd, auto& renderPass, const auto& bufs) {},
+            {{
+                .name = "swapchainImage",
+                .handle = 0,
+                .type = ResourceType::Image,
+                .accessFlags = Gfx::AccessMask::None,
+                .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+                .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
+                .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
+            }},
+            {},
+            {0},
+            {},
+            {}
+        );
+
+        RenderNode::Connect(*presentPort, present->GetInputPorts()[0]);
+    }
+
     std::vector<RenderNode*> sortedNodes(nodes.size());
     std::transform(nodes.begin(), nodes.end(), sortedNodes.begin(), [](auto& n) { return n.get(); });
 
@@ -58,20 +86,48 @@ void Graph::Process()
         Preprocess(n);
     }
 
+    for (auto& resourceOwner : resourceOwners)
+    {
+        resourceOwner->Finalize(resourcePool);
+    }
+
     for (RenderNode* n : sortedNodes)
     {
         n->pass->Finalize();
     }
-    for (auto& resourceOwner : resourceOwners)
-    {
-        resourceOwner->Finalize();
-    }
 
     // insert resources barriers
     std::unordered_map<SortIndex, std::vector<GPUBarrier>> barriers;
+    std::vector<GPUBarrier> initialLayoutTransfers;
+
     for (std::unique_ptr<ResourceOwner>& r : resourceOwners)
     {
-        Gfx::ImageLayout currentLayout = r->preFrameLayout;
+        if (r->used.empty())
+            assert("Shouldn't be empty, if empty should be culled");
+
+        auto lastUsed = r->used.back();
+        Gfx::ImageLayout currentLayout =
+            sortedNodes[lastUsed.first]->pass->GetResourceDescription(lastUsed.second).imageLayout;
+
+        if (r->resourceRef.IsType(ResourceType::Image))
+        {
+            GPUBarrier initialLayoutTransfer{
+                .image = (Gfx::Image*)r->resourceRef.GetResource(),
+                .srcStageMask = Gfx::PipelineStage::All_Commands,
+                .dstStageMask = Gfx::PipelineStage::All_Commands,
+                .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                .imageInfo =
+                    {
+                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                        .oldLayout = Gfx::ImageLayout::Undefined,
+                        .newLayout = currentLayout,
+                    },
+            };
+            initialLayoutTransfers.push_back(initialLayoutTransfer);
+        }
+
         using UsedIndex = int;
         std::vector<UsedIndex> readAccess;
         std::vector<UsedIndex> writeAccess;
@@ -84,10 +140,11 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
-                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Bottom_Of_Pipe;
+
+                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
                 Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
 
-                if (Gfx::HasWriteAccessMask(desc.accessFlags))
+                if (Gfx::HasWriteAccessMask(desc.accessFlags) || currentLayout != desc.imageLayout)
                 {
                     // write after write
                     for (UsedIndex i : writeAccess)
@@ -146,8 +203,6 @@ void Graph::Process()
                 currentLayout = desc.imageLayout;
             }
         }
-
-        r->preFrameLayout = currentLayout;
     }
 
     // convert map barriers to vector barriers so that we can safely insert into sortedNodes
@@ -195,16 +250,42 @@ void Graph::Process()
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     mainCmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
+
+    mainCmd->Begin();
+    mainCmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
+    mainCmd->End();
+
+    RefPtr<CommandBuffer> cmdBufs[] = {mainCmd.get()};
+    GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
+    GetGfxDriver()->WaitForIdle();
+    commandPool->ResetCommandPool();
 }
 
-void Graph::ResourceOwner::Finalize() {}
-
-Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request, SortIndex originalNode)
+void Graph::ResourceOwner::Finalize(ResourcePool& pool)
 {
     if (request.type == ResourceType::Image)
     {
-        Gfx::Image* image = resourcePool.CreateImage(request.imageCreateInfo, request.imageUsagesFlags);
-        auto owner = std::make_unique<ResourceOwner>(image);
+        if (request.externalImage == nullptr)
+        {
+            Gfx::Image* image = pool.CreateImage(request.imageCreateInfo, request.imageUsagesFlags);
+            resourceRef.SetResource(image);
+        }
+        else
+        {
+            resourceRef.SetResource(request.externalImage);
+        }
+    }
+    else if (request.type == ResourceType::Buffer)
+    {
+        throw std::runtime_error("Not Implemented");
+    }
+}
+
+Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request)
+{
+    if (request.type == ResourceType::Image)
+    {
+        auto owner = std::make_unique<ResourceOwner>(request);
         resourceOwners.push_back(std::move(owner));
         return resourceOwners.back().get();
     }
@@ -248,13 +329,18 @@ int Graph::GetDepthOfNode(RenderNode* node)
 
 void Graph::Preprocess(RenderNode* n)
 {
-    // create resource
+    // create resource owner for creation request and external resources
     auto creationRequests = n->pass->GetResourceCreationRequests();
-    for (auto& handle : creationRequests)
+    auto externalResources = n->pass->GetExternalResources();
+    std::vector<RenderPass::ResourceHandle> resourceHandles;
+    resourceHandles.assign(creationRequests.begin(), creationRequests.end());
+    resourceHandles.insert(resourceHandles.end(), externalResources.begin(), externalResources.end());
+
+    for (auto& handle : resourceHandles)
     {
         auto& request = n->pass->GetResourceDescription(handle);
-        ResourceOwner* owner = CreateResourceOwner(request, n->sortIndex);
-        n->pass->SetResourceRef(request.handle, owner->resourceRef);
+        ResourceOwner* owner = CreateResourceOwner(request);
+        n->pass->SetResourceRef(request.handle, &owner->resourceRef);
         owner->used.push_back({n->sortIndex, handle});
     }
 
@@ -266,8 +352,13 @@ void Graph::Preprocess(RenderNode* n)
             throw Errrors::GraphCompile("A node has unconnected port");
 
         auto resRef = connected->parent->pass->GetResourceRef(connected->handle);
-        ResourceOwner* owner = (ResourceOwner*)resRef.GetOwner();
+        ResourceOwner* owner = (ResourceOwner*)resRef->GetOwner();
         owner->used.push_back({inPort.parent->sortIndex, inPort.handle});
+
+        auto& fromDesc = n->pass->GetResourceDescription(connected->handle);
+        owner->request.imageUsagesFlags |= fromDesc.imageUsagesFlags;
+        owner->request.bufferUsageFlags |= fromDesc.bufferUsageFlags;
+
         inPort.parent->pass->SetResourceRef(inPort.handle, resRef);
     }
 }
@@ -303,10 +394,11 @@ void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
 
 void Graph::Execute()
 {
-    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
     commandPool->ResetCommandPool();
+
+    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
     mainCmd->Begin();
     // TODO: better move the whole gfx thing to a renderer
     mainCmd->SetViewport({.x = 0, .y = 0, .width = 1920, .height = 1080, .minDepth = 0, .maxDepth = 1});

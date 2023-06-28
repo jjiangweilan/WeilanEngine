@@ -88,17 +88,43 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     auto& cmdBuf = cmdBufs[0];
     cmdBuf->Begin();
 
-    GPUBarrier barrier;
-    barrier.srcStageMask = Gfx::PipelineStage::All_Commands;
-    barrier.dstStageMask = Gfx::PipelineStage::All_Commands;
-    barrier.dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
-    barrier.srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
-    barrier.image = sharedResource->GetDefaultTexture();
-    barrier.imageInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-    barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-    barrier.imageInfo.oldLayout = Gfx::ImageLayout::Undefined;
-    barrier.imageInfo.newLayout = Gfx::ImageLayout::Shader_Read_Only;
-    cmdBuf->Barrier(&barrier, 1);
+    std::vector<GPUBarrier> barriers;
+    for (int i = 0; i < swapchain->GetSwapChainInfo().numberOfImages; ++i)
+    {
+        GPUBarrier barrier{
+            .image = swapchain->GetSwapChainImage(i),
+            .srcStageMask = Gfx::PipelineStage::All_Commands,
+            .dstStageMask = Gfx::PipelineStage::All_Commands,
+            .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+            .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+            .imageInfo =
+                {
+                    .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                    .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                    .oldLayout = Gfx::ImageLayout::Undefined,
+                    .newLayout = Gfx::ImageLayout::Present_Src_Khr,
+                },
+        };
+        barriers.push_back(barrier);
+    }
+
+    GPUBarrier defaultTextureBarrier = {
+        .image = sharedResource->GetDefaultTexture(),
+        .srcStageMask = Gfx::PipelineStage::All_Commands,
+        .dstStageMask = Gfx::PipelineStage::All_Commands,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .imageInfo =
+            {
+                .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .oldLayout = Gfx::ImageLayout::Undefined,
+                .newLayout = Gfx::ImageLayout::Shader_Read_Only,
+            },
+    };
+
+    barriers.push_back(defaultTextureBarrier);
+    cmdBuf->Barrier(barriers.data(), barriers.size());
 
     cmdBuf->End();
 

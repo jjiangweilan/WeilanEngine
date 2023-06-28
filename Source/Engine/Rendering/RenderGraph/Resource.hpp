@@ -16,8 +16,17 @@ class ResourceRef
 {
 public:
     ResourceRef() : owner(nullptr), data(nullptr), type(ResourceType::Buffer) {}
-    ResourceRef(Gfx::Image* image, void* owner) : data(image), owner(owner), type(ResourceType::Image) {}
-    ResourceRef(Gfx::Buffer* buffer, void* owner) : data(buffer), owner(owner), type(ResourceType::Buffer) {}
+    ResourceRef(ResourceType type, void* owner) : data(nullptr), owner(owner), type(type) {}
+
+    void SetResource(Gfx::Image* image)
+    {
+        this->data = image;
+    }
+
+    void SetResource(Gfx::Buffer* buffer)
+    {
+        this->data = buffer;
+    }
 
     bool IsNull()
     {
