@@ -53,7 +53,7 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
         // color attachments
         for (Attachment& colorAtta : subpass.colors)
         {
-            if (swapChainProxy != nullptr)
+            if (swapChainProxy == nullptr)
                 swapChainProxy = dynamic_cast<VKSwapChainImageProxy*>(colorAtta.image.Get());
             imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
             attaIndex += 1;
