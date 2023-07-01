@@ -244,21 +244,17 @@ void Graph::Process(Port* presentPort)
     // copy
     this->sortedNodes = sortedNodes;
 
-    submitFence = GetGfxDriver()->CreateFence({.signaled = true});
-    submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
-    swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
-    queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
-    commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    mainCmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
+    auto queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
+    auto commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
+    std::unique_ptr<CommandBuffer> cmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
 
-    mainCmd->Begin();
-    mainCmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
-    mainCmd->End();
+    cmd->Begin();
+    cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
+    cmd->End();
 
-    RefPtr<CommandBuffer> cmdBufs[] = {mainCmd.get()};
+    RefPtr<CommandBuffer> cmdBufs[] = {cmd.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
     GetGfxDriver()->WaitForIdle();
-    commandPool->ResetCommandPool();
 }
 
 void Graph::ResourceOwner::Finalize(ResourcePool& pool)
@@ -392,30 +388,11 @@ void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
     }
 }
 
-void Graph::Execute()
+void Graph::Execute(CommandBuffer& cmd)
 {
-    GetGfxDriver()->WaitForFence({submitFence}, true, -1);
-    submitFence->Reset();
-    commandPool->ResetCommandPool();
-
-    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
-    mainCmd->Begin();
-    // TODO: better move the whole gfx thing to a renderer
-    mainCmd->SetViewport({.x = 0, .y = 0, .width = 1920, .height = 1080, .minDepth = 0, .maxDepth = 1});
-    Rect2D rect = {{0, 0}, {1920, 1080}};
-    mainCmd->SetScissor(0, 1, &rect);
     for (auto n : sortedNodes)
     {
-        n->pass->Execute(*mainCmd);
+        n->pass->Execute(cmd);
     }
-    mainCmd->End();
-
-    RefPtr<CommandBuffer> cmds[] = {mainCmd};
-    RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
-    Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
-    RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
-    GetGfxDriver()->QueueSubmit(queue, cmds, waitSemaphores, waitPipelineStages, submitSemaphores, submitFence);
-
-    GetGfxDriver()->Present({submitSemaphore});
 }
 } // namespace Engine::RenderGraph

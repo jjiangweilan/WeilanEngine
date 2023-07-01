@@ -96,13 +96,13 @@ public:
 
     // After all nodes are configured, call process once before calling Execute
     // the graph handles the transition of swapchain image, set presentPort to the output of the swapchain image
-    void Process(Port* presentPort);
+    void Process(Port* presentPort = nullptr);
 
     // used before Execute to override external resource state that can't be tracked by the graph
     void OverrideResourceState();
 
     // execute all nodes for once
-    void Execute();
+    void Execute(CommandBuffer& cmd);
 
 private:
     class ResourcePool
@@ -135,12 +135,6 @@ private:
         void Finalize(ResourcePool& pool);
     };
 
-    std::vector<std::unique_ptr<RenderNode>> nodes;
-    std::vector<RenderNode*> sortedNodes;
-    std::vector<std::unique_ptr<RenderNode>> barrierNodes;
-    std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
-    std::unique_ptr<RenderNode> presentNode;
-
     // preprocess the nodes, expect the graph already sorted.
     // It will create resource required. Set resources from input ports
     void Preprocess(RenderNode* node);
@@ -151,11 +145,10 @@ private:
 
     // rendering related stuffs, maybe factor out of Graph?
 private:
-    RefPtr<CommandQueue> queue;
-    std::unique_ptr<Gfx::Semaphore> submitSemaphore;
-    std::unique_ptr<Gfx::Fence> submitFence;
-    std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
-    std::unique_ptr<Gfx::CommandPool> commandPool;
-    std::unique_ptr<CommandBuffer> mainCmd;
+    std::vector<std::unique_ptr<RenderNode>> nodes;
+    std::vector<RenderNode*> sortedNodes;
+    std::vector<std::unique_ptr<RenderNode>> barrierNodes;
+    std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
+    std::unique_ptr<RenderNode> presentNode;
 };
 } // namespace Engine::RenderGraph
