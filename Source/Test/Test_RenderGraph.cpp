@@ -36,49 +36,93 @@ public:
 
         RenderNode* genUV = graph->AddNode(
             [this](auto& a, auto& b, const auto& c) { GenUV(a, b, c); },
-            {{.name = "sampleOut",
-              .handle = 0,
-              .type = ResourceType::Image,
-              .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-              .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-              .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-              .imageLayout = Gfx::ImageLayout::Color_Attachment,
-              .imageCreateInfo =
-                  {.width = 256,
-                   .height = 256,
-                   .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-                   .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                   .mipLevels = 1,
-                   .isCubemap = false}}},
-            {0},
+            {
+                {
+                    .name = "sampleOut",
+                    .handle = 0,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                    .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = 256,
+                            .height = 256,
+                            .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                            .mipLevels = 1,
+                            .isCubemap = false,
+                        },
+                },
+            },
             {},
             {0},
-            {{.colors = {{
-                  .handle = 0,
-                  .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                  .loadOp = Gfx::AttachmentLoadOperation::DontCare,
-                  .storeOp = Gfx::AttachmentStoreOperation::Store,
-              }}}}
+            {
+                {
+                    .colors =
+                        {
+                            {
+                                .handle = 0,
+                                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                                .loadOp = Gfx::AttachmentLoadOperation::DontCare,
+                                .storeOp = Gfx::AttachmentStoreOperation::Store,
+                            },
+                        },
+                },
+            }
         );
 
+        uint32_t readbackBuf[256 * 256 * 4];
+
         RenderNode* readSample = graph->AddNode(
-            [](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res) {},
-            {{.name = "sampleOut",
-              .handle = 0,
-              .type = ResourceType::Buffer,
-              .accessFlags = Gfx::AccessMask::Transfer_Write,
-              .stageFlags = Gfx::PipelineStage::Transfer,
-              .bufferCreateInfo =
-                  {
-                      .usages = Gfx::BufferUsage::Transfer_Dst,
-                      .size = 256 * 256 * 4,
-                      .visibleInCPU = true,
-                  }}},
-            {},
-            {},
+            [readbackBuf](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res)
+            {
+                auto buf = (Gfx::Buffer*)res.at(0)->GetResource();
+                auto img = (Gfx::Image*)res.at(1)->GetResource();
+
+                BufferImageCopyRegion copyRegion[1];
+                copyRegion[0].srcOffset = 0;
+                copyRegion[0].offset = {0, 0, 0};
+                copyRegion[0].extend = {256, 256, 1};
+                copyRegion[0].layers = {
+                    .aspectMask = Gfx::ImageAspect::Color,
+                    .mipLevel = 0,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                };
+
+                cmd.CopyImageToBuffer(img, buf, copyRegion);
+                memcpy((void*)readbackBuf, buf->GetCPUVisibleAddress(), 256 * 256 * 4);
+            },
+            {
+                {
+                    .name = "readback sample",
+                    .handle = 0,
+                    .type = ResourceType::Buffer,
+                    .accessFlags = Gfx::AccessMask::Transfer_Write,
+                    .stageFlags = Gfx::PipelineStage::Transfer,
+                    .bufferCreateInfo =
+                        {
+                            .usages = Gfx::BufferUsage::Transfer_Dst,
+                            .size = 256 * 256 * 4,
+                            .visibleInCPU = true,
+                        },
+                },
+                {.name = "input image",
+                 .handle = 1,
+                 .type = ResourceType::Image,
+                 .accessFlags = Gfx::AccessMask::Transfer_Read,
+                 .stageFlags = Gfx::PipelineStage::Transfer,
+                 .imageUsagesFlags = Gfx::ImageUsage::TransferSrc,
+                 .imageLayout = Gfx::ImageLayout::Transfer_Src},
+            },
+            {1},
             {},
             {}
         );
+
+        RenderNode::Connect(genUV->GetOutputPorts()[0], readSample->GetInputPorts()[0]);
 
         graph->Process();
 

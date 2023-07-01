@@ -3,7 +3,9 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "RenderPass.hpp"
 #include "ResourceCenter.hpp"
+#include <functional>
 #include <memory>
+#include <optional>
 
 namespace Engine::RenderGraph
 {
@@ -24,11 +26,7 @@ public:
 
         Gfx::AccessMaskFlags accessFlags;
         Gfx::PipelineStageFlags stageFlags;
-        union
-        {
-            Gfx::BufferUsageFlags bufferUsageFlags;
-            Gfx::ImageUsageFlags imageUsagesFlags;
-        };
+        Gfx::ImageUsageFlags imageUsagesFlags;
         Gfx::ImageLayout imageLayout;
 
         // creational info
@@ -65,12 +63,11 @@ public:
     RenderPass(
         const ExecutionFunc& execute,
         const std::vector<ResourceDescription>& resourceDescs,
-        const std::vector<ResourceHandle>& creationRequests,
         const std::vector<ResourceHandle>& inputs,
         const std::vector<ResourceHandle>& outputs,
         const std::vector<Subpass>& subpasses
     )
-        : creationRequests(creationRequests), inputs(inputs), outputs(outputs), subpasses(subpasses), execute(execute)
+        : inputs(inputs), outputs(outputs), subpasses(subpasses), execute(execute)
     {
         for (const ResourceDescription& res : resourceDescs)
         {
@@ -79,6 +76,15 @@ public:
             if (res.externalImage != nullptr)
             {
                 externalResources.push_back(res.handle);
+            }
+
+            if (res.type == ResourceType::Image && res.imageCreateInfo.width != 0 && res.imageCreateInfo.height != 0)
+            {
+                creationRequests.push_back(res.handle);
+            }
+            else if (res.type == ResourceType::Buffer && res.bufferCreateInfo.size != 0)
+            {
+                creationRequests.push_back(res.handle);
             }
         }
 

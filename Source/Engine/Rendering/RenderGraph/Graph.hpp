@@ -82,14 +82,13 @@ public:
     RenderNode* AddNode(
         const RenderPass::ExecutionFunc& execute,
         const std::vector<RenderPass::ResourceDescription>& resourceDescs,
-        const std::vector<RenderPass::ResourceHandle>& creationRequests,
         const std::vector<RenderPass::ResourceHandle>& inputs,
         const std::vector<RenderPass::ResourceHandle>& outputs,
         const std::vector<RenderPass::Subpass>& subpasses
     )
     {
         std::unique_ptr<RenderPass> pass =
-            std::make_unique<RenderPass>(execute, resourceDescs, creationRequests, inputs, outputs, subpasses);
+            std::make_unique<RenderPass>(execute, resourceDescs, inputs, outputs, subpasses);
         nodes.emplace_back(new RenderNode(std::move(pass)));
         return nodes.back().get();
     }
@@ -108,7 +107,7 @@ private:
     class ResourcePool
     {
     public:
-        Gfx::Buffer* CreateBuffer();
+        Gfx::Buffer* CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo);
         Gfx::Image* CreateImage(const Gfx::ImageDescription& imageDesc, Gfx::ImageUsageFlags usages);
 
         void ReleaseBuffer(Gfx::Buffer* handle);

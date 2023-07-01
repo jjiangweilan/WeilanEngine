@@ -57,7 +57,6 @@ void Graph::Process(Port* presentPort)
                 .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
                 .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
             }},
-            {},
             {0},
             {},
             {}
@@ -224,7 +223,6 @@ void Graph::Process(Port* presentPort)
             {},
             {},
             {},
-            {},
             {}
         ));
 
@@ -273,29 +271,16 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
     }
     else if (request.type == ResourceType::Buffer)
     {
-        throw std::runtime_error("Not Implemented");
+        Gfx::Buffer* buf = pool.CreateBuffer(request.bufferCreateInfo);
+        resourceRef.SetResource(buf);
     }
 }
 
 Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request)
 {
-    if (request.type == ResourceType::Image)
-    {
-        auto owner = std::make_unique<ResourceOwner>(request);
-        resourceOwners.push_back(std::move(owner));
-        return resourceOwners.back().get();
-    }
-    else if (request.type == ResourceType::Buffer)
-    {
-        assert(false && "Not implemented");
-
-        // Gfx::Buffer* buffer = resourcePool.CreateBuffer();
-        // auto owner = std::make_unique<ResourceOwner>(buffer);
-        // resourceOwners.push_back(std::move(owner));
-        return resourceOwners.back().get();
-    }
-
-    return nullptr;
+    auto owner = std::make_unique<ResourceOwner>(request);
+    resourceOwners.push_back(std::move(owner));
+    return resourceOwners.back().get();
 }
 
 int Graph::GetDepthOfNode(RenderNode* node)
@@ -353,7 +338,7 @@ void Graph::Preprocess(RenderNode* n)
 
         auto& fromDesc = n->pass->GetResourceDescription(connected->handle);
         owner->request.imageUsagesFlags |= fromDesc.imageUsagesFlags;
-        owner->request.bufferUsageFlags |= fromDesc.bufferUsageFlags;
+        owner->request.bufferCreateInfo.usages |= fromDesc.bufferCreateInfo.usages;
 
         inPort.parent->pass->SetResourceRef(inPort.handle, resRef);
     }
@@ -361,9 +346,11 @@ void Graph::Preprocess(RenderNode* n)
 
 void Graph::Compile() {}
 
-Gfx::Buffer* Graph::ResourcePool::CreateBuffer()
+Gfx::Buffer* Graph::ResourcePool::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
 {
-    return nullptr;
+    buffers.push_back(std::move(GetGfxDriver()->CreateBuffer(createInfo)));
+
+    return buffers.back().get();
 }
 Gfx::Image* Graph::ResourcePool::CreateImage(const Gfx::ImageDescription& imageDesc, Gfx::ImageUsageFlags usages)
 {
@@ -372,7 +359,19 @@ Gfx::Image* Graph::ResourcePool::CreateImage(const Gfx::ImageDescription& imageD
     return images.back().get();
 }
 
-void Graph::ResourcePool::ReleaseBuffer(Gfx::Buffer* handle) {}
+void Graph::ResourcePool::ReleaseBuffer(Gfx::Buffer* handle)
+{
+    auto iter = std::find_if(
+        buffers.begin(),
+        buffers.end(),
+        [handle](std::unique_ptr<Gfx::Buffer>& p) { return p.get() == handle; }
+    );
+
+    if (iter != buffers.end())
+    {
+        buffers.erase(iter);
+    }
+}
 
 void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
 {
