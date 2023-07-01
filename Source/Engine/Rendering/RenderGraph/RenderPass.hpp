@@ -59,8 +59,8 @@ public:
 
 public:
     using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
-    using Buffers = std::unordered_map<ResourceHandle, ResourceRef*>;
-    using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass& renderPass, const Buffers& buffers)>;
+    using Resources = std::unordered_map<ResourceHandle, ResourceRef*>;
+    using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass&, const ResourceRefs&)>;
 
     RenderPass(
         const ExecutionFunc& execute,
@@ -135,7 +135,7 @@ public:
     virtual void Execute(CommandBuffer& cmdBuf)
     {
         if (execute)
-            execute(cmdBuf, *renderPass, buffers);
+            execute(cmdBuf, *renderPass, resourceRefs);
     };
 
     // call when all the resources are set
@@ -173,13 +173,6 @@ public:
 
             renderPass->AddSubpass(colors, depth);
         }
-        for (auto& r : resourceRefs)
-        {
-            if (r.second->IsType(ResourceType::Buffer))
-            {
-                buffers[r.first] = r.second;
-            }
-        }
     }
 
 protected:
@@ -188,7 +181,6 @@ protected:
     std::vector<ResourceHandle> creationRequests;
     const std::vector<Subpass> subpasses;
     ResourceRefs resourceRefs;
-    Buffers buffers;
     std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;
     std::vector<ResourceHandle> inputs;
     std::vector<ResourceHandle> outputs;

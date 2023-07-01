@@ -35,7 +35,7 @@ public:
             GetGfxDriver()->CreateShaderProgram("shaderTest", &shaderCompiler.GetConfig(), vertSPV, fragSPV);
 
         RenderNode* genUV = graph->AddNode(
-            [this](auto& a, auto& b, auto& c) { GenUV(a, b, c); },
+            [this](auto& a, auto& b, const auto& c) { GenUV(a, b, c); },
             {{.name = "sampleOut",
               .handle = 0,
               .type = ResourceType::Image,
@@ -62,7 +62,7 @@ public:
         );
 
         RenderNode* readSample = graph->AddNode(
-            [](CommandBuffer& cmd, auto& b, const RenderPass::Buffers& buffers) {},
+            [](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res) {},
             {{.name = "sampleOut",
               .handle = 0,
               .type = ResourceType::Buffer,
@@ -98,7 +98,7 @@ public:
         return;
     }
 
-    void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers)
+    void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::ResourceRefs& res)
     {
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
         cmdBuf.BeginRenderPass(&renderPass, {clears});
