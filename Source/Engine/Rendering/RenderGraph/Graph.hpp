@@ -11,28 +11,6 @@ namespace Engine::RenderGraph
 {
 class RenderNode;
 using SortIndex = int;
-class Port
-{
-public:
-    Port(RenderNode* parent, RenderPass::ResourceHandle handle) : parent(parent), handle(handle) {}
-
-    Port* GetConnected()
-    {
-        return connected;
-    }
-    RenderNode* GetParent()
-    {
-        return parent;
-    }
-
-private:
-    RenderPass::ResourceHandle handle;
-    Port* connected = nullptr;
-    RenderNode* parent;
-
-    friend class Graph;
-    friend class RenderNode;
-};
 
 // A RenerNode contains a RenderPass and act like a window for the RenderPass to talk to other nodes.
 class RenderNode
@@ -44,22 +22,23 @@ public:
     {
         return pass.get();
     }
-    std::span<Port> GetInputPorts()
-    {
-        return inputPorts;
-    }
-    std::span<Port> GetOutputPorts()
-    {
-        return outputPorts;
-    }
-
-    static bool Connect(Port& src, Port& dst);
 
 private:
+    class Port
+    {
+    public:
+        RenderPass::ResourceHandle handle;
+        Port* connected;
+        RenderNode* parent;
+
+        friend class Graph;
+        friend class RenderNode;
+    };
+
     std::string debugDesc;
     std::unique_ptr<RenderPass> pass;
-    std::vector<Port> inputPorts;
-    std::vector<Port> outputPorts;
+    std::vector<std::unique_ptr<Port>> inputPorts;
+    std::vector<std::unique_ptr<Port>> outputPorts;
 
     // used by Graph
     int depth = -1;
@@ -82,20 +61,23 @@ public:
     RenderNode* AddNode(
         const RenderPass::ExecutionFunc& execute,
         const std::vector<RenderPass::ResourceDescription>& resourceDescs,
-        const std::vector<RenderPass::ResourceHandle>& inputs,
-        const std::vector<RenderPass::ResourceHandle>& outputs,
         const std::vector<RenderPass::Subpass>& subpasses
     )
     {
-        std::unique_ptr<RenderPass> pass =
-            std::make_unique<RenderPass>(execute, resourceDescs, inputs, outputs, subpasses);
+        std::unique_ptr<RenderPass> pass = std::make_unique<RenderPass>(execute, resourceDescs, subpasses);
         nodes.emplace_back(new RenderNode(std::move(pass)));
         return nodes.back().get();
     }
 
+    static void Connect(
+        RenderNode* src, RenderPass::ResourceHandle srcHandle, RenderNode* dst, RenderPass::ResourceHandle dstHandle
+    );
+
     // After all nodes are configured, call process once before calling Execute
-    // the graph handles the transition of swapchain image, set presentPort to the output of the swapchain image
-    void Process(Port* presentPort = nullptr);
+    // the graph handles the transition of swapchain image, set the resourceHandle of the presentNode to the output of
+    // the swapchain image
+    void Process(RenderNode* presentNode, RenderPass::ResourceHandle resourceHandle);
+    void Process();
 
     // used before Execute to override external resource state that can't be tracked by the graph
     void OverrideResourceState();

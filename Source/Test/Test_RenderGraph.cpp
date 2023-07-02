@@ -14,6 +14,10 @@ namespace Engine::RenderGraph
 class RenderGraphUnitTest : public Graph
 {
 public:
+    struct RGBA32
+    {
+        unsigned char x, y, z, w;
+    };
     void TestGraph()
     {
         Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {640, 480}});
@@ -56,8 +60,6 @@ public:
                         },
                 },
             },
-            {},
-            {0},
             {
                 {
                     .colors =
@@ -73,10 +75,16 @@ public:
             }
         );
 
-        uint32_t readbackBuf[256 * 256 * 4];
+        auto readbackBuf = GetGfxDriver()->CreateBuffer(
+            {.usages = Gfx::BufferUsage::Transfer_Dst,
+             .size = 256 * 256 * sizeof(RGBA32),
+             .visibleInCPU = true,
+             .debugName = "readbackBuf"}
+        );
+        RGBA32 readbackBufCPU[256 * 256];
 
         RenderNode* readSample = graph->AddNode(
-            [readbackBuf](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res)
+            [](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res)
             {
                 auto buf = (Gfx::Buffer*)res.at(0)->GetResource();
                 auto img = (Gfx::Image*)res.at(1)->GetResource();
@@ -93,7 +101,6 @@ public:
                 };
 
                 cmd.CopyImageToBuffer(img, buf, copyRegion);
-                memcpy((void*)readbackBuf, buf->GetCPUVisibleAddress(), 256 * 256 * 4);
             },
             {
                 {
@@ -102,27 +109,22 @@ public:
                     .type = ResourceType::Buffer,
                     .accessFlags = Gfx::AccessMask::Transfer_Write,
                     .stageFlags = Gfx::PipelineStage::Transfer,
-                    .bufferCreateInfo =
-                        {
-                            .usages = Gfx::BufferUsage::Transfer_Dst,
-                            .size = 256 * 256 * 4,
-                            .visibleInCPU = true,
-                        },
+                    .externalBuffer = readbackBuf.Get(),
                 },
-                {.name = "input image",
-                 .handle = 1,
-                 .type = ResourceType::Image,
-                 .accessFlags = Gfx::AccessMask::Transfer_Read,
-                 .stageFlags = Gfx::PipelineStage::Transfer,
-                 .imageUsagesFlags = Gfx::ImageUsage::TransferSrc,
-                 .imageLayout = Gfx::ImageLayout::Transfer_Src},
+                {
+                    .name = "input image",
+                    .handle = 1,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Transfer_Read,
+                    .stageFlags = Gfx::PipelineStage::Transfer,
+                    .imageUsagesFlags = Gfx::ImageUsage::TransferSrc,
+                    .imageLayout = Gfx::ImageLayout::Transfer_Src,
+                },
             },
-            {1},
-            {},
             {}
         );
 
-        RenderNode::Connect(genUV->GetOutputPorts()[0], readSample->GetInputPorts()[0]);
+        Graph::Connect(genUV, 0, readSample, 1);
 
         graph->Process();
 
@@ -136,6 +138,18 @@ public:
             }
         );
 
+        memcpy((void*)readbackBufCPU, readbackBuf->GetCPUVisibleAddress(), 256 * 256 * sizeof(RGBA32));
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].x == 255);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].y == 0);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].z == 255);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].w == 0);
+
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].x == 129);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].y == 129);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].z == 0);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].w == 255);
+
+        readbackBuf = nullptr;
         graph = nullptr;
         shaderProgram = nullptr;
         Gfx::GfxDriver::DestroyGfxDriver();
@@ -182,7 +196,14 @@ layout(location = 0) in vec2 i_uv;
 layout(location = 0) out vec4 color;
 void main()
 {
-    color = vec4(i_uv, 0, 1);
+    if (gl_FragCoord.x == 128.5 && gl_FragCoord.y == 128.5)
+    {
+        color = vec4(1, 0, 1, 0);
+    }
+    else 
+    {
+        color = vec4(i_uv, 0, 1);
+    }
 }
 #endif
 )"};
