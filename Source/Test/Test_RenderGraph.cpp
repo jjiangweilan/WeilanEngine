@@ -1,5 +1,6 @@
 #include "AssetDatabase/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
+#include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include <gtest/gtest.h>
@@ -13,10 +14,13 @@ namespace Engine::RenderGraph
 class RenderGraphUnitTest : public Graph
 {
 public:
+    struct RGBA32
+    {
+        unsigned char x, y, z, w;
+    };
     void TestGraph()
     {
-        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {1920, 1080}});
-
+        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {640, 480}});
         std::unique_ptr<RenderGraphUnitTest> graph = std::make_unique<RenderGraphUnitTest>();
 
         ShaderCompiler shaderCompiler;
@@ -35,55 +39,124 @@ public:
             GetGfxDriver()->CreateShaderProgram("shaderTest", &shaderCompiler.GetConfig(), vertSPV, fragSPV);
 
         RenderNode* genUV = graph->AddNode(
-            [this](auto& a, auto& b, auto& c) { GenUV(a, b, c); },
-            {{.name = "sampleOut",
-              .handle = 0,
-              .type = ResourceType::Image,
-              .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-              .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-              .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-              .imageLayout = Gfx::ImageLayout::Color_Attachment,
-              .externalImage = GetGfxDriver()->GetSwapChainImageProxy().Get()}},
-            {},
-            {},
-            {0},
-            {{.colors = {{
-                  .handle = 0,
-                  .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                  .loadOp = Gfx::AttachmentLoadOperation::DontCare,
-                  .storeOp = Gfx::AttachmentStoreOperation::Store,
-              }}}}
+            [this](auto& a, auto& b, const auto& c) { GenUV(a, b, c); },
+            {
+                {
+                    .name = "sampleOut",
+                    .handle = 0,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                    .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = 256,
+                            .height = 256,
+                            .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
+                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                            .mipLevels = 1,
+                            .isCubemap = false,
+                        },
+                },
+            },
+            {
+                {
+                    .colors =
+                        {
+                            {
+                                .handle = 0,
+                                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                                .loadOp = Gfx::AttachmentLoadOperation::DontCare,
+                                .storeOp = Gfx::AttachmentStoreOperation::Store,
+                            },
+                        },
+                },
+            }
         );
 
-        graph->Process(&genUV->GetOutputPorts()[0]);
+        auto readbackBuf = GetGfxDriver()->CreateBuffer(
+            {.usages = Gfx::BufferUsage::Transfer_Dst,
+             .size = 256 * 256 * sizeof(RGBA32),
+             .visibleInCPU = true,
+             .debugName = "readbackBuf"}
+        );
+        RGBA32 readbackBufCPU[256 * 256];
 
-        bool shouldBreak = false;
-        SDL_Event sdlEvent;
-        while (!shouldBreak)
-        {
-            while (SDL_PollEvent(&sdlEvent))
+        RenderNode* readSample = graph->AddNode(
+            [](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res)
             {
-                switch (sdlEvent.type)
+                auto buf = (Gfx::Buffer*)res.at(0)->GetResource();
+                auto img = (Gfx::Image*)res.at(1)->GetResource();
+
+                BufferImageCopyRegion copyRegion[1];
+                copyRegion[0].srcOffset = 0;
+                copyRegion[0].offset = {0, 0, 0};
+                copyRegion[0].extend = {256, 256, 1};
+                copyRegion[0].layers = {
+                    .aspectMask = Gfx::ImageAspect::Color,
+                    .mipLevel = 0,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                };
+
+                cmd.CopyImageToBuffer(img, buf, copyRegion);
+            },
+            {
                 {
-                    case SDL_KEYDOWN:
-                        if (sdlEvent.key.keysym.scancode == SDL_SCANCODE_Q)
-                        {
-                            shouldBreak = true;
-                        }
-                }
+                    .name = "readback sample",
+                    .handle = 0,
+                    .type = ResourceType::Buffer,
+                    .accessFlags = Gfx::AccessMask::Transfer_Write,
+                    .stageFlags = Gfx::PipelineStage::Transfer,
+                    .externalBuffer = readbackBuf.Get(),
+                },
+                {
+                    .name = "input image",
+                    .handle = 1,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Transfer_Read,
+                    .stageFlags = Gfx::PipelineStage::Transfer,
+                    .imageUsagesFlags = Gfx::ImageUsage::TransferSrc,
+                    .imageLayout = Gfx::ImageLayout::Transfer_Src,
+                },
+            },
+            {}
+        );
+
+        Graph::Connect(genUV, 0, readSample, 1);
+
+        graph->Process();
+
+        ImmediateGfx::OnetimeSubmit(
+            [&graph](CommandBuffer& cmd)
+            {
+                cmd.SetViewport({.x = 0, .y = 0, .width = 256, .height = 256, .minDepth = 0, .maxDepth = 1});
+                Rect2D rect = {{0, 0}, {(uint32_t)256, (uint32_t)256}};
+                cmd.SetScissor(0, 1, &rect);
+                graph->Execute(cmd);
             }
+        );
 
-            graph->Execute();
-        }
+        memcpy((void*)readbackBufCPU, readbackBuf->GetCPUVisibleAddress(), 256 * 256 * sizeof(RGBA32));
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].x == 255);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].y == 0);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].z == 255);
+        EXPECT_TRUE(readbackBufCPU[128 + 128 * 256].w == 0);
 
-        GetGfxDriver()->WaitForIdle();
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].x == 129);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].y == 129);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].z == 0);
+        EXPECT_TRUE(readbackBufCPU[129 + 129 * 256].w == 255);
+
+        readbackBuf = nullptr;
         graph = nullptr;
         shaderProgram = nullptr;
         Gfx::GfxDriver::DestroyGfxDriver();
         return;
     }
 
-    void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::Buffers& buffers)
+    void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::ResourceRefs& res)
     {
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
         cmdBuf.BeginRenderPass(&renderPass, {clears});
@@ -123,7 +196,14 @@ layout(location = 0) in vec2 i_uv;
 layout(location = 0) out vec4 color;
 void main()
 {
-    color = vec4(i_uv, 0, 1);
+    if (gl_FragCoord.x == 128.5 && gl_FragCoord.y == 128.5)
+    {
+        color = vec4(1, 0, 1, 0);
+    }
+    else 
+    {
+        color = vec4(i_uv, 0, 1);
+    }
 }
 #endif
 )"};

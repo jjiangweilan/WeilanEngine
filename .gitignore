@@ -11,3 +11,13 @@ compile_commands.json
 neovim.json
 .luarc.json
 Source/Test/Library
+
+docs/.obsidian/*
+docs/.obsidian/workspace/*
+docs/.obsidian/plugins/*
+docs/05*-*Personal/
+docs/Day*Planners/*
+docs/.obsidian-git-data
+docs/Untitled*
+docs/null*
+docs/.trash/

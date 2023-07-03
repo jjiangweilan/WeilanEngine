@@ -3,6 +3,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "RenderPass.hpp"
 #include "ResourceCenter.hpp"
+#include <functional>
 #include <memory>
 #include <functional>
 namespace Engine::RenderGraph
@@ -24,11 +25,7 @@ public:
 
         Gfx::AccessMaskFlags accessFlags;
         Gfx::PipelineStageFlags stageFlags;
-        union
-        {
-            Gfx::BufferUsageFlags bufferUsageFlags;
-            Gfx::ImageUsageFlags imageUsagesFlags;
-        };
+        Gfx::ImageUsageFlags imageUsagesFlags;
         Gfx::ImageLayout imageLayout;
 
         // creational info
@@ -39,6 +36,7 @@ public:
         };
 
         Gfx::Image* externalImage;
+        Gfx::Buffer* externalBuffer;
     };
 
     struct Attachment
@@ -59,18 +57,15 @@ public:
 
 public:
     using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
-    using Buffers = std::unordered_map<ResourceHandle, ResourceRef*>;
-    using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass& renderPass, const Buffers& buffers)>;
+    using PassResources = std::unordered_map<ResourceHandle, ResourceRef>;
+    using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass&, const ResourceRefs&)>;
 
     RenderPass(
         const ExecutionFunc& execute,
         const std::vector<ResourceDescription>& resourceDescs,
-        const std::vector<ResourceHandle>& creationRequests,
-        const std::vector<ResourceHandle>& inputs,
-        const std::vector<ResourceHandle>& outputs,
         const std::vector<Subpass>& subpasses
     )
-        : creationRequests(creationRequests), inputs(inputs), outputs(outputs), subpasses(subpasses), execute(execute)
+        : subpasses(subpasses), execute(execute)
     {
         for (const ResourceDescription& res : resourceDescs)
         {
@@ -79,6 +74,21 @@ public:
             if (res.externalImage != nullptr)
             {
                 externalResources.push_back(res.handle);
+            }
+
+            if (res.externalBuffer != nullptr)
+            {
+                externalResources.push_back(res.handle);
+            }
+
+            if (res.externalImage == nullptr && res.type == ResourceType::Image && res.imageCreateInfo.width != 0 &&
+                res.imageCreateInfo.height != 0)
+            {
+                creationRequests.push_back(res.handle);
+            }
+            else if (res.externalBuffer == nullptr && res.type == ResourceType::Buffer && res.bufferCreateInfo.size != 0)
+            {
+                creationRequests.push_back(res.handle);
             }
         }
 
@@ -103,6 +113,11 @@ public:
         return creationRequests;
     }
 
+    bool HasResourceDescription(ResourceHandle handle)
+    {
+        return resourceDescriptions.contains(handle);
+    }
+
     const auto& GetResourceDescriptions()
     {
         return resourceDescriptions;
@@ -111,18 +126,6 @@ public:
     virtual const ResourceDescription& GetResourceDescription(ResourceHandle handle)
     {
         return resourceDescriptions[handle];
-    }
-
-    // Get resource inputs, use GetReferenceResourceDescription to retrive information about this resource
-    std::span<const ResourceHandle> GetResourceInputs()
-    {
-        return inputs;
-    }
-
-    // Get resource outputs, use GetReferenceResourceDescription to retrive information about this resource
-    std::span<const ResourceHandle> GetResourceOutputs()
-    {
-        return outputs;
     }
 
     std::span<const ResourceHandle> GetExternalResources()
@@ -135,7 +138,7 @@ public:
     virtual void Execute(CommandBuffer& cmdBuf)
     {
         if (execute)
-            execute(cmdBuf, *renderPass, buffers);
+            execute(cmdBuf, *renderPass, resourceRefs);
     };
 
     // call when all the resources are set
@@ -173,13 +176,6 @@ public:
 
             renderPass->AddSubpass(colors, depth);
         }
-        for (auto& r : resourceRefs)
-        {
-            if (r.second->IsType(ResourceType::Buffer))
-            {
-                buffers[r.first] = r.second;
-            }
-        }
     }
 
 protected:
@@ -188,10 +184,7 @@ protected:
     std::vector<ResourceHandle> creationRequests;
     const std::vector<Subpass> subpasses;
     ResourceRefs resourceRefs;
-    Buffers buffers;
     std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;
-    std::vector<ResourceHandle> inputs;
-    std::vector<ResourceHandle> outputs;
     ExecutionFunc execute;
 };
 } // namespace Engine::RenderGraph

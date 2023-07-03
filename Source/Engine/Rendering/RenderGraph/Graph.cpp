@@ -7,40 +7,13 @@ namespace Engine::RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
     : pass(std::move(pass_)), debugDesc(debugDesc)
+{}
+
+void Graph::Process(RenderNode* presentNode, RenderPass::ResourceHandle resourceHandle)
 {
-    auto inputs = pass->GetResourceInputs();
-    auto outputs = pass->GetResourceOutputs();
-    for (int i = 0; i < inputs.size(); ++i)
+    if (presentNode != nullptr)
     {
-        inputPorts.emplace_back(this, inputs[i]);
-    }
-    for (int i = 0; i < outputs.size(); ++i)
-    {
-        outputPorts.emplace_back(this, outputs[i]);
-    }
-}
-
-bool RenderNode::Connect(Port& src, Port& dst)
-{
-    RenderNode* srcNode = src.parent;
-    RenderNode* dstNode = dst.parent;
-    auto& srcDesc = srcNode->pass->GetResourceDescription(src.handle);
-    auto& dstDesc = dstNode->pass->GetResourceDescription(dst.handle);
-
-    if (srcDesc.type != dstDesc.type)
-        return false;
-
-    src.connected = &dst;
-    dst.connected = &src;
-
-    return true;
-}
-
-void Graph::Process(Port* presentPort)
-{
-    if (presentPort != nullptr)
-    {
-        if (presentPort->parent->pass->GetResourceDescription(presentPort->handle).externalImage !=
+        if (presentNode->pass->GetResourceDescription(resourceHandle).externalImage !=
             GetGfxDriver()->GetSwapChainImageProxy().Get())
         {
             throw std::logic_error("present port needs to be swapchain image");
@@ -57,15 +30,32 @@ void Graph::Process(Port* presentPort)
                 .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
                 .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
             }},
-            {},
-            {0},
-            {},
             {}
         );
 
-        RenderNode::Connect(*presentPort, present->GetInputPorts()[0]);
+        Connect(presentNode, resourceHandle, present, 0);
     }
 
+    Process();
+}
+void Graph::Connect(
+    RenderNode* src, RenderPass::ResourceHandle srcHandle, RenderNode* dst, RenderPass::ResourceHandle dstHandle
+)
+{
+    if (src && dst && src->pass->HasResourceDescription(srcHandle) && dst->pass->HasResourceDescription(dstHandle) &&
+        src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type)
+    {
+        src->outputPorts.emplace_back(new RenderNode::Port({.handle = srcHandle, .parent = src}));
+        dst->inputPorts.emplace_back(new RenderNode::Port({.handle = dstHandle, .parent = dst}));
+        src->outputPorts.back()->connected = dst->inputPorts.back().get();
+        dst->inputPorts.back()->connected = src->outputPorts.back().get();
+    }
+    else
+        throw std::logic_error("Graph Can't connect two nodes");
+}
+
+void Graph::Process()
+{
     std::vector<RenderNode*> sortedNodes(nodes.size());
     std::transform(nodes.begin(), nodes.end(), sortedNodes.begin(), [](auto& n) { return n.get(); });
 
@@ -141,6 +131,7 @@ void Graph::Process(Port* presentPort)
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
 
+                // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
                 Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
                 Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
 
@@ -150,7 +141,9 @@ void Graph::Process(Port* presentPort)
                     for (UsedIndex i : writeAccess)
                     {
                         SortIndex srcWriteSortIndex = r->used[i].first;
-                        auto& srcWriteDesc = sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(handle);
+                        RenderPass::ResourceHandle srcWriteHandle = r->used[i].second;
+                        auto& srcWriteDesc =
+                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteHandle);
                         srcAccessMask |= srcWriteDesc.accessFlags;
                         srcStages |= srcWriteDesc.stageFlags;
                     }
@@ -159,7 +152,8 @@ void Graph::Process(Port* presentPort)
                     for (UsedIndex i : readAccess)
                     {
                         SortIndex srcReadSortIndex = r->used[i].first;
-                        auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(handle);
+                        RenderPass::ResourceHandle srcReadHandle = r->used[i].second;
+                        auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
                         srcAccessMask |= srcReadDesc.accessFlags;
                         srcStages |= srcReadDesc.stageFlags;
                     }
@@ -173,7 +167,9 @@ void Graph::Process(Port* presentPort)
                     for (UsedIndex i : writeAccess)
                     {
                         SortIndex srcWriteSortIndex = r->used[i].first;
-                        auto& srcWriteDesc = sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(handle);
+                        RenderPass::ResourceHandle srcWriteHandle = r->used[i].second;
+                        auto& srcWriteDesc =
+                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteSortIndex);
                         srcAccessMask |= srcWriteDesc.accessFlags;
                         srcStages |= srcWriteDesc.stageFlags;
                     }
@@ -222,9 +218,6 @@ void Graph::Process(Port* presentPort)
             // cast to remove const
             { cmd.Barrier((GPUBarrier*)gpuBarriers.data(), gpuBarriers.size()); },
             {},
-            {},
-            {},
-            {},
             {}
         ));
 
@@ -244,21 +237,17 @@ void Graph::Process(Port* presentPort)
     // copy
     this->sortedNodes = sortedNodes;
 
-    submitFence = GetGfxDriver()->CreateFence({.signaled = true});
-    submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
-    swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
-    queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
-    commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    mainCmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
+    auto queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
+    auto commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
+    std::unique_ptr<CommandBuffer> cmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
 
-    mainCmd->Begin();
-    mainCmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
-    mainCmd->End();
+    cmd->Begin();
+    cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
+    cmd->End();
 
-    RefPtr<CommandBuffer> cmdBufs[] = {mainCmd.get()};
+    RefPtr<CommandBuffer> cmdBufs[] = {cmd.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
     GetGfxDriver()->WaitForIdle();
-    commandPool->ResetCommandPool();
 }
 
 void Graph::ResourceOwner::Finalize(ResourcePool& pool)
@@ -277,29 +266,23 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
     }
     else if (request.type == ResourceType::Buffer)
     {
-        throw std::runtime_error("Not Implemented");
+        if (request.externalBuffer == nullptr)
+        {
+            Gfx::Buffer* buf = pool.CreateBuffer(request.bufferCreateInfo);
+            resourceRef.SetResource(buf);
+        }
+        else
+        {
+            resourceRef.SetResource(request.externalBuffer);
+        }
     }
 }
 
 Graph::ResourceOwner* Graph::CreateResourceOwner(const RenderPass::ResourceDescription& request)
 {
-    if (request.type == ResourceType::Image)
-    {
-        auto owner = std::make_unique<ResourceOwner>(request);
-        resourceOwners.push_back(std::move(owner));
-        return resourceOwners.back().get();
-    }
-    else if (request.type == ResourceType::Buffer)
-    {
-        assert(false && "Not implemented");
-
-        // Gfx::Buffer* buffer = resourcePool.CreateBuffer();
-        // auto owner = std::make_unique<ResourceOwner>(buffer);
-        // resourceOwners.push_back(std::move(owner));
-        return resourceOwners.back().get();
-    }
-
-    return nullptr;
+    auto owner = std::make_unique<ResourceOwner>(request);
+    resourceOwners.push_back(std::move(owner));
+    return resourceOwners.back().get();
 }
 
 int Graph::GetDepthOfNode(RenderNode* node)
@@ -311,12 +294,12 @@ int Graph::GetDepthOfNode(RenderNode* node)
         else
         {
             int depth = 1;
-            for (Port& port : node->GetInputPorts())
+            for (auto& port : node->inputPorts)
             {
-                Port* connected = port.GetConnected();
+                RenderNode::Port* connected = port->connected;
                 if (connected)
                 {
-                    depth += GetDepthOfNode(connected->GetParent());
+                    depth += GetDepthOfNode(connected->parent);
                 }
             }
 
@@ -336,7 +319,7 @@ void Graph::Preprocess(RenderNode* n)
     resourceHandles.assign(creationRequests.begin(), creationRequests.end());
     resourceHandles.insert(resourceHandles.end(), externalResources.begin(), externalResources.end());
 
-    for (auto& handle : resourceHandles)
+    for (auto handle : resourceHandles)
     {
         auto& request = n->pass->GetResourceDescription(handle);
         ResourceOwner* owner = CreateResourceOwner(request);
@@ -345,29 +328,31 @@ void Graph::Preprocess(RenderNode* n)
     }
 
     // set resource from connected
-    for (auto& inPort : n->GetInputPorts())
+    for (auto& inPort : n->inputPorts)
     {
-        Port* connected = inPort.GetConnected();
+        RenderNode::Port* connected = inPort->connected;
         if (connected == nullptr)
             throw Errrors::GraphCompile("A node has unconnected port");
 
         auto resRef = connected->parent->pass->GetResourceRef(connected->handle);
         ResourceOwner* owner = (ResourceOwner*)resRef->GetOwner();
-        owner->used.push_back({inPort.parent->sortIndex, inPort.handle});
+        owner->used.push_back({inPort->parent->sortIndex, inPort->handle});
 
-        auto& fromDesc = n->pass->GetResourceDescription(connected->handle);
+        auto& fromDesc = n->pass->GetResourceDescription(inPort->handle);
         owner->request.imageUsagesFlags |= fromDesc.imageUsagesFlags;
-        owner->request.bufferUsageFlags |= fromDesc.bufferUsageFlags;
+        owner->request.bufferCreateInfo.usages |= fromDesc.bufferCreateInfo.usages;
 
-        inPort.parent->pass->SetResourceRef(inPort.handle, resRef);
+        inPort->parent->pass->SetResourceRef(inPort->handle, resRef);
     }
 }
 
 void Graph::Compile() {}
 
-Gfx::Buffer* Graph::ResourcePool::CreateBuffer()
+Gfx::Buffer* Graph::ResourcePool::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
 {
-    return nullptr;
+    buffers.push_back(std::move(GetGfxDriver()->CreateBuffer(createInfo)));
+
+    return buffers.back().get();
 }
 Gfx::Image* Graph::ResourcePool::CreateImage(const Gfx::ImageDescription& imageDesc, Gfx::ImageUsageFlags usages)
 {
@@ -376,7 +361,19 @@ Gfx::Image* Graph::ResourcePool::CreateImage(const Gfx::ImageDescription& imageD
     return images.back().get();
 }
 
-void Graph::ResourcePool::ReleaseBuffer(Gfx::Buffer* handle) {}
+void Graph::ResourcePool::ReleaseBuffer(Gfx::Buffer* handle)
+{
+    auto iter = std::find_if(
+        buffers.begin(),
+        buffers.end(),
+        [handle](std::unique_ptr<Gfx::Buffer>& p) { return p.get() == handle; }
+    );
+
+    if (iter != buffers.end())
+    {
+        buffers.erase(iter);
+    }
+}
 
 void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
 {
@@ -392,30 +389,11 @@ void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
     }
 }
 
-void Graph::Execute()
+void Graph::Execute(CommandBuffer& cmd)
 {
-    GetGfxDriver()->WaitForFence({submitFence}, true, -1);
-    submitFence->Reset();
-    commandPool->ResetCommandPool();
-
-    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
-    mainCmd->Begin();
-    // TODO: better move the whole gfx thing to a renderer
-    mainCmd->SetViewport({.x = 0, .y = 0, .width = 1920, .height = 1080, .minDepth = 0, .maxDepth = 1});
-    Rect2D rect = {{0, 0}, {1920, 1080}};
-    mainCmd->SetScissor(0, 1, &rect);
     for (auto n : sortedNodes)
     {
-        n->pass->Execute(*mainCmd);
+        n->pass->Execute(cmd);
     }
-    mainCmd->End();
-
-    RefPtr<CommandBuffer> cmds[] = {mainCmd};
-    RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
-    Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
-    RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
-    GetGfxDriver()->QueueSubmit(queue, cmds, waitSemaphores, waitPipelineStages, submitSemaphores, submitFence);
-
-    GetGfxDriver()->Present({submitSemaphore});
 }
 } // namespace Engine::RenderGraph
