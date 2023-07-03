@@ -4,7 +4,7 @@
 #include "RenderPass.hpp"
 #include "ResourceCenter.hpp"
 #include <memory>
-
+#include <functional>
 namespace Engine::RenderGraph
 {
 
