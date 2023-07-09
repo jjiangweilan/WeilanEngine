@@ -11,6 +11,7 @@ compile_commands.json
 neovim.json
 .luarc.json
 Source/Test/Library
+imgui.ini
 
 docs/.obsidian/*
 docs/.obsidian/workspace/*
