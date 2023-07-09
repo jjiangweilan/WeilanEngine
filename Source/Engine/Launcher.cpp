@@ -23,9 +23,8 @@ public:
 
     void Init(const CreateInfo& createInfo)
     {
-        Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1920, 1080}};
-        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-        gfxDriver = GetGfxDriver().Get();
+        Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
+        gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
 
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
@@ -47,10 +46,9 @@ public:
 #if WE_EDITOR
                 ImGui_ImplSDL2_ProcessEvent(&event);
 #endif
-
                 if (event.window.event == SDL_WINDOWEVENT_CLOSE)
                 {
-                    return;
+                    goto LoopEnd;
                 }
             }
 
@@ -60,21 +58,18 @@ public:
             // gameEditor->Tick();
             renderPipeline->Render();
         }
+LoopEnd:
+        gfxDriver->WaitForIdle();
     }
-
+    
 private:
+    std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<RenderPipeline> renderPipeline;
     std::unique_ptr<GameSceneManager> gameSceneManager;
-    std::unique_ptr<RenderGraph::Graph> renderGraph;
 #if WE_EDITOR
-    std::unique_ptr<Editor::GameEditor> gameEditor;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-#endif
-    Gfx::GfxDriver* gfxDriver;
-
-#if GAME_EDITOR
-
+    std::unique_ptr<Editor::GameEditor> gameEditor;
 #endif
 };
 
@@ -105,20 +100,20 @@ public:
         {
             curr++;
             std::filesystem::path path(args[curr]);
-            if (std::filesystem::exists(path))
-            {
-                OpenProject(path);
-            }
-            else
-            {
-                SPDLOG_ERROR("{} is not a valid path", path.string());
-            }
+            // if (std::filesystem::exists(path))
+            // {}
+            // else
+            // {
+            //     SPDLOG_ERROR("{} is not a valid path", path.string());
+            // }
+
+            auto engine = std::make_unique<WeilanEngie>();
+            engine->Init({path});
+            engine->Loop();
 
             hasAction = true;
         }
     }
-
-    void OpenProject(const std::filesystem::path& path) {}
 
     std::unique_ptr<ArgList> argList;
     bool hasAction = false;
