@@ -8,7 +8,7 @@ class CommandPoolManager
 public:
     static CommandPoolManager* GetInstance();
 
-    UniPtr<CommandBuffer> GetCommandBuffer(int threadID);
+    UniPtr<Gfx::CommandBuffer> GetCommandBuffer(int threadID);
 
 private:
     std::unordered_map<int, UniPtr<Gfx::CommandPool>> pools;

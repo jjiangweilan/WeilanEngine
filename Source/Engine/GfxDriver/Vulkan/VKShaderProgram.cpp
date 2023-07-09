@@ -236,16 +236,26 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     if (fragShaderModule != nullptr)
         modules.push_back(fragShaderModule);
 
-    // we use fixed amount of descriptor set. They are grouped by update frequency
+    // we use fixed amount of descriptor set. They are grouped by update frequency. TODO: this is a very hard coded
+    // solution. Need to change
     pipelineLayoutCreateInfo.setLayoutCount = Descriptor_Set_Count;
+    if (name == "ImGui")
+        pipelineLayoutCreateInfo.setLayoutCount = 1;
     VkDescriptorSetLayout layouts[Descriptor_Set_Count];
     for (uint32_t i = 0; i < Descriptor_Set_Count; ++i)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo;
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-        descriptorSetLayoutCreateInfo.flags = 0;
-        ;
+
+        if (name == "ImGui")
+        {
+            descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+        }
+        else
+        {
+            descriptorSetLayoutCreateInfo.flags = 0;
+        }
         descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
         descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
 

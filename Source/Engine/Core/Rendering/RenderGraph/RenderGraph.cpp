@@ -21,7 +21,7 @@ bool RenderGraph::Compile()
 
     return true;
 }
-bool RenderGraph::Execute(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack)
+bool RenderGraph::Execute(Gfx::CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack)
 {
     // handle memory depenednecy before the node is executed
     for (auto& n : nodes)

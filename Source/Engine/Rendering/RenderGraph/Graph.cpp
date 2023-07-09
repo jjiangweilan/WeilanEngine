@@ -9,7 +9,7 @@ RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& d
     : pass(std::move(pass_)), debugDesc(debugDesc)
 {}
 
-void Graph::Process(RenderNode* presentNode, RenderPass::ResourceHandle resourceHandle)
+void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {
     if (presentNode != nullptr)
     {
@@ -38,9 +38,7 @@ void Graph::Process(RenderNode* presentNode, RenderPass::ResourceHandle resource
 
     Process();
 }
-void Graph::Connect(
-    RenderNode* src, RenderPass::ResourceHandle srcHandle, RenderNode* dst, RenderPass::ResourceHandle dstHandle
-)
+void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
     if (src && dst && src->pass->HasResourceDescription(srcHandle) && dst->pass->HasResourceDescription(dstHandle) &&
         src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type)
@@ -87,8 +85,8 @@ void Graph::Process()
     }
 
     // insert resources barriers
-    std::unordered_map<SortIndex, std::vector<GPUBarrier>> barriers;
-    std::vector<GPUBarrier> initialLayoutTransfers;
+    std::unordered_map<SortIndex, std::vector<Gfx::GPUBarrier>> barriers;
+    std::vector<Gfx::GPUBarrier> initialLayoutTransfers;
 
     for (std::unique_ptr<ResourceOwner>& r : resourceOwners)
     {
@@ -101,7 +99,7 @@ void Graph::Process()
 
         if (r->resourceRef.IsType(ResourceType::Image))
         {
-            GPUBarrier initialLayoutTransfer{
+            Gfx::GPUBarrier initialLayoutTransfer{
                 .image = (Gfx::Image*)r->resourceRef.GetResource(),
                 .srcStageMask = Gfx::PipelineStage::All_Commands,
                 .dstStageMask = Gfx::PipelineStage::All_Commands,
@@ -125,7 +123,7 @@ void Graph::Process()
         {
             auto p = r->used[usedIndex];
             SortIndex sortIndex = p.first;
-            RenderPass::ResourceHandle handle = p.second;
+            ResourceHandle handle = p.second;
             auto& desc = sortedNodes[sortIndex]->pass->GetResourceDescription(handle);
             if (r->resourceRef.IsType(ResourceType::Image))
             {
@@ -141,7 +139,7 @@ void Graph::Process()
                     for (UsedIndex i : writeAccess)
                     {
                         SortIndex srcWriteSortIndex = r->used[i].first;
-                        RenderPass::ResourceHandle srcWriteHandle = r->used[i].second;
+                        ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
                             sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteHandle);
                         srcAccessMask |= srcWriteDesc.accessFlags;
@@ -152,7 +150,7 @@ void Graph::Process()
                     for (UsedIndex i : readAccess)
                     {
                         SortIndex srcReadSortIndex = r->used[i].first;
-                        RenderPass::ResourceHandle srcReadHandle = r->used[i].second;
+                        ResourceHandle srcReadHandle = r->used[i].second;
                         auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
                         srcAccessMask |= srcReadDesc.accessFlags;
                         srcStages |= srcReadDesc.stageFlags;
@@ -167,7 +165,7 @@ void Graph::Process()
                     for (UsedIndex i : writeAccess)
                     {
                         SortIndex srcWriteSortIndex = r->used[i].first;
-                        RenderPass::ResourceHandle srcWriteHandle = r->used[i].second;
+                        ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
                             sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteSortIndex);
                         srcAccessMask |= srcWriteDesc.accessFlags;
@@ -180,7 +178,7 @@ void Graph::Process()
                 if (srcStages != Gfx::PipelineStage::None || srcAccessMask != Gfx::AccessMask::None ||
                     currentLayout != desc.imageLayout)
                 {
-                    GPUBarrier barrier{
+                    Gfx::GPUBarrier barrier{
                         .image = (Gfx::Image*)r->resourceRef.GetResource(),
                         .srcStageMask = srcStages,
                         .dstStageMask = desc.stageFlags,
@@ -202,21 +200,20 @@ void Graph::Process()
     }
 
     // convert map barriers to vector barriers so that we can safely insert into sortedNodes
-    std::vector<std::pair<SortIndex, std::vector<GPUBarrier>>> vecBarriers;
+    std::vector<std::pair<SortIndex, std::vector<Gfx::GPUBarrier>>> vecBarriers;
     for (auto& b : barriers)
     {
         vecBarriers.emplace_back(b.first, b.second);
     }
-
     for (auto& b : vecBarriers)
     {
         SortIndex sortIndex = b.first;
-        std::vector<GPUBarrier>& gpuBarriers = b.second;
+        std::vector<Gfx::GPUBarrier>& gpuBarriers = b.second;
 
         std::unique_ptr<RenderPass> pass(new RenderPass(
-            [gpuBarriers](CommandBuffer& cmd, auto& b, auto& c)
+            [gpuBarriers](Gfx::CommandBuffer& cmd, auto& b, auto& c)
             // cast to remove const
-            { cmd.Barrier((GPUBarrier*)gpuBarriers.data(), gpuBarriers.size()); },
+            { cmd.Barrier((Gfx::GPUBarrier*)gpuBarriers.data(), gpuBarriers.size()); },
             {},
             {}
         ));
@@ -239,13 +236,14 @@ void Graph::Process()
 
     auto queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     auto commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    std::unique_ptr<CommandBuffer> cmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
+    std::unique_ptr<Gfx::CommandBuffer> cmd =
+        commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
 
     cmd->Begin();
     cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
     cmd->End();
 
-    RefPtr<CommandBuffer> cmdBufs[] = {cmd.get()};
+    RefPtr<Gfx::CommandBuffer> cmdBufs[] = {cmd.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
     GetGfxDriver()->WaitForIdle();
 }
@@ -315,7 +313,7 @@ void Graph::Preprocess(RenderNode* n)
     // create resource owner for creation request and external resources
     auto creationRequests = n->pass->GetResourceCreationRequests();
     auto externalResources = n->pass->GetExternalResources();
-    std::vector<RenderPass::ResourceHandle> resourceHandles;
+    std::vector<ResourceHandle> resourceHandles;
     resourceHandles.assign(creationRequests.begin(), creationRequests.end());
     resourceHandles.insert(resourceHandles.end(), externalResources.begin(), externalResources.end());
 
@@ -389,7 +387,7 @@ void Graph::ResourcePool::ReleaseImage(Gfx::Image* handle)
     }
 }
 
-void Graph::Execute(CommandBuffer& cmd)
+void Graph::Execute(Gfx::CommandBuffer& cmd)
 {
     for (auto n : sortedNodes)
     {

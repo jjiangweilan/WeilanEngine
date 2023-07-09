@@ -40,7 +40,7 @@ public:
         return true;
     }
 
-    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
+    bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
     {
         barriers.clear();
 
@@ -75,14 +75,14 @@ public:
                                                .baseArrayLayer = range.baseArrayLayer,
                                                .layerCount = range.layerCount};
 
-            BufferImageCopyRegion region{
+            Gfx::BufferImageCopyRegion region{
                 .srcOffset = 0,
                 .layers = layers,
                 .offset = {0, 0},
                 .extend = {srcImage->GetDescription().width, srcImage->GetDescription().height, 1},
             };
 
-            BufferImageCopyRegion regions[] = {region};
+            Gfx::BufferImageCopyRegion regions[] = {region};
             cmdBuf->CopyImageToBuffer(srcImage, dstBuffer, regions);
         }
         else if (srcBuffer && dstImage)
@@ -109,14 +109,14 @@ public:
                                                .mipLevel = range.baseMipLevel,
                                                .baseArrayLayer = range.baseArrayLayer,
                                                .layerCount = range.layerCount};
-            BufferImageCopyRegion region{
+            Gfx::BufferImageCopyRegion region{
                 .srcOffset = 0,
                 .layers = layers,
                 .offset = {0, 0},
                 .extend = {dstImage->GetDescription().width, dstImage->GetDescription().height, 1},
             };
 
-            BufferImageCopyRegion regions[] = {region};
+            Gfx::BufferImageCopyRegion regions[] = {region};
             cmdBuf->CopyBufferToImage(srcBuffer, dstImage, regions);
         }
 
@@ -140,7 +140,7 @@ public:
     } out;
 
 private:
-    std::vector<GPUBarrier> barriers;
+    std::vector<Gfx::GPUBarrier> barriers;
 
     In InitIn()
     {

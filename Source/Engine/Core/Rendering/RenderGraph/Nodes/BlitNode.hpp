@@ -52,12 +52,12 @@ public:
         return true;
     }
 
-    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
+    bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
     {
         auto& srcImageState = stateTrack.GetState(srcImageIn->GetResource());
         auto& dstImageState = stateTrack.GetState(dstImageIn->GetResource());
 
-        std::vector<GPUBarrier> barriers;
+        std::vector<Gfx::GPUBarrier> barriers;
         InsertImageBarrierIfNeeded(stateTrack,
                                    srcImageIn->GetResource(),
                                    barriers,

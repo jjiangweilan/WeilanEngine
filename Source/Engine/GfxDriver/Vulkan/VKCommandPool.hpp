@@ -10,7 +10,7 @@ class VKCommandPool : public CommandPool
 public:
     VKCommandPool(const CreateInfo& createInfo);
     ~VKCommandPool() override;
-    std::vector<UniPtr<CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) override;
+    std::vector<UniPtr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) override;
     void ResetCommandPool() override;
 
 private:

@@ -50,11 +50,7 @@ public:
     {
         return gfxDriver;
     }
-    static void CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
-    static void DestroyGfxDriver()
-    {
-        gfxDriver = nullptr;
-    }
+    static std::unique_ptr<GfxDriver> CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
 
     virtual ~GfxDriver(){};
 
@@ -95,7 +91,7 @@ public:
 
     virtual void QueueSubmit(
         RefPtr<CommandQueue> queue,
-        std::span<RefPtr<CommandBuffer>> cmdBufs,
+        std::span<RefPtr<Gfx::CommandBuffer>> cmdBufs,
         std::span<RefPtr<Semaphore>> waitSemaphores,
         std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
         std::span<RefPtr<Semaphore>> signalSemaphroes,
@@ -108,7 +104,7 @@ public:
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
 private:
-    static UniPtr<GfxDriver> gfxDriver;
+    static GfxDriver* gfxDriver;
 };
 } // namespace Engine::Gfx
 

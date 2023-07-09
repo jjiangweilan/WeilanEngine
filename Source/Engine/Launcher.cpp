@@ -1,6 +1,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/GameScene/GameSceneManager.hpp"
 #include "Editor/GameEditor.hpp"
+#include "Editor/Renderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/BuiltInRenderGraph.hpp"
 #include <filesystem>
@@ -28,7 +29,8 @@ public:
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
         gameSceneManager = std::make_unique<GameSceneManager>();
-        gameEditor = std::make_unique<Editor::GameEditor>(assetDatabase, gameSceneManager);
+        gameEditor = std::make_unique<Editor::GameEditor>();
+        gameEditorRenderer = std::make_unique<Editor::Renderer>();
         renderGraph = BuiltInRenderGraphBuilder::BuildGraph(true);
     }
 
@@ -37,7 +39,7 @@ public:
         while (true)
         {
             gameSceneManager->Tick();
-            gameEditor->Tick();
+            // gameEditor->Tick();
             // renderGraph->Render();
         }
     }
@@ -45,6 +47,7 @@ public:
 private:
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<Editor::GameEditor> gameEditor;
+    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     // std::unique_ptr<RenderGraph> renderGraph;
     std::unique_ptr<GameSceneManager> gameSceneManager;
     std::unique_ptr<RenderGraph::Graph> renderGraph;

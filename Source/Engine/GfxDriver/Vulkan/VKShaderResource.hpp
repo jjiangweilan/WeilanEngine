@@ -15,6 +15,8 @@ class VKImage;
 class VKShaderProgram;
 class VKDescriptorPool;
 class VKDriver;
+
+// actually a binding resource
 class VKShaderResource : public ShaderResource
 {
 public:
@@ -26,7 +28,10 @@ public:
     RefPtr<Buffer> GetBuffer(const std::string& object, BufferMemberInfoMap& memberInfo) override;
     bool HasPushConstnat(const std::string& obj) override;
     void SetTexture(const std::string& param, RefPtr<Image> image) override;
-    DescriptorSetSlot GetDescriptorSetSlot() const { return slot; }
+    DescriptorSetSlot GetDescriptorSetSlot() const
+    {
+        return slot;
+    }
 
 protected:
     const std::unordered_map<std::string, VkPushConstantRange>* pushConstantRanges = nullptr;

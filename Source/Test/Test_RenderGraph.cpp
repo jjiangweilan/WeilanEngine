@@ -20,7 +20,7 @@ public:
     };
     void TestGraph()
     {
-        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {640, 480}});
+        auto gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, {.windowSize = {640, 480}});
         std::unique_ptr<RenderGraphUnitTest> graph = std::make_unique<RenderGraphUnitTest>();
 
         ShaderCompiler shaderCompiler;
@@ -84,12 +84,12 @@ public:
         RGBA32 readbackBufCPU[256 * 256];
 
         RenderNode* readSample = graph->AddNode(
-            [](CommandBuffer& cmd, auto& b, const RenderPass::ResourceRefs& res)
+            [](Gfx::CommandBuffer& cmd, auto& b, const ResourceRefs& res)
             {
                 auto buf = (Gfx::Buffer*)res.at(0)->GetResource();
                 auto img = (Gfx::Image*)res.at(1)->GetResource();
 
-                BufferImageCopyRegion copyRegion[1];
+                Gfx::BufferImageCopyRegion copyRegion[1];
                 copyRegion[0].srcOffset = 0;
                 copyRegion[0].offset = {0, 0, 0};
                 copyRegion[0].extend = {256, 256, 1};
@@ -129,7 +129,7 @@ public:
         graph->Process();
 
         ImmediateGfx::OnetimeSubmit(
-            [&graph](CommandBuffer& cmd)
+            [&graph](Gfx::CommandBuffer& cmd)
             {
                 cmd.SetViewport({.x = 0, .y = 0, .width = 256, .height = 256, .minDepth = 0, .maxDepth = 1});
                 Rect2D rect = {{0, 0}, {(uint32_t)256, (uint32_t)256}};
@@ -152,11 +152,10 @@ public:
         readbackBuf = nullptr;
         graph = nullptr;
         shaderProgram = nullptr;
-        Gfx::GfxDriver::DestroyGfxDriver();
         return;
     }
 
-    void GenUV(CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const RenderPass::ResourceRefs& res)
+    void GenUV(Gfx::CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const ResourceRefs& res)
     {
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
         cmdBuf.BeginRenderPass(&renderPass, {clears});

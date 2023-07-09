@@ -128,7 +128,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
     cmdBuf->End();
 
-    RefPtr<CommandBuffer> cmdBufss[] = {cmdBuf};
+    RefPtr<Gfx::CommandBuffer> cmdBufss[] = {cmdBuf};
     QueueSubmit(mainQueue, cmdBufss, {}, {}, {}, nullptr);
 
     WaitForIdle();
@@ -282,7 +282,7 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
 
 void VKDriver::QueueSubmit(
     RefPtr<CommandQueue> queue,
-    std::span<RefPtr<CommandBuffer>> cmdBufs,
+    std::span<RefPtr<Gfx::CommandBuffer>> cmdBufs,
     std::span<RefPtr<Semaphore>> waitSemaphores,
     std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
     std::span<RefPtr<Semaphore>> signalSemaphroes,

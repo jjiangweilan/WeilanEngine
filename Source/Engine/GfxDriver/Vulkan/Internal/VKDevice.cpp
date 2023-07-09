@@ -1,4 +1,5 @@
 #include "VKDevice.hpp"
+#include "../VKExtensionFunc.hpp"
 #include "VKInstance.hpp"
 #include "VKPhysicalDevice.hpp"
 #include "VKSurface.hpp"
@@ -26,10 +27,12 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
             if (queueFamilyProperties[queueFamilyIndex].queueFlags & request.flags)
             {
                 VkBool32 surfaceSupport = false;
-                vkGetPhysicalDeviceSurfaceSupportKHR(gpu.GetHandle(),
-                                                     queueFamilyIndex,
-                                                     surface->GetHandle(),
-                                                     &surfaceSupport);
+                vkGetPhysicalDeviceSurfaceSupportKHR(
+                    gpu.GetHandle(),
+                    queueFamilyIndex,
+                    surface->GetHandle(),
+                    &surfaceSupport
+                );
                 if (surfaceSupport && request.requireSurfaceSupport)
                 {
                     found = true;
@@ -127,9 +130,20 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
         q.queueFamilyIndex = queueFamilyIndices[i];
         queues.push_back(q);
     }
+
+    // get extension address
+    VKExtensionFunc::vkCmdPushDescriptorSetKHR =
+        (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(deviceHandle, "vkCmdPushDescriptorSetKHR");
+    if (!VKExtensionFunc::vkCmdPushDescriptorSetKHR)
+    {
+        throw std::runtime_error("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR");
+    }
 }
 
-VKDevice::~VKDevice() { vkDestroyDevice(deviceHandle, nullptr); }
+VKDevice::~VKDevice()
+{
+    vkDestroyDevice(deviceHandle, nullptr);
+}
 
 void VKDevice::WaitForDeviceIdle()
 {

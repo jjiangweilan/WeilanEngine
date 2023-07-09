@@ -18,11 +18,11 @@ GfxResourceTransfer::GfxResourceTransfer()
     Gfx::CommandPool::CreateInfo cmdPoolCreateInfo;
     cmdPoolCreateInfo.queueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
     cmdPool = GetGfxDriver()->CreateCommandPool(cmdPoolCreateInfo);
-    cmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0]);
+    cmdBuf = std::move(cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0]);
     fence = GetGfxDriver()->CreateFence({false});
 }
 
-void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
+void GfxResourceTransfer::QueueTransferCommands(RefPtr<Gfx::CommandBuffer> cmdBuf)
 {
     for (auto& [buffer, requests] : pendingBuffers)
     {
@@ -43,7 +43,7 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
         for (auto& request : requests)
         {
             float scale = std::pow(2, request.userRequest.subresourceLayers.mipLevel);
-            BufferImageCopyRegion region;
+            Gfx::BufferImageCopyRegion region;
             region.offset = {0, 0, 0};
             uint32_t width = std::max(1.0f, std::floor(image->GetDescription().width / scale));
             uint32_t height = std::max(1.0f, std::floor(image->GetDescription().height / scale));
@@ -53,7 +53,7 @@ void GfxResourceTransfer::QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf)
             bufferImageCopyRegions.push_back(region);
         }
 
-        GPUBarrier barrier;
+        Gfx::GPUBarrier barrier;
         barrier.srcStageMask = Gfx::PipelineStage::All_Commands;
         barrier.dstStageMask = Gfx::PipelineStage::All_Commands;
         barrier.dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
@@ -99,7 +99,7 @@ void GfxResourceTransfer::ImmediateSubmit()
     cmdBuf->Begin();
     QueueTransferCommands(cmdBuf);
     cmdBuf->End();
-    RefPtr<CommandBuffer> cmdBufs[1] = {cmdBuf};
+    RefPtr<Gfx::CommandBuffer> cmdBufs[1] = {cmdBuf};
     GetGfxDriver()->QueueSubmit(GetGfxDriver()->GetQueue(QueueType::Main), cmdBufs, {}, {}, {}, fence);
     GetGfxDriver()->WaitForFence({fence}, true, -1); // TODO: improvement needed
     fence->Reset();

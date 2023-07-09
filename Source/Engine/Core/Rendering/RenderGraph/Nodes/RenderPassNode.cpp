@@ -103,7 +103,7 @@ bool RenderPassNode::Compile(ResourceStateTrack& stateTrack)
     return true;
 }
 
-bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack)
+bool RenderPassNode::Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack)
 {
     Port* colorPort0 = colorPortsIn.empty() ? nullptr : colorPortsIn.front();
     Port* colorConnectedPort = colorPort0 ? colorPort0->GetConnectedPort() : colorPort0;
@@ -113,7 +113,7 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
 
     ResourceRef* attaRes = color0Res ? color0Res : depthRes;
     Gfx::Image* atta = (Gfx::Image*)attaRes->GetVal();
-    Viewport viewport{.x = 0,
+    Gfx::Viewport viewport{.x = 0,
                       .y = 0,
                       .width = static_cast<float>(atta->GetDescription().width),
                       .height = static_cast<float>(atta->GetDescription().height),
@@ -122,7 +122,7 @@ bool RenderPassNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTra
 
     cmdBuf->SetViewport(viewport);
 
-    std::vector<GPUBarrier> barriers;
+    std::vector<Gfx::GPUBarrier> barriers;
 
     if (color0Res)
     {

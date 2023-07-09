@@ -40,7 +40,7 @@ public:
 
     virtual bool Preprocess(ResourceStateTrack& stateTrack) { return true; }
     virtual bool Compile(ResourceStateTrack& stateTrack) { return true; }
-    virtual bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) { return true; }
+    virtual bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) { return true; }
 
     virtual void SetName(std::string_view name) { this->name = name; }
     std::string_view GetName() { return name; };
@@ -98,7 +98,7 @@ protected:
 
     bool InsertBufferBarrierIfNeeded(ResourceStateTrack& stateTrack,
                                      ResourceRef* bufferRef,
-                                     std::vector<GPUBarrier>& barriers,
+                                     std::vector<Gfx::GPUBarrier>& barriers,
                                      Gfx::PipelineStageFlags stageFlags,
                                      Gfx::AccessMaskFlags accessFlags)
     {
@@ -110,7 +110,7 @@ protected:
                 resourceState.accessMask != Gfx::AccessMask::None)
             {
                 Gfx::Buffer* buf = (Gfx::Buffer*)bufferRef->GetVal();
-                GPUBarrier barrier;
+                Gfx::GPUBarrier barrier;
                 barrier.buffer = buf;
                 barrier.bufferInfo.dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
                 barrier.bufferInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
@@ -135,7 +135,7 @@ protected:
 
     bool InsertImageBarrierIfNeeded(ResourceStateTrack& stateTrack,
                                     ResourceRef* imageRes,
-                                    std::vector<GPUBarrier>& barriers,
+                                    std::vector<Gfx::GPUBarrier>& barriers,
                                     Gfx::ImageLayout layout,
                                     Gfx::PipelineStageFlags stageFlags,
                                     Gfx::AccessMaskFlags accessFlags,
@@ -146,7 +146,7 @@ protected:
             auto& resourceState = stateTrack.GetState(imageRes);
             if (resourceState.layout != layout)
             {
-                GPUBarrier barrier;
+                Gfx::GPUBarrier barrier;
                 Gfx::Image* image = (Gfx::Image*)imageRes->GetVal();
                 barrier.image = image;
                 barrier.imageInfo.srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;

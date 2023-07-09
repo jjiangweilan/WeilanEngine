@@ -36,7 +36,7 @@ struct DrawData
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
     std::optional<IndexBuffer> indexBuffer = std::nullopt;
-    std::optional<std::vector<VertexBufferBinding>> vertexBuffer = std::nullopt;
+    std::optional<std::vector<Gfx::VertexBufferBinding>> vertexBuffer = std::nullopt;
     std::optional<PushConstant> pushConstant = std::nullopt;
     std::optional<Rect2D> scissor = std::nullopt;
     std::optional<DrawIndex> drawIndexed = std::nullopt;
@@ -67,7 +67,7 @@ public:
     RenderPassNode();
     bool Preprocess(ResourceStateTrack& stateTrack) override;
     bool Compile(ResourceStateTrack& stateTrack) override;
-    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
+    bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
 
     // render pass will prefer the data inside `drawData` to draw object
     void OverrideDrawData(DrawData drawData) { this->drawDataOverride = drawData; }
@@ -127,7 +127,7 @@ private:
 
     /* Compiled data */
     UniPtr<Gfx::RenderPass> renderPass;
-    CommandBuffer* cmdBuf;
+    Gfx::CommandBuffer* cmdBuf;
 
     /**
      * clearValues used in Execute

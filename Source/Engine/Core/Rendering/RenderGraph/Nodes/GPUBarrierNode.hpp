@@ -8,12 +8,12 @@ class GPUBarrierNode : public Node
 public:
     GPUBarrierNode() { imagePort = AddPort("Image", Port::Type::Input, typeid(Gfx::Image)); }
 
-    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
+    bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override
     {
 
         if (imagePort->GetResource())
         {
-            std::vector<GPUBarrier> barriers;
+            std::vector<Gfx::GPUBarrier> barriers;
             InsertImageBarrierIfNeeded(stateTrack,
                                        imagePort->GetResource(),
                                        barriers,
