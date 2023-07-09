@@ -9,7 +9,7 @@
 
 TEST(GameEditor, Render)
 {
-    Engine::Extent2D windowSize{1920, 1080};
+    Engine::Extent2D windowSize{960, 540};
     auto gfxDriver = Engine::Gfx::GfxDriver::CreateGfxDriver(Engine::Gfx::Backend::Vulkan, {.windowSize = windowSize});
 
     ImGui::CreateContext();
