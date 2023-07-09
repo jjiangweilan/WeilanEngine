@@ -11,9 +11,16 @@ RenderPipeline::RenderPipeline()
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+    graph = std::make_unique<RenderGraph::Graph>();
+
+#if WE_EDITOR
+    gameEditorRenderer = std::make_unique<Editor::Renderer>();
+    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph(*graph);
+    graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
+#endif
 }
 
-void RenderPipeline::Render(RenderGraph::Graph& graph)
+void RenderPipeline::Render()
 {
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
@@ -29,7 +36,7 @@ void RenderPipeline::Render(RenderGraph::Graph& graph)
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
 
-    graph.Execute(*cmd);
+    graph->Execute(*cmd);
     cmd->End();
 
     RefPtr<Gfx::CommandBuffer> cmds[] = {cmd};

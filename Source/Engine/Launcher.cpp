@@ -3,7 +3,8 @@
 #include "Editor/GameEditor.hpp"
 #include "Editor/Renderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/BuiltInRenderGraph.hpp"
+#include "Rendering/RenderPipeline.hpp"
+#include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <filesystem>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -29,28 +30,47 @@ public:
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
         gameSceneManager = std::make_unique<GameSceneManager>();
+#if WE_EDITOR
         gameEditor = std::make_unique<Editor::GameEditor>();
         gameEditorRenderer = std::make_unique<Editor::Renderer>();
-        renderGraph = BuiltInRenderGraphBuilder::BuildGraph(true);
+#endif
+        renderPipeline = std::make_unique<RenderPipeline>();
     }
 
     void Loop()
     {
         while (true)
         {
-            gameSceneManager->Tick();
+            SDL_Event event;
+            while (SDL_PollEvent(&event))
+            {
+#if WE_EDITOR
+                ImGui_ImplSDL2_ProcessEvent(&event);
+#endif
+
+                if (event.window.event == SDL_WINDOWEVENT_CLOSE)
+                {
+                    return;
+                }
+            }
+
+#if WE_EDITOR
+            gameEditor->Tick();
+#endif
             // gameEditor->Tick();
-            // renderGraph->Render();
+            renderPipeline->Render();
         }
     }
 
 private:
     std::unique_ptr<AssetDatabase> assetDatabase;
-    std::unique_ptr<Editor::GameEditor> gameEditor;
-    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    // std::unique_ptr<RenderGraph> renderGraph;
+    std::unique_ptr<RenderPipeline> renderPipeline;
     std::unique_ptr<GameSceneManager> gameSceneManager;
     std::unique_ptr<RenderGraph::Graph> renderGraph;
+#if WE_EDITOR
+    std::unique_ptr<Editor::GameEditor> gameEditor;
+    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
+#endif
     Gfx::GfxDriver* gfxDriver;
 
 #if GAME_EDITOR

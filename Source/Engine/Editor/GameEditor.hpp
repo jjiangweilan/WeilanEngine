@@ -8,6 +8,6 @@ class GameEditor
 public:
     GameEditor();
 
-    void Loop();
+    void Tick();
 };
 } // namespace Engine::Editor
