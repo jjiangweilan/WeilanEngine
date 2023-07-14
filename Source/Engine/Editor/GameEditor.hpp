@@ -3,6 +3,7 @@
 
 namespace Engine::Editor
 {
+
 class GameEditor
 {
 public:

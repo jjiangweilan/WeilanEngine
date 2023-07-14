@@ -19,27 +19,51 @@ class Submesh
 {
 public:
     Submesh() {}
-    Submesh(UniPtr<unsigned char>&& vertexBuffer,
-            std::vector<VertexBinding>&& bindings,
-            UniPtr<unsigned char>&& indexBuffer,
-            Gfx::IndexBufferType indexBufferType,
-            int indexCount,
-            std::string_view name = "");
+    Submesh(
+        std::unique_ptr<unsigned char>&& vertexBuffer,
+        std::vector<VertexBinding>&& bindings,
+        std::unique_ptr<unsigned char>&& indexBuffer,
+        Gfx::IndexBufferType indexBufferType,
+        int indexCount,
+        std::string_view name = ""
+    );
+    ~Submesh();
 
-    int GetIndexCount() { return indexCount; }
+    int GetIndexCount()
+    {
+        return indexCount;
+    }
 
-    Gfx::IndexBufferType GetIndexBufferType() { return indexBufferType; }
-    Gfx::Buffer* GetIndexBuffer() { return gfxIndexBuffer.Get(); }
-    Gfx::Buffer* GetVertexBuffer() { return gfxVertexBuffer.Get(); }
-    std::span<VertexBinding> GetBindings() { return bindings; }
-    unsigned char* GetIndexBufferPtr() { return indexBuffer.Get(); }
-    unsigned char* GetVertexBufferPtr() { return vertexBuffer.Get(); }
+    Gfx::IndexBufferType GetIndexBufferType()
+    {
+        return indexBufferType;
+    }
+    Gfx::Buffer* GetIndexBuffer()
+    {
+        return gfxIndexBuffer.get();
+    }
+    Gfx::Buffer* GetVertexBuffer()
+    {
+        return gfxVertexBuffer.get();
+    }
+    std::span<VertexBinding> GetBindings()
+    {
+        return bindings;
+    }
+    unsigned char* GetIndexBufferPtr()
+    {
+        return indexBuffer.get();
+    }
+    unsigned char* GetVertexBufferPtr()
+    {
+        return vertexBuffer.get();
+    }
 
 private:
-    UniPtr<Gfx::Buffer> gfxVertexBuffer = nullptr;
-    UniPtr<Gfx::Buffer> gfxIndexBuffer = nullptr;
-    UniPtr<unsigned char> vertexBuffer = nullptr;
-    UniPtr<unsigned char> indexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
+    std::unique_ptr<unsigned char> vertexBuffer = nullptr;
+    std::unique_ptr<unsigned char> indexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType;
     std::vector<VertexBinding> bindings;
     int indexCount = 0;
@@ -49,9 +73,11 @@ private:
 class Mesh2 : public Resource
 {
 public:
-    Mesh2(UUID uuid = UUID::empty) : Resource(), submeshes() {
+    Mesh2(UUID uuid = UUID::empty) : Resource(), submeshes()
+    {
         SetUUID(uuid);
     }
-    std::vector<UniPtr<Submesh>> submeshes;
+    ~Mesh2();
+    std::vector<std::unique_ptr<Submesh>> submeshes;
 };
 } // namespace Engine

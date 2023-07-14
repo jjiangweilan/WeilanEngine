@@ -117,7 +117,7 @@ public:
     virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
     virtual void SetViewport(const Viewport& viewport) = 0;
     virtual void CopyBuffer(
-        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions
+        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;
     virtual void CopyImageToBuffer(
         RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions

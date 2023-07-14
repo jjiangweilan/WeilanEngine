@@ -1,6 +1,6 @@
 #pragma once
-#include "Resource.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Resource.hpp"
 #include <ktx.h>
 
 namespace Engine
@@ -34,8 +34,14 @@ public:
             delete desc.data;
         }
     }
-    RefPtr<Gfx::Image> GetGfxImage() { return image; };
-    const TextureDescription& GetDescription() { return desc; }
+    RefPtr<Gfx::Image> GetGfxImage()
+    {
+        return image;
+    };
+    const TextureDescription& GetDescription()
+    {
+        return desc;
+    }
     void Reload(Resource&& loaded) override;
 
 private:

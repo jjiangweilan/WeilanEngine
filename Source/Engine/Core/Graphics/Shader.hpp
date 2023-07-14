@@ -13,12 +13,20 @@ class ShaderLoader;
 class Shader : public Resource
 {
 public:
-    Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty);
+    Shader(
+        const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty
+    );
     void Reload(Resource&& loaded) override;
     ~Shader() override {}
 
-    inline RefPtr<Gfx::ShaderProgram> GetShaderProgram() { return shaderProgram; }
-    inline const Gfx::ShaderConfig& GetDefaultShaderConfig() { return shaderProgram->GetDefaultShaderConfig(); }
+    inline RefPtr<Gfx::ShaderProgram> GetShaderProgram()
+    {
+        return shaderProgram;
+    }
+    inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
+    {
+        return shaderProgram->GetDefaultShaderConfig();
+    }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -26,6 +34,6 @@ public:
 private:
     std::string shaderName;
 
-    UniPtr<Gfx::ShaderProgram> shaderProgram;
+    std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
 };
 } // namespace Engine

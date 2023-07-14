@@ -24,9 +24,9 @@ struct ImageSubresourceRange
 struct ImageSubresourceLayers
 {
     ImageAspectFlags aspectMask = ImageAspectFlags::Color;
-    uint32_t mipLevel = 0;
+    uint32_t mipLevel = Remaining_Mip_Levels;
     uint32_t baseArrayLayer = 0;
-    uint32_t layerCount = 1;
+    uint32_t layerCount = Remaining_Array_Layers;
 };
 
 class Image

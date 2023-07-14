@@ -1,7 +1,8 @@
 #include "Texture.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
-#include "Rendering/GfxResourceTransfer.hpp"
+#include "Rendering/ImmediateGfx.hpp"
+#define STB_IMAGE_IMPLEMENTATION
 #include "ThirdParty/stb/stb_image.h"
 #include <ktxvulkan.h>
 #include <spdlog/spdlog.h>
@@ -13,13 +14,36 @@ Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
     image =
         Gfx::GfxDriver::Instance()->CreateImage(texDesc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
     image->SetName(uuid.ToString());
-    Internal::GfxResourceTransfer::ImageTransferRequest request{
-        .data = texDesc.data,
-        .size = Gfx::Utils::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height,
-        .keepData = texDesc.keepData
-        // use default subresource layer
-    };
-    Internal::GetGfxResourceTransfer()->Transfer(image, request);
+
+    uint32_t byteSize =
+        Gfx::Utils::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+    Gfx::Buffer::CreateInfo bufCreateInfo;
+    bufCreateInfo.size = byteSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+    bufCreateInfo.debugName = "mesh staging buffer";
+    bufCreateInfo.visibleInCPU = true;
+    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
+
+    ImmediateGfx::OnetimeSubmit(
+        [this, byteSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
+        {
+            Gfx::BufferImageCopyRegion copy[] = {{
+                .srcOffset = 0,
+                .layers =
+                    {
+                        .aspectMask = image->GetSubresourceRange().aspectMask,
+                        .mipLevel = Gfx::Remaining_Mip_Levels,
+                        .baseArrayLayer = 0,
+                        .layerCount = Gfx::Remaining_Array_Layers,
+                    },
+                .offset = {0, 0, 0},
+                .extend = {desc.img.width, desc.img.height, 1},
+            }};
+
+            cmd.CopyBufferToImage(stagingBuffer, image, copy);
+        }
+    );
 }
 
 bool IsKTX2File(ktx_uint8_t* imageData)
@@ -44,10 +68,12 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
     if (IsKTX1File(imageData) || IsKTX2File(imageData))
     {
         ktxTexture* texture;
-        if (ktxTexture_CreateFromMemory((uint8_t*)imageData,
-                                        imageByteSize,
-                                        KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                                        &texture) != KTX_SUCCESS)
+        if (ktxTexture_CreateFromMemory(
+                (uint8_t*)imageData,
+                imageByteSize,
+                KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+                &texture
+            ) != KTX_SUCCESS)
         {
             throw std::runtime_error("Texture-Failed to create texture from memory");
         }
@@ -61,10 +87,12 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
                 UASTC,
                 ETC1S
             } compressionMode;
-            if (KTX_SUCCESS == ktxHashList_FindValue(&texture->kvDataHead,
-                                                     KTX_WRITER_SCPARAMS_KEY,
-                                                     &valueLen,
-                                                     (void**)&writerScParams))
+            if (KTX_SUCCESS == ktxHashList_FindValue(
+                                   &texture->kvDataHead,
+                                   KTX_WRITER_SCPARAMS_KEY,
+                                   &valueLen,
+                                   (void**)&writerScParams
+                               ))
             {
                 if (std::strstr(writerScParams, "--uastc"))
                     compressionMode = CompressionMode::UASTC;
@@ -124,16 +152,20 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
         texDesc.img.format = Gfx::MapVKFormat(ktxTexture_GetVkFormat(texture));
         texDesc.data = nullptr;
 
-        image = Gfx::GfxDriver::Instance()->CreateImage(texDesc.img,
-                                                        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
+        image = Gfx::GfxDriver::Instance()->CreateImage(
+            texDesc.img,
+            Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
+        );
 
         ktx_uint8_t* data = ktxTexture_GetData(texture);
+        size_t byteSize = ktxTexture_GetDataSize(texture);
         if (texture->numDimensions == 1)
         {
             throw std::runtime_error("Texture-numDimensions not implemented");
         }
         else if (texture->numDimensions == 2)
         {
+            std::vector<Gfx::BufferImageCopyRegion> copies;
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
                 for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
@@ -147,19 +179,32 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
                             throw std::runtime_error("Texture-failed to get image offset");
                         uint32_t size = ktxTexture_GetImageSize(texture, level);
 
-                        Gfx::ImageSubresourceLayers layers{
-                            .aspectMask = Gfx::ImageAspectFlags::Color,
-                            .mipLevel = level,
-                            .baseArrayLayer = layer + face, // a multi-face texture (cubemap) can only have one layer
-                            .layerCount = 1};
-                        Internal::GfxResourceTransfer::ImageTransferRequest request{.data = data + offset,
-                                                                                    .size = size,
-                                                                                    .keepData = true,
-                                                                                    .subresourceLayers = layers};
-                        Internal::GetGfxResourceTransfer()->Transfer(image, request);
+                        copies.push_back({
+                            .srcOffset = offset,
+                            .layers =
+                                {
+                                    .aspectMask = image->GetSubresourceRange().aspectMask,
+                                    .mipLevel = level,
+                                    .baseArrayLayer = layer + face,
+                                    .layerCount = 1,
+                                },
+                            .offset = {0, 0, 0},
+                            .extend = {desc.img.width, desc.img.height, 1},
+                        });
                     }
                 }
             }
+
+            Gfx::Buffer::CreateInfo bufCreateInfo;
+            bufCreateInfo.size = byteSize;
+            bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+            bufCreateInfo.debugName = "mesh staging buffer";
+            bufCreateInfo.visibleInCPU = true;
+            auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+            memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
+
+            ImmediateGfx::OnetimeSubmit([this, byteSize, &stagingBuffer, &copies](Gfx::CommandBuffer& cmd)
+                                        { cmd.CopyBufferToImage(stagingBuffer, image, copies); });
         }
         else
         {

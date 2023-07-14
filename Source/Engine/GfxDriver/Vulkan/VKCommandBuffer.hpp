@@ -44,9 +44,8 @@ public:
     void NextRenderPass() override;
     void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) override;
 
-    void CopyBuffer(
-        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions
-    ) override;
+    void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions)
+        override;
     void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions)
         override;
     void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override;

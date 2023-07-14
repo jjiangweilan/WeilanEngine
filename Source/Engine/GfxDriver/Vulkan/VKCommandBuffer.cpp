@@ -266,7 +266,7 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram_,
 }
 
 void VKCommandBuffer::CopyBuffer(
-    RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, const std::vector<BufferCopyRegion>& copyRegions
+    RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
 )
 {
     VKBuffer* src = static_cast<VKBuffer*>(bSrc.Get());

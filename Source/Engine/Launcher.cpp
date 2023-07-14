@@ -3,6 +3,7 @@
 #include "Editor/GameEditor.hpp"
 #include "Editor/Renderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/BuiltinShader.hpp"
 #include "Rendering/RenderPipeline.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <filesystem>
@@ -25,6 +26,7 @@ public:
     {
         Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
         gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
+        builtinShader = Rendering::BuiltinShader::Init();
 
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
@@ -58,12 +60,13 @@ public:
             // gameEditor->Tick();
             renderPipeline->Render();
         }
-LoopEnd:
+    LoopEnd:
         gfxDriver->WaitForIdle();
     }
-    
+
 private:
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
+    std::unique_ptr<Rendering::BuiltinShader> builtinShader;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<RenderPipeline> renderPipeline;
     std::unique_ptr<GameSceneManager> gameSceneManager;

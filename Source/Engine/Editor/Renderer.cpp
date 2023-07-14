@@ -7,10 +7,8 @@
 
 namespace Engine::Editor
 {
-
-const char* imguiShader =
-    R"(
-#version 450 core
+static const char* imguiShader =
+    R"(#version 450 core
 
 #if CONFIG
 name: ImGui
@@ -28,6 +26,7 @@ layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aUV;
 layout(location = 2) in vec4 aColor;
 layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
+
 out gl_PerVertex { vec4 gl_Position; };
 layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
 
@@ -40,16 +39,15 @@ void main()
 #endif
 
 #if FRAG
-layout(set=0, binding=0) uniform sampler2D sTexture_sampler_linear;
-
-layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 layout(location = 0) out vec4 fColor;
+layout(set=0, binding=0) uniform sampler2D sTexture_sampler;
+layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 void main()
 {
-    fColor = In.Color * texture(sTexture_sampler_linear, In.UV.st);
+    fColor = In.Color * texture(sTexture_sampler, In.UV.st);
 }
-#endif)";
-
+#endif
+)";
 void BuildGraphNode() {}
 
 std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont);

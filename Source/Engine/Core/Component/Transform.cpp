@@ -5,7 +5,7 @@
 namespace Engine
 {
 Transform::Transform() : Component("Transform", nullptr) {}
-Transform::Transform(GameObject* gameObject) : Transform()
+Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject)
 {
     position = glm::vec3(0, 0, 0);
     scale = glm::vec3(1, 1, 1);
