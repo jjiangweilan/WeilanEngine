@@ -29,6 +29,26 @@ private:
         glm::mat4 pushConstant;
         uint32_t indexCount;
     };
+
+    static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
+    struct Light
+    {
+        glm::vec4 position;
+        float range;
+        float intensity;
+    };
+    struct SceneInfo
+    {
+        glm::vec4 viewPos;
+        glm::mat4 view;
+        glm::mat4 projection;
+        glm::mat4 viewProjection;
+        glm::mat4 worldToShadow;
+        glm::vec4 lightCount;
+        Light lights[MAX_LIGHT_COUNT];
+    } sceneInfo;
+    UniPtr<Gfx::ShaderResource> sceneShaderResource;
+
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
     Scene& scene;

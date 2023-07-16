@@ -5,7 +5,7 @@
 namespace Engine
 {
 
-RenderPipeline::RenderPipeline(Scene* scene) : scene(scene)
+RenderPipeline::RenderPipeline(Scene* scene, Shader* sceneObjectShader) : scene(scene)
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});

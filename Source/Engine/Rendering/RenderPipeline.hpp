@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+#include "Rendering/Shaders.hpp"
 #if ENGINE_EDITOR
 #include "Editor/Renderer.hpp"
 #endif
@@ -13,7 +14,7 @@ class RenderPipeline
 {
 
 public:
-    RenderPipeline(Scene* scene);
+    RenderPipeline(Scene* scene = nullptr, Shader* sceneObjectShader = nullptr);
     void Render();
 
 private:

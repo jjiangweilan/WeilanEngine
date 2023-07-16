@@ -12,6 +12,7 @@ using namespace RenderGraph;
 
 DualMoonGraph::DualMoonGraph(Scene& scene) : scene(scene)
 {
+    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(->GetShaderProgram(), frequency);
     BuildGraph();
 }
 
