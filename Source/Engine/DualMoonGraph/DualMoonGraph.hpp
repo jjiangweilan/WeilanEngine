@@ -1,5 +1,6 @@
 #pragma once
 #include "Rendering/RenderGraph/Graph.hpp"
+#include "Rendering/Shaders.hpp"
 
 namespace Engine
 {
@@ -8,7 +9,7 @@ class Transform;
 class DualMoonGraph : public RenderGraph::Graph
 {
 public:
-    DualMoonGraph(Scene& scene);
+    DualMoonGraph(Scene& scene, Shader& opaqueShader);
 
     void Execute(Gfx::CommandBuffer& cmd) override;
 
@@ -47,11 +48,14 @@ private:
         glm::vec4 lightCount;
         Light lights[MAX_LIGHT_COUNT];
     } sceneInfo;
-    UniPtr<Gfx::ShaderResource> sceneShaderResource;
+    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
 
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
     Scene& scene;
+    Shader& opaqueShader;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer;
+
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;
     RenderGraph::RenderNode* depthOutput;

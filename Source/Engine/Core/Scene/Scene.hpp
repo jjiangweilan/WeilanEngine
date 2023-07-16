@@ -11,7 +11,7 @@ class Scene : public Resource
 public:
     Scene();
     ~Scene() {}
-    RefPtr<GameObject> CreateGameObject();
+    GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
 
     const std::vector<RefPtr<GameObject>>& GetRootObjects();
@@ -26,13 +26,21 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    Camera* GetMainCamera()
+    {
+        return camera;
+    }
+    void SetMainCamera(Camera* camera)
+    {
+        this->camera = camera;
+    }
 
 protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
 
-    std::vector<Camera*> camera;
+    Camera* camera;
 
     void TickGameObject(RefPtr<GameObject> obj);
 };

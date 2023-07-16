@@ -6,13 +6,13 @@ Scene::Scene() : Resource()
     name = "New GameScene";
 }
 
-RefPtr<GameObject> Scene::CreateGameObject()
+GameObject* Scene::CreateGameObject()
 {
     UniPtr<GameObject> newObj = MakeUnique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
     RefPtr<GameObject> refObj = gameObjects.back();
     roots.push_back(refObj);
-    return refObj;
+    return refObj.Get();
 }
 
 void Scene::AddGameObject(GameObject* newGameObject)

@@ -132,7 +132,7 @@ void main()
         shadowAttenuation = 0;
     }
 
-    o_Color = vec4(indirectLight * shadowAttenuation, 1);
+    o_Color = vec4(1,1,1,1);// vec4(indirectLight * shadowAttenuation, 1);
 }
 #endif
 

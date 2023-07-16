@@ -14,8 +14,15 @@ class RenderPipeline
 {
 
 public:
-    RenderPipeline(Scene* scene = nullptr, Shader* sceneObjectShader = nullptr);
+    RenderPipeline();
     void Render();
+    void SetRenderGraph(
+        std::unique_ptr<RenderGraph::Graph>&& graph,
+        RenderGraph::RenderNode* swapchainOutputNode,
+        RenderGraph::ResourceHandle swapchainOutputHandle,
+        RenderGraph::RenderNode* depthOutputNode,
+        RenderGraph::ResourceHandle depthOutputHandle
+    );
 
 private:
     // present data
@@ -28,7 +35,6 @@ private:
 
     // graph
     std::unique_ptr<RenderGraph::Graph> graph;
-    Scene* scene;
 
 #if ENGINE_EDITOR
     // editor rendering

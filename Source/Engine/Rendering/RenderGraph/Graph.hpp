@@ -50,6 +50,7 @@ private:
 class Graph
 {
 public:
+    virtual ~Graph();
     // template <class T>
     // RenderNode* AddNode()
     // {

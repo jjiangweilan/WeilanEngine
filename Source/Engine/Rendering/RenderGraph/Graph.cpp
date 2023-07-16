@@ -38,6 +38,9 @@ void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
         }
     }
 }
+
+Graph::~Graph() {}
+
 void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
     if (src && dst && src->pass->HasResourceDescription(srcHandle) && dst->pass->HasResourceDescription(dstHandle) &&

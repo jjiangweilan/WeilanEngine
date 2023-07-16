@@ -10,9 +10,19 @@ namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonGraph::DualMoonGraph(Scene& scene) : scene(scene)
+DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader) : scene(scene), opaqueShader(opaqueShader)
 {
-    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(->GetShaderProgram(), frequency);
+    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
+        opaqueShader.GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Global
+    );
+    stagingBuffer = GetGfxDriver()->CreateBuffer({
+        .usages = Gfx::BufferUsage::Transfer_Src,
+        .size = 1024 * 1024, // 1 MB
+        .visibleInCPU = true,
+        .debugName = "dual moon graph staging buffer",
+    });
+
     BuildGraph();
 }
 
@@ -25,16 +35,61 @@ void DualMoonGraph::BuildGraph()
     auto forwardOpaque = AddNode(
         [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
-            for (auto& draw : this->drawList)
+            Camera* camera = scene.GetMainCamera();
+
+            if (camera)
             {
-                cmd.BeginRenderPass(&pass, clearValues);
-                cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
-                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(draw.shaderResource);
-                cmd.SetPushConstant(draw.shader, &draw.pushConstant);
-                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                cmd.EndRenderPass();
+                RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+
+                glm::mat4 viewMatrix = camera->GetViewMatrix();
+                glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+                glm::mat4 vp = projectionMatrix * viewMatrix;
+                glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+                sceneInfo.projection = projectionMatrix;
+                sceneInfo.viewProjection = vp;
+                sceneInfo.viewPos = viewPos;
+                sceneInfo.view = viewMatrix;
+                Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+                Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+
+                Gfx::BufferCopyRegion regions[] = {{
+                    .srcOffset = 0,
+                    .dstOffset = 0,
+                    .size = sceneGlobalBuffer->GetSize(),
+                }};
+
+                memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
+                cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+
+                Gfx::GPUBarrier sceneBufferBarrier{
+                    .buffer = sceneGlobalBuffer,
+                    .srcStageMask = Gfx::PipelineStage::Transfer,
+                    .dstStageMask = Gfx::PipelineStage::Fragment_Shader | Gfx::PipelineStage::Vertex_Shader,
+                    .srcAccessMask = Gfx::AccessMask::Transfer_Write,
+                    .dstAccessMask = Gfx::AccessMask::Shader_Read,
+
+                    .bufferInfo =
+                        {
+                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                            .offset = 0,
+                            .size = GFX_WHOLE_SIZE,
+                        },
+                };
+                cmd.Barrier(&sceneBufferBarrier, 1);
+                cmd.BindResource(sceneShaderResource);
+
+                for (auto& draw : this->drawList)
+                {
+                    cmd.BeginRenderPass(&pass, clearValues);
+                    cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.BindResource(draw.shaderResource);
+                    cmd.SetPushConstant(draw.shader, &draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    cmd.EndRenderPass();
+                }
             }
         },
         {

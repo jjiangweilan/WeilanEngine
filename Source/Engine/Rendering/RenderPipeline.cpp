@@ -5,7 +5,7 @@
 namespace Engine
 {
 
-RenderPipeline::RenderPipeline(Scene* scene, Shader* sceneObjectShader) : scene(scene)
+RenderPipeline::RenderPipeline()
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
@@ -13,18 +13,26 @@ RenderPipeline::RenderPipeline(Scene* scene, Shader* sceneObjectShader) : scene(
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+}
 
-    auto dualMoonGraph = std::make_unique<DualMoonGraph>(*scene);
-    auto [color, colorHandle, depth, depthHandle] = dualMoonGraph->GetFinalSwapchainOutputs();
-    graph = std::move(dualMoonGraph);
+void RenderPipeline::SetRenderGraph(
+    std::unique_ptr<RenderGraph::Graph>&& graph,
+    RenderGraph::RenderNode* swapchainOutputNode,
+    RenderGraph::ResourceHandle swapchainOutputHandle,
+    RenderGraph::RenderNode* depthOutputNode,
+    RenderGraph::ResourceHandle depthOutputHandle
+)
+{
+    this->graph = std::move(graph);
 
 #if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
     auto [editorRenderNode, editorRenderNodeOutputHandle] =
-        gameEditorRenderer->BuildGraph(*graph, color, colorHandle, depth, depthHandle);
+        gameEditorRenderer
+            ->BuildGraph(*this->graph, swapchainOutputNode, swapchainOutputHandle, depthOutputNode, depthOutputHandle);
     this->graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
 #else
-    this->graph->Process(color, colorHandle);
+    this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
 #endif
 }
 
@@ -43,8 +51,8 @@ void RenderPipeline::Render()
     cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
-
-    graph->Execute(*cmd);
+    if (graph)
+        graph->Execute(*cmd);
     cmd->End();
 
     RefPtr<Gfx::CommandBuffer> cmds[] = {cmd};

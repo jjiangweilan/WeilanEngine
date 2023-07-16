@@ -14,35 +14,45 @@ TEST(GameEditor, Render)
 
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(Engine::GetGfxDriver()->GetSDLWindow());
-    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
-    auto graph = std::make_unique<Engine::RenderGraph::Graph>();
-    auto cmd = Engine::GetGfxDriver()->CreateCommandPool({});
-    auto renderPipeline = std::make_unique<Engine::RenderPipeline>();
-    auto r = std::make_unique<Engine::Editor::Renderer>();
-    auto [editorRenderNode, editorRenderOutputHandle] = r->BuildGraph(*graph);
-    graph->Process(editorRenderNode, editorRenderOutputHandle);
+    try 
+    {
+        auto graph = std::make_unique<Engine::RenderGraph::Graph>();
+        auto cmd = Engine::GetGfxDriver()->CreateCommandPool({});
+        auto renderPipeline = std::make_unique<Engine::RenderPipeline>();
+        auto r = std::make_unique<Engine::Editor::Renderer>();
+        auto [editorRenderNode, editorRenderOutputHandle] = r->BuildGraph(*graph);
+        graph->Process(editorRenderNode, editorRenderOutputHandle);
 
-    bool quit = false;
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-    ImGui::ShowDemoWindow();
-    ImGui::EndFrame();
+        bool quit = false;
+        ImGui_ImplSDL2_NewFrame();
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow();
+        ImGui::EndFrame();
 
-    Engine::ImmediateGfx::OnetimeSubmit(
-        [&graph, windowSize](Engine::Gfx::CommandBuffer& cmd)
-        {
-            cmd.SetViewport(
-                {.x = 0,
-                 .y = 0,
-                 .width = (float)windowSize.width,
-                 .height = (float)windowSize.height,
-                 .minDepth = 0,
-                 .maxDepth = 1}
-            );
-            Engine::Rect2D rect = {{0, 0}, {windowSize.width, windowSize.height}};
-            cmd.SetScissor(0, 1, &rect);
-            graph->Execute(cmd);
-        }
-    );
+        Engine::ImmediateGfx::OnetimeSubmit(
+            [&graph, windowSize](Engine::Gfx::CommandBuffer& cmd)
+            {
+                cmd.SetViewport(
+                    {.x = 0,
+                    .y = 0,
+                    .width = (float)windowSize.width,
+                    .height = (float)windowSize.height,
+                    .minDepth = 0,
+                    .maxDepth = 1}
+                );
+                Engine::Rect2D rect = {{0, 0}, {windowSize.width, windowSize.height}};
+                cmd.SetScissor(0, 1, &rect);
+                graph->Execute(cmd);
+            }
+        );
+
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+    }
+    catch(...)
+    {
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+    }
 }
