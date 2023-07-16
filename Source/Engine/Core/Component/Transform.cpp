@@ -1,6 +1,6 @@
 #include "Transform.hpp"
 #include "../GameObject.hpp"
-#include "Core/GameScene/GameScene.hpp"
+#include "Core/Scene/Scene.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 namespace Engine
 {
@@ -13,7 +13,10 @@ Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject
     rotation = glm::quat(rotationEuler);
 }
 
-const std::vector<RefPtr<Transform>>& Transform::GetChildren() { return children; }
+const std::vector<RefPtr<Transform>>& Transform::GetChildren()
+{
+    return children;
+}
 
 void Transform::SetParent(RefPtr<Transform> parent)
 {
@@ -22,7 +25,7 @@ void Transform::SetParent(RefPtr<Transform> parent)
 
     if (parent == nullptr)
     {
-        GameScene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene().Get();
         if (scene)
             scene->MoveGameObjectToRoot(gameObject);
         this->parent->RemoveChild(this);
@@ -31,7 +34,7 @@ void Transform::SetParent(RefPtr<Transform> parent)
     }
     else if (this->parent == nullptr)
     {
-        GameScene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene().Get();
         if (scene)
             scene->RemoveGameObjectFromRoot(gameObject);
         this->parent = parent;
@@ -59,7 +62,10 @@ void Transform::RemoveChild(RefPtr<Transform> child)
     }
 }
 
-RefPtr<Transform> Transform::GetParent() { return parent; }
+RefPtr<Transform> Transform::GetParent()
+{
+    return parent;
+}
 
 void Transform::SetRotation(const glm::vec3& rotation)
 {
@@ -67,19 +73,40 @@ void Transform::SetRotation(const glm::vec3& rotation)
     this->rotation = glm::quat(rotation);
 }
 
-void Transform::SetRotation(const glm::quat& rotation) { this->rotation = rotation; }
+void Transform::SetRotation(const glm::quat& rotation)
+{
+    this->rotation = rotation;
+}
 
-void Transform::SetPosition(const glm::vec3& position) { this->position = position; }
+void Transform::SetPosition(const glm::vec3& position)
+{
+    this->position = position;
+}
 
-void Transform::SetScale(const glm::vec3& scale) { this->scale = scale; }
+void Transform::SetScale(const glm::vec3& scale)
+{
+    this->scale = scale;
+}
 
-const glm::vec3& Transform::GetPosition() { return position; }
+const glm::vec3& Transform::GetPosition()
+{
+    return position;
+}
 
-const glm::vec3& Transform::GetScale() { return scale; }
+const glm::vec3& Transform::GetScale()
+{
+    return scale;
+}
 
-const glm::vec3& Transform::GetRotation() { return rotationEuler; }
+const glm::vec3& Transform::GetRotation()
+{
+    return rotationEuler;
+}
 
-const glm::quat& Transform::GetRotationQuat() { return rotation; }
+const glm::quat& Transform::GetRotationQuat()
+{
+    return rotation;
+}
 
 void Transform::SetModelMatrix(const glm::mat4& model)
 {

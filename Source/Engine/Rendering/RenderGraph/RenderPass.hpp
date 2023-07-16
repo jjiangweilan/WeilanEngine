@@ -66,13 +66,12 @@ public:
     )
         : subpasses(subpasses), execute(execute)
     {
-        for (const ResourceDescription& res : resourceDescs)
+        for (ResourceDescription res : resourceDescs)
         {
-            resourceDescriptions[res.handle] = res;
-
             if (res.externalImage != nullptr)
             {
                 externalResources.push_back(res.handle);
+                res.imageCreateInfo = res.externalImage->GetDescription();
             }
 
             if (res.externalBuffer != nullptr)
@@ -89,6 +88,8 @@ public:
             {
                 creationRequests.push_back(res.handle);
             }
+
+            resourceDescriptions[res.handle] = res;
         }
 
         resourceRefs.reserve(resourceDescs.size());

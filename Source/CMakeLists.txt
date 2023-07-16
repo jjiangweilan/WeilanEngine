@@ -33,7 +33,7 @@ if (${DEV_BUILD})
 endif()
 
 if (${EDITOR_ON})
-    target_compile_definitions(WeilanEngineLib PUBLIC WE_EDITOR)
+    target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_EDITOR)
 else()
     list(FILTER CORE_ENGINE_SRC EXCLUDE REGEX "${CMAKE_CURRENT_LIST_DIR}/Engine/Editor/*")
 endif()

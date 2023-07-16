@@ -1,15 +1,16 @@
 #pragma once
 
+#include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Resource.hpp"
 namespace Engine
 {
-class GameScene : public Resource
+class Scene : public Resource
 {
 public:
-    GameScene();
-    ~GameScene() {}
+    Scene();
+    ~Scene() {}
     RefPtr<GameObject> CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
 
@@ -30,6 +31,8 @@ protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
+
+    std::vector<Camera*> camera;
 
     void TickGameObject(RefPtr<GameObject> obj);
 };

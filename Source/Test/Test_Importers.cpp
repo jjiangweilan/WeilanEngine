@@ -1,14 +1,17 @@
 #pragma once
 #include "AssetDatabase/Importers.hpp"
 #include "Rendering/BuiltinShader.hpp"
+#include "WeilanEngine.hpp"
 #include <gtest/gtest.h>
 
 TEST(Importers, GLB)
 {
-    auto gfxDriver = Engine::Gfx::GfxDriver::CreateGfxDriver(Engine::Gfx::Backend::Vulkan, {.windowSize = {960, 540}});
-    auto builtinShaders = Engine::Rendering::BuiltinShader::Init();
-    auto model2 = Engine::Importers::GLB(
-        "Source/Test/Resources/Cube.glb",
-        builtinShaders->GetShader(Engine::Rendering::BuiltinShader::ShaderName::StandardPBR)
-    );
+    auto engine = std::make_unique<Engine::WeilanEngie>();
+
+    engine->Init({});
+    Engine::Shader* shader = engine->shaders->Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
+
+    auto model2 = Engine::Importers::GLB("Source/Test/Resources/Cube.glb", shader);
+
+    engine->Loop();
 }

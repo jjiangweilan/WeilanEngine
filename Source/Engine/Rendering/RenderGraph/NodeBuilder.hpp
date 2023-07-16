@@ -17,7 +17,6 @@ class NodeBuilder
 public:
     struct BlitDescription
     {
-        RenderNode& srcNode;
         ResourceHandle srcHandle;
         const Gfx::ImageDescription& dstCreateInfo;
         ResourceHandle dstHandle;

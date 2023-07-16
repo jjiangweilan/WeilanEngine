@@ -81,7 +81,7 @@ public:
     void OverrideResourceState();
 
     // execute all nodes for once
-    void Execute(Gfx::CommandBuffer& cmd);
+    virtual void Execute(Gfx::CommandBuffer& cmd);
 
 private:
     class ResourcePool

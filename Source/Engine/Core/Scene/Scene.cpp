@@ -1,9 +1,12 @@
-#include "GameScene.hpp"
+#include "Scene.hpp"
 namespace Engine
 {
-GameScene::GameScene() : Resource() { name = "New GameScene"; }
+Scene::Scene() : Resource()
+{
+    name = "New GameScene";
+}
 
-RefPtr<GameObject> GameScene::CreateGameObject()
+RefPtr<GameObject> Scene::CreateGameObject()
 {
     UniPtr<GameObject> newObj = MakeUnique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
@@ -12,16 +15,19 @@ RefPtr<GameObject> GameScene::CreateGameObject()
     return refObj;
 }
 
-void GameScene::AddGameObject(GameObject* newGameObject)
+void Scene::AddGameObject(GameObject* newGameObject)
 {
     newGameObject->SetGameScene(this);
     roots.push_back(newGameObject);
     externalGameObjects.push_back(newGameObject);
 }
 
-const std::vector<RefPtr<GameObject>>& GameScene::GetRootObjects() { return roots; }
+const std::vector<RefPtr<GameObject>>& Scene::GetRootObjects()
+{
+    return roots;
+}
 
-void GameScene::Tick()
+void Scene::Tick()
 {
     for (auto obj : roots)
     {
@@ -29,9 +35,12 @@ void GameScene::Tick()
     }
 }
 
-void GameScene::MoveGameObjectToRoot(RefPtr<GameObject> obj) { roots.push_back(obj); }
+void Scene::MoveGameObjectToRoot(RefPtr<GameObject> obj)
+{
+    roots.push_back(obj);
+}
 
-void GameScene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
+void Scene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
 {
     auto it = roots.begin();
     while (it != roots.end())
@@ -45,7 +54,7 @@ void GameScene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
     }
 }
 
-void GameScene::TickGameObject(RefPtr<GameObject> obj)
+void Scene::TickGameObject(RefPtr<GameObject> obj)
 {
     obj->Tick();
 
@@ -69,7 +78,7 @@ void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
     }
 }
 
-std::vector<RefPtr<Light>> GameScene::GetActiveLights()
+std::vector<RefPtr<Light>> Scene::GetActiveLights()
 {
     std::vector<RefPtr<Light>> lights;
     for (auto child : roots)
@@ -80,29 +89,31 @@ std::vector<RefPtr<Light>> GameScene::GetActiveLights()
     return lights;
 }
 
-void GameScene::Serialize(Serializer* s) const
+void Scene::Serialize(Serializer* s) const
 {
     s->Serialize("gameObjects", gameObjects);
     s->Serialize("externalGameObjects", externalGameObjects);
 }
 
-void GameScene::Deserialize(Serializer* s)
+void Scene::Deserialize(Serializer* s)
 {
     s->Deserialize("gameObjects", gameObjects);
-    s->Deserialize("externalGameObjects",
-                   externalGameObjects,
-                   [this](void* resource)
-                   {
-                       if (auto go = static_cast<GameObject*>(resource))
-                       {
-                           go->SetGameScene(this);
-                           Transform* goParent = go->GetTransform()->GetParent().Get();
-                           if (!goParent)
-                           {
-                               this->roots.push_back(go);
-                           }
-                       }
-                   });
+    s->Deserialize(
+        "externalGameObjects",
+        externalGameObjects,
+        [this](void* resource)
+        {
+            if (auto go = static_cast<GameObject*>(resource))
+            {
+                go->SetGameScene(this);
+                Transform* goParent = go->GetTransform()->GetParent().Get();
+                if (!goParent)
+                {
+                    this->roots.push_back(go);
+                }
+            }
+        }
+    );
 
     // find all the root object
     for (auto& obj : gameObjects)

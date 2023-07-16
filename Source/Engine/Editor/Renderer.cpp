@@ -72,47 +72,48 @@ Renderer::Renderer(const char* customFont)
 
 std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::BuildGraph(
     RenderGraph::Graph& graph,
-    RenderGraph::RenderNode* colorNode,
-    RenderGraph::ResourceHandle colorHandle,
+    RenderGraph::RenderNode* swapChainImageNode,
+    RenderGraph::ResourceHandle swapchainImageHandle,
     RenderGraph::RenderNode* depthNode,
     RenderGraph::ResourceHandle depthHandle
 )
 {
-    std::vector<RenderGraph::NodeBuilder::BlitDescription> blitDescs;
-    if (colorNode)
-    {
-        colorNode->GetPass()->GetResourceRef(colorHandle);
-        auto& colorDesc = colorNode->GetPass()->GetResourceDescription(colorHandle);
-
-        if (colorDesc.type != RenderGraph::ResourceType::Image)
-        {
-            throw std::logic_error("color node has to be Image type");
-        }
-        blitDescs.push_back({
-            .srcNode = *colorNode,
-            .srcHandle = colorHandle,
-            .dstCreateInfo = colorDesc.imageCreateInfo,
-            .dstHandle = 0,
-        });
-    }
-
-    if (depthNode)
-    {
-        auto& depthDesc = depthNode->GetPass()->GetResourceDescription(depthHandle);
-        if (depthDesc.type != RenderGraph::ResourceType::Image)
-        {
-            throw std::logic_error("depth node has to be Image type");
-        }
-
-        blitDescs.push_back({
-            .srcNode = *depthNode,
-            .srcHandle = depthHandle,
-            .dstCreateInfo = depthDesc.imageCreateInfo,
-            .dstHandle = 1,
-        });
-    }
-    auto blitBuildResult = RenderGraph::NodeBuilder::Blit(blitDescs);
-    auto sceneCopy = graph.AddNode(blitBuildResult.execFunc, blitBuildResult.resourceDescs, blitBuildResult.subpass);
+    // std::vector<RenderGraph::NodeBuilder::BlitDescription> blitDescs;
+    // if (swapChainImageNode)
+    // {
+    //     auto& colorDesc = swapChainImageNode->GetPass()->GetResourceDescription(swapchainImageHandle);
+    //
+    //     if (colorDesc.type != RenderGraph::ResourceType::Image)
+    //     {
+    //         throw std::logic_error("color node has to be Image type");
+    //     }
+    //     blitDescs.push_back({
+    //         .srcHandle = 0,
+    //         .dstCreateInfo = colorDesc.imageCreateInfo,
+    //         .dstHandle = 1,
+    //     });
+    // }
+    //
+    // if (depthNode)
+    // {
+    //     auto& depthDesc = depthNode->GetPass()->GetResourceDescription(depthHandle);
+    //     if (depthDesc.type != RenderGraph::ResourceType::Image)
+    //     {
+    //         throw std::logic_error("depth node has to be Image type");
+    //     }
+    //
+    //     blitDescs.push_back({
+    //         .srcHandle = 2,
+    //         .dstCreateInfo = depthDesc.imageCreateInfo,
+    //         .dstHandle = 3,
+    //     });
+    // }
+    //
+    // auto blitBuildResult = RenderGraph::NodeBuilder::Blit(blitDescs);
+    // auto sceneCopy = graph.AddNode(blitBuildResult.execFunc, blitBuildResult.resourceDescs, blitBuildResult.subpass);
+    //
+    // RenderGraph::Graph::Connect(swapChainImageNode, swapchainImageHandle, sceneCopy, 1);
+    // RenderGraph::Graph::Connect(depthNode, depthHandle, sceneCopy, 3);
 
     auto renderEditor = graph.AddNode(
         [&](auto& cmd, auto& pass, auto& res) { this->RenderEditor(cmd, pass, res); },
@@ -124,7 +125,6 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMaskFlags::Color_Attachment_Read,
                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .externalImage = GetGfxDriver()->GetSwapChainImageProxy().Get(),
             },
         },
         {
@@ -140,6 +140,8 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
             },
         }
     );
+
+    RenderGraph::Graph::Connect(swapChainImageNode, swapchainImageHandle, renderEditor, 0);
 
     return {renderEditor, 0};
 }

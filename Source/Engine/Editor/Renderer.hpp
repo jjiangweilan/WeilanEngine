@@ -13,8 +13,8 @@ public:
     ~Renderer();
     std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> BuildGraph(
         RenderGraph::Graph& graph,
-        RenderGraph::RenderNode* colorNode = nullptr,
-        RenderGraph::ResourceHandle colorHandle = 0,
+        RenderGraph::RenderNode* swapChainImageNode = nullptr,
+        RenderGraph::ResourceHandle swapchainImageHandle = 0,
         RenderGraph::RenderNode* depthNode = nullptr,
         RenderGraph::ResourceHandle depthHandle = 0
     );

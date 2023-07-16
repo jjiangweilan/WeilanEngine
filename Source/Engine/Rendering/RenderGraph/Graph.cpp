@@ -11,32 +11,32 @@ RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& d
 
 void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {
+    RenderNode* present = AddNode(
+        [](auto& cmd, auto& renderPass, const auto& bufs) {},
+        {{
+            .name = "swapchainImage",
+            .handle = 0,
+            .type = ResourceType::Image,
+            .accessFlags = Gfx::AccessMask::None,
+            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+            .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
+            .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
+        }},
+        {}
+    );
+
+    Connect(presentNode, resourceHandle, present, 0);
+
+    Process();
+
     if (presentNode != nullptr)
     {
-        if (presentNode->pass->GetResourceDescription(resourceHandle).externalImage !=
+        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() !=
             GetGfxDriver()->GetSwapChainImageProxy().Get())
         {
             throw std::logic_error("present port needs to be swapchain image");
         }
-
-        RenderNode* present = AddNode(
-            [](auto& cmd, auto& renderPass, const auto& bufs) {},
-            {{
-                .name = "swapchainImage",
-                .handle = 0,
-                .type = ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::None,
-                .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-                .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
-                .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
-            }},
-            {}
-        );
-
-        Connect(presentNode, resourceHandle, present, 0);
     }
-
-    Process();
 }
 void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
@@ -99,8 +99,9 @@ void Graph::Process()
 
         if (r->resourceRef.IsType(ResourceType::Image))
         {
+            auto image = (Gfx::Image*)r->resourceRef.GetResource();
             Gfx::GPUBarrier initialLayoutTransfer{
-                .image = (Gfx::Image*)r->resourceRef.GetResource(),
+                .image = image,
                 .srcStageMask = Gfx::PipelineStage::All_Commands,
                 .dstStageMask = Gfx::PipelineStage::All_Commands,
                 .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
@@ -111,6 +112,7 @@ void Graph::Process()
                         .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                         .oldLayout = Gfx::ImageLayout::Undefined,
                         .newLayout = currentLayout,
+                        .subresourceRange = image->GetSubresourceRange(),
                     },
             };
             initialLayoutTransfers.push_back(initialLayoutTransfer);

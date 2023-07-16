@@ -1,18 +1,19 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
-#if WE_EDITOR
+#if ENGINE_EDITOR
 #include "Editor/Renderer.hpp"
 #endif
 #include <memory>
 
 namespace Engine
 {
+class Scene;
 class RenderPipeline
 {
 
 public:
-    RenderPipeline();
+    RenderPipeline(Scene* scene);
     void Render();
 
 private:
@@ -26,8 +27,9 @@ private:
 
     // graph
     std::unique_ptr<RenderGraph::Graph> graph;
+    Scene* scene;
 
-#if WE_EDITOR
+#if ENGINE_EDITOR
     // editor rendering
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
 #endif

@@ -1,9 +1,11 @@
 #include "RenderPipeline.hpp"
+#include "Core/Scene/Scene.hpp"
+#include "DualMoonGraph/DualMoonGraph.hpp"
 
 namespace Engine
 {
 
-RenderPipeline::RenderPipeline()
+RenderPipeline::RenderPipeline(Scene* scene) : scene(scene)
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
@@ -11,12 +13,18 @@ RenderPipeline::RenderPipeline()
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
-    graph = std::make_unique<RenderGraph::Graph>();
 
-#if WE_EDITOR
+    auto dualMoonGraph = std::make_unique<DualMoonGraph>(*scene);
+    auto [color, colorHandle, depth, depthHandle] = dualMoonGraph->GetFinalSwapchainOutputs();
+    graph = std::move(dualMoonGraph);
+
+#if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
-    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph(*graph);
-    graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
+    auto [editorRenderNode, editorRenderNodeOutputHandle] =
+        gameEditorRenderer->BuildGraph(*graph, color, colorHandle, depth, depthHandle);
+    this->graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
+#else
+    this->graph->Process(color, colorHandle);
 #endif
 }
 

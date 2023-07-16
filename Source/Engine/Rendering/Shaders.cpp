@@ -1,4 +1,4 @@
-#include "BuiltinShader.hpp"
+#include "Shaders.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include <fstream>
@@ -33,29 +33,23 @@ std::unique_ptr<Shader> CreateShader(const char* name, const std::filesystem::pa
     auto shaderProgram = GetGfxDriver()->CreateShaderProgram(name, &shaderCompiler.GetConfig(), vertSPV, fragSPV);
     return std::make_unique<Shader>(name, std::move(shaderProgram));
 }
-BuiltinShader::BuiltinShader()
+Shaders::Shaders() : nameToID() {}
+
+Shader* Shaders::Add(const char* name, const std::filesystem::path& path)
 {
-    shaders[ShaderName::StandardPBR] = CreateShader("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
+    ShaderID id = nameToID(name);
+    assert(!shaders.contains(id));
+
+    shaders[id] = CreateShader(name, "Assets/Shaders/Game/StandardPBR.shad");
+    return shaders[id].get();
 }
-Shader* BuiltinShader::GetShader(BuiltinShader::ShaderName name)
+Shader* Shaders::GetShader(ShaderID id)
 {
-    return shaders[name].get();
+    return shaders[id].get();
 };
-std::unique_ptr<BuiltinShader> BuiltinShader::Init()
-{
-    if (instance == nullptr)
-    {
-        auto singleton = std::unique_ptr<BuiltinShader>(new BuiltinShader());
-        instance = singleton.get();
-        return singleton;
-    }
 
-    return nullptr;
-}
-BuiltinShader* BuiltinShader::GetInstance()
+Shader* Shaders::GetShader(const std::string& name)
 {
-    return instance;
+    return shaders.at(nameToID(name)).get();
 }
-
-BuiltinShader* BuiltinShader::instance = nullptr;
 } // namespace Engine::Rendering
