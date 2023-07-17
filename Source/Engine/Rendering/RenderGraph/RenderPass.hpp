@@ -166,6 +166,7 @@ public:
 
             if (subpass.depth.has_value())
             {
+                depth = Gfx::RenderPass::Attachment();
                 depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
                 depth->multiSampling = subpass.depth->multiSampling;
                 depth->loadOp = subpass.depth->loadOp;

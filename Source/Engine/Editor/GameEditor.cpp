@@ -54,7 +54,7 @@ void GameEditor::Tick()
         SceneTree(root->GetTransform().Get());
     }
     ImGui::End();
-    ImGui::ShowDemoWindow();
+
     ImGui::EndFrame();
 }
 } // namespace Engine::Editor

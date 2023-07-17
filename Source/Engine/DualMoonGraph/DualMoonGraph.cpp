@@ -28,7 +28,7 @@ DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader) : scene(scene),
 
 void DualMoonGraph::BuildGraph()
 {
-    std::vector<Gfx::ClearValue> clearValues = {{.color = {0, 0, 0, 0}}, {.depthStencil = {.depth = 0}}};
+    std::vector<Gfx::ClearValue> clearValues = {{.color = {0, 0, 0, 0}}, {.depthStencil = {.depth = 1}}};
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
     uint32_t width = swapChainProxy->GetDescription().width;
     uint32_t height = swapChainProxy->GetDescription().height;
@@ -143,7 +143,7 @@ void DualMoonGraph::BuildGraph()
                         },
                     },
                 .depth = {{
-                    .handle = 0,
+                    .handle = 1,
                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
                     .loadOp = Gfx::AttachmentLoadOperation::Clear,
                     .storeOp = Gfx::AttachmentStoreOperation::Store,

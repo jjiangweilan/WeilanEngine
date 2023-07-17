@@ -30,7 +30,7 @@ void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::option
 
     if (depth.has_value())
     {
-        if (depth->image)
+        if (depth->image == nullptr)
             throw std::logic_error("image shouldn't be null");
     }
 
