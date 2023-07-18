@@ -13,7 +13,7 @@ Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projec
 
     auto swapChainImage = GetGfxDriver()->GetSwapChainImageProxy();
     auto& desc = swapChainImage->GetDescription();
-    SetProjectionMatrix(45.0f, desc.width / (float)desc.height, 0.01f, 1000.f);
+    SetProjectionMatrix(glm::radians(45.0f), desc.width / (float)desc.height, 0.01f, 1000.f);
 }
 
 Camera::Camera() : Component("Camera", nullptr), projectionMatrix(), viewMatrix()
@@ -53,6 +53,7 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float zNear, float zF
 {
     projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
     projectionMatrix[1][1] = -projectionMatrix[1][1];
+    projectionMatrix[2] = -projectionMatrix[2];
 }
 
 const glm::mat4& Camera::GetProjectionMatrix()

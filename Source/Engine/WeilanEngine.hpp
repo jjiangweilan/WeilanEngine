@@ -28,7 +28,6 @@ public:
     {
         Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
         gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-        shaders = std::make_unique<Rendering::Shaders>();
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         scene = std::make_unique<Scene>();
 #if ENGINE_EDITOR
@@ -39,7 +38,7 @@ public:
         renderPipeline = std::make_unique<RenderPipeline>();
     }
 
-    void LoadScene(const std::filesystem::path& path);
+    void LoadScene(const std::filesystem::path& path){};
 
     void Loop()
     {
@@ -73,7 +72,6 @@ public:
     }
 
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
-    std::unique_ptr<Rendering::Shaders> shaders;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<RenderPipeline> renderPipeline;
     std::unique_ptr<Scene> scene;

@@ -36,7 +36,7 @@ TEST(GamePlay, Test0)
 
             auto swapChainImage = Engine::GetGfxDriver()->GetSwapChainImageProxy();
             auto& desc = swapChainImage->GetDescription();
-            cam->SetProjectionMatrix(45.0f, desc.width / (float)desc.height, 0.01f, 1000.f);
+            cam->SetProjectionMatrix(glm::radians(45.0f), desc.width / (float)desc.height, 0.01f, 1000.f);
         }
     );
 
