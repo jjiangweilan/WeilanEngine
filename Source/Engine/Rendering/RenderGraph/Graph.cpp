@@ -57,6 +57,12 @@ void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, 
 
 void Graph::Process()
 {
+    // clean up
+    resourceOwners.clear();
+    resourcePool.Clear();
+    barrierNodes.clear();
+    sortedNodes.clear();
+
     std::vector<RenderNode*> sortedNodes(nodes.size());
     std::transform(nodes.begin(), nodes.end(), sortedNodes.begin(), [](auto& n) { return n.get(); });
 
@@ -200,6 +206,69 @@ void Graph::Process()
                 }
 
                 currentLayout = desc.imageLayout;
+            }
+            else if (r->resourceRef.IsType(ResourceType::Buffer))
+            {
+                Gfx::Buffer* buf = (Gfx::Buffer*)r->resourceRef.GetResource();
+
+                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
+                Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
+
+                if (Gfx::HasWriteAccessMask(desc.accessFlags))
+                {
+                    // write after write
+                    for (UsedIndex i : writeAccess)
+                    {
+                        SortIndex srcWriteSortIndex = r->used[i].first;
+                        ResourceHandle srcWriteHandle = r->used[i].second;
+                        auto& srcWriteDesc =
+                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteHandle);
+                        srcAccessMask |= srcWriteDesc.accessFlags;
+                        srcStages |= srcWriteDesc.stageFlags;
+                    }
+
+                    // write after read
+                    for (UsedIndex i : readAccess)
+                    {
+                        SortIndex srcReadSortIndex = r->used[i].first;
+                        ResourceHandle srcReadHandle = r->used[i].second;
+                        auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
+                        srcAccessMask |= srcReadDesc.accessFlags;
+                        srcStages |= srcReadDesc.stageFlags;
+                    }
+
+                    writeAccess.push_back(usedIndex);
+                }
+
+                if (Gfx::HasReadAccessMask(desc.accessFlags))
+                {
+                    // read after write
+                    for (UsedIndex i : writeAccess)
+                    {
+                        SortIndex srcWriteSortIndex = r->used[i].first;
+                        ResourceHandle srcWriteHandle = r->used[i].second;
+                        auto& srcWriteDesc =
+                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteSortIndex);
+                        srcAccessMask |= srcWriteDesc.accessFlags;
+                        srcStages |= srcWriteDesc.stageFlags;
+                    }
+
+                    readAccess.push_back(usedIndex);
+                }
+
+                if (srcStages != Gfx::PipelineStage::Top_Of_Pipe || srcAccessMask != Gfx::AccessMask::None)
+                {
+                    Gfx::GPUBarrier barrier{
+                        .buffer = (Gfx::Buffer*)r->resourceRef.GetResource(),
+                        .srcStageMask = srcStages,
+                        .dstStageMask = desc.stageFlags,
+                        .srcAccessMask = srcAccessMask,
+                        .dstAccessMask = desc.accessFlags,
+                        .bufferInfo = {GFX_QUEUE_FAMILY_IGNORED, GFX_QUEUE_FAMILY_IGNORED, 0, GFX_WHOLE_SIZE},
+                    };
+
+                    barriers[sortIndex].push_back(barrier);
+                }
             }
         }
     }

@@ -223,6 +223,44 @@ bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore
 {
     VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
     bool swapchainRecreated = swapchain->AcquireNextImage(swapChainImageProxy, s->GetHandle());
+
+    if (swapchainRecreated)
+    {
+        VKCommandPool::CreateInfo cmdPoolCreateInfo;
+        cmdPoolCreateInfo.queueFamilyIndex = mainQueue->GetFamilyIndex();
+        commandPool = MakeUnique<VKCommandPool>(cmdPoolCreateInfo);
+        auto cmdBufs = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1);
+        auto& cmdBuf = cmdBufs[0];
+        cmdBuf->Begin();
+
+        std::vector<GPUBarrier> barriers;
+        for (int i = 0; i < swapchain->GetSwapChainInfo().numberOfImages; ++i)
+        {
+            GPUBarrier barrier{
+                .image = swapchain->GetSwapChainImage(i),
+                .srcStageMask = Gfx::PipelineStage::All_Commands,
+                .dstStageMask = Gfx::PipelineStage::All_Commands,
+                .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                .imageInfo =
+                    {
+                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                        .oldLayout = Gfx::ImageLayout::Undefined,
+                        .newLayout = Gfx::ImageLayout::Present_Src_Khr,
+                    },
+            };
+            barriers.push_back(barrier);
+        }
+        cmdBuf->Barrier(barriers.data(), barriers.size());
+        cmdBuf->End();
+
+        RefPtr<Gfx::CommandBuffer> cmdBufss[] = {cmdBuf};
+        QueueSubmit(mainQueue, cmdBufss, {}, {}, {}, nullptr);
+
+        WaitForIdle();
+    }
+
     return swapchainRecreated;
 }
 

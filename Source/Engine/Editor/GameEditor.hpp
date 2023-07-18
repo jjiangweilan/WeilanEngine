@@ -12,8 +12,12 @@ public:
     ~GameEditor();
 
     void Tick();
+    void OnWindowResize(int32_t width, int32_t height);
 
 private:
     Scene& scene;
+    std::unique_ptr<GameObject> editorCameraGO;
+    Camera* gameCamera;
+    Camera* editorCamera;
 };
 } // namespace Engine::Editor

@@ -1,4 +1,3 @@
-#pragma once
 #include "DualMoonGraph.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
@@ -10,8 +9,10 @@ namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader) : scene(scene), opaqueShader(opaqueShader)
+DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader, Shader& shadowShader) : scene(scene)
 {
+    this->opaqueShader = &opaqueShader;
+    this->shadowShader = &shadowShader;
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         opaqueShader.GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
@@ -26,14 +27,45 @@ DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader) : scene(scene),
     BuildGraph();
 }
 
+void DualMoonGraph::ProcessLights(Scene* gameScene)
+{
+    auto lights = gameScene->GetActiveLights();
+
+    Light* light = nullptr;
+    for (int i = 0; i < lights.size(); ++i)
+    {
+        sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
+        auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
+        sceneInfo.lights[i].position = glm::vec4(glm::normalize(glm::vec3(model[2])), 0);
+
+        if (lights[i]->GetLightType() == LightType::Directional)
+        {
+            if (light == nullptr || light->GetIntensity() < lights[i]->GetIntensity())
+            {
+                light = lights[i].Get();
+            }
+        }
+    }
+
+    sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
+    if (light)
+    {
+        sceneInfo.worldToShadow = light->WorldToShadowMatrix();
+    }
+}
+
 void DualMoonGraph::BuildGraph()
 {
-    std::vector<Gfx::ClearValue> clearValues = {{.color = {0, 0, 0, 0}}, {.depthStencil = {.depth = 1}}};
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
     uint32_t width = swapChainProxy->GetDescription().width;
     uint32_t height = swapChainProxy->GetDescription().height;
-    auto forwardOpaque = AddNode(
-        [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
+
+    std::vector<Gfx::ClearValue> shadowClears = {{.depthStencil = {.depth = 1}}};
+
+    Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+    Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+    auto uploadSceneBuffer = AddNode(
+        [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
             Camera* camera = scene.GetMainCamera();
 
@@ -49,8 +81,7 @@ void DualMoonGraph::BuildGraph()
                 sceneInfo.viewProjection = vp;
                 sceneInfo.viewPos = viewPos;
                 sceneInfo.view = viewMatrix;
-                Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
-                Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+                ProcessLights(&scene);
 
                 Gfx::BufferCopyRegion regions[] = {{
                     .srcOffset = 0,
@@ -60,37 +91,94 @@ void DualMoonGraph::BuildGraph()
 
                 memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
                 cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
-
-                Gfx::GPUBarrier sceneBufferBarrier{
-                    .buffer = sceneGlobalBuffer,
-                    .srcStageMask = Gfx::PipelineStage::Transfer,
-                    .dstStageMask = Gfx::PipelineStage::Fragment_Shader | Gfx::PipelineStage::Vertex_Shader,
-                    .srcAccessMask = Gfx::AccessMask::Transfer_Write,
-                    .dstAccessMask = Gfx::AccessMask::Shader_Read,
-
-                    .bufferInfo =
-                        {
-                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .offset = 0,
-                            .size = GFX_WHOLE_SIZE,
-                        },
-                };
-                cmd.Barrier(&sceneBufferBarrier, 1);
-                cmd.BindResource(sceneShaderResource);
-
-                for (auto& draw : this->drawList)
-                {
-                    cmd.BeginRenderPass(&pass, clearValues);
-                    cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
-                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.BindResource(draw.shaderResource);
-                    cmd.SetPushConstant(draw.shader, &draw.pushConstant);
-                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                    cmd.EndRenderPass();
-                }
             }
+        },
+        {{
+            .name = "global scene buffer",
+            .handle = 0,
+            .type = ResourceType::Buffer,
+            .accessFlags = Gfx::AccessMask::Transfer_Write,
+            .stageFlags = Gfx::PipelineStage::Transfer,
+            .externalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get(),
+        }} // namespace Engine
+        ,
+        {}
+    );
+
+    auto shadowmapShader = shadowShader;
+    shadowPass = AddNode(
+        [this, shadowClears, shadowmapShader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
+        {
+            cmd.BindResource(sceneShaderResource);
+            cmd.BeginRenderPass(&pass, shadowClears);
+
+            for (auto& draw : this->drawList)
+            {
+                cmd.BindShaderProgram(shadowmapShader->GetShaderProgram(), shadowmapShader->GetDefaultShaderConfig());
+                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                cmd.SetPushConstant(shadowmapShader->GetShaderProgram(), &draw.pushConstant);
+                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+            }
+            cmd.EndRenderPass();
+        },
+        {
+            {
+                .name = "shadow",
+                .handle = 0,
+                .type = ResourceType::Image,
+                .accessFlags =
+                    Gfx::AccessMask::Depth_Stencil_Attachment_Write | Gfx::AccessMask::Depth_Stencil_Attachment_Read,
+                .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
+                .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
+                .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
+                .imageCreateInfo =
+                    {
+                        .width = 1024,
+                        .height = 1024,
+                        .format = Gfx::ImageFormat::D16_UNorm,
+                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                        .mipLevels = 1,
+                        .isCubemap = false,
+                    },
+            },
+            {
+                .name = "global scene buffer",
+                .handle = 1,
+                .type = ResourceType::Buffer,
+                .accessFlags = Gfx::AccessMask::Shader_Read,
+                .stageFlags = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
+            },
+        },
+        {{
+            .depth = {{
+                .handle = 0,
+                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                .storeOp = Gfx::AttachmentStoreOperation::Store,
+            }},
+        }}
+    );
+    Connect(uploadSceneBuffer, 0, shadowPass, 1);
+
+    std::vector<Gfx::ClearValue> clearValues = {
+        {.color = {3 / 255.0f, 190 / 255.0f, 252 / 255.0f, 1}},
+        {.depthStencil = {.depth = 1}}};
+    auto forwardOpaque = AddNode(
+        [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
+        {
+            cmd.BindResource(sceneShaderResource);
+            cmd.BeginRenderPass(&pass, clearValues);
+            for (auto& draw : this->drawList)
+            {
+                cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
+                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                cmd.BindResource(draw.shaderResource);
+                cmd.SetPushConstant(draw.shader, &draw.pushConstant);
+                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+            }
+            cmd.EndRenderPass();
         },
         {
             {
@@ -130,6 +218,15 @@ void DualMoonGraph::BuildGraph()
                         .isCubemap = false,
                     },
             },
+            {
+                .name = "shadow",
+                .handle = 2,
+                .type = ResourceType::Image,
+                .accessFlags = Gfx::AccessMask::Shader_Read,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+                .imageUsagesFlags = Gfx::ImageUsage::Texture,
+                .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+            },
         },
         {
             {
@@ -151,6 +248,7 @@ void DualMoonGraph::BuildGraph()
             },
         }
     );
+    Connect(shadowPass, 0, forwardOpaque, 2);
 
     auto blitToSwapchain = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)
@@ -182,7 +280,6 @@ void DualMoonGraph::BuildGraph()
         },
         {}
     );
-
     Connect(forwardOpaque, 0, blitToSwapchain, 1);
 
     colorOutput = blitToSwapchain;
@@ -254,4 +351,11 @@ void DualMoonGraph::Execute(Gfx::CommandBuffer& cmd)
     Graph::Execute(cmd);
 }
 
+void DualMoonGraph::Process()
+{
+    Graph::Process();
+
+    Gfx::Image* shadowImage = (Gfx::Image*)shadowPass->GetPass()->GetResourceRef(0)->GetResource();
+    sceneShaderResource->SetTexture("shadowMap", shadowImage);
+}
 } // namespace Engine

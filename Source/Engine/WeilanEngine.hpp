@@ -5,6 +5,7 @@
 #include "Editor/GameEditor.hpp"
 #include "Editor/Renderer.hpp"
 #endif
+#include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderPipeline.hpp"
 #include "Rendering/Shaders.hpp"
@@ -54,13 +55,18 @@ public:
                 {
                     goto LoopEnd;
                 }
+                if (event.window.event == SDL_WINDOWEVENT_RESIZED)
+                {
+                    gameEditor->OnWindowResize(event.window.data1, event.window.data2);
+                }
             }
 
 #if ENGINE_EDITOR
             gameEditor->Tick();
 #endif
-            // gameEditor->Tick();
             renderPipeline->Render();
+
+            Time::Tick();
         }
     LoopEnd:
         gfxDriver->WaitForIdle();

@@ -1,4 +1,3 @@
-#pragma once
 #include "AssetDatabase/Importers.hpp"
 #include "Rendering/Shaders.hpp"
 #include "WeilanEngine.hpp"

@@ -16,6 +16,7 @@ public:
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
+    void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
 
     static RefPtr<Camera> mainCamera;
 

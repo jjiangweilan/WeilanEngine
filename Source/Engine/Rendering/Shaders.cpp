@@ -40,7 +40,7 @@ Shader* Shaders::Add(const char* name, const std::filesystem::path& path)
     ShaderID id = nameToID(name);
     assert(!shaders.contains(id));
 
-    shaders[id] = CreateShader(name, "Assets/Shaders/Game/StandardPBR.shad");
+    shaders[id] = CreateShader(name, path);
     return shaders[id].get();
 }
 Shader* Shaders::GetShader(ShaderID id)

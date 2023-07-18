@@ -18,6 +18,7 @@ struct ShaderPushConstant;
 class VKShaderProgram : public ShaderProgram
 {
 public:
+    using SetNum = uint32_t;
     VKShaderProgram(
         const ShaderConfig* config,
         RefPtr<VKContext> context,
@@ -61,7 +62,7 @@ private:
     std::string name;
     ShaderInfo::ShaderInfo shaderInfo;
 
-    typedef std::vector<std::vector<VkDescriptorSetLayoutBinding>> DescriptorSetBindings;
+    typedef std::unordered_map<SetNum, std::vector<VkDescriptorSetLayoutBinding>> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
 
     VKObjectManager* objManager;

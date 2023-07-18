@@ -42,6 +42,8 @@ layout(location = 1) in vec3 i_NormalWS;
 layout(location = 2) in vec3 i_TangentWS;
 layout(location = 3) in vec3 i_BinormalWS;
 layout(location = 4) in vec2 i_UV;
+layout(early_fragment_tests) in;
+
 layout(location = LOC_ShadowMapCS) in vec4 i_ShadowCS;
 
 layout(location = 0) out vec4 o_Color;
@@ -132,7 +134,7 @@ void main()
         shadowAttenuation = 0;
     }
 
-    o_Color = vec4(i_UV.xy,1,1);// vec4(indirectLight * shadowAttenuation, 1);
+    o_Color = vec4(indirectLight * shadowAttenuation, 1);
 }
 #endif
 

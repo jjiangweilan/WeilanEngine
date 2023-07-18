@@ -13,20 +13,22 @@ RenderPipeline::RenderPipeline()
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
     cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+
+#if ENGINE_EDITOR
+    gameEditorRenderer = std::make_unique<Editor::Renderer>();
+#endif
 }
 
 void RenderPipeline::SetRenderGraph(
-    std::unique_ptr<RenderGraph::Graph>&& graph,
+    RenderGraph::Graph* graph,
     RenderGraph::RenderNode* swapchainOutputNode,
     RenderGraph::ResourceHandle swapchainOutputHandle,
     RenderGraph::RenderNode* depthOutputNode,
     RenderGraph::ResourceHandle depthOutputHandle
 )
 {
-    this->graph = std::move(graph);
-
+    this->graph = graph;
 #if ENGINE_EDITOR
-    gameEditorRenderer = std::make_unique<Editor::Renderer>();
     auto [editorRenderNode, editorRenderNodeOutputHandle] =
         gameEditorRenderer
             ->BuildGraph(*this->graph, swapchainOutputNode, swapchainOutputHandle, depthOutputNode, depthOutputHandle);
@@ -42,7 +44,19 @@ void RenderPipeline::Render()
     submitFence->Reset();
     commandPool->ResetCommandPool();
 
-    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
+    if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
+    {
+        swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
+        if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
+        {
+            throw std::runtime_error("the second acquire swapchain image is not successful.");
+        }
+
+        for (auto& cb : swapchainRecreateCallback)
+        {
+            cb();
+        }
+    }
 
     // TODO: better move the whole gfx thing to a renderer
     float width = GetGfxDriver()->GetSwapChainImageProxy()->GetDescription().width;

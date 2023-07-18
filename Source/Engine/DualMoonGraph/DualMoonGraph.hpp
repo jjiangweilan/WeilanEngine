@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Component/Light.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
 
@@ -9,10 +10,10 @@ class Transform;
 class DualMoonGraph : public RenderGraph::Graph
 {
 public:
-    DualMoonGraph(Scene& scene, Shader& opaqueShader);
+    DualMoonGraph(Scene& scene, Shader& opaqueShader, Shader& shadowShader);
 
     void Execute(Gfx::CommandBuffer& cmd) override;
-
+    void Process() override;
     auto GetFinalSwapchainOutputs()
     {
         return std::tuple{colorOutput, colorHandle, depthOutput, depthHandle};
@@ -32,7 +33,7 @@ private:
     };
 
     static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
-    struct Light
+    struct LightInfo
     {
         glm::vec4 position;
         float range;
@@ -46,14 +47,15 @@ private:
         glm::mat4 viewProjection;
         glm::mat4 worldToShadow;
         glm::vec4 lightCount;
-        Light lights[MAX_LIGHT_COUNT];
+        LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
 
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
     Scene& scene;
-    Shader& opaqueShader;
+    Shader* opaqueShader;
+    Shader* shadowShader;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     RenderGraph::RenderNode* colorOutput;
@@ -61,7 +63,11 @@ private:
     RenderGraph::RenderNode* depthOutput;
     RenderGraph::ResourceHandle depthHandle;
 
-    void BuildGraph();
+    RenderGraph::RenderNode* shadowPass;
+
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
+
+    void ProcessLights(Scene* gameScene);
+    void BuildGraph();
 };
 } // namespace Engine
