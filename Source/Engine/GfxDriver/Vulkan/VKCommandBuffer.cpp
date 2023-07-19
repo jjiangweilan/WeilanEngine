@@ -126,24 +126,34 @@ void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::s
     );
 }
 
-void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo)
+void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo, BlitOp blitOp)
 {
     VKImage* from = static_cast<VKImage*>(bFrom.Get());
     VKImage* to = static_cast<VKImage*>(bTo.Get());
 
+    uint32_t srcMip = blitOp.srcMip.value_or(0);
+    uint32_t dstMip = blitOp.dstMip.value_or(0);
     VkImageBlit blit;
     blit.dstOffsets[0] = {0, 0, 0};
-    blit.dstOffsets[1] = {(int32_t)to->GetDescription().width, (int32_t)to->GetDescription().height, 1};
+    blit.dstOffsets[1] = {
+        (int32_t)(to->GetDescription().width / glm::pow(2, dstMip)),
+        (int32_t)(to->GetDescription().height / glm::pow(2, dstMip)),
+        1};
     VkImageSubresourceLayers dstLayers;
     dstLayers.aspectMask = to->GetDefaultSubresourceRange().aspectMask;
     dstLayers.baseArrayLayer = 0;
     dstLayers.layerCount = to->GetDefaultSubresourceRange().layerCount;
-    dstLayers.mipLevel = 0;
+    dstLayers.mipLevel = dstMip;
     blit.dstSubresource = dstLayers;
 
     blit.srcOffsets[0] = {0, 0, 0};
-    blit.srcOffsets[1] = {(int32_t)from->GetDescription().width, (int32_t)from->GetDescription().height, 1};
-    blit.srcSubresource = dstLayers; // basically copy the resources from dst
+    blit.srcOffsets[1] = {
+        (int32_t)(from->GetDescription().width / glm::pow(2, srcMip)),
+        (int32_t)(from->GetDescription().height / glm::pow(2, srcMip)),
+        1};
+    VkImageSubresourceLayers srcLayers = dstLayers;
+    srcLayers.mipLevel = blitOp.srcMip.value_or(0);
+    blit.srcSubresource = srcLayers; // basically copy the resources from dst
                                      // without much configuration
 
     vkCmdBlitImage(

@@ -38,6 +38,19 @@ void SceneTree(Transform* transform)
                 {
                     transform->SetPosition(pos);
                 }
+
+                auto rotation = transform->GetRotation();
+                if (ImGui::InputFloat3("rotation", &rotation[0]))
+                {
+                    transform->SetRotation(rotation);
+                }
+            }
+            if (c->GetName() == "Light")
+            {
+                Light* light = static_cast<Light*>(c.Get());
+                float intensity = light->GetIntensity();
+                ImGui::DragFloat("intensity", &intensity);
+                light->SetIntensity(intensity);
             }
         }
 
@@ -99,7 +112,7 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     }
     ImGui::End();
 
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered())
     {
         return;
     }

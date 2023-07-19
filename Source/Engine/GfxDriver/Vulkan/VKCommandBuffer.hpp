@@ -23,7 +23,7 @@ public:
     void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
     void EndRenderPass() override;
 
-    void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to) override;
+    void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
     // renderpass and framebuffer have to be compatible.
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     void BindResource(RefPtr<Gfx::ShaderResource> resource) override;

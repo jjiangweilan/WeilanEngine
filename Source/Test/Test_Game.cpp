@@ -40,8 +40,11 @@ TEST(GamePlay, Test0)
         }
     );
 
-    auto model2 = Engine::Importers::GLB("Source/Test/Resources/Cube.glb", opaqueShader);
+    auto model2 = Engine::Importers::GLB("Source/Test/Resources/DamagedHelmet.glb", opaqueShader);
     engine->scene->AddGameObject(model2->GetGameObject()[0].get());
+
+    auto lightGO = engine->scene->CreateGameObject();
+    auto light = lightGO->AddComponent<Engine::Light>();
 
     engine->Loop();
 }

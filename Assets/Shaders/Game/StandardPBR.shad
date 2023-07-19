@@ -13,8 +13,7 @@ name: Game/StandardPBR
 #if VERT
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
-layout(location = 2) in vec4 i_Tangent;
-layout(location = 3) in vec2 i_UV;
+layout(location = 2) in vec2 i_UV;
 
 layout(location = 0) out vec3 o_PositionWS;
 layout(location = 1) out vec3 o_NormalWS;
@@ -24,10 +23,11 @@ layout(location = 4) out vec2 o_UV;
 layout(location = LOC_ShadowMapCS) out vec4 o_ShadowCS;
 void main()
 {
+    vec3 tangent = vec3(1,0,0);
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
     o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal,1)).xyz;
-    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz,1)).xyz;
-    o_BinormalWS = cross(o_NormalWS, o_TangentWS) * i_Tangent.w;
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(tangent,1)).xyz;
+    o_BinormalWS = cross(o_NormalWS, o_TangentWS);
     o_UV = i_UV;
 
     o_ShadowCS = scene.worldToShadow * vec4(o_PositionWS, 1);
@@ -126,7 +126,6 @@ void main()
     {
         shadowDepth = texture(shadowMap, shadowUV).x;
     }
-
 
     float shadowAttenuation = 1.0;
     if (objShadowDepth > shadowDepth + 0.00001)
