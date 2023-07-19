@@ -84,6 +84,26 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     glm::vec3 up = glm::normalize(model[1]);
     glm::vec3 forward = glm::normalize(model[2]);
 
+    ImGui::Begin("Test");
+    static float testSpeed = 100;
+    ImGui::DragFloat("Speed", &testSpeed);
+    auto camPos = tsm->GetPosition();
+    if (ImGui::InputFloat3("Editor Cam Pos", &camPos[0]))
+    {
+        tsm->SetPosition(camPos);
+    }
+
+    if (ImGui::Button("Reset"))
+    {
+        editorCamera.GetGameObject()->GetTransform()->SetRotation({0, 0, 0});
+    }
+    ImGui::End();
+
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow))
+    {
+        return;
+    }
+
     float speed = 10 * Time::DeltaTime();
     glm::vec3 dir = glm::vec3(0);
     if (ImGui::IsKeyDown(ImGuiKey_D))
@@ -113,25 +133,6 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     pos += dir;
     tsm->SetPosition(pos);
 
-    ImGui::Begin("Test");
-    static float testSpeed = 100;
-    ImGui::DragFloat("Speed", &testSpeed);
-    auto camPos = tsm->GetPosition();
-    if (ImGui::InputFloat3("Editor Cam Pos", &camPos[0]))
-    {
-        tsm->SetPosition(camPos);
-    }
-
-    auto viewLoc = editorCamera.GetViewMatrix() * glm::vec4(0, 0, 1, 1);
-    auto homoLoc = editorCamera.GetProjectionMatrix() * viewLoc;
-    ImGui::LabelText("viewLoc", "%f, %f, %f", viewLoc.x, viewLoc.y, viewLoc.z);
-    ImGui::LabelText("homoLoc", "%f, %f, %f, %f", homoLoc.x, homoLoc.y, homoLoc.z, homoLoc.w);
-    ImGui::LabelText("forward", "%f, %f, %f", forward.x, forward.y, forward.z);
-    if (ImGui::Button("Reset"))
-    {
-        editorCamera.GetGameObject()->GetTransform()->SetRotation({0, 0, 0});
-    }
-
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
     {
@@ -151,7 +152,6 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     {
         lastMouseDelta = ImVec2(0, 0);
     }
-    ImGui::End();
 }
 
 void GameEditor::OnWindowResize(int32_t width, int32_t height)
