@@ -5,6 +5,7 @@
 #include "Core/Graphics/Mesh2.hpp"
 #include "Core/Resource.hpp"
 #include "Core/Texture.hpp"
+#include "spdlog/spdlog.h"
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -127,6 +128,17 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         else
         {
             // TODO: disable shader feature for normal texture
+        }
+
+        // emission
+        if (matJson.contains("emissiveTexture"))
+        {
+            int textureSamplerIndex = matJson["emissiveTexture"].value("index", -1);
+            if (textureSamplerIndex != -1)
+            {
+                int emissiveTextureImageIndex = texJson[textureSamplerIndex]["source"];
+                mat->SetTexture("emissiveMap", toOurTexture[emissiveTextureImageIndex]);
+            }
         }
 
         // metallicRoughnessMap
