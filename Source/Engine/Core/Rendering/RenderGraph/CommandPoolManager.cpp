@@ -11,7 +11,7 @@ CommandPoolManager* CommandPoolManager::GetInstance()
     return instance.Get();
 }
 
-UniPtr<CommandBuffer> CommandPoolManager::GetCommandBuffer(int threadID)
+UniPtr<Gfx::CommandBuffer> CommandPoolManager::GetCommandBuffer(int threadID)
 {
     auto iter = pools.find(threadID);
     if (iter == pools.end())
@@ -21,7 +21,7 @@ UniPtr<CommandBuffer> CommandPoolManager::GetCommandBuffer(int threadID)
         pools.emplace(threadID, GetGfxDriver()->CreateCommandPool(createInfo));
     }
 
-    return std::move(pools[threadID]->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0]);
+    return std::move(pools[threadID]->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0]);
 }
 
 UniPtr<CommandPoolManager> CommandPoolManager::instance = nullptr;

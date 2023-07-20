@@ -1,5 +1,6 @@
 #include "VKSwapChain.hpp"
 #include "../VKContext.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include "VKDevice.hpp"
 #include "VKEnumMapper.hpp"
 #include "VKSurface.hpp"
@@ -15,7 +16,10 @@ VKSwapChain::VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDev
     CreateOrOverrideSwapChain(VKContext::Instance()->device.Get(), gpu.Get(), &surface);
 }
 
-VKSwapChain::~VKSwapChain() { vkDestroySwapchainKHR(attachedDevice->GetHandle(), swapChain, VK_NULL_HANDLE); }
+VKSwapChain::~VKSwapChain()
+{
+    vkDestroySwapchainKHR(attachedDevice->GetHandle(), swapChain, VK_NULL_HANDLE);
+}
 
 void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
 {
@@ -48,24 +52,25 @@ void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* 
         throw std::runtime_error("desired usage and desired present mode is not found");
     }
 
-    VkSwapchainCreateInfoKHR swapChainCreateInfo = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                                    nullptr,
-                                                    0,
-                                                    surface->GetHandle(),
-                                                    swapChainInfo.numberOfImages,
-                                                    swapChainInfo.surfaceFormat.format,
-                                                    swapChainInfo.surfaceFormat.colorSpace,
-                                                    swapChainInfo.extent,
-                                                    1,
-                                                    swapChainInfo.imageUsageFlags,
-                                                    VK_SHARING_MODE_EXCLUSIVE,
-                                                    0,
-                                                    nullptr,
-                                                    swapChainInfo.surfaceTransform,
-                                                    VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-                                                    swapChainInfo.presentMode,
-                                                    VK_TRUE,
-                                                    oldSwapChain};
+    VkSwapchainCreateInfoKHR swapChainCreateInfo = {
+        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        nullptr,
+        0,
+        surface->GetHandle(),
+        swapChainInfo.numberOfImages,
+        swapChainInfo.surfaceFormat.format,
+        swapChainInfo.surfaceFormat.colorSpace,
+        swapChainInfo.extent,
+        1,
+        swapChainInfo.imageUsageFlags,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        nullptr,
+        swapChainInfo.surfaceTransform,
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        swapChainInfo.presentMode,
+        VK_TRUE,
+        oldSwapChain};
 
     if (vkCreateSwapchainKHR(device->GetHandle(), &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
     {
@@ -121,10 +126,12 @@ bool VKSwapChain::GetSwapChainImagesFromVulkan()
 
     for (uint32_t i = 0; i < imageCount; ++i)
     {
-        swapChainImages.emplace_back(swapChainImagesTemp[i],
-                                     swapChainInfo.surfaceFormat.format,
-                                     swapChainInfo.extent.width,
-                                     swapChainInfo.extent.height);
+        swapChainImages.emplace_back(
+            swapChainImagesTemp[i],
+            swapChainInfo.surfaceFormat.format,
+            swapChainInfo.extent.width,
+            swapChainInfo.extent.height
+        );
 
         swapChainImages.back().SetName(fmt::format("SwapChainImage {}", i));
     }
@@ -193,12 +200,14 @@ VkPresentModeKHR VKSwapChain::GetPresentMode(VKSurface* surface)
 bool VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal)
 {
     uint32_t nextPresentImageIndex;
-    VkResult result = vkAcquireNextImageKHR(attachedDevice->GetHandle(),
-                                            swapChain,
-                                            -1,
-                                            semaphoreToSignal,
-                                            VK_NULL_HANDLE,
-                                            &nextPresentImageIndex);
+    VkResult result = vkAcquireNextImageKHR(
+        attachedDevice->GetHandle(),
+        swapChain,
+        -1,
+        semaphoreToSignal,
+        VK_NULL_HANDLE,
+        &nextPresentImageIndex
+    );
     bool swapchainRecreated = false;
     switch (result)
     {
@@ -206,26 +215,16 @@ bool VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageP
         case VK_SUBOPTIMAL_KHR:
         case VK_ERROR_OUT_OF_DATE_KHR:
             {
-                CreateOrOverrideSwapChain(VKContext::Instance()->device.Get(),
-                                          &VKContext::Instance()->device->GetGPU(),
-                                          surface);
+                CreateOrOverrideSwapChain(
+                    VKContext::Instance()->device.Get(),
+                    &VKContext::Instance()->device->GetGPU(),
+                    surface
+                );
                 swapchainRecreated = true;
                 ImageDescription newDesc = swapChainImageProxy->GetDescription();
                 newDesc.width = surface->GetSurfaceCapabilities().currentExtent.width;
                 newDesc.height = surface->GetSurfaceCapabilities().currentExtent.height;
                 swapChainImageProxy->UpdateImageDescription(newDesc);
-
-                // swapchain is recreated we need to acquire from the new swap chain
-                VkResult result = vkAcquireNextImageKHR(attachedDevice->GetHandle(),
-                                                        swapChain,
-                                                        -1,
-                                                        semaphoreToSignal,
-                                                        VK_NULL_HANDLE,
-                                                        &nextPresentImageIndex);
-                if (result != VK_SUCCESS)
-                {
-                    SPDLOG_ERROR("can't acquire image from the new swapchain");
-                }
                 break;
             }
         default: throw std::runtime_error("Vulkan error: Problem occurred during swap chain image acquisition!");

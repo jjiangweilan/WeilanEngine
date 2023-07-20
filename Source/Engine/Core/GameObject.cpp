@@ -16,7 +16,7 @@ GameObject::GameObject(GameObject&& other)
     other.name = std::move(name);
 }
 
-GameObject::GameObject(RefPtr<GameScene> gameScene) : gameScene(gameScene)
+GameObject::GameObject(RefPtr<Scene> gameScene) : gameScene(gameScene)
 {
     transform = AddComponent<Transform>();
     name = "New GameObject";
@@ -24,7 +24,10 @@ GameObject::GameObject(RefPtr<GameScene> gameScene) : gameScene(gameScene)
 
 GameObject::~GameObject() {}
 
-RefPtr<Transform> GameObject::GetTransform() { return transform; }
+RefPtr<Transform> GameObject::GetTransform()
+{
+    return transform;
+}
 
 void GameObject::Tick()
 {
@@ -34,9 +37,15 @@ void GameObject::Tick()
     }
 }
 
-std::vector<UniPtr<Component>>& GameObject::GetComponents() { return components; }
+std::vector<UniPtr<Component>>& GameObject::GetComponents()
+{
+    return components;
+}
 
-RefPtr<GameScene> GameObject::GetGameScene() { return gameScene; }
+RefPtr<Scene> GameObject::GetGameScene()
+{
+    return gameScene;
+}
 
 RefPtr<Component> GameObject::GetComponent(const char* name)
 {

@@ -1,16 +1,23 @@
 #pragma once
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/GameScene/GameSceneManager.hpp"
-#include "Libs/Ptr.hpp"
-#include "Rendering/RenderGraph/Graph.hpp"
+#include "Core/Scene/Scene.hpp"
+#include <ThirdParty/imgui/imgui.h>
 
 namespace Engine::Editor
 {
+
 class GameEditor
 {
 public:
-    GameEditor(RefPtr<AssetDatabase> assetDatabase, RefPtr<GameSceneManager> gameSceneManager);
+    GameEditor(Scene& scene);
+    ~GameEditor();
 
     void Tick();
+    void OnWindowResize(int32_t width, int32_t height);
+
+private:
+    Scene& scene;
+    std::unique_ptr<GameObject> editorCameraGO;
+    Camera* gameCamera;
+    Camera* editorCamera;
 };
 } // namespace Engine::Editor

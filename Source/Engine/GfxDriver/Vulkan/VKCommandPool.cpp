@@ -19,7 +19,7 @@ VKCommandPool::~VKCommandPool()
     vkDestroyCommandPool(GetDevice()->GetHandle(), commandPool, VK_NULL_HANDLE);
 }
 
-std::vector<UniPtr<CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
+std::vector<UniPtr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
 {
     VkCommandBuffer* cmdBufsTemp = new VkCommandBuffer[count];
 
@@ -32,7 +32,7 @@ std::vector<UniPtr<CommandBuffer>> VKCommandPool::AllocateCommandBuffers(Command
     cmdAllocInfo.commandBufferCount = count;
     vkAllocateCommandBuffers(GetDevice()->GetHandle(), &cmdAllocInfo, cmdBufsTemp);
 
-    std::vector<UniPtr<CommandBuffer>> rlt;
+    std::vector<UniPtr<Gfx::CommandBuffer>> rlt;
     for (int i = 0; i < count; ++i)
     {
         rlt.push_back(MakeUnique<VKCommandBuffer>(cmdBufsTemp[i]));

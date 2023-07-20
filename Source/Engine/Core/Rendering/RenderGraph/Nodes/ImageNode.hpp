@@ -9,7 +9,7 @@ public:
     ImageNode();
     bool Preprocess(ResourceStateTrack& stateTrack) override;
     bool Compile(ResourceStateTrack& stateTrack) override;
-    bool Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
+    bool Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack) override;
     void SetExternalImage(Gfx::Image* externalImage) { this->externalImage = externalImage; };
 
     uint32_t width;

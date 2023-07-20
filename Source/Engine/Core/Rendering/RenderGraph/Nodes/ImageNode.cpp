@@ -35,7 +35,7 @@ bool ImageNode::Compile(ResourceStateTrack& stateTrack)
     return true;
 }
 
-bool ImageNode::Execute(CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack)
+bool ImageNode::Execute(Gfx::CommandBuffer* cmdBuf, ResourceStateTrack& stateTrack)
 {
     if (externalImage != nullptr)
     {

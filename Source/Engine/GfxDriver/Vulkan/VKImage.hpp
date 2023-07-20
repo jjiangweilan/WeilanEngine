@@ -188,10 +188,6 @@ public:
         activeImage->TransformLayoutIfNeeded(cmdBuf, layout, dstStageMask, dstAccessMask, subresourceRange);
     }
 
-    virtual const ImageDescription& GetDescription() override
-    {
-        return activeImage->GetDescription();
-    }
     virtual VkImageSubresourceRange GetDefaultSubresourceRange() override
     {
         return activeImage->GetDefaultSubresourceRange();

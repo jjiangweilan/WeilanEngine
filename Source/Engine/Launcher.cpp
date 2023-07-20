@@ -1,59 +1,9 @@
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/GameScene/GameSceneManager.hpp"
-#include "Editor/GameEditor.hpp"
-#include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/BuiltInRenderGraph.hpp"
+#include "WeilanEngine.hpp"
 #include <filesystem>
 #include <iostream>
 #include <spdlog/spdlog.h>
 namespace Engine
 {
-
-class WeilanEngie
-{
-public:
-    struct CreateInfo
-    {
-        std::filesystem::path projectPath;
-    };
-
-    WeilanEngie() {}
-
-    void Init(const CreateInfo& createInfo)
-    {
-        Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1920, 1080}};
-        Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-        gfxDriver = GetGfxDriver().Get();
-
-        assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
-        // renderGraph = std::make_unique<RenderGraph>(assetDatabase);
-        gameSceneManager = std::make_unique<GameSceneManager>();
-        gameEditor = std::make_unique<Editor::GameEditor>(assetDatabase, gameSceneManager);
-        renderGraph = BuiltInRenderGraphBuilder::BuildGraph(true);
-    }
-
-    void Loop()
-    {
-        while (true)
-        {
-            gameSceneManager->Tick();
-            gameEditor->Tick();
-            // renderGraph->Render();
-        }
-    }
-
-private:
-    std::unique_ptr<AssetDatabase> assetDatabase;
-    std::unique_ptr<Editor::GameEditor> gameEditor;
-    // std::unique_ptr<RenderGraph> renderGraph;
-    std::unique_ptr<GameSceneManager> gameSceneManager;
-    std::unique_ptr<RenderGraph::Graph> renderGraph;
-    Gfx::GfxDriver* gfxDriver;
-
-#if GAME_EDITOR
-
-#endif
-};
 
 class Launcher
 {
@@ -82,20 +32,20 @@ public:
         {
             curr++;
             std::filesystem::path path(args[curr]);
-            if (std::filesystem::exists(path))
-            {
-                OpenProject(path);
-            }
-            else
-            {
-                SPDLOG_ERROR("{} is not a valid path", path.string());
-            }
+            // if (std::filesystem::exists(path))
+            // {}
+            // else
+            // {
+            //     SPDLOG_ERROR("{} is not a valid path", path.string());
+            // }
+
+            auto engine = std::make_unique<WeilanEngie>();
+            engine->Init({path});
+            engine->Loop();
 
             hasAction = true;
         }
     }
-
-    void OpenProject(const std::filesystem::path& path) {}
 
     std::unique_ptr<ArgList> argList;
     bool hasAction = false;

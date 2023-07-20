@@ -1,0 +1,16 @@
+#include "Time.hpp"
+#include <spdlog/spdlog.h>
+namespace Engine
+{
+Time::TimePoint Time::lastTime = Time::Clock::now();
+
+void Time::Tick()
+{
+    auto nowTime = Time::Clock::now();
+    auto deltaTimeDuration = nowTime - lastTime;
+    deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(deltaTimeDuration).count() * 1e-6f;
+    lastTime = nowTime;
+}
+
+float Time::deltaTime = 0;
+} // namespace Engine

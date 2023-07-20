@@ -15,8 +15,8 @@ public:
 
     virtual ~CommandPool(){};
 
-    virtual std::vector<UniPtr<CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
-    // virtual void ReleaseCommandBuffer(RefPtr<CommandBuffer> cmdBuf);
+    virtual std::vector<UniPtr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
+    // virtual void ReleaseCommandBuffer(RefPtr<Gfx::CommandBuffer> cmdBuf);
     virtual void ResetCommandPool() = 0;
 
 private:

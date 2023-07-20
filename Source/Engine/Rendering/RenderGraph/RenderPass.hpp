@@ -5,17 +5,17 @@
 #include "ResourceCenter.hpp"
 #include <functional>
 #include <memory>
-#include <functional>
 namespace Engine::RenderGraph
 {
+
+using ResourceHandle = int;
+using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
 
 // A high level abstraction of game rendering. For example, Rendering all the opaque objects, rendering shadows,
 // velocity pass, TAA pass.
 class RenderPass
 {
 public:
-    using ResourceHandle = int;
-
     // if this is a creational description, imageCreateInfo or bufferCreationInfo should be filled respectively
     struct ResourceDescription
     {
@@ -56,9 +56,8 @@ public:
     };
 
 public:
-    using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
     using PassResources = std::unordered_map<ResourceHandle, ResourceRef>;
-    using ExecutionFunc = std::function<void(CommandBuffer&, Gfx::RenderPass&, const ResourceRefs&)>;
+    using ExecutionFunc = std::function<void(Gfx::CommandBuffer&, Gfx::RenderPass&, const ResourceRefs&)>;
 
     RenderPass(
         const ExecutionFunc& execute,
@@ -67,13 +66,12 @@ public:
     )
         : subpasses(subpasses), execute(execute)
     {
-        for (const ResourceDescription& res : resourceDescs)
+        for (ResourceDescription res : resourceDescs)
         {
-            resourceDescriptions[res.handle] = res;
-
             if (res.externalImage != nullptr)
             {
                 externalResources.push_back(res.handle);
+                res.imageCreateInfo = res.externalImage->GetDescription();
             }
 
             if (res.externalBuffer != nullptr)
@@ -90,6 +88,8 @@ public:
             {
                 creationRequests.push_back(res.handle);
             }
+
+            resourceDescriptions[res.handle] = res;
         }
 
         resourceRefs.reserve(resourceDescs.size());
@@ -135,7 +135,7 @@ public:
 
     // Recording all the gfx commands.
     // Don't insert any pipeline barriers for resources from outside, it's managed by the frame
-    virtual void Execute(CommandBuffer& cmdBuf)
+    virtual void Execute(Gfx::CommandBuffer& cmdBuf)
     {
         if (execute)
             execute(cmdBuf, *renderPass, resourceRefs);
@@ -166,6 +166,7 @@ public:
 
             if (subpass.depth.has_value())
             {
+                depth = Gfx::RenderPass::Attachment();
                 depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
                 depth->multiSampling = subpass.depth->multiSampling;
                 depth->loadOp = subpass.depth->loadOp;

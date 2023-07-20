@@ -1,15 +1,18 @@
 #include "Mesh2.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/GfxResourceTransfer.hpp"
+#include "Rendering/ImmediateGfx.hpp"
 
 namespace Engine
 {
-Submesh::Submesh(UniPtr<unsigned char>&& vertexBuffer,
-                 std::vector<VertexBinding>&& bindings,
-                 UniPtr<unsigned char>&& indexBuffer,
-                 Gfx::IndexBufferType indexBufferType,
-                 int indexCount,
-                 std::string_view name)
+Submesh::~Submesh() {}
+Submesh::Submesh(
+    std::unique_ptr<unsigned char>&& vertexBuffer,
+    std::vector<VertexBinding>&& bindings,
+    std::unique_ptr<unsigned char>&& indexBuffer,
+    Gfx::IndexBufferType indexBufferType,
+    int indexCount,
+    std::string_view name
+)
     : vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)), indexBufferType(indexBufferType),
       bindings(std::move(bindings)), indexCount(indexCount), name(name)
 {
@@ -34,18 +37,30 @@ Submesh::Submesh(UniPtr<unsigned char>&& vertexBuffer,
     bufCreateInfo.debugName = name.data();
     gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    // upload vertex buffer
-    Internal::GfxResourceTransfer::BufferTransferRequest request0{.data = this->vertexBuffer.Get(),
-                                                                  .bufOffset = 0,
-                                                                  .size = vertexBufferSize};
-    Internal::GetGfxResourceTransfer()->Transfer(gfxVertexBuffer.Get(), request0);
+    bufCreateInfo.size = indexBufferSize + vertexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+    bufCreateInfo.debugName = "mesh staging buffer";
+    bufCreateInfo.visibleInCPU = true;
+    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    // upload index buffer
-    Internal::GfxResourceTransfer::BufferTransferRequest request1{
-        .data = this->indexBuffer.Get(),
-        .bufOffset = 0,
-        .size = indexBufferSize,
-    };
-    Internal::GetGfxResourceTransfer()->Transfer(gfxIndexBuffer, request1);
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), this->vertexBuffer.get(), vertexBufferSize);
+    memcpy(
+        (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + vertexBufferSize,
+        this->indexBuffer.get(),
+        indexBufferSize
+    );
+
+    ImmediateGfx::OnetimeSubmit(
+        [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
+        {
+            Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
+            cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
+
+            bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
+            cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
+        }
+    );
 };
+
+Mesh2::~Mesh2() {}
 } // namespace Engine

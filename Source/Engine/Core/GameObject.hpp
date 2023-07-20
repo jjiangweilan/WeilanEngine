@@ -10,11 +10,11 @@
 #include <vector>
 namespace Engine
 {
-class GameScene;
+class Scene;
 class GameObject : public Resource
 {
 public:
-    GameObject(RefPtr<GameScene> gameScene);
+    GameObject(RefPtr<Scene> gameScene);
     GameObject(GameObject&& other);
     GameObject();
     ~GameObject();
@@ -27,8 +27,11 @@ public:
     RefPtr<Component> GetComponent(const char* name);
 
     std::vector<UniPtr<Component>>& GetComponents();
-    void SetGameScene(RefPtr<GameScene> scene) { gameScene = scene; }
-    RefPtr<GameScene> GetGameScene();
+    void SetGameScene(RefPtr<Scene> scene)
+    {
+        gameScene = scene;
+    }
+    RefPtr<Scene> GetGameScene();
     RefPtr<Transform> GetTransform();
     void Tick();
 
@@ -38,7 +41,7 @@ public:
 private:
     std::vector<UniPtr<Component>> components;
     RefPtr<Transform> transform = nullptr;
-    RefPtr<GameScene> gameScene = nullptr;
+    RefPtr<Scene> gameScene = nullptr;
 };
 
 template <class T, class... Args>

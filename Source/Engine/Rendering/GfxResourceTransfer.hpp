@@ -63,7 +63,7 @@ public:
     void Transfer(RefPtr<Gfx::Image> image, const ImageTransferRequest& request);
 
     // method assumes all the memory are not in use
-    void QueueTransferCommands(RefPtr<CommandBuffer> cmdBuf);
+    void QueueTransferCommands(RefPtr<Gfx::CommandBuffer> cmdBuf);
     static void DestroyGfxResourceTransfer() { instance = nullptr; };
 
 private:
@@ -98,13 +98,13 @@ private:
     static UniPtr<GfxResourceTransfer> instance;
     std::unordered_map<Gfx::Buffer*, std::vector<BufferTransferRequestInternalUse>> pendingBuffers;
     std::unordered_map<Gfx::Image*, std::vector<ImageTransferRequestInternalUse>> pendingImages;
-    std::vector<BufferCopyRegion> bufferCopyRegions;
-    std::vector<BufferImageCopyRegion> bufferImageCopyRegions;
+    std::vector<Gfx::BufferCopyRegion> bufferCopyRegions;
+    std::vector<Gfx::BufferImageCopyRegion> bufferImageCopyRegions;
     UniPtr<Gfx::Buffer> stagingBuffer;
     uint32_t stagingBufferOffset = 0;
     const uint32_t stagingBufferSize = 1024 * 1024 * 30;
     UniPtr<Gfx::CommandPool> cmdPool;
-    UniPtr<CommandBuffer> cmdBuf;
+    UniPtr<Gfx::CommandBuffer> cmdBuf;
     UniPtr<Gfx::Fence> fence;
 
     friend RefPtr<GfxResourceTransfer> GetGfxResourceTransfer();

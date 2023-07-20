@@ -21,7 +21,9 @@ namespace Engine
     lua_pushcfunction(                                                                                                 \
         L,                                                                                                             \
         (Wrap<static_cast<Return (ClassName::*)(__VA_ARGS__)>(&ClassName::Function), ClassName, Return, __VA_ARGS__>(  \
-            &ClassName::Function)));                                                                                   \
+            &ClassName::Function                                                                                       \
+        ))                                                                                                             \
+    );                                                                                                                 \
     lua_setfield(L, -2, #Function);
 
 #define ELSE_IF_IS_COMPONENT(Type)                                                                                     \
@@ -93,7 +95,7 @@ private:
         }
         ELSE_IF_IS_COMPONENT(Component)
         ELSE_IF_IS_COMPONENT(Transform)
-        ELSE_IF_IS_COMPONENT(GameScene)
+        ELSE_IF_IS_COMPONENT(Scene)
         // extend return types here...
         // else static_assert(false);
     }
@@ -105,8 +107,9 @@ private:
         {
             T** ptr = (T**)lua_touserdata(
                 L,
-                1); // maybe we can wrap the name in a class' template arg which can make this lambda a c comptiable
-                    // function, so that we can test the data using luaL_checkudata
+                1
+            ); // maybe we can wrap the name in a class' template arg which can make this lambda a c comptiable
+               // function, so that we can test the data using luaL_checkudata
             if (ptr != nullptr)
             {
                 std::tuple<typename std::remove_const<typename std::remove_reference<Args>::type>::type...> args;

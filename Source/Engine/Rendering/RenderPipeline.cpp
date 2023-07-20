@@ -1,4 +1,6 @@
 #include "RenderPipeline.hpp"
+#include "Core/Scene/Scene.hpp"
+#include "DualMoonGraph/DualMoonGraph.hpp"
 
 namespace Engine
 {
@@ -10,27 +12,64 @@ RenderPipeline::RenderPipeline()
     swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
     commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    cmd = commandPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0];
+    cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+
+#if ENGINE_EDITOR
+    gameEditorRenderer = std::make_unique<Editor::Renderer>();
+#endif
 }
 
-void RenderPipeline::Draw()
+void RenderPipeline::SetRenderGraph(
+    RenderGraph::Graph* graph,
+    RenderGraph::RenderNode* swapchainOutputNode,
+    RenderGraph::ResourceHandle swapchainOutputHandle,
+    RenderGraph::RenderNode* depthOutputNode,
+    RenderGraph::ResourceHandle depthOutputHandle
+)
+{
+    this->graph = graph;
+#if ENGINE_EDITOR
+    auto [editorRenderNode, editorRenderNodeOutputHandle] =
+        gameEditorRenderer
+            ->BuildGraph(*this->graph, swapchainOutputNode, swapchainOutputHandle, depthOutputNode, depthOutputHandle);
+    this->graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
+#else
+    this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
+#endif
+}
+
+void RenderPipeline::Render()
 {
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
     commandPool->ResetCommandPool();
 
-    GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
+    if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
+    {
+        swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
+        if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
+        {
+            throw std::runtime_error("the second acquire swapchain image is not successful.");
+        }
+
+        for (auto& cb : swapchainRecreateCallback)
+        {
+            cb();
+        }
+    }
 
     // TODO: better move the whole gfx thing to a renderer
     float width = GetGfxDriver()->GetSwapChainImageProxy()->GetDescription().width;
     float height = GetGfxDriver()->GetSwapChainImageProxy()->GetDescription().height;
+    cmd->Begin();
     cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
+    if (graph)
+        graph->Execute(*cmd);
+    cmd->End();
 
-    // graph->execute(mainCmd)
-
-    RefPtr<CommandBuffer> cmds[] = {cmd};
+    RefPtr<Gfx::CommandBuffer> cmds[] = {cmd};
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
     Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
     RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};

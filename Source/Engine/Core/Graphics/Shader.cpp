@@ -4,7 +4,7 @@
 #include <spdlog/spdlog.h>
 namespace Engine
 {
-Shader::Shader(const std::string& name, UniPtr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
+Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
     : shaderProgram(std::move(shaderProgram))
 {
     SetUUID(uuid);

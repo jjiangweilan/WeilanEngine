@@ -27,7 +27,7 @@ private:
     class Port
     {
     public:
-        RenderPass::ResourceHandle handle;
+        ResourceHandle handle;
         Port* connected;
         RenderNode* parent;
 
@@ -50,6 +50,7 @@ private:
 class Graph
 {
 public:
+    virtual ~Graph();
     // template <class T>
     // RenderNode* AddNode()
     // {
@@ -69,22 +70,19 @@ public:
         return nodes.back().get();
     }
 
-    static void Connect(
-        RenderNode* src, RenderPass::ResourceHandle srcHandle, RenderNode* dst, RenderPass::ResourceHandle dstHandle
-    );
+    static void Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle);
 
     // After all nodes are configured, call process once before calling Execute
     // the graph handles the transition of swapchain image, set the resourceHandle of the presentNode to the output of
     // the swapchain image
-    void Process(RenderNode* presentNode, RenderPass::ResourceHandle resourceHandle);
-    void Process();
+    void Process(RenderNode* presentNode, ResourceHandle resourceHandle);
+    virtual void Process();
 
     // used before Execute to override external resource state that can't be tracked by the graph
     void OverrideResourceState();
 
     // execute all nodes for once
-    void Execute(CommandBuffer& cmd);
-
+    virtual void Execute(Gfx::CommandBuffer& cmd);
 private:
     class ResourcePool
     {
@@ -95,6 +93,11 @@ private:
         void ReleaseBuffer(Gfx::Buffer* handle);
         void ReleaseImage(Gfx::Image* handle);
 
+        void Clear()
+        {
+            images.clear();
+            buffers.clear();
+        }
     private:
         std::vector<std::unique_ptr<Gfx::Image>> images;
         std::vector<std::unique_ptr<Gfx::Buffer>> buffers;
@@ -112,7 +115,7 @@ private:
 
         RenderPass::ResourceDescription request;
 
-        std::vector<std::pair<SortIndex, RenderPass::ResourceHandle>> used;
+        std::vector<std::pair<SortIndex, ResourceHandle>> used;
         void Finalize(ResourcePool& pool);
     };
 
@@ -130,6 +133,5 @@ private:
     std::vector<RenderNode*> sortedNodes;
     std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
-    std::unique_ptr<RenderNode> presentNode;
 };
 } // namespace Engine::RenderGraph

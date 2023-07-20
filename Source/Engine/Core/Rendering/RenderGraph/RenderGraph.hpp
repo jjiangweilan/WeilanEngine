@@ -53,7 +53,7 @@ class RenderGraph
 {
 public:
     bool Compile();
-    bool Execute(CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack);
+    bool Execute(Gfx::CommandBuffer* cmdBuf, RGraph::ResourceStateTrack& stateTrack);
 
     template <class T, class... Args>
     T* AddNode(const Args&... args)

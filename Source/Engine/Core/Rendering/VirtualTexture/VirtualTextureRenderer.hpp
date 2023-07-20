@@ -33,7 +33,7 @@ public:
         queue = GetGfxDriver()->GetQueue(QueueType::Main);
         Gfx::CommandPool::CreateInfo createInfo{.queueFamilyIndex = queue->GetFamilyIndex()};
         cmdPool = GetGfxDriver()->CreateCommandPool(createInfo);
-        feedbackCmdBuf = std::move(cmdPool->AllocateCommandBuffers(CommandBufferType::Primary, 1)[0]);
+        feedbackCmdBuf = std::move(cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0]);
         feedbackTexPassFence = GetGfxDriver()->CreateFence({false});
         feedbackGenerationBeginSemaphore = GetGfxDriver()->CreateSemaphore({false});
     }
@@ -64,8 +64,8 @@ private:
     UniPtr<Libs::Image::LinearImage> feedbackTex;
 
     UniPtr<Gfx::CommandPool> cmdPool;
-    UniPtr<CommandBuffer> feedbackCmdBuf;
-    UniPtr<CommandBuffer> readbackCmdBuf;
+    UniPtr<Gfx::CommandBuffer> feedbackCmdBuf;
+    UniPtr<Gfx::CommandBuffer> readbackCmdBuf;
     UniPtr<Gfx::Semaphore> feedbackGenerationBeginSemaphore;
     RefPtr<CommandQueue> queue;
     UniPtr<Gfx::Fence> feedbackTexPassFence;

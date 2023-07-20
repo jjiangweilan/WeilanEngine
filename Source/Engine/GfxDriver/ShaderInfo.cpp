@@ -126,7 +126,14 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
         data.size = 0;
         for (auto& iter : data.members)
         {
-            data.size += iter.second.data->size;
+            int count = iter.second.dimension[0];
+
+            for(int i = 1; i < iter.second.dimension.size(); ++i)
+            {
+                count *= iter.second.dimension[i];
+            }
+
+            data.size += iter.second.data->size * count;
         }
     }
     else

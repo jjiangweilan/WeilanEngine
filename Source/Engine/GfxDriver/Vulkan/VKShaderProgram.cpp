@@ -129,7 +129,6 @@ VKShaderProgram::VKShaderProgram(
 
     // generate bindings
     DescriptorSetBindings descriptorSetBindings;
-    descriptorSetBindings.resize(Descriptor_Set_Count);
     std::vector<VkSampler> immutableSamplerHandles;
     for (auto& iter : shaderInfo.bindings)
     {
@@ -164,7 +163,7 @@ VKShaderProgram::VKShaderProgram(
 
     for (auto& set : descriptorSetBindings)
     {
-        for (auto& binding : set)
+        for (auto& binding : set.second)
         {
             if (binding.pImmutableSamplers != VK_NULL_HANDLE)
             {
@@ -236,16 +235,29 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     if (fragShaderModule != nullptr)
         modules.push_back(fragShaderModule);
 
-    // we use fixed amount of descriptor set. They are grouped by update frequency
-    pipelineLayoutCreateInfo.setLayoutCount = Descriptor_Set_Count;
-    VkDescriptorSetLayout layouts[Descriptor_Set_Count];
-    for (uint32_t i = 0; i < Descriptor_Set_Count; ++i)
+    // we use fixed amount of descriptor set. They are grouped by update frequency. TODO: this is a very hard coded
+    // solution. Need to change
+    uint32_t maxSet = 0;
+    for (auto& set : combined)
+    {
+        maxSet = set.first > maxSet ? set.first : maxSet;
+    }
+    uint32_t setCount = maxSet + 1;
+    pipelineLayoutCreateInfo.setLayoutCount = setCount;
+    std::vector<VkDescriptorSetLayout> layouts(setCount);
+    for (uint32_t i = 0; i < setCount; ++i)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo;
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-        descriptorSetLayoutCreateInfo.flags = 0;
-        ;
+        if (name == "ImGui")
+        {
+            descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+        }
+        else
+        {
+            descriptorSetLayoutCreateInfo.flags = 0;
+        }
         descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
         descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
 
@@ -254,7 +266,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         descriptorPools.push_back(&pool);
         layouts[i] = pool.GetLayout();
     }
-    pipelineLayoutCreateInfo.pSetLayouts = layouts;
+    pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
 
     VkPushConstantRange ranges[32];
     uint32_t i = 0;

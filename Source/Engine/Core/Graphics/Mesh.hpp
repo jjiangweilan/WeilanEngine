@@ -23,7 +23,7 @@ struct MeshBindingInfo
 {
     uint32_t firstBinding = -1;
     RefPtr<Gfx::Buffer> indexBuffer;
-    std::vector<VertexBufferBinding> bindingBuffers;
+    std::vector<Gfx::VertexBufferBinding> bindingBuffers;
     uint32_t indexBufferOffset = -1;
 };
 
