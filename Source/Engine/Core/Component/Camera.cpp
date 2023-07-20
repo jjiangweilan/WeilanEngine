@@ -53,7 +53,6 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float zNear, float zF
 {
     projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
     projectionMatrix[1][1] = -projectionMatrix[1][1];
-    projectionMatrix[2] = -projectionMatrix[2];
 }
 
 const glm::mat4& Camera::GetProjectionMatrix()

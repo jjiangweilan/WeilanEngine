@@ -129,11 +129,11 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     }
     if (ImGui::IsKeyDown(ImGuiKey_W))
     {
-        dir += forward * speed;
+        dir -= forward * speed;
     }
     if (ImGui::IsKeyDown(ImGuiKey_S))
     {
-        dir -= forward * speed;
+        dir += forward * speed;
     }
     if (ImGui::IsKeyDown(ImGuiKey_E))
     {
@@ -157,7 +157,7 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         auto leftRight = glm::radians(mouseDelta.x * testSpeed) * Time::DeltaTime();
 
         auto eye = tsm->GetPosition();
-        auto lookAtDelta = -leftRight * right + upDown * up;
+        auto lookAtDelta = leftRight * right - upDown * up;
         auto final = glm::lookAt(eye, eye - forward + lookAtDelta, glm::vec3(0, 1, 0));
         tsm->SetModelMatrix(glm::inverse(final));
     }

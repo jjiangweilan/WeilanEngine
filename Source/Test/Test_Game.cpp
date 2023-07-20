@@ -45,6 +45,7 @@ TEST(GamePlay, Test0)
 
     auto lightGO = engine->scene->CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();
+    light->SetIntensity(10);
 
     engine->Loop();
 }
