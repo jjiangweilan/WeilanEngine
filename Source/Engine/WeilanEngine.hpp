@@ -31,14 +31,14 @@ public:
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         scene = std::make_unique<Scene>();
 #if ENGINE_EDITOR
-        gameEditor = std::make_unique<Editor::GameEditor>(*scene);
+        gameEditor = std::make_unique<Editor::GameEditor>(*this);
         gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
 
         renderPipeline = std::make_unique<RenderPipeline>();
     }
 
-    void LoadScene(const std::filesystem::path& path){};
+   void LoadScene(const std::filesystem::path& path){};
 
     void Loop()
     {

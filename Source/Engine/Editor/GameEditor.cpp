@@ -2,12 +2,13 @@
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 
 namespace Engine::Editor
 {
 
-GameEditor::GameEditor(Scene& scene) : scene(scene)
+GameEditor::GameEditor(WeilanEngine& engine) : engine(engine)
 {
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
@@ -72,8 +73,10 @@ static void SceneTree(Scene& scene)
     ImGui::End();
 }
 
-static void MainMenuBar(Scene& scene, Camera*& gameCamera, Camera*& editorCamera)
+void GameEditor::MainMenuBar()
 {
+    auto& scene = *engine.scene;
+
     ImGui::BeginMainMenuBar();
     if (ImGui::MenuItem("Editor Camera"))
     {
@@ -84,6 +87,18 @@ static void MainMenuBar(Scene& scene, Camera*& gameCamera, Camera*& editorCamera
     {
         scene.SetMainCamera(gameCamera);
         gameCamera = nullptr;
+    }
+
+    if (ImGui::BeginMenu("Scene"))
+    {
+        if (ImGui::MenuItem("Scene Tree"))
+            sceneTree = !sceneTree;
+        if (ImGui::MenuItem("Scene Info"))
+            sceneInfo = !sceneInfo;
+
+        if (ImGui::MenuItem("Bake Environment Map"))
+        {}
+        ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();
 }
@@ -177,11 +192,12 @@ void GameEditor::Tick()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    MainMenuBar(scene, gameCamera, editorCamera);
+    MainMenuBar();
     bool isEditorCameraActive = gameCamera != nullptr;
     if (isEditorCameraActive)
         EditorCameraWalkAround(*editorCamera);
-    SceneTree(scene);
+    if (sceneTree)
+        SceneTree(*engine.scene);
 
     ImGui::EndFrame();
 }
