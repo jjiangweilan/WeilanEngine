@@ -14,7 +14,7 @@
 
 namespace Engine
 {
-class WeilanEngie
+class WeilanEngine
 {
 public:
     struct CreateInfo
@@ -22,7 +22,7 @@ public:
         std::filesystem::path projectPath;
     };
 
-    WeilanEngie() {}
+    WeilanEngine() {}
 
     void Init(const CreateInfo& createInfo)
     {

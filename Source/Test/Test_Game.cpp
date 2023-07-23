@@ -8,7 +8,7 @@
 
 TEST(GamePlay, Test0)
 {
-    auto engine = std::make_unique<Engine::WeilanEngie>();
+    auto engine = std::make_unique<Engine::WeilanEngine>();
 
     engine->Init({});
     Engine::Rendering::Shaders shaders;

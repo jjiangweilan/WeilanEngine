@@ -39,7 +39,7 @@ public:
             //     SPDLOG_ERROR("{} is not a valid path", path.string());
             // }
 
-            auto engine = std::make_unique<WeilanEngie>();
+            auto engine = std::make_unique<WeilanEngine>();
             engine->Init({path});
             engine->Loop();
 
