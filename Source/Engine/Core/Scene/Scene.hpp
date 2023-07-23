@@ -4,6 +4,7 @@
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Resource.hpp"
+#include <SDL2/SDL.h>
 namespace Engine
 {
 class Scene : public Resource
@@ -35,10 +36,24 @@ public:
         this->camera = camera;
     }
 
+    void InvokeSystemEventCallbacks(SDL_Event& event)
+    {
+        for (auto& cb : systemEventCallbacks)
+        {
+            cb(event);
+        }
+    }
+
+    void RegisterSystemEventCallback(const std::function<void(SDL_Event& event)>& cb)
+    {
+        systemEventCallbacks.push_back(cb);
+    }
+
 protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
+    std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
 
     Camera* camera;
 

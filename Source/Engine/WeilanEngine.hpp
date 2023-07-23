@@ -60,9 +60,10 @@ public:
                     gameEditor->OnWindowResize(event.window.data1, event.window.data2);
                 }
 
-                for (auto& cb : eventCallback)
+                auto scene = sceneManager->GetActiveScene();
+                if (scene)
                 {
-                    cb(event);
+                    scene->InvokeSystemEventCallbacks(event);
                 }
             }
 

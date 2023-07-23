@@ -20,7 +20,7 @@ TEST(Gameplay, Test0)
     gameObject->SetName("Camera");
     auto cam = gameObject->AddComponent<Engine::Camera>();
     scene.SetMainCamera(cam);
-    engine->eventCallback.push_back(
+    scene.RegisterSystemEventCallback(
         [cam](SDL_Event& event)
         {
             if (event.window.event == SDL_WINDOWEVENT_RESIZED)
