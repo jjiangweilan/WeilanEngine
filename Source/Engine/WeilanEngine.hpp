@@ -1,6 +1,6 @@
 #pragma once
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Scene/Scene.hpp"
+#include "Core/Scene/SceneManager.hpp"
 #if ENGINE_EDITOR
 #include "Editor/GameEditor.hpp"
 #include "Editor/Renderer.hpp"
@@ -29,16 +29,16 @@ public:
         Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
         gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
-        scene = std::make_unique<Scene>();
+        sceneManager = std::make_unique<SceneManager>();
 #if ENGINE_EDITOR
         gameEditor = std::make_unique<Editor::GameEditor>(*this);
         gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
 
-        renderPipeline = std::make_unique<RenderPipeline>();
+        renderPipeline = std::make_unique<RenderPipeline>(*sceneManager);
     }
 
-   void LoadScene(const std::filesystem::path& path){};
+    void LoadScene(const std::filesystem::path& path){};
 
     void Loop()
     {
@@ -50,6 +50,7 @@ public:
 #if ENGINE_EDITOR
                 ImGui_ImplSDL2_ProcessEvent(&event);
 #endif
+
                 if (event.window.event == SDL_WINDOWEVENT_CLOSE)
                 {
                     goto LoopEnd;
@@ -57,6 +58,11 @@ public:
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED)
                 {
                     gameEditor->OnWindowResize(event.window.data1, event.window.data2);
+                }
+
+                for (auto& cb : eventCallback)
+                {
+                    cb(event);
                 }
             }
 
@@ -71,10 +77,12 @@ public:
         gfxDriver->WaitForIdle();
     }
 
+    std::vector<std::function<void(SDL_Event& event)>> eventCallback;
+
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<RenderPipeline> renderPipeline;
-    std::unique_ptr<Scene> scene;
+    std::unique_ptr<SceneManager> sceneManager;
 #if ENGINE_EDITOR
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     std::unique_ptr<Editor::GameEditor> gameEditor;

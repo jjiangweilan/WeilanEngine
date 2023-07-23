@@ -468,4 +468,13 @@ void Graph::Execute(Gfx::CommandBuffer& cmd)
         n->pass->Execute(cmd);
     }
 }
+
+void Graph::Clear()
+{
+    nodes.clear();
+    sortedNodes.clear();
+    barrierNodes.clear();
+    resourceOwners.clear();
+    resourcePool.Clear();
+}
 } // namespace Engine::RenderGraph

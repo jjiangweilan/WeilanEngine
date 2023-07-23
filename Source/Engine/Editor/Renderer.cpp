@@ -78,43 +78,6 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
     RenderGraph::ResourceHandle depthHandle
 )
 {
-    // std::vector<RenderGraph::NodeBuilder::BlitDescription> blitDescs;
-    // if (swapChainImageNode)
-    // {
-    //     auto& colorDesc = swapChainImageNode->GetPass()->GetResourceDescription(swapchainImageHandle);
-    //
-    //     if (colorDesc.type != RenderGraph::ResourceType::Image)
-    //     {
-    //         throw std::logic_error("color node has to be Image type");
-    //     }
-    //     blitDescs.push_back({
-    //         .srcHandle = 0,
-    //         .dstCreateInfo = colorDesc.imageCreateInfo,
-    //         .dstHandle = 1,
-    //     });
-    // }
-    //
-    // if (depthNode)
-    // {
-    //     auto& depthDesc = depthNode->GetPass()->GetResourceDescription(depthHandle);
-    //     if (depthDesc.type != RenderGraph::ResourceType::Image)
-    //     {
-    //         throw std::logic_error("depth node has to be Image type");
-    //     }
-    //
-    //     blitDescs.push_back({
-    //         .srcHandle = 2,
-    //         .dstCreateInfo = depthDesc.imageCreateInfo,
-    //         .dstHandle = 3,
-    //     });
-    // }
-    //
-    // auto blitBuildResult = RenderGraph::NodeBuilder::Blit(blitDescs);
-    // auto sceneCopy = graph.AddNode(blitBuildResult.execFunc, blitBuildResult.resourceDescs, blitBuildResult.subpass);
-    //
-    // RenderGraph::Graph::Connect(swapChainImageNode, swapchainImageHandle, sceneCopy, 1);
-    // RenderGraph::Graph::Connect(depthNode, depthHandle, sceneCopy, 3);
-
     auto renderEditor = graph.AddNode(
         [&](auto& cmd, auto& pass, auto& res) { this->RenderEditor(cmd, pass, res); },
         {

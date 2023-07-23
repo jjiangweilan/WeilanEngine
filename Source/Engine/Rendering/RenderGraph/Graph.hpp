@@ -83,6 +83,7 @@ public:
 
     // execute all nodes for once
     virtual void Execute(Gfx::CommandBuffer& cmd);
+
 private:
     class ResourcePool
     {
@@ -98,10 +99,11 @@ private:
             images.clear();
             buffers.clear();
         }
+
     private:
         std::vector<std::unique_ptr<Gfx::Image>> images;
         std::vector<std::unique_ptr<Gfx::Buffer>> buffers;
-    } resourcePool;
+    };
 
     // keep track of where the resource is used in the node, so that we can create resource barriers for them
     class ResourceOwner
@@ -127,11 +129,15 @@ private:
 
     static int GetDepthOfNode(RenderNode* node);
 
+protected:
+    void Clear();
+
     // rendering related stuffs, maybe factor out of Graph?
 private:
     std::vector<std::unique_ptr<RenderNode>> nodes;
     std::vector<RenderNode*> sortedNodes;
     std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
+    ResourcePool resourcePool;
 };
 } // namespace Engine::RenderGraph

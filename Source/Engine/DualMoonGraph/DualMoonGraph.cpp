@@ -4,17 +4,18 @@
 #include "Core/Component/Transform.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
+#include "Core/Scene/SceneManager.hpp"
 
 namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonGraph::DualMoonGraph(Scene& scene, Shader& opaqueShader, Shader& shadowShader) : scene(scene)
+DualMoonGraph::DualMoonGraph(SceneManager& sceneManager) : sceneManager(sceneManager)
 {
-    this->opaqueShader = &opaqueShader;
-    this->shadowShader = &shadowShader;
+    opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
+    shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        opaqueShader.GetShaderProgram(),
+        opaqueShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
     );
     stagingBuffer = GetGfxDriver()->CreateBuffer({
@@ -54,6 +55,12 @@ void DualMoonGraph::ProcessLights(Scene* gameScene)
     }
 }
 
+void DualMoonGraph::RebuildGraph()
+{
+    Graph::Clear();
+    BuildGraph();
+}
+
 void DualMoonGraph::BuildGraph()
 {
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
@@ -67,30 +74,35 @@ void DualMoonGraph::BuildGraph()
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
-            Camera* camera = scene.GetMainCamera();
+            Scene* scene = sceneManager.GetActiveScene();
 
-            if (camera)
+            if (scene)
             {
-                RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+                Camera* camera = scene->GetMainCamera();
 
-                glm::mat4 viewMatrix = camera->GetViewMatrix();
-                glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
-                glm::mat4 vp = projectionMatrix * viewMatrix;
-                glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
-                sceneInfo.projection = projectionMatrix;
-                sceneInfo.viewProjection = vp;
-                sceneInfo.viewPos = viewPos;
-                sceneInfo.view = viewMatrix;
-                ProcessLights(&scene);
+                if (camera)
+                {
+                    RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
 
-                Gfx::BufferCopyRegion regions[] = {{
-                    .srcOffset = 0,
-                    .dstOffset = 0,
-                    .size = sceneGlobalBuffer->GetSize(),
-                }};
+                    glm::mat4 viewMatrix = camera->GetViewMatrix();
+                    glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+                    glm::mat4 vp = projectionMatrix * viewMatrix;
+                    glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+                    sceneInfo.projection = projectionMatrix;
+                    sceneInfo.viewProjection = vp;
+                    sceneInfo.viewPos = viewPos;
+                    sceneInfo.view = viewMatrix;
+                    ProcessLights(scene);
 
-                memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
-                cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+                    Gfx::BufferCopyRegion regions[] = {{
+                        .srcOffset = 0,
+                        .dstOffset = 0,
+                        .size = sceneGlobalBuffer->GetSize(),
+                    }};
+
+                    memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
+                    cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+                }
             }
         },
         {{
@@ -341,14 +353,19 @@ void DualMoonGraph::AppendDrawData(Transform& transform, std::vector<DualMoonGra
 void DualMoonGraph::Execute(Gfx::CommandBuffer& cmd)
 {
     // culling here?
-    auto& roots = scene.GetRootObjects();
-    drawList.clear();
-    for (auto root : roots)
-    {
-        AppendDrawData(*root->GetTransform(), drawList);
-    }
+    auto scene = sceneManager.GetActiveScene();
 
-    Graph::Execute(cmd);
+    if (scene)
+    {
+        auto& roots = scene->GetRootObjects();
+        drawList.clear();
+        for (auto root : roots)
+        {
+            AppendDrawData(*root->GetTransform(), drawList);
+        }
+
+        Graph::Execute(cmd);
+    }
 }
 
 void DualMoonGraph::Process()

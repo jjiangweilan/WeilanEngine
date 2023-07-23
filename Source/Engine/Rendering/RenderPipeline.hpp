@@ -1,4 +1,6 @@
 #pragma once
+#include "Core/Scene/SceneManager.hpp"
+#include "DualMoonGraph/DualMoonGraph.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
@@ -14,20 +16,16 @@ class RenderPipeline
 {
 
 public:
-    RenderPipeline();
+    RenderPipeline(SceneManager& sceneManager);
     void Render();
-    void SetRenderGraph(
-        RenderGraph::Graph* graph,
-        RenderGraph::RenderNode* swapchainOutputNode,
-        RenderGraph::ResourceHandle swapchainOutputHandle,
-        RenderGraph::RenderNode* depthOutputNode,
-        RenderGraph::ResourceHandle depthOutputHandle
-    );
-
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {
         this->swapchainRecreateCallback.push_back(callback);
     }
+    DualMoonGraph* GetGraph()
+    {
+        return graph.get();
+    };
 
 private:
     // present data
@@ -37,13 +35,19 @@ private:
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<DualMoonGraph> graph;
     // graph
-    RenderGraph::Graph* graph;
     std::vector<std::function<void()>> swapchainRecreateCallback;
 
 #if ENGINE_EDITOR
     // editor rendering
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
 #endif
+    void ProcessGraph(
+        RenderGraph::RenderNode* swapchainOutputNode,
+        RenderGraph::ResourceHandle swapchainOutputHandle,
+        RenderGraph::RenderNode* depthOutputNode,
+        RenderGraph::ResourceHandle depthOutputHandle
+    );
 };
 }; // namespace Engine

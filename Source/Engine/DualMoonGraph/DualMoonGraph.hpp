@@ -6,18 +6,27 @@
 namespace Engine
 {
 class Scene;
+class SceneManager;
 class Transform;
 class DualMoonGraph : public RenderGraph::Graph
 {
 public:
-    DualMoonGraph(Scene& scene, Shader& opaqueShader, Shader& shadowShader);
+    DualMoonGraph(SceneManager& sceneManager);
 
+public:
     void Execute(Gfx::CommandBuffer& cmd) override;
     void Process() override;
     auto GetFinalSwapchainOutputs()
     {
         return std::tuple{colorOutput, colorHandle, depthOutput, depthHandle};
     }
+
+    Shader* GetOpaqueShader()
+    {
+        return shaders.GetShader("StandardPBR");
+    };
+
+    void RebuildGraph();
 
 private:
     struct SceneObjectDrawData
@@ -53,10 +62,12 @@ private:
 
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
-    Scene& scene;
+    SceneManager& sceneManager;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer;
+
     Shader* opaqueShader;
     Shader* shadowShader;
-    std::unique_ptr<Gfx::Buffer> stagingBuffer;
+    Rendering::Shaders shaders;
 
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;

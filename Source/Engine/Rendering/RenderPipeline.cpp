@@ -5,7 +5,7 @@
 namespace Engine
 {
 
-RenderPipeline::RenderPipeline()
+RenderPipeline::RenderPipeline(SceneManager& sceneManager)
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
@@ -17,22 +17,32 @@ RenderPipeline::RenderPipeline()
 #if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
+    graph = std::make_unique<Engine::DualMoonGraph>(sceneManager);
+    auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = graph->GetFinalSwapchainOutputs();
+    ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
+
+    RegisterSwapchainRecreateCallback(
+        [this, &sceneManager]()
+        {
+            graph->RebuildGraph();
+            auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = graph->GetFinalSwapchainOutputs();
+            ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
+        }
+    );
 }
 
-void RenderPipeline::SetRenderGraph(
-    RenderGraph::Graph* graph,
+void RenderPipeline::ProcessGraph(
     RenderGraph::RenderNode* swapchainOutputNode,
     RenderGraph::ResourceHandle swapchainOutputHandle,
     RenderGraph::RenderNode* depthOutputNode,
     RenderGraph::ResourceHandle depthOutputHandle
 )
 {
-    this->graph = graph;
 #if ENGINE_EDITOR
     auto [editorRenderNode, editorRenderNodeOutputHandle] =
         gameEditorRenderer
             ->BuildGraph(*this->graph, swapchainOutputNode, swapchainOutputHandle, depthOutputNode, depthOutputHandle);
-    this->graph->Process(editorRenderNode, editorRenderNodeOutputHandle);
+    ((RenderGraph::Graph*)(this->graph.get()))->Process(editorRenderNode, editorRenderNodeOutputHandle);
 #else
     this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
 #endif

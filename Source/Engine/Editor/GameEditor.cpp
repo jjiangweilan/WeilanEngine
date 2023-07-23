@@ -75,17 +75,19 @@ static void SceneTree(Scene& scene)
 
 void GameEditor::MainMenuBar()
 {
-    auto& scene = *engine.scene;
+    auto scene = engine.sceneManager->GetActiveScene();
+    if (scene == nullptr)
+        return;
 
     ImGui::BeginMainMenuBar();
     if (ImGui::MenuItem("Editor Camera"))
     {
-        gameCamera = scene.GetMainCamera();
-        scene.SetMainCamera(editorCamera);
+        gameCamera = scene->GetMainCamera();
+        scene->SetMainCamera(editorCamera);
     }
     if (ImGui::MenuItem("Game Camera"))
     {
-        scene.SetMainCamera(gameCamera);
+        scene->SetMainCamera(gameCamera);
         gameCamera = nullptr;
     }
 
@@ -196,8 +198,14 @@ void GameEditor::Tick()
     bool isEditorCameraActive = gameCamera != nullptr;
     if (isEditorCameraActive)
         EditorCameraWalkAround(*editorCamera);
-    if (sceneTree)
-        SceneTree(*engine.scene);
+
+    auto scene = engine.sceneManager->GetActiveScene();
+
+    if (scene)
+    {
+        if (sceneTree)
+            SceneTree(*scene);
+    }
 
     ImGui::EndFrame();
 }

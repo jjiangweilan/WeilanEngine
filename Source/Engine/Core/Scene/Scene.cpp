@@ -137,31 +137,4 @@ void Scene::Deserialize(Serializer* s)
         }
     }
 }
-
-// const UUID& World::Serialize(RefPtr<Serializer> serializer)
-// {
-//     auto& infoJson = serializer->GetInfo();
-//     auto& gameObjectsJson = infoJson["members"]["gameObjects"];
-
-//     for(auto& obj : gameObjects)
-//     {
-//         UUID refID = obj->Serialize(serializer);
-//         gameObjectsJson.push_back(refID.ToString());
-//     }
-
-//     auto& rootsJson = infoJson["members"]["roots"];
-//     for(auto root : roots)
-//     {
-//         rootsJson.push_back(root->GetUUID().ToString());
-//     }
-
-//     return GetUUID();
-// }
-
-// void World::Deserialize(RefPtr<Deserializer> deserializer, RefPtr<AssetDatabase> assetDatabase)
-// {
-//     auto& infoJson = deserializer->GetInfo();
-//     auto& gameObjectsJson = infoJson["members"]["gameObjects"];
-//     auto& rootsJson = infoJson["members"]["roots"];
-// }
 } // namespace Engine

@@ -7,4 +7,6 @@ TEST(EnvironmentBaker, Test0)
     engine.Init({});
 
     auto& gfxDriver = engine.gfxDriver;
+
+    engine.Loop();
 }
