@@ -9,13 +9,10 @@
 TEST(Gameplay, Test0)
 {
     auto engine = std::make_unique<Engine::WeilanEngine>();
-
     engine->Init({});
-    Engine::Rendering::Shaders shaders;
+
     Engine::Scene scene;
     engine->sceneManager->SetActiveScene(scene);
-
-    // set camera
     Engine::GameObject* gameObject = scene.CreateGameObject();
     gameObject->SetName("Camera");
     auto cam = gameObject->AddComponent<Engine::Camera>();
@@ -36,7 +33,6 @@ TEST(Gameplay, Test0)
     auto opaqueShader = graph->GetOpaqueShader();
     auto model2 = Engine::Importers::GLB("Source/Test/Resources/DamagedHelmet.glb", opaqueShader);
     scene.AddGameObject(model2->GetGameObject()[0].get());
-
     auto lightGO = scene.CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();
     light->SetIntensity(10);
