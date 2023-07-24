@@ -84,6 +84,8 @@ public:
     // execute all nodes for once
     virtual void Execute(Gfx::CommandBuffer& cmd);
 
+    void Clear();
+
 private:
     class ResourcePool
     {
@@ -130,8 +132,6 @@ private:
     static int GetDepthOfNode(RenderNode* node);
 
 protected:
-    void Clear();
-
     // rendering related stuffs, maybe factor out of Graph?
 private:
     std::vector<std::unique_ptr<RenderNode>> nodes;

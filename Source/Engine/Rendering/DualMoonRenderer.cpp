@@ -24,8 +24,6 @@ DualMoonRenderer::DualMoonRenderer(SceneManager& sceneManager) : sceneManager(sc
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
-
-    BuildGraph();
 }
 
 void DualMoonRenderer::ProcessLights(Scene* gameScene)
@@ -55,14 +53,9 @@ void DualMoonRenderer::ProcessLights(Scene* gameScene)
     }
 }
 
-void DualMoonRenderer::RebuildGraph()
-{
-    Graph::Clear();
-    BuildGraph();
-}
-
 void DualMoonRenderer::BuildGraph()
 {
+    Graph::Clear();
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
     uint32_t width = swapChainProxy->GetDescription().width;
     uint32_t height = swapChainProxy->GetDescription().height;

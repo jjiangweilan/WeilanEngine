@@ -26,7 +26,7 @@ public:
         return shaders.GetShader("StandardPBR");
     };
 
-    void RebuildGraph();
+    void BuildGraph();
 
 private:
     struct SceneObjectDrawData
@@ -79,6 +79,5 @@ private:
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 
     void ProcessLights(Scene* gameScene);
-    void BuildGraph();
 };
 } // namespace Engine

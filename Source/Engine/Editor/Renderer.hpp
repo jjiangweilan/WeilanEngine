@@ -11,13 +11,10 @@ public:
     // customFont: a path to a font file on disk
     Renderer(const char* customFont = nullptr);
     ~Renderer();
-    std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> BuildGraph(
-        RenderGraph::Graph& graph,
-        RenderGraph::RenderNode* swapChainImageNode = nullptr,
-        RenderGraph::ResourceHandle swapchainImageHandle = 0,
-        RenderGraph::RenderNode* depthNode = nullptr,
-        RenderGraph::ResourceHandle depthHandle = 0
-    );
+    std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> BuildGraph();
+    void Process();
+    void Execute(Gfx::CommandBuffer& cmd);
+    void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);
 
 private:
     std::unique_ptr<RenderGraph::Graph> editorRenderGraph;
@@ -25,6 +22,7 @@ private:
     std::unique_ptr<Gfx::Buffer> vertexBuffer;
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
     std::unique_ptr<Gfx::Image> fontImage;
+    std::unique_ptr<RenderGraph::Graph> graph;
 
     void RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res);
 };

@@ -68,17 +68,24 @@ Renderer::Renderer(const char* customFont)
     shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", &config, verSPV, fragSPV);
 
     fontImage = CreateImGuiFont(customFont);
+    graph = std::make_unique<RenderGraph::Graph>();
 }
 
-std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::BuildGraph(
-    RenderGraph::Graph& graph,
-    RenderGraph::RenderNode* swapChainImageNode,
-    RenderGraph::ResourceHandle swapchainImageHandle,
-    RenderGraph::RenderNode* depthNode,
-    RenderGraph::ResourceHandle depthHandle
-)
+void Renderer::Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle)
 {
-    auto renderEditor = graph.AddNode(
+    graph->Process(presentNode, resourceHandle);
+}
+
+void Renderer::Process()
+{
+    graph->Process();
+}
+
+std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::BuildGraph()
+{
+    graph->Clear();
+
+    auto renderEditor = graph->AddNode(
         [&](auto& cmd, auto& pass, auto& res) { this->RenderEditor(cmd, pass, res); },
         {
             {
@@ -88,6 +95,7 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMaskFlags::Color_Attachment_Read,
                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                .externalImage = GetGfxDriver()->GetSwapChainImageProxy().Get(),
             },
         },
         {
@@ -103,8 +111,6 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
             },
         }
     );
-
-    RenderGraph::Graph::Connect(swapChainImageNode, swapchainImageHandle, renderEditor, 0);
 
     return {renderEditor, 0};
 }
@@ -369,5 +375,10 @@ std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
         }
     );
     return fontImage;
+}
+
+void Renderer::Execute(Gfx::CommandBuffer& cmd)
+{
+    graph->Execute(cmd);
 }
 } // namespace Engine::Editor

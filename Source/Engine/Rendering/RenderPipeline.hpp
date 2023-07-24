@@ -22,6 +22,7 @@ public:
     {
         this->swapchainRecreateCallback.push_back(callback);
     }
+
     DualMoonRenderer* GetRenderer()
     {
         return renderer.get();
@@ -43,11 +44,13 @@ private:
     // editor rendering
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
 #endif
-    void ProcessGraph(
-        RenderGraph::RenderNode* swapchainOutputNode,
-        RenderGraph::ResourceHandle swapchainOutputHandle,
-        RenderGraph::RenderNode* depthOutputNode,
-        RenderGraph::ResourceHandle depthOutputHandle
-    );
+
+    void BuildAndProcess();
+    // void ProcessGraph(
+    //     RenderGraph::RenderNode* swapchainOutputNode,
+    //     RenderGraph::ResourceHandle swapchainOutputHandle,
+    //     RenderGraph::RenderNode* depthOutputNode,
+    //     RenderGraph::ResourceHandle depthOutputHandle
+    // );
 };
 }; // namespace Engine

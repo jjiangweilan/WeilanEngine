@@ -17,39 +17,39 @@ RenderPipeline::RenderPipeline(SceneManager& sceneManager)
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
     renderer = std::make_unique<Engine::DualMoonRenderer>(sceneManager);
-    auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
-    ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
+    /// auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
+    // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 
-    RegisterSwapchainRecreateCallback(
-        [this, &sceneManager]()
-        {
-            renderer->RebuildGraph();
-            auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
-            ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
-        }
-    );
+    BuildAndProcess();
+
+    RegisterSwapchainRecreateCallback([this, &sceneManager]() { BuildAndProcess(); });
 }
 
-void RenderPipeline::ProcessGraph(
-    RenderGraph::RenderNode* swapchainOutputNode,
-    RenderGraph::ResourceHandle swapchainOutputHandle,
-    RenderGraph::RenderNode* depthOutputNode,
-    RenderGraph::ResourceHandle depthOutputHandle
-)
+void RenderPipeline::BuildAndProcess()
 {
+    renderer->BuildGraph();
+    auto [colorNode, colorHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
+    ((RenderGraph::Graph*)renderer.get())->Process(colorNode, colorHandle);
 #if ENGINE_EDITOR
-    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph(
-        *this->renderer,
-        swapchainOutputNode,
-        swapchainOutputHandle,
-        depthOutputNode,
-        depthOutputHandle
-    );
-    ((RenderGraph::Graph*)(this->renderer.get()))->Process(editorRenderNode, editorRenderNodeOutputHandle);
-#else
-    this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
+    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+    gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
 #endif
 }
+
+// void RenderPipeline::ProcessGraph(
+//     RenderGraph::RenderNode* swapchainOutputNode,
+//     RenderGraph::ResourceHandle swapchainOutputHandle,
+//     RenderGraph::RenderNode* depthOutputNode,
+//     RenderGraph::ResourceHandle depthOutputHandle
+// )
+// {
+// #if ENGINE_EDITOR
+//     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+//     ((RenderGraph::Graph*)(this->renderer.get()))->Process(editorRenderNode, editorRenderNodeOutputHandle);
+// #else
+//     this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
+// #endif
+// }
 
 void RenderPipeline::Render()
 {
@@ -80,6 +80,18 @@ void RenderPipeline::Render()
     cmd->SetScissor(0, 1, &rect);
     if (renderer)
         renderer->Execute(*cmd);
+#if ENGINE_EDITOR
+    Gfx::GPUBarrier barrier{
+        .buffer = nullptr,
+        .image = nullptr,
+        .srcStageMask = Gfx::PipelineStage::All_Commands,
+        .dstStageMask = Gfx::PipelineStage::All_Commands,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+    };
+    cmd->Barrier(&barrier, 1);
+    gameEditorRenderer->Execute(*cmd);
+#endif
     cmd->End();
 
     RefPtr<Gfx::CommandBuffer> cmds[] = {cmd};

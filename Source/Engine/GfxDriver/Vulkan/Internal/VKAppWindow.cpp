@@ -18,12 +18,14 @@ VKAppWindow::VKAppWindow(Extent2D windowSize) : windowSize(windowSize)
     if (windowSize.height > displayMode.h)
         windowSize.height = displayMode.h * 0.8;
 
-    window = SDL_CreateWindow("WeilanGame",
-                              SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED,
-                              windowSize.width,
-                              windowSize.height,
-                              SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    window = SDL_CreateWindow(
+        "WeilanGame",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        windowSize.width,
+        windowSize.height,
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+    );
 
     int drawableWidth, drawbaleHeight;
     SDL_GL_GetDrawableSize(window, &drawableWidth, &drawbaleHeight);
@@ -38,7 +40,10 @@ VKAppWindow::VKAppWindow(Extent2D windowSize) : windowSize(windowSize)
     // SDL_GetWindowSize(window, &width, &height);
 }
 
-VKAppWindow::~VKAppWindow() { SDL_QuitSubSystem(SDL_INIT_VIDEO); }
+VKAppWindow::~VKAppWindow()
+{
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
 
 void VKAppWindow::CreateVkSurface(VkInstance vkInstance, VkSurfaceKHR* vkSurface)
 {
