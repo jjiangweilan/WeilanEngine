@@ -4,6 +4,7 @@
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Resource.hpp"
+#include "GfxDriver/ShaderResource.hpp"
 #include <SDL2/SDL.h>
 namespace Engine
 {
@@ -35,6 +36,8 @@ public:
     {
         this->camera = camera;
     }
+
+    Gfx::ShaderResource* GetSceneShaderResource();
 
     void InvokeSystemEventCallbacks(SDL_Event& event)
     {

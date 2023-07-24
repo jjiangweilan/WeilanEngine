@@ -1,19 +1,19 @@
-#include "DualMoonGraph.hpp"
+#include "DualMoonRenderer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/Transform.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Core/Scene/SceneManager.hpp"
+#include "Rendering/RenderGraph/NodeBuilder.hpp"
 
 namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonGraph::DualMoonGraph(SceneManager& sceneManager) : sceneManager(sceneManager)
+DualMoonRenderer::DualMoonRenderer(SceneManager& sceneManager) : sceneManager(sceneManager)
 {
-    opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
     shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
+    opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         opaqueShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
@@ -28,7 +28,7 @@ DualMoonGraph::DualMoonGraph(SceneManager& sceneManager) : sceneManager(sceneMan
     BuildGraph();
 }
 
-void DualMoonGraph::ProcessLights(Scene* gameScene)
+void DualMoonRenderer::ProcessLights(Scene* gameScene)
 {
     auto lights = gameScene->GetActiveLights();
 
@@ -55,13 +55,13 @@ void DualMoonGraph::ProcessLights(Scene* gameScene)
     }
 }
 
-void DualMoonGraph::RebuildGraph()
+void DualMoonRenderer::RebuildGraph()
 {
     Graph::Clear();
     BuildGraph();
 }
 
-void DualMoonGraph::BuildGraph()
+void DualMoonRenderer::BuildGraph()
 {
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
     uint32_t width = swapChainProxy->GetDescription().width;
@@ -300,7 +300,9 @@ void DualMoonGraph::BuildGraph()
     depthHandle = 1;
 };
 
-void DualMoonGraph::AppendDrawData(Transform& transform, std::vector<DualMoonGraph::SceneObjectDrawData>& drawList)
+void DualMoonRenderer::AppendDrawData(
+    Transform& transform, std::vector<DualMoonRenderer::SceneObjectDrawData>& drawList
+)
 {
     for (auto child : transform.GetChildren())
     {
@@ -350,7 +352,7 @@ void DualMoonGraph::AppendDrawData(Transform& transform, std::vector<DualMoonGra
     }
 }
 
-void DualMoonGraph::Execute(Gfx::CommandBuffer& cmd)
+void DualMoonRenderer::Execute(Gfx::CommandBuffer& cmd)
 {
     // culling here?
     auto scene = sceneManager.GetActiveScene();
@@ -368,7 +370,7 @@ void DualMoonGraph::Execute(Gfx::CommandBuffer& cmd)
     }
 }
 
-void DualMoonGraph::Process()
+void DualMoonRenderer::Process()
 {
     Graph::Process();
 

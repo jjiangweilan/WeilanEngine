@@ -1,7 +1,5 @@
 #pragma once
 #include "AssetDatabase/Importers.hpp"
-#include "DualMoonGraph/DualMoonGraph.hpp"
-#include "Rendering/Shaders.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <gtest/gtest.h>
@@ -29,7 +27,7 @@ TEST(Gameplay, Test0)
         }
     );
 
-    auto graph = engine->renderPipeline->GetGraph();
+    auto graph = engine->renderPipeline->GetRenderer();
     auto opaqueShader = graph->GetOpaqueShader();
     auto model2 = Engine::Importers::GLB("Source/Test/Resources/DamagedHelmet.glb", opaqueShader);
     scene.AddGameObject(model2->GetGameObject()[0].get());

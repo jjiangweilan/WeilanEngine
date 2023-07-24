@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Scene/SceneManager.hpp"
-#include "DualMoonGraph/DualMoonGraph.hpp"
+#include "DualMoonRenderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
@@ -22,9 +22,9 @@ public:
     {
         this->swapchainRecreateCallback.push_back(callback);
     }
-    DualMoonGraph* GetGraph()
+    DualMoonRenderer* GetRenderer()
     {
-        return graph.get();
+        return renderer.get();
     };
 
 private:
@@ -35,7 +35,7 @@ private:
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
-    std::unique_ptr<DualMoonGraph> graph;
+    std::unique_ptr<DualMoonRenderer> renderer;
     // graph
     std::vector<std::function<void()>> swapchainRecreateCallback;
 

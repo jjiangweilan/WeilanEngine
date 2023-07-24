@@ -8,10 +8,10 @@ namespace Engine
 class Scene;
 class SceneManager;
 class Transform;
-class DualMoonGraph : public RenderGraph::Graph
+class DualMoonRenderer : public RenderGraph::Graph
 {
 public:
-    DualMoonGraph(SceneManager& sceneManager);
+    DualMoonRenderer(SceneManager& sceneManager);
 
 public:
     void Execute(Gfx::CommandBuffer& cmd) override;

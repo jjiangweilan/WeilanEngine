@@ -1,6 +1,5 @@
 #include "RenderPipeline.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "DualMoonGraph/DualMoonGraph.hpp"
 
 namespace Engine
 {
@@ -17,15 +16,15 @@ RenderPipeline::RenderPipeline(SceneManager& sceneManager)
 #if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
-    graph = std::make_unique<Engine::DualMoonGraph>(sceneManager);
-    auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = graph->GetFinalSwapchainOutputs();
+    renderer = std::make_unique<Engine::DualMoonRenderer>(sceneManager);
+    auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
     ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 
     RegisterSwapchainRecreateCallback(
         [this, &sceneManager]()
         {
-            graph->RebuildGraph();
-            auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = graph->GetFinalSwapchainOutputs();
+            renderer->RebuildGraph();
+            auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
             ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
         }
     );
@@ -39,10 +38,14 @@ void RenderPipeline::ProcessGraph(
 )
 {
 #if ENGINE_EDITOR
-    auto [editorRenderNode, editorRenderNodeOutputHandle] =
-        gameEditorRenderer
-            ->BuildGraph(*this->graph, swapchainOutputNode, swapchainOutputHandle, depthOutputNode, depthOutputHandle);
-    ((RenderGraph::Graph*)(this->graph.get()))->Process(editorRenderNode, editorRenderNodeOutputHandle);
+    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph(
+        *this->renderer,
+        swapchainOutputNode,
+        swapchainOutputHandle,
+        depthOutputNode,
+        depthOutputHandle
+    );
+    ((RenderGraph::Graph*)(this->renderer.get()))->Process(editorRenderNode, editorRenderNodeOutputHandle);
 #else
     this->graph->Process(swapchainOutputNode, swapchainOutputHandle);
 #endif
@@ -75,8 +78,8 @@ void RenderPipeline::Render()
     cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
-    if (graph)
-        graph->Execute(*cmd);
+    if (renderer)
+        renderer->Execute(*cmd);
     cmd->End();
 
     RefPtr<Gfx::CommandBuffer> cmds[] = {cmd};
