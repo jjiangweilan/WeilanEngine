@@ -4,7 +4,7 @@
 namespace Engine
 {
 
-RenderPipeline::RenderPipeline(SceneManager& sceneManager)
+RenderPipeline::RenderPipeline()
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
@@ -16,20 +16,15 @@ RenderPipeline::RenderPipeline(SceneManager& sceneManager)
 #if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
-    sceneGraph = std::make_unique<Engine::DualMoonRenderer>(sceneManager);
     /// auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
     // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 
     BuildAndProcess();
-
-    RegisterSwapchainRecreateCallback([this, &sceneManager]() { BuildAndProcess(); });
+    RegisterSwapchainRecreateCallback([this]() { BuildAndProcess(); });
 }
 
 void RenderPipeline::BuildAndProcess()
 {
-    sceneGraph->BuildGraph();
-    auto [colorNode, colorHandle, depthNode, depthHandle] = sceneGraph->GetFinalSwapchainOutputs();
-    ((RenderGraph::Graph*)sceneGraph.get())->Process(colorNode, colorHandle);
 #if ENGINE_EDITOR
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
@@ -51,7 +46,7 @@ void RenderPipeline::BuildAndProcess()
 // #endif
 // }
 
-void RenderPipeline::Render()
+void RenderPipeline::Render(Scene* scene)
 {
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
@@ -79,8 +74,8 @@ void RenderPipeline::Render()
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
 
-    if (sceneGraph)
-        sceneGraph->Execute(*cmd);
+    if (scene)
+        scene->Render(*cmd);
 #if ENGINE_EDITOR
     Gfx::GPUBarrier barrier{
         .buffer = nullptr,

@@ -6,12 +6,11 @@
 namespace Engine
 {
 class Scene;
-class SceneManager;
 class Transform;
 class DualMoonRenderer : public RenderGraph::Graph
 {
 public:
-    DualMoonRenderer(SceneManager& sceneManager);
+    DualMoonRenderer();
 
 public:
     void Execute(Gfx::CommandBuffer& cmd) override;
@@ -26,7 +25,7 @@ public:
         return shaders.GetShader("StandardPBR");
     };
 
-    void BuildGraph();
+    void BuildGraph(Scene& scene);
 
 private:
     struct SceneObjectDrawData
@@ -62,7 +61,7 @@ private:
 
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
-    SceneManager& sceneManager;
+    Scene* scene;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     Shader* opaqueShader;
@@ -78,6 +77,6 @@ private:
 
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 
-    void ProcessLights(Scene* gameScene);
+    void ProcessLights(Scene& gameScene);
 };
 } // namespace Engine

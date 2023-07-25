@@ -1,9 +1,5 @@
 #pragma once
-#include "Core/Scene/SceneManager.hpp"
-#include "DualMoonRenderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/RenderGraph/Graph.hpp"
-#include "Rendering/Shaders.hpp"
 #if ENGINE_EDITOR
 #include "Editor/Renderer.hpp"
 #endif
@@ -16,17 +12,12 @@ class RenderPipeline
 {
 
 public:
-    RenderPipeline(SceneManager& sceneManager);
-    void Render();
+    RenderPipeline();
+    void Render(Scene* scene);
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {
         this->swapchainRecreateCallback.push_back(callback);
     }
-
-    DualMoonRenderer* GetRenderer()
-    {
-        return sceneGraph.get();
-    };
 
 private:
     // present data
@@ -36,8 +27,6 @@ private:
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
-    std::unique_ptr<DualMoonRenderer> sceneGraph;
-    // graph
     std::vector<std::function<void()>> swapchainRecreateCallback;
 
 #if ENGINE_EDITOR
@@ -46,11 +35,5 @@ private:
 #endif
 
     void BuildAndProcess();
-    // void ProcessGraph(
-    //     RenderGraph::RenderNode* swapchainOutputNode,
-    //     RenderGraph::ResourceHandle swapchainOutputHandle,
-    //     RenderGraph::RenderNode* depthOutputNode,
-    //     RenderGraph::ResourceHandle depthOutputHandle
-    // );
 };
 }; // namespace Engine

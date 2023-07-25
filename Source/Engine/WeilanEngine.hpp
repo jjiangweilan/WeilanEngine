@@ -35,7 +35,7 @@ public:
         gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
 
-        renderPipeline = std::make_unique<RenderPipeline>(*sceneManager);
+        renderPipeline = std::make_unique<RenderPipeline>();
     }
 
     void LoadScene(const std::filesystem::path& path){};
@@ -70,7 +70,11 @@ public:
 #if ENGINE_EDITOR
             gameEditor->Tick();
 #endif
-            renderPipeline->Render();
+            auto scene = sceneManager->GetActiveScene();
+            if (scene)
+            {
+                renderPipeline->Render(scene);
+            }
 
             Time::Tick();
         }

@@ -4,14 +4,20 @@
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Resource.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
+#include "Rendering/DualMoonRenderer.hpp"
 #include <SDL2/SDL.h>
 namespace Engine
 {
 class Scene : public Resource
 {
 public:
-    Scene();
+    struct CreateInfo
+    {
+        std::function<void(Gfx::CommandBuffer& cmd)> render;
+    };
+    Scene(const CreateInfo& createInfo);
     ~Scene() {}
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
@@ -52,11 +58,18 @@ public:
         systemEventCallbacks.push_back(cb);
     }
 
+    void Render(Gfx::CommandBuffer& cmd)
+    {
+        render(cmd);
+    }
+
 protected:
+    std::unique_ptr<DualMoonRenderer> sceneRenderer;
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
     std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
+    std::function<void(Gfx::CommandBuffer&)> render;
 
     Camera* camera;
 

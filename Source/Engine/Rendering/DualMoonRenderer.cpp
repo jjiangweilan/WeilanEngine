@@ -10,7 +10,7 @@ namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonRenderer::DualMoonRenderer(SceneManager& sceneManager) : sceneManager(sceneManager)
+DualMoonRenderer::DualMoonRenderer()
 {
     shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
     opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
@@ -26,9 +26,9 @@ DualMoonRenderer::DualMoonRenderer(SceneManager& sceneManager) : sceneManager(sc
     });
 }
 
-void DualMoonRenderer::ProcessLights(Scene* gameScene)
+void DualMoonRenderer::ProcessLights(Scene& gameScene)
 {
-    auto lights = gameScene->GetActiveLights();
+    auto lights = gameScene.GetActiveLights();
 
     Light* light = nullptr;
     for (int i = 0; i < lights.size(); ++i)
@@ -53,8 +53,9 @@ void DualMoonRenderer::ProcessLights(Scene* gameScene)
     }
 }
 
-void DualMoonRenderer::BuildGraph()
+void DualMoonRenderer::BuildGraph(Scene& _scene)
 {
+    this->scene = &_scene;
     Graph::Clear();
     auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
     uint32_t width = swapChainProxy->GetDescription().width;
@@ -67,35 +68,30 @@ void DualMoonRenderer::BuildGraph()
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
-            Scene* scene = sceneManager.GetActiveScene();
+            Camera* camera = scene->GetMainCamera();
 
-            if (scene)
+            if (camera)
             {
-                Camera* camera = scene->GetMainCamera();
+                RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
 
-                if (camera)
-                {
-                    RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+                glm::mat4 viewMatrix = camera->GetViewMatrix();
+                glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+                glm::mat4 vp = projectionMatrix * viewMatrix;
+                glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+                sceneInfo.projection = projectionMatrix;
+                sceneInfo.viewProjection = vp;
+                sceneInfo.viewPos = viewPos;
+                sceneInfo.view = viewMatrix;
+                ProcessLights(*scene);
 
-                    glm::mat4 viewMatrix = camera->GetViewMatrix();
-                    glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
-                    glm::mat4 vp = projectionMatrix * viewMatrix;
-                    glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
-                    sceneInfo.projection = projectionMatrix;
-                    sceneInfo.viewProjection = vp;
-                    sceneInfo.viewPos = viewPos;
-                    sceneInfo.view = viewMatrix;
-                    ProcessLights(scene);
+                Gfx::BufferCopyRegion regions[] = {{
+                    .srcOffset = 0,
+                    .dstOffset = 0,
+                    .size = sceneGlobalBuffer->GetSize(),
+                }};
 
-                    Gfx::BufferCopyRegion regions[] = {{
-                        .srcOffset = 0,
-                        .dstOffset = 0,
-                        .size = sceneGlobalBuffer->GetSize(),
-                    }};
-
-                    memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
-                    cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
-                }
+                memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
+                cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
             }
         },
         {{
@@ -348,8 +344,6 @@ void DualMoonRenderer::AppendDrawData(
 void DualMoonRenderer::Execute(Gfx::CommandBuffer& cmd)
 {
     // culling here?
-    auto scene = sceneManager.GetActiveScene();
-
     if (scene)
     {
         auto& roots = scene->GetRootObjects();
