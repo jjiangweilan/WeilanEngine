@@ -25,7 +25,7 @@ public:
 
     DualMoonRenderer* GetRenderer()
     {
-        return renderer.get();
+        return sceneGraph.get();
     };
 
 private:
@@ -36,7 +36,7 @@ private:
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
-    std::unique_ptr<DualMoonRenderer> renderer;
+    std::unique_ptr<DualMoonRenderer> sceneGraph;
     // graph
     std::vector<std::function<void()>> swapchainRecreateCallback;
 

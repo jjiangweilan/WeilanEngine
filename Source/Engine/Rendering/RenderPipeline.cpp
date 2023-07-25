@@ -16,7 +16,7 @@ RenderPipeline::RenderPipeline(SceneManager& sceneManager)
 #if ENGINE_EDITOR
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
-    renderer = std::make_unique<Engine::DualMoonRenderer>(sceneManager);
+    sceneGraph = std::make_unique<Engine::DualMoonRenderer>(sceneManager);
     /// auto [swapchainNode, swapchainHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
     // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 
@@ -27,9 +27,9 @@ RenderPipeline::RenderPipeline(SceneManager& sceneManager)
 
 void RenderPipeline::BuildAndProcess()
 {
-    renderer->BuildGraph();
-    auto [colorNode, colorHandle, depthNode, depthHandle] = renderer->GetFinalSwapchainOutputs();
-    ((RenderGraph::Graph*)renderer.get())->Process(colorNode, colorHandle);
+    sceneGraph->BuildGraph();
+    auto [colorNode, colorHandle, depthNode, depthHandle] = sceneGraph->GetFinalSwapchainOutputs();
+    ((RenderGraph::Graph*)sceneGraph.get())->Process(colorNode, colorHandle);
 #if ENGINE_EDITOR
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
@@ -78,8 +78,9 @@ void RenderPipeline::Render()
     cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd->SetScissor(0, 1, &rect);
-    if (renderer)
-        renderer->Execute(*cmd);
+
+    if (sceneGraph)
+        sceneGraph->Execute(*cmd);
 #if ENGINE_EDITOR
     Gfx::GPUBarrier barrier{
         .buffer = nullptr,
