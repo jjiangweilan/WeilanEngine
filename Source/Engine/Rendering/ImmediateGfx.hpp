@@ -5,7 +5,7 @@ namespace Engine
 {
 
 template <class T>
-concept OnetimeSubmitFunc = requires(T f, Gfx::CommandBuffer* cmd) { f(*cmd); };
+concept OnetimeSubmitFunc = requires(T f, Gfx::CommandBuffer& cmd) { f(cmd); };
 
 class ImmediateGfx
 {
@@ -15,7 +15,8 @@ public:
     {
         auto queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
         auto commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-        std::unique_ptr<Gfx::CommandBuffer> cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+        std::unique_ptr<Gfx::CommandBuffer> cmd =
+            commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
         cmd->Begin();
         f(*cmd);
         cmd->End();

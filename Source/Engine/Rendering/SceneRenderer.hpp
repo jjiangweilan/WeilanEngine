@@ -7,10 +7,21 @@ namespace Engine
 {
 class Scene;
 class Transform;
-class DualMoonRenderer : public RenderGraph::Graph
+class SceneRenderer : public RenderGraph::Graph
 {
 public:
-    DualMoonRenderer();
+    struct BuildGraphConfig
+    {
+        Gfx::Image& finalImage; // the final image the scene will render to
+
+        // build graph will transform finalImage to a desired layout
+        Gfx::ImageLayout layout;
+        Gfx::AccessMaskFlags accessFlags;
+        Gfx::PipelineStageFlags stageFlags;
+    };
+
+public:
+    SceneRenderer();
 
 public:
     void Execute(Gfx::CommandBuffer& cmd) override;
@@ -25,7 +36,7 @@ public:
         return shaders.GetShader("StandardPBR");
     };
 
-    void BuildGraph(Scene& scene);
+    void BuildGraph(Scene& scene, const BuildGraphConfig& config);
 
 private:
     struct SceneObjectDrawData

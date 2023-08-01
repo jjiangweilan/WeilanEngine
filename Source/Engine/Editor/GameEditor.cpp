@@ -2,11 +2,15 @@
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "Tools/EnvironmentBaker.hpp"
+#include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
+#include <unordered_map>
 
 namespace Engine::Editor
 {
+class EnvironmentBaker;
 
 GameEditor::GameEditor(WeilanEngine& engine) : engine(engine)
 {
@@ -17,6 +21,17 @@ GameEditor::GameEditor(WeilanEngine& engine) : engine(engine)
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
+
+    toolList.emplace_back(new EnvironmentBaker());
+    toolList.emplace_back(new GameView(*engine.sceneManager));
+
+    for (auto& t : toolList)
+    {
+        RegisteredTool rt;
+        rt.tool = t.get();
+        rt.isOpen = false;
+        registeredTools.push_back(rt);
+    }
 };
 
 GameEditor::~GameEditor()
@@ -73,6 +88,29 @@ static void SceneTree(Scene& scene)
     ImGui::End();
 }
 
+void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
+{
+    if (iter == end)
+    {
+        return;
+    }
+    else if (iter == end - 1)
+    {
+        if (ImGui::MenuItem(iter->c_str()))
+        {
+            clicked = true;
+        }
+        return;
+    }
+
+    if (ImGui::BeginMenu(iter->c_str()))
+    {
+        iter += 1;
+        MenuVisitor(iter, end, clicked);
+        ImGui::EndMenu();
+    }
+}
+
 void GameEditor::MainMenuBar()
 {
     auto scene = engine.sceneManager->GetActiveScene();
@@ -91,15 +129,34 @@ void GameEditor::MainMenuBar()
         gameCamera = nullptr;
     }
 
+    for (auto& registeredTool : registeredTools)
+    {
+        int index = 0;
+        auto items = registeredTool.tool->GetToolMenuItem();
+        bool clicked = false;
+        MenuVisitor(items.begin(), items.end(), clicked);
+        if (clicked)
+        {
+            registeredTool.isOpen = !registeredTool.isOpen;
+        }
+
+        if (registeredTool.isOpen)
+        {
+            registeredTool.isOpen = registeredTool.tool->Tick();
+        }
+    }
+
     if (ImGui::BeginMenu("Scene"))
     {
-        if (ImGui::MenuItem("Scene Tree"))
-            sceneTree = !sceneTree;
+        if (ImGui::BeginMenu("Tools"))
+        {
+            if (ImGui::MenuItem("Scene Tree"))
+                sceneTree = !sceneTree;
+            ImGui::EndMenu();
+        }
         if (ImGui::MenuItem("Scene Info"))
             sceneInfo = !sceneInfo;
 
-        if (ImGui::MenuItem("Bake Environment Map"))
-        {}
         ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();
@@ -209,4 +266,6 @@ void GameEditor::Tick()
 
     ImGui::EndFrame();
 }
+
+void GameEditor::OpenWindow() {}
 } // namespace Engine::Editor

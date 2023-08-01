@@ -6,7 +6,7 @@
 #include "Core/Resource.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
-#include "Rendering/DualMoonRenderer.hpp"
+#include "Rendering/SceneRenderer.hpp"
 #include <SDL2/SDL.h>
 namespace Engine
 {
@@ -64,7 +64,6 @@ public:
     }
 
 protected:
-    std::unique_ptr<DualMoonRenderer> sceneRenderer;
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;

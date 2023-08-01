@@ -1,23 +1,31 @@
-#pragma once
 #include "AssetDatabase/Importers.hpp"
-#include "Rendering/DualMoonRenderer.hpp"
+#include "Editor/Tool.hpp"
+#include "Rendering/SceneRenderer.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <gtest/gtest.h>
-
+using namespace Engine;
 TEST(Gameplay, Test0)
 {
     auto engine = std::make_unique<Engine::WeilanEngine>();
     engine->Init({});
 
-    auto sceneRenderer = std::make_unique<Engine::DualMoonRenderer>();
+    auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
     Engine::Scene scene({.render = [&sceneRenderer](Engine::Gfx::CommandBuffer& cmd) { sceneRenderer->Execute(cmd); }});
 
     engine->sceneManager->SetActiveScene(scene);
 
-    sceneRenderer->BuildGraph(scene);
-    auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
-    ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
+    sceneRenderer->BuildGraph(
+        scene,
+        {
+            .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+            .layout = Gfx::ImageLayout::Present_Src_Khr,
+            .accessFlags = Gfx::AccessMask::None,
+            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+        }
+
+    );
+    sceneRenderer->Process();
 
     // set camera
     Engine::GameObject* gameObject = scene.CreateGameObject();
@@ -41,9 +49,16 @@ TEST(Gameplay, Test0)
     engine->renderPipeline->RegisterSwapchainRecreateCallback(
         [&sceneRenderer, &scene]()
         {
-            sceneRenderer->BuildGraph(scene);
-            auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
-            ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
+            sceneRenderer->BuildGraph(
+                scene,
+                {
+                    .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+                    .layout = Gfx::ImageLayout::Present_Src_Khr,
+                    .accessFlags = Gfx::AccessMask::None,
+                    .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+                }
+            );
+            sceneRenderer->Process();
         }
     );
 

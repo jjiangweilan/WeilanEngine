@@ -1,4 +1,4 @@
-#include "DualMoonRenderer.hpp"
+#include "SceneRenderer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/Transform.hpp"
@@ -10,7 +10,7 @@ namespace Engine
 {
 using namespace RenderGraph;
 
-DualMoonRenderer::DualMoonRenderer()
+SceneRenderer::SceneRenderer()
 {
     shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
     opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
@@ -26,7 +26,7 @@ DualMoonRenderer::DualMoonRenderer()
     });
 }
 
-void DualMoonRenderer::ProcessLights(Scene& gameScene)
+void SceneRenderer::ProcessLights(Scene& gameScene)
 {
     auto lights = gameScene.GetActiveLights();
 
@@ -53,13 +53,12 @@ void DualMoonRenderer::ProcessLights(Scene& gameScene)
     }
 }
 
-void DualMoonRenderer::BuildGraph(Scene& _scene)
+void SceneRenderer::BuildGraph(Scene& _scene, const BuildGraphConfig& config)
 {
     this->scene = &_scene;
     Graph::Clear();
-    auto swapChainProxy = GetGfxDriver()->GetSwapChainImageProxy().Get();
-    uint32_t width = swapChainProxy->GetDescription().width;
-    uint32_t height = swapChainProxy->GetDescription().height;
+    uint32_t width = config.finalImage.GetDescription().width;
+    uint32_t height = config.finalImage.GetDescription().height;
 
     std::vector<Gfx::ClearValue> shadowClears = {{.depthStencil = {.depth = 1}}};
 
@@ -267,7 +266,7 @@ void DualMoonRenderer::BuildGraph(Scene& _scene)
                 .stageFlags = Gfx::PipelineStage::Transfer,
                 .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
                 .imageLayout = Gfx::ImageLayout::Transfer_Dst,
-                .externalImage = swapChainProxy,
+                .externalImage = &config.finalImage,
             },
             {
                 .name = "src",
@@ -283,15 +282,29 @@ void DualMoonRenderer::BuildGraph(Scene& _scene)
     );
     Connect(forwardOpaque, 0, blitToSwapchain, 1);
 
+    auto layoutTransform = AddNode(
+        [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res) {},
+        {
+            {
+                .name = "src image",
+                .handle = 0,
+                .type = RenderGraph::ResourceType::Image,
+                .accessFlags = config.accessFlags,
+                .stageFlags = config.stageFlags,
+                .imageLayout = config.layout,
+            },
+        },
+        {}
+    );
+    Connect(blitToSwapchain, 0, layoutTransform, 0);
+
     colorOutput = blitToSwapchain;
     colorHandle = 0;
     depthOutput = forwardOpaque;
     depthHandle = 1;
 };
 
-void DualMoonRenderer::AppendDrawData(
-    Transform& transform, std::vector<DualMoonRenderer::SceneObjectDrawData>& drawList
-)
+void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRenderer::SceneObjectDrawData>& drawList)
 {
     for (auto child : transform.GetChildren())
     {
@@ -341,7 +354,7 @@ void DualMoonRenderer::AppendDrawData(
     }
 }
 
-void DualMoonRenderer::Execute(Gfx::CommandBuffer& cmd)
+void SceneRenderer::Execute(Gfx::CommandBuffer& cmd)
 {
     // culling here?
     if (scene)
@@ -357,7 +370,7 @@ void DualMoonRenderer::Execute(Gfx::CommandBuffer& cmd)
     }
 }
 
-void DualMoonRenderer::Process()
+void SceneRenderer::Process()
 {
     Graph::Process();
 

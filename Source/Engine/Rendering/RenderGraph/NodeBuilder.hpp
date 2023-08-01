@@ -21,7 +21,10 @@ public:
         const Gfx::ImageDescription& dstCreateInfo;
         ResourceHandle dstHandle;
     };
-
     static BuildResult Blit(const std::vector<BlitDescription>& blits);
+
+    struct FXAADescription
+    {};
+    static BuildResult FXAA();
 };
 } // namespace Engine::RenderGraph
