@@ -18,6 +18,18 @@ GameEditor::GameEditor(WeilanEngine& engine) : engine(engine)
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
+    gameEditorRenderer = std::make_unique<Editor::Renderer>();
+
+    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+    gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+    engine.renderPipeline->RegisterSwapchainRecreateCallback(
+        [this]()
+        {
+            auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+            gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+        }
+    );
+
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
@@ -32,12 +44,29 @@ GameEditor::GameEditor(WeilanEngine& engine) : engine(engine)
         rt.isOpen = false;
         registeredTools.push_back(rt);
     }
+
+    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
+    cmdPool = GetGfxDriver()->CreateCommandPool({mainQueueFamilyIndex});
+    cmd = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
 };
 
 GameEditor::~GameEditor()
 {
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
+}
+
+Rendering::CmdSubmitGroup GameEditor::GetCmdSubmitGroup()
+{
+    Rendering::CmdSubmitGroup group;
+    group.AddCmd(cmd.get());
+    for (auto& t : registeredTools)
+    {
+        auto toolGroup = t.tool->GetCmdSubmitGroup();
+        group.InsertGroup(std::move(toolGroup));
+    }
+
+    return group;
 }
 
 void SceneTree(Transform* transform)
@@ -265,6 +294,18 @@ void GameEditor::Tick()
     }
 
     ImGui::EndFrame();
+
+    Gfx::GPUBarrier barrier{
+        .buffer = nullptr,
+        .image = nullptr,
+        .srcStageMask = Gfx::PipelineStage::All_Commands,
+        .dstStageMask = Gfx::PipelineStage::All_Commands,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+    };
+
+    cmd->Barrier(&barrier, 1);
+    gameEditorRenderer->Execute(*cmd);
 }
 
 void GameEditor::OpenWindow() {}

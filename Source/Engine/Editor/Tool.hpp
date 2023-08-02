@@ -1,4 +1,5 @@
 #pragma once
+#include "Rendering/CmdSubmitGroup.hpp"
 #include <functional>
 #include <memory>
 #include <span>
@@ -16,6 +17,12 @@ public:
     virtual ~Tool() {}
     // return a vector of string, the last string will be the menuitem, other will be menu
     virtual std::vector<std::string> GetToolMenuItem() = 0;
+
+    // all the cmds are executed before GameEditor executes its main render commands
+    virtual Rendering::CmdSubmitGroup GetCmdSubmitGroup()
+    {
+        return Rendering::CmdSubmitGroup();
+    };
 
     // return false if the tool want to close
     virtual bool Tick() = 0;

@@ -42,7 +42,7 @@ public:
     void WaitForIdle() override;
     void QueueSubmit(
         RefPtr<CommandQueue> queue,
-        std::span<RefPtr<Gfx::CommandBuffer>> cmdBufs,
+        std::span<Gfx::CommandBuffer*> cmdBufs,
         std::span<RefPtr<Semaphore>> waitSemaphores,
         std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
         std::span<RefPtr<Semaphore>> signalSemaphroes,

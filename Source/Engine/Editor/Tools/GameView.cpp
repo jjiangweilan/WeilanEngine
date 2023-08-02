@@ -7,6 +7,10 @@ GameView::GameView(SceneManager& sceneManager) : sceneManager(sceneManager) {}
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
+    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
+    cmdPool = GetGfxDriver()->CreateCommandPool({mainQueueFamilyIndex});
+    cmd = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+
     scene = sceneManager.GetActiveScene();
 
     if (scene)
@@ -57,22 +61,19 @@ bool GameView::Tick()
     }
 
     // render
-    if (scene != nullptr)
-    {
-        ImmediateGfx::OnetimeSubmit(
-            [this, &width, &height](Gfx::CommandBuffer& cmd)
-            {
-                cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
-                Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
-                cmd.SetScissor(0, 1, &rect);
-                this->scene->Render(cmd);
-            }
-        );
-        ImGui::Image(sceneImage.get(), {width, height});
-    }
+    cmdPool->ResetCommandPool();
+    cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
+    Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
+    cmd->SetScissor(0, 1, &rect);
+    renderer->Execute(*cmd);
+
+    // imgui image
+    ImGui::Image(sceneImage.get(), {width, height});
 
     ImGui::End();
     return open;
 }
+
+void GameView::Render() {}
 
 } // namespace Engine::Editor

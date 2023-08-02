@@ -1,8 +1,6 @@
 #pragma once
+#include "CmdSubmitGroup.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#if ENGINE_EDITOR
-#include "Editor/Renderer.hpp"
-#endif
 #include <memory>
 
 namespace Engine
@@ -13,7 +11,8 @@ class RenderPipeline
 
 public:
     RenderPipeline();
-    void Render(Scene* scene);
+
+    void Render(Rendering::CmdSubmitGroup& submitGroup);
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {
         this->swapchainRecreateCallback.push_back(callback);
@@ -29,10 +28,7 @@ private:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::vector<std::function<void()>> swapchainRecreateCallback;
 
-#if ENGINE_EDITOR
-    // editor rendering
-    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-#endif
+    std::vector<Gfx::CommandBuffer*> cmdQueue;
 
     void BuildAndProcess();
 };

@@ -1,5 +1,7 @@
 #pragma once
 #include "Core/Scene/Scene.hpp"
+#include "Renderer.hpp"
+#include "Rendering/CmdSubmitGroup.hpp"
 #include <ThirdParty/imgui/imgui.h>
 
 namespace Engine
@@ -17,6 +19,8 @@ public:
     ~GameEditor();
 
     void Tick();
+    Rendering::CmdSubmitGroup GetCmdSubmitGroup();
+
     void OnWindowResize(int32_t width, int32_t height);
 
 private:
@@ -28,7 +32,10 @@ private:
 
 private:
     WeilanEngine& engine;
+    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     std::unique_ptr<GameObject> editorCameraGO;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<Gfx::CommandPool> cmdPool;
     Camera* gameCamera;
     Camera* editorCamera;
 

@@ -320,7 +320,7 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
 
 void VKDriver::QueueSubmit(
     RefPtr<CommandQueue> queue,
-    std::span<RefPtr<Gfx::CommandBuffer>> cmdBufs,
+    std::span<Gfx::CommandBuffer*> cmdBufs,
     std::span<RefPtr<Semaphore>> waitSemaphores,
     std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
     std::span<RefPtr<Semaphore>> signalSemaphroes,
@@ -351,7 +351,7 @@ void VKDriver::QueueSubmit(
 
     for (auto c : cmdBufs)
     {
-        vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c.Get())->GetHandle());
+        vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c)->GetHandle());
     }
 
     auto vkqueue = static_cast<VKCommandQueue*>(queue.Get());
