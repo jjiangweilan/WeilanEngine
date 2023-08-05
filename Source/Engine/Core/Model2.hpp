@@ -1,3 +1,4 @@
+#pragma once
 #include "Core/GameObject.hpp"
 #include "Core/Graphics/Material.hpp"
 #include "Graphics/Mesh2.hpp"

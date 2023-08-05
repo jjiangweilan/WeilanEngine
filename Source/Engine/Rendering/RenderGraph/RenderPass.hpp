@@ -43,7 +43,7 @@ public:
     {
         ResourceHandle handle;
         Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
-        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Load;
+        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
         Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
         Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare;
         Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare;

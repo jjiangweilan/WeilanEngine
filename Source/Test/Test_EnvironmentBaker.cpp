@@ -8,12 +8,11 @@ TEST(EnvironmentBaker, Test0)
     engine->Init({});
 
     auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
-    Engine::Scene scene({.render = [&sceneRenderer](Engine::Gfx::CommandBuffer& cmd) { sceneRenderer->Execute(cmd); }});
+    Engine::Scene scene;
 
     engine->sceneManager->SetActiveScene(scene);
 
     sceneRenderer->BuildGraph(
-        scene,
         {
             .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
             .layout = Gfx::ImageLayout::Present_Src_Khr,
@@ -47,7 +46,6 @@ TEST(EnvironmentBaker, Test0)
         [&sceneRenderer, &scene]()
         {
             sceneRenderer->BuildGraph(
-                scene,
                 {
                     .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
                     .layout = Gfx::ImageLayout::Present_Src_Khr,

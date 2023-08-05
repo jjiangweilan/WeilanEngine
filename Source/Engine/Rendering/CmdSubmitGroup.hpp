@@ -15,11 +15,20 @@ public:
         cmds.push_back(cmd);
     };
 
-    void InsertGroup(CmdSubmitGroup&& other)
+    void InsertToFront(CmdSubmitGroup&& other)
     {
         if (!other.cmds.empty())
         {
             cmds.insert(cmds.begin(), other.cmds.begin(), other.cmds.end());
+            other.Clear();
+        }
+    }
+
+    void AppendToBack(CmdSubmitGroup&& other)
+    {
+        if (!other.cmds.empty())
+        {
+            cmds.insert(cmds.end(), other.cmds.begin(), other.cmds.end());
             other.Clear();
         }
     }

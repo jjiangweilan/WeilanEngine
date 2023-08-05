@@ -10,8 +10,6 @@ RenderPipeline::RenderPipeline()
     submitSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
     swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
     queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
-    commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    cmd = commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
 
 #if ENGINE_EDITOR
 #endif
@@ -19,12 +17,10 @@ RenderPipeline::RenderPipeline()
     // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 }
 
-void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
+void RenderPipeline::WaitForPreviousFrame()
 {
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
-    commandPool->ResetCommandPool();
-
     if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
     {
         swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
@@ -38,14 +34,13 @@ void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
             cb();
         }
     }
+}
 
-    // TODO: better move the whole gfx thing to a renderer
-    float width = GetGfxDriver()->GetSwapChainImageProxy()->GetDescription().width;
-    float height = GetGfxDriver()->GetSwapChainImageProxy()->GetDescription().height;
+void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
+{
 
     cmdQueue.clear();
     cmdQueue.insert(cmdQueue.end(), submitGroup.GetCmds().begin(), submitGroup.GetCmds().end());
-    cmdQueue.push_back(cmd.get());
 
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
     Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};

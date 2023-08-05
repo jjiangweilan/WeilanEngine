@@ -10,22 +10,8 @@ TEST(Gameplay, Test0)
     auto engine = std::make_unique<Engine::WeilanEngine>();
     engine->Init({});
 
-    auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
-    Engine::Scene scene({.render = [&sceneRenderer](Engine::Gfx::CommandBuffer& cmd) { sceneRenderer->Execute(cmd); }});
-
+    Engine::Scene scene;
     engine->sceneManager->SetActiveScene(scene);
-
-    sceneRenderer->BuildGraph(
-        scene,
-        {
-            .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
-            .layout = Gfx::ImageLayout::Present_Src_Khr,
-            .accessFlags = Gfx::AccessMask::None,
-            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-        }
-
-    );
-    sceneRenderer->Process();
 
     // set camera
     Engine::GameObject* gameObject = scene.CreateGameObject();
@@ -46,25 +32,8 @@ TEST(Gameplay, Test0)
         }
     );
 
-    engine->renderPipeline->RegisterSwapchainRecreateCallback(
-        [&sceneRenderer, &scene]()
-        {
-            sceneRenderer->BuildGraph(
-                scene,
-                {
-                    .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
-                    .layout = Gfx::ImageLayout::Present_Src_Khr,
-                    .accessFlags = Gfx::AccessMask::None,
-                    .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-                }
-            );
-            sceneRenderer->Process();
-        }
-    );
-
     // load model
-    auto opaqueShader = sceneRenderer->GetOpaqueShader();
-    auto model2 = Engine::Importers::GLB("Source/Test/Resources/DamagedHelmet.glb", opaqueShader);
+    auto model2 = engine->ImportModel("Source/Test/Resources/DamagedHelmet.glb");
     scene.AddGameObject(model2->GetGameObject()[0].get());
     auto lightGO = scene.CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();

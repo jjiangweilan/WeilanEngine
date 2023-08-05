@@ -12,6 +12,8 @@ using namespace RenderGraph;
 
 SceneRenderer::SceneRenderer()
 {
+    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
+
     shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
     opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
@@ -53,9 +55,8 @@ void SceneRenderer::ProcessLights(Scene& gameScene)
     }
 }
 
-void SceneRenderer::BuildGraph(Scene& _scene, const BuildGraphConfig& config)
+void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 {
-    this->scene = &_scene;
     Graph::Clear();
     uint32_t width = config.finalImage.GetDescription().width;
     uint32_t height = config.finalImage.GetDescription().height;
@@ -110,6 +111,9 @@ void SceneRenderer::BuildGraph(Scene& _scene, const BuildGraphConfig& config)
         [this, shadowClears, shadowmapShader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
             cmd.BindResource(sceneShaderResource);
+            cmd.SetViewport({.x = 0, .y = 0, .width = 1024, .height = 1024, .minDepth = 0, .maxDepth = 1});
+            Rect2D rect = {{0, 0}, {1024, 1024}};
+            cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(&pass, shadowClears);
 
             for (auto& draw : this->drawList)
@@ -167,6 +171,14 @@ void SceneRenderer::BuildGraph(Scene& _scene, const BuildGraphConfig& config)
     auto forwardOpaque = AddNode(
         [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
+            Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
+            uint32_t width = color->GetDescription().width;
+            uint32_t height = color->GetDescription().height;
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {width, height}};
+            cmd.SetScissor(0, 1, &rect);
             cmd.BindResource(sceneShaderResource);
             cmd.BeginRenderPass(&pass, clearValues);
             for (auto& draw : this->drawList)
@@ -354,12 +366,13 @@ void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRender
     }
 }
 
-void SceneRenderer::Execute(Gfx::CommandBuffer& cmd)
+void SceneRenderer::Render(Gfx::CommandBuffer& cmd, Scene& scene)
 {
+    this->scene = &scene;
     // culling here?
-    if (scene)
+    if (this->scene)
     {
-        auto& roots = scene->GetRootObjects();
+        auto& roots = this->scene->GetRootObjects();
         drawList.clear();
         for (auto root : roots)
         {

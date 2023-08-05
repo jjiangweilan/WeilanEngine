@@ -56,19 +56,6 @@ GameEditor::~GameEditor()
     ImGui::DestroyContext();
 }
 
-Rendering::CmdSubmitGroup GameEditor::GetCmdSubmitGroup()
-{
-    Rendering::CmdSubmitGroup group;
-    group.AddCmd(cmd.get());
-    for (auto& t : registeredTools)
-    {
-        auto toolGroup = t.tool->GetCmdSubmitGroup();
-        group.InsertGroup(std::move(toolGroup));
-    }
-
-    return group;
-}
-
 void SceneTree(Transform* transform)
 {
     if (ImGui::TreeNode(transform->GetGameObject()->GetName().c_str()))
@@ -167,11 +154,19 @@ void GameEditor::MainMenuBar()
         if (clicked)
         {
             registeredTool.isOpen = !registeredTool.isOpen;
+            if (registeredTool.isOpen)
+                registeredTool.tool->Open();
+            else
+                registeredTool.tool->Close();
         }
 
         if (registeredTool.isOpen)
         {
             registeredTool.isOpen = registeredTool.tool->Tick();
+            if (!registeredTool.isOpen)
+            {
+                registeredTool.tool->Close();
+            }
         }
     }
 
@@ -294,6 +289,17 @@ void GameEditor::Tick()
     }
 
     ImGui::EndFrame();
+}
+
+Rendering::CmdSubmitGroup GameEditor::Render()
+{
+    cmdPool->ResetCommandPool();
+    cmd->Begin();
+    for (auto& t : registeredTools)
+    {
+        if (t.isOpen)
+            t.tool->Render(*cmd);
+    }
 
     Gfx::GPUBarrier barrier{
         .buffer = nullptr,
@@ -306,6 +312,11 @@ void GameEditor::Tick()
 
     cmd->Barrier(&barrier, 1);
     gameEditorRenderer->Execute(*cmd);
+    cmd->End();
+
+    Rendering::CmdSubmitGroup group;
+    group.AddCmd(cmd.get());
+    return group;
 }
 
 void GameEditor::OpenWindow() {}

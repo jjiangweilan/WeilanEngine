@@ -447,7 +447,7 @@ void VirtualTextureRenderer::RunAnalysis()
     g.feedbackTexGraph.Execute(feedbackCmdBuf.Get(), stateTrack);
     feedbackCmdBuf->End();
 
-    RefPtr<Gfx::CommandBuffer> cmdBufs[] = {feedbackCmdBuf};
+    Gfx::CommandBuffer* cmdBufs[] = {feedbackCmdBuf.Get()};
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {feedbackGenerationBeginSemaphore};
     Gfx::PipelineStageFlags pipelineStages[] = {Gfx::PipelineStage::Transfer};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, waitSemaphores, pipelineStages, {}, feedbackTexPassFence);

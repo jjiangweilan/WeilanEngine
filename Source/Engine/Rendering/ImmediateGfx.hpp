@@ -1,5 +1,7 @@
 #pragma once
+#include "Core/Graphics/Material.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 
 namespace Engine
 {
@@ -20,11 +22,25 @@ public:
         cmd->Begin();
         f(*cmd);
         cmd->End();
-        RefPtr<Gfx::CommandBuffer> cmdBufs[] = {cmd.get()};
+        Gfx::CommandBuffer* cmdBufs[] = {cmd.get()};
         GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
         GetGfxDriver()->WaitForIdle();
         cmd = nullptr;
         commandPool = nullptr;
     }
+
+    // render the image and transfer the layout to finalLayout
+    // the method will try to bindlessly render 3 vertices,
+    // use should use gl_VertexIndex in vertex shader for a fullscreen mesh
+    static void RenderToImage(
+        Gfx::Image& image,
+        Gfx::ShaderProgram& shader,
+        Gfx::ShaderConfig& config,
+        Gfx::ShaderResource& resource,
+        Gfx::ImageLayout finalLayout
+    );
+
+    // copy a image to buffer, the image's layout should be TransferSrc, then method won't check this requirement
+    static void CopyImageToBuffer(Gfx::Image& image, Gfx::Buffer& buffer);
 };
 } // namespace Engine

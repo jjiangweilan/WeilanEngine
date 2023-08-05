@@ -20,20 +20,14 @@ public:
     }
 
     bool Tick() override;
-    Rendering::CmdSubmitGroup GetCmdSubmitGroup() override
-    {
-        Rendering::CmdSubmitGroup group;
-        group.AddCmd(cmd.get());
-        return group;
-    }
+
+    void Render(Gfx::CommandBuffer& cmd) override;
 
 private:
     SceneManager& sceneManager;
     Scene* scene = nullptr;
     std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;
-    std::unique_ptr<Gfx::CommandBuffer> cmd;
-    std::unique_ptr<Gfx::CommandPool> cmdPool;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void Render();

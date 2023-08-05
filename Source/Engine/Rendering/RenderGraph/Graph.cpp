@@ -317,7 +317,7 @@ void Graph::Process()
     cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
     cmd->End();
 
-    RefPtr<Gfx::CommandBuffer> cmdBufs[] = {cmd.get()};
+    Gfx::CommandBuffer* cmdBufs[] = {cmd.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
     GetGfxDriver()->WaitForIdle();
 }

@@ -128,7 +128,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
     cmdBuf->End();
 
-    RefPtr<Gfx::CommandBuffer> cmdBufss[] = {cmdBuf};
+    Gfx::CommandBuffer* cmdBufss[] = {cmdBuf.Get()};
     QueueSubmit(mainQueue, cmdBufss, {}, {}, {}, nullptr);
 
     WaitForIdle();
@@ -255,7 +255,7 @@ bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore
         cmdBuf->Barrier(barriers.data(), barriers.size());
         cmdBuf->End();
 
-        RefPtr<Gfx::CommandBuffer> cmdBufss[] = {cmdBuf};
+        Gfx::CommandBuffer* cmdBufss[] = {cmdBuf.Get()};
         QueueSubmit(mainQueue, cmdBufss, {}, {}, {}, nullptr);
 
         WaitForIdle();

@@ -19,7 +19,7 @@ public:
     ~GameEditor();
 
     void Tick();
-    Rendering::CmdSubmitGroup GetCmdSubmitGroup();
+    Rendering::CmdSubmitGroup Render();
 
     void OnWindowResize(int32_t width, int32_t height);
 

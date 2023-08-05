@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Component/Light.hpp"
+#include "Rendering/CmdSubmitGroup.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
 
@@ -7,7 +8,7 @@ namespace Engine
 {
 class Scene;
 class Transform;
-class SceneRenderer : public RenderGraph::Graph
+class SceneRenderer : protected RenderGraph::Graph
 {
 public:
     struct BuildGraphConfig
@@ -24,7 +25,7 @@ public:
     SceneRenderer();
 
 public:
-    void Execute(Gfx::CommandBuffer& cmd) override;
+    void Render(Gfx::CommandBuffer& cmd, Scene& scene);
     void Process() override;
     auto GetFinalSwapchainOutputs()
     {
@@ -36,7 +37,7 @@ public:
         return shaders.GetShader("StandardPBR");
     };
 
-    void BuildGraph(Scene& scene, const BuildGraphConfig& config);
+    void BuildGraph(const BuildGraphConfig& config);
 
 private:
     struct SceneObjectDrawData

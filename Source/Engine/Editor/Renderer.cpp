@@ -119,6 +119,10 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
 {
     ImGui::Render();
 
+    Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
+    uint32_t width = color->GetDescription().width;
+    uint32_t height = color->GetDescription().height;
+    cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
     std::vector<Gfx::ClearValue> clears(2);
     clears[0].color = {{0, 0, 0, 0}};
     clears[1].depthStencil.depth = 1;

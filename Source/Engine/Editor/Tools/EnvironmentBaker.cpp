@@ -1,4 +1,6 @@
 #include "EnvironmentBaker.hpp"
+#include "Core/Component/MeshRenderer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ImmediateGfx.hpp"
 #include "ThirdParty/imgui/imgui.h"
 namespace Engine::Editor
@@ -8,10 +10,6 @@ EnvironmentBaker::EnvironmentBaker() {}
 void EnvironmentBaker::CreateRenderData(uint32_t width, uint32_t height)
 {
     GetGfxDriver()->WaitForIdle();
-    renderer = std::make_unique<SceneRenderer>();
-    scene =
-        std::unique_ptr<Scene>(new Scene({.render = [this](Gfx::CommandBuffer& cmd) { this->renderer->Execute(cmd); }})
-        );
     sceneImage = GetGfxDriver()->CreateImage(
         {
             .width = width,
@@ -24,17 +22,59 @@ void EnvironmentBaker::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
-    renderer->BuildGraph(
-        *scene,
-        {
-            .finalImage = *sceneImage,
-            .layout = Gfx::ImageLayout::Shader_Read_Only,
-            .accessFlags = Gfx::AccessMask::Shader_Read,
-            .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-        }
-    );
-    renderer->Process();
+    if (renderGraph == nullptr)
+    {
+        renderGraph = std::make_unique<RenderGraph::Graph>();
+        Gfx::ClearValue clear;
+        clear.color = {0, 0, 0, 0};
+        renderGraph->AddNode(
+            [clear](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
+            {
+                cmd.BeginRenderPass(&pass, {clear});
+                cmd.EndRenderPass();
+            },
+            {
+                {
+                    .name = "image",
+                    .handle = 0,
+                    .type = RenderGraph::ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                    .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                    .externalImage = sceneImage.get(),
+                },
+            },
+            {
+                {
+                    .colors = {{
+                        .handle = 0,
+                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                        .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                        .storeOp = Gfx::AttachmentStoreOperation::Store,
+                    }},
+                },
+            }
+        );
+    }
 }
+
+void EnvironmentBaker::Render(Gfx::CommandBuffer& cmd)
+{
+    auto cubemap = GetGfxDriver()->CreateImage(
+        {
+            .width = (uint32_t)size.x,
+            .height = (uint32_t)size.y,
+            .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
+            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+            .mipLevels = 1,
+            .isCubemap = true,
+        },
+        Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
+    );
+};
+
+void EnvironmentBaker::Bake() {}
 
 bool EnvironmentBaker::Tick()
 {
@@ -49,16 +89,23 @@ bool EnvironmentBaker::Tick()
     if (sceneImage == nullptr || sceneImage->GetDescription().width != (uint32_t)width ||
         sceneImage->GetDescription().height != (uint32_t)height)
     {
-        CreateRenderData(width, height);
+        // CreateRenderData(width, height);
     }
 
-    // render
-    ImmediateGfx::OnetimeSubmit([this](Gfx::CommandBuffer& cmd) { this->scene->Render(cmd); });
-
-    ImGui::Image(sceneImage.get(), {width, height});
+    ImGui::InputInt2("resolution", &size[0]);
+    if (ImGui::Button("Bake"))
+    {
+        Bake();
+    }
 
     ImGui::End();
     return open;
+}
+
+void EnvironmentBaker::Open() {}
+void EnvironmentBaker::Close()
+{
+    sceneImage = nullptr;
 }
 
 } // namespace Engine::Editor

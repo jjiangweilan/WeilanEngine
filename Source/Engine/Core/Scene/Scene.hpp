@@ -13,11 +13,7 @@ namespace Engine
 class Scene : public Resource
 {
 public:
-    struct CreateInfo
-    {
-        std::function<void(Gfx::CommandBuffer& cmd)> render;
-    };
-    Scene(const CreateInfo& createInfo);
+    Scene();
     ~Scene() {}
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
@@ -58,17 +54,11 @@ public:
         systemEventCallbacks.push_back(cb);
     }
 
-    void Render(Gfx::CommandBuffer& cmd)
-    {
-        render(cmd);
-    }
-
 protected:
     std::vector<UniPtr<GameObject>> gameObjects;
     std::vector<RefPtr<GameObject>> externalGameObjects;
     std::vector<RefPtr<GameObject>> roots;
     std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
-    std::function<void(Gfx::CommandBuffer&)> render;
 
     Camera* camera;
 

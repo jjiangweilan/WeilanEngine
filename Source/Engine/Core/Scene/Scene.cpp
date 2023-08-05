@@ -1,12 +1,8 @@
 #include "Scene.hpp"
 namespace Engine
 {
-Scene::Scene(const CreateInfo& createInfo) : Resource(), render(createInfo.render)
+Scene::Scene() : Resource()
 {
-    if (createInfo.render == nullptr)
-    {
-        throw std::runtime_error("scene must have a render callback");
-    }
     name = "New GameScene";
 }
 

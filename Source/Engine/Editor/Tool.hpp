@@ -18,13 +18,16 @@ public:
     // return a vector of string, the last string will be the menuitem, other will be menu
     virtual std::vector<std::string> GetToolMenuItem() = 0;
 
-    // all the cmds are executed before GameEditor executes its main render commands
-    virtual Rendering::CmdSubmitGroup GetCmdSubmitGroup()
-    {
-        return Rendering::CmdSubmitGroup();
-    };
-
     // return false if the tool want to close
     virtual bool Tick() = 0;
+
+    // used if this tool needs to GPU
+    virtual void Render(Gfx::CommandBuffer& cmd){};
+
+    // called when the tool window is open
+    virtual void Open(){};
+
+    // called when the tool window is closed
+    virtual void Close(){};
 };
 } // namespace Engine::Editor

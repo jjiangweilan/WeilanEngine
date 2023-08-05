@@ -1,5 +1,6 @@
 #pragma once
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "AssetDatabase/Importers.hpp"
 #include "Core/Scene/SceneManager.hpp"
 #if ENGINE_EDITOR
 #include "Editor/GameEditor.hpp"
@@ -24,18 +25,50 @@ public:
 
     WeilanEngine() {}
 
+    std::unique_ptr<Model2> ImportModel(const char* path)
+    {
+        return Engine::Importers::GLB(path, sceneRenderer->GetOpaqueShader());
+    }
+
     void Init(const CreateInfo& createInfo)
     {
         Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
         gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
         assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
         sceneManager = std::make_unique<SceneManager>();
+        renderPipeline = std::make_unique<RenderPipeline>();
+
 #if ENGINE_EDITOR
         gameEditor = std::make_unique<Editor::GameEditor>(*this);
         gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
 
-        renderPipeline = std::make_unique<RenderPipeline>();
+        sceneRenderer = std::make_unique<Engine::SceneRenderer>();
+        sceneRenderer->BuildGraph({
+            .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+            .layout = Gfx::ImageLayout::Present_Src_Khr,
+            .accessFlags = Gfx::AccessMask::None,
+            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+        }
+
+        );
+        sceneRenderer->Process();
+        renderPipeline->RegisterSwapchainRecreateCallback(
+            [this]
+            {
+                sceneRenderer->BuildGraph({
+                    .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+                    .layout = Gfx::ImageLayout::Present_Src_Khr,
+                    .accessFlags = Gfx::AccessMask::None,
+                    .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+                });
+                sceneRenderer->Process();
+            }
+        );
+
+        auto queueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
+        cmdPool = gfxDriver->CreateCommandPool({queueFamilyIndex});
+        cmd = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
     }
 
     void LoadScene(const std::filesystem::path& path){};
@@ -44,6 +77,9 @@ public:
     {
         while (true)
         {
+            auto scene = sceneManager->GetActiveScene();
+
+            Time::Tick();
             SDL_Event event;
             while (SDL_PollEvent(&event))
             {
@@ -60,23 +96,37 @@ public:
                     gameEditor->OnWindowResize(event.window.data1, event.window.data2);
                 }
 
-                auto scene = sceneManager->GetActiveScene();
                 if (scene)
                 {
                     scene->InvokeSystemEventCallbacks(event);
                 }
             }
 
+            if (scene)
+            {
+                scene->Tick();
+            }
 #if ENGINE_EDITOR
             gameEditor->Tick();
 #endif
-            auto scene = sceneManager->GetActiveScene();
+
+            renderPipeline->WaitForPreviousFrame();
+
+            Rendering::CmdSubmitGroup cmdSubmitGroup;
             if (scene)
             {
-                renderPipeline->Render(scene);
-            }
+                cmdPool->ResetCommandPool();
+                cmd->Begin();
+                sceneRenderer->Render(*cmd, *scene);
+                cmd->End();
 
-            Time::Tick();
+                cmdSubmitGroup.AddCmd(cmd.get());
+            }
+#if ENGINE_EDITOR
+            cmdSubmitGroup.AppendToBack(gameEditor->Render());
+#endif
+
+            renderPipeline->Render(cmdSubmitGroup);
         }
     LoopEnd:
         gfxDriver->WaitForIdle();
@@ -87,7 +137,10 @@ public:
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
     std::unique_ptr<RenderPipeline> renderPipeline;
+    std::unique_ptr<SceneRenderer> sceneRenderer;
     std::unique_ptr<SceneManager> sceneManager;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::unique_ptr<Gfx::CommandPool> cmdPool;
 #if ENGINE_EDITOR
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     std::unique_ptr<Editor::GameEditor> gameEditor;

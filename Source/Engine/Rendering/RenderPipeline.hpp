@@ -12,6 +12,8 @@ class RenderPipeline
 public:
     RenderPipeline();
 
+    // this function makes sure the previously submiited commands are finished
+    void WaitForPreviousFrame();
     void Render(Rendering::CmdSubmitGroup& submitGroup);
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {
@@ -25,7 +27,6 @@ private:
     std::unique_ptr<Gfx::Fence> submitFence;
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
-    std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::vector<std::function<void()>> swapchainRecreateCallback;
 
     std::vector<Gfx::CommandBuffer*> cmdQueue;

@@ -8,8 +8,6 @@ GameView::GameView(SceneManager& sceneManager) : sceneManager(sceneManager) {}
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
-    cmdPool = GetGfxDriver()->CreateCommandPool({mainQueueFamilyIndex});
-    cmd = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
 
     scene = sceneManager.GetActiveScene();
 
@@ -28,17 +26,24 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
             },
             Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
         );
-        renderer->BuildGraph(
-            *scene,
-            {
-                .finalImage = *sceneImage,
-                .layout = Gfx::ImageLayout::Shader_Read_Only,
-                .accessFlags = Gfx::AccessMask::Shader_Read,
-                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-            }
-        );
+        renderer->BuildGraph({
+            .finalImage = *sceneImage,
+            .layout = Gfx::ImageLayout::Shader_Read_Only,
+            .accessFlags = Gfx::AccessMask::Shader_Read,
+            .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+        });
         renderer->Process();
     }
+}
+
+void GameView::Render(Gfx::CommandBuffer& cmd)
+{
+    float width = sceneImage->GetDescription().width;
+    float height = sceneImage->GetDescription().height;
+    cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
+    Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
+    cmd.SetScissor(0, 1, &rect);
+    renderer->Render(cmd, *scene);
 }
 
 bool GameView::Tick()
@@ -59,13 +64,6 @@ bool GameView::Tick()
     {
         CreateRenderData(width, height);
     }
-
-    // render
-    cmdPool->ResetCommandPool();
-    cmd->SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
-    Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
-    cmd->SetScissor(0, 1, &rect);
-    renderer->Execute(*cmd);
 
     // imgui image
     ImGui::Image(sceneImage.get(), {width, height});
