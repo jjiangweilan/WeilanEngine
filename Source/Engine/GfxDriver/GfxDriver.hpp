@@ -6,6 +6,7 @@
 #include "CommandQueue.hpp"
 #include "Fence.hpp"
 #include "Image.hpp"
+#include "ImageView.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Ptr.hpp"
 #include "Semaphore.hpp"
@@ -63,6 +64,7 @@ public:
     virtual Extent2D GetSurfaceSize() = 0;
 
     virtual UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
     virtual UniPtr<ShaderResource> CreateShaderResource(
         RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency

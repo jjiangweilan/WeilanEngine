@@ -73,6 +73,8 @@ public:
     UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
     UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
         override;
+
+    std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;

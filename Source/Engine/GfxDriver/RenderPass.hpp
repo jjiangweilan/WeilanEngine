@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxDriver/Image.hpp"
+#include "GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
 #include "Libs/Ptr.hpp"
 #include "Utils/Structs.hpp"
@@ -33,7 +34,9 @@ class RenderPass
 public:
     struct Attachment
     {
-        RefPtr<Image> image;
+        RefPtr<Image> image = nullptr;
+        ImageView* imageView =
+            nullptr; // this is optional when null, the render pass will use image's default imageView
         MultiSampling multiSampling = MultiSampling::Sample_Count_1;
         AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
         AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;

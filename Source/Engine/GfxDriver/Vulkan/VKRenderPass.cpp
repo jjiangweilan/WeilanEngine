@@ -4,6 +4,7 @@
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
 #include "VKImage.hpp"
+#include "VKImageView.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
@@ -55,14 +56,20 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
         {
             if (swapChainProxy == nullptr)
                 swapChainProxy = dynamic_cast<VKSwapChainImageProxy*>(colorAtta.image.Get());
-            imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
+            if (colorAtta.imageView == nullptr)
+                imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
+            else
+                imageViews[attaIndex] = static_cast<VKImageView*>(colorAtta.imageView)->GetHandle();
             attaIndex += 1;
         }
 
         // depth attachment
         if (subpass.depth != std::nullopt)
         {
-            imageViews[attaIndex] = static_cast<VKImage*>(subpass.depth->image.Get())->GetDefaultImageView();
+            if (subpass.depth->imageView == nullptr)
+                imageViews[attaIndex] = static_cast<VKImage*>(subpass.depth->image.Get())->GetDefaultImageView();
+            else
+                imageViews[attaIndex] = static_cast<VKImageView*>(subpass.depth->imageView)->GetHandle();
             attaIndex += 1;
         }
     }

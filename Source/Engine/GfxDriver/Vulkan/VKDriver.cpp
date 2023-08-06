@@ -18,6 +18,7 @@
 
 #include "VKDescriptorPool.hpp"
 #include "VKFrameBuffer.hpp"
+#include "VKImageView.hpp"
 #include "VKRenderPass.hpp"
 #include "VKSharedResource.hpp"
 
@@ -402,5 +403,10 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
         ) == VK_SUCCESS)
         return true;
     return false;
+}
+
+std::unique_ptr<ImageView> VKDriver::CreateImageView(const ImageView::CreateInfo& createInfo)
+{
+    return std::unique_ptr<ImageView>(new VKImageView(createInfo));
 }
 } // namespace Engine::Gfx
