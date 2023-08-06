@@ -1,10 +1,12 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/ImageView.hpp"
 #include "RenderPass.hpp"
 #include "ResourceCenter.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 namespace Engine::RenderGraph
 {
 
@@ -39,9 +41,16 @@ public:
         Gfx::Buffer* externalBuffer;
     };
 
+    struct ImageView
+    {
+        Gfx::ImageViewType imageViewType;
+        Gfx::ImageSubresourceRange subresourceRange;
+    };
+
     struct Attachment
     {
         ResourceHandle handle;
+        std::optional<ImageView> imageView;
         Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
         Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
         Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
@@ -154,8 +163,22 @@ public:
             for (Attachment colorAtta : subpass.colors)
             {
                 Gfx::Image* image = (Gfx::Image*)resourceRefs[colorAtta.handle]->GetResource();
+
+                Gfx::ImageView* imageView = nullptr;
+                if (colorAtta.imageView.has_value())
+                {
+                    auto newImageView = GetGfxDriver()->CreateImageView({
+                        .image = *image,
+                        .imageViewType = colorAtta.imageView->imageViewType,
+                        .subresourceRange = colorAtta.imageView->subresourceRange,
+                    });
+                    imageView = newImageView.get();
+                    imageViews.push_back(std::move(newImageView));
+                }
+
                 colors.push_back(
                     {.image = image,
+                     .imageView = imageView,
                      .multiSampling = colorAtta.multiSampling,
                      .loadOp = colorAtta.loadOp,
                      .storeOp = colorAtta.storeOp,
@@ -166,8 +189,23 @@ public:
 
             if (subpass.depth.has_value())
             {
+                auto depthImage = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
+
+                Gfx::ImageView* imageView = nullptr;
+                if (subpass.depth->imageView.has_value())
+                {
+                    auto newImageView = GetGfxDriver()->CreateImageView({
+                        .image = *depthImage,
+                        .imageViewType = subpass.depth->imageView->imageViewType,
+                        .subresourceRange = subpass.depth->imageView->subresourceRange,
+                    });
+                    imageView = newImageView.get();
+                    imageViews.push_back(std::move(newImageView));
+                }
+
                 depth = Gfx::RenderPass::Attachment();
-                depth->image = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
+                depth->image = depthImage;
+                depth->imageView = imageView;
                 depth->multiSampling = subpass.depth->multiSampling;
                 depth->loadOp = subpass.depth->loadOp;
                 depth->storeOp = subpass.depth->storeOp;
@@ -183,6 +221,7 @@ protected:
     std::vector<ResourceHandle> externalResources;
     std::unique_ptr<Gfx::RenderPass> renderPass;
     std::vector<ResourceHandle> creationRequests;
+    std::vector<std::unique_ptr<Gfx::ImageView>> imageViews;
     const std::vector<Subpass> subpasses;
     ResourceRefs resourceRefs;
     std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;
