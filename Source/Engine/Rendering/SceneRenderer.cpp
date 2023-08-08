@@ -114,7 +114,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.SetViewport({.x = 0, .y = 0, .width = 1024, .height = 1024, .minDepth = 0, .maxDepth = 1});
             Rect2D rect = {{0, 0}, {1024, 1024}};
             cmd.SetScissor(0, 1, &rect);
-            cmd.BeginRenderPass(&pass, shadowClears);
+            cmd.BeginRenderPass(pass, shadowClears);
 
             for (auto& draw : this->drawList)
             {
@@ -180,7 +180,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             Rect2D rect = {{0, 0}, {width, height}};
             cmd.SetScissor(0, 1, &rect);
             cmd.BindResource(sceneShaderResource);
-            cmd.BeginRenderPass(&pass, clearValues);
+            cmd.BeginRenderPass(pass, clearValues);
             for (auto& draw : this->drawList)
             {
                 cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);

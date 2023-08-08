@@ -19,15 +19,15 @@ VkImageViewType MapImageViewType(ImageViewType type)
 }
 
 VKImageView::VKImageView(const CreateInfo& createInfo)
-    : image(static_cast<VKImage&>(createInfo.image)), subresourceRange(createInfo.subresourceRange)
+    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange)
 {
     VkImageViewCreateInfo imageViewCreateInfo;
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageViewCreateInfo.pNext = VK_NULL_HANDLE;
     imageViewCreateInfo.flags = 0;
-    imageViewCreateInfo.image = image.GetImage();
+    imageViewCreateInfo.image = image->GetImage();
     imageViewCreateInfo.viewType = MapImageViewType(createInfo.imageViewType);
-    imageViewCreateInfo.format = MapFormat(image.GetDescription().format);
+    imageViewCreateInfo.format = MapFormat(image->GetDescription().format);
     imageViewCreateInfo.components = {
         VK_COMPONENT_SWIZZLE_IDENTITY,
         VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -47,9 +47,25 @@ VKImageView::VKImageView(const CreateInfo& createInfo)
     VKContext::Instance()->objManager->CreateImageView(imageViewCreateInfo, handle);
 }
 
+VKImageView::VKImageView(VKImageView&& other)
+    : image(std::exchange(other.image, nullptr)), handle(std::exchange(other.handle, VK_NULL_HANDLE)),
+      subresourceRange(other.subresourceRange){};
+
+VkImageSubresourceRange VKImageView::GetVkSubresourceRange()
+{
+    return {
+        .aspectMask = MapImageAspect(subresourceRange.aspectMask),
+        .baseMipLevel = subresourceRange.baseMipLevel,
+        .levelCount = subresourceRange.levelCount,
+        .baseArrayLayer = subresourceRange.baseArrayLayer,
+        .layerCount = subresourceRange.layerCount,
+    };
+}
+
 VKImageView::~VKImageView()
 {
-    VKContext::Instance()->objManager->DestroyImageView(handle);
+    if (handle != VK_NULL_HANDLE)
+        VKContext::Instance()->objManager->DestroyImageView(handle);
 }
 
 } // namespace Engine::Gfx

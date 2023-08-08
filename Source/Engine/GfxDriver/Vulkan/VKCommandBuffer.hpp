@@ -20,7 +20,7 @@ public:
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
     ~VKCommandBuffer();
 
-    void BeginRenderPass(RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
+    void BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
     void EndRenderPass() override;
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;

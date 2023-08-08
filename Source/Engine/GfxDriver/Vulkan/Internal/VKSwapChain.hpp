@@ -1,5 +1,5 @@
 #pragma once
-#include "../VKImage.hpp"
+#include "../VKSwapchainImage.hpp"
 #include "VKDevice.hpp"
 #include <unordered_map>
 #include <vector>
@@ -26,21 +26,22 @@ private:
 public:
     VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
     ~VKSwapChain();
-    RefPtr<Image> GetSwapChainImage(int index) { return &swapChainImages[index]; }
+    RefPtr<Image> GetSwapChainImage(int index)
+    {
+        return &swapChainImages[index];
+    }
     void RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
     bool AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal);
-    VkSwapchainKHR GetHandle() const { return swapChain; };
-    const SwapChainInfo& GetSwapChainInfo() const { return swapChainInfo; };
+    VkSwapchainKHR GetHandle() const
+    {
+        return swapChain;
+    };
+    const SwapChainInfo& GetSwapChainInfo() const
+    {
+        return swapChainInfo;
+    };
 
 private:
-    class VKSwapChainImage : public VKImage
-    {
-    public:
-        VKSwapChainImage(VkImage image, VkFormat format, uint32_t width, uint32_t height);
-        VKSwapChainImage(VKSwapChainImage&& other) : VKImage(std::move(other)){};
-        VKSwapChainImage() = default;
-        ~VKSwapChainImage() override;
-    };
     VkSwapchainKHR swapChain;
     RefPtr<VKDevice> attachedDevice;
     std::vector<VKSwapChainImage> swapChainImages;

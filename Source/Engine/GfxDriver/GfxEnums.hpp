@@ -61,6 +61,17 @@ enum class ImageLayout
     Present_Src_Khr = 1000001002,
 };
 
+enum class ImageViewType
+{
+    Image_1D,
+    Image_2D,
+    Image_3D,
+    Cubemap,
+    Image_1D_Array,
+    Image_2D_Array,
+    Cube_Array,
+};
+
 enum class ImageFormat
 {
     R16G16B16A16_SFloat,

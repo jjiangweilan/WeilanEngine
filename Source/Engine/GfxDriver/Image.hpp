@@ -29,6 +29,7 @@ struct ImageSubresourceLayers
     uint32_t layerCount = Remaining_Array_Layers;
 };
 
+class ImageView;
 class Image
 {
 public:
@@ -36,6 +37,7 @@ public:
     virtual void SetName(std::string_view name) = 0;
     virtual const ImageDescription& GetDescription() = 0;
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
+    virtual ImageView& GetDefaultImageView() = 0;
 
 protected:
 };

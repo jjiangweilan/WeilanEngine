@@ -21,20 +21,18 @@ VKCommandBuffer::VKCommandBuffer(VkCommandBuffer vkCmdBuf) : vkCmdBuf(vkCmdBuf) 
 
 VKCommandBuffer::~VKCommandBuffer() {}
 
-void VKCommandBuffer::BeginRenderPass(
-    RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues
-)
+void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues)
 {
-    Gfx::VKRenderPass* vRenderPass = static_cast<Gfx::VKRenderPass*>(renderPass.Get());
-    VkRenderPass vkRenderPass = vRenderPass->GetHandle();
-    currentRenderPass = vRenderPass;
+    Gfx::VKRenderPass& vRenderPass = static_cast<Gfx::VKRenderPass&>(renderPass);
+    VkRenderPass vkRenderPass = vRenderPass.GetHandle();
+    currentRenderPass = &vRenderPass;
     currentRenderIndex = 0;
 
     // framebuffer has to get inside the execution function due to how
     // RenderPass handle swapchain image as framebuffer attachment
-    VkFramebuffer vkFramebuffer = vRenderPass->GetFrameBuffer();
+    VkFramebuffer vkFramebuffer = vRenderPass.GetFrameBuffer();
 
-    auto extent = vRenderPass->GetExtent();
+    auto extent = vRenderPass.GetExtent();
     VkRenderPassBeginInfo renderPassBeginInfo;
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.pNext = VK_NULL_HANDLE;
@@ -95,7 +93,7 @@ void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::s
             {
                 VKImage* vkImage = static_cast<VKImage*>(b.image + imageJedex);
                 auto layout = vkImage->GetLayout();
-                auto imageView = vkImage->GetDefaultImageView();
+                auto imageView = vkImage->GetDefaultVkImageView();
                 imageInfos[imageIndex] = {.imageView = imageView, .imageLayout = layout};
             }
 
@@ -398,8 +396,6 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             vkBarrier.dstQueueFamilyIndex = barrier.imageInfo.dstQueueFamilyIndex;
             vkBarrier.image = image->GetImage();
             vkBarrier.subresourceRange = range;
-
-            image->ChangeLayout(vkBarrier.newLayout, MapPipelineStage(barrier.dstStageMask), vkBarrier.dstAccessMask);
 
             vkCmdPipelineBarrier(
                 vkCmdBuf,

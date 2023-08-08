@@ -23,7 +23,6 @@ public:
     }
 
     bool Tick() override;
-    void Render(Gfx::CommandBuffer& cmd) override;
 
 private:
     std::unique_ptr<Gfx::Image> sceneImage;

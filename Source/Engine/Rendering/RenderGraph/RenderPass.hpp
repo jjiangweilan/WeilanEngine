@@ -158,7 +158,6 @@ public:
         for (auto& subpass : subpasses)
         {
             std::vector<Gfx::RenderPass::Attachment> colors;
-            std::optional<Gfx::RenderPass::Attachment> depth = std::nullopt;
 
             for (Attachment colorAtta : subpass.colors)
             {
@@ -175,10 +174,11 @@ public:
                     imageView = newImageView.get();
                     imageViews.push_back(std::move(newImageView));
                 }
+                else
+                    imageView = &image->GetDefaultImageView();
 
                 colors.push_back(
-                    {.image = image,
-                     .imageView = imageView,
+                    {.imageView = imageView,
                      .multiSampling = colorAtta.multiSampling,
                      .loadOp = colorAtta.loadOp,
                      .storeOp = colorAtta.storeOp,
@@ -187,6 +187,7 @@ public:
                 );
             }
 
+            std::optional<Gfx::RenderPass::Attachment> depth = std::nullopt;
             if (subpass.depth.has_value())
             {
                 auto depthImage = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
@@ -202,15 +203,17 @@ public:
                     imageView = newImageView.get();
                     imageViews.push_back(std::move(newImageView));
                 }
+                else
+                    imageView = &depthImage->GetDefaultImageView();
 
-                depth = Gfx::RenderPass::Attachment();
-                depth->image = depthImage;
-                depth->imageView = imageView;
-                depth->multiSampling = subpass.depth->multiSampling;
-                depth->loadOp = subpass.depth->loadOp;
-                depth->storeOp = subpass.depth->storeOp;
-                depth->stencilLoadOp = subpass.depth->stencilLoadOp;
-                depth->stencilStoreOp = subpass.depth->stencilStoreOp;
+                depth = {
+                    .imageView = imageView,
+                    .multiSampling = subpass.depth->multiSampling,
+                    .loadOp = subpass.depth->loadOp,
+                    .storeOp = subpass.depth->storeOp,
+                    .stencilLoadOp = subpass.depth->stencilLoadOp,
+                    .stencilStoreOp = subpass.depth->stencilStoreOp,
+                };
             }
 
             renderPass->AddSubpass(colors, depth);
@@ -219,7 +222,7 @@ public:
 
 protected:
     std::vector<ResourceHandle> externalResources;
-    std::unique_ptr<Gfx::RenderPass> renderPass;
+    std::unique_ptr<Gfx::RenderPass> renderPass = nullptr;
     std::vector<ResourceHandle> creationRequests;
     std::vector<std::unique_ptr<Gfx::ImageView>> imageViews;
     const std::vector<Subpass> subpasses;

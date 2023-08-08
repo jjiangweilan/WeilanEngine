@@ -34,9 +34,7 @@ class RenderPass
 public:
     struct Attachment
     {
-        RefPtr<Image> image = nullptr;
-        ImageView* imageView =
-            nullptr; // this is optional when null, the render pass will use image's default imageView
+        ImageView* imageView; // not optional
         MultiSampling multiSampling = MultiSampling::Sample_Count_1;
         AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
         AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;

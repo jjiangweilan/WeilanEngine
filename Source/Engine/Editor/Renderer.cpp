@@ -85,6 +85,10 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
 {
     graph->Clear();
 
+    auto swapchain = GetGfxDriver()->GetSwapChainImageProxy().Get();
+    auto& swapchainView = swapchain->GetDefaultImageView();
+    auto swapchainImage = swapchainView.GetImage();
+
     auto renderEditor = graph->AddNode(
         [&](auto& cmd, auto& pass, auto& res) { this->RenderEditor(cmd, pass, res); },
         {
@@ -126,7 +130,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
     std::vector<Gfx::ClearValue> clears(2);
     clears[0].color = {{0, 0, 0, 0}};
     clears[1].depthStencil.depth = 1;
-    cmd.BeginRenderPass(&pass, clears);
+    cmd.BeginRenderPass(pass, clears);
 
     ImDrawData* imguiDrawData = ImGui::GetDrawData();
 

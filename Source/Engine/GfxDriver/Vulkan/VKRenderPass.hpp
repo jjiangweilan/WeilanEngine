@@ -17,9 +17,10 @@ public:
     VKRenderPass(VKRenderPass&& renderPass) = delete;
     ~VKRenderPass() override;
     void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) override;
-    void ClearSubpass() override { subpasses.clear(); }
-
-    void TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf);
+    void ClearSubpass() override
+    {
+        subpasses.clear();
+    }
 
     VkFramebuffer GetFrameBuffer();
     VkRenderPass GetHandle();

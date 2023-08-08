@@ -51,7 +51,7 @@ void VKFrameBuffer::CreateFrameBuffer()
     uint32_t i = 0;
     for (auto a : attachments)
     {
-        imageViews[i] = a->GetDefaultImageView();
+        imageViews[i] = a->GetDefaultVkImageView();
         i += 1;
     }
     createInfo.attachmentCount = attachments.size();

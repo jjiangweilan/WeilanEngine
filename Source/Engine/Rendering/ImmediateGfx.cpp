@@ -4,6 +4,7 @@ namespace Engine
 {
 void ImmediateGfx::RenderToImage(
     Gfx::Image& image,
+    Gfx::ImageView& imageView,
     Gfx::ShaderProgram& shader,
     Gfx::ShaderConfig& config,
     Gfx::ShaderResource& resource,
@@ -21,7 +22,7 @@ void ImmediateGfx::RenderToImage(
         {
             Gfx::ClearValue clear;
             clear.color = {0, 0, 0, 0};
-            cmd.BeginRenderPass(&pass, {clear});
+            cmd.BeginRenderPass(pass, {clear});
             cmd.BindResource(&resource);
             cmd.BindShaderProgram(&shader, config);
             cmd.Draw(3, 1, 0, 0);
@@ -39,6 +40,17 @@ void ImmediateGfx::RenderToImage(
         }},
         {{.colors = {{
               .handle = 0,
+              .imageView = {{
+                  .imageViewType = Gfx::ImageViewType::Image_2D,
+                  .subresourceRange =
+                      {
+                          .aspectMask = Gfx::ImageAspectFlags::Color,
+                          .baseMipLevel = 0,
+                          .levelCount = 1,
+                          .baseArrayLayer = 0,
+                          .layerCount = 1,
+                      },
+              }},
               .loadOp = Gfx::AttachmentLoadOperation::Clear,
               .storeOp = Gfx::AttachmentStoreOperation::Store,
           }}}}

@@ -188,7 +188,7 @@ VkRenderPass VKRenderTarget::RequestRenderPass(const RenderPassConfig& config)
             imageDesc.mipLevels = color.mipLevels;
             // TODO: if this render target is a transient target, maybe it doesn't need to be sampled?
             attachments.emplace_back(imageDesc, ImageUsage::ColorAttachment | ImageUsage::Texture);
-            attachmentImageViews.push_back(attachments.back().GetDefaultImageView());
+            attachmentImageViews.push_back(attachments.back().GetDefaultVkImageView());
         }
 
         if (rtDescription.HasDepth())
@@ -202,7 +202,7 @@ VkRenderPass VKRenderTarget::RequestRenderPass(const RenderPassConfig& config)
             imageDesc.mipLevels = dsDescription->mipLevels;
 
             attachments.emplace_back(imageDesc, ImageUsage::DepthStencilAttachment | ImageUsage::Texture);
-            VkImageView imageView = attachments.back().GetDefaultImageView();
+            VkImageView imageView = attachments.back().GetDefaultVkImageView();
             attachmentImageViews.push_back(imageView);
         }
 
@@ -237,30 +237,6 @@ void VKRenderTarget::SetRenderTargetDescription(const RenderTargetDescription& r
 
     resolution.width = rtDescription.width == 0 ? window->GetDefaultWindowSize().width : rtDescription.width;
     resolution.height = rtDescription.height == 0 ? window->GetDefaultWindowSize().height : rtDescription.height;
-}
-
-void VKRenderTarget::TransformAttachmentLayoutIfNeeded(VkCommandBuffer cmd)
-{
-    uint32_t i = 0;
-    uint32_t colorCount = attachments.size() - (rtDescription.HasDepth() ? 1 : 0);
-    for (; i < colorCount; ++i)
-    {
-        attachments[i].TransformLayoutIfNeeded(cmd,
-                                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                               VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                   VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-    }
-
-    if (rtDescription.HasDepth())
-    {
-        auto& depth = attachments.back();
-        depth.TransformLayoutIfNeeded(cmd,
-                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-    }
 }
 
 VkFramebuffer VKRenderTarget::GetVkFrameBuffer()

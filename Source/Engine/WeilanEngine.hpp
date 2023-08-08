@@ -40,7 +40,6 @@ public:
 
 #if ENGINE_EDITOR
         gameEditor = std::make_unique<Editor::GameEditor>(*this);
-        gameEditorRenderer = std::make_unique<Editor::Renderer>();
 #endif
 
         sceneRenderer = std::make_unique<Engine::SceneRenderer>();
@@ -142,7 +141,6 @@ public:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::unique_ptr<Gfx::CommandPool> cmdPool;
 #if ENGINE_EDITOR
-    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     std::unique_ptr<Editor::GameEditor> gameEditor;
 #endif
 };

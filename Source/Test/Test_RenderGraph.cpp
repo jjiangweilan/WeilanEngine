@@ -158,7 +158,7 @@ public:
     void GenUV(Gfx::CommandBuffer& cmdBuf, Gfx::RenderPass& renderPass, const ResourceRefs& res)
     {
         Gfx::ClearValue clears = {.color = {0, 0, 0, 0}};
-        cmdBuf.BeginRenderPass(&renderPass, {clears});
+        cmdBuf.BeginRenderPass(renderPass, {clears});
         cmdBuf.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
         cmdBuf.Draw(3, 1, 0, 0);
         cmdBuf.EndRenderPass();

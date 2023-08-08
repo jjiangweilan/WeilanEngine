@@ -30,7 +30,7 @@ void EnvironmentBaker::CreateRenderData(uint32_t width, uint32_t height)
         renderGraph->AddNode(
             [clear](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
             {
-                cmd.BeginRenderPass(&pass, {clear});
+                cmd.BeginRenderPass(pass, {clear});
                 cmd.EndRenderPass();
             },
             {
@@ -59,7 +59,7 @@ void EnvironmentBaker::CreateRenderData(uint32_t width, uint32_t height)
     }
 }
 
-void EnvironmentBaker::Render(Gfx::CommandBuffer& cmd)
+void EnvironmentBaker::Bake()
 {
     auto cubemap = GetGfxDriver()->CreateImage(
         {
@@ -72,9 +72,7 @@ void EnvironmentBaker::Render(Gfx::CommandBuffer& cmd)
         },
         Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
     );
-};
-
-void EnvironmentBaker::Bake() {}
+}
 
 bool EnvironmentBaker::Tick()
 {

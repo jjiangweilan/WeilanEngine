@@ -34,6 +34,7 @@ public:
     // use should use gl_VertexIndex in vertex shader for a fullscreen mesh
     static void RenderToImage(
         Gfx::Image& image,
+        Gfx::ImageView& imageView,
         Gfx::ShaderProgram& shader,
         Gfx::ShaderConfig& config,
         Gfx::ShaderResource& resource,
