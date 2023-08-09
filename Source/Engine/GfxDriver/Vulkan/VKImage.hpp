@@ -43,6 +43,12 @@ public:
     virtual VkImageSubresourceRange GetDefaultSubresourceRange();
     virtual void SetName(std::string_view name) override;
 
+    // used in command buffer
+    void NotifyLayoutChange(VkImageLayout newLayout)
+    {
+        this->layout = newLayout;
+    }
+
 protected:
     VKImage();
     uint32_t arrayLayers = 1;

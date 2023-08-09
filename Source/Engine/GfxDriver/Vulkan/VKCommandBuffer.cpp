@@ -409,6 +409,8 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
                 1,
                 &vkBarrier
             );
+
+            image->NotifyLayoutChange(vkBarrier.newLayout);
         }
         else
         {
