@@ -20,6 +20,7 @@ class VKImage : public Image
 {
 public:
     VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags);
+    VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags);
     VKImage(const VKImage& other) = delete;
     VKImage(VKImage&& other);
     ~VKImage() override;
@@ -67,45 +68,45 @@ protected:
     void CreateImageView();
 };
 
-class VKSwapChainImageProxy : public VKImage
-{
-public:
-    VKSwapChainImageProxy();
-    ~VKSwapChainImageProxy() override;
-
-    void SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index);
-
-    void UpdateImageDescription(const ImageDescription& desc)
-    {
-        this->imageDescription = desc;
-    }
-    uint32_t GetActiveIndex()
-    {
-        return activeIndex;
-    }
-    virtual VkImageView GetDefaultVkImageView() override
-    {
-        return activeImage->GetDefaultVkImageView();
-    }
-    virtual VkImage GetImage() override
-    {
-        return activeImage->GetImage();
-    }
-    virtual VkImageLayout GetLayout() override
-    {
-        return activeImage->GetLayout();
-    }
-    virtual VkImageSubresourceRange GetDefaultSubresourceRange() override
-    {
-        return activeImage->GetDefaultSubresourceRange();
-    }
-    virtual ImageView& GetDefaultImageView() override
-    {
-        return activeImage->GetDefaultImageView();
-    }
-
-private:
-    uint32_t activeIndex;
-    RefPtr<VKImage> activeImage;
-};
+// class VKSwapChainImageProxy : public VKImage
+// {
+// public:
+//     VKSwapChainImageProxy();
+//     ~VKSwapChainImageProxy() override;
+//
+//     void SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index);
+//
+//     void UpdateImageDescription(const ImageDescription& desc)
+//     {
+//         this->imageDescription = desc;
+//     }
+//     uint32_t GetActiveIndex()
+//     {
+//         return activeIndex;
+//     }
+//     virtual VkImageView GetDefaultVkImageView() override
+//     {
+//         return activeImage->GetDefaultVkImageView();
+//     }
+//     virtual VkImage GetImage() override
+//     {
+//         return activeImage->GetImage();
+//     }
+//     virtual VkImageLayout GetLayout() override
+//     {
+//         return activeImage->GetLayout();
+//     }
+//     virtual VkImageSubresourceRange GetDefaultSubresourceRange() override
+//     {
+//         return activeImage->GetDefaultSubresourceRange();
+//     }
+//     virtual ImageView& GetDefaultImageView() override
+//     {
+//         return activeImage->GetDefaultImageView();
+//     }
+//
+// private:
+//     uint32_t activeIndex;
+//     RefPtr<VKImage> activeImage;
+// };
 } // namespace Engine::Gfx

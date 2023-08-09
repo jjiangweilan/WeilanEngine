@@ -26,25 +26,26 @@ private:
 public:
     VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
     ~VKSwapChain();
-    RefPtr<Image> GetSwapChainImage(int index)
-    {
-        return &swapChainImages[index];
-    }
+
     void RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
-    bool AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal);
+    bool AcquireNextImage(VkSemaphore semaphoreToSignal);
+    VKSwapChainImage* GetSwapchainImage()
+    {
+        return swapChainImage.get();
+    }
     VkSwapchainKHR GetHandle() const
     {
         return swapChain;
-    };
+    }
     const SwapChainInfo& GetSwapChainInfo() const
     {
         return swapChainInfo;
-    };
+    }
 
 private:
     VkSwapchainKHR swapChain;
     RefPtr<VKDevice> attachedDevice;
-    std::vector<VKSwapChainImage> swapChainImages;
+    std::unique_ptr<VKSwapChainImage> swapChainImage;
     uint32_t graphicsQueueFamilyIndex;
     VKSurface* surface;
 

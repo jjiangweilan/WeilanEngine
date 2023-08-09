@@ -65,7 +65,6 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     device_vk = device->GetHandle();
     objectManager = new VKObjectManager(device_vk);
     context->objManager = objectManager;
-    swapChainImageProxy = MakeUnique1<VKSwapChainImageProxy>();
 
     // Create other objects
     memAllocator = new VKMemAllocator(instance->GetHandle(), device, gpu->GetHandle(), mainQueue->queueFamilyIndex);
@@ -74,9 +73,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     context->sharedResource = sharedResource;
     swapchain = new VKSwapChain(mainQueue->queueFamilyIndex, gpu, *surface);
     context->swapchain = swapchain;
-
-    // just set a placeholder image so that others can use the information from the Image before the first frame
-    swapChainImageProxy->SetActiveSwapChainImage(swapchain->GetSwapChainImage(0), 0);
+    swapChainImage = swapchain->GetSwapchainImage();
 
     // descriptor pool cache
     descriptorPoolCache = MakeUnique1<VKDescriptorPoolCache>(context);
@@ -93,7 +90,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     for (int i = 0; i < swapchain->GetSwapChainInfo().numberOfImages; ++i)
     {
         GPUBarrier barrier{
-            .image = swapchain->GetSwapChainImage(i),
+            .image = swapChainImage->GetImage(i),
             .srcStageMask = Gfx::PipelineStage::All_Commands,
             .dstStageMask = Gfx::PipelineStage::All_Commands,
             .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
@@ -176,9 +173,9 @@ SDL_Window* VKDriver::GetSDLWindow()
     return appWindow->GetSDLWindow();
 }
 
-RefPtr<Image> VKDriver::GetSwapChainImageProxy()
+Image* VKDriver::GetSwapChainImage()
 {
-    return swapChainImageProxy.Get();
+    return swapChainImage;
 }
 
 void VKDriver::ForceSyncResources()
@@ -204,7 +201,7 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
         vkSemaphores[i] = static_cast<VKSemaphore*>(semaphores[i].Get())->GetHandle();
     }
 
-    uint32_t activeIndex = swapChainImageProxy->GetActiveIndex();
+    uint32_t activeIndex = swapChainImage->GetActiveIndex();
     VkSwapchainKHR swapChainHandle = swapchain->GetHandle();
     VkPresentInfoKHR presentInfo = {
         VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -223,7 +220,7 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
 bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
 {
     VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
-    bool swapchainRecreated = swapchain->AcquireNextImage(swapChainImageProxy, s->GetHandle());
+    bool swapchainRecreated = swapchain->AcquireNextImage(s->GetHandle());
 
     if (swapchainRecreated)
     {
@@ -238,7 +235,7 @@ bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore
         for (int i = 0; i < swapchain->GetSwapChainInfo().numberOfImages; ++i)
         {
             GPUBarrier barrier{
-                .image = swapchain->GetSwapChainImage(i),
+                .image = swapchain->GetSwapchainImage()->GetImage(i),
                 .srcStageMask = Gfx::PipelineStage::All_Commands,
                 .dstStageMask = Gfx::PipelineStage::All_Commands,
                 .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,

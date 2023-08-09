@@ -11,7 +11,7 @@ Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projec
         mainCamera = this;
     }
 
-    auto swapChainImage = GetGfxDriver()->GetSwapChainImageProxy();
+    auto swapChainImage = GetGfxDriver()->GetSwapChainImage();
     auto& desc = swapChainImage->GetDescription();
     SetProjectionMatrix(glm::radians(45.0f), desc.width / (float)desc.height, 0.01f, 1000.f);
 }

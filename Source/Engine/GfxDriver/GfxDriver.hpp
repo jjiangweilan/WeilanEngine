@@ -57,7 +57,7 @@ public:
 
     virtual bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
-    virtual RefPtr<Image> GetSwapChainImageProxy() = 0;
+    virtual Image* GetSwapChainImage() = 0;
     virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;

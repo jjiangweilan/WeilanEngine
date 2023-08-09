@@ -1,3 +1,4 @@
+#pragma once
 #include "../ImageView.hpp"
 #include "VKImage.hpp"
 #include <vulkan/vulkan.h>

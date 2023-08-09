@@ -85,7 +85,7 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
 {
     graph->Clear();
 
-    auto swapchain = GetGfxDriver()->GetSwapChainImageProxy().Get();
+    auto swapchain = GetGfxDriver()->GetSwapChainImage();
     auto& swapchainView = swapchain->GetDefaultImageView();
     auto swapchainImage = swapchainView.GetImage();
 
@@ -99,7 +99,7 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMaskFlags::Color_Attachment_Read,
                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .externalImage = GetGfxDriver()->GetSwapChainImageProxy().Get(),
+                .externalImage = GetGfxDriver()->GetSwapChainImage(),
             },
         },
         {
@@ -312,7 +312,7 @@ std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
         },
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
-
+    fontImage->SetName("ImGUI font");
     uint32_t fontTexSize = bytePerPixel * width * height;
     auto tsfBuffer = GetGfxDriver()->CreateBuffer({
         .usages = Gfx::BufferUsage::Transfer_Src,

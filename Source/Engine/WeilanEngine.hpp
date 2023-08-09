@@ -44,7 +44,7 @@ public:
 
         sceneRenderer = std::make_unique<Engine::SceneRenderer>();
         sceneRenderer->BuildGraph({
-            .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+            .finalImage = *GetGfxDriver()->GetSwapChainImage(),
             .layout = Gfx::ImageLayout::Present_Src_Khr,
             .accessFlags = Gfx::AccessMask::None,
             .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
@@ -56,7 +56,7 @@ public:
             [this]
             {
                 sceneRenderer->BuildGraph({
-                    .finalImage = *GetGfxDriver()->GetSwapChainImageProxy(),
+                    .finalImage = *GetGfxDriver()->GetSwapChainImage(),
                     .layout = Gfx::ImageLayout::Present_Src_Khr,
                     .accessFlags = Gfx::AccessMask::None,
                     .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,

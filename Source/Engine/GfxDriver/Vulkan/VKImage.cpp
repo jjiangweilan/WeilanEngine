@@ -24,9 +24,22 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
         arrayLayers = 6;
     }
 
-    // if (imageDescription.data)
-    //     this->usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     MakeVkObjects();
+    CreateImageView();
+
+    SetName("Unnamed");
+}
+
+VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
+    : image_vk(image), usageFlags(MapImageUsage(usageFlags)), imageView(nullptr), imageDescription(imageDescription)
+{
+    format_vk = MapFormat(imageDescription.format);
+
+    if (imageDescription.isCubemap)
+    {
+        arrayLayers = 6;
+    }
+    CreateImageView();
 
     SetName("Unnamed");
 }
@@ -67,8 +80,6 @@ void VKImage::MakeVkObjects()
     layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VKContext::Instance()->allocator->CreateImage(imageCreateInfo, image_vk, allocation_vma, &allocationInfo_vma);
-
-    CreateImageView();
 }
 
 void VKImage::CreateImageView()
@@ -167,16 +178,16 @@ VkImageSubresourceRange VKImage::GetDefaultSubresourceRange()
     return imageView->GetVkSubresourceRange();
 }
 
-VKSwapChainImageProxy::~VKSwapChainImageProxy() {}
-
-VKSwapChainImageProxy::VKSwapChainImageProxy(){};
-
-void VKSwapChainImageProxy::SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index)
-{
-    this->activeImage = activeImage;
-    this->activeIndex = index;
-    static_cast<VKImageView&>(this->activeImage->GetDefaultImageView()).ChangeOwner(this);
-
-    imageDescription = activeImage->GetDescription();
-};
+// VKSwapChainImageProxy::~VKSwapChainImageProxy() {}
+//
+// VKSwapChainImageProxy::VKSwapChainImageProxy(){};
+//
+// void VKSwapChainImageProxy::SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index)
+// {
+//     this->activeImage = activeImage;
+//     this->activeIndex = index;
+//     static_cast<VKImageView&>(this->activeImage->GetDefaultImageView()).ChangeOwner(this);
+//
+//     imageDescription = activeImage->GetDescription();
+// };
 } // namespace Engine::Gfx

@@ -29,7 +29,6 @@ class VKObjectManager;
 class VKFrameBuffer;
 class VKRenderPass;
 class VKSharedResource;
-class VKSwapChainImageProxy;
 class VKContext;
 struct VKDescriptorPoolCache;
 class VKDriver : public Gfx::GfxDriver
@@ -60,7 +59,7 @@ public:
     ;
     RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
-    RefPtr<Image> GetSwapChainImageProxy() override;
+    Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
     RefPtr<VKSharedResource> GetSharedResource()
@@ -107,7 +106,7 @@ private:
     VKObjectManager* objectManager;
 
     VkDevice device_vk;
-    UniPtr<VKSwapChainImageProxy> swapChainImageProxy;
+    VKSwapChainImage* swapChainImage;
     UniPtr<VKContext> context;
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;

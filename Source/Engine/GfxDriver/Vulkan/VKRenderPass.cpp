@@ -44,7 +44,7 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
             auto& imageView = *static_cast<VKImageView*>(colorAtta.imageView);
             if (swapChainProxy == nullptr)
             {
-                swapChainProxy = dynamic_cast<VKSwapChainImageProxy*>(colorAtta.imageView->GetImage());
+                swapChainProxy = dynamic_cast<VKSwapChainImage*>(colorAtta.imageView->GetImage());
             }
             imageViews[attaIndex] = imageView.GetHandle();
             attaIndex += 1;

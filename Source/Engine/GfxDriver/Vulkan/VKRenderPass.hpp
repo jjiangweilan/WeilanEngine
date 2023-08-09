@@ -1,6 +1,7 @@
 #pragma once
 #include "../RenderPass.hpp"
 #include "GfxDriver/Vulkan/VKImage.hpp"
+#include "GfxDriver/Vulkan/VKSwapchainImage.hpp"
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan.h>
@@ -35,7 +36,7 @@ protected:
     // when one of the color attachment is a swap chain image proxy there will be multiple framebuffers, otherwise there
     // is only one
     std::vector<VkFramebuffer> frameBuffers;
-    VKSwapChainImageProxy* swapChainProxy = nullptr;
+    VKSwapChainImage* swapChainProxy = nullptr;
 
     struct Subpass
     {
