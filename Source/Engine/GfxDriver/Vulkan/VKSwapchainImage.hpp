@@ -4,6 +4,7 @@
 
 namespace Engine::Gfx
 {
+
 class VKSwapChainImage : public VKImage
 {
 public:
@@ -21,6 +22,16 @@ public:
         VkImageUsageFlags usageFlags
     );
 
+    void NotifyLayoutChange(VkImageLayout newLayout) override
+    {
+        swapchainImages[activeIndex]->NotifyLayoutChange(newLayout);
+    }
+
+    VkImageLayout GetLayout() override
+    {
+        return swapchainImages[activeIndex]->GetLayout();
+    }
+
     void SetActiveSwapChainImage(uint32_t index)
     {
         this->activeIndex = index;
@@ -31,7 +42,7 @@ public:
         return activeIndex;
     }
 
-    VkImageView GetDefaultVkImageView() override;
+    // VkImageView GetDefaultVkImageView() override;
 
     VkImage GetImage() override
     {
@@ -43,20 +54,53 @@ public:
         return static_cast<VKImageView&>(swapchainImages[activeIndex]->GetDefaultImageView()).GetVkSubresourceRange();
     }
 
-    ImageView& GetDefaultImageView() override
-    {
-        return swapchainImages[activeIndex]->GetDefaultImageView();
-    }
+    // ImageView& GetDefaultImageView() override
+    // {
+    //     return imageView swapchainImages[activeIndex]->GetDefaultImageView();
+    // }
 
     void SetName(std::string_view name) override;
 
     VKImage* GetImage(uint32_t index)
     {
-        return swapchainImages[activeIndex].get();
+        return swapchainImages[index].get();
     }
 
 private:
     std::vector<std::unique_ptr<VKImage>> swapchainImages;
     int activeIndex;
+
+    friend class VKSwapchainImageView;
+};
+
+class VKSwapchainImageView : public VKImageView
+{
+public:
+    VKSwapchainImageView(VKSwapChainImage& swapchainImage) : swapchainImage(&swapchainImage)
+    {
+        image = &swapchainImage;
+    }
+
+    VkImageView GetHandle() override
+    {
+        return swapchainImage->swapchainImages[swapchainImage->activeIndex]->GetDefaultVkImageView();
+    }
+
+    const ImageSubresourceRange& GetSubresourceRange() override
+    {
+        return swapchainImage->swapchainImages[swapchainImage->activeIndex]->GetDefaultImageView().GetSubresourceRange(
+        );
+    }
+
+    VkImageSubresourceRange GetVkSubresourceRange() override
+    {
+        return static_cast<VKImageView&>(
+                   swapchainImage->swapchainImages[swapchainImage->activeIndex]->GetDefaultImageView()
+        )
+            .GetVkSubresourceRange();
+    }
+
+private:
+    VKSwapChainImage* swapchainImage;
 };
 } // namespace Engine::Gfx

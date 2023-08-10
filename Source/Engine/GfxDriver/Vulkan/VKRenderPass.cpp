@@ -41,12 +41,18 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
         // color attachments
         for (Attachment& colorAtta : subpass.colors)
         {
-            auto& imageView = *static_cast<VKImageView*>(colorAtta.imageView);
+            VKImageView* imageView = static_cast<VKImageView*>(colorAtta.imageView);
             if (swapChainProxy == nullptr)
             {
                 swapChainProxy = dynamic_cast<VKSwapChainImage*>(colorAtta.imageView->GetImage());
             }
-            imageViews[attaIndex] = imageView.GetHandle();
+
+            // if (swapChainProxy != nullptr)
+            // {
+            //     imageView = static_cast<VKImageView*>(&swapChainProxy->GetDefaultImageView());
+            // }
+
+            imageViews[attaIndex] = imageView->GetHandle();
             attaIndex += 1;
         }
 

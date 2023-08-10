@@ -262,7 +262,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     );
     Connect(shadowPass, 0, forwardOpaque, 2);
 
-    auto blitToSwapchain = AddNode(
+    auto blitToFinal = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)
         {
             Gfx::Image* src = (Gfx::Image*)res.at(1)->GetResource();
@@ -292,7 +292,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
         },
         {}
     );
-    Connect(forwardOpaque, 0, blitToSwapchain, 1);
+    Connect(forwardOpaque, 0, blitToFinal, 1);
 
     auto layoutTransform = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res) {},
@@ -308,9 +308,9 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
         },
         {}
     );
-    Connect(blitToSwapchain, 0, layoutTransform, 0);
+    Connect(blitToFinal, 0, layoutTransform, 0);
 
-    colorOutput = blitToSwapchain;
+    colorOutput = blitToFinal;
     colorHandle = 0;
     depthOutput = forwardOpaque;
     depthHandle = 1;

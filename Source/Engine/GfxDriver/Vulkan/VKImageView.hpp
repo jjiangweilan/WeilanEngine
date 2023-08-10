@@ -21,7 +21,7 @@ public:
     }
 
 public:
-    VkImageView GetHandle()
+    virtual VkImageView GetHandle()
     {
         return handle;
     }
@@ -30,14 +30,17 @@ public:
     {
         return image;
     };
+
     const ImageSubresourceRange& GetSubresourceRange() override
     {
         return subresourceRange;
     }
 
-    VkImageSubresourceRange GetVkSubresourceRange();
+    virtual VkImageSubresourceRange GetVkSubresourceRange();
 
-private:
+protected:
+    VKImageView() = default;
+
     VKImage* image;
     VkImageView handle = VK_NULL_HANDLE;
     ImageSubresourceRange subresourceRange;

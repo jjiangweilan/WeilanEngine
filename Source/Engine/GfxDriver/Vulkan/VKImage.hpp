@@ -44,7 +44,7 @@ public:
     virtual void SetName(std::string_view name) override;
 
     // used in command buffer
-    void NotifyLayoutChange(VkImageLayout newLayout)
+    virtual void NotifyLayoutChange(VkImageLayout newLayout)
     {
         this->layout = newLayout;
     }

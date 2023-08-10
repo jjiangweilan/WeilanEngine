@@ -25,7 +25,7 @@ void VKSwapChainImage::Recreate(
 
     for (auto image : swapchainImages)
     {
-        this->swapchainImages.emplace_back(new VKImage(
+        VKImage* ptr = new VKImage(
             image,
             {
                 .width = width,
@@ -36,14 +36,18 @@ void VKSwapChainImage::Recreate(
                 .isCubemap = false,
             },
             usageFlags
-        ));
+        );
+        // static_cast<VKImageView&>(ptr->GetDefaultImageView()).ChangeOwner(this);
+        this->swapchainImages.emplace_back(ptr);
     }
+
+    imageView = std::make_unique<VKSwapchainImageView>(*this);
 }
 
-VkImageView VKSwapChainImage::GetDefaultVkImageView()
-{
-    return static_cast<VKImageView*>(&swapchainImages[activeIndex]->GetDefaultImageView())->GetHandle();
-}
+// VkImageView VKSwapChainImage::GetDefaultVkImageView()
+// {
+//     return static_cast<VKImageView*>(&swapchainImages[activeIndex]->GetDefaultImageView())->GetHandle();
+// }
 
 void VKSwapChainImage::SetName(std::string_view name)
 {
