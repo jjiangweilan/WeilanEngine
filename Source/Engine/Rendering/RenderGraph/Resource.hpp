@@ -48,6 +48,8 @@ public:
 protected:
     void* owner;
     void* data;
+
+    void* meta; // extra data, used when data is an Image, meta will be an ImageView
     ResourceType type;
 };
 

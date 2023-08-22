@@ -34,14 +34,14 @@ public:
     // use should use gl_VertexIndex in vertex shader for a fullscreen mesh
     static void RenderToImage(
         Gfx::Image& image,
-        Gfx::ImageView& imageView,
+        Gfx::ImageSubresourceRange subresourceRanges,
         Gfx::ShaderProgram& shader,
-        Gfx::ShaderConfig& config,
+        const Gfx::ShaderConfig& config,
         Gfx::ShaderResource& resource,
         Gfx::ImageLayout finalLayout
     );
 
-    // copy a image to buffer, the image's layout should be TransferSrc, then method won't check this requirement
+    // copy a image to buffer, the image's layout should be TransferSrc, the method won't check this requirement
     static void CopyImageToBuffer(Gfx::Image& image, Gfx::Buffer& buffer);
 };
 } // namespace Engine

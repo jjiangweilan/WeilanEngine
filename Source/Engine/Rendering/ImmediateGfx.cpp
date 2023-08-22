@@ -4,18 +4,13 @@ namespace Engine
 {
 void ImmediateGfx::RenderToImage(
     Gfx::Image& image,
-    Gfx::ImageView& imageView,
+    Gfx::ImageSubresourceRange subresourceRanges,
     Gfx::ShaderProgram& shader,
-    Gfx::ShaderConfig& config,
+    const Gfx::ShaderConfig& config,
     Gfx::ShaderResource& resource,
     Gfx::ImageLayout finalLayout
 )
 {
-    if (image.GetDescription().isCubemap)
-    {
-        return;
-    }
-
     RenderGraph::Graph graph;
     auto n0 = graph.AddNode(
         [&shader, &resource, &config](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
@@ -40,17 +35,7 @@ void ImmediateGfx::RenderToImage(
         }},
         {{.colors = {{
               .handle = 0,
-              .imageView = {{
-                  .imageViewType = Gfx::ImageViewType::Image_2D,
-                  .subresourceRange =
-                      {
-                          .aspectMask = Gfx::ImageAspectFlags::Color,
-                          .baseMipLevel = 0,
-                          .levelCount = 1,
-                          .baseArrayLayer = 0,
-                          .layerCount = 1,
-                      },
-              }},
+              .imageView = {{.imageViewType = Gfx::ImageViewType::Image_2D, .subresourceRange = subresourceRanges}},
               .loadOp = Gfx::AttachmentLoadOperation::Clear,
               .storeOp = Gfx::AttachmentStoreOperation::Store,
           }}}}

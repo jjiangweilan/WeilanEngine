@@ -29,9 +29,15 @@ private:
     std::unique_ptr<RenderGraph::Graph> renderGraph;
     std::unique_ptr<Shader> previewShader;
     std::unique_ptr<Model2> model;
-    glm::ivec2 size = {1024, 1024};
+    int size = 1024;
+
+    // these two baker shares the same resource
+    std::unique_ptr<Gfx::ShaderProgram> lightingBaker;
+    std::unique_ptr<Gfx::ShaderProgram> brdfBaker;
+    std::unique_ptr<Gfx::ShaderResource> bakingShaderResource;
 
     void CreateRenderData(uint32_t width, uint32_t height);
-    void Bake();
+    void Bake(int size);
+    void BakeToCubeFace(Gfx::Image& cubemap, uint32_t face);
 };
 } // namespace Engine::Editor

@@ -26,9 +26,9 @@ public:
         return handle;
     }
 
-    Image* GetImage() override
+    Image& GetImage() override
     {
-        return image;
+        return *image;
     };
 
     const ImageSubresourceRange& GetSubresourceRange() override

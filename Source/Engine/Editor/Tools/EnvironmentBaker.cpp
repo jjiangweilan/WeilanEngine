@@ -2,7 +2,11 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include <glm/glm.hpp>
+#include <ktx.h>
+#include <spdlog/spdlog.h>
 namespace Engine::Editor
 {
 EnvironmentBaker::EnvironmentBaker() {}
@@ -21,56 +25,79 @@ void EnvironmentBaker::CreateRenderData(uint32_t width, uint32_t height)
         },
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
-
-    if (renderGraph == nullptr)
-    {
-        renderGraph = std::make_unique<RenderGraph::Graph>();
-        Gfx::ClearValue clear;
-        clear.color = {0, 0, 0, 0};
-        renderGraph->AddNode(
-            [clear](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
-            {
-                cmd.BeginRenderPass(pass, {clear});
-                cmd.EndRenderPass();
-            },
-            {
-                {
-                    .name = "image",
-                    .handle = 0,
-                    .type = RenderGraph::ResourceType::Image,
-                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-                    .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                    .externalImage = sceneImage.get(),
-                },
-            },
-            {
-                {
-                    .colors = {{
-                        .handle = 0,
-                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                        .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                        .storeOp = Gfx::AttachmentStoreOperation::Store,
-                    }},
-                },
-            }
-        );
-    }
 }
 
-void EnvironmentBaker::Bake()
+static std::unique_ptr<Gfx::ShaderProgram> LoadShader(const char* path)
 {
+    auto shaderCompiler = ShaderCompiler();
+    std::fstream f;
+    f.open(path);
+    if (f.is_open() && f.good())
+    {
+        std::string ss;
+        f >> ss;
+        shaderCompiler.Compile(ss, true);
+        return GetGfxDriver()->CreateShaderProgram(
+            "EnvironmentBaker",
+            &shaderCompiler.GetConfig(),
+            shaderCompiler.GetVertexSPV(),
+            shaderCompiler.GetFragSPV()
+        );
+    }
+    else
+    {
+        SPDLOG_ERROR("EnvironmentBaker: failed to open EnvironmentBaker.shad");
+    }
+
+    return nullptr;
+}
+
+void EnvironmentBaker::Bake(int size)
+{
+    uint32_t minimumSize = glm::pow(2, 5);
+    if (size < minimumSize)
+        return;
+
     auto cubemap = GetGfxDriver()->CreateImage(
         {
-            .width = (uint32_t)size.x,
-            .height = (uint32_t)size.y,
+            .width = (uint32_t)size,
+            .height = (uint32_t)size,
             .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
             .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 1,
+            .mipLevels = 5,
             .isCubemap = true,
         },
         Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
+    );
+
+    // create baking shader if it's not created
+    if (lightingBaker == nullptr)
+    {
+        lightingBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentLightBaker.shad");
+    }
+
+    if (brdfBaker == nullptr)
+    {
+        brdfBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentBRDFBaker.shad");
+    }
+
+    // create baking resource if it's not created
+    if (bakingShaderResource == nullptr)
+    {
+        bakingShaderResource =
+            GetGfxDriver()->CreateShaderResource(lightingBaker.get(), Gfx::ShaderResourceFrequency::Global);
+    }
+}
+
+void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t face)
+{
+    ImmediateGfx::RenderToImage(
+        cubemap,
+        {Gfx::ImageAspect::Color, 0, 1, face, 1},
+        *lightingBaker,
+        lightingBaker->GetDefaultShaderConfig(),
+        *bakingShaderResource,
+        Gfx::ImageLayout::Transfer_Dst
     );
 }
 
@@ -90,10 +117,10 @@ bool EnvironmentBaker::Tick()
         // CreateRenderData(width, height);
     }
 
-    ImGui::InputInt2("resolution", &size[0]);
+    ImGui::InputInt("resolution", &size);
     if (ImGui::Button("Bake"))
     {
-        Bake();
+        Bake(size);
     }
 
     ImGui::End();

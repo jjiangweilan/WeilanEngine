@@ -72,37 +72,7 @@ public:
         const ExecutionFunc& execute,
         const std::vector<ResourceDescription>& resourceDescs,
         const std::vector<Subpass>& subpasses
-    )
-        : subpasses(subpasses), execute(execute)
-    {
-        for (ResourceDescription res : resourceDescs)
-        {
-            if (res.externalImage != nullptr)
-            {
-                externalResources.push_back(res.handle);
-                res.imageCreateInfo = res.externalImage->GetDescription();
-            }
-
-            if (res.externalBuffer != nullptr)
-            {
-                externalResources.push_back(res.handle);
-            }
-
-            if (res.externalImage == nullptr && res.type == ResourceType::Image && res.imageCreateInfo.width != 0 &&
-                res.imageCreateInfo.height != 0)
-            {
-                creationRequests.push_back(res.handle);
-            }
-            else if (res.externalBuffer == nullptr && res.type == ResourceType::Buffer && res.bufferCreateInfo.size != 0)
-            {
-                creationRequests.push_back(res.handle);
-            }
-
-            resourceDescriptions[res.handle] = res;
-        }
-
-        resourceRefs.reserve(resourceDescs.size());
-    }
+    );
     ~RenderPass() {}
     // Set resource that is needed by this node.framgraph
     void SetResourceRef(ResourceHandle handle, ResourceRef* resource)
@@ -142,6 +112,8 @@ public:
         return externalResources;
     }
 
+    const std::vector<Gfx::ImageView*>& GetImageViews(Gfx::Image* image);
+
     // Recording all the gfx commands.
     // Don't insert any pipeline barriers for resources from outside, it's managed by the frame
     virtual void Execute(Gfx::CommandBuffer& cmdBuf)
@@ -151,80 +123,17 @@ public:
     };
 
     // call when all the resources are set
-    void Finalize()
-    {
-        renderPass = GetGfxDriver()->CreateRenderPass();
-
-        for (auto& subpass : subpasses)
-        {
-            std::vector<Gfx::RenderPass::Attachment> colors;
-
-            for (Attachment colorAtta : subpass.colors)
-            {
-                Gfx::Image* image = (Gfx::Image*)resourceRefs[colorAtta.handle]->GetResource();
-
-                Gfx::ImageView* imageView = nullptr;
-                if (colorAtta.imageView.has_value())
-                {
-                    auto newImageView = GetGfxDriver()->CreateImageView({
-                        .image = *image,
-                        .imageViewType = colorAtta.imageView->imageViewType,
-                        .subresourceRange = colorAtta.imageView->subresourceRange,
-                    });
-                    imageView = newImageView.get();
-                    imageViews.push_back(std::move(newImageView));
-                }
-                else
-                    imageView = &image->GetDefaultImageView();
-
-                colors.push_back(
-                    {.imageView = imageView,
-                     .multiSampling = colorAtta.multiSampling,
-                     .loadOp = colorAtta.loadOp,
-                     .storeOp = colorAtta.storeOp,
-                     .stencilLoadOp = colorAtta.stencilLoadOp,
-                     .stencilStoreOp = colorAtta.stencilStoreOp}
-                );
-            }
-
-            std::optional<Gfx::RenderPass::Attachment> depth = std::nullopt;
-            if (subpass.depth.has_value())
-            {
-                auto depthImage = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
-
-                Gfx::ImageView* imageView = nullptr;
-                if (subpass.depth->imageView.has_value())
-                {
-                    auto newImageView = GetGfxDriver()->CreateImageView({
-                        .image = *depthImage,
-                        .imageViewType = subpass.depth->imageView->imageViewType,
-                        .subresourceRange = subpass.depth->imageView->subresourceRange,
-                    });
-                    imageView = newImageView.get();
-                    imageViews.push_back(std::move(newImageView));
-                }
-                else
-                    imageView = &depthImage->GetDefaultImageView();
-
-                depth = {
-                    .imageView = imageView,
-                    .multiSampling = subpass.depth->multiSampling,
-                    .loadOp = subpass.depth->loadOp,
-                    .storeOp = subpass.depth->storeOp,
-                    .stencilLoadOp = subpass.depth->stencilLoadOp,
-                    .stencilStoreOp = subpass.depth->stencilStoreOp,
-                };
-            }
-
-            renderPass->AddSubpass(colors, depth);
-        }
-    }
+    void Finalize();
 
 protected:
     std::vector<ResourceHandle> externalResources;
     std::unique_ptr<Gfx::RenderPass> renderPass = nullptr;
     std::vector<ResourceHandle> creationRequests;
     std::vector<std::unique_ptr<Gfx::ImageView>> imageViews;
+
+    // it's possition a image is read from a subresource and write to another subresource
+    // this is used to enable finer control over Graph's barrier insertion
+    std::unordered_map<Gfx::Image*, std::vector<Gfx::ImageView*>> imageToImageViews;
     const std::vector<Subpass> subpasses;
     ResourceRefs resourceRefs;
     std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;

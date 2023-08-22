@@ -31,8 +31,7 @@ void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 
     if (presentNode != nullptr)
     {
-        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() !=
-            GetGfxDriver()->GetSwapChainImage())
+        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() != GetGfxDriver()->GetSwapChainImage())
         {
             throw std::logic_error("present port needs to be swapchain image");
         }
@@ -139,6 +138,7 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
+                auto& views = sortedNodes[sortIndex]->pass->GetImageViews(image);
 
                 // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
                 Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;

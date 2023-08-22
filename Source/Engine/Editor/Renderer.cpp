@@ -90,7 +90,8 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
     auto swapchainImage = swapchainView.GetImage();
 
     auto renderEditor = graph->AddNode(
-        [&](auto& cmd, auto& pass, auto& res) { this->RenderEditor(cmd, pass, res); },
+        [&](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
+        { this->RenderEditor(cmd, pass, res); },
         {
             {
                 .name = "SwapChain",
