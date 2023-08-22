@@ -44,7 +44,7 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
             VKImageView* imageView = static_cast<VKImageView*>(colorAtta.imageView);
             if (swapChainProxy == nullptr)
             {
-                swapChainProxy = dynamic_cast<VKSwapChainImage*>(colorAtta.imageView->GetImage());
+                swapChainProxy = dynamic_cast<VKSwapChainImage*>(&colorAtta.imageView->GetImage());
             }
 
             imageViews[attaIndex] = imageView->GetHandle();
@@ -61,9 +61,9 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
     createInfo.attachmentCount = attaIndex;
     createInfo.pAttachments = imageViews;
 
-    Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : subpasses[0].colors[0].imageView->GetImage();
+    Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : &subpasses[0].colors[0].imageView->GetImage();
     if (image == nullptr)
-        image = subpasses[0].depth->imageView->GetImage();
+        image = &subpasses[0].depth->imageView->GetImage();
     createInfo.width = image->GetDescription().width;
     createInfo.height = image->GetDescription().height;
     createInfo.layers = 1;
@@ -119,11 +119,11 @@ void VKRenderPass::CreateRenderPass()
         for (Attachment& colorAtta : subpass.colors)
         {
             attachmentDescriptions[attachmentDescIndex].flags = 0;
-            auto image = colorAtta.imageView->GetImage();
-            auto format = MapFormat(image->GetDescription().format);
+            auto& image = colorAtta.imageView->GetImage();
+            auto format = MapFormat(image.GetDescription().format);
             attachmentDescriptions[attachmentDescIndex].format = format;
 
-            attachmentDescriptions[attachmentDescIndex].samples = MapSampleCount(image->GetDescription().multiSampling);
+            attachmentDescriptions[attachmentDescIndex].samples = MapSampleCount(image.GetDescription().multiSampling);
             attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(colorAtta.loadOp);
             attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(colorAtta.storeOp);
             attachmentDescriptions[attachmentDescIndex].stencilLoadOp = MapAttachmentLoadOp(colorAtta.stencilLoadOp);
@@ -145,9 +145,9 @@ void VKRenderPass::CreateRenderPass()
 
             attachmentDescriptions[attachmentDescIndex].flags = 0;
             attachmentDescriptions[attachmentDescIndex].format =
-                MapFormat(subpass.depth->imageView->GetImage()->GetDescription().format);
+                MapFormat(subpass.depth->imageView->GetImage().GetDescription().format);
             attachmentDescriptions[attachmentDescIndex].samples =
-                MapSampleCount(subpass.depth->imageView->GetImage()->GetDescription().multiSampling);
+                MapSampleCount(subpass.depth->imageView->GetImage().GetDescription().multiSampling);
             attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(subpass.depth->loadOp);
             attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(subpass.depth->storeOp);
             attachmentDescriptions[attachmentDescIndex].stencilLoadOp =
@@ -198,14 +198,14 @@ Extent2D VKRenderPass::GetExtent()
     {
         if (subpasses[0].colors.size() > 0)
         {
-            auto& desc = subpasses[0].colors[0].imageView->GetImage()->GetDescription();
+            auto& desc = subpasses[0].colors[0].imageView->GetImage().GetDescription();
             return {desc.width, desc.height};
         }
         else
         {
             if (subpasses[0].depth.has_value())
             {
-                auto& desc = subpasses[0].depth->imageView->GetImage()->GetDescription();
+                auto& desc = subpasses[0].depth->imageView->GetImage().GetDescription();
                 return {desc.width, desc.height};
             }
         }

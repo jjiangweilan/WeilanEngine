@@ -2,7 +2,7 @@
 #include "CmdSubmitGroup.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include <memory>
-
+#include <functional>
 namespace Engine
 {
 class Scene;
