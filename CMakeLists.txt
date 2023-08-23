@@ -254,7 +254,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(ktx_software
         PREFIX "ThirdParty/ktx"
         GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
-        GIT_TAG "f47d1a2e73f93c9433298c5de0a616419b567a4b"
+        GIT_TAG "v4.3.0-alpha3"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/ktx_software"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
         CMAKE_ARGS
