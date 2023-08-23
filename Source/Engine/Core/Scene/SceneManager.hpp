@@ -18,6 +18,6 @@ public:
     }
 
 private:
-    Scene* scene;
+    Scene* scene = nullptr;
 };
 } // namespace Engine

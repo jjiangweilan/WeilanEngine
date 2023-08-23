@@ -1,7 +1,7 @@
 #include "Scene.hpp"
 namespace Engine
 {
-Scene::Scene() : Resource()
+Scene::Scene() : Resource(), systemEventCallbacks()
 {
     name = "New GameScene";
 }

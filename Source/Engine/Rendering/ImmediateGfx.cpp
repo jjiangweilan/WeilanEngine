@@ -13,10 +13,21 @@ void ImmediateGfx::RenderToImage(
 {
     RenderGraph::Graph graph;
     auto n0 = graph.AddNode(
-        [&shader, &resource, &config](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
+        [&shader, &resource, &config, &image](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
         {
             Gfx::ClearValue clear;
-            clear.color = {0, 0, 0, 0};
+            clear.color = {{0, 0, 0, 0}};
+            Rect2D scissor{{0, 0}, {image.GetDescription().width, image.GetDescription().height}};
+            cmd.SetScissor(0, 1, &scissor);
+            Gfx::Viewport viewport{
+                .x = 0,
+                .y = 0,
+                .width = (float)scissor.extent.width,
+                .height = (float)scissor.extent.height,
+                .minDepth = 0,
+                .maxDepth = 1,
+            };
+            cmd.SetViewport(viewport);
             cmd.BeginRenderPass(pass, {clear});
             cmd.BindResource(&resource);
             cmd.BindShaderProgram(&shader, config);
@@ -28,7 +39,7 @@ void ImmediateGfx::RenderToImage(
             .handle = 0,
             .type = RenderGraph::ResourceType::Image,
             .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-            .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+            .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
             .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
             .imageLayout = Gfx::ImageLayout::Color_Attachment,
             .externalImage = &image,

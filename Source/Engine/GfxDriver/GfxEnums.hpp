@@ -92,6 +92,7 @@ enum class ImageFormat
     BC7_SRGB_UNorm_Block,
     BC3_Unorm_Block,
     BC3_SRGB_Block,
+    B10G11R11_UFloat_Pack32,
     Invalid
 };
 ImageFormat MapStringToImageFormat(std::string_view name);

@@ -28,7 +28,7 @@ Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
     memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
 
     ImmediateGfx::OnetimeSubmit(
-        [this, byteSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
+        [this, &stagingBuffer](Gfx::CommandBuffer& cmd)
         {
             auto subresourceRange = image->GetSubresourceRange();
 
@@ -276,18 +276,16 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
             }
         }
 
-        TextureDescription texDesc;
-        texDesc.img.isCubemap = texture->isCubemap;
-        texDesc.img.width = texture->baseWidth;
-        texDesc.img.height = texture->baseHeight;
-        texDesc.img.mipLevels = texture->numLevels;
-        texDesc.img.format = Gfx::MapVKFormat(ktxTexture_GetVkFormat(texture));
-        texDesc.data = nullptr;
+        desc.img.isCubemap = texture->isCubemap;
+        desc.img.width = texture->baseWidth;
+        desc.img.height = texture->baseHeight;
+        desc.img.mipLevels = texture->numLevels;
+        desc.img.format = Gfx::MapVKFormat(ktxTexture_GetVkFormat(texture));
+        desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+        desc.data = nullptr;
 
-        image = Gfx::GfxDriver::Instance()->CreateImage(
-            texDesc.img,
-            Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
-        );
+        image =
+            Gfx::GfxDriver::Instance()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
 
         ktx_uint8_t* data = ktxTexture_GetData(texture);
         size_t byteSize = ktxTexture_GetDataSize(texture);
@@ -309,8 +307,8 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
                         ktx_size_t offset = 0;
                         if (ktxTexture_GetImageOffset(texture, level, layer, face, &offset) != KTX_SUCCESS)
                             throw std::runtime_error("Texture-failed to get image offset");
-                        uint32_t size = ktxTexture_GetImageSize(texture, level);
 
+                        float levelScale = std::pow(2, level);
                         copies.push_back({
                             .srcOffset = offset,
                             .layers =
@@ -321,7 +319,8 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
                                     .layerCount = 1,
                                 },
                             .offset = {0, 0, 0},
-                            .extend = {desc.img.width, desc.img.height, 1},
+                            .extend =
+                                {(uint32_t)(desc.img.width / levelScale), (uint32_t)(desc.img.height / levelScale), 1},
                         });
                     }
                 }
@@ -335,19 +334,47 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
             auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
             memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
 
-            ImmediateGfx::OnetimeSubmit([this, byteSize, &stagingBuffer, &copies](Gfx::CommandBuffer& cmd)
-                                        { cmd.CopyBufferToImage(stagingBuffer, image, copies); });
+            ImmediateGfx::OnetimeSubmit(
+                [this, &stagingBuffer, &copies](Gfx::CommandBuffer& cmd)
+                {
+                    Gfx::GPUBarrier barrier{
+                        .image = image,
+                        .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,
+                        .dstStageMask = Gfx::PipelineStage::Transfer,
+                        .srcAccessMask = Gfx::AccessMask::None,
+                        .dstAccessMask = Gfx::AccessMask::Transfer_Write,
+
+                        .imageInfo = {
+                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                            .oldLayout = Gfx::ImageLayout::Undefined,
+                            .newLayout = Gfx::ImageLayout::Transfer_Dst,
+                            .subresourceRange =
+                                {
+                                    .aspectMask = image->GetSubresourceRange().aspectMask,
+                                    .baseMipLevel = 0,
+                                    .levelCount = desc.img.mipLevels,
+                                    .baseArrayLayer = 0,
+                                    .layerCount = image->GetSubresourceRange().layerCount,
+                                },
+                        }};
+
+                    cmd.Barrier(&barrier, 1);
+                    cmd.CopyBufferToImage(stagingBuffer, image, copies);
+                    barrier.srcStageMask = Gfx::PipelineStage::Transfer;
+                    barrier.srcAccessMask = Gfx::AccessMask::Transfer_Write;
+                    barrier.imageInfo.oldLayout = Gfx::ImageLayout::Transfer_Dst;
+                    barrier.imageInfo.newLayout = Gfx::ImageLayout::Shader_Read_Only;
+                    cmd.Barrier(&barrier, 1);
+                }
+            );
         }
         else
         {
             std::runtime_error("Texture-numDimensions not implemented");
         }
-        // ...
-        // Do something with the texture image.
-        // ...
-        ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
 
-        this->desc = texDesc;
+        ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
     }
 }
 

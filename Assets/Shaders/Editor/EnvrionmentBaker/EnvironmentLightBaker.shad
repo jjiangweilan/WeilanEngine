@@ -1,26 +1,28 @@
 #version 450 core
 
+#define PI 3.14159265359f
 #if CONFIG
 name: EnvironmentLightBaker
 // interleaved: true
 cull: none
 #endif
 
-struct VertToFrag { vec2 uv; };
+struct VertToFrag { vec2 uv; vec3 viewDir; };
 
 layout(set = 0, binding = 0) uniform BakeInfo
 {
-    vec3 uFrom, uTo;
-    vec3 vFrom, vTo;
-    vec3 lookat;
+    vec4 uFrom, uTo;
+    vec4 vFrom, vTo;
+    vec4 lookat;
+    float roughness;
 } bakeInfo;
 layout(set = 0, binding = 1) uniform sampler2D environmentMap;
 
 vec3 BakeInfo_GetViewDir(vec2 uv)
 {
-    return mix(bakeInfo.uFrom, bakeInfo.uTo, uv.x) +
-           mix(bakeInfo.vFrom, bakeInfo.vTo, uv.y) +
-           lookat;
+    return mix(bakeInfo.uFrom, bakeInfo.uTo, uv.x).xyz +
+           mix(bakeInfo.vFrom, bakeInfo.vTo, uv.y).xyz +
+           bakeInfo.lookat.xyz;
 }
 
 float RadicalInverse_VdC(uint bits) 
@@ -36,6 +38,13 @@ float RadicalInverse_VdC(uint bits)
 vec2 Hammersley(uint i, uint N)
 {
     return vec2(float(i)/float(N), RadicalInverse_VdC(i));
+}
+
+vec2 CartesianToSpherical(vec3 V)
+{
+    float theta = acos(V.y);
+    float phi = atan(V.z/V.x);
+    return vec2(theta, phi);
 }
 
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
@@ -63,7 +72,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
 
 #if VERT
 
-layout(location = 0) out Vert2Frag output;
+layout(location = 0) out VertToFrag v2f;
 
 void main()
 {
@@ -74,7 +83,8 @@ void main()
     };
     vec4 pos = tri[gl_VertexIndex];
 
-    output.uv = pos.xy;
+    v2f.uv = pos.xy * 0.5 + 0.5;
+    v2f.viewDir = BakeInfo_GetViewDir(v2f.uv);
 
     gl_Position = pos;
 }
@@ -83,32 +93,32 @@ void main()
 #if FRAG
 
 #define sTexture sTexture_sampler_linear
-layout(location = 0) in VertToFrag input;
-layout(location = 0) out vec4 o_color;
+layout(location = 0) in VertToFrag v2f;
+layout(location = 0) out vec4 fragColor;
 
 void main()
 {
-    vec3 N = normalize(input.lookat);
+    vec3 N = normalize(v2f.viewDir);
     vec3 V = N;
 
     const uint SAMPLE_COUNT = 1024u;
-    float totalWeight = 0.0
+    float totalWeight = 0.0;
     vec3 prefilteredColor = vec3(0.0);
     for(uint i = 0u; i < SAMPLE_COUNT; ++i)
     {
         vec2 Xi = Hammersley(i, SAMPLE_COUNT);
-        vec3 H  = ImportanceSampleGGX(Xi, N, roughness);
+        vec3 H  = ImportanceSampleGGX(Xi, N, bakeInfo.roughness);
         vec3 L  = normalize(2.0 * dot(V, H) * H - V);
 
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0)
         {
-            prefilteredColor += texture(environmentMap, L).rgb * NdotL;
+            prefilteredColor += texture(environmentMap, CartesianToSpherical(L)).rgb * NdotL;
             totalWeight      += NdotL;
         }
     }
     prefilteredColor = prefilteredColor / totalWeight;
 
-    FragColor = vec4(prefilteredColor, 1.0);
+    fragColor = vec4(prefilteredColor, 1.0);
 }
 #endif

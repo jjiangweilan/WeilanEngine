@@ -25,6 +25,12 @@ public:
     bool Tick() override;
 
 private:
+    struct ShaderParamBakeInfo
+    {
+        glm::vec4 uFrom, uTo;
+        glm::vec4 vFrom, vTo;
+        glm::vec4 lookat;
+    };
     std::unique_ptr<Gfx::Image> sceneImage;
     std::unique_ptr<RenderGraph::Graph> renderGraph;
     std::unique_ptr<Shader> previewShader;
@@ -35,6 +41,8 @@ private:
     std::unique_ptr<Gfx::ShaderProgram> lightingBaker;
     std::unique_ptr<Gfx::ShaderProgram> brdfBaker;
     std::unique_ptr<Gfx::ShaderResource> bakingShaderResource;
+    std::unique_ptr<Gfx::Buffer> bakeInfoBuffer;
+    std::unique_ptr<Texture> environmentMap;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void Bake(int size);

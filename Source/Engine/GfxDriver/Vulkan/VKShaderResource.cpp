@@ -314,4 +314,43 @@ RefPtr<ShaderProgram> VKShaderResource::GetShader()
 {
     return shaderProgram.Get();
 }
+
+void VKShaderResource::SetBuffer(Buffer& buffer, unsigned int binding, size_t offset, size_t range)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+
+    auto iter = std::find_if(
+        shaderInfo.bindings.begin(),
+        shaderInfo.bindings.end(),
+        [binding](const ShaderInfo::Bindings::value_type& p)
+        {
+            return p.second.bindingNum == binding &&
+                   (p.second.type == ShaderInfo::BindingType::UBO || p.second.type == ShaderInfo::BindingType::SSBO);
+        }
+    );
+
+    if (iter != shaderInfo.bindings.end())
+    {
+        auto& b = iter->second;
+        VkWriteDescriptorSet write;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = VK_NULL_HANDLE;
+        write.dstSet = descriptorSet;
+        write.descriptorType = ShaderInfo::Utils::MapBindingType(b.type);
+        write.dstBinding = binding;
+        write.dstArrayElement = 0;
+        write.descriptorCount = b.count;
+        write.pImageInfo = VK_NULL_HANDLE;
+        write.pTexelBufferView = VK_NULL_HANDLE;
+
+        VKBuffer* buf = static_cast<VKBuffer*>(&buffer);
+        VkDescriptorBufferInfo bufferInfo{.buffer = buf->GetHandle(), .offset = 0, .range = buffer.GetSize()};
+        bufferInfo.offset = offset;
+        bufferInfo.range = range == 0 ? buffer.GetSize() : range;
+        write.pBufferInfo = &bufferInfo;
+
+        VkDevice vkDevice = device->GetHandle();
+        vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
+    }
+}
 } // namespace Engine::Gfx

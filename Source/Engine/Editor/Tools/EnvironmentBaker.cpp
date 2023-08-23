@@ -4,8 +4,8 @@
 #include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include "Utils/AssetLoader.hpp"
 #include <glm/glm.hpp>
-#include <ktx.h>
 #include <spdlog/spdlog.h>
 namespace Engine::Editor
 {
@@ -34,9 +34,9 @@ static std::unique_ptr<Gfx::ShaderProgram> LoadShader(const char* path)
     f.open(path);
     if (f.is_open() && f.good())
     {
-        std::string ss;
-        f >> ss;
-        shaderCompiler.Compile(ss, true);
+        std::stringstream ss;
+        ss << f.rdbuf();
+        shaderCompiler.Compile(ss.str(), true);
         return GetGfxDriver()->CreateShaderProgram(
             "EnvironmentBaker",
             &shaderCompiler.GetConfig(),
@@ -73,12 +73,20 @@ void EnvironmentBaker::Bake(int size)
     // create baking shader if it's not created
     if (lightingBaker == nullptr)
     {
-        lightingBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentLightBaker.shad");
+        try
+        {
+            lightingBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentLightBaker.shad");
+        }
+        catch (...)
+        {
+            lightingBaker = nullptr;
+            return;
+        }
     }
 
     if (brdfBaker == nullptr)
     {
-        brdfBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentBRDFBaker.shad");
+        // brdfBaker = LoadShader("Assets/Shaders/Editor/EnvrionmentBaker/EnvironmentBRDFBaker.shad");
     }
 
     // create baking resource if it's not created
@@ -86,7 +94,39 @@ void EnvironmentBaker::Bake(int size)
     {
         bakingShaderResource =
             GetGfxDriver()->CreateShaderResource(lightingBaker.get(), Gfx::ShaderResourceFrequency::Global);
+        bakeInfoBuffer = GetGfxDriver()->CreateBuffer({
+            .usages = Gfx::BufferUsage::Uniform,
+            .size = sizeof(ShaderParamBakeInfo),
+            .visibleInCPU = true,
+        });
+        bakingShaderResource->SetBuffer(*bakeInfoBuffer, 0);
     }
+
+    if (environmentMap == nullptr)
+    {
+        auto envMapBinary = AssetsLoader::Instance()->ReadAsBinary("Assets/envMap.ktx");
+        KtxTexture data{
+            .imageData = envMapBinary.data(),
+            .byteSize = envMapBinary.size(),
+        };
+        environmentMap = std::make_unique<Texture>(data);
+        bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
+    }
+
+    ImmediateGfx::RenderToImage(
+        *cubemap,
+        {
+            .aspectMask = Gfx::ImageAspectFlags::Color,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+        },
+        *lightingBaker,
+        lightingBaker->GetDefaultShaderConfig(),
+        *bakingShaderResource,
+        Gfx::ImageLayout::Transfer_Src
+    );
 }
 
 void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t face)
@@ -121,6 +161,16 @@ bool EnvironmentBaker::Tick()
     if (ImGui::Button("Bake"))
     {
         Bake(size);
+    }
+
+    if (environmentMap != nullptr)
+    {
+        ImGui::Image(
+            environmentMap->GetGfxImage().Get(),
+            ImVec2{
+                (float)environmentMap->GetDescription().img.width,
+                (float)environmentMap->GetDescription().img.height}
+        );
     }
 
     ImGui::End();

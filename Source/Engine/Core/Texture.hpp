@@ -19,7 +19,7 @@ struct TextureDescription
 struct KtxTexture
 {
     ktx_uint8_t* imageData;
-    uint32_t byteSize;
+    size_t byteSize;
 };
 class Texture : public Resource
 {
