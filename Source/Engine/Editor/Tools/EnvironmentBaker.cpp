@@ -113,31 +113,46 @@ void EnvironmentBaker::Bake(int size)
         bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
     }
 
-    ImmediateGfx::RenderToImage(
+    BakeToCubeFace(
         *cubemap,
+        0,
+        {
+            .uFrom = {1, 1, -1, 1},
+            .uTo = {1, 1, 1, 1},
+            .vFrom = {1, -1, -1, 1},
+            .vTo = {1, 1, 1, 1},
+        }
+    );
+
+    BakeToCubeFace(
+        *cubemap,
+        1,
+        {
+            .uFrom = {-1, 1, 1, 1},
+            .uTo = {-1, 1, -1, 1},
+            .vFrom = {-1, -1, 1, 1},
+            .vTo = {-1, 1, -1, 1},
+        }
+    );
+}
+
+void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, ShaderParamBakeInfo bakeInfo)
+{
+    ShaderParamBakeInfo* bakeInfoBuf = (ShaderParamBakeInfo*)bakeInfoBuffer->GetCPUVisibleAddress();
+    *bakeInfoBuf = bakeInfo;
+    ImmediateGfx::RenderToImage(
+        cubemap,
         {
             .aspectMask = Gfx::ImageAspectFlags::Color,
             .baseMipLevel = 0,
             .levelCount = 1,
-            .baseArrayLayer = 0,
+            .baseArrayLayer = layer,
             .layerCount = 1,
         },
         *lightingBaker,
         lightingBaker->GetDefaultShaderConfig(),
         *bakingShaderResource,
         Gfx::ImageLayout::Transfer_Src
-    );
-}
-
-void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t face)
-{
-    ImmediateGfx::RenderToImage(
-        cubemap,
-        {Gfx::ImageAspect::Color, 0, 1, face, 1},
-        *lightingBaker,
-        lightingBaker->GetDefaultShaderConfig(),
-        *bakingShaderResource,
-        Gfx::ImageLayout::Transfer_Dst
     );
 }
 

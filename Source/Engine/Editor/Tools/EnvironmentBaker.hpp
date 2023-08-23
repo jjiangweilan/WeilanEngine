@@ -46,6 +46,6 @@ private:
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void Bake(int size);
-    void BakeToCubeFace(Gfx::Image& cubemap, uint32_t face);
+    void BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, ShaderParamBakeInfo bakeInfo);
 };
 } // namespace Engine::Editor
