@@ -21,7 +21,7 @@ public:
     // return false if the tool want to close
     virtual bool Tick() = 0;
 
-    // used if this tool needs to GPU
+    // used if this tool needs to render something on GPU
     virtual void Render(Gfx::CommandBuffer& cmd){};
 
     // called when the tool window is open
