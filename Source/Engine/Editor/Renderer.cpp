@@ -180,7 +180,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
         .dstBinding = 0,
         .dstArrayElement = 0,
         .descriptorCount = 1,
-        .image = fontImage.get(),
+        .imageView = &fontImage->GetDefaultImageView(),
     }};
     cmd.PushDescriptor(*shaderProgram, 0, bindings);
 
@@ -214,14 +214,14 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
             ImVec2 clip_min((pcmd->ClipRect.x - clipOff.x) * clipScale.x, (pcmd->ClipRect.y - clipOff.y) * clipScale.y);
             ImVec2 clip_max((pcmd->ClipRect.z - clipOff.x) * clipScale.x, (pcmd->ClipRect.w - clipOff.y) * clipScale.y);
 
-            Gfx::Image* image = (Gfx::Image*)pcmd->TextureId;
-            if (image != nullptr)
+            Gfx::ImageView* imageView = (Gfx::ImageView*)pcmd->TextureId;
+            if (imageView != nullptr)
             {
                 Gfx::DescriptorBinding bindings[] = {{
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .image = image,
+                    .imageView = imageView,
                 }};
                 cmd.PushDescriptor(*shaderProgram, 0, bindings);
                 isGeneralResourceBinded = false;
@@ -232,7 +232,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
                     .dstBinding = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
-                    .image = fontImage.get(),
+                    .imageView = &fontImage->GetDefaultImageView(),
                 }};
                 cmd.PushDescriptor(*shaderProgram, 0, bindings);
                 isGeneralResourceBinded = true;

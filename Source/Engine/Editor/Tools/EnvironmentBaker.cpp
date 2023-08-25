@@ -58,17 +58,7 @@ void EnvironmentBaker::Bake(int size)
     if (size < minimumSize)
         return;
 
-    auto cubemap = GetGfxDriver()->CreateImage(
-        {
-            .width = (uint32_t)size,
-            .height = (uint32_t)size,
-            .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
-            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 5,
-            .isCubemap = true,
-        },
-        Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
-    );
+    GetGfxDriver()->WaitForIdle();
 
     // create baking shader if it's not created
     if (lightingBaker == nullptr)
@@ -82,6 +72,21 @@ void EnvironmentBaker::Bake(int size)
             lightingBaker = nullptr;
             return;
         }
+    }
+
+    if (cubemap == nullptr)
+    {
+        cubemap = GetGfxDriver()->CreateImage(
+            {
+                .width = (uint32_t)size,
+                .height = (uint32_t)size,
+                .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
+                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                .mipLevels = 5,
+                .isCubemap = true,
+            },
+            Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
+        );
     }
 
     if (brdfBaker == nullptr)
@@ -113,6 +118,8 @@ void EnvironmentBaker::Bake(int size)
         bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
     }
 
+    // start baking to the 6 faces of the cubemap
+    // x+
     BakeToCubeFace(
         *cubemap,
         0,
@@ -120,10 +127,12 @@ void EnvironmentBaker::Bake(int size)
             .uFrom = {1, 1, -1, 1},
             .uTo = {1, 1, 1, 1},
             .vFrom = {1, -1, -1, 1},
-            .vTo = {1, 1, 1, 1},
+            .vTo = {1, -1, 1, 1},
+            .roughness = roughness,
         }
     );
 
+    // x-
     BakeToCubeFace(
         *cubemap,
         1,
@@ -131,7 +140,34 @@ void EnvironmentBaker::Bake(int size)
             .uFrom = {-1, 1, 1, 1},
             .uTo = {-1, 1, -1, 1},
             .vFrom = {-1, -1, 1, 1},
-            .vTo = {-1, 1, -1, 1},
+            .vTo = {-1, -1, -1, 1},
+            .roughness = roughness,
+        }
+    );
+
+    // y+
+    BakeToCubeFace(
+        *cubemap,
+        2,
+        {
+            .uFrom = {-1, 1, 1, 1},
+            .uTo = {1, 1, 1, 1},
+            .vFrom = {-1, 1, -1, 1},
+            .vTo = {1, 1, -1, 1},
+            .roughness = roughness,
+        }
+    );
+
+    // y-
+    BakeToCubeFace(
+        *cubemap,
+        3,
+        {
+            .uFrom = {-1, -1, 1, 1},
+            .uTo = {1, -1, 1, 1},
+            .vFrom = {-1, -1, -1, 1},
+            .vTo = {1, -1, -1, 1},
+            .roughness = roughness,
         }
     );
 }
@@ -152,7 +188,7 @@ void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, Shade
         *lightingBaker,
         lightingBaker->GetDefaultShaderConfig(),
         *bakingShaderResource,
-        Gfx::ImageLayout::Transfer_Src
+        Gfx::ImageLayout::Shader_Read_Only
     );
 }
 
@@ -173,18 +209,23 @@ bool EnvironmentBaker::Tick()
     }
 
     ImGui::InputInt("resolution", &size);
+    ImGui::InputFloat("roughness", &roughness);
     if (ImGui::Button("Bake"))
     {
         Bake(size);
     }
 
-    if (environmentMap != nullptr)
+    if (cubemap != nullptr)
     {
+        static std::unique_ptr<Gfx::ImageView> imageView = GetGfxDriver()->CreateImageView(
+            {*cubemap, Gfx::ImageViewType::Image_2D, {Gfx::ImageAspect::Color, 0, 1, 2, 1}}
+        );
         ImGui::Image(
-            environmentMap->GetGfxImage().Get(),
+            imageView.get(),
             ImVec2{
-                (float)environmentMap->GetDescription().img.width,
-                (float)environmentMap->GetDescription().img.height}
+                (float)cubemap->GetDescription().width,
+                (float)cubemap->GetDescription().height,
+            }
         );
     }
 
@@ -192,10 +233,60 @@ bool EnvironmentBaker::Tick()
     return open;
 }
 
+void CreateCubemapPreviewGraph(Gfx::Image* target)
+{
+    RenderGraph::Graph graph;
+    graph.AddNode(
+        [](Gfx::CommandBuffer& cmd, auto& renderpass, const auto& res) {},
+        {
+            {
+                .name = "target",
+                .handle = 0,
+                .type = RenderGraph::ResourceType::Image,
+                .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+                .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                .externalImage = target,
+            },
+            {
+                .name = "targe depth",
+                .handle = 1,
+                .type = RenderGraph::ResourceType::Image,
+                .accessFlags =
+                    Gfx::AccessMask::Depth_Stencil_Attachment_Write | Gfx::AccessMask::Depth_Stencil_Attachment_Read,
+                .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests,
+                .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
+                .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
+                .imageCreateInfo =
+                    {
+                        .width = target->GetDescription().width,
+                        .height = target->GetDescription().height,
+                        .format = Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                        .mipLevels = 1,
+                        .isCubemap = false,
+                    },
+            },
+        },
+        {
+            {
+                .colors =
+                    {
+                        {
+                            .handle = 0,
+                        },
+                    },
+                .depth = {{.handle = 1}},
+            },
+        }
+    );
+}
+
+void EnvironmentBaker::Render(Gfx::CommandBuffer& cmd) {}
+
 void EnvironmentBaker::Open() {}
 void EnvironmentBaker::Close()
 {
     sceneImage = nullptr;
 }
-
 } // namespace Engine::Editor

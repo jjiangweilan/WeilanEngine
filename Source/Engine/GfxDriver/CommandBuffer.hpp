@@ -85,7 +85,7 @@ struct DescriptorBinding
     uint32_t dstBinding;
     uint32_t dstArrayElement;
     uint32_t descriptorCount;
-    Image* image;
+    ImageView* imageView;
     Buffer* buffer;
 };
 

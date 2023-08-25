@@ -66,7 +66,7 @@ bool GameView::Tick()
     }
 
     // imgui image
-    ImGui::Image(sceneImage.get(), {width, height});
+    ImGui::Image(&sceneImage->GetDefaultImageView(), {width, height});
 
     ImGui::End();
     return open;

@@ -86,14 +86,14 @@ void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::s
     int imageIndex = 0;
     for (auto& b : bindings)
     {
-        if (b.image != nullptr)
+        if (b.imageView != nullptr)
         {
-            VkDescriptorImageInfo* p = imageInfos + imageIndex;
             for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
             {
-                VKImage* vkImage = static_cast<VKImage*>(b.image + imageJedex);
+                VKImageView* vkImageView = static_cast<VKImageView*>(b.imageView + imageJedex);
+                VKImage* vkImage = static_cast<VKImage*>(&vkImageView->GetImage());
                 auto layout = vkImage->GetLayout();
-                auto imageView = vkImage->GetDefaultVkImageView();
+                auto imageView = vkImageView->GetHandle();
                 imageInfos[imageIndex] = {.imageView = imageView, .imageLayout = layout};
             }
 

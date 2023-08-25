@@ -29,13 +29,14 @@ private:
     {
         glm::vec4 uFrom, uTo;
         glm::vec4 vFrom, vTo;
-        glm::vec4 lookat;
+        float roughness;
     };
     std::unique_ptr<Gfx::Image> sceneImage;
     std::unique_ptr<RenderGraph::Graph> renderGraph;
     std::unique_ptr<Shader> previewShader;
     std::unique_ptr<Model2> model;
-    int size = 1024;
+    int size = 512;
+    float roughness = 0.1;
 
     // these two baker shares the same resource
     std::unique_ptr<Gfx::ShaderProgram> lightingBaker;
@@ -43,9 +44,11 @@ private:
     std::unique_ptr<Gfx::ShaderResource> bakingShaderResource;
     std::unique_ptr<Gfx::Buffer> bakeInfoBuffer;
     std::unique_ptr<Texture> environmentMap;
+    std::unique_ptr<Gfx::Image> cubemap;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void Bake(int size);
     void BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, ShaderParamBakeInfo bakeInfo);
+    void Render(Gfx::CommandBuffer& cmd) override;
 };
 } // namespace Engine::Editor
