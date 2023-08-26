@@ -118,58 +118,60 @@ void EnvironmentBaker::Bake(int size)
         bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
     }
 
-    // start baking to the 6 faces of the cubemap
-    // x+
-    BakeToCubeFace(
-        *cubemap,
-        0,
+    ShaderParamBakeInfo bakeInfos[6] = {
         {
+            // x+
             .uFrom = {1, 1, -1, 1},
             .uTo = {1, 1, 1, 1},
             .vFrom = {1, -1, -1, 1},
             .vTo = {1, -1, 1, 1},
             .roughness = roughness,
-        }
-    );
-
-    // x-
-    BakeToCubeFace(
-        *cubemap,
-        1,
+        },
         {
+            // x-
             .uFrom = {-1, 1, 1, 1},
             .uTo = {-1, 1, -1, 1},
             .vFrom = {-1, -1, 1, 1},
             .vTo = {-1, -1, -1, 1},
             .roughness = roughness,
-        }
-    );
-
-    // y+
-    BakeToCubeFace(
-        *cubemap,
-        2,
+        },
         {
+            // y+
             .uFrom = {-1, 1, 1, 1},
             .uTo = {1, 1, 1, 1},
             .vFrom = {-1, 1, -1, 1},
             .vTo = {1, 1, -1, 1},
             .roughness = roughness,
-        }
-    );
-
-    // y-
-    BakeToCubeFace(
-        *cubemap,
-        3,
+        },
         {
+            // y-
             .uFrom = {-1, -1, 1, 1},
             .uTo = {1, -1, 1, 1},
             .vFrom = {-1, -1, -1, 1},
             .vTo = {1, -1, -1, 1},
             .roughness = roughness,
-        }
-    );
+        },
+        {
+            // z+
+            .uFrom = {1, 1, 1, 1},
+            .uTo = {-1, 1, 1, 1},
+            .vFrom = {1, -1, 1, 1},
+            .vTo = {-1, -1, 1, 1},
+            .roughness = roughness,
+        },
+        {
+            // z-
+            .uFrom = {1, 1, -1, 1},
+            .uTo = {-1, 1, -1, 1},
+            .vFrom = {1, -1, -1, 1},
+            .vTo = {-1, -1, -1, 1},
+            .roughness = roughness,
+        },
+    };
+    for (int face = 0; face < 6; ++face)
+    {
+        BakeToCubeFace(*cubemap, face, bakeInfos[face]);
+    }
 }
 
 void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, ShaderParamBakeInfo bakeInfo)
