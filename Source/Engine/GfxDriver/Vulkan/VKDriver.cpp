@@ -256,6 +256,8 @@ bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore
         Gfx::CommandBuffer* cmdBufss[] = {cmdBuf.Get()};
         QueueSubmit(mainQueue, cmdBufss, {}, {}, {}, nullptr);
 
+        swapChainImage = swapchain->GetSwapchainImage();
+
         WaitForIdle();
     }
 
