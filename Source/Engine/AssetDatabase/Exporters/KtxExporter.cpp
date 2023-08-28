@@ -23,7 +23,6 @@ void KtxExporter::Export(
     ktxTexture2* texture;
     ktxTextureCreateInfo createInfo;
     KTX_error_code result;
-    ktx_uint32_t level, faceSlice;
 
     createInfo.vkFormat = Gfx::MapFormat(format);
     createInfo.baseWidth = width;
@@ -43,10 +42,16 @@ void KtxExporter::Export(
 
     result = ktxTexture2_Create(&createInfo, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
 
-    level = createInfo.numLevels;
-    layer = createInfo.numLayers;
-    faceSlice = createInfo.numFaces;
-    result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, faceSlice, src, srcSize);
+    size_t sizePerLayer = srcSize / createInfo.numLayers / createInfo.numFaces;
+    size_t offset = 0;
+    for (int layer = 0; layer < createInfo.numLayers; ++layer)
+    {
+        for (int face = 0; face < createInfo.numFaces; ++face)
+        {
+            result = ktxTexture_SetImageFromMemory(ktxTexture(texture), 0, layer, face, src + offset, sizePerLayer);
+            offset += sizePerLayer;
+        }
+    }
 
     ktxTexture_WriteToNamedFile(ktxTexture(texture), path);
     ktxTexture_Destroy(ktxTexture(texture));

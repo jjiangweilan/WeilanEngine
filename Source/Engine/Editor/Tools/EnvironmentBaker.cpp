@@ -83,7 +83,7 @@ void EnvironmentBaker::Bake(int size)
                 .height = (uint32_t)size,
                 .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                .mipLevels = 5,
+                .mipLevels = 1,
                 .isCubemap = true,
             },
             Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
@@ -119,29 +119,30 @@ void EnvironmentBaker::Bake(int size)
         bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
     }
 
+    // placing each face in front of the camera view in ndc space
     ShaderParamBakeInfo bakeInfos[6] = {
         {
             // x+
-            .uFrom = {1, 1, -1, 1},
-            .uTo = {1, 1, 1, 1},
-            .vFrom = {1, -1, -1, 1},
-            .vTo = {1, -1, 1, 1},
+            .uFrom = {1, 1, 1, 1},
+            .uTo = {1, 1, -1, 1},
+            .vFrom = {1, -1, 1, 1},
+            .vTo = {1, -1, -1, 1},
             .roughness = roughness,
         },
         {
             // x-
-            .uFrom = {-1, 1, 1, 1},
-            .uTo = {-1, 1, -1, 1},
-            .vFrom = {-1, -1, 1, 1},
-            .vTo = {-1, -1, -1, 1},
+            .uFrom = {-1, 1, -1, 1},
+            .uTo = {-1, 1, 1, 1},
+            .vFrom = {-1, -1, -1, 1},
+            .vTo = {-1, -1, 1, 1},
             .roughness = roughness,
         },
         {
             // y+
-            .uFrom = {-1, 1, 1, 1},
-            .uTo = {1, 1, 1, 1},
-            .vFrom = {-1, 1, -1, 1},
-            .vTo = {1, 1, -1, 1},
+            .uFrom = {-1, 1, -1, 1},
+            .uTo = {1, 1, -1, 1},
+            .vFrom = {-1, 1, 1, 1},
+            .vTo = {1, 1, 1, 1},
             .roughness = roughness,
         },
         {
@@ -154,10 +155,10 @@ void EnvironmentBaker::Bake(int size)
         },
         {
             // z+
-            .uFrom = {1, 1, 1, 1},
-            .uTo = {-1, 1, 1, 1},
-            .vFrom = {1, -1, 1, 1},
-            .vTo = {-1, -1, 1, 1},
+            .uFrom = {-1, 1, 1, 1},
+            .uTo = {1, 1, 1, 1},
+            .vFrom = {-1, -1, 1, 1},
+            .vTo = {1, -1, 1, 1},
             .roughness = roughness,
         },
         {
