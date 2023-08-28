@@ -42,6 +42,6 @@ public:
     );
 
     // copy a image to buffer, the image's layout should be TransferSrc, the method won't check this requirement
-    static void CopyImageToBuffer(Gfx::Image& image, Gfx::Buffer& buffer);
+    static std::unique_ptr<Gfx::Buffer> CopyImageToBuffer(Gfx::Image& image);
 };
 } // namespace Engine

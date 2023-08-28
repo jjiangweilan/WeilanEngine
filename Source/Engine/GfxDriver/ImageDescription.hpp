@@ -11,5 +11,13 @@ struct ImageDescription
     Gfx::MultiSampling multiSampling;
     uint32_t mipLevels;
     bool isCubemap;
+    uint32_t GetLayer() const
+    {
+        return isCubemap ? 6 : 1;
+    }
+    uint32_t GetByteSize() const
+    {
+        return width * height * Utils::MapImageFormatToByteSize(format) * (isCubemap ? 6 : 1);
+    }
 };
 } // namespace Engine::Gfx

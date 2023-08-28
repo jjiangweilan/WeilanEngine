@@ -1,0 +1,36 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Cubemap
+#endif
+
+struct FragInput
+{
+    vec4 objPos;
+};
+
+#if VERT
+    layout(location = 0) in vec3 i_Position;
+
+    layout(location = 0) out FragInput v2f;
+
+    void main()
+    {
+        gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
+
+        v2f.objPos = vec4(i_Position, 1);
+    }
+#endif
+
+#if FRAG
+    layout(location = 0) in FragInput fragInput;
+    layout(location = 0) out vec4 o_Color;
+    layout(set = 3, binding = 0) uniform samplerCube envMap;
+
+    void main()
+    {
+        vec3 col = textureCube(envMap, fragInput.objPos.xyz);
+        o_Color = vec4(col, 1.0);
+    }
+#endif

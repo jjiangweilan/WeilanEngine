@@ -16,6 +16,7 @@ public:
     Shader(
         const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty
     );
+    Shader(const char* path);
     void Reload(Resource&& loaded) override;
     ~Shader() override {}
 

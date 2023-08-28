@@ -1,6 +1,8 @@
 #include "AssetDatabase/Importers.hpp"
+#include "Core/Component/MeshRenderer.hpp"
 #include "Editor/Tool.hpp"
 #include "Rendering/SceneRenderer.hpp"
+#include "Utils/AssetLoader.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <gtest/gtest.h>
@@ -38,6 +40,16 @@ TEST(Gameplay, Test0)
     auto lightGO = scene.CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();
     light->SetIntensity(10);
+
+    // create cube
+    auto cubeObj = scene.CreateGameObject();
+    auto cubeObjRenderer = cubeObj->AddComponent<MeshRenderer>();
+    auto cubeShader = Shader("Assets/Shaders/Cubemap.shad");
+    auto cubeModel = Importers::GLB("Assets/cube.glb", &cubeShader);
+    auto cubeMat = Material(&cubeShader);
+    cubeObjRenderer->SetMesh(cubeModel->GetMeshes()[0].get());
+    Material* mats[] = {&cubeMat};
+    cubeObjRenderer->SetMaterials(mats);
 
     engine->Loop();
 }

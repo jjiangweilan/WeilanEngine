@@ -71,8 +71,14 @@ void ImmediateGfx::RenderToImage(
     OnetimeSubmit([&graph](Gfx::CommandBuffer& cmd) { graph.Execute(cmd); });
 }
 
-void ImmediateGfx::CopyImageToBuffer(Gfx::Image& image, Gfx::Buffer& buffer)
+std::unique_ptr<Gfx::Buffer> ImmediateGfx::CopyImageToBuffer(Gfx::Image& image)
 {
+    uint32_t bufferSize = image.GetDescription().GetByteSize();
+    std::unique_ptr<Gfx::Buffer> buffer = GetGfxDriver()->CreateBuffer({
+        .usages = Gfx::BufferUsage::Transfer_Dst,
+        .size = bufferSize,
+        .visibleInCPU = true,
+    });
     OnetimeSubmit(
         [&image, &buffer](Gfx::CommandBuffer& cmd)
         {
@@ -83,15 +89,17 @@ void ImmediateGfx::CopyImageToBuffer(Gfx::Image& image, Gfx::Buffer& buffer)
                         .aspectMask = Gfx::ImageAspectFlags::Color,
                         .mipLevel = 0,
                         .baseArrayLayer = 0,
-                        .layerCount = Gfx::Remaining_Array_Layers,
+                        .layerCount = image.GetDescription().GetLayer(),
                     },
                 .offset = {0, 0, 0},
                 .extend = {image.GetDescription().width, image.GetDescription().height, 1},
             }
 
             };
-            cmd.CopyImageToBuffer(&image, &buffer, copy);
+            cmd.CopyImageToBuffer(&image, buffer.get(), copy);
         }
     );
+
+    return buffer;
 }
 } // namespace Engine

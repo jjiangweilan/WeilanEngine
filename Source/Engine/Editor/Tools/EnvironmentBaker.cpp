@@ -1,4 +1,5 @@
 #include "EnvironmentBaker.hpp"
+#include "AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ImmediateGfx.hpp"
@@ -172,6 +173,23 @@ void EnvironmentBaker::Bake(int size)
     {
         BakeToCubeFace(*cubemap, face, bakeInfos[face]);
     }
+
+    auto buffer = ImmediateGfx::CopyImageToBuffer(*cubemap);
+    auto& desc = cubemap->GetDescription();
+    Exporters::KtxExporter::Export(
+        "envCubemap.ktx",
+        (uint8_t*)buffer->GetCPUVisibleAddress(),
+        buffer->GetSize(),
+        desc.width,
+        desc.height,
+        1,
+        2,
+        6,
+        1,
+        false,
+        true,
+        desc.format
+    );
 }
 
 void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, ShaderParamBakeInfo bakeInfo)
@@ -190,7 +208,7 @@ void EnvironmentBaker::BakeToCubeFace(Gfx::Image& cubemap, uint32_t layer, Shade
         *lightingBaker,
         lightingBaker->GetDefaultShaderConfig(),
         *bakingShaderResource,
-        Gfx::ImageLayout::Shader_Read_Only
+        Gfx::ImageLayout::Transfer_Src
     );
 }
 
@@ -219,16 +237,27 @@ bool EnvironmentBaker::Tick()
 
     if (cubemap != nullptr)
     {
-        static std::unique_ptr<Gfx::ImageView> imageView = GetGfxDriver()->CreateImageView(
-            {*cubemap, Gfx::ImageViewType::Image_2D, {Gfx::ImageAspect::Color, 0, 1, 2, 1}}
-        );
-        ImGui::Image(
-            imageView.get(),
-            ImVec2{
-                (float)cubemap->GetDescription().width,
-                (float)cubemap->GetDescription().height,
+        if (viewResults.empty())
+        {
+            for (int face = 0; face < 6; face++)
+            {
+                std::unique_ptr<Gfx::ImageView> imageView = GetGfxDriver()->CreateImageView(
+                    {*cubemap, Gfx::ImageViewType::Image_2D, {Gfx::ImageAspect::Color, 0, 1, (uint32_t)face, 1}}
+                );
+                viewResults.push_back(std::move(imageView));
             }
-        );
+        }
+
+        for (int face = 0; face < 6; face++)
+        {
+            // ImGui::Image(
+            //     viewResults[face].get(),
+            //     ImVec2{
+            //         (float)cubemap->GetDescription().width,
+            //         (float)cubemap->GetDescription().height,
+            //     }
+            // );
+        }
     }
 
     ImGui::End();
