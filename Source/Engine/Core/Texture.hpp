@@ -25,6 +25,8 @@ class Texture : public Resource
 {
 public:
     Texture(){};
+    // load a ktx texture from file
+    Texture(const char* path, const UUID& uuid = UUID::empty);
     Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
     Texture(KtxTexture texDesc, const UUID& uuid = UUID::empty);
     ~Texture() override
@@ -47,6 +49,7 @@ public:
 private:
     TextureDescription desc;
     UniPtr<Gfx::Image> image;
+    void LoadKtxTexture(uint8_t* data, size_t byteSize);
 };
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* byteData, std::size_t byteSize);

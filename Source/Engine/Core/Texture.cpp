@@ -2,12 +2,31 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include <fstream>
+#include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "ThirdParty/stb/stb_image.h"
 #include <ktxvulkan.h>
 #include <spdlog/spdlog.h>
 namespace Engine
 {
+
+Texture::Texture(const char* path, const UUID& uuid)
+{
+    std::fstream f;
+    f.open(path, std::ios::binary | std::ios_base::in);
+    if (f.good() && f.is_open())
+    {
+        std::stringstream ss;
+        ss << f.rdbuf();
+        std::string s = ss.str();
+        LoadKtxTexture((uint8_t*)s.data(), s.size());
+    }
+    else
+    {
+        throw std::runtime_error("Failed to create texture");
+    }
+}
 Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
 {
     SetUUID(uuid);
@@ -197,6 +216,61 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
     SetUUID(uuid);
     ktx_uint8_t* imageData = texDesc.imageData;
     uint32_t imageByteSize = texDesc.byteSize;
+    LoadKtxTexture(imageData, imageByteSize);
+}
+
+void Texture::Reload(Resource&& loaded)
+{
+    Texture* newTex = static_cast<Texture*>(&loaded);
+    image = std::move(newTex->image);
+    Resource::Reload(std::move(loaded));
+}
+
+UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)
+{
+    int width, height, channels, desiredChannels;
+    stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
+    if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
+        desiredChannels = 4;
+
+    stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
+
+    bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);
+    bool isHDR = stbi_is_hdr_from_memory(imageData, byteSize);
+    if (is16Bit && isHDR)
+    {
+        SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
+    }
+
+    Engine::TextureDescription desc{};
+    desc.img.width = width;
+    desc.img.height = height;
+    desc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
+    desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    desc.img.isCubemap = false;
+    desc.data = loaded;
+
+    if (desiredChannels == 4)
+    {
+        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8A8_SRGB;
+    }
+    if (desiredChannels == 3)
+    {
+        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8_SRGB;
+    }
+    if (desiredChannels == 2)
+    {
+        desc.img.format = Engine::Gfx::ImageFormat::R8G8_SRGB;
+    }
+    if (desiredChannels == 1)
+    {
+        desc.img.format = Engine::Gfx::ImageFormat::R8_SRGB;
+    }
+    return MakeUnique<Engine::Texture>(desc);
+}
+
+void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
+{
     if (IsKTX1File(imageData) || IsKTX2File(imageData))
     {
         ktxTexture* texture;
@@ -376,55 +450,5 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
 
         ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
     }
-}
-
-void Texture::Reload(Resource&& loaded)
-{
-    Texture* newTex = static_cast<Texture*>(&loaded);
-    image = std::move(newTex->image);
-    Resource::Reload(std::move(loaded));
-}
-
-UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)
-{
-    int width, height, channels, desiredChannels;
-    stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
-    if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
-        desiredChannels = 4;
-
-    stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
-
-    bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);
-    bool isHDR = stbi_is_hdr_from_memory(imageData, byteSize);
-    if (is16Bit && isHDR)
-    {
-        SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
-    }
-
-    Engine::TextureDescription desc{};
-    desc.img.width = width;
-    desc.img.height = height;
-    desc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
-    desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
-    desc.img.isCubemap = false;
-    desc.data = loaded;
-
-    if (desiredChannels == 4)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8A8_SRGB;
-    }
-    if (desiredChannels == 3)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8_SRGB;
-    }
-    if (desiredChannels == 2)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8_SRGB;
-    }
-    if (desiredChannels == 1)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8_SRGB;
-    }
-    return MakeUnique<Engine::Texture>(desc);
 }
 } // namespace Engine
