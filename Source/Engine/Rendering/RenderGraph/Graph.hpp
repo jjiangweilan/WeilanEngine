@@ -47,6 +47,31 @@ private:
     friend class Graph;
 };
 
+struct Attachment
+{
+    std::string name;
+    ResourceHandle handle;
+    Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+
+    Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    uint32_t mipLevels = 1;
+    bool isCubemap = false;
+    Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
+    Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
+
+    Gfx::Image* externalImage;
+};
+
+struct Subpass
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    std::vector<Attachment> colors;
+    std::optional<Attachment> depth;
+};
+
 class Graph
 {
 public:
@@ -59,6 +84,75 @@ public:
     //     return nodes.back().get();
     // }
     //
+    //
+    RenderNode* AddNode(const RenderPass::ExecutionFunc& execute, const std::vector<Subpass>& subpasses)
+    {
+        std::vector<RenderPass::ResourceDescription> resourceDescriptions;
+        for (const Subpass& subpass : subpasses)
+        {
+            for (auto& color : subpass.colors)
+            {
+                // there must be write mask but we only add read mask when the color.loadOp is Load or Clear
+                RenderPass::ResourceDescription desc{
+                    .name = color.name,
+                    .handle = color.handle,
+                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write |
+                                   ((color.loadOp == Gfx::AttachmentLoadOperation::Load ||
+                                     color.loadOp == Gfx::AttachmentLoadOperation::Clear)
+                                        ? Gfx::AccessMask::Color_Attachment_Read
+                                        : Gfx::AccessMask::None),
+                    .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = subpass.width,
+                            .height = subpass.height,
+                            .format = color.format,
+                            .multiSampling = color.multiSampling,
+                            .mipLevels = color.mipLevels,
+                            .isCubemap = color.isCubemap,
+                        },
+                    .externalImage = color.externalImage,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+
+            if (subpass.depth.has_value())
+            {
+                RenderPass::ResourceDescription desc{
+                    .name = subpass.depth->name,
+                    .handle = subpass.depth->handle,
+                    .accessFlags = Gfx::AccessMask::Depth_Stencil_Attachment_Write |
+                                   ((subpass.depth->loadOp == Gfx::AttachmentLoadOperation::Load ||
+                                     subpass.depth->loadOp == Gfx::AttachmentLoadOperation::Clear)
+                                        ? Gfx::AccessMask::Depth_Stencil_Attachment_Read
+                                        : Gfx::AccessMask::None),
+                    .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
+                    .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
+                    .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = subpass.width,
+                            .height = subpass.height,
+                            .format = subpass.depth->format,
+                            .multiSampling = subpass.depth->multiSampling,
+                            .mipLevels = subpass.depth->mipLevels,
+                            .isCubemap = subpass.depth->isCubemap,
+                        },
+                    .externalImage = subpass.depth->externalImage,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+        }
+
+        std::vector<RenderPass::Subpass> lSubpasses; // l = lower level
+
+        return AddNode(execute, resourceDescriptions, lSubpasses);
+    }
+
     RenderNode* AddNode(
         const RenderPass::ExecutionFunc& execute,
         const std::vector<RenderPass::ResourceDescription>& resourceDescs,
@@ -139,5 +233,5 @@ private:
     std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
     ResourcePool resourcePool;
-};
+}; // namespace Engine::RenderGraph
 } // namespace Engine::RenderGraph
