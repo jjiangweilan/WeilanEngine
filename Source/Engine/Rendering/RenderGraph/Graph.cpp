@@ -6,8 +6,14 @@
 namespace Engine::RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
-    : pass(std::move(pass_)), debugDesc(debugDesc)
+    : debugDesc(debugDesc), pass(std::move(pass_))
 {}
+
+ResourceHandle StrToHandle(const std::string& str)
+{
+    ResourceHandle rlt = std::hash<std::string>()(str);
+    return rlt;
+}
 
 void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {

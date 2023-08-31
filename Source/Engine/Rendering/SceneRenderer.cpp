@@ -166,9 +166,35 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     Connect(uploadSceneBuffer, 0, shadowPass, 1);
 
     std::vector<Gfx::ClearValue> clearValues = {
-        {.color = {3 / 255.0f, 190 / 255.0f, 252 / 255.0f, 1}},
+        {.color = {{3 / 255.0f, 190 / 255.0f, 252 / 255.0f, 1}}},
         {.depthStencil = {.depth = 1}}};
-    auto forwardOpaque = AddNode(
+    auto forwardOpaque = AddNode2(
+        {
+            {
+                .name = "shadow",
+                .handle = RenderGraph::StrToHandle("shadow"),
+                .type = RenderGraph::PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+            },
+        },
+        {{
+            .width = width,
+            .height = height,
+            .colors = {{
+                .name = "opaque color",
+                .handle = 0,
+                .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
+                .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                .storeOp = Gfx::AttachmentStoreOperation::Store,
+            }},
+            .depth = {{
+                .name = "opaque depth",
+                .handle = 1,
+                .format = Gfx::ImageFormat::D32_SFLOAT_S8_UInt,
+                .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                .storeOp = Gfx::AttachmentStoreOperation::Store,
+            }},
+        }},
         [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
             Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
@@ -191,76 +217,76 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
             cmd.EndRenderPass();
-        },
-        {
-            {
-                .name = "opaque color",
-                .handle = 0,
-                .type = ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-                .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-                .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-                .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .imageCreateInfo =
-                    {
-                        .width = width,
-                        .height = height,
-                        .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
-                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                        .mipLevels = 1,
-                        .isCubemap = false,
-                    },
-            },
-            {
-                .name = "opaque depth",
-                .handle = 1,
-                .type = ResourceType::Image,
-                .accessFlags =
-                    Gfx::AccessMask::Depth_Stencil_Attachment_Read | Gfx::AccessMask::Depth_Stencil_Attachment_Write,
-                .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests,
-                .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
-                .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
-                .imageCreateInfo =
-                    {
-                        .width = width,
-                        .height = height,
-                        .format = Gfx::ImageFormat::D32_SFLOAT_S8_UInt,
-                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                        .mipLevels = 1,
-                        .isCubemap = false,
-                    },
-            },
-            {
-                .name = "shadow",
-                .handle = 2,
-                .type = ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::Shader_Read,
-                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-                .imageUsagesFlags = Gfx::ImageUsage::Texture,
-                .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
-            },
-        },
-        {
-            {
-                .colors =
-                    {
-                        {
-                            .handle = 0,
-                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                            .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                            .storeOp = Gfx::AttachmentStoreOperation::Store,
-                        },
-                    },
-                .depth = {{
-                    .handle = 1,
-                    .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                    .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                    .storeOp = Gfx::AttachmentStoreOperation::Store,
-                }},
-            },
         }
+        // {
+        //     {
+        //         .name = "opaque color",
+        //         .handle = 0,
+        //         .type = ResourceType::Image,
+        //         .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
+        //         .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+        //         .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+        //         .imageLayout = Gfx::ImageLayout::Color_Attachment,
+        //         .imageCreateInfo =
+        //             {
+        //                 .width = width,
+        //                 .height = height,
+        //                 .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
+        //                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+        //                 .mipLevels = 1,
+        //                 .isCubemap = false,
+        //             },
+        //     },
+        //     {
+        //         .name = "opaque depth",
+        //         .handle = 1,
+        //         .type = ResourceType::Image,
+        //         .accessFlags =
+        //             Gfx::AccessMask::Depth_Stencil_Attachment_Read | Gfx::AccessMask::Depth_Stencil_Attachment_Write,
+        //         .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests,
+        //         .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
+        //         .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
+        //         .imageCreateInfo =
+        //             {
+        //                 .width = width,
+        //                 .height = height,
+        //                 .format = Gfx::ImageFormat::D32_SFLOAT_S8_UInt,
+        //                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+        //                 .mipLevels = 1,
+        //                 .isCubemap = false,
+        //             },
+        //     },
+        //     {
+        //         .name = "shadow",
+        //         .handle = 2,
+        //         .type = ResourceType::Image,
+        //         .accessFlags = Gfx::AccessMask::Shader_Read,
+        //         .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+        //         .imageUsagesFlags = Gfx::ImageUsage::Texture,
+        //         .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+        //     },
+        // },
+        // {
+        //     {
+        //         .colors =
+        //             {
+        //                 {
+        //                     .handle = 0,
+        //                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+        //                     .loadOp = Gfx::AttachmentLoadOperation::Clear,
+        //                     .storeOp = Gfx::AttachmentStoreOperation::Store,
+        //                 },
+        //             },
+        //         .depth = {{
+        //             .handle = 1,
+        //             .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+        //             .loadOp = Gfx::AttachmentLoadOperation::Clear,
+        //             .storeOp = Gfx::AttachmentStoreOperation::Store,
+        //         }},
+        //     },
+        // }
     );
-    Connect(shadowPass, 0, forwardOpaque, 2);
+    Connect(shadowPass, 0, forwardOpaque, RenderGraph::StrToHandle("shadow"));
 
     auto blitToFinal = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)

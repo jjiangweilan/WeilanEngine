@@ -10,7 +10,7 @@
 namespace Engine::RenderGraph
 {
 
-using ResourceHandle = int;
+using ResourceHandle = size_t;
 using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
 
 // A high level abstraction of game rendering. For example, Rendering all the opaque objects, rendering shadows,

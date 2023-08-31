@@ -66,32 +66,86 @@ struct Attachment
 
 struct Subpass
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
+    uint32_t width;
+    uint32_t height;
     std::vector<Attachment> colors;
     std::optional<Attachment> depth;
 };
+
+enum class PassDependencyType
+{
+    Texture,
+    Buffer
+};
+
+struct PassDependency
+{
+    std::string name;
+    ResourceHandle handle;
+    PassDependencyType type;
+    Gfx::PipelineStage stageFlags;
+};
+
+ResourceHandle StrToHandle(const std::string& str);
 
 class Graph
 {
 public:
     virtual ~Graph();
-    // template <class T>
-    // RenderNode* AddNode()
-    // {
-    //     std::unique_ptr<RenderPass> pass = std::unique_ptr<RenderPass>(new T());
-    //     nodes.emplace_back(new RenderNode(std::move(pass)));
-    //     return nodes.back().get();
-    // }
-    //
-    //
-    RenderNode* AddNode(const RenderPass::ExecutionFunc& execute, const std::vector<Subpass>& subpasses)
+
+    // a simplified version of
+    // RenderNode* AddNode(
+    //     const RenderPass::ExecutionFunc& execute,
+    //     const std::vector<RenderPass::ResourceDescription>& resourceDescs,
+    //     const std::vector<RenderPass::Subpass>& subpasses
+    // )
+    RenderNode* AddNode2(
+        const std::vector<PassDependency> dependencies,
+        const std::vector<Subpass>& subpasses,
+        const RenderPass::ExecutionFunc& execute
+    )
     {
         std::vector<RenderPass::ResourceDescription> resourceDescriptions;
+
+        // convert from PassDependency to ResourceDescription
+        for (auto& d : dependencies)
+        {
+            if (d.type == PassDependencyType::Texture)
+            {
+                RenderPass::ResourceDescription desc{
+                    .name = d.name,
+                    .handle = d.handle,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Shader_Read,
+                    .stageFlags = d.stageFlags,
+                    .imageUsagesFlags = Gfx::ImageUsage::Texture,
+                    .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+            else if (d.type == PassDependencyType::Buffer)
+            {
+                assert("Not implemented");
+            }
+        }
+
+        std::vector<RenderPass::Subpass> lSubpasses; // l = lower level
         for (const Subpass& subpass : subpasses)
         {
+            RenderPass::Subpass lSubpass;
             for (auto& color : subpass.colors)
             {
+                RenderPass::Attachment att{
+                    .handle = color.handle,
+                    .multiSampling = color.multiSampling,
+                    .loadOp = color.loadOp,
+                    .storeOp = color.storeOp,
+                    .stencilLoadOp = color.stencilLoadOp,
+                    .stencilStoreOp = color.storeOp};
+
+                lSubpass.colors.push_back(att);
+
                 // there must be write mask but we only add read mask when the color.loadOp is Load or Clear
                 RenderPass::ResourceDescription desc{
                     .name = color.name,
@@ -121,6 +175,17 @@ public:
 
             if (subpass.depth.has_value())
             {
+                RenderPass::Attachment att{
+                    .handle = subpass.depth->handle,
+                    .multiSampling = subpass.depth->multiSampling,
+                    .loadOp = subpass.depth->loadOp,
+                    .storeOp = subpass.depth->storeOp,
+                    .stencilLoadOp = subpass.depth->stencilLoadOp,
+                    .stencilStoreOp = subpass.depth->storeOp,
+                };
+
+                lSubpass.depth = att;
+
                 RenderPass::ResourceDescription desc{
                     .name = subpass.depth->name,
                     .handle = subpass.depth->handle,
@@ -146,9 +211,9 @@ public:
 
                 resourceDescriptions.push_back(desc);
             }
-        }
 
-        std::vector<RenderPass::Subpass> lSubpasses; // l = lower level
+            lSubpasses.push_back(lSubpass);
+        }
 
         return AddNode(execute, resourceDescriptions, lSubpasses);
     }
