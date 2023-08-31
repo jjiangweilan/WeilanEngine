@@ -1,9 +1,11 @@
 #pragma once
+#include "Errors.hpp"
 #include "Graph.hpp"
 #include <vector>
 
 namespace Engine::RenderGraph
 {
+
 struct BuildResult
 {
     RenderPass::ExecutionFunc execFunc;
@@ -26,5 +28,13 @@ public:
     struct FXAADescription
     {};
     static BuildResult FXAA();
+
+    struct SkyboxDescription
+    {
+        ResourceHandle targetColor;
+        ResourceHandle targetDepth;
+        Gfx::Image& cubemap;
+    };
+    static RenderNode* Skybox(Graph& graph, const SkyboxDescription& desc);
 };
 } // namespace Engine::RenderGraph

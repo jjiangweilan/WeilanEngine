@@ -51,6 +51,7 @@ struct Attachment
 {
     std::string name;
     ResourceHandle handle;
+    bool create = false;
     Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
 
     Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
@@ -61,7 +62,7 @@ struct Attachment
     Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
     Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
 
-    Gfx::Image* externalImage;
+    Gfx::Image* externalImage = nullptr;
 };
 
 struct Subpass
@@ -124,7 +125,7 @@ public:
 
                 resourceDescriptions.push_back(desc);
             }
-            else if (d.type == PassDependencyType::Buffer)
+            else
             {
                 assert("Not implemented");
             }
@@ -160,8 +161,8 @@ public:
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = subpass.width,
-                            .height = subpass.height,
+                            .width = color.createImage ? subpass.width : 0,
+                            .height = color.createImage ? subpass.height : 0,
                             .format = color.format,
                             .multiSampling = color.multiSampling,
                             .mipLevels = color.mipLevels,
@@ -199,8 +200,8 @@ public:
                     .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = subpass.width,
-                            .height = subpass.height,
+                            .width = subpass.depth->createImage ? subpass.width : 0,
+                            .height = subpass.depth->createImage ? subpass.height : 0,
                             .format = subpass.depth->format,
                             .multiSampling = subpass.depth->multiSampling,
                             .mipLevels = subpass.depth->mipLevels,

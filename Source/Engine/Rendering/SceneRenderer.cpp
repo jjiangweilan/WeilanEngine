@@ -65,6 +65,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
     Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
     Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
@@ -183,6 +184,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             .colors = {{
                 .name = "opaque color",
                 .handle = 0,
+                .create = true,
                 .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
                 .loadOp = Gfx::AttachmentLoadOperation::Clear,
                 .storeOp = Gfx::AttachmentStoreOperation::Store,
@@ -190,6 +192,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             .depth = {{
                 .name = "opaque depth",
                 .handle = 1,
+                .create = true,
                 .format = Gfx::ImageFormat::D32_SFLOAT_S8_UInt,
                 .loadOp = Gfx::AttachmentLoadOperation::Clear,
                 .storeOp = Gfx::AttachmentStoreOperation::Store,
