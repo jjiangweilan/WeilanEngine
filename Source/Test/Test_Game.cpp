@@ -41,17 +41,5 @@ TEST(Gameplay, Test0)
     auto light = lightGO->AddComponent<Engine::Light>();
     light->SetIntensity(10);
 
-    // create cube
-    auto cubeObj = scene.CreateGameObject();
-    auto cubeObjRenderer = cubeObj->AddComponent<MeshRenderer>();
-    auto cubeShader = Shader("Assets/Shaders/Cubemap.shad");
-    auto cubeModel = Importers::GLB("Assets/cube.glb", &cubeShader);
-    auto cubeMat = Material(&cubeShader);
-    auto cubeMap = Texture("Assets/envCubemap.ktx");
-    cubeMat.SetTexture("envMap", cubeMap.GetGfxImage());
-    cubeObjRenderer->SetMesh(cubeModel->GetMeshes()[0].get());
-    Material* mats[] = {&cubeMat};
-    cubeObjRenderer->SetMaterials(mats);
-
     engine->Loop();
 }

@@ -1,4 +1,5 @@
 #include "SceneRenderer.hpp"
+#include "AssetDatabase/Importers.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/Transform.hpp"
@@ -10,10 +11,31 @@ namespace Engine
 {
 using namespace RenderGraph;
 
+static void CmdDrawSubmesh(
+    Gfx::CommandBuffer& cmd, Mesh2& mesh, int submeshIndex, Shader& shader, Gfx::ShaderResource& resource
+)
+{
+    auto& submesh = mesh.submeshes[submeshIndex];
+
+    std::vector<Gfx::VertexBufferBinding> bindingds(submesh->GetBindings().size());
+
+    int index = 0;
+    for (auto& b : submesh->GetBindings())
+    {
+        bindingds[index].buffer = submesh->GetVertexBuffer();
+        bindingds[index].offset = b.byteOffset;
+        index += 1;
+    }
+
+    cmd.BindVertexBuffer(bindingds, 0);
+    cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
+    cmd.BindShaderProgram(shader.GetShaderProgram(), shader.GetDefaultShaderConfig());
+    cmd.BindResource(&resource);
+    cmd.DrawIndexed(submesh->GetIndexCount(), 1, 0, 0, 0);
+}
+
 SceneRenderer::SceneRenderer()
 {
-    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
-
     shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
     opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
@@ -26,6 +48,14 @@ SceneRenderer::SceneRenderer()
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
+
+    // skybox resources
+    cubeMap = std::make_unique<Texture>("Assets/envCubemap.ktx");
+    cube = Importers::GLB("Assets/cube.glb", skyboxShader.get());
+    skyboxShader = std::make_unique<Shader>("Assets/Shaders/Skybox.shad");
+    skyboxPassResource =
+        GetGfxDriver()->CreateShaderResource(skyboxShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
+    skyboxPassResource->SetTexture("envMap", cubeMap->GetGfxImage());
 }
 
 void SceneRenderer::ProcessLights(Scene& gameScene)
@@ -210,6 +240,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.SetScissor(0, 1, &rect);
             cmd.BindResource(sceneShaderResource);
             cmd.BeginRenderPass(pass, clearValues);
+
+            // draw scene objects
             for (auto& draw : this->drawList)
             {
                 cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
@@ -219,6 +251,11 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 cmd.SetPushConstant(draw.shader, &draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
+
+            // draw skybox
+            auto& cubeMesh = cube->GetMeshes()[0];
+            CmdDrawSubmesh(cmd, *cubeMesh, 0, *skyboxShader, *skyboxPassResource);
+
             cmd.EndRenderPass();
         }
         // {

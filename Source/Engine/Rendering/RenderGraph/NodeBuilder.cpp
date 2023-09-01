@@ -40,16 +40,4 @@ BuildResult NodeBuilder::Blit(const std::vector<BlitDescription>& blits)
     }
     return result;
 }
-
-RenderNode* NodeBuilder::Skybox(Graph& graph, const SkyboxDescription& desc)
-{
-    auto& cubemap = desc.cubemap;
-    if (!cubemap.GetDescription().isCubemap)
-    {
-        throw Errrors::NodeCreationError("Skybox builder: image should be a cubemap");
-    }
-
-    graph.AddNode2({}, {{}});
-}
-
 } // namespace Engine::RenderGraph

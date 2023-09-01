@@ -161,8 +161,8 @@ public:
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = color.createImage ? subpass.width : 0,
-                            .height = color.createImage ? subpass.height : 0,
+                            .width = color.create ? subpass.width : 0,
+                            .height = color.create ? subpass.height : 0,
                             .format = color.format,
                             .multiSampling = color.multiSampling,
                             .mipLevels = color.mipLevels,
@@ -200,8 +200,8 @@ public:
                     .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = subpass.depth->createImage ? subpass.width : 0,
-                            .height = subpass.depth->createImage ? subpass.height : 0,
+                            .width = subpass.depth->create ? subpass.width : 0,
+                            .height = subpass.depth->create ? subpass.height : 0,
                             .format = subpass.depth->format,
                             .multiSampling = subpass.depth->multiSampling,
                             .mipLevels = subpass.depth->mipLevels,

@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Component/Light.hpp"
+#include "Core/Model2.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
@@ -86,6 +87,11 @@ private:
     RenderGraph::ResourceHandle depthHandle;
 
     RenderGraph::RenderNode* shadowPass;
+
+    std::unique_ptr<Model2> cube;
+    std::unique_ptr<Shader> skyboxShader;
+    std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
+    std::unique_ptr<Texture> cubeMap;
 
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 

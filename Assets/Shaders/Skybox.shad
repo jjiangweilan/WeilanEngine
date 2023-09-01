@@ -2,7 +2,8 @@
 #include "Common/Common.glsl"
 
 #if CONFIG
-name: Cubemap
+name: Skybox
+cull: front
 #endif
 
 struct FragInput
@@ -17,8 +18,7 @@ struct FragInput
 
     void main()
     {
-        gl_Position = scene.viewProjection * pconst.model * vec4(i_Position, 1);
-
+        gl_Position = (scene.viewProjection * vec4(i_Position + scene.viewPos.xyz, 1)).xyww;
         v2f.objPos = vec4(i_Position, 1);
     }
 #endif
