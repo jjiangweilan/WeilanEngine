@@ -29,5 +29,6 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
 layout(set = SET_GLOBAL, binding = 1) uniform sampler2D vtCache;
 layout(set = SET_GLOBAL, binding = 2) uniform sampler2D vtIndir;
 layout(set = SET_GLOBAL, binding = 3) uniform sampler2D shadowMap;
+layout(set = SET_GLOBAL, binding = 4) uniform sampler2D environmentMap;
 
 #endif

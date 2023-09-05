@@ -91,7 +91,7 @@ private:
     std::unique_ptr<Model2> cube;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
-    std::unique_ptr<Texture> cubeMap;
+    std::unique_ptr<Texture> envMap;
 
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 

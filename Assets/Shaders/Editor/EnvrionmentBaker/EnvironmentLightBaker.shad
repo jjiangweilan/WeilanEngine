@@ -40,7 +40,7 @@ vec2 Hammersley(uint i, uint N)
 }
 
 const vec2 invAtan = vec2(0.1591, 0.3183);
-vec2 CartesianToSpherical(vec3 v)
+vec2 SphericalToUV(vec3 v)
 {
     // -asin because we have top-left uv origin
     vec2 uv = vec2(atan(v.z, v.x), -asin(v.y));
@@ -118,7 +118,7 @@ void main()
         float NdotL = max(dot(N, L), 0.0);
         if(NdotL > 0.0)
         {
-            vec2 uv = CartesianToSpherical(L);
+            vec2 uv = SphericalToUV(L);
             prefilteredColor += texture(environmentMap, uv).rgb * NdotL;
             totalWeight      += NdotL;
         }

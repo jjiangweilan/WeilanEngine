@@ -50,12 +50,13 @@ SceneRenderer::SceneRenderer()
     });
 
     // skybox resources
-    cubeMap = std::make_unique<Texture>("Assets/envCubemap.ktx");
+    envMap = std::make_unique<Texture>("Assets/envMap.ktx");
     cube = Importers::GLB("Assets/cube.glb", skyboxShader.get());
     skyboxShader = std::make_unique<Shader>("Assets/Shaders/Skybox.shad");
     skyboxPassResource =
         GetGfxDriver()->CreateShaderResource(skyboxShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
-    skyboxPassResource->SetTexture("envMap", cubeMap->GetGfxImage());
+    skyboxPassResource->SetTexture("envMap", envMap->GetGfxImage());
+    sceneShaderResource->SetTexture("EnvironmentMap", envMap->GetGfxImage());
 }
 
 void SceneRenderer::ProcessLights(Scene& gameScene)
