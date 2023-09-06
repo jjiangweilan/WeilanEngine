@@ -56,7 +56,7 @@ SceneRenderer::SceneRenderer()
     skyboxPassResource =
         GetGfxDriver()->CreateShaderResource(skyboxShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
     skyboxPassResource->SetTexture("envMap", envMap->GetGfxImage());
-    sceneShaderResource->SetTexture("EnvironmentMap", envMap->GetGfxImage());
+    sceneShaderResource->SetTexture("environmentMap", envMap->GetGfxImage());
 }
 
 void SceneRenderer::ProcessLights(Scene& gameScene)
