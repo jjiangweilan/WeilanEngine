@@ -12,7 +12,6 @@ TEST(Gameplay, Test0)
     engine->Init({});
 
     Engine::Scene scene;
-    engine->sceneManager->SetActiveScene(scene);
 
     // set camera
     Engine::GameObject* gameObject = scene.CreateGameObject();

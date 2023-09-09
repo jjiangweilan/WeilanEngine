@@ -10,8 +10,6 @@ TEST(EnvironmentBaker, Test0)
     auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
     Engine::Scene scene;
 
-    engine->sceneManager->SetActiveScene(scene);
-
     sceneRenderer->BuildGraph(
         {
             .finalImage = *GetGfxDriver()->GetSwapChainImage(),

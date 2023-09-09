@@ -7,6 +7,7 @@ namespace Engine
 
 WeilanEngine::~WeilanEngine()
 {
+    gfxDriver->WaitForIdle();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 }
@@ -59,7 +60,7 @@ void WeilanEngine::BeginFrame()
 #endif
 
     // poll events, this is every important
-    // the events are polled by SDL, somehow to show up the the window, we need it to poll the events! 
+    // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
 
     frameCmdBuffer->GetActive()->Begin();

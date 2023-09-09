@@ -19,9 +19,9 @@ RenderPipeline::RenderPipeline()
 
 void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
 {
-
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
+
     if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
     {
         swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});

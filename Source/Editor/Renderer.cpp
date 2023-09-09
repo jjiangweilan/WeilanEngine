@@ -109,7 +109,7 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
                     {
                         {
                             .handle = 0,
-                            .loadOp = Gfx::AttachmentLoadOperation::Load,
+                            .loadOp = Gfx::AttachmentLoadOperation::Clear,
                             .storeOp = Gfx::AttachmentStoreOperation::Store,
                         },
                     },

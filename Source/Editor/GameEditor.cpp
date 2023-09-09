@@ -41,7 +41,10 @@ GameEditor::GameEditor(const char* path)
     uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
 };
 
-GameEditor::~GameEditor() {}
+GameEditor::~GameEditor()
+{
+    engine->gfxDriver->WaitForIdle();
+}
 
 void SceneTree(Transform* transform)
 {
@@ -116,7 +119,6 @@ void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::strin
 
 void GameEditor::MainMenuBar()
 {
-
     ImGui::BeginMainMenuBar();
     if (ImGui::MenuItem("Editor Camera"))
     {
@@ -127,6 +129,36 @@ void GameEditor::MainMenuBar()
     {
         // scene->SetMainCamera(gameCamera);
         gameCamera = nullptr;
+    }
+
+    static bool openSceneWindow = false;
+    if (ImGui::BeginMenu("Assets"))
+    {
+        if (ImGui::MenuItem("Open Scene"))
+        {
+            openSceneWindow = !openSceneWindow;
+        }
+        ImGui::EndMenu();
+    }
+    if (openSceneWindow)
+    {
+        ImGui::Begin(
+            "Open Scene...",
+            nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings
+        );
+
+        static char openScenePath[1024];
+        ImGui::InputText("Path", openScenePath, 1024);
+        if (ImGui::Button("Open"))
+        {}
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Close"))
+        {}
+
+        ImGui::End();
     }
 
     for (auto& registeredTool : registeredTools)
@@ -167,6 +199,7 @@ void GameEditor::MainMenuBar()
 
         ImGui::EndMenu();
     }
+
     ImGui::EndMainMenuBar();
 }
 
