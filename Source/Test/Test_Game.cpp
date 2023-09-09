@@ -1,6 +1,5 @@
 #include "AssetDatabase/Importers.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "Editor/Tool.hpp"
 #include "Rendering/SceneRenderer.hpp"
 #include "Utils/AssetLoader.hpp"
 #include "WeilanEngine.hpp"
@@ -40,6 +39,4 @@ TEST(Gameplay, Test0)
     auto lightGO = scene.CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();
     light->SetIntensity(10);
-
-    engine->Loop();
 }

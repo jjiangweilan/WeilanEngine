@@ -41,7 +41,6 @@ public:
 
             auto engine = std::make_unique<WeilanEngine>();
             engine->Init({path});
-            engine->Loop();
 
             hasAction = true;
         }

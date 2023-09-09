@@ -51,6 +51,7 @@ public:
     void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override;
     void Begin() override;
     void End() override;
+    void Reset(bool releaseResource) override;
 
     VkCommandBuffer GetHandle() const
     {

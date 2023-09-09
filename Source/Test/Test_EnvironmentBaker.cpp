@@ -42,21 +42,21 @@ TEST(EnvironmentBaker, Test0)
         }
     );
 
-    engine->renderPipeline->RegisterSwapchainRecreateCallback(
-        [&sceneRenderer, &scene]()
-        {
-            sceneRenderer->BuildGraph(
-                {
-                    .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-                    .layout = Gfx::ImageLayout::Present_Src_Khr,
-                    .accessFlags = Gfx::AccessMask::None,
-                    .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-                }
-            );
-            auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
-            ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
-        }
-    );
+    // engine->renderPipeline->RegisterSwapchainRecreateCallback(
+    //     [&sceneRenderer, &scene]()
+    //     {
+    //         sceneRenderer->BuildGraph(
+    //             {
+    //                 .finalImage = *GetGfxDriver()->GetSwapChainImage(),
+    //                 .layout = Gfx::ImageLayout::Present_Src_Khr,
+    //                 .accessFlags = Gfx::AccessMask::None,
+    //                 .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+    //             }
+    //         );
+    //         auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
+    //         ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
+    //     }
+    // );
 
     // load model
     auto opaqueShader = sceneRenderer->GetOpaqueShader();
@@ -65,6 +65,4 @@ TEST(EnvironmentBaker, Test0)
     auto lightGO = scene.CreateGameObject();
     auto light = lightGO->AddComponent<Engine::Light>();
     light->SetIntensity(10);
-
-    engine->Loop();
 }

@@ -17,8 +17,9 @@ RenderPipeline::RenderPipeline()
     // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 }
 
-void RenderPipeline::WaitForPreviousFrame()
+void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
 {
+
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
     if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
@@ -34,10 +35,6 @@ void RenderPipeline::WaitForPreviousFrame()
             cb();
         }
     }
-}
-
-void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
-{
 
     cmdQueue.clear();
     cmdQueue.insert(cmdQueue.end(), submitGroup.GetCmds().begin(), submitGroup.GetCmds().end());

@@ -1,8 +1,8 @@
 #pragma once
 #include "CmdSubmitGroup.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include <memory>
 #include <functional>
+#include <memory>
 namespace Engine
 {
 class Scene;
@@ -12,8 +12,6 @@ class RenderPipeline
 public:
     RenderPipeline();
 
-    // this function makes sure the previously submiited commands are finished
-    void WaitForPreviousFrame();
     void Render(Rendering::CmdSubmitGroup& submitGroup);
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {

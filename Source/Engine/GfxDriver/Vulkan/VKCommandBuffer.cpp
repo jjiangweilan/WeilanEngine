@@ -470,4 +470,9 @@ void VKCommandBuffer::CopyImageToBuffer(
         vkRegions.data()
     );
 }
+
+void VKCommandBuffer::Reset(bool releaseResource)
+{
+    vkResetCommandBuffer(vkCmdBuf, releaseResource ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0);
+}
 } // namespace Engine::Gfx

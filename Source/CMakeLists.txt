@@ -19,13 +19,15 @@ option(DEV_BUILD "use internal asset inside the source tree instead of installed
 
 add_executable(WeilanEngine
     Engine/Launcher.cpp)
+add_executable(WeilanEngineEditor
+    Editor/Launcher.cpp)
+
 add_library(WeilanEngineLib)
-
-
 target_link_libraries(WeilanEngine 
     WeilanEngineLib)
 
 file(GLOB_RECURSE CORE_ENGINE_SRC "Engine/*.c" "Engine/*.cpp" "Engine/*.hpp" "Engine/*.h" "Engine/*.tpp")
+file(GLOB_RECURSE EDITOR_ENGINE_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
 
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngineLib PUBLIC ENGINE_DEV_BUILD)
@@ -40,11 +42,25 @@ endif()
 
 target_sources(WeilanEngineLib PRIVATE ${CORE_ENGINE_SRC})
 
+# link WeilanEngine to editor
+target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
+target_link_libraries(WeilanEngineEditor WeilanEngineLib)
+
 find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngineLib
     PUBLIC
     "Engine/"
+
+    SYSTEM
+    "${CMAKE_BINARY_DIR}/bin"
+    "${CMAKE_BINARY_DIR}/include"
+    ${Vulkan_INCLUDE_DIRS}
+)
+
+target_include_directories( WeilanEngineEditor
+    PUBLIC
+    "Editor/"
 
     SYSTEM
     "${CMAKE_BINARY_DIR}/bin"

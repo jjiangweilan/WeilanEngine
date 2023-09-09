@@ -132,5 +132,6 @@ public:
     virtual void Barrier(GPUBarrier* barriers, uint32_t barrierCount) = 0;
     virtual void Begin() = 0;
     virtual void End() = 0;
+    virtual void Reset(bool releaseResource) = 0;
 };
 } // namespace Engine::Gfx
