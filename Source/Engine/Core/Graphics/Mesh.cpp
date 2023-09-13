@@ -7,6 +7,8 @@
 using namespace Engine::Internal;
 namespace Engine
 {
+DEFINE_RESOURCE(Mesh, "A96DED1A-AE44-451B-9531-73673DC12832");
+
 Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const UUID& uuid)
     : vertexDescription(std::move(vertexDescription))
 {
@@ -133,6 +135,9 @@ void Mesh::UpdateMeshBindingInfo(std::vector<DataRange>& ranges)
     meshBindingInfo.indexBufferOffset = 0;
 }
 
-const VertexDescription& Mesh::GetVertexDescription() { return vertexDescription; }
+const VertexDescription& Mesh::GetVertexDescription()
+{
+    return vertexDescription;
+}
 
 } // namespace Engine

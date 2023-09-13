@@ -21,13 +21,13 @@ void BinarySerializer::Deserialize(std::string_view name, std::string& val)
 
 void BinarySerializer::Serialize(std::string_view name, const UUID& uuid)
 {
-    Serializer::Serialize(name, uuid.ToString());
+    Serialize(name, uuid.ToString());
 }
 
 void BinarySerializer::Deserialize(std::string_view name, UUID& uuid)
 {
     std::string s;
-    Serializer::Deserialize(name, s);
+    Deserialize(name, s);
     uuid = s;
 }
 

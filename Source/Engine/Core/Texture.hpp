@@ -23,6 +23,8 @@ struct KtxTexture
 };
 class Texture : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     Texture(){};
     // load a ktx texture from file

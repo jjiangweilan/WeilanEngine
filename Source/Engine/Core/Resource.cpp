@@ -1,20 +1,20 @@
 #include "Resource.hpp"
 namespace Engine
 {
-std::unordered_map<AssetTypeID, std::function<std::unique_ptr<Resource>()>>* AssetRegister::GetRegisteredAsset()
+std::unordered_map<ResourceTypeID, std::function<std::unique_ptr<Resource>()>>* ResourceRegistry::GetRegisteredAsset()
 {
-    static std::unique_ptr<std::unordered_map<AssetTypeID, AssetRegister::Creator>> registeredAsset =
-    std::make_unique<std::unordered_map<AssetTypeID, AssetRegister::Creator>>();
+    static std::unique_ptr<std::unordered_map<ResourceTypeID, ResourceRegistry::Creator>> registeredAsset =
+        std::make_unique<std::unordered_map<ResourceTypeID, ResourceRegistry::Creator>>();
     return registeredAsset.get();
 }
 
-char AssetRegister::RegisterAsset(const AssetTypeID& assetID, const Creator& creator)
+char ResourceRegistry::RegisterAsset(const ResourceTypeID& assetID, const Creator& creator)
 {
     GetRegisteredAsset()->emplace(assetID, creator);
     return '0';
 }
 
-std::unique_ptr<Resource> AssetRegister::CreateAsset(const AssetTypeID& id)
+std::unique_ptr<Resource> ResourceRegistry::CreateAsset(const ResourceTypeID& id)
 {
     auto iter = GetRegisteredAsset()->find(id);
     if (iter != GetRegisteredAsset()->end())
@@ -24,6 +24,5 @@ std::unique_ptr<Resource> AssetRegister::CreateAsset(const AssetTypeID& id)
 
     return nullptr;
 }
-
 
 } // namespace Engine

@@ -11,10 +11,12 @@ namespace Engine
 class JsonSerializer : public Serializer
 {
 public:
+    // used for deserialization
     JsonSerializer(const nlohmann::json& j, SerializeReferenceResolveMap* referenceResolveMap = nullptr)
         : Serializer(referenceResolveMap), j(j)
     {}
 
+    // used for serialization
     JsonSerializer() : j(nlohmann::json::object()), Serializer(nullptr) {}
 
     JsonSerializer(SerializeReferenceResolveMap* referenceResolveMap) : Serializer(referenceResolveMap) {}
@@ -39,8 +41,8 @@ protected:
     std::unique_ptr<Serializer> CreateSubserializer() override;
     void AppendSubserializer(std::string_view name, Serializer* s) override;
     std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) override;
+
 private:
     nlohmann::json j;
-
 };
 } // namespace Engine

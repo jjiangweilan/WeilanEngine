@@ -4,6 +4,8 @@
 
 namespace Engine
 {
+DEFINE_RESOURCE(Mesh2, "8D66F112-935C-47B1-B62F-728CBEA20CBD");
+
 Submesh::~Submesh() {}
 Submesh::Submesh(
     std::unique_ptr<unsigned char>&& vertexBuffer,
@@ -63,4 +65,5 @@ Submesh::Submesh(
 };
 
 Mesh2::~Mesh2() {}
+
 } // namespace Engine

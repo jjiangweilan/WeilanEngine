@@ -64,15 +64,26 @@ struct VertexDescription
 
 class Mesh : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     Mesh() {}
     Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
     ~Mesh();
 
-    const MeshBindingInfo& GetMeshBindingInfo() { return meshBindingInfo; }
+    const MeshBindingInfo& GetMeshBindingInfo()
+    {
+        return meshBindingInfo;
+    }
     const VertexDescription& GetVertexDescription();
-    const std::string& GetName() { return name; }
-    Gfx::IndexBufferType GetIndexBufferType() { return indexBufferType; }
+    const std::string& GetName()
+    {
+        return name;
+    }
+    Gfx::IndexBufferType GetIndexBufferType()
+    {
+        return indexBufferType;
+    }
 
 protected:
     MeshBindingInfo meshBindingInfo;

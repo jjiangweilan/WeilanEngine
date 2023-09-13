@@ -1,11 +1,12 @@
 #include "VirtualTextureRenderer.hpp"
 #include "Libs/Image/MipQuadTree.hpp"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "ThirdParty/stb/stb_image_write.h"
 #include "glm/detail/type_half.hpp"
 #include <queue>
 #include <set>
-#include <thread>
 #include <spdlog/spdlog.h>
+#include <thread>
 using namespace Libs::Image;
 namespace Engine::Rendering
 {
@@ -45,10 +46,12 @@ public:
         cache.pageX = param.pageTexPageNum;
         cache.pageY = param.pageTexPageNum;
 
-        cache.tex = MakeUnique<LinearImage>(param.pageTexelSize * cache.pageX,
-                                            param.pageTexelSize * cache.pageY,
-                                            4, // PC doesn't support 3 channel 8 bit srgb format
-                                            sizeof(unsigned char));
+        cache.tex = MakeUnique<LinearImage>(
+            param.pageTexelSize * cache.pageX,
+            param.pageTexelSize * cache.pageY,
+            4, // PC doesn't support 3 channel 8 bit srgb format
+            sizeof(unsigned char)
+        );
         cache.maxPage = param.pageTexPageNum * param.pageTexPageNum;
         for (auto& node : indir.qtree.GetNodes())
         {
@@ -149,8 +152,8 @@ private:
 
     struct LowerMiap
     {
-        bool operator()(MipQuadTree<QuadTreeNodeData>::Node* const& l,
-                        MipQuadTree<QuadTreeNodeData>::Node* const& r) const
+        bool operator()(MipQuadTree<QuadTreeNodeData>::Node* const& l, MipQuadTree<QuadTreeNodeData>::Node* const& r)
+            const
         {
             return l->level < r->level && l->id != r->id;
         }
@@ -309,9 +312,11 @@ private:
 
                 for (int y = 0; y < param.pageTexelSize; ++y)
                 {
-                    memcpy(ori + y * cacheTexPixelWidth,
-                           (RGB*)vtPage.GetData() + y * param.pageTexelSize,
-                           param.pageTexelSize * element);
+                    memcpy(
+                        ori + y * cacheTexPixelWidth,
+                        (RGB*)vtPage.GetData() + y * param.pageTexelSize,
+                        param.pageTexelSize * element
+                    );
                 }
             }
             else
@@ -324,12 +329,14 @@ private:
 
         if (state[SDL_SCANCODE_Y])
         {
-            stbi_write_jpg("test.jpg",
-                           cache.tex->GetWidth(),
-                           cache.tex->GetHeight(),
-                           cache.tex->GetChannel(),
-                           cache.tex->GetData(),
-                           90);
+            stbi_write_jpg(
+                "test.jpg",
+                cache.tex->GetWidth(),
+                cache.tex->GetHeight(),
+                cache.tex->GetChannel(),
+                cache.tex->GetData(),
+                90
+            );
         }
 
         return pageChanged;
@@ -369,26 +376,29 @@ bool VirtualTextureRenderer::GetFinalTextures(LinearImage*& cache, LinearImage*&
     return feedbackAnalyzer->GetFinalTextures(cache, indirMap);
 }
 
-void VirtualTextureRenderer::SetVT(RefPtr<VirtualTexture> vt,
-                                   uint32_t frameTexWidth,
-                                   uint32_t frameTexheight,
-                                   uint32_t feedbackTexScale)
+void VirtualTextureRenderer::SetVT(
+    RefPtr<VirtualTexture> vt, uint32_t frameTexWidth, uint32_t frameTexheight, uint32_t feedbackTexScale
+)
 {
     param.vt = vt.Get();
 
     // resource init
-    feedbackPassData.shader = nullptr;// TODO: AssetDatabase::Instance()->GetShader("VirtualTexture/FeedbackTex");
-    feedbackPassData.resource = GetGfxDriver()->CreateShaderResource(feedbackPassData.shader->GetShaderProgram(),
-                                                                     Gfx::ShaderResourceFrequency::Material);
+    feedbackPassData.shader = nullptr; // TODO: AssetDatabase::Instance()->GetShader("VirtualTexture/FeedbackTex");
+    feedbackPassData.resource = GetGfxDriver()->CreateShaderResource(
+        feedbackPassData.shader->GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Material
+    );
 
     float feedbackShaderParam[3] = {(float)vt->GetWidth(), (float)vt->GetHeight(), -(float)std::log2(feedbackTexScale)};
-    Internal::GfxResourceTransfer::BufferTransferRequest bufferTransferRequest{.data = &feedbackShaderParam,
-                                                                               .bufOffset = 0,
-                                                                               .size = sizeof(feedbackShaderParam)};
+    Internal::GfxResourceTransfer::BufferTransferRequest bufferTransferRequest{
+        .data = &feedbackShaderParam,
+        .bufOffset = 0,
+        .size = sizeof(feedbackShaderParam)};
     Gfx::ShaderResource::BufferMemberInfoMap bufMemInfoMap;
     Internal::GetGfxResourceTransfer()->Transfer(
         feedbackPassData.resource->GetBuffer("FeedbackTexParam", bufMemInfoMap),
-        bufferTransferRequest);
+        bufferTransferRequest
+    );
 
     // build graph
     g.feedbackTex = g.feedbackTexGraph.AddNode<RGraph::ImageNode>();

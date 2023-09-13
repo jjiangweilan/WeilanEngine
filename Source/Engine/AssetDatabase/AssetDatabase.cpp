@@ -12,13 +12,15 @@ Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path)
     }
 
     // read the file
-    auto assetPath = assetRootPath / path;
+    std::unique_ptr<Asset> asset = std::make_unique<Asset>(path);
+    asset->GetMeta();
+
     std::ifstream in;
-    in.open(assetPath, std::ios_base::in | std::ios_base::binary);
+    in.open(path, std::ios_base::in | std::ios_base::binary);
     nlohmann::json j;
     if (in.is_open() && in.good())
     {
-        size_t size = std::filesystem::file_size(assetPath);
+        size_t size = std::filesystem::file_size(path);
         if (size != 0)
         {
             std::string json;
@@ -33,7 +35,7 @@ Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path)
     SerializeReferenceResolveMap resolveMap;
     JsonSerializer ser(j, &resolveMap);
     std::unique_ptr newAsset = std::make_unique<Asset>(path);
-    newAsset->Deserialize(&ser);
+    // newAsset->Deserialize(&ser);
 
     // TODO: resolve reference
 

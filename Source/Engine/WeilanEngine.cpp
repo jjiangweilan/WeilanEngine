@@ -4,7 +4,6 @@
 #endif
 namespace Engine
 {
-
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
@@ -111,5 +110,10 @@ void WeilanEngine::FrameCmdBuffer::Swap()
 Gfx::CommandBuffer& WeilanEngine::GetActiveCmdBuffer()
 {
     return *frameCmdBuffer->GetActive();
+}
+
+Resource* WeilanEngine::LoadAsset(const char* path)
+{
+    assetDatabase->LoadAsset(path);
 }
 } // namespace Engine

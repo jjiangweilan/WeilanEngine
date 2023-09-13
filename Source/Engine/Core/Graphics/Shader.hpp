@@ -12,7 +12,10 @@ class ShaderLoader;
 } // namespace Gfx
 class Shader : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
+    Shader(){};
     Shader(
         const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty
     );
@@ -24,6 +27,7 @@ public:
     {
         return shaderProgram;
     }
+
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
     {
         return shaderProgram->GetDefaultShaderConfig();

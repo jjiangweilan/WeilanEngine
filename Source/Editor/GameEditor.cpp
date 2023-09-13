@@ -1,4 +1,6 @@
 #include "GameEditor.hpp"
+#include "AssetDatabase/Asset.hpp"
+#include "Core/Resource.hpp"
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
@@ -48,6 +50,7 @@ GameEditor::~GameEditor()
 
 void SceneTree(Transform* transform)
 {
+
     if (ImGui::TreeNode(transform->GetGameObject()->GetName().c_str()))
     {
         GameObject* go = transform->GetGameObject();
@@ -117,20 +120,8 @@ void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::strin
     }
 }
 
-void GameEditor::MainMenuBar()
+void GameEditor::OpenSceneWindow()
 {
-    ImGui::BeginMainMenuBar();
-    if (ImGui::MenuItem("Editor Camera"))
-    {
-        // gameCamera = scene->GetMainCamera();
-        // scene->SetMainCamera(editorCamera);
-    }
-    if (ImGui::MenuItem("Game Camera"))
-    {
-        // scene->SetMainCamera(gameCamera);
-        gameCamera = nullptr;
-    }
-
     static bool openSceneWindow = false;
     if (ImGui::BeginMenu("Assets"))
     {
@@ -160,6 +151,22 @@ void GameEditor::MainMenuBar()
 
         ImGui::End();
     }
+}
+void GameEditor::MainMenuBar()
+{
+    ImGui::BeginMainMenuBar();
+    if (ImGui::MenuItem("Editor Camera"))
+    {
+        // gameCamera = scene->GetMainCamera();
+        // scene->SetMainCamera(editorCamera);
+    }
+    if (ImGui::MenuItem("Game Camera"))
+    {
+        // scene->SetMainCamera(gameCamera);
+        gameCamera = nullptr;
+    }
+
+    OpenSceneWindow();
 
     for (auto& registeredTool : registeredTools)
     {

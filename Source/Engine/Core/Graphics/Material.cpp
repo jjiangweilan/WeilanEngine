@@ -5,6 +5,8 @@
 #include "Rendering/ImmediateGfx.hpp"
 namespace Engine
 {
+DEFINE_RESOURCE(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941");
+
 Material::Material() : shader(nullptr), shaderResource(nullptr)
 {
     // assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload(
@@ -226,4 +228,5 @@ void Material::Deserialize(Serializer* s)
         }
     );
 }
+
 } // namespace Engine

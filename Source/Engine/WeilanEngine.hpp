@@ -34,6 +34,8 @@ public:
     void EndFrame();
     Gfx::CommandBuffer& GetActiveCmdBuffer();
 
+    Resource* LoadAsset(const char* path);
+
     std::vector<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;

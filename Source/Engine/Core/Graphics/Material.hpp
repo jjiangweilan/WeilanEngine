@@ -19,14 +19,22 @@ class AssetDatabase;
 class AssetFileData;
 class Material : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     Material(RefPtr<Shader> shader);
     Material();
     ~Material() override;
 
     void SetShader(RefPtr<Shader> shader);
-    RefPtr<Shader> GetShader() { return shader; }
-    RefPtr<Gfx::ShaderResource> GetShaderResource() { return shaderResource; }
+    RefPtr<Shader> GetShader()
+    {
+        return shader;
+    }
+    RefPtr<Gfx::ShaderResource> GetShaderResource()
+    {
+        return shaderResource;
+    }
 
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
@@ -43,7 +51,10 @@ public:
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    Gfx::ShaderConfig& GetShaderConfig() { return shaderConfig; }
+    Gfx::ShaderConfig& GetShaderConfig()
+    {
+        return shaderConfig;
+    }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

@@ -11,7 +11,10 @@ namespace Engine
 {
 class Model2 : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
+    Model2() {}
     Model2(
         std::vector<GameObject*>&& rootGameObjects,
         std::vector<std::unique_ptr<GameObject>>&& gameObjects,
@@ -65,16 +68,4 @@ private:
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
 };
-// template<>
-// struct SerializableField<Model2>
-// {
-//     static void Serialize(Model2* v, Serializer* s)
-//     {
-//         // s->Serialize(v->meshes);
-//         // s->Serialize(v->textures);
-//         // s->Serialize(v->materials);
-//         // s->Serialize(v->gameObjects);
-//         // s->Serialize(v->rootGameObjects);
-//     }
-// }
 } // namespace Engine

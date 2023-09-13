@@ -4,6 +4,8 @@
 
 namespace Engine
 {
+DEFINE_RESOURCE(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7");
+
 GameObject::GameObject() : gameScene(nullptr)
 {
     transform = AddComponent<Transform>();
@@ -67,6 +69,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("transform", transform);
     s->Serialize("gameScene", gameScene);
 }
+
 void GameObject::Deserialize(Serializer* s)
 {
     Resource::Deserialize(s);
@@ -74,4 +77,5 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("transform", transform);
     s->Deserialize("gameScene", gameScene);
 }
+
 } // namespace Engine

@@ -6,8 +6,14 @@ namespace Engine
 class IAmReferencable
 {
 public:
-    const UUID& GetUUID() { return uuid; }
-    void SetUUID(const UUID& uuid) { this->uuid = uuid; }
+    const UUID& GetUUID()
+    {
+        return uuid;
+    }
+    void SetUUID(const UUID& uuid)
+    {
+        this->uuid = uuid;
+    }
 
     UUID uuid;
 };
@@ -17,9 +23,15 @@ class IAmSerializable : public Serializable
 public:
     int x;
 
-    void Serialize(Serializer* s) const override { s->Serialize("x", x); }
+    void Serialize(Serializer* s) const override
+    {
+        s->Serialize("x", x);
+    }
 
-    void Deserialize(Serializer* s) override { s->Deserialize("x", x); }
+    void Deserialize(Serializer* s) override
+    {
+        s->Deserialize("x", x);
+    }
 };
 
 class IAmResource : public Resource
@@ -44,17 +56,19 @@ public:
     {
         s->Deserialize("x", x);
         s->Deserialize("matrix", matrix);
-        s->Deserialize("referencable",
-                       referencable,
-                       [this](void* res) { callbackTest = ((IAmReferencable*)res)->GetUUID(); });
+        s->Deserialize(
+            "referencable",
+            referencable,
+            [this](void* res) { callbackTest = ((IAmReferencable*)res)->GetUUID(); }
+        );
         s->Deserialize("serializableArray", serializableArray);
     }
 };
 
 template <>
-struct AssetFactory<IAmResource> : public AssetRegister
+struct AssetFactory<IAmResource> : public ResourceRegistry
 {
-    inline static AssetTypeID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("IAmSerializable");
+    inline static ResourceTYpeID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("IAmSerializable");
     inline static char reg = RegisterAsset(assetTypeID, []() { return std::unique_ptr<Resource>(new IAmResource()); });
 };
 

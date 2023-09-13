@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 namespace Engine
 {
+DEFINE_RESOURCE(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
@@ -451,4 +452,5 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
         ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
     }
 }
+
 } // namespace Engine

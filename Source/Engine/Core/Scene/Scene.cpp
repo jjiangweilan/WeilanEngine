@@ -1,6 +1,8 @@
 #include "Scene.hpp"
 namespace Engine
 {
+DEFINE_RESOURCE(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7");
+
 Scene::Scene() : Resource(), systemEventCallbacks()
 {
     name = "New GameScene";
@@ -137,4 +139,5 @@ void Scene::Deserialize(Serializer* s)
         }
     }
 }
+
 } // namespace Engine

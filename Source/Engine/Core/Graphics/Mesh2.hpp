@@ -72,12 +72,15 @@ private:
 
 class Mesh2 : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     Mesh2(UUID uuid = UUID::empty) : Resource(), submeshes()
     {
         SetUUID(uuid);
     }
     ~Mesh2();
+
     std::vector<std::unique_ptr<Submesh>> submeshes;
 };
 } // namespace Engine

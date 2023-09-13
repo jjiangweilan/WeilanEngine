@@ -9,50 +9,61 @@
 namespace Engine
 {
 
-class AssetMeta
-{};
+struct AssetMeta
+{
+    // the resource's type id
+    ResourceTypeID resourceTypeID;
 
+    // this is the path to the resource the asset linked to
+    std::filesystem::path resourcePath;
+};
+// an asset represent an imported Resource, it contains meta information about the resource and the resource itself
 class Asset
 {
 public:
-    const AssetTypeID& GetAsseTypeID();
+    // this is used when saving an asset
+    Asset(std::unique_ptr<Resource>&& resource, const std::filesystem::path);
 
-    Asset(std::unique_ptr<Resource>&& resource, const std::filesystem::path& path)
-        : resource(std::move(resource)), path(path)
-    {}
+    // this is used when loading an asset
+    Asset(const std::filesystem::path& path);
 
-    Asset(const std::filesystem::path& path) : path(path) {}
+    void Save();
+    void Load();
 
-    template <class T>
-    void Serialize(Serializer* ser)
+    const AssetMeta& GetMeta();
+
+    Resource* GetResource()
     {
-        ser->Serialize("asset_assetTypeID", AssetFactory<T>::assetTypeID);
-        resource->Serialize(ser);
+        return resource.get();
     }
-
-    bool Deserialize(Serializer* ser)
+    const std::filesystem::path& GetPath()
     {
-        AssetTypeID assetTypeID;
-        ser->Deserialize("asset_assetTypeID", assetTypeID);
-
-        resource = AssetRegister::CreateAsset(assetTypeID);
-        if (resource == nullptr)
-        {
-            return false;
-        }
-        resource->Deserialize(ser);
-
-        return true;
+        return path;
     }
-
-    Resource* GetResource() { return resource.get(); }
-    const std::filesystem::path& GetPath() { return path; }
 
 private:
-    std::function<void(BinarySerializer* s)> serialize;
-    std::function<void(BinarySerializer* s)> deserialize;
+    // scaii code stands for Wei Lan Engine Asset
+    static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
+    AssetMeta meta;
 
     std::unique_ptr<Resource> resource;
     std::filesystem::path path;
+
+    void Serialize(Serializer* ser)
+    {
+        ser->Serialize("resourceTypeID", meta.resourceTypeID);
+        ser->Serialize("resourcePath", meta.resourcePath.string());
+        ser->Serialize("resource", resource);
+    }
+    void Deserialize(Serializer* ser)
+    {
+        ser->Deserialize("resourceTypeID", meta.resourceTypeID);
+        std::string resourcePath;
+        ser->Deserialize("resourcePath", resourcePath);
+        meta.resourcePath = resourcePath;
+
+        resource = ResourceRegistry::CreateAsset(meta.resourceTypeID);
+        ser->Deserialize("resource", resource);
+    }
 };
 } // namespace Engine

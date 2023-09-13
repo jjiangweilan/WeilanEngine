@@ -5,6 +5,8 @@
 #include <spdlog/spdlog.h>
 namespace Engine
 {
+DEFINE_RESOURCE(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147");
+
 Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
     : shaderProgram(std::move(shaderProgram))
 {

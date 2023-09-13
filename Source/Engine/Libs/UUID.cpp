@@ -26,9 +26,14 @@ UUID::UUID(const std::string& uuid)
     }
 }
 
+UUID::UUID(const char* uuid) : UUID(std::string(uuid)) {}
+
 UUID::~UUID() {}
 
-bool UUID::IsEmpty() const { return id.is_nil(); }
+bool UUID::IsEmpty() const
+{
+    return id.is_nil();
+}
 
 const std::mt19937 CreateGenerator()
 {
@@ -41,7 +46,10 @@ const std::mt19937 CreateGenerator()
     return generator;
 }
 
-const std::string& UUID::ToString() const { return strID; }
+const std::string& UUID::ToString() const
+{
+    return strID;
+}
 
 UUID::UUID(bool empty) : id() {}
 

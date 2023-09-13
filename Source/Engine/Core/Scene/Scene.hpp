@@ -12,6 +12,8 @@ namespace Engine
 {
 class Scene : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     Scene();
     ~Scene() {}

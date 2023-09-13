@@ -42,6 +42,7 @@ private:
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
 
+    void OpenSceneWindow();
     void MainMenuBar();
     void OpenWindow();
     void GUIPass();

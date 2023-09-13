@@ -13,6 +13,8 @@ namespace Engine
 class Scene;
 class GameObject : public Resource
 {
+    DECLARE_RESOURCE();
+
 public:
     GameObject(RefPtr<Scene> gameScene);
     GameObject(GameObject&& other);

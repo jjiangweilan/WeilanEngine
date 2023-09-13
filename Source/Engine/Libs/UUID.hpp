@@ -11,10 +11,17 @@ public:
     UUID();
     UUID(const UUID& uuid);
     UUID(const std::string& uuid);
+    UUID(const char* uuid);
     ~UUID();
 
-    bool operator==(const UUID& other) const { return id == other.id; }
-    bool operator!=(const UUID& other) const { return id != other.id; }
+    bool operator==(const UUID& other) const
+    {
+        return id == other.id;
+    }
+    bool operator!=(const UUID& other) const
+    {
+        return id != other.id;
+    }
     const UUID& operator=(const UUID& other);
     bool IsEmpty() const;
     const std::string& ToString() const;
@@ -32,5 +39,8 @@ private:
 template <>
 struct std::hash<Engine::UUID>
 {
-    std::size_t operator()(Engine::UUID const& s) const noexcept { return std::hash<uuids::uuid>{}(s.id); }
+    std::size_t operator()(Engine::UUID const& s) const noexcept
+    {
+        return std::hash<uuids::uuid>{}(s.id);
+    }
 };

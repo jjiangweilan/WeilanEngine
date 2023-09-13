@@ -2,8 +2,9 @@
 
 namespace Engine
 {
-Model::Model(std::unordered_map<std::string, UniPtr<Mesh>>&& meshes_, const UUID& uuid)
-    : meshes(std::move(meshes_))
+DEFINE_RESOURCE(Model, "168A5885-3B44-44F3-A29F-EC9CDECE6F67");
+
+Model::Model(std::unordered_map<std::string, UniPtr<Mesh>>&& meshes_, const UUID& uuid) : meshes(std::move(meshes_))
 {
     SetUUID(uuid);
     for (auto& iter : meshes)
@@ -22,4 +23,5 @@ RefPtr<Mesh> Model::GetMesh(const std::string& name)
 
     return nullptr;
 }
+
 } // namespace Engine

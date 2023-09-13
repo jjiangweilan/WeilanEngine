@@ -8,13 +8,19 @@
 namespace Engine
 {
 
-using ResourceID = std::string;
-
+using ResourceTypeID = UUID;
 class Resource : public Object, Serializable
 {
 public:
-    void SetName(std::string_view name) { this->name = name; }
-    const std::string& GetName() { return name; }
+    virtual const ResourceTypeID& GetResourceTypeID() = 0;
+    void SetName(std::string_view name)
+    {
+        this->name = name;
+    }
+    const std::string& GetName()
+    {
+        return name;
+    }
     virtual ~Resource(){};
     virtual void Reload(Resource&& resource)
     {
@@ -30,7 +36,7 @@ public:
 
     void Deserialize(Serializer* s) override
     {
-        s->Serialize("uuid", uuid);
+        s->Deserialize("uuid", uuid);
         s->Deserialize("name", name);
     }
 
@@ -38,28 +44,52 @@ protected:
     std::string name;
 };
 
-using AssetTypeID = std::string;
-struct AssetRegister
+struct ResourceRegistry
 {
 public:
-    static std::unique_ptr<Resource> CreateAsset(const AssetTypeID& id);
-
-protected:
     using Creator = std::function<std::unique_ptr<Resource>()>;
-    static char RegisterAsset(const AssetTypeID& assetID, const Creator& creator);
+    static std::unique_ptr<Resource> CreateAsset(const ResourceTypeID& id);
+    template <class T>
+    static std::unique_ptr<T> CreateAsset(const ResourceTypeID& id);
+    static char RegisterAsset(const ResourceTypeID& assetID, const Creator& creator);
 
 private:
-    static std::unordered_map<AssetTypeID, std::function<std::unique_ptr<Resource>()>>* GetRegisteredAsset();
-};
-
-template <class T>
-struct AssetFactory : public AssetRegister
-{
-    // inline static AssetID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("xxx");
-    // inline static char reg = RegisterAsset(GetAssetID(), []() { return std::make_unique<T>(); })
+    static std::unordered_map<ResourceTypeID, std::function<std::unique_ptr<Resource>()>>* GetRegisteredAsset();
 };
 
 template <class T>
 concept IsResource = requires { std::derived_from<T, Resource>; };
 
+template <class T>
+std::unique_ptr<T> ResourceRegistry::CreateAsset(const ResourceTypeID& id)
+{
+    std::unique_ptr<Resource> uptr = CreateAsset(id);
+    T* ptr = static_cast<T*>(uptr.release());
+    return std::unique_ptr<T>(ptr);
+}
+
+#define DECLARE_RESOURCE()                                                                                             \
+public:                                                                                                                \
+    static const ResourceTypeID& StaticGetResourceTypeID();                                                            \
+    const ResourceTypeID& GetResourceTypeID() override;                                                                \
+                                                                                                                       \
+private:                                                                                                               \
+    static char _register;                                                                                             \
+                                                                                                                       \
+public:
+
+#define DEFINE_RESOURCE(Type, resourceID)                                                                              \
+    char Type::_register = ResourceRegistry::RegisterAsset(                                                            \
+        StaticGetResourceTypeID(),                                                                                     \
+        []() { return std::unique_ptr<Resource>(new Type()); }                                                         \
+    );                                                                                                                 \
+    const ResourceTypeID& Type::StaticGetResourceTypeID()                                                              \
+    {                                                                                                                  \
+        static const UUID uuid = UUID(resourceID);                                                                     \
+        return uuid;                                                                                                   \
+    }                                                                                                                  \
+    const ResourceTypeID& Type::GetResourceTypeID()                                                                    \
+    {                                                                                                                  \
+        return StaticGetResourceTypeID();                                                                              \
+    }
 } // namespace Engine
