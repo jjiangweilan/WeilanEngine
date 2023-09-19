@@ -7,8 +7,6 @@ GameView::GameView() {}
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
-    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
-
     GetGfxDriver()->WaitForIdle();
     renderer = std::make_unique<SceneRenderer>();
     sceneImage = GetGfxDriver()->CreateImage(
@@ -53,9 +51,9 @@ bool GameView::Tick()
     float width = contentMax.x - contentMin.x;
     float height = contentMax.y - contentMin.y;
     bool creationNeeded =
-        (sceneImage == nullptr || sceneImage->GetDescription().width != (uint32_t)width ||
-         sceneImage->GetDescription().height != (uint32_t)height && !ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
-             !ImGui::IsMouseDown(ImGuiMouseButton_Left));
+        ((sceneImage == nullptr || sceneImage->GetDescription().width != (uint32_t)width ||
+          (sceneImage->GetDescription().height != (uint32_t)height)) &&
+         !ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Left));
     if (creationNeeded && width != 0 && height != 0)
     {
         CreateRenderData(width, height);

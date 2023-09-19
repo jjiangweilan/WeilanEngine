@@ -62,7 +62,7 @@ protected:
     std::vector<RefPtr<GameObject>> roots;
     std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
 
-    Camera* camera;
+    Camera* camera = nullptr;
 
     void TickGameObject(RefPtr<GameObject> obj);
 };
