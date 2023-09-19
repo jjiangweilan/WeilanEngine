@@ -10,8 +10,14 @@ class Object
 public:
     virtual ~Object(){};
 
-    const UUID& GetUUID() { return uuid; }
-    void SetUUID(const UUID& uuid) { this->uuid = uuid; }
+    const UUID& GetUUID()
+    {
+        return uuid;
+    }
+    void SetUUID(const UUID& uuid)
+    {
+        this->uuid = uuid;
+    }
 
 protected:
     UUID uuid;

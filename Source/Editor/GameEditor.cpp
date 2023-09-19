@@ -1,11 +1,11 @@
 #include "GameEditor.hpp"
-#include "AssetDatabase/Asset.hpp"
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
+#include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Inspectors/Inspector.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include "Tools/EnvironmentBaker.hpp"
-#include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <unordered_map>
@@ -47,38 +47,22 @@ GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
 }
-
-void SceneTree(Transform* transform)
+void GameEditor::SceneTree(Transform* transform)
 {
+    ImGuiTreeNodeFlags nodeFlags =
+        ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+    if (transform->GetGameObject() == selectedObject)
+        nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-    if (ImGui::TreeNode(transform->GetGameObject()->GetName().c_str()))
+    bool treeOpen = ImGui::TreeNodeEx(transform->GetGameObject()->GetName().c_str(), nodeFlags);
+    if (ImGui::IsItemClicked())
+    {
+        selectedObject = transform->GetGameObject();
+    }
+
+    if (treeOpen)
     {
         GameObject* go = transform->GetGameObject();
-        for (auto& c : go->GetComponents())
-        {
-            if (c->GetName() == "Transform")
-            {
-                auto pos = transform->GetPosition();
-                if (ImGui::InputFloat3("Position", &pos[0]))
-                {
-                    transform->SetPosition(pos);
-                }
-
-                auto rotation = transform->GetRotation();
-                if (ImGui::InputFloat3("rotation", &rotation[0]))
-                {
-                    transform->SetRotation(rotation);
-                }
-            }
-            if (c->GetName() == "Light")
-            {
-                Light* light = static_cast<Light*>(c.Get());
-                float intensity = light->GetIntensity();
-                ImGui::DragFloat("intensity", &intensity);
-                light->SetIntensity(intensity);
-            }
-        }
-
         for (auto child : transform->GetChildren())
         {
             SceneTree(child.Get());
@@ -87,12 +71,24 @@ void SceneTree(Transform* transform)
     }
 }
 
-static void SceneTree(Scene& scene)
+void GameEditor::SceneTree(Scene& scene)
 {
-    ImGui::Begin("Scene");
+    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_MenuBar);
+
+    ImGui::BeginMenuBar();
+    if (ImGui::BeginMenu("Objects"))
+    {
+        if (ImGui::MenuItem("Create Object"))
+        {
+            scene.CreateGameObject();
+        }
+        ImGui::EndMenu();
+    }
+    ImGui::EndMenuBar();
+
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root->GetTransform().Get());
+        SceneTree(root->GetTransform());
     }
     ImGui::End();
 }
@@ -123,18 +119,24 @@ void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::strin
 void GameEditor::OpenSceneWindow()
 {
     static bool openSceneWindow = false;
+    static bool createSceneWindow = false;
     if (ImGui::BeginMenu("Assets"))
     {
+        if (ImGui::MenuItem("Create Scene"))
+        {
+            createSceneWindow = !createSceneWindow;
+        }
         if (ImGui::MenuItem("Open Scene"))
         {
             openSceneWindow = !openSceneWindow;
         }
         ImGui::EndMenu();
     }
+
     if (openSceneWindow)
     {
         ImGui::Begin(
-            "Open Scene...",
+            "Open Scene",
             nullptr,
             ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings
         );
@@ -142,16 +144,46 @@ void GameEditor::OpenSceneWindow()
         static char openScenePath[1024];
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
-        {}
+        {
+            activeScene = (Scene*)engine->assetDatabase->LoadAsset(openScenePath);
+            openSceneWindow = false;
+        }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Close"))
-        {}
+        {
+            openSceneWindow = false;
+        }
+
+        ImGui::End();
+    }
+
+    if (createSceneWindow)
+    {
+        ImGui::Begin(
+            "Create Scene",
+            nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings
+        );
+
+        static char createScenePath[1024];
+        ImGui::InputText("path", createScenePath, 1024);
+        if (ImGui::Button("Create"))
+        {
+            auto scene = std::make_unique<Scene>();
+            engine->assetDatabase->SaveAsset(std::move(scene), createScenePath);
+            createSceneWindow = false;
+        }
+        if (ImGui::Button("Close"))
+        {
+            openSceneWindow = false;
+        }
 
         ImGui::End();
     }
 }
+
 void GameEditor::MainMenuBar()
 {
     ImGui::BeginMainMenuBar();
@@ -326,12 +358,13 @@ void GameEditor::GUIPass()
     if (isEditorCameraActive)
         EditorCameraWalkAround(*editorCamera);
 
-    Scene* scene = nullptr;
+    gameView.Tick();
+    InspectorWindow();
 
-    if (scene)
+    if (activeScene)
     {
-        if (sceneTree)
-            SceneTree(*scene);
+        if (activeScene)
+            SceneTree(*activeScene);
     }
 }
 
@@ -354,6 +387,9 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd)
             t.tool->Render(cmd);
     }
 
+    if (activeScene)
+        gameView.Render(cmd, activeScene);
+
     // make sure we don't have  sync issue with tool rendering
     cmd.Barrier(&barrier, 1);
 
@@ -361,4 +397,16 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd)
 }
 
 void GameEditor::OpenWindow() {}
+
+void GameEditor::InspectorWindow()
+{
+    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_MenuBar);
+    if (selectedObject)
+    {
+        InspectorBase* inspector = InspectorRegistry::GetInspector(*selectedObject);
+
+        inspector->DrawInspector();
+    }
+    ImGui::End();
+}
 } // namespace Engine::Editor

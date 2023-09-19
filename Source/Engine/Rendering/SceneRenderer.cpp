@@ -198,7 +198,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     Connect(uploadSceneBuffer, 0, shadowPass, 1);
 
     std::vector<Gfx::ClearValue> clearValues = {
-        {.color = {{3 / 255.0f, 190 / 255.0f, 252 / 255.0f, 1}}},
+        {.color = {{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}}},
         {.depthStencil = {.depth = 1}}};
     auto forwardOpaque = AddNode2(
         {

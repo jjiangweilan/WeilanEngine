@@ -11,15 +11,12 @@ namespace Engine
 class JsonSerializer : public Serializer
 {
 public:
-    // used for deserialization
-    JsonSerializer(const nlohmann::json& j, SerializeReferenceResolveMap* referenceResolveMap = nullptr)
-        : Serializer(referenceResolveMap), j(j)
-    {}
+    JsonSerializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : Serializer(data, resolve)
+    {
+        j = nlohmann::json::parse(data.begin(), data.end());
+    }
 
-    // used for serialization
-    JsonSerializer() : j(nlohmann::json::object()), Serializer(nullptr) {}
-
-    JsonSerializer(SerializeReferenceResolveMap* referenceResolveMap) : Serializer(referenceResolveMap) {}
+    JsonSerializer() : j(nlohmann::json::object()) {}
 
     void Serialize(std::string_view name, const std::string& val) override;
     void Deserialize(std::string_view name, std::string& val) override;
@@ -27,10 +24,31 @@ public:
     void Serialize(std::string_view name, const UUID& uuid) override;
     void Deserialize(std::string_view name, UUID& uuid) override;
 
-    std::vector<unsigned char> GetBinary() override
+    void Serialize(std::string_view name, const uint32_t& v) override;
+    void Deserialize(std::string_view name, uint32_t& v) override;
+
+    void Serialize(std::string_view name, const int32_t& v) override;
+    void Deserialize(std::string_view name, int32_t& v) override;
+
+    void Serialize(std::string_view name, const float& v) override;
+    void Deserialize(std::string_view name, float& v) override;
+
+    void Serialize(std::string_view name, const glm::mat4& v) override;
+    void Deserialize(std::string_view name, glm::mat4& v) override;
+
+    void Serialize(std::string_view name, const glm::quat& v) override;
+    void Deserialize(std::string_view name, glm::quat& v) override;
+
+    void Serialize(std::string_view name, const glm::vec4& v) override;
+    void Deserialize(std::string_view name, glm::vec4& v) override;
+
+    void Serialize(std::string_view name, const glm::vec3& v) override;
+    void Deserialize(std::string_view name, glm::vec3& v) override;
+
+    std::vector<uint8_t> GetBinary() override
     {
         std::string b = j.dump();
-        std::vector<unsigned char> a(b.begin(), b.end());
+        std::vector<uint8_t> a(b.begin(), b.end());
         return a;
     }
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
@@ -17,9 +17,9 @@ class ShaderResource;
 
 class AssetDatabase;
 class AssetFileData;
-class Material : public Resource
+class Material : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
     Material(RefPtr<Shader> shader);
@@ -60,7 +60,7 @@ public:
     void Deserialize(Serializer* s) override;
 
 private:
-    RefPtr<Shader> shader = nullptr;
+    Shader* shader = nullptr;
     UniPtr<Gfx::ShaderResource> shaderResource;
     Gfx::ShaderConfig shaderConfig;
 

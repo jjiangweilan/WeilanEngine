@@ -1,51 +1,39 @@
 #pragma once
-#include "Asset.hpp"
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
+#include "Internal/AssetData.hpp"
 #include <filesystem>
-
 namespace Engine
 {
-
 class AssetDatabase
 {
 public:
-    AssetDatabase(const std::filesystem::path& path) { assetRootPath = path; };
+    AssetDatabase(const std::filesystem::path& projectRoot);
 
 public:
-    Asset* LoadAsset(const std::filesystem::path& path);
+    // path: relative path as projectRoot/Assets/{path}
+    Asset* LoadAsset(std::filesystem::path path);
 
-    template <class T>
-    Asset* CreateAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path);
+    Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
 
 private:
-    std::filesystem::path assetRootPath;
-    std::unordered_map<std::string, std::shared_ptr<Asset>> assets;
-};
+    const std::filesystem::path projectRoot;
+    const std::filesystem::path assetPath;
+    const std::filesystem::path assetDatabasePath;
 
-template <class T>
-Asset* AssetDatabase::CreateAsset(std::unique_ptr<T>&& resource, const std::filesystem::path& path)
-{
-    std::shared_ptr<Asset> newAsset = std::make_unique<Asset>(std::move(resource), assetRootPath / path);
-
-    JsonSerializer ser;
-    //newAsset->Serialize<T>(&ser);
-
-    std::ofstream out;
-    out.open(newAsset->GetPath(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-    if (out.is_open() && out.good())
+    class Assets
     {
-        auto binary = ser.GetBinary();
+    public:
+        Asset* Add(const std::filesystem::path& path, std::unique_ptr<AssetData>&& asset);
+        AssetData* GetAssetData(const std::filesystem::path& path);
 
-        if (binary.size() != 0)
-        {
-            out.write((char*)binary.data(), binary.size());
-        }
-    }
-    out.close();
+        // get by asset's uuid
+        AssetData* GetAssetData(const UUID& uuid);
 
-    Asset* temp = newAsset.get();
-    assets[path.string()] = std::move(newAsset);
+    private:
+        std::unordered_map<std::string, AssetData*> byPath;
+        std::unordered_map<UUID, std::unique_ptr<AssetData>> data;
+    } assets;
 
-    return temp;
-}
+    SerializeReferenceResolveMap referenceResolveMap;
+};
 } // namespace Engine

@@ -62,6 +62,7 @@ void WeilanEngine::BeginFrame()
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
 
+    renderPipeline->AcquireSwapchainImage();
     frameCmdBuffer->GetActive()->Begin();
 }
 
@@ -112,7 +113,7 @@ Gfx::CommandBuffer& WeilanEngine::GetActiveCmdBuffer()
     return *frameCmdBuffer->GetActive();
 }
 
-Resource* WeilanEngine::LoadAsset(const char* path)
+Asset* WeilanEngine::LoadAsset(const char* path)
 {
     assetDatabase->LoadAsset(path);
 }

@@ -1,16 +1,16 @@
 #include "Scene.hpp"
 namespace Engine
 {
-DEFINE_RESOURCE(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7");
+DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
-Scene::Scene() : Resource(), systemEventCallbacks()
+Scene::Scene() : Asset(), systemEventCallbacks()
 {
     name = "New GameScene";
 }
 
 GameObject* Scene::CreateGameObject()
 {
-    UniPtr<GameObject> newObj = MakeUnique<GameObject>(this);
+    std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
     RefPtr<GameObject> refObj = gameObjects.back();
     roots.push_back(refObj);

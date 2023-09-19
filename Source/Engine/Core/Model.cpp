@@ -2,7 +2,7 @@
 
 namespace Engine
 {
-DEFINE_RESOURCE(Model, "168A5885-3B44-44F3-A29F-EC9CDECE6F67");
+DEFINE_ASSET(Model, "168A5885-3B44-44F3-A29F-EC9CDECE6F67", "glb");
 
 Model::Model(std::unordered_map<std::string, UniPtr<Mesh>>&& meshes_, const UUID& uuid) : meshes(std::move(meshes_))
 {

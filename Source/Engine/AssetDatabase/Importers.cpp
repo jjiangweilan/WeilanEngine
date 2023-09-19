@@ -1,9 +1,9 @@
 #include "Importers.hpp"
+#include "Asset/Material.hpp"
+#include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/Graphics/Material.hpp"
 #include "Core/Graphics/Mesh2.hpp"
-#include "Core/Resource.hpp"
 #include "Core/Texture.hpp"
 #include "spdlog/spdlog.h"
 #include <filesystem>
@@ -31,7 +31,7 @@ std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-void SetAssetNameAndUUID(Resource* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
+void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 std::unique_ptr<Submesh> ExtractPrimitive(
     nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
 );
@@ -91,7 +91,8 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         std::unique_ptr<Material> mat = std::make_unique<Material>();
         SetAssetNameAndUUID(mat.get(), jsonData, "materials", i);
 
-        mat->SetShader(shader);
+        if (shader)
+            mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
         mat->GetShaderConfig().cullMode =
@@ -244,7 +245,7 @@ void GetGLBData(
     );
 }
 
-void SetAssetNameAndUUID(Resource* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
+void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
 {
     auto& meshJson = j[assetGroupName][index];
 

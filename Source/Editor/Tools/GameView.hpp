@@ -10,7 +10,7 @@ namespace Engine::Editor
 class GameView : public Tool
 {
 public:
-    GameView(SceneManager& sceneManager);
+    GameView();
     ~GameView() override{};
 
 public:
@@ -21,10 +21,9 @@ public:
 
     bool Tick() override;
 
-    void Render(Gfx::CommandBuffer& cmd) override;
+    void Render(Gfx::CommandBuffer& cmd, Scene* scene);
 
 private:
-    SceneManager& sceneManager;
     Scene* scene = nullptr;
     std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;

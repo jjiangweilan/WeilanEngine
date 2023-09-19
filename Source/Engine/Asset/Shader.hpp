@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Libs/Ptr.hpp"
 #include <string>
@@ -10,9 +10,9 @@ namespace Gfx
 class ShaderProgram;
 class ShaderLoader;
 } // namespace Gfx
-class Shader : public Resource
+class Shader : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
     Shader(){};
@@ -20,7 +20,7 @@ public:
         const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty
     );
     Shader(const char* path);
-    void Reload(Resource&& loaded) override;
+    void Reload(Asset&& loaded) override;
     ~Shader() override {}
 
     inline RefPtr<Gfx::ShaderProgram> GetShaderProgram()

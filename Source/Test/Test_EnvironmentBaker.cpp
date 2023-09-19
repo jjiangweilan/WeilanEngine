@@ -1,4 +1,3 @@
-#include "AssetDatabase/Importers.hpp"
 #include "WeilanEngine.hpp"
 #include <gtest/gtest.h>
 using namespace Engine;
@@ -10,14 +9,12 @@ TEST(EnvironmentBaker, Test0)
     auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
     Engine::Scene scene;
 
-    sceneRenderer->BuildGraph(
-        {
-            .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-            .layout = Gfx::ImageLayout::Present_Src_Khr,
-            .accessFlags = Gfx::AccessMask::None,
-            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-        }
-    );
+    sceneRenderer->BuildGraph({
+        .finalImage = *GetGfxDriver()->GetSwapChainImage(),
+        .layout = Gfx::ImageLayout::Present_Src_Khr,
+        .accessFlags = Gfx::AccessMask::None,
+        .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
+    });
     auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
     ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
 

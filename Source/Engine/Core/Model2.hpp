@@ -1,6 +1,6 @@
 #pragma once
+#include "Asset/Material.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/Graphics/Material.hpp"
 #include "Graphics/Mesh2.hpp"
 #include <glm/glm.hpp>
 #include <span>
@@ -9,9 +9,9 @@
 
 namespace Engine
 {
-class Model2 : public Resource
+class Model2 : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
     Model2() {}
@@ -39,6 +39,13 @@ public:
 
         return nullptr;
     }
+
+    bool IsExternalAsset() override
+    {
+        return true;
+    }
+
+    bool LoadFromFile(const char* path) override;
 
     std::span<GameObject*> GetRootGameObject()
     {

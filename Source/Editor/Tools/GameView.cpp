@@ -3,40 +3,35 @@
 #include "ThirdParty/imgui/imgui.h"
 namespace Engine::Editor
 {
-GameView::GameView(SceneManager& sceneManager) : sceneManager(sceneManager) {}
+GameView::GameView() {}
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
 
-    scene = sceneManager.GetActiveScene();
-
-    if (scene)
-    {
-        GetGfxDriver()->WaitForIdle();
-        renderer = std::make_unique<SceneRenderer>();
-        sceneImage = GetGfxDriver()->CreateImage(
-            {
-                .width = width,
-                .height = height,
-                .format = Gfx::ImageFormat::R8G8B8A8_SRGB,
-                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                .mipLevels = 1,
-                .isCubemap = false,
-            },
-            Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
-        );
-        renderer->BuildGraph({
-            .finalImage = *sceneImage,
-            .layout = Gfx::ImageLayout::Shader_Read_Only,
-            .accessFlags = Gfx::AccessMask::Shader_Read,
-            .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-        });
-        renderer->Process();
-    }
+    GetGfxDriver()->WaitForIdle();
+    renderer = std::make_unique<SceneRenderer>();
+    sceneImage = GetGfxDriver()->CreateImage(
+        {
+            .width = width,
+            .height = height,
+            .format = Gfx::ImageFormat::R8G8B8A8_SRGB,
+            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+            .mipLevels = 1,
+            .isCubemap = false,
+        },
+        Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
+    );
+    renderer->BuildGraph({
+        .finalImage = *sceneImage,
+        .layout = Gfx::ImageLayout::Shader_Read_Only,
+        .accessFlags = Gfx::AccessMask::Shader_Read,
+        .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+    });
+    renderer->Process();
 }
 
-void GameView::Render(Gfx::CommandBuffer& cmd)
+void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 {
     float width = sceneImage->GetDescription().width;
     float height = sceneImage->GetDescription().height;
@@ -51,15 +46,16 @@ bool GameView::Tick()
     bool open = true;
 
     ImGui::Begin("Game View", &open);
+
     // create scene color if it's null or if the window size is changed
     auto contentMax = ImGui::GetWindowContentRegionMax();
     auto contentMin = ImGui::GetWindowContentRegionMin();
     float width = contentMax.x - contentMin.x;
     float height = contentMax.y - contentMin.y;
     bool creationNeeded =
-        (scene == nullptr || scene != sceneManager.GetActiveScene() || sceneImage == nullptr ||
-         sceneImage->GetDescription().width != (uint32_t)width ||
-         sceneImage->GetDescription().height != (uint32_t)height);
+        (sceneImage == nullptr || sceneImage->GetDescription().width != (uint32_t)width ||
+         sceneImage->GetDescription().height != (uint32_t)height && !ImGui::IsMouseDragging(ImGuiMouseButton_Left) &&
+             !ImGui::IsMouseDown(ImGuiMouseButton_Left));
     if (creationNeeded && width != 0 && height != 0)
     {
         CreateRenderData(width, height);

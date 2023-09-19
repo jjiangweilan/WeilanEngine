@@ -10,7 +10,7 @@
 #include <spdlog/spdlog.h>
 namespace Engine
 {
-DEFINE_RESOURCE(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8");
+DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
@@ -220,11 +220,11 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
     LoadKtxTexture(imageData, imageByteSize);
 }
 
-void Texture::Reload(Resource&& loaded)
+void Texture::Reload(Asset&& loaded)
 {
     Texture* newTex = static_cast<Texture*>(&loaded);
     image = std::move(newTex->image);
-    Resource::Reload(std::move(loaded));
+    Asset::Reload(std::move(loaded));
 }
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)

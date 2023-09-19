@@ -1,12 +1,12 @@
 #pragma once
 
+#include "Asset.hpp"
 #include "Core/Graphics/Mesh.hpp"
-#include "Resource.hpp"
 namespace Engine
 {
-class Model : public Resource
+class Model : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
     Model() {}

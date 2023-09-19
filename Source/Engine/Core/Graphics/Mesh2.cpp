@@ -4,7 +4,9 @@
 
 namespace Engine
 {
-DEFINE_RESOURCE(Mesh2, "8D66F112-935C-47B1-B62F-728CBEA20CBD");
+
+// Mesh2 should be imported through model that's why we just use a Mesh2PlaceHolder
+DEFINE_ASSET(Mesh2, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "Mesh2PlaceHolder");
 
 Submesh::~Submesh() {}
 Submesh::Submesh(

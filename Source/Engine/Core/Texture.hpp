@@ -1,6 +1,6 @@
 #pragma once
+#include "Asset.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Resource.hpp"
 #include <ktx.h>
 
 namespace Engine
@@ -21,9 +21,9 @@ struct KtxTexture
     ktx_uint8_t* imageData;
     size_t byteSize;
 };
-class Texture : public Resource
+class Texture : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
     Texture(){};
@@ -46,7 +46,7 @@ public:
     {
         return desc;
     }
-    void Reload(Resource&& loaded) override;
+    void Reload(Asset&& loaded) override;
 
 private:
     TextureDescription desc;

@@ -5,7 +5,7 @@
 #include <spdlog/spdlog.h>
 namespace Engine
 {
-DEFINE_RESOURCE(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147");
+DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
 
 Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
     : shaderProgram(std::move(shaderProgram))
@@ -29,23 +29,23 @@ Shader::Shader(const char* path)
     this->name = path;
 }
 
-void Shader::Reload(Resource&& other)
+void Shader::Reload(Asset&& other)
 {
     Shader* casted = static_cast<Shader*>(&other);
-    Resource::Reload(std::move(other));
+    Asset::Reload(std::move(other));
     shaderName = (std::move(casted->shaderName));
     shaderProgram = (std::move(casted->shaderProgram));
 }
 
 void Shader::Serialize(Serializer* s) const
 {
-    Resource::Serialize(s);
+    Asset::Serialize(s);
     s->Serialize("shaderName", shaderName);
 }
 
 void Shader::Deserialize(Serializer* s)
 {
-    Resource::Deserialize(s);
+    Asset::Deserialize(s);
     s->Deserialize("shaderName", shaderName);
 }
 } // namespace Engine

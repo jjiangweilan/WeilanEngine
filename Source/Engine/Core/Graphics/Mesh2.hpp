@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "Libs/Ptr.hpp"
 #include <glm/glm.hpp>
@@ -70,12 +70,12 @@ private:
     std::string name;
 };
 
-class Mesh2 : public Resource
+class Mesh2 : public Asset
 {
-    DECLARE_RESOURCE();
+    DECLARE_ASSET();
 
 public:
-    Mesh2(UUID uuid = UUID::empty) : Resource(), submeshes()
+    Mesh2(UUID uuid = UUID::empty) : Asset(), submeshes()
     {
         SetUUID(uuid);
     }

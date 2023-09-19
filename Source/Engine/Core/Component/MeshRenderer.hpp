@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Asset/Material.hpp"
 #include "Component.hpp"
-#include "Core/Graphics/Material.hpp"
 #include "Core/Graphics/Mesh2.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Utils/Structs.hpp"

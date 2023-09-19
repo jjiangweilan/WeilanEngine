@@ -5,7 +5,7 @@
 #include "Rendering/ImmediateGfx.hpp"
 namespace Engine
 {
-DEFINE_RESOURCE(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941");
+DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material() : shader(nullptr), shaderResource(nullptr)
 {
@@ -143,7 +143,7 @@ void Material::SetShader(RefPtr<Shader> shader)
 
 void Material::SetShaderNoProtection(RefPtr<Shader> shader)
 {
-    this->shader = shader;
+    this->shader = shader.Get();
     shaderConfig = shader->GetDefaultShaderConfig();
     shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         shader->GetShaderProgram(),
@@ -194,7 +194,7 @@ void Material::UpdateResources()
 
 void Material::Serialize(Serializer* s) const
 {
-    Resource::Serialize(s);
+    Asset::Serialize(s);
     s->Serialize("shader", shader);
     s->Serialize("floatValues", floatValues);
     s->Serialize("vectorValues", vectorValues);
@@ -203,7 +203,7 @@ void Material::Serialize(Serializer* s) const
 }
 void Material::Deserialize(Serializer* s)
 {
-    Resource::Deserialize(s);
+    Asset::Deserialize(s);
     s->Deserialize("shader", shader, [this](void* res) { this->SetShader(this->shader); });
     s->Deserialize("floatValues", floatValues);
     s->Deserialize("vectorValues", vectorValues);
@@ -228,5 +228,4 @@ void Material::Deserialize(Serializer* s)
         }
     );
 }
-
 } // namespace Engine

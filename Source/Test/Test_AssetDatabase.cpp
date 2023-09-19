@@ -1,4 +1,9 @@
-#include "AssetDatabase/Asset.hpp"
+#include "Asset/Material.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Asset.hpp"
+#include "Libs/Serialization/JsonSerializer.hpp"
+#include <filesystem>
+#include <fstream>
 #include <gtest/gtest.h>
 
 namespace Engine
@@ -34,26 +39,32 @@ public:
     }
 };
 
-class IAmResource : public Resource
+class IAmResource : public Asset
 {
+    DECLARE_ASSET();
+
 public:
     int x;
     glm::mat4 matrix;
-    IAmReferencable* referencable;
+    IAmResource* referencable;
     std::vector<IAmSerializable> serializableArray;
+    std::unordered_map<std::string, int> unorderedMap;
 
     UUID callbackTest;
 
     void Serialize(Serializer* s) const override
     {
+        Asset::Serialize(s);
         s->Serialize("x", x);
         s->Serialize("matrix", matrix);
         s->Serialize("referencable", referencable);
         s->Serialize("serializableArray", serializableArray);
+        s->Serialize("unorderedMap", unorderedMap);
     }
 
     void Deserialize(Serializer* s) override
     {
+        Asset::Deserialize(s);
         s->Deserialize("x", x);
         s->Deserialize("matrix", matrix);
         s->Deserialize(
@@ -62,89 +73,46 @@ public:
             [this](void* res) { callbackTest = ((IAmReferencable*)res)->GetUUID(); }
         );
         s->Deserialize("serializableArray", serializableArray);
+        s->Deserialize("unorderedMap", unorderedMap);
     }
 };
-
-template <>
-struct AssetFactory<IAmResource> : public ResourceRegistry
-{
-    inline static ResourceTYpeID assetTypeID = GENERATE_SERIALIZABLE_FILE_ID("IAmSerializable");
-    inline static char reg = RegisterAsset(assetTypeID, []() { return std::unique_ptr<Resource>(new IAmResource()); });
-};
+DEFINE_ASSET(IAmResource, "6BD39F47-4980-4134-A0C3-E5BCBDC1A92F", "resExtTest");
 
 } // namespace Engine
 
-TEST(AssetDatabase, SaveLoadFile)
+using namespace Engine;
+TEST(AssetDatabase, Serialization)
 {
-    Engine::IAmReferencable referencable;
-    auto v = std::make_unique<Engine::IAmResource>();
-    v->x = 10;
-    v->referencable = &referencable;
-    v->matrix = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
-    v->serializableArray.emplace_back();
-    v->serializableArray.emplace_back();
-    v->serializableArray[0].x = 10;
-    v->serializableArray[1].x = 100;
+    AssetDatabase db0("./");
+
+    std::unique_ptr<Engine::IAmResource> referencable = std::make_unique<IAmResource>();
+    std::unique_ptr<IAmResource> vv = std::make_unique<IAmResource>();
+    vv->x = 10;
+    vv->referencable = referencable.get();
+    vv->matrix = {{1, 1, 1, 1}, {2, 2, 2, 2}, {3, 3, 3, 3}, {4, 4, 4, 4}};
+    vv->serializableArray.emplace_back();
+    vv->serializableArray.emplace_back();
+    vv->serializableArray[0].x = 10;
+    vv->serializableArray[1].x = 100;
+    vv->unorderedMap["123"] = 123;
+    vv->unorderedMap["321"] = 321;
 
     // create a new asset
-    Engine::Asset newAsset(std::move(v), std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
-    Engine::JsonSerializer ser;
-    newAsset.Serialize<Engine::IAmResource>(&ser);
+    IAmResource* v = (IAmResource*)db0.SaveAsset(std::move(vv), "testRes");
+    db0.SaveAsset(std::move(referencable), "testRef");
 
-    // write serialized file to disk
-    std::ofstream out;
-    out.open(newAsset.GetPath(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-    if (out.is_open() && out.good())
-    {
-        auto binary = ser.GetBinary();
+    // This doesn't really test loading an asset from disk because it's already cached in the database
+    auto r = (IAmResource*)db0.LoadAsset("testRes.resExtTest");
+    auto ref = (IAmResource*)db0.LoadAsset("testRef.resExtTest");
 
-        if (binary.size() != 0)
-        {
-            out.write((char*)binary.data(), binary.size());
-        }
-    }
-    out.close();
-
-    auto vv = (Engine::IAmResource*)newAsset.GetResource();
-    Engine::Asset readAsset(std::filesystem::path(TEMP_FILE_DIR) / "serializable.asset");
-
-    std::ifstream in;
-    in.open(newAsset.GetPath(), std::ios_base::in | std::ios_base::binary);
-    nlohmann::json j;
-    if (in.is_open() && in.good())
-    {
-        size_t size = std::filesystem::file_size(newAsset.GetPath());
-        if (size != 0)
-        {
-            std::string json;
-            in >> json;
-            j = nlohmann::json::parse(json);
-        }
-    }
-    in.close();
-
-    Engine::SerializeReferenceResolveMap referenceResolve;
-    Engine::JsonSerializer serRead(j, &referenceResolve);
-    readAsset.Deserialize(&serRead);
-
-    for (auto& iter : referenceResolve)
-    {
-        if (iter.first == referencable.GetUUID())
-        {
-            for (auto& resolve : iter.second)
-            {
-                resolve.target = &referencable;
-                resolve.callback(&referencable);
-            }
-        }
-    }
-
-    Engine::IAmResource* r = (Engine::IAmResource*)readAsset.GetResource();
-    EXPECT_EQ(r->x, vv->x);
-    EXPECT_EQ(r->matrix, vv->matrix);
-    EXPECT_EQ(r->referencable->GetUUID(), vv->referencable->GetUUID());
-    EXPECT_EQ(r->serializableArray[0].x, vv->serializableArray[0].x);
-    EXPECT_EQ(r->serializableArray[1].x, vv->serializableArray[1].x);
+    EXPECT_EQ(r->x, v->x);
+    EXPECT_EQ(r->matrix, v->matrix);
+    EXPECT_EQ(r->referencable->GetUUID(), ref->GetUUID());
+    EXPECT_EQ(r->serializableArray[0].x, v->serializableArray[0].x);
+    EXPECT_EQ(r->serializableArray[1].x, v->serializableArray[1].x);
+    EXPECT_EQ(r->unorderedMap, v->unorderedMap);
 }
+
+TEST(AssetDatabase, Material) {}
 
 TEST(AssetDatabse, LoadFile) {}

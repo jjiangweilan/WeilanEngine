@@ -2,6 +2,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Renderer.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
+#include "Tools/GameView.hpp"
 #include <ThirdParty/imgui/imgui.h>
 
 namespace Engine
@@ -33,8 +34,13 @@ private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     std::unique_ptr<GameObject> editorCameraGO;
+
+    GameView gameView;
+
     Camera* gameCamera;
     Camera* editorCamera;
+    Scene* activeScene = nullptr;
+    Object* selectedObject = nullptr;
 
     bool sceneTree = true;
     bool sceneInfo = false;
@@ -47,5 +53,9 @@ private:
     void OpenWindow();
     void GUIPass();
     void Render(Gfx::CommandBuffer& cmd);
+
+    void InspectorWindow();
+    void SceneTree(Scene& scene);
+    void SceneTree(Transform* transform);
 };
 } // namespace Engine::Editor

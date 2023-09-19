@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Graphics/Material.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 

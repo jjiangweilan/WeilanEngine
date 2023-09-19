@@ -2,7 +2,7 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ImageView.hpp"
-#include "RenderPass.hpp"
+#include "Resource.hpp"
 #include "ResourceCenter.hpp"
 #include <functional>
 #include <memory>
