@@ -53,7 +53,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
     std::filesystem::path ext = path.extension();
-    auto asset = AssetRegistry::CreateAssetByExtension(ext);
+    auto asset = AssetRegistry::CreateAssetByExtension(ext.string());
     if (asset != nullptr)
     {
         if (asset->IsExternalAsset())

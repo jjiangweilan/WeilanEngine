@@ -255,7 +255,7 @@ void Serializer::Serialize(std::string_view name, T* val)
     if (val)
         Serialize(name, val->GetUUID());
     else
-        Serialize(name, UUID::empty);
+        Serialize(name, UUID::GetEmptyUUID());
 }
 
 template <HasUUID T>
@@ -264,7 +264,7 @@ void Serializer::Deserialize(std::string_view name, T*& val)
     UUID uuid;
     Deserialize(name, uuid);
     val = nullptr;
-    if (resolveCallbacks && uuid != UUID::empty)
+    if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
         (*resolveCallbacks)[uuid].emplace_back((void*&)val, uuid, nullptr);
     }
@@ -276,7 +276,7 @@ void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceReso
     UUID uuid;
     Deserialize(name, uuid);
     val = nullptr;
-    if (resolveCallbacks && uuid != UUID::empty)
+    if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
         (*resolveCallbacks)[uuid].emplace_back((void*&)val, uuid, callback);
     }

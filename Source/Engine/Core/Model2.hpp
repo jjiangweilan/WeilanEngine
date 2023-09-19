@@ -21,7 +21,7 @@ public:
         std::vector<std::unique_ptr<Mesh2>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
         std::vector<std::unique_ptr<Material>>&& materials,
-        UUID uuid = UUID::empty
+        UUID uuid = UUID::GetEmptyUUID()
     )
         : rootGameObjects(std::move(rootGameObjects)), gameObjects(std::move(gameObjects)), meshes(std::move(meshes)),
           textures(std::move(textures)), materials(std::move(materials))

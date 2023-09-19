@@ -75,7 +75,7 @@ class Mesh2 : public Asset
     DECLARE_ASSET();
 
 public:
-    Mesh2(UUID uuid = UUID::empty) : Asset(), submeshes()
+    Mesh2(UUID uuid = UUID::GetEmptyUUID()) : Asset(), submeshes()
     {
         SetUUID(uuid);
     }

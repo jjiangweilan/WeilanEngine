@@ -60,8 +60,11 @@ const UUID& UUID::operator=(const UUID& other)
 
     return *this;
 }
-
-const UUID UUID::empty = UUID(true);
+const UUID& UUID::GetEmptyUUID()
+{
+    static const UUID empty = UUID(true);
+    return empty;
+}
 
 std::mt19937 UUID::generator = CreateGenerator();
 } // namespace Engine

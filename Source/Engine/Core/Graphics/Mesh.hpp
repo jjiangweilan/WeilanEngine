@@ -68,7 +68,7 @@ class Mesh : public Asset
 
 public:
     Mesh() {}
-    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
+    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::GetEmptyUUID());
     ~Mesh();
 
     const MeshBindingInfo& GetMeshBindingInfo()

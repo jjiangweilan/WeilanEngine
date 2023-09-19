@@ -25,7 +25,7 @@ public:
     const UUID& operator=(const UUID& other);
     bool IsEmpty() const;
     const std::string& ToString() const;
-    static const UUID empty;
+    static const UUID& GetEmptyUUID();
 
 private:
     UUID(bool empty);
@@ -35,7 +35,9 @@ private:
 
     friend class std::hash<UUID>;
 };
+
 } // namespace Engine
+  //
 template <>
 struct std::hash<Engine::UUID>
 {

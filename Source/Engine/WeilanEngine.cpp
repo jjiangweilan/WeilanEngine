@@ -115,6 +115,6 @@ Gfx::CommandBuffer& WeilanEngine::GetActiveCmdBuffer()
 
 Asset* WeilanEngine::LoadAsset(const char* path)
 {
-    assetDatabase->LoadAsset(path);
+    return assetDatabase->LoadAsset(path);
 }
 } // namespace Engine

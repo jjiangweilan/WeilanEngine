@@ -17,7 +17,9 @@ class Shader : public Asset
 public:
     Shader(){};
     Shader(
-        const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid = UUID::empty
+        const std::string& name,
+        std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram,
+        const UUID& uuid = UUID::GetEmptyUUID()
     );
     Shader(const char* path);
     void Reload(Asset&& loaded) override;

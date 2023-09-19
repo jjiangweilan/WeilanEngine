@@ -28,9 +28,9 @@ class Texture : public Asset
 public:
     Texture(){};
     // load a ktx texture from file
-    Texture(const char* path, const UUID& uuid = UUID::empty);
-    Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
-    Texture(KtxTexture texDesc, const UUID& uuid = UUID::empty);
+    Texture(const char* path, const UUID& uuid = UUID::GetEmptyUUID());
+    Texture(TextureDescription texDesc, const UUID& uuid = UUID::GetEmptyUUID());
+    Texture(KtxTexture texDesc, const UUID& uuid = UUID::GetEmptyUUID());
     ~Texture() override
     {
         if (desc.keepData && desc.data != nullptr)

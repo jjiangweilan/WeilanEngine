@@ -47,10 +47,8 @@ public:
         Extent2D windowSize;
     };
 
-    static RefPtr<GfxDriver> Instance()
-    {
-        return gfxDriver;
-    }
+    static RefPtr<GfxDriver> Instance();
+
     static std::unique_ptr<GfxDriver> CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
 
     virtual ~GfxDriver(){};
@@ -108,7 +106,7 @@ public:
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
 private:
-    static GfxDriver* gfxDriver;
+    static GfxDriver*& InstanceInternal();
 };
 } // namespace Engine::Gfx
 
