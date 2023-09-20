@@ -3,6 +3,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 namespace Engine
 {
+DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
 MeshRenderer::MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material)
     : Component("MeshRenderer", parent), mesh(mesh), materials({material})
 {}
@@ -22,9 +23,15 @@ void MeshRenderer::SetMaterials(std::span<Material*> materials)
     this->materials = std::vector<Material*>(materials.begin(), materials.end());
 }
 
-Mesh2* MeshRenderer::GetMesh() { return mesh; }
+Mesh2* MeshRenderer::GetMesh()
+{
+    return mesh;
+}
 
-const std::vector<Material*>& MeshRenderer::GetMaterials() { return materials; }
+const std::vector<Material*>& MeshRenderer::GetMaterials()
+{
+    return materials;
+}
 
 void MeshRenderer::Serialize(Serializer* s) const
 {

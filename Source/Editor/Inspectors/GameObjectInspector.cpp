@@ -1,3 +1,4 @@
+#include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
@@ -12,9 +13,13 @@ public:
     void DrawInspector() override
     {
         ImGui::BeginMenuBar();
-
+        // Create Component
         if (ImGui::BeginMenu("Create Component"))
         {
+            if (ImGui::MenuItem("Camera"))
+            {
+                auto camera = target->AddComponent<Camera>();
+            }
             if (ImGui::MenuItem("MeshRenderer"))
             {
                 auto meshRenderer = target->AddComponent<MeshRenderer>();
@@ -24,6 +29,17 @@ public:
         }
         ImGui::EndMenuBar();
 
+        // object information
+        ImGui::Separator();
+        auto& name = target->GetName();
+        char cname[1024];
+        strcpy(cname, name.data());
+        if (ImGui::InputText("Name", cname, 1024))
+        {
+            target->SetName(cname);
+        }
+
+        // Components
         for (auto& c : target->GetComponents())
         {
             Transform* transform = target->GetTransform();

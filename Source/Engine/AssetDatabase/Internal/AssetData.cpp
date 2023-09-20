@@ -8,7 +8,7 @@ AssetData::AssetData(
     : asset(std::move(asset)), assetPath(assetPath), assetDataUUID()
 {
     assetUUID = this->asset->GetUUID();
-    assetTypeID = this->asset->GetAssetTypeID();
+    assetTypeID = this->asset->GetObjectTypeID();
 
     std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
     std::ofstream f(path);

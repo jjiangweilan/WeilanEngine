@@ -8,8 +8,6 @@ Component::Component(std::string_view name, RefPtr<GameObject> gameObject) : nam
     this->gameObject = gameObject.Get();
 }
 
-Component::~Component() {}
-
 GameObject* Component::GetGameObject()
 {
     return gameObject;

@@ -14,6 +14,7 @@ public:
     Asset* LoadAsset(std::filesystem::path path);
 
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
+    void SaveAsset(Asset& asset);
 
 private:
     const std::filesystem::path projectRoot;
@@ -35,5 +36,7 @@ private:
     } assets;
 
     SerializeReferenceResolveMap referenceResolveMap;
+
+    void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
 };
 } // namespace Engine

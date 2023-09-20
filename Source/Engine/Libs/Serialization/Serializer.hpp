@@ -134,6 +134,9 @@ public:
     virtual void Serialize(std::string_view name, const glm::vec3& v) = 0;
     virtual void Deserialize(std::string_view name, glm::vec3& v) = 0;
 
+    virtual void Serialize(std::string_view name, nullptr_t) = 0;
+    virtual bool IsNull(std::string_view name) = 0;
+
     virtual std::vector<uint8_t> GetBinary() = 0;
 
 protected:
@@ -225,13 +228,22 @@ void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const R
 template <class T>
 void Serializer::Serialize(std::string_view name, const std::unique_ptr<T>& val)
 {
-    Serialize(name, *val);
+    if (val == nullptr)
+        Serialize(name, nullptr);
+    else
+        Serialize(name, *val);
 }
 
 template <class T>
 void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
 {
-    Deserialize(name, *val);
+    // there is no situation where val is past in as a non-null value (I guess)
+    if (!IsNull(name))
+    {
+        T* newVal = new T();
+        val.reset(newVal);
+        Deserialize(name, *val);
+    }
 }
 
 template <IsSerializable T>

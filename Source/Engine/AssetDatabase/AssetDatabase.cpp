@@ -38,6 +38,17 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     }
 }
 
+void AssetDatabase::SaveAsset(Asset& asset)
+{
+    // this method only saves asset that is already imported
+    AssetData* assetData = assets.GetAssetData(asset.GetUUID());
+
+    if (assetData != nullptr)
+    {
+        SerializeAssetToDisk(asset, assetData->GetAssetPath());
+    }
+}
+
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 {
     // find the asset if it's already imported
@@ -127,6 +138,21 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
     return nullptr;
 }
 
+void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path)
+{
+    JsonSerializer ser;
+    asset.Serialize(&ser);
+    auto binary = ser.GetBinary();
+    if (binary.size() != 0)
+    {
+        std::ofstream out;
+        out.open(path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+        if (out.is_open() && out.good())
+        {
+            out.write((char*)binary.data(), binary.size());
+        }
+    }
+}
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
     path = assetPath / path;
@@ -137,20 +163,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
         Asset* asset = newAssetData->GetAsset();
 
-        std::ofstream out;
-        out.open(newAssetData->GetAssetPath(), std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-        if (out.is_open() && out.good())
-        {
-            JsonSerializer ser;
-            asset->Serialize(&ser);
-            auto binary = ser.GetBinary();
-
-            if (binary.size() != 0)
-            {
-                out.write((char*)binary.data(), binary.size());
-            }
-        }
-        out.close();
+        SerializeAssetToDisk(*asset, newAssetData->GetAssetPath());
 
         Asset* temp = assets.Add(path, std::move(newAssetData));
 

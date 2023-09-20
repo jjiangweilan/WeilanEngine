@@ -114,7 +114,7 @@ void JsonSerializer::Deserialize(std::string_view name, glm::mat4& v)
 
 void JsonSerializer::Serialize(std::string_view name, const glm::quat& v)
 {
-    nlohmann::json::array_t jq = {};
+    nlohmann::json::array_t jq = {0, 0, 0, 0};
     jq[0] = v.w;
     jq[1] = v.x;
     jq[2] = v.y;
@@ -135,7 +135,7 @@ void JsonSerializer::Deserialize(std::string_view name, glm::quat& v)
 
 void JsonSerializer::Serialize(std::string_view name, const glm::vec4& v)
 {
-    nlohmann::json::array_t jv = {};
+    nlohmann::json::array_t jv = {0, 0, 0, 0};
     jv[0] = v.x;
     jv[1] = v.y;
     jv[2] = v.z;
@@ -156,7 +156,7 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec4& v)
 
 void JsonSerializer::Serialize(std::string_view name, const glm::vec3& v)
 {
-    nlohmann::json jv = {};
+    nlohmann::json jv = {0, 0, 0};
     jv[0] = v.x;
     jv[1] = v.y;
     jv[2] = v.z;
@@ -170,5 +170,14 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec3& v)
     v.x = jq[0];
     v.y = jq[1];
     v.z = jq[2];
+}
+
+void JsonSerializer::Serialize(std::string_view name, nullptr_t)
+{
+    j[TO_JSON_PTR(name)] = nullptr;
+}
+bool JsonSerializer::IsNull(std::string_view name)
+{
+    return j[TO_JSON_PTR(name)].is_null();
 }
 } // namespace Engine

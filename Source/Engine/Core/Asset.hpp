@@ -8,11 +8,9 @@
 namespace Engine
 {
 
-using AssetTypeID = UUID;
 class Asset : public Object, public Serializable
 {
 public:
-    virtual const AssetTypeID& GetAssetTypeID() = 0;
     void SetName(std::string_view name)
     {
         this->name = name;
@@ -64,56 +62,37 @@ struct AssetRegistry
 public:
     using Extension = std::string;
     using Creator = std::function<std::unique_ptr<Asset>()>;
-    static std::unique_ptr<Asset> CreateAsset(const AssetTypeID& id);
+    static std::unique_ptr<Asset> CreateAsset(const ObjectTypeID& id);
     static std::unique_ptr<Asset> CreateAssetByExtension(const Extension& id);
     template <class T>
-    static std::unique_ptr<T> CreateAsset(const AssetTypeID& id);
-    static char RegisterAsset(const AssetTypeID& assetID, const char* ext, const Creator& creator);
-    static char RegisterExternalAsset(const AssetTypeID& assetID, const char* ext, const Creator& creator);
+    static std::unique_ptr<T> CreateAsset(const ObjectTypeID& id);
+    static char RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
+    static char RegisterExternalAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
 
 private:
-    static std::unordered_map<AssetTypeID, std::function<std::unique_ptr<Asset>()>>* GetAssetTypeRegistery();
+    static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Asset>()>>* GetAssetTypeRegistery();
     static std::unordered_map<Extension, std::function<std::unique_ptr<Asset>()>>* GetAssetExtensionRegistry();
 };
 
 template <class T>
 concept IsAsset = requires { std::derived_from<T, Asset>; };
 
-template <class T>
-std::unique_ptr<T> AssetRegistry::CreateAsset(const AssetTypeID& id)
-{
-    std::unique_ptr<Asset> uptr = CreateAsset(id);
-    T* ptr = static_cast<T*>(uptr.release());
-    return std::unique_ptr<T>(ptr);
-}
-
 #define DECLARE_ASSET()                                                                                                \
+    DECLARE_OBJECT()                                                                                                   \
 public:                                                                                                                \
-    static const AssetTypeID& StaticGetAssetTypeID();                                                                  \
-    const AssetTypeID& GetAssetTypeID() override;                                                                      \
     const char* GetExtension() override;                                                                               \
     static const char* StaticGetExtension();                                                                           \
                                                                                                                        \
 private:                                                                                                               \
-    static char _register;                                                                                             \
-                                                                                                                       \
-public:
+    static char _register;
 
-#define DEFINE_ASSET(Type, AssetID, Extension)                                                                         \
+#define DEFINE_ASSET(Type, ObjectID, Extension)                                                                        \
+    DEFINE_OBJECT(Type, ObjectID)                                                                                      \
     char Type::_register = AssetRegistry::RegisterAsset(                                                               \
-        StaticGetAssetTypeID(),                                                                                        \
+        Type::StaticGetObjectTypeID(),                                                                                 \
         StaticGetExtension(),                                                                                          \
         []() { return std::unique_ptr<Asset>(new Type()); }                                                            \
     );                                                                                                                 \
-    const AssetTypeID& Type::StaticGetAssetTypeID()                                                                    \
-    {                                                                                                                  \
-        static const UUID uuid = UUID(AssetID);                                                                        \
-        return uuid;                                                                                                   \
-    }                                                                                                                  \
-    const AssetTypeID& Type::GetAssetTypeID()                                                                          \
-    {                                                                                                                  \
-        return StaticGetAssetTypeID();                                                                                 \
-    }                                                                                                                  \
     const char* Type::GetExtension()                                                                                   \
     {                                                                                                                  \
         return StaticGetExtension();                                                                                   \

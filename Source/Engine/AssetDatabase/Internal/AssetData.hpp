@@ -49,7 +49,7 @@ private:
     UUID assetUUID;
 
     // the resource's type id
-    AssetTypeID assetTypeID;
+    ObjectTypeID assetTypeID;
 
     // this is the path to the resource the AssetFile linked to
     // relative path in Assets/

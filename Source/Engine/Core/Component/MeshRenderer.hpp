@@ -10,6 +10,8 @@ namespace Engine
 {
 class MeshRenderer : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     MeshRenderer();
     MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material);

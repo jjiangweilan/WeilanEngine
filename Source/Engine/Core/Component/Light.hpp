@@ -12,19 +12,36 @@ enum class LightType
 
 class Light : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     Light();
     Light(GameObject* gameObject);
     ~Light();
 
     void SetLightType(LightType type);
-    void SetRange(float range) { this->range = range; }
-    void SetIntensity(float intensity) { this->intensity = intensity; }
+    void SetRange(float range)
+    {
+        this->range = range;
+    }
+    void SetIntensity(float intensity)
+    {
+        this->intensity = intensity;
+    }
     glm::mat4 WorldToShadowMatrix();
 
-    LightType GetLightType() const { return lightType; }
-    float GetRange() const { return range; }
-    float GetIntensity() const { return intensity; }
+    LightType GetLightType() const
+    {
+        return lightType;
+    }
+    float GetRange() const
+    {
+        return range;
+    }
+    float GetIntensity() const
+    {
+        return intensity;
+    }
 
 private:
     LightType lightType = LightType::Directional;

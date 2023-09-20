@@ -130,6 +130,11 @@ void GameEditor::OpenSceneWindow()
         {
             openSceneWindow = !openSceneWindow;
         }
+        if (ImGui::MenuItem("Save Scene"))
+        {
+            if (activeScene)
+                engine->assetDatabase->SaveAsset(*activeScene);
+        }
         ImGui::EndMenu();
     }
 

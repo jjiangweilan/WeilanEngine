@@ -4,6 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 namespace Engine
 {
+DEFINE_OBJECT(Camera, "7BDC1BC9-A96E-4ABC-AE76-DD6AB8C69A19");
 Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projectionMatrix(), viewMatrix()
 {
     if (mainCamera == nullptr)

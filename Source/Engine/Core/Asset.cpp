@@ -1,15 +1,9 @@
 #include "Asset.hpp"
 namespace Engine
 {
-std::unordered_map<AssetTypeID, std::function<std::unique_ptr<Asset>()>>* AssetRegistry::GetAssetTypeRegistery()
+char AssetRegistry::RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator)
 {
-    static std::unique_ptr<std::unordered_map<AssetTypeID, AssetRegistry::Creator>> registeredAsset =
-        std::make_unique<std::unordered_map<AssetTypeID, AssetRegistry::Creator>>();
-    return registeredAsset.get();
-}
-
-char AssetRegistry::RegisterAsset(const AssetTypeID& assetID, const char* ext, const Creator& creator)
-{
+    ObjectRegistry::RegisterObject(assetID, creator);
     GetAssetTypeRegistery()->emplace(assetID, creator);
     GetAssetExtensionRegistry()->emplace(std::string(ext), creator);
     return '0';
@@ -35,7 +29,7 @@ std::unordered_map<AssetRegistry::Extension, std::function<std::unique_ptr<Asset
     return registeredAsset.get();
 }
 
-std::unique_ptr<Asset> AssetRegistry::CreateAsset(const AssetTypeID& id)
+std::unique_ptr<Asset> AssetRegistry::CreateAsset(const ObjectTypeID& id)
 {
     auto iter = GetAssetTypeRegistery()->find(id);
     if (iter != GetAssetTypeRegistery()->end())

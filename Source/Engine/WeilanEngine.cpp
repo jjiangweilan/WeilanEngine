@@ -13,7 +13,7 @@ WeilanEngine::~WeilanEngine()
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1240, 860}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
     renderPipeline = std::make_unique<RenderPipeline>();

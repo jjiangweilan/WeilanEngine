@@ -4,13 +4,17 @@
 
 namespace Engine
 {
+DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
 Light::Light() : Component("Light", nullptr) {}
 
 Light::Light(GameObject* gameObject) : Component("Light", gameObject) {}
 
 Light::~Light() {}
 
-void Light::SetLightType(LightType type) { this->lightType = type; }
+void Light::SetLightType(LightType type)
+{
+    this->lightType = type;
+}
 
 glm::mat4 Light::WorldToShadowMatrix()
 {
