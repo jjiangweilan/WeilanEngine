@@ -11,7 +11,7 @@ class Object
 public:
     virtual ~Object(){};
 
-    const UUID& GetUUID()
+    const UUID& GetUUID() const
     {
         return uuid;
     }

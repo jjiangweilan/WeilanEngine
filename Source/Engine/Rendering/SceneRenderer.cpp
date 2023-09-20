@@ -406,7 +406,7 @@ void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRender
             auto submesh = i < submeshes.size() ? submeshes[i].get() : nullptr;
             auto shader = material ? material->GetShader() : nullptr;
 
-            if (submesh && material && shader)
+            if (submesh != nullptr && material != nullptr && shader != nullptr)
             {
                 // material->SetMatrix("Transform", "model",
                 // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());

@@ -95,49 +95,36 @@ void Scene::Serialize(Serializer* s) const
 {
     s->Serialize("gameObjects", gameObjects);
     s->Serialize("externalGameObjects", externalGameObjects);
+    s->Serialize("roots", roots);
 }
 
 void Scene::Deserialize(Serializer* s)
 {
     s->Deserialize("gameObjects", gameObjects);
-    s->Deserialize(
-        "externalGameObjects",
-        externalGameObjects,
-        [this](void* resource)
-        {
-            if (auto go = static_cast<GameObject*>(resource))
-            {
-                go->SetGameScene(this);
-                Transform* goParent = go->GetTransform()->GetParent().Get();
-                if (!goParent)
-                {
-                    this->roots.push_back(go);
-                }
-            }
-        }
-    );
+    s->Deserialize("externalGameObjects", externalGameObjects);
+    s->Deserialize("roots", roots);
 
-    // find all the root object
-    for (auto& obj : gameObjects)
-    {
-        obj->SetGameScene(this);
-        if (obj->GetTransform()->GetParent() == nullptr)
-        {
-            roots.push_back(obj);
-        }
-    }
+    //// find all the root object
+    // for (auto& obj : gameObjects)
+    //{
+    //     obj->SetGameScene(this);
+    //     if (obj->GetTransform()->GetParent() == nullptr)
+    //     {
+    //         roots.push_back(obj);
+    //     }
+    // }
 
-    for (auto obj : externalGameObjects)
-    {
-        if (obj)
-        {
-            obj->SetGameScene(this);
-            if (obj->GetTransform()->GetParent() == nullptr)
-            {
-                roots.push_back(obj);
-            }
-        }
-    }
+    // for (auto obj : externalGameObjects)
+    //{
+    //     if (obj != nullptr)
+    //     {
+    //         obj->SetGameScene(this);
+    //         if (obj->GetTransform()->GetParent() == nullptr)
+    //         {
+    //             roots.push_back(obj);
+    //         }
+    //     }
+    // }
 }
 
 } // namespace Engine

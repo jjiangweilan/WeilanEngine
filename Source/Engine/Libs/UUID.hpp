@@ -28,7 +28,9 @@ public:
     static const UUID& GetEmptyUUID();
 
 private:
-    UUID(bool empty);
+    struct EmptyTag
+    {};
+    UUID(EmptyTag);
     static std::mt19937 generator;
     uuids::uuid id;
     std::string strID;

@@ -51,7 +51,7 @@ const std::string& UUID::ToString() const
     return strID;
 }
 
-UUID::UUID(bool empty) : id() {}
+UUID::UUID(UUID::EmptyTag) : id() {}
 
 const UUID& UUID::operator=(const UUID& other)
 {
@@ -60,9 +60,10 @@ const UUID& UUID::operator=(const UUID& other)
 
     return *this;
 }
+
 const UUID& UUID::GetEmptyUUID()
 {
-    static const UUID empty = UUID(true);
+    static const UUID empty = UUID(EmptyTag{});
     return empty;
 }
 

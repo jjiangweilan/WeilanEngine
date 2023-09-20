@@ -29,7 +29,7 @@ namespace Engine
 #define ELSE_IF_IS_COMPONENT(Type)                                                                                     \
     else if constexpr (std::is_same_v<R, RefPtr<Type>>)                                                                \
     {                                                                                                                  \
-        if (val)                                                                                                       \
+        if (val != nullptr)                                                                                            \
         {                                                                                                              \
             *((Type**)lua_newuserdata(L, sizeof(void*))) = val.Get();                                                  \
             luaL_setmetatable(L, val->GetName().c_str());                                                              \

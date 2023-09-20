@@ -83,21 +83,38 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 JsonSerializer ser(binary, &resolveMap);
                 asset->Deserialize(&ser);
 
+                auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+                {
+                    while (!resolves.empty())
+                    {
+                        auto& toresolve = resolves.back();
+                        toresolve.target = resolved;
+                        if (toresolve.callback)
+                            toresolve.callback(resolved);
+
+                        resolves.pop_back();
+                    }
+                };
+
                 // resolve reference
                 for (auto& iter : resolveMap)
                 {
+                    // resolve external reference
                     auto assetData = assets.GetAssetData(iter.first);
                     if (assetData)
                     {
-                        while (!iter.second.empty())
-                        {
-                            auto& toresolve = iter.second.back();
-                            toresolve.target = assetData->GetAsset();
-                            if (toresolve.callback)
-                                toresolve.callback(assetData->GetAsset());
+                        ResolveAll(iter.second, assetData->GetAsset());
+                    }
 
-                            iter.second.pop_back();
-                        }
+                    // resolve internal reference
+                    // currently I didn't resolve reference to external contained object
+                    // that can be done by cache a list of contained objects
+                    auto objs = ser.GetContainedObjects();
+                    auto containedObj = objs.find(iter.first);
+                    if (containedObj != objs.end())
+                    {
+                        auto resolved = containedObj->second;
+                        ResolveAll(iter.second, resolved);
                     }
 
                     // add whatever is not resolved to assetDatabase's resolve map
@@ -201,4 +218,5 @@ AssetData* AssetDatabase::Assets::GetAssetData(const UUID& uuid)
     }
     return nullptr;
 }
+
 } // namespace Engine

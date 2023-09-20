@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Object.hpp"
 #include "Libs/Ptr.hpp"
 #include "Libs/UUID.hpp"
 #include "Serializable.hpp"
@@ -11,6 +12,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -20,10 +22,7 @@ namespace Engine
 using ReferenceResolveCallback = std::function<void(void* resource)>;
 
 template <class T>
-concept HasUUID = requires(T* a, UUID uuid) {
-    a->GetUUID();
-    a->SetUUID(uuid);
-};
+concept HasUUID = requires(T* a, UUID uuid) { a->GetUUID(); };
 
 template <class T>
 concept IsSerializable = std::derived_from<T, Serializable>;
@@ -101,7 +100,7 @@ public:
     void Deserialize(std::string_view name, T*& val, const ReferenceResolveCallback& callback);
 
     template <HasUUID T>
-    void Serialize(std::string_view name, RefPtr<T>& val);
+    void Serialize(std::string_view name, RefPtr<T> val);
     template <HasUUID T>
     void Deserialize(std::string_view name, RefPtr<T>& val);
     template <HasUUID T>
@@ -138,9 +137,14 @@ public:
     virtual bool IsNull(std::string_view name) = 0;
 
     virtual std::vector<uint8_t> GetBinary() = 0;
+    const std::unordered_map<UUID, Object*>& GetContainedObjects()
+    {
+        return objects;
+    }
 
 protected:
     SerializeReferenceResolveMap* resolveCallbacks;
+    std::unordered_map<UUID, Object*> objects;
 
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
@@ -230,6 +234,14 @@ void Serializer::Serialize(std::string_view name, const std::unique_ptr<T>& val)
 {
     if (val == nullptr)
         Serialize(name, nullptr);
+
+    if constexpr (std::is_abstract_v<T>)
+    {
+        std::string path = fmt::format("{}/objectTypeID", name);
+        Serialize(path, val->GetObjectTypeID());
+        path = fmt::format("{}/object", name);
+        Serialize(path, *val);
+    }
     else
         Serialize(name, *val);
 }
@@ -237,12 +249,36 @@ void Serializer::Serialize(std::string_view name, const std::unique_ptr<T>& val)
 template <class T>
 void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
 {
-    // there is no situation where val is past in as a non-null value (I guess)
+    // if it's a null it's should stay as null
     if (!IsNull(name))
     {
-        T* newVal = new T();
-        val.reset(newVal);
-        Deserialize(name, *val);
+        T* newVal = nullptr;
+        if constexpr (std::is_abstract_v<T>)
+        {
+            std::string path = fmt::format("{}/objectTypeID", name);
+            ObjectTypeID id;
+            Deserialize(path, id);
+            auto obj = ObjectRegistry::CreateObject(id);
+            if (obj)
+            {
+                auto objPtr = obj.release();
+                val.reset(static_cast<T*>(objPtr));
+            }
+
+            path = fmt::format("{}/object", name);
+            Deserialize(path, *val);
+        }
+        else
+        {
+            newVal = new T();
+            val.reset(newVal);
+            Deserialize(name, *val);
+        }
+
+        if constexpr (std::is_base_of_v<Object, T>)
+        {
+            objects[val->GetUUID()] = val.get();
+        }
     }
 }
 
@@ -259,6 +295,16 @@ void Serializer::Deserialize(std::string_view name, T& val)
 {
     auto s = CreateSubdeserializer(name);
     val.Deserialize(s.get());
+    auto subcontained = s->GetContainedObjects();
+    for (auto& iter : subcontained)
+    {
+        objects[iter.first] = iter.second;
+    }
+
+    if constexpr (std::is_base_of_v<Object, T>)
+    {
+        objects[val.GetUUID()] = &val;
+    }
 }
 
 template <HasUUID T>
@@ -295,7 +341,7 @@ void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceReso
 }
 
 template <HasUUID T>
-void Serializer::Serialize(std::string_view name, RefPtr<T>& val)
+void Serializer::Serialize(std::string_view name, RefPtr<T> val)
 {
     const T* tval = val.Get();
     Serialize(name, tval);

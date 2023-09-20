@@ -24,9 +24,16 @@ std::unordered_map<AssetRegistry::Extension, std::function<std::unique_ptr<Asset
     GetAssetExtensionRegistry()
 {
 
-    static std::unique_ptr<std::unordered_map<Extension, AssetRegistry::Creator>> registeredAsset =
-        std::make_unique<std::unordered_map<Extension, AssetRegistry::Creator>>();
-    return registeredAsset.get();
+    static std::unordered_map<Extension, AssetRegistry::Creator> registeredAsset =
+        std::unordered_map<Extension, AssetRegistry::Creator>();
+    return &registeredAsset;
+}
+
+std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Asset>()>>* AssetRegistry::GetAssetTypeRegistery()
+{
+    static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Asset>()>> registeredAsset =
+        std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Asset>()>>();
+    return &registeredAsset;
 }
 
 std::unique_ptr<Asset> AssetRegistry::CreateAsset(const ObjectTypeID& id)
