@@ -150,7 +150,7 @@ void GameEditor::OpenSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            activeScene = (Scene*)engine->assetDatabase->LoadAsset(openScenePath);
+            activeScene = (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath));
             openSceneWindow = false;
         }
 
@@ -406,12 +406,38 @@ void GameEditor::OpenWindow() {}
 void GameEditor::InspectorWindow()
 {
     ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_MenuBar);
+    static bool lockWindow;
+    static Object* primarySelected;
+
     if (selectedObject)
     {
-        InspectorBase* inspector = InspectorRegistry::GetInspector(*selectedObject);
+        if (ImGui::Checkbox("Lock window", &lockWindow))
+        {
+            if (lockWindow)
+                primarySelected = selectedObject;
+        }
 
-        inspector->DrawInspector();
+        if (!lockWindow)
+            primarySelected = selectedObject;
+
+        if (primarySelected)
+        {
+            InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
+
+            inspector->DrawInspector();
+        }
+        ImGui::End();
+
+        if (lockWindow)
+        {
+            ImGui::Begin("Secondary Inspector", &lockWindow);
+
+            InspectorBase* inspector = InspectorRegistry::GetInspector(*selectedObject);
+
+            inspector->DrawInspector();
+        }
     }
+
     ImGui::End();
 }
 } // namespace Engine::Editor
