@@ -61,6 +61,6 @@ private:
     void InspectorWindow();
 
     void SceneTree(Scene& scene);
-    void SceneTree(Transform* transform);
+    void SceneTree(Transform* transform, int imguiID);
 };
 } // namespace Engine::Editor

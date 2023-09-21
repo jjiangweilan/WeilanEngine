@@ -46,14 +46,14 @@ GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
 }
-void GameEditor::SceneTree(Transform* transform)
+void GameEditor::SceneTree(Transform* transform, int imguiID)
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
     if (transform->GetGameObject() == EditorState::selectedObject)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-    bool treeOpen = ImGui::TreeNodeEx(transform->GetGameObject()->GetName().c_str(), nodeFlags);
+    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}",transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
     if (ImGui::IsItemClicked())
     {
         EditorState::selectedObject = transform->GetGameObject();
@@ -64,7 +64,7 @@ void GameEditor::SceneTree(Transform* transform)
         GameObject* go = transform->GetGameObject();
         for (auto child : transform->GetChildren())
         {
-            SceneTree(child.Get());
+            SceneTree(child.Get(), imguiID++);
         }
         ImGui::TreePop();
     }
@@ -87,7 +87,7 @@ void GameEditor::SceneTree(Scene& scene)
 
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root->GetTransform());
+        SceneTree(root->GetTransform(), 0);
     }
     ImGui::End();
 }
