@@ -86,6 +86,19 @@ public:                                                                         
 private:                                                                                                               \
     static char _register;
 
+#define DECLARE_EXTERNAL_ASSET()                                                                                       \
+    DECLARE_OBJECT()                                                                                                   \
+public:                                                                                                                \
+    const char* GetExtension() override;                                                                               \
+    static const char* StaticGetExtension();                                                                           \
+    bool IsExternalAsset() override                                                                                    \
+    {                                                                                                                  \
+        return true;                                                                                                   \
+    }                                                                                                                  \
+                                                                                                                       \
+private:                                                                                                               \
+    static char _register;
+
 #define DEFINE_ASSET(Type, ObjectID, Extension)                                                                        \
     DEFINE_OBJECT(Type, ObjectID)                                                                                      \
     char Type::_register = AssetRegistry::RegisterAsset(                                                               \

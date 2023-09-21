@@ -61,8 +61,13 @@ Asset* AssetData::GetAsset()
         return asset.get();
     }
 
-    asset = AssetRegistry::CreateAsset(assetTypeID);
-    // asset->LoadFromFile(assetPath.string().c_str());
-    return asset.get();
+    return nullptr;
+}
+
+Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset)
+{
+    asset->SetUUID(assetUUID);
+    this->asset = std::move(asset);
+    return this->asset.get();
 }
 } // namespace Engine

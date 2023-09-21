@@ -1,7 +1,9 @@
+#include "../EditorState.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
@@ -40,13 +42,15 @@ public:
         }
 
         // Components
-        for (auto& c : target->GetComponents())
+        for (auto& co : target->GetComponents())
         {
+            auto& c = *co;
+            ImGui::Separator();
+            ImGui::Text("%s", c.GetName().c_str());
+
             Transform* transform = target->GetTransform();
-            if (c->GetName() == "Transform")
+            if (typeid(c) == typeid(Transform))
             {
-                ImGui::Separator();
-                ImGui::Text("Transform");
                 auto pos = transform->GetPosition();
                 if (ImGui::InputFloat3("Position", &pos[0]))
                 {
@@ -60,20 +64,24 @@ public:
                 }
                 continue;
             }
-            else if (c->GetName() == "Light")
+            else if (typeid(c) == typeid(Light))
             {
-                ImGui::Separator();
-                ImGui::Text("Transform");
-                Light* light = static_cast<Light*>(c.get());
+                Light* light = static_cast<Light*>(&c);
                 float intensity = light->GetIntensity();
                 ImGui::DragFloat("intensity", &intensity);
                 light->SetIntensity(intensity);
                 continue;
             }
-            else if (c->GetName() == "MeshRenderer")
+            else if (typeid(c) == typeid(Camera))
             {
-                ImGui::Separator();
-                ImGui::Text("MeshRenderer");
+                Camera& camera = static_cast<Camera&>(c);
+                if (ImGui::Button("Set as main camera"))
+                {
+                    if (EditorState::activeScene)
+                    {
+                        EditorState::activeScene->SetMainCamera(&camera);
+                    }
+                }
             }
         }
     }

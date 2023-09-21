@@ -13,9 +13,11 @@ WeilanEngine::~WeilanEngine()
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
+    projectPath = createInfo.projectPath;
+
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1240, 860}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-    assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
+    assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     renderPipeline = std::make_unique<RenderPipeline>();
     event = std::make_unique<Event>();
     frameCmdBuffer = std::make_unique<FrameCmdBuffer>(*gfxDriver);
@@ -111,10 +113,5 @@ void WeilanEngine::FrameCmdBuffer::Swap()
 Gfx::CommandBuffer& WeilanEngine::GetActiveCmdBuffer()
 {
     return *frameCmdBuffer->GetActive();
-}
-
-Asset* WeilanEngine::LoadAsset(const char* path)
-{
-    return assetDatabase->LoadAsset(path);
 }
 } // namespace Engine

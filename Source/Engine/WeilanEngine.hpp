@@ -34,7 +34,10 @@ public:
     void EndFrame();
     Gfx::CommandBuffer& GetActiveCmdBuffer();
 
-    Asset* LoadAsset(const char* path);
+    const std::filesystem::path& GetProjectPath()
+    {
+        return projectPath;
+    }
 
     std::vector<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
@@ -62,5 +65,7 @@ private:
 
     std::unique_ptr<FrameCmdBuffer> frameCmdBuffer;
     std::unique_ptr<RenderPipeline> renderPipeline;
+
+    std::filesystem::path projectPath;
 };
 } // namespace Engine

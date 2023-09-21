@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
+#include "EditorState.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
@@ -12,8 +13,6 @@
 
 namespace Engine::Editor
 {
-class EnvironmentBaker;
-
 GameEditor::GameEditor(const char* path)
 {
     engine = std::make_unique<WeilanEngine>();
@@ -51,13 +50,13 @@ void GameEditor::SceneTree(Transform* transform)
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-    if (transform->GetGameObject() == selectedObject)
+    if (transform->GetGameObject() == EditorState::selectedObject)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
     bool treeOpen = ImGui::TreeNodeEx(transform->GetGameObject()->GetName().c_str(), nodeFlags);
     if (ImGui::IsItemClicked())
     {
-        selectedObject = transform->GetGameObject();
+        EditorState::selectedObject = transform->GetGameObject();
     }
 
     if (treeOpen)
@@ -132,8 +131,8 @@ void GameEditor::OpenSceneWindow()
         }
         if (ImGui::MenuItem("Save Scene"))
         {
-            if (activeScene)
-                engine->assetDatabase->SaveAsset(*activeScene);
+            if (EditorState::activeScene)
+                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
         }
         ImGui::EndMenu();
     }
@@ -150,7 +149,7 @@ void GameEditor::OpenSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            activeScene = (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath));
+            EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath));
             openSceneWindow = false;
         }
 
@@ -194,13 +193,19 @@ void GameEditor::MainMenuBar()
     ImGui::BeginMainMenuBar();
     if (ImGui::MenuItem("Editor Camera"))
     {
-        // gameCamera = scene->GetMainCamera();
-        // scene->SetMainCamera(editorCamera);
+        if (EditorState::activeScene)
+        {
+            gameCamera = EditorState::activeScene->GetMainCamera();
+            EditorState::activeScene->SetMainCamera(editorCamera);
+        }
     }
     if (ImGui::MenuItem("Game Camera"))
     {
-        // scene->SetMainCamera(gameCamera);
-        gameCamera = nullptr;
+        if (EditorState::activeScene)
+        {
+            EditorState::activeScene->SetMainCamera(gameCamera);
+            gameCamera = nullptr;
+        }
     }
 
     OpenSceneWindow();
@@ -244,6 +249,16 @@ void GameEditor::MainMenuBar()
         ImGui::EndMenu();
     }
 
+    if (ImGui::BeginMenu("Window"))
+    {
+        if (ImGui::MenuItem("Assets"))
+            assetWindow = !assetWindow;
+        if (ImGui::MenuItem("Inspector"))
+            inspectorWindow = !inspectorWindow;
+
+        ImGui::EndMenu();
+    }
+
     ImGui::EndMainMenuBar();
 }
 
@@ -255,21 +270,6 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     glm::vec3 right = glm::normalize(model[0]);
     glm::vec3 up = glm::normalize(model[1]);
     glm::vec3 forward = glm::normalize(model[2]);
-
-    ImGui::Begin("Test");
-    static float testSpeed = 100;
-    ImGui::DragFloat("Speed", &testSpeed);
-    auto camPos = tsm->GetPosition();
-    if (ImGui::InputFloat3("Editor Cam Pos", &camPos[0]))
-    {
-        tsm->SetPosition(camPos);
-    }
-
-    if (ImGui::Button("Reset"))
-    {
-        editorCamera.GetGameObject()->GetTransform()->SetRotation({0, 0, 0});
-    }
-    ImGui::End();
 
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered())
     {
@@ -312,8 +312,8 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         auto mouseLastClickDelta = ImGui::GetMouseDragDelta(0, 0);
         glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
         lastMouseDelta = mouseLastClickDelta;
-        auto upDown = glm::radians(mouseDelta.y * testSpeed) * Time::DeltaTime();
-        auto leftRight = glm::radians(mouseDelta.x * testSpeed) * Time::DeltaTime();
+        auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
+        auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
 
         auto eye = tsm->GetPosition();
         auto lookAtDelta = leftRight * right - upDown * up;
@@ -364,12 +364,13 @@ void GameEditor::GUIPass()
         EditorCameraWalkAround(*editorCamera);
 
     gameView.Tick();
+    AssetWindow();
     InspectorWindow();
 
-    if (activeScene)
+    if (EditorState::activeScene)
     {
-        if (activeScene)
-            SceneTree(*activeScene);
+        if (EditorState::activeScene)
+            SceneTree(*EditorState::activeScene);
     }
 }
 
@@ -392,8 +393,8 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd)
             t.tool->Render(cmd);
     }
 
-    if (activeScene)
-        gameView.Render(cmd, activeScene);
+    if (EditorState::activeScene)
+        gameView.Render(cmd, EditorState::activeScene);
 
     // make sure we don't have  sync issue with tool rendering
     cmd.Barrier(&barrier, 1);
@@ -405,39 +406,113 @@ void GameEditor::OpenWindow() {}
 
 void GameEditor::InspectorWindow()
 {
-    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_MenuBar);
-    static bool lockWindow;
-    static Object* primarySelected;
-
-    if (selectedObject)
+    if (inspectorWindow)
     {
+        ImGui::Begin("Inspector", &inspectorWindow, ImGuiWindowFlags_MenuBar);
+        static bool lockWindow;
+        static Object* primarySelected;
+
         if (ImGui::Checkbox("Lock window", &lockWindow))
         {
             if (lockWindow)
-                primarySelected = selectedObject;
+                primarySelected = EditorState::selectedObject;
+            else
+                EditorState::selectedObject = primarySelected;
         }
 
-        if (!lockWindow)
-            primarySelected = selectedObject;
-
-        if (primarySelected)
+        if (EditorState::selectedObject)
         {
-            InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
+            if (!lockWindow)
+                primarySelected = EditorState::selectedObject;
 
-            inspector->DrawInspector();
+            if (primarySelected)
+            {
+                InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
+
+                inspector->DrawInspector();
+            }
         }
+
         ImGui::End();
 
         if (lockWindow)
         {
-            ImGui::Begin("Secondary Inspector", &lockWindow);
+            ImGui::Begin("Secondary Inspector", &lockWindow, ImGuiWindowFlags_MenuBar);
 
-            InspectorBase* inspector = InspectorRegistry::GetInspector(*selectedObject);
+            if (EditorState::selectedObject)
+            {
+                InspectorBase* inspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
+                inspector->DrawInspector();
+            }
 
-            inspector->DrawInspector();
+            ImGui::End();
+
+            // recover selected object
+            if (lockWindow == false)
+            {
+                EditorState::selectedObject = primarySelected;
+            }
+        }
+    }
+}
+
+void GameEditor::AssetShowDir(const std::filesystem::path& path)
+{
+    for (auto entry : std::filesystem::directory_iterator(path))
+    {
+        if (entry.is_directory())
+        {
+            auto dir = std::filesystem::relative(entry.path(), path);
+            bool treeOpen = ImGui::TreeNode(dir.string().c_str());
+            if (treeOpen)
+            {
+                AssetShowDir(entry.path());
+                ImGui::TreePop();
+            }
         }
     }
 
-    ImGui::End();
+    for (auto entry : std::filesystem::directory_iterator(path))
+    {
+        if (entry.is_regular_file())
+        {
+            std::string pathStr = entry.path().filename().string();
+            if (ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf))
+            {
+                if (ImGui::IsItemClicked())
+                {
+                    Asset* asset = engine->assetDatabase->LoadAsset(entry.path());
+                    if (asset)
+                    {
+                        EditorState::selectedObject = asset;
+                    }
+                }
+
+                if (ImGui::BeginDragDropSource())
+                {
+                    ImGui::SetDragDropPayload("path", pathStr.c_str(), pathStr.length());
+
+                    ImGui::Text("%s", pathStr.c_str());
+
+                    ImGui::EndDragDropSource();
+                }
+
+                ImGui::TreePop();
+            }
+        }
+    }
 }
+
+void GameEditor::AssetWindow()
+{
+    if (assetWindow)
+    {
+        ImGui::Begin("Assets", &assetWindow);
+        AssetShowDir(engine->GetProjectPath() / "Assets");
+        ImGui::End();
+    }
+}
+
+Object* EditorState::selectedObject = nullptr;
+Scene* EditorState::activeScene = nullptr;
 } // namespace Engine::Editor

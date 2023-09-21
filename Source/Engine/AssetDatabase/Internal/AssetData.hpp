@@ -36,6 +36,7 @@ public:
         return assetPath;
     };
 
+    Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();
 
 private:

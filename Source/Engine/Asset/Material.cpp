@@ -31,18 +31,21 @@ Material::~Material(){};
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
     textureValues.erase(param);
-    shaderResource->SetTexture(param, nullptr);
+    if (shaderResource != nullptr)
+        shaderResource->SetTexture(param, nullptr);
 }
 
 void Material::SetTexture(const std::string& param, RefPtr<Texture> texture)
 {
     textureValues[param] = texture;
-    shaderResource->SetTexture(param, texture->GetGfxImage());
+    if (shaderResource != nullptr)
+        shaderResource->SetTexture(param, texture->GetGfxImage());
 }
 
 void Material::SetTexture(const std::string& param, RefPtr<Gfx::Image> image)
 {
-    shaderResource->SetTexture(param, image);
+    if (shaderResource != nullptr)
+        shaderResource->SetTexture(param, image);
 }
 
 void TransferToGPU(
@@ -78,19 +81,22 @@ void TransferToGPU(
 void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
 {
     matrixValues[param + "." + member] = value;
-    TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    if (shaderResource != nullptr)
+        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
 }
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
 {
     floatValues[param + "." + member] = value;
-    TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    if (shaderResource != nullptr)
+        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
 }
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
 {
     vectorValues[param + "." + member] = value;
-    TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    if (shaderResource != nullptr)
+        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)

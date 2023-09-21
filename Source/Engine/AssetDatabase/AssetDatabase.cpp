@@ -56,7 +56,9 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
     path = assetPath / path;
     if (assetdata)
     {
-        return assetdata->GetAsset();
+        auto a = assetdata->GetAsset();
+        if (a)
+            return a;
     }
 
     if (!std::filesystem::exists(path))
@@ -64,7 +66,12 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
     std::filesystem::path ext = path.extension();
-    auto asset = AssetRegistry::CreateAssetByExtension(ext.string());
+    auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
+    Asset* asset = newAsset.get();
+    if (assetdata)
+    {
+        asset = assetdata->SetAsset(std::move(newAsset));
+    }
     if (asset != nullptr)
     {
         if (asset->IsExternalAsset())
@@ -130,26 +137,28 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             }
         }
 
-        Asset* temp = asset.get();
-        std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(asset), path, projectRoot);
-        assets.Add(assetPath, std::move(ad));
+        if (!assetdata)
+        {
+            std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+            assets.Add(assetPath, std::move(ad));
+        }
 
         // see if there is any reference need to be resolved by this object
-        auto iter = referenceResolveMap.find(temp->GetUUID());
+        auto iter = referenceResolveMap.find(asset->GetUUID());
         if (iter != referenceResolveMap.end())
         {
             for (auto& resolve : iter->second)
             {
-                resolve.target = temp;
+                resolve.target = asset;
                 if (resolve.callback)
                 {
-                    resolve.callback(temp);
+                    resolve.callback(asset);
                 }
             }
             referenceResolveMap.erase(iter);
         }
 
-        return temp;
+        return asset;
     }
 
     return nullptr;

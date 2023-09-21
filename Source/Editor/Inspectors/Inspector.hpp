@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Object.hpp"
 #include "InspectorRegistry.hpp"
-
+#include "ThirdParty/imgui/imgui.h"
 namespace Engine::Editor
 {
 
@@ -22,6 +22,10 @@ public:
     {
         target = static_cast<T*>(&obj);
     }
+    void DrawInspector() override {
+        // default inspector
+        ImGui::Text("%s", ((Object*)target)->GetUUID().ToString().c_str());
+    };
 
 protected:
     T* target;

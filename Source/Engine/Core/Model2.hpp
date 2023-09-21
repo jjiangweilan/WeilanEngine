@@ -11,7 +11,7 @@ namespace Engine
 {
 class Model2 : public Asset
 {
-    DECLARE_ASSET();
+    DECLARE_EXTERNAL_ASSET();
 
 public:
     Model2() {}
@@ -38,11 +38,6 @@ public:
         }
 
         return nullptr;
-    }
-
-    bool IsExternalAsset() override
-    {
-        return true;
     }
 
     bool LoadFromFile(const char* path) override;

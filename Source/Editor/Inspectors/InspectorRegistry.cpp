@@ -20,6 +20,10 @@ InspectorBase* InspectorRegistry::GetInspector(Object& obj)
         return iter->second.get();
     }
 
-    return nullptr;
+    auto defaultInspector = re.find(typeid(Object))->second.get();
+    defaultInspector->SetTarget(obj);
+    return defaultInspector;
 }
+
+const char InspectorRegistry::_defaultInspector = InspectorRegistry::Register<Inspector<Object>, Object>();
 } // namespace Engine::Editor

@@ -96,6 +96,7 @@ void Scene::Serialize(Serializer* s) const
     s->Serialize("gameObjects", gameObjects);
     s->Serialize("externalGameObjects", externalGameObjects);
     s->Serialize("roots", roots);
+    s->Serialize("camera", camera);
 }
 
 void Scene::Deserialize(Serializer* s)
@@ -103,6 +104,7 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("gameObjects", gameObjects);
     s->Deserialize("externalGameObjects", externalGameObjects);
     s->Deserialize("roots", roots);
+    s->Deserialize("camera", camera);
 
     //// find all the root object
     // for (auto& obj : gameObjects)

@@ -9,7 +9,7 @@ void JsonSerializer::Serialize(std::string_view name, const std::string& val)
 }
 void JsonSerializer::Deserialize(std::string_view name, std::string& val)
 {
-    val = j[TO_JSON_PTR(name)];
+    val = j.value(TO_JSON_PTR(name), "");
 }
 
 void JsonSerializer::Serialize(std::string_view name, const UUID& uuid)
@@ -18,7 +18,7 @@ void JsonSerializer::Serialize(std::string_view name, const UUID& uuid)
 }
 void JsonSerializer::Deserialize(std::string_view name, UUID& uuid)
 {
-    uuid = j[TO_JSON_PTR(name)];
+    uuid = j.value(TO_JSON_PTR(name), UUID::GetEmptyUUID());
 }
 
 std::unique_ptr<Serializer> JsonSerializer::CreateSubserializer()
@@ -58,7 +58,7 @@ void JsonSerializer::Serialize(std::string_view name, const uint32_t& v)
 
 void JsonSerializer::Deserialize(std::string_view name, uint32_t& v)
 {
-    v = j[TO_JSON_PTR(name)];
+    v = j.value(TO_JSON_PTR(name), 0);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const int32_t& v)
@@ -67,7 +67,7 @@ void JsonSerializer::Serialize(std::string_view name, const int32_t& v)
 }
 void JsonSerializer::Deserialize(std::string_view name, int32_t& v)
 {
-    v = j[TO_JSON_PTR(name)];
+    v = j.value(TO_JSON_PTR(name), 0);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const float& v)
@@ -77,7 +77,7 @@ void JsonSerializer::Serialize(std::string_view name, const float& v)
 
 void JsonSerializer::Deserialize(std::string_view name, float& v)
 {
-    v = j[TO_JSON_PTR(name)];
+    v = j.value(TO_JSON_PTR(name), 0);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const glm::mat4& v)

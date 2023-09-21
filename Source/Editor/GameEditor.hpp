@@ -39,11 +39,12 @@ private:
 
     Camera* gameCamera;
     Camera* editorCamera;
-    Scene* activeScene = nullptr;
-    Object* selectedObject = nullptr;
 
     bool sceneTree = true;
     bool sceneInfo = false;
+
+    bool assetWindow = true;
+    bool inspectorWindow = true;
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
@@ -54,7 +55,11 @@ private:
     void GUIPass();
     void Render(Gfx::CommandBuffer& cmd);
 
+    void AssetWindow();
+    void AssetShowDir(const std::filesystem::path& path);
+
     void InspectorWindow();
+
     void SceneTree(Scene& scene);
     void SceneTree(Transform* transform);
 };

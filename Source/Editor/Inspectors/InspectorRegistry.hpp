@@ -21,6 +21,7 @@ public:
 
 private:
     static Registry& GetRegistry();
+    static const char _defaultInspector;
 };
 
 template <class InspectorType, class T>
