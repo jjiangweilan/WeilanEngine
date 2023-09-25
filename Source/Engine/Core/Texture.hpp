@@ -1,6 +1,6 @@
 #pragma once
+#include "Asset.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Resource.hpp"
 #include <ktx.h>
 
 namespace Engine
@@ -19,14 +19,18 @@ struct TextureDescription
 struct KtxTexture
 {
     ktx_uint8_t* imageData;
-    uint32_t byteSize;
+    size_t byteSize;
 };
-class Texture : public Resource
+class Texture : public Asset
 {
+    DECLARE_ASSET();
+
 public:
     Texture(){};
-    Texture(TextureDescription texDesc, const UUID& uuid = UUID::empty);
-    Texture(KtxTexture texDesc, const UUID& uuid = UUID::empty);
+    // load a ktx texture from file
+    Texture(const char* path, const UUID& uuid = UUID::GetEmptyUUID());
+    Texture(TextureDescription texDesc, const UUID& uuid = UUID::GetEmptyUUID());
+    Texture(KtxTexture texDesc, const UUID& uuid = UUID::GetEmptyUUID());
     ~Texture() override
     {
         if (desc.keepData && desc.data != nullptr)
@@ -42,11 +46,12 @@ public:
     {
         return desc;
     }
-    void Reload(Resource&& loaded) override;
+    void Reload(Asset&& loaded) override;
 
 private:
     TextureDescription desc;
     UniPtr<Gfx::Image> image;
+    void LoadKtxTexture(uint8_t* data, size_t byteSize);
 };
 
 UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* byteData, std::size_t byteSize);

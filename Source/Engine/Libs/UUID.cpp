@@ -26,9 +26,14 @@ UUID::UUID(const std::string& uuid)
     }
 }
 
+UUID::UUID(const char* uuid) : UUID(std::string(uuid)) {}
+
 UUID::~UUID() {}
 
-bool UUID::IsEmpty() const { return id.is_nil(); }
+bool UUID::IsEmpty() const
+{
+    return id.is_nil();
+}
 
 const std::mt19937 CreateGenerator()
 {
@@ -41,9 +46,12 @@ const std::mt19937 CreateGenerator()
     return generator;
 }
 
-const std::string& UUID::ToString() const { return strID; }
+const std::string& UUID::ToString() const
+{
+    return strID;
+}
 
-UUID::UUID(bool empty) : id() {}
+UUID::UUID(UUID::EmptyTag) : id() {}
 
 const UUID& UUID::operator=(const UUID& other)
 {
@@ -53,7 +61,11 @@ const UUID& UUID::operator=(const UUID& other)
     return *this;
 }
 
-const UUID UUID::empty = UUID(true);
+const UUID& UUID::GetEmptyUUID()
+{
+    static const UUID empty = UUID(EmptyTag{});
+    return empty;
+}
 
 std::mt19937 UUID::generator = CreateGenerator();
 } // namespace Engine

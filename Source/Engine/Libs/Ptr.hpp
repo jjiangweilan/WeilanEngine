@@ -60,8 +60,6 @@ public:
     ~RefPtr();
 
     template <class U>
-    operator RefPtr<U>();
-    template <class U>
     RefPtr(const RefPtr<U>& other);
     template <class U>
     RefPtr<T>& operator=(const RefPtr<U>& other);
@@ -69,7 +67,6 @@ public:
     bool operator==(std::nullptr_t) const;
     bool operator!=(std::nullptr_t) const;
     bool operator==(RefPtr<T> other) const;
-    operator bool() const;
     T* Get() const { return ptr; }
     T*& GetPtrRef() { return ptr; }
     inline T* operator->() const { return ptr; }
@@ -162,12 +159,6 @@ RefPtr<T>::RefPtr(T* purePtr) : ptr(purePtr)
 {}
 
 template <class T>
-RefPtr<T>::operator bool() const
-{
-    return ptr != nullptr;
-}
-
-template <class T>
 template <class U>
 RefPtr<T>& RefPtr<T>::operator=(const RefPtr<U>& other)
 {
@@ -203,12 +194,7 @@ template <class T>
 RefPtr<T>::RefPtr(const std::unique_ptr<T>& ptr) : ptr(ptr.get())
 {}
 
-template <class T>
-template <class U>
-RefPtr<T>::operator RefPtr<U>()
-{
-    return RefPtr<U>(static_cast<U*>(ptr));
-}
+
 
 template <class T>
 bool RefPtr<T>::operator==(RefPtr<T> other) const

@@ -4,6 +4,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 namespace Engine
 {
+DEFINE_OBJECT(Transform, "5583B41B-9FB5-4706-829C-399D7221C789");
 Transform::Transform() : Component("Transform", nullptr) {}
 Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject)
 {

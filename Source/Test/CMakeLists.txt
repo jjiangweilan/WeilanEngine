@@ -24,7 +24,7 @@ target_link_directories(EngineUnitTest
 )
 
 target_link_libraries(EngineUnitTest
-    WeilanEngineLib
+    WeilanEngine
     gtest
 )
 

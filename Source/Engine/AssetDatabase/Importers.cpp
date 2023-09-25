@@ -1,9 +1,9 @@
 #include "Importers.hpp"
+#include "Asset/Material.hpp"
+#include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/Graphics/Material.hpp"
 #include "Core/Graphics/Mesh2.hpp"
-#include "Core/Resource.hpp"
 #include "Core/Texture.hpp"
 #include "spdlog/spdlog.h"
 #include <filesystem>
@@ -31,10 +31,8 @@ std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-void SetAssetNameAndUUID(Resource* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
-std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-);
+void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
+Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
 std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
 {
@@ -55,11 +53,14 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         std::unique_ptr<Mesh2> mesh = std::make_unique<Mesh2>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
+        std::vector<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
-            mesh->submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
+            submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
         }
+        mesh->SetSubmeshes(std::move(submeshes));
+
         toOurMesh[i] = mesh.get();
         meshes.push_back(std::move(mesh));
     }
@@ -91,7 +92,8 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         std::unique_ptr<Material> mat = std::make_unique<Material>();
         SetAssetNameAndUUID(mat.get(), jsonData, "materials", i);
 
-        mat->SetShader(shader);
+        if (shader)
+            mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
         mat->GetShaderConfig().cullMode =
@@ -244,7 +246,7 @@ void GetGLBData(
     );
 }
 
-void SetAssetNameAndUUID(Resource* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
+void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
 {
     auto& meshJson = j[assetGroupName][index];
 
@@ -259,9 +261,7 @@ void SetAssetNameAndUUID(Resource* asset, nlohmann::json& j, const std::string& 
     }
 }
 
-std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-)
+Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex)
 {
     auto& meshJson = j["meshes"][meshIndex];
     auto& primitiveJson = meshJson["primitives"][primitiveIndex];
@@ -312,10 +312,7 @@ std::unique_ptr<Submesh> ExtractPrimitive(
     std::unique_ptr<unsigned char> indexBuffer = std::unique_ptr<unsigned char>(new unsigned char[indexBufferSize]);
     memcpy(indexBuffer.get(), binaryData + indexBufferOffset, indexBufferSize);
 
-    Submesh* mesh =
-        new Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
-
-    return std::unique_ptr<Submesh>(mesh);
+    return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
 }
 
 std::unique_ptr<GameObject> CreateGameObjectFromNode(

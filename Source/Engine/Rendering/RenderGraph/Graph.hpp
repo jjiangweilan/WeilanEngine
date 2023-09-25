@@ -47,18 +47,178 @@ private:
     friend class Graph;
 };
 
+struct Attachment
+{
+    std::string name;
+    ResourceHandle handle;
+    bool create = false;
+    Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+
+    Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    uint32_t mipLevels = 1;
+    bool isCubemap = false;
+    Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store;
+    Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::Clear;
+    Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::Store;
+
+    Gfx::Image* externalImage = nullptr;
+};
+
+struct Subpass
+{
+    uint32_t width;
+    uint32_t height;
+    std::vector<Attachment> colors;
+    std::optional<Attachment> depth;
+};
+
+enum class PassDependencyType
+{
+    Texture,
+    Buffer
+};
+
+struct PassDependency
+{
+    std::string name;
+    ResourceHandle handle;
+    PassDependencyType type;
+    Gfx::PipelineStage stageFlags;
+};
+
+ResourceHandle StrToHandle(const std::string& str);
+
 class Graph
 {
 public:
     virtual ~Graph();
-    // template <class T>
-    // RenderNode* AddNode()
-    // {
-    //     std::unique_ptr<RenderPass> pass = std::unique_ptr<RenderPass>(new T());
-    //     nodes.emplace_back(new RenderNode(std::move(pass)));
-    //     return nodes.back().get();
-    // }
-    //
+
+    // a simplified version of
+    // RenderNode* AddNode(
+    //     const RenderPass::ExecutionFunc& execute,
+    //     const std::vector<RenderPass::ResourceDescription>& resourceDescs,
+    //     const std::vector<RenderPass::Subpass>& subpasses
+    // )
+    RenderNode* AddNode2(
+        const std::vector<PassDependency> dependencies,
+        const std::vector<Subpass>& subpasses,
+        const RenderPass::ExecutionFunc& execute
+    )
+    {
+        std::vector<RenderPass::ResourceDescription> resourceDescriptions;
+
+        // convert from PassDependency to ResourceDescription
+        for (auto& d : dependencies)
+        {
+            if (d.type == PassDependencyType::Texture)
+            {
+                RenderPass::ResourceDescription desc{
+                    .name = d.name,
+                    .handle = d.handle,
+                    .type = ResourceType::Image,
+                    .accessFlags = Gfx::AccessMask::Shader_Read,
+                    .stageFlags = d.stageFlags,
+                    .imageUsagesFlags = Gfx::ImageUsage::Texture,
+                    .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+            else
+            {
+                assert("Not implemented");
+            }
+        }
+
+        std::vector<RenderPass::Subpass> lSubpasses; // l = lower level
+        for (const Subpass& subpass : subpasses)
+        {
+            RenderPass::Subpass lSubpass;
+            for (auto& color : subpass.colors)
+            {
+                RenderPass::Attachment att{
+                    .handle = color.handle,
+                    .multiSampling = color.multiSampling,
+                    .loadOp = color.loadOp,
+                    .storeOp = color.storeOp,
+                    .stencilLoadOp = color.stencilLoadOp,
+                    .stencilStoreOp = color.storeOp};
+
+                lSubpass.colors.push_back(att);
+
+                // there must be write mask but we only add read mask when the color.loadOp is Load or Clear
+                RenderPass::ResourceDescription desc{
+                    .name = color.name,
+                    .handle = color.handle,
+                    .accessFlags = Gfx::AccessMask::Color_Attachment_Write |
+                                   ((color.loadOp == Gfx::AttachmentLoadOperation::Load ||
+                                     color.loadOp == Gfx::AttachmentLoadOperation::Clear)
+                                        ? Gfx::AccessMask::Color_Attachment_Read
+                                        : Gfx::AccessMask::None),
+                    .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
+                    .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
+                    .imageLayout = Gfx::ImageLayout::Color_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = color.create ? subpass.width : 0,
+                            .height = color.create ? subpass.height : 0,
+                            .format = color.format,
+                            .multiSampling = color.multiSampling,
+                            .mipLevels = color.mipLevels,
+                            .isCubemap = color.isCubemap,
+                        },
+                    .externalImage = color.externalImage,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+
+            if (subpass.depth.has_value())
+            {
+                RenderPass::Attachment att{
+                    .handle = subpass.depth->handle,
+                    .multiSampling = subpass.depth->multiSampling,
+                    .loadOp = subpass.depth->loadOp,
+                    .storeOp = subpass.depth->storeOp,
+                    .stencilLoadOp = subpass.depth->stencilLoadOp,
+                    .stencilStoreOp = subpass.depth->storeOp,
+                };
+
+                lSubpass.depth = att;
+
+                RenderPass::ResourceDescription desc{
+                    .name = subpass.depth->name,
+                    .handle = subpass.depth->handle,
+                    .accessFlags = Gfx::AccessMask::Depth_Stencil_Attachment_Write |
+                                   ((subpass.depth->loadOp == Gfx::AttachmentLoadOperation::Load ||
+                                     subpass.depth->loadOp == Gfx::AttachmentLoadOperation::Clear)
+                                        ? Gfx::AccessMask::Depth_Stencil_Attachment_Read
+                                        : Gfx::AccessMask::None),
+                    .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
+                    .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
+                    .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
+                    .imageCreateInfo =
+                        {
+                            .width = subpass.depth->create ? subpass.width : 0,
+                            .height = subpass.depth->create ? subpass.height : 0,
+                            .format = subpass.depth->format,
+                            .multiSampling = subpass.depth->multiSampling,
+                            .mipLevels = subpass.depth->mipLevels,
+                            .isCubemap = subpass.depth->isCubemap,
+                        },
+                    .externalImage = subpass.depth->externalImage,
+                };
+
+                resourceDescriptions.push_back(desc);
+            }
+
+            lSubpasses.push_back(lSubpass);
+        }
+
+        return AddNode(execute, resourceDescriptions, lSubpasses);
+    }
+
     RenderNode* AddNode(
         const RenderPass::ExecutionFunc& execute,
         const std::vector<RenderPass::ResourceDescription>& resourceDescs,
@@ -83,6 +243,9 @@ public:
 
     // execute all nodes for once
     virtual void Execute(Gfx::CommandBuffer& cmd);
+
+    void Clear();
+
 private:
     class ResourcePool
     {
@@ -98,10 +261,11 @@ private:
             images.clear();
             buffers.clear();
         }
+
     private:
         std::vector<std::unique_ptr<Gfx::Image>> images;
         std::vector<std::unique_ptr<Gfx::Buffer>> buffers;
-    } resourcePool;
+    };
 
     // keep track of where the resource is used in the node, so that we can create resource barriers for them
     class ResourceOwner
@@ -127,11 +291,13 @@ private:
 
     static int GetDepthOfNode(RenderNode* node);
 
+protected:
     // rendering related stuffs, maybe factor out of Graph?
 private:
     std::vector<std::unique_ptr<RenderNode>> nodes;
     std::vector<RenderNode*> sortedNodes;
     std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
-};
+    ResourcePool resourcePool;
+}; // namespace Engine::RenderGraph
 } // namespace Engine::RenderGraph

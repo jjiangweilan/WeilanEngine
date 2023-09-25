@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Utils/Structs.hpp"
 #include <string>
@@ -62,17 +62,28 @@ struct VertexDescription
     std::vector<UntypedVertexAttribute> weights;
 };
 
-class Mesh : public Resource
+class Mesh : public Asset
 {
+    DECLARE_ASSET();
+
 public:
     Mesh() {}
-    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::empty);
+    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::GetEmptyUUID());
     ~Mesh();
 
-    const MeshBindingInfo& GetMeshBindingInfo() { return meshBindingInfo; }
+    const MeshBindingInfo& GetMeshBindingInfo()
+    {
+        return meshBindingInfo;
+    }
     const VertexDescription& GetVertexDescription();
-    const std::string& GetName() { return name; }
-    Gfx::IndexBufferType GetIndexBufferType() { return indexBufferType; }
+    const std::string& GetName()
+    {
+        return name;
+    }
+    Gfx::IndexBufferType GetIndexBufferType()
+    {
+        return indexBufferType;
+    }
 
 protected:
     MeshBindingInfo meshBindingInfo;

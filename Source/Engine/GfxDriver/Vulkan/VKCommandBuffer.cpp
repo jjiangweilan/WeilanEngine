@@ -21,20 +21,18 @@ VKCommandBuffer::VKCommandBuffer(VkCommandBuffer vkCmdBuf) : vkCmdBuf(vkCmdBuf) 
 
 VKCommandBuffer::~VKCommandBuffer() {}
 
-void VKCommandBuffer::BeginRenderPass(
-    RefPtr<Gfx::RenderPass> renderPass, const std::vector<Gfx::ClearValue>& clearValues
-)
+void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues)
 {
-    Gfx::VKRenderPass* vRenderPass = static_cast<Gfx::VKRenderPass*>(renderPass.Get());
-    VkRenderPass vkRenderPass = vRenderPass->GetHandle();
-    currentRenderPass = vRenderPass;
+    Gfx::VKRenderPass& vRenderPass = static_cast<Gfx::VKRenderPass&>(renderPass);
+    VkRenderPass vkRenderPass = vRenderPass.GetHandle();
+    currentRenderPass = &vRenderPass;
     currentRenderIndex = 0;
 
     // framebuffer has to get inside the execution function due to how
     // RenderPass handle swapchain image as framebuffer attachment
-    VkFramebuffer vkFramebuffer = vRenderPass->GetFrameBuffer();
+    VkFramebuffer vkFramebuffer = vRenderPass.GetFrameBuffer();
 
-    auto extent = vRenderPass->GetExtent();
+    auto extent = vRenderPass.GetExtent();
     VkRenderPassBeginInfo renderPassBeginInfo;
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.pNext = VK_NULL_HANDLE;
@@ -88,14 +86,14 @@ void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::s
     int imageIndex = 0;
     for (auto& b : bindings)
     {
-        if (b.image != nullptr)
+        if (b.imageView != nullptr)
         {
-            VkDescriptorImageInfo* p = imageInfos + imageIndex;
             for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
             {
-                VKImage* vkImage = static_cast<VKImage*>(b.image + imageJedex);
+                VKImageView* vkImageView = static_cast<VKImageView*>(b.imageView + imageJedex);
+                VKImage* vkImage = static_cast<VKImage*>(&vkImageView->GetImage());
                 auto layout = vkImage->GetLayout();
-                auto imageView = vkImage->GetDefaultImageView();
+                auto imageView = vkImageView->GetHandle();
                 imageInfos[imageIndex] = {.imageView = imageView, .imageLayout = layout};
             }
 
@@ -399,8 +397,6 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             vkBarrier.image = image->GetImage();
             vkBarrier.subresourceRange = range;
 
-            image->ChangeLayout(vkBarrier.newLayout, MapPipelineStage(barrier.dstStageMask), vkBarrier.dstAccessMask);
-
             vkCmdPipelineBarrier(
                 vkCmdBuf,
                 MapPipelineStage(barrier.srcStageMask),
@@ -413,6 +409,8 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
                 1,
                 &vkBarrier
             );
+
+            image->NotifyLayoutChange(vkBarrier.newLayout);
         }
         else
         {
@@ -471,5 +469,10 @@ void VKCommandBuffer::CopyImageToBuffer(
         vkRegions.size(),
         vkRegions.data()
     );
+}
+
+void VKCommandBuffer::Reset(bool releaseResource)
+{
+    vkResetCommandBuffer(vkCmdBuf, releaseResource ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0);
 }
 } // namespace Engine::Gfx

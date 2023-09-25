@@ -99,7 +99,7 @@ void GfxResourceTransfer::ImmediateSubmit()
     cmdBuf->Begin();
     QueueTransferCommands(cmdBuf);
     cmdBuf->End();
-    RefPtr<Gfx::CommandBuffer> cmdBufs[1] = {cmdBuf};
+    Gfx::CommandBuffer* cmdBufs[1] = {cmdBuf.Get()};
     GetGfxDriver()->QueueSubmit(GetGfxDriver()->GetQueue(QueueType::Main), cmdBufs, {}, {}, {}, fence);
     GetGfxDriver()->WaitForFence({fence}, true, -1); // TODO: improvement needed
     fence->Reset();

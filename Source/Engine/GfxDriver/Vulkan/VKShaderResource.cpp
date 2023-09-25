@@ -71,10 +71,11 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
                         {
                             std::string bufferName = fmt::format("{}_UBO", shader->GetName());
-                            Buffer::CreateInfo createInfo{.usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
-                                                          .size = b.second.binding.ubo.data.size,
-                                                          .visibleInCPU = false,
-                                                          .debugName = bufferName.c_str()};
+                            Buffer::CreateInfo createInfo{
+                                .usages = BufferUsage::Uniform | BufferUsage::Transfer_Dst,
+                                .size = b.second.binding.ubo.data.size,
+                                .visibleInCPU = false,
+                                .debugName = bufferName.c_str()};
                             auto buffer = MakeUnique<VKBuffer>(createInfo);
                             VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                             bufferInfo.buffer = buffer->GetHandle();
@@ -100,7 +101,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         VkDescriptorImageInfo imageInfo;
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfo.sampler = sharedResource->GetDefaultSampler();
-                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultImageView();
+                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultVkImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
                         textures["_default_uTexutre"] = sharedResource->GetDefaultTexture();
                         break;
@@ -110,7 +111,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         VkDescriptorImageInfo imageInfo;
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfo.sampler = VK_NULL_HANDLE;
-                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultImageView();
+                        imageInfo.imageView = sharedResource->GetDefaultTexture()->GetDefaultVkImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
                         textures["_default_uTexutre"] = sharedResource->GetDefaultTexture();
                         break;
@@ -190,16 +191,21 @@ RefPtr<Buffer> VKShaderResource::GetBuffer(const std::string& object, BufferMemb
     return bufIter->second.Get();
 }
 
-VkDescriptorSet VKShaderResource::GetDescriptorSet() { return descriptorSet; }
+VkDescriptorSet VKShaderResource::GetDescriptorSet()
+{
+    return descriptorSet;
+}
 
 void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
 {
     auto& shaderInfo = shaderProgram->GetShaderInfo();
 
     // find the binding
-    auto iter = std::find_if(shaderInfo.bindings.begin(),
-                             shaderInfo.bindings.end(),
-                             [&param](auto& pair) { return pair.second.name == param; });
+    auto iter = std::find_if(
+        shaderInfo.bindings.begin(),
+        shaderInfo.bindings.end(),
+        [&param](auto& pair) { return pair.second.name == param; }
+    );
     if (iter == shaderInfo.bindings.end())
     {
         SPDLOG_WARN("SetTexture didn't find the texture in binding");
@@ -251,10 +257,10 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
         case ShaderInfo::BindingType::Texture:
             {
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.sampler = VKContext::Instance()
-                                        ->sharedResource->GetDefaultSampler(); // TODO we need to get sampler from
-                                                                               // image(or a type called Texture maybe?)
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(
+                ); // TODO we need to get sampler from
+                   // image(or a type called Texture maybe?)
+                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultVkImageView();
                 write.pImageInfo = &imageInfo;
                 break;
             }
@@ -262,7 +268,7 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
             {
                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 imageInfo.sampler = VK_NULL_HANDLE;
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultImageView();
+                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultVkImageView();
                 write.pImageInfo = &imageInfo;
                 break;
             }
@@ -304,5 +310,47 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
      storageBuffers[paramStr] = storage;
  }*/
 
-RefPtr<ShaderProgram> VKShaderResource::GetShader() { return shaderProgram.Get(); }
+RefPtr<ShaderProgram> VKShaderResource::GetShader()
+{
+    return shaderProgram.Get();
+}
+
+void VKShaderResource::SetBuffer(Buffer& buffer, unsigned int binding, size_t offset, size_t range)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+
+    auto iter = std::find_if(
+        shaderInfo.bindings.begin(),
+        shaderInfo.bindings.end(),
+        [binding](const ShaderInfo::Bindings::value_type& p)
+        {
+            return p.second.bindingNum == binding &&
+                   (p.second.type == ShaderInfo::BindingType::UBO || p.second.type == ShaderInfo::BindingType::SSBO);
+        }
+    );
+
+    if (iter != shaderInfo.bindings.end())
+    {
+        auto& b = iter->second;
+        VkWriteDescriptorSet write;
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = VK_NULL_HANDLE;
+        write.dstSet = descriptorSet;
+        write.descriptorType = ShaderInfo::Utils::MapBindingType(b.type);
+        write.dstBinding = binding;
+        write.dstArrayElement = 0;
+        write.descriptorCount = b.count;
+        write.pImageInfo = VK_NULL_HANDLE;
+        write.pTexelBufferView = VK_NULL_HANDLE;
+
+        VKBuffer* buf = static_cast<VKBuffer*>(&buffer);
+        VkDescriptorBufferInfo bufferInfo{.buffer = buf->GetHandle(), .offset = 0, .range = buffer.GetSize()};
+        bufferInfo.offset = offset;
+        bufferInfo.range = range == 0 ? buffer.GetSize() : range;
+        write.pBufferInfo = &bufferInfo;
+
+        VkDevice vkDevice = device->GetHandle();
+        vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
+    }
+}
 } // namespace Engine::Gfx

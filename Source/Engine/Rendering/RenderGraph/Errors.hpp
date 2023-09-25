@@ -11,4 +11,9 @@ class GraphCompile : public Error
 {
     using Error::Error;
 };
+
+class NodeCreationError : public Error
+{
+    using Error::Error;
+};
 } // namespace Engine::RenderGraph::Errrors

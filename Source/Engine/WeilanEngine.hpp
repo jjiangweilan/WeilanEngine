@@ -1,83 +1,77 @@
 #pragma once
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Scene/Scene.hpp"
-#if ENGINE_EDITOR
-#include "Editor/GameEditor.hpp"
-#include "Editor/Renderer.hpp"
-#endif
+#include "AssetDatabase/Importers.hpp"
+#include "Core/Scene/SceneManager.hpp"
 #include "Core/Time.hpp"
+#include "Event/Event.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderPipeline.hpp"
 #include "Rendering/Shaders.hpp"
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include <filesystem>
 
 namespace Engine
 {
-class WeilanEngie
+class WeilanEngine
 {
+public:
+    WeilanEngine() {}
+    ~WeilanEngine();
+
 public:
     struct CreateInfo
     {
         std::filesystem::path projectPath;
     };
 
-    WeilanEngie() {}
-
-    void Init(const CreateInfo& createInfo)
+    std::unique_ptr<Model2> ImportModel(const char* path)
     {
-        Gfx::GfxDriver::CreateInfo gfxCreateInfo{{960, 540}};
-        gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-        assetDatabase = std::make_unique<AssetDatabase>(createInfo.projectPath);
-        scene = std::make_unique<Scene>();
-#if ENGINE_EDITOR
-        gameEditor = std::make_unique<Editor::GameEditor>(*scene);
-        gameEditorRenderer = std::make_unique<Editor::Renderer>();
-#endif
-
-        renderPipeline = std::make_unique<RenderPipeline>();
+        return Engine::Importers::GLB(path, sceneRenderer->GetOpaqueShader());
     }
 
-    void LoadScene(const std::filesystem::path& path){};
+    void Init(const CreateInfo& createInfo);
 
-    void Loop()
+    void BeginFrame();
+    void EndFrame();
+    Gfx::CommandBuffer& GetActiveCmdBuffer();
+
+    const std::filesystem::path& GetProjectPath()
     {
-        while (true)
-        {
-            SDL_Event event;
-            while (SDL_PollEvent(&event))
-            {
-#if ENGINE_EDITOR
-                ImGui_ImplSDL2_ProcessEvent(&event);
-#endif
-                if (event.window.event == SDL_WINDOWEVENT_CLOSE)
-                {
-                    goto LoopEnd;
-                }
-                if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-                {
-                    gameEditor->OnWindowResize(event.window.data1, event.window.data2);
-                }
-            }
-
-#if ENGINE_EDITOR
-            gameEditor->Tick();
-#endif
-            renderPipeline->Render();
-
-            Time::Tick();
-        }
-    LoopEnd:
-        gfxDriver->WaitForIdle();
+        return projectPath;
     }
 
+    const std::filesystem::path& GetProjectAssetPath()
+    {
+        return projectPath;
+    }
+
+    std::vector<std::function<void(SDL_Event& event)>> eventCallback;
+    std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
+    std::unique_ptr<SceneRenderer> sceneRenderer;
+
+private:
+    class FrameCmdBuffer
+    {
+    public:
+        FrameCmdBuffer(Gfx::GfxDriver& gfxDriver);
+        Gfx::CommandBuffer* GetActive()
+        {
+            return activeCmd;
+        }
+        void Swap();
+
+    private:
+        Gfx::CommandBuffer* activeCmd;
+        std::unique_ptr<Gfx::CommandBuffer> cmd0;
+        std::unique_ptr<Gfx::CommandBuffer> cmd1;
+        std::unique_ptr<Gfx::CommandPool> cmdPool;
+    };
+
+    std::unique_ptr<FrameCmdBuffer> frameCmdBuffer;
     std::unique_ptr<RenderPipeline> renderPipeline;
-    std::unique_ptr<Scene> scene;
-#if ENGINE_EDITOR
-    std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    std::unique_ptr<Editor::GameEditor> gameEditor;
-#endif
+
+    std::filesystem::path projectPath;
+    std::filesystem::path projectAssetPath;
 };
 } // namespace Engine

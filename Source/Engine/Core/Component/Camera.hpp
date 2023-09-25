@@ -7,6 +7,8 @@ namespace Engine
 {
 class Camera : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     Camera();
     Camera(GameObject* gameObject);

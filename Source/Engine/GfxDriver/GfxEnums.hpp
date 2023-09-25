@@ -61,6 +61,17 @@ enum class ImageLayout
     Present_Src_Khr = 1000001002,
 };
 
+enum class ImageViewType
+{
+    Image_1D,
+    Image_2D,
+    Image_3D,
+    Cubemap,
+    Image_1D_Array,
+    Image_2D_Array,
+    Cube_Array,
+};
+
 enum class ImageFormat
 {
     R16G16B16A16_SFloat,
@@ -81,6 +92,7 @@ enum class ImageFormat
     BC7_SRGB_UNorm_Block,
     BC3_Unorm_Block,
     BC3_SRGB_Block,
+    B10G11R11_UFloat_Pack32,
     Invalid
 };
 ImageFormat MapStringToImageFormat(std::string_view name);

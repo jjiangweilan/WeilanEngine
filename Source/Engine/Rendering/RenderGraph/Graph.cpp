@@ -6,8 +6,14 @@
 namespace Engine::RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
-    : pass(std::move(pass_)), debugDesc(debugDesc)
+    : debugDesc(debugDesc), pass(std::move(pass_))
 {}
+
+ResourceHandle StrToHandle(const std::string& str)
+{
+    ResourceHandle rlt = std::hash<std::string>()(str);
+    return rlt;
+}
 
 void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {
@@ -31,8 +37,7 @@ void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 
     if (presentNode != nullptr)
     {
-        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() !=
-            GetGfxDriver()->GetSwapChainImageProxy().Get())
+        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() != GetGfxDriver()->GetSwapChainImage())
         {
             throw std::logic_error("present port needs to be swapchain image");
         }
@@ -139,6 +144,7 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
+                auto& views = sortedNodes[sortIndex]->pass->GetImageViews(image);
 
                 // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
                 Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
@@ -317,7 +323,7 @@ void Graph::Process()
     cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
     cmd->End();
 
-    RefPtr<Gfx::CommandBuffer> cmdBufs[] = {cmd.get()};
+    Gfx::CommandBuffer* cmdBufs[] = {cmd.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
     GetGfxDriver()->WaitForIdle();
 }
@@ -467,5 +473,14 @@ void Graph::Execute(Gfx::CommandBuffer& cmd)
     {
         n->pass->Execute(cmd);
     }
+}
+
+void Graph::Clear()
+{
+    nodes.clear();
+    sortedNodes.clear();
+    barrierNodes.clear();
+    resourceOwners.clear();
+    resourcePool.Clear();
 }
 } // namespace Engine::RenderGraph

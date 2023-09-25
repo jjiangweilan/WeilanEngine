@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Resource.hpp"
+#include "Core/Asset.hpp"
 #include "Libs/Ptr.hpp"
 #include <functional>
 #include <string>
@@ -8,26 +8,21 @@
 namespace Engine
 {
 class GameObject;
-class Component : public Object, Serializable
+class Component : public Object, public Serializable
 {
 public:
     Component(std::string_view name, RefPtr<GameObject> gameObject);
     virtual ~Component() = 0;
     virtual void Tick(){};
     GameObject* GetGameObject();
-    const std::string& GetName() { return name; }
-
-    void Serialize(Serializer* s) const override
+    const std::string& GetName()
     {
-        s->Serialize("uuid", uuid);
-        s->Serialize("gameObject", gameObject);
+        return name;
     }
 
-    void Deserialize(Serializer* s) override
-    {
-        s->Deserialize("uuid", uuid);
-        s->Deserialize("gameObject", gameObject);
-    }
+    void Serialize(Serializer* s) const override;
+
+    void Deserialize(Serializer* s) override;
 
 protected:
     GameObject* gameObject;

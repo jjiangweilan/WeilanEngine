@@ -1,0 +1,48 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Skybox
+cull: front
+#endif
+
+struct FragInput
+{
+    vec4 objPos;
+};
+
+const vec2 invAtan = vec2(0.1591, 0.3183);
+vec2 SphericalToUV(vec3 v)
+{
+    // -asin because we have top-left uv origin
+    vec2 uv = vec2(atan(v.z, v.x), -asin(v.y));
+
+    // convert to [0,1]
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
+}
+
+#if VERT
+    layout(location = 0) in vec3 i_Position;
+
+    layout(location = 0) out FragInput v2f;
+
+    void main()
+    {
+        gl_Position = (scene.viewProjection * vec4(i_Position + scene.viewPos.xyz, 1)).xyww;
+        v2f.objPos = vec4(i_Position, 1);
+    }
+#endif
+
+#if FRAG
+    layout(location = 0) in FragInput fragInput;
+    layout(location = 0) out vec4 o_Color;
+    layout(set = 2, binding = 0) uniform sampler2D envMap;
+
+    void main()
+    {
+        vec3 col = texture(envMap, SphericalToUV(normalize(fragInput.objPos.xyz))).xyz;
+        o_Color = vec4(col, 1.0);
+    }
+#endif

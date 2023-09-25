@@ -10,14 +10,15 @@ public:
 
     static float DeltaTime()
     {
-        return deltaTime;
+        return DeltaTimeIntenral();
     }
 
 private:
     using Clock = std::chrono::high_resolution_clock;
     using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
+    static float& DeltaTimeIntenral();
+
     static TimePoint lastTime;
-    static float deltaTime;
 };
 } // namespace Engine

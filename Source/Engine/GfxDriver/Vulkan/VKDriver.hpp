@@ -29,7 +29,6 @@ class VKObjectManager;
 class VKFrameBuffer;
 class VKRenderPass;
 class VKSharedResource;
-class VKSwapChainImageProxy;
 class VKContext;
 struct VKDescriptorPoolCache;
 class VKDriver : public Gfx::GfxDriver
@@ -42,7 +41,7 @@ public:
     void WaitForIdle() override;
     void QueueSubmit(
         RefPtr<CommandQueue> queue,
-        std::span<RefPtr<Gfx::CommandBuffer>> cmdBufs,
+        std::span<Gfx::CommandBuffer*> cmdBufs,
         std::span<RefPtr<Semaphore>> waitSemaphores,
         std::span<Gfx::PipelineStageFlags> waitDstStageMasks,
         std::span<RefPtr<Semaphore>> signalSemaphroes,
@@ -60,7 +59,7 @@ public:
     ;
     RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
-    RefPtr<Image> GetSwapChainImageProxy() override;
+    Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
     RefPtr<VKSharedResource> GetSharedResource()
@@ -73,6 +72,8 @@ public:
     UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
     UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
         override;
+
+    std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
@@ -105,7 +106,7 @@ private:
     VKObjectManager* objectManager;
 
     VkDevice device_vk;
-    UniPtr<VKSwapChainImageProxy> swapChainImageProxy;
+    VKSwapChainImage* swapChainImage;
     UniPtr<VKContext> context;
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;

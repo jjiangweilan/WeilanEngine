@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Asset.hpp"
 #include "Component/Transform.hpp"
 #include "Libs/Ptr.hpp"
-#include "Resource.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
@@ -11,8 +11,10 @@
 namespace Engine
 {
 class Scene;
-class GameObject : public Resource
+class GameObject : public Asset
 {
+    DECLARE_ASSET();
+
 public:
     GameObject(RefPtr<Scene> gameScene);
     GameObject(GameObject&& other);
@@ -26,20 +28,20 @@ public:
 
     RefPtr<Component> GetComponent(const char* name);
 
-    std::vector<UniPtr<Component>>& GetComponents();
+    std::vector<std::unique_ptr<Component>>& GetComponents();
     void SetGameScene(RefPtr<Scene> scene)
     {
         gameScene = scene;
     }
     RefPtr<Scene> GetGameScene();
-    RefPtr<Transform> GetTransform();
+    Transform* GetTransform();
     void Tick();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
 private:
-    std::vector<UniPtr<Component>> components;
+    std::vector<std::unique_ptr<Component>> components;
     RefPtr<Transform> transform = nullptr;
     RefPtr<Scene> gameScene = nullptr;
 };
@@ -47,8 +49,8 @@ private:
 template <class T, class... Args>
 T* GameObject::AddComponent(Args&&... args)
 {
-    auto p = MakeUnique<T>(this, args...);
-    T* temp = p.Get();
+    auto p = std::make_unique<T>(this, args...);
+    T* temp = p.get();
     components.push_back(std::move(p));
     return temp;
 }
@@ -58,7 +60,7 @@ T* GameObject::GetComponent()
 {
     for (auto& p : components)
     {
-        T* cast = dynamic_cast<T*>(p.Get());
+        T* cast = dynamic_cast<T*>(p.get());
         if (cast != nullptr)
             return cast;
     }

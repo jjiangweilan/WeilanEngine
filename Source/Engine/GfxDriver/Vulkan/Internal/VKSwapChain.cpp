@@ -111,7 +111,7 @@ VkSurfaceFormatKHR VKSwapChain::GetFormat(VKSurface* gpu)
 
 bool VKSwapChain::GetSwapChainImagesFromVulkan()
 {
-    swapChainImages.clear();
+    swapChainImage = nullptr;
     uint32_t imageCount = 0;
 
     vkGetSwapchainImagesKHR(attachedDevice->GetHandle(), swapChain, &imageCount, VK_NULL_HANDLE);
@@ -124,17 +124,15 @@ bool VKSwapChain::GetSwapChainImagesFromVulkan()
         return false;
     }
 
-    for (uint32_t i = 0; i < imageCount; ++i)
-    {
-        swapChainImages.emplace_back(
-            swapChainImagesTemp[i],
-            swapChainInfo.surfaceFormat.format,
-            swapChainInfo.extent.width,
-            swapChainInfo.extent.height
-        );
-
-        swapChainImages.back().SetName(fmt::format("SwapChainImage {}", i));
-    }
+    swapChainImage = std::make_unique<VKSwapChainImage>();
+    swapChainImage->Recreate(
+        swapChainImagesTemp,
+        swapChainInfo.surfaceFormat.format,
+        swapChainInfo.extent.width,
+        swapChainInfo.extent.height,
+        swapChainInfo.imageUsageFlags
+    );
+    swapChainImage->SetName("Swapchain Image");
 
     return true;
 }
@@ -197,7 +195,7 @@ VkPresentModeKHR VKSwapChain::GetPresentMode(VKSurface* surface)
     return static_cast<VkPresentModeKHR>(-1);
 }
 
-bool VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageProxy, VkSemaphore semaphoreToSignal)
+bool VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal)
 {
     uint32_t nextPresentImageIndex;
     VkResult result = vkAcquireNextImageKHR(
@@ -221,35 +219,17 @@ bool VKSwapChain::AcquireNextImage(RefPtr<VKSwapChainImageProxy> swapChainImageP
                     surface
                 );
                 swapchainRecreated = true;
-                ImageDescription newDesc = swapChainImageProxy->GetDescription();
-                newDesc.width = surface->GetSurfaceCapabilities().currentExtent.width;
-                newDesc.height = surface->GetSurfaceCapabilities().currentExtent.height;
-                swapChainImageProxy->UpdateImageDescription(newDesc);
+                // ImageDescription newDesc = swapChainImage->GetDescription();
+                // newDesc.width = surface->GetSurfaceCapabilities().currentExtent.width;
+                // newDesc.height = surface->GetSurfaceCapabilities().currentExtent.height;
+                // swapChainImage->UpdateImageDescription(newDesc);
                 break;
             }
         default: throw std::runtime_error("Vulkan error: Problem occurred during swap chain image acquisition!");
     }
 
-    swapChainImageProxy->SetActiveSwapChainImage(&swapChainImages[nextPresentImageIndex], nextPresentImageIndex);
+    swapChainImage->SetActiveSwapChainImage(nextPresentImageIndex);
     return swapchainRecreated;
 }
 
-VKSwapChain::VKSwapChainImage::VKSwapChainImage(VkImage image, VkFormat format, uint32_t width, uint32_t height)
-    : VKImage()
-{
-    this->image_vk = image;
-    imageDescription.format = MapVKFormat(format);
-    imageDescription.width = width;
-    imageDescription.height = height;
-    imageDescription.mipLevels = 1;
-    format_vk = format;
-    layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    CreateImageView();
-    defaultSubResourceRange = GenerateDefaultSubresourceRange();
-}
-
-VKSwapChain::VKSwapChainImage::~VKSwapChainImage()
-{
-    image_vk = VK_NULL_HANDLE; // avoid swaph chain image being deleted by VKImage
-}
 } // namespace Engine::Gfx

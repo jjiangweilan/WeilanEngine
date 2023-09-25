@@ -4,6 +4,7 @@
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
 #include "VKImage.hpp"
+#include "VKImageView.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 namespace Engine::Gfx
@@ -21,19 +22,6 @@ VKRenderPass::~VKRenderPass()
 
 void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
 {
-    // validation check
-    for (auto& c : colors)
-    {
-        if (c.image == nullptr)
-            throw std::logic_error("image shouldn't be null");
-    }
-
-    if (depth.has_value())
-    {
-        if (depth->image == nullptr)
-            throw std::logic_error("image shouldn't be null");
-    }
-
     subpasses.emplace_back(colors, depth);
 }
 
@@ -53,25 +41,29 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
         // color attachments
         for (Attachment& colorAtta : subpass.colors)
         {
+            VKImageView* imageView = static_cast<VKImageView*>(colorAtta.imageView);
             if (swapChainProxy == nullptr)
-                swapChainProxy = dynamic_cast<VKSwapChainImageProxy*>(colorAtta.image.Get());
-            imageViews[attaIndex] = static_cast<VKImage*>(colorAtta.image.Get())->GetDefaultImageView();
+            {
+                swapChainProxy = dynamic_cast<VKSwapChainImage*>(&colorAtta.imageView->GetImage());
+            }
+
+            imageViews[attaIndex] = imageView->GetHandle();
             attaIndex += 1;
         }
 
         // depth attachment
         if (subpass.depth != std::nullopt)
         {
-            imageViews[attaIndex] = static_cast<VKImage*>(subpass.depth->image.Get())->GetDefaultImageView();
+            imageViews[attaIndex] = static_cast<VKImageView*>(subpass.depth->imageView)->GetHandle();
             attaIndex += 1;
         }
     }
     createInfo.attachmentCount = attaIndex;
     createInfo.pAttachments = imageViews;
 
-    Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : subpasses[0].colors[0].image.Get();
+    Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : &subpasses[0].colors[0].imageView->GetImage();
     if (image == nullptr)
-        image = subpasses[0].depth->image.Get();
+        image = &subpasses[0].depth->imageView->GetImage();
     createInfo.width = image->GetDescription().width;
     createInfo.height = image->GetDescription().height;
     createInfo.layers = 1;
@@ -127,9 +119,11 @@ void VKRenderPass::CreateRenderPass()
         for (Attachment& colorAtta : subpass.colors)
         {
             attachmentDescriptions[attachmentDescIndex].flags = 0;
-            attachmentDescriptions[attachmentDescIndex].format = MapFormat(colorAtta.image->GetDescription().format);
-            attachmentDescriptions[attachmentDescIndex].samples =
-                MapSampleCount(colorAtta.image->GetDescription().multiSampling);
+            auto& image = colorAtta.imageView->GetImage();
+            auto format = MapFormat(image.GetDescription().format);
+            attachmentDescriptions[attachmentDescIndex].format = format;
+
+            attachmentDescriptions[attachmentDescIndex].samples = MapSampleCount(image.GetDescription().multiSampling);
             attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(colorAtta.loadOp);
             attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(colorAtta.storeOp);
             attachmentDescriptions[attachmentDescIndex].stencilLoadOp = MapAttachmentLoadOp(colorAtta.stencilLoadOp);
@@ -151,9 +145,9 @@ void VKRenderPass::CreateRenderPass()
 
             attachmentDescriptions[attachmentDescIndex].flags = 0;
             attachmentDescriptions[attachmentDescIndex].format =
-                MapFormat(subpass.depth->image->GetDescription().format);
+                MapFormat(subpass.depth->imageView->GetImage().GetDescription().format);
             attachmentDescriptions[attachmentDescIndex].samples =
-                MapSampleCount(subpass.depth->image->GetDescription().multiSampling);
+                MapSampleCount(subpass.depth->imageView->GetImage().GetDescription().multiSampling);
             attachmentDescriptions[attachmentDescIndex].loadOp = MapAttachmentLoadOp(subpass.depth->loadOp);
             attachmentDescriptions[attachmentDescIndex].storeOp = MapAttachmentStoreOp(subpass.depth->storeOp);
             attachmentDescriptions[attachmentDescIndex].stencilLoadOp =
@@ -202,16 +196,16 @@ Extent2D VKRenderPass::GetExtent()
 {
     if (subpasses.size() > 0)
     {
-        if (subpasses[0].colors.size() > 0 && subpasses[0].colors[0].image != nullptr)
+        if (subpasses[0].colors.size() > 0)
         {
-            auto& desc = subpasses[0].colors[0].image->GetDescription();
+            auto& desc = subpasses[0].colors[0].imageView->GetImage().GetDescription();
             return {desc.width, desc.height};
         }
         else
         {
             if (subpasses[0].depth.has_value())
             {
-                auto& desc = subpasses[0].depth->image->GetDescription();
+                auto& desc = subpasses[0].depth->imageView->GetImage().GetDescription();
                 return {desc.width, desc.height};
             }
         }
@@ -219,44 +213,6 @@ Extent2D VKRenderPass::GetExtent()
 
     SPDLOG_WARN("VKRenderPass-GetExtent returns {0, 0}");
     return {0, 0};
-}
-
-void VKRenderPass::TransformAttachmentIfNeeded(VkCommandBuffer cmdBuf)
-{
-    for (auto& subpass : subpasses)
-    {
-        for (auto& atta : subpass.colors)
-        {
-            auto image = static_cast<VKImage*>(atta.image.Get());
-            VkAccessFlags accessFlag = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            if (atta.loadOp == AttachmentLoadOperation::Load)
-            {
-                accessFlag |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-            }
-            image->TransformLayoutIfNeeded(
-                cmdBuf,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                accessFlag
-            );
-        }
-
-        if (subpass.depth != std::nullopt)
-        {
-            auto image = static_cast<VKImage*>(subpass.depth->image.Get());
-            VkAccessFlags accessFlag = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-            if (subpass.depth->loadOp == AttachmentLoadOperation::Load ||
-                subpass.depth->stencilLoadOp == AttachmentLoadOperation::Load)
-                accessFlag |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-
-            image->TransformLayoutIfNeeded(
-                cmdBuf,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                accessFlag
-            );
-        }
-    }
 }
 
 VkFramebuffer VKRenderPass::GetFrameBuffer()

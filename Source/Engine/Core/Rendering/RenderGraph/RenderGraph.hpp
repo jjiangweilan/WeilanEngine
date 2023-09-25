@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Graphics/Material.hpp"
+#include "Asset/Material.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"

@@ -20,8 +20,6 @@ public:
     VKRenderTarget(const VKRenderTarget& other) = delete;
     virtual ~VKRenderTarget() override;
 
-    void TransformAttachmentLayoutIfNeeded(VkCommandBuffer cmd);
-
     VkRenderPass RequestRenderPass(const RenderPassConfig& config);
 
     VkFramebuffer GetVkFrameBuffer();

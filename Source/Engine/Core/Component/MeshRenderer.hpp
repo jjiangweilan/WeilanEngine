@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Asset/Material.hpp"
 #include "Component.hpp"
-#include "Core/Graphics/Material.hpp"
 #include "Core/Graphics/Mesh2.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Utils/Structs.hpp"
@@ -10,6 +10,8 @@ namespace Engine
 {
 class MeshRenderer : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     MeshRenderer();
     MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material);

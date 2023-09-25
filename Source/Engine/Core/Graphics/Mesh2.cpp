@@ -4,6 +4,10 @@
 
 namespace Engine
 {
+
+// Mesh2 should be imported through model that's why we just use a Mesh2PlaceHolder
+DEFINE_ASSET(Mesh2, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "Mesh2PlaceHolder");
+
 Submesh::~Submesh() {}
 Submesh::Submesh(
     std::unique_ptr<unsigned char>&& vertexBuffer,
@@ -63,4 +67,5 @@ Submesh::Submesh(
 };
 
 Mesh2::~Mesh2() {}
+
 } // namespace Engine

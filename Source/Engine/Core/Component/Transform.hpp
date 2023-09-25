@@ -11,6 +11,8 @@ class GameObject;
 
 class Transform : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     Transform();
     Transform(GameObject* gameObject);

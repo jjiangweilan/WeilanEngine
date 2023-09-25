@@ -10,7 +10,7 @@ VKCommandPool::VKCommandPool(const CreateInfo& gCreateInfo)
     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.queueFamilyIndex = gCreateInfo.queueFamilyIndex;
-    createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+    createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     vkCreateCommandPool(GetDevice()->GetHandle(), &createInfo, VK_NULL_HANDLE, &commandPool);
 }
 

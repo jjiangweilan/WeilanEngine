@@ -1,14 +1,16 @@
 #include "Scene.hpp"
 namespace Engine
 {
-Scene::Scene() : Resource()
+DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
+
+Scene::Scene() : Asset(), systemEventCallbacks()
 {
     name = "New GameScene";
 }
 
 GameObject* Scene::CreateGameObject()
 {
-    UniPtr<GameObject> newObj = MakeUnique<GameObject>(this);
+    std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
     RefPtr<GameObject> refObj = gameObjects.back();
     roots.push_back(refObj);
@@ -93,75 +95,38 @@ void Scene::Serialize(Serializer* s) const
 {
     s->Serialize("gameObjects", gameObjects);
     s->Serialize("externalGameObjects", externalGameObjects);
+    s->Serialize("roots", roots);
+    s->Serialize("camera", camera);
 }
 
 void Scene::Deserialize(Serializer* s)
 {
     s->Deserialize("gameObjects", gameObjects);
-    s->Deserialize(
-        "externalGameObjects",
-        externalGameObjects,
-        [this](void* resource)
-        {
-            if (auto go = static_cast<GameObject*>(resource))
-            {
-                go->SetGameScene(this);
-                Transform* goParent = go->GetTransform()->GetParent().Get();
-                if (!goParent)
-                {
-                    this->roots.push_back(go);
-                }
-            }
-        }
-    );
+    s->Deserialize("externalGameObjects", externalGameObjects);
+    s->Deserialize("roots", roots);
+    s->Deserialize("camera", camera);
 
-    // find all the root object
-    for (auto& obj : gameObjects)
-    {
-        obj->SetGameScene(this);
-        if (obj->GetTransform()->GetParent() == nullptr)
-        {
-            roots.push_back(obj);
-        }
-    }
+    //// find all the root object
+    // for (auto& obj : gameObjects)
+    //{
+    //     obj->SetGameScene(this);
+    //     if (obj->GetTransform()->GetParent() == nullptr)
+    //     {
+    //         roots.push_back(obj);
+    //     }
+    // }
 
-    for (auto obj : externalGameObjects)
-    {
-        if (obj)
-        {
-            obj->SetGameScene(this);
-            if (obj->GetTransform()->GetParent() == nullptr)
-            {
-                roots.push_back(obj);
-            }
-        }
-    }
+    // for (auto obj : externalGameObjects)
+    //{
+    //     if (obj != nullptr)
+    //     {
+    //         obj->SetGameScene(this);
+    //         if (obj->GetTransform()->GetParent() == nullptr)
+    //         {
+    //             roots.push_back(obj);
+    //         }
+    //     }
+    // }
 }
 
-// const UUID& World::Serialize(RefPtr<Serializer> serializer)
-// {
-//     auto& infoJson = serializer->GetInfo();
-//     auto& gameObjectsJson = infoJson["members"]["gameObjects"];
-
-//     for(auto& obj : gameObjects)
-//     {
-//         UUID refID = obj->Serialize(serializer);
-//         gameObjectsJson.push_back(refID.ToString());
-//     }
-
-//     auto& rootsJson = infoJson["members"]["roots"];
-//     for(auto root : roots)
-//     {
-//         rootsJson.push_back(root->GetUUID().ToString());
-//     }
-
-//     return GetUUID();
-// }
-
-// void World::Deserialize(RefPtr<Deserializer> deserializer, RefPtr<AssetDatabase> assetDatabase)
-// {
-//     auto& infoJson = deserializer->GetInfo();
-//     auto& gameObjectsJson = infoJson["members"]["gameObjects"];
-//     auto& rootsJson = infoJson["members"]["roots"];
-// }
 } // namespace Engine

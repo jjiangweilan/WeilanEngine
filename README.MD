@@ -30,8 +30,8 @@ note: after the first successful build, you can set `INSTALL_DEPENDENCE` to `OFF
 ### Windows
 1. `mkdir build`
 2. `cd build`
-3. `cmake -DINSTALL_DEPENDENCE=ON ..`
-4. `cmake --build . --target WeilanGame -j12`<br>
+3. `cmake -DINSTALL_DEPENDENCY=ON ..`
+4. `cmake --build . --target WeilanEngineEditor -j12`<br>
 
 ### MacOS
 if you are on apple silicon you need to disable ktx software's SSE by setting `-DBASISU_SUPPORT_SSE=OFF`
