@@ -4,21 +4,22 @@
 namespace Engine
 {
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
-    : projectRoot(projectRoot), assetPath(projectRoot / "Assets"), assetDatabasePath(projectRoot / "AssetDatabase")
+    : projectRoot(projectRoot), assetDirectory(projectRoot / "Assets"),
+      assetDatabaseDirectory(projectRoot / "AssetDatabase")
 {
-    if (!std::filesystem::exists(assetPath))
+    if (!std::filesystem::exists(assetDirectory))
     {
-        std::filesystem::create_directory(assetPath);
+        std::filesystem::create_directory(assetDirectory);
     }
 
-    if (!std::filesystem::exists(assetDatabasePath))
+    if (!std::filesystem::exists(assetDatabaseDirectory))
     {
-        std::filesystem::create_directory(assetDatabasePath);
+        std::filesystem::create_directory(assetDatabaseDirectory);
     }
 
     // we need to load all the already imported asset when AssetDatabase starts so that when user load an asset we
     // know it's already in the database
-    for (auto const& dirEntry : std::filesystem::directory_iterator{assetDatabasePath})
+    for (auto const& dirEntry : std::filesystem::directory_iterator{assetDatabaseDirectory})
     {
         if (dirEntry.is_regular_file())
         {
@@ -52,38 +53,40 @@ void AssetDatabase::SaveAsset(Asset& asset)
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 {
     // find the asset if it's already imported
-    auto assetdata = assets.GetAssetData(path);
-    path = assetPath / path;
-    if (assetdata)
+    auto assetData = assets.GetAssetData(path);
+    auto fullAssetPath = assetDirectory / path;
+    if (assetData)
     {
-        auto a = assetdata->GetAsset();
+        auto a = assetData->GetAsset();
         if (a)
             return a;
     }
 
-    if (!std::filesystem::exists(path))
+    if (!std::filesystem::exists(fullAssetPath))
         return nullptr;
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
-    std::filesystem::path ext = path.extension();
+    std::filesystem::path ext = fullAssetPath.extension();
     auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
     Asset* asset = newAsset.get();
-    if (assetdata)
+
+    // if this is a asset in database we move the ownership into it's assetData
+    if (assetData)
     {
-        asset = assetdata->SetAsset(std::move(newAsset));
+        asset = assetData->SetAsset(std::move(newAsset));
     }
     if (asset != nullptr)
     {
         if (asset->IsExternalAsset())
         {
-            asset->LoadFromFile(path.string().c_str());
+            asset->LoadFromFile(fullAssetPath.string().c_str());
         }
         else
         {
-            std::ifstream f(path, std::ios::binary);
+            std::ifstream f(fullAssetPath, std::ios::binary);
             if (f.is_open() && f.good())
             {
-                size_t fileSize = std::filesystem::file_size(path);
+                size_t fileSize = std::filesystem::file_size(fullAssetPath);
                 std::vector<uint8_t> binary(fileSize);
                 f.read((char*)binary.data(), fileSize);
                 SerializeReferenceResolveMap resolveMap;
@@ -137,10 +140,11 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             }
         }
 
-        if (!assetdata)
+        // a new asset needs to be recored/imported in assetDatabase
+        if (!assetData)
         {
             std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-            assets.Add(assetPath, std::move(ad));
+            assets.Add(assetDirectory, std::move(ad));
         }
 
         // see if there is any reference need to be resolved by this object
@@ -181,7 +185,7 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    path = assetPath / path;
+    path = assetDirectory / path;
     // only internal asset can be created
     if (!a->IsExternalAsset() && !std::filesystem::exists(path))
     {
@@ -201,11 +205,8 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 Asset* AssetDatabase::Assets::Add(const std::filesystem::path& path, std::unique_ptr<AssetData>&& assetData)
 {
     Asset* asset = assetData->GetAsset();
-    if (asset)
-    {
-        byPath[path.string()] = assetData.get();
-        data[asset->GetUUID()] = std::move(assetData);
-    }
+    byPath[path.string()] = assetData.get();
+    data[assetData->GetAssetUUID()] = std::move(assetData);
     return asset;
 }
 AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)

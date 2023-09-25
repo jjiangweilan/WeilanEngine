@@ -27,34 +27,35 @@ public:
         int indexCount,
         std::string_view name = ""
     );
+    Submesh(Submesh&& other) = default;
     ~Submesh();
 
-    int GetIndexCount()
+    int GetIndexCount() const
     {
         return indexCount;
     }
 
-    Gfx::IndexBufferType GetIndexBufferType()
+    Gfx::IndexBufferType GetIndexBufferType() const
     {
         return indexBufferType;
     }
-    Gfx::Buffer* GetIndexBuffer()
+    Gfx::Buffer* GetIndexBuffer() const
     {
         return gfxIndexBuffer.get();
     }
-    Gfx::Buffer* GetVertexBuffer()
+    Gfx::Buffer* GetVertexBuffer() const
     {
         return gfxVertexBuffer.get();
     }
-    std::span<VertexBinding> GetBindings()
+    std::span<const VertexBinding> GetBindings() const
     {
         return bindings;
     }
-    unsigned char* GetIndexBufferPtr()
+    unsigned char* GetIndexBufferPtr() const
     {
         return indexBuffer.get();
     }
-    unsigned char* GetVertexBufferPtr()
+    unsigned char* GetVertexBufferPtr() const
     {
         return vertexBuffer.get();
     }
@@ -81,6 +82,17 @@ public:
     }
     ~Mesh2();
 
-    std::vector<std::unique_ptr<Submesh>> submeshes;
+    const std::vector<Submesh>& GetSubmeshes()
+    {
+        return submeshes;
+    };
+
+    void SetSubmeshes(std::vector<Submesh>&& submeshes)
+    {
+        this->submeshes = std::move(submeshes);
+    }
+
+private:
+    std::vector<Submesh> submeshes;
 };
 } // namespace Engine

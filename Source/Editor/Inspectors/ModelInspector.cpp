@@ -1,7 +1,6 @@
 #include "../EditorState.hpp"
 #include "Core/Model2.hpp"
 #include "Inspector.hpp"
-
 namespace Engine::Editor
 {
 class ModelInspector : public Inspector<Model2>
@@ -27,7 +26,9 @@ public:
 
             if (ImGui::BeginDragDropSource())
             {
-                ImGui::SetDragDropPayload("object", mesh.get(), sizeof(size_t));
+                Mesh2* ptr = mesh.get();
+
+                ImGui::SetDragDropPayload("object", &ptr, sizeof(ptr));
 
                 ImGui::Text("%s", mesh->GetName().c_str());
 

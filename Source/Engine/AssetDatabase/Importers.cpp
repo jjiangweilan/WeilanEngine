@@ -32,9 +32,7 @@ std::size_t WriteAccessorDataToBuffer(
 );
 
 void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
-std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-);
+Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
 std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
 {
@@ -55,11 +53,14 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         std::unique_ptr<Mesh2> mesh = std::make_unique<Mesh2>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
+        std::vector<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
-            mesh->submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
+            submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
         }
+        mesh->SetSubmeshes(std::move(submeshes));
+
         toOurMesh[i] = mesh.get();
         meshes.push_back(std::move(mesh));
     }
@@ -260,9 +261,7 @@ void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& ass
     }
 }
 
-std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-)
+Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex)
 {
     auto& meshJson = j["meshes"][meshIndex];
     auto& primitiveJson = meshJson["primitives"][primitiveIndex];
@@ -313,10 +312,7 @@ std::unique_ptr<Submesh> ExtractPrimitive(
     std::unique_ptr<unsigned char> indexBuffer = std::unique_ptr<unsigned char>(new unsigned char[indexBufferSize]);
     memcpy(indexBuffer.get(), binaryData + indexBufferOffset, indexBufferSize);
 
-    Submesh* mesh =
-        new Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
-
-    return std::unique_ptr<Submesh>(mesh);
+    return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
 }
 
 std::unique_ptr<GameObject> CreateGameObjectFromNode(

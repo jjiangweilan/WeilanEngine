@@ -481,7 +481,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             {
                 if (ImGui::IsItemClicked())
                 {
-                    Asset* asset = engine->assetDatabase->LoadAsset(entry.path());
+                    Asset* asset = engine->assetDatabase->LoadAsset(std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory()));
                     if (asset)
                     {
                         EditorState::selectedObject = asset;

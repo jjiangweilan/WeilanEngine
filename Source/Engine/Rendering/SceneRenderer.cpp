@@ -15,23 +15,24 @@ static void CmdDrawSubmesh(
     Gfx::CommandBuffer& cmd, Mesh2& mesh, int submeshIndex, Shader& shader, Gfx::ShaderResource& resource
 )
 {
-    auto& submesh = mesh.submeshes[submeshIndex];
+    auto& submehses = mesh.GetSubmeshes();
+    const Submesh& submesh = submehses[submeshIndex];
 
-    std::vector<Gfx::VertexBufferBinding> bindingds(submesh->GetBindings().size());
+    std::vector<Gfx::VertexBufferBinding> bindingds(submesh.GetBindings().size());
 
     int index = 0;
-    for (auto& b : submesh->GetBindings())
+    for (auto& b : submesh.GetBindings())
     {
-        bindingds[index].buffer = submesh->GetVertexBuffer();
+        bindingds[index].buffer = submesh.GetVertexBuffer();
         bindingds[index].offset = b.byteOffset;
         index += 1;
     }
 
     cmd.BindVertexBuffer(bindingds, 0);
-    cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
+    cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
     cmd.BindShaderProgram(shader.GetShaderProgram(), shader.GetDefaultShaderConfig());
     cmd.BindResource(&resource);
-    cmd.DrawIndexed(submesh->GetIndexCount(), 1, 0, 0, 0);
+    cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
 }
 
 SceneRenderer::SceneRenderer()
@@ -397,13 +398,13 @@ void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRender
         if (mesh == nullptr)
             return;
 
-        auto& submeshes = mesh->submeshes;
+        auto& submeshes = mesh->GetSubmeshes();
         auto& materials = meshRenderer->GetMaterials();
 
         for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
         {
             auto material = i < materials.size() ? materials[i] : nullptr;
-            auto submesh = i < submeshes.size() ? submeshes[i].get() : nullptr;
+            auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
             auto shader = material ? material->GetShader() : nullptr;
 
             if (submesh != nullptr && material != nullptr && shader != nullptr)

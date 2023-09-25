@@ -83,6 +83,68 @@ public:
                     }
                 }
             }
+            else if (typeid(c) == typeid(MeshRenderer))
+            {
+                MeshRenderer& meshRenderer = static_cast<MeshRenderer&>(c);
+                Mesh2* mesh = meshRenderer.GetMesh();
+
+                std::string meshGUIID = "emtpy";
+                if (mesh)
+                    meshGUIID = mesh->GetName();
+
+                ImGui::Text("Mesh: ");
+                ImGui::SameLine();
+                if (ImGui::Button(meshGUIID.c_str()))
+                    EditorState::selectedObject = mesh;
+                if (ImGui::BeginDragDropTarget())
+                {
+                    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+                    if (payload && payload->IsDelivery())
+                    {
+                        Object& obj = **(Object**)payload->Data;
+                        if (typeid(obj) == typeid(Mesh2))
+                        {
+                            Mesh2* mesh = static_cast<Mesh2*>(&obj);
+
+                            meshRenderer.SetMesh(mesh);
+                            mesh = meshRenderer.GetMesh();
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+                // show materials
+                ImGui::Text("Materials: ");
+                std::vector<Material*> mats = meshRenderer.GetMaterials();
+                for (int i = 0; i < mats.size(); ++i)
+                {
+                    Material* mat = mats[i];
+                    std::string buttonID;
+                    if (mat)
+                        buttonID = mats[i]->GetName();
+                    else
+                        buttonID = fmt::format("{}##{}", "emtpy", i);
+
+                    if (ImGui::Button(buttonID.c_str()))
+                    {
+                        EditorState::selectedObject = mats[i];
+                    };
+
+                    if (ImGui::BeginDragDropTarget())
+                    {
+                        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+                        if (payload && payload->IsDelivery())
+                        {
+                            Object& obj = **(Object**)payload->Data;
+                            if (typeid(obj) == typeid(Material))
+                            {
+                                mats[i] = static_cast<Material*>(&obj);
+                                meshRenderer.SetMaterials(mats);
+                            }
+                        }
+                        ImGui::EndDragDropTarget();
+                    }
+                }
+            }
         }
     }
 

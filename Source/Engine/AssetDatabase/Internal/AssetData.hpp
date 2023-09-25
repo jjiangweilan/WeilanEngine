@@ -23,7 +23,10 @@ public:
     //
     AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot);
 
-    const UUID& GetUUID() const;
+    const UUID& GetAssetUUID() const
+    {
+        return assetUUID;
+    }
 
     // used to check if construction of AssetData is valid
     bool IsValid() const
@@ -59,5 +62,7 @@ private:
     bool isValid = false;
 
     std::unique_ptr<Asset> asset;
+
+    friend class AssetDatabase;
 };
 } // namespace Engine

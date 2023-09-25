@@ -26,9 +26,7 @@ static std::size_t WriteAccessorDataToBuffer(
 
 static void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 
-static std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-);
+static Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
 static void GetGLBData(
     const std::filesystem::path& path,
@@ -99,9 +97,7 @@ static void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::stri
     }
 }
 
-static std::unique_ptr<Submesh> ExtractPrimitive(
-    nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex
-)
+Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex)
 {
     auto& meshJson = j["meshes"][meshIndex];
     auto& primitiveJson = meshJson["primitives"][primitiveIndex];
@@ -152,10 +148,7 @@ static std::unique_ptr<Submesh> ExtractPrimitive(
     std::unique_ptr<unsigned char> indexBuffer = std::unique_ptr<unsigned char>(new unsigned char[indexBufferSize]);
     memcpy(indexBuffer.get(), binaryData + indexBufferOffset, indexBufferSize);
 
-    Submesh* mesh =
-        new Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
-
-    return std::unique_ptr<Submesh>(mesh);
+    return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
 }
 
 static std::unique_ptr<GameObject> CreateGameObjectFromNode(
@@ -231,11 +224,13 @@ bool Model2::LoadFromFile(const char* cpath)
         std::unique_ptr<Mesh2> mesh = std::make_unique<Mesh2>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
+        std::vector<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
-            mesh->submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
+            submeshes.push_back(ExtractPrimitive(jsonData, binaryData, i, j));
         }
+        mesh->SetSubmeshes(std::move(submeshes));
         toOurMesh[i] = mesh.get();
         meshes.push_back(std::move(mesh));
     }

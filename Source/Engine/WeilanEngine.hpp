@@ -39,6 +39,11 @@ public:
         return projectPath;
     }
 
+    const std::filesystem::path& GetProjectAssetPath()
+    {
+        return projectPath;
+    }
+
     std::vector<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
@@ -67,5 +72,6 @@ private:
     std::unique_ptr<RenderPipeline> renderPipeline;
 
     std::filesystem::path projectPath;
+    std::filesystem::path projectAssetPath;
 };
 } // namespace Engine
