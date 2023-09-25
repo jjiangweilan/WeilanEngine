@@ -86,7 +86,7 @@ public:
             else if (typeid(c) == typeid(MeshRenderer))
             {
                 MeshRenderer& meshRenderer = static_cast<MeshRenderer&>(c);
-                Mesh2* mesh = meshRenderer.GetMesh();
+                Mesh* mesh = meshRenderer.GetMesh();
 
                 std::string meshGUIID = "emtpy";
                 if (mesh)
@@ -102,9 +102,9 @@ public:
                     if (payload && payload->IsDelivery())
                     {
                         Object& obj = **(Object**)payload->Data;
-                        if (typeid(obj) == typeid(Mesh2))
+                        if (typeid(obj) == typeid(Mesh))
                         {
-                            Mesh2* mesh = static_cast<Mesh2*>(&obj);
+                            Mesh* mesh = static_cast<Mesh*>(&obj);
 
                             meshRenderer.SetMesh(mesh);
                             mesh = meshRenderer.GetMesh();

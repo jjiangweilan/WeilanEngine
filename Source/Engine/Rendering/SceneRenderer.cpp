@@ -12,7 +12,7 @@ namespace Engine
 using namespace RenderGraph;
 
 static void CmdDrawSubmesh(
-    Gfx::CommandBuffer& cmd, Mesh2& mesh, int submeshIndex, Shader& shader, Gfx::ShaderResource& resource
+    Gfx::CommandBuffer& cmd, Mesh& mesh, int submeshIndex, Shader& shader, Gfx::ShaderResource& resource
 )
 {
     auto& submehses = mesh.GetSubmeshes();

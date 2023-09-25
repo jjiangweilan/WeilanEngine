@@ -12,6 +12,7 @@ public:
 public:
     // path: relative path as projectRoot/Assets/{path}
     Asset* LoadAsset(std::filesystem::path path);
+    Asset* LoadAssetByID(const UUID& uuid);
 
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
     void SaveAsset(Asset& asset);

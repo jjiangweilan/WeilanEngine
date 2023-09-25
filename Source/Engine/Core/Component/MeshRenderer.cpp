@@ -5,7 +5,7 @@
 namespace Engine
 {
 DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
-MeshRenderer::MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material)
+MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material)
     : Component("MeshRenderer", parent), mesh(mesh), materials({material})
 {}
 
@@ -13,7 +13,7 @@ MeshRenderer::MeshRenderer(GameObject* parent) : MeshRenderer(parent, nullptr, n
 
 MeshRenderer::MeshRenderer() : Component("MeshRenderer", nullptr), mesh(nullptr), materials(){};
 
-void MeshRenderer::SetMesh(Mesh2* mesh)
+void MeshRenderer::SetMesh(Mesh* mesh)
 {
     this->mesh = mesh;
     this->materials.resize(mesh->GetSubmeshes().size());
@@ -24,7 +24,7 @@ void MeshRenderer::SetMaterials(std::span<Material*> materials)
     this->materials = std::vector<Material*>(materials.begin(), materials.end());
 }
 
-Mesh2* MeshRenderer::GetMesh()
+Mesh* MeshRenderer::GetMesh()
 {
     return mesh;
 }

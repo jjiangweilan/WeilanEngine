@@ -1,9 +1,9 @@
 #include "../EditorState.hpp"
-#include "Core/Model2.hpp"
+#include "Core/Model.hpp"
 #include "Inspector.hpp"
 namespace Engine::Editor
 {
-class ModelInspector : public Inspector<Model2>
+class ModelInspector : public Inspector<Model>
 {
 public:
     void DrawInspector() override
@@ -26,7 +26,7 @@ public:
 
             if (ImGui::BeginDragDropSource())
             {
-                Mesh2* ptr = mesh.get();
+                Mesh* ptr = mesh.get();
 
                 ImGui::SetDragDropPayload("object", &ptr, sizeof(ptr));
 
@@ -41,6 +41,6 @@ private:
     static const char _register;
 };
 
-const char ModelInspector::_register = InspectorRegistry::Register<ModelInspector, Model2>();
+const char ModelInspector::_register = InspectorRegistry::Register<ModelInspector, Model>();
 
 } // namespace Engine::Editor

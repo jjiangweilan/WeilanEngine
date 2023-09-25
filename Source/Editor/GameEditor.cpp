@@ -53,7 +53,8 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
     if (transform->GetGameObject() == EditorState::selectedObject)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}",transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
+    bool treeOpen =
+        ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
     if (ImGui::IsItemClicked())
     {
         EditorState::selectedObject = transform->GetGameObject();
@@ -121,9 +122,18 @@ void GameEditor::OpenSceneWindow()
     static bool createSceneWindow = false;
     if (ImGui::BeginMenu("Assets"))
     {
-        if (ImGui::MenuItem("Create Scene"))
+        if (ImGui::BeginMenu("Create"))
         {
-            createSceneWindow = !createSceneWindow;
+            if (ImGui::MenuItem("Scene"))
+            {
+                createSceneWindow = !createSceneWindow;
+            }
+            if (ImGui::MenuItem("Material"))
+            {
+                auto mat = std::make_unique<Material>();
+                engine->assetDatabase->SaveAsset(std::move(mat), "new material");
+            }
+            ImGui::EndMenu();
         }
         if (ImGui::MenuItem("Open Scene"))
         {
@@ -481,7 +491,9 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             {
                 if (ImGui::IsItemClicked())
                 {
-                    Asset* asset = engine->assetDatabase->LoadAsset(std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory()));
+                    Asset* asset = engine->assetDatabase->LoadAsset(
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+                    );
                     if (asset)
                     {
                         EditorState::selectedObject = asset;

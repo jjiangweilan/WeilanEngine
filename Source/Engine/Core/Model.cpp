@@ -1,10 +1,10 @@
-#include "Model2.hpp"
+#include "Model.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include <fstream>
 
 namespace Engine
 {
-DEFINE_ASSET(Model2, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
+DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
 static void GetGLBData(
     const std::filesystem::path& path,
@@ -16,7 +16,7 @@ static void GetGLBData(
 static std::unique_ptr<GameObject> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh2*> meshes,
+    std::unordered_map<int, Mesh*> meshes,
     std::unordered_map<int, Material*> materials
 );
 
@@ -154,7 +154,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 static std::unique_ptr<GameObject> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh2*> meshes,
+    std::unordered_map<int, Mesh*> meshes,
     std::unordered_map<int, Material*> materials
 )
 {
@@ -205,7 +205,7 @@ static std::size_t WriteAccessorDataToBuffer(
     return byteLength;
 }
 
-bool Model2::LoadFromFile(const char* cpath)
+bool Model::LoadFromFile(const char* cpath)
 {
     // read uuid file
     std::filesystem::path path(cpath);
@@ -217,11 +217,11 @@ bool Model2::LoadFromFile(const char* cpath)
 
     // extract mesh and submeshes
     int meshesSize = jsonData["meshes"].size();
-    std::unordered_map<int, Mesh2*> toOurMesh;
+    std::unordered_map<int, Mesh*> toOurMesh;
     meshes.clear();
     for (int i = 0; i < meshesSize; ++i)
     {
-        std::unique_ptr<Mesh2> mesh = std::make_unique<Mesh2>();
+        std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
         std::vector<Submesh> submeshes;

@@ -1,7 +1,7 @@
 #pragma once
 #include "Asset/Material.hpp"
 #include "Core/GameObject.hpp"
-#include "Graphics/Mesh2.hpp"
+#include "Graphics/Mesh.hpp"
 #include <glm/glm.hpp>
 #include <span>
 #include <string>
@@ -9,16 +9,16 @@
 
 namespace Engine
 {
-class Model2 : public Asset
+class Model : public Asset
 {
     DECLARE_EXTERNAL_ASSET();
 
 public:
-    Model2() {}
-    Model2(
+    Model() {}
+    Model(
         std::vector<GameObject*>&& rootGameObjects,
         std::vector<std::unique_ptr<GameObject>>&& gameObjects,
-        std::vector<std::unique_ptr<Mesh2>>&& meshes,
+        std::vector<std::unique_ptr<Mesh>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
         std::vector<std::unique_ptr<Material>>&& materials,
         UUID uuid = UUID::GetEmptyUUID()
@@ -29,7 +29,7 @@ public:
         SetUUID(uuid);
     };
 
-    RefPtr<Mesh2> GetMesh(const std::string& name)
+    RefPtr<Mesh> GetMesh(const std::string& name)
     {
         for (auto& m : meshes)
         {
@@ -50,7 +50,7 @@ public:
     {
         return gameObjects;
     }
-    std::span<std::unique_ptr<Mesh2>> GetMeshes()
+    std::span<std::unique_ptr<Mesh>> GetMeshes()
     {
         return meshes;
     }
@@ -66,7 +66,7 @@ public:
 private:
     std::vector<GameObject*> rootGameObjects;
     std::vector<std::unique_ptr<GameObject>> gameObjects;
-    std::vector<std::unique_ptr<Mesh2>> meshes;
+    std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
 };

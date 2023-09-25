@@ -23,7 +23,7 @@ public:
         std::filesystem::path projectPath;
     };
 
-    std::unique_ptr<Model2> ImportModel(const char* path)
+    std::unique_ptr<Model> ImportModel(const char* path)
     {
         return Engine::Importers::GLB(path, sceneRenderer->GetOpaqueShader());
     }

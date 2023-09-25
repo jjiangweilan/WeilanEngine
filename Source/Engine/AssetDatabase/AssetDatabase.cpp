@@ -46,7 +46,7 @@ void AssetDatabase::SaveAsset(Asset& asset)
 
     if (assetData != nullptr)
     {
-        SerializeAssetToDisk(asset, assetData->GetAssetPath());
+        SerializeAssetToDisk(asset, assetDirectory / assetData->GetAssetPath());
     }
 }
 
@@ -110,10 +110,10 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 for (auto& iter : resolveMap)
                 {
                     // resolve external reference
-                    auto assetData = assets.GetAssetData(iter.first);
-                    if (assetData)
+                    auto externalAsset = LoadAssetByID(iter.first);
+                    if (externalAsset)
                     {
-                        ResolveAll(iter.second, assetData->GetAsset());
+                        ResolveAll(iter.second, externalAsset);
                     }
 
                     // resolve internal reference
@@ -168,6 +168,21 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
     return nullptr;
 }
 
+Asset* AssetDatabase::LoadAssetByID(const UUID& uuid)
+{
+    auto assetData = assets.GetAssetData(uuid);
+    if (assetData)
+    {
+        auto asset = assetData->GetAsset();
+        if (asset)
+            return asset;
+
+        return LoadAsset(assetData->GetAssetPath());
+    }
+
+    return nullptr;
+}
+
 void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path)
 {
     JsonSerializer ser;
@@ -193,7 +208,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
         Asset* asset = newAssetData->GetAsset();
 
-        SerializeAssetToDisk(*asset, newAssetData->GetAssetPath());
+        SerializeAssetToDisk(*asset, assetDirectory / newAssetData->GetAssetPath());
 
         Asset* temp = assets.Add(path, std::move(newAssetData));
 

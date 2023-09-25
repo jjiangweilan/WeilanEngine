@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Component/Light.hpp"
-#include "Core/Model2.hpp"
+#include "Core/Model.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
@@ -88,7 +88,7 @@ private:
 
     RenderGraph::RenderNode* shadowPass;
 
-    std::unique_ptr<Model2> cube;
+    std::unique_ptr<Model> cube;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
     std::unique_ptr<Texture> envMap;

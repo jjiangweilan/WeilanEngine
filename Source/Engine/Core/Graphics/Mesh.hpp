@@ -1,65 +1,74 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "GfxDriver/CommandBuffer.hpp"
-#include "Utils/Structs.hpp"
-#include <string>
+#include "GfxDriver/Buffer.hpp"
+#include "Libs/Ptr.hpp"
+#include <glm/glm.hpp>
+#include <string_view>
 #include <vector>
 
 namespace Engine
 {
-namespace Gfx
+struct VertexBinding
 {
-class Buffer;
-} // namespace Gfx
-
-struct DataRange
-{
-    uint32_t offsetInSrc;
-    uint32_t size;
-    void* data;
+    std::size_t byteOffset;
+    std::size_t byteSize;
+    std::string name;
 };
 
-struct MeshBindingInfo
+class Submesh
 {
-    uint32_t firstBinding = -1;
-    RefPtr<Gfx::Buffer> indexBuffer;
-    std::vector<Gfx::VertexBufferBinding> bindingBuffers;
-    uint32_t indexBufferOffset = -1;
-};
+public:
+    Submesh() {}
+    Submesh(
+        std::unique_ptr<unsigned char>&& vertexBuffer,
+        std::vector<VertexBinding>&& bindings,
+        std::unique_ptr<unsigned char>&& indexBuffer,
+        Gfx::IndexBufferType indexBufferType,
+        int indexCount,
+        std::string_view name = ""
+    );
+    Submesh(Submesh&& other) = default;
+    ~Submesh();
 
-template <class T>
-struct VertexAttribute
-{
-    std::vector<unsigned char> data;
-    uint32_t count = 1;
-    uint8_t componentCount = 1; // we only use float for vertex
-};
+    int GetIndexCount() const
+    {
+        return indexCount;
+    }
 
-struct UntypedVertexAttribute
-{
-    std::vector<unsigned char> data;
-    uint8_t dataByteSize = 0;
-    uint8_t componentCount = 1; // we only use float for vertex
-    uint32_t count = 1;
-};
+    Gfx::IndexBufferType GetIndexBufferType() const
+    {
+        return indexBufferType;
+    }
+    Gfx::Buffer* GetIndexBuffer() const
+    {
+        return gfxIndexBuffer.get();
+    }
+    Gfx::Buffer* GetVertexBuffer() const
+    {
+        return gfxVertexBuffer.get();
+    }
+    std::span<const VertexBinding> GetBindings() const
+    {
+        return bindings;
+    }
+    unsigned char* GetIndexBufferPtr() const
+    {
+        return indexBuffer.get();
+    }
+    unsigned char* GetVertexBufferPtr() const
+    {
+        return vertexBuffer.get();
+    }
 
-struct VertexDescription
-{
-    VertexDescription() = default;
-    VertexDescription(const VertexDescription& other) = default;
-    VertexDescription(VertexDescription&& other)
-        : position(std::move(other.position)), normal(std::move(other.normal)), tangent(std::move(other.tangent)),
-          index(std::move(other.index)), texCoords(std::move(other.texCoords)), colors(std::move(other.colors)),
-          joins(std::move(other.joins)), weights(std::move(other.weights))
-    {}
-    VertexAttribute<float> position;
-    VertexAttribute<float> normal;
-    VertexAttribute<float> tangent;
-    UntypedVertexAttribute index;
-    std::vector<UntypedVertexAttribute> texCoords;
-    std::vector<UntypedVertexAttribute> colors;
-    std::vector<UntypedVertexAttribute> joins;
-    std::vector<UntypedVertexAttribute> weights;
+private:
+    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
+    std::unique_ptr<unsigned char> vertexBuffer = nullptr;
+    std::unique_ptr<unsigned char> indexBuffer = nullptr;
+    Gfx::IndexBufferType indexBufferType;
+    std::vector<VertexBinding> bindings;
+    int indexCount = 0;
+    std::string name;
 };
 
 class Mesh : public Asset
@@ -67,34 +76,23 @@ class Mesh : public Asset
     DECLARE_ASSET();
 
 public:
-    Mesh() {}
-    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::GetEmptyUUID());
+    Mesh(UUID uuid = UUID::GetEmptyUUID()) : Asset(), submeshes()
+    {
+        SetUUID(uuid);
+    }
     ~Mesh();
 
-    const MeshBindingInfo& GetMeshBindingInfo()
+    const std::vector<Submesh>& GetSubmeshes()
     {
-        return meshBindingInfo;
-    }
-    const VertexDescription& GetVertexDescription();
-    const std::string& GetName()
-    {
-        return name;
-    }
-    Gfx::IndexBufferType GetIndexBufferType()
-    {
-        return indexBufferType;
-    }
+        return submeshes;
+    };
 
-protected:
-    MeshBindingInfo meshBindingInfo;
-    Gfx::IndexBufferType indexBufferType;
-    UniPtr<Gfx::Buffer> vertexBuffer;
-    UniPtr<Gfx::Buffer> indexBuffer;
-    VertexDescription vertexDescription;
-    void UpdateMeshBindingInfo(std::vector<DataRange>& ranges);
-    void GetAttributesDataRangesAndBufSize(std::vector<DataRange>& ranges, uint32_t& bufSize);
+    void SetSubmeshes(std::vector<Submesh>&& submeshes)
+    {
+        this->submeshes = std::move(submeshes);
+    }
 
 private:
-    void OnMeshDataUploaded(void* data);
+    std::vector<Submesh> submeshes;
 };
 } // namespace Engine
