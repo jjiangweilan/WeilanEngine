@@ -35,6 +35,14 @@ public:
         return shaderProgram->GetDefaultShaderConfig();
     }
 
+    bool IsExternalAsset() override
+    {
+        return true;
+    }
+
+    // return false if loading failed
+    bool LoadFromFile(const char* path) override;
+
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 

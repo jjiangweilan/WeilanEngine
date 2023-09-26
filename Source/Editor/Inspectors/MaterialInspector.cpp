@@ -24,8 +24,7 @@ public:
         if (shader != nullptr)
             shaderGUIID = shader->GetName();
 
-        if (ImGui::Button("shade"))
-        {};
+        bool buttonPressed = ImGui::Button(fmt::format("{}##shader", shaderGUIID).c_str());
 
         if (ImGui::BeginDragDropTarget())
         {
@@ -40,6 +39,13 @@ public:
                 }
             }
             ImGui::EndDragDropTarget();
+        }
+        else if (buttonPressed)
+        {
+            if (shader != nullptr)
+            {
+                EditorState::selectedObject = shader.Get();
+            }
         }
     }
 

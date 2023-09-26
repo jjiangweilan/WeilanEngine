@@ -94,8 +94,8 @@ public:
 
                 ImGui::Text("Mesh: ");
                 ImGui::SameLine();
-                if (ImGui::Button(meshGUIID.c_str()))
-                    EditorState::selectedObject = mesh;
+
+                bool bp = ImGui::Button(meshGUIID.c_str());
                 if (ImGui::BeginDragDropTarget())
                 {
                     const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
@@ -112,6 +112,10 @@ public:
                     }
                     ImGui::EndDragDropTarget();
                 }
+                else if (bp)
+                {
+                    EditorState::selectedObject = mesh;
+                }
                 // show materials
                 ImGui::Text("Materials: ");
                 std::vector<Material*> mats = meshRenderer.GetMaterials();
@@ -120,7 +124,7 @@ public:
                     Material* mat = mats[i];
                     std::string buttonID;
                     if (mat)
-                        buttonID = mats[i]->GetName();
+                        buttonID = fmt::format("{}: {}", i, mats[i]->GetName());
                     else
                         buttonID = fmt::format("{}##{}", "emtpy", i);
 

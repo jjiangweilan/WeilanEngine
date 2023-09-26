@@ -76,11 +76,15 @@ class Mesh : public Asset
     DECLARE_ASSET();
 
 public:
-    Mesh(UUID uuid = UUID::GetEmptyUUID()) : Asset(), submeshes()
-    {
-        SetUUID(uuid);
-    }
+    Mesh() : Asset(), submeshes() {}
     ~Mesh();
+
+    bool IsExternalAsset() override
+    {
+        return true;
+    }
+
+    bool LoadFromFile(const char* path) override;
 
     const std::vector<Submesh>& GetSubmeshes()
     {

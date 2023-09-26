@@ -9,6 +9,7 @@ DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material() : shader(nullptr), shaderResource(nullptr)
 {
+    SetName("new material");
     // assetReloadIterHandle = AssetDatabase::Instance()->RegisterOnAssetReload(
     //     [this](RefPtr<AssetObject> obj)
     //     {
@@ -23,6 +24,7 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
 
 Material::Material(RefPtr<Shader> shader) : Material()
 {
+    SetName("new material");
     SetShader(shader);
 }
 

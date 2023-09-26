@@ -489,7 +489,19 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             std::string pathStr = entry.path().filename().string();
             if (ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf))
             {
-                if (ImGui::IsItemClicked())
+
+                if (ImGui::BeginDragDropSource())
+                {
+                    Asset* asset = engine->assetDatabase->LoadAsset(
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+                    );
+                    ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
+
+                    ImGui::Text("%s", pathStr.c_str());
+
+                    ImGui::EndDragDropSource();
+                }
+                else if (ImGui::IsItemClicked())
                 {
                     Asset* asset = engine->assetDatabase->LoadAsset(
                         std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
@@ -498,15 +510,6 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                     {
                         EditorState::selectedObject = asset;
                     }
-                }
-
-                if (ImGui::BeginDragDropSource())
-                {
-                    ImGui::SetDragDropPayload("path", pathStr.c_str(), pathStr.length());
-
-                    ImGui::Text("%s", pathStr.c_str());
-
-                    ImGui::EndDragDropSource();
                 }
 
                 ImGui::TreePop();

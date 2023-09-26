@@ -1,12 +1,13 @@
 #include "Mesh.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Libs/GLB.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include <filesystem>
 
 namespace Engine
 {
 
-// Mesh2 should be imported through model that's why we just use a Mesh2PlaceHolder
-DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "Mesh2PlaceHolder");
+DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
 
 Submesh::~Submesh() {}
 Submesh::Submesh(
@@ -65,6 +66,24 @@ Submesh::Submesh(
         }
     );
 };
+
+bool Mesh::LoadFromFile(const char* path)
+{
+    std::vector<uint32_t> fullData;
+    nlohmann::json jsonData;
+    unsigned char* binaryData;
+    Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);
+    auto meshes = Utils::GLB::ExtractMeshes(jsonData, binaryData, 1);
+    if (!meshes.empty())
+    {
+        submeshes = std::move(meshes[0]->submeshes);
+        SetName(meshes[0]->GetName());
+    }
+    else
+        return false;
+
+    return true;
+}
 
 Mesh::~Mesh() {}
 

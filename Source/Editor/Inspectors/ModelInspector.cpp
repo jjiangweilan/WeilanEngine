@@ -19,20 +19,20 @@ public:
 
         for (auto& mesh : target->GetMeshes())
         {
-            if (ImGui::Button(mesh->GetName().c_str()))
-            {
-                EditorState::selectedObject = mesh.get();
-            }
-
+            bool bp = ImGui::Button(mesh->GetName().c_str());
             if (ImGui::BeginDragDropSource())
             {
                 Mesh* ptr = mesh.get();
 
-                ImGui::SetDragDropPayload("object", &ptr, sizeof(ptr));
+                ImGui::SetDragDropPayload("object", &ptr, sizeof(void*));
 
                 ImGui::Text("%s", mesh->GetName().c_str());
 
                 ImGui::EndDragDropSource();
+            }
+            else if (bp)
+            {
+                EditorState::selectedObject = mesh.get();
             }
         }
     }
