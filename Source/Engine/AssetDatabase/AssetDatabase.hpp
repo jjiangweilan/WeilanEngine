@@ -9,6 +9,8 @@ class AssetDatabase
 public:
     AssetDatabase(const std::filesystem::path& projectRoot);
 
+    void SaveDirtyAssets();
+
 public:
     // path: relative path as projectRoot/Assets/{path}
     Asset* LoadAsset(std::filesystem::path path);
@@ -17,7 +19,11 @@ public:
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
     void SaveAsset(Asset& asset);
 
-    const std::filesystem::path& GetAssetDirectory() {return assetDirectory;}
+    const std::filesystem::path& GetAssetDirectory()
+    {
+        return assetDirectory;
+    }
+
 private:
     const std::filesystem::path projectRoot;
     const std::filesystem::path assetDirectory;
@@ -32,7 +38,6 @@ private:
         // get by asset's uuid
         AssetData* GetAssetData(const UUID& uuid);
 
-    private:
         std::unordered_map<std::string, AssetData*> byPath;
         std::unordered_map<UUID, std::unique_ptr<AssetData>> data;
     } assets;

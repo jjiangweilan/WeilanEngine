@@ -120,6 +120,16 @@ void GameEditor::OpenSceneWindow()
 {
     static bool openSceneWindow = false;
     static bool createSceneWindow = false;
+
+    if (ImGui::BeginMenu("Files"))
+    {
+        if (ImGui::MenuItem("Save All"))
+        {
+            engine->assetDatabase->SaveDirtyAssets();
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("Assets"))
     {
         if (ImGui::BeginMenu("Create"))

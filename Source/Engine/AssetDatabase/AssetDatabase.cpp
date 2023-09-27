@@ -244,4 +244,20 @@ AssetData* AssetDatabase::Assets::GetAssetData(const UUID& uuid)
     return nullptr;
 }
 
+void AssetDatabase::SaveDirtyAssets()
+{
+    for (auto& a : assets.data)
+    {
+        Asset* asset = a.second->GetAsset();
+        if (asset)
+        {
+            if (asset->IsDirty())
+            {
+                SaveAsset(*asset);
+                asset->SetDirty(false);
+            }
+        }
+    }
+}
+
 } // namespace Engine

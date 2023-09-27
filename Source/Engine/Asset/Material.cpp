@@ -158,6 +158,8 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
         Gfx::ShaderResourceFrequency::Material
     );
     UpdateResources();
+
+    SetDirty();
 }
 
 void Material::UpdateResources()

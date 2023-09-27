@@ -33,6 +33,11 @@ public:
         return false;
     }
 
+    bool IsDirty()
+    {
+        return isDirty;
+    }
+
     // return false if loading failed
     virtual bool LoadFromFile(const char* path)
     {
@@ -53,8 +58,16 @@ public:
 
     virtual const char* GetExtension() = 0;
 
+    void SetDirty(bool isDirty = true)
+    {
+        this->isDirty = isDirty;
+    }
+
 protected:
-    std::string name;
+    std::string name = "";
+
+private:
+    bool isDirty = false;
 };
 
 struct AssetRegistry
