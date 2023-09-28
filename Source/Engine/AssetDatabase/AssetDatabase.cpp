@@ -29,7 +29,7 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
 
             if (ad->IsValid())
             {
-                assets.Add(ad->GetAssetPath(), std::move(ad));
+                assets.Add(std::move(ad));
             }
             else
             {
@@ -144,7 +144,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
         if (!assetData)
         {
             std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-            assets.Add(assetDirectory, std::move(ad));
+            assets.Add(std::move(ad));
         }
 
         // see if there is any reference need to be resolved by this object
@@ -210,17 +210,17 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 
         SerializeAssetToDisk(*asset, assetDirectory / newAssetData->GetAssetPath());
 
-        Asset* temp = assets.Add(path, std::move(newAssetData));
+        Asset* temp = assets.Add(std::move(newAssetData));
 
         return temp;
     }
     return nullptr;
 }
 
-Asset* AssetDatabase::Assets::Add(const std::filesystem::path& path, std::unique_ptr<AssetData>&& assetData)
+Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
 {
     Asset* asset = assetData->GetAsset();
-    byPath[path.string()] = assetData.get();
+    byPath[assetData->GetAssetPath().string()] = assetData.get();
     data[assetData->GetAssetUUID()] = std::move(assetData);
     return asset;
 }

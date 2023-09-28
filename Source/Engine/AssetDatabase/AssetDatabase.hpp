@@ -32,7 +32,7 @@ private:
     class Assets
     {
     public:
-        Asset* Add(const std::filesystem::path& path, std::unique_ptr<AssetData>&& asset);
+        Asset* Add(std::unique_ptr<AssetData>&& asset);
         AssetData* GetAssetData(const std::filesystem::path& path);
 
         // get by asset's uuid

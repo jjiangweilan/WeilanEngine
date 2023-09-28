@@ -17,6 +17,7 @@ GameEditor::GameEditor(const char* path)
 {
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
+    gameView.Init();
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -24,10 +25,6 @@ GameEditor::GameEditor(const char* path)
 
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
-
-    editorCameraGO = std::make_unique<GameObject>();
-    editorCameraGO->SetName("editor camera");
-    editorCamera = editorCameraGO->AddComponent<Camera>();
 
     toolList.emplace_back(new EnvironmentBaker());
 
@@ -118,45 +115,6 @@ void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::strin
 
 void GameEditor::OpenSceneWindow()
 {
-    static bool openSceneWindow = false;
-    static bool createSceneWindow = false;
-
-    if (ImGui::BeginMenu("Files"))
-    {
-        if (ImGui::MenuItem("Save All"))
-        {
-            engine->assetDatabase->SaveDirtyAssets();
-        }
-        ImGui::EndMenu();
-    }
-
-    if (ImGui::BeginMenu("Assets"))
-    {
-        if (ImGui::BeginMenu("Create"))
-        {
-            if (ImGui::MenuItem("Scene"))
-            {
-                createSceneWindow = !createSceneWindow;
-            }
-            if (ImGui::MenuItem("Material"))
-            {
-                auto mat = std::make_unique<Material>();
-                engine->assetDatabase->SaveAsset(std::move(mat), "new material");
-            }
-            ImGui::EndMenu();
-        }
-        if (ImGui::MenuItem("Open Scene"))
-        {
-            openSceneWindow = !openSceneWindow;
-        }
-        if (ImGui::MenuItem("Save Scene"))
-        {
-            if (EditorState::activeScene)
-                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
-        }
-        ImGui::EndMenu();
-    }
-
     if (openSceneWindow)
     {
         ImGui::Begin(
@@ -211,24 +169,6 @@ void GameEditor::OpenSceneWindow()
 void GameEditor::MainMenuBar()
 {
     ImGui::BeginMainMenuBar();
-    if (ImGui::MenuItem("Editor Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            gameCamera = EditorState::activeScene->GetMainCamera();
-            EditorState::activeScene->SetMainCamera(editorCamera);
-        }
-    }
-    if (ImGui::MenuItem("Game Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            EditorState::activeScene->SetMainCamera(gameCamera);
-            gameCamera = nullptr;
-        }
-    }
-
-    OpenSceneWindow();
 
     for (auto& registeredTool : registeredTools)
     {
@@ -255,6 +195,42 @@ void GameEditor::MainMenuBar()
         }
     }
 
+    if (ImGui::BeginMenu("Files"))
+    {
+        if (ImGui::MenuItem("Save All"))
+        {
+            engine->assetDatabase->SaveDirtyAssets();
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Assets"))
+    {
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Scene"))
+            {
+                createSceneWindow = !createSceneWindow;
+            }
+            if (ImGui::MenuItem("Material"))
+            {
+                auto mat = std::make_unique<Material>();
+                engine->assetDatabase->SaveAsset(std::move(mat), "new material");
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Open Scene"))
+        {
+            openSceneWindow = !openSceneWindow;
+        }
+        if (ImGui::MenuItem("Save Scene"))
+        {
+            if (EditorState::activeScene)
+                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+        }
+        ImGui::EndMenu();
+    }
+
     if (ImGui::BeginMenu("Scene"))
     {
         if (ImGui::BeginMenu("Tools"))
@@ -279,76 +255,29 @@ void GameEditor::MainMenuBar()
         ImGui::EndMenu();
     }
 
+    if (ImGui::MenuItem("Editor Camera"))
+    {
+        if (EditorState::activeScene)
+        {
+            gameView.gameCamera = EditorState::activeScene->GetMainCamera();
+            EditorState::activeScene->SetMainCamera(gameView.editorCamera);
+        }
+    }
+    if (ImGui::MenuItem("Game Camera"))
+    {
+        if (EditorState::activeScene)
+        {
+            EditorState::activeScene->SetMainCamera(gameView.gameCamera);
+            gameView.gameCamera = nullptr;
+        }
+    }
+
     ImGui::EndMainMenuBar();
-}
-
-static void EditorCameraWalkAround(Camera& editorCamera)
-{
-    auto tsm = editorCamera.GetGameObject()->GetTransform();
-    auto pos = tsm->GetPosition();
-    glm::mat4 model = tsm->GetModelMatrix();
-    glm::vec3 right = glm::normalize(model[0]);
-    glm::vec3 up = glm::normalize(model[1]);
-    glm::vec3 forward = glm::normalize(model[2]);
-
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered())
-    {
-        return;
-    }
-
-    float speed = 10 * Time::DeltaTime();
-    glm::vec3 dir = glm::vec3(0);
-    if (ImGui::IsKeyDown(ImGuiKey_D))
-    {
-        dir += right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_A))
-    {
-        dir -= right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_W))
-    {
-        dir -= forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_S))
-    {
-        dir += forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_E))
-    {
-        dir += up * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_Q))
-    {
-        dir -= up * speed;
-    }
-    pos += dir;
-    tsm->SetPosition(pos);
-
-    static ImVec2 lastMouseDelta = ImVec2(0, 0);
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-    {
-        auto rotation = tsm->GetRotationQuat();
-        auto mouseLastClickDelta = ImGui::GetMouseDragDelta(0, 0);
-        glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
-        lastMouseDelta = mouseLastClickDelta;
-        auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
-        auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
-
-        auto eye = tsm->GetPosition();
-        auto lookAtDelta = leftRight * right - upDown * up;
-        auto final = glm::lookAt(eye, eye - forward + lookAtDelta, glm::vec3(0, 1, 0));
-        tsm->SetModelMatrix(glm::inverse(final));
-    }
-    else
-    {
-        lastMouseDelta = ImVec2(0, 0);
-    }
 }
 
 void GameEditor::OnWindowResize(int32_t width, int32_t height)
 {
-    editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
+    gameView.editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
 }
 
 void GameEditor::Start()
@@ -379,9 +308,7 @@ void GameEditor::Start()
 void GameEditor::GUIPass()
 {
     MainMenuBar();
-    bool isEditorCameraActive = gameCamera != nullptr;
-    if (isEditorCameraActive)
-        EditorCameraWalkAround(*editorCamera);
+    OpenSceneWindow();
 
     gameView.Tick();
     AssetWindow();
@@ -499,7 +426,6 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             std::string pathStr = entry.path().filename().string();
             if (ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf))
             {
-
                 if (ImGui::BeginDragDropSource())
                 {
                     Asset* asset = engine->assetDatabase->LoadAsset(
@@ -511,7 +437,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
 
                     ImGui::EndDragDropSource();
                 }
-                else if (ImGui::IsItemClicked())
+                else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
                     Asset* asset = engine->assetDatabase->LoadAsset(
                         std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())

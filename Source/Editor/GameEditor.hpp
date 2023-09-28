@@ -33,18 +33,16 @@ private:
 private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    std::unique_ptr<GameObject> editorCameraGO;
 
     GameView gameView;
-
-    Camera* gameCamera;
-    Camera* editorCamera;
 
     bool sceneTree = true;
     bool sceneInfo = false;
 
     bool assetWindow = true;
     bool inspectorWindow = true;
+    bool openSceneWindow = false;
+    bool createSceneWindow = false;
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
