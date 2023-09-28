@@ -94,6 +94,8 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         .stageFlags = Gfx::PipelineStage::Fragment_Shader,
     });
     renderer->Process();
+
+    editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
 }
 
 void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)

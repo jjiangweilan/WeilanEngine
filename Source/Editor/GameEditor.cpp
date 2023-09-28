@@ -275,11 +275,6 @@ void GameEditor::MainMenuBar()
     ImGui::EndMainMenuBar();
 }
 
-void GameEditor::OnWindowResize(int32_t width, int32_t height)
-{
-    gameView.editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
-}
-
 void GameEditor::Start()
 {
     while (true)

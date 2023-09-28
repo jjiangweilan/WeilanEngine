@@ -21,8 +21,6 @@ public:
 
     void Start();
 
-    void OnWindowResize(int32_t width, int32_t height);
-
 private:
     struct RegisteredTool
     {
