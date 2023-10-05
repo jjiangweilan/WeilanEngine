@@ -29,13 +29,15 @@ public:
     void Render(Gfx::CommandBuffer& cmd, Scene* scene);
 
 private:
-    Scene* scene = nullptr;
     std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;
-
     std::unique_ptr<GameObject> editorCameraGO;
 
+    struct
+    {
+        glm::ivec2 resolution;
+    } d; // data
+
     void CreateRenderData(uint32_t width, uint32_t height);
-    void Render();
 };
 } // namespace Engine::Editor

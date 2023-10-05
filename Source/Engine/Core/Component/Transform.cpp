@@ -14,12 +14,12 @@ Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject
     rotation = glm::quat(rotationEuler);
 }
 
-const std::vector<RefPtr<Transform>>& Transform::GetChildren()
+const std::vector<Transform*>& Transform::GetChildren()
 {
     return children;
 }
 
-void Transform::SetParent(RefPtr<Transform> parent)
+void Transform::SetParent(Transform* parent)
 {
     if (this->parent == parent)
         return;
@@ -49,7 +49,7 @@ void Transform::SetParent(RefPtr<Transform> parent)
     }
 }
 
-void Transform::RemoveChild(RefPtr<Transform> child)
+void Transform::RemoveChild(Transform* child)
 {
     auto it = children.begin();
     while (it != children.end())
@@ -63,7 +63,7 @@ void Transform::RemoveChild(RefPtr<Transform> child)
     }
 }
 
-RefPtr<Transform> Transform::GetParent()
+Transform* Transform::GetParent()
 {
     return parent;
 }
@@ -133,6 +133,11 @@ void Transform::Deserialize(Serializer* s)
     s->Deserialize("scale", scale);
     s->Deserialize("parent", parent);
     s->Deserialize("children", children);
+}
+
+glm::vec3 Transform::GetForward()
+{
+    return GetModelMatrix()[2];
 }
 
 void Transform::Serialize(Serializer* s) const

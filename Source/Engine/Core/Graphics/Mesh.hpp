@@ -3,6 +3,7 @@
 #include "GfxDriver/Buffer.hpp"
 #include "Libs/Ptr.hpp"
 #include <glm/glm.hpp>
+#include <iterator>
 #include <string_view>
 #include <vector>
 
@@ -30,7 +31,7 @@ public:
     Submesh(Submesh&& other) = default;
     ~Submesh();
 
-    int GetIndexCount() const
+    inline int GetIndexCount() const
     {
         return indexCount;
     }
@@ -39,23 +40,28 @@ public:
     {
         return indexBufferType;
     }
+
     Gfx::Buffer* GetIndexBuffer() const
     {
         return gfxIndexBuffer.get();
     }
+
     Gfx::Buffer* GetVertexBuffer() const
     {
         return gfxVertexBuffer.get();
     }
+
     std::span<const VertexBinding> GetBindings() const
     {
         return bindings;
     }
-    unsigned char* GetIndexBufferPtr() const
+
+    uint8_t* GetIndexBufferData() const
     {
         return indexBuffer.get();
     }
-    unsigned char* GetVertexBufferPtr() const
+
+    uint8_t* GetVertexBufferData() const
     {
         return vertexBuffer.get();
     }

@@ -75,7 +75,7 @@ void SceneRenderer::ProcessLights(Scene& gameScene)
         {
             if (light == nullptr || light->GetIntensity() < lights[i]->GetIntensity())
             {
-                light = lights[i].Get();
+                light = lights[i];
             }
         }
     }

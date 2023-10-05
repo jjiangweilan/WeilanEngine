@@ -11,6 +11,8 @@ void GameView::Init()
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
+
+    CreateRenderData(1080, 960);
 }
 
 static void EditorCameraWalkAround(Camera& editorCamera)
@@ -112,7 +114,39 @@ bool GameView::Tick()
 {
     bool open = true;
 
-    ImGui::Begin("Game View", &open);
+    ImGui::Begin("Game View", &open, ImGuiWindowFlags_MenuBar);
+
+    const char* menuSelected = "";
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::MenuItem("Resolution"))
+        {
+            menuSelected = "Change Resolution";
+        }
+        ImGui::EndMenuBar();
+    }
+
+    if (strcmp(menuSelected, "Change Resolution") == 0)
+    {
+        ImGui::OpenPopup("Change Resolution");
+        auto width = sceneImage->GetDescription().width;
+        auto height = sceneImage->GetDescription().height;
+        d.resolution = {width, height};
+    }
+
+    if (ImGui::BeginPopup("Change Resolution"))
+    {
+        ImGui::InputInt2("Resolution", (int*)&d.resolution);
+        if (ImGui::Button("Confirm"))
+        {
+            CreateRenderData(d.resolution.x, d.resolution.y);
+        }
+        if (ImGui::Button("Close"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
 
     if (ImGui::IsWindowFocused())
     {
@@ -122,27 +156,38 @@ bool GameView::Tick()
     }
 
     // create scene color if it's null or if the window size is changed
-    auto contentMax = ImGui::GetWindowContentRegionMax();
-    auto contentMin = ImGui::GetWindowContentRegionMin();
-    float width = contentMax.x - contentMin.x;
-    float height = contentMax.y - contentMin.y;
-    bool creationNeeded =
-        ((sceneImage == nullptr || sceneImage->GetDescription().width != (uint32_t)width ||
-          (sceneImage->GetDescription().height != (uint32_t)height)) &&
-         !ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !ImGui::IsMouseDown(ImGuiMouseButton_Left));
-    if (creationNeeded && width != 0 && height != 0)
-    {
-        CreateRenderData(width, height);
-    }
+    const auto contentMax = ImGui::GetWindowContentRegionMax();
+    const auto contentMin = ImGui::GetWindowContentRegionMin();
+    const float contentWidth = contentMax.x - contentMin.x;
+    const float contentHeight = contentMax.y - contentMin.y;
 
     // imgui image
     if (sceneImage)
-        ImGui::Image(&sceneImage->GetDefaultImageView(), {width, height});
+    {
+        float width = sceneImage->GetDescription().width;
+        float height = sceneImage->GetDescription().height;
+        float imageWidth = width;
+        float imageHeight = height;
+
+        // shrink width
+        if (imageWidth > contentWidth)
+        {
+            float ratio = contentWidth / (float)imageWidth;
+            imageWidth = contentWidth;
+            imageHeight *= ratio;
+        }
+
+        if (imageHeight > contentHeight)
+        {
+            float ratio = contentHeight / (float)imageHeight;
+            imageHeight = contentHeight;
+            imageWidth *= ratio;
+        }
+
+        ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+    }
 
     ImGui::End();
     return open;
 }
-
-void GameView::Render() {}
-
 } // namespace Engine::Editor

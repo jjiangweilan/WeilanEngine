@@ -12,9 +12,9 @@ GameObject* Scene::CreateGameObject()
 {
     std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
-    RefPtr<GameObject> refObj = gameObjects.back();
+    GameObject* refObj = gameObjects.back().get();
     roots.push_back(refObj);
-    return refObj.Get();
+    return refObj;
 }
 
 void Scene::AddGameObject(GameObject* newGameObject)
@@ -24,7 +24,7 @@ void Scene::AddGameObject(GameObject* newGameObject)
     externalGameObjects.push_back(newGameObject);
 }
 
-const std::vector<RefPtr<GameObject>>& Scene::GetRootObjects()
+const std::vector<GameObject*>& Scene::GetRootObjects()
 {
     return roots;
 }
@@ -37,12 +37,33 @@ void Scene::Tick()
     }
 }
 
-void Scene::MoveGameObjectToRoot(RefPtr<GameObject> obj)
+void Scene::MoveGameObjectToRoot(GameObject* obj)
 {
     roots.push_back(obj);
 }
 
-void Scene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
+static void GetAllGameObjects(Transform* current, std::vector<GameObject*>& objs)
+{
+    objs.push_back(current->GetGameObject());
+    for (auto& child : current->GetChildren())
+    {
+        GetAllGameObjects(child, objs);
+    }
+}
+
+std::vector<GameObject*> Scene::GetAllGameObjects()
+{
+    std::vector<GameObject*> objs(256);
+
+    for (auto& obj : roots)
+    {
+        ::Engine::GetAllGameObjects(obj->GetTransform(), objs);
+    }
+
+    return objs;
+}
+
+void Scene::RemoveGameObjectFromRoot(GameObject* obj)
 {
     auto it = roots.begin();
     while (it != roots.end())
@@ -56,7 +77,7 @@ void Scene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
     }
 }
 
-void Scene::TickGameObject(RefPtr<GameObject> obj)
+void Scene::TickGameObject(GameObject* obj)
 {
     obj->Tick();
 
@@ -66,7 +87,7 @@ void Scene::TickGameObject(RefPtr<GameObject> obj)
     }
 }
 
-void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
+void GetLights(Transform* tsm, std::vector<Light*>& lights)
 {
     for (auto& child : tsm->GetChildren())
     {
@@ -80,9 +101,9 @@ void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
     }
 }
 
-std::vector<RefPtr<Light>> Scene::GetActiveLights()
+std::vector<Light*> Scene::GetActiveLights()
 {
-    std::vector<RefPtr<Light>> lights;
+    std::vector<Light*> lights;
     for (auto child : roots)
     {
         GetLights(child->GetTransform(), lights);
