@@ -144,7 +144,7 @@ void main()
     // env map lighting
     // reflection
     vec3 envLightDir = normalize(reflect(v, n));
-    vec3 envLight = texture(environmentMap, SphericalToUV(envLightDir)).xyz;
+    vec3 envLight = texture(environmentMap, envLightDir).xyz;
     float envBrdf = SpecularBRDF(envLightDir, v, n, metallic, roughness);
     float envLightDotNL = max(dot(envLightDir, n), NearZero);
     indirectLight += envLightDotNL * envLight * (baseColor / M_PI + envBrdf);

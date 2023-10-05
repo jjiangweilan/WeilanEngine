@@ -200,11 +200,11 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    path = assetDirectory / path;
+    auto fullPath = assetDirectory / path;
     // only internal asset can be created
-    if (!a->IsExternalAsset() && !std::filesystem::exists(path))
+    if (!a->IsExternalAsset() && !std::filesystem::exists(fullPath))
     {
-        path.replace_extension(a->GetExtension());
+        fullPath.replace_extension(a->GetExtension());
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
         Asset* asset = newAssetData->GetAsset();
 

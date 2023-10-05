@@ -29,11 +29,12 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     context->objManager->CreateSampler(samplerCreateInfo, defaultSampler);
 
     // create default image
-    ImageDescription desc;
+    ImageDescription desc{};
     desc.format = ImageFormat::R8G8B8A8_UNorm;
     desc.height = 2;
     desc.width = 2;
     desc.mipLevels = 1;
+    desc.isCubemap = false;
     // uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
     // desc.data = (unsigned char*)pxls;
     desc.multiSampling = MultiSampling::Sample_Count_1;
@@ -41,7 +42,23 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     defaultTexture->SetName("Default Texture");
     // default storage buffer
     // defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
+
+    ImageDescription descCube{};
+    descCube.format = ImageFormat::R8G8B8A8_UNorm;
+    descCube.height = 2;
+    descCube.width = 2;
+    descCube.isCubemap = true;
+    descCube.multiSampling = MultiSampling::Sample_Count_1;
+    descCube.mipLevels = 1;
+    // uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+    // desc.data = (unsigned char*)pxls;
+    descCube.multiSampling = MultiSampling::Sample_Count_1;
+    defaultCubemap = MakeUnique<VKImage>(descCube, ImageUsage::Texture | ImageUsage::TransferDst);
+    defaultCubemap->SetName("Default Cubemap");
 }
 
-VKSharedResource::~VKSharedResource() { context->objManager->DestroySampler(defaultSampler); }
+VKSharedResource::~VKSharedResource()
+{
+    context->objManager->DestroySampler(defaultSampler);
+}
 } // namespace Engine::Gfx

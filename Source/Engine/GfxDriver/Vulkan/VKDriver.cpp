@@ -107,7 +107,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     }
 
     GPUBarrier defaultTextureBarrier = {
-        .image = sharedResource->GetDefaultTexture(),
+        .image = sharedResource->GetDefaultTexture2D(),
         .srcStageMask = Gfx::PipelineStage::All_Commands,
         .dstStageMask = Gfx::PipelineStage::All_Commands,
         .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
@@ -121,7 +121,23 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
             },
     };
 
+    GPUBarrier defaultTextureCubeBarrier = {
+    .image = sharedResource->GetDefaultTextureCube(),
+    .srcStageMask = Gfx::PipelineStage::All_Commands,
+    .dstStageMask = Gfx::PipelineStage::All_Commands,
+    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+    .imageInfo =
+        {
+            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+            .oldLayout = Gfx::ImageLayout::Undefined,
+            .newLayout = Gfx::ImageLayout::Shader_Read_Only,
+        },
+    };
+
     barriers.push_back(defaultTextureBarrier);
+    barriers.push_back(defaultTextureCubeBarrier);
     cmdBuf->Barrier(barriers.data(), barriers.size());
 
     cmdBuf->End();

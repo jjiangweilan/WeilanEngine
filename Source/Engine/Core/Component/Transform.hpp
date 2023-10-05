@@ -46,7 +46,7 @@ private:
     glm::vec3 position;
     glm::vec3 scale;
 
-    Transform* parent;
+    Transform* parent = nullptr;
     std::vector<Transform*> children;
 };
 

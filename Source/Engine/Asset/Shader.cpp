@@ -50,7 +50,7 @@ bool Shader::LoadFromFile(const char* path)
         GetGfxDriver()
             ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
 
-    this->name = path;
+    this->name = compiler.GetName();
 
     return true;
 }

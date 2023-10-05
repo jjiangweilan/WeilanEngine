@@ -22,6 +22,18 @@ std::string RemoveShaderNameConfigText(std::string text)
 
     return text;
 }
+
+Texture::Type MapStringToTextureType(const std::string& typeStr)
+{
+    if (typeStr == "sampler2D")
+        return Texture::Type::Tex2D;
+    if (typeStr == "samplerCube")
+        return Texture::Type::TexCube;
+
+    assert(false && "non handled Texture::Type");
+    return Texture::Type::Tex2D;
+}
+
 ShaderDataType MapShaderDataType(const std::string& typeStr)
 {
     if (typeStr == "vec4")
@@ -128,7 +140,7 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
         {
             int count = iter.second.dimension[0];
 
-            for(int i = 1; i < iter.second.dimension.size(); ++i)
+            for (int i = 1; i < iter.second.dimension.size(); ++i)
             {
                 count *= iter.second.dimension[i];
             }
@@ -249,7 +261,8 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
 }
 
 void Process(
-    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root)
+    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root
+)
 {
     for (auto& bindingJson : bindingsJson)
     {
@@ -279,6 +292,7 @@ void Process(
                     {
                         new (&b.binding.texture) Texture();
                         b.binding.texture.filter = MapStringToSamplerFilterMode(name);
+                        b.binding.texture.type = MapStringToTextureType(bindingJson.value("type", "sampler2D"));
                         break;
                     }
                 case BindingType::SeparateImage: new (&b.binding.separateImage) SeparateImage(); break;
@@ -328,7 +342,8 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
         {
             iter = to.bindings.insert(std::make_pair(binding.first, binding.second)).first;
             to.descriptorSetBinidngMap[iter->second.setNum].bindings.insert(
-                std::make_pair(binding.first, binding.second));
+                std::make_pair(binding.first, binding.second)
+            );
         }
         iter->second.stages |= binding.second.stages;
     }

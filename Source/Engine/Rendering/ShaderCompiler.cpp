@@ -72,7 +72,7 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, debugName, option);
     if (compiled.GetNumErrors() > 0)
     {
-        auto msg = fmt::format("Shader failed: {}", compiled.GetErrorMessage().c_str());
+        auto msg = fmt::format("Shader[{}] failed: {}", name, compiled.GetErrorMessage().c_str());
         SPDLOG_ERROR(msg);
         throw CompileError(msg);
     }

@@ -130,7 +130,7 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
             auto positionBinding = bindings[0];
 
             // I just assume binding zero is a vec3 position, this is not robust
-            for (int i; i < submesh.GetIndexCount(); i += 3)
+            for (int i = 0; i < submesh.GetIndexCount(); i += 3)
             {
                 int j = i + 1;
                 int k = i + 2;

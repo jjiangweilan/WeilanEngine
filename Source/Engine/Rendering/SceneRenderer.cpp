@@ -51,7 +51,7 @@ SceneRenderer::SceneRenderer()
     });
 
     // skybox resources
-    envMap = std::make_unique<Texture>("Assets/envMap.ktx");
+    envMap = std::make_unique<Texture>("Assets/envCubemap.ktx");
     cube = Importers::GLB("Assets/cube.glb", skyboxShader.get());
     skyboxShader = std::make_unique<Shader>("Assets/Shaders/Skybox.shad");
     skyboxPassResource =
