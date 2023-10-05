@@ -1,7 +1,10 @@
 #include "GameView.hpp"
+#include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
+#include "EditorState.hpp"
 #include "Rendering/ImmediateGfx.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include "spdlog/spdlog.h"
 namespace Engine::Editor
 {
 GameView::GameView() {}
@@ -110,6 +113,92 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     renderer->Render(cmd, *scene);
 }
 
+static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
+{
+    auto mr = obj->GetComponent<MeshRenderer>();
+    if (mr)
+    {
+        auto model = obj->GetTransform()->GetModelMatrix();
+
+        for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
+        {
+            uint8_t* vertexBufferData = submesh.GetVertexBufferData();
+            auto bindings = submesh.GetBindings();
+            if (bindings.empty() || vertexBufferData == nullptr)
+                continue;
+
+            auto positionBinding = bindings[0];
+
+            // I just assume binding zero is a vec3 position, this is not robust
+            for (int i; i < submesh.GetIndexCount(); i += 3)
+            {
+                int j = i + 1;
+                int k = i + 2;
+
+                glm::vec3 v0, v1, v2;
+                glm::vec3* positionData = reinterpret_cast<glm::vec3*>(vertexBufferData + positionBinding.byteOffset);
+                memcpy(&v0, positionData + i, 12);
+                memcpy(&v1, positionData + j, 12);
+                memcpy(&v2, positionData + k, 12);
+
+                v0 = model * glm::vec4(v0, 1.0);
+                v1 = model * glm::vec4(v1, 1.0);
+                v2 = model * glm::vec4(v2, 1.0);
+
+                glm::vec2 bary;
+                return glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance);
+            }
+        }
+    }
+
+    // ray is not tested, there is no mesh maybe use a box as proxy?
+    return false;
+}
+
+static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
+{
+    if (Scene* scene = EditorState::activeScene)
+    {
+        auto objs = scene->GetAllGameObjects();
+        auto mainCam = scene->GetMainCamera();
+        Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+
+        auto ori = ray.origin;
+        auto dir = ray.direction;
+        struct Intersected
+        {
+            GameObject* go;
+            float distance;
+        };
+        std::vector<Intersected> intersected;
+        intersected.reserve(32);
+        for (auto obj : objs)
+        {
+            if (obj == nullptr)
+                continue;
+
+            float distance = std::numeric_limits<float>::max();
+            if (IsRayObjectIntersect(ori, dir, obj, distance))
+            {
+                intersected.push_back(Intersected{obj, distance});
+            }
+        }
+
+        auto iter = std::min_element(
+            intersected.begin(),
+            intersected.end(),
+            [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
+        );
+
+        if (iter != intersected.end())
+        {
+            return iter->go;
+        }
+    }
+
+    return nullptr;
+}
+
 bool GameView::Tick()
 {
     bool open = true;
@@ -184,10 +273,25 @@ bool GameView::Tick()
             imageWidth *= ratio;
         }
 
+        auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+        {
+            auto mousePos = ImGui::GetMousePos();
+            auto windowPos = ImGui::GetWindowPos();
+            glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
+            GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+
+            if (selected)
+            {
+                EditorState::selectedObject = selected;
+            }
+        }
     }
 
     ImGui::End();
     return open;
 }
+
 } // namespace Engine::Editor

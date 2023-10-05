@@ -1,4 +1,5 @@
 #include "WeilanEngine.hpp"
+#include <unistd.h>
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #endif

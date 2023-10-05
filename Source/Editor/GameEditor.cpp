@@ -300,59 +300,6 @@ void GameEditor::Start()
     }
 }
 
-bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj)
-{
-    auto mr = obj->GetComponent<MeshRenderer>();
-    if (mr)
-    {
-        for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
-        {
-            uint8_t* vertexBufferData = submesh.GetVertexBufferData();
-            auto bindings = submesh.GetBindings();
-            if (bindings.empty() || vertexBufferData == nullptr)
-                continue;
-
-            auto positionBinding = bindings[0];
-
-            // I just assume binding zero is a vec3 position, this is not robust
-            for (int i; i < submesh.GetIndexCount(); i += 3)
-            {
-                int j = i + 1;
-                int k = i + 2;
-
-                glm::vec3 v0, v1, v2;
-                glm::vec3* positionData = reinterpret_cast<glm::vec3*>(vertexBufferData + positionBinding.byteOffset);
-                memcpy(&v0, positionData + i, 12);
-                memcpy(&v1, positionData + j, 12);
-                memcpy(&v2, positionData + k, 12);
-
-                glm::vec2 bary;
-                float distance;
-                return glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance);
-            }
-        }
-    }
-
-    // ray is not tested, there is no mesh maybe use a box as proxy?
-    return false;
-}
-
-void GameEditor::PickGameObjectFromScene()
-{
-    if (Scene* scene = EditorState::activeScene)
-    {
-        auto objs = scene->GetAllGameObjects();
-        auto mainCam = scene->GetMainCamera();
-        auto camTsm = mainCam->GetGameObject()->GetTransform();
-        auto forward = camTsm->GetForward();
-        auto pos = camTsm->GetPosition();
-
-        std::vector<GameObject*> intersected;
-        for (auto obj : objs)
-        {}
-    }
-}
-
 void GameEditor::GUIPass()
 {
     MainMenuBar();

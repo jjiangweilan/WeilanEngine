@@ -53,7 +53,8 @@ static void GetAllGameObjects(Transform* current, std::vector<GameObject*>& objs
 
 std::vector<GameObject*> Scene::GetAllGameObjects()
 {
-    std::vector<GameObject*> objs(256);
+    std::vector<GameObject*> objs;
+    objs.reserve(256);
 
     for (auto& obj : roots)
     {

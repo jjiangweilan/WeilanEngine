@@ -53,10 +53,6 @@ private:
 
     void AssetWindow();
     void AssetShowDir(const std::filesystem::path& path);
-    void extracted(GameObject* obj);
-    void PickGameObjectFromScene();
-    bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj);
-
     void InspectorWindow();
 
     void SceneTree(Scene& scene);
