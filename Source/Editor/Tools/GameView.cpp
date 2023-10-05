@@ -123,30 +123,51 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
         for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
         {
             uint8_t* vertexBufferData = submesh.GetVertexBufferData();
+            uint8_t* indexBufferData = submesh.GetIndexBufferData();
+            auto indexBufferType = submesh.GetIndexBufferType();
+
             auto bindings = submesh.GetBindings();
             if (bindings.empty() || vertexBufferData == nullptr)
                 continue;
 
             auto positionBinding = bindings[0];
 
+#define IterateAndReturn                                                                                               \
+    for (int i = 0; i < submesh.GetIndexCount(); i += 3)                                                               \
+    {                                                                                                                  \
+        int j = i + 1;                                                                                                 \
+        int k = i + 2;                                                                                                 \
+                                                                                                                       \
+        glm::vec3 v0, v1, v2;                                                                                          \
+        glm::vec3* positionData = reinterpret_cast<glm::vec3*>(vertexBufferData + positionBinding.byteOffset);         \
+                                                                                                                       \
+        int indexI = indexData[i];                                                                                     \
+        int indexJ = indexData[j];                                                                                     \
+        int indexK = indexData[k];                                                                                     \
+        v0 = *(positionData + indexI);                                                                                 \
+        v1 = *(positionData + indexJ);                                                                                 \
+        v2 = *(positionData + indexK);                                                                                 \
+                                                                                                                       \
+        v0 = model * glm::vec4(v0, 1.0);                                                                               \
+        v1 = model * glm::vec4(v1, 1.0);                                                                               \
+        v2 = model * glm::vec4(v2, 1.0);                                                                               \
+                                                                                                                       \
+        glm::vec2 bary;                                                                                                \
+        if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))                                           \
+            return true;                                                                                               \
+    }
+
             // I just assume binding zero is a vec3 position, this is not robust
-            for (int i = 0; i < submesh.GetIndexCount(); i += 3)
+            if (indexBufferType == Gfx::IndexBufferType::UInt16)
             {
-                int j = i + 1;
-                int k = i + 2;
+                uint16_t* indexData = reinterpret_cast<uint16_t*>(indexBufferData);
+                IterateAndReturn;
+            }
 
-                glm::vec3 v0, v1, v2;
-                glm::vec3* positionData = reinterpret_cast<glm::vec3*>(vertexBufferData + positionBinding.byteOffset);
-                memcpy(&v0, positionData + i, 12);
-                memcpy(&v1, positionData + j, 12);
-                memcpy(&v2, positionData + k, 12);
-
-                v0 = model * glm::vec4(v0, 1.0);
-                v1 = model * glm::vec4(v1, 1.0);
-                v2 = model * glm::vec4(v2, 1.0);
-
-                glm::vec2 bary;
-                return glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance);
+            if (indexBufferType == Gfx::IndexBufferType::UInt32)
+            {
+                uint32_t* indexData = reinterpret_cast<uint32_t*>(indexBufferData);
+                IterateAndReturn;
             }
         }
     }

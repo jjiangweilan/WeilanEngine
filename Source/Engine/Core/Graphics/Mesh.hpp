@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "Libs/Ptr.hpp"
+#include "Utils/Structs.hpp"
 #include <glm/glm.hpp>
 #include <iterator>
 #include <string_view>
@@ -29,6 +30,7 @@ public:
         std::string_view name = ""
     );
     Submesh(Submesh&& other) = default;
+    Submesh& operator=(Submesh&& other) = default;
     ~Submesh();
 
     inline int GetIndexCount() const
@@ -66,6 +68,8 @@ public:
         return vertexBuffer.get();
     }
 
+    const AABB& GetAABB() const;
+
 private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
@@ -83,6 +87,7 @@ class Mesh : public Asset
 
 public:
     Mesh() : Asset(), submeshes() {}
+    Mesh(Mesh&& other) = default;
     ~Mesh();
 
     bool IsExternalAsset() override
@@ -104,5 +109,6 @@ public:
 
 private:
     std::vector<Submesh> submeshes;
+    AABB aabb;
 };
 } // namespace Engine

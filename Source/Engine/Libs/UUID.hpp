@@ -10,6 +10,7 @@ class UUID
 public:
     UUID();
     UUID(const UUID& uuid);
+    UUID(UUID&& other) = default;
     UUID(const std::string& uuid);
     UUID(const char* uuid);
     ~UUID();

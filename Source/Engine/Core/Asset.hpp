@@ -19,6 +19,9 @@ public:
     {
         return name;
     }
+    Asset() = default;
+    Asset(const Asset& other) = default;
+    Asset(Asset&& other) = default;
     virtual ~Asset(){};
 
     virtual void Reload(Asset&& asset)

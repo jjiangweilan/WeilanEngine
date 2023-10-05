@@ -9,6 +9,9 @@ namespace Engine
 class Object
 {
 public:
+    Object() = default;
+    Object(Object&& other) = default;
+    Object(const Object& other) = default;
     virtual ~Object(){};
 
     const UUID& GetUUID() const
