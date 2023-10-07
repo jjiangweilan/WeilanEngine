@@ -178,6 +178,28 @@ public:
     void SetSubmeshes(std::vector<Submesh>&& submeshes)
     {
         this->submeshes = std::move(submeshes);
+
+        glm::vec3 min = {
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max()};
+        glm::vec3 max = {
+            std::numeric_limits<float>::min(),
+            std::numeric_limits<float>::min(),
+            std::numeric_limits<float>::min()};
+
+        for (auto& submesh : submeshes)
+        {
+            auto& aabb = submesh.GetAABB();
+            min.x = glm::min(min.x, aabb.min.x);
+            min.y = glm::min(min.y, aabb.min.y);
+            min.z = glm::min(min.z, aabb.min.z);
+            max.x = glm::max(max.x, aabb.max.x);
+            max.y = glm::max(max.y, aabb.max.y);
+            max.z = glm::max(max.z, aabb.max.z);
+        }
+
+        aabb = {min, max};
     }
 
 private:

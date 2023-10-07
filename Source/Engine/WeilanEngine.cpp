@@ -1,6 +1,7 @@
 #include "WeilanEngine.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/ImGuizmo.h"
 #endif
 namespace Engine
 {
@@ -58,6 +59,7 @@ void WeilanEngine::BeginFrame()
 #if ENGINE_EDITOR
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 #endif
 
     // poll events, this is every important

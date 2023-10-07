@@ -1,8 +1,10 @@
 #include "GameView.hpp"
+#include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
 namespace Engine::Editor
@@ -122,55 +124,23 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
 
         for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
         {
-            auto indices = submesh.GetIndices();
-            auto positions = submesh.GetPositions();
-
-            uint8_t* vertexBufferData = submesh.GetVertexBufferData();
-            uint8_t* indexBufferData = submesh.GetIndexBufferData();
-            auto indexBufferType = submesh.GetIndexBufferType();
-
-            auto bindings = submesh.GetBindings();
-            if (bindings.empty() || vertexBufferData == nullptr)
-                continue;
-
-            auto positionBinding = bindings[0];
-
-#define IterateAndReturn                                                                                               \
-    for (int i = 0; i < submesh.GetIndexCount(); i += 3)                                                               \
-    {                                                                                                                  \
-        int j = i + 1;                                                                                                 \
-        int k = i + 2;                                                                                                 \
-                                                                                                                       \
-        glm::vec3 v0, v1, v2;                                                                                          \
-        glm::vec3* positionData = reinterpret_cast<glm::vec3*>(vertexBufferData + positionBinding.byteOffset);         \
-                                                                                                                       \
-        int indexI = indexData[i];                                                                                     \
-        int indexJ = indexData[j];                                                                                     \
-        int indexK = indexData[k];                                                                                     \
-        v0 = *(positionData + indexI);                                                                                 \
-        v1 = *(positionData + indexJ);                                                                                 \
-        v2 = *(positionData + indexK);                                                                                 \
-                                                                                                                       \
-        v0 = model * glm::vec4(v0, 1.0);                                                                               \
-        v1 = model * glm::vec4(v1, 1.0);                                                                               \
-        v2 = model * glm::vec4(v2, 1.0);                                                                               \
-                                                                                                                       \
-        glm::vec2 bary;                                                                                                \
-        if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))                                           \
-            return true;                                                                                               \
-    }
+            auto& indices = submesh.GetIndices();
+            auto& positions = submesh.GetPositions();
 
             // I just assume binding zero is a vec3 position, this is not robust
-            if (indexBufferType == Gfx::IndexBufferType::UInt16)
+            for (int i = 0; i < submesh.GetIndexCount(); i += 3)
             {
-                uint16_t* indexData = reinterpret_cast<uint16_t*>(indexBufferData);
-                IterateAndReturn;
-            }
+                int j = i + 1;
+                int k = i + 2;
 
-            if (indexBufferType == Gfx::IndexBufferType::UInt32)
-            {
-                uint32_t* indexData = reinterpret_cast<uint32_t*>(indexBufferData);
-                IterateAndReturn;
+                glm::vec3 v0, v1, v2;
+                v0 = model * glm::vec4(positions[indices[i]], 1.0);
+                v1 = model * glm::vec4(positions[indices[j]], 1.0);
+                v2 = model * glm::vec4(positions[indices[k]], 1.0);
+
+                glm::vec2 bary;
+                if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
+                    return true;
             }
         }
     }
@@ -300,10 +270,10 @@ bool GameView::Tick()
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+        auto windowPos = ImGui::GetWindowPos();
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
         {
             auto mousePos = ImGui::GetMousePos();
-            auto windowPos = ImGui::GetWindowPos();
             glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
             GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
@@ -312,10 +282,98 @@ bool GameView::Tick()
                 EditorState::selectedObject = selected;
             }
         }
+
+        Scene* scene = EditorState::activeScene;
+        if (scene != nullptr)
+        {
+            auto mainCam = scene->GetMainCamera();
+            if (mainCam)
+            {
+                if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+                {
+                    auto model = go->GetTransform()->GetModelMatrix();
+                    ImGui::SetCursorPos(imagePos);
+                    EditTransform(*mainCam, model, {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight});
+                    go->GetTransform()->SetModelMatrix(model);
+                }
+            }
+        }
     }
 
     ImGui::End();
     return open;
+}
+
+void GameView::EditTransform(const Camera& camera, glm::mat4& matrix, const glm::vec4& rect)
+{
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+    // if (ImGui::IsKeyPressed(90))
+    //    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    // if (ImGui::IsKeyPressed(69))
+    //    mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    // if (ImGui::IsKeyPressed(82)) // r Key
+    //    mCurrentGizmoOperation = ImGuizmo::SCALE;
+    if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+        mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
+        mCurrentGizmoOperation = ImGuizmo::SCALE;
+    // float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+    // ImGuizmo::DecomposeMatrixToComponents(matrix.m16, matrixTranslation, matrixRotation, matrixScale);
+    // ImGui::InputFloat3("Tr", matrixTranslation, 3);
+    // ImGui::InputFloat3("Rt", matrixRotation, 3);
+    // ImGui::InputFloat3("Sc", matrixScale, 3);
+    // ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix.m16);
+
+    if (mCurrentGizmoOperation != ImGuizmo::SCALE)
+    {
+        if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
+            mCurrentGizmoMode = ImGuizmo::LOCAL;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
+            mCurrentGizmoMode = ImGuizmo::WORLD;
+    }
+    // static bool useSnap(false);
+    // if (ImGui::IsKeyPressed(83))
+    //    useSnap = !useSnap;
+    // ImGui::Checkbox("", &useSnap);
+    // ImGui::SameLine();
+    // vec_t snap;
+    // switch (mCurrentGizmoOperation)
+    // {
+    // case ImGuizmo::TRANSLATE:
+    //    snap = config.mSnapTranslation;
+    //    ImGui::InputFloat3("Snap", &snap.x);
+    //    break;
+    // case ImGuizmo::ROTATE:
+    //    snap = config.mSnapRotation;
+    //    ImGui::InputFloat("Angle Snap", &snap.x);
+    //    break;
+    // case ImGuizmo::SCALE:
+    //    snap = config.mSnapScale;
+    //    ImGui::InputFloat("Scale Snap", &snap.x);
+    //    break;
+    // }
+    ImGuiIO& io = ImGui::GetIO();
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 proj = camera.GetProjectionMatrix();
+    proj[1] = -proj[1];
+    ImGuizmo::SetDrawlist();
+    ImGuizmo::SetGizmoSizeClipSpace(0.2f);
+    ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
+    ImGuizmo::Manipulate(
+        &view[0][0],
+        &proj[0][0],
+        mCurrentGizmoOperation,
+        mCurrentGizmoMode,
+        &matrix[0][0],
+        NULL,
+        nullptr /* useSnap ? &snap.x : NULL */
+    );
 }
 
 } // namespace Engine::Editor

@@ -45,7 +45,7 @@ float Camera::GetFar()
     return 1000.f;
 }
 
-glm::mat4 Camera::GetViewMatrix()
+glm::mat4 Camera::GetViewMatrix() const
 {
     return glm::inverse(gameObject->GetTransform()->GetModelMatrix());
 }
@@ -56,7 +56,7 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float zNear, float zF
     projectionMatrix[1][1] = -projectionMatrix[1][1];
 }
 
-const glm::mat4& Camera::GetProjectionMatrix()
+const glm::mat4& Camera::GetProjectionMatrix() const
 {
     return projectionMatrix;
 }

@@ -13,8 +13,8 @@ public:
     Camera();
     Camera(GameObject* gameObject);
     ~Camera() override{};
-    glm::mat4 GetViewMatrix();
-    const glm::mat4& GetProjectionMatrix();
+    glm::mat4 GetViewMatrix() const;
+    const glm::mat4& GetProjectionMatrix() const;
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
