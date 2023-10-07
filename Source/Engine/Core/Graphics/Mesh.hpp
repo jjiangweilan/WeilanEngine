@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+// interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
+
 namespace Engine
 {
 struct VertexBinding
@@ -17,18 +19,53 @@ struct VertexBinding
     std::string name;
 };
 
-class Submesh
+class VertexAttribute
 {
 public:
+    VertexAttribute& AddAttribute(const char* name, int size)
+    {
+        attributes.push_back(Attribute{name, size});
+        return *this;
+    }
+
+    size_t GetSize() const
+    {
+        return data.size();
+    }
+
+    const std::vector<uint8_t> GetData()
+    {
+        return data;
+    }
+
+    void SetData(const std::vector<uint8_t>& data)
+    {
+        this->data = data;
+    }
+
+    void SetData(std::vector<uint8_t>&& data)
+    {
+        this->data = std::move(data);
+    }
+
+private:
+    struct Attribute
+    {
+        std::string name;
+        int size;
+    };
+
+    std::vector<Attribute> attributes;
+
+    // raw attribute data, attributes should be interleaved
+    std::vector<uint8_t> data;
+};
+
+class Submesh
+{
+    // general version API
+public:
     Submesh() {}
-    Submesh(
-        std::unique_ptr<unsigned char>&& vertexBuffer,
-        std::vector<VertexBinding>&& bindings,
-        std::unique_ptr<unsigned char>&& indexBuffer,
-        Gfx::IndexBufferType indexBufferType,
-        int indexCount,
-        std::string_view name = ""
-    );
     Submesh(Submesh&& other) = default;
     Submesh& operator=(Submesh&& other) = default;
     ~Submesh();
@@ -42,6 +79,9 @@ public:
     {
         return indexBufferType;
     }
+
+    const AABB& GetAABB() const;
+    void SetAABB(const AABB& aabb);
 
     Gfx::Buffer* GetIndexBuffer() const
     {
@@ -58,6 +98,45 @@ public:
         return bindings;
     }
 
+private:
+    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
+    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt16;
+    std::vector<VertexBinding> bindings;
+    AABB aabb;
+    int indexCount = 0;
+    std::string name;
+
+    // v0.2 API
+public:
+    void SetIndices(std::vector<uint32_t>&& indices);
+    void SetIndices(const std::vector<uint32_t>& indices);
+    void SetPositions(std::vector<glm::vec3>&& positions);
+    void SetVertexAttribute(VertexAttribute&& vertAttributes);
+    void SetVertexAttribute(const VertexAttribute& vertAttributes);
+    void SetPositions(const std::vector<glm::vec3>& positions);
+    void Apply();
+
+    const std::vector<uint32_t>& GetIndices() const;
+    const std::vector<glm::vec3>& GetPositions() const;
+    const VertexAttribute& GetAttribute() const;
+
+private:
+    std::vector<uint32_t> indices;
+    std::vector<glm::vec3> positions; // binding 0,
+    VertexAttribute attributes;       // binding 1, interleaved
+
+    // v0.1 API
+public:
+    Submesh(
+        std::unique_ptr<unsigned char>&& vertexBuffer,
+        std::vector<VertexBinding>&& bindings,
+        std::unique_ptr<unsigned char>&& indexBuffer,
+        Gfx::IndexBufferType indexBufferType,
+        int indexCount,
+        std::string_view name = ""
+    );
+
     uint8_t* GetIndexBufferData() const
     {
         return indexBuffer.get();
@@ -68,17 +147,9 @@ public:
         return vertexBuffer.get();
     }
 
-    const AABB& GetAABB() const;
-
 private:
-    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
-    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
     std::unique_ptr<unsigned char> vertexBuffer = nullptr;
     std::unique_ptr<unsigned char> indexBuffer = nullptr;
-    Gfx::IndexBufferType indexBufferType;
-    std::vector<VertexBinding> bindings;
-    int indexCount = 0;
-    std::string name;
 };
 
 class Mesh : public Asset
@@ -94,6 +165,8 @@ public:
     {
         return true;
     }
+
+    const AABB& GetAABB() const;
 
     bool LoadFromFile(const char* path) override;
 

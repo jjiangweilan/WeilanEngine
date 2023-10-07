@@ -243,9 +243,19 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
     out.stage = MapStage(sr["entryPoints"][0]["mode"]);
     if (sr.contains("inputs"))
         Process(out.inputs, sr["inputs"], sr);
+    std::sort(
+        out.inputs.begin(),
+        out.inputs.end(),
+        [](const Input& l, const Input& r) { return l.location < r.location; }
+    );
     if (sr.contains("outputs"))
         Process(out.outputs, sr["outputs"], sr);
 
+    std::sort(
+        out.outputs.begin(),
+        out.outputs.end(),
+        [](const Output& l, const Output& r) { return l.location < r.location; }
+    );
     if (sr.contains("push_constants"))
         Process(out.pushConstants, out.stage, sr["push_constants"], sr);
     if (sr.contains("ubos"))

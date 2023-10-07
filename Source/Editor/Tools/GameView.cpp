@@ -122,6 +122,9 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
 
         for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
         {
+            auto indices = submesh.GetIndices();
+            auto positions = submesh.GetPositions();
+
             uint8_t* vertexBufferData = submesh.GetVertexBufferData();
             uint8_t* indexBufferData = submesh.GetIndexBufferData();
             auto indexBufferType = submesh.GetIndexBufferType();

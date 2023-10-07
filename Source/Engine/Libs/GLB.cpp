@@ -119,34 +119,46 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     auto& primitiveJson = meshJson["primitives"][primitiveIndex];
 
     // get vertex buffer size
-    uint32_t vertexBufferSize = 0;
+    uint32_t attributesSize = 0;
     for (auto& val : primitiveJson["attributes"].items())
     {
-        int accessorIndex = val.value();
-        int bufferViewIndex = j["accessors"][accessorIndex]["bufferView"];
-        int byteLength = j["bufferViews"][bufferViewIndex]["byteLength"];
-        vertexBufferSize += byteLength;
+        if (val.key() != "POSITION")
+        {
+            int accessorIndex = val.value();
+            int bufferViewIndex = j["accessors"][accessorIndex]["bufferView"];
+            int byteLength = j["bufferViews"][bufferViewIndex]["byteLength"];
+            attributesSize += byteLength;
+        }
     }
 
-    // vertexBuffer
-    std::vector<VertexBinding> bindings;
-    std::unique_ptr<unsigned char> vertexBuffer = std::unique_ptr<unsigned char>(new unsigned char[vertexBufferSize]);
-#define ATTRIBUTE_WRITE(attrName)                                                                                      \
-    int index##attrName = primitiveJson["attributes"].value(#attrName, -1);                                            \
-    if (index##attrName != -1)                                                                                         \
-    {                                                                                                                  \
-        bindings.push_back({dstOffset, 0});                                                                            \
-        std::size_t byteLength =                                                                                       \
-            WriteAccessorDataToBuffer(j, vertexBuffer.get(), dstOffset, binaryData, index##attrName);                  \
-        dstOffset += byteLength;                                                                                       \
-        bindings.back().byteSize = byteLength;                                                                         \
-    }
+    //     // vertexBuffer
+    //     std::vector<VertexBinding> bindings;
+    //     std::unique_ptr<unsigned char> vertexBuffer = std::unique_ptr<unsigned char>(new unsigned
+    //     char[vertexBufferSize]);
+    // #define ATTRIBUTE_WRITE(attrName) \
+//     int index##attrName = primitiveJson["attributes"].value(#attrName, -1); \
+//     if (index##attrName != -1) \
+//     { \
+//         bindings.push_back({dstOffset, 0}); \
+//         std::size_t byteLength = \
+//             WriteAccessorDataToBuffer(j, vertexBuffer.get(), dstOffset, binaryData, index##attrName); \
+//         dstOffset += byteLength; \
+//         bindings.back().byteSize = byteLength; \
+//     }
+    //
+    //     std::size_t dstOffset = 0;
+    //     ATTRIBUTE_WRITE(POSITION);
+    //     ATTRIBUTE_WRITE(NORMAL);
+    //     ATTRIBUTE_WRITE(TANGENT);
+    //     ATTRIBUTE_WRITE(TEXCOORD_0);
 
-    std::size_t dstOffset = 0;
-    ATTRIBUTE_WRITE(POSITION);
-    ATTRIBUTE_WRITE(NORMAL);
-    ATTRIBUTE_WRITE(TANGENT);
-    ATTRIBUTE_WRITE(TEXCOORD_0);
+    // this is using Submesh API version 0.1, we will use Submesh API version 0.2 now
+    // return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType,
+    // indexCount);
+    std::vector<glm::vec3> positions;
+    std::vector<uint32_t> indices;
+    std::vector<uint8_t> vertAttrs;
+    Submesh submesh;
 
     // get index buffer size and count
     int indicesAccessorIndex = primitiveJson["indices"];
@@ -157,14 +169,99 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     int indexBufferOffset = bufView.value("byteOffset", 0);
     int indexCount = j["accessors"][indicesAccessorIndex]["count"];
     int indexBufferComponentType = j["accessors"][indicesAccessorIndex]["componentType"];
+
     Gfx::IndexBufferType indexBufferType =
         indexBufferComponentType == 5123 ? Gfx::IndexBufferType::UInt16 : Gfx::IndexBufferType::UInt32;
 
     // indexBuffer
-    std::unique_ptr<unsigned char> indexBuffer = std::unique_ptr<unsigned char>(new unsigned char[indexBufferSize]);
-    memcpy(indexBuffer.get(), binaryData + indexBufferOffset, indexBufferSize);
+    indices.resize(indexCount);
+    if (indexBufferType == Gfx::IndexBufferType::UInt32)
+        memcpy(indices.data(), binaryData + indexBufferOffset, indexBufferSize);
+    else
+    {
+        for (int i = 0; i < indexCount; ++i)
+        {
+            indices[i] = *((uint16_t*)(binaryData + indexBufferOffset) + i);
+        }
+    }
 
-    return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType, indexCount);
+    // get position data and aabb
+    VertexAttribute attribute;
+    std::vector<uint8_t> attributeData(attributesSize);
+    size_t attributeOffset = 0;
+    size_t attributeStride = 0;
+    for (auto& attr : primitiveJson["attributes"].items())
+    {
+        std::string attributeName = attr.key();
+        size_t accessorIndex = attr.value();
+        auto& accessor = j["accessors"][accessorIndex];
+        size_t count = accessor.value("count", 0);
+        int bufferViewIndex = accessor["bufferView"];
+        auto& bufferView = j["bufferViews"][bufferViewIndex];
+        int byteLength = bufferView["byteLength"];
+        if (attributeName != "POSITION")
+        {
+            attributeStride += byteLength / count;
+        }
+    }
+    for (auto& attr : primitiveJson["attributes"].items())
+    {
+        std::string attributeName = attr.key();
+        size_t accessorIndex = attr.value();
+        auto& accessor = j["accessors"][accessorIndex];
+        size_t count = accessor.value("count", 0);
+        int bufferViewIndex = accessor["bufferView"];
+        auto& bufferView = j["bufferViews"][bufferViewIndex];
+        int byteLength = bufferView["byteLength"];
+        int byteOffset = bufferView["byteOffset"];
+
+        if (attributeName == "POSITION")
+        {
+            if (accessorIndex != -1)
+            {
+                glm::vec3 min = {accessor["min"][0], accessor["min"][1], accessor["min"][2]};
+                glm::vec3 max = {accessor["max"][0], accessor["max"][1], accessor["max"][2]};
+
+                submesh.SetAABB(AABB{min, max});
+
+                if (count == 0)
+                    throw std::logic_error("mesh's position shouldn't be zero");
+
+                positions.resize(count);
+
+                assert(byteLength == count * sizeof(glm::vec3));
+                memcpy(positions.data(), binaryData + byteOffset, byteLength);
+            }
+            else
+            {}
+        }
+        else
+        {
+            size_t byteSize = byteLength / count;
+            attribute.AddAttribute(attributeName.data(), byteSize);
+
+            for (int i = 0; i < count; ++i)
+            {
+                memcpy(
+                    attributeData.data() + attributeOffset + i * attributeStride,
+                    binaryData + byteOffset + i * byteSize,
+                    byteSize
+                );
+            }
+
+            attributeOffset += byteSize;
+        }
+    }
+    attribute.SetData(std::move(attributeData));
+
+    // get other attributes
+
+    submesh.SetPositions(std::move(positions));
+    submesh.SetIndices(std::move(indices));
+    submesh.SetVertexAttribute(std::move(attribute));
+    submesh.Apply();
+
+    return submesh;
 }
 
 std::size_t WriteAccessorDataToBuffer(
