@@ -121,14 +121,15 @@ glm::vec4 Material::GetVector(const std::string& param, const std::string& membe
     return glm::vec4(0);
 }
 
-RefPtr<Texture> Material::GetTexture(const std::string& param)
+Texture* Material::GetTexture(const std::string& param)
 {
     auto iter = textureValues.find(param);
     if (iter != textureValues.end())
     {
-        return iter->second;
+        return iter->second.Get();
     }
-    return 0;
+
+    return nullptr;
 }
 
 float Material::GetFloat(const std::string& param, const std::string& member)

@@ -44,7 +44,7 @@ public:
     void SetTexture(const std::string& param, std::nullptr_t);
 
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
-    RefPtr<Texture> GetTexture(const std::string& param);
+    Texture* GetTexture(const std::string& param);
     float GetFloat(const std::string& param, const std::string& membr);
     glm::vec4 GetVector(const std::string& param, const std::string& membr);
 
