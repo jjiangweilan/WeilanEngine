@@ -35,8 +35,6 @@ GameEditor::GameEditor(const char* path)
         rt.isOpen = false;
         registeredTools.push_back(rt);
     }
-
-    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
 };
 
 GameEditor::~GameEditor()
@@ -59,7 +57,6 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     if (treeOpen)
     {
-        GameObject* go = transform->GetGameObject();
         for (auto child : transform->GetChildren())
         {
             SceneTree(child, imguiID++);
@@ -172,7 +169,6 @@ void GameEditor::MainMenuBar()
 
     for (auto& registeredTool : registeredTools)
     {
-        int index = 0;
         auto items = registeredTool.tool->GetToolMenuItem();
         bool clicked = false;
         MenuVisitor(items.begin(), items.end(), clicked);
