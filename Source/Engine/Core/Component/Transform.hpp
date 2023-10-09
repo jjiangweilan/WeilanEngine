@@ -9,6 +9,13 @@ namespace Engine
 {
 class GameObject;
 
+enum class RotationCoordinate
+{
+    Self,
+    Parent,
+    World,
+};
+
 class Transform : public Component
 {
     DECLARE_OBJECT();
@@ -25,14 +32,16 @@ public:
     void SetRotation(const glm::quat& rotation);
     void SetPosition(const glm::vec3& position);
     void SetScale(const glm::vec3& scale);
+    void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord);
+    void Translate(const glm::vec3& translate);
     const glm::vec3& GetPosition();
     const glm::vec3& GetScale();
     const glm::vec3& GetRotation();
     glm::vec3 GetForward();
 
-    const glm::quat& GetRotationQuat();
+    const glm::quat& GetRotationQuat() const;
 
-    glm::mat4 GetModelMatrix();
+    glm::mat4 GetModelMatrix() const;
     void SetModelMatrix(const glm::mat4& model);
 
     void Serialize(Serializer* s) const override;

@@ -80,7 +80,13 @@ void Transform::SetRotation(const glm::quat& rotation)
 
 void Transform::SetPosition(const glm::vec3& position)
 {
+    auto delta = position - this->position;
     this->position = position;
+
+    for (Transform* tsm : children)
+    {
+        tsm->Translate(delta);
+    }
 }
 
 void Transform::SetScale(const glm::vec3& scale)
@@ -103,20 +109,34 @@ const glm::vec3& Transform::GetRotation()
     return rotationEuler;
 }
 
-const glm::quat& Transform::GetRotationQuat()
+const glm::quat& Transform::GetRotationQuat() const
 {
     return rotation;
+}
+
+void Transform::Translate(const glm::vec3& translate)
+{
+    this->position += translate;
+
+    for (Transform* tsm : children)
+    {
+        tsm->Translate(translate);
+    }
 }
 
 void Transform::SetModelMatrix(const glm::mat4& model)
 {
     glm::vec3 skew;
     glm::vec4 perspective;
+    glm::vec3 position;
     glm::decompose(model, scale, rotation, position, skew, perspective);
     rotationEuler = glm::eulerAngles(rotation);
+
+    // this is needed to propagate translation to children
+    SetPosition(position);
 }
 
-glm::mat4 Transform::GetModelMatrix()
+glm::mat4 Transform::GetModelMatrix() const
 {
     glm::mat4 rst = glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
 
@@ -136,7 +156,7 @@ void Transform::Deserialize(Serializer* s)
 
 glm::vec3 Transform::GetForward()
 {
-    return GetModelMatrix()[2];
+    return glm::mat4_cast(rotation)[2];
 }
 
 void Transform::Serialize(Serializer* s) const
@@ -154,6 +174,22 @@ const std::string& Transform::GetName()
 {
     static std::string name = "Transform";
     return name;
+}
+
+void Transform::Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
+{
+    if (coord == RotationCoordinate::Self)
+    {
+        rotation = glm::rotate(rotation, angle, axis);
+    }
+    else if (coord == RotationCoordinate::Parent && parent != nullptr)
+    {}
+    else if (coord == RotationCoordinate::World)
+    {
+        // rotate around world
+        glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetModelMatrix();
+        SetModelMatrix(trs);
+    }
 }
 
 std::unique_ptr<Component> Transform::Clone(GameObject& owner)
