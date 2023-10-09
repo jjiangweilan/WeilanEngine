@@ -22,46 +22,45 @@ void GameView::Init()
 
 static void EditorCameraWalkAround(Camera& editorCamera)
 {
-    auto tsm = editorCamera.GetGameObject()->GetTransform();
-    auto pos = tsm->GetPosition();
-    glm::mat4 model = tsm->GetModelMatrix();
-    glm::vec3 right = glm::normalize(model[0]);
-    glm::vec3 up = glm::normalize(model[1]);
-    glm::vec3 forward = glm::normalize(model[2]);
-
-    float speed = 10 * Time::DeltaTime();
-    glm::vec3 dir = glm::vec3(0);
-    if (ImGui::IsKeyDown(ImGuiKey_D))
-    {
-        dir += right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_A))
-    {
-        dir -= right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_W))
-    {
-        dir -= forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_S))
-    {
-        dir += forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_E))
-    {
-        dir += up * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_Q))
-    {
-        dir -= up * speed;
-    }
-    pos += dir;
-    tsm->SetPosition(pos);
-
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
-        auto rotation = tsm->GetRotationQuat();
+        auto tsm = editorCamera.GetGameObject()->GetTransform();
+        auto pos = tsm->GetPosition();
+        glm::mat4 model = tsm->GetModelMatrix();
+        glm::vec3 right = glm::normalize(model[0]);
+        glm::vec3 up = glm::normalize(model[1]);
+        glm::vec3 forward = glm::normalize(model[2]);
+
+        float speed = 10 * Time::DeltaTime();
+        glm::vec3 dir = glm::vec3(0);
+        if (ImGui::IsKeyDown(ImGuiKey_D))
+        {
+            dir += right * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_A))
+        {
+            dir -= right * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_W))
+        {
+            dir -= forward * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_S))
+        {
+            dir += forward * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_E))
+        {
+            dir += up * speed;
+        }
+        if (ImGui::IsKeyDown(ImGuiKey_Q))
+        {
+            dir -= up * speed;
+        }
+        pos += dir;
+        tsm->SetPosition(pos);
+
         auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0);
         glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
         lastMouseDelta = mouseLastClickDelta;
@@ -258,11 +257,8 @@ bool GameView::Tick()
         }
     }
 
-    if (ImGui::IsWindowFocused())
-    {
-        if (useViewCamera)
-            EditorCameraWalkAround(*editorCamera);
-    }
+    if (useViewCamera)
+        EditorCameraWalkAround(*editorCamera);
 
     // create scene color if it's null or if the window size is changed
     const auto contentMax = ImGui::GetWindowContentRegionMax();
