@@ -5,7 +5,7 @@
 namespace Engine
 {
 DEFINE_OBJECT(Camera, "7BDC1BC9-A96E-4ABC-AE76-DD6AB8C69A19");
-Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projectionMatrix(), viewMatrix()
+Camera::Camera(GameObject* gameObject) : Component(gameObject), projectionMatrix(), viewMatrix()
 {
     if (mainCamera == nullptr)
     {
@@ -17,7 +17,7 @@ Camera::Camera(GameObject* gameObject) : Component("Camera", gameObject), projec
     SetProjectionMatrix(glm::radians(45.0f), desc.width / (float)desc.height, 0.01f, 1000.f);
 }
 
-Camera::Camera() : Component("Camera", nullptr), projectionMatrix(), viewMatrix()
+Camera::Camera() : Component(nullptr), projectionMatrix(), viewMatrix()
 {
     if (mainCamera == nullptr)
     {
@@ -98,5 +98,25 @@ void Camera::Deserialize(Serializer* s)
     Component::Deserialize(s);
     s->Deserialize("projectionMatrix", projectionMatrix);
     s->Deserialize("viewMatrix", viewMatrix);
+}
+
+void Camera::SetProjectionMatrix(const glm::mat4& proj)
+{
+    this->projectionMatrix = proj;
+}
+
+const std::string& Camera::GetName()
+{
+    static std::string name = "Camera";
+    return name;
+};
+
+std::unique_ptr<Component> Camera::Clone(GameObject& owner)
+{
+    std::unique_ptr<Camera> clone = std::make_unique<Camera>(&owner);
+
+    clone->projectionMatrix = projectionMatrix;
+    clone->viewMatrix = viewMatrix;
+    return clone;
 }
 } // namespace Engine

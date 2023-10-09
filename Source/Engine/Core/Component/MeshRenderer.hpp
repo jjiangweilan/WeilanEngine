@@ -14,8 +14,8 @@ class MeshRenderer : public Component
 
 public:
     MeshRenderer();
-    MeshRenderer(GameObject* parent, Mesh* mesh, Material* material);
-    MeshRenderer(GameObject* parent);
+    MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
+    MeshRenderer(GameObject* owner);
     ~MeshRenderer() override{};
 
     void SetMesh(Mesh* mesh);
@@ -25,6 +25,8 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
+    const std::string& GetName() override;
 
 private:
     Mesh* mesh = nullptr;

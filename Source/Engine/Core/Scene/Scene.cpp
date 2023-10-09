@@ -24,6 +24,16 @@ void Scene::AddGameObject(GameObject* newGameObject)
     externalGameObjects.push_back(newGameObject);
 }
 
+void Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
+{
+    GameObject* temp = newGameObject.get();
+    gameObjects.push_back(std::move(newGameObject));
+    if (newGameObject->GetTransform()->GetParent() == nullptr)
+    {
+        roots.push_back(temp);
+    }
+}
+
 const std::vector<GameObject*>& Scene::GetRootObjects()
 {
     return roots;
@@ -62,6 +72,28 @@ std::vector<GameObject*> Scene::GetAllGameObjects()
     }
 
     return objs;
+}
+
+GameObject* Scene::CopyGameObject(GameObject& gameObject)
+{
+    auto newObj = std::make_unique<GameObject>(gameObject);
+    newObj->SetGameScene(this);
+
+    for (auto tsm : gameObject.GetTransform()->GetChildren())
+    {
+        GameObject* child = CopyGameObject(*tsm->GetGameObject());
+        child->GetTransform()->SetParent(newObj->GetTransform());
+    }
+
+    GameObject* top = newObj.get();
+    gameObjects.push_back(std::move(newObj));
+
+    if (gameObject.GetTransform()->GetParent() == nullptr)
+    {
+        roots.push_back(top);
+    }
+
+    return top;
 }
 
 void Scene::RemoveGameObjectFromRoot(GameObject* obj)

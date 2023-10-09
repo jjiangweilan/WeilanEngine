@@ -20,6 +20,8 @@ public:
     ~Scene() {}
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
+    void AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
+    GameObject* CopyGameObject(GameObject& gameObject);
 
     const std::vector<GameObject*>& GetRootObjects();
 

@@ -16,8 +16,9 @@ class GameObject : public Asset
     DECLARE_ASSET();
 
 public:
-    GameObject(RefPtr<Scene> gameScene);
+    GameObject(Scene* gameScene);
     GameObject(GameObject&& other);
+    GameObject(const GameObject& other);
     GameObject();
     ~GameObject();
     template <class T, class... Args>
@@ -26,14 +27,14 @@ public:
     template <class T>
     T* GetComponent();
 
-    RefPtr<Component> GetComponent(const char* name);
+    Component* GetComponent(const char* name); // obsolete
 
     std::vector<std::unique_ptr<Component>>& GetComponents();
-    void SetGameScene(RefPtr<Scene> scene)
+    void SetGameScene(Scene* scene)
     {
         gameScene = scene;
     }
-    RefPtr<Scene> GetGameScene();
+    Scene* GetGameScene();
     Transform* GetTransform();
     void Tick();
 
@@ -42,8 +43,8 @@ public:
 
 private:
     std::vector<std::unique_ptr<Component>> components;
-    RefPtr<Transform> transform = nullptr;
-    RefPtr<Scene> gameScene = nullptr;
+    Transform* transform = nullptr;
+    Scene* gameScene = nullptr;
 };
 
 template <class T, class... Args>

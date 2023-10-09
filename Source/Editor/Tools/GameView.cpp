@@ -202,11 +202,29 @@ bool GameView::Tick()
     const char* menuSelected = "";
     if (ImGui::BeginMenuBar())
     {
+        const char* toggleViewCamera = "Toggle View Camera: On";
+        if (!useViewCamera)
+            toggleViewCamera = "Toggle View Camera: Off";
+        if (ImGui::MenuItem(toggleViewCamera))
+        {
+            useViewCamera = !useViewCamera;
+        }
         if (ImGui::MenuItem("Resolution"))
         {
             menuSelected = "Change Resolution";
         }
         ImGui::EndMenuBar();
+    }
+
+    Scene* scene = EditorState::activeScene;
+    if (scene && useViewCamera)
+    {
+        gameCamera = scene->GetMainCamera();
+        scene->SetMainCamera(editorCamera);
+    }
+    else if (gameCamera)
+    {
+        scene->SetMainCamera(gameCamera);
     }
 
     if (strcmp(menuSelected, "Change Resolution") == 0)
@@ -231,10 +249,18 @@ bool GameView::Tick()
         ImGui::EndPopup();
     }
 
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C))
+    {
+        if (Scene* scene = EditorState::activeScene)
+        {
+            if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject))
+                EditorState::selectedObject = scene->CopyGameObject(*selected);
+        }
+    }
+
     if (ImGui::IsWindowFocused())
     {
-        bool isEditorCameraActive = gameCamera != nullptr;
-        if (isEditorCameraActive)
+        if (useViewCamera)
             EditorCameraWalkAround(*editorCamera);
     }
 
@@ -293,7 +319,11 @@ bool GameView::Tick()
                 {
                     auto model = go->GetTransform()->GetModelMatrix();
                     ImGui::SetCursorPos(imagePos);
-                    EditTransform(*mainCam, model, {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight});
+                    EditTransform(
+                        *mainCam,
+                        model,
+                        {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight}
+                    );
                     go->GetTransform()->SetModelMatrix(model);
                 }
             }

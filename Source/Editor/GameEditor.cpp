@@ -255,23 +255,6 @@ void GameEditor::MainMenuBar()
         ImGui::EndMenu();
     }
 
-    if (ImGui::MenuItem("Editor Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            gameView.gameCamera = EditorState::activeScene->GetMainCamera();
-            EditorState::activeScene->SetMainCamera(gameView.editorCamera);
-        }
-    }
-    if (ImGui::MenuItem("Game Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            EditorState::activeScene->SetMainCamera(gameView.gameCamera);
-            gameView.gameCamera = nullptr;
-        }
-    }
-
     ImGui::EndMainMenuBar();
 }
 

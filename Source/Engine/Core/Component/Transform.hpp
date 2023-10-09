@@ -38,9 +38,11 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-private:
-    void RemoveChild(Transform* child);
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
 
+    const std::string& GetName() override;
+
+private:
     glm::quat rotation;
     glm::vec3 rotationEuler;
     glm::vec3 position;
@@ -48,6 +50,8 @@ private:
 
     Transform* parent = nullptr;
     std::vector<Transform*> children;
+
+    void RemoveChild(Transform* child);
 };
 
 } // namespace Engine

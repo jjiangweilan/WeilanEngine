@@ -5,8 +5,8 @@
 namespace Engine
 {
 DEFINE_OBJECT(Transform, "5583B41B-9FB5-4706-829C-399D7221C789");
-Transform::Transform() : Component("Transform", nullptr) {}
-Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject)
+Transform::Transform() : Component(nullptr) {}
+Transform::Transform(GameObject* gameObject) : Component(gameObject)
 {
     position = glm::vec3(0, 0, 0);
     scale = glm::vec3(1, 1, 1);
@@ -26,7 +26,7 @@ void Transform::SetParent(Transform* parent)
 
     if (parent == nullptr)
     {
-        Scene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene();
         if (scene)
             scene->MoveGameObjectToRoot(gameObject);
         this->parent->RemoveChild(this);
@@ -35,7 +35,7 @@ void Transform::SetParent(Transform* parent)
     }
     else if (this->parent == nullptr)
     {
-        Scene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene();
         if (scene)
             scene->RemoveGameObjectFromRoot(gameObject);
         this->parent = parent;
@@ -149,5 +149,27 @@ void Transform::Serialize(Serializer* s) const
     s->Serialize("scale", scale);
     s->Serialize("parent", parent);
     s->Serialize("children", children);
+}
+
+const std::string& Transform::GetName()
+{
+    static std::string name = "Transform";
+    return name;
+}
+
+std::unique_ptr<Component> Transform::Clone(GameObject& owner)
+{
+    auto clone = std::make_unique<Transform>(&owner);
+
+    // this is the spepcial part about Transform
+    // clone->children can't be copied, it's done by Scene
+
+    clone->parent = parent;
+    clone->rotation = rotation;
+    clone->rotationEuler = rotationEuler;
+    clone->position = position;
+    clone->scale = scale;
+
+    return clone;
 }
 } // namespace Engine

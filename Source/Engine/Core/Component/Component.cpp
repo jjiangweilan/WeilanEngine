@@ -3,10 +3,7 @@
 
 namespace Engine
 {
-Component::Component(std::string_view name, RefPtr<GameObject> gameObject) : gameObject(gameObject.Get()), name(name)
-{
-    this->gameObject = gameObject.Get();
-}
+Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 
 Component::~Component() {}
 

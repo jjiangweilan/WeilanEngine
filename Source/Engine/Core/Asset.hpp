@@ -15,7 +15,7 @@ public:
     {
         this->name = name;
     }
-    const std::string& GetName()
+    const std::string& GetName() const
     {
         return name;
     }
