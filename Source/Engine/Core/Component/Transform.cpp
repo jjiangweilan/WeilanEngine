@@ -31,7 +31,6 @@ void Transform::SetParent(Transform* parent)
             scene->MoveGameObjectToRoot(gameObject);
         this->parent->RemoveChild(this);
         this->parent = nullptr;
-        parent->children.push_back(this);
     }
     else if (this->parent == nullptr)
     {

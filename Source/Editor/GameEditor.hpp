@@ -31,6 +31,7 @@ private:
 private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
+    void* dragDropPtrHolder = nullptr;
 
     GameView gameView;
 

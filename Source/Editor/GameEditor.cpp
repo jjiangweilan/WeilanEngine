@@ -6,6 +6,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
@@ -50,16 +51,40 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     bool treeOpen =
         ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
-    if (ImGui::IsItemClicked())
+    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {
         EditorState::selectedObject = transform->GetGameObject();
+    }
+
+    if (ImGui::BeginDragDropSource())
+    {
+        dragDropPtrHolder = transform->GetGameObject();
+        ImGui::SetDragDropPayload("game object", &dragDropPtrHolder, sizeof(void*));
+
+        ImGui::Text("%s", transform->GetGameObject()->GetName().c_str());
+
+        ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("game object");
+        if (payload && payload->IsDelivery())
+        {
+            GameObject* obj = *(GameObject**)payload->Data;
+            if (obj != nullptr && obj != transform->GetGameObject())
+            {
+                obj->GetTransform()->SetParent(transform);
+            }
+        }
+        ImGui::EndDragDropTarget();
     }
 
     if (treeOpen)
     {
         for (auto child : transform->GetChildren())
         {
-            SceneTree(child, imguiID++);
+            SceneTree(child, ++imguiID);
         }
         ImGui::TreePop();
     }
@@ -80,9 +105,32 @@ void GameEditor::SceneTree(Scene& scene)
     }
     ImGui::EndMenuBar();
 
+    auto contentMax = ImGui::GetWindowContentRegionMax();
+    auto contentMin = ImGui::GetWindowContentRegionMin();
+    auto windowPos = ImGui::GetWindowPos();
+    if (ImGui::BeginDragDropTargetCustom(
+            {{windowPos.x + contentMin.x, windowPos.y + contentMin.y},
+             {windowPos.x + contentMax.x, windowPos.y + contentMax.y}},
+            999
+        ))
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("game object");
+        if (payload && payload->IsDelivery())
+        {
+            GameObject* obj = *(GameObject**)payload->Data;
+            if (obj != nullptr)
+            {
+                // pass null to set this transform to root
+                obj->GetTransform()->SetParent(nullptr);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    size_t imguiTreeId = 0;
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root->GetTransform(), 0);
+        SceneTree(root->GetTransform(), ++imguiTreeId);
     }
     ImGui::End();
 }
