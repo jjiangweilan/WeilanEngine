@@ -51,13 +51,24 @@ public:
         auto& shaderInfo = target->GetShader()->GetShaderProgram()->GetShaderInfo();
 
         std::vector<Gfx::ShaderInfo::Binding> textureBindings;
+        std::vector<Gfx::ShaderInfo::Binding> numericBindings;
         for (auto& binding : shaderInfo.bindings)
         {
-            if (binding.second.type == Gfx::ShaderInfo::BindingType::Texture && binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+            if (binding.second.type == Gfx::ShaderInfo::BindingType::Texture &&
+                binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
             {
                 textureBindings.push_back(binding.second);
             }
+
+            if (binding.second.type == Gfx::ShaderInfo::BindingType::UBO &&
+                binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+            {
+                numericBindings.push_back(binding.second);
+            }
         }
+
+        ImGui::Text("Textures");
+        ImGui::Separator();
         for (auto& texBinding : textureBindings)
         {
             ImGui::Text("%s", texBinding.name.c_str());
@@ -67,7 +78,7 @@ public:
                 auto width = tex->GetDescription().img.width;
                 auto height = tex->GetDescription().img.height;
                 auto size = ResizeKeepRatio(width, height, 30, 30);
-                ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), { size.x, size.y });
+                ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
             }
             else
                 ImGui::Button("empty");
@@ -84,6 +95,20 @@ public:
                     }
                 }
                 ImGui::EndDragDropTarget();
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::Text("Numerics");
+        ImGui::Separator();
+        for (auto& numBinding : numericBindings)
+        {
+            ImGui::Text("%s", numBinding.name.c_str());
+            for (auto& m : numBinding.binding.ubo.data.members)
+            {
+                ImGui::Indent();
+                ImGui::Text("%s", m.second.name.c_str());
+                ImGui::Unindent();
             }
         }
     }
