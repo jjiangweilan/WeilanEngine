@@ -26,6 +26,10 @@ public:
             {
                 auto meshRenderer = target->AddComponent<MeshRenderer>();
             }
+            if (ImGui::MenuItem("Light"))
+            {
+                auto light = target->AddComponent<Light>();
+            }
 
             ImGui::EndMenu();
         }
