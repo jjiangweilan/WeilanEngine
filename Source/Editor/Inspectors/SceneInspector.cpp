@@ -7,7 +7,7 @@ namespace Engine::Editor
 class SceneInspector : public Inspector<Scene>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         // object information
         auto& name = target->GetName();

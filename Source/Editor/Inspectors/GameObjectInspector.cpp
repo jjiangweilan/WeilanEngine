@@ -12,7 +12,7 @@ namespace Engine::Editor
 class GameObjectInspector : public Inspector<GameObject>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         ImGui::BeginMenuBar();
         // Create Component

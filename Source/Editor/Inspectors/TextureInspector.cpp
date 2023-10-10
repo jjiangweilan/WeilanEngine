@@ -6,7 +6,7 @@ namespace Engine::Editor
 class TextureInspector : public Inspector<Texture>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         // object information
         auto& name = target->GetName();

@@ -6,7 +6,7 @@ namespace Engine::Editor
 class MeshInspector : public Inspector<Mesh>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         // object information
         auto& name = target->GetName();

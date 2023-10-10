@@ -19,7 +19,14 @@ public:
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
     void SaveAsset(Asset& asset);
 
+    bool IsAssetInDatabase(Asset& asset);
+
     const std::filesystem::path& GetAssetDirectory()
+    {
+        return assetDirectory;
+    }
+
+    const std::filesystem::path& GetAssetDirectory() const
     {
         return assetDirectory;
     }

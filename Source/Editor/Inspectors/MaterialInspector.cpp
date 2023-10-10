@@ -6,7 +6,7 @@ namespace Engine::Editor
 class MaterialInspector : public Inspector<Material>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         // object information
         auto& name = target->GetName();
@@ -136,7 +136,7 @@ public:
                     auto size = ResizeKeepRatio(width, height, 35, 35);
                     ImGui::Text("%s", texBinding.name.c_str());
                     ImGui::SameLine();
-                    ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), { size.x, size.y });
+                    ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
 
                     if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                     {

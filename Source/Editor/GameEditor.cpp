@@ -398,7 +398,7 @@ void GameEditor::InspectorWindow()
             {
                 InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
 
-                inspector->DrawInspector();
+                inspector->DrawInspector(*this);
             }
         }
 
@@ -411,7 +411,7 @@ void GameEditor::InspectorWindow()
             if (EditorState::selectedObject)
             {
                 InspectorBase* inspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
-                inspector->DrawInspector();
+                inspector->DrawInspector(*this);
             }
 
             ImGui::End();

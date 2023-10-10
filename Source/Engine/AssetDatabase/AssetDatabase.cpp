@@ -50,6 +50,11 @@ void AssetDatabase::SaveAsset(Asset& asset)
     }
 }
 
+bool AssetDatabase::IsAssetInDatabase(Asset& asset)
+{
+    return assets.GetAssetData(asset.GetUUID()) != nullptr;
+}
+
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 {
     // find the asset if it's already imported
@@ -231,11 +236,13 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    auto fullPath = assetDirectory / path / a->GetExtension();
+    if (path.is_absolute()) return nullptr;
+
+    path.replace_extension(a->GetExtension());
+    auto fullPath = assetDirectory / path;
     // only internal asset can be created
     if (!a->IsExternalAsset() && !std::filesystem::exists(fullPath))
     {
-        fullPath.replace_extension(a->GetExtension());
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
         Asset* asset = newAssetData->GetAsset();
 

@@ -1,13 +1,16 @@
 #include "../EditorState.hpp"
 #include "Core/Model.hpp"
+#include "GameEditor.hpp"
 #include "Inspector.hpp"
 #include "ThirdParty/imgui/imgui_internal.h"
+#include "WeilanEngine.hpp"
+
 namespace Engine::Editor
 {
 class ModelInspector : public Inspector<Model>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         // object information
         ImGui::Text("%s", target->GetName().c_str());
@@ -35,8 +38,11 @@ public:
 
         ImGui::Text("Materials");
         ImGui::Indent();
+        size_t pushID = 0;
         for (auto& material : target->GetMaterials())
         {
+            ImGui::PushID(pushID++);
+
             Material* tex = material.get();
             ImGui::Button(tex->GetName().c_str());
 
@@ -52,6 +58,16 @@ public:
             {
                 EditorState::selectedObject = material.get();
             }
+
+            ImGui::SameLine();
+            if (ImGui::Button("copy"))
+            {
+                auto copy = material->Clone();
+                auto& db = editor.GetEngine()->assetDatabase;
+                db->SaveAsset(std::move(copy), material->GetName());
+            }
+
+            ImGui::PopID();
         }
         ImGui::Unindent();
 

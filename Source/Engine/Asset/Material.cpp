@@ -22,6 +22,14 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
     //     });
 }
 
+Material::Material(const Material& other)
+    : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig), floatValues(other.floatValues),
+      vectorValues(other.vectorValues), matrixValues(other.matrixValues), textureValues(other.textureValues)
+{
+    if (other.shader)
+        SetShader(other.shader);
+}
+
 Material::Material(RefPtr<Shader> shader) : Material()
 {
     SetName("new material");
@@ -37,14 +45,14 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
         shaderResource->SetTexture(param, nullptr);
 }
 
-void Material::SetTexture(const std::string& param, RefPtr<Texture> texture)
+void Material::SetTexture(const std::string& param, Texture* texture)
 {
     textureValues[param] = texture;
     if (shaderResource != nullptr)
         shaderResource->SetTexture(param, texture->GetGfxImage());
 }
 
-void Material::SetTexture(const std::string& param, RefPtr<Gfx::Image> image)
+void Material::SetTexture(const std::string& param, Gfx::Image* image)
 {
     if (shaderResource != nullptr)
         shaderResource->SetTexture(param, image);
@@ -126,7 +134,7 @@ Texture* Material::GetTexture(const std::string& param)
     auto iter = textureValues.find(param);
     if (iter != textureValues.end())
     {
-        return iter->second.Get();
+        return iter->second;
     }
 
     return nullptr;
@@ -144,7 +152,7 @@ float Material::GetFloat(const std::string& param, const std::string& member)
 
 void Material::SetShader(RefPtr<Shader> shader)
 {
-    if (shader != nullptr)
+    if (shader != nullptr) // why null check? I think we don't need it
     {
         SetShaderNoProtection(shader);
     }
@@ -212,10 +220,16 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("matrixValues", matrixValues);
     s->Serialize("textureValues", textureValues);
 }
+
+std::unique_ptr<Asset> Material::Clone()
+{
+    return std::unique_ptr<Material>(new Material(*this));
+}
+
 void Material::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
-    s->Deserialize("shader", shader, [this](void* res) { this->SetShader(this->shader); });
+    s->Deserialize("shader", shader, [this](void* res) { this->SetShaderNoProtection(this->shader); });
     s->Deserialize("floatValues", floatValues);
     s->Deserialize("vectorValues", vectorValues);
     s->Deserialize("matrixValues", matrixValues);
@@ -229,7 +243,7 @@ void Material::Deserialize(Serializer* s)
                 Texture* tex = (Texture*)res;
                 for (auto& kv : textureValues)
                 {
-                    if (kv.second.Get() == tex)
+                    if (kv.second == tex)
                     {
                         SetTexture(kv.first, tex);
                         break;

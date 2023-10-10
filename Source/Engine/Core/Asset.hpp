@@ -53,6 +53,11 @@ public:
         return isDirty;
     }
 
+    virtual std::unique_ptr<Asset> Clone()
+    {
+        return nullptr;
+    }
+
     void Serialize(Serializer* s) const override
     {
         s->Serialize("uuid", uuid);

@@ -10,8 +10,8 @@ class Object
 {
 public:
     Object() = default;
-    Object(Object&& other) = default;
-    Object(const Object& other) = default;
+    Object(Object&& other) : uuid(std::exchange(other.uuid, UUID::GetEmptyUUID())) {}
+    Object(const Object& other) : uuid(){};
     virtual ~Object(){};
 
     const UUID& GetUUID() const

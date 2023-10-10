@@ -120,26 +120,29 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
     if (mr)
     {
         auto model = obj->GetTransform()->GetModelMatrix();
-
-        for (const Submesh& submesh : mr->GetMesh()->GetSubmeshes())
+        auto mesh = mr->GetMesh();
+        if (mesh)
         {
-            auto& indices = submesh.GetIndices();
-            auto& positions = submesh.GetPositions();
-
-            // I just assume binding zero is a vec3 position, this is not robust
-            for (int i = 0; i < submesh.GetIndexCount(); i += 3)
+            for (const Submesh& submesh : mesh->GetSubmeshes())
             {
-                int j = i + 1;
-                int k = i + 2;
+                auto& indices = submesh.GetIndices();
+                auto& positions = submesh.GetPositions();
 
-                glm::vec3 v0, v1, v2;
-                v0 = model * glm::vec4(positions[indices[i]], 1.0);
-                v1 = model * glm::vec4(positions[indices[j]], 1.0);
-                v2 = model * glm::vec4(positions[indices[k]], 1.0);
+                // I just assume binding zero is a vec3 position, this is not robust
+                for (int i = 0; i < submesh.GetIndexCount(); i += 3)
+                {
+                    int j = i + 1;
+                    int k = i + 2;
 
-                glm::vec2 bary;
-                if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
-                    return true;
+                    glm::vec3 v0, v1, v2;
+                    v0 = model * glm::vec4(positions[indices[i]], 1.0);
+                    v1 = model * glm::vec4(positions[indices[j]], 1.0);
+                    v2 = model * glm::vec4(positions[indices[k]], 1.0);
+
+                    glm::vec2 bary;
+                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
+                        return true;
+                }
             }
         }
     }

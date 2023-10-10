@@ -106,6 +106,17 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         barriers.push_back(barrier);
     }
 
+    // upload image data (as white)
+    Gfx::Buffer::CreateInfo bufCreateInfo;
+    size_t byteSize = sizeof(uint8_t) * 16;
+    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+    bufCreateInfo.size = byteSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+    bufCreateInfo.debugName = "mesh staging buffer";
+    bufCreateInfo.visibleInCPU = true;
+    auto stagingBuffer = CreateBuffer(bufCreateInfo);
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), pxls, byteSize);
+
     GPUBarrier defaultTextureBarrier = {
         .image = sharedResource->GetDefaultTexture2D(),
         .srcStageMask = Gfx::PipelineStage::All_Commands,
@@ -117,23 +128,54 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
                 .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                 .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                 .oldLayout = Gfx::ImageLayout::Undefined,
+                .newLayout = Gfx::ImageLayout::Transfer_Dst,
+            },
+    };
+    cmdBuf->Barrier(&defaultTextureBarrier, 1);
+
+    Gfx::BufferImageCopyRegion copy[] = {{
+        .srcOffset = 0,
+        .layers =
+            {
+                .aspectMask = sharedResource->GetDefaultTexture2D()->GetSubresourceRange().aspectMask,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = sharedResource->GetDefaultTexture2D()->GetSubresourceRange().layerCount,
+            },
+        .offset = {0, 0, 0},
+        .extend = {2, 2, 1},
+    }};
+
+    cmdBuf->CopyBufferToImage(stagingBuffer, sharedResource->GetDefaultTexture2D(), copy);
+
+    defaultTextureBarrier = {
+        .image = sharedResource->GetDefaultTexture2D(),
+        .srcStageMask = Gfx::PipelineStage::All_Commands,
+        .dstStageMask = Gfx::PipelineStage::All_Commands,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .imageInfo =
+            {
+                .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .oldLayout = Gfx::ImageLayout::Transfer_Dst,
                 .newLayout = Gfx::ImageLayout::Shader_Read_Only,
             },
     };
 
     GPUBarrier defaultTextureCubeBarrier = {
-    .image = sharedResource->GetDefaultTextureCube(),
-    .srcStageMask = Gfx::PipelineStage::All_Commands,
-    .dstStageMask = Gfx::PipelineStage::All_Commands,
-    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-    .imageInfo =
-        {
-            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-            .oldLayout = Gfx::ImageLayout::Undefined,
-            .newLayout = Gfx::ImageLayout::Shader_Read_Only,
-        },
+        .image = sharedResource->GetDefaultTextureCube(),
+        .srcStageMask = Gfx::PipelineStage::All_Commands,
+        .dstStageMask = Gfx::PipelineStage::All_Commands,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .imageInfo =
+            {
+                .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .oldLayout = Gfx::ImageLayout::Undefined,
+                .newLayout = Gfx::ImageLayout::Shader_Read_Only,
+            },
     };
 
     barriers.push_back(defaultTextureBarrier);

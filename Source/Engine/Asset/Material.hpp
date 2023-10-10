@@ -24,6 +24,7 @@ class Material : public Asset
 public:
     Material(RefPtr<Shader> shader);
     Material();
+    Material(const Material& other);
     ~Material() override;
 
     void SetShader(RefPtr<Shader> shader);
@@ -31,16 +32,19 @@ public:
     {
         return shader;
     }
+
     RefPtr<Gfx::ShaderResource> GetShaderResource()
     {
         return shaderResource;
     }
 
+    std::unique_ptr<Asset> Clone() override;
+
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
-    void SetTexture(const std::string& param, RefPtr<Gfx::Image> image);
-    void SetTexture(const std::string& param, RefPtr<Texture> texture);
+    void SetTexture(const std::string& param, Gfx::Image* image);
+    void SetTexture(const std::string& param, Texture* texture);
     void SetTexture(const std::string& param, std::nullptr_t);
 
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
@@ -67,7 +71,7 @@ private:
     std::unordered_map<std::string, float> floatValues;
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;
-    std::unordered_map<std::string, RefPtr<Texture>> textureValues;
+    std::unordered_map<std::string, Texture*> textureValues;
 
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);

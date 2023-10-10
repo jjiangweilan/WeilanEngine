@@ -20,6 +20,10 @@ public:
     ~GameEditor();
 
     void Start();
+    WeilanEngine* GetEngine()
+    {
+        return engine.get();
+    }
 
 private:
     struct RegisteredTool
