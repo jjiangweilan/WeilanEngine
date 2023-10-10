@@ -43,6 +43,11 @@ public:
         return false;
     }
 
+    virtual std::vector<Asset*> GetInternalAssets()
+    {
+        return std::vector<Asset*>{};
+    }
+
     bool IsDirty()
     {
         return isDirty;

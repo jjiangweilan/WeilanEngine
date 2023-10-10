@@ -68,18 +68,23 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
     std::filesystem::path ext = fullAssetPath.extension();
     auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
-    Asset* asset = newAsset.get();
 
-    // if this is a asset in database we move the ownership into it's assetData
-    if (assetData)
+    if (newAsset != nullptr)
     {
-        asset = assetData->SetAsset(std::move(newAsset));
-    }
-    if (asset != nullptr)
-    {
-        if (asset->IsExternalAsset())
+        Asset* asset = newAsset.get();
+
+        if (newAsset->IsExternalAsset())
         {
-            asset->LoadFromFile(fullAssetPath.string().c_str());
+            newAsset->LoadFromFile(fullAssetPath.string().c_str());
+            if (assetData)
+            {
+                assetData->SetAsset(std::move(newAsset));
+            }
+            else
+            {
+                std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                assets.Add(std::move(ad));
+            }
         }
         else
         {
@@ -91,7 +96,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 f.read((char*)binary.data(), fileSize);
                 SerializeReferenceResolveMap resolveMap;
                 JsonSerializer ser(binary, &resolveMap);
-                asset->Deserialize(&ser);
+                newAsset->Deserialize(&ser);
 
                 auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
                 {
@@ -106,11 +111,25 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     }
                 };
 
+                if (assetData)
+                {
+                    // this needs to be done after importing becuase if not we don't have internal game object's name to
+                    // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+                    // happen before reference resolve so that it has the correct UUID
+                    assetData->SetAsset(std::move(newAsset));
+                }
+                // a new asset needs to be recored/imported in assetDatabase
+                else
+                {
+                    std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                    assets.Add(std::move(ad));
+                }
+
                 // resolve reference
                 for (auto& iter : resolveMap)
                 {
                     // resolve external reference
-                    auto externalAsset = LoadAssetByID(iter.first);
+                    Asset* externalAsset = LoadAssetByID(iter.first);
                     if (externalAsset)
                     {
                         ResolveAll(iter.second, externalAsset);
@@ -140,14 +159,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             }
         }
 
-        // a new asset needs to be recored/imported in assetDatabase
-        if (!assetData)
-        {
-            std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-            assets.Add(std::move(ad));
-        }
-
-        // see if there is any reference need to be resolved by this object
+        // see if there is any reference need to be resolved to this object
         auto iter = referenceResolveMap.find(asset->GetUUID());
         if (iter != referenceResolveMap.end())
         {
@@ -174,10 +186,29 @@ Asset* AssetDatabase::LoadAssetByID(const UUID& uuid)
     if (assetData)
     {
         auto asset = assetData->GetAsset();
-        if (asset)
-            return asset;
+        if (!asset)
+        {
+            asset = LoadAsset(assetData->GetAssetPath());
+        }
 
-        return LoadAsset(assetData->GetAssetPath());
+        if (asset)
+        {
+            if (asset->GetUUID() == uuid)
+            {
+                return asset;
+            }
+            else
+            {
+                auto internalAssets = asset->GetInternalAssets();
+                auto iter = std::find_if(
+                    internalAssets.begin(),
+                    internalAssets.end(),
+                    [&uuid](Asset* a) { return a->GetUUID() == uuid; }
+                );
+                if (iter != internalAssets.end())
+                    return *iter;
+            }
+        }
     }
 
     return nullptr;
@@ -221,7 +252,15 @@ Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
 {
     Asset* asset = assetData->GetAsset();
     byPath[assetData->GetAssetPath().string()] = assetData.get();
-    data[assetData->GetAssetUUID()] = std::move(assetData);
+    byUUID[assetData->GetAssetUUID()] = assetData.get();
+
+    for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
+    {
+        byUUID[iter.second] = assetData.get();
+    }
+
+    data.push_back(std::move(assetData));
+
     return asset;
 }
 AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)
@@ -236,10 +275,10 @@ AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path
 }
 AssetData* AssetDatabase::Assets::GetAssetData(const UUID& uuid)
 {
-    auto iter = data.find(uuid);
-    if (iter != data.end())
+    auto iter = byUUID.find(uuid);
+    if (iter != byUUID.end())
     {
-        return iter->second.get();
+        return iter->second;
     }
     return nullptr;
 }
@@ -248,7 +287,7 @@ void AssetDatabase::SaveDirtyAssets()
 {
     for (auto& a : assets.data)
     {
-        Asset* asset = a.second->GetAsset();
+        Asset* asset = a->GetAsset();
         if (asset)
         {
             if (asset->IsDirty())
@@ -256,6 +295,11 @@ void AssetDatabase::SaveDirtyAssets()
                 SaveAsset(*asset);
                 asset->SetDirty(false);
             }
+        }
+
+        if (a->IsDirty())
+        {
+            a->SaveToDisk(projectRoot);
         }
     }
 }

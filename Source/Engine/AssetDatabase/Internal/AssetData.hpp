@@ -12,7 +12,7 @@ namespace Engine
 class AssetData
 {
 public:
-    // this is used when saving an AssetFile
+    // this is used when saving an Asset
     AssetData(
         std::unique_ptr<Asset>&& resource,
         const std::filesystem::path& assetPath,
@@ -22,6 +22,7 @@ public:
     // this is used when loading an AssetFile
     //
     AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot);
+    ~AssetData();
 
     const UUID& GetAssetUUID() const
     {
@@ -41,6 +42,18 @@ public:
 
     Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();
+
+    std::unordered_map<std::string, UUID>& GetInternalObjectAssetNameToUUID()
+    {
+        return nameToUUID;
+    }
+
+    bool IsDirty()
+    {
+        return dirty;
+    }
+
+    void SaveToDisk(const std::filesystem::path& projectRoot);
 
 private:
     // scaii code stands for Wei Lan Engine AssetFile
@@ -62,6 +75,10 @@ private:
     bool isValid = false;
 
     std::unique_ptr<Asset> asset;
+
+    std::unordered_map<std::string, UUID> nameToUUID;
+
+    bool dirty = false;
 
     friend class AssetDatabase;
 };

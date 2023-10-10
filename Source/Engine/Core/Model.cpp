@@ -208,4 +208,27 @@ bool Model::LoadFromFile(const char* cpath)
     return true;
 }
 
+std::vector<Asset*> Model::GetInternalAssets()
+{
+    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size());
+
+    int i = 0;
+    for (auto& obj : meshes)
+    {
+        assets[i++] = obj.get();
+    }
+
+    for (auto& obj : textures)
+    {
+        assets[i++] = obj.get();
+    }
+
+    for (auto& obj : textures)
+    {
+        assets[i++] = obj.get();
+    }
+
+    return assets;
+}
+
 } // namespace Engine

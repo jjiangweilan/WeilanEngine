@@ -39,7 +39,8 @@ private:
         AssetData* GetAssetData(const UUID& uuid);
 
         std::unordered_map<std::string, AssetData*> byPath;
-        std::unordered_map<UUID, std::unique_ptr<AssetData>> data;
+        std::unordered_map<UUID, AssetData*> byUUID;
+        std::vector<std::unique_ptr<AssetData>> data;
     } assets;
 
     SerializeReferenceResolveMap referenceResolveMap;

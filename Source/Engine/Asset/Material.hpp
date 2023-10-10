@@ -27,7 +27,7 @@ public:
     ~Material() override;
 
     void SetShader(RefPtr<Shader> shader);
-    RefPtr<Shader> GetShader()
+    Shader* GetShader()
     {
         return shader;
     }

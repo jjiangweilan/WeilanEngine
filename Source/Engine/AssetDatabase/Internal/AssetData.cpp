@@ -5,24 +5,13 @@ namespace Engine
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
 )
-    : asset(std::move(asset)), assetPath(assetPath), assetDataUUID()
+    : assetDataUUID(), assetPath(assetPath), asset(std::move(asset))
 {
-    assetUUID = this->asset->GetUUID();
-    assetTypeID = this->asset->GetObjectTypeID();
-
-    std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
-    std::ofstream f(path);
-    if (f.is_open() && f.good())
+    for (auto obj : this->asset->GetInternalAssets())
     {
-        nlohmann::json j = {};
-        j["assetUUID"] = assetUUID.ToString();
-        j["assetTypeID"] = assetTypeID.ToString();
-        j["assetPath"] = assetPath.string();
-        f << j.dump();
-        isValid = true;
-        return;
+        nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
     }
-
+    SaveToDisk(projectRoot);
     isValid = false;
 }
 
@@ -46,6 +35,15 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         assetTypeID = dataJson["assetTypeID"];
         assetPath = dataJson.value("assetPath", "");
 
+        auto nameToUUIDJson = dataJson["nameToUUID"];
+        if (nameToUUIDJson.is_object())
+        {
+            for (auto pair : nameToUUIDJson.items())
+            {
+                nameToUUID[pair.key()] = pair.value();
+            }
+        }
+
         isValid = true;
         return;
     }
@@ -53,6 +51,8 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
     isValid = false;
     return;
 }
+
+AssetData::~AssetData() {}
 
 Asset* AssetData::GetAsset()
 {
@@ -67,7 +67,50 @@ Asset* AssetData::GetAsset()
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset)
 {
     asset->SetUUID(assetUUID);
+
+    for (auto obj : asset->GetInternalAssets())
+    {
+        auto iter = nameToUUID.find(obj->GetName());
+        if (iter != nameToUUID.end())
+        {
+            obj->SetUUID(iter->second);
+        }
+        else
+        {
+            nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
+            dirty = true;
+        }
+    }
+
     this->asset = std::move(asset);
+
     return this->asset.get();
+}
+
+void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
+{
+    assetUUID = this->asset->GetUUID();
+    assetTypeID = this->asset->GetObjectTypeID();
+
+    std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
+    std::ofstream f(path);
+    if (f.is_open() && f.good())
+    {
+        nlohmann::json j = {};
+        j["assetUUID"] = assetUUID.ToString();
+        j["assetTypeID"] = assetTypeID.ToString();
+        j["assetPath"] = assetPath.string();
+
+        for (auto& obj : nameToUUID)
+        {
+            j["nameToUUID"][obj.first] = obj.second.ToString();
+        }
+
+        f << j.dump();
+        isValid = true;
+        return;
+    }
+
+    dirty = false;
 }
 } // namespace Engine

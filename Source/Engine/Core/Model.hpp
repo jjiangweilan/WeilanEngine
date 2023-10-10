@@ -42,6 +42,8 @@ public:
 
     bool LoadFromFile(const char* path) override;
 
+    std::vector<Asset*> GetInternalAssets() override;
+
     std::span<GameObject*> GetRootGameObject()
     {
         return rootGameObjects;
