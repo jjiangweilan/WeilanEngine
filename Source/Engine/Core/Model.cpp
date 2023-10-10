@@ -102,10 +102,10 @@ bool Model::LoadFromFile(const char* cpath)
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
-        auto tex = LoadTextureFromBinary(binaryData + byteOffset, byteLength);
-        Utils::GLB::SetAssetNameAndUUID(tex.Get(), jsonData, "images", i);
+        auto tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+        Utils::GLB::SetAssetName(tex.get(), jsonData, "images", i);
 
-        toOurTexture[i] = tex.Get();
+        toOurTexture[i] = tex.get();
         textures.push_back(std::move(tex));
     }
 
@@ -117,7 +117,7 @@ bool Model::LoadFromFile(const char* cpath)
     for (int i = 0; i < materialSize; ++i)
     {
         std::unique_ptr<Material> mat = std::make_unique<Material>();
-        Utils::GLB::SetAssetNameAndUUID(mat.get(), jsonData, "materials", i);
+        Utils::GLB::SetAssetName(mat.get(), jsonData, "materials", i);
 
         nlohmann::json& matJson = jsonData["materials"][i];
         mat->GetShaderConfig().cullMode =
@@ -191,7 +191,7 @@ bool Model::LoadFromFile(const char* cpath)
     {
         nlohmann::json& sceneJson = scenesJson[i];
         std::unique_ptr<GameObject> rootGameObject = MakeUnique<GameObject>();
-        Utils::GLB::SetAssetNameAndUUID(rootGameObject.get(), jsonData, "scenes", i);
+        Utils::GLB::SetAssetName(rootGameObject.get(), jsonData, "scenes", i);
         rootGameObject->SetName(std::string(sceneJson["name"]));
 
         for (int nodeIndex : sceneJson["nodes"])
@@ -223,7 +223,7 @@ std::vector<Asset*> Model::GetInternalAssets()
         assets[i++] = obj.get();
     }
 
-    for (auto& obj : textures)
+    for (auto& obj : materials)
     {
         assets[i++] = obj.get();
     }

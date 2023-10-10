@@ -74,7 +74,7 @@ void GLB::GetGLBData(
     );
 }
 
-void GLB::SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
+void GLB::SetAssetName(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
 {
     auto& meshJson = j[assetGroupName][index];
 
@@ -98,7 +98,7 @@ std::vector<std::unique_ptr<Mesh>> GLB::ExtractMeshes(
     for (int i = 0; i < meshesSize && i < maximumMesh; ++i)
     {
         std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-        SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
+        SetAssetName(mesh.get(), jsonData, "meshes", i);
 
         std::vector<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();

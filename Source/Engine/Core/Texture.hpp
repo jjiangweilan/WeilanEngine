@@ -21,16 +21,24 @@ struct KtxTexture
     ktx_uint8_t* imageData;
     size_t byteSize;
 };
+
+enum class ImageDataType
+{
+    Ktx,
+    StbSupported, // jpg, png, etc...
+};
+
 class Texture : public Asset
 {
     DECLARE_ASSET();
 
 public:
     Texture(){};
-    // load a ktx texture from file
-    Texture(const char* path, const UUID& uuid = UUID::GetEmptyUUID());
-    Texture(TextureDescription texDesc, const UUID& uuid = UUID::GetEmptyUUID());
-    Texture(KtxTexture texDesc, const UUID& uuid = UUID::GetEmptyUUID());
+    // load a texture from file
+    Texture(const char* path, const UUID& uuid = UUID{});
+    Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, const UUID& uuid = UUID{});
+    Texture(TextureDescription texDesc, const UUID& uuid = UUID{});
+    Texture(KtxTexture texDesc, const UUID& uuid = UUID{});
     ~Texture() override
     {
         if (desc.keepData && desc.data != nullptr)
@@ -60,9 +68,9 @@ private:
     TextureDescription desc;
     UniPtr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);
+    void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);
+    void CreateGfxImage(TextureDescription& texDesc);
 };
-
-UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* byteData, std::size_t byteSize);
 
 bool IsKTX1File(ktx_uint8_t* imageData);
 bool IsKTX2File(ktx_uint8_t* imageData);

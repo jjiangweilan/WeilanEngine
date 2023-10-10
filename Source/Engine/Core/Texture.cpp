@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
@@ -24,11 +25,28 @@ Texture::Texture(const char* path, const UUID& uuid)
 Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
 {
     SetUUID(uuid);
+
+    CreateGfxImage(desc);
+}
+
+Texture::Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, const UUID& uuid)
+{
+    SetUUID(uuid);
+
+    switch (imageDataType)
+    {
+        case ImageDataType::Ktx: LoadKtxTexture(data, byteSize); break;
+        case ImageDataType::StbSupported: LoadStbSupoprtedTexture(data, byteSize); break;
+    }
+}
+
+void Texture::CreateGfxImage(TextureDescription& texDesc)
+{
     image = Gfx::GfxDriver::Instance()->CreateImage(
         texDesc.img,
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc
     );
-    image->SetName(uuid.ToString());
+    image->SetName(GetName());
 
     uint32_t byteSize =
         Gfx::Utils::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
@@ -220,49 +238,6 @@ void Texture::Reload(Asset&& loaded)
     Asset::Reload(std::move(loaded));
 }
 
-UniPtr<Engine::Texture> LoadTextureFromBinary(unsigned char* imageData, std::size_t byteSize)
-{
-    int width, height, channels, desiredChannels;
-    stbi_info_from_memory(imageData, byteSize, &width, &height, &desiredChannels);
-    if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
-        desiredChannels = 4;
-
-    stbi_uc* loaded = stbi_load_from_memory(imageData, (int)byteSize, &width, &height, &channels, desiredChannels);
-
-    bool is16Bit = stbi_is_16_bit_from_memory(imageData, byteSize);
-    bool isHDR = stbi_is_hdr_from_memory(imageData, byteSize);
-    if (is16Bit && isHDR)
-    {
-        SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
-    }
-
-    Engine::TextureDescription desc{};
-    desc.img.width = width;
-    desc.img.height = height;
-    desc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
-    desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
-    desc.img.isCubemap = false;
-    desc.data = loaded;
-
-    if (desiredChannels == 4)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8A8_SRGB;
-    }
-    if (desiredChannels == 3)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8B8_SRGB;
-    }
-    if (desiredChannels == 2)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8G8_SRGB;
-    }
-    if (desiredChannels == 1)
-    {
-        desc.img.format = Engine::Gfx::ImageFormat::R8_SRGB;
-    }
-    return MakeUnique<Engine::Texture>(desc);
-}
-
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
 {
     if (IsKTX1File(imageData) || IsKTX2File(imageData))
@@ -446,20 +421,79 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
     }
 }
 
+void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
+{
+    int width, height, channels, desiredChannels;
+    stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
+    if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
+        desiredChannels = 4;
+
+    stbi_uc* loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+
+    bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
+    bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+    if (is16Bit && isHDR)
+    {
+        SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
+    }
+
+    Engine::TextureDescription texDesc{};
+    texDesc.img.width = width;
+    texDesc.img.height = height;
+    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
+    texDesc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    texDesc.img.isCubemap = false;
+    texDesc.data = loaded;
+
+    if (desiredChannels == 4)
+    {
+        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8B8A8_SRGB;
+    }
+    if (desiredChannels == 3)
+    {
+        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8B8_SRGB;
+    }
+    if (desiredChannels == 2)
+    {
+        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8_SRGB;
+    }
+    if (desiredChannels == 1)
+    {
+        texDesc.img.format = Engine::Gfx::ImageFormat::R8_SRGB;
+    }
+    desc = texDesc;
+
+    CreateGfxImage(desc);
+}
+
 bool Texture::LoadFromFile(const char* path)
 {
-    std::fstream f;
-    f.open(path, std::ios::binary | std::ios_base::in);
-    if (f.good() && f.is_open())
+    std::filesystem::path fpath(path);
+
+    if (fpath.has_extension())
     {
-        std::stringstream ss;
-        ss << f.rdbuf();
-        std::string s = ss.str();
-        LoadKtxTexture((uint8_t*)s.data(), s.size());
-    }
-    else
-    {
-        return false;
+        std::fstream f;
+        f.open(path, std::ios::binary | std::ios_base::in);
+        if (f.good() && f.is_open())
+        {
+            std::stringstream ss;
+            ss << f.rdbuf();
+            std::string s = ss.str();
+
+            auto ext = fpath.extension();
+            if (ext == ".ktx")
+            {
+                LoadKtxTexture((uint8_t*)s.data(), s.size());
+            }
+            else if (ext == ".jpg" || ext == ".png")
+            {
+                LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size());
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
 
     return true;

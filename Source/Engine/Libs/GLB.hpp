@@ -15,7 +15,7 @@ public:
         nlohmann::json& jsonData,
         unsigned char*& binaryData
     );
-    static void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index);
+    static void SetAssetName(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index);
     static std::vector<std::unique_ptr<Mesh>> ExtractMeshes(
         nlohmann::json& jsonData, unsigned char*& binaryData, int maximumMesh = std::numeric_limits<int>::max()
     );

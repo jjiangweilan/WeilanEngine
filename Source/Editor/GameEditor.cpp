@@ -58,8 +58,8 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     if (ImGui::BeginDragDropSource())
     {
-        dragDropPtrHolder = transform->GetGameObject();
-        ImGui::SetDragDropPayload("game object", &dragDropPtrHolder, sizeof(void*));
+        auto ptr = transform->GetGameObject();
+        ImGui::SetDragDropPayload("game object", &ptr, sizeof(void*));
 
         ImGui::Text("%s", transform->GetGameObject()->GetName().c_str());
 

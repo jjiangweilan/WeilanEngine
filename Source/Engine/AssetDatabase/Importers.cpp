@@ -75,10 +75,11 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
-        auto tex = LoadTextureFromBinary(binaryData + byteOffset, byteLength);
-        SetAssetNameAndUUID(tex.Get(), jsonData, "images", i);
+        auto tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported);
 
-        toOurTexture[i] = tex.Get();
+        SetAssetNameAndUUID(tex.get(), jsonData, "images", i);
+
+        toOurTexture[i] = tex.get();
         textures.push_back(std::move(tex));
     }
 
