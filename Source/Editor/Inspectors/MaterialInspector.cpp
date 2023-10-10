@@ -44,118 +44,121 @@ public:
         {
             if (shader != nullptr)
             {
-                EditorState::selectedObject = shader.Get();
+                EditorState::selectedObject = shader;
             }
         }
 
-        auto& shaderInfo = target->GetShader()->GetShaderProgram()->GetShaderInfo();
-
-        std::vector<Gfx::ShaderInfo::Binding> textureBindings;
-        std::vector<Gfx::ShaderInfo::Binding> numericBindings;
-        for (auto& binding : shaderInfo.bindings)
+        if (shader)
         {
-            if (binding.second.type == Gfx::ShaderInfo::BindingType::Texture &&
-                binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+            auto& shaderInfo = shader->GetShaderProgram()->GetShaderInfo();
+
+            std::vector<Gfx::ShaderInfo::Binding> textureBindings;
+            std::vector<Gfx::ShaderInfo::Binding> numericBindings;
+            for (auto& binding : shaderInfo.bindings)
             {
-                textureBindings.push_back(binding.second);
+                if (binding.second.type == Gfx::ShaderInfo::BindingType::Texture &&
+                    binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+                {
+                    textureBindings.push_back(binding.second);
+                }
+
+                if (binding.second.type == Gfx::ShaderInfo::BindingType::UBO &&
+                    binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+                {
+                    numericBindings.push_back(binding.second);
+                }
             }
 
-            if (binding.second.type == Gfx::ShaderInfo::BindingType::UBO &&
-                binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
+            ImGui::Spacing();
+            ImGui::Text("Numerics");
+            ImGui::Separator();
+            for (auto& numBinding : numericBindings)
             {
-                numericBindings.push_back(binding.second);
+                ImGui::Text("%s", numBinding.name.c_str());
+                for (auto& m : numBinding.binding.ubo.data.members)
+                {
+                    std::string id = fmt::format("##{}", m.first);
+                    ImGui::Indent();
+
+                    ImGui::Text("%s", m.second.name.c_str());
+                    ImGui::SameLine();
+                    if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
+                    {
+                        float val = target->GetFloat(numBinding.name, m.first);
+                        if (ImGui::InputFloat(id.c_str(), &val))
+                        {
+                            target->SetFloat(numBinding.name, m.first, val);
+                        }
+                    }
+                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
+                    {
+                        auto val = target->GetVector(numBinding.name, m.first);
+                        if (ImGui::InputFloat2(id.c_str(), &val[0]))
+                        {
+                            target->SetVector(numBinding.name, m.first, val);
+                        }
+                    }
+                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
+                    {
+                        auto val = target->GetVector(numBinding.name, m.first);
+                        if (ImGui::InputFloat3(id.c_str(), &val[0]))
+                        {
+                            target->SetVector(numBinding.name, m.first, val);
+                        }
+                    }
+                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
+                    {
+                        auto val = target->GetVector(numBinding.name, m.first);
+                        if (ImGui::InputFloat4(id.c_str(), &val[0]))
+                        {
+                            target->SetVector(numBinding.name, m.first, val);
+                        }
+                    }
+                    else
+                    {
+                        ImGui::Text("%s", m.first.c_str());
+                    }
+
+                    ImGui::Unindent();
+                }
             }
-        }
 
-        ImGui::Spacing();
-        ImGui::Text("Numerics");
-        ImGui::Separator();
-        for (auto& numBinding : numericBindings)
-        {
-            ImGui::Text("%s", numBinding.name.c_str());
-            for (auto& m : numBinding.binding.ubo.data.members)
+            ImGui::Spacing();
+            ImGui::Text("Textures");
+            ImGui::Separator();
+            for (auto& texBinding : textureBindings)
             {
-                std::string id = fmt::format("##{}", m.first);
-                ImGui::Indent();
+                Texture* tex = target->GetTexture(texBinding.name);
+                if (tex)
+                {
+                    auto width = tex->GetDescription().img.width;
+                    auto height = tex->GetDescription().img.height;
+                    auto size = ResizeKeepRatio(width, height, 35, 35);
+                    ImGui::Text("%s", texBinding.name.c_str());
+                    ImGui::SameLine();
+                    ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), { size.x, size.y });
 
-                ImGui::Text("%s", m.second.name.c_str());
-                ImGui::SameLine();
-                if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
-                {
-                    float val = target->GetFloat(numBinding.name, m.first);
-                    if (ImGui::InputFloat(id.c_str(), &val))
+                    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                     {
-                        target->SetFloat(numBinding.name, m.first, val);
-                    }
-                }
-                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
-                {
-                    auto val = target->GetVector(numBinding.name, m.first);
-                    if (ImGui::InputFloat2(id.c_str(), &val[0]))
-                    {
-                        target->SetVector(numBinding.name, m.first, val);
-                    }
-                }
-                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
-                {
-                    auto val = target->GetVector(numBinding.name, m.first);
-                    if (ImGui::InputFloat3(id.c_str(), &val[0]))
-                    {
-                        target->SetVector(numBinding.name, m.first, val);
-                    }
-                }
-                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
-                {
-                    auto val = target->GetVector(numBinding.name, m.first);
-                    if (ImGui::InputFloat4(id.c_str(), &val[0]))
-                    {
-                        target->SetVector(numBinding.name, m.first, val);
+                        EditorState::selectedObject = tex;
                     }
                 }
                 else
+                    ImGui::Button(texBinding.name.c_str());
+
+                if (ImGui::BeginDragDropTarget())
                 {
-                    ImGui::Text("%s", m.first.c_str());
-                }
-
-                ImGui::Unindent();
-            }
-        }
-
-        ImGui::Spacing();
-        ImGui::Text("Textures");
-        ImGui::Separator();
-        for (auto& texBinding : textureBindings)
-        {
-            Texture* tex = target->GetTexture(texBinding.name);
-            if (tex)
-            {
-                auto width = tex->GetDescription().img.width;
-                auto height = tex->GetDescription().img.height;
-                auto size = ResizeKeepRatio(width, height, 35, 35);
-                ImGui::Text("%s", texBinding.name.c_str());
-                ImGui::SameLine();
-                ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
-
-                if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-                {
-                    EditorState::selectedObject = tex;
-                }
-            }
-            else
-                ImGui::Button(texBinding.name.c_str());
-
-            if (ImGui::BeginDragDropTarget())
-            {
-                auto payload = ImGui::AcceptDragDropPayload("object");
-                if (payload && payload->IsDelivery())
-                {
-                    Object* obj = *(Object**)payload->Data;
-                    if (Texture* dropTex = dynamic_cast<Texture*>(obj))
+                    auto payload = ImGui::AcceptDragDropPayload("object");
+                    if (payload && payload->IsDelivery())
                     {
-                        target->SetTexture(texBinding.name, dropTex);
+                        Object* obj = *(Object**)payload->Data;
+                        if (Texture* dropTex = dynamic_cast<Texture*>(obj))
+                        {
+                            target->SetTexture(texBinding.name, dropTex);
+                        }
                     }
+                    ImGui::EndDragDropTarget();
                 }
-                ImGui::EndDragDropTarget();
             }
         }
     }

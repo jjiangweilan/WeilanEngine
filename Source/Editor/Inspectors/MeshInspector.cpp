@@ -10,12 +10,8 @@ public:
     {
         // object information
         auto& name = target->GetName();
-        char cname[1024];
-        strcpy(cname, name.data());
-        if (ImGui::InputText("Name", cname, 1024))
-        {
-            target->SetName(cname);
-        }
+        ImGui::Text("name: %s", name.c_str());
+        ImGui::Text("UUID: %s", target->GetUUID().ToString().c_str());
     }
 
 private:
