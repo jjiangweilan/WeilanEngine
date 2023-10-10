@@ -30,8 +30,15 @@ public:
         name = std::move(asset.name);
     }
 
-    // asset format that is not serializable and deserializable
+    // asset format that is not serializable and deserializable.
+    // AssetDatabase will use LoadFromFile if this function returns true when importing asset
     virtual bool IsExternalAsset()
+    {
+        return false;
+    }
+
+    // return false if loading failed
+    virtual bool LoadFromFile(const char* path)
     {
         return false;
     }
@@ -39,12 +46,6 @@ public:
     bool IsDirty()
     {
         return isDirty;
-    }
-
-    // return false if loading failed
-    virtual bool LoadFromFile(const char* path)
-    {
-        return false;
     }
 
     void Serialize(Serializer* s) const override

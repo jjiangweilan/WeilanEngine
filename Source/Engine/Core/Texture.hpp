@@ -48,6 +48,14 @@ public:
     }
     void Reload(Asset&& loaded) override;
 
+    bool IsExternalAsset() override
+    {
+        return true;
+    }
+
+    // return false if loading failed
+    bool LoadFromFile(const char* path) override;
+
 private:
     TextureDescription desc;
     UniPtr<Gfx::Image> image;

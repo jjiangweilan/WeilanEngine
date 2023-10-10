@@ -67,21 +67,82 @@ public:
             }
         }
 
+        ImGui::Spacing();
+        ImGui::Text("Numerics");
+        ImGui::Separator();
+        for (auto& numBinding : numericBindings)
+        {
+            ImGui::Text("%s", numBinding.name.c_str());
+            for (auto& m : numBinding.binding.ubo.data.members)
+            {
+                std::string id = fmt::format("##{}", m.first);
+                ImGui::Indent();
+
+                ImGui::Text("%s", m.second.name.c_str());
+                ImGui::SameLine();
+                if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
+                {
+                    float val = target->GetFloat(numBinding.name, m.first);
+                    if (ImGui::InputFloat(id.c_str(), &val))
+                    {
+                        target->SetFloat(numBinding.name, m.first, val);
+                    }
+                }
+                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
+                {
+                    auto val = target->GetVector(numBinding.name, m.first);
+                    if (ImGui::InputFloat2(id.c_str(), &val[0]))
+                    {
+                        target->SetVector(numBinding.name, m.first, val);
+                    }
+                }
+                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
+                {
+                    auto val = target->GetVector(numBinding.name, m.first);
+                    if (ImGui::InputFloat3(id.c_str(), &val[0]))
+                    {
+                        target->SetVector(numBinding.name, m.first, val);
+                    }
+                }
+                else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
+                {
+                    auto val = target->GetVector(numBinding.name, m.first);
+                    if (ImGui::InputFloat4(id.c_str(), &val[0]))
+                    {
+                        target->SetVector(numBinding.name, m.first, val);
+                    }
+                }
+                else
+                {
+                    ImGui::Text("%s", m.first.c_str());
+                }
+
+                ImGui::Unindent();
+            }
+        }
+
+        ImGui::Spacing();
         ImGui::Text("Textures");
         ImGui::Separator();
         for (auto& texBinding : textureBindings)
         {
-            ImGui::Text("%s", texBinding.name.c_str());
             Texture* tex = target->GetTexture(texBinding.name);
             if (tex)
             {
                 auto width = tex->GetDescription().img.width;
                 auto height = tex->GetDescription().img.height;
-                auto size = ResizeKeepRatio(width, height, 30, 30);
+                auto size = ResizeKeepRatio(width, height, 35, 35);
+                ImGui::Text("%s", texBinding.name.c_str());
+                ImGui::SameLine();
                 ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
+
+                if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    EditorState::selectedObject = tex;
+                }
             }
             else
-                ImGui::Button("empty");
+                ImGui::Button(texBinding.name.c_str());
 
             if (ImGui::BeginDragDropTarget())
             {
@@ -95,20 +156,6 @@ public:
                     }
                 }
                 ImGui::EndDragDropTarget();
-            }
-        }
-
-        ImGui::Spacing();
-        ImGui::Text("Numerics");
-        ImGui::Separator();
-        for (auto& numBinding : numericBindings)
-        {
-            ImGui::Text("%s", numBinding.name.c_str());
-            for (auto& m : numBinding.binding.ubo.data.members)
-            {
-                ImGui::Indent();
-                ImGui::Text("%s", m.second.name.c_str());
-                ImGui::Unindent();
             }
         }
     }

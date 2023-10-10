@@ -14,20 +14,13 @@ DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
-    std::fstream f;
-    f.open(path, std::ios::binary | std::ios_base::in);
-    if (f.good() && f.is_open())
-    {
-        std::stringstream ss;
-        ss << f.rdbuf();
-        std::string s = ss.str();
-        LoadKtxTexture((uint8_t*)s.data(), s.size());
-    }
-    else
+    SetUUID(uuid);
+    if (!LoadFromFile(path))
     {
         throw std::runtime_error("Failed to create texture");
     }
 }
+
 Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
 {
     SetUUID(uuid);
@@ -451,6 +444,25 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
 
         ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
     }
+}
+
+bool Texture::LoadFromFile(const char* path)
+{
+    std::fstream f;
+    f.open(path, std::ios::binary | std::ios_base::in);
+    if (f.good() && f.is_open())
+    {
+        std::stringstream ss;
+        ss << f.rdbuf();
+        std::string s = ss.str();
+        LoadKtxTexture((uint8_t*)s.data(), s.size());
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace Engine
