@@ -31,6 +31,11 @@ public:
         return assetDirectory;
     }
 
+    const std::vector<AssetData*>& GetInternalAssets() const
+    {
+        return internalAssets;
+    }
+
 private:
     const std::filesystem::path projectRoot;
     const std::filesystem::path assetDirectory;
@@ -51,7 +56,9 @@ private:
     } assets;
 
     SerializeReferenceResolveMap referenceResolveMap;
+    std::vector<AssetData*> internalAssets;
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
+    void LoadEngineInternal();
 };
 } // namespace Engine

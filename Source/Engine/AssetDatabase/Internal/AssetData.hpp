@@ -12,6 +12,8 @@ namespace Engine
 class AssetData
 {
 public:
+    struct InternalAssetDataTag
+    {};
     // this is used when saving an Asset
     AssetData(
         std::unique_ptr<Asset>&& resource,
@@ -19,9 +21,12 @@ public:
         const std::filesystem::path& projectRoot
     );
 
-    // this is used when loading an AssetFile
+    // this is used when loading an Asset
     //
     AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot);
+
+    // used for internal Asset
+    AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
     ~AssetData();
 
     const UUID& GetAssetUUID() const
@@ -39,6 +44,11 @@ public:
     {
         return assetPath;
     };
+
+    const std::filesystem::path& GetAssetAbsolutePath()
+    {
+        return absolutePath;
+    }
 
     Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();
@@ -70,7 +80,9 @@ private:
 
     // this is the path to the resource the AssetFile linked to
     // relative path in Assets/
+    // if it's an engine internal file it be _engine_internal/xxx
     std::filesystem::path assetPath;
+    std::filesystem::path absolutePath;
 
     bool isValid = false;
 
@@ -79,6 +91,7 @@ private:
     std::unordered_map<std::string, UUID> nameToUUID;
 
     bool dirty = false;
+    bool internal = false;
 
     friend class AssetDatabase;
 };

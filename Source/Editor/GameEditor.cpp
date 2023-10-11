@@ -483,6 +483,32 @@ void GameEditor::AssetWindow()
         ImGui::Begin("Assets", &assetWindow);
         AssetShowDir(engine->GetProjectPath() / "Assets");
         ImGui::End();
+
+        ImGui::Begin("Internal Assets", &assetWindow);
+        auto& internalAssets = engine->assetDatabase->GetInternalAssets();
+        for (AssetData* internalAsset : internalAssets)
+        {
+            ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            {
+                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
+
+                ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
+
+                ImGui::EndDragDropSource();
+            }
+            else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+            {
+                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                if (asset)
+                {
+                    EditorState::selectedObject = asset;
+                }
+            }
+        }
+        ImGui::End();
     }
 }
 

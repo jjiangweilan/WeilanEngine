@@ -121,13 +121,13 @@ void main()
     normal = TBN * normalMap;
 
     vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
-    float roughness = metallicRoughness.x;
-    float metallic = metallicRoughness.y;
+    float metallic = metallicRoughness.x;
+    float roughness = metallicRoughness.y;
     vec3 color = vec3(0,0,0);
 
     vec3 baseColor = texture(BaseColorTex, i_UV).xyz / M_PI * matParams.baseColorFactor.xyz;
     vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
-    vec3 n = normalize(normal);
+    vec3 n = normal;
 
     for (int i = 0; i < scene.lightCount.x; ++i)
     {
@@ -143,7 +143,7 @@ void main()
 
     // env map lighting
     // reflection
-    vec3 envLightDir = normalize(reflect(v, n));
+    vec3 envLightDir = normalize(reflect(-v, n));
     vec3 envLight = texture(environmentMap, envLightDir).xyz;
     float envBrdf = SpecularBRDF(envLightDir, v, n, metallic, roughness);
     float envLightDotNL = max(dot(envLightDir, n), NearZero);

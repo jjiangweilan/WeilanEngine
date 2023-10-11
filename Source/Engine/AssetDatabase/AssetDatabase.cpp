@@ -37,6 +37,8 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
             }
         }
     }
+
+    LoadEngineInternal();
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -46,7 +48,7 @@ void AssetDatabase::SaveAsset(Asset& asset)
 
     if (assetData != nullptr)
     {
-        SerializeAssetToDisk(asset, assetDirectory / assetData->GetAssetPath());
+        SerializeAssetToDisk(asset, assetData->GetAssetAbsolutePath());
     }
 }
 
@@ -59,19 +61,21 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 {
     // find the asset if it's already imported
     auto assetData = assets.GetAssetData(path);
-    auto fullAssetPath = assetDirectory / path;
+    auto absoluteAssetPath = assetDirectory / path;
     if (assetData)
     {
+        // override the asset path because this asset may be an internal asset
+        absoluteAssetPath = assetData->GetAssetAbsolutePath();
         auto a = assetData->GetAsset();
         if (a)
             return a;
     }
 
-    if (!std::filesystem::exists(fullAssetPath))
+    if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
-    std::filesystem::path ext = fullAssetPath.extension();
+    std::filesystem::path ext = absoluteAssetPath.extension();
     auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
 
     if (newAsset != nullptr)
@@ -80,7 +84,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 
         if (newAsset->IsExternalAsset())
         {
-            newAsset->LoadFromFile(fullAssetPath.string().c_str());
+            newAsset->LoadFromFile(absoluteAssetPath.string().c_str());
             if (assetData)
             {
                 assetData->SetAsset(std::move(newAsset));
@@ -88,15 +92,16 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             else
             {
                 std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                ad->SaveToDisk(projectRoot);
                 assets.Add(std::move(ad));
             }
         }
         else
         {
-            std::ifstream f(fullAssetPath, std::ios::binary);
+            std::ifstream f(absoluteAssetPath, std::ios::binary);
             if (f.is_open() && f.good())
             {
-                size_t fileSize = std::filesystem::file_size(fullAssetPath);
+                size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
                 std::vector<uint8_t> binary(fileSize);
                 f.read((char*)binary.data(), fileSize);
                 SerializeReferenceResolveMap resolveMap;
@@ -127,6 +132,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 else
                 {
                     std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                    ad->SaveToDisk(projectRoot);
                     assets.Add(std::move(ad));
                 }
 
@@ -236,7 +242,8 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    if (path.is_absolute()) return nullptr;
+    if (path.is_absolute())
+        return nullptr;
 
     path.replace_extension(a->GetExtension());
     auto fullPath = assetDirectory / path;
@@ -244,9 +251,10 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
     if (!a->IsExternalAsset() && !std::filesystem::exists(fullPath))
     {
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
+        newAssetData->SaveToDisk(projectRoot);
         Asset* asset = newAssetData->GetAsset();
 
-        SerializeAssetToDisk(*asset, assetDirectory / newAssetData->GetAssetPath());
+        SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
 
         Asset* temp = assets.Add(std::move(newAssetData));
 
@@ -308,6 +316,20 @@ void AssetDatabase::SaveDirtyAssets()
         {
             a->SaveToDisk(projectRoot);
         }
+    }
+}
+
+void AssetDatabase::LoadEngineInternal()
+{
+    auto assetData = std::make_unique<AssetData>(
+        "118DF4BB-B41A-452A-BE48-CE95019AAF2E",
+        "Shaders/Game/StandardPBR.shad",
+        AssetData::InternalAssetDataTag{}
+    );
+    internalAssets.push_back(assetData.get());
+    if (assetData->IsValid())
+    {
+        assets.Add(std::move(assetData));
     }
 }
 

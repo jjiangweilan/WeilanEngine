@@ -8,6 +8,7 @@
 namespace Engine
 {
 
+class AssetDatabase;
 class Asset : public Object, public Serializable
 {
 public:
