@@ -68,7 +68,9 @@ public:
                 {
                     auto delta = newDegree - degree;
                     auto radians = glm::radians(delta);
-                    transform->Rotate(glm::length(radians), glm::normalize(radians), RotationCoordinate::Self);
+                    float length = glm::length(radians);
+                    if (length != 0)
+                        transform->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
                 }
 
                 auto scale = transform->GetScale();
