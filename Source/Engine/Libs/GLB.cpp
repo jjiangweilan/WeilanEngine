@@ -204,40 +204,53 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
             attributeStride += byteLength / count;
         }
     }
-    for (auto& attr : primitiveJson["attributes"].items())
+
+    // process position
     {
-        std::string attributeName = attr.key();
-        size_t accessorIndex = attr.value();
+        std::string attributeName = "POSITION";
+        size_t accessorIndex = primitiveJson["attributes"]["POSITION"];
         auto& accessor = j["accessors"][accessorIndex];
         size_t count = accessor.value("count", 0);
         int bufferViewIndex = accessor["bufferView"];
         auto& bufferView = j["bufferViews"][bufferViewIndex];
         int byteLength = bufferView["byteLength"];
         int byteOffset = bufferView["byteOffset"];
-
-        if (attributeName == "POSITION")
+        if (accessorIndex != -1)
         {
-            if (accessorIndex != -1)
-            {
-                glm::vec3 min = {accessor["min"][0], accessor["min"][1], accessor["min"][2]};
-                glm::vec3 max = {accessor["max"][0], accessor["max"][1], accessor["max"][2]};
+            glm::vec3 min = {accessor["min"][0], accessor["min"][1], accessor["min"][2]};
+            glm::vec3 max = {accessor["max"][0], accessor["max"][1], accessor["max"][2]};
 
-                submesh.SetAABB(AABB{min, max});
+            submesh.SetAABB(AABB{min, max});
 
-                if (count == 0)
-                    throw std::logic_error("mesh's position shouldn't be zero");
+            if (count == 0)
+                throw std::logic_error("mesh's position shouldn't be zero");
 
-                positions.resize(count);
+            positions.resize(count);
 
-                assert(byteLength == count * sizeof(glm::vec3));
-                memcpy(positions.data(), binaryData + byteOffset, byteLength);
-            }
-            else
-            {}
+            assert(byteLength == count * sizeof(glm::vec3));
+            memcpy(positions.data(), binaryData + byteOffset, byteLength);
         }
-        else
+    }
+
+    for (auto attributeName : std::vector<std::string>{
+             "NORMAL",     "TANGENT",    "TEXCOORD_0", "TEXCOORD_1", "TEXCOORD_2", "TEXCOORD_3", "TEXCOORD_4",
+             "TEXCOORD_5", "TEXCOORD_6", "TEXCOORD_7", "COLOR_0",    "COLOR_1",    "COLOR_2",    "COLOR_3",
+             "COLOR_4",    "COLOR_5",    "COLOR_6",    "COLOR_7",    "JOINTS_0",   "JOINTS_1",   "JOINTS_2",
+             "JOINTS_3",   "JOINTS_4",   "JOINTS_5",   "JOINTS_6",   "JOINTS_7",   "WEIGHTS_0",  "WEIGHTS_1",
+             "WEIGHTS_2",  "WEIGHTS_3",  "WEIGHTS_4",  "WEIGHTS_5",  "WEIGHTS_6",  "WEIGHTS_7",
+         })
+    {
+        if (primitiveJson["attributes"].contains(attributeName))
         {
+            size_t accessorIndex = primitiveJson["attributes"][attributeName];
+            auto& accessor = j["accessors"][accessorIndex];
+            size_t count = accessor.value("count", 0);
+            int bufferViewIndex = accessor["bufferView"];
+            auto& bufferView = j["bufferViews"][bufferViewIndex];
+            int byteLength = bufferView["byteLength"];
+            int byteOffset = bufferView["byteOffset"];
             size_t byteSize = byteLength / count;
+
             attribute.AddAttribute(attributeName.data(), byteSize);
 
             for (int i = 0; i < count; ++i)
