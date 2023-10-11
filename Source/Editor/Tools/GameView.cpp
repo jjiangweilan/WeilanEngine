@@ -17,6 +17,8 @@ void GameView::Init()
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
 
+    ImGuizmo::AllowAxisFlip(false);
+
     CreateRenderData(1080, 960);
 }
 
@@ -296,19 +298,22 @@ bool GameView::Tick()
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
         auto windowPos = ImGui::GetWindowPos();
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+        if (!ImGuizmo::IsUsing())
         {
-            auto mousePos = ImGui::GetMousePos();
-            glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
-            GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+            {
+                auto mousePos = ImGui::GetMousePos();
+                glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
+                GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
-            if (selected)
-            {
-                EditorState::selectedObject = selected;
-            }
-            else
-            {
-                EditorState::selectedObject = nullptr;
+                if (selected)
+                {
+                    EditorState::selectedObject = selected;
+                }
+                else
+                {
+                    EditorState::selectedObject = nullptr;
+                }
             }
         }
 
@@ -391,10 +396,9 @@ void GameView::EditTransform(const Camera& camera, glm::mat4& matrix, const glm:
     //    ImGui::InputFloat("Scale Snap", &snap.x);
     //    break;
     // }
-    ImGuiIO& io = ImGui::GetIO();
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 proj = camera.GetProjectionMatrix();
-    proj[1] = -proj[1];
+    proj[1][1] *= -1;
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetGizmoSizeClipSpace(0.2f);
     ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
