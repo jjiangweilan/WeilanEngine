@@ -123,7 +123,7 @@ void main()
     vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
     float roughness = metallicRoughness.x;
     float metallic = metallicRoughness.y;
-    vec3 indirectLight = vec3(0,0,0);
+    vec3 color = vec3(0,0,0);
 
     vec3 baseColor = texture(BaseColorTex, i_UV).xyz / M_PI * matParams.baseColorFactor.xyz;
     vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
@@ -138,7 +138,7 @@ void main()
         float brdf = SpecularBRDF(l, v, n, metallic, roughness);
 
         float light = dotNL * scene.lights[i].intensity;
-        indirectLight += light * (baseColor / M_PI + brdf);
+        color += light * (baseColor / M_PI + brdf);
     }
 
     // env map lighting
@@ -147,7 +147,7 @@ void main()
     vec3 envLight = texture(environmentMap, envLightDir).xyz;
     float envBrdf = SpecularBRDF(envLightDir, v, n, metallic, roughness);
     float envLightDotNL = max(dot(envLightDir, n), NearZero);
-    indirectLight += envLightDotNL * envLight * (baseColor / M_PI + envBrdf);
+    vec3 envColor = envLightDotNL * envLight * (baseColor / M_PI + envBrdf);
 
     // shadow mask
     vec2 shadowUV = i_ShadowCS.xy / i_ShadowCS.w * 0.5 + 0.5;
@@ -166,7 +166,7 @@ void main()
 
     vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(indirectLight * shadowAttenuation + emissive, 1);
+    o_Color = vec4(color * shadowAttenuation + envColor + emissive, 1);
 }
 #endif
 

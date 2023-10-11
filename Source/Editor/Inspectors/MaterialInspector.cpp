@@ -85,7 +85,7 @@ public:
                     if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
                     {
                         float val = target->GetFloat(numBinding.name, m.first);
-                        if (ImGui::InputFloat(id.c_str(), &val))
+                        if (ImGui::DragFloat(id.c_str(), &val))
                         {
                             target->SetFloat(numBinding.name, m.first, val);
                         }
@@ -93,7 +93,7 @@ public:
                     else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
-                        if (ImGui::InputFloat2(id.c_str(), &val[0]))
+                        if (ImGui::DragFloat2(id.c_str(), &val[0]))
                         {
                             target->SetVector(numBinding.name, m.first, val);
                         }
@@ -101,7 +101,7 @@ public:
                     else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
-                        if (ImGui::InputFloat3(id.c_str(), &val[0]))
+                        if (ImGui::DragFloat3(id.c_str(), &val[0]))
                         {
                             target->SetVector(numBinding.name, m.first, val);
                         }
@@ -109,7 +109,7 @@ public:
                     else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
-                        if (ImGui::InputFloat4(id.c_str(), &val[0]))
+                        if (ImGui::DragFloat4(id.c_str(), &val[0]))
                         {
                             target->SetVector(numBinding.name, m.first, val);
                         }

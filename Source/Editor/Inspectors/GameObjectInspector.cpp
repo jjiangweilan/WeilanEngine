@@ -56,17 +56,26 @@ public:
             if (typeid(c) == typeid(Transform))
             {
                 auto pos = transform->GetPosition();
-                if (ImGui::InputFloat3("Position", &pos[0]))
+                if (ImGui::DragFloat3("Position", &pos[0]))
                 {
                     transform->SetPosition(pos);
                 }
 
                 auto rotation = transform->GetRotation();
-                if (ImGui::InputFloat3("rotation", &rotation[0]))
+                auto degree = glm::degrees(rotation);
+                auto newDegree = degree;
+                if (ImGui::DragFloat3("rotation", &newDegree[0]))
                 {
-                    transform->SetRotation(rotation);
+                    auto delta = newDegree - degree;
+                    auto radians = glm::radians(delta);
+                    transform->Rotate(glm::length(radians), glm::normalize(radians), RotationCoordinate::Self);
                 }
-                continue;
+
+                auto scale = transform->GetScale();
+                if (ImGui::DragFloat3("scale", &scale[0]))
+                {
+                    transform->SetScale(scale);
+                }
             }
             else if (typeid(c) == typeid(Light))
             {

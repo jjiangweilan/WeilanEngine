@@ -306,6 +306,10 @@ bool GameView::Tick()
             {
                 EditorState::selectedObject = selected;
             }
+            else
+            {
+                EditorState::selectedObject = nullptr;
+            }
         }
 
         Scene* scene = EditorState::activeScene;
