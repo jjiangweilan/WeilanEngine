@@ -252,7 +252,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
             size_t byteSize = byteLength / count;
 
             attribute.AddAttribute(attributeName.data(), byteSize);
-
+            // copy as interleaved data
             for (int i = 0; i < count; ++i)
             {
                 memcpy(

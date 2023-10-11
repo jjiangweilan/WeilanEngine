@@ -69,7 +69,7 @@ void SceneRenderer::ProcessLights(Scene& gameScene)
     {
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
-        sceneInfo.lights[i].position = glm::vec4(glm::normalize(glm::vec3(model[2])), 0);
+        sceneInfo.lights[i].position = glm::vec4(-glm::normalize(glm::vec3(model[2])), 0);
 
         if (lights[i]->GetLightType() == LightType::Directional)
         {
