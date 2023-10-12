@@ -15,7 +15,7 @@ layout(location = 0) out v2f vOut;
 void main()
 {
     vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
-    vOut.normalWS = vec3(inverse(transpose(pconst.model)) * vec4(iNormal, 1.0)).xyz;
+    vOut.normalWS = (inverse(transpose(pconst.model)) * vec4(iNormal, 1.0)).xyz;
     vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
 
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
@@ -37,8 +37,10 @@ void main()
     vec3 color = vals.color;
     if (c > 0)
     {
-        float ndotl = dot(fragInput.normalWS, scene.lights[0].position.xyz) * scene.lights[0].position.w;
+        float ndotl = dot(normalize(fragInput.normalWS), scene.lights[0].position.xyz) * scene.lights[0].position.w;
         color *= ndotl > 0 ? ndotl : 1;
+        oColor = vec4(normalize(fragInput.normalWS), 1.0);
+        return;
     }
 
     // shadow mask
@@ -51,7 +53,7 @@ void main()
     }
 
     float shadowAttenuation = 1.0;
-    if (objShadowDepth > shadowDepth + 0.00001)
+    if (objShadowDepth > shadowDepth + 0.001)
     {
         shadowAttenuation = 0;
     }

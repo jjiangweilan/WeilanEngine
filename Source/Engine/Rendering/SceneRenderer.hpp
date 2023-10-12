@@ -82,7 +82,7 @@ private:
 
     RenderGraph::RenderNode* shadowPass;
 
-    std::unique_ptr<Model> cube;
+    Model* cube;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
     std::unique_ptr<Texture> envMap;

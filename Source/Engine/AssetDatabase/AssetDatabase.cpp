@@ -322,7 +322,7 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-#define LoadInteralShader(id, path)                                                                                    \
+#define LoadInternalAsset(id, path)                                                                                    \
     {                                                                                                                  \
         auto assetData = std::make_unique<AssetData>(id, path, AssetData::InternalAssetDataTag{});                     \
         internalAssets.push_back(assetData.get());                                                                     \
@@ -332,9 +332,10 @@ void AssetDatabase::LoadEngineInternal()
         }                                                                                                              \
     }
 
-    LoadInteralShader("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
-    LoadInteralShader("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
-    LoadInteralShader("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    LoadInternalAsset("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
+    LoadInternalAsset("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
+    LoadInternalAsset("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    LoadInternalAsset("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
 
 } // namespace Engine
 

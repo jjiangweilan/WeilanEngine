@@ -54,7 +54,7 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
 
     // skybox resources
     envMap = std::make_unique<Texture>("Assets/envCubemap.ktx");
-    cube = Importers::GLB("Assets/cube.glb", skyboxShader.get());
+    cube = (Model*)db.LoadAsset("_engine_internal/Models/Cube.glb");
     skyboxShader = std::make_unique<Shader>("Assets/Shaders/Skybox.shad");
     skyboxPassResource =
         GetGfxDriver()->CreateShaderResource(skyboxShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
