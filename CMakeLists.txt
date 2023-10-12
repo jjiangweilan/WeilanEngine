@@ -20,10 +20,10 @@ if (INSTALL_DEPENDENCY)
     endif(APPLE)
 
     if (WIN32)
-        set (PHYSX_CONFIG_COMMAND ./generate_projects.bat vc16win64)
+        set (PHYSX_CONFIG_COMMAND ./generate_projects.bat vc17win64)
         set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
-        set (PHYSX_BUILD_COMMAND cmake --build ./compiler/vc16win64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
-        set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.mt/${PHYSX_CONFIG_TYPE}")
+        set (PHYSX_BUILD_COMMAND cmake --build ./compiler/vc17win64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
+        set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.mt/${PHYSX_CONFIG_TYPE}") # this is actually vc143, but it seems the naming can't be changed from our side: check this https://github.com/NVIDIA-Omniverse/PhysX/issues/59 (guess it's the same issue)
         set (PHYSX_INSTALL_COMMAND 
                 cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/physx/" &&
                 cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/" &&
@@ -36,8 +36,8 @@ if (INSTALL_DEPENDENCY)
 
     ExternalProject_Add(PhysX
         PREFIX "ThirdParty/PhysX"
-        GIT_REPOSITORY "https://github.com/o3de/PhysX.git"
-        GIT_TAG "60e7d82a3856740881d0c892a01df7fd4e0676f6"
+        GIT_REPOSITORY "https://github.com/jjiangweilan/PhysX.git"
+        GIT_TAG "e23b94c3b4dbea4265493055eb61ca24cf99a663"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX"
         BINARY_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX/physx"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
