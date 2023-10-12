@@ -63,7 +63,7 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
 }
 
 AssetData::AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag)
-    : assetUUID(assetUUID), assetPath("_engine_intenral" / internalAssetPath),
+    : assetUUID(assetUUID), assetPath("_engine_internal" / internalAssetPath),
       absolutePath(std::filesystem::absolute(std::filesystem::path("Assets") / internalAssetPath)), internal(true)
 {
     isValid = true;

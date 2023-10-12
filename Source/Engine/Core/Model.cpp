@@ -120,8 +120,9 @@ bool Model::LoadFromFile(const char* cpath)
         Utils::GLB::SetAssetName(mat.get(), jsonData, "materials", i);
 
         nlohmann::json& matJson = jsonData["materials"][i];
-        mat->GetShaderConfig().cullMode =
-            matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
+        auto config = mat->GetShaderConfig();
+        config.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
+        mat->SetShaderConfig(config);
 
         // baseColorFactor
         std::array<float, 3> baseColorFactor =

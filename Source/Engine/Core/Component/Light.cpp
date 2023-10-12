@@ -19,6 +19,7 @@ void Light::SetLightType(LightType type)
 glm::mat4 Light::WorldToShadowMatrix()
 {
     glm::mat4 proj = glm::ortho(-20., 20., -20., 20., -10., 100.);
+    proj[1][1] *= -1;
     return proj * glm::inverse(gameObject->GetTransform()->GetModelMatrix());
 }
 

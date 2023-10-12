@@ -55,9 +55,18 @@ public:
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    Gfx::ShaderConfig& GetShaderConfig()
+    const Gfx::ShaderConfig& GetShaderConfig()
     {
-        return shaderConfig;
+        if (overrideShaderConfig || shader == nullptr)
+            return shaderConfig;
+        else
+            return shader->GetDefaultShaderConfig();
+    }
+
+    void SetShaderConfig(const Gfx::ShaderConfig& shaderConfig)
+    {
+        overrideShaderConfig = true;
+        this->shaderConfig = shaderConfig;
     }
 
     void Serialize(Serializer* s) const override;
@@ -65,9 +74,10 @@ public:
 
 private:
     Shader* shader = nullptr;
-    UniPtr<Gfx::ShaderResource> shaderResource;
+    UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
 
+    bool overrideShaderConfig = false;
     std::unordered_map<std::string, float> floatValues;
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;

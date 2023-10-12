@@ -1,5 +1,4 @@
 #include "ShaderCompiler.hpp"
-#include <spdlog/spdlog.h>
 
 namespace Engine
 {
@@ -73,7 +72,6 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     if (compiled.GetNumErrors() > 0)
     {
         auto msg = fmt::format("Shader[{}] failed: {}", name, compiled.GetErrorMessage().c_str());
-        SPDLOG_ERROR(msg);
         throw CompileError(msg);
     }
     return std::vector<uint32_t>(compiled.begin(), compiled.end());

@@ -23,7 +23,7 @@ public:
     };
 
 public:
-    SceneRenderer();
+    SceneRenderer(AssetDatabase& db);
 
 public:
     void Render(Gfx::CommandBuffer& cmd, Scene& scene);
@@ -32,11 +32,6 @@ public:
     {
         return std::tuple{colorOutput, colorHandle, depthOutput, depthHandle};
     }
-
-    Shader* GetOpaqueShader()
-    {
-        return shaders.GetShader("StandardPBR");
-    };
 
     void BuildGraph(const BuildGraphConfig& config);
 
@@ -79,7 +74,6 @@ private:
 
     Shader* opaqueShader;
     Shader* shadowShader;
-    Rendering::Shaders shaders;
 
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;

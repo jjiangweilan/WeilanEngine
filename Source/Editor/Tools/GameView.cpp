@@ -3,10 +3,12 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
+#include "GameEditor.hpp"
 #include "Rendering/ImmediateGfx.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
+
 namespace Engine::Editor
 {
 GameView::GameView() {}
@@ -19,7 +21,7 @@ void GameView::Init()
 
     ImGuizmo::AllowAxisFlip(false);
 
-    CreateRenderData(1080, 960);
+    CreateRenderData(1960, 1080);
 }
 
 static void EditorCameraWalkAround(Camera& editorCamera)
@@ -83,7 +85,7 @@ static void EditorCameraWalkAround(Camera& editorCamera)
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     GetGfxDriver()->WaitForIdle();
-    renderer = std::make_unique<SceneRenderer>();
+    renderer = std::make_unique<SceneRenderer>(*GameEditor::instance->GetEngine()->assetDatabase);
     sceneImage = GetGfxDriver()->CreateImage(
         {
             .width = width,

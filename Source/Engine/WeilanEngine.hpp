@@ -23,11 +23,6 @@ public:
         std::filesystem::path projectPath;
     };
 
-    std::unique_ptr<Model> ImportModel(const char* path)
-    {
-        return Engine::Importers::GLB(path, sceneRenderer->GetOpaqueShader());
-    }
-
     void Init(const CreateInfo& createInfo);
 
     void BeginFrame();
@@ -48,7 +43,6 @@ public:
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
-    std::unique_ptr<SceneRenderer> sceneRenderer;
 
 private:
     class FrameCmdBuffer

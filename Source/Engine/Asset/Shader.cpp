@@ -44,13 +44,19 @@ bool Shader::LoadFromFile(const char* path)
     std::fstream f(path);
     std::stringstream ss;
     ss << f.rdbuf();
-    compiler.Compile(ss.str(), true);
-
-    shaderProgram =
-        GetGfxDriver()
+    try
+    {
+        compiler.Compile(ss.str(), true);
+        shaderProgram =
+            GetGfxDriver()
             ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
+        this->name = compiler.GetName();
+    }
+    catch (const std::exception& e)
+    {
+        SPDLOG_ERROR("{}", e.what());
+    }
 
-    this->name = compiler.GetName();
 
     return true;
 }

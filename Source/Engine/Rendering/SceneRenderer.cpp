@@ -1,4 +1,5 @@
 #include "SceneRenderer.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "AssetDatabase/Importers.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
@@ -35,10 +36,11 @@ static void CmdDrawSubmesh(
     cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
 }
 
-SceneRenderer::SceneRenderer()
+SceneRenderer::SceneRenderer(AssetDatabase& db)
 {
-    shadowShader = shaders.Add("ShadowMap", "Assets/Shaders/Game/ShadowMap.shad");
-    opaqueShader = shaders.Add("StandardPBR", "Assets/Shaders/Game/StandardPBR.shad");
+    shadowShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/ShadowMap.shad");
+    opaqueShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         opaqueShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global

@@ -1,0 +1,61 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Game/SimpleLit
+#endif
+
+struct v2f {vec3 normalWS; vec4 shadowCoord;};
+
+#if VERT
+layout(location = 0) in vec3 iPosition;
+layout(location = 1) in vec3 iNormal;
+
+layout(location = 0) out v2f vOut;
+void main()
+{
+    vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
+    vOut.normalWS = vec3(inverse(transpose(pconst.model)) * vec4(iNormal, 1.0)).xyz;
+    vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
+
+    gl_Position = scene.viewProjection * vec4(positionWS, 1);
+}
+#endif
+
+#if FRAG
+
+layout(set = SET_MATERIAL, binding = 0) uniform Unlit
+{
+    vec3 color;
+} vals;
+
+layout(location = 0) in v2f fragInput;
+layout(location = 0) out vec4 oColor;
+void main()
+{
+    float c = scene.lightCount.x;
+    vec3 color = vals.color;
+    if (c > 0)
+    {
+        float ndotl = dot(fragInput.normalWS, scene.lights[0].position.xyz) * scene.lights[0].position.w;
+        color *= ndotl > 0 ? ndotl : 1;
+    }
+
+    // shadow mask
+    vec2 shadowUV = fragInput.shadowCoord.xy / fragInput.shadowCoord.w * 0.5 + 0.5;
+    float objShadowDepth = fragInput.shadowCoord.z / fragInput.shadowCoord.w;
+    float shadowDepth = 0;
+    if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
+    {
+        shadowDepth = texture(shadowMap, shadowUV).x;
+    }
+
+    float shadowAttenuation = 1.0;
+    if (objShadowDepth > shadowDepth + 0.00001)
+    {
+        shadowAttenuation = 0;
+    }
+
+    oColor = vec4(color * shadowAttenuation, 1.0);
+}
+#endif

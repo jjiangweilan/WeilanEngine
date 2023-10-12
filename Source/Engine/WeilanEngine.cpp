@@ -16,35 +16,12 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 {
     projectPath = createInfo.projectPath;
 
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1240, 860}};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     renderPipeline = std::make_unique<RenderPipeline>();
     event = std::make_unique<Event>();
     frameCmdBuffer = std::make_unique<FrameCmdBuffer>(*gfxDriver);
-
-    sceneRenderer = std::make_unique<Engine::SceneRenderer>();
-    sceneRenderer->BuildGraph({
-        .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-        .layout = Gfx::ImageLayout::Present_Src_Khr,
-        .accessFlags = Gfx::AccessMask::None,
-        .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-    }
-
-    );
-    sceneRenderer->Process();
-    renderPipeline->RegisterSwapchainRecreateCallback(
-        [this]
-        {
-            sceneRenderer->BuildGraph({
-                .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-                .layout = Gfx::ImageLayout::Present_Src_Khr,
-                .accessFlags = Gfx::AccessMask::None,
-                .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-            });
-            sceneRenderer->Process();
-        }
-    );
 
 #if ENGINE_EDITOR
     ImGui::CreateContext();

@@ -3,7 +3,9 @@
 #include "Renderer.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Tools/GameView.hpp"
+#include "WeilanEngine.hpp"
 #include <ThirdParty/imgui/imgui.h>
+
 
 namespace Engine
 {
@@ -24,6 +26,9 @@ public:
     {
         return engine.get();
     }
+
+    GameEditor* Instance();
+    static GameEditor* instance;
 
 private:
     struct RegisteredTool

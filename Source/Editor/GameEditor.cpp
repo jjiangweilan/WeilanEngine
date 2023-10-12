@@ -8,7 +8,6 @@
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
-#include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <unordered_map>
 
@@ -16,6 +15,7 @@ namespace Engine::Editor
 {
 GameEditor::GameEditor(const char* path)
 {
+    instance = this;
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
     gameView.Init();
@@ -521,6 +521,7 @@ void GameEditor::AssetWindow()
     }
 }
 
+GameEditor* GameEditor::instance = nullptr;
 Object* EditorState::selectedObject = nullptr;
 Scene* EditorState::activeScene = nullptr;
 } // namespace Engine::Editor
