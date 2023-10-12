@@ -263,6 +263,10 @@ void GameEditor::MainMenuBar()
             }
             ImGui::EndMenu();
         }
+        if (ImGui::MenuItem("Refresh Shaders"))
+        {
+            engine->assetDatabase->RequestShaderRefresh();
+        }
         if (ImGui::MenuItem("Open Scene"))
         {
             openSceneWindow = !openSceneWindow;
@@ -335,6 +339,11 @@ void GameEditor::GUIPass()
     gameView.Tick();
     AssetWindow();
     InspectorWindow();
+
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
+    {
+        engine->assetDatabase->RequestShaderRefresh();
+    }
 
     if (EditorState::activeScene)
     {

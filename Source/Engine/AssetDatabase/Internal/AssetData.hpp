@@ -40,6 +40,9 @@ public:
         return isValid;
     }
 
+    // if the file on disk's write time is newer than the one recorded
+    bool NeedRefresh() const;
+
     const std::filesystem::path& GetAssetPath()
     {
         return assetPath;
@@ -77,6 +80,8 @@ private:
 
     // the resource's type id
     ObjectTypeID assetTypeID;
+
+    long long lastWriteTime;
 
     // this is the path to the resource the AssetFile linked to
     // relative path in Assets/

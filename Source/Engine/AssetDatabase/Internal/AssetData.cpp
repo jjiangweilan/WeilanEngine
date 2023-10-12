@@ -11,6 +11,11 @@ AssetData::AssetData(
     {
         nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
     }
+
+    if (std::filesystem::exists(absolutePath))
+    {
+        lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+    }
     isValid = false;
 }
 
@@ -48,6 +53,11 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         return;
     }
 
+    if (std::filesystem::exists(absolutePath))
+    {
+        lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+    }
+
     isValid = false;
     return;
 }
@@ -57,6 +67,11 @@ AssetData::AssetData(const UUID& assetUUID, const std::filesystem::path& interna
       absolutePath(std::filesystem::absolute(std::filesystem::path("Assets") / internalAssetPath)), internal(true)
 {
     isValid = true;
+
+    if (std::filesystem::exists(absolutePath))
+    {
+        lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+    }
 }
 
 AssetData::~AssetData() {}
@@ -122,5 +137,17 @@ void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
 
         dirty = false;
     }
+}
+
+bool AssetData::NeedRefresh() const
+{
+    if (std::filesystem::exists(absolutePath))
+    {
+        auto newWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+        if (newWriteTime > lastWriteTime)
+            return true;
+    }
+
+    return false;
 }
 } // namespace Engine

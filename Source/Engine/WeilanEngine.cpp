@@ -1,7 +1,7 @@
 #include "WeilanEngine.hpp"
 #if ENGINE_EDITOR
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include "ThirdParty/imgui/ImGuizmo.h"
+#include "ThirdParty/imgui/imgui_impl_sdl.h"
 #endif
 namespace Engine
 {
@@ -84,6 +84,10 @@ void WeilanEngine::EndFrame()
 
     // the active command buffer has submitted to GPU, we can swap to another command buffer
     frameCmdBuffer->Swap();
+
+#if ENGINE_EDITOR
+    assetDatabase->RefreshShader();
+#endif
 }
 
 WeilanEngine::FrameCmdBuffer::FrameCmdBuffer(Gfx::GfxDriver& gfxDriver)

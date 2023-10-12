@@ -1,6 +1,7 @@
 #include "AssetDatabase.hpp"
 #include "Importers.hpp"
 #include <iostream>
+#include <spdlog/spdlog.h>
 namespace Engine
 {
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
@@ -330,6 +331,39 @@ void AssetDatabase::LoadEngineInternal()
     if (assetData->IsValid())
     {
         assets.Add(std::move(assetData));
+    }
+}
+
+void AssetDatabase::RequestShaderRefresh()
+{
+    requestShaderRefresh = true;
+}
+
+void AssetDatabase::RefreshShader()
+{
+    if (requestShaderRefresh)
+    {
+        GetGfxDriver()->WaitForIdle();
+
+        requestShaderRefresh = false;
+        for (auto& d : assets.data)
+        {
+            if (d->NeedRefresh())
+            {
+                auto asset = d->GetAsset();
+                if (Shader* s = dynamic_cast<Shader*>(asset))
+                {
+                    try
+                    {
+                        s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        SPDLOG_ERROR("failed to reload {}", d->GetAssetAbsolutePath().string());
+                    }
+                }
+            }
+        }
     }
 }
 
