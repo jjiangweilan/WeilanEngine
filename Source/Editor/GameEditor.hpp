@@ -6,7 +6,6 @@
 #include "WeilanEngine.hpp"
 #include <ThirdParty/imgui/imgui.h>
 
-
 namespace Engine
 {
 class WeilanEngine;
@@ -28,6 +27,7 @@ public:
     }
 
     GameEditor* Instance();
+    nlohmann::json editorConfig;
     static GameEditor* instance;
 
 private:

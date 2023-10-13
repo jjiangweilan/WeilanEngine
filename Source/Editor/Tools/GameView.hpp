@@ -25,6 +25,11 @@ public:
 
     void Render(Gfx::CommandBuffer& cmd, Scene* scene);
 
+    Camera* GetEditorCamera() const
+    {
+        return editorCamera;
+    }
+
 private:
     std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;

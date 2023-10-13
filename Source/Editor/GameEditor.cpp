@@ -18,6 +18,30 @@ GameEditor::GameEditor(const char* path)
     instance = this;
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
+
+    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
+    bool createEditorConfigJson = true;
+    if (std::filesystem::exists(editorConfigPath))
+    {
+        try
+        {
+            editorConfig = nlohmann::json::parse(std::ifstream(editorConfigPath));
+            createEditorConfigJson = false;
+        }
+        catch (...)
+        {}
+    }
+    if (createEditorConfigJson)
+    {
+        editorConfig = nlohmann::json::object();
+    }
+
+    UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
+    if (!lastActiveSceneUUID.IsEmpty())
+    {
+        EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
+    }
+
     gameView.Init();
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
@@ -41,7 +65,26 @@ GameEditor::GameEditor(const char* path)
 GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
+    if (EditorState::activeScene)
+        editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
+
+    if (Camera* cam = gameView.GetEditorCamera())
+    {
+        nlohmann::json camJson = {};
+        auto pos = cam->GetGameObject()->GetTransform()->GetPosition();
+        auto rot = cam->GetGameObject()->GetTransform()->GetRotationQuat();
+        auto scale = cam->GetGameObject()->GetTransform()->GetScale();
+        camJson["position"] = {pos.x, pos.y, pos.z};
+        camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
+        camJson["scale"] = {scale.x, scale.y, scale.z};
+        editorConfig["editorCamera"] = camJson;
+    }
+
+    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
+    std::ofstream editorConfigFile(editorConfigPath);
+    editorConfigFile << editorConfig.dump(0);
 }
+
 void GameEditor::SceneTree(Transform* transform, int imguiID)
 {
     ImGuiTreeNodeFlags nodeFlags =

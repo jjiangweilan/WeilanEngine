@@ -19,6 +19,21 @@ void GameView::Init()
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
 
+    if (GameEditor::instance->editorConfig.contains("editorCamera"))
+    {
+        auto& camJson = GameEditor::instance->editorConfig["editorCamera"];
+        std::array<float, 3> pos{0, 0, 0};
+        pos = camJson.value("position", pos);
+        std::array<float, 4> rot{1, 0, 0, 0};
+        rot = camJson.value("rotation", rot);
+        std::array<float, 3> scale{1, 1, 1};
+        scale = camJson.value("scale", scale);
+
+        editorCamera->GetGameObject()->GetTransform()->SetPosition({pos[0], pos[1], pos[2]});
+        editorCamera->GetGameObject()->GetTransform()->SetRotation(glm::quat{rot[0], rot[1], rot[2], rot[3]});
+        editorCamera->GetGameObject()->GetTransform()->SetScale({scale[0], scale[1], scale[2]});
+    }
+
     ImGuizmo::AllowAxisFlip(false);
 
     CreateRenderData(1960, 1080);
@@ -348,12 +363,17 @@ void GameView::EditTransform(const Camera& camera, glm::mat4& matrix, const glm:
 {
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
-    // if (ImGui::IsKeyPressed(90))
-    //    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-    // if (ImGui::IsKeyPressed(69))
-    //    mCurrentGizmoOperation = ImGuizmo::ROTATE;
-    // if (ImGui::IsKeyPressed(82)) // r Key
-    //    mCurrentGizmoOperation = ImGuizmo::SCALE;
+
+    if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+    {
+        if (ImGui::IsKeyPressed(ImGuiKey_Q))
+            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+        if (ImGui::IsKeyPressed(ImGuiKey_W))
+            mCurrentGizmoOperation = ImGuizmo::ROTATE;
+        if (ImGui::IsKeyPressed(ImGuiKey_E)) // r Key
+            mCurrentGizmoOperation = ImGuizmo::SCALE;
+    }
+
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGui::SameLine();
