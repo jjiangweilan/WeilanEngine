@@ -366,11 +366,11 @@ void GameView::EditTransform(const Camera& camera, glm::mat4& matrix, const glm:
 
     if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
-        if (ImGui::IsKeyPressed(ImGuiKey_Q))
-            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
         if (ImGui::IsKeyPressed(ImGuiKey_W))
+            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+        if (ImGui::IsKeyPressed(ImGuiKey_E))
             mCurrentGizmoOperation = ImGuizmo::ROTATE;
-        if (ImGui::IsKeyPressed(ImGuiKey_E)) // r Key
+        if (ImGui::IsKeyPressed(ImGuiKey_R)) // r Key
             mCurrentGizmoOperation = ImGuizmo::SCALE;
     }
 
