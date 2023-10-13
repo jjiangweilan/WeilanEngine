@@ -14,7 +14,7 @@ class SceneRenderer : protected RenderGraph::Graph
 public:
     struct BuildGraphConfig
     {
-        Gfx::Image& finalImage; // the final image the scene will render to
+        Gfx::Image* finalImage; // the final image the scene will render to
 
         // build graph will transform finalImage to a desired layout
         Gfx::ImageLayout layout;
@@ -87,6 +87,7 @@ private:
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
     std::unique_ptr<Texture> envMap;
+    BuildGraphConfig config;
 
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 

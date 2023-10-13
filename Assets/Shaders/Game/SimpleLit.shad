@@ -29,10 +29,10 @@ layout(set = SET_MATERIAL, binding = 0) uniform Unlit
 {
     vec3 color;
 } vals;
-layout(set = SET_MATERIAL, binding = 1) uniform sampler _sampler_point;
 
 layout(location = 0) in v2f fragInput;
 layout(location = 0) out vec4 oColor;
+
 void main()
 {
     float c = scene.lightCount.x;
@@ -47,15 +47,10 @@ void main()
     vec2 shadowUV = fragInput.shadowCoord.xy / fragInput.shadowCoord.w * 0.5 + 0.5;
     float objShadowDepth = fragInput.shadowCoord.z / fragInput.shadowCoord.w;
     float shadowDepth = 0;
+    float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowDepth = texture(sampler2D(shadowMap, _sampler_point), shadowUV).x;
-    }
-
-    float shadowAttenuation = 1.0;
-    if (objShadowDepth > shadowDepth + 0.001)
-    {
-        shadowAttenuation = 0;
+        shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
     }
 
     oColor = vec4(color * shadowAttenuation, 1.0);

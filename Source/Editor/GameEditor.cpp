@@ -385,7 +385,7 @@ void GameEditor::GUIPass()
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
     {
-        engine->assetDatabase->RequestShaderRefresh();
+        engine->assetDatabase->RequestShaderRefresh(true);
     }
 
     if (EditorState::activeScene)

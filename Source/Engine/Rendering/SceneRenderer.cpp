@@ -93,9 +93,10 @@ void SceneRenderer::ProcessLights(Scene& gameScene)
 
 void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 {
+    this->config = config;
     Graph::Clear();
-    uint32_t width = config.finalImage.GetDescription().width;
-    uint32_t height = config.finalImage.GetDescription().height;
+    uint32_t width = config.finalImage->GetDescription().width;
+    uint32_t height = config.finalImage->GetDescription().height;
 
     std::vector<Gfx::ClearValue> shadowClears = {{.depthStencil = {.depth = 1}}};
 
@@ -121,10 +122,11 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 sceneInfo.view = viewMatrix;
                 ProcessLights(*scene);
 
+                size_t copySize = sceneGlobalBuffer->GetSize();
                 Gfx::BufferCopyRegion regions[] = {{
                     .srcOffset = 0,
                     .dstOffset = 0,
-                    .size = sceneGlobalBuffer->GetSize(),
+                    .size = copySize,
                 }};
 
                 memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
@@ -144,12 +146,18 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     );
 
     auto shadowmapShader = shadowShader;
+    glm::vec2 shadowMapSize = {2048, 2048};
     shadowPass = AddNode(
-        [this, shadowClears, shadowmapShader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
+        [this,
+         shadowClears,
+         shadowmapShader,
+         shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
         {
             cmd.BindResource(sceneShaderResource);
-            cmd.SetViewport({.x = 0, .y = 0, .width = 1024, .height = 1024, .minDepth = 0, .maxDepth = 1});
-            Rect2D rect = {{0, 0}, {1024, 1024}};
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, shadowClears);
 
@@ -175,8 +183,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
                 .imageCreateInfo =
                     {
-                        .width = 1024,
-                        .height = 1024,
+                        .width = (uint32_t)shadowMapSize.x,
+                        .height = (uint32_t)shadowMapSize.y,
                         .format = Gfx::ImageFormat::D16_UNorm,
                         .multiSampling = Gfx::MultiSampling::Sample_Count_1,
                         .mipLevels = 1,
@@ -350,7 +358,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 .stageFlags = Gfx::PipelineStage::Transfer,
                 .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
                 .imageLayout = Gfx::ImageLayout::Transfer_Dst,
-                .externalImage = &config.finalImage,
+                .externalImage = config.finalImage,
             },
             {
                 .name = "src",
@@ -458,6 +466,9 @@ void SceneRenderer::Render(Gfx::CommandBuffer& cmd, Scene& scene)
                 Gfx::ShaderResourceFrequency::Global
             );
             globalSceneShaderContentHash = opaqueShader->GetContentHash();
+
+            BuildGraph(config);
+            Process();
 
             Gfx::Image* shadowImage = (Gfx::Image*)shadowPass->GetPass()->GetResourceRef(0)->GetResource();
             sceneShaderResource->SetTexture("shadowMap", shadowImage);

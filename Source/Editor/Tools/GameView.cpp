@@ -111,7 +111,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
     renderer->BuildGraph({
-        .finalImage = *sceneImage,
+        .finalImage = sceneImage.get(),
         .layout = Gfx::ImageLayout::Shader_Read_Only,
         .accessFlags = Gfx::AccessMask::Shader_Read,
         .stageFlags = Gfx::PipelineStage::Fragment_Shader,
