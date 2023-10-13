@@ -64,8 +64,8 @@ private:
 
     SerializeReferenceResolveMap referenceResolveMap;
     std::vector<AssetData*> internalAssets;
-    bool requestShaderRefresh;
-    bool requestShaderRefreshAll;
+    bool requestShaderRefresh = false;
+    bool requestShaderRefreshAll = false;
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
