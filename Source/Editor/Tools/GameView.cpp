@@ -34,8 +34,6 @@ void GameView::Init()
         editorCamera->GetGameObject()->GetTransform()->SetScale({scale[0], scale[1], scale[2]});
     }
 
-    ImGuizmo::AllowAxisFlip(false);
-
     CreateRenderData(1960, 1080);
 }
 

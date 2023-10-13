@@ -21,7 +21,7 @@ public:
 
     bool IsAssetInDatabase(Asset& asset);
 
-    void RequestShaderRefresh();
+    void RequestShaderRefresh(bool all = false);
     void RefreshShader();
 
     const std::filesystem::path& GetAssetDirectory()
@@ -65,6 +65,7 @@ private:
     SerializeReferenceResolveMap referenceResolveMap;
     std::vector<AssetData*> internalAssets;
     bool requestShaderRefresh;
+    bool requestShaderRefreshAll;
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();

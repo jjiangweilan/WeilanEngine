@@ -200,6 +200,7 @@ VKDriver::~VKDriver()
     objectManager->DestroyPendingResources();
     commandPool = nullptr;
     inFlightFrame.imageAcquireSemaphore = nullptr;
+    SamplerCachePool::DestroyPool();
 
     delete swapchain;
     delete memAllocator;

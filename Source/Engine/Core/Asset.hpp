@@ -79,7 +79,7 @@ public:
     }
 
     // used to identify if the asset contains the same content
-    virtual size_t GetContentHashID()
+    virtual uint32_t GetContentHash()
     {
         return 0;
     }

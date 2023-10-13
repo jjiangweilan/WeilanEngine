@@ -63,6 +63,7 @@ layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
 layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;
 layout(set = SET_MATERIAL, binding = 3) uniform sampler2D MetallicRoughnessMap;
 layout(set = SET_MATERIAL, binding = 4) uniform sampler2D EmissiveMap;
+layout(set = SET_MATERIAL, binding = 5) uniform sampler _sampler_point;
 
 #define Roughness matParams.roughness
 #define Metallic matParams.metallic
@@ -147,7 +148,7 @@ void main()
     float shadowDepth = 0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowDepth = texture(shadowMap, shadowUV).x;
+        shadowDepth = texture(sampler2D(shadowMap, _sampler_point), shadowUV).x;
     }
 
     float shadowAttenuation = 1.0;

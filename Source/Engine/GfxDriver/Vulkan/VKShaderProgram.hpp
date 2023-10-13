@@ -15,6 +15,17 @@ class VKDescriptorPool;
 class VKShaderBufferStrategy;
 class VKContext;
 struct ShaderPushConstant;
+class SamplerCachePool
+{
+public:
+    static VkSampler RequestSampler(VkSamplerCreateInfo& createInfo);
+    static void DestroyPool();
+    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName);
+
+private:
+    static std::unordered_map<uint32_t, VkSampler> samplers;
+};
+
 class VKShaderProgram : public ShaderProgram
 {
 public:
@@ -59,18 +70,8 @@ public:
     }
 
 private:
-    std::string name;
-    ShaderInfo::ShaderInfo shaderInfo;
-
     typedef std::unordered_map<SetNum, std::vector<VkDescriptorSetLayoutBinding>> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
-
-    VKObjectManager* objManager;
-    UniPtr<VKShaderModule> vertShaderModule;
-    UniPtr<VKShaderModule> fragShaderModule;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VKSwapChain* swapchain;
-
     struct PipelineCache
     {
         VkPipeline pipeline;
@@ -78,8 +79,15 @@ private:
         uint32_t subpass;
         ShaderConfig config;
     };
-    std::vector<PipelineCache> caches;
 
+    std::string name;
+    ShaderInfo::ShaderInfo shaderInfo;
+    VKObjectManager* objManager;
+    UniPtr<VKShaderModule> vertShaderModule;
+    UniPtr<VKShaderModule> fragShaderModule;
+    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VKSwapChain* swapchain;
+    std::vector<PipelineCache> caches;
     std::vector<VkSampler> immutableSamplers;
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;

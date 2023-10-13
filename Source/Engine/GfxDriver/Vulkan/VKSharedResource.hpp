@@ -2,7 +2,6 @@
 
 #include "Libs/Ptr.hpp"
 #include <vulkan/vulkan.h>
-
 namespace Engine::Gfx
 {
 class VKContext;

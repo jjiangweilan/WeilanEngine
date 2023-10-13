@@ -45,9 +45,11 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
         pushConstantBuffer = new unsigned char[pushConstantSize];
 
     // create resources and write it to descriptor set
-    VkWriteDescriptorSet writes[64];
-    VkDescriptorBufferInfo bufferInfos[64];
+    VkWriteDescriptorSet writes[32];
+    VkDescriptorBufferInfo bufferInfos[32];
+    VkDescriptorImageInfo imageInfos[32];
     uint32_t bufferWriteIndex = 0;
+    uint32_t imageWriteIndex = 0;
     uint32_t writeCount = 0;
     auto iter = shaderInfo.descriptorSetBinidngMap.find(slot);
     if (iter != shaderInfo.descriptorSetBinidngMap.end())
@@ -101,7 +103,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                     {
                         if (b.second.binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
                         {
-                            VkDescriptorImageInfo imageInfo;
+                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
@@ -110,7 +112,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         }
                         else if (b.second.binding.texture.type == ShaderInfo::Texture::Type::TexCube)
                         {
-                            VkDescriptorImageInfo imageInfo;
+                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
@@ -121,7 +123,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                     }
                 case ShaderInfo::BindingType::SeparateImage:
                     {
-                        VkDescriptorImageInfo imageInfo;
+                        VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfo.sampler = VK_NULL_HANDLE;
                         imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
@@ -131,9 +133,11 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                     }
                 case ShaderInfo::BindingType::SeparateSampler:
                     {
-                        VkDescriptorImageInfo imageInfo;
+                        auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(b.first);
+                        VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
+                        VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfo.sampler = sharedResource->GetDefaultSampler();
+                        imageInfo.sampler = sampler;
                         imageInfo.imageView = VK_NULL_HANDLE;
                         writes[writeCount].pImageInfo = &imageInfo;
                         break;

@@ -29,6 +29,7 @@ layout(set = SET_MATERIAL, binding = 0) uniform Unlit
 {
     vec3 color;
 } vals;
+layout(set = SET_MATERIAL, binding = 1) uniform sampler _sampler_point;
 
 layout(location = 0) in v2f fragInput;
 layout(location = 0) out vec4 oColor;
@@ -48,7 +49,7 @@ void main()
     float shadowDepth = 0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowDepth = texture(shadowMap, shadowUV).x;
+        shadowDepth = texture(sampler2D(shadowMap, _sampler_point), shadowUV).x;
     }
 
     float shadowAttenuation = 1.0;

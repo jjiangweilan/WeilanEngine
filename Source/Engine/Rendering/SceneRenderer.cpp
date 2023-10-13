@@ -45,6 +45,8 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
         opaqueShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
     );
+    globalSceneShaderContentHash = opaqueShader->GetContentHash();
+
     stagingBuffer = GetGfxDriver()->CreateBuffer({
         .usages = Gfx::BufferUsage::Transfer_Src,
         .size = 1024 * 1024, // 1 MB
@@ -447,6 +449,18 @@ void SceneRenderer::Render(Gfx::CommandBuffer& cmd, Scene& scene)
         for (auto root : roots)
         {
             AppendDrawData(*root->GetTransform(), drawList);
+        }
+
+        if (opaqueShader->GetContentHash() != globalSceneShaderContentHash)
+        {
+            sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
+                opaqueShader->GetShaderProgram(),
+                Gfx::ShaderResourceFrequency::Global
+            );
+            globalSceneShaderContentHash = opaqueShader->GetContentHash();
+
+            Gfx::Image* shadowImage = (Gfx::Image*)shadowPass->GetPass()->GetResourceRef(0)->GetResource();
+            sceneShaderResource->SetTexture("shadowMap", shadowImage);
         }
 
         Graph::Execute(cmd);

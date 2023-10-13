@@ -49,15 +49,20 @@ bool Shader::LoadFromFile(const char* path)
         compiler.Compile(ss.str(), true);
         shaderProgram =
             GetGfxDriver()
-            ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
+                ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
         this->name = compiler.GetName();
+        contentHash += 1;
     }
     catch (const std::exception& e)
     {
         SPDLOG_ERROR("{}", e.what());
     }
 
-
     return true;
+}
+
+uint32_t Shader::GetContentHash()
+{
+    return contentHash;
 }
 } // namespace Engine

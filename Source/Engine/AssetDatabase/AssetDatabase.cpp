@@ -350,9 +350,10 @@ void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)
     }
 }
 
-void AssetDatabase::RequestShaderRefresh()
+void AssetDatabase::RequestShaderRefresh(bool all)
 {
     requestShaderRefresh = true;
+    requestShaderRefreshAll = all;
 }
 
 void AssetDatabase::RefreshShader()
@@ -364,7 +365,7 @@ void AssetDatabase::RefreshShader()
         requestShaderRefresh = false;
         for (auto& d : assets.data)
         {
-            if (d->NeedRefresh())
+            if (requestShaderRefreshAll || d->NeedRefresh())
             {
                 auto asset = d->GetAsset();
                 if (Shader* s = dynamic_cast<Shader*>(asset))
@@ -382,6 +383,8 @@ void AssetDatabase::RefreshShader()
                 }
             }
         }
+
+        requestShaderRefreshAll = false;
     }
 }
 
