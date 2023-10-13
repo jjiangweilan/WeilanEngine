@@ -22,6 +22,12 @@ struct VertexBinding
 class VertexAttribute
 {
 public:
+    struct Attribute
+    {
+        std::string name;
+        int size;
+    };
+
     VertexAttribute& AddAttribute(const char* name, int size)
     {
         attributes.push_back(Attribute{name, size});
@@ -48,13 +54,12 @@ public:
         this->data = std::move(data);
     }
 
-private:
-    struct Attribute
+    const std::vector<Attribute>& GetDescription() const
     {
-        std::string name;
-        int size;
-    };
+        return attributes;
+    }
 
+private:
     std::vector<Attribute> attributes;
 
     // raw attribute data, attributes should be interleaved

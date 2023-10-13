@@ -35,7 +35,7 @@ public:
 
     RefPtr<Gfx::ShaderResource> GetShaderResource()
     {
-        return shaderResource;
+        return ValidateGetShaderResource();
     }
 
     std::unique_ptr<Asset> Clone() override;
@@ -85,6 +85,7 @@ private:
 
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
+    Gfx::ShaderResource* ValidateGetShaderResource();
     static int initImporter_;
 };
 } // namespace Engine

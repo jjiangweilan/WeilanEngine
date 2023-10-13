@@ -10,12 +10,13 @@ struct v2f {vec3 normalWS; vec4 shadowCoord;};
 #if VERT
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
+layout(location = 2) in vec2 uv;
 
 layout(location = 0) out v2f vOut;
 void main()
 {
     vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
-    vOut.normalWS = (inverse(transpose(pconst.model)) * vec4(iNormal, 1.0)).xyz;
+    vOut.normalWS = (inverse(transpose(mat3(pconst.model))) * iNormal);
     vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
 
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
@@ -37,10 +38,8 @@ void main()
     vec3 color = vals.color;
     if (c > 0)
     {
-        float ndotl = dot(normalize(fragInput.normalWS), scene.lights[0].position.xyz) * scene.lights[0].position.w;
-        color *= ndotl > 0 ? ndotl : 1;
-        oColor = vec4(normalize(fragInput.normalWS), 1.0);
-        return;
+        float ndotl = max(dot(normalize(fragInput.normalWS), scene.lights[0].position.xyz), 0);
+        color *= ndotl;
     }
 
     // shadow mask

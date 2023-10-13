@@ -323,7 +323,7 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
      storageBuffers[paramStr] = storage;
  }*/
 
-RefPtr<ShaderProgram> VKShaderResource::GetShader()
+RefPtr<ShaderProgram> VKShaderResource::GetShaderProgram()
 {
     return shaderProgram.Get();
 }

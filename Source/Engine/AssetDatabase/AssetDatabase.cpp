@@ -373,6 +373,7 @@ void AssetDatabase::RefreshShader()
                     {
                         s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str());
                         d->UpdateAssetUUIDs();
+                        d->UpdateLastWriteTime();
                     }
                     catch (const std::exception& e)
                     {

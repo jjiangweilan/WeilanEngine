@@ -168,4 +168,9 @@ bool AssetData::NeedRefresh() const
     return false;
 }
 
+void AssetData::UpdateLastWriteTime()
+{
+    lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+}
+
 } // namespace Engine

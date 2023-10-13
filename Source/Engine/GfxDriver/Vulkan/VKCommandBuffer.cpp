@@ -175,7 +175,7 @@ void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
         vkCmdBindDescriptorSets(
             vkCmdBuf,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
-            ((VKShaderProgram*)resource->GetShader().Get())->GetVKPipelineLayout(),
+            ((VKShaderProgram*)resource->GetShaderProgram().Get())->GetVKPipelineLayout(),
             resource->GetDescriptorSetSlot(),
             1,
             &descSet,

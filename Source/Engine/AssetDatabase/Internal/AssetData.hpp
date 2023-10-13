@@ -42,6 +42,7 @@ public:
 
     // if the file on disk's write time is newer than the one recorded
     bool NeedRefresh() const;
+    void UpdateLastWriteTime();
 
     const std::filesystem::path& GetAssetPath()
     {

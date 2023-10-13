@@ -162,6 +162,10 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
 {
     this->shader = shader.Get();
     shaderConfig = shader->GetDefaultShaderConfig();
+    if (shaderResource != nullptr)
+    {
+        GetGfxDriver()->WaitForIdle();
+    }
     shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         shader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Material
@@ -224,6 +228,16 @@ void Material::Serialize(Serializer* s) const
 std::unique_ptr<Asset> Material::Clone()
 {
     return std::unique_ptr<Material>(new Material(*this));
+}
+
+Gfx::ShaderResource* Material::ValidateGetShaderResource()
+{
+    if (shader->GetShaderProgram() != shaderResource->GetShaderProgram())
+    {
+        SetShaderNoProtection(shader);
+    }
+
+    return shaderResource.Get();
 }
 
 void Material::Deserialize(Serializer* s)

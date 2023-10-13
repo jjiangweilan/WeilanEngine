@@ -78,6 +78,12 @@ public:
         this->isDirty = isDirty;
     }
 
+    // used to identify if the asset contains the same content
+    virtual size_t GetContentHashID()
+    {
+        return 0;
+    }
+
 protected:
     std::string name = "";
 

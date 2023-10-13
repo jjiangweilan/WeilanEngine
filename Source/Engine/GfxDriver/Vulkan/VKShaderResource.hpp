@@ -24,7 +24,7 @@ public:
     ~VKShaderResource() override;
 
     VkDescriptorSet GetDescriptorSet();
-    RefPtr<ShaderProgram> GetShader() override;
+    RefPtr<ShaderProgram> GetShaderProgram() override;
     RefPtr<Buffer> GetBuffer(const std::string& object, BufferMemberInfoMap& memberInfo) override;
     bool HasPushConstnat(const std::string& obj) override;
     void SetTexture(const std::string& param, RefPtr<Image> image) override;
