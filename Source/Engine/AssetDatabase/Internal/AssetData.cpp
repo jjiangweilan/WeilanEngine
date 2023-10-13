@@ -88,25 +88,42 @@ Asset* AssetData::GetAsset()
 
 Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset)
 {
+    this->asset = std::move(asset);
+    UpdateAssetUUIDs();
+
+    return this->asset.get();
+}
+
+void AssetData::UpdateAssetUUIDs()
+{
     asset->SetUUID(assetUUID);
 
-    for (auto obj : asset->GetInternalAssets())
+    if (!internal)
     {
-        auto iter = nameToUUID.find(obj->GetName());
-        if (iter != nameToUUID.end())
+        for (auto obj : asset->GetInternalAssets())
         {
-            obj->SetUUID(iter->second);
+            auto iter = nameToUUID.find(obj->GetName());
+            if (iter != nameToUUID.end())
+            {
+                obj->SetUUID(iter->second);
+            }
+            else
+            {
+                nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
+                dirty = true;
+            }
         }
-        else
+    }
+    else
+    {
+        for (auto obj : asset->GetInternalAssets())
         {
+            UUID concatUUID(fmt::format("{}-{}", assetUUID.ToString(), obj->GetName()), UUID::FromStrTag{});
+            obj->SetUUID(concatUUID);
             nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
             dirty = true;
         }
     }
-
-    this->asset = std::move(asset);
-
-    return this->asset.get();
 }
 
 void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
@@ -150,4 +167,5 @@ bool AssetData::NeedRefresh() const
 
     return false;
 }
+
 } // namespace Engine

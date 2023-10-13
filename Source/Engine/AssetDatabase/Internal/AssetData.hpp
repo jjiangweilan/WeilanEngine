@@ -53,6 +53,7 @@ public:
         return absolutePath;
     }
 
+    void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();
 

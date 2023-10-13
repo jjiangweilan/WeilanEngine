@@ -267,18 +267,12 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
 {
     Asset* asset = assetData->GetAsset();
-    byPath[assetData->GetAssetPath().string()] = assetData.get();
-    byUUID[assetData->GetAssetUUID()] = assetData.get();
-
-    for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
-    {
-        byUUID[iter.second] = assetData.get();
-    }
-
+    UpdateAssetData(assetData.get());
     data.push_back(std::move(assetData));
 
     return asset;
 }
+
 AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)
 {
     auto iter = byPath.find(path.string());
@@ -322,22 +316,39 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-#define LoadInternalAsset(id, path)                                                                                    \
-    {                                                                                                                  \
-        auto assetData = std::make_unique<AssetData>(id, path, AssetData::InternalAssetDataTag{});                     \
-        internalAssets.push_back(assetData.get());                                                                     \
-        if (assetData->IsValid())                                                                                      \
-        {                                                                                                              \
-            assets.Add(std::move(assetData));                                                                          \
-        }                                                                                                              \
+    static auto f = [this](const UUID& id, const char* path)
+    {
+        auto assetData = std::make_unique<AssetData>(id, path, AssetData::InternalAssetDataTag{});
+        internalAssets.push_back(assetData.get());
+        if (assetData->IsValid())
+        {
+            auto temp = assetData.get();
+            assets.Add(std::move(assetData));
+
+            // we don't have a way to tell the contained asset inside an internal asset(unless we specify them manually)
+            // we have to load them first so that other aseet can find the internal asset
+            LoadAsset(temp->GetAssetPath());
+
+            assets.UpdateAssetData(temp);
+        }
+    };
+
+    f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
+    f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
+    f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    f("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
+}
+
+void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)
+{
+    byPath[assetData->GetAssetPath().string()] = assetData;
+    byUUID[assetData->GetAssetUUID()] = assetData;
+
+    for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
+    {
+        byUUID[iter.second] = assetData;
     }
-
-    LoadInternalAsset("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
-    LoadInternalAsset("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
-    LoadInternalAsset("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
-    LoadInternalAsset("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
-
-} // namespace Engine
+}
 
 void AssetDatabase::RequestShaderRefresh()
 {
@@ -361,6 +372,7 @@ void AssetDatabase::RefreshShader()
                     try
                     {
                         s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str());
+                        d->UpdateAssetUUIDs();
                     }
                     catch (const std::exception& e)
                     {

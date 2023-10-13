@@ -48,6 +48,10 @@ private:
     {
     public:
         Asset* Add(std::unique_ptr<AssetData>&& asset);
+
+        // used for internal asset, internal asset needs to first Add to Assets but it doesn't have contained objects
+        // yet, so after it loads it needs to update
+        void UpdateAssetData(AssetData* assetData);
         AssetData* GetAssetData(const std::filesystem::path& path);
 
         // get by asset's uuid
