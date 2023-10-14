@@ -20,7 +20,7 @@ class SamplerCachePool
 public:
     static VkSampler RequestSampler(VkSamplerCreateInfo& createInfo);
     static void DestroyPool();
-    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName);
+    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName, bool enableCompare);
 
 private:
     static std::unordered_map<uint32_t, VkSampler> samplers;

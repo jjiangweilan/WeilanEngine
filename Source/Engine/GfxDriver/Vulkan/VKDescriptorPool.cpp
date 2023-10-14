@@ -2,6 +2,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "VKContext.hpp"
 #include <spdlog/spdlog.h>
+#include "ThirdParty/xxHash/xxhash.h"
 namespace Engine::Gfx
 {
 VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo)
@@ -118,15 +119,14 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
 VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(const std::string& shaderName,
                                                                VkDescriptorSetLayoutCreateInfo createInfo)
 {
-    std::size_t h = VkDescriptorSetLayoutCreateInfoHash()(createInfo);
-    auto it = descriptorLayoutPoolCache.find(h);
+    auto it = descriptorLayoutPoolCache.find(createInfo);
     if (it != descriptorLayoutPoolCache.end())
     {
         return it->second;
     }
     else
     {
-        auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(h, VKDescriptorPool(context, createInfo)));
+        auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(createInfo, VKDescriptorPool(context, createInfo)));
         return pair.first->second;
     }
 }
@@ -139,8 +139,14 @@ std::size_t VKDescriptorPoolCache::VkDescriptorSetLayoutCreateInfoHash::operator
     for (uint32_t i = 0; i < c.bindingCount; i++)
     {
         auto& b = c.pBindings[i];
-        size_t bHash = b.stageFlags << 30 | b.descriptorCount << 24 | b.descriptorType << 16 |
-                       reinterpret_cast<std::uintptr_t>(b.pImmutableSamplers) << 8 | b.binding;
+        size_t bHash =  b.stageFlags << 30 | b.descriptorCount << 24 | XXH64(&b.descriptorType, sizeof(VkDescriptorType), 100) | b.binding;
+        if (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+        {
+            for (size_t j = 0; j < c.bindingCount; j++)
+            {
+                bHash |= reinterpret_cast<std::uintptr_t>(b.pImmutableSamplers + j);
+            }
+        }
 
         rlt ^= bHash;
     }
