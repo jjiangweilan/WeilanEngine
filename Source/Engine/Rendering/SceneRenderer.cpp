@@ -102,6 +102,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
     Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
     Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+    sceneInfo.shadowMapSize = glm::vec4{2048, 2048,  1 / 2048.0f, 1 / 2048.0f};
 
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
@@ -146,7 +147,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     );
 
     auto shadowmapShader = shadowShader;
-    glm::vec2 shadowMapSize = {2048, 2048};
+    glm::vec2 shadowMapSize = sceneInfo.shadowMapSize;
     shadowPass = AddNode(
         [this,
          shadowClears,
