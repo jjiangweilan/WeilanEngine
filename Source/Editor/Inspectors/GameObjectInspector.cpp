@@ -12,7 +12,7 @@ namespace Engine::Editor
 class GameObjectInspector : public Inspector<GameObject>
 {
 public:
-    void DrawInspector() override
+    void DrawInspector(GameEditor& editor) override
     {
         ImGui::BeginMenuBar();
         // Create Component
@@ -25,6 +25,10 @@ public:
             if (ImGui::MenuItem("MeshRenderer"))
             {
                 auto meshRenderer = target->AddComponent<MeshRenderer>();
+            }
+            if (ImGui::MenuItem("Light"))
+            {
+                auto light = target->AddComponent<Light>();
             }
 
             ImGui::EndMenu();
@@ -52,17 +56,28 @@ public:
             if (typeid(c) == typeid(Transform))
             {
                 auto pos = transform->GetPosition();
-                if (ImGui::InputFloat3("Position", &pos[0]))
+                if (ImGui::DragFloat3("Position", &pos[0]))
                 {
                     transform->SetPosition(pos);
                 }
 
                 auto rotation = transform->GetRotation();
-                if (ImGui::InputFloat3("rotation", &rotation[0]))
+                auto degree = glm::degrees(rotation);
+                auto newDegree = degree;
+                if (ImGui::DragFloat3("rotation", &newDegree[0]))
                 {
-                    transform->SetRotation(rotation);
+                    auto delta = newDegree - degree;
+                    auto radians = glm::radians(delta);
+                    float length = glm::length(radians);
+                    if (length != 0)
+                        transform->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
                 }
-                continue;
+
+                auto scale = transform->GetScale();
+                if (ImGui::DragFloat3("scale", &scale[0]))
+                {
+                    transform->SetScale(scale);
+                }
             }
             else if (typeid(c) == typeid(Light))
             {
@@ -86,7 +101,7 @@ public:
             else if (typeid(c) == typeid(MeshRenderer))
             {
                 MeshRenderer& meshRenderer = static_cast<MeshRenderer&>(c);
-                Mesh2* mesh = meshRenderer.GetMesh();
+                Mesh* mesh = meshRenderer.GetMesh();
 
                 std::string meshGUIID = "emtpy";
                 if (mesh)
@@ -94,23 +109,27 @@ public:
 
                 ImGui::Text("Mesh: ");
                 ImGui::SameLine();
-                if (ImGui::Button(meshGUIID.c_str()))
-                    EditorState::selectedObject = mesh;
+
+                bool bp = ImGui::Button(meshGUIID.c_str());
                 if (ImGui::BeginDragDropTarget())
                 {
                     const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
                     if (payload && payload->IsDelivery())
                     {
                         Object& obj = **(Object**)payload->Data;
-                        if (typeid(obj) == typeid(Mesh2))
+                        if (typeid(obj) == typeid(Mesh))
                         {
-                            Mesh2* mesh = static_cast<Mesh2*>(&obj);
+                            Mesh* mesh = static_cast<Mesh*>(&obj);
 
                             meshRenderer.SetMesh(mesh);
                             mesh = meshRenderer.GetMesh();
                         }
                     }
                     ImGui::EndDragDropTarget();
+                }
+                else if (bp)
+                {
+                    EditorState::selectedObject = mesh;
                 }
                 // show materials
                 ImGui::Text("Materials: ");
@@ -120,7 +139,7 @@ public:
                     Material* mat = mats[i];
                     std::string buttonID;
                     if (mat)
-                        buttonID = mats[i]->GetName();
+                        buttonID = fmt::format("{}: {}", i, mats[i]->GetName());
                     else
                         buttonID = fmt::format("{}##{}", "emtpy", i);
 

@@ -1,6 +1,6 @@
 #pragma once
 #include "../Tool.hpp"
-#include "Core/Model2.hpp"
+#include "Core/Model.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 
@@ -34,7 +34,7 @@ private:
     std::unique_ptr<Gfx::Image> sceneImage;
     std::unique_ptr<RenderGraph::Graph> renderGraph;
     std::unique_ptr<Shader> previewShader;
-    std::unique_ptr<Model2> model;
+    std::unique_ptr<Model> model;
     int size = 512;
     float roughness = 0.1;
 

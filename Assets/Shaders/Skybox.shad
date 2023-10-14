@@ -38,11 +38,11 @@ vec2 SphericalToUV(vec3 v)
 #if FRAG
     layout(location = 0) in FragInput fragInput;
     layout(location = 0) out vec4 o_Color;
-    layout(set = 2, binding = 0) uniform sampler2D envMap;
+    layout(set = 2, binding = 0) uniform samplerCube envMap;
 
     void main()
     {
-        vec3 col = texture(envMap, SphericalToUV(normalize(fragInput.objPos.xyz))).xyz;
+        vec3 col = texture(envMap, fragInput.objPos.xyz).xyz;
         o_Color = vec4(col, 1.0);
     }
 #endif

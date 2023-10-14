@@ -1,143 +1,246 @@
 #include "Mesh.hpp"
-#include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Libs/Utils.hpp"
-#include "Rendering/GfxResourceTransfer.hpp"
+#include "Libs/GLB.hpp"
+#include "Rendering/ImmediateGfx.hpp"
+#include <filesystem>
 
-using namespace Engine::Internal;
 namespace Engine
 {
-DEFINE_ASSET(Mesh, "A96DED1A-AE44-451B-9531-73673DC12832", "MeshPlaceHolder");
 
-Mesh::Mesh(VertexDescription&& vertexDescription, const std::string& name, const UUID& uuid)
-    : vertexDescription(std::move(vertexDescription))
+DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
+
+Submesh::~Submesh() {}
+Submesh::Submesh(
+    std::unique_ptr<unsigned char>&& vertexBuffer,
+    std::vector<VertexBinding>&& bindings,
+    std::unique_ptr<unsigned char>&& indexBuffer,
+    Gfx::IndexBufferType indexBufferType,
+    int indexCount,
+    std::string_view name
+)
+    : vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)), indexBufferType(indexBufferType),
+      bindings(std::move(bindings)), indexCount(indexCount), name(name)
 {
-    SetUUID(uuid);
-    this->name = name;
-    uint32_t bufSize = 0;
-    std::vector<DataRange> ranges;
+    // calculate vertex buffer size
+    std::size_t vertexBufferSize = 0;
+    for (auto& binding : this->bindings)
+    {
+        vertexBufferSize += binding.byteSize;
+    }
 
-    GetAttributesDataRangesAndBufSize(ranges, bufSize);
+    // create vertex buffer
     Gfx::Buffer::CreateInfo bufCreateInfo;
-    bufCreateInfo.size = bufSize;
+    bufCreateInfo.size = vertexBufferSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.c_str();
-    vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    bufCreateInfo.debugName = name.data();
+    gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    uint32_t indexBufSize = this->vertexDescription.index.count * vertexDescription.index.dataByteSize;
-    bufCreateInfo.size = indexBufSize;
+    // calculate index buffer size
+    std::size_t indexBufferSize = indexCount * (indexBufferType == Gfx::IndexBufferType::UInt16 ? 2 : 4);
+    bufCreateInfo.size = indexBufferSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst;
-    bufCreateInfo.debugName = name.c_str();
-    indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    bufCreateInfo.debugName = name.data();
+    gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    // load data to gpu buffer
-    unsigned char* temp = new unsigned char[bufSize];
+    bufCreateInfo.size = indexBufferSize + vertexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+    bufCreateInfo.debugName = "mesh staging buffer";
+    bufCreateInfo.visibleInCPU = true;
+    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    for (auto& range : ranges)
-    {
-        memcpy(temp + range.offsetInSrc, range.data, range.size);
-    }
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), this->vertexBuffer.get(), vertexBufferSize);
+    memcpy(
+        (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + vertexBufferSize,
+        this->indexBuffer.get(),
+        indexBufferSize
+    );
 
-    GfxResourceTransfer::BufferTransferRequest request0{.data = temp, .bufOffset = 0, .size = bufSize};
-    GetGfxResourceTransfer()->Transfer(vertexBuffer, request0);
-    delete[] temp;
-
-    GfxResourceTransfer::BufferTransferRequest request1{
-        .data = this->vertexDescription.index.data.data(),
-        .bufOffset = 0,
-        .size = indexBufSize,
-    };
-    GetGfxResourceTransfer()->Transfer(indexBuffer, request1);
-
-    if (vertexDescription.index.dataByteSize == 2)
-        indexBufferType = Gfx::IndexBufferType::UInt16;
-    else if (vertexDescription.index.dataByteSize == 4)
-        indexBufferType = Gfx::IndexBufferType::UInt32;
-    else
-        assert(0);
-
-    // update mesh binding
-    UpdateMeshBindingInfo(ranges);
-}
-
-// Destructor has to be define here so that the auto generated destructor contains full defination of the type in our
-// smart pointers
-Mesh::~Mesh() = default;
-
-template <class T>
-uint32_t AddVertexAttribute(std::vector<DataRange>& ranges, VertexAttribute<T>& attr, uint32_t offset)
-{
-    uint32_t size = 0;
-    uint32_t alignmentPadding = Utils::GetPadding(offset, sizeof(T));
-
-    if (!attr.data.empty())
-    {
-        DataRange range;
-
-        range.data = attr.data.data();
-        range.offsetInSrc = offset + alignmentPadding;
-        range.size = attr.count * sizeof(T) * attr.componentCount;
-        size += (range.size + alignmentPadding);
-        ranges.push_back(range);
-    }
-
-    return size;
-}
-
-uint32_t AddVertexAttribute(std::vector<DataRange>& ranges, std::vector<UntypedVertexAttribute>& attrs, uint32_t offset)
-{
-    uint32_t size = 0;
-
-    for (auto& attr : attrs)
-    {
-        if (!attr.data.empty())
+    ImmediateGfx::OnetimeSubmit(
+        [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
         {
-            uint32_t alignmentPadding = Utils::GetPadding(offset, attr.dataByteSize);
-            DataRange range;
-            range.offsetInSrc = offset + size + alignmentPadding;
-            range.size = attr.count * attr.dataByteSize * attr.componentCount;
-            range.data = attr.data.data();
-            size += (range.size + alignmentPadding);
-            ranges.push_back(range);
+            Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
+            cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
+
+            bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
+            cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
         }
-    }
-    return size;
+    );
+};
+
+void Submesh::SetIndices(std::vector<uint32_t>&& indices)
+{
+    this->indices = std::move(indices);
+    indexCount = indices.size();
 }
 
-void Mesh::GetAttributesDataRangesAndBufSize(std::vector<DataRange>& ranges, uint32_t& bufSize)
+void Submesh::SetIndices(const std::vector<uint32_t>& indices)
 {
-    ranges.clear();
-    bufSize = 0;
-    assert(!vertexDescription.index.data.empty());
-
-    bufSize += AddVertexAttribute(ranges, vertexDescription.position, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.normal, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.tangent, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.texCoords, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.colors, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.joins, bufSize);
-    bufSize += AddVertexAttribute(ranges, vertexDescription.weights, bufSize);
+    this->indices = indices;
+    indexCount = indices.size();
 }
 
-void Mesh::UpdateMeshBindingInfo(std::vector<DataRange>& ranges)
+void Submesh::SetPositions(std::vector<glm::vec3>&& positions)
 {
-    meshBindingInfo.bindingBuffers.clear();
+    this->positions = std::move(positions);
+}
 
-    meshBindingInfo.firstBinding = 0;
+void Submesh::SetPositions(const std::vector<glm::vec3>& positions)
+{
+    this->positions = positions;
+}
 
-    for (uint32_t i = 0; i < ranges.size(); ++i)
+void Submesh::SetVertexAttribute(VertexAttribute&& vertAttributes)
+{
+    this->attributes = std::move(vertAttributes);
+}
+
+void Submesh::SetVertexAttribute(const VertexAttribute& vertAttributes)
+{
+    this->attributes = vertAttributes;
+}
+
+void Submesh::Apply()
+{
+    bindings.clear();
+
+    VertexBinding posBinding{
+        .byteOffset = 0,
+        .byteSize = positions.size() * sizeof(glm::vec3),
+        .name = "position",
+    };
+
+    VertexBinding attrBinding{
+        .byteOffset = posBinding.byteSize,
+        .byteSize = attributes.GetSize(),
+        .name = "attributes",
+    };
+
+    bindings.push_back(posBinding);
+    bindings.push_back(attrBinding);
+
+    // calculate vertex buffer size
+    std::size_t vertexBufferSize = 0;
+    for (auto& binding : this->bindings)
     {
-        auto& range = ranges[i];
-        meshBindingInfo.bindingBuffers.push_back({vertexBuffer.Get(), range.offsetInSrc});
+        vertexBufferSize += binding.byteSize;
     }
 
-    meshBindingInfo.indexBuffer = indexBuffer;
-    meshBindingInfo.indexBufferOffset = 0;
+    // create vertex buffer
+    Gfx::Buffer::CreateInfo bufCreateInfo;
+    bufCreateInfo.size = vertexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
+    bufCreateInfo.debugName = name.data();
+    gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+
+    // calculate index buffer size
+    size_t indexByteSize = indexBufferType == Gfx::IndexBufferType::UInt16 ? sizeof(uint16_t) : sizeof(uint32_t);
+    std::size_t indexBufferSize = indices.size() * indexByteSize;
+    bufCreateInfo.size = indexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst;
+    bufCreateInfo.debugName = name.data();
+    gfxIndexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+
+    // create staging buffer
+    bufCreateInfo.size = indexBufferSize + vertexBufferSize;
+    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
+    bufCreateInfo.debugName = "mesh staging buffer";
+    bufCreateInfo.visibleInCPU = true;
+    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+
+    size_t positionDataSize = positions.size() * sizeof(glm::vec3);
+    size_t attribtueDataSize = attributes.GetData().size();
+
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), positions.data(), positionDataSize);
+    memcpy(
+        (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize,
+        attributes.GetData().data(),
+        attribtueDataSize
+    );
+
+    if (indexBufferType == Gfx::IndexBufferType::UInt16)
+    {
+        std::vector<uint16_t> temp(indices.size());
+        const size_t indicesSize = indices.size();
+        for (size_t i = 0; i < indicesSize; ++i)
+        {
+            temp[i] = indices[i];
+        }
+        memcpy(
+            (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize + attribtueDataSize,
+            temp.data(),
+            indicesSize * sizeof(uint16_t)
+        );
+    }
+    else
+    {
+        memcpy(
+            (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize + attribtueDataSize,
+            indices.data(),
+            indices.size() * sizeof(uint32_t)
+        );
+    }
+    indexCount = indices.size();
+
+    ImmediateGfx::OnetimeSubmit(
+        [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
+        {
+            Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
+            cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
+
+            bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
+            cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
+        }
+    );
 }
 
-const VertexDescription& Mesh::GetVertexDescription()
+const AABB& Submesh::GetAABB() const
 {
-    return vertexDescription;
+    return aabb;
 }
+
+void Submesh::SetAABB(const AABB& aabb)
+{
+    this->aabb = aabb;
+}
+
+const std::vector<uint32_t>& Submesh::GetIndices() const
+{
+    return indices;
+}
+
+const std::vector<glm::vec3>& Submesh::GetPositions() const
+{
+    return positions;
+}
+
+const VertexAttribute& Submesh::GetAttribute() const
+{
+    return attributes;
+}
+
+bool Mesh::LoadFromFile(const char* path)
+{
+    std::vector<uint32_t> fullData;
+    nlohmann::json jsonData;
+    unsigned char* binaryData;
+    Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);
+    auto meshes = Utils::GLB::ExtractMeshes(jsonData, binaryData, 1);
+    if (!meshes.empty())
+    {
+        submeshes = std::move(meshes[0]->submeshes);
+        SetName(meshes[0]->GetName());
+    }
+    else
+        return false;
+
+    return true;
+}
+
+const AABB& Mesh::GetAABB() const
+{
+    return aabb;
+}
+
+Mesh::~Mesh() {}
 
 } // namespace Engine

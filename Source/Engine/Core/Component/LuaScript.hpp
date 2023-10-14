@@ -10,11 +10,21 @@ public:
     LuaScript();
     LuaScript(GameObject* gameObject);
 
-    const std::string& GetLuaClass() { return luaClassName; }
+    const std::string& GetLuaClass()
+    {
+        return luaClassName;
+    }
     void RefLuaClass(const char* luaClass);
     void Construct();
     void Destruct();
     void Tick() override;
+
+    std::unique_ptr<Component> Clone(GameObject& owner) override
+    {
+        return nullptr;
+    }
+
+    const std::string& GetName() override;
 
 private:
     std::string luaClassName;

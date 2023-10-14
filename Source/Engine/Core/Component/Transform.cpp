@@ -5,8 +5,8 @@
 namespace Engine
 {
 DEFINE_OBJECT(Transform, "5583B41B-9FB5-4706-829C-399D7221C789");
-Transform::Transform() : Component("Transform", nullptr) {}
-Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject)
+Transform::Transform() : Component(nullptr) {}
+Transform::Transform(GameObject* gameObject) : Component(gameObject)
 {
     position = glm::vec3(0, 0, 0);
     scale = glm::vec3(1, 1, 1);
@@ -14,28 +14,27 @@ Transform::Transform(GameObject* gameObject) : Component("Transform", gameObject
     rotation = glm::quat(rotationEuler);
 }
 
-const std::vector<RefPtr<Transform>>& Transform::GetChildren()
+const std::vector<Transform*>& Transform::GetChildren()
 {
     return children;
 }
 
-void Transform::SetParent(RefPtr<Transform> parent)
+void Transform::SetParent(Transform* parent)
 {
     if (this->parent == parent)
         return;
 
     if (parent == nullptr)
     {
-        Scene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene();
         if (scene)
             scene->MoveGameObjectToRoot(gameObject);
         this->parent->RemoveChild(this);
         this->parent = nullptr;
-        parent->children.push_back(this);
     }
     else if (this->parent == nullptr)
     {
-        Scene* scene = gameObject->GetGameScene().Get();
+        Scene* scene = gameObject->GetGameScene();
         if (scene)
             scene->RemoveGameObjectFromRoot(gameObject);
         this->parent = parent;
@@ -49,7 +48,7 @@ void Transform::SetParent(RefPtr<Transform> parent)
     }
 }
 
-void Transform::RemoveChild(RefPtr<Transform> child)
+void Transform::RemoveChild(Transform* child)
 {
     auto it = children.begin();
     while (it != children.end())
@@ -63,7 +62,7 @@ void Transform::RemoveChild(RefPtr<Transform> child)
     }
 }
 
-RefPtr<Transform> Transform::GetParent()
+Transform* Transform::GetParent()
 {
     return parent;
 }
@@ -81,7 +80,13 @@ void Transform::SetRotation(const glm::quat& rotation)
 
 void Transform::SetPosition(const glm::vec3& position)
 {
+    auto delta = position - this->position;
     this->position = position;
+
+    for (Transform* tsm : children)
+    {
+        tsm->Translate(delta);
+    }
 }
 
 void Transform::SetScale(const glm::vec3& scale)
@@ -104,20 +109,34 @@ const glm::vec3& Transform::GetRotation()
     return rotationEuler;
 }
 
-const glm::quat& Transform::GetRotationQuat()
+const glm::quat& Transform::GetRotationQuat() const
 {
     return rotation;
+}
+
+void Transform::Translate(const glm::vec3& translate)
+{
+    this->position += translate;
+
+    for (Transform* tsm : children)
+    {
+        tsm->Translate(translate);
+    }
 }
 
 void Transform::SetModelMatrix(const glm::mat4& model)
 {
     glm::vec3 skew;
     glm::vec4 perspective;
+    glm::vec3 position;
     glm::decompose(model, scale, rotation, position, skew, perspective);
     rotationEuler = glm::eulerAngles(rotation);
+
+    // this is needed to propagate translation to children
+    SetPosition(position);
 }
 
-glm::mat4 Transform::GetModelMatrix()
+glm::mat4 Transform::GetModelMatrix() const
 {
     glm::mat4 rst = glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
 
@@ -135,6 +154,11 @@ void Transform::Deserialize(Serializer* s)
     s->Deserialize("children", children);
 }
 
+glm::vec3 Transform::GetForward()
+{
+    return glm::mat4_cast(rotation)[2];
+}
+
 void Transform::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
@@ -144,5 +168,43 @@ void Transform::Serialize(Serializer* s) const
     s->Serialize("scale", scale);
     s->Serialize("parent", parent);
     s->Serialize("children", children);
+}
+
+const std::string& Transform::GetName()
+{
+    static std::string name = "Transform";
+    return name;
+}
+
+void Transform::Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
+{
+    if (coord == RotationCoordinate::Self)
+    {
+        rotation = glm::rotate(rotation, angle, axis);
+    }
+    else if (coord == RotationCoordinate::Parent && parent != nullptr)
+    {}
+    else if (coord == RotationCoordinate::World)
+    {
+        // rotate around world
+        glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetModelMatrix();
+        SetModelMatrix(trs);
+    }
+}
+
+std::unique_ptr<Component> Transform::Clone(GameObject& owner)
+{
+    auto clone = std::make_unique<Transform>(&owner);
+
+    // this is the spepcial part about Transform
+    // clone->children can't be copied, it's done by Scene
+
+    clone->parent = parent;
+    clone->rotation = rotation;
+    clone->rotationEuler = rotationEuler;
+    clone->position = position;
+    clone->scale = scale;
+
+    return clone;
 }
 } // namespace Engine

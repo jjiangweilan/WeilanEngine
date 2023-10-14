@@ -43,6 +43,9 @@ public:
         return intensity;
     }
 
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
+    const std::string& GetName() override;
+
 private:
     LightType lightType = LightType::Directional;
     float range; // valid when it's a point light

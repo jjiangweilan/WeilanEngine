@@ -8,6 +8,7 @@
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/SceneRenderer.hpp"
 #include <SDL2/SDL.h>
+#include <iterator>
 namespace Engine
 {
 class Scene : public Asset
@@ -19,16 +20,20 @@ public:
     ~Scene() {}
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
+    void AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
+    GameObject* CopyGameObject(GameObject& gameObject);
 
-    const std::vector<RefPtr<GameObject>>& GetRootObjects();
+    const std::vector<GameObject*>& GetRootObjects();
 
     void Tick();
 
-    void MoveGameObjectToRoot(RefPtr<GameObject> obj);
-    void RemoveGameObjectFromRoot(RefPtr<GameObject> obj);
+    void MoveGameObjectToRoot(GameObject* obj);
+    void RemoveGameObjectFromRoot(GameObject* obj);
     void RemoveGameObject(GameObject* obj);
 
-    std::vector<RefPtr<Light>> GetActiveLights();
+    std::vector<GameObject*> GetAllGameObjects();
+
+    std::vector<Light*> GetActiveLights();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -58,12 +63,12 @@ public:
 
 protected:
     std::vector<std::unique_ptr<GameObject>> gameObjects;
-    std::vector<RefPtr<GameObject>> externalGameObjects;
-    std::vector<RefPtr<GameObject>> roots;
+    std::vector<GameObject*> externalGameObjects;
+    std::vector<GameObject*> roots;
     std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
 
     Camera* camera = nullptr;
 
-    void TickGameObject(RefPtr<GameObject> obj);
+    void TickGameObject(GameObject* obj);
 };
 } // namespace Engine

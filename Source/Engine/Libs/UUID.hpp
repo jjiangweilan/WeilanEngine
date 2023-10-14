@@ -8,9 +8,13 @@ namespace Engine
 class UUID
 {
 public:
+    struct FromStrTag
+    {};
     UUID();
     UUID(const UUID& uuid);
+    UUID(UUID&& other) = default;
     UUID(const std::string& uuid);
+    UUID(const std::string& str, FromStrTag);
     UUID(const char* uuid);
     ~UUID();
 
@@ -32,6 +36,7 @@ private:
     {};
     UUID(EmptyTag);
     static std::mt19937 generator;
+    static uuids::uuid_name_generator nameGenerator;
     uuids::uuid id;
     std::string strID;
 

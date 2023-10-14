@@ -24,36 +24,49 @@ class Material : public Asset
 public:
     Material(RefPtr<Shader> shader);
     Material();
+    Material(const Material& other);
     ~Material() override;
 
     void SetShader(RefPtr<Shader> shader);
-    RefPtr<Shader> GetShader()
+    Shader* GetShader()
     {
         return shader;
     }
+
     RefPtr<Gfx::ShaderResource> GetShaderResource()
     {
-        return shaderResource;
+        return ValidateGetShaderResource();
     }
+
+    std::unique_ptr<Asset> Clone() override;
 
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
-    void SetTexture(const std::string& param, RefPtr<Gfx::Image> image);
-    void SetTexture(const std::string& param, RefPtr<Texture> texture);
+    void SetTexture(const std::string& param, Gfx::Image* image);
+    void SetTexture(const std::string& param, Texture* texture);
     void SetTexture(const std::string& param, std::nullptr_t);
 
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
-    RefPtr<Texture> GetTexture(const std::string& param);
+    Texture* GetTexture(const std::string& param);
     float GetFloat(const std::string& param, const std::string& membr);
     glm::vec4 GetVector(const std::string& param, const std::string& membr);
 
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    Gfx::ShaderConfig& GetShaderConfig()
+    const Gfx::ShaderConfig& GetShaderConfig()
     {
-        return shaderConfig;
+        if (overrideShaderConfig || shader == nullptr)
+            return shaderConfig;
+        else
+            return shader->GetDefaultShaderConfig();
+    }
+
+    void SetShaderConfig(const Gfx::ShaderConfig& shaderConfig)
+    {
+        overrideShaderConfig = true;
+        this->shaderConfig = shaderConfig;
     }
 
     void Serialize(Serializer* s) const override;
@@ -61,16 +74,18 @@ public:
 
 private:
     Shader* shader = nullptr;
-    UniPtr<Gfx::ShaderResource> shaderResource;
+    UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
 
+    bool overrideShaderConfig = false;
     std::unordered_map<std::string, float> floatValues;
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;
-    std::unordered_map<std::string, RefPtr<Texture>> textureValues;
+    std::unordered_map<std::string, Texture*> textureValues;
 
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
+    Gfx::ShaderResource* ValidateGetShaderResource();
     static int initImporter_;
 };
 } // namespace Engine

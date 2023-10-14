@@ -1,65 +1,160 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "GfxDriver/CommandBuffer.hpp"
+#include "GfxDriver/Buffer.hpp"
+#include "Libs/Ptr.hpp"
 #include "Utils/Structs.hpp"
-#include <string>
+#include <glm/glm.hpp>
+#include <iterator>
+#include <string_view>
 #include <vector>
+
+// interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
 
 namespace Engine
 {
-namespace Gfx
+struct VertexBinding
 {
-class Buffer;
-} // namespace Gfx
-
-struct DataRange
-{
-    uint32_t offsetInSrc;
-    uint32_t size;
-    void* data;
+    std::size_t byteOffset;
+    std::size_t byteSize;
+    std::string name;
 };
 
-struct MeshBindingInfo
+class VertexAttribute
 {
-    uint32_t firstBinding = -1;
-    RefPtr<Gfx::Buffer> indexBuffer;
-    std::vector<Gfx::VertexBufferBinding> bindingBuffers;
-    uint32_t indexBufferOffset = -1;
+public:
+    struct Attribute
+    {
+        std::string name;
+        int size;
+    };
+
+    VertexAttribute& AddAttribute(const char* name, int size)
+    {
+        attributes.push_back(Attribute{name, size});
+        return *this;
+    }
+
+    size_t GetSize() const
+    {
+        return data.size();
+    }
+
+    const std::vector<uint8_t> GetData()
+    {
+        return data;
+    }
+
+    void SetData(const std::vector<uint8_t>& data)
+    {
+        this->data = data;
+    }
+
+    void SetData(std::vector<uint8_t>&& data)
+    {
+        this->data = std::move(data);
+    }
+
+    const std::vector<Attribute>& GetDescription() const
+    {
+        return attributes;
+    }
+
+private:
+    std::vector<Attribute> attributes;
+
+    // raw attribute data, attributes should be interleaved
+    std::vector<uint8_t> data;
 };
 
-template <class T>
-struct VertexAttribute
+class Submesh
 {
-    std::vector<unsigned char> data;
-    uint32_t count = 1;
-    uint8_t componentCount = 1; // we only use float for vertex
-};
+    // general version API
+public:
+    Submesh() {}
+    Submesh(Submesh&& other) = default;
+    Submesh& operator=(Submesh&& other) = default;
+    ~Submesh();
 
-struct UntypedVertexAttribute
-{
-    std::vector<unsigned char> data;
-    uint8_t dataByteSize = 0;
-    uint8_t componentCount = 1; // we only use float for vertex
-    uint32_t count = 1;
-};
+    inline int GetIndexCount() const
+    {
+        return indexCount;
+    }
 
-struct VertexDescription
-{
-    VertexDescription() = default;
-    VertexDescription(const VertexDescription& other) = default;
-    VertexDescription(VertexDescription&& other)
-        : position(std::move(other.position)), normal(std::move(other.normal)), tangent(std::move(other.tangent)),
-          index(std::move(other.index)), texCoords(std::move(other.texCoords)), colors(std::move(other.colors)),
-          joins(std::move(other.joins)), weights(std::move(other.weights))
-    {}
-    VertexAttribute<float> position;
-    VertexAttribute<float> normal;
-    VertexAttribute<float> tangent;
-    UntypedVertexAttribute index;
-    std::vector<UntypedVertexAttribute> texCoords;
-    std::vector<UntypedVertexAttribute> colors;
-    std::vector<UntypedVertexAttribute> joins;
-    std::vector<UntypedVertexAttribute> weights;
+    Gfx::IndexBufferType GetIndexBufferType() const
+    {
+        return indexBufferType;
+    }
+
+    const AABB& GetAABB() const;
+    void SetAABB(const AABB& aabb);
+
+    Gfx::Buffer* GetIndexBuffer() const
+    {
+        return gfxIndexBuffer.get();
+    }
+
+    Gfx::Buffer* GetVertexBuffer() const
+    {
+        return gfxVertexBuffer.get();
+    }
+
+    std::span<const VertexBinding> GetBindings() const
+    {
+        return bindings;
+    }
+
+private:
+    std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
+    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt16;
+    std::vector<VertexBinding> bindings;
+    AABB aabb;
+    int indexCount = 0;
+    std::string name;
+
+    // v0.2 API
+public:
+    void SetIndices(std::vector<uint32_t>&& indices);
+    void SetIndices(const std::vector<uint32_t>& indices);
+    void SetPositions(std::vector<glm::vec3>&& positions);
+    void SetVertexAttribute(VertexAttribute&& vertAttributes);
+    void SetVertexAttribute(const VertexAttribute& vertAttributes);
+    void SetPositions(const std::vector<glm::vec3>& positions);
+    void Apply();
+
+    const std::vector<uint32_t>& GetIndices() const;
+    const std::vector<glm::vec3>& GetPositions() const;
+    const VertexAttribute& GetAttribute() const;
+
+private:
+    std::vector<uint32_t> indices;
+    std::vector<glm::vec3> positions; // binding 0,
+    VertexAttribute attributes;       // binding 1, interleaved
+
+    // v0.1 API
+public:
+    Submesh(
+        std::unique_ptr<unsigned char>&& vertexBuffer,
+        std::vector<VertexBinding>&& bindings,
+        std::unique_ptr<unsigned char>&& indexBuffer,
+        Gfx::IndexBufferType indexBufferType,
+        int indexCount,
+        std::string_view name = ""
+    );
+
+    uint8_t* GetIndexBufferData() const
+    {
+        return indexBuffer.get();
+    }
+
+    uint8_t* GetVertexBufferData() const
+    {
+        return vertexBuffer.get();
+    }
+
+private:
+    std::unique_ptr<unsigned char> vertexBuffer = nullptr;
+    std::unique_ptr<unsigned char> indexBuffer = nullptr;
 };
 
 class Mesh : public Asset
@@ -67,34 +162,53 @@ class Mesh : public Asset
     DECLARE_ASSET();
 
 public:
-    Mesh() {}
-    Mesh(VertexDescription&& vertexDescription, const std::string& name = "", const UUID& uuid = UUID::GetEmptyUUID());
+    Mesh() : Asset(), submeshes() {}
+    Mesh(Mesh&& other) = default;
     ~Mesh();
 
-    const MeshBindingInfo& GetMeshBindingInfo()
+    bool IsExternalAsset() override
     {
-        return meshBindingInfo;
-    }
-    const VertexDescription& GetVertexDescription();
-    const std::string& GetName()
-    {
-        return name;
-    }
-    Gfx::IndexBufferType GetIndexBufferType()
-    {
-        return indexBufferType;
+        return true;
     }
 
-protected:
-    MeshBindingInfo meshBindingInfo;
-    Gfx::IndexBufferType indexBufferType;
-    UniPtr<Gfx::Buffer> vertexBuffer;
-    UniPtr<Gfx::Buffer> indexBuffer;
-    VertexDescription vertexDescription;
-    void UpdateMeshBindingInfo(std::vector<DataRange>& ranges);
-    void GetAttributesDataRangesAndBufSize(std::vector<DataRange>& ranges, uint32_t& bufSize);
+    const AABB& GetAABB() const;
+
+    bool LoadFromFile(const char* path) override;
+
+    const std::vector<Submesh>& GetSubmeshes()
+    {
+        return submeshes;
+    };
+
+    void SetSubmeshes(std::vector<Submesh>&& submeshes)
+    {
+        this->submeshes = std::move(submeshes);
+
+        glm::vec3 min = {
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max()};
+        glm::vec3 max = {
+            std::numeric_limits<float>::min(),
+            std::numeric_limits<float>::min(),
+            std::numeric_limits<float>::min()};
+
+        for (auto& submesh : submeshes)
+        {
+            auto& aabb = submesh.GetAABB();
+            min.x = glm::min(min.x, aabb.min.x);
+            min.y = glm::min(min.y, aabb.min.y);
+            min.z = glm::min(min.z, aabb.min.z);
+            max.x = glm::max(max.x, aabb.max.x);
+            max.y = glm::max(max.y, aabb.max.y);
+            max.z = glm::max(max.z, aabb.max.z);
+        }
+
+        aabb = {min, max};
+    }
 
 private:
-    void OnMeshDataUploaded(void* data);
+    std::vector<Submesh> submeshes;
+    AABB aabb;
 };
 } // namespace Engine

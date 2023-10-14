@@ -12,9 +12,9 @@ GameObject* Scene::CreateGameObject()
 {
     std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);
     gameObjects.push_back(std::move(newObj));
-    RefPtr<GameObject> refObj = gameObjects.back();
+    GameObject* refObj = gameObjects.back().get();
     roots.push_back(refObj);
-    return refObj.Get();
+    return refObj;
 }
 
 void Scene::AddGameObject(GameObject* newGameObject)
@@ -24,7 +24,17 @@ void Scene::AddGameObject(GameObject* newGameObject)
     externalGameObjects.push_back(newGameObject);
 }
 
-const std::vector<RefPtr<GameObject>>& Scene::GetRootObjects()
+void Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
+{
+    GameObject* temp = newGameObject.get();
+    gameObjects.push_back(std::move(newGameObject));
+    if (newGameObject->GetTransform()->GetParent() == nullptr)
+    {
+        roots.push_back(temp);
+    }
+}
+
+const std::vector<GameObject*>& Scene::GetRootObjects()
 {
     return roots;
 }
@@ -37,12 +47,56 @@ void Scene::Tick()
     }
 }
 
-void Scene::MoveGameObjectToRoot(RefPtr<GameObject> obj)
+void Scene::MoveGameObjectToRoot(GameObject* obj)
 {
     roots.push_back(obj);
 }
 
-void Scene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
+static void GetAllGameObjects(Transform* current, std::vector<GameObject*>& objs)
+{
+    objs.push_back(current->GetGameObject());
+    for (auto& child : current->GetChildren())
+    {
+        GetAllGameObjects(child, objs);
+    }
+}
+
+std::vector<GameObject*> Scene::GetAllGameObjects()
+{
+    std::vector<GameObject*> objs;
+    objs.reserve(256);
+
+    for (auto& obj : roots)
+    {
+        ::Engine::GetAllGameObjects(obj->GetTransform(), objs);
+    }
+
+    return objs;
+}
+
+GameObject* Scene::CopyGameObject(GameObject& gameObject)
+{
+    auto newObj = std::make_unique<GameObject>(gameObject);
+    newObj->SetGameScene(this);
+
+    for (auto tsm : gameObject.GetTransform()->GetChildren())
+    {
+        GameObject* child = CopyGameObject(*tsm->GetGameObject());
+        child->GetTransform()->SetParent(newObj->GetTransform());
+    }
+
+    GameObject* top = newObj.get();
+    gameObjects.push_back(std::move(newObj));
+
+    if (gameObject.GetTransform()->GetParent() == nullptr)
+    {
+        roots.push_back(top);
+    }
+
+    return top;
+}
+
+void Scene::RemoveGameObjectFromRoot(GameObject* obj)
 {
     auto it = roots.begin();
     while (it != roots.end())
@@ -56,7 +110,7 @@ void Scene::RemoveGameObjectFromRoot(RefPtr<GameObject> obj)
     }
 }
 
-void Scene::TickGameObject(RefPtr<GameObject> obj)
+void Scene::TickGameObject(GameObject* obj)
 {
     obj->Tick();
 
@@ -66,7 +120,7 @@ void Scene::TickGameObject(RefPtr<GameObject> obj)
     }
 }
 
-void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
+void GetLights(Transform* tsm, std::vector<Light*>& lights)
 {
     for (auto& child : tsm->GetChildren())
     {
@@ -80,9 +134,9 @@ void GetLights(RefPtr<Transform> tsm, std::vector<RefPtr<Light>>& lights)
     }
 }
 
-std::vector<RefPtr<Light>> Scene::GetActiveLights()
+std::vector<Light*> Scene::GetActiveLights()
 {
-    std::vector<RefPtr<Light>> lights;
+    std::vector<Light*> lights;
     for (auto child : roots)
     {
         GetLights(child->GetTransform(), lights);

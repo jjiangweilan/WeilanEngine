@@ -1,6 +1,6 @@
 #pragma once
 #include "Core/Component/Light.hpp"
-#include "Core/Model2.hpp"
+#include "Core/Model.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
 #include "Rendering/Shaders.hpp"
@@ -14,7 +14,7 @@ class SceneRenderer : protected RenderGraph::Graph
 public:
     struct BuildGraphConfig
     {
-        Gfx::Image& finalImage; // the final image the scene will render to
+        Gfx::Image* finalImage; // the final image the scene will render to
 
         // build graph will transform finalImage to a desired layout
         Gfx::ImageLayout layout;
@@ -23,7 +23,7 @@ public:
     };
 
 public:
-    SceneRenderer();
+    SceneRenderer(AssetDatabase& db);
 
 public:
     void Render(Gfx::CommandBuffer& cmd, Scene& scene);
@@ -32,11 +32,6 @@ public:
     {
         return std::tuple{colorOutput, colorHandle, depthOutput, depthHandle};
     }
-
-    Shader* GetOpaqueShader()
-    {
-        return shaders.GetShader("StandardPBR");
-    };
 
     void BuildGraph(const BuildGraphConfig& config);
 
@@ -71,6 +66,7 @@ private:
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
+    uint32_t globalSceneShaderContentHash;
 
     using DrawList = std::vector<SceneObjectDrawData>;
     DrawList drawList;
@@ -79,7 +75,6 @@ private:
 
     Shader* opaqueShader;
     Shader* shadowShader;
-    Rendering::Shaders shaders;
 
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;
@@ -88,10 +83,11 @@ private:
 
     RenderGraph::RenderNode* shadowPass;
 
-    std::unique_ptr<Model2> cube;
+    Model* cube;
     std::unique_ptr<Shader> skyboxShader;
     std::unique_ptr<Gfx::ShaderResource> skyboxPassResource;
     std::unique_ptr<Texture> envMap;
+    BuildGraphConfig config;
 
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 

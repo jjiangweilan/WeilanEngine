@@ -1,6 +1,5 @@
 #include "Shader.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "GfxDriver/ShaderLoader.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include <spdlog/spdlog.h>
 namespace Engine
@@ -16,17 +15,7 @@ Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& sh
 
 Shader::Shader(const char* path)
 {
-    ShaderCompiler compiler;
-    std::fstream f(path);
-    std::stringstream ss;
-    ss << f.rdbuf();
-    compiler.Compile(ss.str(), true);
-
-    shaderProgram =
-        GetGfxDriver()
-            ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
-
-    this->name = path;
+    LoadFromFile(path);
 }
 
 void Shader::Reload(Asset&& other)
@@ -47,5 +36,33 @@ void Shader::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
     s->Deserialize("shaderName", shaderName);
+}
+
+bool Shader::LoadFromFile(const char* path)
+{
+    ShaderCompiler compiler;
+    std::fstream f(path);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    try
+    {
+        compiler.Compile(ss.str(), true);
+        shaderProgram =
+            GetGfxDriver()
+                ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
+        this->name = compiler.GetName();
+        contentHash += 1;
+    }
+    catch (const std::exception& e)
+    {
+        SPDLOG_ERROR("{}", e.what());
+    }
+
+    return true;
+}
+
+uint32_t Shader::GetContentHash()
+{
+    return contentHash;
 }
 } // namespace Engine

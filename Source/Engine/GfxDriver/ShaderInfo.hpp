@@ -106,7 +106,14 @@ enum class SamplerFilterMode
 
 struct Texture
 {
+    enum class Type
+    {
+        Tex2D,
+        TexCube
+    };
+
     SamplerFilterMode filter;
+    Type type;
 };
 
 struct SeparateImage
@@ -136,6 +143,12 @@ enum class BindingType
     Texture,
     SeparateImage,
     SeparateSampler
+};
+
+enum class TextureType
+{
+    Tex2D,
+    TexCube
 };
 
 struct Binding
@@ -269,7 +282,8 @@ void Process(PushConstants& out, ShaderStage::Flag stage, nlohmann::json& typeJs
 void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root);
 void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root);
 void Process(
-    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root);
+    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root
+);
 
 void Merge(ShaderInfo& to, const ShaderStageInfo& from);
 } // namespace Utils

@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Graphics/Mesh2.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include <glm/gtx/intersect.hpp>
 namespace Engine
 {

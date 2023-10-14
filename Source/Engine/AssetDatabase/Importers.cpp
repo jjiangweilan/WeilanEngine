@@ -3,7 +3,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
-#include "Core/Graphics/Mesh2.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "Core/Texture.hpp"
 #include "spdlog/spdlog.h"
 #include <filesystem>
@@ -23,7 +23,7 @@ void GetGLBData(
 std::unique_ptr<GameObject> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh2*> meshes,
+    std::unordered_map<int, Mesh*> meshes,
     std::unordered_map<int, Material*> materials
 );
 
@@ -34,7 +34,7 @@ std::size_t WriteAccessorDataToBuffer(
 void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
-std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
+std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
 {
     // read uuid file
     std::filesystem::path path(cpath);
@@ -46,11 +46,11 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
 
     // extract mesh and submeshes
     int meshesSize = jsonData["meshes"].size();
-    std::unordered_map<int, Mesh2*> toOurMesh;
-    std::vector<std::unique_ptr<Mesh2>> meshes;
+    std::unordered_map<int, Mesh*> toOurMesh;
+    std::vector<std::unique_ptr<Mesh>> meshes;
     for (int i = 0; i < meshesSize; ++i)
     {
-        std::unique_ptr<Mesh2> mesh = std::make_unique<Mesh2>();
+        std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
         std::vector<Submesh> submeshes;
@@ -75,10 +75,11 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
-        auto tex = LoadTextureFromBinary(binaryData + byteOffset, byteLength);
-        SetAssetNameAndUUID(tex.Get(), jsonData, "images", i);
+        auto tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported);
 
-        toOurTexture[i] = tex.Get();
+        SetAssetNameAndUUID(tex.get(), jsonData, "images", i);
+
+        toOurTexture[i] = tex.get();
         textures.push_back(std::move(tex));
     }
 
@@ -96,8 +97,9 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
             mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
-        mat->GetShaderConfig().cullMode =
-            matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
+        auto config = mat->GetShaderConfig();
+        config.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
+        mat->SetShaderConfig(config);
 
         // baseColorFactor
         std::array<float, 3> baseColorFactor =
@@ -180,7 +182,7 @@ std::unique_ptr<Model2> Importers::GLB(const char* cpath, Shader* shader)
         rootGameObjects.push_back(rootGameObject.get());
         gameObjects.push_back(std::move(rootGameObject));
     }
-    auto model = std::make_unique<Model2>(
+    auto model = std::make_unique<Model>(
         std::move(rootGameObjects),
         std::move(gameObjects),
         std::move(meshes),
@@ -318,7 +320,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 std::unique_ptr<GameObject> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh2*> meshes,
+    std::unordered_map<int, Mesh*> meshes,
     std::unordered_map<int, Material*> materials
 )
 {

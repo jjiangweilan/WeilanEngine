@@ -38,6 +38,13 @@ struct GPUFeatures
     bool textureCompressionASTC4x4 = false;
 };
 
+enum class AcquireNextSwapChainImageResult
+{
+    Succeeded,
+    Failed,
+    Recreated
+};
+
 class GfxDriver
 {
 public:
@@ -102,7 +109,7 @@ public:
     virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) = 0;
 
     // return true if swapchain is recreated
-    virtual bool AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
+    virtual AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
 private:

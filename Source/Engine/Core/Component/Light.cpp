@@ -5,9 +5,9 @@
 namespace Engine
 {
 DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
-Light::Light() : Component("Light", nullptr) {}
+Light::Light() : Component(nullptr) {}
 
-Light::Light(GameObject* gameObject) : Component("Light", gameObject) {}
+Light::Light(GameObject* gameObject) : Component(gameObject) {}
 
 Light::~Light() {}
 
@@ -18,7 +18,9 @@ void Light::SetLightType(LightType type)
 
 glm::mat4 Light::WorldToShadowMatrix()
 {
-    glm::mat4 proj = glm::ortho(-20., 20., -20., 20., -10., 100.);
+    glm::mat4 proj = glm::ortho(-10., 10., -10., 10., -10., 1000.);
+    proj[1][1] *= -1;
+    proj[2] *= -1;
     return proj * glm::inverse(gameObject->GetTransform()->GetModelMatrix());
 }
 
@@ -34,5 +36,22 @@ void Light::Deserialize(Serializer* s)
     Component::Deserialize(s);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
+}
+
+const std::string& Light::GetName()
+{
+    static std::string name = "Light";
+    return name;
+}
+
+std::unique_ptr<Component> Light::Clone(GameObject& owner)
+{
+    auto clone = std::make_unique<Light>(&owner);
+
+    clone->lightType = lightType;
+    clone->range = range;
+    clone->intensity = intensity;
+
+    return clone;
 }
 } // namespace Engine

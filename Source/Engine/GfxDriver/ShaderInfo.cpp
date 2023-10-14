@@ -12,7 +12,7 @@ namespace Utils
 // e.g. sampler binding have _point _clamp etc... we don't want them in our binding name
 std::string RemoveShaderNameConfigText(std::string text)
 {
-    const char* configPattern[] = {"_sampler", "_point", "_clamp", "_linear", "repeat"};
+    const char* configPattern[] = {"_sampler", "_point", "_clamp", "_linear", "_repeat"};
 
     for (auto c : configPattern)
     {
@@ -22,6 +22,18 @@ std::string RemoveShaderNameConfigText(std::string text)
 
     return text;
 }
+
+Texture::Type MapStringToTextureType(const std::string& typeStr)
+{
+    if (typeStr == "sampler2D")
+        return Texture::Type::Tex2D;
+    if (typeStr == "samplerCube")
+        return Texture::Type::TexCube;
+
+    assert(false && "non handled Texture::Type");
+    return Texture::Type::Tex2D;
+}
+
 ShaderDataType MapShaderDataType(const std::string& typeStr)
 {
     if (typeStr == "vec4")
@@ -128,7 +140,7 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
         {
             int count = iter.second.dimension[0];
 
-            for(int i = 1; i < iter.second.dimension.size(); ++i)
+            for (int i = 1; i < iter.second.dimension.size(); ++i)
             {
                 count *= iter.second.dimension[i];
             }
@@ -231,9 +243,19 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
     out.stage = MapStage(sr["entryPoints"][0]["mode"]);
     if (sr.contains("inputs"))
         Process(out.inputs, sr["inputs"], sr);
+    std::sort(
+        out.inputs.begin(),
+        out.inputs.end(),
+        [](const Input& l, const Input& r) { return l.location < r.location; }
+    );
     if (sr.contains("outputs"))
         Process(out.outputs, sr["outputs"], sr);
 
+    std::sort(
+        out.outputs.begin(),
+        out.outputs.end(),
+        [](const Output& l, const Output& r) { return l.location < r.location; }
+    );
     if (sr.contains("push_constants"))
         Process(out.pushConstants, out.stage, sr["push_constants"], sr);
     if (sr.contains("ubos"))
@@ -249,7 +271,8 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
 }
 
 void Process(
-    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root)
+    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root
+)
 {
     for (auto& bindingJson : bindingsJson)
     {
@@ -279,6 +302,7 @@ void Process(
                     {
                         new (&b.binding.texture) Texture();
                         b.binding.texture.filter = MapStringToSamplerFilterMode(name);
+                        b.binding.texture.type = MapStringToTextureType(bindingJson.value("type", "sampler2D"));
                         break;
                     }
                 case BindingType::SeparateImage: new (&b.binding.separateImage) SeparateImage(); break;
@@ -328,7 +352,8 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
         {
             iter = to.bindings.insert(std::make_pair(binding.first, binding.second)).first;
             to.descriptorSetBinidngMap[iter->second.setNum].bindings.insert(
-                std::make_pair(binding.first, binding.second));
+                std::make_pair(binding.first, binding.second)
+            );
         }
         iter->second.stages |= binding.second.stages;
     }

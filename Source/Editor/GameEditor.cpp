@@ -6,8 +6,8 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
-#include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
 #include <unordered_map>
 
@@ -15,8 +15,34 @@ namespace Engine::Editor
 {
 GameEditor::GameEditor(const char* path)
 {
+    instance = this;
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
+
+    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
+    bool createEditorConfigJson = true;
+    if (std::filesystem::exists(editorConfigPath))
+    {
+        try
+        {
+            editorConfig = nlohmann::json::parse(std::ifstream(editorConfigPath));
+            createEditorConfigJson = false;
+        }
+        catch (...)
+        {}
+    }
+    if (createEditorConfigJson)
+    {
+        editorConfig = nlohmann::json::object();
+    }
+
+    UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
+    if (!lastActiveSceneUUID.IsEmpty())
+    {
+        EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
+    }
+
+    gameView.Init();
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -24,10 +50,6 @@ GameEditor::GameEditor(const char* path)
 
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
-
-    editorCameraGO = std::make_unique<GameObject>();
-    editorCameraGO->SetName("editor camera");
-    editorCamera = editorCameraGO->AddComponent<Camera>();
 
     toolList.emplace_back(new EnvironmentBaker());
 
@@ -38,14 +60,31 @@ GameEditor::GameEditor(const char* path)
         rt.isOpen = false;
         registeredTools.push_back(rt);
     }
-
-    uint32_t mainQueueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
 };
 
 GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
+    if (EditorState::activeScene)
+        editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
+
+    if (Camera* cam = gameView.GetEditorCamera())
+    {
+        nlohmann::json camJson = {};
+        auto pos = cam->GetGameObject()->GetTransform()->GetPosition();
+        auto rot = cam->GetGameObject()->GetTransform()->GetRotationQuat();
+        auto scale = cam->GetGameObject()->GetTransform()->GetScale();
+        camJson["position"] = {pos.x, pos.y, pos.z};
+        camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
+        camJson["scale"] = {scale.x, scale.y, scale.z};
+        editorConfig["editorCamera"] = camJson;
+    }
+
+    auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
+    std::ofstream editorConfigFile(editorConfigPath);
+    editorConfigFile << editorConfig.dump(0);
 }
+
 void GameEditor::SceneTree(Transform* transform, int imguiID)
 {
     ImGuiTreeNodeFlags nodeFlags =
@@ -53,18 +92,42 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
     if (transform->GetGameObject() == EditorState::selectedObject)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}",transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
-    if (ImGui::IsItemClicked())
+    bool treeOpen =
+        ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
+    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {
         EditorState::selectedObject = transform->GetGameObject();
     }
 
+    if (ImGui::BeginDragDropSource())
+    {
+        auto ptr = transform->GetGameObject();
+        ImGui::SetDragDropPayload("game object", &ptr, sizeof(void*));
+
+        ImGui::Text("%s", transform->GetGameObject()->GetName().c_str());
+
+        ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("game object");
+        if (payload && payload->IsDelivery())
+        {
+            GameObject* obj = *(GameObject**)payload->Data;
+            if (obj != nullptr && obj != transform->GetGameObject())
+            {
+                obj->GetTransform()->SetParent(transform);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     if (treeOpen)
     {
-        GameObject* go = transform->GetGameObject();
         for (auto child : transform->GetChildren())
         {
-            SceneTree(child.Get(), imguiID++);
+            SceneTree(child, ++imguiID);
         }
         ImGui::TreePop();
     }
@@ -85,9 +148,32 @@ void GameEditor::SceneTree(Scene& scene)
     }
     ImGui::EndMenuBar();
 
+    auto contentMax = ImGui::GetWindowContentRegionMax();
+    auto contentMin = ImGui::GetWindowContentRegionMin();
+    auto windowPos = ImGui::GetWindowPos();
+    if (ImGui::BeginDragDropTargetCustom(
+            {{windowPos.x + contentMin.x, windowPos.y + contentMin.y},
+             {windowPos.x + contentMax.x, windowPos.y + contentMax.y}},
+            999
+        ))
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("game object");
+        if (payload && payload->IsDelivery())
+        {
+            GameObject* obj = *(GameObject**)payload->Data;
+            if (obj != nullptr)
+            {
+                // pass null to set this transform to root
+                obj->GetTransform()->SetParent(nullptr);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    size_t imguiTreeId = 0;
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root->GetTransform(), 0);
+        SceneTree(root->GetTransform(), ++imguiTreeId);
     }
     ImGui::End();
 }
@@ -117,26 +203,6 @@ void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::strin
 
 void GameEditor::OpenSceneWindow()
 {
-    static bool openSceneWindow = false;
-    static bool createSceneWindow = false;
-    if (ImGui::BeginMenu("Assets"))
-    {
-        if (ImGui::MenuItem("Create Scene"))
-        {
-            createSceneWindow = !createSceneWindow;
-        }
-        if (ImGui::MenuItem("Open Scene"))
-        {
-            openSceneWindow = !openSceneWindow;
-        }
-        if (ImGui::MenuItem("Save Scene"))
-        {
-            if (EditorState::activeScene)
-                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
-        }
-        ImGui::EndMenu();
-    }
-
     if (openSceneWindow)
     {
         ImGui::Begin(
@@ -191,28 +257,9 @@ void GameEditor::OpenSceneWindow()
 void GameEditor::MainMenuBar()
 {
     ImGui::BeginMainMenuBar();
-    if (ImGui::MenuItem("Editor Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            gameCamera = EditorState::activeScene->GetMainCamera();
-            EditorState::activeScene->SetMainCamera(editorCamera);
-        }
-    }
-    if (ImGui::MenuItem("Game Camera"))
-    {
-        if (EditorState::activeScene)
-        {
-            EditorState::activeScene->SetMainCamera(gameCamera);
-            gameCamera = nullptr;
-        }
-    }
-
-    OpenSceneWindow();
 
     for (auto& registeredTool : registeredTools)
     {
-        int index = 0;
         auto items = registeredTool.tool->GetToolMenuItem();
         bool clicked = false;
         MenuVisitor(items.begin(), items.end(), clicked);
@@ -233,6 +280,46 @@ void GameEditor::MainMenuBar()
                 registeredTool.tool->Close();
             }
         }
+    }
+
+    if (ImGui::BeginMenu("Files"))
+    {
+        if (ImGui::MenuItem("Save All"))
+        {
+            engine->assetDatabase->SaveDirtyAssets();
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Assets"))
+    {
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (ImGui::MenuItem("Scene"))
+            {
+                createSceneWindow = !createSceneWindow;
+            }
+            if (ImGui::MenuItem("Material"))
+            {
+                auto mat = std::make_unique<Material>();
+                engine->assetDatabase->SaveAsset(std::move(mat), "new material");
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Refresh Shaders"))
+        {
+            engine->assetDatabase->RequestShaderRefresh();
+        }
+        if (ImGui::MenuItem("Open Scene"))
+        {
+            openSceneWindow = !openSceneWindow;
+        }
+        if (ImGui::MenuItem("Save Scene"))
+        {
+            if (EditorState::activeScene)
+                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+        }
+        ImGui::EndMenu();
     }
 
     if (ImGui::BeginMenu("Scene"))
@@ -262,110 +349,45 @@ void GameEditor::MainMenuBar()
     ImGui::EndMainMenuBar();
 }
 
-static void EditorCameraWalkAround(Camera& editorCamera)
-{
-    auto tsm = editorCamera.GetGameObject()->GetTransform();
-    auto pos = tsm->GetPosition();
-    glm::mat4 model = tsm->GetModelMatrix();
-    glm::vec3 right = glm::normalize(model[0]);
-    glm::vec3 up = glm::normalize(model[1]);
-    glm::vec3 forward = glm::normalize(model[2]);
-
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered())
-    {
-        return;
-    }
-
-    float speed = 10 * Time::DeltaTime();
-    glm::vec3 dir = glm::vec3(0);
-    if (ImGui::IsKeyDown(ImGuiKey_D))
-    {
-        dir += right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_A))
-    {
-        dir -= right * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_W))
-    {
-        dir -= forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_S))
-    {
-        dir += forward * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_E))
-    {
-        dir += up * speed;
-    }
-    if (ImGui::IsKeyDown(ImGuiKey_Q))
-    {
-        dir -= up * speed;
-    }
-    pos += dir;
-    tsm->SetPosition(pos);
-
-    static ImVec2 lastMouseDelta = ImVec2(0, 0);
-    if (ImGui::IsMouseDown(ImGuiMouseButton_Left))
-    {
-        auto rotation = tsm->GetRotationQuat();
-        auto mouseLastClickDelta = ImGui::GetMouseDragDelta(0, 0);
-        glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
-        lastMouseDelta = mouseLastClickDelta;
-        auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
-        auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
-
-        auto eye = tsm->GetPosition();
-        auto lookAtDelta = leftRight * right - upDown * up;
-        auto final = glm::lookAt(eye, eye - forward + lookAtDelta, glm::vec3(0, 1, 0));
-        tsm->SetModelMatrix(glm::inverse(final));
-    }
-    else
-    {
-        lastMouseDelta = ImVec2(0, 0);
-    }
-}
-
-void GameEditor::OnWindowResize(int32_t width, int32_t height)
-{
-    editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
-}
-
 void GameEditor::Start()
 {
     while (true)
     {
-        engine->BeginFrame();
-
-        if (engine->event->GetWindowClose().state)
+        if (engine->BeginFrame())
         {
-            return;
+            if (engine->event->GetWindowClose().state)
+            {
+                return;
+            }
+            if (engine->event->GetWindowSizeChanged().state)
+            {
+                auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+                gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+            }
+
+            GUIPass();
+
+            auto& cmd = engine->GetActiveCmdBuffer();
+            Render(cmd);
+
+            engine->EndFrame();
         }
-        if (engine->event->GetWindowSizeChanged().state)
-        {
-            auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
-            gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
-        }
-
-        GUIPass();
-
-        auto& cmd = engine->GetActiveCmdBuffer();
-        Render(cmd);
-
-        engine->EndFrame();
     }
 }
 
 void GameEditor::GUIPass()
 {
     MainMenuBar();
-    bool isEditorCameraActive = gameCamera != nullptr;
-    if (isEditorCameraActive)
-        EditorCameraWalkAround(*editorCamera);
+    OpenSceneWindow();
 
     gameView.Tick();
     AssetWindow();
     InspectorWindow();
+
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
+    {
+        engine->assetDatabase->RequestShaderRefresh(true);
+    }
 
     if (EditorState::activeScene)
     {
@@ -429,7 +451,7 @@ void GameEditor::InspectorWindow()
             {
                 InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
 
-                inspector->DrawInspector();
+                inspector->DrawInspector(*this);
             }
         }
 
@@ -442,7 +464,7 @@ void GameEditor::InspectorWindow()
             if (EditorState::selectedObject)
             {
                 InspectorBase* inspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
-                inspector->DrawInspector();
+                inspector->DrawInspector(*this);
             }
 
             ImGui::End();
@@ -479,22 +501,26 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             std::string pathStr = entry.path().filename().string();
             if (ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf))
             {
-                if (ImGui::IsItemClicked())
-                {
-                    Asset* asset = engine->assetDatabase->LoadAsset(std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory()));
-                    if (asset)
-                    {
-                        EditorState::selectedObject = asset;
-                    }
-                }
-
                 if (ImGui::BeginDragDropSource())
                 {
-                    ImGui::SetDragDropPayload("path", pathStr.c_str(), pathStr.length());
+                    Asset* asset = engine->assetDatabase->LoadAsset(
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+                    );
+                    ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
 
                     ImGui::Text("%s", pathStr.c_str());
 
                     ImGui::EndDragDropSource();
+                }
+                else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    Asset* asset = engine->assetDatabase->LoadAsset(
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+                    );
+                    if (asset)
+                    {
+                        EditorState::selectedObject = asset;
+                    }
                 }
 
                 ImGui::TreePop();
@@ -510,9 +536,36 @@ void GameEditor::AssetWindow()
         ImGui::Begin("Assets", &assetWindow);
         AssetShowDir(engine->GetProjectPath() / "Assets");
         ImGui::End();
+
+        ImGui::Begin("Internal Assets", &assetWindow);
+        auto& internalAssets = engine->assetDatabase->GetInternalAssets();
+        for (AssetData* internalAsset : internalAssets)
+        {
+            ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
+
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            {
+                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
+
+                ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
+
+                ImGui::EndDragDropSource();
+            }
+            else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+            {
+                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                if (asset)
+                {
+                    EditorState::selectedObject = asset;
+                }
+            }
+        }
+        ImGui::End();
     }
 }
 
+GameEditor* GameEditor::instance = nullptr;
 Object* EditorState::selectedObject = nullptr;
 Scene* EditorState::activeScene = nullptr;
 } // namespace Engine::Editor

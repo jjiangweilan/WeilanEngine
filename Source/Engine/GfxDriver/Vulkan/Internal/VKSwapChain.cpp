@@ -21,7 +21,7 @@ VKSwapChain::~VKSwapChain()
     vkDestroySwapchainKHR(attachedDevice->GetHandle(), swapChain, VK_NULL_HANDLE);
 }
 
-void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
+bool VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
 {
     VKContext::Instance()->device->WaitForDeviceIdle();
     surface->QuerySurfaceDataFromGPU(gpu);
@@ -72,6 +72,11 @@ void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* 
         VK_TRUE,
         oldSwapChain};
 
+    if (swapChainInfo.extent.width == 0 || swapChainInfo.extent.height == 0)
+    {
+        return false;
+    }
+
     if (vkCreateSwapchainKHR(device->GetHandle(), &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
     {
         std::runtime_error("Cloud not create swap chain!");
@@ -83,11 +88,13 @@ void VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* 
     }
 
     GetSwapChainImagesFromVulkan();
+
+    return true;
 }
 
-void VKSwapChain::RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
+bool VKSwapChain::RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface)
 {
-    CreateOrOverrideSwapChain(device, gpu, surface);
+    return CreateOrOverrideSwapChain(device, gpu, surface);
 }
 
 VkSurfaceFormatKHR VKSwapChain::GetFormat(VKSurface* gpu)
@@ -195,7 +202,7 @@ VkPresentModeKHR VKSwapChain::GetPresentMode(VKSurface* surface)
     return static_cast<VkPresentModeKHR>(-1);
 }
 
-bool VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal)
+AcquireNextImageResult VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal)
 {
     uint32_t nextPresentImageIndex;
     VkResult result = vkAcquireNextImageKHR(
@@ -206,30 +213,34 @@ bool VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal)
         VK_NULL_HANDLE,
         &nextPresentImageIndex
     );
-    bool swapchainRecreated = false;
     switch (result)
     {
         case VK_SUCCESS: break;
         case VK_SUBOPTIMAL_KHR:
         case VK_ERROR_OUT_OF_DATE_KHR:
             {
-                CreateOrOverrideSwapChain(
+                bool suc = CreateOrOverrideSwapChain(
                     VKContext::Instance()->device.Get(),
                     &VKContext::Instance()->device->GetGPU(),
                     surface
                 );
-                swapchainRecreated = true;
-                // ImageDescription newDesc = swapChainImage->GetDescription();
-                // newDesc.width = surface->GetSurfaceCapabilities().currentExtent.width;
-                // newDesc.height = surface->GetSurfaceCapabilities().currentExtent.height;
-                // swapChainImage->UpdateImageDescription(newDesc);
+
+                if (suc)
+                {
+                    swapChainImage->SetActiveSwapChainImage(nextPresentImageIndex);
+                    return AcquireNextImageResult::Recreated;
+                }
+                else
+                    return AcquireNextImageResult::Failed;
+
                 break;
             }
         default: throw std::runtime_error("Vulkan error: Problem occurred during swap chain image acquisition!");
     }
 
     swapChainImage->SetActiveSwapChainImage(nextPresentImageIndex);
-    return swapchainRecreated;
+
+    return AcquireNextImageResult::Succeeded;
 }
 
 } // namespace Engine::Gfx

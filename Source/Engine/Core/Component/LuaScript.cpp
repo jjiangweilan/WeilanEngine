@@ -2,6 +2,7 @@
 
 #include "Script/LuaBackend.hpp"
 #include "Script/LuaWraps.hpp"
+#include <memory>
 #include <spdlog/spdlog.h>
 #define L LuaBackend::Instance()->GetL()
 
@@ -16,9 +17,9 @@ namespace Engine
 
 #define SERIALIZE_MEMBERS() SERIALIZE_MEMBER(luaClassName);
 
-LuaScript::LuaScript() : Component("LuaScript", nullptr) { }
+LuaScript::LuaScript() : Component(nullptr) {}
 
-LuaScript::LuaScript(GameObject* gameObject) : Component("LuaScript", gameObject) { }
+LuaScript::LuaScript(GameObject* gameObject) : Component(gameObject) {}
 
 void LuaScript::RefLuaClass(const char* luaClass)
 {
@@ -97,5 +98,11 @@ void LuaScript::Destruct()
     luaL_unref(L, LUA_REGISTRYINDEX, luaRefConstruct);
     luaL_unref(L, LUA_REGISTRYINDEX, luaRefDestruct);
     luaL_unref(L, LUA_REGISTRYINDEX, luaRefTick);
+}
+
+const std::string& LuaScript::GetName()
+{
+    static std::string name = "LuaScript";
+    return name;
 }
 } // namespace Engine

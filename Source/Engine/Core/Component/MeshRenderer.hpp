@@ -2,7 +2,7 @@
 
 #include "Asset/Material.hpp"
 #include "Component.hpp"
-#include "Core/Graphics/Mesh2.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Utils/Structs.hpp"
 #include <memory>
@@ -14,20 +14,22 @@ class MeshRenderer : public Component
 
 public:
     MeshRenderer();
-    MeshRenderer(GameObject* parent, Mesh2* mesh, Material* material);
-    MeshRenderer(GameObject* parent);
+    MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
+    MeshRenderer(GameObject* owner);
     ~MeshRenderer() override{};
 
-    void SetMesh(Mesh2* mesh);
+    void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
-    Mesh2* GetMesh();
+    Mesh* GetMesh();
     const std::vector<Material*>& GetMaterials();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
+    const std::string& GetName() override;
 
 private:
-    Mesh2* mesh = nullptr;
+    Mesh* mesh = nullptr;
     std::vector<Material*> materials = {};
     AABB aabb;
     // UniPtr<Gfx::ShaderResource>

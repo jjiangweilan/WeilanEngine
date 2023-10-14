@@ -35,11 +35,22 @@ public:
         return shaderProgram->GetDefaultShaderConfig();
     }
 
+    bool IsExternalAsset() override
+    {
+        return true;
+    }
+
+    // return false if loading failed
+    bool LoadFromFile(const char* path) override;
+
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
+    uint32_t GetContentHash() override;
+
 private:
     std::string shaderName;
+    uint32_t contentHash = 0;
 
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
 };

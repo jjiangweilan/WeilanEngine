@@ -35,6 +35,8 @@ bool UUID::IsEmpty() const
     return id.is_nil();
 }
 
+UUID::UUID(const std::string& str, FromStrTag) : id(nameGenerator(str)), strID(uuids::to_string(id)) {}
+
 const std::mt19937 CreateGenerator()
 {
     std::random_device rd;
@@ -68,4 +70,7 @@ const UUID& UUID::GetEmptyUUID()
 }
 
 std::mt19937 UUID::generator = CreateGenerator();
+
+uuids::uuid_name_generator UUID::nameGenerator =
+    uuids::uuid_name_generator(uuids::uuid::from_string("73B6D45A-5A1A-42D7-B75C-7C39F976A620").value());
 } // namespace Engine

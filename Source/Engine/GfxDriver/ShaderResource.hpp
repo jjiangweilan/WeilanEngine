@@ -33,7 +33,7 @@ public:
     // virtual void SetStorage(std::string_view name, RefPtr<StorageBuffer>
     // storageBuffer) = 0;
     virtual bool HasPushConstnat(const std::string& obj) = 0;
-    virtual RefPtr<ShaderProgram> GetShader() = 0;
+    virtual RefPtr<ShaderProgram> GetShaderProgram() = 0;
     virtual ShaderResourceFrequency GetFrequency()
     {
         return frequency;

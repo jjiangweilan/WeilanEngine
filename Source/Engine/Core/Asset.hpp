@@ -8,6 +8,7 @@
 namespace Engine
 {
 
+class AssetDatabase;
 class Asset : public Object, public Serializable
 {
 public:
@@ -15,10 +16,13 @@ public:
     {
         this->name = name;
     }
-    const std::string& GetName()
+    const std::string& GetName() const
     {
         return name;
     }
+    Asset() = default;
+    Asset(const Asset& other) = default;
+    Asset(Asset&& other) = default;
     virtual ~Asset(){};
 
     virtual void Reload(Asset&& asset)
@@ -27,7 +31,8 @@ public:
         name = std::move(asset.name);
     }
 
-    // asset format that is not serializable and deserializable
+    // asset format that is not serializable and deserializable.
+    // AssetDatabase will use LoadFromFile if this function returns true when importing asset
     virtual bool IsExternalAsset()
     {
         return false;
@@ -37,6 +42,21 @@ public:
     virtual bool LoadFromFile(const char* path)
     {
         return false;
+    }
+
+    virtual std::vector<Asset*> GetInternalAssets()
+    {
+        return std::vector<Asset*>{};
+    }
+
+    bool IsDirty()
+    {
+        return isDirty;
+    }
+
+    virtual std::unique_ptr<Asset> Clone()
+    {
+        return nullptr;
     }
 
     void Serialize(Serializer* s) const override
@@ -53,8 +73,22 @@ public:
 
     virtual const char* GetExtension() = 0;
 
+    void SetDirty(bool isDirty = true)
+    {
+        this->isDirty = isDirty;
+    }
+
+    // used to identify if the asset contains the same content
+    virtual uint32_t GetContentHash()
+    {
+        return 0;
+    }
+
 protected:
-    std::string name;
+    std::string name = "";
+
+private:
+    bool isDirty = false;
 };
 
 struct AssetRegistry

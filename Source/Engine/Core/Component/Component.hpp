@@ -11,22 +11,19 @@ class GameObject;
 class Component : public Object, public Serializable
 {
 public:
-    Component(std::string_view name, RefPtr<GameObject> gameObject);
+    Component(GameObject* gameObject);
     virtual ~Component() = 0;
     virtual void Tick(){};
+
+    virtual const std::string& GetName() = 0;
+    virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
     GameObject* GetGameObject();
-    const std::string& GetName()
-    {
-        return name;
-    }
 
     void Serialize(Serializer* s) const override;
-
     void Deserialize(Serializer* s) override;
 
 protected:
     GameObject* gameObject;
-    std::string name;
 
     friend class GameObject;
 };

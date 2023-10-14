@@ -1,6 +1,7 @@
 #include "AssetDatabase.hpp"
 #include "Importers.hpp"
 #include <iostream>
+#include <spdlog/spdlog.h>
 namespace Engine
 {
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
@@ -29,7 +30,7 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
 
             if (ad->IsValid())
             {
-                assets.Add(ad->GetAssetPath(), std::move(ad));
+                assets.Add(std::move(ad));
             }
             else
             {
@@ -37,6 +38,8 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
             }
         }
     }
+
+    LoadEngineInternal();
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -46,52 +49,65 @@ void AssetDatabase::SaveAsset(Asset& asset)
 
     if (assetData != nullptr)
     {
-        SerializeAssetToDisk(asset, assetData->GetAssetPath());
+        SerializeAssetToDisk(asset, assetData->GetAssetAbsolutePath());
     }
+}
+
+bool AssetDatabase::IsAssetInDatabase(Asset& asset)
+{
+    return assets.GetAssetData(asset.GetUUID()) != nullptr;
 }
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 {
     // find the asset if it's already imported
     auto assetData = assets.GetAssetData(path);
-    auto fullAssetPath = assetDirectory / path;
+    auto absoluteAssetPath = assetDirectory / path;
     if (assetData)
     {
+        // override the asset path because this asset may be an internal asset
+        absoluteAssetPath = assetData->GetAssetAbsolutePath();
         auto a = assetData->GetAsset();
         if (a)
             return a;
     }
 
-    if (!std::filesystem::exists(fullAssetPath))
+    if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
-    std::filesystem::path ext = fullAssetPath.extension();
+    std::filesystem::path ext = absoluteAssetPath.extension();
     auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
-    Asset* asset = newAsset.get();
 
-    // if this is a asset in database we move the ownership into it's assetData
-    if (assetData)
+    if (newAsset != nullptr)
     {
-        asset = assetData->SetAsset(std::move(newAsset));
-    }
-    if (asset != nullptr)
-    {
-        if (asset->IsExternalAsset())
+        Asset* asset = newAsset.get();
+
+        if (newAsset->IsExternalAsset())
         {
-            asset->LoadFromFile(fullAssetPath.string().c_str());
+            newAsset->LoadFromFile(absoluteAssetPath.string().c_str());
+            if (assetData)
+            {
+                assetData->SetAsset(std::move(newAsset));
+            }
+            else
+            {
+                std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                ad->SaveToDisk(projectRoot);
+                assets.Add(std::move(ad));
+            }
         }
         else
         {
-            std::ifstream f(fullAssetPath, std::ios::binary);
+            std::ifstream f(absoluteAssetPath, std::ios::binary);
             if (f.is_open() && f.good())
             {
-                size_t fileSize = std::filesystem::file_size(fullAssetPath);
+                size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
                 std::vector<uint8_t> binary(fileSize);
                 f.read((char*)binary.data(), fileSize);
                 SerializeReferenceResolveMap resolveMap;
                 JsonSerializer ser(binary, &resolveMap);
-                asset->Deserialize(&ser);
+                newAsset->Deserialize(&ser);
 
                 auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
                 {
@@ -106,14 +122,29 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     }
                 };
 
+                if (assetData)
+                {
+                    // this needs to be done after importing becuase if not we don't have internal game object's name to
+                    // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+                    // happen before reference resolve so that it has the correct UUID
+                    assetData->SetAsset(std::move(newAsset));
+                }
+                // a new asset needs to be recored/imported in assetDatabase
+                else
+                {
+                    std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+                    ad->SaveToDisk(projectRoot);
+                    assets.Add(std::move(ad));
+                }
+
                 // resolve reference
                 for (auto& iter : resolveMap)
                 {
                     // resolve external reference
-                    auto assetData = assets.GetAssetData(iter.first);
-                    if (assetData)
+                    Asset* externalAsset = LoadAssetByID(iter.first);
+                    if (externalAsset)
                     {
-                        ResolveAll(iter.second, assetData->GetAsset());
+                        ResolveAll(iter.second, externalAsset);
                     }
 
                     // resolve internal reference
@@ -140,14 +171,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             }
         }
 
-        // a new asset needs to be recored/imported in assetDatabase
-        if (!assetData)
-        {
-            std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-            assets.Add(assetDirectory, std::move(ad));
-        }
-
-        // see if there is any reference need to be resolved by this object
+        // see if there is any reference need to be resolved to this object
         auto iter = referenceResolveMap.find(asset->GetUUID());
         if (iter != referenceResolveMap.end())
         {
@@ -163,6 +187,40 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
         }
 
         return asset;
+    }
+
+    return nullptr;
+}
+
+Asset* AssetDatabase::LoadAssetByID(const UUID& uuid)
+{
+    auto assetData = assets.GetAssetData(uuid);
+    if (assetData)
+    {
+        auto asset = assetData->GetAsset();
+        if (!asset)
+        {
+            asset = LoadAsset(assetData->GetAssetPath());
+        }
+
+        if (asset)
+        {
+            if (asset->GetUUID() == uuid)
+            {
+                return asset;
+            }
+            else
+            {
+                auto internalAssets = asset->GetInternalAssets();
+                auto iter = std::find_if(
+                    internalAssets.begin(),
+                    internalAssets.end(),
+                    [&uuid](Asset* a) { return a->GetUUID() == uuid; }
+                );
+                if (iter != internalAssets.end())
+                    return *iter;
+            }
+        }
     }
 
     return nullptr;
@@ -185,30 +243,36 @@ void AssetDatabase::SerializeAssetToDisk(Asset& asset, const std::filesystem::pa
 }
 Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::path path)
 {
-    path = assetDirectory / path;
+    if (path.is_absolute())
+        return nullptr;
+
+    path.replace_extension(a->GetExtension());
+    auto fullPath = assetDirectory / path;
     // only internal asset can be created
-    if (!a->IsExternalAsset() && !std::filesystem::exists(path))
+    if (!a->IsExternalAsset() && !std::filesystem::exists(fullPath))
     {
-        path.replace_extension(a->GetExtension());
         std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
+        newAssetData->SaveToDisk(projectRoot);
         Asset* asset = newAssetData->GetAsset();
 
-        SerializeAssetToDisk(*asset, newAssetData->GetAssetPath());
+        SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
 
-        Asset* temp = assets.Add(path, std::move(newAssetData));
+        Asset* temp = assets.Add(std::move(newAssetData));
 
         return temp;
     }
     return nullptr;
 }
 
-Asset* AssetDatabase::Assets::Add(const std::filesystem::path& path, std::unique_ptr<AssetData>&& assetData)
+Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
 {
     Asset* asset = assetData->GetAsset();
-    byPath[path.string()] = assetData.get();
-    data[assetData->GetAssetUUID()] = std::move(assetData);
+    UpdateAssetData(assetData.get());
+    data.push_back(std::move(assetData));
+
     return asset;
 }
+
 AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)
 {
     auto iter = byPath.find(path.string());
@@ -221,12 +285,107 @@ AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path
 }
 AssetData* AssetDatabase::Assets::GetAssetData(const UUID& uuid)
 {
-    auto iter = data.find(uuid);
-    if (iter != data.end())
+    auto iter = byUUID.find(uuid);
+    if (iter != byUUID.end())
     {
-        return iter->second.get();
+        return iter->second;
     }
     return nullptr;
+}
+
+void AssetDatabase::SaveDirtyAssets()
+{
+    for (auto& a : assets.data)
+    {
+        Asset* asset = a->GetAsset();
+        if (asset)
+        {
+            if (asset->IsDirty())
+            {
+                SaveAsset(*asset);
+                asset->SetDirty(false);
+            }
+        }
+
+        if (a->IsDirty())
+        {
+            a->SaveToDisk(projectRoot);
+        }
+    }
+}
+
+void AssetDatabase::LoadEngineInternal()
+{
+    static auto f = [this](const UUID& id, const char* path)
+    {
+        auto assetData = std::make_unique<AssetData>(id, path, AssetData::InternalAssetDataTag{});
+        internalAssets.push_back(assetData.get());
+        if (assetData->IsValid())
+        {
+            auto temp = assetData.get();
+            assets.Add(std::move(assetData));
+
+            // we don't have a way to tell the contained asset inside an internal asset(unless we specify them manually)
+            // we have to load them first so that other aseet can find the internal asset
+            LoadAsset(temp->GetAssetPath());
+
+            assets.UpdateAssetData(temp);
+        }
+    };
+
+    f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
+    f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
+    f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    f("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
+}
+
+void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)
+{
+    byPath[assetData->GetAssetPath().string()] = assetData;
+    byUUID[assetData->GetAssetUUID()] = assetData;
+
+    for (auto& iter : assetData->GetInternalObjectAssetNameToUUID())
+    {
+        byUUID[iter.second] = assetData;
+    }
+}
+
+void AssetDatabase::RequestShaderRefresh(bool all)
+{
+    requestShaderRefresh = true;
+    requestShaderRefreshAll = all;
+}
+
+void AssetDatabase::RefreshShader()
+{
+    if (requestShaderRefresh)
+    {
+        GetGfxDriver()->WaitForIdle();
+
+        requestShaderRefresh = false;
+        for (auto& d : assets.data)
+        {
+            if (requestShaderRefreshAll || d->NeedRefresh())
+            {
+                auto asset = d->GetAsset();
+                if (Shader* s = dynamic_cast<Shader*>(asset))
+                {
+                    try
+                    {
+                        s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str());
+                        d->UpdateAssetUUIDs();
+                        d->UpdateLastWriteTime();
+                    }
+                    catch (const std::exception& e)
+                    {
+                        SPDLOG_ERROR("failed to reload {}", d->GetAssetAbsolutePath().string());
+                    }
+                }
+            }
+        }
+
+        requestShaderRefreshAll = false;
+    }
 }
 
 } // namespace Engine

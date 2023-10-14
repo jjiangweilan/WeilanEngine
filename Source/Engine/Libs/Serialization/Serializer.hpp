@@ -155,8 +155,8 @@ protected:
 };
 
 template <class T>
-concept HasReferenceResolveParamter =
-    requires(std::string_view name, Serializer* s, T v, SerializeReferenceResolve r) { s->Deserialize(name, v, r); };
+concept HasReferenceResolveCallbackParamter =
+    requires(std::string_view name, Serializer* s, T v, ReferenceResolveCallback r) { s->Deserialize(name, v, r); };
 
 template <class T, class U>
 void Serializer::Serialize(std::string_view name, const std::unordered_map<T, U>& val)
@@ -192,7 +192,7 @@ void Serializer::Deserialize(
         Deserialize(keypath, key);
 
         std::string valuepath = fmt::format("{}/{}_value", name, i);
-        if constexpr (HasReferenceResolveParamter<U>)
+        if constexpr (HasReferenceResolveCallbackParamter<U>)
             Deserialize(valuepath, val[key], callback);
         else
             Deserialize(valuepath, val[key]);
@@ -222,7 +222,7 @@ void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const R
     for (int i = 0; i < size; ++i)
     {
         std::string path = fmt::format("{}/data/{}", name, i);
-        if constexpr (HasReferenceResolveParamter<T>)
+        if constexpr (HasReferenceResolveCallbackParamter<T>)
             Deserialize(path, val[i], callback);
         else
             Deserialize(path, val[i]);

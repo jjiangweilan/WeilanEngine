@@ -4,6 +4,7 @@
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include "spdlog/spdlog.h"
 
 namespace Engine::Editor
 {

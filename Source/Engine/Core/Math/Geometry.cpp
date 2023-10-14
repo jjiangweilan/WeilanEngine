@@ -6,8 +6,8 @@ namespace Engine
 bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
-    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferPtr();
-    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferPtr();
+    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
+    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferData();
     for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];
@@ -39,8 +39,8 @@ bool RayMeshIntersection(Ray ray,
                          glm::vec3& outP2)
 {
     glm::vec2 bary;
-    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferPtr();
-    glm::vec3* positions = (glm::vec3*)mesh->GetVertexBufferPtr();
+    uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
+    glm::vec3* positions = (glm::vec3*)mesh->GetIndexBufferData();
     for (int i = 0; i < mesh->GetIndexCount(); i += 3)
     {
         uint32_t i0 = indices[i];

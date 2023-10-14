@@ -5,12 +5,13 @@
 namespace Engine::Editor
 {
 
+class GameEditor;
 // all inspector should be stateless, same inspector instance is reused for different object in GameEditor
 class InspectorBase
 {
 public:
     virtual ~InspectorBase(){};
-    virtual void DrawInspector() = 0;
+    virtual void DrawInspector(GameEditor& editor) = 0;
     virtual void SetTarget(Object& obj) = 0;
 };
 
@@ -22,7 +23,8 @@ public:
     {
         target = static_cast<T*>(&obj);
     }
-    void DrawInspector() override {
+    void DrawInspector(GameEditor& editor) override
+    {
         // default inspector
         ImGui::Text("%s", ((Object*)target)->GetUUID().ToString().c_str());
     };

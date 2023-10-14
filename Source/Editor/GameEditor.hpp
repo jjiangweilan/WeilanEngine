@@ -3,6 +3,7 @@
 #include "Renderer.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Tools/GameView.hpp"
+#include "WeilanEngine.hpp"
 #include <ThirdParty/imgui/imgui.h>
 
 namespace Engine
@@ -20,8 +21,14 @@ public:
     ~GameEditor();
 
     void Start();
+    WeilanEngine* GetEngine()
+    {
+        return engine.get();
+    }
 
-    void OnWindowResize(int32_t width, int32_t height);
+    GameEditor* Instance();
+    nlohmann::json editorConfig;
+    static GameEditor* instance;
 
 private:
     struct RegisteredTool
@@ -33,18 +40,16 @@ private:
 private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
-    std::unique_ptr<GameObject> editorCameraGO;
 
     GameView gameView;
-
-    Camera* gameCamera;
-    Camera* editorCamera;
 
     bool sceneTree = true;
     bool sceneInfo = false;
 
     bool assetWindow = true;
     bool inspectorWindow = true;
+    bool openSceneWindow = false;
+    bool createSceneWindow = false;
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
@@ -57,7 +62,6 @@ private:
 
     void AssetWindow();
     void AssetShowDir(const std::filesystem::path& path);
-
     void InspectorWindow();
 
     void SceneTree(Scene& scene);

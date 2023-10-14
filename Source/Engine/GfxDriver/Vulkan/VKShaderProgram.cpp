@@ -4,6 +4,7 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
+#include "ThirdParty/xxHash/xxhash.h"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKShaderModule.hpp"
@@ -14,7 +15,36 @@
 
 namespace Engine::Gfx
 {
-VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName)
+
+VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
+{
+    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 100);
+
+    auto iter = samplers.find(hash);
+    if (iter != samplers.end())
+    {
+        return iter->second;
+    }
+
+    VkSampler sampler;
+    VKContext::Instance()->objManager->CreateSampler(createInfo, sampler);
+    samplers[hash] = sampler;
+    return sampler;
+}
+
+void SamplerCachePool::DestroyPool()
+{
+    for (auto& iter : samplers)
+    {
+        VKContext::Instance()->objManager->DestroySampler(iter.second);
+    }
+
+    samplers.clear();
+}
+
+std::unordered_map<uint32_t, VkSampler> SamplerCachePool::samplers = std::unordered_map<uint32_t, VkSampler>();
+
+VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName)
 {
     VkFilter filter = VK_FILTER_LINEAR;
     // if (bindingName.find("linear")) filter = VK_FILTER_LINEAR;
@@ -139,17 +169,15 @@ VKShaderProgram::VKShaderProgram(
         b.descriptorCount = binding.count;
         b.descriptorType = ShaderInfo::Utils::MapBindingType(binding.type);
 
-        std::string lowerBindingName = iter.first;
-        for (auto& c : lowerBindingName)
+        if (binding.type == ShaderInfo::BindingType::Texture)
         {
-            c = std::tolower(c);
-        }
-        if (lowerBindingName.find("sampler") != lowerBindingName.npos)
-        {
-            VkSamplerCreateInfo createInfo = GenerateSamplerCreateInfoFromString(lowerBindingName);
-            VkSampler sampler = VK_NULL_HANDLE;
-            VKContext::Instance()->objManager->CreateSampler(createInfo, sampler);
-            immutableSamplers.push_back(sampler);
+            std::string lowerBindingName = iter.first;
+            for (auto& c : lowerBindingName)
+            {
+                c = std::tolower(c);
+            }
+            VkSamplerCreateInfo createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(lowerBindingName);
+            VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
 
             std::vector<VkSampler> samplerHandles(b.descriptorCount, sampler);
             int index = immutableSamplerHandles.size();
@@ -214,11 +242,6 @@ VKShaderProgram::~VKShaderProgram()
     for (auto v : caches)
     {
         objManager->DestroyPipeline(v.pipeline);
-    }
-
-    for (auto v : immutableSamplers)
-    {
-        objManager->DestroySampler(v);
     }
 }
 

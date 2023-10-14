@@ -1,5 +1,6 @@
 #include "WeilanEngine.hpp"
 #if ENGINE_EDITOR
+#include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #endif
 namespace Engine
@@ -15,35 +16,12 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 {
     projectPath = createInfo.projectPath;
 
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1240, 860}};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     renderPipeline = std::make_unique<RenderPipeline>();
     event = std::make_unique<Event>();
     frameCmdBuffer = std::make_unique<FrameCmdBuffer>(*gfxDriver);
-
-    sceneRenderer = std::make_unique<Engine::SceneRenderer>();
-    sceneRenderer->BuildGraph({
-        .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-        .layout = Gfx::ImageLayout::Present_Src_Khr,
-        .accessFlags = Gfx::AccessMask::None,
-        .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-    }
-
-    );
-    sceneRenderer->Process();
-    renderPipeline->RegisterSwapchainRecreateCallback(
-        [this]
-        {
-            sceneRenderer->BuildGraph({
-                .finalImage = *GetGfxDriver()->GetSwapChainImage(),
-                .layout = Gfx::ImageLayout::Present_Src_Khr,
-                .accessFlags = Gfx::AccessMask::None,
-                .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-            });
-            sceneRenderer->Process();
-        }
-    );
 
 #if ENGINE_EDITOR
     ImGui::CreateContext();
@@ -51,21 +29,27 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 #endif
 }
 
-void WeilanEngine::BeginFrame()
+bool WeilanEngine::BeginFrame()
 {
     Time::Tick();
-
-#if ENGINE_EDITOR
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-#endif
-
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
 
-    renderPipeline->AcquireSwapchainImage();
+    bool hasSwapchain = renderPipeline->AcquireSwapchainImage();
+    if (!hasSwapchain)
+    {
+        return false;
+    }
+
+#if ENGINE_EDITOR
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
+#endif
     frameCmdBuffer->GetActive()->Begin();
+
+    return true;
 }
 
 void WeilanEngine::EndFrame()
@@ -82,6 +66,10 @@ void WeilanEngine::EndFrame()
 
     // the active command buffer has submitted to GPU, we can swap to another command buffer
     frameCmdBuffer->Swap();
+
+#if ENGINE_EDITOR
+    assetDatabase->RefreshShader();
+#endif
 }
 
 WeilanEngine::FrameCmdBuffer::FrameCmdBuffer(Gfx::GfxDriver& gfxDriver)
