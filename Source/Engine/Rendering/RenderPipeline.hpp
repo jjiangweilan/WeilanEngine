@@ -12,7 +12,7 @@ class RenderPipeline
 public:
     RenderPipeline();
 
-    void AcquireSwapchainImage();
+    bool AcquireSwapchainImage();
     void Render(Rendering::CmdSubmitGroup& submitGroup);
     void RegisterSwapchainRecreateCallback(const std::function<void()>& callback)
     {

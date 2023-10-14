@@ -10,6 +10,13 @@ namespace Engine::Gfx
 class VKDevice;
 class VKPhysicalDevice;
 class VKSurface;
+enum class AcquireNextImageResult
+{
+    Succeeded,
+    Recreated,
+    Failed
+};
+
 class VKSwapChain
 {
 private:
@@ -27,8 +34,8 @@ public:
     VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
     ~VKSwapChain();
 
-    void RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
-    bool AcquireNextImage(VkSemaphore semaphoreToSignal);
+    bool RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
+    AcquireNextImageResult AcquireNextImage(VkSemaphore semaphoreToSignal);
     VKSwapChainImage* GetSwapchainImage()
     {
         return swapChainImage.get();
@@ -51,7 +58,7 @@ private:
 
     bool GetSwapChainImagesFromVulkan();
 
-    void CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
+    bool CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
 
     VkSurfaceFormatKHR GetFormat(VKSurface* surface);
     VkImageUsageFlags GetUsageFlags(VKSurface* surface);

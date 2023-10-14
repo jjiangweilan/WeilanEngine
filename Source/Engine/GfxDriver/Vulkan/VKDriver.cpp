@@ -276,12 +276,12 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
     return inFlightFrame.imageAcquireSemaphore.Get();
 }
 
-bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
+AcquireNextSwapChainImageResult VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
 {
     VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
-    bool swapchainRecreated = swapchain->AcquireNextImage(s->GetHandle());
+    AcquireNextImageResult result = swapchain->AcquireNextImage(s->GetHandle());
 
-    if (swapchainRecreated)
+    if (result == AcquireNextImageResult::Recreated)
     {
         VKCommandPool::CreateInfo cmdPoolCreateInfo;
         cmdPoolCreateInfo.queueFamilyIndex = mainQueue->GetFamilyIndex();
@@ -318,9 +318,13 @@ bool VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore
         swapChainImage = swapchain->GetSwapchainImage();
 
         WaitForIdle();
-    }
 
-    return swapchainRecreated;
+        return AcquireNextSwapChainImageResult::Recreated;
+    }
+    else if (result == AcquireNextImageResult::Failed)
+        return AcquireNextSwapChainImageResult::Failed;
+
+    return AcquireNextSwapChainImageResult::Succeeded;
 }
 
 UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)

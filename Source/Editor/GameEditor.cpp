@@ -353,24 +353,25 @@ void GameEditor::Start()
 {
     while (true)
     {
-        engine->BeginFrame();
-
-        if (engine->event->GetWindowClose().state)
+        if (engine->BeginFrame())
         {
-            return;
+            if (engine->event->GetWindowClose().state)
+            {
+                return;
+            }
+            if (engine->event->GetWindowSizeChanged().state)
+            {
+                auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
+                gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+            }
+
+            GUIPass();
+
+            auto& cmd = engine->GetActiveCmdBuffer();
+            Render(cmd);
+
+            engine->EndFrame();
         }
-        if (engine->event->GetWindowSizeChanged().state)
-        {
-            auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
-            gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
-        }
-
-        GUIPass();
-
-        auto& cmd = engine->GetActiveCmdBuffer();
-        Render(cmd);
-
-        engine->EndFrame();
     }
 }
 

@@ -29,22 +29,27 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 #endif
 }
 
-void WeilanEngine::BeginFrame()
+bool WeilanEngine::BeginFrame()
 {
     Time::Tick();
+    // poll events, this is every important
+    // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
+    event->Poll();
+
+    bool hasSwapchain = renderPipeline->AcquireSwapchainImage();
+    if (!hasSwapchain)
+    {
+        return false;
+    }
 
 #if ENGINE_EDITOR
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
     ImGuizmo::BeginFrame();
 #endif
-
-    // poll events, this is every important
-    // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
-    event->Poll();
-
-    renderPipeline->AcquireSwapchainImage();
     frameCmdBuffer->GetActive()->Begin();
+
+    return true;
 }
 
 void WeilanEngine::EndFrame()

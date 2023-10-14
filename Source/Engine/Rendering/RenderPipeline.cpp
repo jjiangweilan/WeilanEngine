@@ -17,21 +17,22 @@ RenderPipeline::RenderPipeline()
     // ProcessGraph(swapchainNode, swapchainHandle, depthNode, depthHandle);
 }
 
-void RenderPipeline::AcquireSwapchainImage()
+bool RenderPipeline::AcquireSwapchainImage()
 {
-    if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
+    auto result = GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
+    if (result == Gfx::AcquireNextSwapChainImageResult::Recreated)
     {
-        swapchainAcquireSemaphore = GetGfxDriver()->CreateSemaphore({.signaled = false});
-        if (GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore))
-        {
-            throw std::runtime_error("the second acquire swapchain image is not successful.");
-        }
-
         for (auto& cb : swapchainRecreateCallback)
         {
             cb();
         }
     }
+    else if (result == Gfx::AcquireNextSwapChainImageResult::Failed)
+        return false;
+    else if (result == Gfx::AcquireNextSwapChainImageResult::Succeeded)
+        return true;
+
+    return false;
 }
 
 void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)

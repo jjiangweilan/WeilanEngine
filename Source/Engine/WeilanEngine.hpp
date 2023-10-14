@@ -25,7 +25,7 @@ public:
 
     void Init(const CreateInfo& createInfo);
 
-    void BeginFrame();
+    bool BeginFrame();
     void EndFrame();
     Gfx::CommandBuffer& GetActiveCmdBuffer();
 
