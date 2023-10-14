@@ -199,6 +199,13 @@ VKShaderProgram::VKShaderProgram(
                     &immutableSamplerHandles[reinterpret_cast<uint64_t>(binding.pImmutableSamplers) - 1];
             }
         }
+
+        std::sort(
+            set.second.begin(),
+            set.second.end(),
+            [](const VkDescriptorSetLayoutBinding& l, const VkDescriptorSetLayoutBinding& r)
+            { return l.binding < r.binding; }
+        );
     }
 
     GeneratePipelineLayoutAndGetDescriptorPool(descriptorSetBindings);
