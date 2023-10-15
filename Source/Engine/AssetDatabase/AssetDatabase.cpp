@@ -275,7 +275,7 @@ Asset* AssetDatabase::Assets::Add(std::unique_ptr<AssetData>&& assetData)
 
 AssetData* AssetDatabase::Assets::GetAssetData(const std::filesystem::path& path)
 {
-    auto iter = byPath.find(path.string());
+    auto iter = byPath.find(path);
     if (iter != byPath.end())
     {
         return iter->second;
