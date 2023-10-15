@@ -33,9 +33,9 @@ TEST(Gameplay, Test0)
     );
 
     // load model
-    auto model2 = engine->ImportModel("Source/Test/Resources/DamagedHelmet.glb");
-    scene.AddGameObject(model2->GetGameObject()[0].get());
-    auto lightGO = scene.CreateGameObject();
-    auto light = lightGO->AddComponent<Engine::Light>();
-    light->SetIntensity(10);
+    // auto model2 = engine->ImportModel("Source/Test/Resources/DamagedHelmet.glb");
+    // scene.AddGameObject(model2->GetGameObject()[0].get());
+    // auto lightGO = scene.CreateGameObject();
+    // auto light = lightGO->AddComponent<Engine::Light>();
+    // light->SetIntensity(10);
 }

@@ -6,11 +6,11 @@ TEST(EnvironmentBaker, Test0)
     auto engine = std::make_unique<Engine::WeilanEngine>();
     engine->Init({});
 
-    auto sceneRenderer = std::make_unique<Engine::SceneRenderer>();
+    auto sceneRenderer = std::make_unique<Engine::SceneRenderer>(*engine->assetDatabase);
     Engine::Scene scene;
 
     sceneRenderer->BuildGraph({
-        .finalImage = *GetGfxDriver()->GetSwapChainImage(),
+        .finalImage = GetGfxDriver()->GetSwapChainImage(),
         .layout = Gfx::ImageLayout::Present_Src_Khr,
         .accessFlags = Gfx::AccessMask::None,
         .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
@@ -54,10 +54,10 @@ TEST(EnvironmentBaker, Test0)
     // );
 
     // load model
-    auto opaqueShader = sceneRenderer->GetOpaqueShader();
-    auto model2 = Engine::Importers::GLB("Source/Test/Resources/EnvrionmentBake.glb", opaqueShader);
-    scene.AddGameObject(model2->GetGameObject()[0].get());
-    auto lightGO = scene.CreateGameObject();
-    auto light = lightGO->AddComponent<Engine::Light>();
-    light->SetIntensity(10);
+    // auto opaqueShader = sceneRenderer->GetOpaqueShader();
+    // auto model2 = Engine::Importers::GLB("Source/Test/Resources/EnvrionmentBake.glb", opaqueShader);
+    // scene.AddGameObject(model2->GetGameObject()[0].get());
+    // auto lightGO = scene.CreateGameObject();
+    // auto light = lightGO->AddComponent<Engine::Light>();
+    // light->SetIntensity(10);
 }

@@ -25,7 +25,7 @@ std::string RemoveShaderNameConfigText(std::string text)
 
 Texture::Type MapStringToTextureType(const std::string& typeStr)
 {
-    if (typeStr == "sampler2D")
+    if (typeStr == "sampler2D" || typeStr == "sampler2DShadow")
         return Texture::Type::Tex2D;
     else if (typeStr == "samplerCube")
         return Texture::Type::TexCube;
