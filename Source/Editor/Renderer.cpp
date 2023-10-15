@@ -171,7 +171,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
         }
 
         ImDrawVert* vtxDst = (ImDrawVert*)stagingBuffer->GetCPUVisibleAddress();
-        ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexBuffer->GetSize());
+        ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexSize);
         for (int n = 0; n < imguiDrawData->CmdListsCount; n++)
         {
             const ImDrawList* cmd_list = imguiDrawData->CmdLists[n];
@@ -183,8 +183,8 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
 
         Gfx::BufferCopyRegion vertexCopy[1];
         Gfx::BufferCopyRegion indexCopy[1];
-        vertexCopy[0] = {0, 0, vertexBuffer->GetSize()};
-        indexCopy[0] = {vertexBuffer->GetSize(), 0, indexBuffer->GetSize()};
+        vertexCopy[0] = {0, 0, vertexSize};
+        indexCopy[0] = {vertexBuffer->GetSize(), 0, indexSize};
         cmd.CopyBuffer(stagingBuffer, vertexBuffer, vertexCopy);
         cmd.CopyBuffer(stagingBuffer, indexBuffer, indexCopy);
     }
