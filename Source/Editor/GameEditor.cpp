@@ -178,7 +178,7 @@ void GameEditor::SceneTree(Scene& scene)
     ImGui::End();
 }
 
-void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
+static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)
     {

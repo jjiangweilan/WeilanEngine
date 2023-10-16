@@ -57,8 +57,11 @@ Renderer::~Renderer() {}
 
 Renderer::Renderer(const char* customFont)
 {
-    indexBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Index, 1024, true});
-    vertexBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex, 1024, true});
+    indexBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, 2048, false});
+    vertexBuffer =
+        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, 2048, false});
+    stagingBuffer =
+        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     ShaderCompiler compiler;
     compiler.Compile(imguiShader, false);
@@ -125,15 +128,6 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
 {
     ImGui::Render();
 
-    Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
-    uint32_t width = color->GetDescription().width;
-    uint32_t height = color->GetDescription().height;
-    cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
-    std::vector<Gfx::ClearValue> clears(2);
-    clears[0].color = {{0, 0, 0, 0}};
-    clears[1].depthStencil.depth = 1;
-    cmd.BeginRenderPass(pass, clears);
-
     ImDrawData* imguiDrawData = ImGui::GetDrawData();
 
     if (imguiDrawData->TotalVtxCount > 0)
@@ -142,19 +136,42 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
         size_t vertexSize = imguiDrawData->TotalVtxCount * sizeof(ImDrawVert);
         size_t indexSize = imguiDrawData->TotalIdxCount * sizeof(ImDrawIdx);
 
+        size_t stagingSize = 0;
+        bool createVertex = false, createIndex = false, createStaging = false;
         if (vertexBuffer->GetSize() < vertexSize)
         {
-            GetGfxDriver()->WaitForIdle();
-            vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer({Gfx::BufferUsage::Vertex, vertexSize, true});
-        }
-        if (indexBuffer->GetSize() < indexSize)
-        {
-            GetGfxDriver()->WaitForIdle();
-            indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer({Gfx::BufferUsage::Index, indexSize, true});
+            createVertex = true;
+            stagingSize = vertexSize + indexSize;
         }
 
-        ImDrawVert* vtxDst = (ImDrawVert*)vertexBuffer->GetCPUVisibleAddress();
-        ImDrawIdx* idxDst = (ImDrawIdx*)indexBuffer->GetCPUVisibleAddress();
+        if (indexBuffer->GetSize() < indexSize)
+        {
+            createIndex = true;
+            stagingSize = vertexSize + indexSize;
+        }
+
+        if (stagingSize != 0)
+        {
+            createStaging = true;
+        }
+
+        if (createVertex || createIndex || createStaging)
+        {
+            GetGfxDriver()->WaitForIdle();
+            if (createVertex)
+                vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(
+                    {Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, vertexSize, false}
+                );
+            if (createIndex)
+                indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(
+                    {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false}
+                );
+            if (createStaging)
+                stagingBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
+        }
+
+        ImDrawVert* vtxDst = (ImDrawVert*)stagingBuffer->GetCPUVisibleAddress();
+        ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexSize);
         for (int n = 0; n < imguiDrawData->CmdListsCount; n++)
         {
             const ImDrawList* cmd_list = imguiDrawData->CmdLists[n];
@@ -163,7 +180,36 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
             vtxDst += cmd_list->VtxBuffer.Size;
             idxDst += cmd_list->IdxBuffer.Size;
         }
+
+        Gfx::BufferCopyRegion vertexCopy[1];
+        Gfx::BufferCopyRegion indexCopy[1];
+        vertexCopy[0] = {0, 0, vertexSize};
+        indexCopy[0] = {vertexSize, 0, indexSize};
+        cmd.CopyBuffer(stagingBuffer, vertexBuffer, vertexCopy);
+        cmd.CopyBuffer(stagingBuffer, indexBuffer, indexCopy);
+
+        Gfx::GPUBarrier memTransferBarrier[2]{};
+        memTransferBarrier[0].buffer = vertexBuffer.get();
+        memTransferBarrier[0].srcStageMask = Gfx::PipelineStage::Transfer;
+        memTransferBarrier[0].dstStageMask = Gfx::PipelineStage::Vertex_Input;
+        memTransferBarrier[0].srcAccessMask = Gfx::AccessMask::Transfer_Write;
+        memTransferBarrier[0].dstAccessMask = Gfx::AccessMask::Vertex_Attribute_Read;
+        memTransferBarrier[1].buffer = indexBuffer.get();
+        memTransferBarrier[1].srcStageMask = Gfx::PipelineStage::Transfer;
+        memTransferBarrier[1].dstStageMask = Gfx::PipelineStage::Vertex_Input;
+        memTransferBarrier[1].srcAccessMask = Gfx::AccessMask::Transfer_Write;
+        memTransferBarrier[1].dstAccessMask = Gfx::AccessMask::Index_Read;
+        cmd.Barrier(memTransferBarrier, 2);
     }
+
+    Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
+    uint32_t width = color->GetDescription().width;
+    uint32_t height = color->GetDescription().height;
+    cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
+    std::vector<Gfx::ClearValue> clears(2);
+    clears[0].color = {{0, 0, 0, 0}};
+    clears[1].depthStencil.depth = 1;
+    cmd.BeginRenderPass(pass, clears);
 
     // draw
     // Will project scissor/clipping rectangles into framebuffer space

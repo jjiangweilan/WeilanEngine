@@ -25,9 +25,9 @@ std::string RemoveShaderNameConfigText(std::string text)
 
 Texture::Type MapStringToTextureType(const std::string& typeStr)
 {
-    if (typeStr == "sampler2D")
+    if (typeStr == "sampler2D" || typeStr == "sampler2DShadow")
         return Texture::Type::Tex2D;
-    if (typeStr == "samplerCube")
+    else if (typeStr == "samplerCube")
         return Texture::Type::TexCube;
 
     assert(false && "non handled Texture::Type");
@@ -302,11 +302,20 @@ void Process(
                     {
                         new (&b.binding.texture) Texture();
                         b.binding.texture.filter = MapStringToSamplerFilterMode(name);
-                        b.binding.texture.type = MapStringToTextureType(bindingJson.value("type", "sampler2D"));
+                        std::string bindingType = bindingJson.value("type", "sampler2D");
+                        b.binding.texture.type = MapStringToTextureType(bindingType);
+                        b.binding.texture.enableCompare = bindingType.find("Shadow") != bindingType.npos ? true : false;
                         break;
                     }
                 case BindingType::SeparateImage: new (&b.binding.separateImage) SeparateImage(); break;
-                case BindingType::SeparateSampler: new (&b.binding.separateSampler) SeparateSampler(); break;
+                case BindingType::SeparateSampler:
+                    {
+                        new (&b.binding.separateSampler) SeparateSampler();
+                        std::string bindingType = bindingJson.value("type", "sampler2D");
+                        b.binding.separateSampler.enableCompare =
+                            bindingType.find("Shadow") != bindingType.npos ? true : false;
+                        break;
+                    }
                 default: assert(0 && "Not implemented");
             }
             b.count = bindingJson.value("array", std::vector<int>{1})[0];

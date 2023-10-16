@@ -33,7 +33,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
     descriptorPool = &shaderProgram->GetDescriptorPool(MapDescriptorSetSlot(frequency));
     descriptorSet = descriptorPool->Allocate();
     auto& shaderInfo = shaderProgram->GetShaderInfo();
-    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSet, shader->GetName().data());
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSet, std::to_string(slot).c_str());
 
     // allocate push constant buffer
     uint32_t pushConstantSize = 0;
@@ -133,7 +133,10 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                     }
                 case ShaderInfo::BindingType::SeparateSampler:
                     {
-                        auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(b.first);
+                        auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
+                            b.first,
+                            b.second.binding.separateSampler.enableCompare
+                        );
                         VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
                         VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

@@ -40,19 +40,19 @@ void main()
     if (c > 0)
     {
         float ndotl = max(dot(normalize(fragInput.normalWS), scene.lights[0].position.xyz), 0);
-        color *= ndotl;
+        color *= ndotl * scene.lights[0].intensity;
+        color = min(color, vec3(1));
     }
 
     // shadow mask
     vec2 shadowUV = fragInput.shadowCoord.xy / fragInput.shadowCoord.w * 0.5 + 0.5;
     float objShadowDepth = fragInput.shadowCoord.z / fragInput.shadowCoord.w;
-    float shadowDepth = 0;
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
         shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
     }
 
-    oColor = vec4(color * shadowAttenuation, 1.0);
+    oColor = vec4(vec3(color * shadowAttenuation), 1.0);
 }
 #endif

@@ -47,7 +47,6 @@ private:
         glm::mat4 pushConstant;
         uint32_t indexCount;
     };
-
     static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
     struct LightInfo
     {
@@ -63,6 +62,7 @@ private:
         glm::mat4 viewProjection;
         glm::mat4 worldToShadow;
         glm::vec4 lightCount;
+        glm::vec4 shadowMapSize;
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;

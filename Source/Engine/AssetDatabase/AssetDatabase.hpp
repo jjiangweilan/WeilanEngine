@@ -57,7 +57,7 @@ private:
         // get by asset's uuid
         AssetData* GetAssetData(const UUID& uuid);
 
-        std::unordered_map<std::filesystem::path, AssetData*> byPath;
+        std::unordered_map<std::filesystem::path, AssetData*, std::hash<std::filesystem::path>> byPath;
         std::unordered_map<UUID, AssetData*> byUUID;
         std::vector<std::unique_ptr<AssetData>> data;
     } assets;

@@ -109,9 +109,10 @@ struct Texture
     enum class Type
     {
         Tex2D,
-        TexCube
+        TexCube,
     };
 
+    bool enableCompare;
     SamplerFilterMode filter;
     Type type;
 };
@@ -120,7 +121,9 @@ struct SeparateImage
 {};
 
 struct SeparateSampler
-{};
+{
+    bool enableCompare;
+};
 
 using Outputs = std::vector<Output>;
 using Inputs = std::vector<Input>;

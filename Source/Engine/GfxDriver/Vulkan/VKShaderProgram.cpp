@@ -44,7 +44,9 @@ void SamplerCachePool::DestroyPool()
 
 std::unordered_map<uint32_t, VkSampler> SamplerCachePool::samplers = std::unordered_map<uint32_t, VkSampler>();
 
-VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName)
+VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
+    const std::string& lowerBindingName, bool enableCompare
+)
 {
     VkFilter filter = VK_FILTER_LINEAR;
     // if (bindingName.find("linear")) filter = VK_FILTER_LINEAR;
@@ -68,7 +70,7 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(const 
     samplerCreateInfo.mipLodBias = 0;
     samplerCreateInfo.anisotropyEnable = VK_FALSE;
     samplerCreateInfo.maxAnisotropy = 0;
-    samplerCreateInfo.compareEnable = VK_FALSE;
+    samplerCreateInfo.compareEnable = enableCompare;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     samplerCreateInfo.minLod = 0;
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
@@ -176,7 +178,10 @@ VKShaderProgram::VKShaderProgram(
             {
                 c = std::tolower(c);
             }
-            VkSamplerCreateInfo createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(lowerBindingName);
+            VkSamplerCreateInfo createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
+                lowerBindingName,
+                binding.binding.texture.enableCompare
+            );
             VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
 
             std::vector<VkSampler> samplerHandles(b.descriptorCount, sampler);
@@ -199,6 +204,13 @@ VKShaderProgram::VKShaderProgram(
                     &immutableSamplerHandles[reinterpret_cast<uint64_t>(binding.pImmutableSamplers) - 1];
             }
         }
+
+        // std::sort(
+        //     set.second.begin(),
+        //     set.second.end(),
+        //     [](const VkDescriptorSetLayoutBinding& l, const VkDescriptorSetLayoutBinding& r)
+        //     { return l.binding < r.binding; }
+        //);
     }
 
     GeneratePipelineLayoutAndGetDescriptorPool(descriptorSetBindings);
