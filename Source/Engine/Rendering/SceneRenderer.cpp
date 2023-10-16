@@ -102,7 +102,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
     Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
     Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
-    sceneInfo.shadowMapSize = glm::vec4{2048, 2048,  1 / 2048.0f, 1 / 2048.0f};
+    sceneInfo.shadowMapSize = glm::vec4{2048, 2048, 1 / 2048.0f, 1 / 2048.0f};
 
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
@@ -148,19 +148,30 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
     auto shadowmapShader = shadowShader;
     glm::vec2 shadowMapSize = sceneInfo.shadowMapSize;
-    shadowPass = AddNode(
-        [this,
-         shadowClears,
-         shadowmapShader,
-         shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
+
+    // variance shadow
+    std::vector<Gfx::ClearValue> clears = {{.color = {{0, 0, 0, 0}}}, {.depthStencil = {0}}};
+    vsmPass = AddNode2(
+        {},
+        {{
+            .width = (uint32_t)shadowMapSize.x,
+            .height = (uint32_t)shadowMapSize.y,
+            .colors = {{
+                .name = "shadow map",
+                .handle = 0,
+                .create = true,
+                .format = Gfx::ImageFormat::R16G16B16A16_UNorm,
+                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                .storeOp = Gfx::AttachmentStoreOperation::Store,
+                .stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare,
+                .stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare,
+            }},
+            .depth = {{}},
+        }},
+        [this, clears, shadowmapShader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& ref)
         {
-            cmd.BindResource(sceneShaderResource);
-            cmd.SetViewport(
-                {.x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1}
-            );
-            Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
-            cmd.SetScissor(0, 1, &rect);
-            cmd.BeginRenderPass(pass, shadowClears);
+            cmd.BeginRenderPass(pass, clears);
 
             for (auto& draw : this->drawList)
             {
@@ -170,46 +181,12 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 cmd.SetPushConstant(shadowmapShader->GetShaderProgram(), &draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
+
             cmd.EndRenderPass();
-        },
-        {
-            {
-                .name = "shadow",
-                .handle = 0,
-                .type = ResourceType::Image,
-                .accessFlags =
-                    Gfx::AccessMask::Depth_Stencil_Attachment_Write | Gfx::AccessMask::Depth_Stencil_Attachment_Read,
-                .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
-                .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
-                .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
-                .imageCreateInfo =
-                    {
-                        .width = (uint32_t)shadowMapSize.x,
-                        .height = (uint32_t)shadowMapSize.y,
-                        .format = Gfx::ImageFormat::D16_UNorm,
-                        .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                        .mipLevels = 1,
-                        .isCubemap = false,
-                    },
-            },
-            {
-                .name = "global scene buffer",
-                .handle = 1,
-                .type = ResourceType::Buffer,
-                .accessFlags = Gfx::AccessMask::Shader_Read,
-                .stageFlags = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
-            },
-        },
-        {{
-            .depth = {{
-                .handle = 0,
-                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                .storeOp = Gfx::AttachmentStoreOperation::Store,
-            }},
-        }}
+        }
     );
-    Connect(uploadSceneBuffer, 0, shadowPass, 1);
+
+    Connect(uploadSceneBuffer, 0, vsmPass, 1);
 
     std::vector<Gfx::ClearValue> clearValues = {
         {.color = {{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}}},

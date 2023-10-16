@@ -81,7 +81,7 @@ private:
     RenderGraph::RenderNode* depthOutput;
     RenderGraph::ResourceHandle depthHandle;
 
-    RenderGraph::RenderNode* shadowPass;
+    RenderGraph::RenderNode* vsmPass;
 
     Model* cube;
     std::unique_ptr<Shader> skyboxShader;
