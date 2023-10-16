@@ -48,6 +48,13 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
         case ImageFormat::R8G8B8_SRGB: return 3;
         case ImageFormat::R8G8_SRGB: return 2;
         case ImageFormat::R8_SRGB: return 1;
+        case ImageFormat::R16G16_UNorm: return 4;
+        case ImageFormat::R16G16_SNorm: return 4;
+        case ImageFormat::R16G16_UScaled: return 4;
+        case ImageFormat::R16G16_SScaled: return 4;
+        case ImageFormat::R16G16_UInt: return 4;
+        case ImageFormat::R16G16_SInt: return 4;
+        case ImageFormat::R16G16_SFloat: return 4;
         case ImageFormat::D16_UNorm: return 2;
         case ImageFormat::D16_UNorm_S8_UInt: return 3;
         case ImageFormat::D24_UNorm_S8_UInt: return 4;
@@ -79,6 +86,18 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::R8G8_SRGB;
     else if (name == "R8_SRGB")
         return ImageFormat::R8_SRGB;
+    else if (name == "R16G16_SNorm")
+        return ImageFormat::R16G16_SNorm;
+    else if (name == "R16G16_UScaled")
+        return ImageFormat::R16G16_UScaled;
+    else if (name == "R16G16_SScaled")
+        return ImageFormat::R16G16_SScaled;
+    else if (name == "R16G16_UInt")
+        return ImageFormat::R16G16_UInt;
+    else if (name == "R16G16_SInt")
+        return ImageFormat::R16G16_SInt;
+    else if (name == "R16G16_SFloat")
+        return ImageFormat::R16G16_SFloat;
     else if (name == "D16_UNorm")
         return ImageFormat::D16_UNorm;
     else if (name == "D16_UNorm_S8_UInt")

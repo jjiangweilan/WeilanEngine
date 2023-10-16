@@ -25,6 +25,13 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::R8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
         case ImageFormat::R8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
         case ImageFormat::R8_SRGB: return VK_FORMAT_R8_SRGB;
+        case ImageFormat::R16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
+        case ImageFormat::R16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
+        case ImageFormat::R16G16_UScaled: return VK_FORMAT_R16G16_USCALED;
+        case ImageFormat::R16G16_SScaled: return VK_FORMAT_R16G16_SSCALED;
+        case ImageFormat::R16G16_UInt: return VK_FORMAT_R16G16_UINT;
+        case ImageFormat::R16G16_SInt: return VK_FORMAT_R16G16_SINT;
+        case ImageFormat::R16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
         case ImageFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         default: assert(0 && "Format map failed");
     }
@@ -55,6 +62,14 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_R8G8B8_SRGB: return ImageFormat::R8G8B8_SRGB;
         case VK_FORMAT_R8G8_SRGB: return ImageFormat::R8G8_SRGB;
         case VK_FORMAT_R8_SRGB: return ImageFormat::R8_SRGB;
+        case VK_FORMAT_R16G16_UNORM: return ImageFormat::R16G16_UNorm;
+        case VK_FORMAT_R16G16_SNORM: return ImageFormat::R16G16_SNorm;
+        case VK_FORMAT_R16G16_USCALED: return ImageFormat::R16G16_UScaled;
+        case VK_FORMAT_R16G16_SSCALED: return ImageFormat::R16G16_SScaled;
+        case VK_FORMAT_R16G16_UINT: return ImageFormat::R16G16_UInt;
+        case VK_FORMAT_R16G16_SINT: return ImageFormat::R16G16_SInt;
+        case VK_FORMAT_R16G16_SFLOAT: return ImageFormat::R16G16_SFloat;
+
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return ImageFormat::B10G11R11_UFloat_Pack32;
         default: assert(0 && "VK format map failed");
     }
