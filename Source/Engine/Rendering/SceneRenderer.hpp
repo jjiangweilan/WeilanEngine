@@ -84,7 +84,7 @@ private:
     RenderGraph::ResourceHandle depthHandle;
 
     RenderGraph::RenderNode* vsmPass;
-    RenderGraph::RenderNode* vsmMipmapPass;
+    std::vector<RenderGraph::RenderNode*> vsmMipmapPasses;
 
     Model* cube;
     std::unique_ptr<Shader> skyboxShader;

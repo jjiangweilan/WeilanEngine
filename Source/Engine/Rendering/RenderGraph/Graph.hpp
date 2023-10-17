@@ -47,12 +47,20 @@ private:
     friend class Graph;
 };
 
+struct ImageView
+{
+    Gfx::ImageAspectFlags aspectMask;
+    uint32_t layer;
+};
+
 struct Attachment
 {
     std::string name;
     ResourceHandle handle;
     bool create = false;
     Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+
+    std::optional<ImageView> imageView;
 
     Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
     uint32_t mipLevels = 1;
@@ -156,6 +164,22 @@ public:
                     .stencilLoadOp = color.stencilLoadOp,
                     .stencilStoreOp = color.storeOp};
 
+                if (color.imageView.has_value())
+                {
+                    RenderPass::ImageView imageView{
+                        .imageViewType = Gfx::ImageViewType::Image_2D,
+                        .subresourceRange =
+                            {
+                                .aspectMask = color.imageView->aspectMask,
+                                .baseMipLevel = color.imageView->layer,
+                                .levelCount = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount = 1,
+                            },
+                    };
+                    att.imageView = imageView;
+                }
+
                 lSubpass.colors.push_back(att);
 
                 // there must be write mask but we only add read mask when the color.loadOp is Load or Clear
@@ -195,6 +219,22 @@ public:
                     .stencilLoadOp = subpass.depth->stencilLoadOp,
                     .stencilStoreOp = subpass.depth->storeOp,
                 };
+
+                if (subpass.depth->imageView.has_value())
+                {
+                    RenderPass::ImageView imageView{
+                        .imageViewType = Gfx::ImageViewType::Image_2D,
+                        .subresourceRange =
+                            {
+                                .aspectMask = subpass.depth->imageView->aspectMask,
+                                .baseMipLevel = subpass.depth->imageView->layer,
+                                .levelCount = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount = 1,
+                            },
+                    };
+                    att.imageView = imageView;
+                }
 
                 lSubpass.depth = att;
 

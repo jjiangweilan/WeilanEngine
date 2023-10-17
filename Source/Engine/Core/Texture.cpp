@@ -440,7 +440,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     Engine::TextureDescription texDesc{};
     texDesc.img.width = width;
     texDesc.img.height = height;
-    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
+    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::min(width, height))) + 1;
     texDesc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
     texDesc.img.isCubemap = false;
     texDesc.data = loaded;

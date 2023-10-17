@@ -36,7 +36,7 @@ layout(location = 0) out vec4 o_Color;
 
 layout(set = SET_MATERIAL, binding = 0) uniform sampler2D source;
 void main() {
-    o_Color = texture(source, i_uv);
+    o_Color = textureLod(source, i_uv, 0);
 }
 
 #endif
