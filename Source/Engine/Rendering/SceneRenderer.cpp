@@ -278,9 +278,11 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
         if (mip != 0)
         {
             Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 0);
+            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 1);
         }
         else
         {
+            Connect(vsmPass, 0, vsmMipmapPasses.front(), 0);
             Connect(vsmPass, 0, vsmMipmapPasses.front(), 1);
         }
     }
