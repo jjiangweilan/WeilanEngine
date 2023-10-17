@@ -66,6 +66,7 @@ private:
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
+    std::unique_ptr<Gfx::ShaderResource> vsmMip1ShaderResource;
     uint32_t globalSceneShaderContentHash;
 
     using DrawList = std::vector<SceneObjectDrawData>;
@@ -75,6 +76,7 @@ private:
 
     Shader* opaqueShader;
     Shader* shadowShader;
+    Shader* copyOnlyShader;
 
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;
@@ -82,6 +84,7 @@ private:
     RenderGraph::ResourceHandle depthHandle;
 
     RenderGraph::RenderNode* vsmPass;
+    RenderGraph::RenderNode* vsmMipmapPass;
 
     Model* cube;
     std::unique_ptr<Shader> skyboxShader;

@@ -1,6 +1,8 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 #version 450
 #include "Common/Common.glsl"
+#define VSM_SHADOW_MAP_SAMPLING_PASS
+#include "Game/Shadow/VSM.glsl"
 #include "VirtualTexture/VirtualTexture.glsl"
 #define M_PI 3.1415926535897932384626433832795
 
@@ -147,7 +149,8 @@ void main()
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+        // shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+        shadowAttenuation = VSMShadowAttenuation(texture(shadowMap, shadowUV).xy, objShadowDepth);
     }
 
     vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;

@@ -40,10 +40,16 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
 {
     shadowShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/ShadowMap.shad");
     opaqueShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+    copyOnlyShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Utils/CopyOnly.shad");
 
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         opaqueShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
+    );
+
+    vsmMip1ShaderResource = GetGfxDriver()->CreateShaderResource(
+        copyOnlyShader->GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Material
     );
     globalSceneShaderContentHash = opaqueShader->GetContentHash();
 
@@ -102,7 +108,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
     Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
     Gfx::Buffer* sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
-    sceneInfo.shadowMapSize = glm::vec4{2048, 2048, 1 / 2048.0f, 1 / 2048.0f};
+    float shadowMapSizef = 1024;
+    sceneInfo.shadowMapSize = glm::vec4{shadowMapSizef, shadowMapSizef, 1 / shadowMapSizef, 1 / shadowMapSizef};
 
     auto uploadSceneBuffer = AddNode(
         [this, shadowClears, sceneGlobalBuffer](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& res)
@@ -150,28 +157,54 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     glm::vec2 shadowMapSize = sceneInfo.shadowMapSize;
 
     // variance shadow
-    std::vector<Gfx::ClearValue> clears = {{.color = {{0, 0, 0, 0}}}, {.depthStencil = {0}}};
+    std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
     vsmPass = AddNode2(
-        {},
-        {{
-            .width = (uint32_t)shadowMapSize.x,
-            .height = (uint32_t)shadowMapSize.y,
-            .colors = {{
-                .name = "shadow map",
-                .handle = 0,
-                .create = true,
-                .format = Gfx::ImageFormat::R16G16B16A16_UNorm,
-                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                .storeOp = Gfx::AttachmentStoreOperation::Store,
-                .stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare,
-                .stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare,
-            }},
-            .depth = {{}},
-        }},
-        [this, clears, shadowmapShader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& ref)
         {
-            cmd.BeginRenderPass(pass, clears);
+            {
+                .name = "global scene buffer",
+                .handle = 1,
+                .type = PassDependencyType::Buffer,
+                .stageFlags = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
+            },
+        },
+        {
+            {
+                .width = (uint32_t)shadowMapSize.x,
+                .height = (uint32_t)shadowMapSize.y,
+                .colors =
+                    {
+                        {
+                            .name = "shadow map",
+                            .handle = 0,
+                            .create = true,
+                            .format = Gfx::ImageFormat::R16G16_SFloat,
+                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                            .loadOp = Gfx::AttachmentLoadOperation::Clear,
+                            .storeOp = Gfx::AttachmentStoreOperation::Store,
+                        },
+                    },
+                .depth =
+                    Attachment{
+                        .name = "shadow depth",
+                        .handle = 2,
+                        .create = true,
+                        .format = Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                        .storeOp = Gfx::AttachmentStoreOperation::DontCare,
+                    },
+            },
+        },
+        [this,
+         vsmClears,
+         shadowmapShader,
+         shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& ref)
+        {
+            cmd.BindResource(sceneShaderResource);
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
+            cmd.SetScissor(0, 1, &rect);
+            cmd.BeginRenderPass(pass, vsmClears);
 
             for (auto& draw : this->drawList)
             {
@@ -185,8 +218,49 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.EndRenderPass();
         }
     );
-
     Connect(uploadSceneBuffer, 0, vsmPass, 1);
+
+    // down-scale shadow map
+    vsmMipmapPass = AddNode2(
+        {
+            PassDependency{
+                .name = "vsm source",
+                .handle = 0,
+                .type = PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader},
+        },
+        {
+            Subpass{
+                .width = (uint32_t)shadowMapSize.x / 2,
+                .height = (uint32_t)shadowMapSize.y / 2,
+                .colors =
+                    {
+                        {
+                            .name = "vsm mip 1",
+                            .handle = 1,
+                            .create = true,
+                            .format = Gfx::ImageFormat::R16G16_SFloat,
+                        },
+                    },
+            },
+        },
+        [this, vsmClears, shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& refs)
+        {
+            uint32_t width = (uint32_t)shadowMapSize.x / 2;
+            uint32_t height = (uint32_t)shadowMapSize.y / 2;
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {width, height}};
+            cmd.SetScissor(0, 1, &rect);
+            cmd.BeginRenderPass(pass, vsmClears);
+            cmd.BindShaderProgram(copyOnlyShader->GetShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
+            cmd.BindResource(vsmMip1ShaderResource);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+        }
+    );
+    Connect(vsmPass, 0, vsmMipmapPass, 0);
 
     std::vector<Gfx::ClearValue> clearValues = {
         {.color = {{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}}},
@@ -250,75 +324,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
             cmd.EndRenderPass();
         }
-        // {
-        //     {
-        //         .name = "opaque color",
-        //         .handle = 0,
-        //         .type = ResourceType::Image,
-        //         .accessFlags = Gfx::AccessMask::Color_Attachment_Write,
-        //         .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-        //         .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
-        //         .imageLayout = Gfx::ImageLayout::Color_Attachment,
-        //         .imageCreateInfo =
-        //             {
-        //                 .width = width,
-        //                 .height = height,
-        //                 .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
-        //                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-        //                 .mipLevels = 1,
-        //                 .isCubemap = false,
-        //             },
-        //     },
-        //     {
-        //         .name = "opaque depth",
-        //         .handle = 1,
-        //         .type = ResourceType::Image,
-        //         .accessFlags =
-        //             Gfx::AccessMask::Depth_Stencil_Attachment_Read | Gfx::AccessMask::Depth_Stencil_Attachment_Write,
-        //         .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests,
-        //         .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
-        //         .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
-        //         .imageCreateInfo =
-        //             {
-        //                 .width = width,
-        //                 .height = height,
-        //                 .format = Gfx::ImageFormat::D32_SFLOAT_S8_UInt,
-        //                 .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-        //                 .mipLevels = 1,
-        //                 .isCubemap = false,
-        //             },
-        //     },
-        //     {
-        //         .name = "shadow",
-        //         .handle = 2,
-        //         .type = ResourceType::Image,
-        //         .accessFlags = Gfx::AccessMask::Shader_Read,
-        //         .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-        //         .imageUsagesFlags = Gfx::ImageUsage::Texture,
-        //         .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
-        //     },
-        // },
-        // {
-        //     {
-        //         .colors =
-        //             {
-        //                 {
-        //                     .handle = 0,
-        //                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-        //                     .loadOp = Gfx::AttachmentLoadOperation::Clear,
-        //                     .storeOp = Gfx::AttachmentStoreOperation::Store,
-        //                 },
-        //             },
-        //         .depth = {{
-        //             .handle = 1,
-        //             .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-        //             .loadOp = Gfx::AttachmentLoadOperation::Clear,
-        //             .storeOp = Gfx::AttachmentStoreOperation::Store,
-        //         }},
-        //     },
-        // }
     );
-    Connect(shadowPass, 0, forwardOpaque, RenderGraph::StrToHandle("shadow"));
+    Connect(vsmMipmapPass, 1, forwardOpaque, RenderGraph::StrToHandle("shadow"));
 
     auto blitToFinal = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)
@@ -448,7 +455,7 @@ void SceneRenderer::Render(Gfx::CommandBuffer& cmd, Scene& scene)
             BuildGraph(config);
             Process();
 
-            Gfx::Image* shadowImage = (Gfx::Image*)shadowPass->GetPass()->GetResourceRef(0)->GetResource();
+            Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
             sceneShaderResource->SetTexture("shadowMap", shadowImage);
         }
 
@@ -460,7 +467,9 @@ void SceneRenderer::Process()
 {
     Graph::Process();
 
-    Gfx::Image* shadowImage = (Gfx::Image*)shadowPass->GetPass()->GetResourceRef(0)->GetResource();
-    sceneShaderResource->SetTexture("shadowMap", shadowImage);
+    Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
+    vsmMip1ShaderResource->SetTexture("source", shadowImage);
+    Gfx::Image* vsmFiltered = (Gfx::Image*)vsmMipmapPass->GetPass()->GetResourceRef(1)->GetResource();
+    sceneShaderResource->SetTexture("shadowMap", vsmFiltered);
 }
 } // namespace Engine

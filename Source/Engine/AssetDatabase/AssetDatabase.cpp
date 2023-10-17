@@ -336,6 +336,7 @@ void AssetDatabase::LoadEngineInternal()
     f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
     f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
     f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
     f("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
 }
 

@@ -48,8 +48,10 @@ Graph::~Graph() {}
 
 void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
-    if (src && dst && src->pass->HasResourceDescription(srcHandle) && dst->pass->HasResourceDescription(dstHandle) &&
-        src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type)
+    bool srcHasHandleDescription = src->pass->HasResourceDescription(srcHandle);
+    bool dstHasHandleDescription = dst->pass->HasResourceDescription(dstHandle);
+    if (src && dst && srcHasHandleDescription && dstHasHandleDescription &&
+        (src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type))
     {
         src->outputPorts.emplace_back(new RenderNode::Port({.handle = srcHandle, .parent = src}));
         dst->inputPorts.emplace_back(new RenderNode::Port({.handle = dstHandle, .parent = dst}));
@@ -57,7 +59,9 @@ void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, 
         dst->inputPorts.back()->connected = src->outputPorts.back().get();
     }
     else
+    {
         throw std::logic_error("Graph Can't connect two nodes");
+    }
 }
 
 void Graph::Process()
@@ -335,6 +339,7 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
         if (request.externalImage == nullptr)
         {
             Gfx::Image* image = pool.CreateImage(request.imageCreateInfo, request.imageUsagesFlags);
+            image->SetName(request.name);
             resourceRef.SetResource(image);
         }
         else
@@ -347,6 +352,7 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
         if (request.externalBuffer == nullptr)
         {
             Gfx::Buffer* buf = pool.CreateBuffer(request.bufferCreateInfo);
+            buf->SetDebugName(request.name.c_str());
             resourceRef.SetResource(buf);
         }
         else

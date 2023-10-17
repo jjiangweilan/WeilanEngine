@@ -125,6 +125,17 @@ public:
 
                 resourceDescriptions.push_back(desc);
             }
+            else if (d.type == PassDependencyType::Buffer)
+            {
+                RenderPass::ResourceDescription desc{
+                    .name = d.name,
+                    .handle = d.handle,
+                    .type = ResourceType::Buffer,
+                    .accessFlags = Gfx::AccessMask::Shader_Read,
+                    .stageFlags = d.stageFlags,
+                };
+                resourceDescriptions.push_back(desc);
+            }
             else
             {
                 assert("Not implemented");

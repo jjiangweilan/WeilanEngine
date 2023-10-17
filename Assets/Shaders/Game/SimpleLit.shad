@@ -1,5 +1,7 @@
 #version 450
 #include "Common/Common.glsl"
+#define VSM_SHADOW_MAP_SAMPLING_PASS
+#include "Game/Shadow/VSM.glsl"
 
 #if CONFIG
 name: Game/SimpleLit
@@ -46,11 +48,11 @@ void main()
 
     // shadow mask
     vec2 shadowUV = fragInput.shadowCoord.xy / fragInput.shadowCoord.w * 0.5 + 0.5;
-    float objShadowDepth = fragInput.shadowCoord.z / fragInput.shadowCoord.w;
+    float objShadowDepth = fragInput.shadowCoord.z;
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+        shadowAttenuation = VSMShadowAttenuation(texture(shadowMap, shadowUV).xy, objShadowDepth);
     }
 
     oColor = vec4(vec3(color * shadowAttenuation), 1.0);

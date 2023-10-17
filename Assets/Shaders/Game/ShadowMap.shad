@@ -1,24 +1,39 @@
 #version 450
 #include "Common/Common.glsl"
+#define VSM_SHADOW_MAP // should be defined from client size
+#ifdef VSM_SHADOW_MAP
+    #define VSM_SHADOW_MAP_PASS
+    #include "Game/Shadow/VSM.glsl"
+#endif
 
 #if CONFIG
 name: Game/ShadowMap
 #endif
 
-// we can't directly use Common.glsl because it includeds shadow map as texture
-
 #if VERT
 layout(location = 0) in vec3 i_Position;
+layout(location = 0) out vec4 o_PositionCS;
 void main()
 {
     vec3 positionWS = vec3(pconst.model * vec4(i_Position, 1));
 
     gl_Position = scene.worldToShadow * vec4(positionWS, 1);
+    o_PositionCS = gl_Position;
 }
-#endif
+#endif // #if VERT
 
 #if FRAG
+#ifdef VSM_SHADOW_MAP 
+layout(location = 0) in vec4 i_PositionCS;
+layout(location = 0) out vec2 color;
+void main()
+{
+    color = VSMShadowMap(i_PositionCS.z);
+}
+#else
 void main()
 {
 }
 #endif
+
+#endif // #if FRAG
