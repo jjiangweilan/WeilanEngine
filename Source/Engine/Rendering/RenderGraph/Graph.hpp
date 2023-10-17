@@ -214,6 +214,14 @@ public:
                     .externalImage = color.externalImage,
                 };
 
+                if (color.imageView.has_value())
+                {
+                    Gfx::ImageSubresourceRange range{};
+                    range.baseMipLevel = color.imageView->mipLevel;
+                    range.aspectMask = color.imageView->aspectMask;
+                    desc.imageSubresourceRange = range;
+                }
+
                 resourceDescriptions.push_back(desc);
             }
 
@@ -268,6 +276,14 @@ public:
                         },
                     .externalImage = subpass.depth->externalImage,
                 };
+
+                if (subpass.depth->imageView.has_value())
+                {
+                    Gfx::ImageSubresourceRange range{};
+                    range.baseMipLevel = subpass.depth->imageView->mipLevel;
+                    range.aspectMask = subpass.depth->imageView->aspectMask;
+                    desc.imageSubresourceRange = range;
+                }
 
                 resourceDescriptions.push_back(desc);
             }
