@@ -66,7 +66,7 @@ private:
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
-    std::unique_ptr<Gfx::ShaderResource> vsmMip1ShaderResource;
+    std::unique_ptr<Gfx::ShaderResource> vsmMipShaderResource;
     uint32_t globalSceneShaderContentHash;
 
     using DrawList = std::vector<SceneObjectDrawData>;

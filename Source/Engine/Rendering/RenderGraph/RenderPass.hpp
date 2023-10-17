@@ -18,6 +18,12 @@ using ResourceRefs = std::unordered_map<ResourceHandle, ResourceRef*>;
 class RenderPass
 {
 public:
+    struct ImageView
+    {
+        Gfx::ImageViewType imageViewType;
+        Gfx::ImageSubresourceRange subresourceRange;
+    };
+
     // if this is a creational description, imageCreateInfo or bufferCreationInfo should be filled respectively
     struct ResourceDescription
     {
@@ -39,12 +45,9 @@ public:
 
         Gfx::Image* externalImage;
         Gfx::Buffer* externalBuffer;
-    };
 
-    struct ImageView
-    {
-        Gfx::ImageViewType imageViewType;
-        Gfx::ImageSubresourceRange subresourceRange;
+        // used when you want to set a barrier to part of the image
+        std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange;
     };
 
     struct Attachment

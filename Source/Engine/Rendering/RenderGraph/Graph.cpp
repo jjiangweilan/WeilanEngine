@@ -6,7 +6,7 @@
 namespace Engine::RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
-    : debugDesc(debugDesc), pass(std::move(pass_))
+    : name(debugDesc), pass(std::move(pass_))
 {}
 
 ResourceHandle StrToHandle(const std::string& str)
@@ -210,7 +210,9 @@ void Graph::Process()
                             .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                             .oldLayout = currentLayout,
                             .newLayout = desc.imageLayout,
-                            .subresourceRange = image->GetSubresourceRange()}};
+                            .subresourceRange = r->request.imageSubresourceRange.has_value()
+                                                    ? r->request.imageSubresourceRange.value()
+                                                    : image->GetSubresourceRange()}};
 
                     barriers[sortIndex].push_back(barrier);
                 }

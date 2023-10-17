@@ -47,7 +47,7 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
         Gfx::ShaderResourceFrequency::Global
     );
 
-    vsmMip1ShaderResource = GetGfxDriver()->CreateShaderResource(
+    vsmMipShaderResource = GetGfxDriver()->CreateShaderResource(
         copyOnlyShader->GetShaderProgram(),
         Gfx::ShaderResourceFrequency::Material
     );
@@ -223,35 +223,41 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     Connect(uploadSceneBuffer, 0, vsmPass, 1);
 
     // down-scale shadow map
-    for (uint32_t mip = 0; mip < (uint32_t)glm::floor(glm::log2((float)shadowMapSizef)); mip++)
+    uint32_t vsmLastMip = (uint32_t)glm::floor(glm::log2((float)shadowMapSizef)) - 1;
+    for (uint32_t mip = 0; mip < vsmLastMip; mip++)
     {
-        auto vsmMipmapPass = AddNode2(
-            {
-                PassDependency{
-                    .name = "vsm source",
-                    .handle = 0,
-                    .type = PassDependencyType::Texture,
-                    .stageFlags = Gfx::PipelineStage::Fragment_Shader},
-            },
+        float mipDownScale = glm::pow(2, mip + 1);
+        RenderNode* vsmMipmapPass = AddNode2(
+            {PassDependency{
+                .name = "vsm source",
+                .handle = 0,
+                .type = PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+                .imageSubresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, 0, 1},
+            }},
             {
                 Subpass{
-                    .width = (uint32_t)shadowMapSize.x / 2,
-                    .height = (uint32_t)shadowMapSize.y / 2,
+                    .width = (uint32_t)(shadowMapSize.x / mipDownScale),
+                    .height = (uint32_t)(shadowMapSize.y / mipDownScale),
                     .colors =
                         {
-                            {
-                                .name = "vsm mip 1",
+                            Attachment{
+                                .name = fmt::format("vsm mip {}", mip + 1),
                                 .handle = 1,
-                                .create = true,
+                                .create = false,
                                 .format = Gfx::ImageFormat::R16G16_SFloat,
-                            },
+                                .imageView = ImageView{Gfx::ImageAspect::Color, mip + 1}},
                         },
                 },
             },
-            [this, vsmClears, shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& refs)
+            [this,
+             vsmClears,
+             shadowMapSize,
+             mip,
+             mipDownScale](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& refs)
             {
-                uint32_t width = (uint32_t)shadowMapSize.x / 2;
-                uint32_t height = (uint32_t)shadowMapSize.y / 2;
+                uint32_t width = (uint32_t)(shadowMapSize.x / mipDownScale);
+                uint32_t height = (uint32_t)(shadowMapSize.y / mipDownScale);
                 cmd.SetViewport(
                     {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
                 );
@@ -259,12 +265,24 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, vsmClears);
                 cmd.BindShaderProgram(copyOnlyShader->GetShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
-                cmd.BindResource(vsmMip1ShaderResource);
+                cmd.BindResource(vsmMipShaderResource);
+                float v = (float)mip;
+                cmd.SetPushConstant(copyOnlyShader->GetShaderProgram(), &v);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
         );
-        Connect(vsmPass, 0, vsmMipmapPass, 0);
+        vsmMipmapPass->SetName(fmt::format("vsm mip {}", mip + 1));
+
+        vsmMipmapPasses.push_back(vsmMipmapPass);
+        if (mip != 0)
+        {
+            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 0);
+        }
+        else
+        {
+            Connect(vsmPass, 0, vsmMipmapPasses.front(), 1);
+        }
     }
 
     std::vector<Gfx::ClearValue> clearValues = {
@@ -330,7 +348,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.EndRenderPass();
         }
     );
-    Connect(vsmMipmapPass, 1, forwardOpaque, RenderGraph::StrToHandle("shadow"));
+    Connect(vsmMipmapPasses.back(), 1, forwardOpaque, RenderGraph::StrToHandle("shadow"));
 
     auto blitToFinal = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)
@@ -473,8 +491,7 @@ void SceneRenderer::Process()
     Graph::Process();
 
     Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
-    vsmMip1ShaderResource->SetTexture("source", shadowImage);
-    Gfx::Image* vsmFiltered = (Gfx::Image*)vsmMipmapPass->GetPass()->GetResourceRef(1)->GetResource();
-    sceneShaderResource->SetTexture("shadowMap", vsmFiltered);
+    vsmMipShaderResource->SetTexture("source", shadowImage);
+    sceneShaderResource->SetTexture("shadowMap", shadowImage);
 }
 } // namespace Engine

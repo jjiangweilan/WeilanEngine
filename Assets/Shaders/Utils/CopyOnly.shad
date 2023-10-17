@@ -1,7 +1,5 @@
 #version 450
 
-#include "Common/Common.glsl"
-
 #if CONFIG
 name: Utils/CopyOnly
 depth:
@@ -30,13 +28,18 @@ void main()
 #endif
 
 #if FRAG
+layout( push_constant ) uniform CopyParam
+{
+    float lod;
+} pconst;
+
 
 layout(location = 0) in vec2 i_uv;
 layout(location = 0) out vec4 o_Color;
 
-layout(set = SET_MATERIAL, binding = 0) uniform sampler2D source;
+layout(set = 2, binding = 0) uniform sampler2D source;
 void main() {
-    o_Color = textureLod(source, i_uv, 0);
+    o_Color = textureLod(source, i_uv, pconst.lod);
 }
 
 #endif

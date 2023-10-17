@@ -16,11 +16,16 @@ using SortIndex = int;
 class RenderNode
 {
 public:
-    RenderNode(std::unique_ptr<RenderPass>&& pass, const std::string& debugDesc = "");
+    RenderNode(std::unique_ptr<RenderPass>&& pass, const std::string& name = "");
 
     RenderPass* GetPass()
     {
         return pass.get();
+    }
+
+    void SetName(const std::string& name)
+    {
+        this->name = name;
     }
 
 private:
@@ -35,7 +40,7 @@ private:
         friend class RenderNode;
     };
 
-    std::string debugDesc;
+    std::string name;
     std::unique_ptr<RenderPass> pass;
     std::vector<std::unique_ptr<Port>> inputPorts;
     std::vector<std::unique_ptr<Port>> outputPorts;
@@ -50,7 +55,7 @@ private:
 struct ImageView
 {
     Gfx::ImageAspectFlags aspectMask;
-    uint32_t layer;
+    uint32_t mipLevel;
 };
 
 struct Attachment
@@ -93,6 +98,9 @@ struct PassDependency
     ResourceHandle handle;
     PassDependencyType type;
     Gfx::PipelineStage stageFlags;
+
+    // used when you want to set a barrier to part of the image
+    std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange;
 };
 
 ResourceHandle StrToHandle(const std::string& str);
@@ -129,8 +137,8 @@ public:
                     .stageFlags = d.stageFlags,
                     .imageUsagesFlags = Gfx::ImageUsage::Texture,
                     .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+                    .imageSubresourceRange = d.imageSubresourceRange,
                 };
-
                 resourceDescriptions.push_back(desc);
             }
             else if (d.type == PassDependencyType::Buffer)
@@ -171,7 +179,7 @@ public:
                         .subresourceRange =
                             {
                                 .aspectMask = color.imageView->aspectMask,
-                                .baseMipLevel = color.imageView->layer,
+                                .baseMipLevel = color.imageView->mipLevel,
                                 .levelCount = 1,
                                 .baseArrayLayer = 0,
                                 .layerCount = 1,
@@ -227,7 +235,7 @@ public:
                         .subresourceRange =
                             {
                                 .aspectMask = subpass.depth->imageView->aspectMask,
-                                .baseMipLevel = subpass.depth->imageView->layer,
+                                .baseMipLevel = subpass.depth->imageView->mipLevel,
                                 .levelCount = 1,
                                 .baseArrayLayer = 0,
                                 .layerCount = 1,
