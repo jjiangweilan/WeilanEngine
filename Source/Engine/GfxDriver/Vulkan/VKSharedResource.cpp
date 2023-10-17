@@ -7,7 +7,7 @@ namespace Engine::Gfx
 VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
 {
     // create default sampler
-    VkSamplerCreateInfo samplerCreateInfo;
+    VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = VK_NULL_HANDLE;
     samplerCreateInfo.flags = 0;
