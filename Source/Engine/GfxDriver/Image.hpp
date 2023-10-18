@@ -3,7 +3,10 @@
 
 #include "ImageDescription.hpp"
 #include <cinttypes>
+#include <glm/glm.hpp>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace Engine::Gfx
 {
@@ -19,6 +22,31 @@ struct ImageSubresourceRange
     uint32_t levelCount = 1;
     uint32_t baseArrayLayer = 0;
     uint32_t layerCount = 1;
+
+    std::vector<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
+    {
+        if (aspectMask != other.aspectMask)
+            throw std::logic_error("image aspect mask must match");
+
+        // subtract mip
+        constexpr uint32_t ZERO = 0;
+        int rBaseMipLevelLeftLength = glm::clamp(other.baseMipLevel - baseMipLevel, ZERO, levelCount);
+    }
+
+    bool CoversElement(uint32_t mipLevel, uint32_t layer) const
+    {
+        return mipLevel >= baseMipLevel && mipLevel <= baseMipLevel + levelCount && layer >= baseArrayLayer &&
+               layer <= baseArrayLayer + layerCount;
+    }
+
+    bool Covers(const ImageSubresourceRange& other) const
+    {
+        return other.aspectMask == aspectMask && other.baseMipLevel >= baseMipLevel &&
+               other.baseMipLevel + other.levelCount <= baseMipLevel + levelCount &&
+               other.baseArrayLayer >= baseArrayLayer && other.baseArrayLayer <= baseArrayLayer + layerCount;
+    }
+
+    bool operator==(const ImageSubresourceRange& other) const = default;
 };
 
 struct ImageSubresourceLayers

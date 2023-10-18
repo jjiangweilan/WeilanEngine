@@ -148,6 +148,19 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
+                std::vector<Gfx::ImageSubresourceRange> remainningRange{
+                    desc.imageSubresourceRange.has_value() ? desc.imageSubresourceRange.value()
+                                                           : image->GetSubresourceRange()};
+
+                while (!remainningRange.empty())
+                {
+                    Gfx::ImageSubresourceRange currentRange = remainningRange.back();
+                    remainningRange.pop_back();
+                    for (UsedIndex preUsed = usedIndex - 1; preUsed >= 0; preUsed--)
+                    {
+
+                    }
+                }
 
                 // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
                 Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
@@ -156,8 +169,9 @@ void Graph::Process()
                 if (Gfx::HasWriteAccessMask(desc.accessFlags) || currentLayout != desc.imageLayout)
                 {
                     // write after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
@@ -167,8 +181,9 @@ void Graph::Process()
                     }
 
                     // write after read
-                    for (UsedIndex i : readAccess)
+                    if (!readAccess.empty())
                     {
+                        UsedIndex i = readAccess.back();
                         SortIndex srcReadSortIndex = r->used[i].first;
                         ResourceHandle srcReadHandle = r->used[i].second;
                         auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
@@ -182,8 +197,9 @@ void Graph::Process()
                 if (Gfx::HasReadAccessMask(desc.accessFlags))
                 {
                     // read after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
@@ -228,8 +244,9 @@ void Graph::Process()
                 if (Gfx::HasWriteAccessMask(desc.accessFlags))
                 {
                     // write after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
@@ -239,8 +256,9 @@ void Graph::Process()
                     }
 
                     // write after read
-                    for (UsedIndex i : readAccess)
+                    if (!readAccess.empty())
                     {
+                        UsedIndex i = readAccess.back();
                         SortIndex srcReadSortIndex = r->used[i].first;
                         ResourceHandle srcReadHandle = r->used[i].second;
                         auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
@@ -254,8 +272,9 @@ void Graph::Process()
                 if (Gfx::HasReadAccessMask(desc.accessFlags))
                 {
                     // read after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
