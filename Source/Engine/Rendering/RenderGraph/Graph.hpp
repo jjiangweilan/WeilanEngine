@@ -139,6 +139,7 @@ public:
                     .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
                     .imageSubresourceRange = d.imageSubresourceRange,
                 };
+
                 resourceDescriptions.push_back(desc);
             }
             else if (d.type == PassDependencyType::Buffer)

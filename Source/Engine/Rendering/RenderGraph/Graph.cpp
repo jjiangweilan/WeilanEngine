@@ -148,7 +148,6 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
-                auto& views = sortedNodes[sortIndex]->pass->GetImageViews(image);
 
                 // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
                 Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
@@ -210,8 +209,8 @@ void Graph::Process()
                             .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                             .oldLayout = currentLayout,
                             .newLayout = desc.imageLayout,
-                            .subresourceRange = r->request.imageSubresourceRange.has_value()
-                                                    ? r->request.imageSubresourceRange.value()
+                            .subresourceRange = desc.imageSubresourceRange.has_value()
+                                                    ? desc.imageSubresourceRange.value()
                                                     : image->GetSubresourceRange()}};
 
                     barriers[sortIndex].push_back(barrier);
