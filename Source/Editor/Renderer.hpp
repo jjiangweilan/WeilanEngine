@@ -21,6 +21,7 @@ private:
     std::unique_ptr<Gfx::Buffer> indexBuffer;
     std::unique_ptr<Gfx::Buffer> vertexBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer2;
     std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
     std::unique_ptr<Gfx::Image> fontImage;
     std::unique_ptr<RenderGraph::Graph> graph;

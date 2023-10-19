@@ -167,8 +167,13 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
                     {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false}
                 );
             if (createStaging)
+            {
                 stagingBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
+                stagingBuffer2 = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
+            }
         }
+
+        std::swap(stagingBuffer, stagingBuffer2);
 
         ImDrawVert* vtxDst = (ImDrawVert*)stagingBuffer->GetCPUVisibleAddress();
         ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexSize);
