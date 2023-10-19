@@ -42,20 +42,20 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
     textureValues.erase(param);
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, nullptr);
+        shaderResource->SetImage(param, nullptr);
 }
 
 void Material::SetTexture(const std::string& param, Texture* texture)
 {
     textureValues[param] = texture;
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, texture->GetGfxImage());
+        shaderResource->SetImage(param, texture->GetGfxImage());
 }
 
 void Material::SetTexture(const std::string& param, Gfx::Image* image)
 {
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, image);
+        shaderResource->SetImage(param, image);
 }
 
 void TransferToGPU(
@@ -211,7 +211,7 @@ void Material::UpdateResources()
     for (auto& v : textureValues)
     {
         if (v.second != nullptr)
-            shaderResource->SetTexture(v.first, v.second->GetGfxImage());
+            shaderResource->SetImage(v.first, v.second->GetGfxImage());
     }
 }
 

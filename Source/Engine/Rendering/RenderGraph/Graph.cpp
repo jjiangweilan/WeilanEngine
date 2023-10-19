@@ -148,91 +148,98 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
-                std::vector<Gfx::ImageSubresourceRange> remainningRange{
+                std::vector<Gfx::ImageSubresourceRange> remainingRange{
                     desc.imageSubresourceRange.has_value() ? desc.imageSubresourceRange.value()
                                                            : image->GetSubresourceRange()};
+                std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
 
-                while (!remainningRange.empty())
+                for (UsedIndex preUsed = usedIndex; preUsed >= 0; preUsed--)
                 {
-                    Gfx::ImageSubresourceRange currentRange = remainningRange.back();
-                    remainningRange.pop_back();
-                    for (UsedIndex preUsed = usedIndex - 1; preUsed >= 0; preUsed--)
+                    if (preUsed == 0)
+                        preUsed = r->used.size() - 1;
+                    else
+                        preUsed = preUsed - 1;
+
+                    SortIndex preUsedSortIndex = r->used[preUsed].first;
+                    ResourceHandle preUsedWriteHandle = r->used[preUsed].second;
+                    auto& preUsedDesc = sortedNodes[preUsedSortIndex]->pass->GetResourceDescription(preUsedWriteHandle);
+                    auto preUsedRange = preUsedDesc.imageSubresourceRange.has_value()
+                                            ? preUsedDesc.imageSubresourceRange.value()
+                                            : image->GetSubresourceRange();
+
+                    for (auto& currentRange : remainingRange)
                     {
+                        if (currentRange.Overlaps(preUsedRange))
+                        {
+                            Gfx::ImageSubresourceRange overlapping = currentRange.And(preUsedRange);
+                            Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::None;
+                            Gfx::AccessMaskFlags srcAccess = Gfx::AccessMask::None;
 
+                            if (Gfx::HasWriteAccessMask(desc.accessFlags) ||
+                                preUsedDesc.imageLayout != desc.imageLayout)
+                            {
+                                // write after write
+                                if (Gfx::HasWriteAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+
+                                // write after read
+                                if (Gfx::HasReadAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+                            }
+
+                            if (Gfx::HasReadAccessMask(desc.accessFlags))
+                            {
+                                // read after write
+                                if (Gfx::HasWriteAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+                            }
+
+                            if (srcStages != Gfx::PipelineStage::None || srcAccess != Gfx::AccessMask::None ||
+                                preUsedDesc.imageLayout != desc.imageLayout)
+                            {
+                                if (srcStages == Gfx::PipelineStage::None)
+                                    srcStages = Gfx::PipelineStage::Top_Of_Pipe;
+                                Gfx::GPUBarrier barrier{
+                                    .image = (Gfx::Image*)r->resourceRef.GetResource(),
+                                    .srcStageMask = srcStages,
+                                    .dstStageMask = desc.stageFlags,
+                                    .srcAccessMask = srcAccess,
+                                    .dstAccessMask = desc.accessFlags,
+                                    .imageInfo = {
+                                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                                        .oldLayout = preUsedDesc.imageLayout,
+                                        .newLayout = desc.imageLayout,
+                                        .subresourceRange = overlapping}};
+
+                                barriers[sortIndex].push_back(barrier);
+                            }
+
+                            auto remainings = currentRange.Subtract(preUsedRange);
+                            remainingRangeSwap.insert(remainingRangeSwap.end(), remainings.begin(), remainings.end());
+                        }
+                        else
+                        {
+                            remainingRangeSwap.push_back(currentRange);
+                        }
                     }
+
+                    std::swap(remainingRange, remainingRangeSwap);
+                    remainingRangeSwap.clear();
+
+                    // break
+                    if (remainingRange.empty())
+                        break;
                 }
-
-                // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
-                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
-                Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
-
-                if (Gfx::HasWriteAccessMask(desc.accessFlags) || currentLayout != desc.imageLayout)
-                {
-                    // write after write
-                    if (!writeAccess.empty())
-                    {
-                        UsedIndex i = writeAccess.back();
-                        SortIndex srcWriteSortIndex = r->used[i].first;
-                        ResourceHandle srcWriteHandle = r->used[i].second;
-                        auto& srcWriteDesc =
-                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteHandle);
-                        srcAccessMask |= srcWriteDesc.accessFlags;
-                        srcStages |= srcWriteDesc.stageFlags;
-                    }
-
-                    // write after read
-                    if (!readAccess.empty())
-                    {
-                        UsedIndex i = readAccess.back();
-                        SortIndex srcReadSortIndex = r->used[i].first;
-                        ResourceHandle srcReadHandle = r->used[i].second;
-                        auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
-                        srcAccessMask |= srcReadDesc.accessFlags;
-                        srcStages |= srcReadDesc.stageFlags;
-                    }
-
-                    writeAccess.push_back(usedIndex);
-                }
-
-                if (Gfx::HasReadAccessMask(desc.accessFlags))
-                {
-                    // read after write
-                    if (!writeAccess.empty())
-                    {
-                        UsedIndex i = writeAccess.back();
-                        SortIndex srcWriteSortIndex = r->used[i].first;
-                        ResourceHandle srcWriteHandle = r->used[i].second;
-                        auto& srcWriteDesc =
-                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteSortIndex);
-                        srcAccessMask |= srcWriteDesc.accessFlags;
-                        srcStages |= srcWriteDesc.stageFlags;
-                    }
-
-                    readAccess.push_back(usedIndex);
-                }
-
-                if (srcStages != Gfx::PipelineStage::None || srcAccessMask != Gfx::AccessMask::None ||
-                    currentLayout != desc.imageLayout)
-                {
-                    Gfx::GPUBarrier barrier{
-                        .image = (Gfx::Image*)r->resourceRef.GetResource(),
-                        .srcStageMask = srcStages,
-                        .dstStageMask = desc.stageFlags,
-                        .srcAccessMask = srcAccessMask,
-                        .dstAccessMask = desc.accessFlags,
-                        .imageInfo = {
-                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .oldLayout = currentLayout,
-                            .newLayout = desc.imageLayout,
-                            .subresourceRange = desc.imageSubresourceRange.has_value()
-                                                    ? desc.imageSubresourceRange.value()
-                                                    : image->GetSubresourceRange()}};
-
-                    barriers[sortIndex].push_back(barrier);
-                }
-
-                currentLayout = desc.imageLayout;
             }
             else if (r->resourceRef.IsType(ResourceType::Buffer))
             {

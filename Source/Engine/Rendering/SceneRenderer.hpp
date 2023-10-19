@@ -65,8 +65,9 @@ private:
         glm::vec4 shadowMapSize;
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
-    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource;
-    std::unique_ptr<Gfx::ShaderResource> vsmMipShaderResource;
+    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
+    std::vector<std::unique_ptr<Gfx::ShaderResource>> vsmMipShaderResources{};
+    std::vector<std::unique_ptr<Gfx::ImageView>> vsmMipImageViews{};
     uint32_t globalSceneShaderContentHash;
 
     using DrawList = std::vector<SceneObjectDrawData>;
