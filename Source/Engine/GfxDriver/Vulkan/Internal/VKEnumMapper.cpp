@@ -12,7 +12,6 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::BC7_SRGB_UNorm_Block: return VK_FORMAT_BC7_SRGB_BLOCK;
         case ImageFormat::BC7_UNorm_Block: return VK_FORMAT_BC7_UNORM_BLOCK;
         case ImageFormat::R16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
-        case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
         case ImageFormat::R16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
         case ImageFormat::D16_UNorm: return VK_FORMAT_D16_UNORM;
         case ImageFormat::D16_UNorm_S8_UInt: return VK_FORMAT_D16_UNORM_S8_UINT;
@@ -32,6 +31,15 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::R16G16_UInt: return VK_FORMAT_R16G16_UINT;
         case ImageFormat::R16G16_SInt: return VK_FORMAT_R16G16_SINT;
         case ImageFormat::R16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
+        case ImageFormat::R32G32_UInt: return VK_FORMAT_R32G32_UINT;
+        case ImageFormat::R32G32_SInt: return VK_FORMAT_R32G32_SINT;
+        case ImageFormat::R32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
+        case ImageFormat::R32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
+        case ImageFormat::R32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
+        case ImageFormat::R32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
+        case ImageFormat::R32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
+        case ImageFormat::R32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
+        case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
         case ImageFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         default: assert(0 && "Format map failed");
     }
@@ -49,7 +57,6 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_BC7_SRGB_BLOCK: return ImageFormat::BC7_SRGB_UNorm_Block;
         case VK_FORMAT_BC7_UNORM_BLOCK: return ImageFormat::BC7_UNorm_Block;
         case VK_FORMAT_R16G16B16A16_SFLOAT: return ImageFormat::R16G16B16A16_SFloat;
-        case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
         case VK_FORMAT_R16G16B16A16_UNORM: return ImageFormat::R16G16B16A16_UNorm;
         case VK_FORMAT_D16_UNORM: return ImageFormat::D16_UNorm;
         case VK_FORMAT_D16_UNORM_S8_UINT: return ImageFormat::D16_UNorm_S8_UInt;
@@ -69,7 +76,15 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_R16G16_UINT: return ImageFormat::R16G16_UInt;
         case VK_FORMAT_R16G16_SINT: return ImageFormat::R16G16_SInt;
         case VK_FORMAT_R16G16_SFLOAT: return ImageFormat::R16G16_SFloat;
-
+        case VK_FORMAT_R32G32_UINT: return ImageFormat::R32G32_UInt;
+        case VK_FORMAT_R32G32_SINT: return ImageFormat::R32G32_SInt;
+        case VK_FORMAT_R32G32_SFLOAT: return ImageFormat::R32G32_SFloat;
+        case VK_FORMAT_R32G32B32_UINT: return ImageFormat::R32G32B32_UInt;
+        case VK_FORMAT_R32G32B32_SINT: return ImageFormat::R32G32B32_SInt;
+        case VK_FORMAT_R32G32B32_SFLOAT: return ImageFormat::R32G32B32_SFloat;
+        case VK_FORMAT_R32G32B32A32_UINT: return ImageFormat::R32G32B32A32_UInt;
+        case VK_FORMAT_R32G32B32A32_SINT: return ImageFormat::R32G32B32A32_SInt;
+        case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return ImageFormat::B10G11R11_UFloat_Pack32;
         default: assert(0 && "VK format map failed");
     }
