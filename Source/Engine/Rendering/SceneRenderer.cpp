@@ -41,6 +41,7 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
     shadowShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/ShadowMap.shad");
     opaqueShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
     copyOnlyShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Utils/CopyOnly.shad");
+    boxFilterShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Utils/BoxFilter.shad");
 
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
         opaqueShader->GetShaderProgram(),
@@ -226,6 +227,96 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     );
     Connect(uploadSceneBuffer, 0, vsmPass, 1);
 
+    // box filtering vsm
+    std::vector<Gfx::ClearValue> boxFilterClears = {{.color = {{1, 1, 1, 1}}}};
+    vsmBoxFilterPass0 = AddNode2(
+        {
+            PassDependency{
+                .name = "box filter source",
+                .handle = StrToHandle("src"),
+                .type = PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+            },
+        },
+        {
+            Subpass{
+                .width = (uint32_t)shadowMapSize.x,
+                .height = (uint32_t)shadowMapSize.y,
+                .colors =
+                    {
+                        Attachment{
+                            .handle = StrToHandle("dst"),
+                            .create = true,
+                            .format = Gfx::ImageFormat::R32G32_SFloat,
+                        },
+
+                    },
+            },
+        },
+        [=](Gfx::CommandBuffer& cmd, auto& pass, auto& refs)
+        {
+            uint32_t width = shadowMapSize.x;
+            uint32_t height = shadowMapSize.y;
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {width, height}};
+            cmd.SetScissor(0, 1, &rect);
+            cmd.BeginRenderPass(pass, boxFilterClears);
+            cmd.BindResource(vsmBoxFilterResource0);
+            cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &sceneInfo.shadowMapSize);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+        }
+    );
+    Connect(vsmPass, 0, vsmBoxFilterPass0, StrToHandle("src"));
+
+    auto vsmBoxFilterPass1 = AddNode2(
+        {
+            PassDependency{
+                .name = "box filter source",
+                .handle = StrToHandle("src"),
+                .type = PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+            },
+        },
+        {
+            Subpass{
+                .width = (uint32_t)shadowMapSize.x,
+                .height = (uint32_t)shadowMapSize.y,
+                .colors =
+                    {
+                        Attachment{
+                            .handle = StrToHandle("dst"),
+                            .create = false,
+                            .format = Gfx::ImageFormat::R32G32_SFloat,
+                            .imageView = ImageView{Gfx::ImageAspect::Color, 0},
+                        },
+
+                    },
+            },
+        },
+        [=](Gfx::CommandBuffer& cmd, auto& pass, auto& refs)
+        {
+            uint32_t width = shadowMapSize.x;
+            uint32_t height = shadowMapSize.y;
+            cmd.SetViewport(
+                {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
+            );
+            Rect2D rect = {{0, 0}, {width, height}};
+            cmd.SetScissor(0, 1, &rect);
+            cmd.BeginRenderPass(pass, boxFilterClears);
+            cmd.BindResource(vsmBoxFilterResource1);
+            cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &sceneInfo.shadowMapSize);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+        }
+    );
+    Connect(vsmPass, 0, vsmBoxFilterPass1, StrToHandle("dst"));
+    Connect(vsmBoxFilterPass0, StrToHandle("dst"), vsmBoxFilterPass1, StrToHandle("src"));
+
     // down-scale shadow map
     uint32_t vsmLastMip = vsmMipLevels - 1;
     for (uint32_t mip = 0; mip < vsmLastMip; mip++)
@@ -286,8 +377,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
         }
         else
         {
-            Connect(vsmPass, 0, vsmMipmapPasses.front(), 0);
-            Connect(vsmPass, 0, vsmMipmapPasses.front(), 1);
+            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 0);
+            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 1);
         }
     }
 
@@ -497,6 +588,8 @@ void SceneRenderer::Process()
     Graph::Process();
 
     Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
+    Gfx::Image* vsmBoxFilterPass0Image =
+        (Gfx::Image*)vsmBoxFilterPass0->GetPass()->GetResourceRef(StrToHandle("dst"))->GetResource();
     for (uint32_t i = 0; i < vsmMipShaderResources.size(); i++)
     {
         auto& sr = vsmMipShaderResources[i];
@@ -508,5 +601,15 @@ void SceneRenderer::Process()
         vsmMipImageViews.push_back(std::move(imageView));
     }
     sceneShaderResource->SetImage("shadowMap", shadowImage);
+    vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource(
+        boxFilterShader->GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Material
+    );
+    vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource(
+        boxFilterShader->GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Material
+    );
+    vsmBoxFilterResource0->SetImage("source", shadowImage);
+    vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
 }
 } // namespace Engine

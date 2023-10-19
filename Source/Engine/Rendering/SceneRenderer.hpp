@@ -66,8 +66,13 @@ private:
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
+
+    // vsm
     std::vector<std::unique_ptr<Gfx::ShaderResource>> vsmMipShaderResources{};
     std::vector<std::unique_ptr<Gfx::ImageView>> vsmMipImageViews{};
+    std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource0{};
+    std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource1{};
+
     uint32_t globalSceneShaderContentHash;
 
     using DrawList = std::vector<SceneObjectDrawData>;
@@ -79,12 +84,15 @@ private:
     Shader* shadowShader;
     Shader* copyOnlyShader;
 
+    Shader* boxFilterShader;
+
     RenderGraph::RenderNode* colorOutput;
     RenderGraph::ResourceHandle colorHandle;
     RenderGraph::RenderNode* depthOutput;
     RenderGraph::ResourceHandle depthHandle;
 
     RenderGraph::RenderNode* vsmPass;
+    RenderGraph::RenderNode* vsmBoxFilterPass0;
     std::vector<RenderGraph::RenderNode*> vsmMipmapPasses;
 
     Model* cube;
