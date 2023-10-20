@@ -265,7 +265,14 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.BeginRenderPass(pass, boxFilterClears);
             cmd.BindResource(vsmBoxFilterResource0);
             cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
-            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &sceneInfo.shadowMapSize);
+            struct
+            {
+                glm::vec4 textureSize;
+                glm::vec4 xory;
+            } pval;
+            pval.textureSize = sceneInfo.shadowMapSize;
+            pval.xory = glm::vec4(0);
+            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }
@@ -307,9 +314,17 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             Rect2D rect = {{0, 0}, {width, height}};
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, boxFilterClears);
+            struct
+            {
+                glm::vec4 textureSize;
+                glm::vec4 xory;
+            } pval;
+            pval.textureSize = sceneInfo.shadowMapSize;
+            pval.xory = glm::vec4(1);
+            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
             cmd.BindResource(vsmBoxFilterResource1);
             cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
-            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &sceneInfo.shadowMapSize);
+            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }

@@ -31,7 +31,8 @@ void main()
 layout( push_constant ) uniform CopyParam
 {
     vec4 textureSize;
-} pconst;
+    vec4 xory;
+} pval;
 
 
 layout(location = 0) in vec2 i_uv;
@@ -41,14 +42,23 @@ layout(set = 2, binding = 0) uniform sampler2D source;
 void main() {
     o_Color = vec4(0);
 
-    const float range = 5;
-    for(float x = -range; x <= range; x++)
-        for(float y = -range; y <= range; y++)
+    const float range = 7;
+    if (pval.xory.x == 0)
+    {
+        for(float x = -range; x <= range; x++)
         {
-            o_Color += texture(source, i_uv + vec2(x, y) * pconst.textureSize.zw);
+            o_Color += texture(source, i_uv + vec2(x, 0) * pval.textureSize.zw);
         }
+    }
+    else
+    {
+        for(float x = -range; x <= range; x++)
+        {
+            o_Color += texture(source, i_uv + vec2(0, x) * pval.textureSize.zw);
+        }
+    }
 
-    o_Color /= (range + range + 1) * (range + range + 1);
+    o_Color /= (range + range + 1);
 }
 
 #endif
