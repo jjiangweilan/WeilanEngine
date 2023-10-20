@@ -72,6 +72,9 @@ private:
     std::vector<std::unique_ptr<Gfx::ImageView>> vsmMipImageViews{};
     std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource0{};
     std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource1{};
+    RenderGraph::RenderNode* vsmPass;
+    RenderGraph::RenderNode* vsmBoxFilterPass0;
+    std::vector<RenderGraph::RenderNode*> vsmMipmapPasses;
 
     uint32_t globalSceneShaderContentHash;
 
@@ -90,10 +93,6 @@ private:
     RenderGraph::ResourceHandle colorHandle;
     RenderGraph::RenderNode* depthOutput;
     RenderGraph::ResourceHandle depthHandle;
-
-    RenderGraph::RenderNode* vsmPass;
-    RenderGraph::RenderNode* vsmBoxFilterPass0;
-    std::vector<RenderGraph::RenderNode*> vsmMipmapPasses;
 
     Model* cube;
     std::unique_ptr<Shader> skyboxShader;
