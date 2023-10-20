@@ -94,6 +94,77 @@ void SceneRenderer::ProcessLights(Scene& gameScene)
     }
 }
 
+void SceneRenderer::VsmMipMapPass(
+    glm::vec2& shadowMapSize,
+    std::vector<Gfx::ClearValue>& vsmClears,
+    uint32_t& vsmMipLevels,
+    RenderNode*& vsmBoxFilterPass1
+)
+{
+    uint32_t vsmLastMip = vsmMipLevels - 1;
+    for (uint32_t mip = 0; mip < vsmLastMip; mip++)
+    {
+        float mipDownScale = glm::pow(2, mip + 1);
+        RenderNode* vsmMipmapPass = AddNode2(
+            {PassDependency{
+                .name = "vsm source",
+                .handle = 0,
+                .type = PassDependencyType::Texture,
+                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
+                .imageSubresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, 0, 1},
+            }},
+            {
+                Subpass{
+                    .width = (uint32_t)(shadowMapSize.x / mipDownScale),
+                    .height = (uint32_t)(shadowMapSize.y / mipDownScale),
+                    .colors =
+                        {
+                            Attachment{
+                                .name = fmt::format("vsm mip {}", mip + 1),
+                                .handle = 1,
+                                .create = false,
+                                .format = Gfx::ImageFormat::R32G32_SFloat,
+                                .imageView = ImageView{Gfx::ImageAspect::Color, mip + 1}},
+                        },
+                },
+            },
+            [this,
+             vsmClears,
+             shadowMapSize,
+             mip,
+             mipDownScale](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& refs)
+            {
+                uint32_t width = (uint32_t)(shadowMapSize.x / mipDownScale);
+                uint32_t height = (uint32_t)(shadowMapSize.y / mipDownScale);
+                cmd.SetViewport(
+                    {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
+                );
+                Rect2D rect = {{0, 0}, {width, height}};
+                cmd.SetScissor(0, 1, &rect);
+                cmd.BeginRenderPass(pass, vsmClears);
+                cmd.BindShaderProgram(copyOnlyShader->GetShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
+                cmd.BindResource(vsmMipShaderResources[mip]);
+                float v = (float)mip;
+                cmd.SetPushConstant(copyOnlyShader->GetShaderProgram(), &v);
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
+            }
+        );
+        vsmMipmapPass->SetName(fmt::format("vsm mip {}", mip + 1));
+
+        vsmMipmapPasses.push_back(vsmMipmapPass);
+        if (mip != 0)
+        {
+            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 0);
+            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 1);
+        }
+        else
+        {
+            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 0);
+            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 1);
+        }
+    }
+}
 void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 {
     this->config = config;
@@ -333,69 +404,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     Connect(vsmBoxFilterPass0, StrToHandle("dst"), vsmBoxFilterPass1, StrToHandle("src"));
 
     // down-scale shadow map
-    uint32_t vsmLastMip = vsmMipLevels - 1;
-    for (uint32_t mip = 0; mip < vsmLastMip; mip++)
-    {
-        float mipDownScale = glm::pow(2, mip + 1);
-        RenderNode* vsmMipmapPass = AddNode2(
-            {PassDependency{
-                .name = "vsm source",
-                .handle = 0,
-                .type = PassDependencyType::Texture,
-                .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-                .imageSubresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, 0, 1},
-            }},
-            {
-                Subpass{
-                    .width = (uint32_t)(shadowMapSize.x / mipDownScale),
-                    .height = (uint32_t)(shadowMapSize.y / mipDownScale),
-                    .colors =
-                        {
-                            Attachment{
-                                .name = fmt::format("vsm mip {}", mip + 1),
-                                .handle = 1,
-                                .create = false,
-                                .format = Gfx::ImageFormat::R32G32_SFloat,
-                                .imageView = ImageView{Gfx::ImageAspect::Color, mip + 1}},
-                        },
-                },
-            },
-            [this,
-             vsmClears,
-             shadowMapSize,
-             mip,
-             mipDownScale](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const ResourceRefs& refs)
-            {
-                uint32_t width = (uint32_t)(shadowMapSize.x / mipDownScale);
-                uint32_t height = (uint32_t)(shadowMapSize.y / mipDownScale);
-                cmd.SetViewport(
-                    {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
-                );
-                Rect2D rect = {{0, 0}, {width, height}};
-                cmd.SetScissor(0, 1, &rect);
-                cmd.BeginRenderPass(pass, vsmClears);
-                cmd.BindShaderProgram(copyOnlyShader->GetShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
-                cmd.BindResource(vsmMipShaderResources[mip]);
-                float v = (float)mip;
-                cmd.SetPushConstant(copyOnlyShader->GetShaderProgram(), &v);
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-            }
-        );
-        vsmMipmapPass->SetName(fmt::format("vsm mip {}", mip + 1));
-
-        vsmMipmapPasses.push_back(vsmMipmapPass);
-        if (mip != 0)
-        {
-            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 0);
-            Connect(vsmMipmapPasses[mip - 1], 1, vsmMipmapPasses[mip], 1);
-        }
-        else
-        {
-            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 0);
-            Connect(vsmBoxFilterPass1, StrToHandle("dst"), vsmMipmapPasses.front(), 1);
-        }
-    }
+    VsmMipMapPass(shadowMapSize, vsmClears, vsmMipLevels, vsmBoxFilterPass1);
 
     std::vector<Gfx::ClearValue> clearValues = {
         {.color = {{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}}},

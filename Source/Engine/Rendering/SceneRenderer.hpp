@@ -104,5 +104,11 @@ private:
     void AppendDrawData(Transform& transform, std::vector<SceneObjectDrawData>& drawList);
 
     void ProcessLights(Scene& gameScene);
+    void VsmMipMapPass(
+        glm::vec2& shadowMapSize,
+        std::vector<Gfx::ClearValue>& vsmClears,
+        uint32_t& vsmMipLevels,
+        RenderGraph::RenderNode*& vsmBoxFilterPass1
+    );
 };
 } // namespace Engine
