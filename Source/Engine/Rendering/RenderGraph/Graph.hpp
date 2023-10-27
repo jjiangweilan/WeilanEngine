@@ -3,6 +3,7 @@
 #include "RenderPass.hpp"
 #include <list>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <span>
 #include <string_view>
 #include <vector>
@@ -117,7 +118,7 @@ public:
     //     const std::vector<RenderPass::Subpass>& subpasses
     // )
     RenderNode* AddNode2(
-        const std::vector<PassDependency> dependencies,
+        const std::vector<PassDependency>& dependencies,
         const std::vector<Subpass>& subpasses,
         const RenderPass::ExecutionFunc& execute
     )
@@ -376,4 +377,12 @@ private:
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
     ResourcePool resourcePool;
 }; // namespace Engine::RenderGraph
+   //
+   //
+
+class GraphJsonParser
+{
+public:
+    static void BuildGraph(Graph& graph, nlohmann::json& j);
+};
 } // namespace Engine::RenderGraph

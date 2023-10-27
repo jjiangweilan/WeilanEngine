@@ -516,4 +516,5 @@ void Graph::Clear()
     resourceOwners.clear();
     resourcePool.Clear();
 }
+
 } // namespace Engine::RenderGraph
