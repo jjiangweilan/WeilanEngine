@@ -43,6 +43,7 @@ void main() {
     o_Color = vec4(0);
 
     const float range = 5;
+
     if (pval.xory.x == 0)
     {
         for(float x = -range; x <= range; x++)

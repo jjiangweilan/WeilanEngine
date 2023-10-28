@@ -101,6 +101,7 @@ void SceneRenderer::VsmMipMapPass(
     RenderNode*& vsmBoxFilterPass1
 )
 {
+    vsmMipmapPasses.clear();
     uint32_t vsmLastMip = vsmMipLevels - 1;
     for (uint32_t mip = 0; mip < vsmLastMip; mip++)
     {
@@ -225,6 +226,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     glm::vec2 shadowMapSize = sceneInfo.shadowMapSize;
 
     // variance shadow
+    vsmMipShaderResources.clear();
     std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
     uint32_t vsmMipLevels = (uint32_t)glm::floor(glm::log2((float)glm::min(width, height)));
     for (size_t mip = 0; mip < vsmMipLevels - 1; mip++)
@@ -392,7 +394,6 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             } pval;
             pval.textureSize = sceneInfo.shadowMapSize;
             pval.xory = glm::vec4(1);
-            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
             cmd.BindResource(vsmBoxFilterResource1);
             cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
             cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
@@ -404,7 +405,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     Connect(vsmBoxFilterPass0, StrToHandle("dst"), vsmBoxFilterPass1, StrToHandle("src"));
 
     // down-scale shadow map
-    VsmMipMapPass(shadowMapSize, vsmClears, vsmMipLevels, vsmBoxFilterPass1);
+    // note: linear mip causes trouble on edge
+    // VsmMipMapPass(shadowMapSize, vsmClears, vsmMipLevels, vsmBoxFilterPass1);
 
     std::vector<Gfx::ClearValue> clearValues = {
         {.color = {{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}}},
@@ -469,7 +471,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.EndRenderPass();
         }
     );
-    Connect(vsmMipmapPasses.back(), 1, forwardOpaque, RenderGraph::StrToHandle("shadow"));
+    Connect(vsmBoxFilterPass1, StrToHandle("dst"), forwardOpaque, RenderGraph::StrToHandle("shadow"));
 
     auto blitToFinal = AddNode(
         [](Gfx::CommandBuffer& cmd, auto& pass, const ResourceRefs& res)

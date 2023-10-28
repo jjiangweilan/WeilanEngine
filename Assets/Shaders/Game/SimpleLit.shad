@@ -31,6 +31,7 @@ layout(set = SET_MATERIAL, binding = 0) uniform Unlit
 {
     vec3 color;
     float shadowBleedingClamp;
+    float shadowMDClamp;
 } vals;
 
 layout(location = 0) in v2f fragInput;
@@ -53,9 +54,11 @@ void main()
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-        shadowAttenuation = VSMShadowAttenuation(texture(shadowMap, shadowUV).xy, objShadowDepth, vals.shadowBleedingClamp);
+        shadowAttenuation = VSMShadowAttenuation(textureLod(shadowMap, shadowUV, 0).xy, objShadowDepth, vals.shadowBleedingClamp, vals.shadowMDClamp);
     }
 
+    // oColor = vec4(shadowAttenuation);
+    // return;
     oColor = vec4(vec3(color * shadowAttenuation), 1.0);
 }
 #endif

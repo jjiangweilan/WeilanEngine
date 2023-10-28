@@ -1,10 +1,13 @@
 #ifndef VSM_INCLUDED
 #define VSM_INCLUDED
+// include this in fragment shader only because dFdx only supports in fragment shader
 
 #ifdef VSM_SHADOW_MAP_PASS
 vec2 VSMShadowMap(float depth)
 {
-    return vec2(depth, depth * depth);
+    float dx = dFdx(depth); 
+    float dy = dFdy(depth);
+    return vec2(depth, depth * depth + 0.25f * (dx * dx + dy * dy));
 }
 #endif
 
@@ -21,7 +24,7 @@ float ReduceLightBleeding(float p_max, float Amount)
     return linstep(Amount, 1, p_max);
 }
 
-float VSMShadowAttenuation(vec2 moments, float fragDepth, float bleedingClamp)
+float VSMShadowAttenuation(vec2 moments, float fragDepth, float bleedingClamp, float mDClamp)
 {
     float E_x2 = moments.y;
     float Ex_2 = moments.x * moments.x;
