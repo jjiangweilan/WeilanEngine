@@ -43,6 +43,7 @@ GameEditor::GameEditor(const char* path)
     }
 
     gameView.Init();
+    frameGraphEditor.Init();
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -65,6 +66,8 @@ GameEditor::GameEditor(const char* path)
 GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
+    frameGraphEditor.Destory();
+
     if (EditorState::activeScene)
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
 
@@ -380,6 +383,7 @@ void GameEditor::GUIPass()
     MainMenuBar();
     OpenSceneWindow();
 
+    frameGraphEditor.Draw();
     gameView.Tick();
     AssetWindow();
     InspectorWindow();
