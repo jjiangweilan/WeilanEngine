@@ -32,5 +32,8 @@ private:
         ax::NodeEditor::PinId InputId;
         ax::NodeEditor::PinId OutputId;
     };
+
+    void DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
+    void ShowFloatProp(FrameGraph::Property& p);
 };
 } // namespace Engine::Editor

@@ -37,16 +37,14 @@ void FrameGraphEditor::Draw()
             {
                 ed::BeginNode(node->GetID());
                 ImGui::Text("%s", node->GetName().c_str());
-                for (fg::InputProperty& input : node->GetInput())
+                for (fg::Property& input : node->GetInput())
                 {
-                    ImGui::Text("Node A");
-                    ed::BeginPin(uniqueId++, ax::NodeEditor::PinKind::Input);
-                    ImGui::Text("-> In");
-                    ed::EndPin();
-                    ImGui::SameLine();
-                    ed::BeginPin(uniqueId++, ax::NodeEditor::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
+                    DrawProperty(input, ed::PinKind::Input);
+                }
+
+                for (fg::Property& input : node->GetOutput())
+                {
+                    DrawProperty(input, ed::PinKind::Output);
                 }
                 ed::EndNode();
             }
@@ -106,5 +104,21 @@ void FrameGraphEditor::Draw()
     ed::End();
     ed::SetCurrentEditor(nullptr);
     ImGui::End();
+}
+
+void FrameGraphEditor::ShowFloatProp(FrameGraph::Property& p)
+{
+    float* v = (float*)p.GetData();
+    if (ImGui::InputFloat("", v))
+    {}
+}
+
+void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
+{
+    ed::BeginPin(p.GetID(), kind);
+    ImGui::Text("%s", p.GetName().c_str());
+    if (p.GetType() == fg::PropertyType::Float)
+        ShowFloatProp(p);
+    ed::EndPin();
 }
 } // namespace Engine::Editor
