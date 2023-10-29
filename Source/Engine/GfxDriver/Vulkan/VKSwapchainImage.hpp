@@ -78,6 +78,7 @@ class VKSwapchainImageView : public VKImageView
 public:
     VKSwapchainImageView(VKSwapChainImage& swapchainImage) : swapchainImage(&swapchainImage)
     {
+        imageViewType = ImageViewType::Image_2D;
         image = &swapchainImage;
     }
 

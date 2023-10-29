@@ -42,20 +42,23 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
     textureValues.erase(param);
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, nullptr);
+        shaderResource->SetImage(param, nullptr);
+    SetDirty();
 }
 
 void Material::SetTexture(const std::string& param, Texture* texture)
 {
     textureValues[param] = texture;
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, texture->GetGfxImage());
+        shaderResource->SetImage(param, texture->GetGfxImage());
+    SetDirty();
 }
 
 void Material::SetTexture(const std::string& param, Gfx::Image* image)
 {
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, image);
+        shaderResource->SetImage(param, image);
+    SetDirty();
 }
 
 void TransferToGPU(
@@ -93,6 +96,7 @@ void Material::SetMatrix(const std::string& param, const std::string& member, co
     matrixValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
@@ -100,6 +104,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
     floatValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
@@ -107,6 +112,7 @@ void Material::SetVector(const std::string& param, const std::string& member, co
     vectorValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
@@ -155,6 +161,8 @@ void Material::SetShader(RefPtr<Shader> shader)
     if (shader != nullptr) // why null check? I think we don't need it
     {
         SetShaderNoProtection(shader);
+
+        SetDirty();
     }
 }
 
@@ -171,8 +179,6 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
         Gfx::ShaderResourceFrequency::Material
     );
     UpdateResources();
-
-    SetDirty();
 }
 
 void Material::UpdateResources()
@@ -211,7 +217,7 @@ void Material::UpdateResources()
     for (auto& v : textureValues)
     {
         if (v.second != nullptr)
-            shaderResource->SetTexture(v.first, v.second->GetGfxImage());
+            shaderResource->SetImage(v.first, v.second->GetGfxImage());
     }
 }
 

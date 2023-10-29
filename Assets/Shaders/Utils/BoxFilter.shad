@@ -1,0 +1,65 @@
+#version 450
+
+#if CONFIG
+name: Utils/BoxFilter
+depth:
+    testEnable: False
+#endif
+
+#if VERT
+layout(location = 0) out vec2 o_uv;
+
+void main()
+{
+    vec4 c_Positions[6] = 
+    {
+        {-1,-1,0.5,1},
+        {-1, 1,0.5,1},
+        { 1, 1,0.5,1},
+
+        {-1,-1,0.5,1},
+        {1,  1,0.5,1},
+        { 1,-1,0.5,1}
+    };
+
+    gl_Position = c_Positions[gl_VertexIndex];
+    o_uv = gl_Position.xy * 0.5f + 0.5f;
+}
+#endif
+
+#if FRAG
+layout( push_constant ) uniform CopyParam
+{
+    vec4 textureSize;
+    vec4 xory;
+} pval;
+
+
+layout(location = 0) in vec2 i_uv;
+layout(location = 0) out vec4 o_Color;
+
+layout(set = 2, binding = 0) uniform sampler2D source;
+void main() {
+    o_Color = vec4(0);
+
+    const float range = 5;
+
+    if (pval.xory.x == 0)
+    {
+        for(float x = -range; x <= range; x++)
+        {
+            o_Color += texture(source, i_uv + vec2(x, 0) * pval.textureSize.zw);
+        }
+    }
+    else
+    {
+        for(float x = -range; x <= range; x++)
+        {
+            o_Color += texture(source, i_uv + vec2(0, x) * pval.textureSize.zw);
+        }
+    }
+
+    o_Color /= (range + range + 1);
+}
+
+#endif

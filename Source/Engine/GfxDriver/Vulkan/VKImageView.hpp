@@ -38,11 +38,17 @@ public:
 
     virtual VkImageSubresourceRange GetVkSubresourceRange();
 
+    ImageViewType GetImageViewType() override
+    {
+        return imageViewType;
+    }
+
 protected:
     VKImageView() = default;
 
     VKImage* image;
     VkImageView handle = VK_NULL_HANDLE;
     ImageSubresourceRange subresourceRange;
+    ImageViewType imageViewType;
 };
 } // namespace Engine::Gfx

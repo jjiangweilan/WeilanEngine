@@ -165,7 +165,7 @@ const ShaderModuleGraphicsPipelineCreateInfos& VKShaderModule::GetShaderModuleGr
 
 ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModuleGraphicsPipelineCreateInfos()
 {
-    ShaderModuleGraphicsPipelineCreateInfos pipelineCreateInfo;
+    ShaderModuleGraphicsPipelineCreateInfos pipelineCreateInfo{};
 
     pipelineCreateInfo.pipelineShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     pipelineCreateInfo.pipelineShaderStageCreateInfo.pNext = VK_NULL_HANDLE;
@@ -205,43 +205,44 @@ ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModuleGrap
         }
         else
         {
-            assert(shaderInfo.inputs.empty() == false);
-
-            auto& vertexAttribute = shaderInfo.inputs[0];
-            VkVertexInputAttributeDescription attributeDesc;
-            attributeDesc.location = vertexAttribute.location;
-            attributeDesc.binding = 0;
-            attributeDesc.format = MapFormat(vertexAttribute.data.name, vertexAttribute.name);
-            attributeDesc.offset = 0; // vertexAttribute.offset;
-            pipelineCreateInfo.vertexAttributeDescriptions.push_back(attributeDesc);
-
-            VkVertexInputBindingDescription bindingDesc;
-            bindingDesc.binding = 0;
-            bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            bindingDesc.stride = vertexAttribute.data.size;
-            pipelineCreateInfo.vertexInputBindingDescriptions.push_back(bindingDesc);
-
-            size_t attributeOffset = 0;
-            for (int i = 1; i < shaderInfo.inputs.size(); ++i)
+            if (!shaderInfo.inputs.empty())
             {
-                auto& vertexAttribute = shaderInfo.inputs[i];
+                auto& vertexAttribute = shaderInfo.inputs[0];
                 VkVertexInputAttributeDescription attributeDesc;
                 attributeDesc.location = vertexAttribute.location;
-                attributeDesc.binding = 1;
+                attributeDesc.binding = 0;
                 attributeDesc.format = MapFormat(vertexAttribute.data.name, vertexAttribute.name);
-                attributeDesc.offset = attributeOffset;
+                attributeDesc.offset = 0; // vertexAttribute.offset;
                 pipelineCreateInfo.vertexAttributeDescriptions.push_back(attributeDesc);
-                attributeOffset += vertexAttribute.data.size;
-            }
 
-            // attributeOffset == 0 means there is no attributes
-            if (attributeOffset != 0)
-            {
-                VkVertexInputBindingDescription attrBindingDesc;
-                attrBindingDesc.binding = 1;
-                attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-                attrBindingDesc.stride = attributeOffset;
-                pipelineCreateInfo.vertexInputBindingDescriptions.push_back(attrBindingDesc);
+                VkVertexInputBindingDescription bindingDesc;
+                bindingDesc.binding = 0;
+                bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                bindingDesc.stride = vertexAttribute.data.size;
+                pipelineCreateInfo.vertexInputBindingDescriptions.push_back(bindingDesc);
+
+                size_t attributeOffset = 0;
+                for (int i = 1; i < shaderInfo.inputs.size(); ++i)
+                {
+                    auto& vertexAttribute = shaderInfo.inputs[i];
+                    VkVertexInputAttributeDescription attributeDesc;
+                    attributeDesc.location = vertexAttribute.location;
+                    attributeDesc.binding = 1;
+                    attributeDesc.format = MapFormat(vertexAttribute.data.name, vertexAttribute.name);
+                    attributeDesc.offset = attributeOffset;
+                    pipelineCreateInfo.vertexAttributeDescriptions.push_back(attributeDesc);
+                    attributeOffset += vertexAttribute.data.size;
+                }
+
+                // attributeOffset == 0 means there is no attributes
+                if (attributeOffset != 0)
+                {
+                    VkVertexInputBindingDescription attrBindingDesc;
+                    attrBindingDesc.binding = 1;
+                    attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                    attrBindingDesc.stride = attributeOffset;
+                    pipelineCreateInfo.vertexInputBindingDescriptions.push_back(attrBindingDesc);
+                }
             }
         }
 
