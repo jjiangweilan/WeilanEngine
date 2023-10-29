@@ -23,7 +23,14 @@ public:
     }
 
 private:
+    std::unique_ptr<FrameGraph::Graph> testGraph;
     FrameGraph::Graph* graph = nullptr;
     ax::NodeEditor::EditorContext* graphContext;
+    struct LinkInfo
+    {
+        ax::NodeEditor::LinkId Id;
+        ax::NodeEditor::PinId InputId;
+        ax::NodeEditor::PinId OutputId;
+    };
 };
 } // namespace Engine::Editor
