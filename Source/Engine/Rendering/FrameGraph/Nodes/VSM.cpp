@@ -3,10 +3,10 @@
 
 namespace Engine::FrameGraph
 {
-class ForwardOpaqueNode : public Node
+class VSMNode : public Node
 {
 public:
-    ForwardOpaqueNode(FGID id) : Node("Forward Opaque", id)
+    VSMNode(NodeID id) : Node("Variance Shadow Map", id)
     {
         AddInputProperty("float test in", PropertyType::Float, &testIn);
         AddOutputProperty("float test out", PropertyType::Float, &testOut);
@@ -18,5 +18,5 @@ private:
     static char _reg;
 };
 
-char ForwardOpaqueNode::_reg = NodeBlueprintRegisteration::Register<ForwardOpaqueNode>("Forward Opaque");
+char VSMNode::_reg = NodeBlueprintRegisteration::Register<VSMNode>("Variance Shadow Map");
 } // namespace Engine::FrameGraph

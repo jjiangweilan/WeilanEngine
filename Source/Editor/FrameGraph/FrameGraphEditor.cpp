@@ -41,7 +41,7 @@ void FrameGraphEditor::Draw()
                 {
                     DrawProperty(input, ed::PinKind::Input);
                 }
-
+                ImGui::Spacing();
                 for (fg::Property& input : node->GetOutput())
                 {
                     DrawProperty(input, ed::PinKind::Output);
@@ -79,7 +79,9 @@ void FrameGraphEditor::Draw()
         // make links
         for (auto c : graph->GetConnections())
         {
-            ed::Link(c.id, c.src, c.dst);
+            fg::FGID srcPropID = fg::Graph::GetSrcPropertyIDFromConnectionID(c);
+            fg::FGID dstPropID = fg::Graph::GetDstPropertyIDFromConnectionID(c);
+            ed::Link(c, srcPropID, dstPropID);
         }
     }
 
@@ -109,16 +111,23 @@ void FrameGraphEditor::Draw()
 void FrameGraphEditor::ShowFloatProp(FrameGraph::Property& p)
 {
     float* v = (float*)p.GetData();
-    if (ImGui::InputFloat("", v))
+    ImGui::Text("%s", p.GetName().c_str());
+    ImGui::PushItemWidth(100);
+    if (ImGui::InputFloat(fmt::format("##{}", p.GetID()).c_str(), v))
     {}
 }
 
 void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
 {
     ed::BeginPin(p.GetID(), kind);
-    ImGui::Text("%s", p.GetName().c_str());
     if (p.GetType() == fg::PropertyType::Float)
+    {
+        if (kind == ed::PinKind::Output)
+            ImGui::Indent(30);
         ShowFloatProp(p);
+        if (kind == ed::PinKind::Output)
+            ImGui::Unindent(30);
+    }
     ed::EndPin();
 }
 } // namespace Engine::Editor
