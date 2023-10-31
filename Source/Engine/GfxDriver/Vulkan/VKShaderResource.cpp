@@ -108,7 +108,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
                             writes[writeCount].pImageInfo = &imageInfo;
-                            textures["_default_uTexutre2D"] = sharedResource->GetDefaultTexture2D();
+                            imageVies["_default_uTexutre2D"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView());
                         }
                         else if (b.second.binding.texture.type == ShaderInfo::Texture::Type::TexCube)
                         {
@@ -117,7 +117,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
                             writes[writeCount].pImageInfo = &imageInfo;
-                            textures["_default_uTexutreCube"] = sharedResource->GetDefaultTextureCube();
+                            imageVies["_default_uTexutreCube"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTextureCube()->GetDefaultImageView());
                         }
                         break;
                     }
@@ -128,7 +128,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         imageInfo.sampler = VK_NULL_HANDLE;
                         imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
-                        textures["_default_uTexutreSeparateImage"] = sharedResource->GetDefaultTexture2D();
+                        imageVies["_default_uTexutreSeparateImage"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView());
                         break;
                     }
                 case ShaderInfo::BindingType::SeparateSampler:
@@ -216,85 +216,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet()
     return descriptorSet;
 }
 
-void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
+void VKShaderResource::SetImage(const std::string& param, RefPtr<Image> image)
 {
-    auto& shaderInfo = shaderProgram->GetShaderInfo();
-
-    // find the binding
-    auto iter = std::find_if(
-        shaderInfo.bindings.begin(),
-        shaderInfo.bindings.end(),
-        [&param](auto& pair) { return pair.second.name == param; }
-    );
-    if (iter == shaderInfo.bindings.end())
-    {
-        SPDLOG_WARN("SetTexture didn't find the texture in binding");
-        return;
-    }
-
-    // ensure the binding is a texutre
-    if (iter->second.type != ShaderInfo::BindingType::Texture &&
-        iter->second.type != ShaderInfo::BindingType::SeparateImage)
-    {
-        SPDLOG_WARN("Setting a image to a non texture binding");
-        return;
-    }
-
-    // check if this image already sets to binding
-    auto texIter = textures.find(param);
-    if (texIter != textures.end() && texIter->second.Get() == image.Get())
-    {
-        return;
-    }
-
-    // null image use default
-    if (image == nullptr)
-    {
-        image = VKContext::Instance()->sharedResource->GetDefaultTexture2D();
-    }
-    textures[param] = (VKImage*)image.Get();
-
-    ShaderInfo::BindingType descriptorType = iter->second.type;
-    uint32_t bindingNum = iter->second.bindingNum;
-    uint32_t count = iter->second.count;
-    VkDevice vkDevice = device->GetHandle();
-
-    // actually set the image to binding
-    VkWriteDescriptorSet write;
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.pNext = VK_NULL_HANDLE;
-    write.dstSet = descriptorSet;
-    write.descriptorType = ShaderInfo::Utils::MapBindingType(descriptorType);
-    write.dstBinding = bindingNum;
-    write.dstArrayElement = 0;
-    write.descriptorCount = count;
-    write.pImageInfo = VK_NULL_HANDLE;
-    write.pBufferInfo = VK_NULL_HANDLE;
-    write.pTexelBufferView = VK_NULL_HANDLE;
-    VkDescriptorImageInfo imageInfo;
-    switch (descriptorType)
-    {
-        case ShaderInfo::BindingType::Texture:
-            {
-                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(
-                ); // TODO we need to get sampler from
-                   // image(or a type called Texture maybe?)
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultVkImageView();
-                write.pImageInfo = &imageInfo;
-                break;
-            }
-        case ShaderInfo::BindingType::SeparateImage:
-            {
-                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                imageInfo.sampler = VK_NULL_HANDLE;
-                imageInfo.imageView = ((VKImage*)image.Get())->GetDefaultVkImageView();
-                write.pImageInfo = &imageInfo;
-                break;
-            }
-        default: assert(0 && "Wrong type");
-    }
-    vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
+    SetImage(param, &image->GetDefaultImageView());
 }
 
 /* void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)
@@ -333,6 +257,87 @@ void VKShaderResource::SetTexture(const std::string& param, RefPtr<Image> image)
 RefPtr<ShaderProgram> VKShaderResource::GetShaderProgram()
 {
     return shaderProgram.Get();
+}
+
+void VKShaderResource::SetImage(const std::string& param, ImageView* imageView)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+
+    // find the binding
+    auto iter = std::find_if(
+        shaderInfo.bindings.begin(),
+        shaderInfo.bindings.end(),
+        [&param](auto& pair) { return pair.second.name == param; }
+    );
+    if (iter == shaderInfo.bindings.end())
+    {
+        SPDLOG_WARN("SetTexture didn't find the texture in binding");
+        return;
+    }
+
+    // ensure the binding is a texutre
+    if (iter->second.type != ShaderInfo::BindingType::Texture &&
+        iter->second.type != ShaderInfo::BindingType::SeparateImage)
+    {
+        SPDLOG_WARN("Setting a image to a non texture binding");
+        return;
+    }
+
+    // null image use default
+    if (imageView == nullptr)
+    {
+        imageView = &VKContext::Instance()->sharedResource->GetDefaultTexture2D()->GetDefaultImageView();
+    }
+
+    // check if this image already sets to binding
+    auto texIter = imageVies.find(param);
+    if (texIter != imageVies.end() && texIter->second == imageView)
+    {
+        return;
+    }
+    imageVies[param] = (VKImageView*)imageView;
+
+    ShaderInfo::BindingType descriptorType = iter->second.type;
+    uint32_t bindingNum = iter->second.bindingNum;
+    uint32_t count = iter->second.count;
+    VkDevice vkDevice = device->GetHandle();
+
+    // actually set the image to binding
+    VkWriteDescriptorSet write;
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.pNext = VK_NULL_HANDLE;
+    write.dstSet = descriptorSet;
+    write.descriptorType = ShaderInfo::Utils::MapBindingType(descriptorType);
+    write.dstBinding = bindingNum;
+    write.dstArrayElement = 0;
+    write.descriptorCount = count;
+    write.pImageInfo = VK_NULL_HANDLE;
+    write.pBufferInfo = VK_NULL_HANDLE;
+    write.pTexelBufferView = VK_NULL_HANDLE;
+    VkDescriptorImageInfo imageInfo;
+    switch (descriptorType)
+    {
+        case ShaderInfo::BindingType::Texture:
+            {
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.sampler = VKContext::Instance()->sharedResource->GetDefaultSampler(
+                ); // TODO we need to get sampler from
+                   // image(or a type called Texture maybe?)
+                imageInfo.imageView = ((VKImageView*)imageView)->GetHandle();
+                write.pImageInfo = &imageInfo;
+                break;
+            }
+        case ShaderInfo::BindingType::SeparateImage:
+            {
+                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                imageInfo.sampler = VK_NULL_HANDLE;
+                imageInfo.imageView = ((VKImageView*)imageView)->GetHandle();
+                write.pImageInfo = &imageInfo;
+                break;
+            }
+        default: assert(0 && "Wrong type");
+    }
+    vkUpdateDescriptorSets(vkDevice, 1, &write, 0, VK_NULL_HANDLE);
 }
 
 void VKShaderResource::SetBuffer(Buffer& buffer, unsigned int binding, size_t offset, size_t range)

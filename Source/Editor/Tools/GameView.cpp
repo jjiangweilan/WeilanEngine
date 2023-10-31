@@ -39,6 +39,9 @@ void GameView::Init()
 
 static void EditorCameraWalkAround(Camera& editorCamera)
 {
+    if (!ImGui::IsWindowHovered())
+        return;
+
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {

@@ -1,5 +1,6 @@
 #pragma once
 #include "Rendering/FrameGraph/FrameGraph.hpp"
+#include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
 #include <filesystem>
 #include <nlohmann/json.hpp>
 
@@ -12,9 +13,9 @@ struct FrameGraphNode
 class FrameGraphEditor
 {
 public:
-    FrameGraphEditor();
-
     void Draw();
+    void Init();
+    void Destory();
 
     void SetGraph(FrameGraph::Graph& graph)
     {
@@ -22,6 +23,17 @@ public:
     }
 
 private:
+    std::unique_ptr<FrameGraph::Graph> testGraph;
     FrameGraph::Graph* graph = nullptr;
+    ax::NodeEditor::EditorContext* graphContext;
+    struct LinkInfo
+    {
+        ax::NodeEditor::LinkId Id;
+        ax::NodeEditor::PinId InputId;
+        ax::NodeEditor::PinId OutputId;
+    };
+
+    void DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
+    void ShowFloatProp(FrameGraph::Property& p);
 };
 } // namespace Engine::Editor

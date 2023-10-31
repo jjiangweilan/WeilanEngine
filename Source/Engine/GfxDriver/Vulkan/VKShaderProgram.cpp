@@ -18,7 +18,7 @@ namespace Engine::Gfx
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
 {
-    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 100);
+    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 0);
 
     auto iter = samplers.find(hash);
     if (iter != samplers.end())
@@ -57,7 +57,11 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
     if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
         addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    VkSamplerCreateInfo samplerCreateInfo;
+    VkBool32 anisotropyEnable = VK_FALSE;
+    if (lowerBindingName.find("_anisotropic") != lowerBindingName.npos)
+        anisotropyEnable = VK_TRUE;
+
+    VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = VK_NULL_HANDLE;
     samplerCreateInfo.flags = 0;

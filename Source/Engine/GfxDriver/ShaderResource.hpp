@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
 #include "Libs/Ptr.hpp"
 #include "StorageBuffer.hpp"
@@ -29,7 +30,8 @@ public:
 
     // if range is zero, SetBuffer will use the size from buffer
     virtual void SetBuffer(Buffer& buffer, unsigned int binding, size_t offset = 0, size_t range = 0) = 0;
-    virtual void SetTexture(const std::string& name, RefPtr<Image> texture) = 0;
+    virtual void SetImage(const std::string& name, RefPtr<Image> texture) = 0;
+    virtual void SetImage(const std::string& name, ImageView* imageView) = 0;
     // virtual void SetStorage(std::string_view name, RefPtr<StorageBuffer>
     // storageBuffer) = 0;
     virtual bool HasPushConstnat(const std::string& obj) = 0;

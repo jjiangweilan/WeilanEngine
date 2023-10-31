@@ -48,6 +48,21 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
         case ImageFormat::R8G8B8_SRGB: return 3;
         case ImageFormat::R8G8_SRGB: return 2;
         case ImageFormat::R8_SRGB: return 1;
+        case ImageFormat::R16G16_UNorm: return 4;
+        case ImageFormat::R16G16_SNorm: return 4;
+        case ImageFormat::R16G16_UScaled: return 4;
+        case ImageFormat::R16G16_SScaled: return 4;
+        case ImageFormat::R16G16_UInt: return 4;
+        case ImageFormat::R16G16_SInt: return 4;
+        case ImageFormat::R16G16_SFloat: return 4;
+        case ImageFormat::R32G32_UInt: return 8;
+        case ImageFormat::R32G32_SInt: return 8;
+        case ImageFormat::R32G32_SFloat: return 8;
+        case ImageFormat::R32G32B32_UInt: return 12;
+        case ImageFormat::R32G32B32_SInt: return 12;
+        case ImageFormat::R32G32B32_SFloat: return 12;
+        case ImageFormat::R32G32B32A32_UInt: return 16;
+        case ImageFormat::R32G32B32A32_SInt: return 16;
         case ImageFormat::D16_UNorm: return 2;
         case ImageFormat::D16_UNorm_S8_UInt: return 3;
         case ImageFormat::D24_UNorm_S8_UInt: return 4;
@@ -61,8 +76,6 @@ ImageFormat MapStringToImageFormat(std::string_view name)
 {
     if (name == "R16G16B16A16_SFloat")
         return ImageFormat::R16G16B16A16_SFloat;
-    else if (name == "R32G32B32A32_SFloat")
-        return ImageFormat::R32G32B32A32_SFloat;
     else if (name == "R16G16B16A16_UNorm")
         return ImageFormat::R16G16B16A16_UNorm;
     else if (name == "R8G8B8A8_UNorm")
@@ -79,6 +92,36 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::R8G8_SRGB;
     else if (name == "R8_SRGB")
         return ImageFormat::R8_SRGB;
+    else if (name == "R16G16_SNorm")
+        return ImageFormat::R16G16_SNorm;
+    else if (name == "R16G16_UScaled")
+        return ImageFormat::R16G16_UScaled;
+    else if (name == "R16G16_SScaled")
+        return ImageFormat::R16G16_SScaled;
+    else if (name == "R16G16_UInt")
+        return ImageFormat::R16G16_UInt;
+    else if (name == "R16G16_SInt")
+        return ImageFormat::R16G16_SInt;
+    else if (name == "R16G16_SFloat")
+        return ImageFormat::R16G16_SFloat;
+    else if (name == "R32G32_UInt")
+        return ImageFormat::R32G32_UInt;
+    else if (name == "R32G32_SInt")
+        return ImageFormat::R32G32_SInt;
+    else if (name == "R32G32_SFloat")
+        return ImageFormat::R32G32_SFloat;
+    else if (name == "R32G32B32_UInt")
+        return ImageFormat::R32G32B32_UInt;
+    else if (name == "R32G32B32_SInt")
+        return ImageFormat::R32G32B32_SInt;
+    else if (name == "R32G32B32_SFloat")
+        return ImageFormat::R32G32B32_SFloat;
+    else if (name == "R32G32B32A32_UInt")
+        return ImageFormat::R32G32B32A32_UInt;
+    else if (name == "R32G32B32A32_SInt")
+        return ImageFormat::R32G32B32A32_SInt;
+    else if (name == "R32G32B32A32_SFloat")
+        return ImageFormat::R32G32B32A32_SFloat;
     else if (name == "D16_UNorm")
         return ImageFormat::D16_UNorm;
     else if (name == "D16_UNorm_S8_UInt")

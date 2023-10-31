@@ -116,7 +116,7 @@ void EnvironmentBaker::Bake(int size)
             .byteSize = envMapBinary.size(),
         };
         environmentMap = std::make_unique<Texture>(data);
-        bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
+        bakingShaderResource->SetImage("environmentMap", environmentMap->GetGfxImage());
     }
 
     // placing each face in front of the camera view in ndc space

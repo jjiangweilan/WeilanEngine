@@ -17,11 +17,16 @@ using SortIndex = int;
 class RenderNode
 {
 public:
-    RenderNode(std::unique_ptr<RenderPass>&& pass, const std::string& debugDesc = "");
+    RenderNode(std::unique_ptr<RenderPass>&& pass, const std::string& name = "");
 
     RenderPass* GetPass()
     {
         return pass.get();
+    }
+
+    void SetName(const std::string& name)
+    {
+        this->name = name;
     }
 
 private:
@@ -36,7 +41,7 @@ private:
         friend class RenderNode;
     };
 
-    std::string debugDesc;
+    std::string name;
     std::unique_ptr<RenderPass> pass;
     std::vector<std::unique_ptr<Port>> inputPorts;
     std::vector<std::unique_ptr<Port>> outputPorts;
@@ -48,12 +53,20 @@ private:
     friend class Graph;
 };
 
+struct ImageView
+{
+    Gfx::ImageAspectFlags aspectMask;
+    uint32_t mipLevel;
+};
+
 struct Attachment
 {
     std::string name;
     ResourceHandle handle;
     bool create = false;
     Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+
+    std::optional<ImageView> imageView;
 
     Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1;
     uint32_t mipLevels = 1;
@@ -86,6 +99,9 @@ struct PassDependency
     ResourceHandle handle;
     PassDependencyType type;
     Gfx::PipelineStage stageFlags;
+
+    // used when you want to set a barrier to part of the image
+    std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange;
 };
 
 ResourceHandle StrToHandle(const std::string& str);
@@ -122,8 +138,20 @@ public:
                     .stageFlags = d.stageFlags,
                     .imageUsagesFlags = Gfx::ImageUsage::Texture,
                     .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+                    .imageSubresourceRange = d.imageSubresourceRange,
                 };
 
+                resourceDescriptions.push_back(desc);
+            }
+            else if (d.type == PassDependencyType::Buffer)
+            {
+                RenderPass::ResourceDescription desc{
+                    .name = d.name,
+                    .handle = d.handle,
+                    .type = ResourceType::Buffer,
+                    .accessFlags = Gfx::AccessMask::Shader_Read,
+                    .stageFlags = d.stageFlags,
+                };
                 resourceDescriptions.push_back(desc);
             }
             else
@@ -145,6 +173,22 @@ public:
                     .storeOp = color.storeOp,
                     .stencilLoadOp = color.stencilLoadOp,
                     .stencilStoreOp = color.storeOp};
+
+                if (color.imageView.has_value())
+                {
+                    RenderPass::ImageView imageView{
+                        .imageViewType = Gfx::ImageViewType::Image_2D,
+                        .subresourceRange =
+                            {
+                                .aspectMask = color.imageView->aspectMask,
+                                .baseMipLevel = color.imageView->mipLevel,
+                                .levelCount = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount = 1,
+                            },
+                    };
+                    att.imageView = imageView;
+                }
 
                 lSubpass.colors.push_back(att);
 
@@ -172,6 +216,14 @@ public:
                     .externalImage = color.externalImage,
                 };
 
+                if (color.imageView.has_value())
+                {
+                    Gfx::ImageSubresourceRange range{};
+                    range.baseMipLevel = color.imageView->mipLevel;
+                    range.aspectMask = color.imageView->aspectMask;
+                    desc.imageSubresourceRange = range;
+                }
+
                 resourceDescriptions.push_back(desc);
             }
 
@@ -185,6 +237,22 @@ public:
                     .stencilLoadOp = subpass.depth->stencilLoadOp,
                     .stencilStoreOp = subpass.depth->storeOp,
                 };
+
+                if (subpass.depth->imageView.has_value())
+                {
+                    RenderPass::ImageView imageView{
+                        .imageViewType = Gfx::ImageViewType::Image_2D,
+                        .subresourceRange =
+                            {
+                                .aspectMask = subpass.depth->imageView->aspectMask,
+                                .baseMipLevel = subpass.depth->imageView->mipLevel,
+                                .levelCount = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount = 1,
+                            },
+                    };
+                    att.imageView = imageView;
+                }
 
                 lSubpass.depth = att;
 
@@ -210,6 +278,14 @@ public:
                         },
                     .externalImage = subpass.depth->externalImage,
                 };
+
+                if (subpass.depth->imageView.has_value())
+                {
+                    Gfx::ImageSubresourceRange range{};
+                    range.baseMipLevel = subpass.depth->imageView->mipLevel;
+                    range.aspectMask = subpass.depth->imageView->aspectMask;
+                    desc.imageSubresourceRange = range;
+                }
 
                 resourceDescriptions.push_back(desc);
             }

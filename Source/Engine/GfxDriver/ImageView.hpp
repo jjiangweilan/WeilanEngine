@@ -13,8 +13,10 @@ public:
         ImageViewType imageViewType;
         ImageSubresourceRange subresourceRange;
     };
+
     virtual ~ImageView(){};
     virtual Image& GetImage() = 0;
     virtual const ImageSubresourceRange& GetSubresourceRange() = 0;
+    virtual ImageViewType GetImageViewType() = 0;
 };
 } // namespace Engine::Gfx

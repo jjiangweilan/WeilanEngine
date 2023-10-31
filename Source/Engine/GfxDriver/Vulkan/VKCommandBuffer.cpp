@@ -350,7 +350,7 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
         {
             auto buffer = static_cast<VKBuffer*>(barrier.buffer.Get());
 
-            VkBufferMemoryBarrier memoryBarrier;
+            VkBufferMemoryBarrier memoryBarrier{};
             memoryBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
             memoryBarrier.pNext = VK_NULL_HANDLE;
             memoryBarrier.srcAccessMask = MapAccessMask(barrier.srcAccessMask);
@@ -414,7 +414,7 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
         }
         else
         {
-            VkMemoryBarrier memBarrier;
+            VkMemoryBarrier memBarrier{};
             memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
             memBarrier.pNext = VK_NULL_HANDLE;
             memBarrier.srcAccessMask = MapAccessMask(barrier.srcAccessMask);

@@ -32,7 +32,7 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
 
 layout(set = SET_GLOBAL, binding = 1) uniform sampler2D vtCache;
 layout(set = SET_GLOBAL, binding = 2) uniform sampler2D vtIndir;
-layout(set = SET_GLOBAL, binding = 3) uniform sampler2DShadow shadowMap;
+layout(set = SET_GLOBAL, binding = 3) uniform sampler2D shadowMap;
 layout(set = SET_GLOBAL, binding = 4) uniform sampler shadowMapSampler;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube environmentMap;
 
@@ -50,14 +50,13 @@ float PcfShadow(vec2 shadowCoord, float objShadowDepth)
     for (y = -halfFilterSize; y <= halfFilterSize; y += filterStep)
         for (x = -halfFilterSize; x <= halfFilterSize; x += filterStep)
         {
-            vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
-            vec3 uvd = vec3(uv, objShadowDepth);
-            float d = texture(shadowMap, uvd).x;
-            shadow += d;
+            // vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
+            // vec3 uvd = vec3(uv, objShadowDepth);
+            // float d = texture(shadowMap, uvd).x;
+            shadow += 1;
         }
 
     return shadow / totalSample;
 }
-
 
 #endif

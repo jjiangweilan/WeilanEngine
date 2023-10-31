@@ -19,7 +19,8 @@ VkImageViewType MapImageViewType(ImageViewType type)
 }
 
 VKImageView::VKImageView(const CreateInfo& createInfo)
-    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange)
+    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange),
+      imageViewType(createInfo.imageViewType)
 {
     VkImageViewCreateInfo imageViewCreateInfo;
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -49,7 +50,7 @@ VKImageView::VKImageView(const CreateInfo& createInfo)
 
 VKImageView::VKImageView(VKImageView&& other)
     : image(std::exchange(other.image, nullptr)), handle(std::exchange(other.handle, VK_NULL_HANDLE)),
-      subresourceRange(other.subresourceRange){};
+      subresourceRange(other.subresourceRange), imageViewType(other.imageViewType){};
 
 VkImageSubresourceRange VKImageView::GetVkSubresourceRange()
 {
