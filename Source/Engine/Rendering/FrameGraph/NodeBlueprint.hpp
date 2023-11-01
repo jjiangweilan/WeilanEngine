@@ -10,10 +10,10 @@ namespace Engine::FrameGraph
 class NodeBlueprint
 {
 public:
-    NodeBlueprint(const char* name, const std::function<std::unique_ptr<Node>(NodeID id)>& creation)
+    NodeBlueprint(const char* name, const std::function<std::unique_ptr<Node>(FGID id)>& creation)
         : name(name), creation(creation){};
 
-    std::unique_ptr<Node> CreateNode(NodeID id) const
+    std::unique_ptr<Node> CreateNode(FGID id) const
     {
         return creation(id);
     };
@@ -25,7 +25,7 @@ public:
 
 private:
     std::string name;
-    std::function<std::unique_ptr<Node>(NodeID)> creation;
+    std::function<std::unique_ptr<Node>(FGID)> creation;
 };
 
 class NodeBlueprintRegisteration
@@ -45,7 +45,7 @@ template <class T>
     requires std::derived_from<T, Node>
 char NodeBlueprintRegisteration::Register(const char* nameID)
 {
-    GetRegisteration().blueprints.emplace_back(nameID, [](NodeID id) { return std::unique_ptr<Node>(new T(id)); });
+    GetRegisteration().blueprints.emplace_back(nameID, [](FGID id) { return std::unique_ptr<Node>(new T(id)); });
     return '1';
 }
 } // namespace Engine::FrameGraph

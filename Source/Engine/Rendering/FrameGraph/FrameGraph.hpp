@@ -8,15 +8,6 @@
 
 namespace Engine::FrameGraph
 {
-using PinID = int;
-using ConnectionID = int;
-
-struct Connection
-{
-    ConnectionID id;
-    PinID src;
-    PinID dst;
-};
 
 class Graph
 {
@@ -24,22 +15,53 @@ public:
     Graph(){};
     void BuildGraph(Graph& graph, nlohmann::json& j);
     void Execute(Graph& graph);
-    bool Connect(PinID src, PinID dst);
+    bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
     void DeleteNode(Node* node);
+    void DeleteConnection(FGID connectionID);
 
-    std::span<Connection> GetConnections();
+    std::span<FGID> GetConnections();
 
     std::span<std::unique_ptr<Node>> GetNodes()
     {
         return nodes;
     }
 
+    static FGID GetSrcNodeIDFromConnect(FGID connectionID)
+    {
+        return (connectionID >> FRAME_GRAPH_NODE_PROPERTY_BIT_COUNT) & FRAME_GRAPH_NODE_BIT_MASK;
+    }
+
+    static FGID GetDstNodeIDFromConnect(FGID connectionID)
+    {
+        return connectionID & FRAME_GRAPH_NODE_BIT_MASK;
+    }
+
+    static FGID GetSrcPropertyIDFromConnectionID(FGID connectionID)
+    {
+        return connectionID >> FRAME_GRAPH_NODE_PROPERTY_BIT_COUNT;
+    }
+
+    static FGID GetDstPropertyIDFromConnectionID(FGID connectionID)
+    {
+        return connectionID & FRAME_GRAPH_PROPERTY_BIT_MASK;
+    }
+
+    static FGID GetNodeID(FGID id)
+    {
+        return id & FRAME_GRAPH_NODE_BIT_MASK;
+    }
+
+    static FGID GetPropertyID(FGID id)
+    {
+        return id & FRAME_GRAPH_PROPERTY_BIT_MASK;
+    }
+
 private:
     using RGraph = RenderGraph::Graph;
 
     RGraph* targetGraph;
-    std::vector<Connection> connections;
+    std::vector<FGID> connections;
     std::vector<std::unique_ptr<Node>> nodes;
 
     class IDPool
@@ -54,33 +76,38 @@ private:
 
         IDPool() : IDPool(256) {}
 
-        uint32_t Allocate()
+        uint16_t Allocate()
         {
             if (freeID.empty())
             {
                 throw std::logic_error("Maximum id reached");
             }
 
-            uint32_t back = freeID.back();
+            uint16_t back = freeID.back();
             freeID.pop_back();
             return back;
         };
 
-        void Release(uint32_t v)
+        void Release(FGID v)
         {
             freeID.push_back(v);
         }
 
-        const std::vector<uint32_t> GetFreeIDs()
+        const std::vector<uint16_t> GetFreeIDs()
         {
             return freeID;
         }
 
     private:
-        std::vector<uint32_t> freeID;
+        std::vector<uint16_t> freeID;
     };
 
     IDPool nodeIDPool;
+
+    bool HasCycleIfLink(FGID src, FGID dst)
+    {
+        return false; // not implemented
+    }
 };
 
 } // namespace Engine::FrameGraph
