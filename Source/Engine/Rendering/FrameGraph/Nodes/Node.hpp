@@ -1,5 +1,7 @@
 #pragma once
+#include "GfxDriver/GfxEnums.hpp"
 #include <any>
+#include <glm/glm.hpp>
 #include <span>
 #include <string>
 #include <vector>
@@ -29,14 +31,45 @@ enum class PropertyType
 
 enum class ConfigurableType
 {
+    Int,
     Float,
+    Format,
     Vec2,
     Vec3,
-    Vec4
+    Vec4,
+    Vec2Int,
+    Vec3Int,
+    Vec4Int
 };
 
 struct Configurable
 {
+    // type checked constructor
+    template <ConfigurableType type, class T>
+    static Configurable C(const char* name, const T& val)
+    {
+        if constexpr (type == ConfigurableType::Int)
+            static_assert(std::is_same_v<T, int>);
+        else if constexpr (type == ConfigurableType::Float)
+            static_assert(std::is_same_v<T, float>);
+        else if constexpr (type == ConfigurableType::Format)
+            static_assert(std::is_same_v<T, Gfx::ImageFormat>);
+        else if constexpr (type == ConfigurableType::Vec2)
+            static_assert(std::is_same_v<T, glm::vec2>);
+        else if constexpr (type == ConfigurableType::Vec3)
+            static_assert(std::is_same_v<T, glm::vec3>);
+        else if constexpr (type == ConfigurableType::Vec4)
+            static_assert(std::is_same_v<T, glm::vec4>);
+        else if constexpr (type == ConfigurableType::Vec2Int)
+            static_assert(std::is_same_v<T, glm::ivec2>);
+        else if constexpr (type == ConfigurableType::Vec3Int)
+            static_assert(std::is_same_v<T, glm::ivec3>);
+        else if constexpr (type == ConfigurableType::Vec4Int)
+            static_assert(std::is_same_v<T, glm::ivec4>);
+
+        return {name, type, val};
+    }
+
     std::string name;
     ConfigurableType type;
     mutable std::any data;
@@ -118,7 +151,7 @@ struct BuildResources
 class Node
 {
 public:
-    Node(const char* name, FGID id) : id(id), name(name) {}
+    Node(const char* name, FGID id) : id(id), name(name), customName(name) {}
 
     FGID GetID()
     {
@@ -156,6 +189,16 @@ public:
         }
 
         return nullptr;
+    }
+
+    void SetCustomName(const char* name)
+    {
+        customName = name;
+    }
+
+    const std::string& GetCustomName()
+    {
+        return customName;
     }
 
     const std::string GetName() const
@@ -198,5 +241,6 @@ private:
 private:
     FGID id;
     std::string name;
+    std::string customName;
 };
 } // namespace Engine::FrameGraph

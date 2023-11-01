@@ -24,53 +24,7 @@ bool HasReadAccessMask(AccessMaskFlags flags)
 
     return false;
 }
-} // namespace Engine::Gfx
 
-namespace Engine::Gfx::Utils
-{
-
-// https://registry.khronos.org/vulkan/specs/1.3-khr-extensions/html/chap40.html#formats-definition
-uint32_t MapImageFormatToByteSize(ImageFormat format)
-{
-    switch (format)
-    {
-        case ImageFormat::BC7_UNorm_Block: return 16;
-        case ImageFormat::BC7_SRGB_UNorm_Block: return 16;
-        case ImageFormat::BC3_Unorm_Block: return 16;
-        case ImageFormat::BC3_SRGB_Block: return 16;
-        case ImageFormat::R16G16B16A16_SFloat: return 8;
-        case ImageFormat::R32G32B32A32_SFloat: return 16;
-        case ImageFormat::R16G16B16A16_UNorm: return 8;
-        case ImageFormat::R8G8B8A8_UNorm:
-        case ImageFormat::B8G8R8A8_UNorm:
-        case ImageFormat::B8G8R8A8_SRGB: return 4;
-        case ImageFormat::R8G8B8A8_SRGB: return 4;
-        case ImageFormat::R8G8B8_SRGB: return 3;
-        case ImageFormat::R8G8_SRGB: return 2;
-        case ImageFormat::R8_SRGB: return 1;
-        case ImageFormat::R16G16_UNorm: return 4;
-        case ImageFormat::R16G16_SNorm: return 4;
-        case ImageFormat::R16G16_UScaled: return 4;
-        case ImageFormat::R16G16_SScaled: return 4;
-        case ImageFormat::R16G16_UInt: return 4;
-        case ImageFormat::R16G16_SInt: return 4;
-        case ImageFormat::R16G16_SFloat: return 4;
-        case ImageFormat::R32G32_UInt: return 8;
-        case ImageFormat::R32G32_SInt: return 8;
-        case ImageFormat::R32G32_SFloat: return 8;
-        case ImageFormat::R32G32B32_UInt: return 12;
-        case ImageFormat::R32G32B32_SInt: return 12;
-        case ImageFormat::R32G32B32_SFloat: return 12;
-        case ImageFormat::R32G32B32A32_UInt: return 16;
-        case ImageFormat::R32G32B32A32_SInt: return 16;
-        case ImageFormat::D16_UNorm: return 2;
-        case ImageFormat::D16_UNorm_S8_UInt: return 3;
-        case ImageFormat::D24_UNorm_S8_UInt: return 4;
-        default: assert(0 && "Not implemented");
-    }
-
-    return 64;
-};
 
 ImageFormat MapStringToImageFormat(std::string_view name)
 {
@@ -141,4 +95,122 @@ ImageFormat MapStringToImageFormat(std::string_view name)
 
     return ImageFormat::Invalid;
 }
+
+const char* MapImageFormatToString(ImageFormat format)
+{
+    if (format == ImageFormat::R16G16B16A16_SFloat)
+        return "R16G16B16A16_SFloat";
+    else if (format == ImageFormat::R16G16B16A16_UNorm)
+        return "R16G16B16A16_UNorm";
+    else if (format == ImageFormat::R8G8B8A8_UNorm)
+        return "R8G8B8A8_UNorm";
+    else if (format == ImageFormat::B8G8R8A8_UNorm)
+        return "B8G8R8A8_UNorm";
+    else if (format == ImageFormat::B8G8R8A8_SRGB)
+        return "B8G8R8A8_SRGB";
+    else if (format == ImageFormat::R8G8B8A8_SRGB)
+        return "R8G8B8A8_SRGB";
+    else if (format == ImageFormat::R8G8B8_SRGB)
+        return "R8G8B8_SRGB";
+    else if (format == ImageFormat::R8G8_SRGB)
+        return "R8G8_SRGB";
+    else if (format == ImageFormat::R8_SRGB)
+        return "R8_SRGB";
+    else if (format == ImageFormat::R16G16_SNorm)
+        return "R16G16_SNorm";
+    else if (format == ImageFormat::R16G16_UScaled)
+        return "R16G16_UScaled";
+    else if (format == ImageFormat::R16G16_SScaled)
+        return "R16G16_SScaled";
+    else if (format == ImageFormat::R16G16_UInt)
+        return "R16G16_UInt";
+    else if (format == ImageFormat::R16G16_SInt)
+        return "R16G16_SInt";
+    else if (format == ImageFormat::R16G16_SFloat)
+        return "R16G16_SFloat";
+    else if (format == ImageFormat::R32G32_UInt)
+        return "R32G32_UInt";
+    else if (format == ImageFormat::R32G32_SInt)
+        return "R32G32_SInt";
+    else if (format == ImageFormat::R32G32_SFloat)
+        return "R32G32_SFloat";
+    else if (format == ImageFormat::R32G32B32_UInt)
+        return "R32G32B32_UInt";
+    else if (format == ImageFormat::R32G32B32_SInt)
+        return "R32G32B32_SInt";
+    else if (format == ImageFormat::R32G32B32_SFloat)
+        return "R32G32B32_SFloat";
+    else if (format == ImageFormat::R32G32B32A32_UInt)
+        return "R32G32B32A32_UInt";
+    else if (format == ImageFormat::R32G32B32A32_SInt)
+        return "R32G32B32A32_SInt";
+    else if (format == ImageFormat::R32G32B32A32_SFloat)
+        return "R32G32B32A32_SFloat";
+    else if (format == ImageFormat::D16_UNorm)
+        return "D16_UNorm";
+    else if (format == ImageFormat::D16_UNorm_S8_UInt)
+        return "D16_UNorm_S8_UInt";
+    else if (format == ImageFormat::D32_SFLOAT_S8_UInt)
+        return "D32_SFLOAT_S8_UInt";
+    else if (format == ImageFormat::D24_UNorm_S8_UInt)
+        return "D24_UNorm_S8_UInt";
+    else if (format == ImageFormat::BC7_UNorm_Block)
+        return "BC7_UNorm_Block";
+    else if (format == ImageFormat::BC7_SRGB_UNorm_Block)
+        return "BC7_SRGB_UNorm_Block";
+    else if (format == ImageFormat::BC3_Unorm_Block)
+        return "BC3_Unorm_Block";
+    else if (format == ImageFormat::BC3_SRGB_Block)
+        return "BC3_SRGB_Block";
+
+    return "Invalid";
+}
+
+} // namespace Engine::Gfx
+
+namespace Engine::Gfx::Utils
+{
+
+// https://registry.khronos.org/vulkan/specs/1.3-khr-extensions/html/chap40.html#formats-definition
+uint32_t MapImageFormatToByteSize(ImageFormat format)
+{
+    switch (format)
+    {
+        case ImageFormat::BC7_UNorm_Block: return 16;
+        case ImageFormat::BC7_SRGB_UNorm_Block: return 16;
+        case ImageFormat::BC3_Unorm_Block: return 16;
+        case ImageFormat::BC3_SRGB_Block: return 16;
+        case ImageFormat::R16G16B16A16_SFloat: return 8;
+        case ImageFormat::R32G32B32A32_SFloat: return 16;
+        case ImageFormat::R16G16B16A16_UNorm: return 8;
+        case ImageFormat::R8G8B8A8_UNorm:
+        case ImageFormat::B8G8R8A8_UNorm:
+        case ImageFormat::B8G8R8A8_SRGB: return 4;
+        case ImageFormat::R8G8B8A8_SRGB: return 4;
+        case ImageFormat::R8G8B8_SRGB: return 3;
+        case ImageFormat::R8G8_SRGB: return 2;
+        case ImageFormat::R8_SRGB: return 1;
+        case ImageFormat::R16G16_UNorm: return 4;
+        case ImageFormat::R16G16_SNorm: return 4;
+        case ImageFormat::R16G16_UScaled: return 4;
+        case ImageFormat::R16G16_SScaled: return 4;
+        case ImageFormat::R16G16_UInt: return 4;
+        case ImageFormat::R16G16_SInt: return 4;
+        case ImageFormat::R16G16_SFloat: return 4;
+        case ImageFormat::R32G32_UInt: return 8;
+        case ImageFormat::R32G32_SInt: return 8;
+        case ImageFormat::R32G32_SFloat: return 8;
+        case ImageFormat::R32G32B32_UInt: return 12;
+        case ImageFormat::R32G32B32_SInt: return 12;
+        case ImageFormat::R32G32B32_SFloat: return 12;
+        case ImageFormat::R32G32B32A32_UInt: return 16;
+        case ImageFormat::R32G32B32A32_SInt: return 16;
+        case ImageFormat::D16_UNorm: return 2;
+        case ImageFormat::D16_UNorm_S8_UInt: return 3;
+        case ImageFormat::D24_UNorm_S8_UInt: return 4;
+        default: assert(0 && "Not implemented");
+    }
+
+    return 64;
+};
 } // namespace Engine::Gfx::Utils

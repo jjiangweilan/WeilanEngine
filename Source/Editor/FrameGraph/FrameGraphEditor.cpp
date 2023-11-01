@@ -30,16 +30,27 @@ void FrameGraphEditor::Draw()
     ImGui::Begin("Frame Graph Editor");
     ed::Begin("Frame Graph");
     {
-        int uniqueId = 1;
         if (graph)
         {
+            int uniqueId = 0;
             for (std::unique_ptr<FrameGraph::Node>& node : graph->GetNodes())
             {
+                uniqueId += 1;
                 ed::BeginNode(node->GetID());
 
+                ImGui::Indent(50);
+                ImGui::PushItemWidth(280);
+                ImGui::Text("Node Type: %s", node->GetName().c_str());
+                char customName[1024];
+                strcpy(customName, node->GetCustomName().c_str());
+                ImGui::PushID(uniqueId);
+                if (ImGui::InputText("name", customName, 1024))
+                {
+                    node->SetCustomName(customName);
+                }
+                ImGui::PopID();
+
                 // configurable block
-                ImGui::PushItemWidth(300);
-                ImGui::Text("%s", node->GetName().c_str());
                 int pushID = 0;
                 for (auto& config : node->GetConfiurables())
                 {
@@ -77,12 +88,55 @@ void FrameGraphEditor::Draw()
                             config.data = v;
                         }
                     }
+                    else if (config.type == fg::ConfigurableType::Vec2Int)
+                    {
+                        glm::ivec2 v = std::any_cast<glm::ivec2>(config.data);
+                        if (ImGui::InputInt2("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Vec3Int)
+                    {
+                        glm::ivec3 v = std::any_cast<glm::ivec3>(config.data);
+                        if (ImGui::InputInt3("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Vec4Int)
+                    {
+                        glm::ivec4 v = std::any_cast<glm::ivec4>(config.data);
+                        if (ImGui::InputInt4("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Format)
+                    {
+                        Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(config.data);
+                        if (ImGui::BeginCombo("", Gfx::MapImageFormatToString(v)))
+                        {
+                            for (int i = 0; i <= static_cast<int>(Gfx::ImageFormat::Invalid); ++i)
+                            {
+                                const bool is_selected = (static_cast<int>(v) == i);
+                                if (ImGui::Selectable(
+                                        Gfx::MapImageFormatToString(static_cast<Gfx::ImageFormat>(i)),
+                                        is_selected
+                                    ))
+                                {
+                                    config.data = static_cast<Gfx::ImageFormat>(i);
+                                }
+                            }
+                            ImGui::EndCombo();
+                        }
+                    }
 
                     ImGui::PopID();
                     pushID += 1;
                 }
                 ImGui::PopItemWidth();
-
+                ImGui::Unindent(50);
                 for (fg::Property& input : node->GetInput())
                 {
                     DrawProperty(input, ed::PinKind::Input);
@@ -177,7 +231,7 @@ void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
 void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
 {
     if (kind == ed::PinKind::Output)
-        ImGui::Indent(70);
+        ImGui::Indent(330);
     ed::BeginPin(p.GetID(), kind);
     if (p.GetType() == fg::PropertyType::Float)
         DrawFloatProp(p);
@@ -185,6 +239,6 @@ void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::Pin
         DrawImageProp(p);
     ed::EndPin();
     if (kind == ed::PinKind::Output)
-        ImGui::Unindent(70);
+        ImGui::Unindent(330);
 }
 } // namespace Engine::Editor

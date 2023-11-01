@@ -11,7 +11,7 @@ public:
     {
         AddOutputProperty("shadow map", PropertyType::Image, &shadowMap);
 
-        configs = {{"size", ConfigurableType::Vec2, glm::vec2{1024, 1024}}};
+        configs = {{"shadow map size", ConfigurableType::Vec2, glm::vec2{1024, 1024}}};
     }
 
     void Build(BuildResources& resources) {}
