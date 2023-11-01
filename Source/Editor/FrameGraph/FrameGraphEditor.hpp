@@ -34,6 +34,10 @@ private:
     };
 
     void DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
-    void ShowFloatProp(FrameGraph::Property& p);
+    void DrawFloatProp(FrameGraph::Property& p);
+    void DrawImageProp(FrameGraph::Property& p);
+
+    void DrawFloatConfig();
+    void DrawVectorConfig();
 };
 } // namespace Engine::Editor

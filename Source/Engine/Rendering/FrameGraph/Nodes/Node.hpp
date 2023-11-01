@@ -1,4 +1,5 @@
 #pragma once
+#include <any>
 #include <span>
 #include <string>
 #include <vector>
@@ -24,6 +25,39 @@ enum class PropertyType
     DrawList,
     Image,
     Float // float
+};
+
+enum class ConfigurableType
+{
+    Float,
+    Vec2,
+    Vec3,
+    Vec4
+};
+
+struct Configurable
+{
+    std::string name;
+    ConfigurableType type;
+    mutable std::any data;
+};
+
+class ImageProperty
+{
+public:
+    ImageProperty(bool willCreate) : willCreate(willCreate) {}
+
+    bool WillCreate()
+    {
+        return willCreate;
+    }
+    void* GetData();
+    void SetData(void* data);
+
+private:
+    void* data;
+    PropertyType type;
+    bool willCreate;
 };
 
 class Node;
@@ -78,14 +112,20 @@ protected:
     bool isInput;
 };
 
+struct BuildResources
+{};
+
 class Node
 {
 public:
     Node(const char* name, FGID id) : id(id), name(name) {}
+
     FGID GetID()
     {
         return id;
     }
+
+    virtual void Build(BuildResources& resources) = 0;
 
     std::span<Property> GetInput()
     {
@@ -94,6 +134,11 @@ public:
     std::span<Property> GetOutput()
     {
         return outputProperties;
+    }
+
+    std::span<const Configurable> GetConfiurables()
+    {
+        return configs;
     }
 
     Property* GetProperty(FGID id)
@@ -142,6 +187,9 @@ protected:
             false
         ); // plus one to avoid the same id as node itself
     }
+
+protected:
+    std::vector<Configurable> configs;
 
 private:
     std::vector<Property> inputProperties;

@@ -12,6 +12,8 @@ public:
         AddOutputProperty("float test out", PropertyType::Float, &testOut);
     }
 
+    void Build(BuildResources& resources){};
+
 private:
     float testIn;
     float testOut;

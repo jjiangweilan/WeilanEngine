@@ -36,7 +36,53 @@ void FrameGraphEditor::Draw()
             for (std::unique_ptr<FrameGraph::Node>& node : graph->GetNodes())
             {
                 ed::BeginNode(node->GetID());
+
+                // configurable block
+                ImGui::PushItemWidth(300);
                 ImGui::Text("%s", node->GetName().c_str());
+                int pushID = 0;
+                for (auto& config : node->GetConfiurables())
+                {
+                    ImGui::Text("%s", config.name.c_str());
+                    ImGui::PushID(pushID);
+                    if (config.type == fg::ConfigurableType::Float)
+                    {
+                        float v = std::any_cast<float>(config.data);
+                        if (ImGui::InputFloat("", &v))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Vec2)
+                    {
+                        glm::vec2 v = std::any_cast<glm::vec2>(config.data);
+                        if (ImGui::InputFloat2("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Vec3)
+                    {
+                        glm::vec3 v = std::any_cast<glm::vec3>(config.data);
+                        if (ImGui::InputFloat3("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+                    else if (config.type == fg::ConfigurableType::Vec4)
+                    {
+                        glm::vec4 v = std::any_cast<glm::vec4>(config.data);
+                        if (ImGui::InputFloat4("", &v[0]))
+                        {
+                            config.data = v;
+                        }
+                    }
+
+                    ImGui::PopID();
+                    pushID += 1;
+                }
+                ImGui::PopItemWidth();
+
                 for (fg::Property& input : node->GetInput())
                 {
                     DrawProperty(input, ed::PinKind::Input);
@@ -108,26 +154,37 @@ void FrameGraphEditor::Draw()
     ImGui::End();
 }
 
-void FrameGraphEditor::ShowFloatProp(FrameGraph::Property& p)
+void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p)
 {
     float* v = (float*)p.GetData();
     ImGui::Text("%s", p.GetName().c_str());
     ImGui::PushItemWidth(100);
     if (ImGui::InputFloat(fmt::format("##{}", p.GetID()).c_str(), v))
     {}
+    ImGui::PopItemWidth();
+}
+
+void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
+{
+    fg::ImageProperty* imageProp = (fg::ImageProperty*)p.GetData();
+    ImGui::Text("%s", p.GetName().c_str());
+    if (imageProp->WillCreate())
+    {
+        // shadow create configuration
+    }
 }
 
 void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
 {
+    if (kind == ed::PinKind::Output)
+        ImGui::Indent(70);
     ed::BeginPin(p.GetID(), kind);
     if (p.GetType() == fg::PropertyType::Float)
-    {
-        if (kind == ed::PinKind::Output)
-            ImGui::Indent(30);
-        ShowFloatProp(p);
-        if (kind == ed::PinKind::Output)
-            ImGui::Unindent(30);
-    }
+        DrawFloatProp(p);
+    else if (p.GetType() == fg::PropertyType::Image)
+        DrawImageProp(p);
     ed::EndPin();
+    if (kind == ed::PinKind::Output)
+        ImGui::Unindent(70);
 }
 } // namespace Engine::Editor
