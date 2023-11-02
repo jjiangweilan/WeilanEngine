@@ -25,7 +25,6 @@ bool HasReadAccessMask(AccessMaskFlags flags)
     return false;
 }
 
-
 ImageFormat MapStringToImageFormat(std::string_view name)
 {
     if (name == "R16G16B16A16_SFloat")
@@ -46,6 +45,8 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::R8G8_SRGB;
     else if (name == "R8_SRGB")
         return ImageFormat::R8_SRGB;
+    else if (name == "R16G16_UNorm")
+        return ImageFormat::R16G16_UNorm;
     else if (name == "R16G16_SNorm")
         return ImageFormat::R16G16_SNorm;
     else if (name == "R16G16_UScaled")
@@ -92,6 +93,8 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::BC3_Unorm_Block;
     else if (name == "BC3_SRGB_Block")
         return ImageFormat::BC3_SRGB_Block;
+    else if (name == "B10G11R11_UFloat_Pack32")
+        return ImageFormat::B10G11R11_UFloat_Pack32;
 
     return ImageFormat::Invalid;
 }
@@ -116,6 +119,8 @@ const char* MapImageFormatToString(ImageFormat format)
         return "R8G8_SRGB";
     else if (format == ImageFormat::R8_SRGB)
         return "R8_SRGB";
+    else if (format == ImageFormat::R16G16_UNorm)
+        return "R16G16_UNorm";
     else if (format == ImageFormat::R16G16_SNorm)
         return "R16G16_SNorm";
     else if (format == ImageFormat::R16G16_UScaled)
@@ -162,6 +167,8 @@ const char* MapImageFormatToString(ImageFormat format)
         return "BC3_Unorm_Block";
     else if (format == ImageFormat::BC3_SRGB_Block)
         return "BC3_SRGB_Block";
+    else if (format == ImageFormat::B10G11R11_UFloat_Pack32)
+        return "B10G11R11_UFloat_Pack32";
 
     return "Invalid";
 }

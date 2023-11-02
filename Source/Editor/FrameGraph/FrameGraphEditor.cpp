@@ -30,6 +30,8 @@ void FrameGraphEditor::Draw()
     ImGui::Begin("Frame Graph Editor");
     ed::Begin("Frame Graph");
     {
+        bool openImageFormatPopup = false;
+        static const FrameGraph::Configurable* targetConfig = nullptr;
         if (graph)
         {
             int uniqueId = 0;
@@ -115,20 +117,11 @@ void FrameGraphEditor::Draw()
                     else if (config.type == fg::ConfigurableType::Format)
                     {
                         Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(config.data);
-                        if (ImGui::BeginCombo("", Gfx::MapImageFormatToString(v)))
+
+                        if (ImGui::Button(Gfx::MapImageFormatToString(v)))
                         {
-                            for (int i = 0; i <= static_cast<int>(Gfx::ImageFormat::Invalid); ++i)
-                            {
-                                const bool is_selected = (static_cast<int>(v) == i);
-                                if (ImGui::Selectable(
-                                        Gfx::MapImageFormatToString(static_cast<Gfx::ImageFormat>(i)),
-                                        is_selected
-                                    ))
-                                {
-                                    config.data = static_cast<Gfx::ImageFormat>(i);
-                                }
-                            }
-                            ImGui::EndCombo();
+                            openImageFormatPopup = true;
+                            targetConfig = &config;
                         }
                     }
 
@@ -169,13 +162,6 @@ void FrameGraphEditor::Draw()
             ed::EndCreate();
         }
 
-        if (ed::ShowBackgroundContextMenu())
-        {
-            ed::Suspend();
-            ImGui::OpenPopup("Create New Node");
-            ed::Resume();
-        }
-
         // make links
         for (auto c : graph->GetConnections())
         {
@@ -183,9 +169,43 @@ void FrameGraphEditor::Draw()
             fg::FGID dstPropID = fg::Graph::GetDstPropertyIDFromConnectionID(c);
             ed::Link(c, srcPropID, dstPropID);
         }
+
+        if (ed::ShowBackgroundContextMenu())
+        {
+            ed::Suspend();
+            ImGui::OpenPopup("Create New Node");
+            ed::Resume();
+        }
+
+        ed::Suspend();
+        if (openImageFormatPopup)
+        {
+            ImGui::OpenPopup("Image Format");
+        }
+
+        if (ImGui::BeginPopup("Image Format"))
+        {
+            assert(targetConfig != nullptr);
+            Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(targetConfig->data);
+
+            for (int i = 0; i <= static_cast<int>(Gfx::ImageFormat::Invalid); ++i)
+            {
+                const bool isSelected = (static_cast<int>(v) == i);
+                if (ImGui::MenuItem(Gfx::MapImageFormatToString(static_cast<Gfx::ImageFormat>(i))))
+                {
+                    targetConfig->data = static_cast<Gfx::ImageFormat>(i);
+                }
+
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndPopup();
+        }
+        ed::Resume();
     }
 
     ImGui::SetCursorScreenPos(cursorPosition);
+
     // content
     ed::Suspend();
     if (ImGui::BeginPopup("Create New Node"))
