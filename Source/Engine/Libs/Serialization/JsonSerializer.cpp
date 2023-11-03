@@ -65,7 +65,26 @@ void JsonSerializer::Serialize(std::string_view name, const int32_t& v)
 {
     j[TO_JSON_PTR(name)] = v;
 }
+
 void JsonSerializer::Deserialize(std::string_view name, int32_t& v)
+{
+    v = j.value(TO_JSON_PTR(name), 0);
+}
+
+void JsonSerializer::Serialize(std::string_view name, const uint64_t& v)
+{
+    j[TO_JSON_PTR(name)] = v;
+}
+void JsonSerializer::Deserialize(std::string_view name, uint64_t& v)
+{
+    v = j.value(TO_JSON_PTR(name), 0);
+}
+
+void JsonSerializer::Serialize(std::string_view name, const int64_t& v)
+{
+    j[TO_JSON_PTR(name)] = v;
+}
+void JsonSerializer::Deserialize(std::string_view name, int64_t& v)
 {
     v = j.value(TO_JSON_PTR(name), 0);
 }
@@ -163,6 +182,7 @@ void JsonSerializer::Serialize(std::string_view name, const glm::vec3& v)
 
     j[TO_JSON_PTR(name)] = jv;
 }
+
 void JsonSerializer::Deserialize(std::string_view name, glm::vec3& v)
 {
     const auto& jq = j[TO_JSON_PTR(name)];
@@ -172,10 +192,28 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec3& v)
     v.z = jq[2];
 }
 
+void JsonSerializer::Serialize(std::string_view name, const glm::vec2& v)
+{
+    nlohmann::json jv = {0, 0};
+    jv[0] = v.x;
+    jv[1] = v.y;
+
+    j[TO_JSON_PTR(name)] = jv;
+}
+
+void JsonSerializer::Deserialize(std::string_view name, glm::vec2& v)
+{
+    const auto& jq = j[TO_JSON_PTR(name)];
+
+    v.x = jq[0];
+    v.y = jq[1];
+}
+
 void JsonSerializer::Serialize(std::string_view name, nullptr_t)
 {
     j[TO_JSON_PTR(name)] = nullptr;
 }
+
 bool JsonSerializer::IsNull(std::string_view name)
 {
     return j[TO_JSON_PTR(name)].is_null();

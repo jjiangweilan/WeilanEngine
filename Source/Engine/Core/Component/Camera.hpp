@@ -2,6 +2,7 @@
 
 #include "Component.hpp"
 #include "Core/Math/Geometry.hpp"
+#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include <glm/glm.hpp>
 namespace Engine
 {
@@ -22,6 +23,12 @@ public:
     void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
     void SetProjectionMatrix(const glm::mat4& proj);
 
+    void SetFrameGraph(FrameGraph::Graph* graph);
+    FrameGraph::Graph* GetFrameGraph() const
+    {
+        return graph;
+    }
+
     static RefPtr<Camera> mainCamera;
 
     float GetProjectionRight();
@@ -36,5 +43,6 @@ public:
 private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
+    FrameGraph::Graph* graph;
 };
 } // namespace Engine

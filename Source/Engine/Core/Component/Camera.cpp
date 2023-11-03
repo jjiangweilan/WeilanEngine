@@ -119,4 +119,9 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->viewMatrix = viewMatrix;
     return clone;
 }
+
+void Camera::SetFrameGraph(FrameGraph::Graph* graph)
+{
+    this->graph = graph;
+}
 } // namespace Engine

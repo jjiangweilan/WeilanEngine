@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Asset.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
@@ -9,8 +10,9 @@
 namespace Engine::FrameGraph
 {
 
-class Graph
+class Graph : public Asset
 {
+    DECLARE_ASSET();
 public:
     Graph(){};
     void BuildGraph(Graph& graph, nlohmann::json& j);
@@ -20,8 +22,9 @@ public:
     void DeleteNode(Node* node);
     void DeleteNode(FGID id);
     void DeleteConnection(FGID connectionID);
-
     std::span<FGID> GetConnections();
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
 
     std::span<std::unique_ptr<Node>> GetNodes()
     {
@@ -60,12 +63,7 @@ public:
 
 private:
     using RGraph = RenderGraph::Graph;
-
-    RGraph* targetGraph;
-    std::vector<FGID> connections;
-    std::vector<std::unique_ptr<Node>> nodes;
-
-    class IDPool
+    class IDPool : public Serializable
     {
     public:
         IDPool(int capacity)
@@ -77,14 +75,14 @@ private:
 
         IDPool() : IDPool(256) {}
 
-        uint16_t Allocate()
+        uint32_t Allocate()
         {
             if (freeID.empty())
             {
                 throw std::logic_error("Maximum id reached");
             }
 
-            uint16_t back = freeID.back();
+            uint32_t back = freeID.back();
             freeID.pop_back();
             return back;
         };
@@ -94,16 +92,28 @@ private:
             freeID.push_back(v);
         }
 
-        const std::vector<uint16_t> GetFreeIDs()
+        const std::vector<uint32_t> GetFreeIDs()
         {
             return freeID;
         }
 
+        void Serialize(Serializer* s) const override
+        {
+            s->Serialize("freeID", freeID);
+        }
+
+        void Deserialize(Serializer* s) override
+        {
+            s->Deserialize("freeID", freeID);
+        }
+
     private:
-        std::vector<uint16_t> freeID;
+        std::vector<uint32_t> freeID;
     };
 
     IDPool nodeIDPool;
+    std::vector<FGID> connections;
+    std::vector<std::unique_ptr<Node>> nodes;
 
     bool HasCycleIfLink(FGID src, FGID dst)
     {

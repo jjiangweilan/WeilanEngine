@@ -1,5 +1,6 @@
 #pragma once
 #include "Nodes/Node.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 #include <functional>
 #include <memory>
 #include <string>

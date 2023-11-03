@@ -45,6 +45,15 @@ public:
     void Serialize(std::string_view name, const glm::vec3& v) override;
     void Deserialize(std::string_view name, glm::vec3& v) override;
 
+    void Serialize(std::string_view name, const glm::vec2& v) override;
+    void Deserialize(std::string_view name, glm::vec2& v) override;
+
+    void Serialize(std::string_view name, const uint64_t& v) override;
+    void Deserialize(std::string_view name, uint64_t& v) override;
+
+    void Serialize(std::string_view name, const int64_t& v) override;
+    void Deserialize(std::string_view name, int64_t& v) override;
+
     void Serialize(std::string_view name, nullptr_t) override;
     bool IsNull(std::string_view name) override;
 

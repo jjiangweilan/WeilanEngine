@@ -2,6 +2,8 @@
 
 namespace Engine::FrameGraph
 {
+DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
+
 Node& Graph::AddNode(const NodeBlueprint& bp)
 {
     auto n = bp.CreateNode(nodeIDPool.Allocate() << FRAME_GRAPH_PROPERTY_BIT_COUNT);
@@ -55,7 +57,8 @@ bool Graph::Connect(FGID src, FGID dst)
 
 void Graph::DeleteNode(Node* node)
 {
-    auto nodeIter = std::find_if(nodes.begin(), nodes.end(), [node](std::unique_ptr<Node>& n) { return n.get() == node; });
+    auto nodeIter =
+        std::find_if(nodes.begin(), nodes.end(), [node](std::unique_ptr<Node>& n) { return n.get() == node; });
     if (nodeIter == nodes.end())
     {
         throw std::logic_error("Deleted a non-existing node");
@@ -96,4 +99,17 @@ void Graph::DeleteNode(FGID id)
     DeleteNode(iter->get());
 }
 
+void Graph::Serialize(Serializer* s) const
+{
+    Asset::Serialize(s);
+    s->Serialize("connections", connections);
+    s->Serialize("nodes", nodes);
+}
+
+void Graph::Deserialize(Serializer* s)
+{
+    Asset::Deserialize(s);
+    s->Deserialize("connections", connections);
+    s->Deserialize("nodes", nodes);
+}
 } // namespace Engine::FrameGraph

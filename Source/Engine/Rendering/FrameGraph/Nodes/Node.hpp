@@ -1,5 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
+#include "Libs/Serialization/Serializable.hpp"
+#include "Libs/Serialization/Serializer.hpp"
 #include <any>
 #include <glm/glm.hpp>
 #include <span>
@@ -42,8 +44,9 @@ enum class ConfigurableType
     Vec4Int
 };
 
-struct Configurable
+struct Configurable : public Serializable
 {
+    Configurable(const char* name, ConfigurableType type, std::any&& defaultVal) : name(name), type(type), data(data) {}
     // type checked constructor
     template <ConfigurableType type, class T>
     static Configurable C(const char* name, const T& val)
@@ -67,8 +70,11 @@ struct Configurable
         else if constexpr (type == ConfigurableType::Vec4Int)
             static_assert(std::is_same_v<T, glm::ivec4>);
 
-        return {name, type, val};
+        return Configurable{name, type, val};
     }
+
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
 
     std::string name;
     ConfigurableType type;
@@ -141,16 +147,17 @@ protected:
     std::string name;
     PropertyType type;
     void* const data;
-    uint32_t id;
+    FGID id;
     bool isInput;
 };
 
 struct BuildResources
 {};
 
-class Node
+class Node : public Object, public Serializable
 {
 public:
+    Node(){};
     Node(const char* name, FGID id) : id(id), name(name), customName(name) {}
 
     FGID GetID()
@@ -206,7 +213,29 @@ public:
         return name;
     }
 
+    void Serialize(Serializer* s) const override
+    {
+        s->Serialize("configs", configs);
+        // s->Serialize("inputProperties", inputProperties);
+        // s->Serialize("outputProperties", outputProperties);
+        s->Serialize("id", id);
+        s->Serialize("name", name);
+        s->Serialize("customName", customName);
+    }
+
+    void Deserialize(Serializer* s) override
+    {
+        s->Serialize("configs", configs);
+        // s->Serialize("inputProperties", inputProperties);
+        // s->Serialize("outputProperties", outputProperties);
+        s->Serialize("id", id);
+        s->Serialize("name", name);
+        s->Serialize("customName", customName);
+    }
+
 protected:
+    std::vector<Configurable> configs;
+
     void AddInputProperty(const char* name, PropertyType type, void* data)
     {
         inputProperties.emplace_back(
@@ -231,14 +260,9 @@ protected:
         ); // plus one to avoid the same id as node itself
     }
 
-protected:
-    std::vector<Configurable> configs;
-
 private:
     std::vector<Property> inputProperties;
     std::vector<Property> outputProperties;
-
-private:
     FGID id;
     std::string name;
     std::string customName;

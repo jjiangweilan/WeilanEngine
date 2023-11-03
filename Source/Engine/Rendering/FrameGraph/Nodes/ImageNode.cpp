@@ -7,10 +7,13 @@ namespace Engine::FrameGraph
 {
 class ImageNode : public Node
 {
+    DECLARE_OBJECT();
+
 public:
-    ImageNode(FGID id) : Node("Image", id), output(true)
+    ImageNode() {}
+    ImageNode(FGID id) : Node("Image", id)
     {
-        AddOutputProperty("Image", PropertyType::Image, &output);
+        AddOutputProperty("Image", PropertyType::Image, nullptr);
 
         configs = {
             Configurable::C<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f}),
@@ -19,13 +22,12 @@ public:
         };
     }
 
-    void Build(BuildResources& resources){};
+    void Build(BuildResources& resources) override{};
 
 private:
-    ImageProperty output;
-
     static char _reg;
 };
 
 char ImageNode::_reg = NodeBlueprintRegisteration::Register<ImageNode>("Image");
+DEFINE_OBJECT(ImageNode, "FE0667ED-89FA-4986-842B-158654543C18");
 } // namespace Engine::FrameGraph
