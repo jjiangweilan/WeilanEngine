@@ -18,6 +18,7 @@ public:
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
     void DeleteNode(Node* node);
+    void DeleteNode(FGID id);
     void DeleteConnection(FGID connectionID);
 
     std::span<FGID> GetConnections();

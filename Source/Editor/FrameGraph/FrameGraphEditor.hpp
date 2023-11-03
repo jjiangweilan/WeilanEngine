@@ -26,6 +26,8 @@ private:
     std::unique_ptr<FrameGraph::Graph> testGraph;
     FrameGraph::Graph* graph = nullptr;
     ax::NodeEditor::EditorContext* graphContext;
+    ax::NodeEditor::NodeId nodeContext;
+
     struct LinkInfo
     {
         ax::NodeEditor::LinkId Id;
@@ -39,5 +41,11 @@ private:
 
     void DrawFloatConfig();
     void DrawVectorConfig();
+
+    void DrawConfigurableField(
+        bool& openImageFormatPopup,
+        const FrameGraph::Configurable*& targetConfig,
+        const FrameGraph::Configurable& config
+    );
 };
 } // namespace Engine::Editor

@@ -22,6 +22,85 @@ void FrameGraphEditor::Destory()
     ax::NodeEditor::DestroyEditor(graphContext);
 }
 
+void FrameGraphEditor::DrawConfigurableField(
+    bool& openImageFormatPopup, const FrameGraph::Configurable*& targetConfig, const FrameGraph::Configurable& config
+)
+{
+    if (config.type == fg::ConfigurableType::Float)
+    {
+        float v = std::any_cast<float>(config.data);
+        if (ImGui::InputFloat("", &v))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Int)
+    {
+        int v = std::any_cast<int>(config.data);
+        if (ImGui::InputInt("", &v))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec2)
+    {
+        glm::vec2 v = std::any_cast<glm::vec2>(config.data);
+        if (ImGui::InputFloat2("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec3)
+    {
+        glm::vec3 v = std::any_cast<glm::vec3>(config.data);
+        if (ImGui::InputFloat3("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec4)
+    {
+        glm::vec4 v = std::any_cast<glm::vec4>(config.data);
+        if (ImGui::InputFloat4("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec2Int)
+    {
+        glm::ivec2 v = std::any_cast<glm::ivec2>(config.data);
+        if (ImGui::InputInt2("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec3Int)
+    {
+        glm::ivec3 v = std::any_cast<glm::ivec3>(config.data);
+        if (ImGui::InputInt3("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Vec4Int)
+    {
+        glm::ivec4 v = std::any_cast<glm::ivec4>(config.data);
+        if (ImGui::InputInt4("", &v[0]))
+        {
+            config.data = v;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Format)
+    {
+        Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(config.data);
+
+        if (ImGui::Button(Gfx::MapImageFormatToString(v)))
+        {
+            openImageFormatPopup = true;
+            targetConfig = &config;
+        }
+    }
+}
 void FrameGraphEditor::Draw()
 {
     ed::SetCurrentEditor(graphContext);
@@ -34,10 +113,12 @@ void FrameGraphEditor::Draw()
         static const FrameGraph::Configurable* targetConfig = nullptr;
         if (graph)
         {
-            int uniqueId = 0;
+            int nodePushID = 0;
             for (std::unique_ptr<FrameGraph::Node>& node : graph->GetNodes())
             {
-                uniqueId += 1;
+                nodePushID += 1;
+                ImGui::PushID(nodePushID);
+
                 ed::BeginNode(node->GetID());
 
                 ImGui::Indent(50);
@@ -45,86 +126,20 @@ void FrameGraphEditor::Draw()
                 ImGui::Text("Node Type: %s", node->GetName().c_str());
                 char customName[1024];
                 strcpy(customName, node->GetCustomName().c_str());
-                ImGui::PushID(uniqueId);
-                if (ImGui::InputText("name", customName, 1024))
+                ImGui::Text("name");
+                if (ImGui::InputText("", customName, 1024))
                 {
                     node->SetCustomName(customName);
                 }
-                ImGui::PopID();
 
                 // configurable block
                 int pushID = 0;
+
                 for (auto& config : node->GetConfiurables())
                 {
                     ImGui::Text("%s", config.name.c_str());
                     ImGui::PushID(pushID);
-                    if (config.type == fg::ConfigurableType::Float)
-                    {
-                        float v = std::any_cast<float>(config.data);
-                        if (ImGui::InputFloat("", &v))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec2)
-                    {
-                        glm::vec2 v = std::any_cast<glm::vec2>(config.data);
-                        if (ImGui::InputFloat2("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec3)
-                    {
-                        glm::vec3 v = std::any_cast<glm::vec3>(config.data);
-                        if (ImGui::InputFloat3("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec4)
-                    {
-                        glm::vec4 v = std::any_cast<glm::vec4>(config.data);
-                        if (ImGui::InputFloat4("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec2Int)
-                    {
-                        glm::ivec2 v = std::any_cast<glm::ivec2>(config.data);
-                        if (ImGui::InputInt2("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec3Int)
-                    {
-                        glm::ivec3 v = std::any_cast<glm::ivec3>(config.data);
-                        if (ImGui::InputInt3("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Vec4Int)
-                    {
-                        glm::ivec4 v = std::any_cast<glm::ivec4>(config.data);
-                        if (ImGui::InputInt4("", &v[0]))
-                        {
-                            config.data = v;
-                        }
-                    }
-                    else if (config.type == fg::ConfigurableType::Format)
-                    {
-                        Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(config.data);
-
-                        if (ImGui::Button(Gfx::MapImageFormatToString(v)))
-                        {
-                            openImageFormatPopup = true;
-                            targetConfig = &config;
-                        }
-                    }
-
+                    DrawConfigurableField(openImageFormatPopup, targetConfig, config);
                     ImGui::PopID();
                     pushID += 1;
                 }
@@ -140,6 +155,7 @@ void FrameGraphEditor::Draw()
                     DrawProperty(input, ed::PinKind::Output);
                 }
                 ed::EndNode();
+                ImGui::PopID();
             }
         }
 
@@ -168,13 +184,6 @@ void FrameGraphEditor::Draw()
             fg::FGID srcPropID = fg::Graph::GetSrcPropertyIDFromConnectionID(c);
             fg::FGID dstPropID = fg::Graph::GetDstPropertyIDFromConnectionID(c);
             ed::Link(c, srcPropID, dstPropID);
-        }
-
-        if (ed::ShowBackgroundContextMenu())
-        {
-            ed::Suspend();
-            ImGui::OpenPopup("Create New Node");
-            ed::Resume();
         }
 
         ed::Suspend();
@@ -206,6 +215,21 @@ void FrameGraphEditor::Draw()
 
     ImGui::SetCursorScreenPos(cursorPosition);
 
+    if (ed::ShowBackgroundContextMenu())
+    {
+        ed::Suspend();
+        ImGui::OpenPopup("Create New Node");
+        ed::Resume();
+    }
+
+    bool showNodeContextMenu = ed::ShowNodeContextMenu(&nodeContext);
+    if (showNodeContextMenu)
+    {
+        ed::Suspend();
+        ImGui::OpenPopup("Node Context");
+        ed::Resume();
+    }
+
     // content
     ed::Suspend();
     if (ImGui::BeginPopup("Create New Node"))
@@ -218,6 +242,20 @@ void FrameGraphEditor::Draw()
                 FrameGraph::Node& node = graph->AddNode(bp);
                 ed::SetNodePosition(node.GetID(), ed::ScreenToCanvas(popupMousePos));
             }
+        }
+        ImGui::EndPopup();
+    }
+    ed::Resume();
+
+    // deletion
+    ed::Suspend();
+    if (ImGui::BeginPopup("Node Context"))
+    {
+        if (ImGui::MenuItem("Delete"))
+        {
+            fg::FGID id = nodeContext.Get();
+            ed::DeleteNode(id);
+            graph->DeleteNode(id);
         }
         ImGui::EndPopup();
     }

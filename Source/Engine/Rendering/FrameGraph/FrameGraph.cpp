@@ -2,18 +2,6 @@
 
 namespace Engine::FrameGraph
 {
-void Graph::BuildGraph(Graph& graph, nlohmann::json& j)
-{
-    nlohmann::json nodes = j.value("nodes", {});
-    if (!nodes.is_null())
-    {
-        for (auto& n : nodes)
-        {
-            std::string id = j.value("nodeID", "");
-        }
-    }
-}
-
 Node& Graph::AddNode(const NodeBlueprint& bp)
 {
     auto n = bp.CreateNode(nodeIDPool.Allocate() << FRAME_GRAPH_PROPERTY_BIT_COUNT);
@@ -67,9 +55,14 @@ bool Graph::Connect(FGID src, FGID dst)
 
 void Graph::DeleteNode(Node* node)
 {
+    auto nodeIter = std::find_if(nodes.begin(), nodes.end(), [node](std::unique_ptr<Node>& n) { return n.get() == node; });
+    if (nodeIter == nodes.end())
+    {
+        throw std::logic_error("Deleted a non-existing node");
+    }
     FGID nodeID = node->GetID();
-    nodeIDPool.Release(node->GetID());
-    nodes.erase(std::find_if(nodes.begin(), nodes.end(), [node](std::unique_ptr<Node>& n) { return n.get() == node; }));
+    nodes.erase(nodeIter);
+    nodeIDPool.Release(nodeID >> FRAME_GRAPH_PROPERTY_BIT_COUNT);
 
     auto iter = std::remove_if(
         connections.begin(),
@@ -95,6 +88,12 @@ void Graph::DeleteConnection(FGID connectionID)
 std::span<FGID> Graph::GetConnections()
 {
     return connections;
+}
+
+void Graph::DeleteNode(FGID id)
+{
+    auto iter = std::find_if(nodes.begin(), nodes.end(), [id](std::unique_ptr<Node>& n) { return n->GetID() == id; });
+    DeleteNode(iter->get());
 }
 
 } // namespace Engine::FrameGraph
