@@ -91,17 +91,23 @@ public:
         );
     }
 
+    Resource GetProperty(FGID propertyID) {}
+
     void Build(RenderGraph::Graph& graph, BuildResources& resources) override
     {
         RenderNodeLink c = resources.GetResource<RenderNodeLink>(propertyIDs["color"]);
-        graph.Connect(c.node, c.handle, forwardNode, 0);
-
         RenderNodeLink d = resources.GetResource<RenderNodeLink>(propertyIDs["depth"]);
 
-        RenderNodeLink shadow = resources.GetResource<RenderNodeLink>(propertyIDs["shadow map"]);
-
-        Gfx::Image* shadowImage = (Gfx::Image*)shadow.node->GetPass()->GetResourceRef(shadow.handle)->GetResource();
+        graph.Connect(c.node, c.handle, forwardNode, RenderGraph::StrToHandle("opaque color"));
+        graph.Connect(d.node, d.handle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
     };
+
+    void Finalize(RenderGraph::Graph& graph, BuildResources& resources) override
+    {
+        RenderNodeLink shadow = resources.GetResource<RenderNodeLink>(propertyIDs["shadow map"]);
+        Gfx::Image* shadowImage = (Gfx::Image*)shadow.node->GetPass()->GetResourceRef(shadow.handle)->GetResource();
+        sceneShaderResource->SetImage("shadowMap", shadowImage);
+    }
 
 private:
     RenderGraph::RenderNode* forwardNode;

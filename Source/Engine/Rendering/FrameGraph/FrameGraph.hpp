@@ -49,6 +49,7 @@ public:
     std::span<FGID> GetConnections();
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    void Compile();
 
     std::span<std::unique_ptr<Node>> GetNodes()
     {
@@ -86,7 +87,6 @@ public:
     }
 
 private:
-    using RGraph = RenderGraph::Graph;
     class IDPool : public Serializable
     {
     public:
@@ -141,6 +141,8 @@ private:
 #if ENGINE_EDITOR
     ax::NodeEditor::EditorContext* graphContext;
 #endif
+
+    std::unique_ptr<RenderGraph::Graph> graph;
 
     bool HasCycleIfLink(FGID src, FGID dst)
     {

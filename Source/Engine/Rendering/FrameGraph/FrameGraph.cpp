@@ -121,4 +121,27 @@ void Graph::Deserialize(Serializer* s)
     s->Deserialize("connections", connections);
     s->Deserialize("nodes", nodes);
 }
+
+void Graph::Compile()
+{
+    GetGfxDriver()->WaitForIdle();
+    graph = std::make_unique<RenderGraph::Graph>();
+
+    BuildResources buildResources;
+
+    for (auto& n : nodes)
+    {
+        n->Preprocess(*graph);
+    }
+
+    for (auto& n : nodes)
+    {
+        n->Build(*graph, buildResources);
+    }
+
+    for (auto& n : nodes)
+    {
+        n->Finalize(*graph, buildResources);
+    }
+}
 } // namespace Engine::FrameGraph

@@ -198,8 +198,9 @@ public:
         return id;
     }
 
-    virtual void Preprocess(RenderGraph::Graph& graph) = 0;
-    virtual void Build(RenderGraph::Graph& graph, BuildResources& resources) = 0;
+    virtual void Preprocess(RenderGraph::Graph& graph){};
+    virtual void Build(RenderGraph::Graph& graph, BuildResources& resources){};
+    virtual void Finalize(RenderGraph::Graph& graph, BuildResources& resources){};
 
     std::span<Property> GetInput()
     {
