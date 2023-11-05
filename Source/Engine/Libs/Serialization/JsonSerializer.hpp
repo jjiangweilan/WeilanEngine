@@ -56,10 +56,11 @@ public:
 
     void Serialize(std::string_view name, nullptr_t) override;
     bool IsNull(std::string_view name) override;
+    bool IsNull() override;
 
     std::vector<uint8_t> GetBinary() override
     {
-        std::string b = j.dump();
+        std::string b = j.dump(1);
         std::vector<uint8_t> a(b.begin(), b.end());
         return a;
     }

@@ -46,11 +46,12 @@ enum class ConfigurableType
     ObjectPtr,
 };
 
-struct Configurable : public Serializable
+struct Configurable
 {
     Configurable(const char* name, ConfigurableType type, std::any&& defaultVal)
         : name(name), type(type), data(defaultVal)
     {}
+    Configurable(Configurable&& other) = default;
     // type checked constructor
     template <ConfigurableType type, class T>
     static Configurable C(const char* name, const T& val)
@@ -88,12 +89,15 @@ struct Configurable : public Serializable
         return Configurable{name, type, val};
     }
 
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
-
     std::string name;
     ConfigurableType type;
     mutable std::any data;
+
+private:
+    // used when deserializing this class and type is ObjectPtr
+    Object* dataRefHolder;
+
+    friend class Node;
 };
 
 class ImageProperty
@@ -118,8 +122,8 @@ class Node;
 class Property
 {
 public:
-    Property(Node* parent, const char* name, PropertyType type, void* data, FGID id, bool isInput)
-        : parent(parent), name(name), type(type), data(data), id(id), isInput(isInput)
+    Property(Node* parent, const char* name, PropertyType type, FGID id, bool isInput)
+        : parent(parent), name(name), type(type), id(id), isInput(isInput)
     {}
 
     PropertyType GetType() const
@@ -142,11 +146,6 @@ public:
         return parent;
     }
 
-    void* GetData()
-    {
-        return data;
-    }
-
     bool IsOuput()
     {
         return !isInput;
@@ -161,9 +160,10 @@ protected:
     Node* parent;
     std::string name;
     PropertyType type;
-    void* const data;
     FGID id;
     bool isInput;
+
+    friend class Node;
 };
 
 struct Resource
@@ -191,6 +191,7 @@ class Node : public Object, public Serializable
 public:
     Node(){};
     Node(const char* name, FGID id) : id(id), name(name), customName(name) {}
+    Node(Node&& other) = default;
 
     FGID GetID()
     {
@@ -246,29 +247,10 @@ public:
         return name;
     }
 
-    void Serialize(Serializer* s) const override
-    {
-        s->Serialize("configs", configs);
-        // s->Serialize("inputProperties", inputProperties);
-        // s->Serialize("outputProperties", outputProperties);
-        s->Serialize("id", id);
-        s->Serialize("name", name);
-        s->Serialize("customName", customName);
-    }
-
-    void Deserialize(Serializer* s) override
-    {
-        s->Serialize("configs", configs);
-        // s->Serialize("inputProperties", inputProperties);
-        // s->Serialize("outputProperties", outputProperties);
-        s->Serialize("id", id);
-        s->Serialize("name", name);
-        s->Serialize("customName", customName);
-    }
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
 
 protected:
-    std::vector<Configurable> configs;
-
     template <class T>
     T GetConfigurableVal(const char* name)
     {
@@ -283,10 +265,10 @@ protected:
         return T{};
     }
 
-    FGID AddInputProperty(const char* name, PropertyType type, void* data)
+    FGID AddInputProperty(const char* name, PropertyType type)
     {
         FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
-        inputProperties.emplace_back(this, name, type, data, id,
+        inputProperties.emplace_back(this, name, type, id,
                                      true); // plus one to avoid the same id as node itself
 
         propertyIDs[name] = id;
@@ -294,21 +276,21 @@ protected:
         return id;
     }
 
-    FGID AddOutputProperty(const char* name, PropertyType type, void* data)
+    FGID AddOutputProperty(const char* name, PropertyType type)
     {
         FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
-        outputProperties.emplace_back(
-            this,
-            name,
-            type,
-            data,
-            id,
-            false
-        ); // plus one to avoid the same id as node itself
+        outputProperties.emplace_back(this, name, type, id,
+                                      false); // plus one to avoid the same id as node itself
 
         propertyIDs[name] = id;
 
         return id;
+    }
+
+    template <ConfigurableType type, class T>
+    void AddConfig(const char* name, const T& val)
+    {
+        configs.emplace_back(Configurable::C<type>(name, val));
     }
 
     std::unordered_map<std::string, FGID> propertyIDs;
@@ -316,8 +298,9 @@ protected:
 private:
     std::vector<Property> inputProperties;
     std::vector<Property> outputProperties;
-    FGID id;
+    FGID id = 0;
     std::string name;
     std::string customName;
+    std::vector<Configurable> configs;
 };
 } // namespace Engine::FrameGraph

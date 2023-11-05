@@ -9,21 +9,13 @@ class ForwardOpaqueNode : public Node
     DECLARE_OBJECT();
 
 public:
-    ForwardOpaqueNode(){};
+    ForwardOpaqueNode()
+    {
+        DefineNode();
+    };
     ForwardOpaqueNode(FGID id) : Node("Forward Opaque", id)
     {
-        AddInputProperty("color", PropertyType::Image, nullptr);
-        AddInputProperty("depth", PropertyType::Image, nullptr);
-
-        AddInputProperty("shadow map", PropertyType::Image, nullptr);
-
-        configs = {
-            Configurable::C<ConfigurableType::Vec4>(
-                "clear values",
-                glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1}
-            ),
-            Configurable::C<ConfigurableType::ObjectPtr>("scene info shader", nullptr),
-        };
+        DefineNode();
     }
 
     void Preprocess(RenderGraph::Graph& graph) override
@@ -114,6 +106,17 @@ public:
 private:
     RenderGraph::RenderNode* forwardNode;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
+
+    void DefineNode()
+    {
+        AddInputProperty("color", PropertyType::Image);
+        AddInputProperty("depth", PropertyType::Image);
+
+        AddInputProperty("shadow map", PropertyType::Image);
+
+        AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
+        AddConfig<ConfigurableType::ObjectPtr>("scene info shader", nullptr);
+    }
     static char _reg;
 }; // namespace Engine::FrameGraph
 

@@ -10,22 +10,27 @@ class ImageNode : public Node
     DECLARE_OBJECT();
 
 public:
-    ImageNode() {}
+    ImageNode()
+    {
+        DefineNode();
+    }
     ImageNode(FGID id) : Node("Image", id)
     {
-        AddOutputProperty("Image", PropertyType::Image, nullptr);
-
-        configs = {
-            Configurable::C<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f}),
-            Configurable::C<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm),
-            Configurable::C<ConfigurableType::Int>("mip level", int{1}),
-        };
+        DefineNode();
     }
 
     void Preprocess(RenderGraph::Graph& graph) override{};
     void Build(RenderGraph::Graph& graph, BuildResources& resources) override{};
 
 private:
+    void DefineNode()
+    {
+        AddOutputProperty("Image", PropertyType::Image);
+
+        AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
+        AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);
+        AddConfig<ConfigurableType::Int>("mip level", int{1});
+    }
     static char _reg;
 };
 

@@ -12,14 +12,14 @@ class InspectorBase
 public:
     virtual ~InspectorBase(){};
     virtual void DrawInspector(GameEditor& editor) = 0;
-    virtual void SetTarget(Object& obj) = 0;
+    virtual void OnEnable(Object& obj) = 0;
 };
 
 template <class T>
 class Inspector : public InspectorBase
 {
 public:
-    void SetTarget(Object& obj) override
+    void OnEnable(Object& obj) override
     {
         target = static_cast<T*>(&obj);
     }

@@ -7,22 +7,6 @@ namespace Engine::Editor
 namespace ed = ax::NodeEditor;
 namespace fg = FrameGraph;
 
-void FrameGraphEditor::Init()
-{
-    ax::NodeEditor::Config config;
-    config.SettingsFile = "Frame Graph Editor.json";
-
-    graphContext = ax::NodeEditor::CreateEditor(&config);
-
-    testGraph = std::make_unique<FrameGraph::Graph>();
-    graph = testGraph.get();
-}
-
-void FrameGraphEditor::Destory()
-{
-    ax::NodeEditor::DestroyEditor(graphContext);
-}
-
 void FrameGraphEditor::DrawConfigurableField(
     bool& openImageFormatPopup, const FrameGraph::Configurable*& targetConfig, const FrameGraph::Configurable& config
 )
@@ -33,6 +17,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputFloat("", &v))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Int)
@@ -41,6 +26,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputInt("", &v))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec2)
@@ -49,6 +35,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputFloat2("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec3)
@@ -57,6 +44,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputFloat3("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec4)
@@ -65,6 +53,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputFloat4("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec2Int)
@@ -73,6 +62,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputInt2("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec3Int)
@@ -81,6 +71,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputInt3("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Vec4Int)
@@ -89,6 +80,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::InputInt4("", &v[0]))
         {
             config.data = v;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::Format)
@@ -99,6 +91,7 @@ void FrameGraphEditor::DrawConfigurableField(
         {
             openImageFormatPopup = true;
             targetConfig = &config;
+            graph->SetDirty();
         }
     }
     else if (config.type == fg::ConfigurableType::ObjectPtr)
@@ -128,17 +121,18 @@ void FrameGraphEditor::DrawConfigurableField(
             if (payload && payload->IsDelivery())
             {
                 config.data = *(Object**)payload->Data;
+                graph->SetDirty();
             }
             ImGui::EndDragDropTarget();
         }
     }
 }
-void FrameGraphEditor::Draw()
+void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
 {
-    ed::SetCurrentEditor(graphContext);
+    this->graph = &graph_;
+    ed::SetCurrentEditor(context);
     auto cursorPosition = ImGui::GetCursorScreenPos();
 
-    ImGui::Begin("Frame Graph Editor");
     ed::Begin("Frame Graph");
     {
         bool openImageFormatPopup = false;
@@ -295,17 +289,11 @@ void FrameGraphEditor::Draw()
 
     ed::End();
     ed::SetCurrentEditor(nullptr);
-    ImGui::End();
 }
 
 void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p)
 {
-    float* v = (float*)p.GetData();
     ImGui::Text("%s", p.GetName().c_str());
-    ImGui::PushItemWidth(100);
-    if (ImGui::InputFloat(fmt::format("##{}", p.GetID()).c_str(), v))
-    {}
-    ImGui::PopItemWidth();
 }
 
 void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)

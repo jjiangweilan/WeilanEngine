@@ -43,7 +43,6 @@ GameEditor::GameEditor(const char* path)
     }
 
     gameView.Init();
-    frameGraphEditor.Init();
 
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -66,7 +65,6 @@ GameEditor::GameEditor(const char* path)
 GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
-    frameGraphEditor.Destory();
 
     if (EditorState::activeScene)
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
@@ -307,6 +305,11 @@ void GameEditor::MainMenuBar()
                 auto mat = std::make_unique<Material>();
                 engine->assetDatabase->SaveAsset(std::move(mat), "new material");
             }
+            if (ImGui::MenuItem("Frame Graph"))
+            {
+                auto graph = std::make_unique<FrameGraph::Graph>();
+                engine->assetDatabase->SaveAsset(std::move(graph), "new frame graph");
+            }
             ImGui::EndMenu();
         }
         if (ImGui::MenuItem("Refresh Shaders"))
@@ -383,7 +386,6 @@ void GameEditor::GUIPass()
     MainMenuBar();
     OpenSceneWindow();
 
-    frameGraphEditor.Draw();
     gameView.Tick();
     AssetWindow();
     InspectorWindow();

@@ -9,18 +9,25 @@ class VarianceShadowMapNode : public Node
     DECLARE_OBJECT();
 
 public:
-    VarianceShadowMapNode(){};
+    VarianceShadowMapNode()
+    {
+        DefineNode();
+    };
     VarianceShadowMapNode(FGID id) : Node("Variance Shadow Map", id)
     {
-        AddOutputProperty("shadow map", PropertyType::Image, nullptr);
-
-        configs = {Configurable{"shadow map size", ConfigurableType::Vec2, glm::vec2{1024, 1024}}};
+        DefineNode();
     }
 
     void Preprocess(RenderGraph::Graph& graph) override{};
     void Build(RenderGraph::Graph& graph, BuildResources& resources) override{};
 
 private:
+    void DefineNode()
+    {
+        AddOutputProperty("shadow map", PropertyType::Image);
+
+        AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});
+    }
     static char _reg;
 };
 

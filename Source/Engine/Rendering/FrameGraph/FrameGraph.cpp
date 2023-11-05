@@ -6,6 +6,7 @@ DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
 
 Node& Graph::AddNode(const NodeBlueprint& bp)
 {
+    SetDirty();
     auto n = bp.CreateNode(nodeIDPool.Allocate() << FRAME_GRAPH_PROPERTY_BIT_COUNT);
     auto t = n.get();
     nodes.push_back(std::move(n));
@@ -14,6 +15,8 @@ Node& Graph::AddNode(const NodeBlueprint& bp)
 
 bool Graph::Connect(FGID src, FGID dst)
 {
+    SetDirty();
+
     if (src == dst)
         return false;
 
@@ -57,6 +60,8 @@ bool Graph::Connect(FGID src, FGID dst)
 
 void Graph::DeleteNode(Node* node)
 {
+    SetDirty();
+
     auto nodeIter =
         std::find_if(nodes.begin(), nodes.end(), [node](std::unique_ptr<Node>& n) { return n.get() == node; });
     if (nodeIter == nodes.end())
@@ -84,6 +89,8 @@ void Graph::DeleteNode(Node* node)
 
 void Graph::DeleteConnection(FGID connectionID)
 {
+    SetDirty();
+
     auto iter = std::find(connections.begin(), connections.end(), connectionID);
     connections.erase(iter);
 }
@@ -102,6 +109,7 @@ void Graph::DeleteNode(FGID id)
 void Graph::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
+    s->Serialize("nodeIDPool", nodeIDPool);
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
 }
@@ -109,6 +117,7 @@ void Graph::Serialize(Serializer* s) const
 void Graph::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
+    s->Deserialize("nodeIDPool", nodeIDPool);
     s->Deserialize("connections", connections);
     s->Deserialize("nodes", nodes);
 }

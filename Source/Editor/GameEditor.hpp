@@ -43,7 +43,6 @@ private:
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
 
     GameView gameView;
-    FrameGraphEditor frameGraphEditor;
 
     bool sceneTree = true;
     bool sceneInfo = false;

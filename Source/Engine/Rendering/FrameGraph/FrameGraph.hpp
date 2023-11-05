@@ -3,6 +3,9 @@
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+#if ENGINE_EDITOR
+#include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
+#endif
 #include <nlohmann/json.hpp>
 #include <span>
 #include <vector>
@@ -13,9 +16,29 @@ namespace Engine::FrameGraph
 class Graph : public Asset
 {
     DECLARE_ASSET();
+
 public:
-    Graph(){};
-    void BuildGraph(Graph& graph, nlohmann::json& j);
+    Graph()
+    {
+#if ENGINE_EDITOR
+        ax::NodeEditor::Config config;
+        config.SettingsFile = "Frame Graph Editor.json";
+        graphContext = ax::NodeEditor::CreateEditor(&config);
+#endif
+    };
+    ~Graph()
+    {
+#if ENGINE_EDITOR
+        ax::NodeEditor::DestroyEditor(graphContext);
+#endif
+    }
+
+#if ENGINE_EDITOR
+    ax::NodeEditor::EditorContext* GetEditorContext()
+    {
+        return graphContext;
+    }
+#endif
     void Execute(Graph& graph);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
@@ -114,6 +137,9 @@ private:
     IDPool nodeIDPool;
     std::vector<FGID> connections;
     std::vector<std::unique_ptr<Node>> nodes;
+#if ENGINE_EDITOR
+    ax::NodeEditor::EditorContext* graphContext;
+#endif
 
     bool HasCycleIfLink(FGID src, FGID dst)
     {

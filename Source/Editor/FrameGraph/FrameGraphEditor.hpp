@@ -13,19 +13,10 @@ struct FrameGraphNode
 class FrameGraphEditor
 {
 public:
-    void Draw();
-    void Init();
-    void Destory();
-
-    void SetGraph(FrameGraph::Graph& graph)
-    {
-        this->graph = &graph;
-    }
+    void Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph);
 
 private:
-    std::unique_ptr<FrameGraph::Graph> testGraph;
     FrameGraph::Graph* graph = nullptr;
-    ax::NodeEditor::EditorContext* graphContext;
     ax::NodeEditor::NodeId nodeContext;
 
     struct LinkInfo
