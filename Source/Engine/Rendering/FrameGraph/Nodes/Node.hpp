@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 #include <any>
 #include <glm/glm.hpp>
 #include <span>
@@ -41,12 +42,15 @@ enum class ConfigurableType
     Vec4,
     Vec2Int,
     Vec3Int,
-    Vec4Int
+    Vec4Int,
+    ObjectPtr,
 };
 
 struct Configurable : public Serializable
 {
-    Configurable(const char* name, ConfigurableType type, std::any&& defaultVal) : name(name), type(type), data(data) {}
+    Configurable(const char* name, ConfigurableType type, std::any&& defaultVal)
+        : name(name), type(type), data(defaultVal)
+    {}
     // type checked constructor
     template <ConfigurableType type, class T>
     static Configurable C(const char* name, const T& val)
@@ -69,6 +73,8 @@ struct Configurable : public Serializable
             static_assert(std::is_same_v<T, glm::ivec3>);
         else if constexpr (type == ConfigurableType::Vec4Int)
             static_assert(std::is_same_v<T, glm::ivec4>);
+        else if constexpr (type == ConfigurableType::ObjectPtr)
+            static_assert(std::is_pointer_v<T>);
 
         return Configurable{name, type, val};
     }
@@ -151,8 +157,22 @@ protected:
     bool isInput;
 };
 
-struct BuildResources
+struct Resource
 {};
+
+struct RenderNodeLink : public Resource
+{
+    RenderGraph::RenderNode* node;
+    RenderGraph::ResourceHandle handle;
+};
+
+class BuildResources
+{
+public:
+    template <class T>
+        requires std::derived_from<T, Resource>
+    T GetResource(FGID id);
+};
 
 class Node : public Object, public Serializable
 {
@@ -165,7 +185,8 @@ public:
         return id;
     }
 
-    virtual void Build(BuildResources& resources) = 0;
+    virtual void Preprocess(RenderGraph::Graph& graph) = 0;
+    virtual void Build(RenderGraph::Graph& graph, BuildResources& resources) = 0;
 
     std::span<Property> GetInput()
     {
@@ -236,29 +257,49 @@ public:
 protected:
     std::vector<Configurable> configs;
 
-    void AddInputProperty(const char* name, PropertyType type, void* data)
+    template <class T>
+    T GetConfigurableVal(const char* name)
     {
-        inputProperties.emplace_back(
-            this,
-            name,
-            type,
-            data,
-            GetID() + (inputProperties.size() + outputProperties.size() + 1),
-            true
-        ); // plus one to avoid the same id as node itself
+        for (auto& c : configs)
+        {
+            if (strcmp(c.name.c_str(), name) == 0)
+            {
+                return std::any_cast<c.data>;
+            }
+        }
+
+        return T{};
     }
 
-    void AddOutputProperty(const char* name, PropertyType type, void* data)
+    FGID AddInputProperty(const char* name, PropertyType type, void* data)
     {
+        FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
+        inputProperties.emplace_back(this, name, type, data, id,
+                                     true); // plus one to avoid the same id as node itself
+
+        propertyIDs[name] = id;
+
+        return id;
+    }
+
+    FGID AddOutputProperty(const char* name, PropertyType type, void* data)
+    {
+        FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
         outputProperties.emplace_back(
             this,
             name,
             type,
             data,
-            GetID() + (inputProperties.size() + outputProperties.size() + 1),
+            id,
             false
         ); // plus one to avoid the same id as node itself
+
+        propertyIDs[name] = id;
+
+        return id;
     }
+
+    std::unordered_map<std::string, FGID> propertyIDs;
 
 private:
     std::vector<Property> inputProperties;
