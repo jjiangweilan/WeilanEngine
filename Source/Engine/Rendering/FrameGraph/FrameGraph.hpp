@@ -20,6 +20,7 @@ class Graph : public Asset
 public:
     Graph()
     {
+        SetName("New Frame Graph");
 #if ENGINE_EDITOR
         ax::NodeEditor::Config config;
         config.SettingsFile = "Frame Graph Editor.json";

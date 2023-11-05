@@ -10,6 +10,14 @@ class FrameGraphInspector : public Inspector<FrameGraph::Graph>
 public:
     void DrawInspector(GameEditor& editor) override
     {
+        char name[256];
+        auto targetName = target->GetName();
+        strcpy(name, targetName.c_str());
+        if (ImGui::InputText("name", name, 256))
+        {
+            target->SetName(name);
+            target->SetDirty();
+        }
         fgEditor.Draw(target->GetEditorContext(), *target);
     }
 

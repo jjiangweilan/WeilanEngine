@@ -97,6 +97,38 @@ public:
                         EditorState::activeScene->SetMainCamera(&camera);
                     }
                 }
+
+                auto frameGraph = camera.GetFrameGraph();
+                const char* buttonName = "empty";
+                if (frameGraph)
+                {
+                    buttonName = frameGraph->GetName().c_str();
+                }
+                ImGui::Text("Frame Graph: ");
+                ImGui::SameLine();
+                if (ImGui::Button(buttonName))
+                {
+                    EditorState::selectedObject = frameGraph;
+                }
+
+                if (ImGui::BeginDragDropTarget())
+                {
+                    auto payload = ImGui::AcceptDragDropPayload("object");
+                    if (payload && payload->IsDelivery())
+                    {
+                        if (FrameGraph::Graph* fg = dynamic_cast<FrameGraph::Graph*>(*(Object**)payload->Data))
+                        {
+                            camera.SetFrameGraph(fg);
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+
+                ImGui::SameLine();
+                if (ImGui::Button("Clear"))
+                {
+                    camera.SetFrameGraph(nullptr);
+                }
             }
             else if (typeid(c) == typeid(MeshRenderer))
             {

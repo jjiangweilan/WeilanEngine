@@ -43,6 +43,6 @@ public:
 private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    FrameGraph::Graph* graph;
+    FrameGraph::Graph* graph = nullptr;
 };
 } // namespace Engine
