@@ -80,19 +80,19 @@ public:
                 cmd.BeginRenderPass(pass, clearValues);
 
                 // draw scene objects
-                for (auto& draw : this->drawList)
-                {
-                    cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
-                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.BindResource(draw.shaderResource);
-                    cmd.SetPushConstant(draw.shader, &draw.pushConstant);
-                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                }
-
-                // draw skybox
-                auto& cubeMesh = cube->GetMeshes()[0];
-                CmdDrawSubmesh(cmd, *cubeMesh, 0, *skyboxShader, *skyboxPassResource);
+                // for (auto& draw : this->drawList)
+                // {
+                //     cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
+                //     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                //     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                //     cmd.BindResource(draw.shaderResource);
+                //     cmd.SetPushConstant(draw.shader, &draw.pushConstant);
+                //     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                // }
+                //
+                // // draw skybox
+                // auto& cubeMesh = cube->GetMeshes()[0];
+                // CmdDrawSubmesh(cmd, *cubeMesh, 0, *skyboxShader, *skyboxPassResource);
 
                 cmd.EndRenderPass();
             }

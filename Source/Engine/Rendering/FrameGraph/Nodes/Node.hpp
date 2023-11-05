@@ -74,7 +74,16 @@ struct Configurable : public Serializable
         else if constexpr (type == ConfigurableType::Vec4Int)
             static_assert(std::is_same_v<T, glm::ivec4>);
         else if constexpr (type == ConfigurableType::ObjectPtr)
-            static_assert(std::is_pointer_v<T>);
+        {
+            static_assert(std::is_pointer_v<T> || std::is_null_pointer_v<T>);
+            if constexpr (std::is_null_pointer_v<T>)
+            {
+
+                // make sure user can safely cast the data into an Object* object
+                // if we don't cast and val is a nullptr-t, it will throw bad_any_cast
+                return Configurable{name, type, (Object*)nullptr};
+            }
+        }
 
         return Configurable{name, type, val};
     }
@@ -171,7 +180,10 @@ class BuildResources
 public:
     template <class T>
         requires std::derived_from<T, Resource>
-    T GetResource(FGID id);
+    T GetResource(FGID id)
+    {
+        return T{};
+    }
 };
 
 class Node : public Object, public Serializable
@@ -264,7 +276,7 @@ protected:
         {
             if (strcmp(c.name.c_str(), name) == 0)
             {
-                return std::any_cast<c.data>;
+                return std::any_cast<T>(c.data);
             }
         }
 

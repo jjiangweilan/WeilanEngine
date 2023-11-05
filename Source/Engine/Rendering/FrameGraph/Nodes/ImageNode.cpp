@@ -22,7 +22,8 @@ public:
         };
     }
 
-    void Build(BuildResources& resources) override{};
+    void Preprocess(RenderGraph::Graph& graph) override{};
+    void Build(RenderGraph::Graph& graph, BuildResources& resources) override{};
 
 private:
     static char _reg;

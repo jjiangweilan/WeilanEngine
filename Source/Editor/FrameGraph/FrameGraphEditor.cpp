@@ -1,4 +1,5 @@
 #include "FrameGraphEditor.hpp"
+#include "EditorState.hpp"
 #include "ThirdParty/imgui/GraphEditor.h"
 #include <spdlog/spdlog.h>
 namespace Engine::Editor
@@ -98,6 +99,37 @@ void FrameGraphEditor::DrawConfigurableField(
         {
             openImageFormatPopup = true;
             targetConfig = &config;
+        }
+    }
+    else if (config.type == fg::ConfigurableType::ObjectPtr)
+    {
+        Object* v = std::any_cast<Object*>(config.data);
+        Asset* asAsset = dynamic_cast<Asset*>(v);
+
+        const char* name = "empty";
+        if (asAsset != nullptr)
+        {
+            name = asAsset->GetName().c_str();
+        }
+        else if (v != nullptr)
+        {
+            name = v->GetUUID().ToString().c_str();
+        }
+
+        if (ImGui::Button(name))
+        {
+            if (v != nullptr)
+                EditorState::selectedObject = v;
+        }
+
+        if (ImGui::BeginDragDropTarget())
+        {
+            auto payload = ImGui::AcceptDragDropPayload("object");
+            if (payload && payload->IsDelivery())
+            {
+                config.data = *(Object**)payload->Data;
+            }
+            ImGui::EndDragDropTarget();
         }
     }
 }
@@ -278,12 +310,7 @@ void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p)
 
 void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
 {
-    fg::ImageProperty* imageProp = (fg::ImageProperty*)p.GetData();
     ImGui::Text("%s", p.GetName().c_str());
-    if (imageProp->WillCreate())
-    {
-        // shadow create configuration
-    }
 }
 
 void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
