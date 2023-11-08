@@ -1,4 +1,5 @@
 #include "FrameGraph.hpp"
+#include <spdlog/spdlog.h>
 
 namespace Engine::FrameGraph
 {
@@ -122,22 +123,63 @@ void Graph::Deserialize(Serializer* s)
     s->Deserialize("nodes", nodes);
 }
 
+void Graph::ReportValidation()
+{
+    std::unordered_map<FGID, int> counts;
+    for (auto c : connections)
+    {
+        counts[c] += 1;
+    }
+
+    for (auto& n : nodes)
+    {
+        counts[n->GetID()] += 1;
+        for (auto& p : n->GetInput())
+        {
+            counts[p.GetID()] += 1;
+        }
+
+        for (auto& p : n->GetOutput())
+        {
+            counts[p.GetID()] += 1;
+        }
+    }
+
+    for (auto& iter : counts)
+    {
+        spdlog::info("{}, {}", iter.first, iter.second);
+    }
+}
+
 void Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();
     graph = std::make_unique<RenderGraph::Graph>();
 
-    BuildResources buildResources;
+    Resources buildResources;
 
     for (auto& n : nodes)
     {
-        n->Preprocess(*graph);
+        auto resources = n->Preprocess(*graph);
+        for (auto& r : resources)
+        {
+            if (r.type == ResourceType::Forwarding)
+            {
+                throw std::runtime_error("Not implemented");
+            }
+            else
+            {
+                buildResources.resources.emplace(r.propertyID, r);
+            }
+        }
     }
 
     for (auto& n : nodes)
     {
         n->Build(*graph, buildResources);
     }
+
+    graph->Process();
 
     for (auto& n : nodes)
     {

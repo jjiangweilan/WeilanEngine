@@ -14,18 +14,38 @@ public:
     {
         DefineNode();
     }
+
     ImageNode(FGID id) : Node("Image", id)
     {
         DefineNode();
     }
 
-    void Preprocess(RenderGraph::Graph& graph) override{};
-    void Build(RenderGraph::Graph& graph, BuildResources& resources) override{};
+    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
+    {
+        RenderGraph::RenderNode* imageNode = graph.AddNode(
+            [](Gfx::CommandBuffer&, Gfx::RenderPass&, const RenderGraph::ResourceRefs&) {},
+            {{
+                .name = GetCustomName(),
+                .handle = 0,
+                .type = RenderGraph::ResourceType::Image,
+                .accessFlags = Gfx::AccessMask::None,
+                .stageFlags = Gfx::PipelineStage::None,
+                .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture,
+                .imageLayout = Gfx::ImageLayout::Color_Attachment,
+            }},
+            {}
+        );
+
+        return {
+            Resource(ResourceTag::RenderGraphLink{}, propertyIDs["image"], imageNode, 0),
+        };
+    };
+    void Build(RenderGraph::Graph& graph, Resources& resources) override{};
 
 private:
     void DefineNode()
     {
-        AddOutputProperty("Image", PropertyType::Image);
+        AddOutputProperty("image", PropertyType::Image);
 
         AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
         AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);

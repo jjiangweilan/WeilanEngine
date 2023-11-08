@@ -86,6 +86,8 @@ public:
         return id & FRAME_GRAPH_PROPERTY_BIT_MASK;
     }
 
+    void ReportValidation();
+
 private:
     class IDPool : public Serializable
     {

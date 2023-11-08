@@ -18,17 +18,14 @@ public:
         DefineNode();
     }
 
-    void Preprocess(RenderGraph::Graph& graph) override
+    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         Shader* opaqueShader = GetConfigurableVal<Shader*>("scene info shader");
-
         sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
             opaqueShader->GetShaderProgram(),
             Gfx::ShaderResourceFrequency::Global
         );
-
         glm::vec4 clearValuesVal = GetConfigurableVal<glm::vec4>("clear values");
-
         std::vector<Gfx::ClearValue> clearValues = {
             {.color = {{clearValuesVal[0], clearValuesVal[1], clearValuesVal[2], clearValuesVal[3]}}},
             {.depthStencil = {.depth = 1}}};
@@ -72,53 +69,68 @@ public:
                 cmd.BeginRenderPass(pass, clearValues);
 
                 // draw scene objects
-                // for (auto& draw : this->drawList)
-                // {
-                //     cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
-                //     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                //     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                //     cmd.BindResource(draw.shaderResource);
-                //     cmd.SetPushConstant(draw.shader, &draw.pushConstant);
-                //     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                // }
-                //
-                // // draw skybox
+                for (auto& draw : *drawList)
+                {
+                    cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.BindResource(draw.shaderResource);
+                    cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                }
+
+                // draw skybox
                 // auto& cubeMesh = cube->GetMeshes()[0];
                 // CmdDrawSubmesh(cmd, *cubeMesh, 0, *skyboxShader, *skyboxPassResource);
 
                 cmd.EndRenderPass();
             }
         );
+
+        return {
+            Resource(
+                ResourceTag::RenderGraphLink{},
+                propertyIDs["color"],
+                forwardNode,
+                RenderGraph::StrToHandle("opaque color")
+            ),
+            Resource(
+                ResourceTag::RenderGraphLink{},
+                propertyIDs["depth"],
+                forwardNode,
+                RenderGraph::StrToHandle("opaque depth")
+            )};
     }
 
-    Resource GetProperty(FGID propertyID) {}
-
-    void Build(RenderGraph::Graph& graph, BuildResources& resources) override
+    void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        RenderNodeLink c = resources.GetResource<RenderNodeLink>(propertyIDs["color"]);
-        RenderNodeLink d = resources.GetResource<RenderNodeLink>(propertyIDs["depth"]);
+        auto [colorNode, colorHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["color"]);
+        auto [depthNode, depthHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["depth"]);
+        drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
 
-        graph.Connect(c.node, c.handle, forwardNode, RenderGraph::StrToHandle("opaque color"));
-        graph.Connect(d.node, d.handle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
+        graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color"));
+        graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
     };
 
-    void Finalize(RenderGraph::Graph& graph, BuildResources& resources) override
+    void Finalize(RenderGraph::Graph& graph, Resources& resources) override
     {
-        RenderNodeLink shadow = resources.GetResource<RenderNodeLink>(propertyIDs["shadow map"]);
-        Gfx::Image* shadowImage = (Gfx::Image*)shadow.node->GetPass()->GetResourceRef(shadow.handle)->GetResource();
+        auto [shadowNode, shadowHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["shadow map"]);
+        Gfx::Image* shadowImage = (Gfx::Image*)shadowNode->GetPass()->GetResourceRef(shadowHandle)->GetResource();
         sceneShaderResource->SetImage("shadowMap", shadowImage);
     }
 
 private:
     RenderGraph::RenderNode* forwardNode;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
+    const DrawList* drawList;
 
     void DefineNode()
     {
         AddInputProperty("color", PropertyType::Image);
         AddInputProperty("depth", PropertyType::Image);
-
         AddInputProperty("shadow map", PropertyType::Image);
+        AddInputProperty("draw list", PropertyType::DrawList);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("scene info shader", nullptr);

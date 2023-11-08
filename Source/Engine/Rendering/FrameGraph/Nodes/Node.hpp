@@ -46,6 +46,19 @@ enum class ConfigurableType
     ObjectPtr,
 };
 
+struct SceneObjectDrawData
+{
+    Gfx::ShaderProgram* shader = nullptr;
+    const Gfx::ShaderConfig* shaderConfig = nullptr;
+    Gfx::ShaderResource* shaderResource = nullptr;
+    Gfx::Buffer* indexBuffer = nullptr;
+    Gfx::IndexBufferType indexBufferType;
+    std::vector<Gfx::VertexBufferBinding> vertexBufferBinding;
+    glm::mat4 pushConstant;
+    uint32_t indexCount;
+};
+using DrawList = std::vector<SceneObjectDrawData>;
+
 struct Configurable
 {
     Configurable(const char* name, ConfigurableType type, std::any&& defaultVal)
@@ -166,24 +179,84 @@ protected:
     friend class Node;
 };
 
-struct Resource
+enum class ResourceType
+{
+    RenderGraphLink,
+    DrawList,
+    Forwarding,
+};
+namespace ResourceTag
+{
+struct RenderGraphLink
+{};
+struct DrawList
 {};
 
-struct RenderNodeLink : public Resource
+// this resource doesn't actually reference a actual resource but rather reference to a property id that may contain or
+// may forward again another resource
+struct Forwarding
+{};
+} // namespace ResourceTag
+  //
+struct Resource
 {
+    Resource(
+        ResourceTag::RenderGraphLink, FGID propertyID, RenderGraph::RenderNode* node, RenderGraph::ResourceHandle handle
+    )
+        : type(ResourceType::RenderGraphLink), propertyID(propertyID), node(node), handle(handle)
+    {}
+    Resource(ResourceTag::DrawList, FGID propertyID, const DrawList* drawList)
+        : propertyID(propertyID), drawList(drawList)
+    {}
+
+    ResourceType type;
+    FGID propertyID;
+
+    // RenderGraphLink
     RenderGraph::RenderNode* node;
     RenderGraph::ResourceHandle handle;
+
+    const DrawList* drawList;
 };
 
-class BuildResources
+class Resources
 {
 public:
-    template <class T>
-        requires std::derived_from<T, Resource>
-    T GetResource(FGID id)
+    std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> GetResource(ResourceTag::RenderGraphLink, FGID id)
     {
-        return T{};
+        auto iter = resources.find(id);
+        if (iter != resources.end())
+        {
+            if (iter->second.type != ResourceType::RenderGraphLink)
+            {
+                throw std::logic_error("mismatched type");
+            }
+
+            return {iter->second.node, iter->second.handle};
+        }
+
+        return {nullptr, -1};
     }
+    const DrawList* GetResource(ResourceTag::DrawList, FGID id)
+    {
+        auto iter = resources.find(id);
+        if (iter != resources.end())
+        {
+            if (iter->second.type != ResourceType::RenderGraphLink)
+            {
+                throw std::logic_error("mismatched type");
+            }
+
+            return iter->second.drawList;
+        }
+
+        return nullptr;
+    }
+
+private:
+    std::unordered_map<FGID, Resource> resources;
+
+    friend class Graph;
 };
 
 class Node : public Object, public Serializable
@@ -198,9 +271,12 @@ public:
         return id;
     }
 
-    virtual void Preprocess(RenderGraph::Graph& graph){};
-    virtual void Build(RenderGraph::Graph& graph, BuildResources& resources){};
-    virtual void Finalize(RenderGraph::Graph& graph, BuildResources& resources){};
+    virtual std::vector<Resource> Preprocess(RenderGraph::Graph& graph)
+    {
+        return {};
+    }
+    virtual void Build(RenderGraph::Graph& graph, Resources& resources){};
+    virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
 
     std::span<Property> GetInput()
     {

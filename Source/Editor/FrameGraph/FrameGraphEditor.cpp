@@ -129,6 +129,15 @@ void FrameGraphEditor::DrawConfigurableField(
 }
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
 {
+    if (ImGui::Button("Compile"))
+    {
+        graph->Compile();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Validation Check"))
+    {
+        graph->ReportValidation();
+    }
     this->graph = &graph_;
     ed::SetCurrentEditor(context);
     auto cursorPosition = ImGui::GetCursorScreenPos();
@@ -293,12 +302,12 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
 
 void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p)
 {
-    ImGui::Text("%s", p.GetName().c_str());
+    
 }
 
 void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
 {
-    ImGui::Text("%s", p.GetName().c_str());
+    // ImGui::Text("%s", p.GetName().c_str());
 }
 
 void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
@@ -306,10 +315,7 @@ void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::Pin
     if (kind == ed::PinKind::Output)
         ImGui::Indent(330);
     ed::BeginPin(p.GetID(), kind);
-    if (p.GetType() == fg::PropertyType::Float)
-        DrawFloatProp(p);
-    else if (p.GetType() == fg::PropertyType::Image)
-        DrawImageProp(p);
+    ImGui::Text("%s", p.GetName().c_str());
     ed::EndPin();
     if (kind == ed::PinKind::Output)
         ImGui::Unindent(330);

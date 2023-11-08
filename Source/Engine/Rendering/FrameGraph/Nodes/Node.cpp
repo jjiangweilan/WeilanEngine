@@ -137,10 +137,12 @@ void Node::Deserialize(Serializer* s)
     for (auto& p : inputProperties)
     {
         p.id += GetID();
+        propertyIDs[p.GetName()] = p.id;
     }
     for (auto& p : outputProperties)
     {
         p.id += GetID();
+        propertyIDs[p.GetName()] = p.id;
     }
 
     s->Deserialize("name", name);
