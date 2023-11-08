@@ -44,7 +44,7 @@ public:
         return graphContext;
     }
 #endif
-    void Execute(Gfx::CommandBuffer& cmd);
+    void Execute(Gfx::CommandBuffer& cmd, Scene& scene);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
     void DeleteNode(Node* node);

@@ -181,39 +181,41 @@ void Graph::ProcessLights(Scene& gameScene)
     }
 }
 
-void Graph::Execute(Gfx::CommandBuffer& cmd)
+void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 {
+    Camera* camera = scene.GetMainCamera();
+
+    if (camera == nullptr)
+        return;
+
+    graphResource.mainCamera = camera;
+
     for (auto& n : nodes)
     {
         n->Execute(graphResource);
     }
 
-    auto camera = graphResource.mainCamera;
-    auto scene = camera->GetGameObject()->GetGameScene();
-    if (camera)
-    {
-        RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+    RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
 
-        glm::mat4 viewMatrix = camera->GetViewMatrix();
-        glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
-        glm::mat4 vp = projectionMatrix * viewMatrix;
-        glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
-        sceneInfo.projection = projectionMatrix;
-        sceneInfo.viewProjection = vp;
-        sceneInfo.viewPos = viewPos;
-        sceneInfo.view = viewMatrix;
-        ProcessLights(*scene);
+    glm::mat4 viewMatrix = camera->GetViewMatrix();
+    glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+    glm::mat4 vp = projectionMatrix * viewMatrix;
+    glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+    sceneInfo.projection = projectionMatrix;
+    sceneInfo.viewProjection = vp;
+    sceneInfo.viewPos = viewPos;
+    sceneInfo.view = viewMatrix;
+    ProcessLights(scene);
 
-        size_t copySize = sceneGlobalBuffer->GetSize();
-        Gfx::BufferCopyRegion regions[] = {{
-            .srcOffset = 0,
-            .dstOffset = 0,
-            .size = copySize,
-        }};
+    size_t copySize = sceneGlobalBuffer->GetSize();
+    Gfx::BufferCopyRegion regions[] = {{
+        .srcOffset = 0,
+        .dstOffset = 0,
+        .size = copySize,
+    }};
 
-        memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
-        cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
-    }
+    memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
+    cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
 
     cmd.BindResource(sceneShaderResource);
     Gfx::GPUBarrier barrier{

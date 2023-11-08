@@ -25,6 +25,7 @@ public:
             {.color = {{clearValuesVal[0], clearValuesVal[1], clearValuesVal[2], clearValuesVal[3]}}},
             {.depthStencil = {.depth = 1}}};
 
+        auto opaqueColorHandle = RenderGraph::StrToHandle("opaque color");
         forwardNode = graph.AddNode2(
             {
                 {
@@ -37,7 +38,7 @@ public:
             {{
                 .colors = {{
                     .name = "opaque color",
-                    .handle = RenderGraph::StrToHandle("opaque color"),
+                    .handle = opaqueColorHandle,
                     .create = false,
                     .loadOp = Gfx::AttachmentLoadOperation::Clear,
                     .storeOp = Gfx::AttachmentStoreOperation::Store,
@@ -50,9 +51,9 @@ public:
                     .storeOp = Gfx::AttachmentStoreOperation::Store,
                 }},
             }},
-            [this, clearValues](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
+            [this, clearValues, opaqueColorHandle](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
             {
-                Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
+                Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
                 uint32_t width = color->GetDescription().width;
                 uint32_t height = color->GetDescription().height;
                 cmd.SetViewport(

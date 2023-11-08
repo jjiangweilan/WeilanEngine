@@ -131,7 +131,17 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd.SetScissor(0, 1, &rect);
-    renderer->Render(cmd, *scene);
+
+    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
+
+    if (graph)
+    {
+        graph->Execute(cmd, *scene);
+    }
+    else
+    {
+        renderer->Render(cmd, *scene);
+    }
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
@@ -239,9 +249,20 @@ bool GameView::Tick()
     }
 
     Scene* scene = EditorState::activeScene;
+    // TODO(bug): can't switch back to game camera
     if (scene && useViewCamera)
     {
-        gameCamera = scene->GetMainCamera();
+        auto gameCamera = scene->GetMainCamera();
+        if (gameCamera != editorCamera)
+        {
+            this->gameCamera = gameCamera;
+        }
+
+        if (gameCamera)
+        {
+            editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
+            editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
+        }
         scene->SetMainCamera(editorCamera);
     }
     else if (gameCamera)

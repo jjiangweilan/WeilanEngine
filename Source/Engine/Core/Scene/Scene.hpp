@@ -39,6 +39,18 @@ public:
     void Deserialize(Serializer* s) override;
     Camera* GetMainCamera()
     {
+        if (camera == nullptr)
+        {
+            for (auto go : GetAllGameObjects())
+            {
+                auto cam = go->GetComponent<Camera>();
+                if (cam)
+                {
+                    camera = cam;
+                    break;
+                }
+            }
+        }
         return camera;
     }
     void SetMainCamera(Camera* camera)
