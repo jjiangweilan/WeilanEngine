@@ -1,4 +1,5 @@
 #pragma once
+#include "../GraphResource.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
@@ -277,6 +278,7 @@ public:
     }
     virtual void Build(RenderGraph::Graph& graph, Resources& resources){};
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
+    virtual void Execute(GraphResource& graphResource){};
 
     std::span<Property> GetInput()
     {
@@ -335,7 +337,10 @@ protected:
         {
             if (strcmp(c.name.c_str(), name) == 0)
             {
-                return std::any_cast<T>(c.data);
+                if constexpr (std::is_pointer_v<T>)
+                    return static_cast<T>(std::any_cast<Object*>(c.data));
+                else
+                    return std::any_cast<T>(c.data);
             }
         }
 

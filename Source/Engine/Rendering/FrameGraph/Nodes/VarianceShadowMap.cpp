@@ -25,15 +25,8 @@ public:
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
         std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
 
-        auto vsmPass = graph.AddNode2(
-            {
-                {
-                    .name = "global scene buffer",
-                    .handle = 1,
-                    .type = RenderGraph::PassDependencyType::Buffer,
-                    .stageFlags = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
-                },
-            },
+        vsmPass = graph.AddNode2(
+            {},
             {
                 {
                     .width = (uint32_t)shadowMapSize.x,
@@ -91,7 +84,7 @@ public:
         );
 
         std::vector<Gfx::ClearValue> boxFilterClears = {{.color = {{1, 1, 1, 1}}}};
-        auto vsmBoxFilterPass0 = graph.AddNode2(
+        vsmBoxFilterPass0 = graph.AddNode2(
             {
                 RenderGraph::PassDependency{
                     .name = "box filter source",
@@ -140,6 +133,8 @@ public:
                 cmd.EndRenderPass();
             }
         );
+        vsmPass->SetName("vsm Pass");
+        vsmBoxFilterPass0->SetName("vsm Box Filter Pass 0");
         graph.Connect(vsmPass, 0, vsmBoxFilterPass0, RenderGraph::StrToHandle("src"));
 
         auto vsmBoxFilterPass1 = graph.AddNode2(
@@ -192,6 +187,13 @@ public:
                 cmd.EndRenderPass();
             }
         );
+        graph.Connect(
+            vsmBoxFilterPass0,
+            RenderGraph::StrToHandle("dst"),
+            vsmBoxFilterPass1,
+            RenderGraph::StrToHandle("src")
+        );
+        vsmBoxFilterPass1->SetName("vsm Box Filter Pass 1");
 
         return {
             Resource(
@@ -203,12 +205,33 @@ public:
         };
     };
 
+    virtual void Finalize(RenderGraph::Graph& graph, Resources& resources) override
+    {
+        Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
+        Gfx::Image* vsmBoxFilterPass0Image =
+            (Gfx::Image*)vsmBoxFilterPass0->GetPass()->GetResourceRef(RenderGraph::StrToHandle("dst"))->GetResource();
+
+        vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource(
+            boxFilterShader->GetShaderProgram(),
+            Gfx::ShaderResourceFrequency::Material
+        );
+        vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource(
+            boxFilterShader->GetShaderProgram(),
+            Gfx::ShaderResourceFrequency::Material
+        );
+        vsmBoxFilterResource0->SetImage("source", shadowImage);
+        vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
+    }
+
     void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
     };
 
 private:
+    RenderGraph::RenderNode* vsmPass;
+    RenderGraph::RenderNode* vsmBoxFilterPass0;
+
     const DrawList* drawList;
     std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource0{};
     std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource1{};

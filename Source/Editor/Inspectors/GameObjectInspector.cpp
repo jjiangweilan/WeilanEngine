@@ -5,6 +5,7 @@
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
+#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Engine::Editor

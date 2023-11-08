@@ -1,8 +1,10 @@
 #pragma once
 #include "Core/Asset.hpp"
+#include "GraphResource.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
 #endif
@@ -40,7 +42,7 @@ public:
         return graphContext;
     }
 #endif
-    void Execute(Graph& graph);
+    void Execute(Gfx::CommandBuffer& cmd);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
     void DeleteNode(Node* node);
@@ -143,6 +145,7 @@ private:
 #if ENGINE_EDITOR
     ax::NodeEditor::EditorContext* graphContext;
 #endif
+    GraphResource graphResource;
 
     std::unique_ptr<RenderGraph::Graph> graph;
 

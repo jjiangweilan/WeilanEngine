@@ -2,10 +2,13 @@
 
 #include "Component.hpp"
 #include "Core/Math/Geometry.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include <glm/glm.hpp>
 namespace Engine
 {
+namespace FrameGraph
+{
+class Graph;
+}
 class Camera : public Component
 {
     DECLARE_OBJECT();

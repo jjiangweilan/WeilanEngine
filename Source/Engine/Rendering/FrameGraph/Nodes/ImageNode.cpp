@@ -35,6 +35,7 @@ public:
             }},
             {}
         );
+        imageNode->SetName(GetCustomName());
 
         return {
             Resource(ResourceTag::RenderGraphLink{}, propertyIDs["image"], imageNode, 0),

@@ -151,6 +151,16 @@ void Graph::ReportValidation()
     }
 }
 
+void Graph::Execute(Gfx::CommandBuffer& cmd)
+{
+    for (auto& n : nodes)
+    {
+        n->Execute(graphResource);
+    }
+
+    graph->Execute(cmd);
+}
+
 void Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();

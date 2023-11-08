@@ -86,6 +86,7 @@ public:
                 cmd.EndRenderPass();
             }
         );
+        forwardNode->SetName(GetCustomName());
 
         return {
             Resource(
@@ -106,10 +107,13 @@ public:
     {
         auto [colorNode, colorHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["color"]);
         auto [depthNode, depthHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["depth"]);
+        auto [shadowNode, shadowHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["shadow map"]);
         drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
 
         graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color"));
         graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
+        graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map"));
     };
 
     void Finalize(RenderGraph::Graph& graph, Resources& resources) override
