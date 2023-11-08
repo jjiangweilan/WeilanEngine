@@ -129,6 +129,8 @@ void FrameGraphEditor::DrawConfigurableField(
 }
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
 {
+    this->graph = &graph_;
+
     if (ImGui::Button("Compile"))
     {
         graph->Compile();
@@ -138,7 +140,32 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     {
         graph->ReportValidation();
     }
-    this->graph = &graph_;
+    ImGui::SameLine();
+
+    Shader* s = graph->GetTemplateSceneShader();
+    const char* templateShaderName = "Template Scene Shader";
+    if (s != nullptr)
+    {
+        templateShaderName = s->GetName().c_str();
+    }
+    if (ImGui::Button(templateShaderName))
+    {
+        EditorState::selectedObject = s;
+    }
+    if (ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+        if (payload && payload->IsDelivery())
+        {
+            Object* obj = *(Object**)payload->Data;
+            if (Shader* shader = dynamic_cast<Shader*>(obj))
+            {
+                graph->SetTemplateSceneShader(shader);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     ed::SetCurrentEditor(context);
     auto cursorPosition = ImGui::GetCursorScreenPos();
 
@@ -300,10 +327,7 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     ed::SetCurrentEditor(nullptr);
 }
 
-void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p)
-{
-    
-}
+void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p) {}
 
 void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
 {

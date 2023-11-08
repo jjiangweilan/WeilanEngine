@@ -20,11 +20,6 @@ public:
 
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
-        Shader* opaqueShader = GetConfigurableVal<Shader*>("scene info shader");
-        sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-            opaqueShader->GetShaderProgram(),
-            Gfx::ShaderResourceFrequency::Global
-        );
         glm::vec4 clearValuesVal = GetConfigurableVal<glm::vec4>("clear values");
         std::vector<Gfx::ClearValue> clearValues = {
             {.color = {{clearValuesVal[0], clearValuesVal[1], clearValuesVal[2], clearValuesVal[3]}}},
@@ -65,7 +60,6 @@ public:
                 );
                 Rect2D rect = {{0, 0}, {width, height}};
                 cmd.SetScissor(0, 1, &rect);
-                cmd.BindResource(sceneShaderResource);
                 cmd.BeginRenderPass(pass, clearValues);
 
                 // draw scene objects
@@ -116,17 +110,8 @@ public:
         graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map"));
     };
 
-    void Finalize(RenderGraph::Graph& graph, Resources& resources) override
-    {
-        auto [shadowNode, shadowHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["shadow map"]);
-        Gfx::Image* shadowImage = (Gfx::Image*)shadowNode->GetPass()->GetResourceRef(shadowHandle)->GetResource();
-        sceneShaderResource->SetImage("shadowMap", shadowImage);
-    }
-
 private:
     RenderGraph::RenderNode* forwardNode;
-    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
     const DrawList* drawList;
 
     void DefineNode()
@@ -137,7 +122,6 @@ private:
         AddInputProperty("draw list", PropertyType::DrawList);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
-        AddConfig<ConfigurableType::ObjectPtr>("scene info shader", nullptr);
     }
     static char _reg;
 }; // namespace Engine::FrameGraph

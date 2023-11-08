@@ -1,4 +1,6 @@
 #include "FrameGraph.hpp"
+#include "Core/Component/Transform.hpp"
+#include "Core/GameObject.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Engine::FrameGraph
@@ -113,6 +115,7 @@ void Graph::Serialize(Serializer* s) const
     s->Serialize("nodeIDPool", nodeIDPool);
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
+    s->Serialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
 void Graph::Deserialize(Serializer* s)
@@ -121,6 +124,7 @@ void Graph::Deserialize(Serializer* s)
     s->Deserialize("nodeIDPool", nodeIDPool);
     s->Deserialize("connections", connections);
     s->Deserialize("nodes", nodes);
+    s->Deserialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
 void Graph::ReportValidation()
@@ -150,6 +154,32 @@ void Graph::ReportValidation()
         spdlog::info("{}, {}", iter.first, iter.second);
     }
 }
+void Graph::ProcessLights(Scene& gameScene)
+{
+    auto lights = gameScene.GetActiveLights();
+
+    Light* light = nullptr;
+    for (int i = 0; i < lights.size(); ++i)
+    {
+        sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
+        auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
+        sceneInfo.lights[i].position = glm::vec4(-glm::normalize(glm::vec3(model[2])), 0);
+
+        if (lights[i]->GetLightType() == LightType::Directional)
+        {
+            if (light == nullptr || light->GetIntensity() < lights[i]->GetIntensity())
+            {
+                light = lights[i];
+            }
+        }
+    }
+
+    sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
+    if (light)
+    {
+        sceneInfo.worldToShadow = light->WorldToShadowMatrix();
+    }
+}
 
 void Graph::Execute(Gfx::CommandBuffer& cmd)
 {
@@ -158,12 +188,63 @@ void Graph::Execute(Gfx::CommandBuffer& cmd)
         n->Execute(graphResource);
     }
 
+    auto camera = graphResource.mainCamera;
+    auto scene = camera->GetGameObject()->GetGameScene();
+    if (camera)
+    {
+        RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+
+        glm::mat4 viewMatrix = camera->GetViewMatrix();
+        glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+        glm::mat4 vp = projectionMatrix * viewMatrix;
+        glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+        sceneInfo.projection = projectionMatrix;
+        sceneInfo.viewProjection = vp;
+        sceneInfo.viewPos = viewPos;
+        sceneInfo.view = viewMatrix;
+        ProcessLights(*scene);
+
+        size_t copySize = sceneGlobalBuffer->GetSize();
+        Gfx::BufferCopyRegion regions[] = {{
+            .srcOffset = 0,
+            .dstOffset = 0,
+            .size = copySize,
+        }};
+
+        memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
+        cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+    }
+
+    cmd.BindResource(sceneShaderResource);
+    Gfx::GPUBarrier barrier{
+        .buffer = sceneGlobalBuffer,
+        .srcStageMask = Gfx::PipelineStage::Transfer,
+        .dstStageMask = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
+        .srcAccessMask = Gfx::AccessMask::Transfer_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read,
+    };
+
+    cmd.Barrier(&barrier, 1);
     graph->Execute(cmd);
 }
 
 void Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();
+
+    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
+        templateSceneResourceShader->GetShaderProgram(),
+        Gfx::ShaderResourceFrequency::Global
+    );
+    stagingBuffer = GetGfxDriver()->CreateBuffer({
+        .usages = Gfx::BufferUsage::Transfer_Src,
+        .size = 1024 * 1024, // 1 MB
+        .visibleInCPU = true,
+        .debugName = "dual moon graph staging buffer",
+    });
+    Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
+    sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+
     graph = std::make_unique<RenderGraph::Graph>();
 
     Resources buildResources;
@@ -196,6 +277,11 @@ void Graph::Compile()
     }
 
     graph->Process();
+
+    for (auto& n : nodes)
+    {
+        n->WriteSceneShaderResource(*sceneShaderResource);
+    }
 
     for (auto& n : nodes)
     {

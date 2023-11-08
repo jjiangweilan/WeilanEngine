@@ -1,5 +1,7 @@
 #pragma once
+#include "Asset/Shader.hpp"
 #include "Core/Asset.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "GraphResource.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
@@ -52,6 +54,17 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     void Compile();
+
+    Shader* GetTemplateSceneShader()
+    {
+        return templateSceneResourceShader;
+    };
+
+    void SetTemplateSceneShader(Shader* shader)
+    {
+        SetDirty();
+        this->templateSceneResourceShader = shader;
+    }
 
     std::span<std::unique_ptr<Node>> GetNodes()
     {
@@ -139,6 +152,26 @@ private:
         std::vector<uint32_t> freeID;
     };
 
+    struct LightInfo
+    {
+        glm::vec4 position;
+        float range;
+        float intensity;
+    };
+
+    static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
+    struct SceneInfo
+    {
+        glm::vec4 viewPos;
+        glm::mat4 view;
+        glm::mat4 projection;
+        glm::mat4 viewProjection;
+        glm::mat4 worldToShadow;
+        glm::vec4 lightCount;
+        glm::vec4 shadowMapSize;
+        LightInfo lights[MAX_LIGHT_COUNT];
+    } sceneInfo;
+
     IDPool nodeIDPool;
     std::vector<FGID> connections;
     std::vector<std::unique_ptr<Node>> nodes;
@@ -146,13 +179,19 @@ private:
     ax::NodeEditor::EditorContext* graphContext;
 #endif
     GraphResource graphResource;
+    Shader* templateSceneResourceShader;
 
     std::unique_ptr<RenderGraph::Graph> graph;
+    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
+    Gfx::Buffer* sceneGlobalBuffer;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     bool HasCycleIfLink(FGID src, FGID dst)
     {
         return false; // not implemented
     }
+
+    void ProcessLights(Scene& gameScene);
 };
 
 } // namespace Engine::FrameGraph
