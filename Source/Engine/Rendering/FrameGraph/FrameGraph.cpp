@@ -179,7 +179,13 @@ void Graph::Compile()
             }
             else
             {
-                buildResources.resources.emplace(r.propertyID, r);
+                for (auto c : connections)
+                {
+                    if (GetSrcPropertyIDFromConnectionID(c) == r.propertyID)
+                    {
+                        buildResources.resources.emplace(GetDstPropertyIDFromConnectionID(c), r);
+                    }
+                }
             }
         }
     }

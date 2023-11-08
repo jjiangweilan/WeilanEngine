@@ -91,5 +91,5 @@ private:
 };
 
 char SceneSortNode::_reg = NodeBlueprintRegisteration::Register<SceneSortNode>("Scene Sort");
-DEFINE_OBJECT(SceneSortNode, "FE0667ED-89FA-4986-842B-158654543C18");
+DEFINE_OBJECT(SceneSortNode, "24B2D306-5827-479E-A3C8-6B5D0742BCD8");
 } // namespace Engine::FrameGraph

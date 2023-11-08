@@ -34,7 +34,7 @@ public:
             {
                 {
                     .name = "shadow",
-                    .handle = RenderGraph::StrToHandle("shadow"),
+                    .handle = RenderGraph::StrToHandle("shadow map"),
                     .type = RenderGraph::PassDependencyType::Texture,
                     .stageFlags = Gfx::PipelineStage::Fragment_Shader,
                 },

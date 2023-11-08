@@ -207,7 +207,7 @@ struct Resource
         : type(ResourceType::RenderGraphLink), propertyID(propertyID), node(node), handle(handle)
     {}
     Resource(ResourceTag::DrawList, FGID propertyID, const DrawList* drawList)
-        : propertyID(propertyID), drawList(drawList)
+        : type(ResourceType::DrawList), propertyID(propertyID), drawList(drawList)
     {}
 
     ResourceType type;
@@ -243,9 +243,9 @@ public:
         auto iter = resources.find(id);
         if (iter != resources.end())
         {
-            if (iter->second.type != ResourceType::RenderGraphLink)
+            if (iter->second.type == ResourceType::Forwarding)
             {
-                throw std::logic_error("mismatched type");
+                throw std::logic_error("not handled");
             }
 
             return iter->second.drawList;

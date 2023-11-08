@@ -22,17 +22,28 @@ public:
 
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
+        glm::ivec2 size = GetConfigurableVal<glm::ivec2>("size");
+        Gfx::ImageFormat format = GetConfigurableVal<Gfx::ImageFormat>("format");
+        int mipLevel = GetConfigurableVal<int>("mip level");
+
         RenderGraph::RenderNode* imageNode = graph.AddNode(
             [](Gfx::CommandBuffer&, Gfx::RenderPass&, const RenderGraph::ResourceRefs&) {},
-            {{
-                .name = GetCustomName(),
-                .handle = 0,
-                .type = RenderGraph::ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::None,
-                .stageFlags = Gfx::PipelineStage::None,
-                .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture,
-                .imageLayout = Gfx::ImageLayout::Color_Attachment,
-            }},
+            {{.name = GetCustomName(),
+              .handle = 0,
+              .type = RenderGraph::ResourceType::Image,
+              .accessFlags = Gfx::AccessMask::None,
+              .stageFlags = Gfx::PipelineStage::None,
+              .imageUsagesFlags = Gfx::ImageUsage::Texture,
+              .imageLayout = Gfx::ImageLayout::Undefined,
+              .imageCreateInfo =
+                  {
+                      .width = (uint32_t)size.x,
+                      .height = (uint32_t)size.y,
+                      .format = format,
+                      .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+                      .mipLevels = (uint32_t)mipLevel,
+                      .isCubemap = false,
+                  }}},
             {}
         );
         imageNode->SetName(GetCustomName());

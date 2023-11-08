@@ -23,6 +23,7 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
+        boxFilterShader = GetConfigurableVal<Shader*>("two pass filter shader");
         std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
 
         vsmPass = graph.AddNode2(
@@ -187,6 +188,7 @@ public:
                 cmd.EndRenderPass();
             }
         );
+        graph.Connect(vsmPass, 0, vsmBoxFilterPass1, RenderGraph::StrToHandle("dst"));
         graph.Connect(
             vsmBoxFilterPass0,
             RenderGraph::StrToHandle("dst"),
@@ -244,6 +246,7 @@ private:
 
         AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});
         AddConfig<ConfigurableType::ObjectPtr>("shadow map shader", nullptr);
+        AddConfig<ConfigurableType::ObjectPtr>("two pass filter shader", nullptr);
     }
     static char _reg;
 };
