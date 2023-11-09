@@ -97,7 +97,10 @@ void Graph::DeleteConnection(FGID connectionID)
     SetDirty();
 
     auto iter = std::find(connections.begin(), connections.end(), connectionID);
-    connections.erase(iter);
+    if (iter != connections.end())
+    {
+        connections.erase(iter);
+    }
 }
 
 std::span<FGID> Graph::GetConnections()

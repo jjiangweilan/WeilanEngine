@@ -347,6 +347,17 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     }
     ed::Resume();
 
+    if (ImGui::IsKeyDown(ImGuiKey_Delete))
+    {
+        int count = ed::GetSelectedObjectCount();
+        std::vector<ed::LinkId> links(count);
+        ed::GetSelectedLinks(links.data(), count);
+        for (int i = 0; i < count; ++i)
+        {
+            graph->DeleteConnection(links[i].Get());
+        }
+    }
+
     ed::End();
     ed::SetCurrentEditor(nullptr);
 
