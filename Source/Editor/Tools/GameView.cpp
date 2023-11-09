@@ -134,7 +134,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
     FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
 
-    if (graph)
+    if (graph && graph->IsCompiled())
     {
         auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
@@ -274,15 +274,12 @@ bool GameView::Tick()
         if (gameCamera != editorCamera)
         {
             this->gameCamera = gameCamera;
-        }
-
-        if (gameCamera)
-        {
             editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
             editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
             if (!editorCamera->GetFrameGraph()->IsCompiled())
                 editorCamera->GetFrameGraph()->Compile();
         }
+
         scene->SetMainCamera(editorCamera);
     }
     else if (gameCamera)
