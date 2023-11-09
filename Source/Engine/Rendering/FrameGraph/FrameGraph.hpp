@@ -207,6 +207,10 @@ private:
     }
 
     void ProcessLights(Scene& gameScene);
+    void RequireRecompile()
+    {
+        compiled = false;
+    }
 };
 
 } // namespace Engine::FrameGraph

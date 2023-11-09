@@ -140,6 +140,43 @@ void FrameGraphEditor::DrawConfigurableField(
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
 {
     this->graph = &graph_;
+
+    if (ImGui::Button("Compile"))
+    {
+        graph->Compile();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Validation Check"))
+    {
+        graph->ReportValidation();
+    }
+    ImGui::SameLine();
+
+    Shader* s = graph->GetTemplateSceneShader();
+    const char* templateShaderName = "Template Scene Shader";
+    if (s != nullptr)
+    {
+        templateShaderName = s->GetName().c_str();
+    }
+    if (ImGui::Button(templateShaderName))
+    {
+        EditorState::selectedObject = s;
+    }
+    if (ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+        if (payload && payload->IsDelivery())
+        {
+            Object* obj = *(Object**)payload->Data;
+            if (Shader* shader = dynamic_cast<Shader*>(obj))
+            {
+                graph->SetTemplateSceneShader(shader);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     auto overlayCursor = ImGui::GetCursorPos();
 
     ed::SetCurrentEditor(context);
@@ -313,42 +350,8 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     ed::End();
     ed::SetCurrentEditor(nullptr);
 
+    // the graph editor blocks button interaction so we can't overlay the button on top of the graph
     ImGui::SetCursorPos(overlayCursor);
-
-    if (ImGui::Button("Compile"))
-    {
-        graph->Compile();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Validation Check"))
-    {
-        graph->ReportValidation();
-    }
-    ImGui::SameLine();
-
-    Shader* s = graph->GetTemplateSceneShader();
-    const char* templateShaderName = "Template Scene Shader";
-    if (s != nullptr)
-    {
-        templateShaderName = s->GetName().c_str();
-    }
-    if (ImGui::Button(templateShaderName))
-    {
-        EditorState::selectedObject = s;
-    }
-    if (ImGui::BeginDragDropTarget())
-    {
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-        if (payload && payload->IsDelivery())
-        {
-            Object* obj = *(Object**)payload->Data;
-            if (Shader* shader = dynamic_cast<Shader*>(obj))
-            {
-                graph->SetTemplateSceneShader(shader);
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
 
     const char* outputImageName = "null";
     if (fg::Node* outputImageNode = graph->GetOutputImageNode())

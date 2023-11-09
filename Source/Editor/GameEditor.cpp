@@ -386,9 +386,9 @@ void GameEditor::GUIPass()
     MainMenuBar();
     OpenSceneWindow();
 
-    gameView.Tick();
     AssetWindow();
     InspectorWindow();
+    gameView.Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
     {

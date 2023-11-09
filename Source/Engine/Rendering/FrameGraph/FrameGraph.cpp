@@ -64,6 +64,7 @@ bool Graph::Connect(FGID src, FGID dst)
 
 void Graph::DeleteNode(Node* node)
 {
+    RequireRecompile();
     SetDirty();
 
     auto nodeIter =

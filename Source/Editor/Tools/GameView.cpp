@@ -136,12 +136,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
     if (graph)
     {
-        if (!graph->IsCompiled())
-        {
-            graph->Compile();
-            graphOutputImage = graph->GetOutputImage();
-        }
-
+        auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
 
         Gfx::GPUBarrier barrier{
@@ -285,6 +280,8 @@ bool GameView::Tick()
         {
             editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
             editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
+            if (!editorCamera->GetFrameGraph()->IsCompiled())
+                editorCamera->GetFrameGraph()->Compile();
         }
         scene->SetMainCamera(editorCamera);
     }
@@ -334,7 +331,9 @@ bool GameView::Tick()
     const float contentHeight = contentMax.y - contentMin.y;
 
     // imgui image
-    auto targetImage = graphOutputImage != nullptr ? graphOutputImage : sceneImage.get();
+    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
+    auto targetImage = graph ? graph->GetOutputImage() : sceneImage.get();
+
     if (targetImage)
     {
         float width = targetImage->GetDescription().width;

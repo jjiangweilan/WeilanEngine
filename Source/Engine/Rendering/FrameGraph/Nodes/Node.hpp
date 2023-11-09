@@ -351,6 +351,23 @@ protected:
         return T{};
     }
 
+    template <class T>
+    T* GetConfigurablePtr(const char* name)
+    {
+        for (auto& c : configs)
+        {
+            if (strcmp(c.name.c_str(), name) == 0)
+            {
+                if constexpr (std::is_pointer_v<T>)
+                    return static_cast<T*>(std::any_cast<Object*>(&c.data));
+                else
+                    return std::any_cast<T>(&c.data);
+            }
+        }
+
+        return nullptr;
+    }
+
     FGID AddInputProperty(const char* name, PropertyType type)
     {
         FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);

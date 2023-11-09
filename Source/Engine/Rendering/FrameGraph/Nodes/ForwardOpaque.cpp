@@ -20,10 +20,7 @@ public:
 
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
-        glm::vec4 clearValuesVal = GetConfigurableVal<glm::vec4>("clear values");
-        std::vector<Gfx::ClearValue> clearValues = {
-            {.color = {{clearValuesVal[0], clearValuesVal[1], clearValuesVal[2], clearValuesVal[3]}}},
-            {.depthStencil = {.depth = 1}}};
+        glm::vec4* clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
 
         auto opaqueColorHandle = RenderGraph::StrToHandle("opaque color");
         forwardNode = graph.AddNode2(
@@ -52,7 +49,7 @@ public:
                 }},
             }},
             [this,
-             clearValues,
+             clearValuesVal,
              opaqueColorHandle](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
             {
                 Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
@@ -63,6 +60,10 @@ public:
                     {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
                 );
                 Rect2D rect = {{0, 0}, {width, height}};
+                clearValues[0].color = {
+                    {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+                clearValues[1].depthStencil = {1};
+
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, clearValues);
 
@@ -119,10 +120,13 @@ public:
         this->sceneShaderResource = &sceneShaderResource;
     };
 
+    void Execute(GraphResource& graphResource) override {}
+
 private:
     RenderGraph::RenderNode* forwardNode;
     const DrawList* drawList;
     Gfx::ShaderResource* sceneShaderResource;
+    std::vector<Gfx::ClearValue> clearValues;
 
     void DefineNode()
     {
@@ -132,6 +136,7 @@ private:
         AddInputProperty("draw list", PropertyType::DrawList);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
+        clearValues.resize(2);
     }
     static char _reg;
 }; // namespace Engine::FrameGraph
