@@ -155,17 +155,20 @@ void Graph::Process()
 
                 for (UsedIndex preUsed = usedIndex; preUsed >= 0; preUsed--)
                 {
-                    if (preUsed == 0)
-                        preUsed = r->used.size() - 1;
-                    else
+                    if (preUsed != 0)
                         preUsed = preUsed - 1;
 
                     SortIndex preUsedSortIndex = r->used[preUsed].first;
                     ResourceHandle preUsedWriteHandle = r->used[preUsed].second;
-                    auto& preUsedDesc = sortedNodes[preUsedSortIndex]->pass->GetResourceDescription(preUsedWriteHandle);
+                    auto preUsedDesc = sortedNodes[preUsedSortIndex]->pass->GetResourceDescription(preUsedWriteHandle);
                     auto preUsedRange = preUsedDesc.imageSubresourceRange.has_value()
                                             ? preUsedDesc.imageSubresourceRange.value()
                                             : image->GetSubresourceRange();
+
+                    if (preUsed == 0)
+                    {
+                        preUsedDesc.imageLayout = Gfx::ImageLayout::Dynamic;
+                    }
 
                     for (auto& currentRange : remainingRange)
                     {
@@ -206,10 +209,11 @@ void Graph::Process()
                             if (srcStages != Gfx::PipelineStage::None || srcAccess != Gfx::AccessMask::None ||
                                 preUsedDesc.imageLayout != desc.imageLayout)
                             {
+                                auto image = (Gfx::Image*)r->resourceRef.GetResource();
                                 if (srcStages == Gfx::PipelineStage::None)
                                     srcStages = Gfx::PipelineStage::Top_Of_Pipe;
                                 Gfx::GPUBarrier barrier{
-                                    .image = (Gfx::Image*)r->resourceRef.GetResource(),
+                                    .image = image,
                                     .srcStageMask = srcStages,
                                     .dstStageMask = desc.stageFlags,
                                     .srcAccessMask = srcAccess,

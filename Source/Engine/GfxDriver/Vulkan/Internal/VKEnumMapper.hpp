@@ -19,6 +19,7 @@ VkImageUsageFlags MapImageUsage(ImageUsageFlags in);
 VkPipelineStageFlags MapPipelineStage(PipelineStageFlags stages);
 VkAccessFlags MapAccessMask(AccessMaskFlags masks);
 VkImageLayout MapImageLayout(ImageLayout layout);
+ImageLayout MapVKImageLayout(VkImageLayout layout);
 VkImageAspectFlags MapImageAspect(ImageAspectFlags aspects);
 ImageAspectFlags MapVKImageAspect(VkImageAspectFlags aspects);
 } // namespace Engine::Gfx

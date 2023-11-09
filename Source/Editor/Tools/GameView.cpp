@@ -139,10 +139,27 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
         if (!graph->IsCompiled())
         {
             graph->Compile();
-            graph->GetOutputImage();
+            graphOutputImage = graph->GetOutputImage();
         }
 
         graph->Execute(cmd, *scene);
+
+        Gfx::GPUBarrier barrier{
+            .image = graphOutputImage,
+            .srcStageMask = Gfx::PipelineStage::All_Graphics,
+            .dstStageMask = Gfx::PipelineStage::Transfer,
+            .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+            .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+
+            .imageInfo =
+                {
+                    .oldLayout = Gfx::ImageLayout::Dynamic,
+                    .newLayout = Gfx::ImageLayout::Shader_Read_Only,
+                    .subresourceRange = graphOutputImage->GetSubresourceRange(),
+                },
+        };
+
+        cmd.Barrier(&barrier, 1);
     }
     else
     {
@@ -317,10 +334,11 @@ bool GameView::Tick()
     const float contentHeight = contentMax.y - contentMin.y;
 
     // imgui image
-    if (sceneImage)
+    auto targetImage = graphOutputImage != nullptr ? graphOutputImage : sceneImage.get();
+    if (targetImage)
     {
-        float width = sceneImage->GetDescription().width;
-        float height = sceneImage->GetDescription().height;
+        float width = targetImage->GetDescription().width;
+        float height = targetImage->GetDescription().height;
         float imageWidth = width;
         float imageHeight = height;
 
@@ -340,7 +358,7 @@ bool GameView::Tick()
         }
 
         auto imagePos = ImGui::GetCursorPos();
-        ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+        ImGui::Image(&targetImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
         auto windowPos = ImGui::GetWindowPos();
         if (!ImGuizmo::IsUsing())

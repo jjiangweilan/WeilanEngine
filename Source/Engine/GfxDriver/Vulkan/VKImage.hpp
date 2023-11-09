@@ -34,6 +34,8 @@ public:
     {
         return layout;
     }
+
+    virtual ImageLayout GetImageLayout() override;
     virtual const ImageDescription& GetDescription() override
     {
         return imageDescription;

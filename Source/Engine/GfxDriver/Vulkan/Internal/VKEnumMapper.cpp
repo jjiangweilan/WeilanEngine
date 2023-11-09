@@ -507,4 +507,47 @@ VkImageAspectFlags MapImageAspect(ImageAspectFlags aspects)
 
     return flags;
 }
+
+ImageLayout MapVKImageLayout(VkImageLayout layout)
+{
+    if (layout == VK_IMAGE_LAYOUT_UNDEFINED)
+        return ImageLayout::Undefined;
+    if (layout == VK_IMAGE_LAYOUT_GENERAL)
+        return ImageLayout::General;
+    if (layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Color_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        return ImageLayout::Shader_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        return ImageLayout::Transfer_Src;
+    if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        return ImageLayout::Transfer_Dst;
+    if (layout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+        return ImageLayout::Preinitialized;
+
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Read_Only_Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Attachment_Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+        return ImageLayout::Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+        return ImageLayout::Attachment;
+    if (layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        return ImageLayout::Present_Src_Khr;
+
+    return ImageLayout::Undefined;
+}
 } // namespace Engine::Gfx

@@ -138,6 +138,7 @@ public:
     virtual const ImageDescription& GetDescription() = 0;
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
+    virtual ImageLayout GetImageLayout() = 0;
 
 protected:
 };

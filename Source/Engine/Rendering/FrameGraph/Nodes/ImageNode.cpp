@@ -28,7 +28,7 @@ std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
           .type = RenderGraph::ResourceType::Image,
           .accessFlags = Gfx::AccessMask::None,
           .stageFlags = Gfx::PipelineStage::Top_Of_Pipe,
-          .imageUsagesFlags = Gfx::ImageUsage::Texture,
+          .imageUsagesFlags = Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst,
           .imageLayout = Gfx::IsDepthStencilFormat(format) ? Gfx::ImageLayout::Depth_Stencil_Attachment
                                                            : Gfx::ImageLayout::Color_Attachment,
           .imageCreateInfo =

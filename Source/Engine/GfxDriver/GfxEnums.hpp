@@ -59,6 +59,9 @@ enum class ImageLayout
     Read_Only = 1000314000,
     Attachment = 1000314001,
     Present_Src_Khr = 1000001002,
+
+    Dynamic, // this indicates command buffer should dynamically detect image's layout when transfering image layout as
+             // source
 };
 
 enum class ImageViewType
