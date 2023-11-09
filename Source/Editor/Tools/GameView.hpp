@@ -34,6 +34,7 @@ private:
     std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;
     std::unique_ptr<GameObject> editorCameraGO;
+    Gfx::Image* graphOutputImage = nullptr;
     bool useViewCamera = true;
 
     struct

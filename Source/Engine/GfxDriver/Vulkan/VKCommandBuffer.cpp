@@ -385,12 +385,18 @@ void VKCommandBuffer::Barrier(GPUBarrier* barriers, uint32_t barrierCount)
             range.baseArrayLayer = r.baseArrayLayer;
             range.layerCount = r.layerCount;
 
+            VkImageLayout oldLayout = MapImageLayout(barrier.imageInfo.oldLayout);
+            if (barrier.imageInfo.oldLayout == Gfx::ImageLayout::Dynamic)
+            {
+                oldLayout = image->GetLayout();
+            }
+
             VkImageMemoryBarrier vkBarrier{};
             vkBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             vkBarrier.pNext = VK_NULL_HANDLE;
             vkBarrier.srcAccessMask = MapAccessMask(barrier.srcAccessMask);
             vkBarrier.dstAccessMask = MapAccessMask(barrier.dstAccessMask);
-            vkBarrier.oldLayout = MapImageLayout(barrier.imageInfo.oldLayout);
+            vkBarrier.oldLayout = oldLayout;
             vkBarrier.newLayout = MapImageLayout(barrier.imageInfo.newLayout);
             vkBarrier.srcQueueFamilyIndex = barrier.imageInfo.srcQueueFamilyIndex;
             vkBarrier.dstQueueFamilyIndex = barrier.imageInfo.dstQueueFamilyIndex;

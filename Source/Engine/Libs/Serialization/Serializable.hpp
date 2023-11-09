@@ -10,6 +10,7 @@ class Serializable
 public:
     virtual void Serialize(Serializer* s) const = 0;
     virtual void Deserialize(Serializer* s) = 0;
+    virtual ~Serializable(){};
 };
 
 } // namespace Engine

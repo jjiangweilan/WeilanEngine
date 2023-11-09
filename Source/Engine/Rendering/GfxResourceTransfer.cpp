@@ -128,7 +128,7 @@ void GfxResourceTransfer::Transfer(RefPtr<Gfx::Image> image, const ImageTransfer
     */
     if (stagingBufferOffset != 0)
     {
-        int byteSize = Gfx::Utils::MapImageFormatToByteSize(image->GetDescription().format);
+        int byteSize = Gfx::MapImageFormatToByteSize(image->GetDescription().format);
         stagingBufferOffset += byteSize - stagingBufferOffset % byteSize;
     }
 

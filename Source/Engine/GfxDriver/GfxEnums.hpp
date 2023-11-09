@@ -59,6 +59,9 @@ enum class ImageLayout
     Read_Only = 1000314000,
     Attachment = 1000314001,
     Present_Src_Khr = 1000001002,
+
+    Dynamic, // this indicates command buffer should dynamically detect image's layout when transfering image layout as
+             // source
 };
 
 enum class ImageViewType
@@ -74,7 +77,7 @@ enum class ImageViewType
 
 enum class ImageFormat
 {
-    R16G16B16A16_SFloat,
+    R16G16B16A16_SFloat = 0,
     R16G16B16A16_UNorm,
     R8G8B8A8_UNorm,
     B8G8R8A8_UNorm,
@@ -83,22 +86,22 @@ enum class ImageFormat
     R8G8B8_SRGB,
     R8G8_SRGB,
     R8_SRGB,
-    R16G16_UNorm = 77,
-    R16G16_SNorm = 78,
-    R16G16_UScaled = 79,
-    R16G16_SScaled = 80,
-    R16G16_UInt = 81,
-    R16G16_SInt = 82,
-    R16G16_SFloat = 83,
-    R32G32_UInt = 101,
-    R32G32_SInt = 102,
-    R32G32_SFloat = 103,
-    R32G32B32_UInt = 104,
-    R32G32B32_SInt = 105,
-    R32G32B32_SFloat = 106,
-    R32G32B32A32_UInt = 107,
-    R32G32B32A32_SInt = 108,
-    R32G32B32A32_SFloat = 109,
+    R16G16_UNorm,
+    R16G16_SNorm,
+    R16G16_UScaled,
+    R16G16_SScaled,
+    R16G16_UInt,
+    R16G16_SInt,
+    R16G16_SFloat,
+    R32G32_UInt,
+    R32G32_SInt,
+    R32G32_SFloat,
+    R32G32B32_UInt,
+    R32G32B32_SInt,
+    R32G32B32_SFloat,
+    R32G32B32A32_UInt,
+    R32G32B32A32_SInt,
+    R32G32B32A32_SFloat,
     D16_UNorm,
     D16_UNorm_S8_UInt,
     D32_SFLOAT_S8_UInt,
@@ -111,6 +114,7 @@ enum class ImageFormat
     Invalid
 };
 ImageFormat MapStringToImageFormat(std::string_view name);
+const char* MapImageFormatToString(ImageFormat format);
 
 enum class MultiSampling
 {
@@ -248,6 +252,9 @@ ENUM_FLAGS(AccessMask, uint64_t){
 };
 bool HasWriteAccessMask(AccessMaskFlags flags);
 bool HasReadAccessMask(AccessMaskFlags flags);
+bool IsDepthStencilFormat(ImageFormat format);
+bool IsColoFormat(ImageFormat format);
+uint32_t MapImageFormatToByteSize(ImageFormat format);
 
 ENUM_FLAGS(PipelineStage, uint64_t){
     None = 0,
@@ -270,8 +277,4 @@ ENUM_FLAGS(PipelineStage, uint64_t){
     All_Commands = 0x00010000,
 };
 
-namespace Utils
-{
-uint32_t MapImageFormatToByteSize(ImageFormat format);
-} // namespace Utils
 } // namespace Engine::Gfx

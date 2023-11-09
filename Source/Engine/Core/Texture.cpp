@@ -49,7 +49,7 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     image->SetName(GetName());
 
     uint32_t byteSize =
-        Gfx::Utils::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+        Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
     Gfx::Buffer::CreateInfo bufCreateInfo;
     bufCreateInfo.size = byteSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
