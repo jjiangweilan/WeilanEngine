@@ -136,6 +136,12 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
     if (graph)
     {
+        if (!graph->IsCompiled())
+        {
+            graph->Compile();
+            graph->GetOutputImage();
+        }
+
         graph->Execute(cmd, *scene);
     }
     else

@@ -17,7 +17,7 @@ struct ImageDescription
     }
     uint32_t GetByteSize() const
     {
-        return width * height * Utils::MapImageFormatToByteSize(format) * (isCubemap ? 6 : 1);
+        return width * height * MapImageFormatToByteSize(format) * (isCubemap ? 6 : 1);
     }
 };
 } // namespace Engine::Gfx

@@ -1,6 +1,7 @@
 #include "FrameGraph.hpp"
 #include "Core/Component/Transform.hpp"
 #include "Core/GameObject.hpp"
+#include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Engine::FrameGraph
@@ -115,6 +116,7 @@ void Graph::Serialize(Serializer* s) const
     s->Serialize("nodeIDPool", nodeIDPool);
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
+    s->Serialize("outputImageNode", outputImageNode->GetID());
     s->Serialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
@@ -124,6 +126,16 @@ void Graph::Deserialize(Serializer* s)
     s->Deserialize("nodeIDPool", nodeIDPool);
     s->Deserialize("connections", connections);
     s->Deserialize("nodes", nodes);
+    FGID outputImageNodeID;
+    s->Deserialize("outputImageNode", outputImageNodeID);
+    for (auto& n : nodes)
+    {
+        if (n->GetID() == outputImageNodeID)
+        {
+            outputImageNode = n.get();
+            break;
+        }
+    }
     s->Deserialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
@@ -183,6 +195,9 @@ void Graph::ProcessLights(Scene& gameScene)
 
 void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 {
+    if (!compiled)
+        return;
+
     Camera* camera = scene.GetMainCamera();
 
     if (camera == nullptr)
@@ -230,7 +245,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     graph->Execute(cmd);
 }
 
-void Graph::Compile()
+bool Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();
 
@@ -282,14 +297,57 @@ void Graph::Compile()
 
     for (auto& n : nodes)
     {
-        n->WriteSceneShaderResource(*sceneShaderResource);
+        n->ProcessSceneShaderResource(*sceneShaderResource);
     }
 
     for (auto& n : nodes)
     {
         n->Finalize(*graph, buildResources);
     }
+
+    compiled = true;
+    return compiled;
 }
 
-Gfx::Image* Graph::GetFinalColor() {}
+void Graph::SetOutputImageNode(FGID nodeID)
+{
+    for (auto& n : nodes)
+    {
+        if (n->GetID() == nodeID)
+        {
+            if (n->GetObjectTypeID() == ImageNode::StaticGetObjectTypeID())
+            {
+                outputImageNode = n.get();
+                SetDirty();
+                return;
+            }
+        }
+    }
+}
+
+Node* Graph::GetNode(FGID nodeID)
+{
+    for (auto& n : nodes)
+    {
+        if (n->GetID() == nodeID)
+            return n.get();
+    }
+
+    return nullptr;
+}
+
+Gfx::Image* Graph::GetOutputImage()
+{
+    if (this->outputImageNode == nullptr || !compiled)
+    {
+        return nullptr;
+    }
+
+    if (ImageNode* outputImageNode = dynamic_cast<ImageNode*>(this->outputImageNode))
+    {
+        return outputImageNode->GetImage();
+    }
+
+    return nullptr;
+}
 } // namespace Engine::FrameGraph

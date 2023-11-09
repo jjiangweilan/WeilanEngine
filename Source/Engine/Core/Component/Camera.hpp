@@ -29,7 +29,7 @@ public:
     void SetFrameGraph(FrameGraph::Graph* graph);
     FrameGraph::Graph* GetFrameGraph() const
     {
-        return graph;
+        return frameGraph;
     }
 
     static RefPtr<Camera> mainCamera;
@@ -46,6 +46,6 @@ public:
 private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    FrameGraph::Graph* graph = nullptr;
+    FrameGraph::Graph* frameGraph = nullptr;
 };
 } // namespace Engine

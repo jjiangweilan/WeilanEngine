@@ -281,7 +281,7 @@ public:
     }
     virtual void Build(RenderGraph::Graph& graph, Resources& resources){};
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
-    virtual void WriteSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
+    virtual void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
     virtual void Execute(GraphResource& graphResource){};
 
     std::span<Property> GetInput()

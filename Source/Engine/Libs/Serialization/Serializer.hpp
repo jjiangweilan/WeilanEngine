@@ -263,7 +263,7 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
     if (!IsNull(name))
     {
         T* newVal = nullptr;
-        if constexpr (std::is_abstract_v<T>)
+        if constexpr (std::is_base_of_v<Object, T>)
         {
             std::string path = fmt::format("{}/objectTypeID", name);
             ObjectTypeID id;

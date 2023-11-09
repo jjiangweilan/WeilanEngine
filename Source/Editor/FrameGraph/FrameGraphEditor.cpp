@@ -1,5 +1,6 @@
 #include "FrameGraphEditor.hpp"
 #include "EditorState.hpp"
+#include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
 #include "ThirdParty/imgui/GraphEditor.h"
 #include <spdlog/spdlog.h>
 namespace Engine::Editor
@@ -139,41 +140,7 @@ void FrameGraphEditor::DrawConfigurableField(
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
 {
     this->graph = &graph_;
-
-    if (ImGui::Button("Compile"))
-    {
-        graph->Compile();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Validation Check"))
-    {
-        graph->ReportValidation();
-    }
-    ImGui::SameLine();
-
-    Shader* s = graph->GetTemplateSceneShader();
-    const char* templateShaderName = "Template Scene Shader";
-    if (s != nullptr)
-    {
-        templateShaderName = s->GetName().c_str();
-    }
-    if (ImGui::Button(templateShaderName))
-    {
-        EditorState::selectedObject = s;
-    }
-    if (ImGui::BeginDragDropTarget())
-    {
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-        if (payload && payload->IsDelivery())
-        {
-            Object* obj = *(Object**)payload->Data;
-            if (Shader* shader = dynamic_cast<Shader*>(obj))
-            {
-                graph->SetTemplateSceneShader(shader);
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
+    auto overlayCursor = ImGui::GetCursorPos();
 
     ed::SetCurrentEditor(context);
     auto cursorPosition = ImGui::GetCursorScreenPos();
@@ -322,18 +289,73 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     ed::Suspend();
     if (ImGui::BeginPopup("Node Context"))
     {
+        fg::FGID id = nodeContext.Get();
+
+        fg::Node* n = graph->GetNode(id);
+        if (n->GetObjectTypeID() == FrameGraph::ImageNode::StaticGetObjectTypeID())
+        {
+            if (ImGui::MenuItem("Set As Output Image"))
+            {
+                graph->SetOutputImageNode(id);
+            }
+        }
+
         if (ImGui::MenuItem("Delete"))
         {
-            fg::FGID id = nodeContext.Get();
             ed::DeleteNode(id);
             graph->DeleteNode(id);
         }
+
         ImGui::EndPopup();
     }
     ed::Resume();
 
     ed::End();
     ed::SetCurrentEditor(nullptr);
+
+    ImGui::SetCursorPos(overlayCursor);
+
+    if (ImGui::Button("Compile"))
+    {
+        graph->Compile();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Validation Check"))
+    {
+        graph->ReportValidation();
+    }
+    ImGui::SameLine();
+
+    Shader* s = graph->GetTemplateSceneShader();
+    const char* templateShaderName = "Template Scene Shader";
+    if (s != nullptr)
+    {
+        templateShaderName = s->GetName().c_str();
+    }
+    if (ImGui::Button(templateShaderName))
+    {
+        EditorState::selectedObject = s;
+    }
+    if (ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+        if (payload && payload->IsDelivery())
+        {
+            Object* obj = *(Object**)payload->Data;
+            if (Shader* shader = dynamic_cast<Shader*>(obj))
+            {
+                graph->SetTemplateSceneShader(shader);
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
+    const char* outputImageName = "null";
+    if (fg::Node* outputImageNode = graph->GetOutputImageNode())
+    {
+        outputImageName = outputImageNode->GetCustomName().c_str();
+    }
+    ImGui::Text("Output Image: %s", outputImageName);
 }
 
 void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p) {}

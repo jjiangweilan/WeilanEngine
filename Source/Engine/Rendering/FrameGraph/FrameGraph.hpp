@@ -54,8 +54,14 @@ public:
     std::span<FGID> GetConnections();
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    void Compile();
-    Gfx::Image* GetFinalColor();
+    bool Compile();
+    void SetOutputImageNode(FGID nodeID);
+    Node* GetNode(FGID nodeID);
+    Gfx::Image* GetOutputImage();
+    Node* GetOutputImageNode()
+    {
+        return outputImageNode;
+    }
 
     Shader* GetTemplateSceneShader()
     {
@@ -104,6 +110,11 @@ public:
     }
 
     void ReportValidation();
+
+    bool IsCompiled()
+    {
+        return compiled;
+    }
 
 private:
     class IDPool : public Serializable
@@ -180,6 +191,8 @@ private:
 #if ENGINE_EDITOR
     ax::NodeEditor::EditorContext* graphContext;
 #endif
+    bool compiled = false;
+    Node* outputImageNode = nullptr;
     GraphResource graphResource;
     Shader* templateSceneResourceShader;
 

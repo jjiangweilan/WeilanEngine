@@ -249,6 +249,9 @@ ENUM_FLAGS(AccessMask, uint64_t){
 };
 bool HasWriteAccessMask(AccessMaskFlags flags);
 bool HasReadAccessMask(AccessMaskFlags flags);
+bool IsDepthStencilFormat(ImageFormat format);
+bool IsColoFormat(ImageFormat format);
+uint32_t MapImageFormatToByteSize(ImageFormat format);
 
 ENUM_FLAGS(PipelineStage, uint64_t){
     None = 0,
@@ -271,8 +274,4 @@ ENUM_FLAGS(PipelineStage, uint64_t){
     All_Commands = 0x00010000,
 };
 
-namespace Utils
-{
-uint32_t MapImageFormatToByteSize(ImageFormat format);
-} // namespace Utils
 } // namespace Engine::Gfx

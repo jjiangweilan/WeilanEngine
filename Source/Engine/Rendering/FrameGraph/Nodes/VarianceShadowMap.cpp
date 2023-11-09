@@ -225,7 +225,7 @@ public:
         vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
     }
 
-    void WriteSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
+    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
     {
         Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
         sceneShaderResource.SetImage("shadowMap", shadowImage);

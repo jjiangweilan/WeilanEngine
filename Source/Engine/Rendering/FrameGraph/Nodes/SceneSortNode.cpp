@@ -26,12 +26,14 @@ public:
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         return {
-            Resource(ResourceTag::DrawList{}, propertyIDs["draw list"], &drawList),
+            Resource(ResourceTag::DrawList{}, propertyIDs["draw list"], drawList.get()),
         };
     }
 
     void Execute(GraphResource& graphResource) override
     {
+        drawList->clear();
+
         Scene* scene = graphResource.mainCamera->GetGameObject()->GetGameScene();
         auto objs = scene->GetAllGameObjects();
 
@@ -74,7 +76,7 @@ public:
                         auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
                         drawData.pushConstant = modelMatrix;
                         drawData.indexCount = indexCount;
-                        drawList.push_back(drawData);
+                        drawList->push_back(drawData);
                     }
                 }
             }
@@ -82,10 +84,11 @@ public:
     }
 
 private:
-    DrawList drawList;
+    std::unique_ptr<DrawList> drawList;
     void DefineNode()
     {
         AddOutputProperty("draw list", PropertyType::DrawList);
+        drawList = std::make_unique<DrawList>();
     }
     static char _reg;
 };

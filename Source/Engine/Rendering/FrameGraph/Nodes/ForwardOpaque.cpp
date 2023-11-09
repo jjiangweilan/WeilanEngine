@@ -51,11 +51,14 @@ public:
                     .storeOp = Gfx::AttachmentStoreOperation::Store,
                 }},
             }},
-            [this, clearValues, opaqueColorHandle](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
+            [this,
+             clearValues,
+             opaqueColorHandle](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
             {
                 Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
                 uint32_t width = color->GetDescription().width;
                 uint32_t height = color->GetDescription().height;
+                cmd.BindResource(sceneShaderResource);
                 cmd.SetViewport(
                     {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
                 );
@@ -111,9 +114,15 @@ public:
         graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map"));
     };
 
+    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
+    {
+        this->sceneShaderResource = &sceneShaderResource;
+    };
+
 private:
     RenderGraph::RenderNode* forwardNode;
     const DrawList* drawList;
+    Gfx::ShaderResource* sceneShaderResource;
 
     void DefineNode()
     {
