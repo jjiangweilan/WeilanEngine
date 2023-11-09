@@ -44,6 +44,7 @@ public:
         return graphContext;
     }
 #endif
+
     void Execute(Gfx::CommandBuffer& cmd, Scene& scene);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
@@ -54,6 +55,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     void Compile();
+    Gfx::Image* GetFinalColor();
 
     Shader* GetTemplateSceneShader()
     {

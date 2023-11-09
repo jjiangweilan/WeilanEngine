@@ -290,4 +290,6 @@ void Graph::Compile()
         n->Finalize(*graph, buildResources);
     }
 }
+
+Gfx::Image* Graph::GetFinalColor() {}
 } // namespace Engine::FrameGraph

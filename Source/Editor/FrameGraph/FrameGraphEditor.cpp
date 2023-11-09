@@ -11,7 +11,16 @@ void FrameGraphEditor::DrawConfigurableField(
     bool& openImageFormatPopup, const FrameGraph::Configurable*& targetConfig, const FrameGraph::Configurable& config
 )
 {
-    if (config.type == fg::ConfigurableType::Float)
+    if (config.type == fg::ConfigurableType::Bool)
+    {
+        bool v = std::any_cast<bool>(config.data);
+        if (ImGui::Checkbox("", &v))
+        {
+            config.data = v;
+            graph->SetDirty();
+        }
+    }
+    else if (config.type == fg::ConfigurableType::Float)
     {
         float v = std::any_cast<float>(config.data);
         if (ImGui::InputFloat("", &v))

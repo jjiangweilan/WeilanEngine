@@ -35,6 +35,7 @@ enum class PropertyType
 
 enum class ConfigurableType
 {
+    Bool,
     Int,
     Float,
     Format,
@@ -70,6 +71,8 @@ struct Configurable
     template <ConfigurableType type, class T>
     static Configurable C(const char* name, const T& val)
     {
+        if constexpr (type == ConfigurableType::Bool)
+            static_assert(std::is_same_v<T, bool>);
         if constexpr (type == ConfigurableType::Int)
             static_assert(std::is_same_v<T, int>);
         else if constexpr (type == ConfigurableType::Float)

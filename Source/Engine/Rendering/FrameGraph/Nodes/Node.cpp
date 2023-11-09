@@ -7,7 +7,12 @@ void Node::Serialize(Serializer* s) const
     for (auto& c : configs)
     {
         ConfigurableType type = c.type;
-        if (type == ConfigurableType::Int)
+        if (type == ConfigurableType::Bool)
+        {
+            bool v = std::any_cast<bool>(c.data);
+            s->Serialize(c.name, (int32_t)v);
+        }
+        else if (type == ConfigurableType::Int)
         {
             int v = std::any_cast<int>(c.data);
             s->Serialize(c.name, v);
@@ -70,7 +75,13 @@ void Node::Deserialize(Serializer* s)
     for (auto& c : configs)
     {
         ConfigurableType type = c.type;
-        if (type == ConfigurableType::Int)
+        if (type == ConfigurableType::Bool)
+        {
+            int32_t v = 0;
+            s->Deserialize(c.name, v);
+            c.data = (bool)v;
+        }
+        else if (type == ConfigurableType::Int)
         {
             int v = 0;
             s->Deserialize(c.name, v);
