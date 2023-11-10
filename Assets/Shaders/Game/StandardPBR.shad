@@ -9,7 +9,7 @@
 #if CONFIG
 name: Game/StandardPBR
 features:
-    - [_PCF, _PCSS]
+    - [_PCF, _VSM]
 #endif
 
 #define LOC_ShadowMapCS 5
@@ -151,7 +151,7 @@ void main()
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-#ifdef _PCSS
+#ifdef _VSM
         shadowAttenuation = VSMShadowAttenuation(texture(shadowMap, shadowUV).xy, objShadowDepth, 0.0001, 0.2);
 #else
         shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);

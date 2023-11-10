@@ -1,7 +1,9 @@
 #include "Shader.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ShaderCompiler.hpp"
+#include "ThirdParty/xxHash/xxhash.h"
 #include <spdlog/spdlog.h>
+
 namespace Engine
 {
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
@@ -47,9 +49,12 @@ bool Shader::LoadFromFile(const char* path)
     try
     {
         compiler.Compile(ss.str(), true);
-        shaderPrograms[0] =
-            GetGfxDriver()
-                ->CreateShaderProgram(path, compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
+        for (auto& iter : compiler.GetCompiledSpvs())
+        {
+            shaderPrograms[iter.first] =
+                GetGfxDriver()
+                    ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+        }
         this->name = compiler.GetName();
         contentHash += 1;
 
@@ -83,6 +88,7 @@ void Shader::GlobalShaderFeature::EnableFeature(const char* name)
     if (!enabledFeatures.contains(name))
     {
         enabledFeatures.emplace(name);
+        Rehash();
     }
 }
 
@@ -91,19 +97,24 @@ void Shader::GlobalShaderFeature::DisableFeature(const char* name)
     if (enabledFeatures.contains(name))
     {
         enabledFeatures.erase(name);
+        Rehash();
     }
 }
 
 void Shader::GlobalShaderFeature::Rehash()
 {
-    std::string concat;
-    concat.reserve(2048);
+    std::string concat = "";
+    concat.reserve(512);
 
     for (auto& f : enabledFeatures)
-    {}
+    {
+        concat += f;
+    }
+
+    setHash = XXH64(concat.data(), concat.size(), 0);
 }
 
-uint64_t Shader::GetShaderProgramID(const std::vector<std::string>& enabledFeature)
+Gfx::ShaderProgram* Shader::GetShaderProgram(const std::vector<std::string>& enabledFeature)
 {
     uint64_t id = 0;
     for (auto& f : enabledFeature)
@@ -111,6 +122,20 @@ uint64_t Shader::GetShaderProgramID(const std::vector<std::string>& enabledFeatu
         id |= featureToBitMask[f];
     }
 
-    return id;
+    for (auto& s : shaderPrograms)
+    {
+        if ((id & s.first) == id)
+        {
+            return s.second.get();
+        }
+    }
+
+    return nullptr;
+}
+
+Shader::GlobalShaderFeature& Shader::GetGlobalShaderFeature()
+{
+    static GlobalShaderFeature f;
+    return f;
 }
 } // namespace Engine

@@ -223,6 +223,8 @@ public:
         );
         vsmBoxFilterResource0->SetImage("source", shadowImage);
         vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
+
+        Shader::EnableFeature("_VSM");
     }
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
@@ -235,6 +237,11 @@ public:
     {
         drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
     };
+
+    void Destory()
+    {
+        Shader::DisableFeature("_VSM");
+    }
 
 private:
     RenderGraph::RenderNode* vsmPass;

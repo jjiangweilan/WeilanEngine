@@ -248,13 +248,36 @@ Gfx::ShaderResource* Material::ValidateGetShaderResource()
 
 Gfx::ShaderProgram* Material::GetShaderProgram()
 {
-    if (cachedShaderProgram == nullptr)
+    uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
+
+    if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash)
     {
-        Shader::GetEnabledFeaturesHash();
+        this->globalShaderFeaturesHash = globalShaderFeaturesHash;
+        std::vector<std::string> features(enabledFeatures.begin(), enabledFeatures.end());
+        auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
+        features.insert(features.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
+        cachedShaderProgram = shader->GetShaderProgram(features);
     }
-    shader->GetShaderProgramID(enabledFeatures);
-    shader->GetShaderProgram(id);
+
     return cachedShaderProgram;
+}
+
+void Material::EnableFeature(const std::string& name)
+{
+    if (!enabledFeatures.contains(name))
+    {
+        enabledFeatures.emplace(name);
+        cachedShaderProgram = nullptr;
+    }
+}
+
+void Material::DisableFeature(const std::string& name)
+{
+    if (enabledFeatures.contains(name))
+    {
+        enabledFeatures.erase(name);
+        cachedShaderProgram = nullptr;
+    }
 }
 
 void Material::Deserialize(Serializer* s)

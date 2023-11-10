@@ -53,7 +53,7 @@ public:
                 {
                     auto material = i < materials.size() ? materials[i] : nullptr;
                     auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
-                    auto shader = material ? material->GetShader() : nullptr;
+                    auto shader = material ? material->GetShaderProgram() : nullptr;
 
                     if (submesh != nullptr && material != nullptr && shader != nullptr)
                     {
@@ -71,7 +71,7 @@ public:
                         drawData.indexBufferType = submesh->GetIndexBufferType();
 
                         drawData.shaderResource = material->GetShaderResource().Get();
-                        drawData.shader = shader->GetDefaultShaderProgram().Get();
+                        drawData.shader = shader;
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
                         drawData.pushConstant = modelMatrix;

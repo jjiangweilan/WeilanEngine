@@ -5,6 +5,8 @@
 
 #if CONFIG
 name: Game/SimpleLit
+features:
+    - [_PCF, _VSM]
 #endif
 
 struct v2f {vec3 normalWS; vec4 shadowCoord;};
@@ -54,7 +56,11 @@ void main()
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
+#ifdef _VSM
         shadowAttenuation = VSMShadowAttenuation(textureLod(shadowMap, shadowUV, 0).xy, objShadowDepth, vals.shadowBleedingClamp, vals.shadowMDClamp);
+#else
+        shadowAttenuation = 1.0f;
+#endif
     }
 
     // oColor = vec4(shadowAttenuation);

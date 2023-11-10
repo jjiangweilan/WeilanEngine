@@ -74,6 +74,7 @@ void Graph::DeleteNode(Node* node)
         throw std::logic_error("Deleted a non-existing node");
     }
     FGID nodeID = node->GetID();
+    node->Destroy();
     nodes.erase(nodeIter);
     nodeIDPool.Release(nodeID >> FRAME_GRAPH_PROPERTY_BIT_COUNT);
 

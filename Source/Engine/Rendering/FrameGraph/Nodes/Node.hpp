@@ -283,7 +283,7 @@ public:
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
     virtual void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
     virtual void Execute(GraphResource& graphResource){};
-
+    virtual void Destroy() {}
     std::span<Property> GetInput()
     {
         return inputProperties;

@@ -16,6 +16,12 @@
 
 namespace Engine
 {
+struct CompiledSpv
+{
+    std::vector<uint32_t> vertSpv;
+    std::vector<uint32_t> fragSpv;
+};
+
 class ShaderCompiler
 {
 public:
@@ -148,6 +154,11 @@ public:
         return compiledSpvs[0].fragSpv;
     }
 
+    const std::unordered_map<uint64_t, CompiledSpv>& GetCompiledSpvs()
+    {
+        return compiledSpvs;
+    }
+
     const std::string& GetName()
     {
         return name;
@@ -165,11 +176,6 @@ public:
     }
 
 private:
-    struct CompiledSpv
-    {
-        std::vector<uint32_t> vertSpv;
-        std::vector<uint32_t> fragSpv;
-    };
     std::unordered_map<uint64_t, CompiledSpv> compiledSpvs;
 
     std::set<std::filesystem::path> includedTrack;

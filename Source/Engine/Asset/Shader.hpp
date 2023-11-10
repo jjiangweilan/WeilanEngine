@@ -31,12 +31,9 @@ public:
         return shaderPrograms[0];
     }
 
-    Gfx::ShaderProgram* GetShaderProgram(uint64_t id)
-    {
-        return shaderPrograms[id].get();
-    }
+    Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature);
 
-    uint64_t GetShaderProgramID(const std::vector<std::string>& enabledFeature);
+    uint64_t GetShaderProgramID();
 
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
     {
