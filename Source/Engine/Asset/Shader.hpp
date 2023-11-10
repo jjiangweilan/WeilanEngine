@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Libs/Ptr.hpp"
+#include <set>
 #include <string>
 namespace Engine
 {
@@ -35,7 +36,7 @@ public:
         return shaderPrograms[id].get();
     }
 
-    uint64_t GetShaderProgramHash(const std::vector<std::string>& enabledFeature);
+    uint64_t GetShaderProgramID(const std::vector<std::string>& enabledFeature);
 
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
     {
@@ -52,12 +53,43 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-
     uint32_t GetContentHash() override;
 
+    static const std::set<std::string>& GetEnabledFeatures()
+    {
+        return GetGlobalShaderFeature().GetEnabledFeatures();
+    }
+    static uint64_t GetEnabledFeaturesHash()
+    {
+        return GetGlobalShaderFeature().GetEnabledFeaturesHash();
+    }
+    static void EnableFeature(const char* name)
+    {
+        return GetGlobalShaderFeature().EnableFeature(name);
+    }
+    static void DisableFeature(const char* name)
+    {
+        return GetGlobalShaderFeature().DisableFeature(name);
+    }
+
 private:
+    struct GlobalShaderFeature
+    {
+        const std::set<std::string>& GetEnabledFeatures();
+        uint64_t GetEnabledFeaturesHash();
+        void EnableFeature(const char* name);
+        void DisableFeature(const char* name);
+
+    private:
+        void Rehash();
+        std::set<std::string> enabledFeatures;
+        uint64_t setHash = 0;
+    };
+    static GlobalShaderFeature& GetGlobalShaderFeature();
+
     std::string shaderName;
     uint32_t contentHash = 0;
+    std::unordered_map<std::string, uint64_t> featureToBitMask;
 
     std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
 };

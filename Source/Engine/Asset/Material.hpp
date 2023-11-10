@@ -76,6 +76,7 @@ public:
 
 private:
     Shader* shader = nullptr;
+    Gfx::ShaderProgram* cachedShaderProgram = nullptr;
     UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
 

@@ -52,6 +52,8 @@ bool Shader::LoadFromFile(const char* path)
                 ->CreateShaderProgram(path, compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
         this->name = compiler.GetName();
         contentHash += 1;
+
+        featureToBitMask = compiler.GetFeatureToBitMask();
     }
     catch (const std::exception& e)
     {
@@ -66,4 +68,49 @@ uint32_t Shader::GetContentHash()
     return contentHash;
 }
 
+const std::set<std::string>& Shader::GlobalShaderFeature::GetEnabledFeatures()
+{
+    return enabledFeatures;
+}
+
+uint64_t Shader::GlobalShaderFeature::GetEnabledFeaturesHash()
+{
+    return setHash;
+}
+
+void Shader::GlobalShaderFeature::EnableFeature(const char* name)
+{
+    if (!enabledFeatures.contains(name))
+    {
+        enabledFeatures.emplace(name);
+    }
+}
+
+void Shader::GlobalShaderFeature::DisableFeature(const char* name)
+{
+    if (enabledFeatures.contains(name))
+    {
+        enabledFeatures.erase(name);
+    }
+}
+
+void Shader::GlobalShaderFeature::Rehash()
+{
+    std::string concat;
+    concat.reserve(2048);
+
+    for (auto& f : enabledFeatures)
+    {}
+}
+
+uint64_t Shader::GetShaderProgramID(const std::vector<std::string>& enabledFeature)
+{
+    uint64_t id = 0;
+    for (auto& f : enabledFeature)
+    {
+        id |= featureToBitMask[f];
+    }
+
+    return id;
+}
 } // namespace Engine

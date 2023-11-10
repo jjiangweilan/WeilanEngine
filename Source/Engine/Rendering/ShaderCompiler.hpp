@@ -57,6 +57,11 @@ private:
     };
 
 public:
+    const std::unordered_map<std::string, uint64_t>& GetFeatureToBitMask()
+    {
+        return featureToBitMask;
+    }
+
     void Compile(const std::string& buf, bool debug)
     {
         std::stringstream f;
@@ -70,25 +75,26 @@ public:
         config = std::make_shared<Gfx::ShaderConfig>(MapShaderConfig(tree, name));
 
         auto featureCombs = FeatureToCombinations(config->features);
-        std::unordered_map<std::string, int> featureToBitIndex;
         int bitIndex = 0;
+        featureToBitMask.clear();
+        const uint64_t one = 1;
         for (auto& fs : config->features)
         {
             for (int i = 0; i < fs.size(); ++i)
             {
                 if (i == 0)
                 {
-                    featureToBitIndex[fs[i]] = -1;
+                    featureToBitMask[fs[i]] = 0;
                 }
                 else
                 {
-                    featureToBitIndex[fs[i]] = bitIndex;
+                    featureToBitMask[fs[i]] = one << bitIndex;
                     bitIndex += 1;
                 }
             }
         }
 
-        if (featureToBitIndex.size() > 64)
+        if (featureToBitMask.size() > 64)
         {
             throw CompileError("shader can't support more than 64 features");
         }
@@ -102,7 +108,7 @@ public:
 
         for (auto& c : featureCombs)
         {
-            uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitIndex);
+            uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
 
             CompiledSpv compiledSpv;
 
@@ -169,6 +175,7 @@ private:
     std::set<std::filesystem::path> includedTrack;
     std::shared_ptr<Gfx::ShaderConfig> config;
     std::string name;
+    std::unordered_map<std::string, uint64_t> featureToBitMask;
 
     std::stringstream GetYAML(std::stringstream& f);
 
@@ -185,7 +192,7 @@ private:
     );
     std::vector<std::vector<std::string>> FeatureToCombinations(const std::vector<std::vector<std::string>>&);
     uint64_t GenerateFeatureCombination(
-        const std::vector<std::string>& combs, const std::unordered_map<std::string, int>& featureToBitIndex
+        const std::vector<std::string>& combs, const std::unordered_map<std::string, uint64_t>& featureToBitIndex
     );
     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 };

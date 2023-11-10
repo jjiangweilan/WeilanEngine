@@ -246,7 +246,16 @@ Gfx::ShaderResource* Material::ValidateGetShaderResource()
     return shaderResource.Get();
 }
 
-Gfx::ShaderProgram* Material::GetShaderProgram() {}
+Gfx::ShaderProgram* Material::GetShaderProgram()
+{
+    if (cachedShaderProgram == nullptr)
+    {
+        Shader::GetEnabledFeaturesHash();
+    }
+    shader->GetShaderProgramID(enabledFeatures);
+    shader->GetShaderProgram(id);
+    return cachedShaderProgram;
+}
 
 void Material::Deserialize(Serializer* s)
 {

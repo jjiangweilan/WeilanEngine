@@ -318,18 +318,14 @@ yamlEnd:
 }
 
 uint64_t ShaderCompiler::GenerateFeatureCombination(
-    const std::vector<std::string>& combs, const std::unordered_map<std::string, int>& featureToBitIndex
+    const std::vector<std::string>& combs, const std::unordered_map<std::string, uint64_t>& featureToBitIndex
 )
 {
     uint64_t featureCombination = 0;
-    const uint64_t one = 1;
     for (auto& c : combs)
     {
-        int bitIndex = featureToBitIndex.at(c);
-        if (bitIndex != -1)
-        {
-            featureCombination |= (one << bitIndex);
-        }
+        uint64_t bitMask = featureToBitIndex.at(c);
+        featureCombination |= bitMask;
     }
 
     return featureCombination;
