@@ -25,14 +25,21 @@ public:
     void Reload(Asset&& loaded) override;
     ~Shader() override {}
 
-    inline RefPtr<Gfx::ShaderProgram> GetShaderProgram()
+    inline RefPtr<Gfx::ShaderProgram> GetDefaultShaderProgram()
     {
-        return shaderProgram;
+        return shaderPrograms[0];
     }
+
+    Gfx::ShaderProgram* GetShaderProgram(uint64_t id)
+    {
+        return shaderPrograms[id].get();
+    }
+
+    uint64_t GetShaderProgramHash(const std::vector<std::string>& enabledFeature);
 
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
     {
-        return shaderProgram->GetDefaultShaderConfig();
+        return shaderPrograms[0]->GetDefaultShaderConfig();
     }
 
     bool IsExternalAsset() override
@@ -52,6 +59,6 @@ private:
     std::string shaderName;
     uint32_t contentHash = 0;
 
-    std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
+    std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
 };
 } // namespace Engine

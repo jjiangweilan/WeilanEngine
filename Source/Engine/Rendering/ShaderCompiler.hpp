@@ -11,6 +11,7 @@
 #include <shaderc/shaderc.hpp>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 
 namespace Engine
@@ -66,31 +67,79 @@ public:
 
         ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.str()));
 
-        config = MapShaderConfig(tree, name);
+        config = std::make_shared<Gfx::ShaderConfig>(MapShaderConfig(tree, name));
+
+        auto featureCombs = FeatureToCombinations(config->features);
+        std::unordered_map<std::string, int> featureToBitIndex;
+        int bitIndex = 0;
+        for (auto& fs : config->features)
+        {
+            for (int i = 0; i < fs.size(); ++i)
+            {
+                if (i == 0)
+                {
+                    featureToBitIndex[fs[i]] = -1;
+                }
+                else
+                {
+                    featureToBitIndex[fs[i]] = bitIndex;
+                    bitIndex += 1;
+                }
+            }
+        }
+
+        if (featureToBitIndex.size() > 64)
+        {
+            throw CompileError("shader can't support more than 64 features");
+        }
 
         includedTrack.clear();
-        vertSpv =
-            CompileShader("VERT", shaderc_vertex_shader, debug, "vertex shader", buf.c_str(), bufSize, includedTrack);
 
-        fragSpv = CompileShader(
-            "FRAG",
-            shaderc_fragment_shader,
-            debug,
-            "fragment shader",
-            buf.c_str(),
-            bufSize,
-            includedTrack
-        );
+        if (featureCombs.empty())
+        {
+            featureCombs.push_back({});
+        }
+
+        for (auto& c : featureCombs)
+        {
+            uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitIndex);
+
+            CompiledSpv compiledSpv;
+
+            compiledSpv.vertSpv = CompileShader(
+                "VERT",
+                shaderc_vertex_shader,
+                debug,
+                "vertex shader",
+                buf.c_str(),
+                bufSize,
+                includedTrack,
+                c
+            );
+
+            compiledSpv.fragSpv = CompileShader(
+                "FRAG",
+                shaderc_fragment_shader,
+                debug,
+                "fragment shader",
+                buf.c_str(),
+                bufSize,
+                includedTrack,
+                c
+            );
+
+            compiledSpvs[featureCombination] = std::move(compiledSpv);
+        }
     }
 
     const std::vector<uint32_t>& GetVertexSPV()
     {
-        return vertSpv;
+        return compiledSpvs[0].vertSpv;
     }
 
     const std::vector<uint32_t>& GetFragSPV()
     {
-        return fragSpv;
+        return compiledSpvs[0].fragSpv;
     }
 
     const std::string& GetName()
@@ -98,23 +147,27 @@ public:
         return name;
     }
 
-    const Gfx::ShaderConfig& GetConfig()
+    std::shared_ptr<const Gfx::ShaderConfig> GetConfig()
     {
         return config;
     }
 
     void Clear()
     {
-        vertSpv.clear();
-        fragSpv.clear();
+        compiledSpvs.clear();
         includedTrack.clear();
     }
 
 private:
-    std::vector<uint32_t> vertSpv;
-    std::vector<uint32_t> fragSpv;
+    struct CompiledSpv
+    {
+        std::vector<uint32_t> vertSpv;
+        std::vector<uint32_t> fragSpv;
+    };
+    std::unordered_map<uint64_t, CompiledSpv> compiledSpvs;
+
     std::set<std::filesystem::path> includedTrack;
-    Gfx::ShaderConfig config;
+    std::shared_ptr<Gfx::ShaderConfig> config;
     std::string name;
 
     std::stringstream GetYAML(std::stringstream& f);
@@ -127,9 +180,13 @@ private:
         const char* debugName,
         const char* buf,
         int bufSize,
-        std::set<std::filesystem::path>& includedTrack
+        std::set<std::filesystem::path>& includedTrack,
+        const std::vector<std::string>& features
     );
-
+    std::vector<std::vector<std::string>> FeatureToCombinations(const std::vector<std::vector<std::string>>&);
+    uint64_t GenerateFeatureCombination(
+        const std::vector<std::string>& combs, const std::unordered_map<std::string, int>& featureToBitIndex
+    );
     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 };
 } // namespace Engine

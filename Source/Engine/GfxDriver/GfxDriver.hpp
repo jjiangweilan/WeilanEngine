@@ -79,7 +79,7 @@ public:
     virtual UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
     virtual UniPtr<ShaderProgram> CreateShaderProgram(
         const std::string& name,
-        const ShaderConfig* config,
+        std::shared_ptr<const ShaderConfig> config,
         const unsigned char* vert,
         uint32_t vertSize,
         const unsigned char* frag,
@@ -88,7 +88,7 @@ public:
 
     virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name,
-        const ShaderConfig* config,
+        std::shared_ptr<const ShaderConfig> config,
         const std::vector<uint32_t>& vert,
         const std::vector<uint32_t>& frag
     ) = 0;

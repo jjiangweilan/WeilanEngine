@@ -30,7 +30,7 @@ std::unique_ptr<Shader> CreateShader(const char* name, const std::filesystem::pa
     auto& vertSPV = shaderCompiler.GetVertexSPV();
     auto& fragSPV = shaderCompiler.GetFragSPV();
 
-    auto shaderProgram = GetGfxDriver()->CreateShaderProgram(name, &shaderCompiler.GetConfig(), vertSPV, fragSPV);
+    auto shaderProgram = GetGfxDriver()->CreateShaderProgram(name, shaderCompiler.GetConfig(), vertSPV, fragSPV);
     return std::make_unique<Shader>(name, std::move(shaderProgram));
 }
 Shaders::Shaders() : nameToID() {}

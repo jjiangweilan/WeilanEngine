@@ -254,7 +254,7 @@ bool Graph::Compile()
     GetGfxDriver()->WaitForIdle();
 
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        templateSceneResourceShader->GetShaderProgram(),
+        templateSceneResourceShader->GetDefaultShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
     );
     stagingBuffer = GetGfxDriver()->CreateBuffer({

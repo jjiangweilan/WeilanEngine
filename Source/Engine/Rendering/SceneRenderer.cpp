@@ -31,7 +31,7 @@ static void CmdDrawSubmesh(
 
     cmd.BindVertexBuffer(bindingds, 0);
     cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
-    cmd.BindShaderProgram(shader.GetShaderProgram(), shader.GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader.GetDefaultShaderProgram(), shader.GetDefaultShaderConfig());
     cmd.BindResource(&resource);
     cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
 }
@@ -44,7 +44,7 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
     boxFilterShader = (Shader*)db.LoadAsset("_engine_internal/Shaders/Utils/BoxFilter.shad");
 
     sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        opaqueShader->GetShaderProgram(),
+        opaqueShader->GetDefaultShaderProgram(),
         Gfx::ShaderResourceFrequency::Global
     );
 
@@ -62,7 +62,7 @@ SceneRenderer::SceneRenderer(AssetDatabase& db)
     cube = (Model*)db.LoadAsset("_engine_internal/Models/Cube.glb");
     skyboxShader = std::make_unique<Shader>("Assets/Shaders/Skybox.shad");
     skyboxPassResource =
-        GetGfxDriver()->CreateShaderResource(skyboxShader->GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
+        GetGfxDriver()->CreateShaderResource(skyboxShader->GetDefaultShaderProgram(), Gfx::ShaderResourceFrequency::Material);
     skyboxPassResource->SetImage("envMap", envMap->GetGfxImage());
     sceneShaderResource->SetImage("environmentMap", envMap->GetGfxImage());
 }
@@ -143,10 +143,10 @@ void SceneRenderer::VsmMipMapPass(
                 Rect2D rect = {{0, 0}, {width, height}};
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, vsmClears);
-                cmd.BindShaderProgram(copyOnlyShader->GetShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(copyOnlyShader->GetDefaultShaderProgram(), copyOnlyShader->GetDefaultShaderConfig());
                 cmd.BindResource(vsmMipShaderResources[mip]);
                 float v = (float)mip;
-                cmd.SetPushConstant(copyOnlyShader->GetShaderProgram(), &v);
+                cmd.SetPushConstant(copyOnlyShader->GetDefaultShaderProgram(), &v);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -232,7 +232,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
     for (size_t mip = 0; mip < vsmMipLevels - 1; mip++)
     {
         vsmMipShaderResources.push_back(GetGfxDriver()->CreateShaderResource(
-            copyOnlyShader->GetShaderProgram(),
+            copyOnlyShader->GetDefaultShaderProgram(),
             Gfx::ShaderResourceFrequency::Material
         ));
     }
@@ -288,10 +288,10 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
 
             for (auto& draw : this->drawList)
             {
-                cmd.BindShaderProgram(shadowmapShader->GetShaderProgram(), shadowmapShader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(shadowmapShader->GetDefaultShaderProgram(), shadowmapShader->GetDefaultShaderConfig());
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.SetPushConstant(shadowmapShader->GetShaderProgram(), &draw.pushConstant);
+                cmd.SetPushConstant(shadowmapShader->GetDefaultShaderProgram(), &draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
 
@@ -337,7 +337,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, boxFilterClears);
             cmd.BindResource(vsmBoxFilterResource0);
-            cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
             struct
             {
                 glm::vec4 textureSize;
@@ -345,7 +345,7 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             } pval;
             pval.textureSize = sceneInfo.shadowMapSize;
             pval.xory = glm::vec4(0);
-            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
+            cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }
@@ -395,8 +395,8 @@ void SceneRenderer::BuildGraph(const BuildGraphConfig& config)
             pval.textureSize = sceneInfo.shadowMapSize;
             pval.xory = glm::vec4(1);
             cmd.BindResource(vsmBoxFilterResource1);
-            cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
-            cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
+            cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+            cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }
@@ -566,7 +566,7 @@ void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRender
                 drawData.indexBufferType = submesh->GetIndexBufferType();
 
                 drawData.shaderResource = material->GetShaderResource().Get();
-                drawData.shader = shader->GetShaderProgram().Get();
+                drawData.shader = shader->GetDefaultShaderProgram().Get();
                 drawData.shaderConfig = &material->GetShaderConfig();
                 auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
                 drawData.pushConstant = modelMatrix;
@@ -593,7 +593,7 @@ void SceneRenderer::Render(Gfx::CommandBuffer& cmd, Scene& scene)
         if (opaqueShader->GetContentHash() != globalSceneShaderContentHash)
         {
             sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-                opaqueShader->GetShaderProgram(),
+                opaqueShader->GetDefaultShaderProgram(),
                 Gfx::ShaderResourceFrequency::Global
             );
             globalSceneShaderContentHash = opaqueShader->GetContentHash();
@@ -628,11 +628,11 @@ void SceneRenderer::Process()
     }
     sceneShaderResource->SetImage("shadowMap", shadowImage);
     vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource(
-        boxFilterShader->GetShaderProgram(),
+        boxFilterShader->GetDefaultShaderProgram(),
         Gfx::ShaderResourceFrequency::Material
     );
     vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource(
-        boxFilterShader->GetShaderProgram(),
+        boxFilterShader->GetDefaultShaderProgram(),
         Gfx::ShaderResourceFrequency::Material
     );
     vsmBoxFilterResource0->SetImage("source", shadowImage);

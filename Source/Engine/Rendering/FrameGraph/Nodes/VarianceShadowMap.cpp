@@ -71,12 +71,12 @@ public:
                 for (auto& draw : *drawList)
                 {
                     cmd.BindShaderProgram(
-                        shadowmapShader->GetShaderProgram(),
+                        shadowmapShader->GetDefaultShaderProgram(),
                         shadowmapShader->GetDefaultShaderConfig()
                     );
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(shadowmapShader->GetShaderProgram(), (void*)&draw.pushConstant);
+                    cmd.SetPushConstant(shadowmapShader->GetDefaultShaderProgram(), (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
 
@@ -120,7 +120,7 @@ public:
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, boxFilterClears);
                 cmd.BindResource(vsmBoxFilterResource0);
-                cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
                 struct
                 {
                     glm::vec4 textureSize;
@@ -129,7 +129,7 @@ public:
                 pval.textureSize =
                     glm::vec4(shadowMapSize.x, shadowMapSize.y, 1.0f / shadowMapSize.x, 1.0f / shadowMapSize.y);
                 pval.xory = glm::vec4(0);
-                cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
+                cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -182,8 +182,8 @@ public:
                     glm::vec4(shadowMapSize.x, shadowMapSize.y, 1.0f / shadowMapSize.x, 1.0f / shadowMapSize.y);
                 pval.xory = glm::vec4(1);
                 cmd.BindResource(vsmBoxFilterResource1);
-                cmd.BindShaderProgram(boxFilterShader->GetShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
-                cmd.SetPushConstant(boxFilterShader->GetShaderProgram(), &pval);
+                cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+                cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -214,11 +214,11 @@ public:
             (Gfx::Image*)vsmBoxFilterPass0->GetPass()->GetResourceRef(RenderGraph::StrToHandle("dst"))->GetResource();
 
         vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource(
-            boxFilterShader->GetShaderProgram(),
+            boxFilterShader->GetDefaultShaderProgram(),
             Gfx::ShaderResourceFrequency::Material
         );
         vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource(
-            boxFilterShader->GetShaderProgram(),
+            boxFilterShader->GetDefaultShaderProgram(),
             Gfx::ShaderResourceFrequency::Material
         );
         vsmBoxFilterResource0->SetImage("source", shadowImage);

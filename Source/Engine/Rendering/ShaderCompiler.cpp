@@ -49,6 +49,28 @@ shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
     result->user_data = fileData;
     return result;
 }
+
+std::vector<std::vector<std::string>> ShaderCompiler::FeatureToCombinations(
+    const std::vector<std::vector<std::string>>& features
+)
+{
+    if (features.empty())
+        return {};
+
+    std::vector<std::vector<std::string>> combs;
+    std::vector<int> featureIndex(features.size(), 0);
+    while (featureIndex.front() != features.front().size() && featureIndex.back() != features.back().size())
+    {
+        std::vector<std::string> comb;
+        for (int fIndex = 0; fIndex < features.size(); ++fIndex)
+        {
+            comb.push_back(features[fIndex][featureIndex[fIndex]++]);
+        }
+        combs.push_back(comb);
+    }
+
+    return combs;
+}
 std::vector<uint32_t> ShaderCompiler::CompileShader(
     const char* shaderStage,
     shaderc_shader_kind kind,
@@ -56,11 +78,16 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     const char* debugName,
     const char* buf,
     int bufSize,
-    std::set<std::filesystem::path>& includedTrack
+    std::set<std::filesystem::path>& includedTrack,
+    const std::vector<std::string>& features
 )
 {
     shaderc::CompileOptions option;
     option.AddMacroDefinition(shaderStage, "1");
+    for (auto& f : features)
+    {
+        option.AddMacroDefinition(f, "1");
+    }
     option.SetIncluder(std::make_unique<ShaderIncluder>(&includedTrack));
     if (debug)
     {
@@ -232,6 +259,34 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
         }
     }
 
+    if (root.has_child("features"))
+    {
+        auto features = root["features"];
+        std::vector<std::vector<std::string>> featuresVal;
+        if (features.is_seq())
+        {
+            std::vector<std::string> fval;
+            for (auto fs : features)
+            {
+                if (fs.is_seq())
+                {
+                    for (auto f : fs)
+                    {
+                        std::string val;
+                        f >> val;
+                        fval.push_back(std::move(val));
+                    }
+                }
+            }
+
+            featuresVal.push_back(std::move(fval));
+        }
+
+        config.features = std::move(featuresVal);
+    }
+    else
+        config.features = {};
+
     return config;
 }
 
@@ -260,5 +315,23 @@ std::stringstream ShaderCompiler::GetYAML(std::stringstream& f)
     }
 yamlEnd:
     return yamlConfig;
+}
+
+uint64_t ShaderCompiler::GenerateFeatureCombination(
+    const std::vector<std::string>& combs, const std::unordered_map<std::string, int>& featureToBitIndex
+)
+{
+    uint64_t featureCombination = 0;
+    const uint64_t one = 1;
+    for (auto& c : combs)
+    {
+        int bitIndex = featureToBitIndex.at(c);
+        if (bitIndex != -1)
+        {
+            featureCombination |= (one << bitIndex);
+        }
+    }
+
+    return featureCombination;
 }
 } // namespace Engine

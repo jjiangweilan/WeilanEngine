@@ -66,10 +66,10 @@ Renderer::Renderer(const char* customFont)
     ShaderCompiler compiler;
     compiler.Compile(imguiShader, false);
 
-    auto& config = compiler.GetConfig();
+    auto config = compiler.GetConfig();
     auto& verSPV = compiler.GetVertexSPV();
     auto& fragSPV = compiler.GetFragSPV();
-    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", &config, verSPV, fragSPV);
+    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, verSPV, fragSPV);
 
     fontImage = CreateImGuiFont(customFont);
     graph = std::make_unique<RenderGraph::Graph>();

@@ -7,8 +7,8 @@ namespace Engine
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
 
 Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
-    : shaderProgram(std::move(shaderProgram))
 {
+    shaderPrograms[0] = std::move(shaderProgram);
     SetUUID(uuid);
     this->name = name;
 }
@@ -23,7 +23,7 @@ void Shader::Reload(Asset&& other)
     Shader* casted = static_cast<Shader*>(&other);
     Asset::Reload(std::move(other));
     shaderName = (std::move(casted->shaderName));
-    shaderProgram = (std::move(casted->shaderProgram));
+    shaderPrograms = (std::move(casted->shaderPrograms));
 }
 
 void Shader::Serialize(Serializer* s) const
@@ -47,9 +47,9 @@ bool Shader::LoadFromFile(const char* path)
     try
     {
         compiler.Compile(ss.str(), true);
-        shaderProgram =
+        shaderPrograms[0] =
             GetGfxDriver()
-                ->CreateShaderProgram(path, &compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
+                ->CreateShaderProgram(path, compiler.GetConfig(), compiler.GetVertexSPV(), compiler.GetFragSPV());
         this->name = compiler.GetName();
         contentHash += 1;
     }
@@ -65,4 +65,5 @@ uint32_t Shader::GetContentHash()
 {
     return contentHash;
 }
+
 } // namespace Engine

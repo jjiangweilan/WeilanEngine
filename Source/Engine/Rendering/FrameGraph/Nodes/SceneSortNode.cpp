@@ -71,7 +71,7 @@ public:
                         drawData.indexBufferType = submesh->GetIndexBufferType();
 
                         drawData.shaderResource = material->GetShaderResource().Get();
-                        drawData.shader = shader->GetShaderProgram().Get();
+                        drawData.shader = shader->GetDefaultShaderProgram().Get();
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
                         drawData.pushConstant = modelMatrix;

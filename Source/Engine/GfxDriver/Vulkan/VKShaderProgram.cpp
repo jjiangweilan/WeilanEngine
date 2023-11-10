@@ -119,7 +119,7 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
 }
 
 VKShaderProgram::VKShaderProgram(
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     RefPtr<VKContext> context,
     const std::string& name,
     const std::vector<uint32_t>& vert,
@@ -137,7 +137,7 @@ VKShaderProgram::VKShaderProgram(
 {}
 
 VKShaderProgram::VKShaderProgram(
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     RefPtr<VKContext> context,
     const std::string& name,
     const unsigned char* vertCode,
@@ -221,10 +221,11 @@ VKShaderProgram::VKShaderProgram(
 
     if (config != nullptr)
     {
-        defaultShaderConfig = *config;
+        defaultShaderConfig = config;
     }
     else
     {
+        ShaderConfig defaultShaderConfig;
         // generate default shader config
         auto& outputs = fragShaderModule->GetShaderInfo().outputs;
         defaultShaderConfig.depth.writeEnable = true;
@@ -245,6 +246,8 @@ VKShaderProgram::VKShaderProgram(
                 Gfx::ColorComponentBit::Component_R_Bit | Gfx::ColorComponentBit::Component_G_Bit |
                 Gfx::ColorComponentBit::Component_B_Bit | Gfx::ColorComponentBit::Component_A_Bit;
         }
+
+        this->defaultShaderConfig = std::make_unique<ShaderConfig>(defaultShaderConfig);
     }
 }
 
@@ -332,7 +335,7 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
 
 const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
 {
-    return defaultShaderConfig;
+    return *defaultShaderConfig;
 }
 
 VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()

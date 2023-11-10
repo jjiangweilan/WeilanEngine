@@ -40,7 +40,7 @@ static std::unique_ptr<Gfx::ShaderProgram> LoadShader(const char* path)
         shaderCompiler.Compile(ss.str(), true);
         return GetGfxDriver()->CreateShaderProgram(
             "EnvironmentBaker",
-            &shaderCompiler.GetConfig(),
+            shaderCompiler.GetConfig(),
             shaderCompiler.GetVertexSPV(),
             shaderCompiler.GetFragSPV()
         );

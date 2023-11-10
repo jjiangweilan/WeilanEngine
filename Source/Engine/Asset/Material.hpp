@@ -33,6 +33,8 @@ public:
         return shader;
     }
 
+    Gfx::ShaderProgram* GetShaderProgram();
+
     RefPtr<Gfx::ShaderResource> GetShaderResource()
     {
         return ValidateGetShaderResource();
@@ -82,6 +84,7 @@ private:
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;
     std::unordered_map<std::string, Texture*> textureValues;
+    std::vector<std::string> enabledFeatures;
 
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);

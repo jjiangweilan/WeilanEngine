@@ -385,7 +385,7 @@
 //    // resource init
 //    feedbackPassData.shader = nullptr; // TODO: AssetDatabase::Instance()->GetShader("VirtualTexture/FeedbackTex");
 //    feedbackPassData.resource = GetGfxDriver()->CreateShaderResource(
-//        feedbackPassData.shader->GetShaderProgram(),
+//        feedbackPassData.shader->GetDefaultShaderProgram(),
 //        Gfx::ShaderResourceFrequency::Material
 //    );
 //
@@ -420,7 +420,7 @@
 //    g.feedbackPass->GetPortDepthIn()->Connect(g.feedbackDepthTex->GetPortOutput());
 //
 //    RGraph::DrawData drawDataOverride;
-//    drawDataOverride.shader = feedbackPassData.shader->GetShaderProgram().Get();
+//    drawDataOverride.shader = feedbackPassData.shader->GetDefaultShaderProgram().Get();
 //    drawDataOverride.shaderConfig = &feedbackPassData.shader->GetDefaultShaderConfig();
 //    drawDataOverride.shaderResource = feedbackPassData.resource.Get();
 //    drawDataOverride.scissor = Rect2D{{0, 0}, {g.feedbackTex->width, g.feedbackTex->height}};
