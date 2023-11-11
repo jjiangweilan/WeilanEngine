@@ -156,10 +156,10 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
         cmd.Barrier(&barrier, 1);
     }
-    else
-    {
-        renderer->Render(cmd, *scene);
-    }
+    //else
+    //{
+    //    renderer->Render(cmd, *scene);
+    //}
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)

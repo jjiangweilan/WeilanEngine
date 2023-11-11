@@ -50,7 +50,7 @@ public:
 
         if (shader)
         {
-            auto& shaderInfo = shader->GetDefaultShaderProgram()->GetShaderInfo();
+            auto& shaderInfo = target->GetShaderProgram()->GetShaderInfo();
 
             std::vector<Gfx::ShaderInfo::Binding> textureBindings;
             std::vector<Gfx::ShaderInfo::Binding> numericBindings;

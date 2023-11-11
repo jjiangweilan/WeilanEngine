@@ -37,7 +37,7 @@ public:
 
     Gfx::ShaderProgram* GetShaderProgram();
 
-    RefPtr<Gfx::ShaderResource> GetShaderResource()
+    Gfx::ShaderResource* GetShaderResource()
     {
         return ValidateGetShaderResource();
     }

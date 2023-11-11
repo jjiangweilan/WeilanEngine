@@ -72,7 +72,7 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
     samplerCreateInfo.addressModeV = addressMode;
     samplerCreateInfo.addressModeW = addressMode;
     samplerCreateInfo.mipLodBias = 0;
-    samplerCreateInfo.anisotropyEnable = VK_FALSE;
+    samplerCreateInfo.anisotropyEnable = anisotropyEnable;
     samplerCreateInfo.maxAnisotropy = 0;
     samplerCreateInfo.compareEnable = enableCompare;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;

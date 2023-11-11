@@ -70,7 +70,7 @@ public:
                         drawData.indexBuffer = submesh->GetIndexBuffer();
                         drawData.indexBufferType = submesh->GetIndexBufferType();
 
-                        drawData.shaderResource = material->GetShaderResource().Get();
+                        drawData.shaderResource = material->GetShaderResource();
                         drawData.shader = shader;
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();

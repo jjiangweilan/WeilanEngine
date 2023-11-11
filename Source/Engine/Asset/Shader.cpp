@@ -133,6 +133,21 @@ Gfx::ShaderProgram* Shader::GetShaderProgram(const std::vector<std::string>& ena
     return nullptr;
 }
 
+Gfx::ShaderProgram* Shader::GetDefaultShaderProgram()
+{
+    uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
+
+    if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash)
+    {
+        this->globalShaderFeaturesHash = globalShaderFeaturesHash;
+        auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
+        cachedShaderProgram =
+            GetShaderProgram(std::vector<std::string>(globalEnabledFeatures.begin(), globalEnabledFeatures.end()));
+    }
+
+    return cachedShaderProgram;
+}
+
 Shader::GlobalShaderFeature& Shader::GetGlobalShaderFeature()
 {
     static GlobalShaderFeature f;

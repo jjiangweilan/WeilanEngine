@@ -1,15 +1,17 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 #version 450
 #include "Common/Common.glsl"
+#if G_VSM
 #define VSM_SHADOW_MAP_SAMPLING_PASS
 #include "Game/Shadow/VSM.glsl"
+#endif
 #include "VirtualTexture/VirtualTexture.glsl"
 #define M_PI 3.1415926535897932384626433832795
 
 #if CONFIG
 name: Game/StandardPBR
 features:
-    - [_PCF, _VSM]
+    - [G_PCF, G_VSM]
 #endif
 
 #define LOC_ShadowMapCS 5
@@ -151,8 +153,8 @@ void main()
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
-#ifdef _VSM
-        shadowAttenuation = VSMShadowAttenuation(texture(shadowMap, shadowUV).xy, objShadowDepth, 0.0001, 0.2);
+#ifdef G_VSM
+        shadowAttenuation = VSMShadowAttenuation(shadowUV, objShadowDepth, 0.0001, 0.2);
 #else
         shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
 #endif

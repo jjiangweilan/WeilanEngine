@@ -24,8 +24,9 @@ float ReduceLightBleeding(float p_max, float Amount)
     return linstep(Amount, 1, p_max);
 }
 
-float VSMShadowAttenuation(vec2 moments, float fragDepth, float bleedingClamp, float mDClamp)
+float VSMShadowAttenuation(vec2 shadowUV, float fragDepth, float bleedingClamp, float mDClamp)
 {
+    vec2 moments = texture(sampler2D(shadowMap, shadowMapSampler), shadowUV).xy;
     float E_x2 = moments.y;
     float Ex_2 = moments.x * moments.x;
     float variance = E_x2 - Ex_2;

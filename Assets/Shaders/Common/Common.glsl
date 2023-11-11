@@ -1,7 +1,7 @@
 // this file should be used for scene objects
 
-#ifndef COMMON_INCLUDE
-#define COMMON_INCLUDE
+#ifndef COMMON_INCLUDED
+#define COMMON_INCLUDED
 #include "Lighting/Lighting.glsl"
 
 #define SET_GLOBAL 0
@@ -32,10 +32,15 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
 
 layout(set = SET_GLOBAL, binding = 1) uniform sampler2D vtCache;
 layout(set = SET_GLOBAL, binding = 2) uniform sampler2D vtIndir;
-layout(set = SET_GLOBAL, binding = 3) uniform sampler2D shadowMap;
+layout(set = SET_GLOBAL, binding = 3) uniform texture2D shadowMap;
+#ifdef G_VSM
 layout(set = SET_GLOBAL, binding = 4) uniform sampler shadowMapSampler;
+#else
+layout(set = SET_GLOBAL, binding = 4) uniform samplerShadow shadowMapSampler;
+#endif
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube environmentMap;
 
+#if G_PCF
 float PcfShadow(vec2 shadowCoord, float objShadowDepth)
 {
     float shadow = 0;
@@ -50,13 +55,13 @@ float PcfShadow(vec2 shadowCoord, float objShadowDepth)
     for (y = -halfFilterSize; y <= halfFilterSize; y += filterStep)
         for (x = -halfFilterSize; x <= halfFilterSize; x += filterStep)
         {
-            // vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
-            // vec3 uvd = vec3(uv, objShadowDepth);
-            // float d = texture(shadowMap, uvd).x;
-            shadow += 1;
+            vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
+            vec3 uvd = vec3(uv, objShadowDepth);
+            shadow += texture(sampler2DShadow(shadowMap, shadowMapSampler), uvd).x;
         }
 
     return shadow / totalSample;
 }
+#endif
 
 #endif

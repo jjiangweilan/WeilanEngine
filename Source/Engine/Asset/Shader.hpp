@@ -26,10 +26,8 @@ public:
     void Reload(Asset&& loaded) override;
     ~Shader() override {}
 
-    inline RefPtr<Gfx::ShaderProgram> GetDefaultShaderProgram()
-    {
-        return shaderPrograms[0];
-    }
+    // get a shader program with enabled global shader features
+    Gfx::ShaderProgram* GetDefaultShaderProgram();
 
     Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature);
 
@@ -87,6 +85,8 @@ private:
     std::string shaderName;
     uint32_t contentHash = 0;
     std::unordered_map<std::string, uint64_t> featureToBitMask;
+    Gfx::ShaderProgram* cachedShaderProgram = nullptr;
+    uint64_t globalShaderFeaturesHash;
 
     std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
 };

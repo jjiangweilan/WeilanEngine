@@ -22,10 +22,6 @@ VKRenderPass::~VKRenderPass()
 
 void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
 {
-    if (!colors.empty(), colors[0].imageView->GetImage().GetDescription().width == 3072)
-    {
-        int i = 0;
-    }
     subpasses.emplace_back(colors, depth);
 }
 

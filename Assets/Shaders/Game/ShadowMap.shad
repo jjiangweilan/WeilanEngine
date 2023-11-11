@@ -3,6 +3,8 @@
 
 #if CONFIG
 name: Game/ShadowMap
+features:
+    - [G_PCF, G_VSM]
 #endif
 
 #if VERT
@@ -18,23 +20,20 @@ void main()
 #endif // #if VERT
 
 #if FRAG
-#define VSM_SHADOW_MAP // should be defined from client size
-#ifdef VSM_SHADOW_MAP
+#ifdef G_VSM
     #define VSM_SHADOW_MAP_PASS
     #include "Game/Shadow/VSM.glsl"
 #endif
 
-#ifdef VSM_SHADOW_MAP 
 layout(location = 0) in vec4 i_PositionCS;
+#ifdef G_VSM
 layout(location = 0) out vec2 color;
-void main()
-{
-    color = VSMShadowMap(i_PositionCS.z);
-}
-#else
-void main()
-{
-}
 #endif
+void main()
+{
+#ifdef G_VSM
+    color = VSMShadowMap(i_PositionCS.z);
+#endif
+}
 
 #endif // #if FRAG

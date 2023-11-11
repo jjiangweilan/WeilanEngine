@@ -565,8 +565,8 @@ void SceneRenderer::AppendDrawData(Transform& transform, std::vector<SceneRender
                 drawData.indexBuffer = submesh->GetIndexBuffer();
                 drawData.indexBufferType = submesh->GetIndexBufferType();
 
-                drawData.shaderResource = material->GetShaderResource().Get();
-                drawData.shader = shader->GetDefaultShaderProgram().Get();
+                drawData.shaderResource = material->GetShaderResource();
+                drawData.shader = shader->GetDefaultShaderProgram();
                 drawData.shaderConfig = &material->GetShaderConfig();
                 auto modelMatrix = meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix();
                 drawData.pushConstant = modelMatrix;

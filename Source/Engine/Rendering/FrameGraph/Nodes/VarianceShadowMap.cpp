@@ -23,6 +23,7 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
+        Gfx::ShaderProgram* shadowmapShaderProgram = shadowmapShader->GetShaderProgram({"G_VSM"});
         boxFilterShader = GetConfigurableVal<Shader*>("two pass filter shader");
         std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
 
@@ -51,14 +52,14 @@ public:
                             .name = "shadow depth",
                             .handle = 2,
                             .create = true,
-                            .format = Gfx::ImageFormat::D24_UNorm_S8_UInt,
+                            .format = Gfx::ImageFormat::D32_SFloat,
                             .storeOp = Gfx::AttachmentStoreOperation::DontCare,
                         },
                 },
             },
             [this,
              vsmClears,
-             shadowmapShader,
+             shadowmapShaderProgram,
              shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& ref)
             {
                 cmd.SetViewport(
@@ -70,13 +71,10 @@ public:
 
                 for (auto& draw : *drawList)
                 {
-                    cmd.BindShaderProgram(
-                        shadowmapShader->GetDefaultShaderProgram(),
-                        shadowmapShader->GetDefaultShaderConfig()
-                    );
+                    cmd.BindShaderProgram(shadowmapShaderProgram, shadowmapShaderProgram->GetDefaultShaderConfig());
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(shadowmapShader->GetDefaultShaderProgram(), (void*)&draw.pushConstant);
+                    cmd.SetPushConstant(shadowmapShaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
 
@@ -120,7 +118,10 @@ public:
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, boxFilterClears);
                 cmd.BindResource(vsmBoxFilterResource0);
-                cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(
+                    boxFilterShader->GetDefaultShaderProgram(),
+                    boxFilterShader->GetDefaultShaderConfig()
+                );
                 struct
                 {
                     glm::vec4 textureSize;
@@ -182,7 +183,10 @@ public:
                     glm::vec4(shadowMapSize.x, shadowMapSize.y, 1.0f / shadowMapSize.x, 1.0f / shadowMapSize.y);
                 pval.xory = glm::vec4(1);
                 cmd.BindResource(vsmBoxFilterResource1);
-                cmd.BindShaderProgram(boxFilterShader->GetDefaultShaderProgram(), boxFilterShader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(
+                    boxFilterShader->GetDefaultShaderProgram(),
+                    boxFilterShader->GetDefaultShaderConfig()
+                );
                 cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
@@ -224,7 +228,7 @@ public:
         vsmBoxFilterResource0->SetImage("source", shadowImage);
         vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
 
-        Shader::EnableFeature("_VSM");
+        Shader::EnableFeature("G_VSM");
     }
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
@@ -240,7 +244,7 @@ public:
 
     void Destory()
     {
-        Shader::DisableFeature("_VSM");
+        Shader::DisableFeature("G_VSM");
     }
 
 private:

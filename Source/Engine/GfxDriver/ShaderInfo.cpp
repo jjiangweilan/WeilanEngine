@@ -2,7 +2,7 @@
 #include "Libs/Utils.hpp"
 #include <regex>
 #include <spdlog/spdlog.h>
-
+#include <algorithm>
 namespace Engine::Gfx::ShaderInfo
 {
 namespace Utils
@@ -312,8 +312,10 @@ void Process(
                     {
                         new (&b.binding.separateSampler) SeparateSampler();
                         std::string bindingType = bindingJson.value("type", "sampler2D");
+                        std::string lname = name;
+                        std::transform(lname.begin(), lname.end(), lname.begin(), [](unsigned char c) { return std::tolower(c); });
                         b.binding.separateSampler.enableCompare =
-                            bindingType.find("Shadow") != bindingType.npos ? true : false;
+                            lname.find("shadow") != bindingType.npos ? true : false;
                         break;
                     }
                 default: assert(0 && "Not implemented");

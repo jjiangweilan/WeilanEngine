@@ -174,10 +174,8 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
     {
         GetGfxDriver()->WaitForIdle();
     }
-    shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        shader->GetDefaultShaderProgram(),
-        Gfx::ShaderResourceFrequency::Material
-    );
+    shaderResource =
+        Gfx::GfxDriver::Instance()->CreateShaderResource(GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
     UpdateResources();
 }
 
@@ -229,6 +227,8 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("vectorValues", vectorValues);
     s->Serialize("matrixValues", matrixValues);
     s->Serialize("textureValues", textureValues);
+    std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
+    s->Serialize("enabledFeature", enabledFeatureVec);
 }
 
 std::unique_ptr<Asset> Material::Clone()
@@ -238,7 +238,7 @@ std::unique_ptr<Asset> Material::Clone()
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
-    if (shader->GetDefaultShaderProgram() != shaderResource->GetShaderProgram())
+    if (GetShaderProgram() != shaderResource->GetShaderProgram())
     {
         SetShaderNoProtection(shader);
     }
@@ -306,5 +306,11 @@ void Material::Deserialize(Serializer* s)
             }
         }
     );
+    std::vector<std::string> enabledFeatureVec;
+    s->Deserialize("enabledFeature", enabledFeatureVec);
+    for (auto& f : enabledFeatureVec)
+    {
+        EnableFeature(f);
+    }
 }
 } // namespace Engine
