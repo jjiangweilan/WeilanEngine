@@ -37,6 +37,7 @@ protected:
     // is only one
     std::vector<VkFramebuffer> frameBuffers;
     VKSwapChainImage* swapChainProxy = nullptr;
+    Extent2D extent;
 
     struct Subpass
     {

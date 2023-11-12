@@ -1,8 +1,9 @@
 #include "VKDescriptorPool.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "ThirdParty/xxHash/xxhash.h"
 #include "VKContext.hpp"
 #include <spdlog/spdlog.h>
-#include "ThirdParty/xxHash/xxhash.h"
+
 namespace Engine::Gfx
 {
 VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo)
@@ -116,8 +117,9 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
     return newPool;
 }
 
-VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(const std::string& shaderName,
-                                                               VkDescriptorSetLayoutCreateInfo createInfo)
+VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(
+    const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo
+)
 {
     auto it = descriptorLayoutPoolCache.find(createInfo);
     if (it != descriptorLayoutPoolCache.end())
@@ -126,20 +128,23 @@ VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(const std::string
     }
     else
     {
-        auto pair = descriptorLayoutPoolCache.emplace(std::make_pair(createInfo, VKDescriptorPool(context, createInfo)));
+        auto pair =
+            descriptorLayoutPoolCache.emplace(std::make_pair(createInfo, VKDescriptorPool(context, createInfo)));
         return pair.first->second;
     }
 }
 
 std::size_t VKDescriptorPoolCache::VkDescriptorSetLayoutCreateInfoHash::operator()(
-    const VkDescriptorSetLayoutCreateInfo& c) const
+    const VkDescriptorSetLayoutCreateInfo& c
+) const
 {
     using std::size_t;
     size_t rlt = c.bindingCount | c.flags << 15;
     for (uint32_t i = 0; i < c.bindingCount; i++)
     {
         auto& b = c.pBindings[i];
-        size_t bHash =  b.stageFlags << 30 | b.descriptorCount << 24 | XXH64(&b.descriptorType, sizeof(VkDescriptorType), 100) | b.binding;
+        size_t bHash = b.stageFlags << 30 | b.descriptorCount << 24 |
+                       XXH64(&b.descriptorType, sizeof(VkDescriptorType), 100) | b.binding;
         if (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
         {
             for (size_t j = 0; j < c.bindingCount; j++)

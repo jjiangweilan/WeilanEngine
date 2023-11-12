@@ -244,7 +244,7 @@ void VKDriver::ForceSyncResources()
 
 std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
     const std::string& name,
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     const std::vector<uint32_t>& vert,
     const std::vector<uint32_t>& frag
 )
@@ -363,7 +363,7 @@ UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUs
 }
 UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
     const std::string& name,
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     const unsigned char* vert,
     uint32_t vertSize,
     const unsigned char* frag,

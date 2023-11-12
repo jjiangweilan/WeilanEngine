@@ -1,8 +1,14 @@
 #version 450
 #include "Common/Common.glsl"
+#if G_VSM
+#define VSM_SHADOW_MAP_SAMPLING_PASS
+#include "Game/Shadow/VSM.glsl"
+#endif
 
 #if CONFIG
 name: Game/SimpleLit
+features:
+    - [G_PCF, G_VSM]
 #endif
 
 struct v2f {vec3 normalWS; vec4 shadowCoord;};
@@ -28,6 +34,8 @@ void main()
 layout(set = SET_MATERIAL, binding = 0) uniform Unlit
 {
     vec3 color;
+    float shadowBleedingClamp;
+    float shadowMDClamp;
 } vals;
 
 layout(location = 0) in v2f fragInput;
@@ -46,13 +54,19 @@ void main()
 
     // shadow mask
     vec2 shadowUV = fragInput.shadowCoord.xy / fragInput.shadowCoord.w * 0.5 + 0.5;
-    float objShadowDepth = fragInput.shadowCoord.z / fragInput.shadowCoord.w;
+    float objShadowDepth = fragInput.shadowCoord.z;
     float shadowAttenuation = 1.0;
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
+#ifdef G_VSM
+        shadowAttenuation = VSMShadowAttenuation(shadowUV, objShadowDepth, vals.shadowBleedingClamp, vals.shadowMDClamp);
+#else
         shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+#endif
     }
 
+    // oColor = vec4(shadowAttenuation);
+    // return;
     oColor = vec4(vec3(color * shadowAttenuation), 1.0);
 }
 #endif

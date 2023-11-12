@@ -66,10 +66,10 @@ Renderer::Renderer(const char* customFont)
     ShaderCompiler compiler;
     compiler.Compile(imguiShader, false);
 
-    auto& config = compiler.GetConfig();
+    auto config = compiler.GetConfig();
     auto& verSPV = compiler.GetVertexSPV();
     auto& fragSPV = compiler.GetFragSPV();
-    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", &config, verSPV, fragSPV);
+    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, verSPV, fragSPV);
 
     fontImage = CreateImGuiFont(customFont);
     graph = std::make_unique<RenderGraph::Graph>();
@@ -167,8 +167,13 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
                     {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false}
                 );
             if (createStaging)
+            {
                 stagingBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
+                stagingBuffer2 = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
+            }
         }
+
+        std::swap(stagingBuffer, stagingBuffer2);
 
         ImDrawVert* vtxDst = (ImDrawVert*)stagingBuffer->GetCPUVisibleAddress();
         ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexSize);

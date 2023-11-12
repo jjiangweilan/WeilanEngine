@@ -58,15 +58,24 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
             attaIndex += 1;
         }
     }
+
+    VKImageView* firstImageView = static_cast<VKImageView*>(
+        subpasses.front().colors.empty() ? subpasses.front().depth->imageView
+                                         : subpasses.front().colors.front().imageView
+    );
+
     createInfo.attachmentCount = attaIndex;
     createInfo.pAttachments = imageViews;
 
     Gfx::Image* image = subpasses[0].colors.empty() ? nullptr : &subpasses[0].colors[0].imageView->GetImage();
     if (image == nullptr)
         image = &subpasses[0].depth->imageView->GetImage();
-    createInfo.width = image->GetDescription().width;
-    createInfo.height = image->GetDescription().height;
+    float mipmapDownScale = glm::pow(2, firstImageView->GetSubresourceRange().baseMipLevel);
+    createInfo.width = image->GetDescription().width / mipmapDownScale;
+    createInfo.height = image->GetDescription().height / mipmapDownScale;
     createInfo.layers = 1;
+
+    extent = {createInfo.width, createInfo.height};
 
     VkFramebuffer newFrameBuffer = VK_NULL_HANDLE;
     VKContext::Instance()->objManager->CreateFramebuffer(createInfo, newFrameBuffer);
@@ -194,22 +203,23 @@ void VKRenderPass::CreateRenderPass()
 
 Extent2D VKRenderPass::GetExtent()
 {
-    if (subpasses.size() > 0)
-    {
-        if (subpasses[0].colors.size() > 0)
-        {
-            auto& desc = subpasses[0].colors[0].imageView->GetImage().GetDescription();
-            return {desc.width, desc.height};
-        }
-        else
-        {
-            if (subpasses[0].depth.has_value())
-            {
-                auto& desc = subpasses[0].depth->imageView->GetImage().GetDescription();
-                return {desc.width, desc.height};
-            }
-        }
-    }
+    return extent;
+    // if (subpasses.size() > 0)
+    // {
+    //     if (subpasses[0].colors.size() > 0)
+    //     {
+    //         auto& desc = subpasses[0].colors[0].imageView->GetImage().GetDescription();
+    //         return {desc.width, desc.height};
+    //     }
+    //     else
+    //     {
+    //         if (subpasses[0].depth.has_value())
+    //         {
+    //             auto& desc = subpasses[0].depth->imageView->GetImage().GetDescription();
+    //             return {desc.width, desc.height};
+    //         }
+    //     }
+    // }
 
     SPDLOG_WARN("VKRenderPass-GetExtent returns {0, 0}");
     return {0, 0};

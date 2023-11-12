@@ -59,6 +59,8 @@ struct ShaderConfig
         float blendConstants[4] = {1, 1, 1, 1};
     } color;
 
+    std::vector<std::vector<std::string>> features;
+
     bool operator==(const ShaderConfig& other) const noexcept;
 };
 } // namespace Engine::Gfx

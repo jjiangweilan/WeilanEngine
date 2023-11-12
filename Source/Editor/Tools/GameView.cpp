@@ -39,6 +39,9 @@ void GameView::Init()
 
 static void EditorCameraWalkAround(Camera& editorCamera)
 {
+    if (!ImGui::IsWindowHovered())
+        return;
+
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
@@ -128,7 +131,35 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
     Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
     cmd.SetScissor(0, 1, &rect);
-    renderer->Render(cmd, *scene);
+
+    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
+
+    if (graph && graph->IsCompiled())
+    {
+        auto graphOutputImage = graph->GetOutputImage();
+        graph->Execute(cmd, *scene);
+
+        Gfx::GPUBarrier barrier{
+            .image = graphOutputImage,
+            .srcStageMask = Gfx::PipelineStage::All_Graphics,
+            .dstStageMask = Gfx::PipelineStage::Transfer,
+            .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+            .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+
+            .imageInfo =
+                {
+                    .oldLayout = Gfx::ImageLayout::Dynamic,
+                    .newLayout = Gfx::ImageLayout::Shader_Read_Only,
+                    .subresourceRange = graphOutputImage->GetSubresourceRange(),
+                },
+        };
+
+        cmd.Barrier(&barrier, 1);
+    }
+    //else
+    //{
+    //    renderer->Render(cmd, *scene);
+    //}
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
@@ -236,9 +267,20 @@ bool GameView::Tick()
     }
 
     Scene* scene = EditorState::activeScene;
+    // TODO(bug): can't switch back to game camera
     if (scene && useViewCamera)
     {
-        gameCamera = scene->GetMainCamera();
+        auto gameCamera = scene->GetMainCamera();
+        if (gameCamera != editorCamera)
+        {
+            this->gameCamera = gameCamera;
+            editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
+            editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
+            auto framegraph = editorCamera->GetFrameGraph();
+            if (framegraph && !framegraph->IsCompiled())
+                editorCamera->GetFrameGraph()->Compile();
+        }
+
         scene->SetMainCamera(editorCamera);
     }
     else if (gameCamera)
@@ -287,10 +329,13 @@ bool GameView::Tick()
     const float contentHeight = contentMax.y - contentMin.y;
 
     // imgui image
-    if (sceneImage)
+    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
+    auto targetImage = graph ? graph->GetOutputImage() : sceneImage.get();
+
+    if (targetImage)
     {
-        float width = sceneImage->GetDescription().width;
-        float height = sceneImage->GetDescription().height;
+        float width = targetImage->GetDescription().width;
+        float height = targetImage->GetDescription().height;
         float imageWidth = width;
         float imageHeight = height;
 
@@ -310,7 +355,7 @@ bool GameView::Tick()
         }
 
         auto imagePos = ImGui::GetCursorPos();
-        ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+        ImGui::Image(&targetImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
         auto windowPos = ImGui::GetWindowPos();
         if (!ImGuizmo::IsUsing())

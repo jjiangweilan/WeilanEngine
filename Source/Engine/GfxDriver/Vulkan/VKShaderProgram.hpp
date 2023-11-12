@@ -20,7 +20,9 @@ class SamplerCachePool
 public:
     static VkSampler RequestSampler(VkSamplerCreateInfo& createInfo);
     static void DestroyPool();
-    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(const std::string& lowerBindingName, bool enableCompare);
+    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(
+        const std::string& lowerBindingName, bool enableCompare
+    );
 
 private:
     static std::unordered_map<uint32_t, VkSampler> samplers;
@@ -31,7 +33,7 @@ class VKShaderProgram : public ShaderProgram
 public:
     using SetNum = uint32_t;
     VKShaderProgram(
-        const ShaderConfig* config,
+        std::shared_ptr<const ShaderConfig> config,
         RefPtr<VKContext> context,
         const std::string& name,
         const unsigned char* vert,
@@ -41,7 +43,7 @@ public:
     );
 
     VKShaderProgram(
-        const ShaderConfig* config,
+        std::shared_ptr<const ShaderConfig> config,
         RefPtr<VKContext> context,
         const std::string& name,
         const std::vector<uint32_t>& vert,
@@ -94,7 +96,6 @@ private:
 
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
 
-    // TODO: This should be filled when shader loaded from shader files. Currently we don't have that functionality
-    ShaderConfig defaultShaderConfig = {};
+    std::shared_ptr<const ShaderConfig> defaultShaderConfig = {};
 };
 } // namespace Engine::Gfx

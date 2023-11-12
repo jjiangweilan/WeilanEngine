@@ -6,7 +6,7 @@
 namespace Engine::RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
-    : debugDesc(debugDesc), pass(std::move(pass_))
+    : name(debugDesc), pass(std::move(pass_))
 {}
 
 ResourceHandle StrToHandle(const std::string& str)
@@ -48,8 +48,10 @@ Graph::~Graph() {}
 
 void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
-    if (src && dst && src->pass->HasResourceDescription(srcHandle) && dst->pass->HasResourceDescription(dstHandle) &&
-        src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type)
+    bool srcHasHandleDescription = src->pass->HasResourceDescription(srcHandle);
+    bool dstHasHandleDescription = dst->pass->HasResourceDescription(dstHandle);
+    if (src && dst && srcHasHandleDescription && dstHasHandleDescription &&
+        (src->pass->GetResourceDescription(srcHandle).type == dst->pass->GetResourceDescription(dstHandle).type))
     {
         src->outputPorts.emplace_back(new RenderNode::Port({.handle = srcHandle, .parent = src}));
         dst->inputPorts.emplace_back(new RenderNode::Port({.handle = dstHandle, .parent = dst}));
@@ -57,7 +59,9 @@ void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, 
         dst->inputPorts.back()->connected = src->outputPorts.back().get();
     }
     else
+    {
         throw std::logic_error("Graph Can't connect two nodes");
+    }
 }
 
 void Graph::Process()
@@ -144,74 +148,102 @@ void Graph::Process()
             if (r->resourceRef.IsType(ResourceType::Image))
             {
                 Gfx::Image* image = (Gfx::Image*)r->resourceRef.GetResource();
-                auto& views = sortedNodes[sortIndex]->pass->GetImageViews(image);
+                std::vector<Gfx::ImageSubresourceRange> remainingRange{
+                    desc.imageSubresourceRange.has_value() ? desc.imageSubresourceRange.value()
+                                                           : image->GetSubresourceRange()};
+                std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
 
-                // TODO: Top_Of_Pipe will be operated with or operator, not sure if there is a performance problem
-                Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::Top_Of_Pipe;
-                Gfx::AccessMask srcAccessMask = Gfx::AccessMask::None;
-
-                if (Gfx::HasWriteAccessMask(desc.accessFlags) || currentLayout != desc.imageLayout)
+                for (UsedIndex preUsed = usedIndex; preUsed >= 0; preUsed--)
                 {
-                    // write after write
-                    for (UsedIndex i : writeAccess)
+                    if (preUsed != 0)
+                        preUsed = preUsed - 1;
+
+                    SortIndex preUsedSortIndex = r->used[preUsed].first;
+                    ResourceHandle preUsedWriteHandle = r->used[preUsed].second;
+                    auto preUsedDesc = sortedNodes[preUsedSortIndex]->pass->GetResourceDescription(preUsedWriteHandle);
+                    auto preUsedRange = preUsedDesc.imageSubresourceRange.has_value()
+                                            ? preUsedDesc.imageSubresourceRange.value()
+                                            : image->GetSubresourceRange();
+
+                    if (preUsed == 0)
                     {
-                        SortIndex srcWriteSortIndex = r->used[i].first;
-                        ResourceHandle srcWriteHandle = r->used[i].second;
-                        auto& srcWriteDesc =
-                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteHandle);
-                        srcAccessMask |= srcWriteDesc.accessFlags;
-                        srcStages |= srcWriteDesc.stageFlags;
+                        preUsedDesc.imageLayout = Gfx::ImageLayout::Dynamic;
                     }
 
-                    // write after read
-                    for (UsedIndex i : readAccess)
+                    for (auto& currentRange : remainingRange)
                     {
-                        SortIndex srcReadSortIndex = r->used[i].first;
-                        ResourceHandle srcReadHandle = r->used[i].second;
-                        auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
-                        srcAccessMask |= srcReadDesc.accessFlags;
-                        srcStages |= srcReadDesc.stageFlags;
+                        if (currentRange.Overlaps(preUsedRange))
+                        {
+                            Gfx::ImageSubresourceRange overlapping = currentRange.And(preUsedRange);
+                            Gfx::PipelineStageFlags srcStages = Gfx::PipelineStage::None;
+                            Gfx::AccessMaskFlags srcAccess = Gfx::AccessMask::None;
+
+                            if (Gfx::HasWriteAccessMask(desc.accessFlags) ||
+                                preUsedDesc.imageLayout != desc.imageLayout)
+                            {
+                                // write after write
+                                if (Gfx::HasWriteAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+
+                                // write after read
+                                if (Gfx::HasReadAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+                            }
+
+                            if (Gfx::HasReadAccessMask(desc.accessFlags))
+                            {
+                                // read after write
+                                if (Gfx::HasWriteAccessMask(preUsedDesc.accessFlags))
+                                {
+                                    srcAccess |= preUsedDesc.accessFlags;
+                                    srcStages |= preUsedDesc.stageFlags;
+                                }
+                            }
+
+                            if (srcStages != Gfx::PipelineStage::None || srcAccess != Gfx::AccessMask::None ||
+                                preUsedDesc.imageLayout != desc.imageLayout)
+                            {
+                                auto image = (Gfx::Image*)r->resourceRef.GetResource();
+                                if (srcStages == Gfx::PipelineStage::None)
+                                    srcStages = Gfx::PipelineStage::Top_Of_Pipe;
+                                Gfx::GPUBarrier barrier{
+                                    .image = image,
+                                    .srcStageMask = srcStages,
+                                    .dstStageMask = desc.stageFlags,
+                                    .srcAccessMask = srcAccess,
+                                    .dstAccessMask = desc.accessFlags,
+                                    .imageInfo = {
+                                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                                        .oldLayout = preUsedDesc.imageLayout,
+                                        .newLayout = desc.imageLayout,
+                                        .subresourceRange = overlapping}};
+
+                                barriers[sortIndex].push_back(barrier);
+                            }
+
+                            auto remainings = currentRange.Subtract(preUsedRange);
+                            remainingRangeSwap.insert(remainingRangeSwap.end(), remainings.begin(), remainings.end());
+                        }
+                        else
+                        {
+                            remainingRangeSwap.push_back(currentRange);
+                        }
                     }
 
-                    writeAccess.push_back(usedIndex);
+                    std::swap(remainingRange, remainingRangeSwap);
+                    remainingRangeSwap.clear();
+
+                    // break
+                    if (remainingRange.empty())
+                        break;
                 }
-
-                if (Gfx::HasReadAccessMask(desc.accessFlags))
-                {
-                    // read after write
-                    for (UsedIndex i : writeAccess)
-                    {
-                        SortIndex srcWriteSortIndex = r->used[i].first;
-                        ResourceHandle srcWriteHandle = r->used[i].second;
-                        auto& srcWriteDesc =
-                            sortedNodes[srcWriteSortIndex]->pass->GetResourceDescription(srcWriteSortIndex);
-                        srcAccessMask |= srcWriteDesc.accessFlags;
-                        srcStages |= srcWriteDesc.stageFlags;
-                    }
-
-                    readAccess.push_back(usedIndex);
-                }
-
-                if (srcStages != Gfx::PipelineStage::None || srcAccessMask != Gfx::AccessMask::None ||
-                    currentLayout != desc.imageLayout)
-                {
-                    Gfx::GPUBarrier barrier{
-                        .image = (Gfx::Image*)r->resourceRef.GetResource(),
-                        .srcStageMask = srcStages,
-                        .dstStageMask = desc.stageFlags,
-                        .srcAccessMask = srcAccessMask,
-                        .dstAccessMask = desc.accessFlags,
-                        .imageInfo = {
-                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .oldLayout = currentLayout,
-                            .newLayout = desc.imageLayout,
-                            .subresourceRange = image->GetSubresourceRange()}};
-
-                    barriers[sortIndex].push_back(barrier);
-                }
-
-                currentLayout = desc.imageLayout;
             }
             else if (r->resourceRef.IsType(ResourceType::Buffer))
             {
@@ -223,8 +255,9 @@ void Graph::Process()
                 if (Gfx::HasWriteAccessMask(desc.accessFlags))
                 {
                     // write after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
@@ -234,8 +267,9 @@ void Graph::Process()
                     }
 
                     // write after read
-                    for (UsedIndex i : readAccess)
+                    if (!readAccess.empty())
                     {
+                        UsedIndex i = readAccess.back();
                         SortIndex srcReadSortIndex = r->used[i].first;
                         ResourceHandle srcReadHandle = r->used[i].second;
                         auto& srcReadDesc = sortedNodes[srcReadSortIndex]->pass->GetResourceDescription(srcReadHandle);
@@ -249,8 +283,9 @@ void Graph::Process()
                 if (Gfx::HasReadAccessMask(desc.accessFlags))
                 {
                     // read after write
-                    for (UsedIndex i : writeAccess)
+                    if (!writeAccess.empty())
                     {
+                        UsedIndex i = writeAccess.back();
                         SortIndex srcWriteSortIndex = r->used[i].first;
                         ResourceHandle srcWriteHandle = r->used[i].second;
                         auto& srcWriteDesc =
@@ -335,6 +370,7 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
         if (request.externalImage == nullptr)
         {
             Gfx::Image* image = pool.CreateImage(request.imageCreateInfo, request.imageUsagesFlags);
+            image->SetName(request.name);
             resourceRef.SetResource(image);
         }
         else
@@ -347,6 +383,7 @@ void Graph::ResourceOwner::Finalize(ResourcePool& pool)
         if (request.externalBuffer == nullptr)
         {
             Gfx::Buffer* buf = pool.CreateBuffer(request.bufferCreateInfo);
+            buf->SetDebugName(request.name.c_str());
             resourceRef.SetResource(buf);
         }
         else
@@ -483,4 +520,5 @@ void Graph::Clear()
     resourceOwners.clear();
     resourcePool.Clear();
 }
+
 } // namespace Engine::RenderGraph

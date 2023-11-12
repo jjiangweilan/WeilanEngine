@@ -12,11 +12,11 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::BC7_SRGB_UNorm_Block: return VK_FORMAT_BC7_SRGB_BLOCK;
         case ImageFormat::BC7_UNorm_Block: return VK_FORMAT_BC7_UNORM_BLOCK;
         case ImageFormat::R16G16B16A16_SFloat: return VK_FORMAT_R16G16B16A16_SFLOAT;
-        case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
         case ImageFormat::R16G16B16A16_UNorm: return VK_FORMAT_R16G16B16A16_UNORM;
         case ImageFormat::D16_UNorm: return VK_FORMAT_D16_UNORM;
         case ImageFormat::D16_UNorm_S8_UInt: return VK_FORMAT_D16_UNORM_S8_UINT;
         case ImageFormat::D24_UNorm_S8_UInt: return VK_FORMAT_D24_UNORM_S8_UINT;
+        case ImageFormat::D32_SFloat: return VK_FORMAT_D32_SFLOAT;
         case ImageFormat::D32_SFLOAT_S8_UInt: return VK_FORMAT_D32_SFLOAT_S8_UINT;
         case ImageFormat::B8G8R8A8_UNorm: return VK_FORMAT_B8G8R8A8_UNORM;
         case ImageFormat::B8G8R8A8_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
@@ -25,6 +25,22 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::R8G8B8_SRGB: return VK_FORMAT_R8G8B8_SRGB;
         case ImageFormat::R8G8_SRGB: return VK_FORMAT_R8G8_SRGB;
         case ImageFormat::R8_SRGB: return VK_FORMAT_R8_SRGB;
+        case ImageFormat::R16G16_UNorm: return VK_FORMAT_R16G16_UNORM;
+        case ImageFormat::R16G16_SNorm: return VK_FORMAT_R16G16_SNORM;
+        case ImageFormat::R16G16_UScaled: return VK_FORMAT_R16G16_USCALED;
+        case ImageFormat::R16G16_SScaled: return VK_FORMAT_R16G16_SSCALED;
+        case ImageFormat::R16G16_UInt: return VK_FORMAT_R16G16_UINT;
+        case ImageFormat::R16G16_SInt: return VK_FORMAT_R16G16_SINT;
+        case ImageFormat::R16G16_SFloat: return VK_FORMAT_R16G16_SFLOAT;
+        case ImageFormat::R32G32_UInt: return VK_FORMAT_R32G32_UINT;
+        case ImageFormat::R32G32_SInt: return VK_FORMAT_R32G32_SINT;
+        case ImageFormat::R32G32_SFloat: return VK_FORMAT_R32G32_SFLOAT;
+        case ImageFormat::R32G32B32_UInt: return VK_FORMAT_R32G32B32_UINT;
+        case ImageFormat::R32G32B32_SInt: return VK_FORMAT_R32G32B32_SINT;
+        case ImageFormat::R32G32B32_SFloat: return VK_FORMAT_R32G32B32_SFLOAT;
+        case ImageFormat::R32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
+        case ImageFormat::R32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
+        case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
         case ImageFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         default: assert(0 && "Format map failed");
     }
@@ -42,11 +58,11 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_BC7_SRGB_BLOCK: return ImageFormat::BC7_SRGB_UNorm_Block;
         case VK_FORMAT_BC7_UNORM_BLOCK: return ImageFormat::BC7_UNorm_Block;
         case VK_FORMAT_R16G16B16A16_SFLOAT: return ImageFormat::R16G16B16A16_SFloat;
-        case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
         case VK_FORMAT_R16G16B16A16_UNORM: return ImageFormat::R16G16B16A16_UNorm;
         case VK_FORMAT_D16_UNORM: return ImageFormat::D16_UNorm;
         case VK_FORMAT_D16_UNORM_S8_UINT: return ImageFormat::D16_UNorm_S8_UInt;
         case VK_FORMAT_D24_UNORM_S8_UINT: return ImageFormat::D24_UNorm_S8_UInt;
+        case VK_FORMAT_D32_SFLOAT: return ImageFormat::D32_SFloat;
         case VK_FORMAT_D32_SFLOAT_S8_UINT: return ImageFormat::D32_SFLOAT_S8_UInt;
         case VK_FORMAT_B8G8R8A8_UNORM: return ImageFormat::B8G8R8A8_UNorm;
         case VK_FORMAT_B8G8R8A8_SRGB: return ImageFormat::B8G8R8A8_SRGB;
@@ -55,6 +71,22 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_R8G8B8_SRGB: return ImageFormat::R8G8B8_SRGB;
         case VK_FORMAT_R8G8_SRGB: return ImageFormat::R8G8_SRGB;
         case VK_FORMAT_R8_SRGB: return ImageFormat::R8_SRGB;
+        case VK_FORMAT_R16G16_UNORM: return ImageFormat::R16G16_UNorm;
+        case VK_FORMAT_R16G16_SNORM: return ImageFormat::R16G16_SNorm;
+        case VK_FORMAT_R16G16_USCALED: return ImageFormat::R16G16_UScaled;
+        case VK_FORMAT_R16G16_SSCALED: return ImageFormat::R16G16_SScaled;
+        case VK_FORMAT_R16G16_UINT: return ImageFormat::R16G16_UInt;
+        case VK_FORMAT_R16G16_SINT: return ImageFormat::R16G16_SInt;
+        case VK_FORMAT_R16G16_SFLOAT: return ImageFormat::R16G16_SFloat;
+        case VK_FORMAT_R32G32_UINT: return ImageFormat::R32G32_UInt;
+        case VK_FORMAT_R32G32_SINT: return ImageFormat::R32G32_SInt;
+        case VK_FORMAT_R32G32_SFLOAT: return ImageFormat::R32G32_SFloat;
+        case VK_FORMAT_R32G32B32_UINT: return ImageFormat::R32G32B32_UInt;
+        case VK_FORMAT_R32G32B32_SINT: return ImageFormat::R32G32B32_SInt;
+        case VK_FORMAT_R32G32B32_SFLOAT: return ImageFormat::R32G32B32_SFloat;
+        case VK_FORMAT_R32G32B32A32_UINT: return ImageFormat::R32G32B32A32_UInt;
+        case VK_FORMAT_R32G32B32A32_SINT: return ImageFormat::R32G32B32A32_SInt;
+        case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return ImageFormat::B10G11R11_UFloat_Pack32;
         default: assert(0 && "VK format map failed");
     }
@@ -476,5 +508,48 @@ VkImageAspectFlags MapImageAspect(ImageAspectFlags aspects)
     }
 
     return flags;
+}
+
+ImageLayout MapVKImageLayout(VkImageLayout layout)
+{
+    if (layout == VK_IMAGE_LAYOUT_UNDEFINED)
+        return ImageLayout::Undefined;
+    if (layout == VK_IMAGE_LAYOUT_GENERAL)
+        return ImageLayout::General;
+    if (layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Color_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        return ImageLayout::Shader_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+        return ImageLayout::Transfer_Src;
+    if (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        return ImageLayout::Transfer_Dst;
+    if (layout == VK_IMAGE_LAYOUT_PREINITIALIZED)
+        return ImageLayout::Preinitialized;
+
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Read_Only_Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Attachment_Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Depth_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL)
+        return ImageLayout::Depth_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL)
+        return ImageLayout::Stencil_Attachment;
+    if (layout == VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL)
+        return ImageLayout::Stencil_Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL_KHR)
+        return ImageLayout::Read_Only;
+    if (layout == VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR)
+        return ImageLayout::Attachment;
+    if (layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        return ImageLayout::Present_Src_Khr;
+
+    return ImageLayout::Undefined;
 }
 } // namespace Engine::Gfx

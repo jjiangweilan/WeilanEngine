@@ -42,20 +42,23 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
     textureValues.erase(param);
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, nullptr);
+        shaderResource->SetImage(param, nullptr);
+    SetDirty();
 }
 
 void Material::SetTexture(const std::string& param, Texture* texture)
 {
     textureValues[param] = texture;
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, texture->GetGfxImage());
+        shaderResource->SetImage(param, texture->GetGfxImage());
+    SetDirty();
 }
 
 void Material::SetTexture(const std::string& param, Gfx::Image* image)
 {
     if (shaderResource != nullptr)
-        shaderResource->SetTexture(param, image);
+        shaderResource->SetImage(param, image);
+    SetDirty();
 }
 
 void TransferToGPU(
@@ -93,6 +96,7 @@ void Material::SetMatrix(const std::string& param, const std::string& member, co
     matrixValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
@@ -100,6 +104,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
     floatValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
@@ -107,6 +112,7 @@ void Material::SetVector(const std::string& param, const std::string& member, co
     vectorValues[param + "." + member] = value;
     if (shaderResource != nullptr)
         TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+    SetDirty();
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
@@ -155,6 +161,8 @@ void Material::SetShader(RefPtr<Shader> shader)
     if (shader != nullptr) // why null check? I think we don't need it
     {
         SetShaderNoProtection(shader);
+
+        SetDirty();
     }
 }
 
@@ -166,13 +174,9 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
     {
         GetGfxDriver()->WaitForIdle();
     }
-    shaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        shader->GetShaderProgram(),
-        Gfx::ShaderResourceFrequency::Material
-    );
+    shaderResource =
+        Gfx::GfxDriver::Instance()->CreateShaderResource(GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
     UpdateResources();
-
-    SetDirty();
 }
 
 void Material::UpdateResources()
@@ -211,7 +215,7 @@ void Material::UpdateResources()
     for (auto& v : textureValues)
     {
         if (v.second != nullptr)
-            shaderResource->SetTexture(v.first, v.second->GetGfxImage());
+            shaderResource->SetImage(v.first, v.second->GetGfxImage());
     }
 }
 
@@ -223,6 +227,8 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("vectorValues", vectorValues);
     s->Serialize("matrixValues", matrixValues);
     s->Serialize("textureValues", textureValues);
+    std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
+    s->Serialize("enabledFeature", enabledFeatureVec);
 }
 
 std::unique_ptr<Asset> Material::Clone()
@@ -232,12 +238,46 @@ std::unique_ptr<Asset> Material::Clone()
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
-    if (shader->GetShaderProgram() != shaderResource->GetShaderProgram())
+    if (GetShaderProgram() != shaderResource->GetShaderProgram())
     {
         SetShaderNoProtection(shader);
     }
 
     return shaderResource.Get();
+}
+
+Gfx::ShaderProgram* Material::GetShaderProgram()
+{
+    uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
+
+    if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash)
+    {
+        this->globalShaderFeaturesHash = globalShaderFeaturesHash;
+        std::vector<std::string> features(enabledFeatures.begin(), enabledFeatures.end());
+        auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
+        features.insert(features.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
+        cachedShaderProgram = shader->GetShaderProgram(features);
+    }
+
+    return cachedShaderProgram;
+}
+
+void Material::EnableFeature(const std::string& name)
+{
+    if (!enabledFeatures.contains(name))
+    {
+        enabledFeatures.emplace(name);
+        cachedShaderProgram = nullptr;
+    }
+}
+
+void Material::DisableFeature(const std::string& name)
+{
+    if (enabledFeatures.contains(name))
+    {
+        enabledFeatures.erase(name);
+        cachedShaderProgram = nullptr;
+    }
 }
 
 void Material::Deserialize(Serializer* s)
@@ -266,5 +306,11 @@ void Material::Deserialize(Serializer* s)
             }
         }
     );
+    std::vector<std::string> enabledFeatureVec;
+    s->Deserialize("enabledFeature", enabledFeatureVec);
+    for (auto& f : enabledFeatureVec)
+    {
+        EnableFeature(f);
+    }
 }
 } // namespace Engine

@@ -1,6 +1,7 @@
 #include "Camera.hpp"
 #include "Core/GameObject.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/FrameGraph/FrameGraph.hpp" // serializaiton
 #include <glm/gtc/matrix_transform.hpp>
 namespace Engine
 {
@@ -92,12 +93,14 @@ void Camera::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("projectionMatrix", projectionMatrix);
     s->Serialize("viewMatrix", viewMatrix);
+    s->Serialize("frameGraph", frameGraph);
 }
 void Camera::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
     s->Deserialize("projectionMatrix", projectionMatrix);
     s->Deserialize("viewMatrix", viewMatrix);
+    s->Deserialize("frameGraph", frameGraph);
 }
 
 void Camera::SetProjectionMatrix(const glm::mat4& proj)
@@ -118,5 +121,10 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->projectionMatrix = projectionMatrix;
     clone->viewMatrix = viewMatrix;
     return clone;
+}
+
+void Camera::SetFrameGraph(FrameGraph::Graph* graph)
+{
+    this->frameGraph = graph;
 }
 } // namespace Engine

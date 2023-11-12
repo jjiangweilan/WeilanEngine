@@ -40,7 +40,7 @@ static std::unique_ptr<Gfx::ShaderProgram> LoadShader(const char* path)
         shaderCompiler.Compile(ss.str(), true);
         return GetGfxDriver()->CreateShaderProgram(
             "EnvironmentBaker",
-            &shaderCompiler.GetConfig(),
+            shaderCompiler.GetConfig(),
             shaderCompiler.GetVertexSPV(),
             shaderCompiler.GetFragSPV()
         );
@@ -116,7 +116,7 @@ void EnvironmentBaker::Bake(int size)
             .byteSize = envMapBinary.size(),
         };
         environmentMap = std::make_unique<Texture>(data);
-        bakingShaderResource->SetTexture("environmentMap", environmentMap->GetGfxImage());
+        bakingShaderResource->SetImage("environmentMap", environmentMap->GetGfxImage());
     }
 
     // placing each face in front of the camera view in ndc space

@@ -18,7 +18,7 @@ namespace Engine::Gfx
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
 {
-    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 100);
+    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 0);
 
     auto iter = samplers.find(hash);
     if (iter != samplers.end())
@@ -57,7 +57,11 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
     if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
         addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
-    VkSamplerCreateInfo samplerCreateInfo;
+    VkBool32 anisotropyEnable = VK_FALSE;
+    if (lowerBindingName.find("_anisotropic") != lowerBindingName.npos)
+        anisotropyEnable = VK_TRUE;
+
+    VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = VK_NULL_HANDLE;
     samplerCreateInfo.flags = 0;
@@ -68,7 +72,7 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
     samplerCreateInfo.addressModeV = addressMode;
     samplerCreateInfo.addressModeW = addressMode;
     samplerCreateInfo.mipLodBias = 0;
-    samplerCreateInfo.anisotropyEnable = VK_FALSE;
+    samplerCreateInfo.anisotropyEnable = anisotropyEnable;
     samplerCreateInfo.maxAnisotropy = 0;
     samplerCreateInfo.compareEnable = enableCompare;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
@@ -115,7 +119,7 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
 }
 
 VKShaderProgram::VKShaderProgram(
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     RefPtr<VKContext> context,
     const std::string& name,
     const std::vector<uint32_t>& vert,
@@ -133,7 +137,7 @@ VKShaderProgram::VKShaderProgram(
 {}
 
 VKShaderProgram::VKShaderProgram(
-    const ShaderConfig* config,
+    std::shared_ptr<const ShaderConfig> config,
     RefPtr<VKContext> context,
     const std::string& name,
     const unsigned char* vertCode,
@@ -217,10 +221,11 @@ VKShaderProgram::VKShaderProgram(
 
     if (config != nullptr)
     {
-        defaultShaderConfig = *config;
+        defaultShaderConfig = config;
     }
     else
     {
+        ShaderConfig defaultShaderConfig;
         // generate default shader config
         auto& outputs = fragShaderModule->GetShaderInfo().outputs;
         defaultShaderConfig.depth.writeEnable = true;
@@ -241,6 +246,8 @@ VKShaderProgram::VKShaderProgram(
                 Gfx::ColorComponentBit::Component_R_Bit | Gfx::ColorComponentBit::Component_G_Bit |
                 Gfx::ColorComponentBit::Component_B_Bit | Gfx::ColorComponentBit::Component_A_Bit;
         }
+
+        this->defaultShaderConfig = std::make_unique<ShaderConfig>(defaultShaderConfig);
     }
 }
 
@@ -328,7 +335,7 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
 
 const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
 {
-    return defaultShaderConfig;
+    return *defaultShaderConfig;
 }
 
 VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()

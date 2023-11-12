@@ -178,6 +178,11 @@ VkImageSubresourceRange VKImage::GetDefaultSubresourceRange()
     return imageView->GetVkSubresourceRange();
 }
 
+ImageLayout VKImage::GetImageLayout()
+{
+    return MapVKImageLayout(layout);
+}
+
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}
 //
 // VKSwapChainImageProxy::VKSwapChainImageProxy(){};

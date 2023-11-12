@@ -26,7 +26,6 @@ glm::mat4 Light::WorldToShadowMatrix()
 
 void Light::Serialize(Serializer* s) const
 {
-
     Component::Serialize(s);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);

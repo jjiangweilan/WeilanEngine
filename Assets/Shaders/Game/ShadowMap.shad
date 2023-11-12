@@ -3,22 +3,37 @@
 
 #if CONFIG
 name: Game/ShadowMap
+features:
+    - [G_PCF, G_VSM]
 #endif
-
-// we can't directly use Common.glsl because it includeds shadow map as texture
 
 #if VERT
 layout(location = 0) in vec3 i_Position;
+layout(location = 0) out vec4 o_PositionCS;
 void main()
 {
     vec3 positionWS = vec3(pconst.model * vec4(i_Position, 1));
 
     gl_Position = scene.worldToShadow * vec4(positionWS, 1);
+    o_PositionCS = gl_Position;
 }
-#endif
+#endif // #if VERT
 
 #if FRAG
+#ifdef G_VSM
+    #define VSM_SHADOW_MAP_PASS
+    #include "Game/Shadow/VSM.glsl"
+#endif
+
+layout(location = 0) in vec4 i_PositionCS;
+#ifdef G_VSM
+layout(location = 0) out vec2 color;
+#endif
 void main()
 {
-}
+#ifdef G_VSM
+    color = VSMShadowMap(i_PositionCS.z);
 #endif
+}
+
+#endif // #if FRAG

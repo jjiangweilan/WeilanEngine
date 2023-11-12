@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Scene/Scene.hpp"
+#include "FrameGraph/FrameGraphEditor.hpp"
 #include "Renderer.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
 #include "Tools/GameView.hpp"

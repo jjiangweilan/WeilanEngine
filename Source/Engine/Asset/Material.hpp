@@ -8,6 +8,8 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
+
 namespace Engine
 {
 namespace Gfx
@@ -33,7 +35,9 @@ public:
         return shader;
     }
 
-    RefPtr<Gfx::ShaderResource> GetShaderResource()
+    Gfx::ShaderProgram* GetShaderProgram();
+
+    Gfx::ShaderResource* GetShaderResource()
     {
         return ValidateGetShaderResource();
     }
@@ -46,6 +50,8 @@ public:
     void SetTexture(const std::string& param, Gfx::Image* image);
     void SetTexture(const std::string& param, Texture* texture);
     void SetTexture(const std::string& param, std::nullptr_t);
+    void EnableFeature(const std::string& name);
+    void DisableFeature(const std::string& name);
 
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
     Texture* GetTexture(const std::string& param);
@@ -76,12 +82,15 @@ private:
     Shader* shader = nullptr;
     UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
+    Gfx::ShaderProgram* cachedShaderProgram = nullptr;
+    uint64_t globalShaderFeaturesHash;
 
     bool overrideShaderConfig = false;
     std::unordered_map<std::string, float> floatValues;
     std::unordered_map<std::string, glm::vec4> vectorValues;
     std::unordered_map<std::string, glm::mat4> matrixValues;
     std::unordered_map<std::string, Texture*> textureValues;
+    std::unordered_set<std::string> enabledFeatures;
 
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
