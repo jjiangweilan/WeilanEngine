@@ -135,6 +135,26 @@ VKShaderProgram::VKShaderProgram(
           frag.size() * sizeof(uint32_t)
       )
 {}
+VKShaderProgram::VKShaderProgram(
+    std::shared_ptr<const ShaderConfig> config,
+    VKContext* context,
+    const std::string& name,
+    const unsigned char* compute,
+    uint32_t computeSize
+)
+    : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+{
+    computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
+}
+
+VKShaderProgram::VKShaderProgram(
+    std::shared_ptr<const ShaderConfig> config,
+    RefPtr<VKContext> context,
+    const std::string& name,
+    const std::vector<uint32_t>& comp
+)
+    : VKShaderProgram(config, context.Get(), name, (const unsigned char*)&comp[0], comp.size() * sizeof(uint32_t))
+{}
 
 VKShaderProgram::VKShaderProgram(
     std::shared_ptr<const ShaderConfig> config,

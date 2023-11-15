@@ -35,6 +35,8 @@ VkShaderStageFlagBits MapStage(const std::string& str)
         return VK_SHADER_STAGE_VERTEX_BIT;
     else if (str == "frag")
         return VK_SHADER_STAGE_FRAGMENT_BIT;
+    else if (str == "comp")
+        return VK_SHADER_STAGE_COMPUTE_BIT;
 
     return VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
 }

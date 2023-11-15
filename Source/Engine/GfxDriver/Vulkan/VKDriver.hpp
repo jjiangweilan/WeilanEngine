@@ -86,6 +86,10 @@ public:
         uint32_t fragSize
     ) override;
 
+    std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
+    ) override;
+
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name,
         std::shared_ptr<const ShaderConfig> config,

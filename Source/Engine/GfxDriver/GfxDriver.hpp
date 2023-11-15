@@ -93,6 +93,10 @@ public:
         const std::vector<uint32_t>& frag
     ) = 0;
 
+    virtual std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
+    ) = 0;
+
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
 

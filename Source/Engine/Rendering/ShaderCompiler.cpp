@@ -113,7 +113,10 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
     config.color.blendConstants[3] = 1.0;
 
     ryml::NodeRef root = tree.rootref();
-    root["name"] >> name;
+    if (root.empty())
+        return config;
+    
+    root.get_if("name", &name);
     root.get_if("interleaved", &config.vertexInterleaved);
     config.depth.boundTestEnable = false;
 
@@ -329,5 +332,146 @@ uint64_t ShaderCompiler::GenerateFeatureCombination(
     }
 
     return featureCombination;
+}
+
+void ShaderCompiler::CompileComputeShader(const std::string& buf, bool debug)
+{
+    std::stringstream f;
+    f << buf;
+    size_t bufSize = buf.size();
+
+    std::stringstream yamlConfig = GetYAML(f);
+
+    ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.str()));
+
+    config = std::make_shared<Gfx::ShaderConfig>(MapShaderConfig(tree, name));
+
+    auto featureCombs = FeatureToCombinations(config->features);
+    int bitIndex = 0;
+    featureToBitMask.clear();
+    const uint64_t one = 1;
+    for (auto& fs : config->features)
+    {
+        for (int i = 0; i < fs.size(); ++i)
+        {
+            if (i == 0)
+            {
+                featureToBitMask[fs[i]] = 0;
+            }
+            else
+            {
+                featureToBitMask[fs[i]] = one << bitIndex;
+                bitIndex += 1;
+            }
+        }
+    }
+
+    if (featureToBitMask.size() > 64)
+    {
+        throw CompileError("shader can't support more than 64 features");
+    }
+
+    includedTrack.clear();
+
+    if (featureCombs.empty())
+    {
+        featureCombs.push_back({});
+    }
+
+    for (auto& c : featureCombs)
+    {
+        uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
+
+        CompiledSpv compiledSpv;
+
+        compiledSpv.compSpv = CompileShader(
+            "COMP",
+            shaderc_compute_shader,
+            debug,
+            "compute shader",
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
+
+        compiledSpvs[featureCombination] = std::move(compiledSpv);
+    }
+}
+
+void ShaderCompiler::Compile(const std::string& buf, bool debug)
+{
+    std::stringstream f;
+    f << buf;
+    size_t bufSize = buf.size();
+
+    std::stringstream yamlConfig = GetYAML(f);
+
+    ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.str()));
+
+    config = std::make_shared<Gfx::ShaderConfig>(MapShaderConfig(tree, name));
+
+    auto featureCombs = FeatureToCombinations(config->features);
+    int bitIndex = 0;
+    featureToBitMask.clear();
+    const uint64_t one = 1;
+    for (auto& fs : config->features)
+    {
+        for (int i = 0; i < fs.size(); ++i)
+        {
+            if (i == 0)
+            {
+                featureToBitMask[fs[i]] = 0;
+            }
+            else
+            {
+                featureToBitMask[fs[i]] = one << bitIndex;
+                bitIndex += 1;
+            }
+        }
+    }
+
+    if (featureToBitMask.size() > 64)
+    {
+        throw CompileError("shader can't support more than 64 features");
+    }
+
+    includedTrack.clear();
+
+    if (featureCombs.empty())
+    {
+        featureCombs.push_back({});
+    }
+
+    for (auto& c : featureCombs)
+    {
+        uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
+
+        CompiledSpv compiledSpv;
+
+        compiledSpv.vertSpv = CompileShader(
+            "VERT",
+            shaderc_vertex_shader,
+            debug,
+            "vertex shader",
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
+
+        compiledSpv.fragSpv = CompileShader(
+            "FRAG",
+            shaderc_fragment_shader,
+            debug,
+            "fragment shader",
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
+
+        compiledSpvs[featureCombination] = std::move(compiledSpv);
+    }
 }
 } // namespace Engine

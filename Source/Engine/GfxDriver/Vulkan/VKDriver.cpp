@@ -467,6 +467,13 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
     return false;
 }
 
+std::unique_ptr<ShaderProgram> VKDriver::CreateComputeShaderProgram(
+    const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
+)
+{
+    return std::make_unique<VKShaderProgram>(config, context, name, comp);
+}
+
 std::unique_ptr<ImageView> VKDriver::CreateImageView(const ImageView::CreateInfo& createInfo)
 {
     return std::unique_ptr<ImageView>(new VKImageView(createInfo));

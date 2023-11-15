@@ -44,6 +44,21 @@ public:
 
     VKShaderProgram(
         std::shared_ptr<const ShaderConfig> config,
+        VKContext* context,
+        const std::string& name,
+        const unsigned char* compute,
+        uint32_t computeSize
+    );
+
+    VKShaderProgram(
+        std::shared_ptr<const ShaderConfig> config,
+        RefPtr<VKContext> context,
+        const std::string& name,
+        const std::vector<uint32_t>& comp
+    );
+
+    VKShaderProgram(
+        std::shared_ptr<const ShaderConfig> config,
         RefPtr<VKContext> context,
         const std::string& name,
         const std::vector<uint32_t>& vert,
@@ -87,6 +102,7 @@ private:
     VKObjectManager* objManager;
     UniPtr<VKShaderModule> vertShaderModule;
     UniPtr<VKShaderModule> fragShaderModule;
+    std::unique_ptr<VKShaderModule> computeShaderModule;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VKSwapChain* swapchain;
     std::vector<PipelineCache> caches;
