@@ -142,7 +142,7 @@ VKShaderProgram::VKShaderProgram(
     const unsigned char* compute,
     uint32_t computeSize
 )
-    : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+    : ShaderProgram(true), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {
     computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
 }
@@ -165,7 +165,7 @@ VKShaderProgram::VKShaderProgram(
     const unsigned char* fragCode,
     uint32_t fragSize
 )
-    : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+    : ShaderProgram(false), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {
     bool vertInterleaved = true;
     if (config != nullptr)
@@ -366,6 +366,32 @@ VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()
 
 VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass)
 {
+    if (isCompute)
+    {
+        if (!caches.empty())
+            return caches.front().pipeline;
+
+        VkComputePipelineCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .stage = computeShaderModule->GetShaderModuleGraphicsPipelineCreateInfos().pipelineShaderStageCreateInfo,
+            .layout = pipelineLayout,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = 0,
+        };
+
+        VkPipeline pipeline;
+        objManager->CreateComputePipeline(createInfo, pipeline);
+
+        PipelineCache newCache;
+        newCache.pipeline = pipeline;
+        newCache.config = config;
+        caches.push_back(newCache);
+
+        return pipeline;
+    }
+
     for (auto& cache : caches)
     {
         if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass)

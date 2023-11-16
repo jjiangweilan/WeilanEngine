@@ -152,7 +152,7 @@ VKShaderModule::VKShaderModule(
     // Create shader info
     ShaderInfo::Utils::Process(shaderInfo, jsonInfo);
 
-    gpCreateInfos = GenerateShaderModuleGraphicsPipelineCreateInfos();
+    gpCreateInfos = GenerateShaderModulePipelineCreateInfos();
 }
 
 VKShaderModule::~VKShaderModule()
@@ -165,7 +165,7 @@ const ShaderModuleGraphicsPipelineCreateInfos& VKShaderModule::GetShaderModuleGr
     return gpCreateInfos;
 }
 
-ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModuleGraphicsPipelineCreateInfos()
+ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModulePipelineCreateInfos()
 {
     ShaderModuleGraphicsPipelineCreateInfos pipelineCreateInfo{};
 

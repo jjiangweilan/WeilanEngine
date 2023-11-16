@@ -21,6 +21,7 @@ public:
     void CreateShaderModule(VkShaderModuleCreateInfo& createInfo, VkShaderModule& module);
     void DestroyShaderModule(VkShaderModule module);
     void CreateGraphicsPipeline(VkGraphicsPipelineCreateInfo& createInfo, VkPipeline& pipeline);
+    void CreateComputePipeline(VkComputePipelineCreateInfo& createInfo, VkPipeline& pipeline);
     void DestroyPipeline(VkPipeline pipeline);
     void CreateDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo& createInfo, VkDescriptorSetLayout& layout);
     void DestroyDescriptorSetLayout(VkDescriptorSetLayout layout);
@@ -37,7 +38,10 @@ public:
 
     void DestroyPendingResources();
 
-    VkDevice GetDevice() { return device; }
+    VkDevice GetDevice()
+    {
+        return device;
+    }
 
 private:
     std::vector<VkImageView> pendingImageViews;

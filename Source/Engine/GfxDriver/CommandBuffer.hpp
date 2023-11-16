@@ -120,6 +120,8 @@ public:
     virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;
     virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
     virtual void SetViewport(const Viewport& viewport) = 0;
+    virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+    virtual void DispatchIndir(Buffer* buffer, size_t bufferOffset) = 0;
     virtual void CopyBuffer(
         RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;

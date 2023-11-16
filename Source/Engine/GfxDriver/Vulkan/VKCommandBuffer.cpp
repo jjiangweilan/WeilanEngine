@@ -191,7 +191,15 @@ void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, con
 
     // binding pipeline
     auto pipeline = program->RequestPipeline(config, currentRenderPass->GetHandle(), currentRenderIndex);
-    vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    if (bProgram->IsCompute())
+    {
+        vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+    }
+    else
+    {
+        vkCmdBindPipeline(vkCmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+    }
 }
 
 void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect)
@@ -480,5 +488,16 @@ void VKCommandBuffer::CopyImageToBuffer(
 void VKCommandBuffer::Reset(bool releaseResource)
 {
     vkResetCommandBuffer(vkCmdBuf, releaseResource ? VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT : 0);
+}
+
+void VKCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+    vkCmdDispatch(vkCmdBuf, groupCountX, groupCountY, groupCountZ);
+}
+
+void VKCommandBuffer::DispatchIndir(Buffer* buffer, size_t offset)
+{
+    VKBuffer* buf = static_cast<VKBuffer*>(buffer);
+    vkCmdDispatchIndirect(vkCmdBuf, buf->GetHandle(), offset);
 }
 } // namespace Engine::Gfx

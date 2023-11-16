@@ -41,6 +41,8 @@ public:
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
+    void DispatchIndir(Buffer* buffer, size_t bufferOffset) override;
     void NextRenderPass() override;
     void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) override;
 
