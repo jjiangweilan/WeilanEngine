@@ -5,6 +5,7 @@
 #include "EditorState.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
+#include "Rendering/SurfelGI/GIScene.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
@@ -348,6 +349,8 @@ void GameEditor::MainMenuBar()
             assetWindow = !assetWindow;
         if (ImGui::MenuItem("Inspector"))
             inspectorWindow = !inspectorWindow;
+        if (ImGui::MenuItem("Surfel GI Baker"))
+            surfelGIBaker = !surfelGIBaker;
 
         ImGui::EndMenu();
     }
@@ -388,6 +391,7 @@ void GameEditor::GUIPass()
 
     AssetWindow();
     InspectorWindow();
+    SurfelGIBakerWindow();
     gameView.Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
@@ -399,6 +403,51 @@ void GameEditor::GUIPass()
     {
         if (EditorState::activeScene)
             SceneTree(*EditorState::activeScene);
+    }
+}
+
+void GameEditor::SurfelGIBakerWindow()
+{
+    if (surfelGIBaker)
+    {
+        ImGui::Begin("Surfel GI Baker");
+        static SurfelGI::BakerConfig c{
+            .scene = EditorState::activeScene,
+            .templateShader = nullptr,
+            .worldBoundsMin = {-10, -10, -10},
+            .worldBoundsMax = {10, 10, 10},
+        };
+
+        const char* templateShaderName = "Template Scene Shader";
+        if (c.templateShader != nullptr)
+        {
+            templateShaderName = c.templateShader->GetName().c_str();
+        }
+        if (ImGui::Button(templateShaderName))
+        {
+            EditorState::selectedObject = c.templateShader;
+        }
+        if (ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+            if (payload && payload->IsDelivery())
+            {
+                Object* obj = *(Object**)payload->Data;
+                if (Shader* shader = dynamic_cast<Shader*>(obj))
+                {
+                    c.templateShader = shader;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        if (ImGui::Button("Bake"))
+        {
+            SurfelGI::GISceneBaker baker;
+            baker.Bake(c);
+        }
+
+        ImGui::End();
     }
 }
 

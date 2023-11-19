@@ -57,16 +57,20 @@ std::vector<std::vector<std::string>> ShaderCompiler::FeatureToCombinations(
     if (features.empty())
         return {};
 
+    wrong logics
     std::vector<std::vector<std::string>> combs;
+    size_t featureIndexAddIndex = 0;
     std::vector<int> featureIndex(features.size(), 0);
     while (featureIndex.front() != features.front().size() && featureIndex.back() != features.back().size())
     {
         std::vector<std::string> comb;
         for (int fIndex = 0; fIndex < features.size(); ++fIndex)
         {
-            comb.push_back(features[fIndex][featureIndex[fIndex]++]);
+            comb.push_back(features[fIndex][featureIndex[fIndex]]);
         }
         combs.push_back(comb);
+
+
     }
 
     return combs;
@@ -115,7 +119,7 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
     ryml::NodeRef root = tree.rootref();
     if (root.empty())
         return config;
-    
+
     root.get_if("name", &name);
     root.get_if("interleaved", &config.vertexInterleaved);
     config.depth.boundTestEnable = false;
@@ -268,23 +272,22 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
         std::vector<std::vector<std::string>> featuresVal;
         if (features.is_seq())
         {
-            std::vector<std::string> fval;
             for (auto fs : features)
             {
+                std::vector<std::string> fval;
                 if (fs.is_seq())
                 {
-                    for (auto f : fs)
+                    for (const auto& f : fs)
                     {
                         std::string val;
                         f >> val;
                         fval.push_back(std::move(val));
                     }
                 }
+                featuresVal.push_back(std::move(fval));
             }
 
-            featuresVal.push_back(std::move(fval));
         }
-
         config.features = std::move(featuresVal);
     }
     else

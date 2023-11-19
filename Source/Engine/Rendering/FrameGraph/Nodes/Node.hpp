@@ -153,7 +153,7 @@ public:
         return name;
     }
 
-    uint32_t GetID()
+    FGID GetID()
     {
         return id;
     }

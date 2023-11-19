@@ -9,9 +9,14 @@
 name: Game/SimpleLit
 features:
     - [G_PCF, G_VSM]
+    - [G_, G_SURFEL_BAKE]
 #endif
 
-struct v2f {vec3 normalWS; vec4 shadowCoord;};
+struct v2f {
+    vec3 positionWS;
+    vec3 normalWS;
+    vec4 shadowCoord;
+};
 
 #if VERT
 layout(location = 0) in vec3 iPosition;
@@ -24,7 +29,7 @@ void main()
     vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
     vOut.normalWS = (inverse(transpose(mat3(pconst.model))) * iNormal);
     vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
-
+    vOut.positionWS = positionWS.xyz;
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
 }
 #endif
@@ -33,18 +38,24 @@ void main()
 
 layout(set = SET_MATERIAL, binding = 0) uniform Unlit
 {
-    vec3 color;
+    vec4 color;
+    vec4 emission;
     float shadowBleedingClamp;
     float shadowMDClamp;
 } vals;
 
 layout(location = 0) in v2f fragInput;
+
 layout(location = 0) out vec4 oColor;
+#ifdef G_SURFEL_BAKE
+layout(location = 1) out vec4 oNormal;
+layout(location = 2) out vec4 oPosition;
+#endif
 
 void main()
 {
     float c = scene.lightCount.x;
-    vec3 color = vals.color;
+    vec3 color = vals.color.xyz;
     if (c > 0)
     {
         float ndotl = max(dot(normalize(fragInput.normalWS), scene.lights[0].position.xyz), 0);
@@ -67,6 +78,10 @@ void main()
 
     // oColor = vec4(shadowAttenuation);
     // return;
-    oColor = vec4(vec3(color * shadowAttenuation), 1.0);
+    oColor = vec4(vec3(color * shadowAttenuation) + vals.emission.xyz, 1.0);
+#ifdef G_SURFEL_BAKE
+    oNormal = vec4(fragInput.normalWS, 1.0f);
+    oPosition = vec4(fragInput.positionWS, 1.0f);
+#endif
 }
 #endif

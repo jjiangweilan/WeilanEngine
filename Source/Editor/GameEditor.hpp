@@ -51,6 +51,7 @@ private:
     bool inspectorWindow = true;
     bool openSceneWindow = false;
     bool createSceneWindow = false;
+    bool surfelGIBaker = false;
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
@@ -64,6 +65,7 @@ private:
     void AssetWindow();
     void AssetShowDir(const std::filesystem::path& path);
     void InspectorWindow();
+    void SurfelGIBakerWindow();
 
     void SceneTree(Scene& scene);
     void SceneTree(Transform* transform, int imguiID);
