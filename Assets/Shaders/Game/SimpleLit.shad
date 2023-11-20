@@ -56,7 +56,7 @@ void main()
 {
 #ifdef G_SURFEL_BAKE
     oColor = vec4(vals.color.xyz + vals.emission.xyz, 1.0f);
-    oNormal = vec4(fragInput.normalWS, 1.0f);
+    oNormal = vec4(normalize(fragInput.normalWS.xyz), 1.0f);
     oPosition = vec4(fragInput.positionWS, 1.0f);
     return;
 #else
