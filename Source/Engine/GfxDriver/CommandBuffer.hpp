@@ -26,10 +26,10 @@ struct GPUBarrier
 {
     RefPtr<Gfx::Buffer> buffer = nullptr;
     RefPtr<Gfx::Image> image = nullptr;
-    Gfx::PipelineStageFlags srcStageMask;
-    Gfx::PipelineStageFlags dstStageMask;
-    Gfx::AccessMaskFlags srcAccessMask;
-    Gfx::AccessMaskFlags dstAccessMask;
+    Gfx::PipelineStageFlags srcStageMask = Gfx::PipelineStage::Bottom_Of_Pipe;
+    Gfx::PipelineStageFlags dstStageMask = Gfx::PipelineStage::Top_Of_Pipe;
+    Gfx::AccessMaskFlags srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
+    Gfx::AccessMaskFlags dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
 
     struct BufferInfo
     {
