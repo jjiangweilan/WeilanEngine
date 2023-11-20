@@ -35,7 +35,7 @@ public:
     {
         for (auto& n : nodes)
         {
-            DeleteNode(n.get());
+            n->OnDestroy();
         }
 #if ENGINE_EDITOR
         ax::NodeEditor::DestroyEditor(graphContext);
