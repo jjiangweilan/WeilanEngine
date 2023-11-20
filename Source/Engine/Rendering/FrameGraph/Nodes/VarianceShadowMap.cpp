@@ -242,7 +242,7 @@ public:
         drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
     };
 
-    void Destory()
+    void OnDestroy() override
     {
         Shader::DisableFeature("G_VSM");
     }

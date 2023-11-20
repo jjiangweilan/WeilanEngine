@@ -199,12 +199,18 @@ public:
         this->sceneShaderResource = &sceneShaderResource;
     };
 
-    void Execute(GraphResource& graphResource) override {}
     void Finalize(RenderGraph::Graph& graph, Resources& resources) override
     {
         albedo = (Gfx::Image*)surfelDrawScene->GetPass()->GetResourceRef(0)->GetResource();
         normal = (Gfx::Image*)surfelDrawScene->GetPass()->GetResourceRef(1)->GetResource();
         position = (Gfx::Image*)surfelDrawScene->GetPass()->GetResourceRef(2)->GetResource();
+
+        Shader::EnableFeature("G_SURFEL_BAKE");
+    }
+
+    void OnDestroy() override
+    {
+        Shader::DisableFeature("G_SURFEL_BAKE");
     }
 
 private:

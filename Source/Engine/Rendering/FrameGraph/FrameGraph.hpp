@@ -33,6 +33,10 @@ public:
     };
     ~Graph()
     {
+        for (auto& n : nodes)
+        {
+            DeleteNode(n.get());
+        }
 #if ENGINE_EDITOR
         ax::NodeEditor::DestroyEditor(graphContext);
 #endif
