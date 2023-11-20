@@ -50,6 +50,28 @@ shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
     return result;
 }
 
+std::vector<std::vector<std::string>> MakeCombination(
+    std::vector<std::vector<std::string>> first, std::vector<std::vector<std::string>> second
+)
+{
+    std::vector<std::vector<std::string>> comb{};
+    for (int i = 0; i < first.size(); i++)
+    {
+        for (int j = 0; j < second.size(); j++)
+        {
+            std::vector<std::string>& f = first[i];
+            std::vector<std::string>& s = second[j];
+
+            std::vector<std::string> n(f.begin(), f.end());
+            n.insert(n.end(), s.begin(), s.end());
+
+            comb.push_back(std::move(n));
+        }
+    }
+
+    return comb;
+}
+
 std::vector<std::vector<std::string>> ShaderCompiler::FeatureToCombinations(
     const std::vector<std::vector<std::string>>& features
 )
@@ -57,20 +79,31 @@ std::vector<std::vector<std::string>> ShaderCompiler::FeatureToCombinations(
     if (features.empty())
         return {};
 
-    wrong logics
-    std::vector<std::vector<std::string>> combs;
-    size_t featureIndexAddIndex = 0;
-    std::vector<int> featureIndex(features.size(), 0);
-    while (featureIndex.front() != features.front().size() && featureIndex.back() != features.back().size())
+    std::vector<std::vector<std::string>> combs{};
+    std::vector<std::vector<std::vector<std::string>>> fs{};
+
+    // vectorize
+    for (auto& v : features)
     {
-        std::vector<std::string> comb;
-        for (int fIndex = 0; fIndex < features.size(); ++fIndex)
+        std::vector<std::vector<std::string>> vf{};
+        for (auto& s : v)
         {
-            comb.push_back(features[fIndex][featureIndex[fIndex]]);
+            std::vector<std::string> singleFeature{};
+            singleFeature.push_back(s);
+            vf.push_back(std::move(singleFeature));
         }
-        combs.push_back(comb);
 
+        fs.push_back(vf);
+    }
 
+    // make combinations
+    if (!fs.empty())
+    {
+        combs = fs[0];
+        for (int i = 1; i < features.size(); ++i)
+        {
+            combs = MakeCombination(combs, fs[i]);
+        }
     }
 
     return combs;
@@ -286,7 +319,6 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
                 }
                 featuresVal.push_back(std::move(fval));
             }
-
         }
         config.features = std::move(featuresVal);
     }
