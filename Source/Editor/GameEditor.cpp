@@ -414,8 +414,8 @@ void GameEditor::SurfelGIBakerWindow()
         static SurfelGI::BakerConfig c{
             .scene = EditorState::activeScene,
             .templateShader = nullptr,
-            .worldBoundsMin = {-10, -10, -10},
-            .worldBoundsMax = {10, 10, 10},
+            .worldBoundsMin = {-5, -5, -5},
+            .worldBoundsMax = {5, 5, 5},
         };
 
         const char* templateShaderName = "Template Scene Shader";
@@ -444,7 +444,9 @@ void GameEditor::SurfelGIBakerWindow()
         if (ImGui::Button("Bake"))
         {
             SurfelGI::GISceneBaker baker;
-            baker.Bake(c);
+            auto giScene = std::make_unique<SurfelGI::GIScene>(baker.Bake(c));
+
+            engine->assetDatabase->SaveAsset(std::move(giScene), "demo");
         }
 
         ImGui::End();
