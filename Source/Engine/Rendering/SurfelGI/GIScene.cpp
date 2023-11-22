@@ -14,7 +14,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
         return GIScene();
 
     scene = bakerConfig.scene;
-    auto cameraGO = scene->CreateGameObject();
+    cameraGO = scene->CreateGameObject();
     bakerCamera = cameraGO->AddComponent<Camera>();
     cameraGO->GetTransform()->SetPosition({0, 0, 0});
     cameraGO->GetTransform()->SetRotation({0, 0, 0});
@@ -81,7 +81,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
                 for (auto pn : principleNormals)
                 {
                     giScene.surfels.push_back(
-                        CaptureSurfel(glm::vec3{i + halfBoxSize, j + halfBoxSize, k + halfBoxSize}, pn)
+                        CaptureSurfel(glm::vec3{i + halfBoxSize, j + halfBoxSize, k + halfBoxSize}, pn, halfBoxSize)
                     );
                 }
             }
@@ -92,11 +92,22 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     return giScene;
 }
 
-Surfel GISceneBaker::CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal)
+Surfel GISceneBaker::CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal, float halfBoxSize)
 {
+    glm::vec3 pos = center + principleNormal * halfBoxSize;
+    glm::mat4 lookat = glm::lookAt(pos, center, glm::vec3(0, 1, 0));
+    cameraGO->GetTransform()->SetModelMatrix(lookat);
+
     ImmediateGfx::OnetimeSubmit(
         [&](Gfx::CommandBuffer& cmd)
         {
+            Gfx::GPUBarrier memBarrier{
+                .srcStageMask = Gfx::PipelineStage::All_Commands,
+                .dstStageMask = Gfx::PipelineStage::All_Commands,
+                .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write};
+            cmd.Barrier(&memBarrier, 1);
+
             auto graph = bakerCamera->GetFrameGraph();
             graph->Execute(cmd, *scene);
 

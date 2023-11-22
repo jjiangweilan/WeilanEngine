@@ -58,6 +58,7 @@ private:
         glm::vec3(0, 0, 1),
         glm::vec3(0, 0, -1),
     };
+    GameObject* cameraGO;
     Camera* bakerCamera;
     Scene* scene;
     FrameGraph::SurfelBakeFGNode* surfelBakeNode;
@@ -65,7 +66,7 @@ private:
     UniPtr<Gfx::Buffer> positionBuf;
     UniPtr<Gfx::Buffer> normalBuf;
 
-    Surfel CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal);
+    Surfel CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal, float surfelBoxSize);
 };
 
 } // namespace Engine::SurfelGI

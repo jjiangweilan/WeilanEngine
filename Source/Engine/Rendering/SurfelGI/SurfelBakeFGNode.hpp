@@ -71,6 +71,15 @@ public:
                 Rect2D rect = {{0, 0}, {width, height}};
 
                 cmd.SetScissor(0, 1, &rect);
+
+                Gfx::GPUBarrier memBarrier{
+                    .srcStageMask = Gfx::PipelineStage::All_Commands,
+                    .dstStageMask = Gfx::PipelineStage::All_Commands,
+                    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write};
+
+                cmd.Barrier(&memBarrier, 1);
+
                 cmd.BeginRenderPass(pass, clearValues);
                 for (auto& draw : *drawList)
                 {
@@ -240,7 +249,7 @@ private:
                 .imageInfo = {
                     .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                     .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = mip == 1 ? Gfx::ImageLayout::Color_Attachment : Gfx::ImageLayout::Transfer_Dst,
+                    .oldLayout = Gfx::ImageLayout::Dynamic,
                     .newLayout = Gfx::ImageLayout::Transfer_Src,
                     .subresourceRange =
                         {
