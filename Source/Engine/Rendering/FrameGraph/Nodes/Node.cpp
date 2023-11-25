@@ -1,4 +1,6 @@
 #include "Node.hpp"
+#include "Core/Component/MeshRenderer.hpp"
+#include "Core/GameObject.hpp"
 
 namespace Engine::FrameGraph
 {
@@ -158,6 +160,45 @@ void Node::Deserialize(Serializer* s)
 
     s->Deserialize("name", name);
     s->Deserialize("customName", customName);
+}
+
+SceneObjectDrawData::SceneObjectDrawData(MeshRenderer& meshRenderer)
+{
+    auto mesh = meshRenderer.GetMesh();
+    if (mesh == nullptr)
+        return;
+
+    auto& submeshes = mesh->GetSubmeshes();
+    auto& materials = meshRenderer.GetMaterials();
+
+    for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
+    {
+        auto material = i < materials.size() ? materials[i] : nullptr;
+        auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
+        auto shader = material ? material->GetShaderProgram() : nullptr;
+
+        if (submesh != nullptr && material != nullptr && shader != nullptr)
+        {
+            // material->SetMatrix("Transform", "model",
+            // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+            uint32_t indexCount = submesh->GetIndexCount();
+
+            this->vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
+            for (auto& binding : submesh->GetBindings())
+            {
+                this->vertexBufferBinding.push_back({submesh->GetVertexBuffer(), binding.byteOffset});
+            }
+            this->indexBuffer = submesh->GetIndexBuffer();
+            this->indexBufferType = submesh->GetIndexBufferType();
+
+            this->shaderResource = material->GetShaderResource();
+            this->shader = shader;
+            this->shaderConfig = &material->GetShaderConfig();
+            auto modelMatrix = meshRenderer.GetGameObject()->GetTransform()->GetModelMatrix();
+            this->pushConstant = modelMatrix;
+            this->indexCount = indexCount;
+        }
+    }
 }
 
 } // namespace Engine::FrameGraph

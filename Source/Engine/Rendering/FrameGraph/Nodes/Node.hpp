@@ -9,7 +9,10 @@
 #include <span>
 #include <string>
 #include <vector>
-
+namespace Engine
+{
+class MeshRenderer;
+}
 namespace Engine::FrameGraph
 {
 
@@ -50,6 +53,8 @@ enum class ConfigurableType
 
 struct SceneObjectDrawData
 {
+    SceneObjectDrawData() = default;
+    SceneObjectDrawData(MeshRenderer& meshRenderer);
     Gfx::ShaderProgram* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
