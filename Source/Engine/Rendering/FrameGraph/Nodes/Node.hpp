@@ -122,24 +122,6 @@ private:
     friend class Node;
 };
 
-class ImageProperty
-{
-public:
-    ImageProperty(bool willCreate) : willCreate(willCreate) {}
-
-    bool WillCreate()
-    {
-        return willCreate;
-    }
-    void* GetData();
-    void SetData(void* data);
-
-private:
-    void* data;
-    PropertyType type;
-    bool willCreate;
-};
-
 class Node;
 class Property
 {
