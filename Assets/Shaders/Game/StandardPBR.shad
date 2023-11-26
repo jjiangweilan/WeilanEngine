@@ -12,7 +12,7 @@
 name: Game/StandardPBR
 features:
     - [G_PCF, G_VSM]
-    - [G_, G_SURFEL_BAKE]
+    - [_, G_SURFEL_BAKE]
 #endif
 
 #define LOC_ShadowMapCS 5
@@ -165,10 +165,11 @@ void main()
 #endif
     }
 
-    vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
+    // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(color * shadowAttenuation + emissive, 1);
+    o_Color = vec4(color * shadowAttenuation, 1);
 #ifdef G_SURFEL_BAKE
+    o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
     o_Position = vec4(i_PositionWS.xyz, 1.0f);
 #endif

@@ -44,7 +44,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     scene->SetMainCamera(bakerCamera);
     float boxSize = bakerConfig.surfelBoxSize;
     float halfBoxSize = boxSize / 2.0f;
-    auto ortho = glm::ortho(-halfBoxSize, halfBoxSize, -halfBoxSize, halfBoxSize, 0.01f, boxSize);
+    auto ortho = glm::ortho(-halfBoxSize, halfBoxSize, -halfBoxSize, halfBoxSize, 0.0f, boxSize);
     ortho[1][1] *= -1;
     ortho[2] *= -1;
     bakerCamera->SetProjectionMatrix(ortho);
@@ -78,25 +78,42 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
         {
             for (int k = bmin.z; k <= bmax.z; k += boxSize)
             {
-                for (auto pn : principleNormals)
+                for (int nIndex = 0; nIndex < principleNormals.size(); ++nIndex)
                 {
-                    giScene.surfels.push_back(
-                        CaptureSurfel(glm::vec3{i + halfBoxSize, j + halfBoxSize, k + halfBoxSize}, pn, halfBoxSize)
-                    );
+                    glm::vec3 principleNormal = principleNormals[nIndex];
+                    glm::vec3 center{i + halfBoxSize, j + halfBoxSize, k + halfBoxSize};
+                    glm::vec3 pos = center + principleNormal * halfBoxSize;
+                    glm::mat4 model(1);
+                    if (nIndex == 0)
+                        model =
+                            glm::rotate(glm::translate(glm::mat4(1), pos), glm::radians(-90.0f), glm::vec3(0, 1, 0));
+                    else if (nIndex == 1)
+                        model = glm::rotate(glm::translate(glm::mat4(1), pos), glm::radians(90.0f), glm::vec3(0, 1, 0));
+                    else if (nIndex == 2)
+                        model = glm::rotate(glm::translate(glm::mat4(1), pos), glm::radians(90.0f), glm::vec3(1, 0, 0));
+                    else if (nIndex == 3)
+                        model =
+                            glm::rotate(glm::translate(glm::mat4(1), pos), glm::radians(-90.0f), glm::vec3(1, 0, 0));
+                    else if (nIndex == 4)
+                        model = glm::translate(glm::mat4(1), pos);
+                    else if (nIndex == 5)
+                        model =
+                            glm::rotate(glm::translate(glm::mat4(1), pos), glm::radians(180.0f), glm::vec3(1, 0, 0));
+
+                    giScene.surfels.push_back(CaptureSurfel(model, halfBoxSize));
                 }
             }
         }
     }
 
     scene->SetMainCamera(mainCam);
+    giScene.SetName("GI Scene");
     return giScene;
 }
 
-Surfel GISceneBaker::CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal, float halfBoxSize)
+Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
 {
-    glm::vec3 pos = center + principleNormal * halfBoxSize;
-    glm::mat4 lookat = glm::lookAt(pos, center, glm::vec3(0, 1, 0));
-    cameraGO->GetTransform()->SetModelMatrix(lookat);
+    cameraGO->GetTransform()->SetModelMatrix(camModel);
 
     ImmediateGfx::OnetimeSubmit(
         [&](Gfx::CommandBuffer& cmd)
@@ -181,5 +198,13 @@ void Surfel::Deserialize(Serializer* s)
     s->Deserialize("albedo", albedo);
     s->Deserialize("position", position);
     s->Deserialize("normal", normal);
+}
+void GIScene::Reload(Asset&& asset)
+{
+    if (GIScene* newGIScene = dynamic_cast<GIScene*>(&asset))
+    {
+        this->surfels = std::move(newGIScene->surfels);
+        newGIScene->surfels.clear();
+    }
 }
 } // namespace Engine::SurfelGI

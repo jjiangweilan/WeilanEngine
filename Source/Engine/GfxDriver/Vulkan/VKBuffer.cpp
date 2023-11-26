@@ -33,7 +33,8 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
     return usage;
 }
 
-VKBuffer::VKBuffer(const CreateInfo& createInfo) : allocator(VKContext::Instance()->allocator)
+VKBuffer::VKBuffer(const CreateInfo& createInfo)
+    : Buffer(createInfo.usages), allocator(VKContext::Instance()->allocator)
 {
     usage = MapBufferUsage(createInfo.usages);
     size = createInfo.size;
@@ -71,7 +72,7 @@ VKBuffer::VKBuffer(const CreateInfo& createInfo) : allocator(VKContext::Instance
 }
 
 VKBuffer::VKBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocationCreateInfo, const char* debugName)
-    : Buffer(), allocator(VKContext::Instance()->allocator), usage(createInfo.usage), allocationInfo{}
+    : Buffer(BufferUsage::None), allocator(VKContext::Instance()->allocator), usage(createInfo.usage), allocationInfo{}
 {
     allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
     if (debugName)
@@ -86,9 +87,9 @@ void VKBuffer::SetDebugName(const char* name)
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_BUFFER, (uint64_t)buffer, name);
 }
 
-void VKBuffer::FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& barriers,
-                                         VkPipelineStageFlags stageMask,
-                                         VkAccessFlags accessMask)
+void VKBuffer::FillMemoryBarrierIfNeeded(
+    std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
+)
 {
     if (this->stageMask != stageMask || this->accessMask != accessMask)
     {
@@ -109,9 +110,9 @@ void VKBuffer::FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& bar
     }
 }
 
-void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf,
-                                        VkPipelineStageFlags stageMask,
-                                        VkAccessFlags accessMask)
+void VKBuffer::PutMemoryBarrierIfNeeded(
+    VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
+)
 {
     if (this->stageMask != stageMask || this->accessMask != accessMask)
     {
@@ -125,16 +126,18 @@ void VKBuffer::PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf,
         memoryBarrier.buffer = buffer;
         memoryBarrier.offset = 0;
         memoryBarrier.size = VK_WHOLE_SIZE;
-        vkCmdPipelineBarrier(cmdBuf,
-                             this->stageMask,
-                             stageMask,
-                             VK_DEPENDENCY_BY_REGION_BIT,
-                             0,
-                             VK_NULL_HANDLE,
-                             1,
-                             &memoryBarrier,
-                             0,
-                             VK_NULL_HANDLE);
+        vkCmdPipelineBarrier(
+            cmdBuf,
+            this->stageMask,
+            stageMask,
+            VK_DEPENDENCY_BY_REGION_BIT,
+            0,
+            VK_NULL_HANDLE,
+            1,
+            &memoryBarrier,
+            0,
+            VK_NULL_HANDLE
+        );
 
         this->stageMask = stageMask;
         this->accessMask = accessMask;
@@ -147,5 +150,8 @@ VKBuffer::~VKBuffer()
         allocator->DestroyBuffer(buffer, allocation);
 }
 
-void* VKBuffer::GetCPUVisibleAddress() { return allocationInfo.pMappedData; }
+void* VKBuffer::GetCPUVisibleAddress()
+{
+    return allocationInfo.pMappedData;
+}
 } // namespace Engine::Gfx

@@ -249,17 +249,31 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
     path.replace_extension(a->GetExtension());
     auto fullPath = assetDirectory / path;
     // only internal asset can be created
-    if (!a->IsExternalAsset() && !std::filesystem::exists(fullPath))
+    if (!a->IsExternalAsset())
     {
-        std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
-        newAssetData->SaveToDisk(projectRoot);
-        Asset* asset = newAssetData->GetAsset();
+        if (!std::filesystem::exists(fullPath))
+        {
+            std::unique_ptr<AssetData> newAssetData = std::make_unique<AssetData>(std::move(a), path, projectRoot);
+            newAssetData->SaveToDisk(projectRoot);
+            Asset* asset = newAssetData->GetAsset();
 
-        SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
+            SerializeAssetToDisk(*asset, newAssetData->GetAssetAbsolutePath());
 
-        Asset* temp = assets.Add(std::move(newAssetData));
+            Asset* temp = assets.Add(std::move(newAssetData));
 
-        return temp;
+            return temp;
+        }
+        else
+        {
+            if (AssetData* ad = assets.GetAssetData(path))
+            {
+                if (Asset* asset = ad->GetAsset())
+                {
+                    asset->Reload(std::move(*a));
+                    SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
+                }
+            }
+        }
     }
     return nullptr;
 }
@@ -316,7 +330,7 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-    static auto f = [this](const UUID& id, const char* path)
+    static auto f = [this](const UUID& id, const char* path) -> Asset*
     {
         auto assetData = std::make_unique<AssetData>(id, path, AssetData::InternalAssetDataTag{});
         internalAssets.push_back(assetData.get());
@@ -330,15 +344,22 @@ void AssetDatabase::LoadEngineInternal()
             LoadAsset(temp->GetAssetPath());
 
             assets.UpdateAssetData(temp);
+
+            return temp->GetAsset();
         }
+
+        return nullptr;
     };
 
-    f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
+    Shader* standardShader = (Shader*)f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
     f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
     f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
+    f("0138F949-B23B-48F6-9C25-4138EB0A6A0C", "Shaders/Game/SurfelCube.shad");
     f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
     f("46BFD6F6-3E6E-4E48-97F8-A15561AFFBF5", "Shaders/Utils/BoxFilter.shad");
     f("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
+
+    Shader::SetDefault(standardShader);
 }
 
 void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)

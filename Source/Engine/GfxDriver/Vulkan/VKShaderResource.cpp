@@ -18,7 +18,7 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
     switch (frequency)
     {
         case ShaderResourceFrequency::Global: return Global_Descriptor_Set;
-        case ShaderResourceFrequency::Shader: return Shader_Descriptor_Set;
+        case ShaderResourceFrequency::Pass: return Shader_Descriptor_Set;
         case ShaderResourceFrequency::Material: return Material_Descriptor_Set;
         case ShaderResourceFrequency::Object: return Object_Descriptor_Set;
         default: return Material_Descriptor_Set;
@@ -89,7 +89,9 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         }
                         break;
                     }
-                // case ShaderInfo::BindingType::SSBO:
+                case ShaderInfo::BindingType::SSBO:
+                    writeCount--; // no default SSBO yet
+                    break;
                 //{
                 //     VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                 //     bufferInfo.buffer = sharedResource->GetDefaultStorageBuffer()->GetVKBuffer();
@@ -108,7 +110,9 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
                             writes[writeCount].pImageInfo = &imageInfo;
-                            imageVies["_default_uTexutre2D"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView());
+                            imageVies["_default_uTexutre2D"] =
+                                static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView()
+                                );
                         }
                         else if (b.second.binding.texture.type == ShaderInfo::Texture::Type::TexCube)
                         {
@@ -117,7 +121,9 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                             imageInfo.sampler = sharedResource->GetDefaultSampler();
                             imageInfo.imageView = sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
                             writes[writeCount].pImageInfo = &imageInfo;
-                            imageVies["_default_uTexutreCube"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTextureCube()->GetDefaultImageView());
+                            imageVies["_default_uTexutreCube"] = static_cast<VKImageView*>(
+                                &sharedResource->GetDefaultTextureCube()->GetDefaultImageView()
+                            );
                         }
                         break;
                     }
@@ -128,7 +134,8 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
                         imageInfo.sampler = VK_NULL_HANDLE;
                         imageInfo.imageView = sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
                         writes[writeCount].pImageInfo = &imageInfo;
-                        imageVies["_default_uTexutreSeparateImage"] = static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView());
+                        imageVies["_default_uTexutreSeparateImage"] =
+                            static_cast<VKImageView*>(&sharedResource->GetDefaultTexture2D()->GetDefaultImageView());
                         break;
                     }
                 case ShaderInfo::BindingType::SeparateSampler:
@@ -219,6 +226,41 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet()
 void VKShaderResource::SetImage(const std::string& param, RefPtr<Image> image)
 {
     SetImage(param, &image->GetDefaultImageView());
+}
+
+void VKShaderResource::SetBuffer(const std::string& bindingName, Buffer& buffer)
+{
+    auto& shaderInfo = shaderProgram->GetShaderInfo();
+    auto& bindings = shaderInfo.descriptorSetBinidngMap.at(slot).bindings;
+    auto iter = bindings.find(bindingName);
+
+    if (iter == bindings.end())
+    {
+        return;
+    }
+
+    if ((iter->second.type == ShaderInfo::BindingType::UBO && !HasFlag(buffer.GetUsages(), BufferUsage::Uniform)) ||
+        (iter->second.type == ShaderInfo::BindingType::SSBO && !HasFlag(buffer.GetUsages(), BufferUsage::Storage)))
+    {
+        return;
+    }
+
+    VkWriteDescriptorSet write;
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.pNext = VK_NULL_HANDLE;
+    write.dstSet = descriptorSet;
+    write.descriptorType = ShaderInfo::Utils::MapBindingType(iter->second.type);
+    write.dstBinding = iter->second.bindingNum;
+    write.dstArrayElement = 0;
+    write.descriptorCount = iter->second.count;
+    write.pImageInfo = VK_NULL_HANDLE;
+    write.pBufferInfo = VK_NULL_HANDLE;
+    write.pTexelBufferView = VK_NULL_HANDLE;
+
+    VkDescriptorBufferInfo bufferInfo{.buffer = ((VKBuffer*)&buffer)->GetHandle(), .offset = 0, .range = VK_WHOLE_SIZE};
+    write.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(device->GetHandle(), 1, &write, 0, VK_NULL_HANDLE);
 }
 
 /* void VKShaderResource::SetStorage(std::string_view param, RefPtr<StorageBuffer> storage)

@@ -96,9 +96,17 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     bool treeOpen =
         ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
-    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    if (ImGui::IsItemHovered())
     {
-        EditorState::selectedObject = transform->GetGameObject();
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            EditorState::selectedObject = transform->GetGameObject();
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        {
+            sceneTreeContextObject = transform->GetGameObject();
+            beginSceneTreeContextPopup = true;
+        }
     }
 
     if (ImGui::BeginDragDropSource())
@@ -122,6 +130,7 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
                 obj->GetTransform()->SetParent(transform);
             }
         }
+
         ImGui::EndDragDropTarget();
     }
 
@@ -169,6 +178,16 @@ void GameEditor::SceneTree(Scene& scene)
                 obj->GetTransform()->SetParent(nullptr);
             }
         }
+
+        const ImGuiPayload* objpayload = ImGui::AcceptDragDropPayload("object");
+        if (objpayload && objpayload->IsDelivery())
+        {
+            if (Model* model = dynamic_cast<Model*>(*(Object**)objpayload->Data))
+            {
+                scene.AddGameObjects(model->CreateGameObject());
+            }
+        }
+
         ImGui::EndDragDropTarget();
     }
 
@@ -403,6 +422,23 @@ void GameEditor::GUIPass()
     {
         if (EditorState::activeScene)
             SceneTree(*EditorState::activeScene);
+
+        if (beginSceneTreeContextPopup)
+        {
+            beginSceneTreeContextPopup = false;
+            ImGui::OpenPopup("GameObject Context Menu");
+        }
+
+        if (ImGui::BeginPopup("GameObject Context Menu"))
+        {
+            if (ImGui::Button("Delete"))
+            {
+                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
+                ImGui::CloseCurrentPopup();
+                sceneTreeContextObject = nullptr;
+            }
+            ImGui::EndPopup();
+        }
     }
 }
 

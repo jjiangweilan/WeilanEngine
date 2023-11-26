@@ -124,6 +124,11 @@ ShaderBase::GlobalShaderFeature& ShaderBase::GetGlobalShaderFeature()
 
 bool Shader::LoadFromFile(const char* path)
 {
+    if (name.empty())
+    {
+        std::filesystem::path apath(path);
+        this->name = apath.string();
+    }
     ShaderCompiler compiler;
     std::fstream f(path);
     std::stringstream ss;
@@ -155,6 +160,11 @@ bool Shader::LoadFromFile(const char* path)
 }
 bool ComputeShader::LoadFromFile(const char* path)
 {
+    if (name.empty())
+    {
+        std::filesystem::path apath(path);
+        this->name = apath.string();
+    }
     ShaderCompiler compiler;
     std::filesystem::path p(path);
     auto ext = p.extension();
@@ -187,4 +197,20 @@ bool ComputeShader::LoadFromFile(const char* path)
 
     return true;
 }
+
+void Shader::SetDefault(Shader* defaultShader)
+{
+    GetDefaultPrivate() = defaultShader;
+}
+Shader* Shader::GetDefault()
+{
+    return GetDefaultPrivate();
+}
+
+Shader*& Shader::GetDefaultPrivate()
+{
+    static Shader* shader;
+    return shader;
+}
+
 } // namespace Engine

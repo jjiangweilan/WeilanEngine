@@ -200,7 +200,7 @@ public:
 
     void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
+        drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override

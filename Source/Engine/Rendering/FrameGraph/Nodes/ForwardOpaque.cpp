@@ -90,13 +90,13 @@ public:
         return {
             Resource(
                 ResourceTag::RenderGraphLink{},
-                propertyIDs["color"],
+                outputPropertyIDs["color"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque color")
             ),
             Resource(
                 ResourceTag::RenderGraphLink{},
-                propertyIDs["depth"],
+                outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
             )};
@@ -104,11 +104,13 @@ public:
 
     void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        auto [colorNode, colorHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["color"]);
-        auto [depthNode, depthHandle] = resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["depth"]);
+        auto [colorNode, colorHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
+        auto [depthNode, depthHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["depth"]);
         auto [shadowNode, shadowHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, propertyIDs["shadow map"]);
-        drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["shadow map"]);
+        drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
 
         graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color"));
         graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
@@ -130,10 +132,13 @@ private:
 
     void DefineNode()
     {
-        AddInputProperty("color", PropertyType::Image);
-        AddInputProperty("depth", PropertyType::Image);
-        AddInputProperty("shadow map", PropertyType::Image);
+        AddInputProperty("color", PropertyType::RenderGraphLink);
+        AddInputProperty("depth", PropertyType::RenderGraphLink);
+        AddInputProperty("shadow map", PropertyType::RenderGraphLink);
         AddInputProperty("draw list", PropertyType::DrawList);
+
+        AddOutputProperty("color", PropertyType::RenderGraphLink);
+        AddOutputProperty("depth", PropertyType::RenderGraphLink);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         clearValues.resize(2);

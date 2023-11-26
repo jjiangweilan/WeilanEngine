@@ -29,13 +29,6 @@ using FGID = uint64_t;
 #define FRAME_GRAPH_PROPERTY_BIT_COUNT 16
 #define FRAME_GRAPH_NODE_PROPERTY_BIT_COUNT 32
 
-enum class PropertyType
-{
-    DrawList,
-    Image,
-    Float // float
-};
-
 enum class ConfigurableType
 {
     Bool,
@@ -54,7 +47,7 @@ enum class ConfigurableType
 struct SceneObjectDrawData
 {
     SceneObjectDrawData() = default;
-    SceneObjectDrawData(MeshRenderer& meshRenderer);
+    SceneObjectDrawData(SceneObjectDrawData&& other) = default;
     Gfx::ShaderProgram* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
@@ -64,7 +57,11 @@ struct SceneObjectDrawData
     glm::mat4 pushConstant;
     uint32_t indexCount;
 };
-using DrawList = std::vector<SceneObjectDrawData>;
+class DrawList : public std::vector<SceneObjectDrawData>
+{
+public:
+    void Add(MeshRenderer& meshRenderer);
+};
 
 struct Configurable
 {
@@ -123,6 +120,12 @@ private:
 };
 
 class Node;
+enum class PropertyType
+{
+    DrawList,
+    RenderGraphLink,
+    Float // float
+};
 class Property
 {
 public:
@@ -338,6 +341,7 @@ protected:
         return T{};
     }
 
+    // Get a pointer points to the value of the Configurable
     template <class T>
     T* GetConfigurablePtr(const char* name)
     {
@@ -361,7 +365,7 @@ protected:
         inputProperties.emplace_back(this, name, type, id,
                                      true); // plus one to avoid the same id as node itself
 
-        propertyIDs[name] = id;
+        inputPropertyIDs[name] = id;
 
         return id;
     }
@@ -372,7 +376,7 @@ protected:
         outputProperties.emplace_back(this, name, type, id,
                                       false); // plus one to avoid the same id as node itself
 
-        propertyIDs[name] = id;
+        outputPropertyIDs[name] = id;
 
         return id;
     }
@@ -383,7 +387,8 @@ protected:
         configs.emplace_back(Configurable::C<type>(name, val));
     }
 
-    std::unordered_map<std::string, FGID> propertyIDs;
+    std::unordered_map<std::string, FGID> inputPropertyIDs;
+    std::unordered_map<std::string, FGID> outputPropertyIDs;
 
 private:
     std::vector<Property> inputProperties;

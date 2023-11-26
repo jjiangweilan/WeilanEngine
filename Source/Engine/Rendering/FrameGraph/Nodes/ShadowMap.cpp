@@ -68,7 +68,7 @@ public:
         );
 
         return {
-            Resource(ResourceTag::RenderGraphLink{}, propertyIDs["shadow map"], shadowMapPass, 2),
+            Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["shadow map"], shadowMapPass, 2),
         };
     };
 
@@ -80,7 +80,7 @@ public:
 
     void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
+        drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
     };
 
 private:
@@ -90,7 +90,7 @@ private:
     const DrawList* drawList;
     void DefineNode()
     {
-        AddOutputProperty("shadow map", PropertyType::Image);
+        AddOutputProperty("shadow map", PropertyType::RenderGraphLink);
         AddInputProperty("draw list", PropertyType::DrawList);
 
         AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});

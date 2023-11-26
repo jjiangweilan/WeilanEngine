@@ -44,6 +44,8 @@ private:
 
     GameView gameView;
 
+    GameObject* sceneTreeContextObject = nullptr;
+    bool beginSceneTreeContextPopup = false;
     bool sceneTree = true;
     bool sceneInfo = false;
 

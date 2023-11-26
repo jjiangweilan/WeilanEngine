@@ -45,13 +45,13 @@ std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
     imageNode->SetName(GetCustomName());
 
     return {
-        Resource(ResourceTag::RenderGraphLink{}, propertyIDs["image"], imageNode, 0),
+        Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["image"], imageNode, 0),
     };
 };
 
 void ImageNode::DefineNode()
 {
-    AddOutputProperty("image", PropertyType::Image);
+    AddOutputProperty("image", PropertyType::RenderGraphLink);
 
     AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
     AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);

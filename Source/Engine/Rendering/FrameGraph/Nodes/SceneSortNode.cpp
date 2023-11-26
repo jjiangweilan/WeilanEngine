@@ -26,7 +26,7 @@ public:
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         return {
-            Resource(ResourceTag::DrawList{}, propertyIDs["draw list"], drawList.get()),
+            Resource(ResourceTag::DrawList{}, outputPropertyIDs["draw list"], drawList.get()),
         };
     }
 
@@ -42,7 +42,7 @@ public:
             MeshRenderer* meshRenderer = go->GetComponent<MeshRenderer>();
             if (meshRenderer)
             {
-                drawList->emplace_back(*meshRenderer);
+                drawList->Add(*meshRenderer);
             }
         }
     }

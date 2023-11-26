@@ -1,0 +1,72 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: SurfelGI/SurfelCube
+#endif
+
+struct v2f {
+    vec3 albedo;
+    vec3 positionWS;
+    vec3 normalWS;
+};
+
+struct Surfel {
+    vec4 albedo;
+    vec4 position;
+    vec4 normal;
+};
+
+const vec3 vertices[8] = vec3[8](
+    vec3(-0.5, -0.5, -0.5),  // Vertex 0
+    vec3( 0.5, -0.5, -0.5),  // Vertex 1
+    vec3(-0.5,  0.5, -0.5),  // Vertex 2
+    vec3( 0.5,  0.5, -0.5),  // Vertex 3
+    vec3(-0.5, -0.5,  0.5),  // Vertex 4
+    vec3( 0.5, -0.5,  0.5),  // Vertex 5
+    vec3(-0.5,  0.5,  0.5),  // Vertex 6
+    vec3( 0.5,  0.5,  0.5)   // Vertex 7
+);
+
+const vec3 cubeVertices[36] = vec3[36](
+    vertices[0], vertices[1], vertices[2],  // Front face
+    vertices[2], vertices[1], vertices[3],
+    vertices[1], vertices[5], vertices[3],  // Right face
+    vertices[3], vertices[5], vertices[7],
+    vertices[5], vertices[4], vertices[7],  // Back face
+    vertices[7], vertices[4], vertices[6],
+    vertices[4], vertices[0], vertices[6],  // Left face
+    vertices[6], vertices[0], vertices[2],
+    vertices[2], vertices[3], vertices[6],  // Top face
+    vertices[6], vertices[3], vertices[7],
+    vertices[4], vertices[5], vertices[0],  // Bottom face
+    vertices[0], vertices[5], vertices[1]
+);
+
+layout(set = SET_PASS, binding = 0) readonly buffer GIScene
+{
+    Surfel surfels[];
+} giScene;
+
+#if VERT
+layout(location = 0) out v2f vOut;
+void main()
+{
+    vec3 positionWS = giScene.surfels[gl_InstanceIndex].position.xyz + cubeVertices[gl_VertexIndex] * 0.1f;
+    vOut.normalWS = giScene.surfels[gl_InstanceIndex].normal.xyz;
+    vOut.positionWS = positionWS.xyz;
+    gl_Position = scene.viewProjection * vec4(positionWS, 1);
+    vOut.albedo = giScene.surfels[gl_InstanceIndex].albedo.xyz;
+}
+#endif
+
+#if FRAG
+
+layout(location = 0) in v2f fragInput;
+layout(location = 0) out vec4 oColor;
+
+void main()
+{
+    oColor = vec4(fragInput.albedo, 1.0);
+}
+#endif

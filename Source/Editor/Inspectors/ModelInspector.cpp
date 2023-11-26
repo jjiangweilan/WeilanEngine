@@ -43,8 +43,8 @@ public:
         {
             ImGui::PushID(pushID++);
 
-            Material* tex = material.get();
-            ImGui::Button(tex->GetName().c_str());
+            Material* mat = material.get();
+            ImGui::Button(mat->GetName().c_str());
 
             if (ImGui::BeginDragDropSource())
             {

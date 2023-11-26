@@ -6,20 +6,18 @@
 
 namespace Engine::SurfelGI
 {
-struct Surfel : Serializable
+struct Surfel
 {
     Surfel() = default;
     Surfel(glm::vec4 albedo, glm::vec4 position, glm::vec4 normal) : albedo(albedo), position(position), normal(normal)
     {}
 
-    ~Surfel() override {}
-
     glm::vec4 albedo;
     glm::vec4 position;
     glm::vec4 normal;
 
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
+    void Serialize(Serializer* s) const;
+    void Deserialize(Serializer* s);
 };
 
 class GIScene : public Asset
@@ -31,6 +29,7 @@ public:
     GIScene() = default;
     GIScene(GIScene&& other) = default;
 
+    void Reload(Asset&& asset) override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 };
@@ -66,7 +65,7 @@ private:
     UniPtr<Gfx::Buffer> positionBuf;
     UniPtr<Gfx::Buffer> normalBuf;
 
-    Surfel CaptureSurfel(glm::vec3 center, glm::vec3 principleNormal, float surfelBoxSize);
+    Surfel CaptureSurfel(const glm::mat4& camModel, float halfBoxSize);
 };
 
 } // namespace Engine::SurfelGI

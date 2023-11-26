@@ -31,6 +31,7 @@ public:
     void SetImage(const std::string& param, RefPtr<Image> image) override;
     void SetImage(const std::string& name, ImageView* imageView) override;
     void SetBuffer(Buffer& buffer, unsigned int binding, size_t offset = 0, size_t range = 0) override;
+    void SetBuffer(const std::string& bindingName, Buffer& buffer) override;
     DescriptorSetSlot GetDescriptorSetSlot() const
     {
         return slot;
@@ -55,7 +56,8 @@ protected:
 
     // TODO: deprecated
     std::unordered_map<std::string, UniPtr<VKBuffer>> uniformBuffers;
-    // std::unordered_map<std::string, RefPtr<VKStorageBuffer>> storageBuffers;
+
+    std::unordered_map<std::string, VKBuffer*> storageBuffers;
     std::vector<std::function<void()>> pendingTextureUpdates;
 };
 } // namespace Engine::Gfx
