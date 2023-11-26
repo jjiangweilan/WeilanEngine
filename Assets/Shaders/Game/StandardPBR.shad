@@ -167,7 +167,7 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(color * shadowAttenuation, 1);
+    o_Color = vec4(color * shadowAttenuation + baseColor / M_PI * 10, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
