@@ -29,18 +29,18 @@ const vec3 vertices[8] = vec3[8](
 );
 
 const vec3 cubeVertices[36] = vec3[36](
-    vertices[0], vertices[1], vertices[2],  // Front face
-    vertices[2], vertices[1], vertices[3],
-    vertices[1], vertices[5], vertices[3],  // Right face
-    vertices[3], vertices[5], vertices[7],
-    vertices[5], vertices[4], vertices[7],  // Back face
-    vertices[7], vertices[4], vertices[6],
-    vertices[4], vertices[0], vertices[6],  // Left face
-    vertices[6], vertices[0], vertices[2],
-    vertices[2], vertices[3], vertices[6],  // Top face
-    vertices[6], vertices[3], vertices[7],
-    vertices[4], vertices[5], vertices[0],  // Bottom face
-    vertices[0], vertices[5], vertices[1]
+    vertices[1], vertices[0], vertices[2],  // Front face
+    vertices[1], vertices[2], vertices[3],
+    vertices[5], vertices[1], vertices[3],  // Right face
+    vertices[5], vertices[3], vertices[7],
+    vertices[4], vertices[5], vertices[7],  // Back face
+    vertices[4], vertices[7], vertices[6],
+    vertices[0], vertices[4], vertices[6],  // Left face
+    vertices[0], vertices[6], vertices[2],
+    vertices[3], vertices[2], vertices[6],  // Top face
+    vertices[3], vertices[6], vertices[7],
+    vertices[5], vertices[4], vertices[0],  // Bottom face
+    vertices[5], vertices[0], vertices[1]
 );
 
 layout(set = SET_PASS, binding = 0) readonly buffer GIScene

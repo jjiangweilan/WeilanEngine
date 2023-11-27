@@ -171,6 +171,22 @@ Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
     memcpy(&position, positionBuf->GetCPUVisibleAddress(), sizeof(glm::vec4));
     memcpy(&normal, normalBuf->GetCPUVisibleAddress(), sizeof(glm::vec4));
 
+    if (glm::any(glm::isnan(albedo)))
+    {
+        albedo = glm::vec4(0, 0, 0, 0);
+        SPDLOG_WARN("GI Baker: nan albedo detected, converting all to zero");
+    }
+    if (glm::any(glm::isnan(position)))
+    {
+        position = glm::vec4(0, 0, 0, 0);
+        SPDLOG_WARN("GI Baker: nan position detected, converting all to zero");
+    }
+    if (glm::any(glm::isnan(normal)))
+    {
+        normal = glm::vec4(0, 0, 0, 0);
+        SPDLOG_WARN("GI Baker: nan normal detected, converting all to zero");
+    }
+
     return Surfel(albedo, position, normal);
 }
 

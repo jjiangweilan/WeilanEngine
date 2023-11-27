@@ -477,6 +477,9 @@ void GameEditor::SurfelGIBakerWindow()
             ImGui::EndDragDropTarget();
         }
 
+        ImGui::InputFloat3("World Bounds Min", &c.worldBoundsMin[0]);
+        ImGui::InputFloat3("World Bounds Max", &c.worldBoundsMax[0]);
+
         if (ImGui::Button("Bake"))
         {
             SurfelGI::GISceneBaker baker;
