@@ -25,6 +25,7 @@ public:
         bool* debug = GetConfigurablePtr<bool>("Debug");
         Shader* shader = GetConfigurableVal<Shader*>("Surfel Cube Shader");
         SurfelGI::GIScene* giScene = GetConfigurableVal<SurfelGI::GIScene*>("GI Scene");
+        Mesh* debugArrow = GetConfigurableVal<Mesh*>("Surfel Debug Arrow");
 
         if (giScene && shader)
         {
@@ -70,9 +71,10 @@ public:
             }},
             [=](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
             {
-                if (debug && *debug && giScene)
+                if (debug && *debug && giScene && debugArrow)
                 {
                     cmd.BeginRenderPass(pass, {});
+                    cmd.BindSubmesh(debugArrow->GetSubmeshes()[0]);
                     cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
                     cmd.BindResource(passResource);
                     size_t surfelSize = giScene->surfels.size();
@@ -118,6 +120,7 @@ private:
         AddConfig<ConfigurableType::ObjectPtr>("GI Scene", nullptr);
         AddConfig<ConfigurableType::Bool>("Debug", false);
         AddConfig<ConfigurableType::ObjectPtr>("Surfel Cube Shader", nullptr);
+        AddConfig<ConfigurableType::ObjectPtr>("Surfel Debug Arrow", nullptr);
     }
     static char _reg;
 }; // namespace Engine::FrameGraph

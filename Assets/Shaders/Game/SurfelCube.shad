@@ -49,6 +49,11 @@ layout(set = SET_PASS, binding = 0) readonly buffer GIScene
 } giScene;
 
 #if VERT
+layout(location = 0) in vec3 positionOS;
+layout(location = 1) in vec3 normalOS;
+layout(location = 2) in vec2 uv;
+layout(location = 3) in vec4 color;
+
 layout(location = 0) out v2f vOut;
 void main()
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
@@ -99,6 +100,9 @@ class CommandBuffer
 {
 public:
     virtual ~CommandBuffer(){};
+
+    void BindSubmesh(const Submesh& submesh);
+
     virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex

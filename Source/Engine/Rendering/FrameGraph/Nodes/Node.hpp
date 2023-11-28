@@ -332,7 +332,7 @@ protected:
             if (strcmp(c.name.c_str(), name) == 0)
             {
                 if constexpr (std::is_pointer_v<T>)
-                    return static_cast<T>(std::any_cast<Object*>(c.data));
+                    return dynamic_cast<T>(std::any_cast<Object*>(c.data));
                 else
                     return std::any_cast<T>(c.data);
             }

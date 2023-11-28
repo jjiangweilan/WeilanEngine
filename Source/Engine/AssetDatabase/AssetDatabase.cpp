@@ -358,6 +358,7 @@ void AssetDatabase::LoadEngineInternal()
     f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
     f("46BFD6F6-3E6E-4E48-97F8-A15561AFFBF5", "Shaders/Utils/BoxFilter.shad");
     f("BABA4668-A5F3-40B2-92D3-1170C948DB63", "Models/Cube.glb");
+    f("32E85603-337B-4BB6-8F82-1B3051615D2C", "Models/ZArrow.glb");
 
     Shader::SetDefault(standardShader);
 }
