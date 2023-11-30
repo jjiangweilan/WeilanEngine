@@ -73,12 +73,13 @@ public:
             {
                 if (debug && *debug && giScene && debugArrow)
                 {
+                    auto& submesh = debugArrow->GetSubmeshes()[0];
                     cmd.BeginRenderPass(pass, {});
-                    cmd.BindSubmesh(debugArrow->GetSubmeshes()[0]);
+                    cmd.BindSubmesh(submesh);
                     cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
                     cmd.BindResource(passResource);
                     size_t surfelSize = giScene->surfels.size();
-                    cmd.Draw(36, surfelSize, 0, 0);
+                    cmd.DrawIndexed(submesh.GetIndexCount(), surfelSize, 0, 0, 0);
                     cmd.EndRenderPass();
                 }
             }

@@ -1,7 +1,7 @@
 #include "Event.hpp"
 #include <SDL2/SDL.h>
 #if ENGINE_EDITOR
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
 
 namespace Engine

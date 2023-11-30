@@ -6,7 +6,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
 #include "spdlog/spdlog.h"

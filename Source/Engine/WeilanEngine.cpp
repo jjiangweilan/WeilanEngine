@@ -1,8 +1,11 @@
 #include "WeilanEngine.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
+#include <iostream>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/spdlog.h>
 namespace Engine
 {
 WeilanEngine::~WeilanEngine()
@@ -15,6 +18,22 @@ WeilanEngine::~WeilanEngine()
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
     projectPath = createInfo.projectPath;
+    try
+    {
+        auto file_logger = spdlog::rotating_logger_mt(
+            "file_logger",
+            projectPath.string() + "/project_log.txt",
+            1048576 * 5,
+            3
+        ); // 5MB and 3 rotated files
+
+        spdlog::set_default_logger(file_logger);
+        spdlog::error("new logger log message");
+    }
+    catch (const spdlog::spdlog_ex& ex)
+    {
+        std::cout << "Log init failed: " << ex.what() << std::endl;
+    }
 
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
@@ -22,7 +41,6 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     renderPipeline = std::make_unique<RenderPipeline>();
     event = std::make_unique<Event>();
     frameCmdBuffer = std::make_unique<FrameCmdBuffer>(*gfxDriver);
-
 #if ENGINE_EDITOR
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
