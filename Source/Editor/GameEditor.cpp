@@ -43,9 +43,10 @@ GameEditor::GameEditor(const char* path)
         EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
     }
 
-    gameView.Init();
-
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+
+    gameView.Init();
 
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 
@@ -405,6 +406,8 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
+    ImGui::DockSpaceOverViewport();
+
     MainMenuBar();
     OpenSceneWindow();
 
@@ -440,6 +443,8 @@ void GameEditor::GUIPass()
             ImGui::EndPopup();
         }
     }
+
+    ConsoleOutputWindow();
 }
 
 void GameEditor::SurfelGIBakerWindow()
@@ -659,6 +664,41 @@ void GameEditor::AssetWindow()
         }
         ImGui::End();
     }
+}
+
+void GameEditor::ConsoleOutputWindow()
+{
+    auto ringBufferSink = engine->GetRingBufferLoggerSink();
+    auto lastRaw = ringBufferSink->last_raw();
+    static auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    ImGui::Begin("Console");
+    for (auto& r : lastRaw)
+    {
+        spdlog::memory_buf_t formatted;
+        formatter->format(r, formatted);
+        bool colorPushed = false;
+        if (r.level == spdlog::level::trace || r.level == spdlog::level::info || r.level == spdlog::level::debug)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImColor(0.0f, 0.8f, 0.0f).Value);
+            colorPushed = true;
+        }
+        else if (r.level == spdlog::level::warn)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(255, 165, 0, 1));
+            colorPushed = true;
+        }
+        else if (r.level == spdlog::level::err || r.level == spdlog::level::critical)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+            colorPushed = true;
+        }
+
+        ImGui::TextWrapped("%s", fmt::to_string(formatted).data());
+
+        if (colorPushed)
+            ImGui::PopStyleColor();
+    }
+    ImGui::End();
 }
 
 GameEditor* GameEditor::instance = nullptr;

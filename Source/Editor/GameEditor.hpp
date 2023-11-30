@@ -3,9 +3,11 @@
 #include "FrameGraph/FrameGraphEditor.hpp"
 #include "Renderer.hpp"
 #include "Rendering/CmdSubmitGroup.hpp"
+#include "ThirdParty/imgui/imgui.h"
 #include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
-#include "ThirdParty/imgui/imgui.h"
+#include <spdlog/sinks/ringbuffer_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace Engine
 {
@@ -68,6 +70,8 @@ private:
     void AssetShowDir(const std::filesystem::path& path);
     void InspectorWindow();
     void SurfelGIBakerWindow();
+
+    void ConsoleOutputWindow();
 
     void SceneTree(Scene& scene);
     void SceneTree(Transform* transform, int imguiID);

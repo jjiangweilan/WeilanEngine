@@ -8,6 +8,8 @@
 #include "Rendering/RenderPipeline.hpp"
 #include "Rendering/Shaders.hpp"
 #include <filesystem>
+#include <spdlog/sinks/ringbuffer_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace Engine
 {
@@ -28,6 +30,11 @@ public:
     bool BeginFrame();
     void EndFrame();
     Gfx::CommandBuffer& GetActiveCmdBuffer();
+
+    std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
+    {
+        return ringBufferLoggerSink;
+    };
 
     const std::filesystem::path& GetProjectPath()
     {
@@ -64,6 +71,7 @@ private:
 
     std::unique_ptr<FrameCmdBuffer> frameCmdBuffer;
     std::unique_ptr<RenderPipeline> renderPipeline;
+    std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;

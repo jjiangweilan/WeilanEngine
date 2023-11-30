@@ -4,8 +4,7 @@
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
 #include <iostream>
-#include <spdlog/sinks/rotating_file_sink.h>
-#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 namespace Engine
 {
 WeilanEngine::~WeilanEngine()
@@ -20,15 +19,13 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     projectPath = createInfo.projectPath;
     try
     {
-        auto file_logger = spdlog::rotating_logger_mt(
-            "file_logger",
-            projectPath.string() + "/project_log.txt",
-            1048576 * 5,
-            3
-        ); // 5MB and 3 rotated files
-
-        spdlog::set_default_logger(file_logger);
-        spdlog::error("new logger log message");
+        ringBufferLoggerSink = std::make_shared<spdlog::sinks::ringbuffer_sink<std::mutex>>(1024);
+        auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+        auto logger = std::make_shared<spdlog::logger>(
+            "engine logger",
+            spdlog::sinks_init_list{ringBufferLoggerSink, consoleSink}
+        );
+        spdlog::set_default_logger(logger);
     }
     catch (const spdlog::spdlog_ex& ex)
     {
