@@ -672,22 +672,22 @@ void GameEditor::ConsoleOutputWindow()
     auto lastRaw = ringBufferSink->last_raw();
     static auto formatter = std::make_unique<spdlog::pattern_formatter>();
     ImGui::Begin("Console");
-    for (auto& r : lastRaw)
+    for (auto r = lastRaw.rbegin(); r != lastRaw.rend(); r++)
     {
         spdlog::memory_buf_t formatted;
-        formatter->format(r, formatted);
+        formatter->format(*r, formatted);
         bool colorPushed = false;
-        if (r.level == spdlog::level::trace || r.level == spdlog::level::info || r.level == spdlog::level::debug)
+        if (r->level == spdlog::level::trace || r->level == spdlog::level::info || r->level == spdlog::level::debug)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImColor(0.0f, 0.8f, 0.0f).Value);
             colorPushed = true;
         }
-        else if (r.level == spdlog::level::warn)
+        else if (r->level == spdlog::level::warn)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(255, 165, 0, 1));
             colorPushed = true;
         }
-        else if (r.level == spdlog::level::err || r.level == spdlog::level::critical)
+        else if (r->level == spdlog::level::err || r->level == spdlog::level::critical)
         {
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
             colorPushed = true;
