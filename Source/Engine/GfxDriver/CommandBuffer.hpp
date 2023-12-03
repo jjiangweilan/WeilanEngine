@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
@@ -26,10 +27,10 @@ struct GPUBarrier
 {
     RefPtr<Gfx::Buffer> buffer = nullptr;
     RefPtr<Gfx::Image> image = nullptr;
-    Gfx::PipelineStageFlags srcStageMask;
-    Gfx::PipelineStageFlags dstStageMask;
-    Gfx::AccessMaskFlags srcAccessMask;
-    Gfx::AccessMaskFlags dstAccessMask;
+    Gfx::PipelineStageFlags srcStageMask = Gfx::PipelineStage::Bottom_Of_Pipe;
+    Gfx::PipelineStageFlags dstStageMask = Gfx::PipelineStage::Top_Of_Pipe;
+    Gfx::AccessMaskFlags srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
+    Gfx::AccessMaskFlags dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
 
     struct BufferInfo
     {
@@ -99,6 +100,9 @@ class CommandBuffer
 {
 public:
     virtual ~CommandBuffer(){};
+
+    void BindSubmesh(const Submesh& submesh);
+
     virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex

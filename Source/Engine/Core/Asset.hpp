@@ -15,6 +15,7 @@ public:
     void SetName(std::string_view name)
     {
         this->name = name;
+        SetDirty();
     }
     const std::string& GetName() const
     {

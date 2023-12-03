@@ -5,7 +5,7 @@
 #include "Lighting/Lighting.glsl"
 
 #define SET_GLOBAL 0
-#define SET_SHADER 1
+#define SET_PASS 1
 #define SET_MATERIAL 2
 #define SET_OBJECT 3
 #define MAX_LIGHT_COUNT 32

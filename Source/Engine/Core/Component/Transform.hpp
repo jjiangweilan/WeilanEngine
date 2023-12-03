@@ -50,6 +50,7 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
 
     const std::string& GetName() override;
+    void RemoveChild(Transform* child);
 
 private:
     glm::quat rotation;
@@ -59,8 +60,6 @@ private:
 
     Transform* parent = nullptr;
     std::vector<Transform*> children;
-
-    void RemoveChild(Transform* child);
 };
 
 } // namespace Engine

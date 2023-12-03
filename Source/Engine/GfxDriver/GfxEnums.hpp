@@ -33,7 +33,7 @@ ENUM_FLAGS(ImageAspect, uint64_t){
 enum class ShaderResourceFrequency
 {
     Global,
-    Shader,
+    Pass,
     Material,
     Object
 };

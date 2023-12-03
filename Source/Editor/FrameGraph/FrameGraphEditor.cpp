@@ -1,7 +1,6 @@
 #include "FrameGraphEditor.hpp"
 #include "EditorState.hpp"
 #include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
-#include "ThirdParty/imgui/GraphEditor.h"
 #include <spdlog/spdlog.h>
 namespace Engine::Editor
 {

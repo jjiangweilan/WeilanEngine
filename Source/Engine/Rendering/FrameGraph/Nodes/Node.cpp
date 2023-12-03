@@ -1,4 +1,6 @@
 #include "Node.hpp"
+#include "Core/Component/MeshRenderer.hpp"
+#include "Core/GameObject.hpp"
 
 namespace Engine::FrameGraph
 {
@@ -148,16 +150,58 @@ void Node::Deserialize(Serializer* s)
     for (auto& p : inputProperties)
     {
         p.id += GetID();
-        propertyIDs[p.GetName()] = p.id;
+        inputPropertyIDs[p.GetName()] = p.id;
     }
     for (auto& p : outputProperties)
     {
         p.id += GetID();
-        propertyIDs[p.GetName()] = p.id;
+        outputPropertyIDs[p.GetName()] = p.id;
     }
 
     s->Deserialize("name", name);
     s->Deserialize("customName", customName);
+}
+
+void DrawList::Add(MeshRenderer& meshRenderer)
+{
+    auto mesh = meshRenderer.GetMesh();
+    if (mesh == nullptr)
+        return;
+
+    auto& submeshes = mesh->GetSubmeshes();
+    auto& materials = meshRenderer.GetMaterials();
+
+    for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
+    {
+        auto material = i < materials.size() ? materials[i] : nullptr;
+        auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
+        auto shader = material ? material->GetShaderProgram() : nullptr;
+
+        if (submesh != nullptr && material != nullptr && shader != nullptr)
+        {
+            // material->SetMatrix("Transform", "model",
+            // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+            uint32_t indexCount = submesh->GetIndexCount();
+
+            SceneObjectDrawData drawData;
+            drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
+            for (auto& binding : submesh->GetBindings())
+            {
+                drawData.vertexBufferBinding.push_back({submesh->GetVertexBuffer(), binding.byteOffset});
+            }
+            drawData.indexBuffer = submesh->GetIndexBuffer();
+            drawData.indexBufferType = submesh->GetIndexBufferType();
+
+            drawData.shaderResource = material->GetShaderResource();
+            drawData.shader = shader;
+            drawData.shaderConfig = &material->GetShaderConfig();
+            auto modelMatrix = meshRenderer.GetGameObject()->GetTransform()->GetModelMatrix();
+            drawData.pushConstant = modelMatrix;
+            drawData.indexCount = indexCount;
+
+            push_back(std::move(drawData));
+        }
+    }
 }
 
 } // namespace Engine::FrameGraph

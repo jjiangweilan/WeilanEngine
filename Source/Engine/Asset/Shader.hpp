@@ -106,6 +106,11 @@ public:
         LoadFromFile(path);
     };
     bool LoadFromFile(const char* path) override;
+    static void SetDefault(Shader* defaultShader);
+    static Shader* GetDefault();
+
+private:
+    static Shader*& GetDefaultPrivate();
 };
 
 class ComputeShader : public ShaderBase

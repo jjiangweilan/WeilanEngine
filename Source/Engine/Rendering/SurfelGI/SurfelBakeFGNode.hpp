@@ -23,7 +23,7 @@ public:
     Gfx::Image* normal;
     Gfx::Image* position;
     const uint32_t size = 512;
-    const uint32_t mipLevel = glm::log2((float)size);
+    const uint32_t mipLevel = glm::log2((float)size) + 1;
 
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
@@ -71,6 +71,15 @@ public:
                 Rect2D rect = {{0, 0}, {width, height}};
 
                 cmd.SetScissor(0, 1, &rect);
+
+                Gfx::GPUBarrier memBarrier{
+                    .srcStageMask = Gfx::PipelineStage::All_Commands,
+                    .dstStageMask = Gfx::PipelineStage::All_Commands,
+                    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+                    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write};
+
+                cmd.Barrier(&memBarrier, 1);
+
                 cmd.BeginRenderPass(pass, clearValues);
                 for (auto& draw : *drawList)
                 {
@@ -108,7 +117,7 @@ public:
                         {
                             .width = size,
                             .height = size,
-                            .format = Gfx::ImageFormat::R8G8B8A8_SRGB,
+                            .format = Gfx::ImageFormat::R32G32B32A32_SFloat,
                             .multiSampling = Gfx::MultiSampling::Sample_Count_1,
                             .mipLevels = mipLevel,
                             .isCubemap = false,
@@ -191,7 +200,7 @@ public:
 
     void Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        drawList = resources.GetResource(ResourceTag::DrawList{}, propertyIDs["draw list"]);
+        drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
@@ -230,15 +239,17 @@ private:
         {
             barriers[0] = {
                 .image = image,
-                .srcStageMask = Gfx::PipelineStage::Transfer,
+                .srcStageMask = mip == 1 ? Gfx::PipelineStage::Color_Attachment_Output : Gfx::PipelineStage::Transfer,
                 .dstStageMask = Gfx::PipelineStage::Transfer,
-                .srcAccessMask = Gfx::AccessMask::Transfer_Write,
+                .srcAccessMask = mip == 1
+                                     ? Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMask::Color_Attachment_Read
+                                     : Gfx::AccessMask::Transfer_Write,
                 .dstAccessMask = Gfx::AccessMask::Transfer_Read,
 
                 .imageInfo = {
                     .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                     .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = mip == 0 ? Gfx::ImageLayout::Color_Attachment : Gfx::ImageLayout::Transfer_Dst,
+                    .oldLayout = Gfx::ImageLayout::Dynamic,
                     .newLayout = Gfx::ImageLayout::Transfer_Src,
                     .subresourceRange =
                         {

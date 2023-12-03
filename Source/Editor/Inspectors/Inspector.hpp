@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Asset.hpp"
 #include "Core/Object.hpp"
 #include "InspectorRegistry.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -27,6 +28,16 @@ public:
     {
         // default inspector
         ImGui::Text("%s", ((Object*)target)->GetUUID().ToString().c_str());
+        if (Asset* asset = dynamic_cast<Asset*>(target))
+        {
+            auto nameStr = asset->GetName();
+            char name[256];
+            strcpy(name, nameStr.c_str());
+            if (ImGui::InputText("name", name, 256))
+            {
+                asset->SetName(name);
+            }
+        }
     };
 
 protected:

@@ -54,6 +54,12 @@ layout(location = 2) out vec4 oPosition;
 
 void main()
 {
+#ifdef G_SURFEL_BAKE
+    oColor = vec4(vals.color.xyz + vals.emission.xyz, 1.0f);
+    oNormal = vec4(normalize(fragInput.normalWS.xyz), 1.0f);
+    oPosition = vec4(fragInput.positionWS, 1.0f);
+    return;
+#else
     float c = scene.lightCount.x;
     vec3 color = vals.color.xyz;
     if (c > 0)
@@ -76,12 +82,7 @@ void main()
 #endif
     }
 
-    // oColor = vec4(shadowAttenuation);
-    // return;
     oColor = vec4(vec3(color * shadowAttenuation) + vals.emission.xyz, 1.0);
-#ifdef G_SURFEL_BAKE
-    oNormal = vec4(fragInput.normalWS, 1.0f);
-    oPosition = vec4(fragInput.positionWS, 1.0f);
 #endif
 }
 #endif
