@@ -2,6 +2,8 @@
 #include "Core/Component/Transform.hpp"
 #include "Core/GameObject.hpp"
 #include "Nodes/ImageNode.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/Server.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Engine::FrameGraph
@@ -248,6 +250,8 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     cmd.Barrier(&barrier, 1);
     graph->Execute(cmd);
+
+    Rendering::GetServer()->ExecuteGraph(*graph);
 }
 
 bool Graph::Compile()

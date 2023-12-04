@@ -6,6 +6,7 @@
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+#include "Rendering/RenderGraph/RenderGraph.hpp"
 
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
@@ -200,7 +201,7 @@ private:
     GraphResource graphResource;
     Shader* templateSceneResourceShader;
 
-    std::unique_ptr<RenderGraph::Graph> graph;
+    std::unique_ptr<Rendering::RenderGraph> graph;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
     Gfx::Buffer* sceneGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;

@@ -3,7 +3,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ImageView.hpp"
 #include "Resource.hpp"
-#include "ResourceCenter.hpp"
 #include <functional>
 #include <memory>
 #include <optional>
