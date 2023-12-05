@@ -2,6 +2,7 @@
 #include "Errors.hpp"
 
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 namespace Engine::RenderGraph
 {
@@ -519,6 +520,263 @@ void Graph::Clear()
     barrierNodes.clear();
     resourceOwners.clear();
     resourcePool.Clear();
+}
+
+NodeBuilder& NodeBuilder::InputTexture(
+    std::string_view name,
+    ResourceHandle handle,
+    Gfx::PipelineStage stageFlags,
+    Gfx::Image* externalImage,
+    std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange
+)
+{
+    if (descs.find(handle) != descs.end())
+    {
+        SPDLOG_WARN("duplicate node input handle");
+        return *this;
+    }
+
+    descs[handle] = RenderPass::ResourceDescription{
+        .name = std::string(name),
+        .handle = handle,
+        .type = ResourceType::Image,
+
+        .accessFlags = Gfx::AccessMask::Shader_Read,
+        .stageFlags = stageFlags,
+        .imageUsagesFlags = Gfx::ImageUsage::Texture,
+        .imageLayout = Gfx::ImageLayout::Shader_Read_Only,
+        .externalImage = externalImage,
+        .imageSubresourceRange = imageSubresourceRange,
+    };
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::InputRT(
+    std::string_view name,
+    ResourceHandle handle,
+    Gfx::Image* externalImage,
+    // used when you want to set a barrier to part of the image
+    std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange
+)
+{
+    descs[handle] = RenderPass::ResourceDescription{
+        .name = std::string(name),
+        .handle = handle,
+        .type = ResourceType::Image,
+        .accessFlags = Gfx::AccessMask::None,                 // access flag is filled later
+        .stageFlags = Gfx::PipelineStage::None,               // usage is filled later
+        .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment, // changed later
+        .imageLayout = Gfx::ImageLayout::Shader_Read_Only,    // changed layer
+        .externalImage = externalImage,
+        .imageSubresourceRange = imageSubresourceRange,
+    };
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::InputBuffer(
+    std::string name, ResourceHandle handle, Gfx::PipelineStage stageFlags, Gfx::Buffer* externalBuffer
+)
+{
+    if (descs.find(handle) != descs.end())
+    {
+        SPDLOG_WARN("duplicate node input handle");
+        return *this;
+    }
+
+    descs[handle] = RenderPass::ResourceDescription{
+        .name = name,
+        .handle = handle,
+        .type = ResourceType::Buffer,
+        .accessFlags = Gfx::AccessMask::Shader_Read,
+        .stageFlags = stageFlags,
+        .externalBuffer = externalBuffer,
+    };
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::AllocateRT(
+    std::string_view name,
+    ResourceHandle handle,
+    uint32_t width,
+    uint32_t height,
+    Gfx::ImageFormat format,
+    uint32_t mipLevel,
+    Gfx::MultiSampling multiSampling
+)
+{
+    if (descs.find(handle) != descs.end())
+    {
+        SPDLOG_WARN("duplicate node input handle");
+        return *this;
+    }
+
+    descs[handle] = RenderPass::ResourceDescription{
+        .name = std::string(name),
+        .handle = handle,
+        .type = ResourceType::Image,
+        .accessFlags = Gfx::AccessMask::None,                 // access flag is filled later
+        .stageFlags = Gfx::PipelineStage::None,               // usage is filled later
+        .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment, // changed later
+        .imageLayout = Gfx::ImageLayout::Shader_Read_Only,    // changed layer
+                                                              //
+        .imageCreateInfo =
+            {
+                .width = width,
+                .height = height,
+                .format = format,
+                .multiSampling = multiSampling,
+                .mipLevels = mipLevel,
+                .isCubemap = false,
+            },
+
+        .externalImage = nullptr,
+    };
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::NextSubpass()
+{
+    // not implemented
+    return *this;
+}
+NodeBuilder& NodeBuilder::AddColor(
+    ResourceHandle handle,
+    bool blend,
+    Gfx::AttachmentLoadOperation loadOp,
+    Gfx::AttachmentStoreOperation storeOp,
+    uint32_t mip,
+    uint32_t arrayLayer
+)
+{
+    auto iter = descs.find(handle);
+    if (iter == descs.end())
+    {
+        SPDLOG_ERROR("No such resources");
+        return *this;
+    }
+
+    if (subpasses.empty())
+    {
+        subpasses.push_back(RenderPass::Subpass{});
+    }
+
+    auto& desc = iter->second;
+    desc.stageFlags = Gfx::PipelineStage::Color_Attachment_Output;
+    desc.accessFlags = (storeOp == Gfx::AttachmentStoreOperation::Store ? Gfx::AccessMask::Color_Attachment_Write
+                                                                        : Gfx::AccessMask::None) |
+                       (blend ? Gfx::AccessMask::Color_Attachment_Read : Gfx::AccessMask::None);
+    desc.imageUsagesFlags = Gfx::ImageUsage::ColorAttachment;
+    desc.imageLayout = Gfx::ImageLayout::Color_Attachment;
+
+    RenderPass::Attachment att{
+        .handle = handle,
+        .imageView =
+            RenderPass::ImageView{
+                .imageViewType = Gfx::ImageViewType::Image_2D,
+                .subresourceRange =
+                    {
+                        .aspectMask = Gfx::ImageAspect::Color,
+                        .baseMipLevel = mip,
+                        .levelCount = 1,
+                        .baseArrayLayer = arrayLayer,
+                        .layerCount = 1,
+                    },
+            },
+        .multiSampling = desc.imageCreateInfo.multiSampling,
+        .loadOp = loadOp,
+        .storeOp = storeOp,
+        .stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare,
+        .stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare,
+    };
+
+    subpasses[subpassesIndex].colors.push_back(att);
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::AddDepthStencil(
+    ResourceHandle handle,
+    Gfx::AttachmentLoadOperation loadOp,
+    Gfx::AttachmentStoreOperation storeOp,
+    Gfx::AttachmentLoadOperation stencilLoadOp,
+    Gfx::AttachmentStoreOperation stencilStoreOp,
+    uint32_t mip,
+    uint32_t arrayLayer
+)
+{
+    auto iter = descs.find(handle);
+    if (iter == descs.end())
+    {
+        SPDLOG_ERROR("No such resources");
+        return *this;
+    }
+
+    if (subpasses.empty())
+    {
+        subpasses.push_back(RenderPass::Subpass{});
+    }
+
+    auto& desc = iter->second;
+    desc.stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests;
+    desc.accessFlags =
+        (storeOp == Gfx::AttachmentStoreOperation::Store ? Gfx::AccessMask::Depth_Stencil_Attachment_Write
+                                                         : Gfx::AccessMask::None) |
+        Gfx::AccessMask::Depth_Stencil_Attachment_Read;
+    desc.imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment;
+    desc.imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment;
+
+    RenderPass::Attachment att{
+        .handle = handle,
+        .imageView =
+            RenderPass::ImageView{
+                .imageViewType = Gfx::ImageViewType::Image_2D,
+                .subresourceRange =
+                    {
+                        .aspectMask =
+                            Gfx::ImageAspect::Depth | ((stencilLoadOp == Gfx::AttachmentLoadOperation::DontCare &&
+                                                        stencilStoreOp == Gfx::AttachmentStoreOperation::DontCare)
+                                                           ? Gfx::ImageAspect::None
+                                                           : Gfx::ImageAspect::Stencil),
+                        .baseMipLevel = mip,
+                        .levelCount = 1,
+                        .baseArrayLayer = arrayLayer,
+                        .layerCount = 1,
+                    },
+            },
+        .multiSampling = desc.imageCreateInfo.multiSampling,
+        .loadOp = loadOp,
+        .storeOp = storeOp,
+        .stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare,
+        .stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare,
+    };
+
+    subpasses[subpassesIndex].depth = att;
+
+    return *this;
+}
+
+NodeBuilder& NodeBuilder::AllocateBuffer(std::string_view name, ResourceHandle handle, size_t size)
+{
+    // not implemented
+    return *this;
+}
+
+RenderNode* NodeBuilder::Finish()
+{
+    finished = true;
+    std::vector<RenderPass::ResourceDescription> resourceDescriptions;
+    resourceDescriptions.reserve(descs.size());
+    for (auto& iter : descs)
+    {
+        resourceDescriptions.push_back(iter.second);
+    }
+    auto node = graph->AddNode(execFunc, resourceDescriptions, subpasses);
+    node->SetName(name);
+    return node;
 }
 
 } // namespace Engine::RenderGraph

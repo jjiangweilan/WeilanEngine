@@ -106,6 +106,87 @@ struct PassDependency
 
 ResourceHandle StrToHandle(const std::string& str);
 
+class NodeBuilder
+{
+public:
+    NodeBuilder(const std::string& name, Graph& graph) : name(name), graph(&graph) {}
+    ~NodeBuilder()
+    {
+        if (!finished)
+            Finish();
+    }
+
+    RenderPass::ExecutionFunc execFunc;
+
+    NodeBuilder& InputTexture(
+        std::string_view name,
+        ResourceHandle handle,
+        Gfx::PipelineStage stageFlags,
+        Gfx::Image* externalImage = nullptr,
+        std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange = std::nullopt
+    );
+
+    NodeBuilder& SetExecFunc(const RenderPass::ExecutionFunc& f)
+    {
+        execFunc = f;
+        return *this;
+    }
+
+    NodeBuilder& InputRT(
+        std::string_view name,
+        ResourceHandle handle,
+        Gfx::Image* externalImage = nullptr,
+        std::optional<Gfx::ImageSubresourceRange> imageSubresourceRange = std::nullopt
+    );
+
+    NodeBuilder& InputBuffer(
+        std::string name, ResourceHandle handle, Gfx::PipelineStage stageFlags, Gfx::Buffer* externalBuffer = nullptr
+    );
+
+    NodeBuilder& AllocateRT(
+        std::string_view name,
+        ResourceHandle handle,
+        uint32_t width,
+        uint32_t height,
+        Gfx::ImageFormat format,
+        uint32_t mipLevel = 1,
+        Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1
+    );
+
+    NodeBuilder& AllocateBuffer(std::string_view name, ResourceHandle handle, size_t size);
+
+    NodeBuilder& AddColor(
+        ResourceHandle handle,
+        bool blend = false,
+        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear,
+        Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store,
+        uint32_t mip = 0,
+        uint32_t arrayLayer = 0
+    );
+
+    NodeBuilder& AddDepthStencil(
+        ResourceHandle handle,
+        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear,
+        Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation stencilLoadOp = Gfx::AttachmentLoadOperation::DontCare,
+        Gfx::AttachmentStoreOperation stencilStoreOp = Gfx::AttachmentStoreOperation::DontCare,
+        uint32_t mip = 0,
+        uint32_t arrayLayer = 0
+    );
+    NodeBuilder& NextSubpass();
+
+    // automatically called when this NodeBuilder is destroied
+    RenderNode* Finish();
+
+private:
+    std::unordered_map<ResourceHandle, RenderPass::ResourceDescription> descs;
+    std::vector<RenderPass::Subpass> subpasses;
+    size_t subpassesIndex = 0;
+    std::string name;
+    Graph* graph;
+    bool finished = false;
+};
+
 class Graph
 {
 public:
@@ -117,6 +198,13 @@ public:
     //     const std::vector<RenderPass::ResourceDescription>& resourceDescs,
     //     const std::vector<RenderPass::Subpass>& subpasses
     // )
+    //
+
+    NodeBuilder AddNode(std::string_view name)
+    {
+        return NodeBuilder(std::string(name), *this);
+    }
+
     RenderNode* AddNode2(
         const std::vector<PassDependency>& dependencies,
         const std::vector<Subpass>& subpasses,
