@@ -150,7 +150,8 @@ public:
         uint32_t height,
         Gfx::ImageFormat format,
         uint32_t mipLevel = 1,
-        Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1
+        Gfx::MultiSampling multiSampling = Gfx::MultiSampling::Sample_Count_1,
+        Gfx::ImageUsageFlags extraUsages = Gfx::ImageUsage::None
     );
 
     NodeBuilder& AllocateBuffer(std::string_view name, ResourceHandle handle, size_t size);

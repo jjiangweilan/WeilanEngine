@@ -604,7 +604,8 @@ NodeBuilder& NodeBuilder::AllocateRT(
     uint32_t height,
     Gfx::ImageFormat format,
     uint32_t mipLevel,
-    Gfx::MultiSampling multiSampling
+    Gfx::MultiSampling multiSampling,
+    Gfx::ImageUsageFlags extraUsages
 )
 {
     if (descs.find(handle) != descs.end())
@@ -617,11 +618,16 @@ NodeBuilder& NodeBuilder::AllocateRT(
         .name = std::string(name),
         .handle = handle,
         .type = ResourceType::Image,
-        .accessFlags = Gfx::AccessMask::None,                 // access flag is filled later
-        .stageFlags = Gfx::PipelineStage::None,               // usage is filled later
-        .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment, // changed later
-        .imageLayout = Gfx::ImageLayout::Shader_Read_Only,    // changed layer
-                                                              //
+        .accessFlags = Gfx::AccessMask::None,          // access flag is filled later
+        .stageFlags = Gfx::PipelineStage::Top_Of_Pipe, // usage is filled later
+        .imageUsagesFlags = extraUsages |
+                            (Gfx::IsDepthStencilFormat(format) ? Gfx::ImageUsage::DepthStencilAttachment
+                                                               : Gfx::ImageUsage::ColorAttachment) |
+                            Gfx::ImageUsage::Texture,
+        .imageLayout = Gfx::IsDepthStencilFormat(format)
+                           ? Gfx::ImageLayout::Depth_Stencil_Attachment
+                           : Gfx::ImageLayout::Color_Attachment, // changed later in AddColor
+
         .imageCreateInfo =
             {
                 .width = width,
@@ -669,7 +675,7 @@ NodeBuilder& NodeBuilder::AddColor(
     desc.accessFlags = (storeOp == Gfx::AttachmentStoreOperation::Store ? Gfx::AccessMask::Color_Attachment_Write
                                                                         : Gfx::AccessMask::None) |
                        (blend ? Gfx::AccessMask::Color_Attachment_Read : Gfx::AccessMask::None);
-    desc.imageUsagesFlags = Gfx::ImageUsage::ColorAttachment;
+    desc.imageUsagesFlags |= Gfx::ImageUsage::ColorAttachment;
     desc.imageLayout = Gfx::ImageLayout::Color_Attachment;
 
     RenderPass::Attachment att{
@@ -726,7 +732,7 @@ NodeBuilder& NodeBuilder::AddDepthStencil(
         (storeOp == Gfx::AttachmentStoreOperation::Store ? Gfx::AccessMask::Depth_Stencil_Attachment_Write
                                                          : Gfx::AccessMask::None) |
         Gfx::AccessMask::Depth_Stencil_Attachment_Read;
-    desc.imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment;
+    desc.imageUsagesFlags |= Gfx::ImageUsage::DepthStencilAttachment;
     desc.imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment;
 
     RenderPass::Attachment att{
