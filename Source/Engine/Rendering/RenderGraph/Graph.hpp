@@ -106,46 +106,10 @@ struct PassDependency
 
 ResourceHandle StrToHandle(const std::string& str);
 
-struct RTIndentifier
-{
-    RTIndentifier(ResourceHandle handle);
-    RTIndentifier(Gfx::Image& image);
-};
-
 class Graph
 {
 public:
     virtual ~Graph();
-
-    ResourceHandle AllocateRT();
-
-    // override next RenderPass viewport and scissor settings
-    void SetViewport();
-    void SetScissor();
-
-    void BeginRenderPass();
-    void NextRenderPass();
-    void EndRenderPass();
-    void DrawIndexed();
-    void Draw();
-
-    void Blit();
-    void PushDescriptor();
-
-    void BindShaderProgram();
-    void BindResource();
-    void BindVertexBuffer();
-    void BindIndexBuffer();
-
-    void SetPushConstant();
-
-    void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
-    void DispatchIndir(Gfx::Buffer& buffer, size_t bufferOffset);
-
-    void UpdateBuffer(Gfx::Buffer& dst, size_t offset, uint8_t* data, size_t size);
-    void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions);
-    void CopyImageToBuffer(RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions);
-    void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions);
 
     // a simplified version of
     // RenderNode* AddNode(

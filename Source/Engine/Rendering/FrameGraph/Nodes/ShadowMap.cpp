@@ -67,18 +67,10 @@ public:
             }
         );
 
-        graph.SetTexture(shadowBindingName, shadowDepthHandle);
-        graph.SetGlobalUniform(dataOffset, data);
-
         return {
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["shadow map"], shadowMapPass, 2),
         };
     };
-
-    void Execute() override
-    {
-        graph.SetGlobalUniform(dataOffset, data);
-    }
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
     {

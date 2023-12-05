@@ -23,17 +23,6 @@ public:
         glm::vec4* clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
 
         auto opaqueColorHandle = RenderGraph::StrToHandle("opaque color");
-
-        RenderGraph::ResourceHandle color = graph.AllocateRT("opaque color");
-        RenderGraph::ResourceHandle depth = graph.AllocateRT("opaque depth");
-
-        graph.SetViewport();
-        graph.SetScissor();
-        graph.BeginRenderPass({color}, depth);
-        graph.BindResource(sceneShaderResource);
-        graph.BindVertexBuffer();
-        graph.EndRenderPass();
-
         forwardNode = graph.AddNode2(
             {
                 {
