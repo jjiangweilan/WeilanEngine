@@ -6,6 +6,7 @@
 #include "Core/GameObject.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
+#include "Rendering/SceneRenderer.hpp"
 #include <SDL2/SDL.h>
 #include <iterator>
 namespace Engine

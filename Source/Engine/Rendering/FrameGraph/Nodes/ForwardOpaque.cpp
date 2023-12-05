@@ -18,9 +18,14 @@ public:
         DefineNode();
     }
 
-    std::vector<Resource> Preprocess(Rendering::RenderGraph& graph) override
+    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         glm::vec4* clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
+
+        auto opaqueColorHandle = RenderGraph::StrToHandle("opaque color");
+
+        RenderGraph::ResourceHandle color = graph.AllocateRT("opaque color");
+        RenderGraph::ResourceHandle depth = graph.AllocateRT("opaque depth");
 
         graph.SetViewport();
         graph.SetScissor();

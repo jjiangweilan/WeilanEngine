@@ -3,7 +3,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
-#include "Rendering/RenderGraph/RenderGraph.hpp"
+#include "Rendering/RenderGraph/Graph.hpp"
 #include <any>
 #include <glm/glm.hpp>
 #include <span>
@@ -207,7 +207,8 @@ struct Resource
     FGID propertyID;
 
     // RenderGraphLink
-    Rendering::RenderGraph::ResourceHandle handle;
+    RenderGraph::RenderNode* node;
+    RenderGraph::ResourceHandle handle;
 
     const DrawList* drawList;
 };
@@ -264,12 +265,12 @@ public:
         return id;
     }
 
-    virtual std::vector<Resource> Preprocess(Rendering::RenderGraph& graph)
+    virtual std::vector<Resource> Preprocess(RenderGraph::Graph& graph)
     {
         return {};
     }
-    virtual void Build(Rendering::RenderGraph& graph, Resources& resources){};
-    virtual void Finalize(Rendering::RenderGraph& graph, Resources& resources){};
+    virtual void Build(RenderGraph::Graph& graph, Resources& resources){};
+    virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
     virtual void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
     virtual void Execute(GraphResource& graphResource){};
     virtual void OnDestroy() {}
