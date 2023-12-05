@@ -38,6 +38,8 @@ bool RenderPipeline::AcquireSwapchainImage()
 void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
 {
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
+    GetGfxDriver()->ClearResources();
+
     submitFence->Reset();
 
     cmdQueue.clear();

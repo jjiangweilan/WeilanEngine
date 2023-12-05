@@ -153,6 +153,7 @@ namespace ImageUsage
 {
 enum Enum : uint32_t
 {
+    None = 0x0,
     ColorAttachment = 0x1,
     DepthStencilAttachment = 0x2,
     Texture = 0x4,

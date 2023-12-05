@@ -98,6 +98,8 @@ public:
     ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
 
+    void ClearResources() override;
+
 private:
     VKInstance* instance;
     VKDevice* device;

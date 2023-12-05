@@ -478,4 +478,10 @@ std::unique_ptr<ImageView> VKDriver::CreateImageView(const ImageView::CreateInfo
 {
     return std::unique_ptr<ImageView>(new VKImageView(createInfo));
 }
+
+void VKDriver::ClearResources()
+{
+    context->objManager->DestroyPendingResources();
+    context->allocator->DestroyPendingResources();
+}
 } // namespace Engine::Gfx
