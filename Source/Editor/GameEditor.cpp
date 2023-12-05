@@ -672,8 +672,9 @@ void GameEditor::ConsoleOutputWindow()
     auto lastRaw = ringBufferSink->last_raw();
     static auto formatter = std::make_unique<spdlog::pattern_formatter>();
     ImGui::Begin("Console");
-    for (auto& r : lastRaw)
+    for (auto iter = lastRaw.rbegin(); iter != lastRaw.rend(); ++iter)
     {
+        auto& r = *iter;
         spdlog::memory_buf_t formatted;
         formatter->format(r, formatted);
         bool colorPushed = false;

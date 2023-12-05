@@ -51,39 +51,29 @@ public:
                 }
             );
         }
-        node = graph.AddNode2(
-            {},
-            {{
-                .colors = {{
-                    .name = "opaque color",
-                    .handle = 0,
-                    .create = false,
-                    .loadOp = Gfx::AttachmentLoadOperation::Load,
-                    .storeOp = Gfx::AttachmentStoreOperation::Store,
-                }},
-                .depth = {{
-                    .name = "opaque depth",
-                    .handle = 1,
-                    .create = false,
-                    .loadOp = Gfx::AttachmentLoadOperation::Load,
-                    .storeOp = Gfx::AttachmentStoreOperation::Store,
-                }},
-            }},
-            [=](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
+
+        auto exec = [=](Gfx::CommandBuffer& cmd, auto& pass, auto& res)
+        {
+            if (debug && *debug && giScene && debugArrow)
             {
-                if (debug && *debug && giScene && debugArrow)
-                {
-                    auto& submesh = debugArrow->GetSubmeshes()[0];
-                    cmd.BeginRenderPass(pass, {});
-                    cmd.BindSubmesh(submesh);
-                    cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
-                    cmd.BindResource(passResource);
-                    size_t surfelSize = giScene->surfels.size();
-                    cmd.DrawIndexed(submesh.GetIndexCount(), surfelSize, 0, 0, 0);
-                    cmd.EndRenderPass();
-                }
+                auto& submesh = debugArrow->GetSubmeshes()[0];
+                cmd.BeginRenderPass(pass, {});
+                cmd.BindSubmesh(submesh);
+                cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
+                cmd.BindResource(passResource);
+                size_t surfelSize = giScene->surfels.size();
+                cmd.DrawIndexed(submesh.GetIndexCount(), surfelSize, 0, 0, 0);
+                cmd.EndRenderPass();
             }
-        );
+        };
+
+        node = graph.AddNode(GetCustomName())
+                   .InputRT("opaque color", 0)
+                   .InputRT("opaque depth", 1)
+                   .AddColor(0, false, Gfx::AttachmentLoadOperation::Load)
+                   .AddDepthStencil(1, Gfx::AttachmentLoadOperation::Load)
+                   .SetExecFunc(exec)
+                   .Finish();
 
         return {
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["color"], node, 0),

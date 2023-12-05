@@ -2,7 +2,6 @@
 #include "../Tool.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
-#include "Rendering/SceneRenderer.hpp"
 
 namespace Engine::Editor
 {
@@ -31,7 +30,6 @@ public:
     }
 
 private:
-    std::unique_ptr<SceneRenderer> renderer;
     std::unique_ptr<Gfx::Image> sceneImage;
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;

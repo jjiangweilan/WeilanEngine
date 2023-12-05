@@ -101,7 +101,6 @@ static void EditorCameraWalkAround(Camera& editorCamera)
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     GetGfxDriver()->WaitForIdle();
-    renderer = std::make_unique<SceneRenderer>(*GameEditor::instance->GetEngine()->assetDatabase);
     sceneImage = GetGfxDriver()->CreateImage(
         {
             .width = width,
@@ -113,13 +112,6 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         },
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
-    renderer->BuildGraph({
-        .finalImage = sceneImage.get(),
-        .layout = Gfx::ImageLayout::Shader_Read_Only,
-        .accessFlags = Gfx::AccessMask::Shader_Read,
-        .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-    });
-    renderer->Process();
 
     editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
 }
@@ -156,10 +148,6 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
         cmd.Barrier(&barrier, 1);
     }
-    //else
-    //{
-    //    renderer->Render(cmd, *scene);
-    //}
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)

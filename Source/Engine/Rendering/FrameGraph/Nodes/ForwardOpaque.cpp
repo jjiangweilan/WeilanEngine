@@ -61,6 +61,7 @@ public:
 
             cmd.EndRenderPass();
         };
+
         forwardNode =
             graph.AddNode(GetCustomName())
                 .InputTexture("shadow", RenderGraph::StrToHandle("shadow map"), Gfx::PipelineStage::Fragment_Shader)
@@ -70,70 +71,6 @@ public:
                 .AddDepthStencil(opaqueDepthHnadle)
                 .SetExecFunc(execFunc)
                 .Finish();
-
-        // forwardNode = graph.AddNode2(
-        //     {
-        //         {
-        //             .name = "shadow",
-        //             .handle = RenderGraph::StrToHandle("shadow map"),
-        //             .type = RenderGraph::PassDependencyType::Texture,
-        //             .stageFlags = Gfx::PipelineStage::Fragment_Shader,
-        //         },
-        //     },
-        //     {{
-        //         .colors = {{
-        //             .name = "opaque color",
-        //             .handle = opaqueColorHandle,
-        //             .create = false,
-        //             .loadOp = Gfx::AttachmentLoadOperation::Clear,
-        //             .storeOp = Gfx::AttachmentStoreOperation::Store,
-        //         }},
-        //         .depth = {{
-        //             .name = "opaque depth",
-        //             .handle = RenderGraph::StrToHandle("opaque depth"),
-        //             .create = false,
-        //             .loadOp = Gfx::AttachmentLoadOperation::Clear,
-        //             .storeOp = Gfx::AttachmentStoreOperation::Store,
-        //         }},
-        //     }},
-        //     [this,
-        //      clearValuesVal,
-        //      opaqueColorHandle](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
-        //     {
-        //         Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
-        //         uint32_t width = color->GetDescription().width;
-        //         uint32_t height = color->GetDescription().height;
-        //         cmd.BindResource(sceneShaderResource);
-        //         cmd.SetViewport(
-        //             {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
-        //         );
-        //         Rect2D rect = {{0, 0}, {width, height}};
-        //         clearValues[0].color = {
-        //             {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
-        //         clearValues[1].depthStencil = {1};
-
-        //        cmd.SetScissor(0, 1, &rect);
-        //        cmd.BeginRenderPass(pass, clearValues);
-
-        //        // draw scene objects
-        //        for (auto& draw : *drawList)
-        //        {
-        //            cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
-        //            cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-        //            cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-        //            cmd.BindResource(draw.shaderResource);
-        //            cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
-        //            cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-        //        }
-
-        //        // draw skybox
-        //        // auto& cubeMesh = cube->GetMeshes()[0];
-        //        // CmdDrawSubmesh(cmd, *cubeMesh, 0, *skyboxShader, *skyboxPassResource);
-
-        //        cmd.EndRenderPass();
-        //    }
-        //);
-        // forwardNode->SetName(GetCustomName());
 
         return {
             Resource(

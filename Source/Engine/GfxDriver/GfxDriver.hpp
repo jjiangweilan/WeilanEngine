@@ -116,6 +116,8 @@ public:
     virtual AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
+    virtual void ClearResources() = 0;
+
 private:
     static GfxDriver*& InstanceInternal();
 };

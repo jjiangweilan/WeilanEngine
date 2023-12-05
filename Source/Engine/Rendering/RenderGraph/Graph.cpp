@@ -564,10 +564,10 @@ NodeBuilder& NodeBuilder::InputRT(
         .name = std::string(name),
         .handle = handle,
         .type = ResourceType::Image,
-        .accessFlags = Gfx::AccessMask::None,                 // access flag is filled later
-        .stageFlags = Gfx::PipelineStage::None,               // usage is filled later
-        .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment, // changed later
-        .imageLayout = Gfx::ImageLayout::Shader_Read_Only,    // changed layer
+        .accessFlags = Gfx::AccessMask::None,       // access flag is filled later
+        .stageFlags = Gfx::PipelineStage::None,     // usage is filled later
+        .imageUsagesFlags = Gfx::ImageUsage::None,  // changed later
+        .imageLayout = Gfx::ImageLayout::Undefined, // changed layer
         .externalImage = externalImage,
         .imageSubresourceRange = imageSubresourceRange,
     };

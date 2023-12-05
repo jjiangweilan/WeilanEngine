@@ -116,8 +116,6 @@ public:
             Finish();
     }
 
-    RenderPass::ExecutionFunc execFunc;
-
     NodeBuilder& InputTexture(
         std::string_view name,
         ResourceHandle handle,
@@ -174,6 +172,7 @@ public:
         uint32_t mip = 0,
         uint32_t arrayLayer = 0
     );
+
     NodeBuilder& NextSubpass();
 
     // automatically called when this NodeBuilder is destroied
@@ -186,20 +185,13 @@ private:
     std::string name;
     Graph* graph;
     bool finished = false;
+    RenderPass::ExecutionFunc execFunc;
 };
 
 class Graph
 {
 public:
     virtual ~Graph();
-
-    // a simplified version of
-    // RenderNode* AddNode(
-    //     const RenderPass::ExecutionFunc& execute,
-    //     const std::vector<RenderPass::ResourceDescription>& resourceDescs,
-    //     const std::vector<RenderPass::Subpass>& subpasses
-    // )
-    //
 
     NodeBuilder AddNode(std::string_view name)
     {
