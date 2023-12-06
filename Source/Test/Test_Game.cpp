@@ -1,6 +1,5 @@
 #include "AssetDatabase/Importers.hpp"
 #include "Core/Component/MeshRenderer.hpp"
-#include "Rendering/SceneRenderer.hpp"
 #include "Utils/AssetLoader.hpp"
 #include "WeilanEngine.hpp"
 #include "spdlog/spdlog.h"
