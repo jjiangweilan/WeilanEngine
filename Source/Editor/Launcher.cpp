@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <spdlog/spdlog.h>
+
 namespace Engine
 {
 
@@ -52,10 +53,29 @@ public:
 };
 
 } // namespace Engine
-#undef main
+  //
 
+#ifndef SDL_MAIN_HANDLED
+#ifdef main
+#undef main
+#endif
+#endif
+
+#ifdef __IPHONEOS__
+int SDL_main(int argc, char** argv)
+{
+    Engine::Launcher l;
+    l.ArgsParser(argc, argv);
+    return 0;
+}
+int main(int argc, char** argv)
+{
+    return SDL_UIKitRunApp(argc, argv, SDL_main);
+}
+#else
 int main(int argc, char** argv)
 {
     Engine::Launcher l;
     l.ArgsParser(argc, argv);
 }
+#endif

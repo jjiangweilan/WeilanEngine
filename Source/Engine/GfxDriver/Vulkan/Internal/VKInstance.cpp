@@ -3,12 +3,18 @@
 
 #include <cstring>
 #include <spdlog/spdlog.h>
-
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
 namespace Engine::Gfx
 {
 VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
 {
+#ifdef TARGET_OS_IOS
+    bool enableValidationLayers = false;
+#else
     bool enableValidationLayers = true;
+#endif
 
     // Create vulkan application info
     VkApplicationInfo appInfo{};
@@ -28,26 +34,31 @@ VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
     createInfo.enabledLayerCount = 0;
     createInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
     createInfo.pNext = VK_NULL_HANDLE;
-#if __APPLE__
+#ifndef TARGET_OS_IOS
     createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
     std::vector<const char*> extensions = requiredExtension;
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
+#ifndef TARGET_OS_IOS
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+#endif
+
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!CheckAvalibilityOfValidationLayers(validationLayers))
         {
-            throw std::runtime_error("validation layers requested, but not available!");
+            SPDLOG_WARN("No validation layer is enabled");
         }
 
         // VK_EXT_DEBUG_UTILS_EXTENSION_NAME enables message callback
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#if __APPLE__
+
+#ifndef TARGET_OS_IOS
         extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -86,9 +97,10 @@ VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
         {
             throw std::runtime_error("failed to set up debug messenger!");
         }
+
+        VKDebugUtils::Init(vulkanInstance);
     }
 
-    VKDebugUtils::Init(vulkanInstance);
 }
 
 VKInstance::~VKInstance()
