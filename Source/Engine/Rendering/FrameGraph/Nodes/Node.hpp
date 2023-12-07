@@ -382,9 +382,14 @@ protected:
     }
 
     template <ConfigurableType type, class T>
-    void AddConfig(const char* name, const T& val)
+    void AddConfig(const char* name, const T& defaultVal)
     {
-        configs.emplace_back(Configurable::C<type>(name, val));
+        configs.emplace_back(Configurable::C<type>(name, defaultVal));
+    }
+
+    void ClearConfigs()
+    {
+        configs.clear();
     }
 
     std::unordered_map<std::string, FGID> inputPropertyIDs;
