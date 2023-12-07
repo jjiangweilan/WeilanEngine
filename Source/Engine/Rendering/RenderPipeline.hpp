@@ -18,7 +18,7 @@ public:
     void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f);
     void Render();
     void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0);
-    void UploadImage(Gfx::Image& dst);
+    void UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel = 0, uint32_t arayLayer = 0);
 
 private:
     RenderPipeline();
@@ -48,11 +48,23 @@ private:
         size_t dstOffset;
     };
 
+    struct PendingImageUpload
+    {
+        Gfx::Buffer* staging;
+        Gfx::Image* dst;
+        size_t stagingOffset;
+        size_t size;
+        uint32_t mipLevel;
+        uint32_t arrayLayer;
+    };
+
     class StagingBuffer
     {
     public:
-        void UploadBuffers(Gfx::CommandBuffer& cmd);
+        void Upload(Gfx::CommandBuffer& cmd);
         void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset);
+        void UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer);
+        void Clear();
 
         StagingBuffer();
 
@@ -61,6 +73,7 @@ private:
         // when staging is used up, temp staging buffers will be created.
         std::vector<std::unique_ptr<Gfx::Buffer>> tempBuffers;
         std::vector<PendingBufferUpload> pendingUploads;
+        std::vector<PendingImageUpload> pendingImages;
         size_t stagingOffset = 0;
     } staging;
 

@@ -39,7 +39,15 @@ void RenderPipeline::Render()
     Gfx::CommandBuffer* cmd = frameCmdBuffer.GetActive();
     cmd->Begin();
 
-    staging.UploadBuffers(*cmd);
+    staging.Upload(*cmd);
+
+    Gfx::GPUBarrier barrier{
+        .srcStageMask = Gfx::PipelineStage::Transfer,
+        .dstStageMask = Gfx::PipelineStage::Top_Of_Pipe,
+        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
+    };
+    cmd->Barrier(&barrier, 1);
 
     for (auto& f : pendingWorks)
     {
@@ -53,6 +61,9 @@ void RenderPipeline::Render()
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     submitFence->Reset();
 
+    GetGfxDriver()->ClearResources();
+    staging.Clear(); // staing resources will be deleted next frame
+
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
     Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
     RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
@@ -61,8 +72,6 @@ void RenderPipeline::Render()
 
     pendingWorks.clear();
     frameCmdBuffer.Swap();
-
-    GetGfxDriver()->ClearResources();
 }
 
 RenderPipeline::FrameCmdBuffer::FrameCmdBuffer()
@@ -131,21 +140,103 @@ void RenderPipeline::StagingBuffer::UploadBuffer(Gfx::Buffer& dst, uint8_t* data
     {
         Gfx::Buffer::CreateInfo createInfo{Gfx::BufferUsage::Transfer_Src, size, true, "temp staging buffer"};
         auto buf = GetGfxDriver()->CreateBuffer(createInfo);
-        memcpy(((uint8_t*)buf->GetCPUVisibleAddress() + stagingOffset), data, size);
-        pendingUploads.push_back({buf.Get(), &dst, size, stagingOffset, dstOffset});
+        memcpy(((uint8_t*)buf->GetCPUVisibleAddress()), data, size);
+        pendingUploads.push_back({buf.Get(), &dst, size, 0, dstOffset});
         tempBuffers.push_back(std::move(buf));
     }
 }
 
-void RenderPipeline::StagingBuffer::UploadBuffers(Gfx::CommandBuffer& cmd)
+void RenderPipeline::StagingBuffer::Upload(Gfx::CommandBuffer& cmd)
 {
     for (auto& b : pendingUploads)
     {
         cmd.CopyBuffer(b.staging, b.dst, b.size, b.stagingOffset, b.dstOffset);
     }
 
-    tempBuffers.clear();
+    for (auto& i : pendingImages)
+    {
+        Gfx::GPUBarrier barrier{
+            .image = i.dst,
+            .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,
+            .dstStageMask = Gfx::PipelineStage::Transfer,
+            .srcAccessMask = Gfx::AccessMask::None,
+            .dstAccessMask = Gfx::AccessMask::Transfer_Write,
+
+            .imageInfo = {
+                .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
+                .oldLayout = Gfx::ImageLayout::Undefined,
+                .newLayout = Gfx::ImageLayout::Transfer_Dst,
+                .subresourceRange =
+                    {
+                        .aspectMask = i.dst->GetSubresourceRange().aspectMask,
+                        .baseMipLevel = 0,
+                        .levelCount = 1,
+                        .baseArrayLayer = 0,
+                        .layerCount = 1,
+                    },
+            }};
+
+        auto& desc = i.dst->GetDescription();
+        Gfx::BufferImageCopyRegion c[1] = {{
+            .srcOffset = i.stagingOffset,
+            .layers =
+                {.aspectMask = i.dst->GetSubresourceRange().aspectMask,
+                 .mipLevel = i.mipLevel,
+                 .baseArrayLayer = i.arrayLayer,
+                 .layerCount = 1},
+            .offset = {0, 0, 0},
+            .extend = {desc.width, desc.height, 1},
+
+        }};
+
+        cmd.Barrier(&barrier, 1);
+        cmd.CopyBufferToImage(i.staging, i.dst, c);
+
+        barrier.imageInfo.oldLayout = Gfx::ImageLayout::Transfer_Dst;
+        barrier.imageInfo.newLayout = Gfx::ImageLayout::Shader_Read_Only;
+        barrier.srcStageMask = Gfx::PipelineStage::Transfer;
+        barrier.dstStageMask = Gfx::PipelineStage::Top_Of_Pipe;
+        barrier.srcAccessMask = Gfx::AccessMask::Transfer_Write;
+        barrier.dstAccessMask = Gfx::AccessMask::None;
+        cmd.Barrier(&barrier, 1);
+    }
+
+    pendingImages.clear();
+    pendingUploads.clear();
     stagingOffset = 0;
+}
+
+void RenderPipeline::StagingBuffer::Clear()
+{
+    tempBuffers.clear();
+}
+
+void RenderPipeline::UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer)
+{
+    staging.UploadImage(dst, data, size, mipLevel, arayLayer);
+}
+
+void RenderPipeline::StagingBuffer::UploadImage(
+    Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer
+)
+{
+    const size_t stagingBufferSize = staging->GetSize();
+
+    if (stagingOffset + size <= stagingBufferSize)
+    {
+        memcpy(((uint8_t*)staging->GetCPUVisibleAddress() + stagingOffset), data, size);
+        pendingImages.push_back({staging.get(), &dst, stagingOffset, size, mipLevel, arayLayer});
+        stagingOffset += size;
+    }
+    else
+    {
+        Gfx::Buffer::CreateInfo createInfo{Gfx::BufferUsage::Transfer_Src, size, true, "temp staging buffer"};
+        std::unique_ptr<Gfx::Buffer> buf = GetGfxDriver()->CreateBuffer(createInfo);
+        memcpy(((uint8_t*)buf->GetCPUVisibleAddress()), data, size);
+        pendingImages.push_back({buf.get(), &dst, 0, size, mipLevel, arayLayer});
+        tempBuffers.push_back(std::move(buf));
+    }
 }
 
 RenderPipeline::StagingBuffer::StagingBuffer()
