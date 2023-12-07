@@ -396,8 +396,7 @@ void GameEditor::Start()
 
             GUIPass();
 
-            auto& cmd = engine->GetActiveCmdBuffer();
-            Render(cmd);
+            RenderPipeline::Singleton().Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
 
             engine->EndFrame();
         }

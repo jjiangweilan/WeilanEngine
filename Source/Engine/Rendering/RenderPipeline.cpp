@@ -20,36 +20,97 @@ RenderPipeline::RenderPipeline()
 bool RenderPipeline::AcquireSwapchainImage()
 {
     auto result = GetGfxDriver()->AcquireNextSwapChainImage(swapchainAcquireSemaphore);
-    if (result == Gfx::AcquireNextSwapChainImageResult::Recreated)
-    {
-        for (auto& cb : swapchainRecreateCallback)
-        {
-            cb();
-        }
-    }
-    else if (result == Gfx::AcquireNextSwapChainImageResult::Failed)
-        return false;
-    else if (result == Gfx::AcquireNextSwapChainImageResult::Succeeded)
+    if (result == Gfx::AcquireNextSwapChainImageResult::Succeeded)
         return true;
 
     return false;
 }
 
-void RenderPipeline::Render(Rendering::CmdSubmitGroup& submitGroup)
+void RenderPipeline::Schedule(const std::function<void(Gfx::CommandBuffer& cmd)>& f)
 {
+    pendingWorks.push_back(std::move(f));
+}
+
+void RenderPipeline::Render()
+{
+    if (!AcquireSwapchainImage())
+        return;
+
     GetGfxDriver()->WaitForFence({submitFence}, true, -1);
     GetGfxDriver()->ClearResources();
-
     submitFence->Reset();
 
+    Gfx::CommandBuffer* cmd = frameCmdBuffer.GetActive();
+    cmd->Begin();
+
+    for (auto& f : pendingWorks)
+    {
+        f(*cmd);
+    }
+    cmd->End();
+
     cmdQueue.clear();
-    cmdQueue.insert(cmdQueue.end(), submitGroup.GetCmds().begin(), submitGroup.GetCmds().end());
+    cmdQueue.push_back(cmd);
 
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
     Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
     RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
     GetGfxDriver()->QueueSubmit(queue, cmdQueue, waitSemaphores, waitPipelineStages, submitSemaphores, submitFence);
-
     GetGfxDriver()->Present({submitSemaphore});
+
+    pendingWorks.clear();
+    frameCmdBuffer.Swap();
+}
+
+RenderPipeline::FrameCmdBuffer::FrameCmdBuffer()
+{
+    auto queueFamilyIndex = GetGfxDriver()->GetQueue(QueueType::Main)->GetFamilyIndex();
+    cmdPool = GetGfxDriver()->CreateCommandPool({queueFamilyIndex});
+
+    cmd0 = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+    cmd1 = cmdPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
+
+    activeCmd = cmd0.get();
+}
+
+std::unique_ptr<RenderPipeline>& RenderPipeline::SingletonPrivate()
+{
+    static std::unique_ptr<RenderPipeline> instance = nullptr;
+    return instance;
+}
+
+void RenderPipeline::Init()
+{
+    SingletonPrivate() = std::unique_ptr<RenderPipeline>(new RenderPipeline());
+}
+
+void RenderPipeline::Deinit()
+{
+    SingletonPrivate() = nullptr;
+}
+
+void RenderPipeline::FrameCmdBuffer::Swap()
+{
+    if (activeCmd == cmd0.get())
+    {
+        activeCmd = cmd1.get();
+    }
+    else
+    {
+        activeCmd = cmd0.get();
+    }
+
+    // the newly actived will be reset here
+    activeCmd->Reset(false);
+}
+
+RenderPipeline& RenderPipeline::Singleton()
+{
+    return *SingletonPrivate();
+}
+
+void RenderPipeline::SetBufferData(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
+{
+    pendingSetBuffers.push_back({});
 }
 } // namespace Engine
