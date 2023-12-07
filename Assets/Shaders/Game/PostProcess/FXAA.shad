@@ -11,7 +11,11 @@ name: Game/PostProcess/FXAA
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 oColor;
 
-layout(set = 1, location = 0) uniform sampler2D source;
+layout(set = 1, binding = 0) uniform sampler2D source;
+layout(set = 1, binding = 1) uniform FXAA
+{
+    float val;
+} fxaa;
 
 void main()
 {

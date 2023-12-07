@@ -384,7 +384,14 @@ protected:
     template <ConfigurableType type, class T>
     void AddConfig(const char* name, const T& defaultVal)
     {
-        configs.emplace_back(Configurable::C<type>(name, defaultVal));
+        if constexpr (std::is_pointer_v<T>)
+        {
+            configs.emplace_back(Configurable::C<type>(name, static_cast<Object*>(defaultVal)));
+        }
+        else
+        {
+            configs.emplace_back(Configurable::C<type>(name, defaultVal));
+        }
     }
 
     void ClearConfigs()
