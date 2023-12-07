@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include "Rendering/RenderPipeline.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -48,19 +49,19 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     );
     image->SetName(GetName());
 
-    uint32_t byteSize =
-        Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+    uint32_t byteSize = Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
     Gfx::Buffer::CreateInfo bufCreateInfo;
     bufCreateInfo.size = byteSize;
     bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
     bufCreateInfo.debugName = "mesh staging buffer";
     bufCreateInfo.visibleInCPU = true;
-    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-    memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
 
-    ImmediateGfx::OnetimeSubmit(
-        [this, &stagingBuffer](Gfx::CommandBuffer& cmd)
+    RenderPipeline::Singleton().Schedule(
+        [=](Gfx::CommandBuffer& cmd)
         {
+            std::unique_ptr<Gfx::Buffer> stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+            memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
+
             auto subresourceRange = image->GetSubresourceRange();
 
             Gfx::GPUBarrier barrier{
@@ -374,12 +375,14 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
             bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
             bufCreateInfo.debugName = "mesh staging buffer";
             bufCreateInfo.visibleInCPU = true;
-            auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-            memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
 
-            ImmediateGfx::OnetimeSubmit(
-                [this, &stagingBuffer, &copies](Gfx::CommandBuffer& cmd)
+            RenderPipeline::Singleton().Schedule(
+                [=](Gfx::CommandBuffer& cmd) mutable
                 {
+                    std::unique_ptr<Gfx::Buffer> stagingBuffer =
+                        Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+                    memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
+
                     Gfx::GPUBarrier barrier{
                         .image = image,
                         .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,

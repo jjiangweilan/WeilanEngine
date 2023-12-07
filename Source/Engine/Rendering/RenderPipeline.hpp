@@ -15,10 +15,10 @@ public:
 
     static RenderPipeline& Singleton();
 
-    void Schedule(const std::function<void(Gfx::CommandBuffer& cmd)>& f);
+    void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f);
     void Render();
-    void SetBufferData(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0);
-    void SetImageData(Gfx::Image& dst);
+    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0);
+    void UploadImage(Gfx::Image& dst);
 
 private:
     RenderPipeline();
@@ -39,17 +39,30 @@ private:
         std::unique_ptr<Gfx::CommandPool> cmdPool;
     } frameCmdBuffer;
 
-    struct PendingSetBuffer
+    struct PendingBufferUpload
     {
+        Gfx::Buffer* staging;
         Gfx::Buffer* dst;
-        uint8_t* data;
         size_t size;
         size_t stagingOffset;
         size_t dstOffset;
     };
 
-    struct StagingBuffer
-    {};
+    class StagingBuffer
+    {
+    public:
+        void UploadBuffers(Gfx::CommandBuffer& cmd);
+        void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset);
+
+        StagingBuffer();
+
+    private:
+        std::unique_ptr<Gfx::Buffer> staging;
+        // when staging is used up, temp staging buffers will be created.
+        std::vector<std::unique_ptr<Gfx::Buffer>> tempBuffers;
+        std::vector<PendingBufferUpload> pendingUploads;
+        size_t stagingOffset = 0;
+    } staging;
 
     // present data
     RefPtr<CommandQueue> queue;
@@ -57,10 +70,9 @@ private:
     std::unique_ptr<Gfx::Fence> submitFence;
     std::unique_ptr<Gfx::Semaphore> swapchainAcquireSemaphore;
     std::unique_ptr<Gfx::CommandPool> commandPool;
-    std::unique_ptr<Gfx::Buffer> staging;
 
     std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingWorks;
-    std::vector<PendingSetBuffer> pendingSetBuffers;
+    std::vector<PendingBufferUpload> pendingSetBuffers;
 
     std::vector<Gfx::CommandBuffer*> cmdQueue;
 

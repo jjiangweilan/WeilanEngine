@@ -26,7 +26,7 @@ bool RenderPipeline::AcquireSwapchainImage()
     return false;
 }
 
-void RenderPipeline::Schedule(const std::function<void(Gfx::CommandBuffer& cmd)>& f)
+void RenderPipeline::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
     pendingWorks.push_back(std::move(f));
 }
@@ -36,12 +36,10 @@ void RenderPipeline::Render()
     if (!AcquireSwapchainImage())
         return;
 
-    GetGfxDriver()->WaitForFence({submitFence}, true, -1);
-    GetGfxDriver()->ClearResources();
-    submitFence->Reset();
-
     Gfx::CommandBuffer* cmd = frameCmdBuffer.GetActive();
     cmd->Begin();
+
+    staging.UploadBuffers(*cmd);
 
     for (auto& f : pendingWorks)
     {
@@ -52,6 +50,9 @@ void RenderPipeline::Render()
     cmdQueue.clear();
     cmdQueue.push_back(cmd);
 
+    GetGfxDriver()->WaitForFence({submitFence}, true, -1);
+    submitFence->Reset();
+
     RefPtr<Gfx::Semaphore> waitSemaphores[] = {swapchainAcquireSemaphore};
     Gfx::PipelineStageFlags waitPipelineStages[] = {Gfx::PipelineStage::Color_Attachment_Output};
     RefPtr<Gfx::Semaphore> submitSemaphores[] = {submitSemaphore.get()};
@@ -60,6 +61,8 @@ void RenderPipeline::Render()
 
     pendingWorks.clear();
     frameCmdBuffer.Swap();
+
+    GetGfxDriver()->ClearResources();
 }
 
 RenderPipeline::FrameCmdBuffer::FrameCmdBuffer()
@@ -109,8 +112,45 @@ RenderPipeline& RenderPipeline::Singleton()
     return *SingletonPrivate();
 }
 
-void RenderPipeline::SetBufferData(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
+void RenderPipeline::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
 {
-    pendingSetBuffers.push_back({});
+    staging.UploadBuffer(dst, data, size, dstOffset);
+}
+
+void RenderPipeline::StagingBuffer::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
+{
+    const size_t stagingBufferSize = staging->GetSize();
+
+    if (stagingOffset + size <= stagingBufferSize)
+    {
+        memcpy(((uint8_t*)staging->GetCPUVisibleAddress() + stagingOffset), data, size);
+        pendingUploads.push_back({staging.get(), &dst, size, stagingOffset, dstOffset});
+        stagingOffset += size;
+    }
+    else
+    {
+        Gfx::Buffer::CreateInfo createInfo{Gfx::BufferUsage::Transfer_Src, size, true, "temp staging buffer"};
+        auto buf = GetGfxDriver()->CreateBuffer(createInfo);
+        memcpy(((uint8_t*)buf->GetCPUVisibleAddress() + stagingOffset), data, size);
+        pendingUploads.push_back({buf.Get(), &dst, size, stagingOffset, dstOffset});
+        tempBuffers.push_back(std::move(buf));
+    }
+}
+
+void RenderPipeline::StagingBuffer::UploadBuffers(Gfx::CommandBuffer& cmd)
+{
+    for (auto& b : pendingUploads)
+    {
+        cmd.CopyBuffer(b.staging, b.dst, b.size, b.stagingOffset, b.dstOffset);
+    }
+
+    tempBuffers.clear();
+    stagingOffset = 0;
+}
+
+RenderPipeline::StagingBuffer::StagingBuffer()
+{
+    Gfx::Buffer::CreateInfo createInfo{Gfx::BufferUsage::Transfer_Src, 1024 * 1024 * 32, true, "staging buffer"};
+    staging = GetGfxDriver()->CreateBuffer(createInfo);
 }
 } // namespace Engine

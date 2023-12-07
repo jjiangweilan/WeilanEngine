@@ -129,6 +129,17 @@ public:
     virtual void CopyBuffer(
         RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;
+    void CopyBuffer(
+        RefPtr<Gfx::Buffer> bDst,
+        RefPtr<Gfx::Buffer> bSrc,
+        uint64_t size,
+        uint64_t dstOffset = 0,
+        uint64_t srcOffset = 0
+    )
+    {
+        BufferCopyRegion r[1]{{srcOffset, dstOffset, size}};
+        CopyBuffer(bSrc, bDst, r);
+    }
     virtual void CopyImageToBuffer(
         RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
     ) = 0;

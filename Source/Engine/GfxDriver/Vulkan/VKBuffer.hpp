@@ -14,14 +14,20 @@ public:
     ~VKBuffer() override;
 
     void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
-    void FillMemoryBarrierIfNeeded(std::vector<VkBufferMemoryBarrier>& barriers,
-                                   VkPipelineStageFlags stageMask,
-                                   VkAccessFlags accessMask);
+    void FillMemoryBarrierIfNeeded(
+        std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
+    );
     void* GetCPUVisibleAddress() override;
     void SetDebugName(const char* name) override;
-    size_t GetSize() override { return size; }
+    size_t GetSize() override
+    {
+        return size;
+    }
 
-    inline VkBuffer GetHandle() { return buffer; }
+    inline VkBuffer GetHandle()
+    {
+        return buffer;
+    }
 
 private:
     std::string name;
@@ -36,6 +42,7 @@ private:
     VmaAllocationInfo allocationInfo;
     VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkAccessFlags accessMask = VK_ACCESS_MEMORY_READ_BIT;
+
     void CreateBuffer();
 };
 } // namespace Engine::Gfx
