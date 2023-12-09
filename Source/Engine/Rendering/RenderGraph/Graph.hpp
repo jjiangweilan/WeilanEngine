@@ -388,7 +388,7 @@ public:
         return nodes.back().get();
     }
 
-    static void Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle);
+    static bool Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle);
 
     // After all nodes are configured, call process once before calling Execute
     // the graph handles the transition of swapchain image, set the resourceHandle of the presentNode to the output of

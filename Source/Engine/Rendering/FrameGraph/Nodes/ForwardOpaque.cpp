@@ -87,7 +87,7 @@ public:
             )};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
@@ -97,9 +97,16 @@ public:
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["shadow map"]);
         drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
 
-        graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color"));
-        graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
-        graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map"));
+        if (graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color")) &&
+            graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth")) &&
+            graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map")))
+        {
+            return true;
+        }
+        else
+            false;
+
+        return true;
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override

@@ -80,15 +80,20 @@ public:
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["depth"], node, 1)};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
         auto [depthNode, depthHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["depth"]);
 
-        graph.Connect(colorNode, colorHandle, node, 0);
-        graph.Connect(depthNode, depthHandle, node, 1);
+        if (graph.Connect(colorNode, colorHandle, node, 0) && graph.Connect(depthNode, depthHandle, node, 1))
+        {
+            return true;
+        }
+        else
+            return false;
+        return true;
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override{};

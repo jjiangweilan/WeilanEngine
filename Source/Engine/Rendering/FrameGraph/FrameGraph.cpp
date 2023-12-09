@@ -295,7 +295,11 @@ bool Graph::Compile()
 
     for (auto& n : nodes)
     {
-        n->Build(*graph, buildResources);
+        if (!n->Build(*graph, buildResources))
+        {
+            compiled = false;
+            return compiled;
+        }
     }
 
     graph->Process();

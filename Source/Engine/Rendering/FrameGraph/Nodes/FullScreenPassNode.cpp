@@ -53,30 +53,43 @@ public:
         {
             if (shader != nullptr)
             {
-                // cmd.BeginRenderPass(pass, clears);
-                // cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
-                // cmd.EndRenderPass();
+                cmd.BeginRenderPass(pass, clears);
+                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+                cmd.BindResource(passResource);
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
             }
         };
 
         fullScreenPassNode = graph.AddNode(GetCustomName())
                                  .InputTexture("input color", 1, Gfx::PipelineStage::Fragment_Shader)
-                                 .InputRT("color", 0)
+                                 .InputRT("target color", 0)
                                  .AddColor(0)
                                  .SetExecFunc(execFunc)
                                  .Finish();
 
-        return {
-            Resource(ResourceTag::RenderGraphLink{}, 0, fullScreenPassNode, RenderGraph::StrToHandle("opaque color"))};
+        return {Resource(ResourceTag::RenderGraphLink{}, 0, fullScreenPassNode, 0)};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
-        auto [colorNode, colorHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
+        auto [sourceNode, sourceHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["source"]);
+        auto [targetColor, targetHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["target color"]);
 
-        graph.Connect(colorNode, colorHandle, fullScreenPassNode, 0);
+        return graph.Connect(sourceNode, sourceHandle, fullScreenPassNode, 1) &&
+               graph.Connect(targetColor, targetHandle, fullScreenPassNode, 0);
     };
+
+    void Finalize(RenderGraph::Graph& graph, Resources& resources) override
+    {
+        auto [sourceNode, sourceHandle] =
+            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["source"]);
+
+        Gfx::Image* image = (Gfx::Image*)sourceNode->GetPass()->GetResourceRef(sourceHandle)->GetResource();
+        passResource->SetImage("source", image);
+    }
 
     void Execute(GraphResource& graphResource) override {}
 
@@ -88,7 +101,10 @@ private:
     void DefineNode()
     {
         AddConfig<ConfigurableType::ObjectPtr>("shader", nullptr);
-        AddInputProperty("color", PropertyType::RenderGraphLink);
+        AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
+
+        AddInputProperty("source", PropertyType::RenderGraphLink);
+        AddInputProperty("target color", PropertyType::RenderGraphLink);
         AddOutputProperty("color", PropertyType::RenderGraphLink);
     }
     static char _reg;

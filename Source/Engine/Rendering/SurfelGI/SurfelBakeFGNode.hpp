@@ -198,9 +198,12 @@ public:
         return {};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
+
+        if (drawList == nullptr) return false;
+        return true;
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
