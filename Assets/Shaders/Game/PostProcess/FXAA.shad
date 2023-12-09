@@ -240,7 +240,8 @@ vec4 FxaaPixelShader(
 
 void main()
 {
-    oColor = FxaaPixelShader(uv, source, vec2(1.0/1920, 1.0/1080), 0.75, 0.125, 0.0625);
+    vec2 sourceSize = textureSize(source, 0);
+    oColor = FxaaPixelShader(uv, source, vec2(1.0/sourceSize.x, 1.0/sourceSize.y), 0.75, 0.125, 0.0625);
 }
 
 #endif
