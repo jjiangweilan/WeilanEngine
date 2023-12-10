@@ -21,7 +21,7 @@ public:
     };
 
 public:
-    Buffer(BufferUsageFlags usages) : bufferUsages(usages) {};
+    Buffer(BufferUsageFlags usages) : bufferUsages(usages){};
     virtual ~Buffer(){};
     virtual void* GetCPUVisibleAddress() = 0;
     virtual void SetDebugName(const char* name) = 0;
