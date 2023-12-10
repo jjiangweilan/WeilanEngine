@@ -1,0 +1,32 @@
+#version 450
+
+#if CONFIG
+name: Game/PostProcess/ReinhardToneMapping
+#endif
+
+#include "Utils/FullScreen.glsl"
+
+#if FRAG
+
+layout(location = 0) in vec2 uv;
+layout(location = 0) out vec4 oColor;
+
+layout(set = 1, binding = 0) uniform sampler2D source;
+layout(set = 1, binding = 1) uniform Pass
+{
+    float val;
+} pass;
+
+vec3 ReinhardToneMapping(vec3 color, float adapted_lum) 
+{
+    const float MIDDLE_GREY = 1;
+    color *= MIDDLE_GREY / adapted_lum;
+    return color / (1.0f + color);
+}
+
+void main()
+{
+    oColor = vec4(ReinhardToneMapping(texture(source, uv).xyz, 1.0), 1.0);
+}
+
+#endif

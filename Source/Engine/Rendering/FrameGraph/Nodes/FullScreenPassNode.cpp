@@ -68,7 +68,7 @@ public:
                                  .SetExecFunc(execFunc)
                                  .Finish();
 
-        return {Resource(ResourceTag::RenderGraphLink{}, 0, fullScreenPassNode, 0)};
+        return {Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["color"], fullScreenPassNode, 0)};
     }
 
     bool Build(RenderGraph::Graph& graph, Resources& resources) override

@@ -30,7 +30,7 @@ VKShaderResource::VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceF
       sharedResource(VKContext::Instance()->sharedResource), device(VKContext::Instance()->device)
 {
     slot = MapDescriptorSetSlot(frequency);
-    descriptorPool = &shaderProgram->GetDescriptorPool(MapDescriptorSetSlot(frequency));
+    descriptorPool = &shaderProgram->GetDescriptorPool(slot);
     descriptorSet = descriptorPool->Allocate();
     auto& shaderInfo = shaderProgram->GetShaderInfo();
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_DESCRIPTOR_SET, (uint64_t)descriptorSet, std::to_string(slot).c_str());

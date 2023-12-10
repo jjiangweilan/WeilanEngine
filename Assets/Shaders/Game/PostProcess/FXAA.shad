@@ -26,6 +26,7 @@ layout(set = 1, binding = 1) uniform FXAA
 
 float FxaaLuma(vec4 rgb) 
 {
+    rgb = pow(rgb, vec4(2.2f));
     return rgb.y * (0.587/0.299) + rgb.x; 
 }
 
