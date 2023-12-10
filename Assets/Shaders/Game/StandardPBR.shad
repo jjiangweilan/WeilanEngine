@@ -20,7 +20,8 @@ features:
 #if VERT
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
-layout(location = 2) in vec2 i_UV;
+layout(location = 2) in vec4 i_Tangent;
+layout(location = 3) in vec2 i_UV;
 
 layout(location = 0) out vec3 o_PositionWS;
 layout(location = 1) out vec3 o_NormalWS;
@@ -30,11 +31,10 @@ layout(location = 4) out vec2 o_UV;
 layout(location = LOC_ShadowMapCS) out vec4 o_ShadowCS;
 void main()
 {
-    vec3 tangent = vec3(1,0,0);
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
-    o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal,1)).xyz;
-    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(tangent,1)).xyz;
-    o_BitangentWS = cross(o_NormalWS, o_TangentWS);
+    o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz, 1)).xyz;
+    o_BitangentWS = i_Tangent.w * cross(o_NormalWS, o_TangentWS);
     o_UV = i_UV;
 
     o_ShadowCS = scene.worldToShadow * vec4(o_PositionWS, 1);
@@ -46,7 +46,7 @@ void main()
 #if FRAG
 layout(location = 0) in vec3 i_PositionWS;
 layout(location = 1) in vec3 i_NormalWS;
-layout(location = 2) in vec3 i_TangentWS;
+layout(location = 2) in vec3 i_TangentWS; // maybe look at MikkTSpace
 layout(location = 3) in vec3 i_BitangentWS;
 layout(location = 4) in vec2 i_UV;
 layout(early_fragment_tests) in;
@@ -167,7 +167,8 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(color * shadowAttenuation + baseColor / M_PI * 10, 1);
+    const float ambient = 10;
+    o_Color = vec4(color * shadowAttenuation + baseColor / M_PI * ambient, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
