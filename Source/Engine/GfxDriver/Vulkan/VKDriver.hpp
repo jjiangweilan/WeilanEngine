@@ -70,9 +70,7 @@ public:
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
     UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
-    UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
-        override;
-
+    std::unique_ptr<ShaderResource> CreateShaderResource() override;
     std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;

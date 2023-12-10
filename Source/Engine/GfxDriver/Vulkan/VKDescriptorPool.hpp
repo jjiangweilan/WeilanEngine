@@ -39,6 +39,11 @@ private:
     VkDescriptorPool CreateNewPool();
 };
 
+struct VkDescriptorSetLayoutCreateInfoHash
+{
+    std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
+};
+
 // TODO: this is bad, too many pools are created
 struct VKDescriptorPoolCache
 {
@@ -46,13 +51,9 @@ struct VKDescriptorPoolCache
     VKDescriptorPool& RequestDescriptorPool(const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo);
 
 private:
-    struct VkDescriptorSetLayoutCreateInfoHash
-    {
-        std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
-    };
-
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
-    std::unordered_map<VkDescriptorSetLayoutCreateInfo, VKDescriptorPool, VkDescriptorSetLayoutCreateInfoHash> descriptorLayoutPoolCache;
+    std::unordered_map<VkDescriptorSetLayoutCreateInfo, VKDescriptorPool, VkDescriptorSetLayoutCreateInfoHash>
+        descriptorLayoutPoolCache;
     RefPtr<VKContext> context;
 
 private:

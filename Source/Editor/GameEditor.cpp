@@ -53,7 +53,7 @@ GameEditor::GameEditor(const char* path)
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
 
-    toolList.emplace_back(new EnvironmentBaker());
+    // toolList.emplace_back(new EnvironmentBaker());
 
     for (auto& t : toolList)
     {

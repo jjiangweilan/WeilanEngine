@@ -20,44 +20,42 @@ class VKDriver;
 // actually a binding resource
 class VKShaderResource : public ShaderResource
 {
+    // ---------------------------- New API ----------------------------------
 public:
-    VKShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency);
+    VKShaderResource();
+    void SetBuffer(const std::string& name, Gfx::Buffer* buffer) override;
+    void SetImage(const std::string& name, Gfx::Image* image) override;
+    void SetImage(const std::string& name, Gfx::ImageView* imageView) override;
+    void SetImage(const std::string& name, nullptr_t) override;
+    Gfx::Buffer* GetBuffer(const std::string& name) override;
+    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
+
+    // ---------------------------- Old API ----------------------------------
+public:
     ~VKShaderResource() override;
 
-    VkDescriptorSet GetDescriptorSet();
-    RefPtr<ShaderProgram> GetShaderProgram() override;
-    RefPtr<Buffer> GetBuffer(const std::string& object, BufferMemberInfoMap& memberInfo) override;
-    bool HasPushConstnat(const std::string& obj) override;
-    void SetImage(const std::string& param, RefPtr<Image> image) override;
-    void SetImage(const std::string& name, ImageView* imageView) override;
-    void SetBuffer(Buffer& buffer, unsigned int binding, size_t offset = 0, size_t range = 0) override;
-    void SetBuffer(const std::string& bindingName, Buffer& buffer) override;
-    DescriptorSetSlot GetDescriptorSetSlot() const
-    {
-        return slot;
-    }
-
 protected:
-    using Binding = unsigned int;
-    const std::unordered_map<std::string, VkPushConstantRange>* pushConstantRanges = nullptr;
-    bool pushConstantIsUsed = false;
+    enum class ResourceType
+    {
+        ImageView,
+        Buffer
+    };
 
-    RefPtr<VKShaderProgram> shaderProgram;
-    RefPtr<VKSharedResource> sharedResource;
-    RefPtr<VKDevice> device;
+    struct ResourceRef
+    {
+        void* res = nullptr;
+        ResourceType type;
+    };
+    std::unordered_map<std::string, ResourceRef> bindings;
+    VkPipelineLayout layout = VK_NULL_HANDLE;
+    uint32_t set = -1;
 
-    VkDescriptorSet descriptorSet;
+    VKSharedResource* sharedResource;
+    VKDevice* device;
+
     VKDescriptorPool* descriptorPool = nullptr;
-    DescriptorSetSlot slot;
 
-    unsigned char* pushConstantBuffer = nullptr;
-    std::unordered_map<Binding, Buffer*> buffers;
-    std::unordered_map<std::string, VKImageView*> imageVies;
-
-    // TODO: deprecated
-    std::unordered_map<std::string, UniPtr<VKBuffer>> uniformBuffers;
-
-    std::unordered_map<std::string, VKBuffer*> storageBuffers;
-    std::vector<std::function<void()>> pendingTextureUpdates;
+    std::unordered_map<size_t, VkDescriptorSet> sets;
+    bool rebuild = false;
 };
 } // namespace Engine::Gfx

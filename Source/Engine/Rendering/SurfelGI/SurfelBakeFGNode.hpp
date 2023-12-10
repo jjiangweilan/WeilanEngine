@@ -64,7 +64,7 @@ public:
                 Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
                 uint32_t width = color->GetDescription().width;
                 uint32_t height = color->GetDescription().height;
-                cmd.BindResource(sceneShaderResource);
+                cmd.BindResource(0, sceneShaderResource);
                 cmd.SetViewport(
                     {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
                 );
@@ -86,7 +86,7 @@ public:
                     cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.BindResource(draw.shaderResource);
+                    cmd.BindResource(2, draw.shaderResource);
                     cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }

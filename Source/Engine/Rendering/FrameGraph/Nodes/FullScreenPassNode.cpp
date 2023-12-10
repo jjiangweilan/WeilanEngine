@@ -22,7 +22,7 @@ public:
     {
         Shader* shader = GetConfigurableVal<Shader*>("shader");
         passResource =
-            GetGfxDriver()->CreateShaderResource(shader->GetDefaultShaderProgram(), Gfx::ShaderResourceFrequency::Pass);
+            GetGfxDriver()->CreateShaderResource();
 
         ClearConfigs();
         AddConfig<ConfigurableType::ObjectPtr>("shader", shader);
@@ -55,7 +55,7 @@ public:
             {
                 cmd.BeginRenderPass(pass, clears);
                 cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
-                cmd.BindResource(passResource);
+                cmd.BindResource(1, passResource.get());
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }

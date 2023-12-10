@@ -30,7 +30,7 @@ public:
         if (giScene && shader)
         {
             program = shader->GetDefaultShaderProgram();
-            passResource = GetGfxDriver()->CreateShaderResource(program, Gfx::ShaderResourceFrequency::Pass);
+            passResource = GetGfxDriver()->CreateShaderResource();
             size_t giSceneSize = giScene->surfels.size() * sizeof(SurfelGI::Surfel);
             Gfx::Buffer::CreateInfo createInfo{
                 Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Transfer_Src,
@@ -42,7 +42,7 @@ public:
             auto staging = GetGfxDriver()->CreateBuffer(createInfo);
             memcpy(staging->GetCPUVisibleAddress(), giScene->surfels.data(), giSceneSize);
 
-            passResource->SetBuffer("GIScene", *buf);
+            passResource->SetBuffer("GIScene", buf.get());
             ImmediateGfx::OnetimeSubmit(
                 [&](Gfx::CommandBuffer& cmd)
                 {
@@ -60,7 +60,7 @@ public:
                 cmd.BeginRenderPass(pass, {});
                 cmd.BindSubmesh(submesh);
                 cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
-                cmd.BindResource(passResource);
+                cmd.BindResource(1, passResource.get());
                 size_t surfelSize = giScene->surfels.size();
                 cmd.DrawIndexed(submesh.GetIndexCount(), surfelSize, 0, 0, 0);
                 cmd.EndRenderPass();

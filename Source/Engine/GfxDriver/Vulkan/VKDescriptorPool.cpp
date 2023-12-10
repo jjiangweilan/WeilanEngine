@@ -134,9 +134,7 @@ VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(
     }
 }
 
-std::size_t VKDescriptorPoolCache::VkDescriptorSetLayoutCreateInfoHash::operator()(
-    const VkDescriptorSetLayoutCreateInfo& c
-) const
+std::size_t VkDescriptorSetLayoutCreateInfoHash::operator()(const VkDescriptorSetLayoutCreateInfo& c) const
 {
     using std::size_t;
     size_t rlt = c.bindingCount | c.flags << 15;

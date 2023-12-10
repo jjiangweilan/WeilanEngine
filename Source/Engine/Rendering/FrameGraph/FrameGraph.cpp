@@ -237,7 +237,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
     cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
 
-    cmd.BindResource(sceneShaderResource);
+    cmd.BindResource(0, sceneShaderResource.get());
     Gfx::GPUBarrier barrier{
         .buffer = sceneGlobalBuffer,
         .srcStageMask = Gfx::PipelineStage::Transfer,
@@ -254,18 +254,20 @@ bool Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();
 
-    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource(
-        templateSceneResourceShader->GetDefaultShaderProgram(),
-        Gfx::ShaderResourceFrequency::Global
-    );
+    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource();
     stagingBuffer = GetGfxDriver()->CreateBuffer({
         .usages = Gfx::BufferUsage::Transfer_Src,
         .size = 1024 * 1024, // 1 MB
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
-    Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
-    sceneGlobalBuffer = sceneShaderResource->GetBuffer("SceneInfo", memberInfo).Get();
+    sceneGlobalBuffer = GetGfxDriver()->CreateBuffer({
+        .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+        .size = sizeof(sceneInfo),
+        .visibleInCPU = false,
+        .debugName = "Scene Info Buffer",
+    });
+    sceneShaderResource->SetBuffer("SceneInfo", sceneGlobalBuffer.get());
 
     graph = std::make_unique<RenderGraph::Graph>();
 

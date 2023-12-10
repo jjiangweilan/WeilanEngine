@@ -46,9 +46,9 @@ public:
             delete desc.data;
         }
     }
-    RefPtr<Gfx::Image> GetGfxImage()
+    Gfx::Image* GetGfxImage()
     {
-        return image;
+        return image.get();
     };
     const TextureDescription& GetDescription()
     {
@@ -66,7 +66,7 @@ public:
 
 private:
     TextureDescription desc;
-    UniPtr<Gfx::Image> image;
+    std::unique_ptr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);
     void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);
     void CreateGfxImage(TextureDescription& texDesc);

@@ -12,6 +12,7 @@
 namespace Engine::Gfx
 {
 class VKShaderResource;
+class VKShaderProgram;
 class VKDevice;
 class VKCommandBuffer : public CommandBuffer
 {
@@ -26,7 +27,8 @@ public:
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
     // renderpass and framebuffer have to be compatible.
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
-    void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
+    // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
+    void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
     void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex)
         override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
@@ -62,11 +64,26 @@ public:
 
 private:
     VkCommandBuffer vkCmdBuf;
-    VKRenderPass* currentRenderPass = nullptr;
-    uint32_t currentRenderIndex = -1;
 
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
     std::vector<VkMemoryBarrier> memoryMemoryBarriers;
+
+    VkDescriptorSet bindedDescriptorSets[4];
+    VKRenderPass* renderPass = nullptr;
+    uint32_t renderIndex = -1;
+
+    // pending state
+    struct SetResources
+    {
+        bool needUpdate = false;
+        VKShaderResource* resource = VK_NULL_HANDLE;
+    } setResources[4];
+
+    VKShaderProgram* shaderProgram;
+    const ShaderConfig* shaderConfig;
+    bool needUpdateDescriptorSetBinding;
+
+    void UpdateDescriptorSetBinding();
 };
 } // namespace Engine::Gfx
