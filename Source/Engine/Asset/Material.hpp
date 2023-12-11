@@ -86,17 +86,32 @@ private:
     uint64_t globalShaderFeaturesHash;
 
     bool overrideShaderConfig = false;
-    std::unordered_map<std::string, float> floatValues;
-    std::unordered_map<std::string, glm::vec4> vectorValues;
-    std::unordered_map<std::string, glm::mat4> matrixValues;
+
+    struct UBO
+    {
+        std::unique_ptr<Gfx::Buffer> buffer;
+        std::unordered_map<std::string, float> floats;
+        std::unordered_map<std::string, glm::vec4> vectors;
+        std::unordered_map<std::string, glm::mat4> matrices;
+
+        void Serialize(Serializer* ser);
+        void Deserialize(Serializer* ser);
+    };
+
+    std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, Texture*> textureValues;
     std::unordered_set<std::string> enabledFeatures;
+    std::unique_ptr<Gfx::Buffer> buffer;
 
     void UpdateResources();
+    void CreateBuffer();
     void SetShaderNoProtection(RefPtr<Shader> shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
     void TransferToGPU(
         Gfx::ShaderResource* shaderResource, const std::string& param, const std::string& member, uint8_t* data
     );
+
+    void UpdateBuffer(const std::string& bindingName);
+    void UpdatePendingBuffer();
 };
 } // namespace Engine

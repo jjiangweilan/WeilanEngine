@@ -27,7 +27,6 @@ public:
     void SetImage(const std::string& name, Gfx::Image* image) override;
     void SetImage(const std::string& name, Gfx::ImageView* imageView) override;
     void SetImage(const std::string& name, nullptr_t) override;
-    Gfx::Buffer* GetBuffer(const std::string& name) override;
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
 
     // ---------------------------- Old API ----------------------------------

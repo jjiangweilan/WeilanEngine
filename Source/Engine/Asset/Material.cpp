@@ -23,10 +23,17 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
     //     });
 }
 
-Material::Material(const Material& other)
-    : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig), floatValues(other.floatValues),
-      vectorValues(other.vectorValues), matrixValues(other.matrixValues), textureValues(other.textureValues)
+Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
 {
+    for (auto& ubo : other.ubos)
+    {
+        auto& thisUbo = this->ubos[ubo.first];
+        thisUbo.buffer = nullptr;
+        thisUbo.floats = ubo.second.floats;
+        thisUbo.vectors = ubo.second.vectors;
+        thisUbo.matrices = ubo.second.matrices;
+    }
+
     if (other.shader)
         SetShader(other.shader);
 }
@@ -112,44 +119,46 @@ void Material::TransferToGPU(
 
 void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
 {
-    matrixValues[param + "." + member] = value;
-    if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
+    ubos[param].matrices[member] = value;
     SetDirty();
 }
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
 {
-    floatValues[param + "." + member] = value;
-    if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
+    ubos[param].floats[member] = value;
     SetDirty();
 }
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
 {
-    vectorValues[param + "." + member] = value;
-    if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
+    ubos[param].vectors[member] = value;
     SetDirty();
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
 {
-    auto iter = matrixValues.find(param + "." + member);
-    if (iter != matrixValues.end())
+    auto iter = ubos.find(param);
+    if (iter != ubos.end())
     {
-        return iter->second;
+        auto memIter = iter->second.matrices.find(member);
+        if (memIter != iter->second.matrices.end())
+        {
+            return memIter->second;
+        }
     }
     return glm::mat4(0);
 }
 
 glm::vec4 Material::GetVector(const std::string& param, const std::string& member)
 {
-    auto iter = vectorValues.find(param + "." + member);
-    if (iter != vectorValues.end())
+    auto iter = ubos.find(param);
+    if (iter != ubos.end())
     {
-        return iter->second;
+        auto memIter = iter->second.vectors.find(member);
+        if (memIter != iter->second.vectors.end())
+        {
+            return memIter->second;
+        }
     }
     return glm::vec4(0);
 }
@@ -167,10 +176,14 @@ Texture* Material::GetTexture(const std::string& param)
 
 float Material::GetFloat(const std::string& param, const std::string& member)
 {
-    auto iter = floatValues.find(param + "." + member);
-    if (iter != floatValues.end())
+    auto iter = ubos.find(param);
+    if (iter != ubos.end())
     {
-        return iter->second;
+        auto memIter = iter->second.floats.find(member);
+        if (memIter != iter->second.floats.end())
+        {
+            return memIter->second;
+        }
     }
     return 0;
 }
@@ -194,13 +207,13 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
     //     GetGfxDriver()->WaitForIdle();
     // }
     shaderResource = GetGfxDriver()->CreateShaderResource();
-    UpdateResources();
 }
 
 void Material::UpdateResources()
 {
     if (shaderResource == nullptr)
         return;
+
     for (auto& v : floatValues)
     {
         auto dotIndex = v.first.find_first_of('.');
@@ -241,9 +254,7 @@ void Material::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
     s->Serialize("shader", shader);
-    s->Serialize("floatValues", floatValues);
-    s->Serialize("vectorValues", vectorValues);
-    s->Serialize("matrixValues", matrixValues);
+    s->Serialize("ubos", ubos);
     s->Serialize("textureValues", textureValues);
     std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
@@ -274,10 +285,38 @@ Gfx::ShaderProgram* Material::GetShaderProgram()
         std::vector<std::string> features(enabledFeatures.begin(), enabledFeatures.end());
         auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
         features.insert(features.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
-        cachedShaderProgram = shader->GetShaderProgram(features);
+        auto newProgram = shader->GetShaderProgram(features);
+
+        if (newProgram != cachedShaderProgram)
+        {
+            cachedShaderProgram = newProgram;
+            CreateBuffer();
+        }
     }
 
     return cachedShaderProgram;
+}
+
+void Material::CreateBuffer()
+{
+    for (auto& b : cachedShaderProgram->GetShaderInfo().bindings)
+    {
+        if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
+        {
+            size_t size = b.second.binding.ubo.data.size;
+            std::unique_ptr<Gfx::Buffer> buffer = GetGfxDriver()->CreateBuffer({
+                .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+                .size = size,
+                .visibleInCPU = false,
+                .debugName = "Material Uniform Buffer",
+            });
+
+            shaderResource->SetBuffer(b.first, buffer.get());
+            ubos[b.first].buffer = std::move(buffer);
+
+            UpdatePendingBuffer();
+        }
+    }
 }
 
 void Material::EnableFeature(const std::string& name)
@@ -302,9 +341,7 @@ void Material::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
     s->Deserialize("shader", shader, [this](void* res) { this->SetShaderNoProtection(this->shader); });
-    s->Deserialize("floatValues", floatValues);
-    s->Deserialize("vectorValues", vectorValues);
-    s->Deserialize("matrixValues", matrixValues);
+    s->Deserialize("ubos", ubos);
     s->Deserialize(
         "textureValues",
         textureValues,
@@ -331,4 +368,36 @@ void Material::Deserialize(Serializer* s)
         EnableFeature(f);
     }
 }
+
+void Material::UBO::Serialize(Serializer* ser)
+{
+    ser->Serialize("floats", floats);
+    ser->Serialize("vectors", vectors);
+    ser->Serialize("matrices", matrices);
+}
+
+void Material::UBO::Deserialize(Serializer* ser)
+{
+    ser->Deserialize("floats", floats);
+    ser->Deserialize("vector", vectors);
+    ser->Deserialize("matrices", matrices);
+}
+
+void Material::UpdateBuffer(const std::string& bindingName)
+{
+    auto iter = ubos.find(bindingName);
+    if (iter != ubos.end())
+    {
+        if (iter->second.buffer == nullptr)
+        {
+            // pending to update
+        }
+        else
+        {
+            // schedule update
+        }
+    }
+}
+
+void Material::UpdatePendingBuffer() {}
 } // namespace Engine

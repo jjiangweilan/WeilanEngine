@@ -219,14 +219,4 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
     return sets[hash];
 }
-
-Gfx::Buffer* VKShaderResource::GetBuffer(const std::string& name)
-{
-    auto iter = bindings.find(name);
-    if (iter == bindings.end() || iter->second.type != ResourceType::Buffer)
-    {
-        return nullptr;
-    }
-    return (Gfx::Buffer*)iter->second.res;
-}
 } // namespace Engine::Gfx

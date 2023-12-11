@@ -21,8 +21,6 @@ public:
     virtual void SetImage(const std::string& bindingName, Gfx::ImageView* imageView) = 0;
     virtual void SetImage(const std::string& bindingName, nullptr_t) = 0;
 
-    virtual Gfx::Buffer* GetBuffer(const std::string& name) = 0;
-
     virtual ~ShaderResource(){};
 
 protected:
