@@ -174,6 +174,8 @@ private:
         glm::vec4 position;
         float range;
         float intensity;
+        float padding0;
+        float padding1;
     };
 
     static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl

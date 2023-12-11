@@ -64,7 +64,8 @@ void VKShaderResource::SetImage(const std::string& name, nullptr_t)
 VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram)
 {
     size_t hash = shaderProgram->GetLayoutHash(set);
-    if (hash == 0) return VK_NULL_HANDLE;
+    if (hash == 0)
+        return VK_NULL_HANDLE;
     auto iter = sets.find(hash);
     if (iter == sets.end() || rebuild)
     {
@@ -106,7 +107,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                ResourceRef resRef = bindings[b.first];
+                ResourceRef resRef = bindings[b.second.name];
 
                 switch (b.second.type)
                 {
@@ -116,28 +117,29 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                             for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
                             {
                                 VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
+                                VKBuffer* buffer = nullptr;
                                 if (resRef.type != ResourceType::Buffer || resRef.res == nullptr)
                                 {
-                                    // std::string bufferName =
-                                    //     fmt::format("Default Buffer for {}", shaderProgram->GetName());
-                                    // Buffer::CreateInfo createInfo{
-                                    //     .usages =
-                                    //         (b.second.type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
-                                    //                                                        : BufferUsage::Storage) |
-                                    //         BufferUsage::Transfer_Dst,
-                                    //     .size = b.second.binding.ubo.data.size,
-                                    //     .visibleInCPU = false,
-                                    //     .debugName = bufferName.c_str()};
-                                    // auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
-                                    // buffer = defaultBuffer.get();
-                                    // buffers.insert(std::make_pair(b.first, std::move(defaultBuffer)));
-                                    bufferInfo.buffer = VK_NULL_HANDLE;
+                                    std::string bufferName =
+                                        fmt::format("Default Buffer for {}", shaderProgram->GetName());
+                                    Buffer::CreateInfo createInfo{
+                                        .usages =
+                                            (b.second.type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
+                                                                                           : BufferUsage::Storage) |
+                                            BufferUsage::Transfer_Dst,
+                                        .size = b.second.binding.ubo.data.size,
+                                        .visibleInCPU = false,
+                                        .debugName = bufferName.c_str()};
+                                    auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                                    buffer = defaultBuffer.get();
+                                    buffers.insert(std::make_pair(b.first, std::move(defaultBuffer)));
                                 }
+                                else
                                 {
-                                    auto buffer = (VKBuffer*)resRef.res;
-                                    bufferInfo.buffer = buffer->GetHandle();
+                                    buffer = (VKBuffer*)resRef.res;
                                 }
 
+                                bufferInfo.buffer = buffer->GetHandle();
                                 bufferInfo.offset = i * b.second.binding.ubo.data.size;
                                 bufferInfo.range = b.second.binding.ubo.data.size;
                                 writes[writeCount].pBufferInfo = &bufferInfo;
@@ -156,7 +158,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                         : VK_NULL_HANDLE;
                                 VKImageView* imageView = (VKImageView*)resRef.res;
                                 if (resRef.res != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
-                                    resRef.type != ResourceType::ImageView)
+                                    resRef.type == ResourceType::ImageView)
                                 {
                                     imageInfo.imageView = imageView->GetHandle();
                                 }

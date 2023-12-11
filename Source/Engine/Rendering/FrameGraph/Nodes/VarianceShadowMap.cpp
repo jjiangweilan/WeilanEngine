@@ -117,7 +117,7 @@ public:
                 Rect2D rect = {{0, 0}, {width, height}};
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, boxFilterClears);
-                cmd.BindResource(0, vsmBoxFilterResource0.get());
+                cmd.BindResource(2, vsmBoxFilterResource0.get());
                 cmd.BindShaderProgram(
                     boxFilterShader->GetDefaultShaderProgram(),
                     boxFilterShader->GetDefaultShaderConfig()
@@ -182,7 +182,7 @@ public:
                 pval.textureSize =
                     glm::vec4(shadowMapSize.x, shadowMapSize.y, 1.0f / shadowMapSize.x, 1.0f / shadowMapSize.y);
                 pval.xory = glm::vec4(1);
-                cmd.BindResource(0, vsmBoxFilterResource1.get());
+                cmd.BindResource(2, vsmBoxFilterResource1.get());
                 cmd.BindShaderProgram(
                     boxFilterShader->GetDefaultShaderProgram(),
                     boxFilterShader->GetDefaultShaderConfig()

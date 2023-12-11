@@ -85,5 +85,6 @@ private:
     bool needUpdateDescriptorSetBinding;
 
     void UpdateDescriptorSetBinding();
+    void UpdateDescriptorSetBinding(uint32_t set);
 };
 } // namespace Engine::Gfx

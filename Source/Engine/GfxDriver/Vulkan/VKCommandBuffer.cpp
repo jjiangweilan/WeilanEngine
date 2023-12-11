@@ -171,11 +171,9 @@ void VKCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resource_)
     if (set > 4)
         return;
 
-    if (setResources[set].resource != resource_)
-    {
-        setResources[set].resource = (VKShaderResource*)resource_;
-        setResources[set].needUpdate = true;
-    }
+    setResources[set].resource = (VKShaderResource*)resource_;
+    setResources[set].needUpdate = true;
+    
 }
 
 void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const ShaderConfig& config)
@@ -184,10 +182,10 @@ void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, con
 
     shaderProgram = (VKShaderProgram*)bProgram.Get();
     shaderConfig = &config;
-    setResources[0].needUpdate = true;
-    setResources[1].needUpdate = true;
-    setResources[2].needUpdate = true;
-    setResources[3].needUpdate = true;
+    // setResources[0].needUpdate = true;
+    // setResources[1].needUpdate = true;
+    // setResources[2].needUpdate = true;
+    // setResources[3].needUpdate = true;
 
     VKShaderProgram* program = static_cast<VKShaderProgram*>(bProgram.Get());
 
@@ -507,34 +505,34 @@ void VKCommandBuffer::DispatchIndir(Buffer* buffer, size_t offset)
     vkCmdDispatchIndirect(vkCmdBuf, buf->GetHandle(), offset);
 }
 
+void VKCommandBuffer::UpdateDescriptorSetBinding(uint32_t index)
+{
+    if (setResources[index].needUpdate && setResources[index].resource)
+    {
+        auto sourceSet = setResources[index].resource->GetDescriptorSet(index, shaderProgram);
+        if (sourceSet != VK_NULL_HANDLE && sourceSet != bindedDescriptorSets[index])
+        {
+            bindedDescriptorSets[index] = sourceSet;
+            vkCmdBindDescriptorSets(
+                vkCmdBuf,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                shaderProgram->GetVKPipelineLayout(),
+                index,
+                1,
+                &bindedDescriptorSets[index],
+                0,
+                VK_NULL_HANDLE
+            );
+            setResources[index].needUpdate = false;
+        }
+    }
+}
+
 void VKCommandBuffer::UpdateDescriptorSetBinding()
 {
-    bool updateBinding = false;
-#define TryUpdateResource(index)                                                                                       \
-    if (setResources[index].needUpdate && setResources[index].resource)                                                \
-    {                                                                                                                  \
-        bindedDescriptorSets[index] = setResources[index].resource->GetDescriptorSet(index, shaderProgram);            \
-        updateBinding = true;                                                                                          \
-    }                                                                                                                  \
-    setResources[index].needUpdate = false;
-
-    TryUpdateResource(0);
-    TryUpdateResource(1);
-    TryUpdateResource(2);
-    TryUpdateResource(3);
-
-    if (updateBinding)
-    {
-        vkCmdBindDescriptorSets(
-            vkCmdBuf,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            shaderProgram->GetVKPipelineLayout(),
-            0,
-            shaderProgram->GetShaderInfo().descriptorSetBinidngMap.size(),
-            bindedDescriptorSets,
-            0,
-            VK_NULL_HANDLE
-        );
-    }
+    UpdateDescriptorSetBinding(0);
+    UpdateDescriptorSetBinding(1);
+    UpdateDescriptorSetBinding(2);
+    UpdateDescriptorSetBinding(3);
 }
 } // namespace Engine::Gfx

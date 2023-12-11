@@ -263,7 +263,7 @@ bool Graph::Compile()
     });
     sceneGlobalBuffer = GetGfxDriver()->CreateBuffer({
         .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
-        .size = sizeof(sceneInfo),
+        .size = sizeof(SceneInfo),
         .visibleInCPU = false,
         .debugName = "Scene Info Buffer",
     });
