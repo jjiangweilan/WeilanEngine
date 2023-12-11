@@ -342,11 +342,6 @@ UniPtr<Buffer> VKDriver::CreateBuffer(const Buffer::CreateInfo& createInfo)
     return MakeUnique1<VKBuffer>(createInfo);
 }
 
-UniPtr<ShaderResource> VKDriver::CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
-{
-    return MakeUnique1<VKShaderResource>(shader, frequency);
-}
-
 UniPtr<RenderPass> VKDriver::CreateRenderPass()
 {
     return MakeUnique1<VKRenderPass>();
@@ -483,5 +478,10 @@ void VKDriver::ClearResources()
 {
     context->objManager->DestroyPendingResources();
     context->allocator->DestroyPendingResources();
+}
+
+std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
+{
+    return std::make_unique<VKShaderResource>();
 }
 } // namespace Engine::Gfx

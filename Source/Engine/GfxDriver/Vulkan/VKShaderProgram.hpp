@@ -86,6 +86,8 @@ public:
         return name;
     }
 
+    size_t GetLayoutHash(uint32_t set);
+
 private:
     typedef std::unordered_map<SetNum, std::vector<VkDescriptorSetLayoutBinding>> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
@@ -107,6 +109,7 @@ private:
     VKSwapChain* swapchain;
     std::vector<PipelineCache> caches;
     std::vector<VkSampler> immutableSamplers;
+    std::vector<size_t> layoutHash;
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;
 

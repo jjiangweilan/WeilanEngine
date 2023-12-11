@@ -6,8 +6,6 @@
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 namespace Engine::Gfx
 {
-static int b = 0;
-
 VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 {
     VkBufferUsageFlags usage = 0;

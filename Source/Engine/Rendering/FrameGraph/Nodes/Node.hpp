@@ -185,6 +185,8 @@ struct RenderGraphLink
 {};
 struct DrawList
 {};
+struct Float
+{};
 
 // this resource doesn't actually reference a actual resource but rather reference to a property id that may contain or
 // may forward again another resource
@@ -202,6 +204,9 @@ struct Resource
     Resource(ResourceTag::DrawList, FGID propertyID, const DrawList* drawList)
         : type(ResourceType::DrawList), propertyID(propertyID), drawList(drawList)
     {}
+    Resource(ResourceTag::Float, FGID propertyID, float v)
+        : type(ResourceType::DrawList), propertyID(propertyID), val(v)
+    {}
 
     ResourceType type;
     FGID propertyID;
@@ -211,6 +216,8 @@ struct Resource
     RenderGraph::ResourceHandle handle;
 
     const DrawList* drawList;
+
+    float val;
 };
 
 class Resources
@@ -269,7 +276,10 @@ public:
     {
         return {};
     }
-    virtual void Build(RenderGraph::Graph& graph, Resources& resources){};
+    virtual bool Build(RenderGraph::Graph& graph, Resources& resources)
+    {
+        return true;
+    }
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
     virtual void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
     virtual void Execute(GraphResource& graphResource){};

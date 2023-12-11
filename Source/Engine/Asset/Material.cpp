@@ -3,6 +3,7 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/ImmediateGfx.hpp"
+#include "Rendering/RenderPipeline.hpp"
 namespace Engine
 {
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
@@ -61,41 +62,59 @@ void Material::SetTexture(const std::string& param, Gfx::Image* image)
     SetDirty();
 }
 
-void TransferToGPU(
+void Material::TransferToGPU(
     Gfx::ShaderResource* shaderResource, const std::string& param, const std::string& member, uint8_t* data
 )
 {
-    Gfx::ShaderResource::BufferMemberInfoMap memberInfo;
-    auto dstBuffer = shaderResource->GetBuffer(param, memberInfo);
-    auto memberInfoIter = memberInfo.find(member);
-    if (memberInfoIter == memberInfo.end())
+    auto dstBuffer = shaderResource->GetBuffer(param);
+    if (dstBuffer == nullptr)
         return;
 
-    auto byteSize = memberInfoIter->second.size;
+    auto shaderProgram = GetShaderProgram();
+    auto& bindings = shaderProgram->GetShaderInfo().bindings;
+    auto iter = bindings.find(param);
+    if (iter == bindings.end())
+    {
+        return;
+    }
 
-    Gfx::Buffer::CreateInfo bufCreateInfo;
-    bufCreateInfo.size = byteSize;
-    bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
-    bufCreateInfo.debugName = "material transfer buffer";
-    bufCreateInfo.visibleInCPU = true;
-    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-    memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
-    auto bufOffset = memberInfoIter->second.offset;
-
-    ImmediateGfx::OnetimeSubmit(
-        [bufOffset, byteSize, dstBuffer, &stagingBuffer](Gfx::CommandBuffer& cmd)
+    auto& binding = iter->second;
+    uint32_t offset = 0;
+    uint32_t size = 0;
+    if (binding.type == Gfx::ShaderInfo::BindingType::UBO)
+    {
+        auto& mems = binding.binding.ubo.data.members;
+        auto memIter = mems.find(member);
+        if (memIter == mems.end())
         {
-            Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, bufOffset, byteSize}};
-            cmd.CopyBuffer(stagingBuffer, dstBuffer, bufferCopyRegions);
+            offset = memIter->second.offset;
+            size = memIter->second.data->size;
         }
-    );
+    }
+    else if (binding.type == Gfx::ShaderInfo::BindingType::SSBO)
+    {
+        auto& mems = binding.binding.ssbo.data.members;
+        auto memIter = mems.find(member);
+        if (memIter == mems.end())
+        {
+            offset = memIter->second.offset;
+            size = memIter->second.data->size;
+        }
+    }
+    else
+        return;
+
+    if (size == 0)
+        return;
+
+    RenderPipeline::Singleton().UploadBuffer(*dstBuffer, data, size, offset);
 }
 
 void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
 {
     matrixValues[param + "." + member] = value;
     if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
     SetDirty();
 }
 
@@ -103,7 +122,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
 {
     floatValues[param + "." + member] = value;
     if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
     SetDirty();
 }
 
@@ -111,7 +130,7 @@ void Material::SetVector(const std::string& param, const std::string& member, co
 {
     vectorValues[param + "." + member] = value;
     if (shaderResource != nullptr)
-        TransferToGPU(shaderResource.Get(), param, member, (uint8_t*)&value);
+        TransferToGPU(shaderResource.get(), param, member, (uint8_t*)&value);
     SetDirty();
 }
 
@@ -170,12 +189,11 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
 {
     this->shader = shader.Get();
     shaderConfig = shader->GetDefaultShaderConfig();
-    if (shaderResource != nullptr)
-    {
-        GetGfxDriver()->WaitForIdle();
-    }
-    shaderResource =
-        Gfx::GfxDriver::Instance()->CreateShaderResource(GetShaderProgram(), Gfx::ShaderResourceFrequency::Material);
+    // if (shaderResource != nullptr)
+    // {
+    //     GetGfxDriver()->WaitForIdle();
+    // }
+    shaderResource = GetGfxDriver()->CreateShaderResource();
     UpdateResources();
 }
 
@@ -189,7 +207,7 @@ void Material::UpdateResources()
         auto obj = v.first.substr(0, dotIndex);
         auto mem = v.first.substr(dotIndex + 1);
 
-        TransferToGPU(shaderResource.Get(), obj, mem, (uint8_t*)&v.second);
+        TransferToGPU(shaderResource.get(), obj, mem, (uint8_t*)&v.second);
     }
 
     for (auto& v : matrixValues)
@@ -198,7 +216,7 @@ void Material::UpdateResources()
         auto obj = v.first.substr(0, dotIndex);
         auto mem = v.first.substr(dotIndex + 1);
 
-        TransferToGPU(shaderResource.Get(), obj, mem, (uint8_t*)&v.second);
+        TransferToGPU(shaderResource.get(), obj, mem, (uint8_t*)&v.second);
     }
 
     for (auto& v : vectorValues)
@@ -207,7 +225,7 @@ void Material::UpdateResources()
         auto obj = v.first.substr(0, dotIndex);
         auto mem = v.first.substr(dotIndex + 1);
 
-        TransferToGPU(shaderResource.Get(), obj, mem, (uint8_t*)&v.second);
+        TransferToGPU(shaderResource.get(), obj, mem, (uint8_t*)&v.second);
     }
 
     // Note: When materials are deserialized from disk, OnReferenceResolve also works to set textures
@@ -238,12 +256,12 @@ std::unique_ptr<Asset> Material::Clone()
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
-    if (GetShaderProgram() != shaderResource->GetShaderProgram())
-    {
-        SetShaderNoProtection(shader);
-    }
+    // if (GetShaderProgram() != shaderResource->GetShaderProgram())
+    // {
+    //     SetShaderNoProtection(shader);
+    // }
 
-    return shaderResource.Get();
+    return shaderResource.get();
 }
 
 Gfx::ShaderProgram* Material::GetShaderProgram()

@@ -53,7 +53,7 @@ GameEditor::GameEditor(const char* path)
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
 
-    toolList.emplace_back(new EnvironmentBaker());
+    // toolList.emplace_back(new EnvironmentBaker());
 
     for (auto& t : toolList)
     {
@@ -396,8 +396,7 @@ void GameEditor::Start()
 
             GUIPass();
 
-            auto& cmd = engine->GetActiveCmdBuffer();
-            Render(cmd);
+            RenderPipeline::Singleton().Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
 
             engine->EndFrame();
         }

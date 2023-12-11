@@ -30,7 +30,7 @@ public:
         if (giScene && shader)
         {
             program = shader->GetDefaultShaderProgram();
-            passResource = GetGfxDriver()->CreateShaderResource(program, Gfx::ShaderResourceFrequency::Pass);
+            passResource = GetGfxDriver()->CreateShaderResource();
             size_t giSceneSize = giScene->surfels.size() * sizeof(SurfelGI::Surfel);
             Gfx::Buffer::CreateInfo createInfo{
                 Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Transfer_Src,
@@ -42,7 +42,7 @@ public:
             auto staging = GetGfxDriver()->CreateBuffer(createInfo);
             memcpy(staging->GetCPUVisibleAddress(), giScene->surfels.data(), giSceneSize);
 
-            passResource->SetBuffer("GIScene", *buf);
+            passResource->SetBuffer("GIScene", buf.get());
             ImmediateGfx::OnetimeSubmit(
                 [&](Gfx::CommandBuffer& cmd)
                 {
@@ -60,7 +60,7 @@ public:
                 cmd.BeginRenderPass(pass, {});
                 cmd.BindSubmesh(submesh);
                 cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
-                cmd.BindResource(passResource);
+                cmd.BindResource(1, passResource.get());
                 size_t surfelSize = giScene->surfels.size();
                 cmd.DrawIndexed(submesh.GetIndexCount(), surfelSize, 0, 0, 0);
                 cmd.EndRenderPass();
@@ -80,15 +80,20 @@ public:
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["depth"], node, 1)};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
         auto [depthNode, depthHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["depth"]);
 
-        graph.Connect(colorNode, colorHandle, node, 0);
-        graph.Connect(depthNode, depthHandle, node, 1);
+        if (graph.Connect(colorNode, colorHandle, node, 0) && graph.Connect(depthNode, depthHandle, node, 1))
+        {
+            return true;
+        }
+        else
+            return false;
+        return true;
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override{};

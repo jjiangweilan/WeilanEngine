@@ -47,8 +47,14 @@ void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 
 Graph::~Graph() {}
 
-void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
+bool Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, ResourceHandle dstHandle)
 {
+    if (src == nullptr || dst == nullptr)
+    {
+        SPDLOG_ERROR("Connecting nullptr RenderNode");
+        return false;
+    }
+
     bool srcHasHandleDescription = src->pass->HasResourceDescription(srcHandle);
     bool dstHasHandleDescription = dst->pass->HasResourceDescription(dstHandle);
     if (src && dst && srcHasHandleDescription && dstHasHandleDescription &&
@@ -61,8 +67,11 @@ void Graph::Connect(RenderNode* src, ResourceHandle srcHandle, RenderNode* dst, 
     }
     else
     {
-        throw std::logic_error("Graph Can't connect two nodes");
+        SPDLOG_ERROR("Connecting RenderNodes failed");
+        return false;
     }
+
+    return true;
 }
 
 void Graph::Process()

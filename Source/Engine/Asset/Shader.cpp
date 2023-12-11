@@ -19,9 +19,12 @@ ShaderBase::ShaderBase(const std::string& name, std::unique_ptr<Gfx::ShaderProgr
 void ShaderBase::Reload(Asset&& other)
 {
     ShaderBase* casted = static_cast<ShaderBase*>(&other);
-    Asset::Reload(std::move(other));
     shaderName = (std::move(casted->shaderName));
     shaderPrograms = (std::move(casted->shaderPrograms));
+    cachedShaderProgram = nullptr;
+    contentHash = 0;
+    featureToBitMask = std::move(casted->featureToBitMask);
+    Asset::Reload(std::move(other));
 }
 
 void ShaderBase::Serialize(Serializer* s) const
@@ -124,6 +127,8 @@ ShaderBase::GlobalShaderFeature& ShaderBase::GetGlobalShaderFeature()
 
 bool Shader::LoadFromFile(const char* path)
 {
+    cachedShaderProgram = nullptr;
+
     if (name.empty())
     {
         std::filesystem::path apath(path);

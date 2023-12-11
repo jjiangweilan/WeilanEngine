@@ -21,12 +21,12 @@ VKCommandBuffer::VKCommandBuffer(VkCommandBuffer vkCmdBuf) : vkCmdBuf(vkCmdBuf) 
 
 VKCommandBuffer::~VKCommandBuffer() {}
 
-void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues)
+void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass_, const std::vector<Gfx::ClearValue>& clearValues)
 {
-    Gfx::VKRenderPass& vRenderPass = static_cast<Gfx::VKRenderPass&>(renderPass);
+    Gfx::VKRenderPass& vRenderPass = static_cast<Gfx::VKRenderPass&>(renderPass_);
     VkRenderPass vkRenderPass = vRenderPass.GetHandle();
-    currentRenderPass = &vRenderPass;
-    currentRenderIndex = 0;
+    renderPass = &vRenderPass;
+    renderIndex = 0;
 
     // framebuffer has to get inside the execution function due to how
     // RenderPass handle swapchain image as framebuffer attachment
@@ -57,7 +57,7 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, const std::ve
 void VKCommandBuffer::EndRenderPass()
 {
     vkCmdEndRenderPass(vkCmdBuf);
-    currentRenderPass = nullptr;
+    renderPass = nullptr;
 }
 
 void VKCommandBuffer::SetViewport(const Viewport& viewport)
@@ -166,31 +166,33 @@ void VKCommandBuffer::Blit(RefPtr<Gfx::Image> bFrom, RefPtr<Gfx::Image> bTo, Bli
     );
 }
 
-void VKCommandBuffer::BindResource(RefPtr<Gfx::ShaderResource> resource_)
+void VKCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resource_)
 {
-    VKShaderResource* resource = (VKShaderResource*)resource_.Get();
+    if (set > 4)
+        return;
 
-    VkDescriptorSet descSet = resource->GetDescriptorSet();
-    if (descSet != VK_NULL_HANDLE)
-        vkCmdBindDescriptorSets(
-            vkCmdBuf,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            ((VKShaderProgram*)resource->GetShaderProgram().Get())->GetVKPipelineLayout(),
-            resource->GetDescriptorSetSlot(),
-            1,
-            &descSet,
-            0,
-            VK_NULL_HANDLE
-        );
+    if (setResources[set].resource != resource_)
+    {
+        setResources[set].resource = (VKShaderResource*)resource_;
+        setResources[set].needUpdate = true;
+    }
 }
 
 void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const ShaderConfig& config)
 {
-    assert(currentRenderPass != nullptr);
+    assert(renderPass != nullptr);
+
+    shaderProgram = (VKShaderProgram*)bProgram.Get();
+    shaderConfig = &config;
+    setResources[0].needUpdate = true;
+    setResources[1].needUpdate = true;
+    setResources[2].needUpdate = true;
+    setResources[3].needUpdate = true;
+
     VKShaderProgram* program = static_cast<VKShaderProgram*>(bProgram.Get());
 
     // binding pipeline
-    auto pipeline = program->RequestPipeline(config, currentRenderPass->GetHandle(), currentRenderIndex);
+    auto pipeline = program->RequestPipeline(config, renderPass->GetHandle(), renderIndex);
 
     if (bProgram->IsCompute())
     {
@@ -251,17 +253,19 @@ void VKCommandBuffer::DrawIndexed(
     uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
 )
 {
+    UpdateDescriptorSetBinding();
     vkCmdDrawIndexed(vkCmdBuf, indexCount, instanceCount, firstIndex, vertexOffset, firstIndex);
 }
 
 void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
+    UpdateDescriptorSetBinding();
     vkCmdDraw(vkCmdBuf, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 void VKCommandBuffer::NextRenderPass()
 {
-    currentRenderIndex += 1;
+    renderIndex += 1;
     vkCmdNextSubpass(vkCmdBuf, VK_SUBPASS_CONTENTS_INLINE);
 }
 
@@ -492,12 +496,45 @@ void VKCommandBuffer::Reset(bool releaseResource)
 
 void VKCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
+    UpdateDescriptorSetBinding();
     vkCmdDispatch(vkCmdBuf, groupCountX, groupCountY, groupCountZ);
 }
 
 void VKCommandBuffer::DispatchIndir(Buffer* buffer, size_t offset)
 {
+    UpdateDescriptorSetBinding();
     VKBuffer* buf = static_cast<VKBuffer*>(buffer);
     vkCmdDispatchIndirect(vkCmdBuf, buf->GetHandle(), offset);
+}
+
+void VKCommandBuffer::UpdateDescriptorSetBinding()
+{
+    bool updateBinding = false;
+#define TryUpdateResource(index)                                                                                       \
+    if (setResources[index].needUpdate)                                                                                \
+    {                                                                                                                  \
+        bindedDescriptorSets[index] = setResources[index].resource->GetDescriptorSet(index, shaderProgram);            \
+        setResources[index].needUpdate = false;                                                                        \
+        updateBinding = true;                                                                                          \
+    }
+
+    TryUpdateResource(0);
+    TryUpdateResource(1);
+    TryUpdateResource(2);
+    TryUpdateResource(3);
+
+    if (updateBinding)
+    {
+        vkCmdBindDescriptorSets(
+            vkCmdBuf,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            shaderProgram->GetVKPipelineLayout(),
+            0,
+            shaderProgram->GetShaderInfo().descriptorSetBinidngMap.size(),
+            bindedDescriptorSets,
+            0,
+            VK_NULL_HANDLE
+        );
+    }
 }
 } // namespace Engine::Gfx

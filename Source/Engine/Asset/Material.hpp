@@ -80,7 +80,7 @@ public:
 
 private:
     Shader* shader = nullptr;
-    UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
+    std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
     Gfx::ShaderProgram* cachedShaderProgram = nullptr;
     uint64_t globalShaderFeaturesHash;
@@ -95,6 +95,8 @@ private:
     void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
-    static int initImporter_;
+    void TransferToGPU(
+        Gfx::ShaderResource* shaderResource, const std::string& param, const std::string& member, uint8_t* data
+    );
 };
 } // namespace Engine

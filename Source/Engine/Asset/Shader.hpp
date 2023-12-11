@@ -41,9 +41,6 @@ public:
         return true;
     }
 
-    // return false if loading failed
-    bool LoadFromFile(const char* path) = 0;
-
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     uint32_t GetContentHash() override;

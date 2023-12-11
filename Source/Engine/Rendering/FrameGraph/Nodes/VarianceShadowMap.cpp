@@ -117,7 +117,7 @@ public:
                 Rect2D rect = {{0, 0}, {width, height}};
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, boxFilterClears);
-                cmd.BindResource(vsmBoxFilterResource0);
+                cmd.BindResource(0, vsmBoxFilterResource0.get());
                 cmd.BindShaderProgram(
                     boxFilterShader->GetDefaultShaderProgram(),
                     boxFilterShader->GetDefaultShaderConfig()
@@ -182,7 +182,7 @@ public:
                 pval.textureSize =
                     glm::vec4(shadowMapSize.x, shadowMapSize.y, 1.0f / shadowMapSize.x, 1.0f / shadowMapSize.y);
                 pval.xory = glm::vec4(1);
-                cmd.BindResource(vsmBoxFilterResource1);
+                cmd.BindResource(0, vsmBoxFilterResource1.get());
                 cmd.BindShaderProgram(
                     boxFilterShader->GetDefaultShaderProgram(),
                     boxFilterShader->GetDefaultShaderConfig()
@@ -217,14 +217,8 @@ public:
         Gfx::Image* vsmBoxFilterPass0Image =
             (Gfx::Image*)vsmBoxFilterPass0->GetPass()->GetResourceRef(RenderGraph::StrToHandle("dst"))->GetResource();
 
-        vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource(
-            boxFilterShader->GetDefaultShaderProgram(),
-            Gfx::ShaderResourceFrequency::Material
-        );
-        vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource(
-            boxFilterShader->GetDefaultShaderProgram(),
-            Gfx::ShaderResourceFrequency::Material
-        );
+        vsmBoxFilterResource0 = GetGfxDriver()->CreateShaderResource();
+        vsmBoxFilterResource1 = GetGfxDriver()->CreateShaderResource();
         vsmBoxFilterResource0->SetImage("source", shadowImage);
         vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
 
@@ -237,9 +231,12 @@ public:
         sceneShaderResource.SetImage("shadowMap", shadowImage);
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
+        if (drawList == nullptr)
+            return false;
+        return true;
     };
 
     void OnDestroy() override

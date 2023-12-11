@@ -21,17 +21,10 @@ std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
     Gfx::ImageFormat format = GetConfigurableVal<Gfx::ImageFormat>("format");
     int mipLevel = GetConfigurableVal<int>("mip level");
 
-    imageNode = graph.AddNode(GetCustomName())
-                    .AllocateRT(
-                        GetCustomName(),
-                        0,
-                        size.x,
-                        size.y,
-                        format,
-                        mipLevel,
-                        Gfx::MultiSampling::Sample_Count_1
-                    )
-                    .Finish();
+    imageNode =
+        graph.AddNode(GetCustomName())
+            .AllocateRT(GetCustomName(), 0, size.x, size.y, format, mipLevel, Gfx::MultiSampling::Sample_Count_1)
+            .Finish();
 
     // imageNode = graph.AddNode(
     //     [](Gfx::CommandBuffer&, Gfx::RenderPass&, const RenderGraph::ResourceRefs&) {},
@@ -58,7 +51,8 @@ std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
 
     return {
         Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["image"], imageNode, 0),
-    };
+        Resource(ResourceTag::Float{}, outputPropertyIDs["width"], size.x),
+        Resource(ResourceTag::Float{}, outputPropertyIDs["width"], size.y)};
 };
 
 void ImageNode::DefineNode()

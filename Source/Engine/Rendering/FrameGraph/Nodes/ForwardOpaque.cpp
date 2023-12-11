@@ -32,7 +32,7 @@ public:
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
             uint32_t height = color->GetDescription().height;
-            cmd.BindResource(sceneShaderResource);
+            cmd.BindResource(0, sceneShaderResource);
             cmd.SetViewport(
                 {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
             );
@@ -50,7 +50,7 @@ public:
                 cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(draw.shaderResource);
+                cmd.BindResource(2, draw.shaderResource);
                 cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
@@ -87,7 +87,7 @@ public:
             )};
     }
 
-    void Build(RenderGraph::Graph& graph, Resources& resources) override
+    bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["color"]);
@@ -97,9 +97,16 @@ public:
             resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["shadow map"]);
         drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
 
-        graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color"));
-        graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth"));
-        graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map"));
+        if (graph.Connect(colorNode, colorHandle, forwardNode, RenderGraph::StrToHandle("opaque color")) &&
+            graph.Connect(depthNode, depthHandle, forwardNode, RenderGraph::StrToHandle("opaque depth")) &&
+            graph.Connect(shadowNode, shadowHandle, forwardNode, RenderGraph::StrToHandle("shadow map")))
+        {
+            return true;
+        }
+        else
+            false;
+
+        return true;
     };
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override

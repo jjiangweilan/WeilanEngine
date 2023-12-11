@@ -202,7 +202,7 @@ private:
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
-    Gfx::Buffer* sceneGlobalBuffer;
+    std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     bool HasCycleIfLink(FGID src, FGID dst)

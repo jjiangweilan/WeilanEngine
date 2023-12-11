@@ -323,6 +323,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
         descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
 
+        layoutHash.push_back(VkDescriptorSetLayoutCreateInfoHash{}(descriptorSetLayoutCreateInfo));
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);
         descriptorPools.push_back(&pool);
@@ -554,5 +555,14 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
     caches.push_back(newCache);
 
     return pipeline;
+}
+
+size_t VKShaderProgram::GetLayoutHash(uint32_t set)
+{
+    if (set < layoutHash.size())
+    {
+        return layoutHash[set];
+    }
+    return 0;
 }
 } // namespace Engine::Gfx
