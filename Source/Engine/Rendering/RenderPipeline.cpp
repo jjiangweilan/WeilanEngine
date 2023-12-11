@@ -150,7 +150,7 @@ void RenderPipeline::StagingBuffer::Upload(Gfx::CommandBuffer& cmd)
 {
     for (auto& b : pendingUploads)
     {
-        cmd.CopyBuffer(b.staging, b.dst, b.size, b.stagingOffset, b.dstOffset);
+        cmd.CopyBuffer(b.dst, b.staging, b.size, b.dstOffset, b.stagingOffset);
     }
 
     for (auto& i : pendingImages)

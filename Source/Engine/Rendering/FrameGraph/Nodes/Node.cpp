@@ -192,6 +192,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
             drawData.indexBuffer = submesh->GetIndexBuffer();
             drawData.indexBufferType = submesh->GetIndexBufferType();
 
+            material->UploadDataToGPU();
             drawData.shaderResource = material->GetShaderResource();
             drawData.shader = shader;
             drawData.shaderConfig = &material->GetShaderConfig();
