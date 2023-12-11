@@ -78,7 +78,7 @@ private:
     {
         bool needUpdate = false;
         VKShaderResource* resource = VK_NULL_HANDLE;
-    } setResources[4];
+    } setResources[4] = {};
 
     VKShaderProgram* shaderProgram;
     const ShaderConfig* shaderConfig;

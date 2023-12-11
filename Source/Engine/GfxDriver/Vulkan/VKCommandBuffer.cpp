@@ -511,12 +511,12 @@ void VKCommandBuffer::UpdateDescriptorSetBinding()
 {
     bool updateBinding = false;
 #define TryUpdateResource(index)                                                                                       \
-    if (setResources[index].needUpdate)                                                                                \
+    if (setResources[index].needUpdate && setResources[index].resource)                                                \
     {                                                                                                                  \
         bindedDescriptorSets[index] = setResources[index].resource->GetDescriptorSet(index, shaderProgram);            \
-        setResources[index].needUpdate = false;                                                                        \
         updateBinding = true;                                                                                          \
-    }
+    }                                                                                                                  \
+    setResources[index].needUpdate = false;
 
     TryUpdateResource(0);
     TryUpdateResource(1);
