@@ -23,7 +23,6 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
-        Gfx::ShaderProgram* shadowmapShaderProgram = shadowmapShader->GetShaderProgram({});
         std::vector<Gfx::ClearValue> shadowMapClears = {{.depthStencil = {1}}};
 
         shadowMapPass = graph.AddNode2(
@@ -44,7 +43,7 @@ public:
             },
             [this,
              shadowMapClears,
-             shadowmapShaderProgram,
+             shadowmapShader,
              shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& ref)
             {
                 cmd.SetViewport(
@@ -53,13 +52,14 @@ public:
                 Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, shadowMapClears);
+                auto program = shadowmapShader->GetShaderProgram(0);
 
                 for (auto& draw : *drawList)
                 {
-                    cmd.BindShaderProgram(shadowmapShaderProgram, shadowmapShaderProgram->GetDefaultShaderConfig());
+                    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(shadowmapShaderProgram, (void*)&draw.pushConstant);
+                    cmd.SetPushConstant(program, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
 

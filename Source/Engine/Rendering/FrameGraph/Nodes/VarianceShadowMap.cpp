@@ -23,7 +23,7 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
-        Gfx::ShaderProgram* shadowmapShaderProgram = shadowmapShader->GetShaderProgram({"G_VSM"});
+        auto vsmID = shadowmapShader->GetFeaturesID({"G_VSM"});
         boxFilterShader = GetConfigurableVal<Shader*>("two pass filter shader");
         std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
 
@@ -59,7 +59,8 @@ public:
             },
             [this,
              vsmClears,
-             shadowmapShaderProgram,
+             vsmID,
+             shadowmapShader,
              shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& ref)
             {
                 cmd.SetViewport(
@@ -68,6 +69,7 @@ public:
                 Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
                 cmd.SetScissor(0, 1, &rect);
                 cmd.BeginRenderPass(pass, vsmClears);
+                Gfx::ShaderProgram* shadowmapShaderProgram = shadowmapShader->GetShaderProgram(vsmID);
 
                 for (auto& draw : *drawList)
                 {

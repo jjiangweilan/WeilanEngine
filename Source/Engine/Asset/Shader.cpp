@@ -63,6 +63,30 @@ void ShaderBase::GlobalShaderFeature::EnableFeature(const char* name)
     }
 }
 
+Gfx::ShaderProgram* ShaderBase::GetShaderProgram(size_t enabledFeatureHash)
+{
+    for (auto& s : shaderPrograms)
+    {
+        if ((enabledFeatureHash & s.first) == enabledFeatureHash)
+        {
+            return s.second.get();
+        }
+    }
+
+    return nullptr;
+}
+
+uint64_t ShaderBase::GetFeaturesID(const std::vector<std::string>& enabledFeature)
+{
+    uint64_t id = 0;
+    for (auto& f : enabledFeature)
+    {
+        id |= featureToBitMask[f];
+    }
+
+    return id;
+}
+
 void ShaderBase::GlobalShaderFeature::DisableFeature(const char* name)
 {
     if (enabledFeatures.contains(name))
@@ -87,21 +111,9 @@ void ShaderBase::GlobalShaderFeature::Rehash()
 
 Gfx::ShaderProgram* ShaderBase::GetShaderProgram(const std::vector<std::string>& enabledFeature)
 {
-    uint64_t id = 0;
-    for (auto& f : enabledFeature)
-    {
-        id |= featureToBitMask[f];
-    }
+    uint64_t id = GetFeaturesID(enabledFeature);
 
-    for (auto& s : shaderPrograms)
-    {
-        if ((id & s.first) == id)
-        {
-            return s.second.get();
-        }
-    }
-
-    return nullptr;
+    return GetShaderProgram(id);
 }
 
 Gfx::ShaderProgram* ShaderBase::GetDefaultShaderProgram()

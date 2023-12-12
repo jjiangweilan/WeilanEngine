@@ -28,8 +28,7 @@ public:
     Gfx::ShaderProgram* GetDefaultShaderProgram();
 
     Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature);
-
-    uint64_t GetShaderProgramID();
+    Gfx::ShaderProgram* GetShaderProgram(size_t enabledFeatureHash);
 
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
     {
@@ -44,6 +43,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     uint32_t GetContentHash() override;
+    uint64_t GetFeaturesID(const std::vector<std::string>& enabledFeature);
 
     static const std::set<std::string>& GetEnabledFeatures()
     {
