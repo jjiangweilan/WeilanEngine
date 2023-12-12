@@ -77,12 +77,11 @@ bool Model::LoadFromFile(const char* cpath)
     std::filesystem::path path(cpath);
 
     std::vector<uint32_t> fullData;
-    nlohmann::json jsonData;
     unsigned char* binaryData;
     Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);
 
     // extract mesh and submeshes
-    std::unordered_map<int, Mesh*> toOurMesh;
+    toOurMesh.clear();
 
     meshes = Utils::GLB::ExtractMeshes(jsonData, binaryData);
     int i = 0;
@@ -111,12 +110,13 @@ bool Model::LoadFromFile(const char* cpath)
 
     // extract materials
     materials.clear();
-    std::unordered_map<int, Material*> toOurMaterial;
+    toOurMaterial.clear();
     int materialSize = jsonData["materials"].size();
     nlohmann::json& texJson = jsonData["textures"];
     for (int i = 0; i < materialSize; ++i)
     {
         std::unique_ptr<Material> mat = std::make_unique<Material>();
+        mat->SetShader(Shader::GetDefault());
         Utils::GLB::SetAssetName(mat.get(), jsonData, "materials", i);
 
         nlohmann::json& matJson = jsonData["materials"][i];
@@ -184,10 +184,15 @@ bool Model::LoadFromFile(const char* cpath)
         materials.push_back(std::move(mat));
     }
 
+    return true;
+}
+
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
+{
     // create game objects that are presented in glb file
     nlohmann::json& scenesJson = jsonData["scenes"];
-    gameObjects.clear();
-    rootGameObjects.clear();
+    std::vector<GameObject*> rootGameObjects;
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
     for (int i = 0; i < scenesJson.size(); ++i)
     {
         nlohmann::json& sceneJson = scenesJson[i];
@@ -206,7 +211,15 @@ bool Model::LoadFromFile(const char* cpath)
         gameObjects.push_back(std::move(rootGameObject));
     }
 
-    return true;
+    std::unique_ptr<GameObject> root = MakeUnique<GameObject>();
+    for (auto r : rootGameObjects)
+    {
+        r->GetTransform()->SetParent(root->GetTransform());
+    }
+
+    gameObjects.insert(gameObjects.begin(), std::move(root));
+
+    return gameObjects;
 }
 
 std::vector<Asset*> Model::GetInternalAssets()

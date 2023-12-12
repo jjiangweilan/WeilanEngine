@@ -8,6 +8,8 @@
 #include "Rendering/RenderPipeline.hpp"
 #include "Rendering/Shaders.hpp"
 #include <filesystem>
+#include <spdlog/sinks/ringbuffer_sink.h>
+#include <spdlog/spdlog.h>
 
 namespace Engine
 {
@@ -27,7 +29,11 @@ public:
 
     bool BeginFrame();
     void EndFrame();
-    Gfx::CommandBuffer& GetActiveCmdBuffer();
+
+    std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
+    {
+        return ringBufferLoggerSink;
+    };
 
     const std::filesystem::path& GetProjectPath()
     {
@@ -45,25 +51,7 @@ public:
     std::unique_ptr<AssetDatabase> assetDatabase;
 
 private:
-    class FrameCmdBuffer
-    {
-    public:
-        FrameCmdBuffer(Gfx::GfxDriver& gfxDriver);
-        Gfx::CommandBuffer* GetActive()
-        {
-            return activeCmd;
-        }
-        void Swap();
-
-    private:
-        Gfx::CommandBuffer* activeCmd;
-        std::unique_ptr<Gfx::CommandBuffer> cmd0;
-        std::unique_ptr<Gfx::CommandBuffer> cmd1;
-        std::unique_ptr<Gfx::CommandPool> cmdPool;
-    };
-
-    std::unique_ptr<FrameCmdBuffer> frameCmdBuffer;
-    std::unique_ptr<RenderPipeline> renderPipeline;
+    std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;

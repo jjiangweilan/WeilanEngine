@@ -23,8 +23,7 @@ public:
         std::vector<std::unique_ptr<Material>>&& materials,
         UUID uuid = UUID::GetEmptyUUID()
     )
-        : rootGameObjects(std::move(rootGameObjects)), gameObjects(std::move(gameObjects)), meshes(std::move(meshes)),
-          textures(std::move(textures)), materials(std::move(materials))
+        : meshes(std::move(meshes)), textures(std::move(textures)), materials(std::move(materials))
     {
         SetUUID(uuid);
     };
@@ -44,14 +43,9 @@ public:
 
     std::vector<Asset*> GetInternalAssets() override;
 
-    std::span<GameObject*> GetRootGameObject()
-    {
-        return rootGameObjects;
-    }
-    std::span<std::unique_ptr<GameObject>> GetGameObject()
-    {
-        return gameObjects;
-    }
+    // the first one is the root object
+    std::vector<std::unique_ptr<GameObject>> CreateGameObject();
+
     std::span<std::unique_ptr<Mesh>> GetMeshes()
     {
         return meshes;
@@ -66,10 +60,12 @@ public:
     }
 
 private:
-    std::vector<GameObject*> rootGameObjects;
-    std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
+
+    nlohmann::json jsonData;
+    std::unordered_map<int, Mesh*> toOurMesh;
+    std::unordered_map<int, Material*> toOurMaterial;
 };
 } // namespace Engine

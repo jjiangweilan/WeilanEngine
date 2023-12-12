@@ -135,6 +135,26 @@ VKShaderProgram::VKShaderProgram(
           frag.size() * sizeof(uint32_t)
       )
 {}
+VKShaderProgram::VKShaderProgram(
+    std::shared_ptr<const ShaderConfig> config,
+    VKContext* context,
+    const std::string& name,
+    const unsigned char* compute,
+    uint32_t computeSize
+)
+    : ShaderProgram(true), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+{
+    computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
+}
+
+VKShaderProgram::VKShaderProgram(
+    std::shared_ptr<const ShaderConfig> config,
+    RefPtr<VKContext> context,
+    const std::string& name,
+    const std::vector<uint32_t>& comp
+)
+    : VKShaderProgram(config, context.Get(), name, (const unsigned char*)&comp[0], comp.size() * sizeof(uint32_t))
+{}
 
 VKShaderProgram::VKShaderProgram(
     std::shared_ptr<const ShaderConfig> config,
@@ -145,7 +165,7 @@ VKShaderProgram::VKShaderProgram(
     const unsigned char* fragCode,
     uint32_t fragSize
 )
-    : name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+    : ShaderProgram(false), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
 {
     bool vertInterleaved = true;
     if (config != nullptr)
@@ -303,6 +323,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
         descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
 
+        layoutHash.push_back(VkDescriptorSetLayoutCreateInfoHash{}(descriptorSetLayoutCreateInfo));
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);
         descriptorPools.push_back(&pool);
@@ -346,6 +367,32 @@ VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()
 
 VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass)
 {
+    if (isCompute)
+    {
+        if (!caches.empty())
+            return caches.front().pipeline;
+
+        VkComputePipelineCreateInfo createInfo{
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .stage = computeShaderModule->GetShaderModuleGraphicsPipelineCreateInfos().pipelineShaderStageCreateInfo,
+            .layout = pipelineLayout,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = 0,
+        };
+
+        VkPipeline pipeline;
+        objManager->CreateComputePipeline(createInfo, pipeline);
+
+        PipelineCache newCache;
+        newCache.pipeline = pipeline;
+        newCache.config = config;
+        caches.push_back(newCache);
+
+        return pipeline;
+    }
+
     for (auto& cache : caches)
     {
         if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass)
@@ -508,5 +555,14 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
     caches.push_back(newCache);
 
     return pipeline;
+}
+
+size_t VKShaderProgram::GetLayoutHash(uint32_t set)
+{
+    if (set < layoutHash.size())
+    {
+        return layoutHash[set];
+    }
+    return 0;
 }
 } // namespace Engine::Gfx

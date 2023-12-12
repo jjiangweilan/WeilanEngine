@@ -53,6 +53,8 @@ public:
     void EnableFeature(const std::string& name);
     void DisableFeature(const std::string& name);
 
+    void UploadDataToGPU();
+
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
     Texture* GetTexture(const std::string& param);
     float GetFloat(const std::string& param, const std::string& membr);
@@ -79,22 +81,53 @@ public:
     void Deserialize(Serializer* s) override;
 
 private:
+    struct UBO
+    {
+        bool dirty = false;
+        std::unique_ptr<Gfx::Buffer> buffer;
+        std::unordered_map<std::string, float> floats;
+        std::unordered_map<std::string, glm::vec4> vectors;
+        std::unordered_map<std::string, glm::mat4> matrices;
+
+        void Serialize(Serializer* ser) const;
+        void Deserialize(Serializer* ser);
+    };
+
+    union UpdateVal
+    {
+        float f;
+        glm::vec4 vec;
+        glm::mat4 mat;
+    };
+
+    struct ScheduledUpdate
+    {
+        size_t offset;
+        size_t size;
+        UpdateVal val;
+    };
+
+    struct Schedule
+    {
+        bool scheduled;
+        std::vector<ScheduledUpdate> updates;
+    };
+
     Shader* shader = nullptr;
-    UniPtr<Gfx::ShaderResource> shaderResource = nullptr;
+    uint32_t shaderContentHash = -1;
+    std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
     Gfx::ShaderProgram* cachedShaderProgram = nullptr;
     uint64_t globalShaderFeaturesHash;
-
     bool overrideShaderConfig = false;
-    std::unordered_map<std::string, float> floatValues;
-    std::unordered_map<std::string, glm::vec4> vectorValues;
-    std::unordered_map<std::string, glm::mat4> matrixValues;
+
+    std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, Texture*> textureValues;
     std::unordered_set<std::string> enabledFeatures;
+    std::unique_ptr<Gfx::Buffer> buffer;
+    std::shared_ptr<Schedule> schedule;
 
-    void UpdateResources();
     void SetShaderNoProtection(RefPtr<Shader> shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
-    static int initImporter_;
 };
 } // namespace Engine

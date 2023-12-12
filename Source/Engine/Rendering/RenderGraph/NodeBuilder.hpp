@@ -13,28 +13,28 @@ struct BuildResult
     std::vector<RenderPass::Subpass> subpass;
 };
 
-class NodeBuilder
-{
-
-public:
-    struct BlitDescription
-    {
-        ResourceHandle srcHandle;
-        const Gfx::ImageDescription& dstCreateInfo;
-        ResourceHandle dstHandle;
-    };
-    static BuildResult Blit(const std::vector<BlitDescription>& blits);
-
-    struct FXAADescription
-    {};
-    static BuildResult FXAA();
-
-    struct SkyboxDescription
-    {
-        ResourceHandle targetColor;
-        ResourceHandle targetDepth;
-        Gfx::Image& cubemap;
-    };
-    static RenderNode* Skybox(Graph& graph, const SkyboxDescription& desc);
-};
+// class NodeBuilder
+// {
+//
+// public:
+//     struct BlitDescription
+//     {
+//         ResourceHandle srcHandle;
+//         const Gfx::ImageDescription& dstCreateInfo;
+//         ResourceHandle dstHandle;
+//     };
+//     static BuildResult Blit(const std::vector<BlitDescription>& blits);
+//
+//     struct FXAADescription
+//     {};
+//     static BuildResult FXAA();
+//
+//     struct SkyboxDescription
+//     {
+//         ResourceHandle targetColor;
+//         ResourceHandle targetDepth;
+//         Gfx::Image& cubemap;
+//     };
+//     static RenderNode* Skybox(Graph& graph, const SkyboxDescription& desc);
+// };
 } // namespace Engine::RenderGraph

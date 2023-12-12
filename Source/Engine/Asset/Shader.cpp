@@ -7,83 +7,54 @@
 namespace Engine
 {
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
+DEFINE_ASSET(ComputeShader, "91093726-6D8F-440C-B617-6AA3FDA08DEA", "comp");
 
-Shader::Shader(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
+ShaderBase::ShaderBase(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
 {
     shaderPrograms[0] = std::move(shaderProgram);
     SetUUID(uuid);
     this->name = name;
 }
 
-Shader::Shader(const char* path)
+void ShaderBase::Reload(Asset&& other)
 {
-    LoadFromFile(path);
-}
-
-void Shader::Reload(Asset&& other)
-{
-    Shader* casted = static_cast<Shader*>(&other);
-    Asset::Reload(std::move(other));
+    ShaderBase* casted = static_cast<ShaderBase*>(&other);
     shaderName = (std::move(casted->shaderName));
     shaderPrograms = (std::move(casted->shaderPrograms));
+    cachedShaderProgram = nullptr;
+    contentHash = 0;
+    featureToBitMask = std::move(casted->featureToBitMask);
+    Asset::Reload(std::move(other));
 }
 
-void Shader::Serialize(Serializer* s) const
+void ShaderBase::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
     s->Serialize("shaderName", shaderName);
 }
 
-void Shader::Deserialize(Serializer* s)
+void ShaderBase::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
     s->Deserialize("shaderName", shaderName);
 }
 
-bool Shader::LoadFromFile(const char* path)
-{
-    ShaderCompiler compiler;
-    std::fstream f(path);
-    std::stringstream ss;
-    ss << f.rdbuf();
-    try
-    {
-        compiler.Compile(ss.str(), true);
-        for (auto& iter : compiler.GetCompiledSpvs())
-        {
-            shaderPrograms[iter.first] =
-                GetGfxDriver()
-                    ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
-        }
-        this->name = compiler.GetName();
-        contentHash += 1;
-
-        featureToBitMask = compiler.GetFeatureToBitMask();
-    }
-    catch (const std::exception& e)
-    {
-        SPDLOG_ERROR("{}", e.what());
-    }
-
-    return true;
-}
-
-uint32_t Shader::GetContentHash()
+uint32_t ShaderBase::GetContentHash()
 {
     return contentHash;
 }
 
-const std::set<std::string>& Shader::GlobalShaderFeature::GetEnabledFeatures()
+const std::set<std::string>& ShaderBase::GlobalShaderFeature::GetEnabledFeatures()
 {
     return enabledFeatures;
 }
 
-uint64_t Shader::GlobalShaderFeature::GetEnabledFeaturesHash()
+uint64_t ShaderBase::GlobalShaderFeature::GetEnabledFeaturesHash()
 {
     return setHash;
 }
 
-void Shader::GlobalShaderFeature::EnableFeature(const char* name)
+void ShaderBase::GlobalShaderFeature::EnableFeature(const char* name)
 {
     if (!enabledFeatures.contains(name))
     {
@@ -92,7 +63,7 @@ void Shader::GlobalShaderFeature::EnableFeature(const char* name)
     }
 }
 
-void Shader::GlobalShaderFeature::DisableFeature(const char* name)
+void ShaderBase::GlobalShaderFeature::DisableFeature(const char* name)
 {
     if (enabledFeatures.contains(name))
     {
@@ -101,7 +72,7 @@ void Shader::GlobalShaderFeature::DisableFeature(const char* name)
     }
 }
 
-void Shader::GlobalShaderFeature::Rehash()
+void ShaderBase::GlobalShaderFeature::Rehash()
 {
     std::string concat = "";
     concat.reserve(512);
@@ -114,7 +85,7 @@ void Shader::GlobalShaderFeature::Rehash()
     setHash = XXH64(concat.data(), concat.size(), 0);
 }
 
-Gfx::ShaderProgram* Shader::GetShaderProgram(const std::vector<std::string>& enabledFeature)
+Gfx::ShaderProgram* ShaderBase::GetShaderProgram(const std::vector<std::string>& enabledFeature)
 {
     uint64_t id = 0;
     for (auto& f : enabledFeature)
@@ -133,14 +104,14 @@ Gfx::ShaderProgram* Shader::GetShaderProgram(const std::vector<std::string>& ena
     return nullptr;
 }
 
-Gfx::ShaderProgram* Shader::GetDefaultShaderProgram()
+Gfx::ShaderProgram* ShaderBase::GetDefaultShaderProgram()
 {
-    uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
+    uint64_t globalShaderFeaturesHash = ShaderBase::GetEnabledFeaturesHash();
 
     if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash)
     {
         this->globalShaderFeaturesHash = globalShaderFeaturesHash;
-        auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
+        auto& globalEnabledFeatures = ShaderBase::GetEnabledFeatures();
         cachedShaderProgram =
             GetShaderProgram(std::vector<std::string>(globalEnabledFeatures.begin(), globalEnabledFeatures.end()));
     }
@@ -148,9 +119,103 @@ Gfx::ShaderProgram* Shader::GetDefaultShaderProgram()
     return cachedShaderProgram;
 }
 
-Shader::GlobalShaderFeature& Shader::GetGlobalShaderFeature()
+ShaderBase::GlobalShaderFeature& ShaderBase::GetGlobalShaderFeature()
 {
     static GlobalShaderFeature f;
     return f;
 }
+
+bool Shader::LoadFromFile(const char* path)
+{
+    cachedShaderProgram = nullptr;
+
+    if (name.empty())
+    {
+        std::filesystem::path apath(path);
+        this->name = apath.string();
+    }
+    ShaderCompiler compiler;
+    std::fstream f(path);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    try
+    {
+        bool debugMode = false;
+#if ENGINE_EDITOR
+        debugMode = true;
+#endif
+        compiler.Compile(ss.str(), debugMode);
+        for (auto& iter : compiler.GetCompiledSpvs())
+        {
+            shaderPrograms[iter.first] =
+                GetGfxDriver()
+                    ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+        }
+        this->name = compiler.GetName();
+        contentHash += 1;
+
+        featureToBitMask = compiler.GetFeatureToBitMask();
+    }
+    catch (const std::exception& e)
+    {
+        SPDLOG_ERROR("{}", e.what());
+    }
+
+    return true;
+}
+bool ComputeShader::LoadFromFile(const char* path)
+{
+    if (name.empty())
+    {
+        std::filesystem::path apath(path);
+        this->name = apath.string();
+    }
+    ShaderCompiler compiler;
+    std::filesystem::path p(path);
+    auto ext = p.extension();
+    std::fstream f(path);
+    std::stringstream ss;
+    ss << f.rdbuf();
+    try
+    {
+        bool debugMode = false;
+#if ENGINE_EDITOR
+        debugMode = true;
+#endif
+
+        compiler.CompileComputeShader(ss.str(), debugMode);
+        for (auto& iter : compiler.GetCompiledSpvs())
+        {
+            shaderPrograms[iter.first] =
+                GetGfxDriver()->CreateComputeShaderProgram(path, compiler.GetConfig(), iter.second.compSpv);
+        }
+
+        this->name = compiler.GetName();
+        contentHash += 1;
+
+        featureToBitMask = compiler.GetFeatureToBitMask();
+    }
+    catch (const std::exception& e)
+    {
+        SPDLOG_ERROR("{}", e.what());
+    }
+
+    return true;
+}
+
+void Shader::SetDefault(Shader* defaultShader)
+{
+    GetDefaultPrivate() = defaultShader;
+}
+Shader* Shader::GetDefault()
+{
+    return GetDefaultPrivate();
+}
+
+Shader*& Shader::GetDefaultPrivate()
+{
+    static Shader* shader;
+    return shader;
+}
+
 } // namespace Engine

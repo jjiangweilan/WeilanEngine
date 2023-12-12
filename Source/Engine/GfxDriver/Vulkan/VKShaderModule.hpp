@@ -54,7 +54,7 @@ private:
     const VkPhysicalDeviceProperties& gpuProperties;
 
     ShaderModuleGraphicsPipelineCreateInfos gpCreateInfos;
-    ShaderModuleGraphicsPipelineCreateInfos GenerateShaderModuleGraphicsPipelineCreateInfos();
+    ShaderModuleGraphicsPipelineCreateInfos GenerateShaderModulePipelineCreateInfos();
 };
 
 } // namespace Engine::Gfx

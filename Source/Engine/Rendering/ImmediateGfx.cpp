@@ -29,7 +29,7 @@ void ImmediateGfx::RenderToImage(
             };
             cmd.SetViewport(viewport);
             cmd.BeginRenderPass(pass, {clear});
-            cmd.BindResource(&resource);
+            cmd.BindResource(0, &resource);
             cmd.BindShaderProgram(&shader, config);
             cmd.Draw(3, 1, 0, 0);
             cmd.EndRenderPass();

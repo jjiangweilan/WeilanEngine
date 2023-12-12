@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
@@ -26,10 +27,10 @@ struct GPUBarrier
 {
     RefPtr<Gfx::Buffer> buffer = nullptr;
     RefPtr<Gfx::Image> image = nullptr;
-    Gfx::PipelineStageFlags srcStageMask;
-    Gfx::PipelineStageFlags dstStageMask;
-    Gfx::AccessMaskFlags srcAccessMask;
-    Gfx::AccessMaskFlags dstAccessMask;
+    Gfx::PipelineStageFlags srcStageMask = Gfx::PipelineStage::Bottom_Of_Pipe;
+    Gfx::PipelineStageFlags dstStageMask = Gfx::PipelineStage::Top_Of_Pipe;
+    Gfx::AccessMaskFlags srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
+    Gfx::AccessMaskFlags dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
 
     struct BufferInfo
     {
@@ -99,7 +100,11 @@ class CommandBuffer
 {
 public:
     virtual ~CommandBuffer(){};
-    virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
+
+    void BindSubmesh(const Submesh& submesh);
+
+    // virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
+    virtual void BindResource(uint32_t set, Gfx::ShaderResource* resource) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;
@@ -120,9 +125,22 @@ public:
     virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;
     virtual void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) = 0;
     virtual void SetViewport(const Viewport& viewport) = 0;
+    virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
+    virtual void DispatchIndir(Buffer* buffer, size_t bufferOffset) = 0;
     virtual void CopyBuffer(
         RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;
+    void CopyBuffer(
+        RefPtr<Gfx::Buffer> bDst,
+        RefPtr<Gfx::Buffer> bSrc,
+        uint64_t size,
+        uint64_t dstOffset = 0,
+        uint64_t srcOffset = 0
+    )
+    {
+        BufferCopyRegion r[1]{{srcOffset, dstOffset, size}};
+        CopyBuffer(bSrc, bDst, r);
+    }
     virtual void CopyImageToBuffer(
         RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
     ) = 0;

@@ -9,11 +9,10 @@
 
 namespace Engine::Gfx
 {
-VKMemAllocator::VKMemAllocator(VkInstance instance,
-                               RefPtr<VKDevice> device,
-                               VkPhysicalDevice physicalDevice,
-                               uint32_t transferQueueIndex)
-    : device(device), queueFamilyIndex(transferQueueIndex)
+VKMemAllocator::VKMemAllocator(
+    VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
+)
+    : device(device), queueFamilyIndex(transferQueueIndex), pendingBuffers(), pendingImages()
 {
     // vma
     VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
@@ -25,40 +24,46 @@ VKMemAllocator::VKMemAllocator(VkInstance instance,
     VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));
 }
 
-VKMemAllocator::~VKMemAllocator() { vmaDestroyAllocator(allocator_vma); }
-
-void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo,
-                                  VmaAllocationCreateInfo& allocationCreateInfo,
-                                  VkBuffer& buffer,
-                                  VmaAllocation& allocation,
-                                  VmaAllocationInfo* allocationInfo)
+VKMemAllocator::~VKMemAllocator()
 {
-    VK_CHECK(
-        vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo));
+    DestroyPendingResources();
+    vmaDestroyAllocator(allocator_vma);
 }
 
-void VKMemAllocator::CreateBuffer(VkBufferCreateInfo& bufferCreateInfo,
-                                  VkBuffer& buffer,
-                                  VmaAllocation& allocation,
-                                  VmaAllocationInfo* allocationInfo)
+void VKMemAllocator::CreateBuffer(
+    VkBufferCreateInfo& bufferCreateInfo,
+    VmaAllocationCreateInfo& allocationCreateInfo,
+    VkBuffer& buffer,
+    VmaAllocation& allocation,
+    VmaAllocationInfo* allocationInfo
+)
+{
+    VK_CHECK(
+        vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo)
+    );
+}
+
+void VKMemAllocator::CreateBuffer(
+    VkBufferCreateInfo& bufferCreateInfo, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo
+)
 {
     VmaAllocationCreateInfo allocationCreateInfo{};
     allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
     VK_CHECK(
-        vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo));
+        vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &buffer, &allocation, allocationInfo)
+    );
 }
 
-void VKMemAllocator::CreateImage(VkImageCreateInfo& imageCreateInfo,
-                                 VkImage& image,
-                                 VmaAllocation& allocation,
-                                 VmaAllocationInfo* allocationInfo)
+void VKMemAllocator::CreateImage(
+    VkImageCreateInfo& imageCreateInfo, VkImage& image, VmaAllocation& allocation, VmaAllocationInfo* allocationInfo
+)
 {
     VmaAllocationCreateInfo allocationCreateInfo{};
     allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-    VK_CHECK(
-        vmaCreateImage(allocator_vma, &imageCreateInfo, &allocationCreateInfo, &image, &allocation, allocationInfo));
+    VK_CHECK(vmaCreateImage(allocator_vma, &imageCreateInfo, &allocationCreateInfo, &image, &allocation, allocationInfo)
+    );
 }
 
 VkBuffer VKMemAllocator::GetStageBuffer(uint32_t size, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo)
@@ -78,23 +83,35 @@ VkBuffer VKMemAllocator::GetStageBuffer(uint32_t size, VmaAllocation& allocation
     allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
     VkBuffer srcBuf = VK_NULL_HANDLE;
-    VK_CHECK(vmaCreateBuffer(allocator_vma,
-                             &bufferCreateInfo,
-                             &allocationCreateInfo,
-                             &srcBuf,
-                             &allocation,
-                             &allocationInfo));
+    VK_CHECK(
+        vmaCreateBuffer(allocator_vma, &bufferCreateInfo, &allocationCreateInfo, &srcBuf, &allocation, &allocationInfo)
+    );
     return srcBuf;
 }
 
 void VKMemAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
 {
-    vmaDestroyBuffer(allocator_vma, buffer, allocation);
+    pendingBuffers.push_back({buffer, allocation});
 }
 
 void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
 {
-    vmaDestroyImage(allocator_vma, image, allocation);
+    pendingImages.push_back({image, allocation});
 }
 
+void VKMemAllocator::DestroyPendingResources()
+{
+
+    for (auto& b : pendingBuffers)
+    {
+        vmaDestroyBuffer(allocator_vma, b.first, b.second);
+    }
+    for (auto& b : pendingImages)
+    {
+        vmaDestroyImage(allocator_vma, b.first, b.second);
+    }
+
+    pendingBuffers.clear();
+    pendingImages.clear();
+}
 } // namespace Engine::Gfx

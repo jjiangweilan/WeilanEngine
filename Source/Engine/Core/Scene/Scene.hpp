@@ -6,7 +6,6 @@
 #include "Core/GameObject.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
-#include "Rendering/SceneRenderer.hpp"
 #include <SDL2/SDL.h>
 #include <iterator>
 namespace Engine
@@ -21,6 +20,7 @@ public:
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
     void AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
+    void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
 
     const std::vector<GameObject*>& GetRootObjects();
@@ -30,6 +30,7 @@ public:
     void MoveGameObjectToRoot(GameObject* obj);
     void RemoveGameObjectFromRoot(GameObject* obj);
     void RemoveGameObject(GameObject* obj);
+    void DestroyGameObject(GameObject* obj);
 
     std::vector<GameObject*> GetAllGameObjects();
 

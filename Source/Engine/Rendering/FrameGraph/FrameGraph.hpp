@@ -33,6 +33,10 @@ public:
     };
     ~Graph()
     {
+        for (auto& n : nodes)
+        {
+            n->OnDestroy();
+        }
 #if ENGINE_EDITOR
         ax::NodeEditor::DestroyEditor(graphContext);
 #endif
@@ -170,6 +174,8 @@ private:
         glm::vec4 position;
         float range;
         float intensity;
+        float padding0;
+        float padding1;
     };
 
     static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
@@ -198,7 +204,7 @@ private:
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
-    Gfx::Buffer* sceneGlobalBuffer;
+    std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     bool HasCycleIfLink(FGID src, FGID dst)

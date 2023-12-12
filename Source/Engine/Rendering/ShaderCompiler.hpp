@@ -20,6 +20,7 @@ struct CompiledSpv
 {
     std::vector<uint32_t> vertSpv;
     std::vector<uint32_t> fragSpv;
+    std::vector<uint32_t> compSpv;
 };
 
 class ShaderCompiler
@@ -68,81 +69,11 @@ public:
         return featureToBitMask;
     }
 
-    void Compile(const std::string& buf, bool debug)
-    {
-        std::stringstream f;
-        f << buf;
-        size_t bufSize = buf.size();
+    // compile graphics shader
+    void Compile(const std::string& buf, bool debug);
 
-        std::stringstream yamlConfig = GetYAML(f);
-
-        ryml::Tree tree = ryml::parse_in_arena(ryml::to_csubstr(yamlConfig.str()));
-
-        config = std::make_shared<Gfx::ShaderConfig>(MapShaderConfig(tree, name));
-
-        auto featureCombs = FeatureToCombinations(config->features);
-        int bitIndex = 0;
-        featureToBitMask.clear();
-        const uint64_t one = 1;
-        for (auto& fs : config->features)
-        {
-            for (int i = 0; i < fs.size(); ++i)
-            {
-                if (i == 0)
-                {
-                    featureToBitMask[fs[i]] = 0;
-                }
-                else
-                {
-                    featureToBitMask[fs[i]] = one << bitIndex;
-                    bitIndex += 1;
-                }
-            }
-        }
-
-        if (featureToBitMask.size() > 64)
-        {
-            throw CompileError("shader can't support more than 64 features");
-        }
-
-        includedTrack.clear();
-
-        if (featureCombs.empty())
-        {
-            featureCombs.push_back({});
-        }
-
-        for (auto& c : featureCombs)
-        {
-            uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
-
-            CompiledSpv compiledSpv;
-
-            compiledSpv.vertSpv = CompileShader(
-                "VERT",
-                shaderc_vertex_shader,
-                debug,
-                "vertex shader",
-                buf.c_str(),
-                bufSize,
-                includedTrack,
-                c
-            );
-
-            compiledSpv.fragSpv = CompileShader(
-                "FRAG",
-                shaderc_fragment_shader,
-                debug,
-                "fragment shader",
-                buf.c_str(),
-                bufSize,
-                includedTrack,
-                c
-            );
-
-            compiledSpvs[featureCombination] = std::move(compiledSpv);
-        }
-    }
+    // compile compute shader
+    void CompileComputeShader(const std::string& buf, bool debug);
 
     const std::vector<uint32_t>& GetVertexSPV()
     {
@@ -185,7 +116,8 @@ private:
 
     std::stringstream GetYAML(std::stringstream& f);
 
-    // shaderStage: VERT for vertex shader, FRAG for fragment shader
+    // shaderStage: VERT for vertex shader, FRAG for fragment shader, COMP for compute shader(COMP or not doesn't really
+    // matter) actually matter)
     std::vector<uint32_t> CompileShader(
         const char* shaderStage,
         shaderc_shader_kind kind,

@@ -96,6 +96,36 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     return top;
 }
 
+void Scene::DestroyGameObject(GameObject* obj)
+{
+    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
+    if (iter != gameObjects.end())
+    {
+        for (auto child : obj->GetTransform()->GetChildren())
+        {
+            DestroyGameObject(obj);
+        }
+
+        if (Transform* parent = obj->GetTransform()->GetParent())
+        {
+            parent->RemoveChild(obj->GetTransform());
+            gameObjects.erase(iter);
+        }
+    }
+
+    auto rootIter = std::find(roots.begin(), roots.end(), obj);
+    if (rootIter != roots.end())
+    {
+        roots.erase(rootIter);
+    }
+
+    auto externalIter = std::find(externalGameObjects.begin(), externalGameObjects.end(), obj);
+    if (externalIter != externalGameObjects.end())
+    {
+        externalGameObjects.erase(rootIter);
+    }
+}
+
 void Scene::RemoveGameObjectFromRoot(GameObject* obj)
 {
     auto it = roots.begin();
@@ -143,6 +173,27 @@ std::vector<Light*> Scene::GetActiveLights()
     }
 
     return lights;
+}
+
+void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects)
+{
+    for (auto& go : gameObjects)
+    {
+        go->SetGameScene(this);
+
+        if (go->GetTransform()->GetParent() == nullptr)
+        {
+            MoveGameObjectToRoot(go.get());
+        }
+    }
+
+    this->gameObjects.insert(
+        this->gameObjects.end(),
+        std::make_move_iterator(gameObjects.begin()),
+        std::make_move_iterator(gameObjects.end())
+    );
+
+    gameObjects.clear();
 }
 
 void Scene::Serialize(Serializer* s) const

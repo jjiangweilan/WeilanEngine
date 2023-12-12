@@ -5,7 +5,8 @@
 #include "EditorState.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
-#include "ThirdParty/imgui/imgui_impl_sdl.h"
+#include "Rendering/SurfelGI/GIScene.hpp"
+#include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
 #include "spdlog/spdlog.h"
@@ -42,16 +43,17 @@ GameEditor::GameEditor(const char* path)
         EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
     }
 
-    gameView.Init();
-
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
+    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+
+    gameView.Init();
 
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
 
     auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
     gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
 
-    toolList.emplace_back(new EnvironmentBaker());
+    // toolList.emplace_back(new EnvironmentBaker());
 
     for (auto& t : toolList)
     {
@@ -95,9 +97,17 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     bool treeOpen =
         ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
-    if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    if (ImGui::IsItemHovered())
     {
-        EditorState::selectedObject = transform->GetGameObject();
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        {
+            EditorState::selectedObject = transform->GetGameObject();
+        }
+        if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+        {
+            sceneTreeContextObject = transform->GetGameObject();
+            beginSceneTreeContextPopup = true;
+        }
     }
 
     if (ImGui::BeginDragDropSource())
@@ -121,6 +131,7 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
                 obj->GetTransform()->SetParent(transform);
             }
         }
+
         ImGui::EndDragDropTarget();
     }
 
@@ -168,6 +179,16 @@ void GameEditor::SceneTree(Scene& scene)
                 obj->GetTransform()->SetParent(nullptr);
             }
         }
+
+        const ImGuiPayload* objpayload = ImGui::AcceptDragDropPayload("object");
+        if (objpayload && objpayload->IsDelivery())
+        {
+            if (Model* model = dynamic_cast<Model*>(*(Object**)objpayload->Data))
+            {
+                scene.AddGameObjects(model->CreateGameObject());
+            }
+        }
+
         ImGui::EndDragDropTarget();
     }
 
@@ -348,6 +369,8 @@ void GameEditor::MainMenuBar()
             assetWindow = !assetWindow;
         if (ImGui::MenuItem("Inspector"))
             inspectorWindow = !inspectorWindow;
+        if (ImGui::MenuItem("Surfel GI Baker"))
+            surfelGIBaker = !surfelGIBaker;
 
         ImGui::EndMenu();
     }
@@ -373,8 +396,7 @@ void GameEditor::Start()
 
             GUIPass();
 
-            auto& cmd = engine->GetActiveCmdBuffer();
-            Render(cmd);
+            RenderPipeline::Singleton().Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
 
             engine->EndFrame();
         }
@@ -383,11 +405,14 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
+    ImGui::DockSpaceOverViewport();
+
     MainMenuBar();
     OpenSceneWindow();
 
     AssetWindow();
     InspectorWindow();
+    SurfelGIBakerWindow();
     gameView.Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
@@ -399,6 +424,75 @@ void GameEditor::GUIPass()
     {
         if (EditorState::activeScene)
             SceneTree(*EditorState::activeScene);
+
+        if (beginSceneTreeContextPopup)
+        {
+            beginSceneTreeContextPopup = false;
+            ImGui::OpenPopup("GameObject Context Menu");
+        }
+
+        if (ImGui::BeginPopup("GameObject Context Menu"))
+        {
+            if (ImGui::Button("Delete"))
+            {
+                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
+                ImGui::CloseCurrentPopup();
+                sceneTreeContextObject = nullptr;
+            }
+            ImGui::EndPopup();
+        }
+    }
+
+    ConsoleOutputWindow();
+}
+
+void GameEditor::SurfelGIBakerWindow()
+{
+    if (surfelGIBaker)
+    {
+        ImGui::Begin("Surfel GI Baker");
+        static SurfelGI::BakerConfig c{
+            .scene = EditorState::activeScene,
+            .templateShader = nullptr,
+            .worldBoundsMin = {-5, -5, -5},
+            .worldBoundsMax = {5, 5, 5},
+        };
+
+        const char* templateShaderName = "Template Scene Shader";
+        if (c.templateShader != nullptr)
+        {
+            templateShaderName = c.templateShader->GetName().c_str();
+        }
+        if (ImGui::Button(templateShaderName))
+        {
+            EditorState::selectedObject = c.templateShader;
+        }
+        if (ImGui::BeginDragDropTarget())
+        {
+            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
+            if (payload && payload->IsDelivery())
+            {
+                Object* obj = *(Object**)payload->Data;
+                if (Shader* shader = dynamic_cast<Shader*>(obj))
+                {
+                    c.templateShader = shader;
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+
+        ImGui::InputFloat3("World Bounds Min", &c.worldBoundsMin[0]);
+        ImGui::InputFloat3("World Bounds Max", &c.worldBoundsMax[0]);
+
+        if (ImGui::Button("Bake"))
+        {
+            SurfelGI::GISceneBaker baker;
+            auto giScene = std::make_unique<SurfelGI::GIScene>(baker.Bake(c));
+
+            engine->assetDatabase->SaveAsset(std::move(giScene), "demo");
+        }
+
+        ImGui::End();
     }
 }
 
@@ -569,6 +663,41 @@ void GameEditor::AssetWindow()
         }
         ImGui::End();
     }
+}
+
+void GameEditor::ConsoleOutputWindow()
+{
+    auto ringBufferSink = engine->GetRingBufferLoggerSink();
+    auto lastRaw = ringBufferSink->last_raw();
+    static auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    ImGui::Begin("Console");
+    for (auto r = lastRaw.rbegin(); r != lastRaw.rend(); r++)
+    {
+        spdlog::memory_buf_t formatted;
+        formatter->format(*r, formatted);
+        bool colorPushed = false;
+        if (r->level == spdlog::level::trace || r->level == spdlog::level::info || r->level == spdlog::level::debug)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImColor(0.0f, 0.8f, 0.0f).Value);
+            colorPushed = true;
+        }
+        else if (r->level == spdlog::level::warn)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(255, 165, 0, 1));
+            colorPushed = true;
+        }
+        else if (r->level == spdlog::level::err || r->level == spdlog::level::critical)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+            colorPushed = true;
+        }
+
+        ImGui::TextWrapped("%s", fmt::to_string(formatted).data());
+
+        if (colorPushed)
+            ImGui::PopStyleColor();
+    }
+    ImGui::End();
 }
 
 GameEditor* GameEditor::instance = nullptr;

@@ -70,9 +70,7 @@ public:
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
     UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
-    UniPtr<ShaderResource> CreateShaderResource(RefPtr<ShaderProgram> shader, ShaderResourceFrequency frequency)
-        override;
-
+    std::unique_ptr<ShaderResource> CreateShaderResource() override;
     std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
@@ -86,6 +84,10 @@ public:
         uint32_t fragSize
     ) override;
 
+    std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
+    ) override;
+
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name,
         std::shared_ptr<const ShaderConfig> config,
@@ -93,6 +95,8 @@ public:
         const std::vector<uint32_t>& frag
     ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
+
+    void ClearResources() override;
 
 private:
     VKInstance* instance;
