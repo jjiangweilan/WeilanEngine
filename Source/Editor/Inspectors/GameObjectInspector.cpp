@@ -7,7 +7,8 @@
 #include "Inspector.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "ThirdParty/imgui/imgui.h"
-
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 namespace Engine::Editor
 {
 class GameObjectInspector : public Inspector<GameObject>
@@ -46,6 +47,30 @@ public:
             target->SetName(cname);
         }
 
+        auto pos = target->GetPosition();
+        if (ImGui::DragFloat3("Position", &pos[0]))
+        {
+            target->SetPosition(pos);
+        }
+
+        auto rotation = glm::eulerAngles(target->GetRotation());
+        auto degree = glm::degrees(rotation);
+        auto newDegree = degree;
+        if (ImGui::DragFloat3("rotation", &newDegree[0]))
+        {
+            auto delta = newDegree - degree;
+            auto radians = glm::radians(delta);
+            float length = glm::length(radians);
+            if (length != 0)
+                target->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
+        }
+
+        auto scale = target->GetScale();
+        if (ImGui::DragFloat3("scale", &scale[0]))
+        {
+            target->SetScale(scale);
+        }
+
         // Components
         for (auto& co : target->GetComponents())
         {
@@ -53,34 +78,7 @@ public:
             ImGui::Separator();
             ImGui::Text("%s", c.GetName().c_str());
 
-            Transform* transform = target->GetTransform();
-            if (typeid(c) == typeid(Transform))
-            {
-                auto pos = transform->GetPosition();
-                if (ImGui::DragFloat3("Position", &pos[0]))
-                {
-                    transform->SetPosition(pos);
-                }
-
-                auto rotation = transform->GetRotation();
-                auto degree = glm::degrees(rotation);
-                auto newDegree = degree;
-                if (ImGui::DragFloat3("rotation", &newDegree[0]))
-                {
-                    auto delta = newDegree - degree;
-                    auto radians = glm::radians(delta);
-                    float length = glm::length(radians);
-                    if (length != 0)
-                        transform->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
-                }
-
-                auto scale = transform->GetScale();
-                if (ImGui::DragFloat3("scale", &scale[0]))
-                {
-                    transform->SetScale(scale);
-                }
-            }
-            else if (typeid(c) == typeid(Light))
+            if (typeid(c) == typeid(Light))
             {
                 Light* light = static_cast<Light*>(&c);
                 float intensity = light->GetIntensity();

@@ -74,6 +74,6 @@ private:
     void ConsoleOutputWindow();
 
     void SceneTree(Scene& scene);
-    void SceneTree(Transform* transform, int imguiID);
+    void SceneTree(GameObject* go, int imguiID);
 };
 } // namespace Engine::Editor

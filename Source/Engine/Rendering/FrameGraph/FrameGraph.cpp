@@ -1,5 +1,4 @@
 #include "FrameGraph.hpp"
-#include "Core/Component/Transform.hpp"
 #include "Core/GameObject.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
@@ -179,7 +178,7 @@ void Graph::ProcessLights(Scene& gameScene)
     for (int i = 0; i < lights.size(); ++i)
     {
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
-        auto model = lights[i]->GetGameObject()->GetTransform()->GetModelMatrix();
+        auto model = lights[i]->GetGameObject()->GetModelMatrix();
         sceneInfo.lights[i].position = glm::vec4(-glm::normalize(glm::vec3(model[2])), 0);
 
         if (lights[i]->GetLightType() == LightType::Directional)
@@ -215,12 +214,12 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         n->Execute(graphResource);
     }
 
-    RefPtr<Transform> camTsm = camera->GetGameObject()->GetTransform();
+    GameObject* camGo = camera->GetGameObject();
 
     glm::mat4 viewMatrix = camera->GetViewMatrix();
     glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
     glm::mat4 vp = projectionMatrix * viewMatrix;
-    glm::vec4 viewPos = glm::vec4(camTsm->GetPosition(), 1);
+    glm::vec4 viewPos = glm::vec4(camGo->GetPosition(), 1);
     sceneInfo.projection = projectionMatrix;
     sceneInfo.viewProjection = vp;
     sceneInfo.viewPos = viewPos;

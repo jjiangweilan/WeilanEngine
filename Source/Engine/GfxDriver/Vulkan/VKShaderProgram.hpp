@@ -86,6 +86,7 @@ public:
         return name;
     }
 
+    // note layout created with VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR won't register to layouy hashes
     size_t GetLayoutHash(uint32_t set);
 
 private:

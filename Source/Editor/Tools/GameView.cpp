@@ -29,9 +29,9 @@ void GameView::Init()
         std::array<float, 3> scale{1, 1, 1};
         scale = camJson.value("scale", scale);
 
-        editorCamera->GetGameObject()->GetTransform()->SetPosition({pos[0], pos[1], pos[2]});
-        editorCamera->GetGameObject()->GetTransform()->SetRotation(glm::quat{rot[0], rot[1], rot[2], rot[3]});
-        editorCamera->GetGameObject()->GetTransform()->SetScale({scale[0], scale[1], scale[2]});
+        editorCamera->GetGameObject()->SetPosition({pos[0], pos[1], pos[2]});
+        editorCamera->GetGameObject()->SetRotation(glm::quat{rot[0], rot[1], rot[2], rot[3]});
+        editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
     CreateRenderData(1960, 1080);
@@ -45,9 +45,9 @@ static void EditorCameraWalkAround(Camera& editorCamera)
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
-        auto tsm = editorCamera.GetGameObject()->GetTransform();
-        auto pos = tsm->GetPosition();
-        glm::mat4 model = tsm->GetModelMatrix();
+        auto go = editorCamera.GetGameObject();
+        auto pos = go->GetPosition();
+        glm::mat4 model = go->GetModelMatrix();
         glm::vec3 right = glm::normalize(model[0]);
         glm::vec3 up = glm::normalize(model[1]);
         glm::vec3 forward = glm::normalize(model[2]);
@@ -79,7 +79,7 @@ static void EditorCameraWalkAround(Camera& editorCamera)
             dir -= up * speed;
         }
         pos += dir;
-        tsm->SetPosition(pos);
+        go->SetPosition(pos);
 
         auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0);
         glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
@@ -87,10 +87,10 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
         auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
 
-        auto eye = tsm->GetPosition();
+        auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right - upDown * up;
         auto final = glm::lookAt(eye, eye - forward + lookAtDelta, glm::vec3(0, 1, 0));
-        tsm->SetModelMatrix(glm::inverse(final));
+        go->SetModelMatrix(glm::inverse(final));
     }
     else
     {
@@ -118,6 +118,9 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
 
 void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 {
+    if (!scene || !scene->GetMainCamera())
+        return;
+
     float width = sceneImage->GetDescription().width;
     float height = sceneImage->GetDescription().height;
     cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
@@ -155,7 +158,7 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
     auto mr = obj->GetComponent<MeshRenderer>();
     if (mr)
     {
-        auto model = obj->GetTransform()->GetModelMatrix();
+        auto model = obj->GetModelMatrix();
         auto mesh = mr->GetMesh();
         if (mesh)
         {
@@ -259,17 +262,19 @@ bool GameView::Tick()
     if (scene && useViewCamera)
     {
         auto gameCamera = scene->GetMainCamera();
-        if (gameCamera != editorCamera)
+        if (gameCamera)
         {
-            this->gameCamera = gameCamera;
-            editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
-            editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
-            auto framegraph = editorCamera->GetFrameGraph();
-            if (framegraph && !framegraph->IsCompiled())
-                editorCamera->GetFrameGraph()->Compile();
+            if (gameCamera != editorCamera)
+            {
+                this->gameCamera = gameCamera;
+                editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
+                editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
+                auto framegraph = editorCamera->GetFrameGraph();
+                if (framegraph && !framegraph->IsCompiled())
+                    editorCamera->GetFrameGraph()->Compile();
+            }
+            scene->SetMainCamera(editorCamera);
         }
-
-        scene->SetMainCamera(editorCamera);
     }
     else if (gameCamera)
     {
@@ -317,70 +322,77 @@ bool GameView::Tick()
     const float contentHeight = contentMax.y - contentMin.y;
 
     // imgui image
-    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
-    auto targetImage = graph ? graph->GetOutputImage() : sceneImage.get();
-
-    if (targetImage)
+    if (scene)
     {
-        float width = targetImage->GetDescription().width;
-        float height = targetImage->GetDescription().height;
-        float imageWidth = width;
-        float imageHeight = height;
-
-        // shrink width
-        if (imageWidth > contentWidth)
+        auto mainCamera = scene->GetMainCamera();
+        if (mainCamera)
         {
-            float ratio = contentWidth / (float)imageWidth;
-            imageWidth = contentWidth;
-            imageHeight *= ratio;
-        }
+            FrameGraph::Graph* graph = mainCamera->GetFrameGraph();
+            auto targetImage = graph ? graph->GetOutputImage() : sceneImage.get();
 
-        if (imageHeight > contentHeight)
-        {
-            float ratio = contentHeight / (float)imageHeight;
-            imageHeight = contentHeight;
-            imageWidth *= ratio;
-        }
-
-        auto imagePos = ImGui::GetCursorPos();
-        ImGui::Image(&targetImage->GetDefaultImageView(), {imageWidth, imageHeight});
-
-        auto windowPos = ImGui::GetWindowPos();
-        if (!ImGuizmo::IsUsing())
-        {
-            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+            if (targetImage)
             {
-                auto mousePos = ImGui::GetMousePos();
-                glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
-                GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+                float width = targetImage->GetDescription().width;
+                float height = targetImage->GetDescription().height;
+                float imageWidth = width;
+                float imageHeight = height;
 
-                if (selected)
+                // shrink width
+                if (imageWidth > contentWidth)
                 {
-                    EditorState::selectedObject = selected;
+                    float ratio = contentWidth / (float)imageWidth;
+                    imageWidth = contentWidth;
+                    imageHeight *= ratio;
                 }
-                else
-                {
-                    EditorState::selectedObject = nullptr;
-                }
-            }
-        }
 
-        Scene* scene = EditorState::activeScene;
-        if (scene != nullptr)
-        {
-            auto mainCam = scene->GetMainCamera();
-            if (mainCam)
-            {
-                if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+                if (imageHeight > contentHeight)
                 {
-                    auto model = go->GetTransform()->GetModelMatrix();
-                    ImGui::SetCursorPos(imagePos);
-                    EditTransform(
-                        *mainCam,
-                        model,
-                        {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight}
-                    );
-                    go->GetTransform()->SetModelMatrix(model);
+                    float ratio = contentHeight / (float)imageHeight;
+                    imageHeight = contentHeight;
+                    imageWidth *= ratio;
+                }
+
+                auto imagePos = ImGui::GetCursorPos();
+                ImGui::Image(&targetImage->GetDefaultImageView(), {imageWidth, imageHeight});
+
+                auto windowPos = ImGui::GetWindowPos();
+                if (!ImGuizmo::IsUsing())
+                {
+                    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+                    {
+                        auto mousePos = ImGui::GetMousePos();
+                        glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
+                        GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+
+                        if (selected)
+                        {
+                            EditorState::selectedObject = selected;
+                        }
+                        else
+                        {
+                            EditorState::selectedObject = nullptr;
+                        }
+                    }
+                }
+
+                Scene* scene = EditorState::activeScene;
+                if (scene != nullptr)
+                {
+                    auto mainCam = scene->GetMainCamera();
+                    if (mainCam)
+                    {
+                        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+                        {
+                            auto model = go->GetModelMatrix();
+                            ImGui::SetCursorPos(imagePos);
+                            EditTransform(
+                                *mainCam,
+                                model,
+                                {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight}
+                            );
+                            go->SetModelMatrix(model);
+                        }
+                    }
                 }
             }
         }

@@ -19,7 +19,7 @@ public:
     ~Scene() {}
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
-    void AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
+    GameObject* AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
     void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
 

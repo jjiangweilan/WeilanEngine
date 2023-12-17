@@ -10,7 +10,9 @@
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
 #include "spdlog/spdlog.h"
+#include <glm/gtx/matrix_decompose.hpp>
 #include <unordered_map>
+
 
 namespace Engine::Editor
 {
@@ -74,9 +76,9 @@ GameEditor::~GameEditor()
     if (Camera* cam = gameView.GetEditorCamera())
     {
         nlohmann::json camJson = {};
-        auto pos = cam->GetGameObject()->GetTransform()->GetPosition();
-        auto rot = cam->GetGameObject()->GetTransform()->GetRotationQuat();
-        auto scale = cam->GetGameObject()->GetTransform()->GetScale();
+        auto pos = cam->GetGameObject()->GetPosition();
+        auto rot = cam->GetGameObject()->GetRotation();
+        auto scale = cam->GetGameObject()->GetScale();
         camJson["position"] = {pos.x, pos.y, pos.z};
         camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
         camJson["scale"] = {scale.x, scale.y, scale.z};
@@ -88,34 +90,33 @@ GameEditor::~GameEditor()
     editorConfigFile << editorConfig.dump(0);
 }
 
-void GameEditor::SceneTree(Transform* transform, int imguiID)
+void GameEditor::SceneTree(GameObject* go, int imguiID)
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-    if (transform->GetGameObject() == EditorState::selectedObject)
+    if (go == EditorState::selectedObject)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
 
-    bool treeOpen =
-        ImGui::TreeNodeEx(fmt::format("{}##{}", transform->GetGameObject()->GetName(), imguiID).c_str(), nodeFlags);
+    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
     if (ImGui::IsItemHovered())
     {
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
-            EditorState::selectedObject = transform->GetGameObject();
+            EditorState::selectedObject = go;
         }
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
         {
-            sceneTreeContextObject = transform->GetGameObject();
+            sceneTreeContextObject = go;
             beginSceneTreeContextPopup = true;
         }
     }
 
     if (ImGui::BeginDragDropSource())
     {
-        auto ptr = transform->GetGameObject();
+        auto ptr = go;
         ImGui::SetDragDropPayload("game object", &ptr, sizeof(void*));
 
-        ImGui::Text("%s", transform->GetGameObject()->GetName().c_str());
+        ImGui::Text("%s", go->GetName().c_str());
 
         ImGui::EndDragDropSource();
     }
@@ -126,9 +127,9 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
         if (payload && payload->IsDelivery())
         {
             GameObject* obj = *(GameObject**)payload->Data;
-            if (obj != nullptr && obj != transform->GetGameObject())
+            if (obj != nullptr && obj != go)
             {
-                obj->GetTransform()->SetParent(transform);
+                obj->SetParent(go);
             }
         }
 
@@ -137,7 +138,7 @@ void GameEditor::SceneTree(Transform* transform, int imguiID)
 
     if (treeOpen)
     {
-        for (auto child : transform->GetChildren())
+        for (auto child : go->GetChildren())
         {
             SceneTree(child, ++imguiID);
         }
@@ -176,7 +177,7 @@ void GameEditor::SceneTree(Scene& scene)
             if (obj != nullptr)
             {
                 // pass null to set this transform to root
-                obj->GetTransform()->SetParent(nullptr);
+                obj->SetParent(nullptr);
             }
         }
 
@@ -195,7 +196,7 @@ void GameEditor::SceneTree(Scene& scene)
     size_t imguiTreeId = 0;
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root->GetTransform(), ++imguiTreeId);
+        SceneTree(root, ++imguiTreeId);
     }
     ImGui::End();
 }

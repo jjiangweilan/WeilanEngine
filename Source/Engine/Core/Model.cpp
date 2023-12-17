@@ -36,9 +36,9 @@ static std::unique_ptr<GameObject> CreateGameObjectFromNode(
     std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
     std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
 
-    gameObject->GetTransform()->SetPosition({position[0], position[1], position[2]});
-    gameObject->GetTransform()->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
-    gameObject->GetTransform()->SetScale({scale[0], scale[1], scale[2]});
+    gameObject->SetPosition({position[0], position[1], position[2]});
+    gameObject->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
+    gameObject->SetScale({scale[0], scale[1], scale[2]});
 
     // mesh renderer
     if (nodeJson.contains("mesh"))
@@ -203,7 +203,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
         for (int nodeIndex : sceneJson["nodes"])
         {
             auto gameObject = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
-            gameObject->GetTransform()->SetParent(rootGameObject->GetTransform());
+            gameObject->SetParent(rootGameObject.get());
             gameObjects.push_back(std::move(gameObject));
         }
 
@@ -214,7 +214,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
     std::unique_ptr<GameObject> root = MakeUnique<GameObject>();
     for (auto r : rootGameObjects)
     {
-        r->GetTransform()->SetParent(root->GetTransform());
+        r->SetParent(root.get());
     }
 
     gameObjects.insert(gameObjects.begin(), std::move(root));

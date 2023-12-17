@@ -323,7 +323,10 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
         descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
 
-        layoutHash.push_back(VkDescriptorSetLayoutCreateInfoHash{}(descriptorSetLayoutCreateInfo));
+        if ((descriptorSetLayoutCreateInfo.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+        {
+            layoutHash.push_back(VkDescriptorSetLayoutCreateInfoHash{}(descriptorSetLayoutCreateInfo));
+        }
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);
         descriptorPools.push_back(&pool);

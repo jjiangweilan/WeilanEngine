@@ -21,7 +21,7 @@ glm::mat4 Light::WorldToShadowMatrix()
     glm::mat4 proj = glm::ortho(-30., 30., -30., 30., -10., 1000.);
     proj[1][1] *= -1;
     proj[2] *= -1;
-    return proj * glm::inverse(gameObject->GetTransform()->GetModelMatrix());
+    return proj * glm::inverse(gameObject->GetModelMatrix());
 }
 
 void Light::Serialize(Serializer* s) const

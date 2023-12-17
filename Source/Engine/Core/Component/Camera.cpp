@@ -48,7 +48,7 @@ float Camera::GetFar()
 
 glm::mat4 Camera::GetViewMatrix() const
 {
-    return glm::inverse(gameObject->GetTransform()->GetModelMatrix());
+    return glm::inverse(gameObject->GetModelMatrix());
 }
 
 void Camera::SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar)
@@ -74,15 +74,15 @@ glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 
 glm::vec3 Camera::ScreenUVToWorldPos(glm::vec2 screenUV)
 {
-    glm::mat4 camModelMatrix = GetGameObject()->GetTransform()->GetModelMatrix();
+    glm::mat4 camModelMatrix = GetGameObject()->GetModelMatrix();
     return camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
 }
 
 Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
 {
     Ray ray;
-    ray.origin = GetGameObject()->GetTransform()->GetPosition();
-    glm::mat4 camModelMatrix = GetGameObject()->GetTransform()->GetModelMatrix();
+    ray.origin = GetGameObject()->GetPosition();
+    glm::mat4 camModelMatrix = GetGameObject()->GetModelMatrix();
     glm::vec3 clickInWS = camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
     ray.direction = clickInWS - ray.origin;
     return ray;

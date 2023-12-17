@@ -24,14 +24,16 @@ void Scene::AddGameObject(GameObject* newGameObject)
     externalGameObjects.push_back(newGameObject);
 }
 
-void Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
+GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
 {
     GameObject* temp = newGameObject.get();
     gameObjects.push_back(std::move(newGameObject));
-    if (newGameObject->GetTransform()->GetParent() == nullptr)
+    if (newGameObject->GetParent() == nullptr)
     {
         roots.push_back(temp);
     }
+
+    return temp;
 }
 
 const std::vector<GameObject*>& Scene::GetRootObjects()
@@ -52,9 +54,9 @@ void Scene::MoveGameObjectToRoot(GameObject* obj)
     roots.push_back(obj);
 }
 
-static void GetAllGameObjects(Transform* current, std::vector<GameObject*>& objs)
+static void GetAllGameObjects(GameObject* current, std::vector<GameObject*>& objs)
 {
-    objs.push_back(current->GetGameObject());
+    objs.push_back(current);
     for (auto& child : current->GetChildren())
     {
         GetAllGameObjects(child, objs);
@@ -68,7 +70,7 @@ std::vector<GameObject*> Scene::GetAllGameObjects()
 
     for (auto& obj : roots)
     {
-        ::Engine::GetAllGameObjects(obj->GetTransform(), objs);
+        ::Engine::GetAllGameObjects(obj, objs);
     }
 
     return objs;
@@ -79,16 +81,16 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     auto newObj = std::make_unique<GameObject>(gameObject);
     newObj->SetGameScene(this);
 
-    for (auto tsm : gameObject.GetTransform()->GetChildren())
+    for (auto child : gameObject.GetChildren())
     {
-        GameObject* child = CopyGameObject(*tsm->GetGameObject());
-        child->GetTransform()->SetParent(newObj->GetTransform());
+        GameObject* child = CopyGameObject(*child);
+        child->SetParent(newObj.get());
     }
 
     GameObject* top = newObj.get();
     gameObjects.push_back(std::move(newObj));
 
-    if (gameObject.GetTransform()->GetParent() == nullptr)
+    if (gameObject.GetParent() == nullptr)
     {
         roots.push_back(top);
     }
@@ -101,14 +103,14 @@ void Scene::DestroyGameObject(GameObject* obj)
     auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
     if (iter != gameObjects.end())
     {
-        for (auto child : obj->GetTransform()->GetChildren())
+        for (auto child : obj->GetChildren())
         {
-            DestroyGameObject(obj);
+            DestroyGameObject(child);
         }
 
-        if (Transform* parent = obj->GetTransform()->GetParent())
+        if (GameObject* parent = obj->GetParent())
         {
-            parent->RemoveChild(obj->GetTransform());
+            parent->RemoveChild(obj);
             gameObjects.erase(iter);
         }
     }
@@ -144,20 +146,20 @@ void Scene::TickGameObject(GameObject* obj)
 {
     obj->Tick();
 
-    for (auto child : obj->GetTransform()->GetChildren())
+    for (auto child : obj->GetChildren())
     {
-        TickGameObject(child->GetGameObject());
+        TickGameObject(child);
     }
 }
 
-void GetLights(Transform* tsm, std::vector<Light*>& lights)
+void GetLights(GameObject* go, std::vector<Light*>& lights)
 {
-    for (auto& child : tsm->GetChildren())
+    for (auto& child : go->GetChildren())
     {
         GetLights(child, lights);
     }
 
-    auto light = tsm->GetGameObject()->GetComponent<Light>();
+    auto light = go->GetComponent<Light>();
     if (light != nullptr)
     {
         lights.push_back(light);
@@ -169,7 +171,7 @@ std::vector<Light*> Scene::GetActiveLights()
     std::vector<Light*> lights;
     for (auto child : roots)
     {
-        GetLights(child->GetTransform(), lights);
+        GetLights(child, lights);
     }
 
     return lights;
@@ -181,7 +183,7 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
     {
         go->SetGameScene(this);
 
-        if (go->GetTransform()->GetParent() == nullptr)
+        if (go->GetParent() == nullptr)
         {
             MoveGameObjectToRoot(go.get());
         }

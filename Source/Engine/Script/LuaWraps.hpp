@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/Component/Transform.hpp"
 #include "Core/GameObject.hpp"
 #include "ThirdParty/lua/lua.hpp"
 #include <functional>
@@ -94,7 +93,6 @@ private:
             lua_pushstring(L, val.c_str());
         }
         ELSE_IF_IS_COMPONENT(Component)
-        ELSE_IF_IS_COMPONENT(Transform)
         ELSE_IF_IS_COMPONENT(Scene)
         // extend return types here...
         // else static_assert(false);
@@ -142,9 +140,9 @@ public:
         //LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetTransform);
         // LUA_WRAP_REGISTER_CFUNCTION_OVERLOAD(GameObject, GetComponent, RefPtr<Component>, const char*);
 
-        LUA_WRAP_REGISTER_CLASS(Transform);
-        LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
-        LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
+        //LUA_WRAP_REGISTER_CLASS(Transform);
+        //LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
+        //LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
 
         // register new lua binding here...
     }

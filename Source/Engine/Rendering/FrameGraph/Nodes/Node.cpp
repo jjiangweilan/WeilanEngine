@@ -196,7 +196,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
             drawData.shaderResource = material->GetShaderResource();
             drawData.shader = shader;
             drawData.shaderConfig = &material->GetShaderConfig();
-            auto modelMatrix = meshRenderer.GetGameObject()->GetTransform()->GetModelMatrix();
+            auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
             drawData.pushConstant = modelMatrix;
             drawData.indexCount = indexCount;
 

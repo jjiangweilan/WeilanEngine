@@ -16,8 +16,8 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     scene = bakerConfig.scene;
     cameraGO = scene->CreateGameObject();
     bakerCamera = cameraGO->AddComponent<Camera>();
-    cameraGO->GetTransform()->SetPosition({0, 0, 0});
-    cameraGO->GetTransform()->SetRotation({0, 0, 0});
+    cameraGO->SetPosition({0, 0, 0});
+    cameraGO->SetRotation({0, 0, 0});
 
     FrameGraph::Graph graph;
     graph.SetTemplateSceneShader(bakerConfig.templateShader);
@@ -113,7 +113,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
 
 Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
 {
-    cameraGO->GetTransform()->SetModelMatrix(camModel);
+    cameraGO->SetModelMatrix(camModel);
 
     ImmediateGfx::OnetimeSubmit(
         [&](Gfx::CommandBuffer& cmd)
