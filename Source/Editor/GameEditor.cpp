@@ -13,7 +13,6 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <unordered_map>
 
-
 namespace Engine::Editor
 {
 GameEditor::GameEditor(const char* path)
@@ -21,6 +20,7 @@ GameEditor::GameEditor(const char* path)
     instance = this;
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
+    loop = engine->CreateGameLoop();
 
     auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
     bool createEditorConfigJson = true;
@@ -69,6 +69,8 @@ GameEditor::GameEditor(const char* path)
 GameEditor::~GameEditor()
 {
     engine->gfxDriver->WaitForIdle();
+    engine->DestroyGameLoop(loop);
+    loop = nullptr;
 
     if (EditorState::activeScene)
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
@@ -396,6 +398,8 @@ void GameEditor::Start()
             }
 
             GUIPass();
+
+            loop->Tick();
 
             RenderPipeline::Singleton().Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
 

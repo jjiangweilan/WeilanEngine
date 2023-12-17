@@ -40,10 +40,7 @@ public:
     Component* GetComponent(const char* name); // obsolete
 
     std::vector<std::unique_ptr<Component>>& GetComponents();
-    void SetGameScene(Scene* scene)
-    {
-        gameScene = scene;
-    }
+    void SetScene(Scene* scene);
     Scene* GetGameScene();
     void Tick();
 

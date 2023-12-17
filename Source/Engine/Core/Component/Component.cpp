@@ -12,6 +12,13 @@ GameObject* Component::GetGameObject()
     return gameObject;
 }
 
+Scene* Component::GetScene()
+{
+    if (gameObject)
+        return gameObject->GetGameScene();
+    return nullptr;
+}
+
 void Component::Serialize(Serializer* s) const
 {
     s->Serialize("uuid", uuid);

@@ -74,4 +74,19 @@ void WeilanEngine::EndFrame()
 #endif
 }
 
+GameLoop* WeilanEngine::CreateGameLoop()
+{
+    auto loop = std::make_unique<GameLoop>();
+    auto temp = loop.get();
+    gameLoops.push_back(std::move(loop));
+    return temp;
+}
+
+void WeilanEngine::DestroyGameLoop(GameLoop* loop)
+{
+    auto iter = std::find_if(gameLoops.begin(), gameLoops.end(), [loop](auto& l) { return l.get() == loop; });
+    std::swap(*iter, gameLoops.back());
+    gameLoops.pop_back();
+}
+
 } // namespace Engine

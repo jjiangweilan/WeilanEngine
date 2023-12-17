@@ -8,6 +8,7 @@
 namespace Engine
 {
 class GameObject;
+class Scene;
 class Component : public Object, public Serializable
 {
 public:
@@ -21,10 +22,12 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    Scene* GetScene();
 
 protected:
     GameObject* gameObject;
 
+    virtual void NotifyGameObjectGameSceneSet(){};
     friend class GameObject;
 };
 } // namespace Engine

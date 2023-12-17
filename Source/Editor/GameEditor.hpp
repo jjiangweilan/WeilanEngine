@@ -43,6 +43,7 @@ private:
 private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
+    GameLoop* loop;
 
     GameView gameView;
 

@@ -8,6 +8,7 @@
 #include <memory>
 namespace Engine
 {
+class RenderingScene;
 class MeshRenderer : public Component
 {
     DECLARE_OBJECT();
@@ -16,7 +17,10 @@ public:
     MeshRenderer();
     MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
     MeshRenderer(GameObject* owner);
-    ~MeshRenderer() override{};
+    ~MeshRenderer() override
+    {
+        RemoveFromRenderingScene();
+    };
 
     void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
@@ -30,13 +34,12 @@ public:
 
 private:
     Mesh* mesh = nullptr;
+    RenderingScene* renderingScene = nullptr;
     std::vector<Material*> materials = {};
     AABB aabb;
-    // UniPtr<Gfx::ShaderResource>
-    // objectShaderResource; // TODO: should be an EDITABLE but we can't directly serialize a ShaderResource
 
-    // we need shader to create a shader resource, but it's not known untill user set one.
-    // this is a helper function to create objectShaderResource if it doesn't exist
-    void TryCreateObjectShaderResource();
+    void AddToRenderingScene();
+    void RemoveFromRenderingScene();
+    void NotifyGameObjectGameSceneSet() override;
 };
 } // namespace Engine

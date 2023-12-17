@@ -6,6 +6,7 @@
 #include "Core/GameObject.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
+#include "RenderingScene.hpp"
 #include <SDL2/SDL.h>
 #include <iterator>
 namespace Engine
@@ -74,7 +75,15 @@ public:
         systemEventCallbacks.push_back(cb);
     }
 
+    RenderingScene& GetRenderingScene()
+    {
+        return renderingScene;
+    }
+
 protected:
+    // this should be deleted after gameObjects
+    RenderingScene renderingScene;
+
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<GameObject*> externalGameObjects;
     std::vector<GameObject*> roots;

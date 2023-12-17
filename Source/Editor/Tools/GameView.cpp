@@ -267,7 +267,7 @@ bool GameView::Tick()
             if (gameCamera != editorCamera)
             {
                 this->gameCamera = gameCamera;
-                editorCamera->GetGameObject()->SetGameScene(gameCamera->GetGameObject()->GetGameScene());
+                editorCamera->GetGameObject()->SetScene(gameCamera->GetGameObject()->GetGameScene());
                 editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
                 auto framegraph = editorCamera->GetFrameGraph();
                 if (framegraph && !framegraph->IsCompiled())
@@ -358,11 +358,15 @@ bool GameView::Tick()
                 auto windowPos = ImGui::GetWindowPos();
                 if (!ImGuizmo::IsUsing())
                 {
-                    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+                    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() &&
+                        ImGui::IsWindowFocused())
                     {
                         auto mousePos = ImGui::GetMousePos();
-                        glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
-                        GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+                        glm::vec2 mouseContentPos{
+                            mousePos.x - windowPos.x - imagePos.x,
+                            mousePos.y - windowPos.y - imagePos.y};
+                        GameObject* selected =
+                            PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
                         if (selected)
                         {

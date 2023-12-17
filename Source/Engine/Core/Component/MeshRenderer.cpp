@@ -1,7 +1,9 @@
 #include "MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
+
 namespace Engine
 {
 DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
@@ -36,7 +38,6 @@ const std::vector<Material*>& MeshRenderer::GetMaterials()
 
 void MeshRenderer::Serialize(Serializer* s) const
 {
-
     Component::Serialize(s);
     s->Serialize("mesh", mesh);
     s->Serialize("materials", materials);
@@ -65,4 +66,47 @@ const std::string& MeshRenderer::GetName()
     return name;
 }
 
+void MeshRenderer::AddToRenderingScene()
+{
+    Scene* scene = GetScene();
+
+    if (scene)
+    {
+        renderingScene = &scene->GetRenderingScene();
+        renderingScene->AddRenderer(*this);
+    }
+}
+void MeshRenderer::RemoveFromRenderingScene()
+{
+    if (renderingScene)
+    {
+        renderingScene->RemoveRenderer(*this);
+    }
+}
+
+void MeshRenderer::NotifyGameObjectGameSceneSet()
+{
+    Scene* scene = GetScene();
+    RenderingScene* newRenderingScene = &scene->GetRenderingScene();
+
+    if (renderingScene)
+    {
+        if (renderingScene != newRenderingScene)
+        {
+            renderingScene->RemoveRenderer(*this);
+        }
+
+        if (newRenderingScene)
+        {
+            newRenderingScene->AddRenderer(*this);
+        }
+
+        renderingScene = newRenderingScene;
+    }
+    else if (newRenderingScene)
+    {
+        newRenderingScene->AddRenderer(*this);
+        renderingScene = newRenderingScene;
+    }
+}
 } // namespace Engine

@@ -107,6 +107,11 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("scale", scale);
     s->Deserialize("parent", parent);
     s->Deserialize("children", children);
+
+    for (auto& c : components)
+    {
+        c->gameObject = this;
+    }
 }
 
 void GameObject::RemoveChild(GameObject* child)
@@ -149,6 +154,15 @@ void GameObject::SetParent(GameObject* parent)
         this->parent->RemoveChild(this);
         this->parent = parent;
         parent->children.push_back(this);
+    }
+}
+
+void GameObject::SetScene(Scene* scene)
+{
+    this->gameScene = scene;
+    for (auto& c : components)
+    {
+        c->NotifyGameObjectGameSceneSet();
     }
 }
 

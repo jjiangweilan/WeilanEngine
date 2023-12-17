@@ -89,10 +89,6 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
 {
     graph->Clear();
 
-    auto swapchain = GetGfxDriver()->GetSwapChainImage();
-    auto& swapchainView = swapchain->GetDefaultImageView();
-    auto& swapchainImage = swapchainView.GetImage();
-
     auto renderEditor = graph->AddNode(
         [&](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         { this->RenderEditor(cmd, pass, res); },

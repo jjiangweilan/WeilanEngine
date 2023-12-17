@@ -19,7 +19,7 @@ GameObject* Scene::CreateGameObject()
 
 void Scene::AddGameObject(GameObject* newGameObject)
 {
-    newGameObject->SetGameScene(this);
+    newGameObject->SetScene(this);
     roots.push_back(newGameObject);
     externalGameObjects.push_back(newGameObject);
 }
@@ -79,7 +79,7 @@ std::vector<GameObject*> Scene::GetAllGameObjects()
 GameObject* Scene::CopyGameObject(GameObject& gameObject)
 {
     auto newObj = std::make_unique<GameObject>(gameObject);
-    newObj->SetGameScene(this);
+    newObj->SetScene(this);
 
     for (auto child : gameObject.GetChildren())
     {
@@ -181,7 +181,7 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
 {
     for (auto& go : gameObjects)
     {
-        go->SetGameScene(this);
+        go->SetScene(this);
 
         if (go->GetParent() == nullptr)
         {
@@ -212,6 +212,16 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("externalGameObjects", externalGameObjects);
     s->Deserialize("roots", roots);
     s->Deserialize("camera", camera);
+
+    for (auto& g : gameObjects)
+    {
+        g->SetScene(this);
+    }
+
+    for (auto e : externalGameObjects)
+    {
+        e->SetScene(this);
+    }
 
     //// find all the root object
     // for (auto& obj : gameObjects)
