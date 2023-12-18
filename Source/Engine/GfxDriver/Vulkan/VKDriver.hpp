@@ -98,6 +98,11 @@ public:
 
     void ClearResources() override;
 
+    // RHI implementation
+    std::unique_ptr<CommandBuffer> AllocateCommandBuffer() override;
+    void ReleaseCommandBuffer(std::unique_ptr<CommandBuffer>&& cmd) override;
+    void ExecuteCommandBuffer(CommandBuffer* cmd) override;
+
 private:
     VKInstance* instance;
     VKDevice* device;
@@ -123,5 +128,15 @@ private:
         UniPtr<VKSemaphore> imageAcquireSemaphore;
     } inFlightFrame;
     GPUFeatures gpuFeatures;
+
+    // RHI implementation
+    std::unique_ptr<VKBuffer> stagingBuffer;
+    struct InflightData
+    {
+        VkCommandBuffer cmd;
+        VkFence cmdFence;
+        int swapchainIndex;
+    };
+    std::vector<InflightData> inflightData;
 };
 } // namespace Gfx
