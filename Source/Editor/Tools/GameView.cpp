@@ -267,7 +267,7 @@ bool GameView::Tick()
             if (gameCamera != editorCamera)
             {
                 this->gameCamera = gameCamera;
-                editorCamera->GetGameObject()->SetScene(gameCamera->GetGameObject()->GetGameScene());
+                editorCamera->GetGameObject()->SetScene(gameCamera->GetGameObject()->GetScene());
                 editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
                 auto framegraph = editorCamera->GetFrameGraph();
                 if (framegraph && !framegraph->IsCompiled())

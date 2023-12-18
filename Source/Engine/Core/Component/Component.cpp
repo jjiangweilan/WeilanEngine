@@ -15,7 +15,7 @@ GameObject* Component::GetGameObject()
 Scene* Component::GetScene()
 {
     if (gameObject)
-        return gameObject->GetGameScene();
+        return gameObject->GetScene();
     return nullptr;
 }
 

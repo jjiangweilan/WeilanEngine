@@ -41,7 +41,7 @@ public:
 
     std::vector<std::unique_ptr<Component>>& GetComponents();
     void SetScene(Scene* scene);
-    Scene* GetGameScene();
+    Scene* GetScene();
     void Tick();
 
     void Serialize(Serializer* s) const override;

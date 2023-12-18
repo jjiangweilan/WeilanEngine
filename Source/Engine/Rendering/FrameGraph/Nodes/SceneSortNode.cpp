@@ -34,15 +34,14 @@ public:
     {
         drawList->clear();
 
-        Scene* scene = graphResource.mainCamera->GetGameObject()->GetGameScene();
+        Scene* scene = graphResource.mainCamera->GetGameObject()->GetScene();
         auto objs = scene->GetAllGameObjects();
 
-        for (GameObject* go : objs)
+        for (auto r : scene->GetRenderingScene().GetRenderers())
         {
-            MeshRenderer* meshRenderer = go->GetComponent<MeshRenderer>();
-            if (meshRenderer)
+            if (r)
             {
-                drawList->Add(*meshRenderer);
+                drawList->Add(*r);
             }
         }
     }

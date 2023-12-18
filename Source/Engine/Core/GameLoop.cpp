@@ -16,9 +16,6 @@ void GameLoop::RenderScene()
 {
     if (scene)
     {
-        RenderingScene& renderingScene = scene->GetRenderingScene();
-        auto& renderers = renderingScene.GetRenderers();
-
         auto mainCam = scene->GetMainCamera();
         FrameGraph::Graph* frameGraph = mainCam ? mainCam->GetFrameGraph() : nullptr;
         if (frameGraph)
@@ -35,7 +32,10 @@ void GameLoop::RenderScene()
                 return;
             }
 
-            RenderPipeline::Singleton().Schedule([](Gfx::CommandBuffer& cmd) {});
+            RenderPipeline::Singleton().Schedule(
+                [mainCam](Gfx::CommandBuffer& cmd)
+                { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene()); }
+            );
         }
     }
 }

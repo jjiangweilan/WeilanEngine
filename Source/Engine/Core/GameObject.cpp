@@ -69,7 +69,7 @@ std::vector<std::unique_ptr<Component>>& GameObject::GetComponents()
     return components;
 }
 
-Scene* GameObject::GetGameScene()
+Scene* GameObject::GetScene()
 {
     return gameScene;
 }
@@ -135,7 +135,7 @@ void GameObject::SetParent(GameObject* parent)
 
     if (parent == nullptr)
     {
-        Scene* scene = GetGameScene();
+        Scene* scene = GetScene();
         if (scene)
             scene->MoveGameObjectToRoot(this);
         this->parent->RemoveChild(this);
@@ -143,7 +143,7 @@ void GameObject::SetParent(GameObject* parent)
     }
     else if (this->parent == nullptr)
     {
-        Scene* scene = GetGameScene();
+        Scene* scene = GetScene();
         if (scene)
             scene->RemoveGameObjectFromRoot(this);
         this->parent = parent;
