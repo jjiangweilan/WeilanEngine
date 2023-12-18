@@ -75,17 +75,7 @@ Renderer::Renderer(const char* customFont)
     graph = std::make_unique<RenderGraph::Graph>();
 }
 
-void Renderer::Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle)
-{
-    graph->Process(presentNode, resourceHandle);
-}
-
-void Renderer::Process()
-{
-    graph->Process();
-}
-
-std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::BuildGraph()
+void Renderer::BuildGraph()
 {
     graph->Clear();
 
@@ -117,7 +107,9 @@ std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> Renderer::Buil
         }
     );
 
-    return {renderEditor, 0};
+    graph->Process(renderEditor, 0);
+
+    return;
 }
 
 void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)

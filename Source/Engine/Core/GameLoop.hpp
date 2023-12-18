@@ -2,6 +2,10 @@
 
 namespace Engine
 {
+namespace Gfx
+{
+class Image;
+}
 class Scene;
 class GameLoop
 {
@@ -15,11 +19,11 @@ public:
         return scene;
     }
 
-    void Tick();
+    Gfx::Image* Tick();
 
 private:
     Scene* scene = nullptr;
 
-    void RenderScene();
+    Gfx::Image* RenderScene();
 };
 } // namespace Engine

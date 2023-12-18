@@ -51,9 +51,7 @@ GameEditor::GameEditor(const char* path)
     gameView.Init();
 
     gameEditorRenderer = std::make_unique<Editor::Renderer>();
-
-    auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
-    gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+    gameEditorRenderer->BuildGraph();
 
     // toolList.emplace_back(new EnvironmentBaker());
 
@@ -393,8 +391,7 @@ void GameEditor::Start()
             }
             if (engine->event->GetWindowSizeChanged().state)
             {
-                auto [editorRenderNode, editorRenderNodeOutputHandle] = gameEditorRenderer->BuildGraph();
-                gameEditorRenderer->Process(editorRenderNode, editorRenderNodeOutputHandle);
+                gameEditorRenderer->BuildGraph();
             }
 
             GUIPass();

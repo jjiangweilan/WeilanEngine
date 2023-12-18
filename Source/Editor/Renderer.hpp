@@ -11,10 +11,8 @@ public:
     // customFont: a path to a font file on disk
     Renderer(const char* customFont = nullptr);
     ~Renderer();
-    std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> BuildGraph();
-    void Process();
+    void BuildGraph();
     void Execute(Gfx::CommandBuffer& cmd);
-    void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);
 
 private:
     std::unique_ptr<RenderGraph::Graph> editorRenderGraph;
@@ -27,6 +25,7 @@ private:
     std::unique_ptr<RenderGraph::Graph> graph;
 
     void RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res);
+    void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);
 };
 
 } // namespace Engine::Editor

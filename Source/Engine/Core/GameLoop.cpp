@@ -7,12 +7,12 @@
 
 namespace Engine
 {
-void GameLoop::Tick()
+Gfx::Image* GameLoop::Tick()
 {
-    RenderingScene();
+    return RenderScene();
 }
 
-void GameLoop::RenderScene()
+Gfx::Image* GameLoop::RenderScene()
 {
     if (scene)
     {
@@ -29,14 +29,17 @@ void GameLoop::RenderScene()
             if (!compiled)
             {
                 SPDLOG_WARN("frame graph failed to compile");
-                return;
+                return nullptr;
             }
 
             RenderPipeline::Singleton().Schedule(
                 [mainCam](Gfx::CommandBuffer& cmd)
                 { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene()); }
             );
+            return frameGraph->GetOutputImage();
         }
     }
+
+    return nullptr;
 }
 } // namespace Engine
