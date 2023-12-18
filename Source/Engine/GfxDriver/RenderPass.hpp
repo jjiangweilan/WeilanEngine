@@ -29,19 +29,19 @@ union ClearValue
     ClearDepthStencil depthStencil;
 };
 
+struct Attachment
+{
+    ImageView* imageView; // not optional
+    MultiSampling multiSampling = MultiSampling::Sample_Count_1;
+    AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
+    AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
+    AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::DontCare;
+    AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
+};
+
 class RenderPass
 {
 public:
-    struct Attachment
-    {
-        ImageView* imageView; // not optional
-        MultiSampling multiSampling = MultiSampling::Sample_Count_1;
-        AttachmentLoadOperation loadOp = AttachmentLoadOperation::Load;
-        AttachmentStoreOperation storeOp = AttachmentStoreOperation::Store;
-        AttachmentLoadOperation stencilLoadOp = AttachmentLoadOperation::DontCare;
-        AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
-    };
-
     virtual ~RenderPass() {}
 
     virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;

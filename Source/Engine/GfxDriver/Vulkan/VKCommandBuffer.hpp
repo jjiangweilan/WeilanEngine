@@ -69,6 +69,20 @@ private:
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
     std::vector<VkMemoryBarrier> memoryMemoryBarriers;
 
+    struct ImageMemoryAccess
+    {
+        VkImageLayout layout;
+        VkAccessFlags accessFlags;
+        VkPipelineStageFlags stageFlags;
+        ImageSubresourceRange range;
+    };
+    struct BufferMemoryAccess
+    {};
+
+    // record last memory access in the commandbuffer
+    std::unordered_map<VkImage, ImageMemoryAccess> imageLastAccess;
+    std::unordered_map<VkBuffer, BufferMemoryAccess> bufferLastAccess;
+
     VkDescriptorSet bindedDescriptorSets[4];
     VKRenderPass* renderPass = nullptr;
     uint32_t renderIndex = -1;

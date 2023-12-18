@@ -10,6 +10,12 @@ namespace Engine::Gfx
 {
 class VKContext;
 class VKImage;
+struct Subpass
+{
+    Subpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) : colors(colors), depth(depth) {}
+    std::vector<Attachment> colors;
+    std::optional<Attachment> depth;
+};
 class VKRenderPass : public RenderPass
 {
 public:
@@ -27,6 +33,11 @@ public:
     VkRenderPass GetHandle();
     Extent2D GetExtent();
 
+    const std::vector<Subpass>& GetSubpesses()
+    {
+        return subpasses;
+    }
+
 protected:
     void CreateRenderPass();
     VkFramebuffer CreateFrameBuffer();
@@ -38,14 +49,6 @@ protected:
     std::vector<VkFramebuffer> frameBuffers;
     VKSwapChainImage* swapChainProxy = nullptr;
     Extent2D extent;
-
-    struct Subpass
-    {
-        Subpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) : colors(colors), depth(depth)
-        {}
-        std::vector<Attachment> colors;
-        std::optional<Attachment> depth;
-    };
     std::vector<Subpass> subpasses;
 };
 } // namespace Engine::Gfx

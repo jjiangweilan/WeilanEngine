@@ -3,6 +3,13 @@
 
 namespace Engine::Gfx
 {
+
+enum class ImageType
+{
+    Texture,
+    Dynamic
+};
+
 struct ImageDescription
 {
     uint32_t width;
