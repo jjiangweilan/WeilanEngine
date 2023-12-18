@@ -116,6 +116,11 @@ public:
 
     virtual void ClearResources() = 0;
 
+    // new RHI implementation
+    virtual std::unique_ptr<CommandBuffer> AllocateCommandBuffer() = 0;
+    virtual void ReleaseCommandBuffer(std::unique_ptr<CommandBuffer>&& cmd) = 0;
+    virtual void ExecuteCommandBuffer(CommandBuffer* cmd) = 0;
+
 private:
     static GfxDriver*& InstanceInternal();
 };
