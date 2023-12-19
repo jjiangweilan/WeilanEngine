@@ -1,7 +1,7 @@
 #pragma once
 #include "Libs/Ptr.hpp"
 #include <vector>
-namespace Engine::Gfx
+namespace Gfx
 {
 class RenderPass;
 class Image;
@@ -11,4 +11,4 @@ public:
     virtual void SetAttachments(const std::vector<RefPtr<Image>>& attachments) = 0;
     virtual ~FrameBuffer() {}
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

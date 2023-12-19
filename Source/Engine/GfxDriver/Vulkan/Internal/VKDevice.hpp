@@ -4,7 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKInstance;
 class VKSurface;
@@ -59,4 +59,4 @@ private:
 
     friend class GfxContext;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -3,7 +3,7 @@
 #include "GfxDriver/CommandQueue.hpp"
 #include <vector>
 
-namespace Engine::Rendering
+namespace Rendering
 {
 class CmdSubmitGroup
 {
@@ -45,4 +45,4 @@ public:
 private:
     std::vector<Gfx::CommandBuffer*> cmds;
 };
-} // namespace Engine::Rendering
+} // namespace Rendering

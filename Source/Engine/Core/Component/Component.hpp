@@ -5,8 +5,6 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-namespace Engine
-{
 class GameObject;
 class Scene;
 class Component : public Object, public Serializable
@@ -30,4 +28,3 @@ protected:
     virtual void NotifyGameObjectGameSceneSet(){};
     friend class GameObject;
 };
-} // namespace Engine

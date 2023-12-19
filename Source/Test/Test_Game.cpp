@@ -7,15 +7,15 @@
 using namespace Engine;
 TEST(Gameplay, Test0)
 {
-    auto engine = std::make_unique<Engine::WeilanEngine>();
+    auto engine = std::make_unique<WeilanEngine>();
     engine->Init({});
 
-    Engine::Scene scene;
+    Scene scene;
 
     // set camera
-    Engine::GameObject* gameObject = scene.CreateGameObject();
+    GameObject* gameObject = scene.CreateGameObject();
     gameObject->SetName("Camera");
-    auto cam = gameObject->AddComponent<Engine::Camera>();
+    auto cam = gameObject->AddComponent<Camera>();
     scene.SetMainCamera(cam);
 
     // handle swapchain change
@@ -35,6 +35,6 @@ TEST(Gameplay, Test0)
     // auto model2 = engine->ImportModel("Source/Test/Resources/DamagedHelmet.glb");
     // scene.AddGameObject(model2->GetGameObject()[0].get());
     // auto lightGO = scene.CreateGameObject();
-    // auto light = lightGO->AddComponent<Engine::Light>();
+    // auto light = lightGO->AddComponent<Light>();
     // light->SetIntensity(10);
 }

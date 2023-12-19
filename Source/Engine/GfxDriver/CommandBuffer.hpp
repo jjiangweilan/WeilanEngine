@@ -11,7 +11,7 @@
 #include "Utils/Structs.hpp"
 #include <memory>
 #include <span>
-namespace Engine::Gfx
+namespace Gfx
 {
 enum class CommandBufferType
 {
@@ -152,4 +152,4 @@ public:
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

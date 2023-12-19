@@ -9,8 +9,6 @@
 #include "RenderingScene.hpp"
 #include <SDL2/SDL.h>
 #include <iterator>
-namespace Engine
-{
 class Scene : public Asset
 {
     DECLARE_ASSET();
@@ -93,4 +91,3 @@ protected:
 
     void TickGameObject(GameObject* obj);
 };
-} // namespace Engine

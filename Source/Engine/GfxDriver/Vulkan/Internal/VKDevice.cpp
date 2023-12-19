@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queueRequests, int requestsCount)
     : gpu(VKPhysicalDevice::SelectGPUAndQueryDataForSurface(*instance, *surface))
@@ -153,4 +153,4 @@ void VKDevice::WaitForDeviceIdle()
         SPDLOG_ERROR("device failed to wait");
     }
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

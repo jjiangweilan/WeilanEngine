@@ -1,6 +1,4 @@
 #include "Asset.hpp"
-namespace Engine
-{
 char AssetRegistry::RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator)
 {
     ObjectRegistry::RegisterObject(assetID, creator);
@@ -46,5 +44,3 @@ std::unique_ptr<Asset> AssetRegistry::CreateAsset(const ObjectTypeID& id)
 
     return nullptr;
 }
-
-} // namespace Engine

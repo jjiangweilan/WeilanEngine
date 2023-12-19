@@ -3,7 +3,7 @@
 #include "VKImageView.hpp"
 #include "fmt/format.h"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKSwapChainImage::~VKSwapChainImage()
 {
@@ -59,4 +59,4 @@ void VKSwapChainImage::SetName(std::string_view name)
     }
 }
 
-} // namespace Engine::Gfx
+} // namespace Gfx

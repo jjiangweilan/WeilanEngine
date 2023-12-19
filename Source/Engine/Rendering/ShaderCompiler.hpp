@@ -14,8 +14,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Engine
-{
 struct CompiledSpv
 {
     std::vector<uint32_t> vertSpv;
@@ -134,4 +132,3 @@ private:
     );
     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 };
-} // namespace Engine

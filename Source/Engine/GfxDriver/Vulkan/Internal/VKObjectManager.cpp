@@ -8,7 +8,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore
 #endif
-namespace Engine::Gfx
+namespace Gfx
 {
 VKObjectManager::VKObjectManager(VkDevice device) : device(device) {}
 
@@ -167,4 +167,4 @@ void VKObjectManager::DestroyPendingResources()
         vkDestroySampler(device, v, VK_NULL_HANDLE);
     pendingSamplers.clear();
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

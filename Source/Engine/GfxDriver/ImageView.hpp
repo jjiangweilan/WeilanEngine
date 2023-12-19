@@ -2,7 +2,7 @@
 #include "GfxEnums.hpp"
 #include "Image.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class ImageView
 {
@@ -19,4 +19,4 @@ public:
     virtual const ImageSubresourceRange& GetSubresourceRange() = 0;
     virtual ImageViewType GetImageViewType() = 0;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

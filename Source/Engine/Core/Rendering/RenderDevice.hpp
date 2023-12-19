@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Engine::Rendering
+namespace Rendering
 {
 class RenderDevice
 {
@@ -9,4 +9,4 @@ public:
 
 private:
 };
-} // namespace Engine::Rendering
+} // namespace Rendering

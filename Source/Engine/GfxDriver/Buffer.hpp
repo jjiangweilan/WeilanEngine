@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxEnums.hpp"
 #include <string>
-namespace Engine::Gfx
+namespace Gfx
 {
 enum class IndexBufferType
 {
@@ -35,4 +35,4 @@ public:
 private:
     BufferUsageFlags bufferUsages;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

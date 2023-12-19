@@ -3,8 +3,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include <functional>
 #include <memory>
-namespace Engine
-{
 class Scene;
 class RenderPipeline
 {
@@ -92,4 +90,3 @@ private:
     bool AcquireSwapchainImage();
     static std::unique_ptr<RenderPipeline>& SingletonPrivate();
 };
-}; // namespace Engine

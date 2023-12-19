@@ -7,8 +7,6 @@
 #include <string>
 #include <string_view>
 
-namespace Engine
-{
 class Model : public Asset
 {
     DECLARE_EXTERNAL_ASSET();
@@ -68,4 +66,3 @@ private:
     std::unordered_map<int, Mesh*> toOurMesh;
     std::unordered_map<int, Material*> toOurMaterial;
 };
-} // namespace Engine

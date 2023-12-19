@@ -3,8 +3,6 @@
 #include "Libs/GLB.hpp"
 #include <fstream>
 
-namespace Engine
-{
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
 static std::unique_ptr<GameObject> CreateGameObjectFromNode(
@@ -244,5 +242,3 @@ std::vector<Asset*> Model::GetInternalAssets()
 
     return assets;
 }
-
-} // namespace Engine

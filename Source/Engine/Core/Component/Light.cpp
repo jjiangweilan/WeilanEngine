@@ -2,8 +2,6 @@
 #include "Core/GameObject.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-namespace Engine
-{
 DEFINE_OBJECT(Light, "DA1910DA-B87F-411E-A8D3-94C5924A23C2");
 Light::Light() : Component(nullptr) {}
 
@@ -53,4 +51,3 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
 
     return clone;
 }
-} // namespace Engine

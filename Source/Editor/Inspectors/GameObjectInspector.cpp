@@ -9,7 +9,7 @@
 #include "ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-namespace Engine::Editor
+namespace Editor
 {
 class GameObjectInspector : public Inspector<GameObject>
 {
@@ -204,4 +204,4 @@ private:
 
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();
 
-} // namespace Engine::Editor
+} // namespace Editor

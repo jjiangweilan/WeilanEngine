@@ -1,6 +1,6 @@
 #include "Platform.hpp"
 
-namespace Engine::Rendering
+namespace Rendering
 {
 Gfx::ImageFormat Platform::GetRelaxedImageFormat(Gfx::ImageFormat desired, Gfx::ImageUsageFlags usages)
 {
@@ -47,9 +47,9 @@ Gfx::ImageFormat Platform::GetBetterImageFormat(Gfx::ImageFormat desired, Gfx::I
     return Gfx::ImageFormat::Invalid;
 }
 
-Gfx::ImageFormat Platform::GetImageFormat(Gfx::ImageFormat desired,
-                                          Gfx::ImageUsageFlags usages,
-                                          ImageFormatPicker picker)
+Gfx::ImageFormat Platform::GetImageFormat(
+    Gfx::ImageFormat desired, Gfx::ImageUsageFlags usages, ImageFormatPicker picker
+)
 {
     auto gfxDriver = GetGfxDriver();
 
@@ -64,4 +64,4 @@ Gfx::ImageFormat Platform::GetImageFormat(Gfx::ImageFormat desired,
 
     return Gfx::ImageFormat::Invalid;
 }
-} // namespace Engine::Rendering
+} // namespace Rendering

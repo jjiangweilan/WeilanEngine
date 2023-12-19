@@ -5,9 +5,6 @@
 #include "Serializer.hpp"
 #include <nlohmann/json.hpp>
 
-namespace Engine
-{
-
 class JsonSerializer : public Serializer
 {
 public:
@@ -76,4 +73,3 @@ protected:
 private:
     nlohmann::json j;
 };
-} // namespace Engine

@@ -9,11 +9,8 @@
 #include <span>
 #include <string>
 #include <vector>
-namespace Engine
-{
 class MeshRenderer;
-}
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 
 // frame graph ID, nodes, properties and links share the same id space
@@ -420,4 +417,4 @@ private:
     std::string customName;
     std::vector<Configurable> configs;
 };
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

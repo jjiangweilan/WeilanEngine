@@ -13,7 +13,7 @@
 #include <assert.h>
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
@@ -176,7 +176,7 @@ VKShaderProgram::VKShaderProgram(
         vertCode,
         vertSize,
         vertInterleaved
-    ); // the Engine:: namespace is necessary to pass MSVC compilation
+    ); // the  namespace is necessary to pass MSVC compilation
     fragShaderModule = MakeUnique<VKShaderModule>(name, fragCode, fragSize, vertInterleaved);
 
     // combine ShaderStageInfo into ShaderInfo
@@ -568,4 +568,4 @@ size_t VKShaderProgram::GetLayoutHash(uint32_t set)
     }
     return 0;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

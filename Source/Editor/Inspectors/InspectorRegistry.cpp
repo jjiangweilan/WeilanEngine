@@ -1,7 +1,7 @@
 #include "InspectorRegistry.hpp"
 #include "Inspector.hpp"
 
-namespace Engine::Editor
+namespace Editor
 {
 
 InspectorRegistry::Registry& InspectorRegistry::GetRegistry()
@@ -26,4 +26,4 @@ InspectorBase* InspectorRegistry::GetInspector(Object& obj)
 }
 
 const char InspectorRegistry::_defaultInspector = InspectorRegistry::Register<Inspector<Object>, Object>();
-} // namespace Engine::Editor
+} // namespace Editor

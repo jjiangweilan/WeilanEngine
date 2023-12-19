@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class StorageBuffer
 {
@@ -8,4 +8,4 @@ public:
     virtual void UpdateData(void* data) = 0;
     virtual uint32_t GetSize() = 0;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -1,7 +1,7 @@
 #include "GLB.hpp"
 #include <fstream>
 
-namespace Engine::Utils
+namespace Utils
 {
 
 static std::size_t WriteAccessorDataToBuffer(
@@ -290,4 +290,4 @@ std::size_t WriteAccessorDataToBuffer(
 
     return byteLength;
 }
-} // namespace Engine::Utils
+} // namespace Utils

@@ -2,7 +2,7 @@
 
 #include "Libs/Ptr.hpp"
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKContext;
 class VKImage;
@@ -34,4 +34,4 @@ private:
     UniPtr<VKImage> defaultTexture;
     std::unique_ptr<VKImage> defaultCubemap;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

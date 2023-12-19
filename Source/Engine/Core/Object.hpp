@@ -4,8 +4,6 @@
 #include <string>
 #include <typeinfo>
 #include <unordered_map>
-namespace Engine
-{
 class Object
 {
 public:
@@ -74,4 +72,3 @@ private:                                                                        
     {                                                                                                                  \
         return Type::StaticGetObjectTypeID();                                                                          \
     }
-} // namespace Engine

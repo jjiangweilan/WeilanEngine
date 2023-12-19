@@ -2,7 +2,7 @@
 #include "Asset/Shader.hpp"
 #include "Rendering/FrameGraph/NodeBlueprint.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 class SurfelBakeFGNode : public Node
 {
@@ -202,7 +202,8 @@ public:
     {
         drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
 
-        if (drawList == nullptr) return false;
+        if (drawList == nullptr)
+            return false;
         return true;
     };
 
@@ -294,5 +295,5 @@ private:
         }
     }
     static char _reg;
-}; // namespace Engine::FrameGraph
-} // namespace Engine::FrameGraph
+}; // namespace FrameGraph
+} // namespace FrameGraph

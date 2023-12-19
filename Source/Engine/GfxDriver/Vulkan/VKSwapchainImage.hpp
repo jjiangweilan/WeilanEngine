@@ -2,7 +2,7 @@
 #include "VKImage.hpp"
 #include "VKImageView.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 class VKSwapChainImage : public VKImage
@@ -104,4 +104,4 @@ public:
 private:
     VKSwapChainImage* swapchainImage;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

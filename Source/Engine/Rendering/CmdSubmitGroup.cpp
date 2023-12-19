@@ -1,4 +1,4 @@
 #include "CmdSubmitGroup.hpp"
 
-namespace Engine::Rendering
+namespace Rendering
 {}

@@ -1,7 +1,5 @@
 #include "ImmediateGfx.hpp"
 
-namespace Engine
-{
 void ImmediateGfx::RenderToImage(
     Gfx::Image& image,
     Gfx::ImageSubresourceRange subresourceRanges,
@@ -102,4 +100,3 @@ std::unique_ptr<Gfx::Buffer> ImmediateGfx::CopyImageToBuffer(Gfx::Image& image)
 
     return buffer;
 }
-} // namespace Engine

@@ -3,8 +3,6 @@
 #include <iostream>
 #include <memory>
 #include <spdlog/spdlog.h>
-namespace Engine
-{
 
 class Launcher
 {
@@ -51,11 +49,10 @@ public:
     bool hasAction = false;
 };
 
-} // namespace Engine
 #undef main
 
 int main(int argc, char** argv)
 {
-    Engine::Launcher l;
+    Launcher l;
     l.ArgsParser(argc, argv);
 }

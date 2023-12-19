@@ -23,7 +23,7 @@
 #undef CreateSemaphore
 #endif
 
-namespace Engine::Gfx
+namespace Gfx
 {
 enum class Backend
 {
@@ -119,12 +119,9 @@ public:
 private:
     static GfxDriver*& InstanceInternal();
 };
-} // namespace Engine::Gfx
+} // namespace Gfx
 
-namespace Engine
-{
 inline RefPtr<Gfx::GfxDriver> GetGfxDriver()
 {
     return Gfx::GfxDriver::Instance();
 }
-} // namespace Engine

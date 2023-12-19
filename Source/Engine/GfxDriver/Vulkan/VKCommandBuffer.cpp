@@ -14,7 +14,7 @@
 #undef MemoryBarrier
 #endif
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 VKCommandBuffer::VKCommandBuffer(VkCommandBuffer vkCmdBuf) : vkCmdBuf(vkCmdBuf) {}
@@ -546,4 +546,4 @@ void VKCommandBuffer::UpdateDescriptorSetBinding()
     UpdateDescriptorSetBinding(2);
     UpdateDescriptorSetBinding(3);
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

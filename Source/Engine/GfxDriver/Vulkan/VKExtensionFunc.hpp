@@ -1,11 +1,11 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKExtensionFunc
 {
 public:
     static PFN_vkCmdPushDescriptorSetKHR vkCmdPushDescriptorSetKHR;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

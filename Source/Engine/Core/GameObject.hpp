@@ -10,8 +10,6 @@
 #include <typeinfo>
 #include <vector>
 
-namespace Engine
-{
 class Scene;
 
 enum class RotationCoordinate
@@ -176,5 +174,3 @@ T* GameObject::GetComponent()
     }
     return nullptr;
 }
-
-} // namespace Engine

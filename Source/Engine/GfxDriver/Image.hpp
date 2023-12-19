@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 // this is from vulkan specs
@@ -142,4 +142,4 @@ public:
 
 protected:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

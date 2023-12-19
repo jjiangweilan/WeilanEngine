@@ -5,7 +5,7 @@
 #include "ShaderInfo.hpp"
 #include <string>
 #include <vector>
-namespace Engine::Gfx
+namespace Gfx
 {
 struct ShaderResourceLayout
 {
@@ -30,4 +30,4 @@ public:
 protected:
     bool isCompute;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

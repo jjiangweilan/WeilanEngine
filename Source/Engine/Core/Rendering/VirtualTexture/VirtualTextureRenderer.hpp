@@ -1,18 +1,18 @@
-//#pragma once
-//#include "Core/Rendering/RenderGraph/Nodes/BufferNode.hpp"
-//#include "Core/Rendering/RenderGraph/Nodes/MemoryTransferNode.hpp"
-//#include "Core/Rendering/RenderGraph/RenderGraph.hpp"
-//#include "GfxDriver/Buffer.hpp"
-//#include "GfxDriver/GfxDriver.hpp"
-//#include "Libs/Image/LinearImage.hpp"
-//#include "Rendering/GfxResourceTransfer.hpp"
-//#include "VirtualTexture.hpp"
+// #pragma once
+// #include "Core/Rendering/RenderGraph/Nodes/BufferNode.hpp"
+// #include "Core/Rendering/RenderGraph/Nodes/MemoryTransferNode.hpp"
+// #include "Core/Rendering/RenderGraph/RenderGraph.hpp"
+// #include "GfxDriver/Buffer.hpp"
+// #include "GfxDriver/GfxDriver.hpp"
+// #include "Libs/Image/LinearImage.hpp"
+// #include "Rendering/GfxResourceTransfer.hpp"
+// #include "VirtualTexture.hpp"
 //
-//#if defined(_WIN32) || defined(_WIN64)
-//#undef CreateSemaphore
-//#endif
+// #if defined(_WIN32) || defined(_WIN64)
+// #undef CreateSemaphore
+// #endif
 //
-//namespace Engine::Rendering
+// namespace Rendering
 //{
 //
 ///**
@@ -25,9 +25,9 @@
 // * multithreaded: no
 // * maximum virtual texture size: 32k
 // */
-//class VirtualTextureRenderer
+// class VirtualTextureRenderer
 //{
-//public:
+// public:
 //    VirtualTextureRenderer()
 //    {
 //        queue = GetGfxDriver()->GetQueue(QueueType::Main);
@@ -51,7 +51,7 @@
 //    // return true if they are updated
 //    bool GetFinalTextures(Libs::Image::LinearImage*& cache, Libs::Image::LinearImage*& indirMap);
 //
-//private:
+// private:
 //    struct Param
 //    {
 //        VirtualTexture* vt;
@@ -88,4 +88,4 @@
 //        UniPtr<Gfx::ShaderResource> resource;
 //    } feedbackPassData;
 //};
-//} // namespace Engine::Rendering
+//} // namespace Rendering

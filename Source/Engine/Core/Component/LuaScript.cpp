@@ -6,8 +6,6 @@
 #include <spdlog/spdlog.h>
 #define L LuaBackend::Instance()->GetL()
 
-namespace Engine
-{
 #define GetLuaMember(luaRefName)                                                                                       \
     lua_getfield(L, -1, #luaRefName);                                                                                  \
     if (lua_isfunction(L, -1))                                                                                         \
@@ -105,4 +103,3 @@ const std::string& LuaScript::GetName()
     static std::string name = "LuaScript";
     return name;
 }
-} // namespace Engine

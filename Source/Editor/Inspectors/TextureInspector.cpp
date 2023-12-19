@@ -1,7 +1,7 @@
 #include "../EditorState.hpp"
 #include "Core/Texture.hpp"
 #include "Inspector.hpp"
-namespace Engine::Editor
+namespace Editor
 {
 class TextureInspector : public Inspector<Texture>
 {
@@ -56,4 +56,4 @@ private:
 
 const char TextureInspector::_register = InspectorRegistry::Register<TextureInspector, Texture>();
 
-} // namespace Engine::Editor
+} // namespace Editor

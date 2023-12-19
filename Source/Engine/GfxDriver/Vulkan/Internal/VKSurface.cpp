@@ -4,14 +4,17 @@
 #include "VKPhysicalDevice.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKSurface::VKSurface(VKInstance& instance, VKAppWindow* appWindow) : attachedInstance(instance)
 {
     appWindow->CreateVkSurface(instance.GetHandle(), &surface);
 }
 
-VKSurface::~VKSurface() { vkDestroySurfaceKHR(attachedInstance.GetHandle(), surface, VK_NULL_HANDLE); }
+VKSurface::~VKSurface()
+{
+    vkDestroySurfaceKHR(attachedInstance.GetHandle(), surface, VK_NULL_HANDLE);
+}
 
 void VKSurface::QuerySurfaceDataFromGPU(VKPhysicalDevice* gpu)
 {
@@ -52,4 +55,4 @@ void VKSurface::QuerySurfaceDataFromGPU(VKPhysicalDevice* gpu)
         throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
     }
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -1,12 +1,11 @@
 #pragma once
 #include <filesystem>
 
-namespace Engine::Libs
+namespace Libs
 {
 class FileSystem
 {
 public:
-
 private:
 };
-} // namespace Engine::Libs
+} // namespace Libs

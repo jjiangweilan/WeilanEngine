@@ -1,7 +1,5 @@
 #pragma once
 
-namespace Engine
-{
 class SceneEditor
 {
 public:
@@ -10,4 +8,3 @@ public:
 
 private:
 };
-} // namespace Engine

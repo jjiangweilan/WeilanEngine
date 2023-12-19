@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Engine::Gfx
+namespace Gfx
 {
 enum class VKCommandUsage
 {

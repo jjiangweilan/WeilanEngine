@@ -1,7 +1,5 @@
 #include "JsonSerializer.hpp"
 
-namespace Engine
-{
 #define TO_JSON_PTR(x) nlohmann::json::json_pointer(fmt::format("{}{}", "/", x))
 void JsonSerializer::Serialize(std::string_view name, const std::string& val)
 {
@@ -169,7 +167,7 @@ void JsonSerializer::Serialize(std::string_view name, const glm::vec4& v)
 void JsonSerializer::Deserialize(std::string_view name, glm::vec4& v)
 {
     const auto& jq = j[TO_JSON_PTR(name)];
-    
+
     if (jq.is_array() && jq.size() >= 4)
     {
         v.x = jq[0];
@@ -235,4 +233,3 @@ bool JsonSerializer::IsNull()
 {
     return j.is_null();
 }
-} // namespace Engine

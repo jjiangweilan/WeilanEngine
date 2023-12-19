@@ -1,7 +1,5 @@
 #pragma once
 
-namespace Engine
-{
 namespace Gfx
 {
 class Image;
@@ -26,4 +24,3 @@ private:
 
     Gfx::Image* RenderScene();
 };
-} // namespace Engine

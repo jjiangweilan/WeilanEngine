@@ -1,6 +1,6 @@
 #include "VKExtensionFunc.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 PFN_vkCmdPushDescriptorSetKHR VKExtensionFunc::vkCmdPushDescriptorSetKHR = nullptr;
 }

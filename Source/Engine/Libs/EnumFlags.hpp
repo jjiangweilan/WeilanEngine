@@ -2,8 +2,6 @@
 // https://stackoverflow.com/a/17771358/4931426
 #pragma once
 
-namespace Engine
-{
 #define ENUM_FLAGS(T, INT_T)                                                                                           \
     enum class T : INT_T;                                                                                              \
     using T##Flags = T;                                                                                                \
@@ -45,4 +43,3 @@ inline bool HasFlag(T flags, T val)
 {
     return static_cast<std::underlying_type_t<T>>(flags & val) != 0;
 }
-} // namespace Engine

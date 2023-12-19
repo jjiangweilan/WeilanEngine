@@ -1,6 +1,6 @@
 #include "ShaderProgram.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 bool StencilOpState::operator==(const StencilOpState& other) const noexcept
 {
@@ -29,4 +29,4 @@ bool ShaderConfig::operator==(const ShaderConfig& other) const noexcept
            color.blendConstants[2] == other.color.blendConstants[2] &&
            color.blendConstants[3] == other.color.blendConstants[3];
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

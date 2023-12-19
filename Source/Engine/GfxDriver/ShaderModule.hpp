@@ -1,10 +1,10 @@
 #pragma once
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class ShaderModule
 {
 public:
 private:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

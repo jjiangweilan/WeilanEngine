@@ -1,7 +1,7 @@
 #include "../EditorState.hpp"
 #include "Asset/Material.hpp"
 #include "Inspector.hpp"
-namespace Engine::Editor
+namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
 {
@@ -192,4 +192,4 @@ private:
 
 const char MaterialInspector::_register = InspectorRegistry::Register<MaterialInspector, Material>();
 
-} // namespace Engine::Editor
+} // namespace Editor

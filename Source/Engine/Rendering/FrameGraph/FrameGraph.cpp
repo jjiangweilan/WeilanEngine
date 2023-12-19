@@ -3,7 +3,7 @@
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
 
@@ -360,4 +360,4 @@ Gfx::Image* Graph::GetOutputImage()
 
     return nullptr;
 }
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

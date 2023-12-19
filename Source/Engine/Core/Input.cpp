@@ -1,7 +1,5 @@
 #include "Input.hpp"
 
-namespace Engine
-{
 RefPtr<Input> Input::Instance()
 {
     if (instance == nullptr)
@@ -13,4 +11,3 @@ RefPtr<Input> Input::Instance()
 }
 
 UniPtr<Input> Input::instance = nullptr;
-} // namespace Engine

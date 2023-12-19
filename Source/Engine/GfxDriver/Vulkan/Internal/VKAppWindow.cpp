@@ -2,7 +2,7 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKAppWindow::VKAppWindow(Extent2D windowSize) : windowSize(windowSize)
 {
@@ -71,4 +71,4 @@ std::vector<const char*> VKAppWindow::GetVkRequiredExtensions()
 
     return names;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

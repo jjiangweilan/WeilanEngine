@@ -5,8 +5,6 @@
 #endif
 #include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
-namespace Engine
-{
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
@@ -88,5 +86,3 @@ void WeilanEngine::DestroyGameLoop(GameLoop* loop)
     std::swap(*iter, gameLoops.back());
     gameLoops.pop_back();
 }
-
-} // namespace Engine

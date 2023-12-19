@@ -3,7 +3,7 @@
 #include "Internal/VKMemAllocator.hpp"
 #include <cinttypes>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKBuffer : public Buffer
 {
@@ -45,4 +45,4 @@ private:
 
     void CreateBuffer();
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

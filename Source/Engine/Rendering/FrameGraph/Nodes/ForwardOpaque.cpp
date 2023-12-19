@@ -2,7 +2,7 @@
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 class ForwardOpaqueNode : public Node
 {
@@ -136,9 +136,9 @@ private:
         clearValues.resize(2);
     }
     static char _reg;
-}; // namespace Engine::FrameGraph
+}; // namespace FrameGraph
 
 char ForwardOpaqueNode::_reg = NodeBlueprintRegisteration::Register<ForwardOpaqueNode>("Forward Opaque");
 
 DEFINE_OBJECT(ForwardOpaqueNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

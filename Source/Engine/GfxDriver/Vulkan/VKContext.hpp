@@ -6,7 +6,7 @@
 #include "Libs/Ptr.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKSharedResource.hpp"
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKDevice;
 class VKMemAllocator;
@@ -17,7 +17,10 @@ class VKDriver;
 class VKContext
 {
 public:
-    static inline RefPtr<VKContext> Instance() { return context; }
+    static inline RefPtr<VKContext> Instance()
+    {
+        return context;
+    }
     RefPtr<VKDevice> device;
     RefPtr<VKMemAllocator> allocator;
     RefPtr<VKObjectManager> objManager;
@@ -31,7 +34,16 @@ private:
     friend class VKDriver;
 };
 
-inline RefPtr<VKDevice> GetDevice() { return VKContext::Instance()->device; }
-inline RefPtr<VKMemAllocator> GetMemAllocator() { return VKContext::Instance()->allocator; }
-inline RefPtr<VKObjectManager> GetObjManager() { return VKContext::Instance()->objManager; }
-} // namespace Engine::Gfx
+inline RefPtr<VKDevice> GetDevice()
+{
+    return VKContext::Instance()->device;
+}
+inline RefPtr<VKMemAllocator> GetMemAllocator()
+{
+    return VKContext::Instance()->allocator;
+}
+inline RefPtr<VKObjectManager> GetObjManager()
+{
+    return VKContext::Instance()->objManager;
+}
+} // namespace Gfx

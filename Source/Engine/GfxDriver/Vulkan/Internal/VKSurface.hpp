@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKPhysicalDevice;
 class VKInstance;
@@ -14,15 +14,27 @@ public:
     VKSurface(VKInstance& instance, VKAppWindow* appWindow);
     ~VKSurface();
 
-    const VkSurfaceKHR& GetHandle() const { return surface; }
+    const VkSurfaceKHR& GetHandle() const
+    {
+        return surface;
+    }
 
     void QuerySurfaceDataFromGPU(VKPhysicalDevice* gpu);
 
-    inline const VkSurfaceCapabilitiesKHR& GetSurfaceCapabilities() { return surfaceCapabilities; }
+    inline const VkSurfaceCapabilitiesKHR& GetSurfaceCapabilities()
+    {
+        return surfaceCapabilities;
+    }
 
-    inline const std::vector<VkPresentModeKHR>& GetSurfacePresentModes() { return surfacePresentModes; }
+    inline const std::vector<VkPresentModeKHR>& GetSurfacePresentModes()
+    {
+        return surfacePresentModes;
+    }
 
-    inline const std::vector<VkSurfaceFormatKHR>& GetSurfaceFormats() { return surfaceFormats; }
+    inline const std::vector<VkSurfaceFormatKHR>& GetSurfaceFormats()
+    {
+        return surfaceFormats;
+    }
 
 private:
     VKInstance& attachedInstance;
@@ -36,4 +48,4 @@ private:
     friend class GfxContext;
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

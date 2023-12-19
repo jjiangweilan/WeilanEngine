@@ -2,7 +2,7 @@
 #include "GfxDriver/ShaderConfig.hpp"
 
 #include <string>
-namespace Engine::Utils
+namespace Utils
 {
 Gfx::BlendFactor MapBlendFactor(const std::string& str);
 Gfx::CullMode MapCullMode(const std::string str);
@@ -15,4 +15,4 @@ const char* MapStrCullMode(Gfx::CullMode cull);
 const char* MapStrBlendOp(Gfx::BlendOp op);
 const char* MapStrCompareOp(Gfx::CompareOp op);
 const char* MapStrStencilOp(Gfx::StencilOp op);
-} // namespace Engine::Utils
+} // namespace Utils

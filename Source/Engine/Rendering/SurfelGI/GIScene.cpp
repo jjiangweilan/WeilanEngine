@@ -2,7 +2,7 @@
 #include "Rendering/ImmediateGfx.hpp"
 #include "spdlog/spdlog.h"
 
-namespace Engine::SurfelGI
+namespace SurfelGI
 {
 DEFINE_ASSET(GIScene, "E59E4458-150B-4FE0-B45C-BB5676EDB7F8", "giscene")
 
@@ -223,4 +223,4 @@ void GIScene::Reload(Asset&& asset)
         newGIScene->surfels.clear();
     }
 }
-} // namespace Engine::SurfelGI
+} // namespace SurfelGI

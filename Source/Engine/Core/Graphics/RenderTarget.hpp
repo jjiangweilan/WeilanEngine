@@ -5,8 +5,6 @@
 #include <optional>
 #include <vector>
 
-namespace Engine
-{
 union ClearColorValue
 {
     float float32[4] = {0, 0, 0, 0};
@@ -70,7 +68,10 @@ struct RenderTargetDescription
         return rtn;
     }
 
-    bool HasDepth() const { return depthStencilDescription.has_value(); }
+    bool HasDepth() const
+    {
+        return depthStencilDescription.has_value();
+    }
 };
 
 class RenderTarget
@@ -84,4 +85,3 @@ public:
 protected:
     RenderTargetDescription rtDescription;
 };
-} // namespace Engine

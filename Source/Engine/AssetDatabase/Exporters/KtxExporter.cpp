@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <ktx.h>
 
-namespace Engine::Exporters
+namespace Exporters
 {
 void KtxExporter::Export(
     const char* path,
@@ -56,4 +56,4 @@ void KtxExporter::Export(
     ktxTexture_WriteToNamedFile(ktxTexture(texture), path);
     ktxTexture_Destroy(ktxTexture(texture));
 }
-} // namespace Engine::Exporters
+} // namespace Exporters

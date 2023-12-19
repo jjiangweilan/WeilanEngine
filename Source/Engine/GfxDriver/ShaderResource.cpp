@@ -1,3 +1,3 @@
 #include "ShaderResource.hpp"
-namespace Engine::Gfx
+namespace Gfx
 {}

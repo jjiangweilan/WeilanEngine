@@ -3,7 +3,7 @@
 #include "VKCommandBuffer.hpp"
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKCommandPool : public CommandPool
 {
@@ -17,4 +17,4 @@ private:
     VkCommandPool commandPool;
     CommandQueue* queue;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

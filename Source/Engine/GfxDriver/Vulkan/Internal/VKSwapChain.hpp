@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 
 class VKDevice;
@@ -64,4 +64,4 @@ private:
     VkImageUsageFlags GetUsageFlags(VKSurface* surface);
     VkPresentModeKHR GetPresentMode(VKSurface* surface);
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -6,7 +6,7 @@
 #include <cinttypes>
 #include <filesystem>
 
-namespace Engine::Rendering
+namespace Rendering
 {
 /**
  * capacity
@@ -16,11 +16,26 @@ class VirtualTexture
 public:
     VirtualTexture(const std::filesystem::path& vtFolder, uint32_t width, uint32_t height, uint32_t channel);
 
-    uint32_t GetWidth() const { return info.width; }
-    uint32_t GetHeight() const { return info.height; }
-    uint32_t GetPixelCount() const { return info.pixelCount; }
-    uint32_t GetByteSize() const { return info.byteSize; }
-    uint32_t GetChannel() const { return info.channel; }
+    uint32_t GetWidth() const
+    {
+        return info.width;
+    }
+    uint32_t GetHeight() const
+    {
+        return info.height;
+    }
+    uint32_t GetPixelCount() const
+    {
+        return info.pixelCount;
+    }
+    uint32_t GetByteSize() const
+    {
+        return info.byteSize;
+    }
+    uint32_t GetChannel() const
+    {
+        return info.channel;
+    }
     Libs::Image::LinearImage Read(int x, int y, int mip, int desieredChannel);
 
 private:
@@ -39,4 +54,4 @@ private:
 
     Info GenInfo(const std::filesystem::path& vtFolder, uint32_t width, uint32_t height, uint32_t channel);
 };
-} // namespace Engine::Rendering
+} // namespace Rendering

@@ -3,7 +3,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include <glm/glm.hpp>
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 class ImageNode : public Node
 {
@@ -22,4 +22,4 @@ private:
     void DefineNode();
     static char _reg;
 };
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

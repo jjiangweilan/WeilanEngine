@@ -2,8 +2,6 @@
 #include "Core/Asset.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
-namespace Engine
-{
 class AssetDatabase
 {
 public:
@@ -70,4 +68,3 @@ private:
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
 };
-} // namespace Engine

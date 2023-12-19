@@ -1,7 +1,5 @@
 #pragma once
 
-namespace Engine
-{
 enum class ImageFormat
 {
     R16G16B16A16_SFloat,
@@ -103,4 +101,3 @@ enum class ColorComponentBits : int
     Component_B_Bit = 0x00000004,
     Component_A_Bit = 0x00000008,
 };
-} // namespace Engine

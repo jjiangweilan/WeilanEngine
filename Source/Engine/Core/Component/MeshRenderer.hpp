@@ -6,8 +6,6 @@
 #include "GfxDriver/ShaderResource.hpp"
 #include "Utils/Structs.hpp"
 #include <memory>
-namespace Engine
-{
 class RenderingScene;
 class MeshRenderer : public Component
 {
@@ -42,4 +40,3 @@ private:
     void RemoveFromRenderingScene();
     void NotifyGameObjectGameSceneSet() override;
 };
-} // namespace Engine

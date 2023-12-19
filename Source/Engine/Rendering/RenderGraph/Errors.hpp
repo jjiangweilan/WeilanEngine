@@ -1,6 +1,6 @@
 #pragma once
 #include <stdexcept>
-namespace Engine::RenderGraph::Errrors
+namespace RenderGraph::Errrors
 {
 class Error : public std::logic_error
 {
@@ -16,4 +16,4 @@ class NodeCreationError : public Error
 {
     using Error::Error;
 };
-} // namespace Engine::RenderGraph::Errrors
+} // namespace RenderGraph::Errrors

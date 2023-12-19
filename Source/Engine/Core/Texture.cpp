@@ -10,8 +10,7 @@
 #include "ThirdParty/stb/stb_image.h"
 #include <ktxvulkan.h>
 #include <spdlog/spdlog.h>
-namespace Engine
-{
+
 DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx");
 
 Texture::Texture(const char* path, const UUID& uuid)
@@ -375,7 +374,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
         SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
     }
 
-    Engine::TextureDescription texDesc{};
+    TextureDescription texDesc{};
     texDesc.img.width = width;
     texDesc.img.height = height;
     texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::min(width, height))) + 1;
@@ -385,19 +384,19 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
 
     if (desiredChannels == 4)
     {
-        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8B8A8_SRGB;
+        texDesc.img.format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     }
     if (desiredChannels == 3)
     {
-        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8B8_SRGB;
+        texDesc.img.format = Gfx::ImageFormat::R8G8B8_SRGB;
     }
     if (desiredChannels == 2)
     {
-        texDesc.img.format = Engine::Gfx::ImageFormat::R8G8_SRGB;
+        texDesc.img.format = Gfx::ImageFormat::R8G8_SRGB;
     }
     if (desiredChannels == 1)
     {
-        texDesc.img.format = Engine::Gfx::ImageFormat::R8_SRGB;
+        texDesc.img.format = Gfx::ImageFormat::R8_SRGB;
     }
     desc = texDesc;
 
@@ -436,5 +435,3 @@ bool Texture::LoadFromFile(const char* path)
 
     return true;
 }
-
-} // namespace Engine

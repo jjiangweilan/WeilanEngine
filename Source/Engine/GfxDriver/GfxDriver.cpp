@@ -2,7 +2,7 @@
 #include "Vulkan/VKDriver.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 std::unique_ptr<GfxDriver> GfxDriver::CreateGfxDriver(Backend backend, const CreateInfo& createInfo)
 {
@@ -31,4 +31,4 @@ GfxDriver*& GfxDriver::InstanceInternal()
     static GfxDriver* gfxDriver;
     return gfxDriver;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

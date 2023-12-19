@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 
 class NodeBlueprint
@@ -49,4 +49,4 @@ char NodeBlueprintRegisteration::Register(const char* nameID)
     GetRegisteration().blueprints.emplace_back(nameID, [](FGID id) { return std::unique_ptr<Node>(new T(id)); });
     return '1';
 }
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

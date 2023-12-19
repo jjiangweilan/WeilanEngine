@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cinttypes>
 #include <string_view>
-namespace Engine::Gfx
+namespace Gfx
 {
 ENUM_FLAGS(BufferUsage, uint64_t){
     None = 0,
@@ -279,4 +279,4 @@ ENUM_FLAGS(PipelineStage, uint64_t){
     All_Commands = 0x00010000,
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -3,8 +3,7 @@
 #include "Component.hpp"
 #include "Core/Math/Geometry.hpp"
 #include <glm/glm.hpp>
-namespace Engine
-{
+
 namespace FrameGraph
 {
 class Graph;
@@ -48,4 +47,3 @@ private:
     glm::mat4 viewMatrix;
     FrameGraph::Graph* frameGraph = nullptr;
 };
-} // namespace Engine

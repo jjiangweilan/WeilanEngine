@@ -5,7 +5,7 @@
 #undef CreateSemaphore
 #endif
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKObjectManager
 {
@@ -57,4 +57,4 @@ private:
     std::vector<VkCommandPool> pendingCommandPools;
     VkDevice device;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

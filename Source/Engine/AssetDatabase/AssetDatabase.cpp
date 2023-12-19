@@ -2,8 +2,6 @@
 #include "Importers.hpp"
 #include <iostream>
 #include <spdlog/spdlog.h>
-namespace Engine
-{
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     : projectRoot(projectRoot), assetDirectory(projectRoot / "Assets"),
       assetDatabaseDirectory(projectRoot / "AssetDatabase")
@@ -413,5 +411,3 @@ void AssetDatabase::RefreshShader()
         requestShaderRefreshAll = false;
     }
 }
-
-} // namespace Engine

@@ -12,8 +12,6 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
-namespace Engine
-{
 class WeilanEngine
 {
 public:
@@ -60,4 +58,3 @@ private:
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;
 };
-} // namespace Engine

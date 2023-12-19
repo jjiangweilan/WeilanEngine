@@ -1,8 +1,6 @@
 #include "UUID.hpp"
 #include <cassert>
 #include <random>
-namespace Engine
-{
 UUID::UUID()
 {
     id = uuids::uuid_random_generator{generator}();
@@ -73,4 +71,3 @@ std::mt19937 UUID::generator = CreateGenerator();
 
 uuids::uuid_name_generator UUID::nameGenerator =
     uuids::uuid_name_generator(uuids::uuid::from_string("73B6D45A-5A1A-42D7-B75C-7C39F976A620").value());
-} // namespace Engine

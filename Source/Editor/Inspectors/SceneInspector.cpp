@@ -2,7 +2,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
 
-namespace Engine::Editor
+namespace Editor
 {
 class SceneInspector : public Inspector<Scene>
 {
@@ -30,4 +30,4 @@ private:
 
 const char SceneInspector::_register = InspectorRegistry::Register<SceneInspector, Scene>();
 
-} // namespace Engine::Editor
+} // namespace Editor

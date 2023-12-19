@@ -4,8 +4,6 @@
 #include "ThirdParty/xxHash/xxhash.h"
 #include <spdlog/spdlog.h>
 
-namespace Engine
-{
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
 DEFINE_ASSET(ComputeShader, "91093726-6D8F-440C-B617-6AA3FDA08DEA", "comp");
 
@@ -229,5 +227,3 @@ Shader*& Shader::GetDefaultPrivate()
     static Shader* shader;
     return shader;
 }
-
-} // namespace Engine

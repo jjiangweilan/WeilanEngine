@@ -2,7 +2,7 @@
 #include "../FrameBuffer.hpp"
 #include "Libs/Ptr.hpp"
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKRenderPass;
 class VKImage;
@@ -15,9 +15,18 @@ public:
 
     void SetAttachments(const std::vector<RefPtr<Image>>& attachments) override;
 
-    std::vector<RefPtr<VKImage>>& GetAttachments() { return attachments; };
-    uint32_t GetWidth() { return width; }
-    uint32_t GetHeight() { return height; }
+    std::vector<RefPtr<VKImage>>& GetAttachments()
+    {
+        return attachments;
+    };
+    uint32_t GetWidth()
+    {
+        return width;
+    }
+    uint32_t GetHeight()
+    {
+        return height;
+    }
     VkFramebuffer GetHandle();
 
 private:
@@ -29,4 +38,4 @@ private:
     std::vector<RefPtr<VKImage>> attachments;
     void CreateFrameBuffer();
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

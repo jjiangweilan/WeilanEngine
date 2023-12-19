@@ -1,5 +1,5 @@
 #include "VKShaderInfo.hpp"
-namespace Engine::Gfx::ShaderInfo::Utils
+namespace Gfx::ShaderInfo::Utils
 {
 VkDescriptorType MapBindingType(BindingType type)
 {
@@ -27,4 +27,4 @@ VkShaderStageFlags MapShaderStage(ShaderStageFlags stages)
 
     return rtn;
 }
-} // namespace Engine::Gfx::ShaderInfo::Utils
+} // namespace Gfx::ShaderInfo::Utils

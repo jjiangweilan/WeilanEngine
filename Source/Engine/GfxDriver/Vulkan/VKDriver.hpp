@@ -17,7 +17,7 @@
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKAppWindow;
 class VKInstance;
@@ -124,4 +124,4 @@ private:
     } inFlightFrame;
     GPUFeatures gpuFeatures;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

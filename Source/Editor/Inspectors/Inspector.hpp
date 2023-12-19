@@ -3,7 +3,7 @@
 #include "Core/Object.hpp"
 #include "InspectorRegistry.hpp"
 #include "ThirdParty/imgui/imgui.h"
-namespace Engine::Editor
+namespace Editor
 {
 
 class GameEditor;
@@ -43,4 +43,4 @@ public:
 protected:
     T* target;
 };
-} // namespace Engine::Editor
+} // namespace Editor

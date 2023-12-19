@@ -4,8 +4,6 @@
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/RenderPipeline.hpp"
-namespace Engine
-{
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material() : shader(nullptr), shaderResource(nullptr)
@@ -370,4 +368,3 @@ void Material::UploadDataToGPU()
         }
     }
 }
-} // namespace Engine

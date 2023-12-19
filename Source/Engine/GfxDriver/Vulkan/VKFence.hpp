@@ -3,7 +3,7 @@
 #include "VKContext.hpp"
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKFence : public Fence
 {
@@ -17,12 +17,21 @@ public:
         vkCreateFence(GetDevice()->GetHandle(), &vkCreateInfo, VK_NULL_HANDLE, &vkFence);
     }
 
-    ~VKFence() { vkDestroyFence(GetDevice()->GetHandle(), vkFence, VK_NULL_HANDLE); }
+    ~VKFence()
+    {
+        vkDestroyFence(GetDevice()->GetHandle(), vkFence, VK_NULL_HANDLE);
+    }
 
-    void Reset() { vkResetFences(GetDevice()->GetHandle(), 1, &vkFence); };
-    VkFence GetHandle() const { return vkFence; }
+    void Reset()
+    {
+        vkResetFences(GetDevice()->GetHandle(), 1, &vkFence);
+    };
+    VkFence GetHandle() const
+    {
+        return vkFence;
+    }
 
 private:
     VkFence vkFence;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

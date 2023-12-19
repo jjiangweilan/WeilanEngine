@@ -2,7 +2,7 @@
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "VKContext.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VkImageViewType MapImageViewType(ImageViewType type)
 {
@@ -69,4 +69,4 @@ VKImageView::~VKImageView()
         VKContext::Instance()->objManager->DestroyImageView(handle);
 }
 
-} // namespace Engine::Gfx
+} // namespace Gfx

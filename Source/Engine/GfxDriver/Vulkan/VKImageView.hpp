@@ -3,7 +3,7 @@
 #include "VKImage.hpp"
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKImageView : public ImageView
 {
@@ -51,4 +51,4 @@ protected:
     ImageSubresourceRange subresourceRange;
     ImageViewType imageViewType;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

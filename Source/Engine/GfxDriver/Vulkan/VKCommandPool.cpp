@@ -2,7 +2,7 @@
 #include "VKCommandQueue.hpp"
 #include "VKContext.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKCommandPool::VKCommandPool(const CreateInfo& gCreateInfo)
 {
@@ -46,4 +46,4 @@ void VKCommandPool::ResetCommandPool()
 {
     vkResetCommandPool(GetDevice()->GetHandle(), commandPool, 0);
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

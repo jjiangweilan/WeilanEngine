@@ -38,7 +38,7 @@
 #undef CreateSemaphore
 #endif
 
-namespace Engine::Gfx
+namespace Gfx
 {
 // I can't use the MakeUnique function in Ptr.hpp in this translation unit on Window machine. Not sure why.
 // This is a temporary workaround
@@ -372,7 +372,7 @@ RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
 {
     switch (type)
     {
-        case Engine::QueueType::Main: return static_cast<CommandQueue*>(mainQueue.Get());
+        case QueueType::Main: return static_cast<CommandQueue*>(mainQueue.Get());
     }
 }
 
@@ -484,4 +484,4 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 {
     return std::make_unique<VKShaderResource>();
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

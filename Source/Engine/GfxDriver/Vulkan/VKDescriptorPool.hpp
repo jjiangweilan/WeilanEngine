@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKContext;
 class VKDescriptorPool
@@ -58,7 +58,7 @@ private:
 
 private:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx
 
 inline bool operator==(const VkDescriptorSetLayoutCreateInfo& first, const VkDescriptorSetLayoutCreateInfo& second)
 {

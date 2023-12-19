@@ -1,7 +1,5 @@
 #include "AssetData.hpp"
 
-namespace Engine
-{
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
 )
@@ -172,5 +170,3 @@ void AssetData::UpdateLastWriteTime()
 {
     lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
 }
-
-} // namespace Engine

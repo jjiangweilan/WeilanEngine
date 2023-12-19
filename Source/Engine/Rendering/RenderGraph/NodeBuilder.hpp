@@ -3,7 +3,7 @@
 #include "Graph.hpp"
 #include <vector>
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 
 struct BuildResult
@@ -37,4 +37,4 @@ struct BuildResult
 //     };
 //     static RenderNode* Skybox(Graph& graph, const SkyboxDescription& desc);
 // };
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

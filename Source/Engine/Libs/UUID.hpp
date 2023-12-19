@@ -3,8 +3,6 @@
 #include <cinttypes>
 #include <functional>
 #include <memory>
-namespace Engine
-{
 class UUID
 {
 public:
@@ -43,12 +41,11 @@ private:
     friend class std::hash<UUID>;
 };
 
-} // namespace Engine
-  //
+//
 template <>
-struct std::hash<Engine::UUID>
+struct std::hash<UUID>
 {
-    std::size_t operator()(Engine::UUID const& s) const noexcept
+    std::size_t operator()(UUID const& s) const noexcept
     {
         return std::hash<uuids::uuid>{}(s.id);
     }

@@ -5,8 +5,6 @@
 #include <tuple>
 #include <type_traits>
 
-namespace Engine
-{
 #define LUA_WRAP_REGISTER_CLASS(ClassName)                                                                             \
     luaL_newmetatable(L, #ClassName);                                                                                  \
     lua_pushvalue(L, -1);                                                                                              \
@@ -136,15 +134,14 @@ public:
     LuaWraps(lua_State* state) : L(state)
     {
         LUA_WRAP_REGISTER_CLASS(GameObject);
-        //LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetName);
-        //LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetTransform);
-        // LUA_WRAP_REGISTER_CFUNCTION_OVERLOAD(GameObject, GetComponent, RefPtr<Component>, const char*);
+        // LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetName);
+        // LUA_WRAP_REGISTER_CFUNCTION(GameObject, GetTransform);
+        //  LUA_WRAP_REGISTER_CFUNCTION_OVERLOAD(GameObject, GetComponent, RefPtr<Component>, const char*);
 
-        //LUA_WRAP_REGISTER_CLASS(Transform);
-        //LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
-        //LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
+        // LUA_WRAP_REGISTER_CLASS(Transform);
+        // LUA_WRAP_REGISTER_CFUNCTION(Transform, SetPosition);
+        // LUA_WRAP_REGISTER_CFUNCTION(Transform, GetPosition);
 
         // register new lua binding here...
     }
 };
-} // namespace Engine

@@ -1,8 +1,6 @@
 #include "Component.hpp"
 #include "Core/GameObject.hpp"
 
-namespace Engine
-{
 Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 
 Component::~Component() {}
@@ -30,4 +28,3 @@ void Component::Deserialize(Serializer* s)
     s->Deserialize("uuid", uuid);
     s->Deserialize("gameObject", gameObject);
 }
-} // namespace Engine

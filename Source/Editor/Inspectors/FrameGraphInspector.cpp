@@ -3,7 +3,7 @@
 #include "Inspector.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 
-namespace Engine::Editor
+namespace Editor
 {
 class FrameGraphInspector : public Inspector<FrameGraph::Graph>
 {
@@ -28,4 +28,4 @@ private:
 
 const char FrameGraphInspector::_register = InspectorRegistry::Register<FrameGraphInspector, FrameGraph::Graph>();
 
-} // namespace Engine::Editor
+} // namespace Editor

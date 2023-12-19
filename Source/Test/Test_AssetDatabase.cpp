@@ -6,22 +6,19 @@
 #include <fstream>
 #include <gtest/gtest.h>
 
-namespace Engine
-{
-class IAmReferencable
-{
 public:
-    const UUID& GetUUID()
-    {
-        return uuid;
-    }
-    void SetUUID(const UUID& uuid)
-    {
-        this->uuid = uuid;
-    }
+const UUID& GetUUID()
+{
+    return uuid;
+}
+void SetUUID(const UUID& uuid)
+{
+    this->uuid = uuid;
+}
 
-    UUID uuid;
-};
+UUID uuid;
+}
+; // namespace Engine
 
 class IAmSerializable : public Serializable
 {
@@ -78,14 +75,12 @@ public:
 };
 DEFINE_ASSET(IAmResource, "6BD39F47-4980-4134-A0C3-E5BCBDC1A92F", "resExtTest");
 
-} // namespace Engine
-
 using namespace Engine;
 TEST(AssetDatabase, Serialization)
 {
     AssetDatabase db0("./");
 
-    std::unique_ptr<Engine::IAmResource> referencable = std::make_unique<IAmResource>();
+    std::unique_ptr<IAmResource> referencable = std::make_unique<IAmResource>();
     std::unique_ptr<IAmResource> vv = std::make_unique<IAmResource>();
     vv->x = 10;
     vv->referencable = referencable.get();

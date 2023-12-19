@@ -2,8 +2,6 @@
 #include "glm/glm.hpp"
 #include <cinttypes>
 
-namespace Engine
-{
 struct Offset2D
 {
     int32_t x;
@@ -41,4 +39,3 @@ struct AABB
     glm::vec3 min;
     glm::vec3 max;
 };
-} // namespace Engine

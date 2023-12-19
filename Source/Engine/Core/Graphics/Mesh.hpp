@@ -10,8 +10,6 @@
 
 // interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
 
-namespace Engine
-{
 struct VertexBinding
 {
     std::size_t byteOffset;
@@ -211,4 +209,3 @@ private:
     std::vector<Submesh> submeshes;
     AABB aabb;
 };
-} // namespace Engine

@@ -4,8 +4,6 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <stdexcept>
 
-namespace Engine
-{
 DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "gobj");
 
 GameObject::GameObject() : gameScene(nullptr)
@@ -165,5 +163,3 @@ void GameObject::SetScene(Scene* scene)
         c->NotifyGameObjectGameSceneSet();
     }
 }
-
-} // namespace Engine

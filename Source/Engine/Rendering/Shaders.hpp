@@ -3,7 +3,7 @@
 #include <functional>
 #include <string>
 #include <unordered_map>
-namespace Engine::Rendering
+namespace Rendering
 {
 using ShaderID = std::size_t;
 class Shaders
@@ -20,4 +20,4 @@ private:
     std::unordered_map<ShaderID, std::unique_ptr<Shader>> shaders;
     std::hash<std::string> nameToID;
 };
-} // namespace Engine::Rendering
+} // namespace Rendering

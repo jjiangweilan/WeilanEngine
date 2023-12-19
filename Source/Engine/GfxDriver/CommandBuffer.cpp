@@ -1,6 +1,6 @@
 #include "CommandBuffer.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 void CommandBuffer::BindSubmesh(const Submesh& submesh)
 {
@@ -12,4 +12,4 @@ void CommandBuffer::BindSubmesh(const Submesh& submesh)
     BindVertexBuffer(bindings, 0);
     BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

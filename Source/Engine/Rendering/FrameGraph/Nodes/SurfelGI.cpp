@@ -4,7 +4,7 @@
 #include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 class SurfelGINode : public Node
 {
@@ -119,9 +119,9 @@ private:
         AddConfig<ConfigurableType::ObjectPtr>("Surfel Debug Arrow", nullptr);
     }
     static char _reg;
-}; // namespace Engine::FrameGraph
+}; // namespace FrameGraph
 
 char SurfelGINode::_reg = NodeBlueprintRegisteration::Register<SurfelGINode>("Surfel GI");
 
 DEFINE_OBJECT(SurfelGINode, "1810BA8A-B0B3-47CE-BF52-F1D881E98B01");
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

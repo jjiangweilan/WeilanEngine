@@ -1,8 +1,5 @@
 #pragma once
 
-namespace Engine
-{
-
 struct WindowSizeChange
 {
     bool state;
@@ -35,4 +32,3 @@ private:
 
     void Reset();
 };
-} // namespace Engine

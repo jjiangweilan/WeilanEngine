@@ -9,7 +9,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKShaderResource;
 class VKShaderProgram;
@@ -101,4 +101,4 @@ private:
     void UpdateDescriptorSetBinding();
     void UpdateDescriptorSetBinding(uint32_t set);
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

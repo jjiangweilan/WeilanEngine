@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 #include <iostream>
 #include <spdlog/spdlog.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 VKSwapChain::VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface)
     : swapChain(VK_NULL_HANDLE), attachedDevice(VKContext::Instance()->device),
@@ -240,4 +240,4 @@ AcquireNextImageResult VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSign
     return AcquireNextImageResult::Succeeded;
 }
 
-} // namespace Engine::Gfx
+} // namespace Gfx

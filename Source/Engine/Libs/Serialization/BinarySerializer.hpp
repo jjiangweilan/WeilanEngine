@@ -4,9 +4,6 @@
 #include "Serializable.hpp"
 #include "Serializer.hpp"
 
-namespace Engine
-{
-
 class BinarySerializer : public Serializer
 {
 public:
@@ -33,4 +30,3 @@ private:
     // void Serialize(std::string_view name, unsigned char* v, size_t size) override;
     // void Deserialize(std::string_view name, unsigned char* v, size_t size) override;
 };
-} // namespace Engine

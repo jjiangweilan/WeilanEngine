@@ -1,6 +1,6 @@
 #include "NodeBuilder.hpp"
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 // BuildResult NodeBuilder::Blit(const std::vector<BlitDescription>& blits)
 // {
@@ -40,4 +40,4 @@ namespace Engine::RenderGraph
 //     }
 //     return result;
 // }
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

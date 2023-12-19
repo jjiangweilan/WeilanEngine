@@ -2,28 +2,43 @@
 
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKInstance;
 class VKSurface;
 class VKPhysicalDevice
 {
 public:
-    const VkPhysicalDeviceProperties& GetPhysicalDeviceProperties() const { return physicalDeviceProperties; }
+    const VkPhysicalDeviceProperties& GetPhysicalDeviceProperties() const
+    {
+        return physicalDeviceProperties;
+    }
 
-    const VkPhysicalDeviceFeatures& GetPhysicalDeviceFeatures() const { return physicalDeviceFeatures; }
+    const VkPhysicalDeviceFeatures& GetPhysicalDeviceFeatures() const
+    {
+        return physicalDeviceFeatures;
+    }
 
-    const std::vector<VkQueueFamilyProperties>& GetQueueFamilyProperties() const { return queueFamilyProperties; }
+    const std::vector<VkQueueFamilyProperties>& GetQueueFamilyProperties() const
+    {
+        return queueFamilyProperties;
+    }
 
-    const std::vector<VkExtensionProperties>& GetAvailableExtensions() const { return availableExtensions; }
+    const std::vector<VkExtensionProperties>& GetAvailableExtensions() const
+    {
+        return availableExtensions;
+    }
 
     // const uint32_t& GetTransferQueueFamilyIndex() const { return graphicsQueueFamilyIndex; }
 
-    VkPhysicalDevice GetHandle() const { return gpu; }
+    VkPhysicalDevice GetHandle() const
+    {
+        return gpu;
+    }
 
-    VkFormat PickSupportedFormat(const std::vector<VkFormat>& candidates,
-                                 VkImageTiling tiling,
-                                 VkFormatFeatureFlags featureFlags);
+    VkFormat PickSupportedFormat(
+        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
+    );
 
     static VKPhysicalDevice SelectGPUAndQueryDataForSurface(VKInstance& instance, VKSurface& surface);
 
@@ -49,4 +64,4 @@ private:
 
     friend class GfxContext;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

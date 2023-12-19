@@ -1,8 +1,6 @@
 #pragma once
 #include "Scene.hpp"
 
-namespace Engine
-{
 class SceneManager
 {
 public:
@@ -20,4 +18,3 @@ public:
 private:
     Scene* scene = nullptr;
 };
-} // namespace Engine

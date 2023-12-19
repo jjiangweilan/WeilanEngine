@@ -6,7 +6,7 @@
 #include <vector>
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKMemAllocator;
 class VKObjectManager;
@@ -51,4 +51,4 @@ private:
     friend class VKDriver;
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

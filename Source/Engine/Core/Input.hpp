@@ -1,8 +1,6 @@
 #pragma once
 #include "Libs/Ptr.hpp"
 #include <glm/glm.hpp>
-namespace Engine
-{
 class Input
 {
 public:
@@ -11,4 +9,3 @@ public:
 private:
     static UniPtr<Input> instance;
 };
-} // namespace Engine

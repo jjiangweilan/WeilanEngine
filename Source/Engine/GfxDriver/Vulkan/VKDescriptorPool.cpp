@@ -4,7 +4,7 @@
 #include "VKContext.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo)
     : context(context)
@@ -156,4 +156,4 @@ std::size_t VkDescriptorSetLayoutCreateInfoHash::operator()(const VkDescriptorSe
 
     return rlt;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

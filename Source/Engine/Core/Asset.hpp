@@ -5,9 +5,6 @@
 #include <memory>
 #pragma once
 
-namespace Engine
-{
-
 class AssetDatabase;
 class Asset : public Object, public Serializable
 {
@@ -149,4 +146,3 @@ private:                                                                        
     {                                                                                                                  \
         return "." Extension;                                                                                          \
     }
-} // namespace Engine

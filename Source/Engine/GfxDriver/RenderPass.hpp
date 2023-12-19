@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 union ClearColor
 {
@@ -49,4 +49,4 @@ public:
 
 private:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

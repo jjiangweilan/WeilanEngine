@@ -3,7 +3,7 @@
 #include "CommandQueue.hpp"
 #include <vector>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class CommandPool
 {
@@ -21,4 +21,4 @@ public:
 
 private:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

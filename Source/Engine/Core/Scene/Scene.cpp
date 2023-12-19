@@ -1,6 +1,4 @@
 #include "Scene.hpp"
-namespace Engine
-{
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
 Scene::Scene() : Asset(), systemEventCallbacks()
@@ -70,7 +68,7 @@ std::vector<GameObject*> Scene::GetAllGameObjects()
 
     for (auto& obj : roots)
     {
-        ::Engine::GetAllGameObjects(obj, objs);
+        ::GetAllGameObjects(obj, objs);
     }
 
     return objs;
@@ -245,5 +243,3 @@ void Scene::Deserialize(Serializer* s)
     //     }
     // }
 }
-
-} // namespace Engine

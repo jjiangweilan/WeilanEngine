@@ -7,7 +7,7 @@
     auto rlt_VK_CHECK = x;                                                                                             \
     assert(rlt_VK_CHECK == VK_SUCCESS);
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKMemAllocator::VKMemAllocator(
     VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
@@ -114,4 +114,4 @@ void VKMemAllocator::DestroyPendingResources()
     pendingBuffers.clear();
     pendingImages.clear();
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

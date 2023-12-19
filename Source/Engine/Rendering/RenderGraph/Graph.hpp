@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 class RenderNode;
 using SortIndex = int;
@@ -457,7 +457,7 @@ private:
     std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
     ResourcePool resourcePool;
-}; // namespace Engine::RenderGraph
+}; // namespace RenderGraph
    //
    //
 
@@ -466,4 +466,4 @@ class GraphJsonParser
 public:
     static void BuildGraph(Graph& graph, nlohmann::json& j);
 };
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

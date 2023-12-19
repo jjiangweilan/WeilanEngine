@@ -1,9 +1,9 @@
 #pragma once
 #include "Core/Component/Camera.hpp"
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 struct GraphResource
 {
     Camera* mainCamera;
 };
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

@@ -7,7 +7,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKAppWindow
 {
@@ -18,9 +18,15 @@ public:
     void CreateVkSurface(VkInstance vkInstance, VkSurfaceKHR* vkSurface);
     std::vector<const char*> GetVkRequiredExtensions();
 
-    SDL_Window* GetSDLWindow() { return window; }
+    SDL_Window* GetSDLWindow()
+    {
+        return window;
+    }
 
-    Extent2D GetDefaultWindowSize() { return windowSize; }
+    Extent2D GetDefaultWindowSize()
+    {
+        return windowSize;
+    }
 
 private:
     SDL_Window* window;
@@ -29,4 +35,4 @@ private:
     friend class GfxContext;
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

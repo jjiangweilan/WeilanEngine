@@ -14,7 +14,7 @@
 #include <span>
 #include <vector>
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 
 class Graph : public Asset
@@ -219,4 +219,4 @@ private:
     }
 };
 
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

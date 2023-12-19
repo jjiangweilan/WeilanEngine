@@ -1,9 +1,6 @@
 #include "RenderPipeline.hpp"
 #include "Core/Scene/Scene.hpp"
 
-namespace Engine
-{
-
 RenderPipeline::RenderPipeline()
 {
     submitFence = GetGfxDriver()->CreateFence({.signaled = true});
@@ -244,4 +241,3 @@ RenderPipeline::StagingBuffer::StagingBuffer()
     Gfx::Buffer::CreateInfo createInfo{Gfx::BufferUsage::Transfer_Src, 1024 * 1024 * 32, true, "staging buffer"};
     staging = GetGfxDriver()->CreateBuffer(createInfo);
 }
-} // namespace Engine

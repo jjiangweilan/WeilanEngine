@@ -11,7 +11,7 @@
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 {
@@ -219,4 +219,4 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
     return sets[hash];
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

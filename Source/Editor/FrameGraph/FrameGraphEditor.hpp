@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 
-namespace Engine::Editor
+namespace Editor
 {
 
 struct FrameGraphNode
@@ -39,4 +39,4 @@ private:
         const FrameGraph::Configurable& config
     );
 };
-} // namespace Engine::Editor
+} // namespace Editor

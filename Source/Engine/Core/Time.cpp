@@ -1,7 +1,5 @@
 #include "Time.hpp"
 #include <spdlog/spdlog.h>
-namespace Engine
-{
 Time::TimePoint Time::lastTime = Time::Clock::now();
 
 void Time::Tick()
@@ -17,4 +15,3 @@ float& Time::DeltaTimeIntenral()
     static float deltaTime;
     return deltaTime;
 }
-} // namespace Engine

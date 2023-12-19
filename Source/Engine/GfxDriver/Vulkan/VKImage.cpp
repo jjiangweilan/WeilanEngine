@@ -10,7 +10,7 @@
 
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 VKImage::VKImage() : imageView(nullptr){};
@@ -195,4 +195,4 @@ ImageLayout VKImage::GetImageLayout()
 //
 //     imageDescription = activeImage->GetDescription();
 // };
-} // namespace Engine::Gfx
+} // namespace Gfx

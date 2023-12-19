@@ -1,7 +1,5 @@
 #pragma once
 
-namespace Engine
-{
 // https : stackoverflow.com/questions/7666509/hash-function-for-string
 typedef unsigned long ID;
 constexpr ID _ID(const char* str)
@@ -14,4 +12,3 @@ constexpr ID _ID(const char* str)
 
     return hash;
 }
-} // namespace Engine

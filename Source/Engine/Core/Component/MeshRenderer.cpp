@@ -4,8 +4,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine
-{
 DEFINE_OBJECT(MeshRenderer, "00412ED6-89D3-4DD3-9D56-754820250E78");
 MeshRenderer::MeshRenderer(GameObject* parent, Mesh* mesh, Material* material)
     : Component(parent), mesh(mesh), materials({material})
@@ -109,4 +107,3 @@ void MeshRenderer::NotifyGameObjectGameSceneSet()
         renderingScene = newRenderingScene;
     }
 }
-} // namespace Engine

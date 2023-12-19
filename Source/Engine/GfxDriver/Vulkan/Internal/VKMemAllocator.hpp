@@ -8,7 +8,7 @@
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 struct DataRange
 {
@@ -75,4 +75,4 @@ private:
     std::vector<std::pair<VkBuffer, VmaAllocation>> pendingBuffers;
     std::vector<std::pair<VkImage, VmaAllocation>> pendingImages;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

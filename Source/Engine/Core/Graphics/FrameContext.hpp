@@ -2,8 +2,6 @@
 
 #include "Libs/Ptr.hpp"
 #include <string>
-namespace Engine
-{
 namespace Gfx
 {
 class ShaderResource;
@@ -16,4 +14,3 @@ public:
 
 private:
 };
-} // namespace Engine

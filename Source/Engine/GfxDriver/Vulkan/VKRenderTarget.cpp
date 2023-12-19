@@ -5,7 +5,7 @@
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
 #include <cassert>
-namespace Engine::Gfx
+namespace Gfx
 {
 struct RenderTargetCreateHelper
 {
@@ -247,4 +247,4 @@ VkFramebuffer VKRenderTarget::GetVkFrameBuffer()
 }
 
 VKImage& VKRenderTarget::GetImage(uint32_t index) { return attachments[index]; }
-} // namespace Engine::Gfx
+} // namespace Gfx

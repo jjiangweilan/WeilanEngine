@@ -6,7 +6,7 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKContext;
 class VKImage;
@@ -51,4 +51,4 @@ protected:
     Extent2D extent;
     std::vector<Subpass> subpasses;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

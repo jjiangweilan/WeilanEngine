@@ -2,8 +2,6 @@
 #include "Component.hpp"
 #include "ThirdParty/lua/lua.hpp"
 
-namespace Engine
-{
 class LuaScript : public Component
 {
 public:
@@ -36,4 +34,3 @@ private:
     LuaRef luaRefDestruct = LUA_REFNIL;
     LuaRef luaRefTick = LUA_REFNIL;
 };
-} // namespace Engine

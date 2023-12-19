@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 
-namespace Engine::Rendering
+namespace Rendering
 {
 
 std::unique_ptr<Shader> CreateShader(const char* name, const std::filesystem::path& path)
@@ -52,4 +52,4 @@ Shader* Shaders::GetShader(const std::string& name)
 {
     return shaders.at(nameToID(name)).get();
 }
-} // namespace Engine::Rendering
+} // namespace Rendering

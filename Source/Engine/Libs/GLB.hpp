@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
-namespace Engine::Utils
+namespace Utils
 {
 class GLB
 {
@@ -20,4 +20,4 @@ public:
         nlohmann::json& jsonData, unsigned char*& binaryData, int maximumMesh = std::numeric_limits<int>::max()
     );
 };
-} // namespace Engine::Utils
+} // namespace Utils

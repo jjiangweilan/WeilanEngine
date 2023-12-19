@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace Engine::Editor
+namespace Editor
 {
 
 // A Tool is a class that will have a `MenuItem`
@@ -30,4 +30,4 @@ public:
     // called when the tool window is closed
     virtual void Close(){};
 };
-} // namespace Engine::Editor
+} // namespace Editor

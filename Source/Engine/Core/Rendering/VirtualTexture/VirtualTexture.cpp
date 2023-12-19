@@ -2,16 +2,15 @@
 
 #include "ThirdParty/stb/stb_image.h"
 #include "spdlog/spdlog.h"
-namespace Engine::Rendering
+namespace Rendering
 {
 VirtualTexture::VirtualTexture(const std::filesystem::path& vtFolder, uint32_t width, uint32_t height, uint32_t channel)
     : info(GenInfo(vtFolder, width, height, channel)), vtFolder(vtFolder)
 {}
 
-VirtualTexture::Info VirtualTexture::GenInfo(const std::filesystem::path& vtFolder,
-                                             uint32_t width,
-                                             uint32_t height,
-                                             uint32_t channel)
+VirtualTexture::Info VirtualTexture::GenInfo(
+    const std::filesystem::path& vtFolder, uint32_t width, uint32_t height, uint32_t channel
+)
 {
     Info info;
 
@@ -33,4 +32,4 @@ Libs::Image::LinearImage VirtualTexture::Read(int x, int y, int mip, int desiere
     unsigned char* data = stbi_load(path.string().c_str(), &w, &h, &c, desieredChannel);
     return Libs::Image::LinearImage(w, h, 3, 1, data);
 }
-} // namespace Engine::Rendering
+} // namespace Rendering

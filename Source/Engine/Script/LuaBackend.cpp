@@ -1,9 +1,10 @@
 #include "LuaBackend.hpp"
 #include <fstream>
 #include <spdlog/spdlog.h>
-namespace Engine
+LuaBackend::LuaBackend() : state(luaL_newstate()), wraps(state)
 {
-LuaBackend::LuaBackend() : state(luaL_newstate()), wraps(state) { luaL_openlibs(state); }
+    luaL_openlibs(state);
+}
 
 RefPtr<LuaBackend> LuaBackend::Instance()
 {
@@ -34,7 +35,10 @@ void LuaBackend::LoadFile(const std::filesystem::path& path)
         SPDLOG_ERROR("Can't read lua file {}", path.string());
 }
 
-void LuaBackend::LoadLuaInFolder(const std::filesystem::path& folder) { LoadLuaInFolderIter(folder); }
+void LuaBackend::LoadLuaInFolder(const std::filesystem::path& folder)
+{
+    LoadLuaInFolderIter(folder);
+}
 
 void LuaBackend::LoadLuaInFolderIter(const std::filesystem::path& entry)
 {
@@ -55,4 +59,3 @@ void LuaBackend::LoadLuaInFolderIter(const std::filesystem::path& entry)
 }
 
 UniPtr<LuaBackend> LuaBackend::instance = nullptr;
-} // namespace Engine

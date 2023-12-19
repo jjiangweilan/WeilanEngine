@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class Fence
 {
@@ -12,4 +12,4 @@ public:
     virtual void Reset() = 0;
     virtual ~Fence(){};
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

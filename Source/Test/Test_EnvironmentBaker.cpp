@@ -3,11 +3,11 @@
 using namespace Engine;
 TEST(EnvironmentBaker, Test0)
 {
-    auto engine = std::make_unique<Engine::WeilanEngine>();
+    auto engine = std::make_unique<WeilanEngine>();
     engine->Init({});
 
-    auto sceneRenderer = std::make_unique<Engine::SceneRenderer>(*engine->assetDatabase);
-    Engine::Scene scene;
+    auto sceneRenderer = std::make_unique<SceneRenderer>(*engine->assetDatabase);
+    Scene scene;
 
     sceneRenderer->BuildGraph({
         .finalImage = GetGfxDriver()->GetSwapChainImage(),
@@ -16,12 +16,12 @@ TEST(EnvironmentBaker, Test0)
         .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
     });
     auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
-    ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
+    ((RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
 
     // set camera
-    Engine::GameObject* gameObject = scene.CreateGameObject();
+    GameObject* gameObject = scene.CreateGameObject();
     gameObject->SetName("Camera");
-    auto cam = gameObject->AddComponent<Engine::Camera>();
+    auto cam = gameObject->AddComponent<Camera>();
     scene.SetMainCamera(cam);
 
     // handle swapchain change
@@ -49,15 +49,15 @@ TEST(EnvironmentBaker, Test0)
     //             }
     //         );
     //         auto [colorNode, colorHandle, depthNode, depthHandle] = sceneRenderer->GetFinalSwapchainOutputs();
-    //         ((Engine::RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
+    //         ((RenderGraph::Graph*)sceneRenderer.get())->Process(colorNode, colorHandle);
     //     }
     // );
 
     // load model
     // auto opaqueShader = sceneRenderer->GetOpaqueShader();
-    // auto model2 = Engine::Importers::GLB("Source/Test/Resources/EnvrionmentBake.glb", opaqueShader);
+    // auto model2 = Importers::GLB("Source/Test/Resources/EnvrionmentBake.glb", opaqueShader);
     // scene.AddGameObject(model2->GetGameObject()[0].get());
     // auto lightGO = scene.CreateGameObject();
-    // auto light = lightGO->AddComponent<Engine::Light>();
+    // auto light = lightGO->AddComponent<Light>();
     // light->SetIntensity(10);
 }

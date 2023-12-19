@@ -1,8 +1,6 @@
 #include "Geometry.hpp"
 #include <glm/gtx/intersect.hpp>
 
-namespace Engine
-{
 bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
@@ -16,13 +14,15 @@ bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, flo
         glm::vec4 p0 = transform * glm::vec4(positions[i0], 1);
         glm::vec4 p1 = transform * glm::vec4(positions[i1], 1);
         glm::vec4 p2 = transform * glm::vec4(positions[i2], 1);
-        if (glm::intersectRayTriangle(ray.origin,
-                                      ray.direction,
-                                      glm::vec3(p0 / p0.w),
-                                      glm::vec3(p1 / p1.w),
-                                      glm::vec3(p2 / p2.w),
-                                      bary,
-                                      distance))
+        if (glm::intersectRayTriangle(
+                ray.origin,
+                ray.direction,
+                glm::vec3(p0 / p0.w),
+                glm::vec3(p1 / p1.w),
+                glm::vec3(p2 / p2.w),
+                bary,
+                distance
+            ))
         {
             return true;
         }
@@ -30,13 +30,15 @@ bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, flo
     return false;
 }
 
-bool RayMeshIntersection(Ray ray,
-                         RefPtr<Submesh> mesh,
-                         glm::mat4 transform,
-                         float& distance,
-                         glm::vec3& outP0,
-                         glm::vec3& outP1,
-                         glm::vec3& outP2)
+bool RayMeshIntersection(
+    Ray ray,
+    RefPtr<Submesh> mesh,
+    glm::mat4 transform,
+    float& distance,
+    glm::vec3& outP0,
+    glm::vec3& outP1,
+    glm::vec3& outP2
+)
 {
     glm::vec2 bary;
     uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
@@ -49,13 +51,15 @@ bool RayMeshIntersection(Ray ray,
         glm::vec4 p0 = transform * glm::vec4(positions[i0], 1);
         glm::vec4 p1 = transform * glm::vec4(positions[i1], 1);
         glm::vec4 p2 = transform * glm::vec4(positions[i2], 1);
-        if (glm::intersectRayTriangle(ray.origin,
-                                      ray.direction,
-                                      glm::vec3(p0 / p0.w),
-                                      glm::vec3(p1 / p1.w),
-                                      glm::vec3(p2 / p2.w),
-                                      bary,
-                                      distance))
+        if (glm::intersectRayTriangle(
+                ray.origin,
+                ray.direction,
+                glm::vec3(p0 / p0.w),
+                glm::vec3(p1 / p1.w),
+                glm::vec3(p2 / p2.w),
+                bary,
+                distance
+            ))
         {
             outP0 = positions[i0];
             outP1 = positions[i1];
@@ -65,4 +69,3 @@ bool RayMeshIntersection(Ray ray,
     }
     return false;
 }
-} // namespace Engine

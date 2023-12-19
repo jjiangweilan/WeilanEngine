@@ -1,6 +1,6 @@
 #include "VKContext.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 RefPtr<VKContext> VKContext::context = nullptr;
 }

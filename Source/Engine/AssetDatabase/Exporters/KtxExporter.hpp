@@ -4,7 +4,7 @@
 #include <cinttypes>
 #include <cstddef>
 
-namespace Engine::Exporters
+namespace Exporters
 {
 class KtxExporter : Exporter
 {
@@ -24,4 +24,4 @@ public:
         Gfx::ImageFormat format
     );
 };
-} // namespace Engine::Exporters
+} // namespace Exporters

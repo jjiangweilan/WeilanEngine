@@ -16,9 +16,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Engine
-{
-
 using ReferenceResolveCallback = std::function<void(void* resource)>;
 
 template <class T>
@@ -380,4 +377,3 @@ void Serializer::Deserialize(std::string_view name, RefPtr<T>& val, const Refere
 {
     Deserialize(name, val.GetPtrRef(), callback);
 }
-} // namespace Engine

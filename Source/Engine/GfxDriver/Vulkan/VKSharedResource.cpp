@@ -2,7 +2,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "VKContext.hpp"
 #include "VKImage.hpp"
-namespace Engine::Gfx
+namespace Gfx
 {
 VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
 {
@@ -61,4 +61,4 @@ VKSharedResource::~VKSharedResource()
 {
     context->objManager->DestroySampler(defaultSampler);
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

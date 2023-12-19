@@ -1,8 +1,6 @@
 #include "nlohmann/json.hpp"
 #include <filesystem>
 #include <string>
-namespace Engine
-{
 class AssetsLoader
 {
 public:
@@ -12,7 +10,10 @@ public:
     nlohmann::json ReadJson(const std::string& path);
 
     auto GetAllPathIn(const char* path) -> decltype(std::filesystem::recursive_directory_iterator(path));
-    const std::string& GetRootPath() { return rootPath; }
+    const std::string& GetRootPath()
+    {
+        return rootPath;
+    }
 
 private:
     AssetsLoader();
@@ -25,4 +26,3 @@ public:
 private:
     static AssetsLoader* instance;
 };
-} // namespace Engine

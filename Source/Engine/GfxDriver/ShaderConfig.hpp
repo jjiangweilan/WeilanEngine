@@ -2,7 +2,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include <vector>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 struct StencilOpState
 {
@@ -63,4 +63,4 @@ struct ShaderConfig
 
     bool operator==(const ShaderConfig& other) const noexcept;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

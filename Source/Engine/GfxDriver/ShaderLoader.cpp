@@ -1,6 +1,6 @@
 #include "ShaderLoader.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 RefPtr<ShaderLoader> ShaderLoader::singleton = nullptr;
 }

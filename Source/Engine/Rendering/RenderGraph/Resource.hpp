@@ -3,7 +3,7 @@
 #include "GfxDriver/Image.hpp"
 #include <vector>
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 enum class ResourceType
 {
@@ -53,4 +53,4 @@ protected:
     ResourceType type;
 };
 
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

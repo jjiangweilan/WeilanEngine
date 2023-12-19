@@ -10,8 +10,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace Engine
-{
 namespace Gfx
 {
 class ShaderResource;
@@ -130,4 +128,3 @@ private:
     void SetShaderNoProtection(RefPtr<Shader> shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
 };
-} // namespace Engine

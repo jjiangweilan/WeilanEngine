@@ -9,7 +9,7 @@
 #include "DescriptorSetSlot.hpp"
 #include "Libs/Ptr.hpp"
 
-namespace Engine::Gfx::ShaderInfo
+namespace Gfx::ShaderInfo
 {
 enum class ShaderDataType
 {
@@ -290,4 +290,4 @@ void Process(
 
 void Merge(ShaderInfo& to, const ShaderStageInfo& from);
 } // namespace Utils
-} // namespace Engine::Gfx::ShaderInfo
+} // namespace Gfx::ShaderInfo

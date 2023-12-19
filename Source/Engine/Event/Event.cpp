@@ -4,8 +4,6 @@
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
 
-namespace Engine
-{
 void Event::Reset()
 {
     windowSizeChange.state = false;
@@ -33,4 +31,3 @@ void Event::Poll()
         }
     }
 }
-} // namespace Engine

@@ -3,7 +3,7 @@
 #include "VKContext.hpp"
 #include "VKImage.hpp"
 #include "VKRenderPass.hpp"
-namespace Engine::Gfx
+namespace Gfx
 {
 VKFrameBuffer::VKFrameBuffer(RefPtr<RenderPass> baseRenderPass) : baseRenderPass((VKRenderPass*)baseRenderPass.Get()) {}
 
@@ -62,4 +62,4 @@ void VKFrameBuffer::CreateFrameBuffer()
 
     VKContext::Instance()->objManager->CreateFramebuffer(createInfo, frameBuffer);
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

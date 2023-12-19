@@ -3,7 +3,7 @@
 #include "Rendering/RenderGraph/Graph.hpp"
 #include <tuple>
 
-namespace Engine::Editor
+namespace Editor
 {
 class Renderer
 {
@@ -28,4 +28,4 @@ private:
     void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);
 };
 
-} // namespace Engine::Editor
+} // namespace Editor

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-namespace Engine::Gfx
+namespace Gfx
 {
 VKPhysicalDevice::VKPhysicalDevice(VkPhysicalDevice gpu, VKSurface* surface)
 {
@@ -85,9 +85,9 @@ VKPhysicalDevice VKPhysicalDevice::SelectGPUAndQueryDataForSurface(VKInstance& i
     throw std::runtime_error("No Suitable GPU");
 }
 
-VkFormat VKPhysicalDevice::PickSupportedFormat(const std::vector<VkFormat>& candidates,
-                                               VkImageTiling tiling,
-                                               VkFormatFeatureFlags featureFlags)
+VkFormat VKPhysicalDevice::PickSupportedFormat(
+    const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
+)
 {
     for (VkFormat format : candidates)
     {
@@ -107,8 +107,9 @@ VkFormat VKPhysicalDevice::PickSupportedFormat(const std::vector<VkFormat>& cand
     throw std::runtime_error("failed to find supported format!");
 }
 
-uint32_t VKPhysicalDevice::FindMemoryTypeIndex(VkMemoryRequirements& memRequirement,
-                                               VkMemoryPropertyFlags memPropertiesFlag)
+uint32_t VKPhysicalDevice::FindMemoryTypeIndex(
+    VkMemoryRequirements& memRequirement, VkMemoryPropertyFlags memPropertiesFlag
+)
 {
     uint32_t memoryTypeBits = memRequirement.memoryTypeBits;
 
@@ -122,4 +123,4 @@ uint32_t VKPhysicalDevice::FindMemoryTypeIndex(VkMemoryRequirements& memRequirem
 
     throw std::runtime_error("Can't find fitted memory type");
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

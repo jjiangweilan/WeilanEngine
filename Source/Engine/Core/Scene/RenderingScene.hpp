@@ -3,13 +3,11 @@
 #include <algorithm>
 #include <vector>
 
-namespace Engine
-{
 class MeshRenderer;
 class RenderingScene
 {
 public:
-    RenderingScene() {};
+    RenderingScene(){};
     void AddRenderer(MeshRenderer& meshRenderer)
     {
         meshRenderers.push_back(&meshRenderer);
@@ -29,4 +27,3 @@ public:
 private:
     std::vector<MeshRenderer*> meshRenderers;
 };
-} // namespace Engine

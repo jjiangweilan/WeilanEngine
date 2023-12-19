@@ -5,8 +5,6 @@
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine
-{
 Gfx::Image* GameLoop::Tick()
 {
     return RenderScene();
@@ -42,4 +40,3 @@ Gfx::Image* GameLoop::RenderScene()
 
     return nullptr;
 }
-} // namespace Engine

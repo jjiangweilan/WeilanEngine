@@ -6,8 +6,6 @@
 #include <fstream>
 #include <memory>
 
-namespace Engine
-{
 // an AssetData represent an imported Asset, it contains meta information about the asset and the asset itself
 class AssetData
 {
@@ -102,4 +100,3 @@ private:
 
     friend class AssetDatabase;
 };
-} // namespace Engine

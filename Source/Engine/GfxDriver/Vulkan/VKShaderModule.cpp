@@ -4,9 +4,9 @@
 #include <spdlog/spdlog.h>
 #include <spirv_cross/spirv_reflect.hpp>
 
-using namespace Engine::Gfx::ShaderInfo;
+using namespace Gfx::ShaderInfo;
 
-namespace Engine::Gfx
+namespace Gfx
 {
 ShaderDataType MapShaderDataType(const std::string& typeStr)
 {
@@ -264,4 +264,4 @@ ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModulePipe
 
     return pipelineCreateInfo;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

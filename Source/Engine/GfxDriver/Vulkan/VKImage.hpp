@@ -13,7 +13,7 @@
 #include <cinttypes>
 #include <string>
 #include <vector>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKImageView;
 class VKImage : public Image
@@ -117,4 +117,4 @@ protected:
 //     uint32_t activeIndex;
 //     RefPtr<VKImage> activeImage;
 // };
-} // namespace Engine::Gfx
+} // namespace Gfx

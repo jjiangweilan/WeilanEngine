@@ -1,8 +1,6 @@
 #pragma once
 #include <chrono>
 
-namespace Engine
-{
 class Time
 {
 public:
@@ -21,4 +19,3 @@ private:
 
     static TimePoint lastTime;
 };
-} // namespace Engine

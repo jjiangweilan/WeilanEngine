@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 RenderNode::RenderNode(std::unique_ptr<RenderPass>&& pass_, const std::string& debugDesc)
     : name(debugDesc), pass(std::move(pass_))
@@ -794,4 +794,4 @@ RenderNode* NodeBuilder::Finish()
     return node;
 }
 
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

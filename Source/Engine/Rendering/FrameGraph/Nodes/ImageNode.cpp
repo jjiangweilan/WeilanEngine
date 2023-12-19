@@ -1,7 +1,7 @@
 #pragma once
 #include "ImageNode.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 DEFINE_OBJECT(ImageNode, "FE0667ED-89FA-4986-842B-158654543C18");
 
@@ -69,4 +69,4 @@ Gfx::Image* ImageNode::GetImage()
     return (Gfx::Image*)imageNode->GetPass()->GetResourceRef(0)->GetResource();
 }
 char ImageNode::_reg = NodeBlueprintRegisteration::Register<ImageNode>("Image");
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class ShaderProgram;
 class Image;
@@ -25,4 +25,4 @@ public:
 
 protected:
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -4,7 +4,7 @@
 #include <cstring>
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
 {
@@ -148,25 +148,25 @@ VkBool32 VKInstance::DebugCallback(
     switch (messageSeverity)
     {
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        {
-            SPDLOG_INFO(pCallbackData->pMessage);
-            return VK_FALSE;
-        }
+            {
+                SPDLOG_INFO(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        {
-            SPDLOG_INFO(pCallbackData->pMessage);
-            return VK_FALSE;
-        }
+            {
+                SPDLOG_INFO(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        {
-            SPDLOG_WARN(pCallbackData->pMessage);
-            return VK_FALSE;
-        }
+            {
+                SPDLOG_WARN(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        {
-            SPDLOG_ERROR(pCallbackData->pMessage);
-            return VK_FALSE;
-        }
+            {
+                SPDLOG_ERROR(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
         default: break;
     }
 
@@ -190,4 +190,4 @@ VkResult VKInstance::CreateDebugUtilsMessengerEXT(
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

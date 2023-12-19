@@ -2,7 +2,7 @@
 
 #include "../../GfxEnums.hpp"
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 VkFormat MapFormat(ImageFormat format);
 ImageFormat MapVKFormat(VkFormat format);
@@ -22,4 +22,4 @@ VkImageLayout MapImageLayout(ImageLayout layout);
 ImageLayout MapVKImageLayout(VkImageLayout layout);
 VkImageAspectFlags MapImageAspect(ImageAspectFlags aspects);
 ImageAspectFlags MapVKImageAspect(VkImageAspectFlags aspects);
-} // namespace Engine::Gfx
+} // namespace Gfx

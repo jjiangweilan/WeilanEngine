@@ -1,6 +1,6 @@
 #include "GfxEnums.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 bool HasWriteAccessMask(AccessMaskFlags flags)
 {
@@ -243,4 +243,4 @@ bool IsColoFormat(ImageFormat format)
     return !IsDepthStencilFormat(format);
 }
 
-} // namespace Engine::Gfx
+} // namespace Gfx

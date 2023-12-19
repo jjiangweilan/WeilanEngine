@@ -4,14 +4,15 @@
 #include "LuaWraps.hpp"
 #include "ThirdParty/lua/lua.hpp"
 #include <filesystem>
-namespace Engine
-{
 class LuaBackend
 {
 public:
     static RefPtr<LuaBackend> Instance();
 
-    inline lua_State* GetL() { return state; }
+    inline lua_State* GetL()
+    {
+        return state;
+    }
     void LoadLuaInFolder(const std::filesystem::path& folder);
     void LoadFile(const std::filesystem::path& path);
     void OpenL()
@@ -35,4 +36,3 @@ private:
 
     void LoadLuaInFolderIter(const std::filesystem::path& folder);
 };
-} // namespace Engine

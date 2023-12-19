@@ -1,7 +1,5 @@
 #include "BinarySerializer.hpp"
 
-namespace Engine
-{
 // void BinarySerializer::Serialize(std::string_view name, const std::string& val)
 // {
 //     uint32_t size = val.size();
@@ -44,4 +42,3 @@ namespace Engine
 //     bytes.resize(offset + size);
 //     memcpy(&bytes[offset], v, size);
 // }
-} // namespace Engine

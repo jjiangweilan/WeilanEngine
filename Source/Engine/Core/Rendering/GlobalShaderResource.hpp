@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 
-namespace Engine::Rendering
+namespace Rendering
 {
 // Global shader resource that matches the layout of the first descriptor set in the shader
 class GlobalShaderResource
@@ -17,4 +17,4 @@ public:
 
 private:
 };
-} // namespace Engine::Rendering
+} // namespace Rendering

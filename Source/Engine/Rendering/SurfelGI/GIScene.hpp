@@ -4,7 +4,7 @@
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "SurfelBakeFGNode.hpp"
 
-namespace Engine::SurfelGI
+namespace SurfelGI
 {
 struct Surfel
 {
@@ -68,4 +68,4 @@ private:
     Surfel CaptureSurfel(const glm::mat4& camModel, float halfBoxSize);
 };
 
-} // namespace Engine::SurfelGI
+} // namespace SurfelGI

@@ -7,7 +7,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 
 using ResourceHandle = size_t;
@@ -142,4 +142,4 @@ protected:
     std::unordered_map<ResourceHandle, ResourceDescription> resourceDescriptions;
     ExecutionFunc execute;
 };
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

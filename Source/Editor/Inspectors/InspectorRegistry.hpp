@@ -6,7 +6,7 @@
 #include <typeinfo>
 #include <unordered_map>
 
-namespace Engine::Editor
+namespace Editor
 {
 class InspectorBase;
 class InspectorRegistry
@@ -30,4 +30,4 @@ char InspectorRegistry::Register()
     GetRegistry()[typeid(T)] = std::unique_ptr<InspectorBase>(new InspectorType);
     return '1';
 }
-} // namespace Engine::Editor
+} // namespace Editor

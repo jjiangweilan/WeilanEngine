@@ -9,7 +9,7 @@
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
 
-namespace Engine::Editor
+namespace Editor
 {
 GameView::GameView() {}
 
@@ -457,4 +457,4 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
     );
 }
 
-} // namespace Engine::Editor
+} // namespace Editor

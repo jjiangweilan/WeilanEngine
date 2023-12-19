@@ -1,9 +1,9 @@
 #include "ShaderInfo.hpp"
 #include "Libs/Utils.hpp"
+#include <algorithm>
 #include <regex>
 #include <spdlog/spdlog.h>
-#include <algorithm>
-namespace Engine::Gfx::ShaderInfo
+namespace Gfx::ShaderInfo
 {
 namespace Utils
 {
@@ -59,7 +59,7 @@ ShaderDataType MapShaderDataType(const std::string& typeStr)
 
 uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberName)
 {
-    std::string lowerName = Engine::Utils::strTolower(memberName);
+    std::string lowerName = ::Utils::strTolower(memberName);
 
     uint32_t baseTypeSize = 4;
     if (lowerName.find("_16") != lowerName.npos)
@@ -313,7 +313,12 @@ void Process(
                         new (&b.binding.separateSampler) SeparateSampler();
                         std::string bindingType = bindingJson.value("type", "sampler2D");
                         std::string lname = name;
-                        std::transform(lname.begin(), lname.end(), lname.begin(), [](unsigned char c) { return std::tolower(c); });
+                        std::transform(
+                            lname.begin(),
+                            lname.end(),
+                            lname.begin(),
+                            [](unsigned char c) { return std::tolower(c); }
+                        );
                         b.binding.separateSampler.enableCompare =
                             lname.find("shadow") != bindingType.npos ? true : false;
                         break;
@@ -381,4 +386,4 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
     }
 }
 } // namespace Utils
-} // namespace Engine::Gfx::ShaderInfo
+} // namespace Gfx::ShaderInfo

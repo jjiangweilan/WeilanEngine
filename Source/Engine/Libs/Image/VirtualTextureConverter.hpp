@@ -13,11 +13,13 @@ public:
     // nomeclature
     // x, y: page space
     // w, h: pixel space
-    void Convert(const std::filesystem::path& srcImage,
-                 const std::filesystem::path& dstFolder,
-                 int mip,
-                 int desiredChannels,
-                 uint32_t pageExtent)
+    void Convert(
+        const std::filesystem::path& srcImage,
+        const std::filesystem::path& dstFolder,
+        int mip,
+        int desiredChannels,
+        uint32_t pageExtent
+    )
     {
         int w, h, channels;
         stbi_uc* data = stbi_load(srcImage.string().c_str(), &w, &h, &channels, desiredChannels);
@@ -28,12 +30,12 @@ public:
         int pageXCount = std::ceil(w / (float)pageExtent);
         int pageYCount = std::ceil(h / (float)pageExtent);
 
-        Engine::Extent2D srcWh{(uint32_t)w, (uint32_t)h};
+        Extent2D srcWh{(uint32_t)w, (uint32_t)h};
         for (int i = 0; i < pageXCount; ++i)
         {
             for (int j = 0; j < pageYCount; ++j)
             {
-                Engine::Rect2D pageRect;
+                Rect2D pageRect;
                 pageRect.offset = {i * (int32_t)pageExtent, j * (int32_t)pageExtent};
                 pageRect.extent = {pageExtent, pageExtent};
                 LinearImage page = ExtractPage(data, srcWh, pageRect, channels);
@@ -50,7 +52,7 @@ public:
 private:
     const int ElementSize = 1; // expect 8 bit channel
 
-    LinearImage ExtractPage(unsigned char* src, Engine::Extent2D srcWh, Engine::Rect2D page, int channel)
+    LinearImage ExtractPage(unsigned char* src, Extent2D srcWh, Rect2D page, int channel)
     {
         auto offset = page.offset;
         auto extent = page.extent;

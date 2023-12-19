@@ -1,14 +1,17 @@
 #pragma once
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKInstance
 {
 public:
     VKInstance(const std::vector<const char*>& requiredExtension);
     ~VKInstance();
-    VkInstance GetHandle() { return vulkanInstance; }
+    VkInstance GetHandle()
+    {
+        return vulkanInstance;
+    }
 
 private:
     VkInstance vulkanInstance;
@@ -16,16 +19,20 @@ private:
 
     bool CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                        void* pUserData);
-    VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-                                          const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                          const VkAllocationCallbacks* pAllocator,
-                                          VkDebugUtilsMessengerEXT* pDebugMessenger);
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    );
+    VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkDebugUtilsMessengerEXT* pDebugMessenger
+    );
 
     class GfxContext;
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

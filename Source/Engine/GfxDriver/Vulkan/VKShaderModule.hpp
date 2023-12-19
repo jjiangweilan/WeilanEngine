@@ -8,12 +8,12 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKObjectManager;
 class VKContext;
-} // namespace Engine::Gfx
-namespace Engine::Gfx
+} // namespace Gfx
+namespace Gfx
 {
 struct ShaderModuleGraphicsPipelineCreateInfos
 {
@@ -57,4 +57,4 @@ private:
     ShaderModuleGraphicsPipelineCreateInfos GenerateShaderModulePipelineCreateInfos();
 };
 
-} // namespace Engine::Gfx
+} // namespace Gfx

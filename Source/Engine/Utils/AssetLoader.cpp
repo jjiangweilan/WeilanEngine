@@ -4,9 +4,10 @@
 #include <fstream>
 #include <spdlog/spdlog.h>
 #include <sstream>
-namespace Engine
+AssetsLoader::AssetsLoader()
 {
-AssetsLoader::AssetsLoader() { rootPath = std::filesystem::current_path().string() + "/"; }
+    rootPath = std::filesystem::current_path().string() + "/";
+}
 
 AssetsLoader::~AssetsLoader() {}
 
@@ -65,4 +66,3 @@ nlohmann::json AssetsLoader::ReadJson(const std::string& path)
 }
 
 AssetsLoader* AssetsLoader::instance = nullptr;
-} // namespace Engine

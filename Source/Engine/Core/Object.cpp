@@ -1,7 +1,5 @@
 #include "Object.hpp"
 
-namespace Engine
-{
 std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistery()
 {
     static std::unique_ptr<std::unordered_map<ObjectTypeID, ObjectRegistry::Creator>> registeredObject =
@@ -25,4 +23,3 @@ std::unique_ptr<Object> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 
     return nullptr;
 }
-} // namespace Engine

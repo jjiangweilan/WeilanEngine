@@ -3,8 +3,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include <ktx.h>
 
-namespace Engine
-{
 struct TextureDescription
 {
     Gfx::ImageDescription img;
@@ -74,4 +72,3 @@ private:
 
 bool IsKTX1File(ktx_uint8_t* imageData);
 bool IsKTX2File(ktx_uint8_t* imageData);
-} // namespace Engine

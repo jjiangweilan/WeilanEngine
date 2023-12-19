@@ -9,11 +9,8 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
-namespace Engine
-{
 class WeilanEngine;
-}
-namespace Engine::Editor
+namespace Editor
 {
 
 class Tool;
@@ -77,4 +74,4 @@ private:
     void SceneTree(Scene& scene);
     void SceneTree(GameObject* go, int imguiID);
 };
-} // namespace Engine::Editor
+} // namespace Editor

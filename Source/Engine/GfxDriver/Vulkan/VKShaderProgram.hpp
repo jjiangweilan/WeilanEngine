@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKShaderModule;
 class VKSwapChain;
@@ -118,4 +118,4 @@ private:
 
     std::shared_ptr<const ShaderConfig> defaultShaderConfig = {};
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

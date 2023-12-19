@@ -2,7 +2,7 @@
 #include "EditorState.hpp"
 #include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
-namespace Engine::Editor
+namespace Editor
 {
 namespace ed = ax::NodeEditor;
 namespace fg = FrameGraph;
@@ -388,4 +388,4 @@ void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::Pin
     if (kind == ed::PinKind::Output)
         ImGui::Unindent(330);
 }
-} // namespace Engine::Editor
+} // namespace Editor

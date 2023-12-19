@@ -1,7 +1,7 @@
 #include "VKEnumMapper.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 VkFormat MapFormat(ImageFormat format)
 {
@@ -552,4 +552,4 @@ ImageLayout MapVKImageLayout(VkImageLayout layout)
 
     return ImageLayout::Undefined;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -10,9 +10,6 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-namespace Engine
-{
-
 void GetGLBData(
     const std::filesystem::path& path,
     std::vector<uint32_t>& fullData,
@@ -370,4 +367,3 @@ std::size_t WriteAccessorDataToBuffer(
 
     return byteLength;
 }
-} // namespace Engine

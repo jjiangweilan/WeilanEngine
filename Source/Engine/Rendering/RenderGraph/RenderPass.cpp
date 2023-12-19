@@ -1,6 +1,6 @@
 #include "RenderPass.hpp"
 
-namespace Engine::RenderGraph
+namespace RenderGraph
 {
 
 const std::vector<Gfx::ImageView*>& RenderPass::GetImageViews(Gfx::Image* image)
@@ -50,7 +50,7 @@ void RenderPass::Finalize()
 
     for (auto& subpass : subpasses)
     {
-        std::vector<Gfx::RenderPass::Attachment> colors;
+        std::vector<Gfx::Attachment> colors;
 
         for (Attachment colorAtta : subpass.colors)
         {
@@ -81,7 +81,7 @@ void RenderPass::Finalize()
             imageToImageViews[image].push_back(imageView);
         }
 
-        std::optional<Gfx::RenderPass::Attachment> depth = std::nullopt;
+        std::optional<Gfx::Attachment> depth = std::nullopt;
         if (subpass.depth.has_value())
         {
             auto depthImage = (Gfx::Image*)resourceRefs[subpass.depth->handle]->GetResource();
@@ -114,4 +114,4 @@ void RenderPass::Finalize()
         renderPass->AddSubpass(colors, depth);
     }
 }
-} // namespace Engine::RenderGraph
+} // namespace RenderGraph

@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKDebugUtils
 {
@@ -13,4 +13,4 @@ public:
 private:
     static PFN_vkSetDebugUtilsObjectNameEXT SetDebugUtilsObjectName;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

@@ -1,6 +1,6 @@
 #include "NodeBlueprint.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 std::span<NodeBlueprint> NodeBlueprintRegisteration::GetNodeBlueprints()
 {
@@ -14,4 +14,4 @@ NodeBlueprintRegisteration& NodeBlueprintRegisteration::GetRegisteration()
     return r;
 }
 
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

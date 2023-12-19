@@ -4,7 +4,7 @@
 #include "GfxDriver/Vulkan/VKContext.hpp"
 #include "VKDebugUtils.hpp"
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
-namespace Engine::Gfx
+namespace Gfx
 {
 VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 {
@@ -152,4 +152,4 @@ void* VKBuffer::GetCPUVisibleAddress()
 {
     return allocationInfo.pMappedData;
 }
-} // namespace Engine::Gfx
+} // namespace Gfx

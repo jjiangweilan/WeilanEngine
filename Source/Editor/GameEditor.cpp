@@ -13,7 +13,7 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <unordered_map>
 
-namespace Engine::Editor
+namespace Editor
 {
 GameEditor::GameEditor(const char* path)
 {
@@ -705,4 +705,4 @@ void GameEditor::ConsoleOutputWindow()
 GameEditor* GameEditor::instance = nullptr;
 Object* EditorState::selectedObject = nullptr;
 Scene* EditorState::activeScene = nullptr;
-} // namespace Engine::Editor
+} // namespace Editor

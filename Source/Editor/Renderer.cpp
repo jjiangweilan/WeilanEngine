@@ -6,7 +6,7 @@
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
 
-namespace Engine::Editor
+namespace Editor
 {
 static const char* imguiShader =
     R"(#version 450 core
@@ -430,4 +430,4 @@ void Renderer::Execute(Gfx::CommandBuffer& cmd)
 {
     graph->Execute(cmd);
 }
-} // namespace Engine::Editor
+} // namespace Editor

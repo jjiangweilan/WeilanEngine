@@ -4,8 +4,6 @@
 #include "Libs/Ptr.hpp"
 #include <set>
 #include <string>
-namespace Engine
-{
 namespace Gfx
 {
 class ShaderProgram;
@@ -128,4 +126,3 @@ public:
     };
     bool LoadFromFile(const char* path) override;
 };
-} // namespace Engine

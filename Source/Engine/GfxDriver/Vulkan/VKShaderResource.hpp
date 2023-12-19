@@ -9,7 +9,7 @@
 #include <unordered_map>
 #include <vma/vk_mem_alloc.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKBuffer;
 class VKImage;
@@ -58,4 +58,4 @@ protected:
     std::unordered_map<size_t, VkDescriptorSet> sets;
     bool rebuild = false;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

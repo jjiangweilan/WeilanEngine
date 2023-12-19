@@ -2,7 +2,7 @@
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
 
-namespace Engine::FrameGraph
+namespace FrameGraph
 {
 class FullScreenPassNode : public Node
 {
@@ -21,8 +21,7 @@ public:
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         Shader* shader = GetConfigurableVal<Shader*>("shader");
-        passResource =
-            GetGfxDriver()->CreateShaderResource();
+        passResource = GetGfxDriver()->CreateShaderResource();
 
         ClearConfigs();
         AddConfig<ConfigurableType::ObjectPtr>("shader", shader);
@@ -108,9 +107,9 @@ private:
         AddOutputProperty("color", PropertyType::RenderGraphLink);
     }
     static char _reg;
-}; // namespace Engine::FrameGraph
+}; // namespace FrameGraph
 
 char FullScreenPassNode::_reg = NodeBlueprintRegisteration::Register<FullScreenPassNode>("Full Screen Pass");
 
 DEFINE_OBJECT(FullScreenPassNode, "F52A89D5-D830-4DD2-84DF-6A82A5F9F4CD");
-} // namespace Engine::FrameGraph
+} // namespace FrameGraph

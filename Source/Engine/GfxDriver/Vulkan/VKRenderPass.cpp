@@ -7,7 +7,7 @@
 #include "VKImageView.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
-namespace Engine::Gfx
+namespace Gfx
 {
 VKRenderPass::VKRenderPass() {}
 
@@ -261,4 +261,4 @@ VkRenderPass VKRenderPass::GetHandle()
     return renderPass;
 }
 
-} // namespace Engine::Gfx
+} // namespace Gfx

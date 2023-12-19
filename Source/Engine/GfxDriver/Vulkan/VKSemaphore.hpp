@@ -4,7 +4,7 @@
 #include "VKDebugUtils.hpp"
 #include <vulkan/vulkan.h>
 
-namespace Engine::Gfx
+namespace Gfx
 {
 class VKSemaphore : public Semaphore
 {
@@ -30,4 +30,4 @@ public:
 private:
     VkSemaphore vkSemaphore;
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

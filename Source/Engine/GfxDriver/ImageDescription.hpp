@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxEnums.hpp"
 
-namespace Engine::Gfx
+namespace Gfx
 {
 
 enum class ImageType
@@ -27,4 +27,4 @@ struct ImageDescription
         return width * height * MapImageFormatToByteSize(format) * (isCubemap ? 6 : 1);
     }
 };
-} // namespace Engine::Gfx
+} // namespace Gfx

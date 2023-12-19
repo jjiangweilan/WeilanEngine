@@ -1,8 +1,6 @@
 #pragma once
 #include "Component.hpp"
 #include <glm/glm.hpp>
-namespace Engine
-{
 class GameObject;
 enum class LightType
 {
@@ -54,4 +52,3 @@ private:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 };
-} // namespace Engine

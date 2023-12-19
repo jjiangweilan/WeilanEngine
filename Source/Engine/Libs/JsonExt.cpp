@@ -49,12 +49,12 @@
 
 // namespace Engine
 // {
-//     void to_json(nlohmann::json& j, const Engine::AssetObjectMeta& v)
+//     void to_json(nlohmann::json& j, const AssetObjectMeta& v)
 //     {
 //         j = nlohmann::json{ {"uuid", v.uuid.ToString()}, {"type", v.type} };
 //     }
 
-//     void from_json(const nlohmann::json& j, Engine::AssetObjectMeta& v)
+//     void from_json(const nlohmann::json& j, AssetObjectMeta& v)
 //     {
 //         j.at("uuid").get_to(v.uuid);
 //         j.at("type").get_to(v.type);

@@ -1,6 +1,6 @@
 #include "EnumStringMapping.hpp"
 
-namespace Engine::Utils
+namespace Utils
 {
 Gfx::BlendFactor MapBlendFactor(const std::string& str)
 {
@@ -200,4 +200,4 @@ const char* MapStrStencilOp(Gfx::StencilOp op)
         case (Gfx::StencilOp::Decrement_And_Wrap): return "decrement_And_Wrap";
     }
 }
-} // namespace Engine::Utils
+} // namespace Utils

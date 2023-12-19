@@ -5,7 +5,7 @@
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "WeilanEngine.hpp"
 
-namespace Engine::Editor
+namespace Editor
 {
 class ModelInspector : public Inspector<Model>
 {
@@ -128,4 +128,4 @@ private:
 
 const char ModelInspector::_register = InspectorRegistry::Register<ModelInspector, Model>();
 
-} // namespace Engine::Editor
+} // namespace Editor

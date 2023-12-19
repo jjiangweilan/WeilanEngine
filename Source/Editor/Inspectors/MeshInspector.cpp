@@ -1,7 +1,7 @@
 #include "../EditorState.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "Inspector.hpp"
-namespace Engine::Editor
+namespace Editor
 {
 class MeshInspector : public Inspector<Mesh>
 {
@@ -35,4 +35,4 @@ private:
 
 const char MeshInspector::_register = InspectorRegistry::Register<MeshInspector, Mesh>();
 
-} // namespace Engine::Editor
+} // namespace Editor

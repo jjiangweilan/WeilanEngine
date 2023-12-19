@@ -5,9 +5,6 @@
 #include "Rendering/RenderPipeline.hpp"
 #include <filesystem>
 
-namespace Engine
-{
-
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
 
 Submesh::~Submesh() {}
@@ -246,5 +243,3 @@ const AABB& Mesh::GetAABB() const
 }
 
 Mesh::~Mesh() {}
-
-} // namespace Engine
