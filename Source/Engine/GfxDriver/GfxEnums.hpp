@@ -157,8 +157,9 @@ enum Enum : uint32_t
     ColorAttachment = 0x1,
     DepthStencilAttachment = 0x2,
     Texture = 0x4,
-    TransferSrc = 0x8,
-    TransferDst = 0x10
+
+    TransferSrc = 0x8, // deprecated
+    TransferDst = 0x10 // deprecated
 };
 }
 typedef uint32_t ImageUsageFlags;

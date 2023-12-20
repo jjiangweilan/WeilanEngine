@@ -9,11 +9,18 @@
 #include <spdlog/spdlog.h>
 namespace Gfx
 {
-VKSwapChain::VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface)
+VKSwapChain::VKSwapChain(
+    uint32_t graphicsQueueFamilyIndex, int swapchainCount, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface
+)
     : swapChain(VK_NULL_HANDLE), attachedDevice(VKContext::Instance()->device),
-      graphicsQueueFamilyIndex(graphicsQueueFamilyIndex), surface(&surface)
+      graphicsQueueFamilyIndex(graphicsQueueFamilyIndex), surface(&surface), swapchainCount(swapchainCount)
 {
     CreateOrOverrideSwapChain(VKContext::Instance()->device.Get(), gpu.Get(), &surface);
+
+    int minImageCount = surface.GetSurfaceCapabilities().minImageCount;
+    int maxImageCount = surface.GetSurfaceCapabilities().maxImageCount;
+    swapchainCount = swapchainCount < minImageCount ? minImageCount : swapchainCount;
+    swapchainCount = swapchainCount > maxImageCount ? maxImageCount : swapchainCount;
 }
 
 VKSwapChain::~VKSwapChain()
@@ -36,16 +43,12 @@ bool VKSwapChain::CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* 
     if (swapChainInfo.presentMode == VK_PRESENT_MODE_FIFO_KHR ||
         swapChainInfo.presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
     {
-        uint32_t minImageCount = surface->GetSurfaceCapabilities().minImageCount;
-        swapChainInfo.numberOfImages = minImageCount + 1;
+        swapChainInfo.numberOfImages = swapchainCount;
     }
     else
     {
         throw std::runtime_error("Unhandled swapchin present mode");
     }
-
-    if (swapChainInfo.numberOfImages > surface->GetSurfaceCapabilities().maxImageCount)
-        throw std::runtime_error("swap chain can't support requested amount of imgaes");
 
     if (static_cast<int>(swapChainInfo.imageUsageFlags) == -1 || static_cast<int>(swapChainInfo.presentMode) == -1)
     {

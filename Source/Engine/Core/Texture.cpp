@@ -57,125 +57,10 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     // std::unique_ptr<Gfx::Buffer> stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
     // memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
 
-    RenderPipeline::Singleton().UploadImage(*image, texDesc.data, byteSize);
+    GetGfxDriver()->UploadImage(*image, texDesc.data, byteSize);
+    GetGfxDriver()->GenerateMipmaps(*image);
 
     // mip map generation
-    RenderPipeline::Singleton().Schedule(
-        [this](Gfx::CommandBuffer& cmd)
-        {
-            auto subresourceRange = image->GetSubresourceRange();
-            Gfx::GPUBarrier barriers[2];
-            for (uint32_t mip = 1; mip < image->GetDescription().mipLevels; ++mip)
-            {
-                barriers[0] = {
-                    .image = image,
-                    .srcStageMask = Gfx::PipelineStage::Transfer,
-                    .dstStageMask = Gfx::PipelineStage::Transfer,
-                    .srcAccessMask = Gfx::AccessMask::Transfer_Write,
-                    .dstAccessMask = Gfx::AccessMask::Transfer_Read,
-
-                    .imageInfo = {
-                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                        .oldLayout = Gfx::ImageLayout::Transfer_Dst,
-                        .newLayout = Gfx::ImageLayout::Transfer_Src,
-                        .subresourceRange =
-                            {
-                                .aspectMask = subresourceRange.aspectMask,
-                                .baseMipLevel = mip - 1,
-                                .levelCount = 1,
-                                .baseArrayLayer = 0,
-                                .layerCount = subresourceRange.layerCount,
-                            },
-                    }};
-
-                barriers[1] = {
-                    .image = image,
-                    .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,
-                    .dstStageMask = Gfx::PipelineStage::Transfer,
-                    .srcAccessMask = Gfx::AccessMask::None,
-                    .dstAccessMask = Gfx::AccessMask::Transfer_Write,
-
-                    .imageInfo = {
-                        .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                        .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                        .oldLayout = Gfx::ImageLayout::Undefined,
-                        .newLayout = Gfx::ImageLayout::Transfer_Dst,
-                        .subresourceRange =
-                            {
-                                .aspectMask = subresourceRange.aspectMask,
-                                .baseMipLevel = mip,
-                                .levelCount = 1,
-                                .baseArrayLayer = 0,
-                                .layerCount = subresourceRange.layerCount,
-                            },
-                    }};
-
-                if (mip == 1)
-                {
-                    barriers[0].imageInfo.oldLayout = Gfx::ImageLayout::Shader_Read_Only;
-                }
-
-                cmd.Barrier(barriers, 2);
-                Gfx::BlitOp blitOp = {
-                    .srcMip = {mip - 1},
-                    .dstMip = {mip},
-                };
-                cmd.Blit(image, image, blitOp);
-            }
-
-            Gfx::GPUBarrier toShaderReadOnly[2] = {
-                {
-                    .image = image,
-                    .srcStageMask = Gfx::PipelineStage::Transfer,
-                    .dstStageMask = Gfx::PipelineStage::All_Graphics,
-                    .srcAccessMask = Gfx::AccessMask::Transfer_Write,
-                    .dstAccessMask = Gfx::AccessMask::Memory_Read,
-
-                    .imageInfo =
-                        {
-                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .oldLayout = Gfx::ImageLayout::Transfer_Dst,
-                            .newLayout = Gfx::ImageLayout::Shader_Read_Only,
-                            .subresourceRange =
-                                {
-                                    .aspectMask = subresourceRange.aspectMask,
-                                    .baseMipLevel = image->GetDescription().mipLevels - 1,
-                                    .levelCount = 1,
-                                    .baseArrayLayer = 0,
-                                    .layerCount = subresourceRange.layerCount,
-                                },
-                        },
-                },
-                {
-                    .image = image,
-                    .srcStageMask = Gfx::PipelineStage::Transfer,
-                    .dstStageMask = Gfx::PipelineStage::All_Graphics,
-                    .srcAccessMask = Gfx::AccessMask::Transfer_Read,
-                    .dstAccessMask = Gfx::AccessMask::Memory_Read,
-
-                    .imageInfo =
-                        {
-                            .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                            .oldLayout = Gfx::ImageLayout::Transfer_Src,
-                            .newLayout = Gfx::ImageLayout::Shader_Read_Only,
-                            .subresourceRange =
-                                {
-                                    .aspectMask = subresourceRange.aspectMask,
-                                    .baseMipLevel = 0,
-                                    .levelCount = image->GetDescription().mipLevels - 1,
-                                    .baseArrayLayer = 0,
-                                    .layerCount = subresourceRange.layerCount,
-                                },
-                        },
-                },
-            };
-
-            cmd.Barrier(toShaderReadOnly, 2);
-        }
-    );
 }
 
 bool IsKTX2File(ktx_uint8_t* imageData)
@@ -338,16 +223,8 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
                 }
             }
 
-            // Gfx::Buffer::CreateInfo bufCreateInfo;
-            // bufCreateInfo.size = byteSize;
-            // bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
-            // bufCreateInfo.debugName = "mesh staging buffer";
-            // bufCreateInfo.visibleInCPU = true;
-            // std::unique_ptr<Gfx::Buffer> stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-            // memcpy(stagingBuffer->GetCPUVisibleAddress(), data, byteSize);
-
-            RenderPipeline::Singleton()
-                .UploadImage(*image, data, byteSize, desc.img.mipLevels, image->GetSubresourceRange().layerCount);
+            GetGfxDriver()
+                ->UploadImage(*image, data, byteSize, desc.img.mipLevels, image->GetSubresourceRange().layerCount);
         }
         else
         {

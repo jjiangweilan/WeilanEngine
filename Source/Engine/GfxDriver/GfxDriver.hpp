@@ -116,10 +116,14 @@ public:
 
     virtual void ClearResources() = 0;
 
-    // new RHI implementation
-    virtual std::unique_ptr<CommandBuffer> AllocateCommandBuffer() = 0;
-    virtual void ReleaseCommandBuffer(std::unique_ptr<CommandBuffer>&& cmd) = 0;
-    virtual void ExecuteCommandBuffer(CommandBuffer* cmd) = 0;
+    // RHI implementation
+    virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
+    virtual void Render() = 0;
+    virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
+    virtual void UploadImage(
+        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel = 0, uint32_t arayLayer = 0
+    ) = 0;
+    virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
 private:
     static GfxDriver*& InstanceInternal();

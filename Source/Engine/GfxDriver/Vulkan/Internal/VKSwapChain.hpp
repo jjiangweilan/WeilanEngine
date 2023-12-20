@@ -31,7 +31,9 @@ private:
     } swapChainInfo;
 
 public:
-    VKSwapChain(uint32_t graphicsQueueFamilyIndex, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface);
+    VKSwapChain(
+        uint32_t graphicsQueueFamilyIndex, int swapchainCount, RefPtr<VKPhysicalDevice> gpu, VKSurface& surface
+    );
     ~VKSwapChain();
 
     bool RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
@@ -55,6 +57,7 @@ private:
     std::unique_ptr<VKSwapChainImage> swapChainImage;
     uint32_t graphicsQueueFamilyIndex;
     VKSurface* surface;
+    int swapchainCount;
 
     bool GetSwapChainImagesFromVulkan();
 

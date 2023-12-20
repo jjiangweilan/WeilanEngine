@@ -99,9 +99,18 @@ public:
     void ClearResources() override;
 
     // RHI implementation
-    std::unique_ptr<CommandBuffer> AllocateCommandBuffer() override;
-    void ReleaseCommandBuffer(std::unique_ptr<CommandBuffer>&& cmd) override;
-    void ExecuteCommandBuffer(CommandBuffer* cmd) override;
+    void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
+    void Render() override;
+    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
+    void UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel = 0, uint32_t arayLayer = 0)
+        override;
+    void GenerateMipmaps(Gfx::Image& image) override
+    {
+        GenerateMipmaps(static_cast<VKImage&>(image));
+    }
+
+    void UploadImage(VkImage image, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer);
+    void GenerateMipmaps(VKImage& image);
 
 private:
     VKInstance* instance;
@@ -120,8 +129,7 @@ private:
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
     RefPtr<VKCommandQueue> mainQueue;
-
-    UniPtr<VKCommandPool> commandPool;
+    VkCommandPool mainCmdPool;
 
     struct InFlightFrame
     {
@@ -130,6 +138,7 @@ private:
     GPUFeatures gpuFeatures;
 
     // RHI implementation
+    int swapchainImageCount = 3;
     std::unique_ptr<VKBuffer> stagingBuffer;
     struct InflightData
     {
@@ -138,5 +147,10 @@ private:
         int swapchainIndex;
     };
     std::vector<InflightData> inflightData;
+    int nextInflightIndex;
+    VkCommandBuffer GetCurrentCmd()
+    {
+        return inflightData[nextInflightIndex].cmd;
+    }
 };
 } // namespace Gfx

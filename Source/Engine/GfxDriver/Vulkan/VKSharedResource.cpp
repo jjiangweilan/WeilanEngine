@@ -35,13 +35,9 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     desc.width = 2;
     desc.mipLevels = 1;
     desc.isCubemap = false;
-    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-    // desc.data = (unsigned char*)pxls;
     desc.multiSampling = MultiSampling::Sample_Count_1;
     defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
     defaultTexture->SetName("Default Texture");
-    // default storage buffer
-    // defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
 
     ImageDescription descCube{};
     descCube.format = ImageFormat::R8G8B8A8_UNorm;

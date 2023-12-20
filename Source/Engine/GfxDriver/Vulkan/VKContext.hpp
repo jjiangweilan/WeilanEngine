@@ -8,6 +8,7 @@
 #include "VKSharedResource.hpp"
 namespace Gfx
 {
+class VKDriver;
 class VKDevice;
 class VKMemAllocator;
 class VKObjectManager;
@@ -21,6 +22,7 @@ public:
     {
         return context;
     }
+    VKDriver* driver;
     RefPtr<VKDevice> device;
     RefPtr<VKMemAllocator> allocator;
     RefPtr<VKObjectManager> objManager;
@@ -33,6 +35,11 @@ private:
     static RefPtr<VKContext> context;
     friend class VKDriver;
 };
+
+inline VKDriver* GetDriver()
+{
+    return VKContext::Instance()->driver;
+}
 
 inline RefPtr<VKDevice> GetDevice()
 {

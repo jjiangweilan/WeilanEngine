@@ -4,12 +4,6 @@
 namespace Gfx
 {
 
-enum class ImageType
-{
-    Texture,
-    Dynamic
-};
-
 struct ImageDescription
 {
     uint32_t width;
@@ -17,7 +11,9 @@ struct ImageDescription
     Gfx::ImageFormat format;
     Gfx::MultiSampling multiSampling;
     uint32_t mipLevels;
+
     bool isCubemap;
+
     uint32_t GetLayer() const
     {
         return isCubemap ? 6 : 1;
