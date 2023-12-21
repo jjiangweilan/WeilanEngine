@@ -125,7 +125,7 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
 
         assert(queue != VK_NULL_HANDLE);
         VKCommandQueue q;
-        q.queue = queue;
+        q.handle = queue;
         q.queueIndex = queueIndex;
         q.queueFamilyIndex = queueFamilyIndices[i];
         queues.push_back(q);

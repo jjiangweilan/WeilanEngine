@@ -19,7 +19,6 @@
 
 namespace Gfx
 {
-class VKAppWindow;
 class VKInstance;
 class VKSurface;
 class VKDevice;
@@ -62,6 +61,7 @@ public:
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
+    void Present() override;
     RefPtr<VKSharedResource> GetSharedResource()
     {
         return sharedResource;
@@ -113,13 +113,6 @@ public:
     void GenerateMipmaps(VKImage& image);
 
 private:
-    VKInstance* instance;
-    VKDevice* device;
-    VKAppWindow* appWindow;
-    VKSurface* surface;
-    VKPhysicalDevice* gpu;
-    VKSwapChain* swapchain;
-
     VKMemAllocator* memAllocator;
     VKObjectManager* objectManager;
 
@@ -128,8 +121,69 @@ private:
     UniPtr<VKContext> context;
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
-    RefPtr<VKCommandQueue> mainQueue;
     VkCommandPool mainCmdPool;
+
+    struct DriverConfig
+    {
+        int swapchainImageCount = 3;
+    } driverConfig;
+
+    struct Instance
+    {
+        VkInstance handle;
+        VkDebugUtilsMessengerEXT debugMessenger;
+    } instance;
+
+    struct Device
+    {
+        VkDevice handle;
+    } device;
+
+    struct Queue
+    {
+        VkQueue handle;
+        uint32_t queueIndex;
+        uint32_t queueFamilyIndex;
+    };
+    Queue mainQueue;
+
+    struct GPU
+    {
+        VkPhysicalDevice handle;
+
+        VkPhysicalDeviceMemoryProperties memProperties;
+        VkPhysicalDeviceProperties physicalDeviceProperties{};
+        VkPhysicalDeviceFeatures physicalDeviceFeatures{};
+
+        std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+        std::vector<VkExtensionProperties> availableExtensions;
+    } gpu;
+
+    struct Swapchain
+    {
+        VkSwapchainKHR handle;
+        VkSurfaceFormatKHR surfaceFormat;
+        VkExtent2D extent;
+        VkImageUsageFlags imageUsageFlags;
+        VkSurfaceTransformFlagBitsKHR surfaceTransform;
+        VkPresentModeKHR presentMode;
+        uint32_t numberOfImages;
+        std::unique_ptr<VKSwapChainImage> swapChainImage;
+    } swapchain;
+
+    struct Surface
+    {
+        VkSurfaceKHR handle;
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        std::vector<VkPresentModeKHR> surfacePresentModes;
+        std::vector<VkSurfaceFormatKHR> surfaceFormats;
+    } surface;
+
+    struct AppWidnow
+    {
+        SDL_Window* handle;
+        Extent2D size;
+    } window;
 
     struct InFlightFrame
     {
@@ -138,19 +192,47 @@ private:
     GPUFeatures gpuFeatures;
 
     // RHI implementation
-    int swapchainImageCount = 3;
     std::unique_ptr<VKBuffer> stagingBuffer;
     struct InflightData
     {
         VkCommandBuffer cmd;
         VkFence cmdFence;
+        VkSemaphore cmdSemaphore;
         int swapchainIndex;
     };
     std::vector<InflightData> inflightData;
-    int nextInflightIndex;
+    uint32_t nextInflightIndex;
+    uint32_t currentInflightIndex;
+
+    // pending commands for next present
+    std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands;
+
+    void CreateInstance();
+    void CreatePhysicalDevice();
+    void CreateDevice();
+    void CreateAppWindow();
+    void CreateSurface();
+    bool CreateOrOverrideSwapChain();
+
+    std::vector<const char*> AppWindowGetRequiredExtensions();
+    bool InstanceCheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     VkCommandBuffer GetCurrentCmd()
     {
         return inflightData[nextInflightIndex].cmd;
     }
+
+    VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkDebugUtilsMessengerEXT* pDebugMessenger
+    );
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    );
 };
 } // namespace Gfx

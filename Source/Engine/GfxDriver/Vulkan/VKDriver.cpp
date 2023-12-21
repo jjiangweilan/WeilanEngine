@@ -1,28 +1,25 @@
 #include "VKDriver.hpp"
 
-#include "Internal/VKAppWindow.hpp"
-#include "Internal/VKDevice.hpp"
 #include "Internal/VKEnumMapper.hpp"
-#include "Internal/VKInstance.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "Internal/VKPhysicalDevice.hpp"
-#include "Internal/VKSurface.hpp"
-#include "Internal/VKSwapChain.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
-#include "VKFence.hpp"
-#include "VKShaderModule.hpp"
-#include "VKShaderResource.hpp"
-
 #include "VKDescriptorPool.hpp"
+#include "VKExtensionFunc.hpp"
+#include "VKFence.hpp"
 #include "VKFrameBuffer.hpp"
 #include "VKImageView.hpp"
 #include "VKRenderPass.hpp"
+#include "VKShaderModule.hpp"
+#include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
+#include <SDL2/SDL_vulkan.h>
 
+#include <set>
 #include <spdlog/spdlog.h>
+#include <string>
 #if !_MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnullability-completeness"
@@ -48,31 +45,288 @@ UniPtr<T> MakeUnique1(Args&&... args)
     return UniPtr<T>(new T(std::forward<Args>(args)...));
 }
 
+void VKDriver::CreateSurface()
+{
+    if (!SDL_Vulkan_CreateSurface(window.handle, instance.handle, &surface.handle))
+    {
+        spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
+    }
+
+    // Get surface capabilities
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.handle, surface.handle, &surface.surfaceCapabilities) !=
+        VK_SUCCESS)
+    {
+        throw std::runtime_error("Could not check presentation surface capabilities!");
+    }
+
+    // Get surface present mode
+    uint32_t presentModesCount;
+    if ((vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.handle, surface.handle, &presentModesCount, nullptr) !=
+         VK_SUCCESS) ||
+        (presentModesCount == 0))
+    {
+        throw std::runtime_error("Error occurred during presentation surface present modes enumeration!");
+    }
+
+    surface.surfacePresentModes.resize(presentModesCount);
+    if (vkGetPhysicalDeviceSurfacePresentModesKHR(
+            gpu.handle,
+            surface.handle,
+            &presentModesCount,
+            &surface.surfacePresentModes[0]
+        ) != VK_SUCCESS)
+    {
+        SPDLOG_ERROR("Error occurred during presentation surface present modes enumeration!");
+    }
+
+    // Get surface formats
+    uint32_t formatsCount;
+    if ((vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, nullptr) != VK_SUCCESS) ||
+        (formatsCount == 0))
+    {
+        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
+    }
+
+    surface.surfaceFormats.resize(formatsCount);
+    if (vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, &surface.surfaceFormats[0]) !=
+        VK_SUCCESS)
+    {
+        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
+    }
+}
+
+bool VKDriver::CreateOrOverrideSwapChain()
+{
+    vkDeviceWaitIdle(device.handle);
+
+    // Get Format
+    auto& surfaceFormats = surface.surfaceFormats;
+
+    // Check if list contains most widely used R8 G8 B8 A8 format
+    // with nonlinear color space
+    bool foundSurfaceFormat = false;
+    for (const VkSurfaceFormatKHR& surfaceFormat : surfaceFormats)
+    {
+        if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+            surfaceFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            swapchain.surfaceFormat = surfaceFormat;
+            foundSurfaceFormat = true;
+            break;
+        }
+    }
+
+    if (!foundSurfaceFormat)
+        return false;
+
+    swapChainInfo.extent = surface.surfaceCapabilities.currentExtent;
+    swapChainInfo.imageUsageFlags = GetUsageFlags(surface);
+    swapChainInfo.surfaceTransform = surface->GetSurfaceCapabilities().currentTransform;
+    swapChainInfo.presentMode = GetPresentMode(surface);
+    VkSwapchainKHR oldSwapChain = swapChain;
+
+    // What image count we use depends on what presentation mode we choose
+    if (swapChainInfo.presentMode == VK_PRESENT_MODE_FIFO_KHR ||
+        swapChainInfo.presentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+    {
+        swapChainInfo.numberOfImages = swapchainCount;
+    }
+    else
+    {
+        throw std::runtime_error("Unhandled swapchin present mode");
+    }
+
+    if (static_cast<int>(swapChainInfo.imageUsageFlags) == -1 || static_cast<int>(swapChainInfo.presentMode) == -1)
+    {
+        throw std::runtime_error("desired usage and desired present mode is not found");
+    }
+
+    VkSwapchainCreateInfoKHR swapChainCreateInfo = {
+        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        nullptr,
+        0,
+        surface->GetHandle(),
+        swapChainInfo.numberOfImages,
+        swapChainInfo.surfaceFormat.format,
+        swapChainInfo.surfaceFormat.colorSpace,
+        swapChainInfo.extent,
+        1,
+        swapChainInfo.imageUsageFlags,
+        VK_SHARING_MODE_EXCLUSIVE,
+        0,
+        nullptr,
+        swapChainInfo.surfaceTransform,
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        swapChainInfo.presentMode,
+        VK_TRUE,
+        oldSwapChain};
+
+    if (swapChainInfo.extent.width == 0 || swapChainInfo.extent.height == 0)
+    {
+        return false;
+    }
+
+    if (vkCreateSwapchainKHR(device->GetHandle(), &swapChainCreateInfo, nullptr, &swapChain) != VK_SUCCESS)
+    {
+        std::runtime_error("Cloud not create swap chain!");
+    }
+
+    if (oldSwapChain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(device->GetHandle(), oldSwapChain, nullptr);
+    }
+
+    GetSwapChainImagesFromVulkan();
+
+    int minImageCount = surface.surfaceCapabilities.minImageCount;
+    int maxImageCount = surface.surfaceCapabilities.maxImageCount;
+    driverConfig.swapchainImageCount =
+        driverConfig.swapchainImageCount < minImageCount ? minImageCount : driverConfig.swapchainImageCountt;
+    driverConfig.swapchainImageCount =
+        driverConfig.swapchainImageCount > maxImageCount ? maxImageCount : driverConfig.swapchainImageCount;
+
+    return true;
+}
+
+void VKDriver::CreateDevice()
+{
+    struct QueueRequest
+    {
+        VkQueueFlags flags;
+        bool requireSurfaceSupport;
+        float priority;
+    };
+    const int requestsCount = 1;
+    const int mainQueueIndex = 0;
+    QueueRequest queueRequests[requestsCount] = {
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+
+    uint32_t queueFamilyIndices[16];
+    float queuePriorities[16][16];
+    auto& queueFamilyProperties = gpu.queueFamilyProperties;
+    for (int i = 0; i < requestsCount; ++i)
+    {
+        QueueRequest request = queueRequests[i];
+        int queueFamilyIndex = 0;
+        bool found = false;
+        for (; queueFamilyIndex < queueFamilyProperties.size(); ++queueFamilyIndex)
+        {
+            if (queueFamilyProperties[queueFamilyIndex].queueFlags & request.flags)
+            {
+                VkBool32 surfaceSupport = false;
+                vkGetPhysicalDeviceSurfaceSupportKHR(gpu.handle, queueFamilyIndex, surface.handle, &surfaceSupport);
+                if (surfaceSupport && request.requireSurfaceSupport)
+                {
+                    found = true;
+                    break;
+                }
+
+                if (!request.requireSurfaceSupport)
+                {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            throw std::runtime_error("Vulkan: Can't find required queue family index");
+
+        queueFamilyIndices[i] = queueFamilyIndex;
+        queuePriorities[i][0] = request.priority;
+    }
+
+    VkDeviceQueueCreateInfo queueCreateInfos[16];
+
+    int queueCreateInfoCount = 0;
+    for (int i = 0; i < requestsCount; ++i)
+    {
+        bool skip = false;
+        // found duplicate queueFamilyIndex
+        for (int j = 0; j < i; ++j)
+        {
+            if (queueCreateInfos[j].queueFamilyIndex == queueFamilyIndices[i])
+            {
+                queueCreateInfos[j].queueCount += 1;
+                queuePriorities[j][queueCreateInfos[j].queueCount - 1] = queueRequests[i].priority;
+                skip = true;
+                break;
+            }
+        }
+
+        if (!skip)
+        {
+            queueCreateInfos[i].flags = 0;
+            queueCreateInfos[i].pNext = VK_NULL_HANDLE;
+            queueCreateInfos[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            queueCreateInfos[i].queueFamilyIndex = queueFamilyIndices[i];
+            queueCreateInfos[i].queueCount = 1;
+            queueCreateInfos[i].pQueuePriorities = queuePriorities[i];
+            queueCreateInfoCount += 1;
+        }
+    }
+
+    VkDeviceCreateInfo deviceCreateInfo = {};
+
+#if __APPLE__
+    for (auto extension : gpu.GetAvailableExtensions())
+    {
+        if (std::strcmp(extension.extensionName, "VK_KHR_portability_subset") == 0)
+        {
+            deviceExtensions.push_back("VK_KHR_portability_subset");
+        }
+    }
+#endif
+
+    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pNext = VK_NULL_HANDLE;
+    deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
+    deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
+
+    deviceCreateInfo.pEnabledFeatures = VK_NULL_HANDLE;
+    std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#if ENGINE_EDITOR
+    deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+#endif
+    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    deviceCreateInfo.enabledExtensionCount = deviceExtensions.size();
+    deviceCreateInfo.enabledLayerCount = 0;
+    deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
+
+    vkCreateDevice(gpu.handle, &deviceCreateInfo, VK_NULL_HANDLE, &device.handle);
+
+    // Get the device' queue
+    VkQueue queue = VK_NULL_HANDLE;
+    uint32_t queueIndex = 0;
+    // make sure each queue is unique
+    vkGetDeviceQueue(device.handle, queueFamilyIndices[mainQueueIndex], queueIndex, &queue);
+
+    assert(queue != VK_NULL_HANDLE);
+    mainQueue.handle = queue;
+    mainQueue.queueIndex = queueIndex;
+    mainQueue.queueFamilyIndex = queueFamilyIndices[mainQueueIndex];
+
+    // get extension address
+    VKExtensionFunc::vkCmdPushDescriptorSetKHR =
+        (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(device.handle, "vkCmdPushDescriptorSetKHR");
+    if (!VKExtensionFunc::vkCmdPushDescriptorSetKHR)
+    {
+        throw std::runtime_error("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR");
+    }
+}
+
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
-    context = MakeUnique1<VKContext>();
-    VKContext::context = context;
-    appWindow = new VKAppWindow(createInfo.windowSize);
-    instance = new VKInstance(appWindow->GetVkRequiredExtensions());
-    surface = new VKSurface(*instance, appWindow);
-    VKDevice::QueueRequest queueRequest[] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
-    device = new VKDevice(instance, surface, queueRequest, sizeof(queueRequest) / sizeof(VKDevice::QueueRequest));
-    context->device = device;
-    mainQueue = &device->GetQueue(0);
-    context->mainQueue = mainQueue;
-    gpu = &device->GetGPU();
-    device_vk = device->GetHandle();
-    objectManager = new VKObjectManager(device_vk);
-    context->objManager = objectManager;
+    CreateAppWindow();
+    CreateInstance();
+    CreatePhysicalDevice();
+    CreateSurface();
+    CreateDevice();
 
-    // Create other objects
-    memAllocator = new VKMemAllocator(instance->GetHandle(), device, gpu->GetHandle(), mainQueue->queueFamilyIndex);
-    context->allocator = memAllocator;
-    sharedResource = MakeUnique1<VKSharedResource>(context);
-    context->sharedResource = sharedResource;
+    objectManager = new VKObjectManager(device_vk);
+    memAllocator = new VKMemAllocator(instance.handle, device.handle, gpu.handle, mainQueue.queueFamilyIndex);
+
+    CreateOrOverrideSwapChain();
     swapchain = new VKSwapChain(mainQueue->queueFamilyIndex, swapchainImageCount, gpu, *surface);
-    context->swapchain = swapchain;
     swapChainImage = swapchain->GetSwapchainImage();
 
     // descriptor pool cache
@@ -100,6 +354,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VkFenceCreateInfo inflightFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
     inflightFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // pipeline waits for the cmd to be finished before it
                                                                   // records again so we need to it as signaled
+    VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
     inflightData.resize(swapchainImageCount);
     for (int i = 0; i < swapchainImageCount; ++i)
@@ -107,6 +362,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         inflightData[i].cmd = cmds[i];
         inflightData[i].swapchainIndex = i;
         vkCreateFence(device_vk, &inflightFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
+        vkCreateSemaphore(device_vk, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdSemaphore);
     }
 }
 
@@ -119,6 +375,7 @@ VKDriver::~VKDriver()
     descriptorPoolCache = nullptr;
     objectManager->DestroyPendingResources();
 
+    // destroy inflight data
     vkDestroyCommandPool(device_vk, mainCmdPool, VK_NULL_HANDLE);
     for (InflightData& inflight : inflightData)
     {
@@ -131,10 +388,24 @@ VKDriver::~VKDriver()
     delete swapchain;
     delete memAllocator;
     delete objectManager;
-    delete surface;
-    delete appWindow;
-    delete device;
-    delete instance;
+    vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
+
+    // destroy appWindow
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
+
+    vkDestroyDevice(device.handle, nullptr);
+
+    if (instance.debugMessenger != VK_NULL_HANDLE)
+    {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT
+        )vkGetInstanceProcAddr(instance.handle, "vkDestroyDebugUtilsMessengerEXT");
+        if (func != nullptr)
+        {
+            func(instance.handle, instance.debugMessenger, nullptr);
+        }
+    }
+
+    vkDestroyInstance(instance.handle, nullptr);
 }
 
 Extent2D VKDriver::GetSurfaceSize()
@@ -205,7 +476,7 @@ RefPtr<Semaphore> VKDriver::Present(std::vector<RefPtr<Semaphore>>&& semaphores)
 AcquireNextSwapChainImageResult VKDriver::AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore)
 {
     VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
-    AcquireNextImageResult result = swapchain->AcquireNextImage(s->GetHandle());
+    AcquireNextImageResult result = swapchain->AcquireNextImage(s->GetHandle(), nextInflightIndex);
 
     if (result == AcquireNextImageResult::Recreated)
     {
@@ -356,7 +627,6 @@ void VKDriver::GenerateMipmaps(VKImage& image)
 {
     VkCommandBuffer cmd = GetCurrentCmd();
 
-    auto subresourceRange = image.GetSubresourceRange();
     VkImageSubresourceRange range;
     range.baseArrayLayer = 0;
     range.layerCount = image.GetDescription().GetLayer();
@@ -501,6 +771,313 @@ void VKDriver::ClearResources()
 std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 {
     return std::make_unique<VKShaderResource>();
+}
+void VKDriver::Present()
+{
+    VKSemaphore* s = static_cast<VKSemaphore*>(imageAcquireSemaphore.Get());
+    AcquireNextImageResult result = swapchain->AcquireNextImage(s->GetHandle(), nextInflightIndex);
+
+    if (result == AcquireNextImageResult::Failed)
+        throw std::runtime_error("Failed to obtain swapchain");
+
+    return AcquireNextSwapChainImageResult::Succeeded;
+
+    std::vector<VkSemaphore> vkSemaphores(semaphores.size());
+    for (int i = 0; i < semaphores.size(); ++i)
+    {
+        vkSemaphores[i] = static_cast<VKSemaphore*>(semaphores[i].Get())->GetHandle();
+    }
+
+    uint32_t activeIndex = swapChainImage->GetActiveIndex();
+    VkSwapchainKHR swapChainHandle = swapchain->GetHandle();
+    VkPresentInfoKHR presentInfo = {
+        VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        nullptr,
+        (uint32_t)vkSemaphores.size(),
+        vkSemaphores.data(),
+        1,
+        &swapChainHandle,
+        &activeIndex,
+        nullptr};
+    vkQueuePresentKHR(mainQueue->queue, &presentInfo);
+
+    return inFlightFrame.imageAcquireSemaphore.Get();
+}
+
+void VKDriver::CreateAppWindow()
+{
+    if (!SDL_WasInit(SDL_INIT_VIDEO))
+        SDL_InitSubSystem(SDL_INIT_VIDEO);
+
+    SDL_DisplayMode displayMode;
+    // MacOS return points not pixels
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+
+    if (window.size.width > displayMode.w)
+        window.size.width = displayMode.w * 0.8;
+    if (window.size.height > displayMode.h)
+        window.size.height = displayMode.h * 0.8;
+
+    window.handle = SDL_CreateWindow(
+        "WeilanGame",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        window.size.width,
+        window.size.height,
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+    );
+
+    int drawableWidth, drawbaleHeight;
+    SDL_GL_GetDrawableSize(window.handle, &drawableWidth, &drawbaleHeight);
+
+    window.size.width = drawableWidth;
+    window.size.height = drawbaleHeight;
+}
+
+std::vector<const char*> VKDriver::AppWindowGetRequiredExtensions()
+{
+    unsigned int count;
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &count, nullptr))
+    {
+        std::cout << SDL_GetError() << std::endl;
+        std::cout << "GetVkRequiredExtensions failed" << std::endl;
+    }
+
+    std::vector<const char*> names(count);
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &count, names.data()))
+    {
+        std::cout << SDL_GetError() << std::endl;
+        std::cout << "GetVkRequiredExtensions failed" << std::endl;
+    }
+
+    return names;
+}
+
+bool VKDriver::InstanceCheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers)
+{
+    uint32_t layerCount;
+    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+
+    std::vector<VkLayerProperties> availableLayers(layerCount);
+    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+    for (auto& k : availableLayers)
+    {
+        SPDLOG_INFO(k.layerName);
+    }
+    for (const char* layerName : validationLayers)
+    {
+        bool layerFound = false;
+        for (const auto& layerProperties : availableLayers)
+        {
+            if (strcmp(layerName, layerProperties.layerName) == 0)
+            {
+                layerFound = true;
+                break;
+            }
+        }
+
+        if (!layerFound)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void VKDriver::CreateInstance()
+{
+    bool enableValidationLayers = true;
+
+    // Create vulkan application info
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Core Engine";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "No Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 193);
+    appInfo.pNext = VK_NULL_HANDLE;
+
+    VkInstanceCreateInfo createInfo{};
+
+    // Create vulkan instance info
+    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    createInfo.pApplicationInfo = &appInfo;
+    createInfo.enabledLayerCount = 0;
+    createInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
+    createInfo.pNext = VK_NULL_HANDLE;
+#if __APPLE__
+    createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+    std::vector<const char*> extensions = AppWindowGetRequiredExtensions();
+
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
+    std::vector<const char*> validationLayers = {
+        "VK_LAYER_KHRONOS_validation",
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
+    if (enableValidationLayers)
+    {
+        if (!InstanceCheckAvalibilityOfValidationLayers(validationLayers))
+        {
+            throw std::runtime_error("validation layers requested, but not available!");
+        }
+
+        // VK_EXT_DEBUG_UTILS_EXTENSION_NAME enables message callback
+        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#if __APPLE__
+        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+
+        // Enable Debug message
+        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debugCreateInfo.messageSeverity =
+            // VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debugCreateInfo.pfnUserCallback = this->DebugCallback;
+        debugCreateInfo.pUserData = nullptr; // Optional
+
+        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+    }
+
+    // Enable instance extension
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+    createInfo.ppEnabledExtensionNames = extensions.data();
+
+    auto result = vkCreateInstance(&createInfo, nullptr, &instance.handle);
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create instance!");
+    }
+
+    if (enableValidationLayers)
+    {
+        // If we enable validation layer, then we also want to enable debug messenger
+        if (CreateDebugUtilsMessengerEXT(instance.handle, &debugCreateInfo, nullptr, &instance.debugMessenger) !=
+            VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to set up debug messenger!");
+        }
+    }
+
+    VKDebugUtils::Init(instance.handle);
+}
+
+VkBool32 VKDriver::DebugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+    void* pUserData
+)
+{
+    switch (messageSeverity)
+    {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            {
+                SPDLOG_INFO(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            {
+                SPDLOG_INFO(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            {
+                SPDLOG_WARN(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            {
+                SPDLOG_ERROR(pCallbackData->pMessage);
+                return VK_FALSE;
+            }
+        default: break;
+    }
+
+    return VK_FALSE;
+}
+
+void VKDriver::CreatePhysicalDevice()
+{
+    // Get all physical devices
+    uint32_t count;
+    std::vector<VkPhysicalDevice> physicalDevices;
+
+    VkResult result = vkEnumeratePhysicalDevices(instance.handle, &count, nullptr);
+    if (result != VK_SUCCESS)
+    {
+        std::runtime_error("no physical devices enumerated");
+    }
+
+    physicalDevices.resize(count);
+
+    result = vkEnumeratePhysicalDevices(instance.handle, &count, physicalDevices.data());
+    if (result != VK_SUCCESS)
+    {
+        throw std::runtime_error("can't get physical devices");
+    }
+
+    std::vector<GPU> gpus;
+    for (auto pd : physicalDevices)
+    {
+        GPU thisGPU{pd};
+
+        vkGetPhysicalDeviceProperties(thisGPU.handle, &thisGPU.physicalDeviceProperties);
+        vkGetPhysicalDeviceFeatures(thisGPU.handle, &thisGPU.physicalDeviceFeatures);
+        vkGetPhysicalDeviceMemoryProperties(thisGPU.handle, &thisGPU.memProperties);
+
+        gpus.push_back(thisGPU);
+    }
+
+    for (auto& g : gpus)
+    {
+        // Check required device extensions
+        std::set<std::string> requiredExtensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+        for (const auto& extension : g.availableExtensions)
+        {
+            requiredExtensions.erase(extension.extensionName);
+        }
+
+        if (!requiredExtensions.empty())
+            continue; // early skip if this device is not suitable
+
+        // Check required device features
+        if (!true) // no required feature yet
+            continue;
+
+        // This gpu passed all the test!
+        this->gpu = g;
+        break;
+    }
+
+    throw std::runtime_error("No Suitable GPU");
+}
+
+VkResult VKDriver::CreateDebugUtilsMessengerEXT(
+    VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator,
+    VkDebugUtilsMessengerEXT* pDebugMessenger
+)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    else
+    {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
 }
 
 void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) {}

@@ -203,9 +203,8 @@ VkPresentModeKHR VKSwapChain::GetPresentMode(VKSurface* surface)
     return static_cast<VkPresentModeKHR>(-1);
 }
 
-AcquireNextImageResult VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal)
+AcquireNextImageResult VKSwapChain::AcquireNextImage(VkSemaphore semaphoreToSignal, uint32_t& nextPresentImageIndex)
 {
-    uint32_t nextPresentImageIndex;
     VkResult result = vkAcquireNextImageKHR(
         attachedDevice->GetHandle(),
         swapChain,

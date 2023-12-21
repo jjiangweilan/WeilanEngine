@@ -37,7 +37,7 @@ public:
     ~VKSwapChain();
 
     bool RecreateSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
-    AcquireNextImageResult AcquireNextImage(VkSemaphore semaphoreToSignal);
+    AcquireNextImageResult AcquireNextImage(VkSemaphore semaphoreToSignal, uint32_t& nextPresentImageIndex);
     VKSwapChainImage* GetSwapchainImage()
     {
         return swapChainImage.get();
@@ -52,15 +52,14 @@ public:
     }
 
 private:
-    VkSwapchainKHR swapChain;
     RefPtr<VKDevice> attachedDevice;
+    VkSwapchainKHR swapChain;
+    VKSurface* surface;
     std::unique_ptr<VKSwapChainImage> swapChainImage;
     uint32_t graphicsQueueFamilyIndex;
-    VKSurface* surface;
     int swapchainCount;
 
     bool GetSwapChainImagesFromVulkan();
-
     bool CreateOrOverrideSwapChain(VKDevice* device, VKPhysicalDevice* gpu, VKSurface* surface);
 
     VkSurfaceFormatKHR GetFormat(VKSurface* surface);
