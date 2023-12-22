@@ -196,7 +196,7 @@ private:
     std::vector<InflightData> inflightData;
     uint32_t currentInflightIndex;
     std::unique_ptr<VKSwapChainImage> swapchainImage;
-    VkBuffer stagingBuffer;
+    std::unique_ptr<VKBuffer> stagingBuffer;
 
     void CreateInstance();
     void CreatePhysicalDevice();

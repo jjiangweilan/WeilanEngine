@@ -98,6 +98,14 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     }
 
     // create staging buffer
+    auto buffer = CreateBuffer({
+        .usages = Gfx::BufferUsage::Transfer_Src,
+        .size = 1024 * 1024 * 16, // 16MB
+        .visibleInCPU = true,
+        .debugName = "staing buffer",
+    });
+    stagingBuffer = std::unique_ptr<VKBuffer>((VKBuffer*)buffer.Get());
+    buffer.Release();
 }
 
 VKDriver::~VKDriver()
@@ -1110,6 +1118,8 @@ void VKDriver::CreateDevice()
         throw std::runtime_error("Could not get a valid function pointer for vkCmdPushDescriptorSetKHR");
     }
 }
+
+void VKDriver::RHI_UploadReadonlyData(VkCommandBuffer cmd) {}
 
 void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
