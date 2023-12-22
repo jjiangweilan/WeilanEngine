@@ -108,11 +108,9 @@ public:
     ) = 0;
     virtual void ForceSyncResources() = 0;
     virtual void WaitForIdle() = 0;
-    virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) = 0;
     virtual void Present() = 0;
 
     // return true if swapchain is recreated
-    virtual AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;

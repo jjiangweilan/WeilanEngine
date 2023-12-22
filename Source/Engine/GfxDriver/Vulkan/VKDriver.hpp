@@ -46,9 +46,7 @@ public:
         std::span<RefPtr<Semaphore>> signalSemaphroes,
         RefPtr<Fence> signalFence
     ) override;
-    RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
-    AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
     const GPUFeatures& GetGPUFeatures() override
     {
         return gpuFeatures;
@@ -117,7 +115,6 @@ private:
     VKObjectManager* objectManager;
 
     VkDevice device_vk;
-    VKSwapChainImage* swapChainImage;
     UniPtr<VKContext> context;
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
@@ -168,7 +165,6 @@ private:
         VkSurfaceTransformFlagBitsKHR surfaceTransform;
         VkPresentModeKHR presentMode;
         uint32_t numberOfImages;
-        std::unique_ptr<VKSwapChainImage> swapChainImage;
     } swapchain;
 
     struct Surface
@@ -185,27 +181,22 @@ private:
         Extent2D size;
     } window;
 
-    struct InFlightFrame
-    {
-        UniPtr<VKSemaphore> imageAcquireSemaphore;
-    } inFlightFrame;
     GPUFeatures gpuFeatures;
 
     // RHI implementation
-    std::unique_ptr<VKBuffer> stagingBuffer;
     struct InflightData
     {
         VkCommandBuffer cmd;
         VkFence cmdFence;
         VkSemaphore cmdSemaphore;
-        int swapchainIndex;
+        VkSemaphore presentSemaphore;
+        uint32_t swapchainIndex;
+        std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands;
     };
     std::vector<InflightData> inflightData;
-    uint32_t nextInflightIndex;
     uint32_t currentInflightIndex;
-
-    // pending commands for next present
-    std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands;
+    std::unique_ptr<VKSwapChainImage> swapchainImage;
+    VkBuffer stagingBuffer;
 
     void CreateInstance();
     void CreatePhysicalDevice();
@@ -215,11 +206,10 @@ private:
     bool CreateOrOverrideSwapChain();
 
     std::vector<const char*> AppWindowGetRequiredExtensions();
-    bool InstanceCheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
-    VkCommandBuffer GetCurrentCmd()
-    {
-        return inflightData[nextInflightIndex].cmd;
-    }
+    bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
+    bool Swapchain_GetImagesFromVulkan();
+
+    void RHI_UploadReadonlyData(VkCommandBuffer cmd);
 
     VkResult CreateDebugUtilsMessengerEXT(
         VkInstance instance,
