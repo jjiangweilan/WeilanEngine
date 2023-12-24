@@ -54,8 +54,9 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     CreateSurface();
     CreateDevice();
 
-    objectManager = new VKObjectManager(device.handle);
-    memAllocator = new VKMemAllocator(instance.handle, device.handle, gpu.handle, mainQueue.queueFamilyIndex);
+    objectManager = std::make_unique<VKObjectManager>(device.handle);
+    memAllocator =
+        std::make_unique<VKMemAllocator>(instance.handle, device.handle, gpu.handle, mainQueue.queueFamilyIndex);
 
     CreateOrOverrideSwapChain();
 
@@ -98,14 +99,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     }
 
     // create staging buffer
-    auto buffer = CreateBuffer({
-        .usages = Gfx::BufferUsage::Transfer_Src,
-        .size = 1024 * 1024 * 16, // 16MB
-        .visibleInCPU = true,
-        .debugName = "staing buffer",
-    });
-    stagingBuffer = std::unique_ptr<VKBuffer>((VKBuffer*)buffer.Get());
-    buffer.Release();
+    stagingBuffer = std::make_unique<VKStagingRingBuffer>(this);
 }
 
 VKDriver::~VKDriver()
@@ -129,8 +123,8 @@ VKDriver::~VKDriver()
     SamplerCachePool::DestroyPool();
 
     vkDestroySwapchainKHR(device.handle, swapchain.handle, VK_NULL_HANDLE);
-    delete memAllocator;
-    delete objectManager;
+    memAllocator = nullptr;
+    objectManager = nullptr;
     vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
 
     // destroy appWindow
@@ -231,14 +225,6 @@ UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
 )
 {
     return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
-}
-
-RefPtr<CommandQueue> VKDriver::GetQueue(QueueType type)
-{
-    switch (type)
-    {
-        case QueueType::Main: return static_cast<CommandQueue*>(mainQueue.Get());
-    }
 }
 
 void VKDriver::QueueSubmit(
@@ -490,19 +476,20 @@ void VKDriver::Present()
     );
     swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
 
-    // record scheduled commands
-    auto cmd = inflightData[currentInflightIndex].cmd;
-
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
 
     // prepare for command execution
     inflightData[currentInflightIndex].pendingCommands.clear();
 
+    // record scheduled commands
+    auto cmd = inflightData[currentInflightIndex].cmd;
+
+    vkResetCommandBuffer(cmd, 0);
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(cmd, &beginInfo);
-    RHI_UploadReadonlyData(cmd);
+    RHI_UploadData(cmd);
 
     VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
     barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
@@ -1119,13 +1106,218 @@ void VKDriver::CreateDevice()
     }
 }
 
-void VKDriver::RHI_UploadReadonlyData(VkCommandBuffer cmd) {}
+void VKDriver::RHI_UploadData(VkCommandBuffer cmd)
+{
+    if (nextBufferUploads.empty())
+        return;
+
+    // try releasing in used buffer
+    for (auto& inflight : inflightData)
+    {
+        if (inflight.stagingBuffer != nullptr && inflight.stagingBuffer->inUse)
+        {
+            if (vkGetFenceStatus(device.handle, inflight.cmdFence) == VK_SUCCESS)
+            {
+                inflight.stagingBuffer->inUse = false;
+                for (auto& p : inflight.pendingBufferUploads)
+                {
+                    if (p.finishCallback)
+                        p.finishCallback();
+                }
+                inflight.pendingBufferUploads.clear();
+            }
+        }
+    }
+
+    // found a fitting buffer
+    Buffer* stagingBuffer = nullptr;
+    size_t totalStaingSize = nextBufferUploadsSize + nextImageUploadsSize;
+    for (auto& b : stagingBuffers)
+    {
+        if (!b->inUse)
+        {
+            if (b->size >= totalStaingSize)
+            {
+                stagingBuffer = b.get();
+                break;
+            }
+        }
+    }
+
+    // no free buffer, create one
+    if (stagingBuffer == VK_NULL_HANDLE)
+    {
+        Buffer bufVal = Driver_CreateBuffer(
+            totalStaingSize * 1.2f, // slighting enlarge staging buffer
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
+        );
+
+        auto buf = std::make_unique<Buffer>(bufVal);
+
+        stagingBuffer = buf.get();
+        stagingBuffers.push_back(std::move(buf));
+    }
+
+    // attach this staging buffer to inflightData
+    inflightData[currentInflightIndex].stagingBuffer = stagingBuffer;
+    stagingBuffer->inUse = true;
+
+    // try destroy buffer that are overly created
+    size_t overCreatedCount = stagingBuffers.size() - driverConfig.swapchainImageCount;
+    while (overCreatedCount > 0)
+    {
+        int index = -1;
+        size_t minSize = std::numeric_limits<size_t>::max();
+
+        // find a buffer with minimum size
+        for (int i = 0; i < stagingBuffers.size(); ++i)
+        {
+            if (stagingBuffers[i]->size < minSize && !stagingBuffers[i]->inUse)
+            {
+                index = i;
+                minSize = stagingBuffers[i]->size;
+            }
+        }
+
+        // destroy that buffer
+        if (index >= 0)
+        {
+            Driver_DestroyBuffer(stagingBuffers[index].get());
+            stagingBuffers.erase(stagingBuffers.begin() + index);
+        }
+
+        overCreatedCount -= 1;
+    }
+
+    // upload data
+    size_t stagingOffset = 0;
+    for (auto& b : nextBufferUploads)
+    {
+        VkBufferCopy region{
+
+            .srcOffset = stagingOffset,
+            .dstOffset = b.dstOffset,
+            .size = b.size,
+        };
+        stagingOffset += b.size;
+        vkCmdCopyBuffer(cmd, stagingBuffer->handle, b.dst, 1, &region);
+    }
+
+    if (!nextImageUploads.empty())
+    {
+        std::vector<VkBufferImageCopy> regions;
+        regions.reserve(32);
+        for (size_t i = 0; i < nextImageUploads.size(); ++i)
+        {
+            auto b = nextImageUploads[i].dst;
+            VkBufferImageCopy region;
+            region.bufferOffset = stagingOffset;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            region.imageSubresource.aspectMask = nextImageUploads[i].aspect;
+            region.imageSubresource.mipLevel = nextImageUploads[i].mipLevel;
+            region.imageSubresource.baseArrayLayer = nextImageUploads[i].arrayLayer;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = VkOffset3D{0, 0, 0};
+            region.imageExtent = VkExtent3D{b->GetDescription().width, b->GetDescription().height, 1};
+            regions.push_back(region);
+
+            if (i + 1 == nextImageUploads.size() || nextImageUploads[i + 1].dst != b)
+            {
+                vkCmdCopyBufferToImage(
+                    cmd,
+                    stagingBuffer->handle,
+                    b->GetImage(),
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    regions.size(),
+                    regions.data()
+                );
+
+                regions.clear();
+            }
+        }
+    }
+
+    // move all to inflight so that it can notify uploads when cmd finished
+    inflightData[currentInflightIndex].pendingBufferUploads = std::move(nextBufferUploads);
+    inflightData[currentInflightIndex].pendingImageUploads = std::move(nextImageUploads);
+}
+
+VKDriver::Buffer VKDriver::Driver_CreateBuffer(
+    size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags
+)
+{
+    VKDriver::Buffer buf;
+    buf.size = size;
+    buf.inUse = false;
+
+    VkBufferCreateInfo vkCreateInfo{};
+    vkCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    vkCreateInfo.pNext = VK_NULL_HANDLE;
+    vkCreateInfo.flags = 0;
+    vkCreateInfo.size = size;
+    vkCreateInfo.usage = usage;
+    vkCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    vkCreateInfo.queueFamilyIndexCount = 1;
+    uint32_t queueFamily = mainQueue.queueFamilyIndex;
+    vkCreateInfo.pQueueFamilyIndices = &queueFamily;
+
+    VmaAllocationCreateInfo allocationCreateInfo{};
+    allocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocationCreateInfo.flags = vmaCreateFlags;
+
+    memAllocator->CreateBuffer(vkCreateInfo, allocationCreateInfo, buf.handle, buf.allocation, &buf.allocationInfo);
+
+    return buf;
+}
+
+void VKDriver::Driver_DestroyBuffer(Buffer* b)
+{
+    memAllocator->DestroyBuffer(b->handle, b->allocation);
+}
 
 void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
     inflightData[currentInflightIndex].pendingCommands.push_back(std::move(f));
 }
 void VKDriver::Render() {}
-void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset){};
-void VKDriver::UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer){};
+void VKDriver::UploadBuffer(
+    Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset, std::function<void()> finishCallback
+)
+{
+    auto& vkDst = static_cast<VKBuffer&>(dst);
+
+    nextBufferUploadsSize += size;
+    nextBufferUploads.push_back(PendingBufferUpload{
+        .dst = vkDst.GetHandle(),
+        .data = data,
+        .size = size,
+        .dstOffset = dstOffset,
+        .finishCallback = finishCallback,
+    });
+};
+void VKDriver::UploadImage(
+    Gfx::Image& dst,
+    uint8_t* data,
+    size_t size,
+    uint32_t mipLevel,
+    uint32_t arrayLayer,
+    Gfx::ImageAspect aspect,
+    std::function<void()> finishedCallback
+)
+{
+    auto& vkDst = static_cast<VKImage&>(dst);
+
+    nextImageUploadsSize += size;
+    nextImageUploads.push_back(PendingImageUpload{
+        .dst = &vkDst,
+        .data = data,
+        .size = size,
+        .mipLevel = mipLevel,
+        .arrayLayer = arrayLayer,
+        .aspect = Gfx::MapImageAspect(aspect),
+        .finishCallback = finishedCallback,
+    });
+}
 } // namespace Gfx

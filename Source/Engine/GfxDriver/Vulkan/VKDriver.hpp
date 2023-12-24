@@ -54,7 +54,6 @@ public:
 
     bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages) override;
     ;
-    RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
@@ -98,23 +97,33 @@ public:
 
     // RHI implementation
     void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
-    void Render() override;
-    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
-    void UploadImage(Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel = 0, uint32_t arayLayer = 0)
-        override;
+    void UploadBuffer(
+        Gfx::Buffer& dst,
+        uint8_t* data,
+        size_t size,
+        size_t dstOffset = 0,
+        std::function<void()> finishCallback = nullptr
+    ) override;
+    void UploadImage(
+        Gfx::Image& dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel,
+        uint32_t arayLayer,
+        Gfx::ImageAspect aspect,
+        std::function<void()> finishedCallback = nullptr
+    ) override;
     void GenerateMipmaps(Gfx::Image& image) override
     {
         GenerateMipmaps(static_cast<VKImage&>(image));
     }
 
-    void UploadImage(VkImage image, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer);
     void GenerateMipmaps(VKImage& image);
 
-private:
-    VKMemAllocator* memAllocator;
-    VKObjectManager* objectManager;
+public:
+    std::unique_ptr<VKMemAllocator> memAllocator;
+    std::unique_ptr<VKObjectManager> objectManager;
 
-    VkDevice device_vk;
     UniPtr<VKContext> context;
     UniPtr<VKSharedResource> sharedResource;
     UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
@@ -183,6 +192,35 @@ private:
 
     GPUFeatures gpuFeatures;
 
+    struct PendingBufferUpload
+    {
+        VkBuffer dst;
+        uint8_t* data;
+        size_t size;
+        size_t dstOffset;
+        std::function<void()> finishCallback;
+    };
+
+    struct PendingImageUpload
+    {
+        VKImage* dst;
+        uint8_t* data;
+        size_t size;
+        uint32_t mipLevel;
+        uint32_t arrayLayer;
+        VkImageAspectFlags aspect;
+        std::function<void()> finishCallback;
+    };
+
+    struct Buffer
+    {
+        VkBuffer handle;
+        VmaAllocation allocation;
+        VmaAllocationInfo allocationInfo;
+        size_t size;
+        bool inUse;
+    };
+
     // RHI implementation
     struct InflightData
     {
@@ -191,12 +229,26 @@ private:
         VkSemaphore cmdSemaphore;
         VkSemaphore presentSemaphore;
         uint32_t swapchainIndex;
+        VKDriver::Buffer* stagingBuffer;
+
+        // inflight data needs to notify all uploads when it's command buffer is finished
+        std::vector<PendingBufferUpload> pendingBufferUploads;
+        std::vector<PendingImageUpload> pendingImageUploads;
         std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands;
     };
     std::vector<InflightData> inflightData;
     uint32_t currentInflightIndex;
     std::unique_ptr<VKSwapChainImage> swapchainImage;
-    std::unique_ptr<VKBuffer> stagingBuffer;
+
+    // buffer uploads
+    std::vector<PendingBufferUpload> nextBufferUploads = {};
+    size_t nextBufferUploadsSize = 0;
+
+    // image uploads
+    std::vector<PendingImageUpload> nextImageUploads = {};
+    size_t nextImageUploadsSize = 0;
+
+    std::vector<std::unique_ptr<Buffer>> stagingBuffers;
 
     void CreateInstance();
     void CreatePhysicalDevice();
@@ -205,11 +257,14 @@ private:
     void CreateSurface();
     bool CreateOrOverrideSwapChain();
 
+    Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
+    void Driver_DestroyBuffer(Buffer* b);
+
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     bool Swapchain_GetImagesFromVulkan();
 
-    void RHI_UploadReadonlyData(VkCommandBuffer cmd);
+    void RHI_UploadData(VkCommandBuffer cmd);
 
     VkResult CreateDebugUtilsMessengerEXT(
         VkInstance instance,

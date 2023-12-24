@@ -398,7 +398,7 @@ void GameEditor::Start()
 
             loop->Tick();
 
-            RenderPipeline::Singleton().Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
+            GetGfxDriver()->Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
 
             engine->EndFrame();
         }

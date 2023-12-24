@@ -1,6 +1,5 @@
 #include "GameLoop.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
-#include "Rendering/RenderPipeline.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
@@ -30,10 +29,10 @@ Gfx::Image* GameLoop::RenderScene()
                 return nullptr;
             }
 
-            RenderPipeline::Singleton().Schedule(
-                [mainCam](Gfx::CommandBuffer& cmd)
-                { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene()); }
+            GetGfxDriver()->Schedule([mainCam](Gfx::CommandBuffer& cmd)
+                                     { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene()); }
             );
+
             return frameGraph->GetOutputImage();
         }
     }

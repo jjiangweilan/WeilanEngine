@@ -10,7 +10,6 @@ WeilanEngine::~WeilanEngine()
     gfxDriver->WaitForIdle();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    RenderPipeline::Deinit();
 }
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
@@ -34,7 +33,6 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
-    RenderPipeline::Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
@@ -65,7 +63,7 @@ void WeilanEngine::EndFrame()
 #endif
 
     // submit anything in the active command and present the surface
-    RenderPipeline::Singleton().Render();
+    GetGfxDriver()->Present();
 
 #if ENGINE_EDITOR
     assetDatabase->RefreshShader();

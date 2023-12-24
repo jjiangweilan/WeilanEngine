@@ -63,7 +63,6 @@ public:
     virtual bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual Image* GetSwapChainImage() = 0;
-    virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;
     virtual Extent2D GetSurfaceSize() = 0;
@@ -108,7 +107,6 @@ public:
     ) = 0;
     virtual void ForceSyncResources() = 0;
     virtual void WaitForIdle() = 0;
-    virtual void Present() = 0;
 
     // return true if swapchain is recreated
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
@@ -117,11 +115,24 @@ public:
 
     // RHI implementation
     virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
-    virtual void Render() = 0;
-    virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
-    virtual void UploadImage(
-        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel = 0, uint32_t arayLayer = 0
+    virtual void UploadBuffer(
+        Gfx::Buffer& dst,
+        uint8_t* data,
+        size_t size,
+        size_t dstOffset = 0,
+        std::function<void()> finishedCallback = nullptr
     ) = 0;
+
+    virtual void UploadImage(
+        Gfx::Image& dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel = 0,
+        uint32_t arayLayer = 0,
+        Gfx::ImageAspect aspect = Gfx::ImageAspect::Color,
+        std::function<void()> finishedCallback = nullptr
+    ) = 0;
+    virtual void Present() = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
 private:

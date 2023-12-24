@@ -125,6 +125,8 @@ private:
     std::unique_ptr<Gfx::Buffer> buffer;
     std::shared_ptr<Schedule> schedule;
 
+    std::vector<uint8_t> tempUploadData;
+
     void SetShaderNoProtection(RefPtr<Shader> shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
 };
