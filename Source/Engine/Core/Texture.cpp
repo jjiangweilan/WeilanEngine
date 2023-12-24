@@ -1,7 +1,6 @@
 #include "Texture.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>

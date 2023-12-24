@@ -4,7 +4,6 @@
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"

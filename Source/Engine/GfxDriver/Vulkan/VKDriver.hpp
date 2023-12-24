@@ -96,6 +96,7 @@ public:
     void ClearResources() override;
 
     // RHI implementation
+    void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void UploadBuffer(
         Gfx::Buffer& dst,
@@ -239,6 +240,9 @@ public:
     std::vector<InflightData> inflightData;
     uint32_t currentInflightIndex;
     std::unique_ptr<VKSwapChainImage> swapchainImage;
+
+    VkCommandBuffer immediateCmd;
+    VkFence immediateCmdFence;
 
     // buffer uploads
     std::vector<PendingBufferUpload> nextBufferUploads = {};

@@ -1,7 +1,6 @@
 #include "Mesh.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/GLB.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include <filesystem>
 
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
@@ -181,7 +180,7 @@ void Submesh::Apply()
     }
     indexCount = indices.size();
 
-    ImmediateGfx::OnetimeSubmit(
+    GetGfxDriver()->Schedule(
         [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
         {
             Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};

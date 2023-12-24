@@ -186,7 +186,7 @@ ImageLayout VKImage::GetImageLayout()
 
 void VKImage::SetData(std::span<uint8_t> binaryData)
 {
-    GetDriver()->UploadImage(image_vk, binaryData.data(), binaryData.size(), 0, 0);
+    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), 0, 0, GetSubresourceRange().aspectMask);
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

@@ -359,18 +359,8 @@ void Graph::Process()
     // copy
     this->sortedNodes = sortedNodes;
 
-    auto queue = GetGfxDriver()->GetQueue(QueueType::Main).Get();
-    auto commandPool = GetGfxDriver()->CreateCommandPool({.queueFamilyIndex = queue->GetFamilyIndex()});
-    std::unique_ptr<Gfx::CommandBuffer> cmd =
-        commandPool->AllocateCommandBuffers(Gfx::CommandBufferType::Primary, 1)[0];
-
-    cmd->Begin();
-    cmd->Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size());
-    cmd->End();
-
-    Gfx::CommandBuffer* cmdBufs[] = {cmd.get()};
-    GetGfxDriver()->QueueSubmit(queue, cmdBufs, {}, {}, {}, nullptr);
-    GetGfxDriver()->WaitForIdle();
+    GetGfxDriver()->Schedule([initialLayoutTransfers](Gfx::CommandBuffer& cmd) mutable
+                             { cmd.Barrier(initialLayoutTransfers.data(), initialLayoutTransfers.size()); });
 }
 
 void Graph::ResourceOwner::Finalize(ResourcePool& pool)

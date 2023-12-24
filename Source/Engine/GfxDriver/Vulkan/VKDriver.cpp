@@ -74,17 +74,17 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
     // create inflightData
     inflightData.resize(driverConfig.swapchainImageCount);
-    VkCommandBufferAllocateInfo inflightCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-    inflightCmdAllocateInfo.commandPool = mainCmdPool;
-    inflightCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    inflightCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount;
+    VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    rhiCmdAllocateInfo.commandPool = mainCmdPool;
+    rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 1;
     assert(driverConfig.swapchainImageCount <= 8);
     VkCommandBuffer cmds[8];
-    vkAllocateCommandBuffers(device.handle, &inflightCmdAllocateInfo, cmds);
+    vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
 
-    VkFenceCreateInfo inflightFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    inflightFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // pipeline waits for the cmd to be finished before it
-                                                                  // records again so we need to it as signaled
+    VkFenceCreateInfo rhiFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    rhiFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // pipeline waits for the cmd to be finished before it
+                                                             // records again so we need to it as signaled
     VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
     inflightData.resize(driverConfig.swapchainImageCount);
@@ -92,14 +92,13 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     {
         inflightData[i].cmd = cmds[i];
         inflightData[i].swapchainIndex = i;
-        vkCreateFence(device.handle, &inflightFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
+        vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
 
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdSemaphore);
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
     }
-
-    // create staging buffer
-    stagingBuffer = std::make_unique<VKStagingRingBuffer>(this);
+    immediateCmd = cmds[driverConfig.swapchainImageCount];
+    vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
 }
 
 VKDriver::~VKDriver()
@@ -196,7 +195,7 @@ UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
     return MakeUnique1<VKFence>(createInfo);
 }
 
-UniPtr<Buffer> VKDriver::CreateBuffer(const Buffer::CreateInfo& createInfo)
+UniPtr<Buffer> VKDriver::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
 {
     return MakeUnique1<VKBuffer>(createInfo);
 }
@@ -315,7 +314,7 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
 
 void VKDriver::GenerateMipmaps(VKImage& image)
 {
-    VkCommandBuffer cmd = GetCurrentCmd();
+    VkCommandBuffer cmd = inflightData[currentInflightIndex].cmd;
 
     VkImageSubresourceRange range;
     range.baseArrayLayer = 0;
@@ -1281,7 +1280,32 @@ void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
     inflightData[currentInflightIndex].pendingCommands.push_back(std::move(f));
 }
-void VKDriver::Render() {}
+
+void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
+{
+    vkResetCommandBuffer(immediateCmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(immediateCmd, &beginInfo);
+    VKCommandBuffer cmd(immediateCmd);
+    f(cmd);
+    vkEndCommandBuffer(immediateCmd);
+
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+    submitInfo.pWaitDstStageMask = VK_NULL_HANDLE;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &immediateCmd;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, immediateCmdFence);
+
+    vkWaitForFences(device.handle, 1, &immediateCmdFence, true, -1);
+    vkResetFences(device.handle, 1, &immediateCmdFence);
+}
+
 void VKDriver::UploadBuffer(
     Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset, std::function<void()> finishCallback
 )

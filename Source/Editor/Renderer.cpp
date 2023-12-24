@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -362,7 +361,7 @@ std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     });
     memcpy(tsfBuffer->GetCPUVisibleAddress(), fontData, fontTexSize);
 
-    ImmediateGfx::OnetimeSubmit(
+    GetGfxDriver()->Schedule(
         [&tsfBuffer, &fontImage, width, height](Gfx::CommandBuffer& cmd)
         {
             Gfx::BufferImageCopyRegion copyRegion[] = {{
