@@ -107,7 +107,6 @@ private:
     UniPtr<VKShaderModule> fragShaderModule;
     std::unique_ptr<VKShaderModule> computeShaderModule;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VKSwapChain* swapchain;
     std::vector<PipelineCache> caches;
     std::vector<VkSampler> immutableSamplers;
     std::vector<size_t> layoutHash;

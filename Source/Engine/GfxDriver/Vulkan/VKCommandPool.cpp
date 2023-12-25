@@ -11,12 +11,12 @@ VKCommandPool::VKCommandPool(const CreateInfo& gCreateInfo)
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.queueFamilyIndex = gCreateInfo.queueFamilyIndex;
     createInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    vkCreateCommandPool(GetDevice()->GetHandle(), &createInfo, VK_NULL_HANDLE, &commandPool);
+    vkCreateCommandPool(GetDevice(), &createInfo, VK_NULL_HANDLE, &commandPool);
 }
 
 VKCommandPool::~VKCommandPool()
 {
-    vkDestroyCommandPool(GetDevice()->GetHandle(), commandPool, VK_NULL_HANDLE);
+    vkDestroyCommandPool(GetDevice(), commandPool, VK_NULL_HANDLE);
 }
 
 std::vector<UniPtr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
@@ -30,7 +30,7 @@ std::vector<UniPtr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(Co
     cmdAllocInfo.level =
         type == CommandBufferType::Primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
     cmdAllocInfo.commandBufferCount = count;
-    vkAllocateCommandBuffers(GetDevice()->GetHandle(), &cmdAllocInfo, cmdBufsTemp);
+    vkAllocateCommandBuffers(GetDevice(), &cmdAllocInfo, cmdBufsTemp);
 
     std::vector<UniPtr<Gfx::CommandBuffer>> rlt;
     for (int i = 0; i < count; ++i)
@@ -44,6 +44,6 @@ std::vector<UniPtr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(Co
 
 void VKCommandPool::ResetCommandPool()
 {
-    vkResetCommandPool(GetDevice()->GetHandle(), commandPool, 0);
+    vkResetCommandPool(GetDevice(), commandPool, 0);
 }
 } // namespace Gfx

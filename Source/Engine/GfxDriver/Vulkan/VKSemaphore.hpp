@@ -16,16 +16,22 @@ public:
         createInfo.pNext = VK_NULL_HANDLE;
         createInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
 
-        vkCreateSemaphore(GetDevice()->GetHandle(), &createInfo, VK_NULL_HANDLE, &vkSemaphore);
+        vkCreateSemaphore(GetDevice(), &createInfo, VK_NULL_HANDLE, &vkSemaphore);
     }
-    ~VKSemaphore() override { vkDestroySemaphore(GetDevice()->GetHandle(), vkSemaphore, VK_NULL_HANDLE); };
+    ~VKSemaphore() override
+    {
+        vkDestroySemaphore(GetDevice(), vkSemaphore, VK_NULL_HANDLE);
+    };
 
     void SetName(std::string_view name) override
     {
         VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_SEMAPHORE, (uint64_t)vkSemaphore, name.data());
     };
 
-    inline VkSemaphore GetHandle() { return vkSemaphore; }
+    inline VkSemaphore GetHandle()
+    {
+        return vkSemaphore;
+    }
 
 private:
     VkSemaphore vkSemaphore;

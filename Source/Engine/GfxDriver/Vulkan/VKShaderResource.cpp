@@ -26,7 +26,7 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 }
 
 VKShaderResource::VKShaderResource()
-    : sharedResource(VKContext::Instance()->sharedResource.Get()), device(VKContext::Instance()->device.Get()), sets(0)
+    : sharedResource(VKContext::Instance()->sharedResource), sets(0)
 {}
 
 VKShaderResource::~VKShaderResource()
@@ -213,7 +213,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         }
 
         rebuild = false;
-        vkUpdateDescriptorSets(device->GetHandle(), writeCount, writes, 0, VK_NULL_HANDLE);
+        vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
         return descriptorSet;
     }
 

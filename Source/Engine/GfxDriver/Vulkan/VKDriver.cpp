@@ -57,12 +57,20 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     objectManager = std::make_unique<VKObjectManager>(device.handle);
     memAllocator =
         std::make_unique<VKMemAllocator>(instance.handle, device.handle, gpu.handle, mainQueue.queueFamilyIndex);
+    context = std::make_unique<VKContext>();
+    VKContext::context = context.get();
+    context->allocator = memAllocator.get();
+    context->objManager = objectManager.get();
+    context->device = device.handle;
+    context->gpu = &gpu;
+    context->swapchain = &swapchain;
+    context->mainQueue = &mainQueue;
 
     CreateOrOverrideSwapChain();
 
     // descriptor pool cache
-    descriptorPoolCache = MakeUnique1<VKDescriptorPoolCache>(context);
-    context->descriptorPoolCache = descriptorPoolCache;
+    descriptorPoolCache = std::make_unique<VKDescriptorPoolCache>(context);
+    context->descriptorPoolCache = descriptorPoolCache.get();
 
     // create main cmdPool
     VkCommandPoolCreateInfo cmdPoolCreateInfo;
@@ -314,51 +322,125 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
 
 void VKDriver::GenerateMipmaps(VKImage& image)
 {
-    VkCommandBuffer cmd = inflightData[currentInflightIndex].cmd;
-
-    VkImageSubresourceRange range;
-    range.baseArrayLayer = 0;
-    range.layerCount = image.GetDescription().GetLayer();
-    range.levelCount = 1;
-    range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    for (uint32_t layer = 0; layer < image.GetDescription().GetLayer(); ++layer)
-    {
-        for (uint32_t mip = 1; mip < image.GetDescription().mipLevels; ++mip)
+    internalPendingCommands.push_back(
+        [&](VkCommandBuffer cmd)
         {
-            range.baseMipLevel = mip - 1;
+            VkImageSubresourceRange range;
+            range.baseArrayLayer = 0;
+            range.layerCount = image.GetDescription().GetLayer();
+            range.levelCount = 1;
+            range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            for (uint32_t layer = 0; layer < image.GetDescription().GetLayer(); ++layer)
+            {
+                for (uint32_t mip = 1; mip < image.GetDescription().mipLevels; ++mip)
+                {
+                    range.baseMipLevel = mip - 1;
+                    VkImageMemoryBarrier vkBarrier[2];
+                    vkBarrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    vkBarrier[0].pNext = VK_NULL_HANDLE;
+                    vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                    vkBarrier[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+                    vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                    vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                    vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    vkBarrier[0].image = image.GetImage();
+                    vkBarrier[0].subresourceRange = range;
+
+                    range.baseMipLevel = mip;
+                    vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    vkBarrier[1].pNext = VK_NULL_HANDLE;
+                    vkBarrier[1].srcAccessMask = VK_ACCESS_NONE;
+                    vkBarrier[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                    vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                    vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    vkBarrier[1].image = image.GetImage();
+                    vkBarrier[1].subresourceRange = range;
+
+                    if (mip == 1)
+                    {
+                        vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    }
+
+                    vkCmdPipelineBarrier(
+                        cmd,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_DEPENDENCY_BY_REGION_BIT,
+                        0,
+                        VK_NULL_HANDLE,
+                        0,
+                        VK_NULL_HANDLE,
+                        2,
+                        vkBarrier
+                    );
+
+                    float scale = glm::pow(0.5f, mip - 1);
+                    int32_t width = image.GetDescription().width * scale;
+                    int32_t height = image.GetDescription().height * scale;
+                    VkImageBlit blit;
+                    blit.srcSubresource = {
+                        .aspectMask = range.aspectMask,
+                        .mipLevel = mip - 1,
+                        .baseArrayLayer = range.baseArrayLayer,
+                        .layerCount = range.layerCount,
+                    };
+                    blit.srcOffsets[0] = {0, 0, 0};
+                    blit.srcOffsets[1] = {width, height, 1};
+                    blit.dstSubresource = {
+                        .aspectMask = range.aspectMask,
+                        .mipLevel = mip,
+                        .baseArrayLayer = range.baseArrayLayer,
+                        .layerCount = range.layerCount,
+                    };
+                    blit.dstOffsets[0] = {0, 0, 0};
+                    blit.dstOffsets[1] = {width / 2, height / 2, 1};
+
+                    vkCmdBlitImage(
+                        cmd,
+                        image.GetImage(),
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        image.GetImage(),
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        1,
+                        &blit,
+                        VK_FILTER_LINEAR
+                    );
+                }
+            }
+
             VkImageMemoryBarrier vkBarrier[2];
             vkBarrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             vkBarrier[0].pNext = VK_NULL_HANDLE;
-            vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            vkBarrier[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            vkBarrier[0].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[0].image = image.GetImage();
+            range.baseMipLevel = 0;
+            range.levelCount = image.GetDescription().mipLevels - 1;
             vkBarrier[0].subresourceRange = range;
 
-            range.baseMipLevel = mip;
             vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             vkBarrier[1].pNext = VK_NULL_HANDLE;
-            vkBarrier[1].srcAccessMask = VK_ACCESS_NONE;
-            vkBarrier[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            vkBarrier[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            vkBarrier[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[1].image = image.GetImage();
+            range.baseMipLevel = image.GetDescription().mipLevels - 1;
+            range.levelCount = 1;
             vkBarrier[1].subresourceRange = range;
-
-            if (mip == 1)
-            {
-                vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            }
-
             vkCmdPipelineBarrier(
                 cmd,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                 VK_DEPENDENCY_BY_REGION_BIT,
                 0,
                 VK_NULL_HANDLE,
@@ -367,75 +449,7 @@ void VKDriver::GenerateMipmaps(VKImage& image)
                 2,
                 vkBarrier
             );
-
-            int32_t width = image.GetDescription().width;
-            int32_t height = image.GetDescription().height;
-            VkImageBlit blit;
-            blit.srcSubresource = {
-                .aspectMask = range.aspectMask,
-                .mipLevel = mip - 1,
-                .baseArrayLayer = range.baseArrayLayer,
-                .layerCount = range.layerCount,
-            };
-            blit.srcOffsets[0] = {0, 0, 0};
-            blit.srcOffsets[1] = {width, height, 1};
-            blit.dstSubresource = {
-                .aspectMask = range.aspectMask,
-                .mipLevel = mip,
-                .baseArrayLayer = range.baseArrayLayer,
-                .layerCount = range.layerCount,
-            };
-            blit.dstOffsets[0] = {0, 0, 0};
-            blit.dstOffsets[1] = {width / 2, height / 2, 1};
-
-            vkCmdBlitImage(
-                cmd,
-                image.GetImage(),
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                image.GetImage(),
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1,
-                &blit,
-                VK_FILTER_LINEAR
-            );
         }
-    }
-
-    VkImageMemoryBarrier vkBarrier[2];
-    vkBarrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    vkBarrier[0].pNext = VK_NULL_HANDLE;
-    vkBarrier[0].srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    vkBarrier[0].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    vkBarrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBarrier[0].image = image.GetImage();
-    range.baseMipLevel = 0;
-    range.levelCount = image.GetDescription().mipLevels - 1;
-    vkBarrier[0].subresourceRange = range;
-
-    vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    vkBarrier[1].pNext = VK_NULL_HANDLE;
-    vkBarrier[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkBarrier[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkBarrier[1].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    vkBarrier[1].image = image.GetImage();
-    vkBarrier[1].subresourceRange = range;
-    vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_DEPENDENCY_BY_REGION_BIT,
-        0,
-        VK_NULL_HANDLE,
-        0,
-        VK_NULL_HANDLE,
-        2,
-        vkBarrier
     );
 }
 
@@ -478,9 +492,6 @@ void VKDriver::Present()
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
 
-    // prepare for command execution
-    inflightData[currentInflightIndex].pendingCommands.clear();
-
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
 
@@ -507,7 +518,12 @@ void VKDriver::Present()
     );
 
     VKCommandBuffer vkCmd(cmd);
-    for (auto& f : inflightData[currentInflightIndex].pendingCommands)
+    for (auto& f : internalPendingCommands)
+    {
+        f(cmd);
+    }
+
+    for (auto& f : pendingCommands)
     {
         f(vkCmd);
     }
@@ -538,6 +554,8 @@ void VKDriver::Present()
     vkQueuePresentKHR(mainQueue.handle, &presentInfo);
 
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
+    pendingCommands.clear();
+    internalPendingCommands.clear();
 }
 
 void VKDriver::CreateAppWindow()
@@ -768,6 +786,16 @@ void VKDriver::CreatePhysicalDevice()
         vkGetPhysicalDeviceFeatures(thisGPU.handle, &thisGPU.physicalDeviceFeatures);
         vkGetPhysicalDeviceMemoryProperties(thisGPU.handle, &thisGPU.memProperties);
 
+        uint32_t count;
+        vkGetPhysicalDeviceQueueFamilyProperties(thisGPU.handle, &count, VK_NULL_HANDLE);
+        thisGPU.queueFamilyProperties.resize(count);
+        vkGetPhysicalDeviceQueueFamilyProperties(thisGPU.handle, &count, thisGPU.queueFamilyProperties.data());
+
+        vkEnumerateDeviceExtensionProperties(thisGPU.handle, nullptr, &count, nullptr);
+
+        thisGPU.availableExtensions.resize(count);
+        vkEnumerateDeviceExtensionProperties(thisGPU.handle, nullptr, &count, thisGPU.availableExtensions.data());
+
         gpus.push_back(thisGPU);
     }
 
@@ -784,13 +812,9 @@ void VKDriver::CreatePhysicalDevice()
         if (!requiredExtensions.empty())
             continue; // early skip if this device is not suitable
 
-        // Check required device features
-        if (!true) // no required feature yet
-            continue;
-
         // This gpu passed all the test!
         this->gpu = g;
-        break;
+        return;
     }
 
     throw std::runtime_error("No Suitable GPU");
@@ -1130,7 +1154,8 @@ void VKDriver::RHI_UploadData(VkCommandBuffer cmd)
 
     // found a fitting buffer
     Buffer* stagingBuffer = nullptr;
-    size_t totalStaingSize = nextBufferUploadsSize + nextImageUploadsSize;
+    size_t imagePadding = (nextBufferUploadsSize % 4);
+    size_t totalStaingSize = nextBufferUploadsSize + imagePadding + nextImageUploadsSize;
     for (auto& b : stagingBuffers)
     {
         if (!b->inUse)
@@ -1163,7 +1188,7 @@ void VKDriver::RHI_UploadData(VkCommandBuffer cmd)
     stagingBuffer->inUse = true;
 
     // try destroy buffer that are overly created
-    size_t overCreatedCount = stagingBuffers.size() - driverConfig.swapchainImageCount;
+    int overCreatedCount = stagingBuffers.size() - driverConfig.swapchainImageCount;
     while (overCreatedCount > 0)
     {
         int index = -1;
@@ -1193,8 +1218,8 @@ void VKDriver::RHI_UploadData(VkCommandBuffer cmd)
     size_t stagingOffset = 0;
     for (auto& b : nextBufferUploads)
     {
-        VkBufferCopy region{
-
+        VkBufferCopy region
+        {
             .srcOffset = stagingOffset,
             .dstOffset = b.dstOffset,
             .size = b.size,
@@ -1278,7 +1303,7 @@ void VKDriver::Driver_DestroyBuffer(Buffer* b)
 
 void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
-    inflightData[currentInflightIndex].pendingCommands.push_back(std::move(f));
+    pendingCommands.push_back(std::move(f));
 }
 
 void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
@@ -1311,6 +1336,11 @@ void VKDriver::UploadBuffer(
 )
 {
     auto& vkDst = static_cast<VKBuffer&>(dst);
+    if (dstOffset + size > dst.GetSize())
+    {
+        SPDLOG_ERROR("Driver: Upload Buffer failed: dstOffset + size > dst.size");
+        return;
+    }
 
     nextBufferUploadsSize += size;
     nextBufferUploads.push_back(PendingBufferUpload{

@@ -125,9 +125,9 @@ public:
     std::unique_ptr<VKMemAllocator> memAllocator;
     std::unique_ptr<VKObjectManager> objectManager;
 
-    UniPtr<VKContext> context;
-    UniPtr<VKSharedResource> sharedResource;
-    UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
+    std::unique_ptr<VKContext> context;
+    std::unique_ptr<VKSharedResource> sharedResource;
+    std::unique_ptr<VKDescriptorPoolCache> descriptorPoolCache;
     VkCommandPool mainCmdPool;
 
     struct DriverConfig
@@ -146,36 +146,10 @@ public:
         VkDevice handle;
     } device;
 
-    struct Queue
-    {
-        VkQueue handle;
-        uint32_t queueIndex;
-        uint32_t queueFamilyIndex;
-    };
     Queue mainQueue;
 
-    struct GPU
-    {
-        VkPhysicalDevice handle;
-
-        VkPhysicalDeviceMemoryProperties memProperties;
-        VkPhysicalDeviceProperties physicalDeviceProperties{};
-        VkPhysicalDeviceFeatures physicalDeviceFeatures{};
-
-        std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-        std::vector<VkExtensionProperties> availableExtensions;
-    } gpu;
-
-    struct Swapchain
-    {
-        VkSwapchainKHR handle;
-        VkSurfaceFormatKHR surfaceFormat;
-        VkExtent2D extent;
-        VkImageUsageFlags imageUsageFlags;
-        VkSurfaceTransformFlagBitsKHR surfaceTransform;
-        VkPresentModeKHR presentMode;
-        uint32_t numberOfImages;
-    } swapchain;
+    GPU gpu;
+    Swapchain swapchain;
 
     struct Surface
     {
@@ -215,7 +189,7 @@ public:
 
     struct Buffer
     {
-        VkBuffer handle;
+        VkBuffer handle = VK_NULL_HANDLE;
         VmaAllocation allocation;
         VmaAllocationInfo allocationInfo;
         size_t size;
@@ -225,8 +199,8 @@ public:
     // RHI implementation
     struct InflightData
     {
-        VkCommandBuffer cmd;
-        VkFence cmdFence;
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence cmdFence = VK_NULL_HANDLE;
         VkSemaphore cmdSemaphore;
         VkSemaphore presentSemaphore;
         uint32_t swapchainIndex;
@@ -235,14 +209,15 @@ public:
         // inflight data needs to notify all uploads when it's command buffer is finished
         std::vector<PendingBufferUpload> pendingBufferUploads;
         std::vector<PendingImageUpload> pendingImageUploads;
-        std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands;
     };
-    std::vector<InflightData> inflightData;
-    uint32_t currentInflightIndex;
-    std::unique_ptr<VKSwapChainImage> swapchainImage;
+    std::vector<InflightData> inflightData = {};
+    uint32_t currentInflightIndex = 0;
+    std::unique_ptr<VKSwapChainImage> swapchainImage = nullptr;
+    std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
+    std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
 
-    VkCommandBuffer immediateCmd;
-    VkFence immediateCmdFence;
+    VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
+    VkFence immediateCmdFence = VK_NULL_HANDLE;
 
     // buffer uploads
     std::vector<PendingBufferUpload> nextBufferUploads = {};

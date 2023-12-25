@@ -50,7 +50,6 @@ protected:
     uint32_t set = -1;
 
     VKSharedResource* sharedResource;
-    VKDevice* device;
 
     VKDescriptorPool* descriptorPool = nullptr;
     std::unordered_map<std::string, std::unique_ptr<VKBuffer>> buffers;
