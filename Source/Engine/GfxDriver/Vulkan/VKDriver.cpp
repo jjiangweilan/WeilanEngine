@@ -85,8 +85,8 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 1;
-    assert(driverConfig.swapchainImageCount <= 8);
+    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 2;
+    assert(driverConfig.swapchainImageCount + 2 <= 8);
     VkCommandBuffer cmds[8];
     vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
 
@@ -106,7 +106,10 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
     }
     immediateCmd = cmds[driverConfig.swapchainImageCount];
+    transferCmd = cmds[driverConfig.swapchainImageCount + 1];
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
+    vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &transferFence);
+    vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSemaphore);
 }
 
 VKDriver::~VKDriver()
@@ -126,6 +129,8 @@ VKDriver::~VKDriver()
         vkDestroySemaphore(device.handle, inflight.cmdSemaphore, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.presentSemaphore, VK_NULL_HANDLE);
     }
+    vkDestroyFence(device.handle, transferFence, VK_NULL_HANDLE);
+    vkDestroySemaphore(device.handle, transferSemaphore, VK_NULL_HANDLE);
 
     SamplerCachePool::DestroyPool();
 
@@ -1129,97 +1134,16 @@ void VKDriver::CreateDevice()
     }
 }
 
-void VKDriver::RHI_UploadData(VkCommandBuffer cmd)
+VkSemaphore VKDriver::RHI_UploadData(VkCommandBuffer cmd)
 {
-    if (nextBufferUploads.empty())
+    if (nextBufferUploads.empty() && nextImageUploads.empty())
         return;
-
-    // try releasing in used buffer
-    for (auto& inflight : inflightData)
-    {
-        if (inflight.stagingBuffer != nullptr && inflight.stagingBuffer->inUse)
-        {
-            if (vkGetFenceStatus(device.handle, inflight.cmdFence) == VK_SUCCESS)
-            {
-                inflight.stagingBuffer->inUse = false;
-                for (auto& p : inflight.pendingBufferUploads)
-                {
-                    if (p.finishCallback)
-                        p.finishCallback();
-                }
-                inflight.pendingBufferUploads.clear();
-            }
-        }
-    }
-
-    // found a fitting buffer
-    Buffer* stagingBuffer = nullptr;
-    size_t imagePadding = (nextBufferUploadsSize % 4);
-    size_t totalStaingSize = nextBufferUploadsSize + imagePadding + nextImageUploadsSize;
-    for (auto& b : stagingBuffers)
-    {
-        if (!b->inUse)
-        {
-            if (b->size >= totalStaingSize)
-            {
-                stagingBuffer = b.get();
-                break;
-            }
-        }
-    }
-
-    // no free buffer, create one
-    if (stagingBuffer == VK_NULL_HANDLE)
-    {
-        Buffer bufVal = Driver_CreateBuffer(
-            totalStaingSize * 1.2f, // slighting enlarge staging buffer
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT
-        );
-
-        auto buf = std::make_unique<Buffer>(bufVal);
-
-        stagingBuffer = buf.get();
-        stagingBuffers.push_back(std::move(buf));
-    }
-
-    // attach this staging buffer to inflightData
-    inflightData[currentInflightIndex].stagingBuffer = stagingBuffer;
-    stagingBuffer->inUse = true;
-
-    // try destroy buffer that are overly created
-    int overCreatedCount = stagingBuffers.size() - driverConfig.swapchainImageCount;
-    while (overCreatedCount > 0)
-    {
-        int index = -1;
-        size_t minSize = std::numeric_limits<size_t>::max();
-
-        // find a buffer with minimum size
-        for (int i = 0; i < stagingBuffers.size(); ++i)
-        {
-            if (stagingBuffers[i]->size < minSize && !stagingBuffers[i]->inUse)
-            {
-                index = i;
-                minSize = stagingBuffers[i]->size;
-            }
-        }
-
-        // destroy that buffer
-        if (index >= 0)
-        {
-            Driver_DestroyBuffer(stagingBuffers[index].get());
-            stagingBuffers.erase(stagingBuffers.begin() + index);
-        }
-
-        overCreatedCount -= 1;
-    }
 
     // upload data
     size_t stagingOffset = 0;
     for (auto& b : nextBufferUploads)
     {
-        VkBufferCopy region
-        {
+        VkBufferCopy region{
             .srcOffset = stagingOffset,
             .dstOffset = b.dstOffset,
             .size = b.size,

@@ -204,7 +204,6 @@ public:
         VkSemaphore cmdSemaphore;
         VkSemaphore presentSemaphore;
         uint32_t swapchainIndex;
-        VKDriver::Buffer* stagingBuffer;
 
         // inflight data needs to notify all uploads when it's command buffer is finished
         std::vector<PendingBufferUpload> pendingBufferUploads;
@@ -219,15 +218,16 @@ public:
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;
 
+    VkFence transferFence;
+    VkSemaphore transferSemaphore;
+    VkCommandBuffer transferCmd;
+    Buffer stagingBuffer;
     // buffer uploads
     std::vector<PendingBufferUpload> nextBufferUploads = {};
     size_t nextBufferUploadsSize = 0;
-
     // image uploads
     std::vector<PendingImageUpload> nextImageUploads = {};
     size_t nextImageUploadsSize = 0;
-
-    std::vector<std::unique_ptr<Buffer>> stagingBuffers;
 
     void CreateInstance();
     void CreatePhysicalDevice();
@@ -243,7 +243,7 @@ public:
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     bool Swapchain_GetImagesFromVulkan();
 
-    void RHI_UploadData(VkCommandBuffer cmd);
+    VkSemaphore RHI_UploadData(VkCommandBuffer cmd);
 
     VkResult CreateDebugUtilsMessengerEXT(
         VkInstance instance,
