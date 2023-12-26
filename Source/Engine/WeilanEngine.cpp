@@ -47,6 +47,9 @@ bool WeilanEngine::BeginFrame()
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
 
+    if (!gfxDriver->BeginFrame())
+        return false;
+
 #if ENGINE_EDITOR
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
@@ -62,8 +65,13 @@ void WeilanEngine::EndFrame()
     ImGui::EndFrame();
 #endif
 
+    event->Reset();
+
     // submit anything in the active command and present the surface
-    GetGfxDriver()->Present();
+    if (gfxDriver->EndFrame())
+        event->swapchainRecreated.state = true;
+    else
+        event->swapchainRecreated.state = false;
 
 #if ENGINE_EDITOR
     assetDatabase->RefreshShader();

@@ -45,6 +45,11 @@ enum class AcquireNextSwapChainImageResult
     Recreated
 };
 
+enum class GfxEvent
+{
+    SwapchainRecreated
+};
+
 class GfxDriver
 {
 public:
@@ -67,6 +72,10 @@ public:
     virtual Backend GetGfxBackendType() = 0;
     virtual Extent2D GetSurfaceSize() = 0;
 
+    virtual bool BeginFrame() = 0;
+
+    // return true if swapchain recreated
+    virtual bool EndFrame() = 0;
     virtual UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
@@ -126,7 +135,6 @@ public:
         uint32_t arayLayer = 0,
         Gfx::ImageAspect aspect = Gfx::ImageAspect::Color
     ) = 0;
-    virtual void Present() = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
 private:

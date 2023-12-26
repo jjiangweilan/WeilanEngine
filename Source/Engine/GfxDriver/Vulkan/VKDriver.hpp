@@ -61,7 +61,6 @@ public:
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
-    void Present() override;
     RefPtr<VKSharedResource> GetSharedResource()
     {
         return sharedResource;
@@ -109,6 +108,8 @@ public:
     {
         GenerateMipmaps(static_cast<VKImage&>(image));
     }
+    bool BeginFrame() override;
+    bool EndFrame() override;
 
     void GenerateMipmaps(VKImage& image);
 
@@ -192,6 +193,7 @@ public:
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     bool Swapchain_GetImagesFromVulkan();
+    void Surface_QuerySurfaceProperties();
 
 private:
     void FrameEndClear();

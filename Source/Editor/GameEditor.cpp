@@ -389,7 +389,7 @@ void GameEditor::Start()
             {
                 return;
             }
-            if (engine->event->GetWindowSizeChanged().state)
+            if (engine->event->GetSwapchainRecreated().state)
             {
                 gameEditorRenderer->BuildGraph();
             }

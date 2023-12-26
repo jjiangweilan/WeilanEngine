@@ -486,31 +486,29 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 {
     return std::make_unique<VKShaderResource>();
 }
-void VKDriver::Present()
+
+bool VKDriver::BeginFrame()
 {
-    dataUploader->UploadAllPending(transferSignalSemaphore);
-
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
-
     // acquire next swapchain
-    VkSemaphore imageAcquireSemaphore = inflightData[currentInflightIndex].imageAcquireSemaphore;
     VkResult acquireResult = vkAcquireNextImageKHR(
         device.handle,
         swapchain.handle,
         -1,
-        imageAcquireSemaphore,
+        inflightData[currentInflightIndex].imageAcquireSemaphore,
         VK_NULL_HANDLE,
         &inflightData[currentInflightIndex].swapchainIndex
     );
-
-    if (acquireResult != VK_SUCCESS)
-    {
-        FrameEndClear();
-        return;
-    }
-
     swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+
+    return true;
+}
+
+bool VKDriver::EndFrame()
+{
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+
+    dataUploader->UploadAllPending(transferSignalSemaphore);
 
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
@@ -533,7 +531,7 @@ void VKDriver::Present()
     vkEndCommandBuffer(cmd);
 
     VkPipelineStageFlags waitFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
-    VkSemaphore waitSemaphores[] = {imageAcquireSemaphore, transferSignalSemaphore};
+    VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.waitSemaphoreCount = 2;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -555,9 +553,19 @@ void VKDriver::Present()
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
         nullptr};
-    vkQueuePresentKHR(mainQueue.handle, &presentInfo);
 
     FrameEndClear();
+
+    VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        Surface_QuerySurfaceProperties();
+        CreateOrOverrideSwapChain();
+        Swapchain_GetImagesFromVulkan();
+        return true;
+    }
+
+    return false;
 }
 
 void VKDriver::CreateAppWindow()
@@ -842,13 +850,8 @@ VkResult VKDriver::CreateDebugUtilsMessengerEXT(
     }
 }
 
-void VKDriver::CreateSurface()
+void VKDriver::Surface_QuerySurfaceProperties()
 {
-    if (!SDL_Vulkan_CreateSurface(window.handle, instance.handle, &surface.handle))
-    {
-        spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
-    }
-
     // Get surface capabilities
     if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.handle, surface.handle, &surface.surfaceCapabilities) !=
         VK_SUCCESS)
@@ -890,6 +893,16 @@ void VKDriver::CreateSurface()
     {
         throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
     }
+}
+
+void VKDriver::CreateSurface()
+{
+    if (!SDL_Vulkan_CreateSurface(window.handle, instance.handle, &surface.handle))
+    {
+        spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
+    }
+
+    Surface_QuerySurfaceProperties();
 }
 
 bool VKDriver::CreateOrOverrideSwapChain()
@@ -984,7 +997,6 @@ bool VKDriver::CreateOrOverrideSwapChain()
 
 bool VKDriver::Swapchain_GetImagesFromVulkan()
 {
-    swapchainImage = nullptr;
     uint32_t imageCount = 0;
 
     vkGetSwapchainImagesKHR(device.handle, swapchain.handle, &imageCount, VK_NULL_HANDLE);
@@ -994,7 +1006,9 @@ bool VKDriver::Swapchain_GetImagesFromVulkan()
         return false;
     }
 
-    swapchainImage = std::make_unique<VKSwapChainImage>();
+    if (swapchainImage == nullptr)
+        swapchainImage = std::make_unique<VKSwapChainImage>();
+
     swapchainImage->Recreate(
         swapChainImagesTemp,
         swapchain.surfaceFormat.format,
