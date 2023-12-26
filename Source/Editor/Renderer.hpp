@@ -15,14 +15,14 @@ public:
     void Execute(Gfx::CommandBuffer& cmd);
 
 private:
-    std::unique_ptr<RenderGraph::Graph> editorRenderGraph;
-    std::unique_ptr<Gfx::Buffer> indexBuffer;
-    std::unique_ptr<Gfx::Buffer> vertexBuffer;
-    std::unique_ptr<Gfx::Buffer> stagingBuffer;
-    std::unique_ptr<Gfx::Buffer> stagingBuffer2;
-    std::unique_ptr<Gfx::ShaderProgram> shaderProgram;
-    std::unique_ptr<Gfx::Image> fontImage;
-    std::unique_ptr<RenderGraph::Graph> graph;
+    std::unique_ptr<RenderGraph::Graph> editorRenderGraph = nullptr;
+    std::unique_ptr<Gfx::Buffer> indexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> vertexBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer = nullptr;
+    std::unique_ptr<Gfx::Buffer> stagingBuffer2 = nullptr;
+    std::unique_ptr<Gfx::ShaderProgram> shaderProgram = nullptr;
+    std::unique_ptr<Gfx::Image> fontImage = nullptr;
+    std::unique_ptr<RenderGraph::Graph> graph = nullptr;
 
     void RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res);
     void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);

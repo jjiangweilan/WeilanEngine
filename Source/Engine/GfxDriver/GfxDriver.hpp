@@ -116,13 +116,7 @@ public:
     // RHI implementation
     virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
     virtual void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
-    virtual void UploadBuffer(
-        Gfx::Buffer& dst,
-        uint8_t* data,
-        size_t size,
-        size_t dstOffset = 0,
-        std::function<void()> finishedCallback = nullptr
-    ) = 0;
+    virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
 
     virtual void UploadImage(
         Gfx::Image& dst,
@@ -130,8 +124,7 @@ public:
         size_t size,
         uint32_t mipLevel = 0,
         uint32_t arayLayer = 0,
-        Gfx::ImageAspect aspect = Gfx::ImageAspect::Color,
-        std::function<void()> finishedCallback = nullptr
+        Gfx::ImageAspect aspect = Gfx::ImageAspect::Color
     ) = 0;
     virtual void Present() = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;

@@ -3,6 +3,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
@@ -85,8 +86,8 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
     rhiCmdAllocateInfo.commandPool = mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 2;
-    assert(driverConfig.swapchainImageCount + 2 <= 8);
+    rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 1;
+    assert(driverConfig.swapchainImageCount + 1 <= 8);
     VkCommandBuffer cmds[8];
     vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
 
@@ -102,23 +103,30 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         inflightData[i].swapchainIndex = i;
         vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
 
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdSemaphore);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].imageAcquireSemaphore);
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
     }
     immediateCmd = cmds[driverConfig.swapchainImageCount];
-    transferCmd = cmds[driverConfig.swapchainImageCount + 1];
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
-    vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &transferFence);
-    vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSemaphore);
+    vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSignalSemaphore);
+
+    dataUploader = std::make_unique<VKDataUploader>(this);
+    sharedResource = std::make_unique<VKSharedResource>(this);
+    context->sharedResource = sharedResource.get();
+    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+    dataUploader
+        ->UploadImage(context->sharedResource->GetDefaultTexture2D().Get(), pxls, 64, 0, 0, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 VKDriver::~VKDriver()
 {
     vkDeviceWaitIdle(device.handle);
 
+    swapchainImage = nullptr;
     sharedResource = nullptr;
 
     descriptorPoolCache = nullptr;
+    dataUploader = nullptr;
     objectManager->DestroyPendingResources();
 
     // destroy inflight data
@@ -126,11 +134,11 @@ VKDriver::~VKDriver()
     for (InflightData& inflight : inflightData)
     {
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
-        vkDestroySemaphore(device.handle, inflight.cmdSemaphore, VK_NULL_HANDLE);
+        vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.presentSemaphore, VK_NULL_HANDLE);
     }
-    vkDestroyFence(device.handle, transferFence, VK_NULL_HANDLE);
-    vkDestroySemaphore(device.handle, transferSemaphore, VK_NULL_HANDLE);
+    vkDestroySemaphore(device.handle, transferSignalSemaphore, VK_NULL_HANDLE);
+    vkDestroyFence(device.handle, immediateCmdFence, VK_NULL_HANDLE);
 
     SamplerCachePool::DestroyPool();
 
@@ -274,8 +282,6 @@ void VKDriver::QueueSubmit(
     {
         vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c)->GetHandle());
     }
-
-    auto vkqueue = static_cast<VKCommandQueue*>(queue.Get());
 
     VkSubmitInfo submitInfo;
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -482,9 +488,14 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 }
 void VKDriver::Present()
 {
+    dataUploader->UploadAllPending(transferSignalSemaphore);
+
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+
     // acquire next swapchain
-    VkSemaphore imageAcquireSemaphore = inflightData[currentInflightIndex].cmdSemaphore;
-    vkAcquireNextImageKHR(
+    VkSemaphore imageAcquireSemaphore = inflightData[currentInflightIndex].imageAcquireSemaphore;
+    VkResult acquireResult = vkAcquireNextImageKHR(
         device.handle,
         swapchain.handle,
         -1,
@@ -492,10 +503,14 @@ void VKDriver::Present()
         VK_NULL_HANDLE,
         &inflightData[currentInflightIndex].swapchainIndex
     );
-    swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
 
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+    if (acquireResult != VK_SUCCESS)
+    {
+        FrameEndClear();
+        return;
+    }
+
+    swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
 
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
@@ -504,23 +519,6 @@ void VKDriver::Present()
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(cmd, &beginInfo);
-    RHI_UploadData(cmd);
-
-    VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-    barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-    vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        0,
-        1,
-        &barrier,
-        0,
-        VK_NULL_HANDLE,
-        0,
-        VK_NULL_HANDLE
-    );
 
     VKCommandBuffer vkCmd(cmd);
     for (auto& f : internalPendingCommands)
@@ -534,11 +532,12 @@ void VKDriver::Present()
     }
     vkEndCommandBuffer(cmd);
 
-    VkPipelineStageFlags waitFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineStageFlags waitFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
+    VkSemaphore waitSemaphores[] = {imageAcquireSemaphore, transferSignalSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = &imageAcquireSemaphore;
-    submitInfo.pWaitDstStageMask = &waitFlags;
+    submitInfo.waitSemaphoreCount = 2;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitFlags;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
     submitInfo.signalSemaphoreCount = 1;
@@ -558,9 +557,7 @@ void VKDriver::Present()
         nullptr};
     vkQueuePresentKHR(mainQueue.handle, &presentInfo);
 
-    currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
-    pendingCommands.clear();
-    internalPendingCommands.clear();
+    FrameEndClear();
 }
 
 void VKDriver::CreateAppWindow()
@@ -571,6 +568,8 @@ void VKDriver::CreateAppWindow()
     SDL_DisplayMode displayMode;
     // MacOS return points not pixels
     SDL_GetCurrentDisplayMode(0, &displayMode);
+
+    window.size = driverConfig.initialWindowSize;
 
     if (window.size.width > displayMode.w)
         window.size.width = displayMode.w * 0.8;
@@ -1134,71 +1133,12 @@ void VKDriver::CreateDevice()
     }
 }
 
-VkSemaphore VKDriver::RHI_UploadData(VkCommandBuffer cmd)
-{
-    if (nextBufferUploads.empty() && nextImageUploads.empty())
-        return;
-
-    // upload data
-    size_t stagingOffset = 0;
-    for (auto& b : nextBufferUploads)
-    {
-        VkBufferCopy region{
-            .srcOffset = stagingOffset,
-            .dstOffset = b.dstOffset,
-            .size = b.size,
-        };
-        stagingOffset += b.size;
-        vkCmdCopyBuffer(cmd, stagingBuffer->handle, b.dst, 1, &region);
-    }
-
-    if (!nextImageUploads.empty())
-    {
-        std::vector<VkBufferImageCopy> regions;
-        regions.reserve(32);
-        for (size_t i = 0; i < nextImageUploads.size(); ++i)
-        {
-            auto b = nextImageUploads[i].dst;
-            VkBufferImageCopy region;
-            region.bufferOffset = stagingOffset;
-            region.bufferRowLength = 0;
-            region.bufferImageHeight = 0;
-            region.imageSubresource.aspectMask = nextImageUploads[i].aspect;
-            region.imageSubresource.mipLevel = nextImageUploads[i].mipLevel;
-            region.imageSubresource.baseArrayLayer = nextImageUploads[i].arrayLayer;
-            region.imageSubresource.layerCount = 1;
-            region.imageOffset = VkOffset3D{0, 0, 0};
-            region.imageExtent = VkExtent3D{b->GetDescription().width, b->GetDescription().height, 1};
-            regions.push_back(region);
-
-            if (i + 1 == nextImageUploads.size() || nextImageUploads[i + 1].dst != b)
-            {
-                vkCmdCopyBufferToImage(
-                    cmd,
-                    stagingBuffer->handle,
-                    b->GetImage(),
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    regions.size(),
-                    regions.data()
-                );
-
-                regions.clear();
-            }
-        }
-    }
-
-    // move all to inflight so that it can notify uploads when cmd finished
-    inflightData[currentInflightIndex].pendingBufferUploads = std::move(nextBufferUploads);
-    inflightData[currentInflightIndex].pendingImageUploads = std::move(nextImageUploads);
-}
-
-VKDriver::Buffer VKDriver::Driver_CreateBuffer(
+Vulkan::Buffer VKDriver::Driver_CreateBuffer(
     size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags
 )
 {
-    VKDriver::Buffer buf;
+    Vulkan::Buffer buf;
     buf.size = size;
-    buf.inUse = false;
 
     VkBufferCreateInfo vkCreateInfo{};
     vkCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -1220,14 +1160,21 @@ VKDriver::Buffer VKDriver::Driver_CreateBuffer(
     return buf;
 }
 
-void VKDriver::Driver_DestroyBuffer(Buffer* b)
+void VKDriver::Driver_DestroyBuffer(Vulkan::Buffer& b)
 {
-    memAllocator->DestroyBuffer(b->handle, b->allocation);
+    memAllocator->DestroyBuffer(b.handle, b.allocation);
 }
 
 void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
     pendingCommands.push_back(std::move(f));
+}
+
+void VKDriver::FrameEndClear()
+{
+    currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
+    pendingCommands.clear();
+    internalPendingCommands.clear();
 }
 
 void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
@@ -1255,9 +1202,7 @@ void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&&
     vkResetFences(device.handle, 1, &immediateCmdFence);
 }
 
-void VKDriver::UploadBuffer(
-    Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset, std::function<void()> finishCallback
-)
+void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
 {
     auto& vkDst = static_cast<VKBuffer&>(dst);
     if (dstOffset + size > dst.GetSize())
@@ -1266,36 +1211,14 @@ void VKDriver::UploadBuffer(
         return;
     }
 
-    nextBufferUploadsSize += size;
-    nextBufferUploads.push_back(PendingBufferUpload{
-        .dst = vkDst.GetHandle(),
-        .data = data,
-        .size = size,
-        .dstOffset = dstOffset,
-        .finishCallback = finishCallback,
-    });
+    dataUploader->UploadBuffer(&vkDst, data, size, dstOffset);
 };
 void VKDriver::UploadImage(
-    Gfx::Image& dst,
-    uint8_t* data,
-    size_t size,
-    uint32_t mipLevel,
-    uint32_t arrayLayer,
-    Gfx::ImageAspect aspect,
-    std::function<void()> finishedCallback
+    Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
+
 )
 {
     auto& vkDst = static_cast<VKImage&>(dst);
-
-    nextImageUploadsSize += size;
-    nextImageUploads.push_back(PendingImageUpload{
-        .dst = &vkDst,
-        .data = data,
-        .size = size,
-        .mipLevel = mipLevel,
-        .arrayLayer = arrayLayer,
-        .aspect = Gfx::MapImageAspect(aspect),
-        .finishCallback = finishedCallback,
-    });
+    dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect));
 }
 } // namespace Gfx

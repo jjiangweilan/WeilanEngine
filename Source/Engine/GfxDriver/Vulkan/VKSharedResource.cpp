@@ -1,10 +1,11 @@
 #include "VKSharedResource.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "VKContext.hpp"
+#include "VKDriver.hpp"
 #include "VKImage.hpp"
 namespace Gfx
 {
-VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
+VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
 {
     // create default sampler
     VkSamplerCreateInfo samplerCreateInfo{};
@@ -26,7 +27,7 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
     samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    context->objManager->CreateSampler(samplerCreateInfo, defaultSampler);
+    driver->objectManager->CreateSampler(samplerCreateInfo, defaultSampler);
 
     // create default image
     ImageDescription desc{};
@@ -55,6 +56,6 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
 
 VKSharedResource::~VKSharedResource()
 {
-    context->objManager->DestroySampler(defaultSampler);
+    driver->objectManager->DestroySampler(defaultSampler);
 }
 } // namespace Gfx

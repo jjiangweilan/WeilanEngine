@@ -17,6 +17,8 @@
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
 
+#include "RHI/Buffer.hpp"
+
 namespace Gfx
 {
 class VKInstance;
@@ -29,6 +31,7 @@ class VKFrameBuffer;
 class VKRenderPass;
 class VKSharedResource;
 class VKContext;
+class VKDataUploader;
 struct VKDescriptorPoolCache;
 class VKDriver : public Gfx::GfxDriver
 {
@@ -98,21 +101,9 @@ public:
     // RHI implementation
     void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
-    void UploadBuffer(
-        Gfx::Buffer& dst,
-        uint8_t* data,
-        size_t size,
-        size_t dstOffset = 0,
-        std::function<void()> finishCallback = nullptr
-    ) override;
+    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
     void UploadImage(
-        Gfx::Image& dst,
-        uint8_t* data,
-        size_t size,
-        uint32_t mipLevel,
-        uint32_t arayLayer,
-        Gfx::ImageAspect aspect,
-        std::function<void()> finishedCallback = nullptr
+        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, Gfx::ImageAspect aspect
     ) override;
     void GenerateMipmaps(Gfx::Image& image) override
     {
@@ -128,11 +119,13 @@ public:
     std::unique_ptr<VKContext> context;
     std::unique_ptr<VKSharedResource> sharedResource;
     std::unique_ptr<VKDescriptorPoolCache> descriptorPoolCache;
+    std::unique_ptr<VKDataUploader> dataUploader;
     VkCommandPool mainCmdPool;
 
     struct DriverConfig
     {
         int swapchainImageCount = 3;
+        Extent2D initialWindowSize = {1920, 1080};
     } driverConfig;
 
     struct Instance
@@ -167,67 +160,24 @@ public:
 
     GPUFeatures gpuFeatures;
 
-    struct PendingBufferUpload
-    {
-        VkBuffer dst;
-        uint8_t* data;
-        size_t size;
-        size_t dstOffset;
-        std::function<void()> finishCallback;
-    };
-
-    struct PendingImageUpload
-    {
-        VKImage* dst;
-        uint8_t* data;
-        size_t size;
-        uint32_t mipLevel;
-        uint32_t arrayLayer;
-        VkImageAspectFlags aspect;
-        std::function<void()> finishCallback;
-    };
-
-    struct Buffer
-    {
-        VkBuffer handle = VK_NULL_HANDLE;
-        VmaAllocation allocation;
-        VmaAllocationInfo allocationInfo;
-        size_t size;
-        bool inUse;
-    };
-
     // RHI implementation
     struct InflightData
     {
         VkCommandBuffer cmd = VK_NULL_HANDLE;
         VkFence cmdFence = VK_NULL_HANDLE;
-        VkSemaphore cmdSemaphore;
+        VkSemaphore imageAcquireSemaphore;
         VkSemaphore presentSemaphore;
         uint32_t swapchainIndex;
-
-        // inflight data needs to notify all uploads when it's command buffer is finished
-        std::vector<PendingBufferUpload> pendingBufferUploads;
-        std::vector<PendingImageUpload> pendingImageUploads;
     };
     std::vector<InflightData> inflightData = {};
     uint32_t currentInflightIndex = 0;
     std::unique_ptr<VKSwapChainImage> swapchainImage = nullptr;
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
+    VkSemaphore transferSignalSemaphore;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;
-
-    VkFence transferFence;
-    VkSemaphore transferSemaphore;
-    VkCommandBuffer transferCmd;
-    Buffer stagingBuffer;
-    // buffer uploads
-    std::vector<PendingBufferUpload> nextBufferUploads = {};
-    size_t nextBufferUploadsSize = 0;
-    // image uploads
-    std::vector<PendingImageUpload> nextImageUploads = {};
-    size_t nextImageUploadsSize = 0;
 
     void CreateInstance();
     void CreatePhysicalDevice();
@@ -236,14 +186,15 @@ public:
     void CreateSurface();
     bool CreateOrOverrideSwapChain();
 
-    Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
-    void Driver_DestroyBuffer(Buffer* b);
+    Vulkan::Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
+    void Driver_DestroyBuffer(Vulkan::Buffer& b);
 
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     bool Swapchain_GetImagesFromVulkan();
 
-    VkSemaphore RHI_UploadData(VkCommandBuffer cmd);
+private:
+    void FrameEndClear();
 
     VkResult CreateDebugUtilsMessengerEXT(
         VkInstance instance,

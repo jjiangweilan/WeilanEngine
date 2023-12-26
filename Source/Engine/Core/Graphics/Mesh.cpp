@@ -168,9 +168,8 @@ void Submesh::Apply()
     }
     indexCount = indices.size();
 
-    GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, staging, vertexBufferSize, 0, nullptr);
-    GetGfxDriver()
-        ->UploadBuffer(*gfxIndexBuffer, staging + vertexBufferSize, indexBufferSize, 0, [staging]() { delete[] staging; });
+    GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, staging, vertexBufferSize, 0);
+    GetGfxDriver()->UploadBuffer(*gfxIndexBuffer, staging + vertexBufferSize, indexBufferSize, 0);
     // GetGfxDriver()->Schedule(
     //     [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
     //     {
