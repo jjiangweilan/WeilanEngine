@@ -70,6 +70,16 @@ static std::size_t WriteAccessorDataToBuffer(
     return byteLength;
 }
 
+static int GetImageIndex(nlohmann::json& texJson)
+{
+    if (texJson.contains("source"))
+    {
+        return texJson["source"];
+    }
+
+    return texJson["extensions"]["KHR_texture_basisu"]["source"];
+}
+
 bool Model::LoadFromFile(const char* cpath)
 {
     std::filesystem::path path(cpath);
@@ -96,10 +106,22 @@ bool Model::LoadFromFile(const char* cpath)
     for (int i = 0; i < textureSize; ++i)
     {
         int bufferViewIndex = jsonData["images"][i]["bufferView"];
+        std::string mimeType = jsonData["images"][i]["mimeType"];
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
-        auto tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+
+        std::unique_ptr<Texture> tex = nullptr;
+        if (mimeType == "image/jpeg" || mimeType == "image/png")
+        {
+            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+        }
+        else if (mimeType == "image/ktx2")
+        {
+            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::Ktx, UUID{});
+        }
+        else
+            throw std::runtime_error("unsupported mime type");
         Utils::GLB::SetAssetName(tex.get(), jsonData, "images", i);
 
         toOurTexture[i] = tex.get();
@@ -135,7 +157,7 @@ bool Model::LoadFromFile(const char* cpath)
             int baseColorSamplerIndex = matJson["pbrMetallicRoughness"]["baseColorTexture"].value("index", -1);
             if (baseColorSamplerIndex != -1)
             {
-                int baseColorImageIndex = texJson[baseColorSamplerIndex]["source"];
+                int baseColorImageIndex = GetImageIndex(texJson[baseColorSamplerIndex]);
                 mat->SetTexture("baseColorTex", toOurTexture[baseColorImageIndex]);
             }
         }
@@ -146,7 +168,7 @@ bool Model::LoadFromFile(const char* cpath)
             int normalTextureSamplerIndex = matJson["normalTexture"].value("index", -1);
             if (normalTextureSamplerIndex != -1)
             {
-                int normalTextureImageInex = texJson[normalTextureSamplerIndex]["source"];
+                int normalTextureImageInex = GetImageIndex(texJson[normalTextureSamplerIndex]);
                 mat->SetTexture("normalMap", toOurTexture[normalTextureImageInex]);
             }
         }
@@ -161,7 +183,7 @@ bool Model::LoadFromFile(const char* cpath)
             int textureSamplerIndex = matJson["emissiveTexture"].value("index", -1);
             if (textureSamplerIndex != -1)
             {
-                int emissiveTextureImageIndex = texJson[textureSamplerIndex]["source"];
+                int emissiveTextureImageIndex = GetImageIndex(texJson[textureSamplerIndex]);
                 mat->SetTexture("emissiveMap", toOurTexture[emissiveTextureImageIndex]);
             }
         }
@@ -173,7 +195,7 @@ bool Model::LoadFromFile(const char* cpath)
                 matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
             if (metallicRougnessSamplerIndex != -1)
             {
-                int metallicRoughnessImageIndex = texJson[metallicRougnessSamplerIndex]["source"];
+                int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
                 mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
             }
         }

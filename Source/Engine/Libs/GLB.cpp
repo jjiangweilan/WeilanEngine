@@ -207,7 +207,6 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 
     // process position
     {
-        std::string attributeName = "POSITION";
         size_t accessorIndex = primitiveJson["attributes"]["POSITION"];
         auto& accessor = j["accessors"][accessorIndex];
         size_t count = accessor.value("count", 0);
@@ -227,8 +226,18 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 
             positions.resize(count);
 
-            assert(byteLength == count * sizeof(glm::vec3));
-            memcpy(positions.data(), binaryData + byteOffset, byteLength);
+            if (bufferView.contains("byteStride"))
+            {
+                size_t byteStride = bufferView["byteStride"];
+                for (size_t i = 0; i < count; ++i)
+                {
+                    positions[i] = *((glm::vec3*)(binaryData + byteOffset + byteStride * count));
+                }
+            }
+            else
+            {
+                memcpy(positions.data(), binaryData + byteOffset, byteLength);
+            }
         }
     }
 
