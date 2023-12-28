@@ -113,6 +113,37 @@ std::vector<std::unique_ptr<Mesh>> GLB::ExtractMeshes(
     return meshes;
 }
 
+int GetTypeSize(nlohmann::json& accessor)
+{
+    std::string type = accessor["type"];
+    int componentType = accessor["componentType"];
+    size_t byteSize = 0;
+
+    if (componentType == 5120)
+        byteSize = 1;
+    else if (componentType == 5121)
+        byteSize = 1;
+    else if (componentType == 5122)
+        byteSize = 2;
+    else if (componentType == 5123)
+        byteSize = 2;
+    else if (componentType == 5125)
+        byteSize = 4;
+    else if (componentType == 5126)
+        byteSize = 4;
+
+    if (type == "SCALAR")
+        byteSize *= 1;
+    else if (type == "VEC2")
+        byteSize *= 2;
+    else if (type == "VEC3")
+        byteSize *= 3;
+    else if (type == "VEC4")
+        byteSize *= 4;
+
+    return byteSize;
+}
+
 Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex)
 {
     auto& meshJson = j["meshes"][meshIndex];
@@ -198,10 +229,10 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
         size_t count = accessor.value("count", 0);
         int bufferViewIndex = accessor["bufferView"];
         auto& bufferView = j["bufferViews"][bufferViewIndex];
-        int byteLength = bufferView["byteLength"];
+        int byteLength = GetTypeSize(accessor);
         if (attributeName != "POSITION")
         {
-            attributeStride += byteLength / count;
+            attributeStride += byteLength;
         }
     }
 
@@ -210,10 +241,13 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
         size_t accessorIndex = primitiveJson["attributes"]["POSITION"];
         auto& accessor = j["accessors"][accessorIndex];
         size_t count = accessor.value("count", 0);
+
+        int accessorByteOffset = accessor.value("byteOffset", 0);
         int bufferViewIndex = accessor["bufferView"];
         auto& bufferView = j["bufferViews"][bufferViewIndex];
         int byteLength = bufferView["byteLength"];
         int byteOffset = bufferView["byteOffset"];
+        int byteSize = GetTypeSize(accessor);
         if (accessorIndex != -1)
         {
             glm::vec3 min = {accessor["min"][0], accessor["min"][1], accessor["min"][2]};
@@ -231,12 +265,12 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
                 size_t byteStride = bufferView["byteStride"];
                 for (size_t i = 0; i < count; ++i)
                 {
-                    positions[i] = *((glm::vec3*)(binaryData + byteOffset + byteStride * count));
+                    memcpy(&positions[i], (binaryData + byteOffset + accessorByteOffset + byteStride * i), byteSize);
                 }
             }
             else
             {
-                memcpy(positions.data(), binaryData + byteOffset, byteLength);
+                memcpy(positions.data(), binaryData + byteOffset + accessorByteOffset, byteLength);
             }
         }
     }
@@ -254,21 +288,37 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
             size_t accessorIndex = primitiveJson["attributes"][attributeName];
             auto& accessor = j["accessors"][accessorIndex];
             size_t count = accessor.value("count", 0);
+            int accessorByteOffset = accessor.value("byteOffset", 0);
             int bufferViewIndex = accessor["bufferView"];
             auto& bufferView = j["bufferViews"][bufferViewIndex];
-            int byteLength = bufferView["byteLength"];
             int byteOffset = bufferView["byteOffset"];
-            size_t byteSize = byteLength / count;
+            int byteStride = bufferView.value("byteStride", 0);
+
+            int byteSize = GetTypeSize(accessor);
 
             attribute.AddAttribute(attributeName.data(), byteSize);
             // copy as interleaved data
-            for (int i = 0; i < count; ++i)
+            if (byteStride == 0)
             {
-                memcpy(
-                    attributeData.data() + attributeOffset + i * attributeStride,
-                    binaryData + byteOffset + i * byteSize,
-                    byteSize
-                );
+                for (int i = 0; i < count; ++i)
+                {
+                    memcpy(
+                        attributeData.data() + attributeOffset + i * attributeStride,
+                        binaryData + byteOffset + accessorByteOffset + i * byteSize,
+                        byteSize
+                    );
+                }
+            }
+            else
+            {
+                for (int i = 0; i < count; ++i)
+                {
+                    memcpy(
+                        attributeData.data() + attributeOffset + i * attributeStride,
+                        binaryData + byteOffset + accessorByteOffset + i * byteStride,
+                        byteSize
+                    );
+                }
             }
 
             attributeOffset += byteSize;

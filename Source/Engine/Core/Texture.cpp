@@ -190,39 +190,22 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
         }
         else if (texture->numDimensions == 2)
         {
-            std::vector<Gfx::BufferImageCopyRegion> copies;
             for (uint32_t level = 0; level < texture->numLevels; ++level)
             {
                 for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
                 {
                     for (uint32_t face = 0; face < texture->numFaces; ++face)
                     {
-                        // Retrieve a pointer to the image for a specific mip level, array layer
-                        // & face or depth slice.
                         ktx_size_t offset = 0;
                         if (ktxTexture_GetImageOffset(texture, level, layer, face, &offset) != KTX_SUCCESS)
                             throw std::runtime_error("Texture-failed to get image offset");
+                        ktx_size_t byteSize = ktxTexture_GetImageSize(texture, level);
 
-                        float levelScale = std::pow(2, level);
-                        copies.push_back({
-                            .srcOffset = offset,
-                            .layers =
-                                {
-                                    .aspectMask = image->GetSubresourceRange().aspectMask,
-                                    .mipLevel = level,
-                                    .baseArrayLayer = layer + face,
-                                    .layerCount = 1,
-                                },
-                            .offset = {0, 0, 0},
-                            .extend =
-                                {(uint32_t)(desc.img.width / levelScale), (uint32_t)(desc.img.height / levelScale), 1},
-                        });
+                        GetGfxDriver()
+                            ->UploadImage(*image, data + offset, byteSize, level, layer + face);
                     }
                 }
             }
-
-            GetGfxDriver()
-                ->UploadImage(*image, data, byteSize, desc.img.mipLevels, image->GetSubresourceRange().layerCount);
         }
         else
         {

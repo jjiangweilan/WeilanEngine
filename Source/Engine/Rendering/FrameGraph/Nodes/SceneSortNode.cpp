@@ -35,8 +35,6 @@ public:
         drawList->clear();
 
         Scene* scene = graphResource.mainCamera->GetGameObject()->GetScene();
-        auto objs = scene->GetAllGameObjects();
-
         for (auto r : scene->GetRenderingScene().GetRenderers())
         {
             if (r)

@@ -1,13 +1,24 @@
 #pragma once
+#include "Core/Texture.hpp"
 
 #include <algorithm>
+#include <glm/glm.hpp>
 #include <vector>
 
 class MeshRenderer;
+
+struct EnvironmentLighting
+{
+    glm::vec4 sh[9];
+    Texture* specularEnv;
+};
 class RenderingScene
 {
 public:
     RenderingScene(){};
+
+    void SetEnvironmentLighting(EnvironmentLighting environmentLighting);
+
     void AddRenderer(MeshRenderer& meshRenderer)
     {
         meshRenderers.push_back(&meshRenderer);

@@ -73,10 +73,11 @@ void VKDataUploader::UploadImage(
     }
 
     memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + offset + align, data, size);
+    float scale = glm::pow(0.5, mipLevel);
     pendingImageUploads.push_back(PendingImageUpload{
         vkDst->GetImage(),
-        vkDst->GetDescription().width,
-        vkDst->GetDescription().height,
+        (uint32_t)(vkDst->GetDescription().width * scale),
+        (uint32_t)(vkDst->GetDescription().height * scale),
         offset + align,
         size,
         mipLevel,
