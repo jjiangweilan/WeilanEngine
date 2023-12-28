@@ -193,14 +193,15 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 
     // get index buffer size and count
     int indicesAccessorIndex = primitiveJson["indices"];
-    int indicesBufferViewIndex = j["accessors"][indicesAccessorIndex]["bufferView"];
+    auto& indicesAccessor = j["accessors"][indicesAccessorIndex];
+    int indicesBufferViewIndex = indicesAccessor["bufferView"];
     auto& bufViews = j["bufferViews"];
     auto& bufView = bufViews[indicesBufferViewIndex];
     int indexBufferSize = bufView.value("byteLength", 0);
     int indexBufferOffset = bufView.value("byteOffset", 0);
-    int indexCount = j["accessors"][indicesAccessorIndex]["count"];
-    int indexBufferComponentType = j["accessors"][indicesAccessorIndex]["componentType"];
-
+    int indexCount = indicesAccessor["count"];
+    int indexBufferComponentType = indicesAccessor["componentType"];
+    int accessorOffset = indicesAccessor.value("byteOffset", 0);
     Gfx::IndexBufferType indexBufferType =
         indexBufferComponentType == 5123 ? Gfx::IndexBufferType::UInt16 : Gfx::IndexBufferType::UInt32;
 
@@ -212,7 +213,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     {
         for (int i = 0; i < indexCount; ++i)
         {
-            indices[i] = *((uint16_t*)(binaryData + indexBufferOffset) + i);
+            indices[i] = *((uint16_t*)(binaryData + indexBufferOffset + accessorOffset) + i);
         }
     }
 
@@ -265,7 +266,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
                 size_t byteStride = bufferView["byteStride"];
                 for (size_t i = 0; i < count; ++i)
                 {
-                    memcpy(&positions[i], (binaryData + byteOffset + accessorByteOffset + byteStride * i), byteSize);
+                    positions[i] = *(glm::vec3*)(binaryData + byteOffset + accessorByteOffset + byteStride * i);
                 }
             }
             else
