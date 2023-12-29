@@ -42,6 +42,12 @@ public:
         auto& name = target->GetName();
         char cname[1024];
         strcpy(cname, name.data());
+        bool enabled = target->IsEnabled();
+        if (ImGui::Checkbox("##Enable Box", &enabled))
+        {
+            target->SetEnable(enabled);
+        }
+
         if (ImGui::InputText("Name", cname, 1024))
         {
             target->SetName(cname);

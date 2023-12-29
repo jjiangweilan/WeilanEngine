@@ -37,7 +37,7 @@ public:
         Scene* scene = graphResource.mainCamera->GetGameObject()->GetScene();
         for (auto r : scene->GetRenderingScene().GetRenderers())
         {
-            if (r)
+            if (r && r->IsEnabled())
             {
                 drawList->Add(*r);
             }

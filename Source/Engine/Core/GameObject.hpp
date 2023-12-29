@@ -50,6 +50,13 @@ public:
         return children;
     }
 
+    bool IsEnabled()
+    {
+        return enabled;
+    }
+
+    void SetEnable(bool isEnabled);
+
     GameObject* GetParent()
     {
         return parent;
@@ -147,6 +154,7 @@ private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
+    bool enabled = false;
 
     std::vector<GameObject*> children;
     std::vector<std::unique_ptr<Component>> components;
@@ -160,6 +168,7 @@ T* GameObject::AddComponent(Args&&... args)
     auto p = std::make_unique<T>(this, args...);
     T* temp = p.get();
     components.push_back(std::move(p));
+    temp->Enable();
     return temp;
 }
 

@@ -82,6 +82,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("scale", scale);
     s->Serialize("parent", parent);
     s->Serialize("children", children);
+    s->Serialize("enabled", enabled);
 }
 
 void GameObject::SetModelMatrix(const glm::mat4& model)
@@ -105,10 +106,17 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("scale", scale);
     s->Deserialize("parent", parent);
     s->Deserialize("children", children);
+    s->Deserialize("enabled", enabled);
 
     for (auto& c : components)
     {
         c->gameObject = this;
+    }
+
+    if (enabled)
+    {
+        enabled = false; //  by pass SetEnable check
+        SetEnable(true);
     }
 }
 
@@ -162,4 +170,34 @@ void GameObject::SetScene(Scene* scene)
     {
         c->NotifyGameObjectGameSceneSet();
     }
+}
+
+void GameObject::SetEnable(bool isEnabled)
+{
+    if (enabled == isEnabled)
+        return;
+
+    for (auto child : children)
+    {
+        // child may be nullptr when deserializing
+        if (child)
+            child->SetEnable(isEnabled);
+    }
+
+    if (isEnabled)
+    {
+        for (auto& c : components)
+        {
+            c->Enable();
+        }
+    }
+    else
+    {
+        for (auto& c : components)
+        {
+            c->Disable();
+        }
+    }
+
+    enabled = isEnabled;
 }

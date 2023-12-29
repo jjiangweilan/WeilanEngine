@@ -18,11 +18,36 @@ public:
     virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
     GameObject* GetGameObject();
 
+    bool IsEnabled()
+    {
+        return enabled;
+    }
+
+    void Enable()
+    {
+        if (enabled == false)
+        {
+            enabled = true;
+            EnableImple();
+        }
+    };
+    void Disable()
+    {
+        if (enabled == true)
+        {
+            enabled = false;
+            DisableImple();
+        }
+    }
+
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
 protected:
+    virtual void EnableImple(){};
+    virtual void DisableImple(){};
+    bool enabled = false;
     GameObject* gameObject;
 
     virtual void NotifyGameObjectGameSceneSet(){};
