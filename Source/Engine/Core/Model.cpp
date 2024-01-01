@@ -5,29 +5,29 @@
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
-static std::unique_ptr<GameObject> CreateGameObjectFromNode(
+static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh*> meshes,
-    std::unordered_map<int, Material*> materials
+    std::unordered_map<int, Mesh*>& meshes,
+    std::unordered_map<int, Material*>& materials
 );
 
 static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-static std::unique_ptr<GameObject> CreateGameObjectFromNode(
+static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh*> meshes,
-    std::unordered_map<int, Material*> materials
+    std::unordered_map<int, Mesh*>& meshes,
+    std::unordered_map<int, Material*>& materials
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
-    auto gameObject = MakeUnique<GameObject>();
+    auto gameObject = std::make_unique<GameObject>();
 
     // name
-    gameObject->SetName(nodeJson.value("name", "A GameObject"));
+    gameObject->SetName(nodeJson.value("name", "New GameObject"));
 
     // TRS
     std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
@@ -53,7 +53,23 @@ static std::unique_ptr<GameObject> CreateGameObjectFromNode(
         }
     }
 
-    return gameObject;
+    std::vector<std::unique_ptr<GameObject>> rlt;
+    auto temp = gameObject.get();
+    rlt.push_back(std::move(gameObject));
+    if (nodeJson.contains("children"))
+    {
+        for (int i : nodeJson["children"])
+        {
+            auto children = CreateGameObjectFromNode(j, i, meshes, materials);
+            for (auto& c : children)
+            {
+                c->SetParent(temp);
+            }
+            rlt.insert(rlt.end(), std::make_move_iterator(children.begin()), std::make_move_iterator(children.end()));
+        }
+    }
+
+    return rlt;
 }
 
 static std::size_t WriteAccessorDataToBuffer(
@@ -218,13 +234,21 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
         nlohmann::json& sceneJson = scenesJson[i];
         std::unique_ptr<GameObject> rootGameObject = MakeUnique<GameObject>();
         Utils::GLB::SetAssetName(rootGameObject.get(), jsonData, "scenes", i);
-        rootGameObject->SetName(std::string(sceneJson["name"]));
+        rootGameObject->SetName(std::string(sceneJson.value("name", "root")));
 
         for (int nodeIndex : sceneJson["nodes"])
         {
-            auto gameObject = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
-            gameObject->SetParent(rootGameObject.get());
-            gameObjects.push_back(std::move(gameObject));
+            auto gameObjectsCreated = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
+            for (auto& go : gameObjectsCreated)
+            {
+                go->SetParent(rootGameObject.get());
+            }
+
+            gameObjects.insert(
+                gameObjects.end(),
+                std::make_move_iterator(gameObjectsCreated.begin()),
+                std::make_move_iterator(gameObjectsCreated.end())
+            );
         }
 
         rootGameObjects.push_back(rootGameObject.get());
