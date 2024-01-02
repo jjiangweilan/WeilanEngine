@@ -551,9 +551,16 @@ void GameEditor::InspectorWindow()
 
             if (primarySelected)
             {
-                InspectorBase* inspector = InspectorRegistry::GetInspector(*primarySelected);
+                bool noInspector = primaryInspector == nullptr;
+                bool chageInspector = !noInspector && primaryInspector->GetTarget() != primarySelected;
+                if (noInspector || chageInspector)
+                {
+                    primaryInspector = InspectorRegistry::GetInspector(*primarySelected);
+                    primaryInspector->OnEnable(*primarySelected);
+                }
 
-                inspector->DrawInspector(*this);
+                if (primaryInspector)
+                    primaryInspector->DrawInspector(*this);
             }
         }
 
@@ -565,8 +572,16 @@ void GameEditor::InspectorWindow()
 
             if (EditorState::selectedObject)
             {
-                InspectorBase* inspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
-                inspector->DrawInspector(*this);
+                bool noInspector = secondaryInspector == nullptr;
+                bool chageInspector = !noInspector && secondaryInspector->GetTarget() != EditorState::selectedObject;
+                if (noInspector || chageInspector)
+                {
+                    secondaryInspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
+                    secondaryInspector->OnEnable(*EditorState::selectedObject);
+                }
+
+                if (secondaryInspector)
+                    secondaryInspector->DrawInspector(*this);
             }
 
             ImGui::End();

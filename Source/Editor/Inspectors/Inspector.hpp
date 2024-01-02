@@ -14,6 +14,7 @@ public:
     virtual ~InspectorBase(){};
     virtual void DrawInspector(GameEditor& editor) = 0;
     virtual void OnEnable(Object& obj) = 0;
+    virtual Object* GetTarget() = 0;
 };
 
 template <class T>
@@ -39,6 +40,11 @@ public:
             }
         }
     };
+
+    Object* GetTarget() override
+    {
+        return target;
+    }
 
 protected:
     T* target;

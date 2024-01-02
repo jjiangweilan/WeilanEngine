@@ -36,6 +36,7 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         assetUUID = dataJson["assetUUID"];
         assetTypeID = dataJson["assetTypeID"];
         assetPath = dataJson.value("assetPath", "");
+
         absolutePath = projectRoot / std::filesystem::path("Assets") / assetPath;
 
         auto nameToUUIDJson = dataJson["nameToUUID"];
