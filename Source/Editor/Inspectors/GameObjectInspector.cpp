@@ -2,6 +2,7 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
@@ -21,17 +22,13 @@ public:
         if (ImGui::BeginMenu("Create Component"))
         {
             if (ImGui::MenuItem("Camera"))
-            {
-                auto camera = target->AddComponent<Camera>();
-            }
+                target->AddComponent<Camera>();
             if (ImGui::MenuItem("MeshRenderer"))
-            {
-                auto meshRenderer = target->AddComponent<MeshRenderer>();
-            }
+                target->AddComponent<MeshRenderer>();
             if (ImGui::MenuItem("Light"))
-            {
-                auto light = target->AddComponent<Light>();
-            }
+                target->AddComponent<Light>();
+            if (ImGui::MenuItem("SceneEnvironment"))
+                target->AddComponent<SceneEnvironment>();
 
             ImGui::EndMenu();
         }
