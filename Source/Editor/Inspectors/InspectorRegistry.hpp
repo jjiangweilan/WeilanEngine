@@ -19,6 +19,8 @@ public:
     template <class Inspector, class T>
     static char Register();
 
+    static void DestroyAll();
+
 private:
     static Registry& GetRegistry();
     static const char _defaultInspector;

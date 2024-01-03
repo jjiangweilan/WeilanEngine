@@ -69,6 +69,7 @@ GameEditor::~GameEditor()
     engine->gfxDriver->WaitForIdle();
     engine->DestroyGameLoop(loop);
     loop = nullptr;
+    InspectorRegistry::DestroyAll();
 
     if (EditorState::activeScene)
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();

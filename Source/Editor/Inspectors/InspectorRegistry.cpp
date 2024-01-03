@@ -10,6 +10,11 @@ InspectorRegistry::Registry& InspectorRegistry::GetRegistry()
     return registry;
 }
 
+void InspectorRegistry::DestroyAll()
+{
+    GetRegistry().clear();
+}
+
 InspectorBase* InspectorRegistry::GetInspector(Object& obj)
 {
     Registry& re = GetRegistry();
