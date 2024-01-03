@@ -26,8 +26,11 @@ public:
     void RemoveRenderer(MeshRenderer& meshRenderer)
     {
         auto iter = std::find(meshRenderers.begin(), meshRenderers.end(), &meshRenderer);
-        std::swap(*iter, meshRenderers.back());
-        meshRenderers.pop_back();
+        if (iter != meshRenderers.end())
+        {
+            std::swap(*iter, meshRenderers.back());
+            meshRenderers.pop_back();
+        }
     };
 
     const std::vector<MeshRenderer*>& GetRenderers()

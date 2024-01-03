@@ -99,14 +99,14 @@ void GameObject::SetModelMatrix(const glm::mat4& model)
 void GameObject::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
-    s->Deserialize("components", components);
-    s->Deserialize("gameScene", gameScene);
-    s->Deserialize("rotation", rotation);
-    s->Deserialize("position", position);
-    s->Deserialize("scale", scale);
-    s->Deserialize("parent", parent);
-    s->Deserialize("children", children);
     s->Deserialize("enabled", enabled);
+    s->Deserialize("children", children);
+    s->Deserialize("parent", parent);
+    s->Deserialize("scale", scale);
+    s->Deserialize("position", position);
+    s->Deserialize("rotation", rotation);
+    s->Deserialize("gameScene", gameScene);
+    s->Deserialize("components", components);
 
     for (auto& c : components)
     {
@@ -115,8 +115,11 @@ void GameObject::Deserialize(Serializer* s)
 
     if (enabled)
     {
-        enabled = false; //  by pass SetEnable check
-        SetEnable(true);
+        for (auto& c : components)
+        {
+            if (c->IsEnabled())
+                c->EnableImple();
+        }
     }
 }
 
@@ -165,10 +168,23 @@ void GameObject::SetParent(GameObject* parent)
 
 void GameObject::SetScene(Scene* scene)
 {
-    this->gameScene = scene;
-    for (auto& c : components)
+    if (this->gameScene != scene)
     {
-        c->NotifyGameObjectGameSceneSet();
+        if (this->gameScene != nullptr)
+        {
+            for (auto& c : components)
+            {
+                if (c->IsEnabled())
+                    c->DisableImple();
+            }
+        }
+
+        this->gameScene = scene;
+        for (auto& c : components)
+        {
+            if (c->IsEnabled() && enabled)
+                c->EnableImple();
+        }
     }
 }
 
@@ -188,14 +204,18 @@ void GameObject::SetEnable(bool isEnabled)
     {
         for (auto& c : components)
         {
-            c->Enable();
+            if (c->IsEnabled())
+            {
+                c->EnableImple();
+            }
         }
     }
     else
     {
         for (auto& c : components)
         {
-            c->Disable();
+            if (c->IsEnabled())
+                c->DisableImple();
         }
     }
 

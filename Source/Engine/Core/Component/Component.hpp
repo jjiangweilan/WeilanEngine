@@ -50,6 +50,5 @@ protected:
     bool enabled = false;
     GameObject* gameObject;
 
-    virtual void NotifyGameObjectGameSceneSet(){};
     friend class GameObject;
 };

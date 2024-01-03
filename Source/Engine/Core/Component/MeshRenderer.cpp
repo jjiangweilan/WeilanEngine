@@ -70,40 +70,26 @@ void MeshRenderer::AddToRenderingScene()
 
     if (scene)
     {
-        renderingScene = &scene->GetRenderingScene();
+        auto renderingScene = &scene->GetRenderingScene();
         renderingScene->AddRenderer(*this);
     }
 }
 void MeshRenderer::RemoveFromRenderingScene()
 {
-    if (renderingScene)
+    Scene* scene = GetScene();
+
+    if (scene)
     {
+        auto renderingScene = &scene->GetRenderingScene();
         renderingScene->RemoveRenderer(*this);
     }
 }
 
-void MeshRenderer::NotifyGameObjectGameSceneSet()
+void MeshRenderer::EnableImple()
 {
-    Scene* scene = GetScene();
-    RenderingScene* newRenderingScene = &scene->GetRenderingScene();
-
-    if (renderingScene)
-    {
-        if (renderingScene != newRenderingScene)
-        {
-            renderingScene->RemoveRenderer(*this);
-        }
-
-        if (newRenderingScene)
-        {
-            newRenderingScene->AddRenderer(*this);
-        }
-
-        renderingScene = newRenderingScene;
-    }
-    else if (newRenderingScene)
-    {
-        newRenderingScene->AddRenderer(*this);
-        renderingScene = newRenderingScene;
-    }
+    AddToRenderingScene();
+}
+void MeshRenderer::DisableImple()
+{
+    RemoveFromRenderingScene();
 }
