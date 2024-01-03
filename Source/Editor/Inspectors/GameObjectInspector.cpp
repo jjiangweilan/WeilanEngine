@@ -45,6 +45,8 @@ public:
             target->SetEnable(enabled);
         }
 
+        ImGui::SameLine();
+
         if (ImGui::InputText("Name", cname, 1024))
         {
             target->SetName(cname);
@@ -79,6 +81,15 @@ public:
         {
             auto& c = *co;
             ImGui::Separator();
+            bool cEnabled = c.IsEnabled();
+            if (ImGui::Checkbox("##Enable", &cEnabled))
+            {
+                if (cEnabled)
+                    c.Enable();
+                else
+                    c.Disable();
+            }
+            ImGui::SameLine();
             ImGui::Text("%s", c.GetName().c_str());
 
             auto inspector = InspectorRegistry::GetInspector(c);
