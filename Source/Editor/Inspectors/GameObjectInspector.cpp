@@ -81,7 +81,9 @@ public:
             ImGui::Separator();
             ImGui::Text("%s", c.GetName().c_str());
 
-            InspectorRegistry::GetInspector(c)->DrawInspector(editor);
+            auto inspector = InspectorRegistry::GetInspector(c);
+            inspector->OnEnable(c);
+            inspector->DrawInspector(editor);
         }
     }
 
