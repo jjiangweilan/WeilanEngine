@@ -1,28 +1,40 @@
 #pragma once
-#include "Core/Texture.hpp"
+#include "GfxDriver/Image.hpp"
 
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <vector>
 
 class MeshRenderer;
-
-struct EnvironmentLighting
-{
-    glm::vec4 sh[9];
-    Texture* specularEnv;
-};
+class SceneEnvironment;
 class RenderingScene
 {
 public:
     RenderingScene(){};
+    RenderingScene(const RenderingScene& other) = delete;
+    RenderingScene(RenderingScene&& other) = delete;
 
-    void SetEnvironmentLighting(EnvironmentLighting environmentLighting);
+    void SetSceneEnvironment(SceneEnvironment& sceneEnvironment)
+    {
+        if (this->sceneEnvironment == nullptr)
+        {
+            this->sceneEnvironment = &sceneEnvironment;
+        }
+    }
+
+    void RemoveSceneEnvironment(SceneEnvironment& sceneEnvironment)
+    {
+        if (this->sceneEnvironment == &sceneEnvironment)
+        {
+            this->sceneEnvironment = nullptr;
+        }
+    }
 
     void AddRenderer(MeshRenderer& meshRenderer)
     {
         meshRenderers.push_back(&meshRenderer);
     }
+
     void RemoveRenderer(MeshRenderer& meshRenderer)
     {
         auto iter = std::find(meshRenderers.begin(), meshRenderers.end(), &meshRenderer);
@@ -38,6 +50,12 @@ public:
         return meshRenderers;
     }
 
+    SceneEnvironment* GetSceneEnvironment()
+    {
+        return sceneEnvironment;
+    }
+
 private:
     std::vector<MeshRenderer*> meshRenderers;
+    SceneEnvironment* sceneEnvironment = nullptr;
 };

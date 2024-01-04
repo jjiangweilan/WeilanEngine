@@ -14,9 +14,9 @@
 #include <span>
 #include <vector>
 
+class Texture;
 namespace FrameGraph
 {
-
 class Graph : public Asset
 {
     DECLARE_ASSET();
@@ -201,6 +201,8 @@ private:
     Node* outputImageNode = nullptr;
     GraphResource graphResource;
     Shader* templateSceneResourceShader;
+
+    Texture* diffuseCube = nullptr;
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};

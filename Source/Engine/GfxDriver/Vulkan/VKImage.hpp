@@ -35,7 +35,7 @@ public:
         return layout;
     }
 
-    void SetData(std::span<uint8_t> binaryData) override;
+    void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer) override;
 
     virtual ImageLayout GetImageLayout() override;
     virtual const ImageDescription& GetDescription() override

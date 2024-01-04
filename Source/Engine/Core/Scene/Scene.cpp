@@ -12,6 +12,7 @@ GameObject* Scene::CreateGameObject()
     gameObjects.push_back(std::move(newObj));
     GameObject* refObj = gameObjects.back().get();
     roots.push_back(refObj);
+    refObj->SetEnable(true);
     return refObj;
 }
 
@@ -101,7 +102,6 @@ void Scene::DestroyGameObject(GameObject* obj)
     if (obj == nullptr)
         return;
 
-
     for (auto child : obj->GetChildren())
     {
         DestroyGameObject(child);
@@ -123,10 +123,10 @@ void Scene::DestroyGameObject(GameObject* obj)
     {
         externalGameObjects.erase(rootIter);
     }
-    
+
     auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
     if (iter != gameObjects.end())
-         gameObjects.erase(iter);
+        gameObjects.erase(iter);
 }
 
 void Scene::RemoveGameObjectFromRoot(GameObject* obj)

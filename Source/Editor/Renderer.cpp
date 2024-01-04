@@ -61,8 +61,8 @@ Renderer::Renderer(const char* customFont)
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, 2048, false});
     stagingBuffer =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
-    stagingBuffer2 = 
-        GetGfxDriver()->CreateBuffer({ Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true });
+    stagingBuffer2 =
+        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     ShaderCompiler compiler;
     compiler.Compile(imguiShader, false);

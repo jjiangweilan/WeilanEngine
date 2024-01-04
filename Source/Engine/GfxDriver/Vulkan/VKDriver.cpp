@@ -60,6 +60,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         std::make_unique<VKMemAllocator>(instance.handle, device.handle, gpu.handle, mainQueue.queueFamilyIndex);
     context = std::make_unique<VKContext>();
     VKContext::context = context.get();
+    context->driver = this;
     context->allocator = memAllocator.get();
     context->objManager = objectManager.get();
     context->device = device.handle;
@@ -113,9 +114,6 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
-    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-    dataUploader
-        ->UploadImage(context->sharedResource->GetDefaultTexture2D().Get(), pxls, 64, 0, 0, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 VKDriver::~VKDriver()

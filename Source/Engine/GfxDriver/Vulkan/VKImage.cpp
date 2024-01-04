@@ -184,9 +184,9 @@ ImageLayout VKImage::GetImageLayout()
     return MapVKImageLayout(layout);
 }
 
-void VKImage::SetData(std::span<uint8_t> binaryData)
+void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer)
 {
-    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), 0, 0, GetSubresourceRange().aspectMask);
+    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), mip, layer, GetSubresourceRange().aspectMask);
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

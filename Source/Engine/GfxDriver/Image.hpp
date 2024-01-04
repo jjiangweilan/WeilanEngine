@@ -137,7 +137,7 @@ public:
     virtual ~Image(){};
     virtual void SetName(std::string_view name) = 0;
     virtual const ImageDescription& GetDescription() = 0;
-    virtual void SetData(std::span<uint8_t> binaryData) = 0;
+    virtual void SetData(std::span<uint8_t> binaryData, uint32_t mip = 0, uint32_t layer = 0) = 0;
 
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;

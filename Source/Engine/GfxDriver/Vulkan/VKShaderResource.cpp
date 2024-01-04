@@ -177,7 +177,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                 VKImageView* imageView = (VKImageView*)resRef.res;
                                 if (resRef.res != nullptr && imageView->GetImage().GetDescription().isCubemap &&
-                                    resRef.type != ResourceType::ImageView)
+                                    resRef.type == ResourceType::ImageView)
                                 {
                                     imageInfo.imageView = imageView->GetHandle();
                                 }

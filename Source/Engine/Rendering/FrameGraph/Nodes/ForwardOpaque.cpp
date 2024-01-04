@@ -32,7 +32,6 @@ public:
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
             uint32_t height = color->GetDescription().height;
-            cmd.BindResource(0, sceneShaderResource);
             cmd.SetViewport(
                 {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
             );
