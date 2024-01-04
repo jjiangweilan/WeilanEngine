@@ -68,7 +68,10 @@ public:
     ~VKShaderProgram() override;
 
     VkPipelineLayout GetVKPipelineLayout();
-    VkDescriptorSet GetVKDescriptorSet();
+    bool HasSet(uint32_t set)
+    {
+        return GetLayoutHash(set) != 0;
+    }
 
     // request a pipeline object according to config
     // we may have slightly different pipelines with different configs, VKShader should cache these pipelines(TODO)

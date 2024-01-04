@@ -19,10 +19,15 @@ public:
     }
     VkDescriptorSet Allocate();
 
-    void Free(VkDescriptorSet set)
+    // TODO: we can't directly deallocate or free a set because it's probably still in use
+    // maybe we can have vkdriver provide a way to register a callback to be called after each cmd is finished (test by
+    // vkFence)
+    void Deallocate(VkDescriptorSet set)
     {
         freeSets.push_back(set);
     }
+
+    void Free(VkDescriptorSet set);
 
     ~VKDescriptorPool();
 
@@ -44,7 +49,7 @@ struct VkDescriptorSetLayoutCreateInfoHash
     std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
 };
 
-// TODO: this is bad, too many pools are created
+// TODO: is this bad? too many pools are created
 struct VKDescriptorPoolCache
 {
     VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context) {}

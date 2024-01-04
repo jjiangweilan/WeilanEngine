@@ -189,7 +189,7 @@ VKShaderProgram::VKShaderProgram(
     for (auto& iter : shaderInfo.bindings)
     {
         ShaderInfo::Binding& binding = iter.second;
-        VkDescriptorSetLayoutBinding b;
+        VkDescriptorSetLayoutBinding b{};
         b.stageFlags = ShaderInfo::Utils::MapShaderStage(binding.stages);
         b.binding = binding.bindingNum;
         b.descriptorCount = binding.count;
@@ -309,7 +309,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     std::vector<VkDescriptorSetLayout> layouts(setCount);
     for (uint32_t i = 0; i < setCount; ++i)
     {
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo;
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
         if (name == "ImGui")
@@ -360,12 +360,6 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
 const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
 {
     return *defaultShaderConfig;
-}
-
-VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()
-{
-    assert(0 && "Not implmented");
-    return 0;
 }
 
 VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass)
@@ -447,7 +441,7 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
 
     VkRect2D scissor;
     pipelineViewportStateCreateInfo.scissorCount = 1;
-    scissor.extent = { GetSwapchain()->extent.width, GetSwapchain()->extent.height };
+    scissor.extent = {GetSwapchain()->extent.width, GetSwapchain()->extent.height};
     scissor.offset = {0, 0};
     pipelineViewportStateCreateInfo.pScissors = &scissor;
 

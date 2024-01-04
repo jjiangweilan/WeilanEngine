@@ -25,60 +25,84 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
     }
 }
 
-VKShaderResource::VKShaderResource()
-    : sharedResource(VKContext::Instance()->sharedResource), sets(0)
-{}
+VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), sets(0) {}
 
 VKShaderResource::~VKShaderResource()
 {
-    for (auto d : sets)
+    for (auto& d : sets)
     {
-        descriptorPool->Free(d.second);
+        descriptorPool->Deallocate(d.second.set);
+    }
+}
+
+void VKShaderResource::RebuildAll()
+{
+    for (auto& d : sets)
+    {
+        d.second.rebuild = true;
     }
 }
 
 void VKShaderResource::SetBuffer(const std::string& name, Gfx::Buffer* buffer)
 {
     bindings[name] = {buffer, ResourceType::Buffer};
-    rebuild = true;
+    RebuildAll();
 }
 
 void VKShaderResource::SetImage(const std::string& name, Gfx::Image* image)
 {
     bindings[name] = {&image->GetDefaultImageView(), ResourceType::ImageView};
-    rebuild = true;
+    RebuildAll();
 }
 
 void VKShaderResource::SetImage(const std::string& name, Gfx::ImageView* imageView)
 {
     bindings[name] = {imageView, ResourceType::ImageView};
-    rebuild = true;
+    RebuildAll();
 }
 
 void VKShaderResource::SetImage(const std::string& name, nullptr_t)
 {
     bindings.erase(name);
-    rebuild = true;
+    RebuildAll();
 }
 
 VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram)
 {
-    size_t hash = shaderProgram->GetLayoutHash(set);
-    if (hash == 0)
+    if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
-    auto iter = sets.find(hash);
-    if (iter == sets.end() || rebuild)
-    {
-        this->set = set;
-        layout = shaderProgram->GetVKPipelineLayout();
+    auto iter = sets.find(shaderProgram);
 
+    VkDescriptorSet finalReturn = VK_NULL_HANDLE;
+    bool rebuild = false;
+    if (iter == sets.end())
+    {
+        layout = shaderProgram->GetVKPipelineLayout();
         descriptorPool = &shaderProgram->GetDescriptorPool(set);
         VkDescriptorSet descriptorSet = descriptorPool->Allocate();
-        sets[hash] = descriptorSet;
+        finalReturn = descriptorSet;
+        rebuild = true;
+        sets[shaderProgram] = {descriptorSet, false};
+    }
+    else
+    {
+        rebuild = iter->second.rebuild;
+        if (rebuild)
+        {
+            descriptorPool = &shaderProgram->GetDescriptorPool(set);
+            finalReturn = descriptorPool->Allocate();
+            iter->second.set = finalReturn;
+            descriptorPool->Deallocate(iter->second.set);
+            iter->second.rebuild = false;
+        }
+    }
+
+    if (rebuild)
+    {
         auto& shaderInfo = shaderProgram->GetShaderInfo();
         VKDebugUtils::SetDebugName(
             VK_OBJECT_TYPE_DESCRIPTOR_SET,
-            (uint64_t)descriptorSet,
+            (uint64_t)finalReturn,
             (shaderProgram->GetName() + std::to_string(set)).c_str()
         );
 
@@ -98,7 +122,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
             {
                 writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[writeCount].pNext = VK_NULL_HANDLE;
-                writes[writeCount].dstSet = descriptorSet;
+                writes[writeCount].dstSet = finalReturn;
                 writes[writeCount].descriptorType = ShaderInfo::Utils::MapBindingType(b.second.type);
                 writes[writeCount].dstBinding = b.second.bindingNum;
                 writes[writeCount].dstArrayElement = 0;
@@ -212,11 +236,10 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
             }
         }
 
-        rebuild = false;
         vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
-        return descriptorSet;
+        return finalReturn;
     }
 
-    return sets[hash];
+    return iter->second.set;
 }
 } // namespace Gfx

@@ -39,6 +39,7 @@ public:
             clearValues[0].color = {
                 {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
             clearValues[1].depthStencil = {1};
+            cmd.BindResource(0, sceneShaderResource);
 
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, clearValues);

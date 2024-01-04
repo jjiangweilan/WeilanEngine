@@ -127,9 +127,9 @@ void main()
     vec3 tangent = normalize(i_TangentWS);
     vec3 normal = normalize(i_NormalWS);
     vec3 bitangent = normalize(i_BitangentWS);
-    mat3 TBN = {tangent, bitangent, normal};
-    vec3 normalMap = texture(NormalMap, i_UV).xyz;
-    normal = TBN * normalMap;
+    // mat3 TBN = {tangent, bitangent, normal};
+    // vec3 normalMap = texture(NormalMap, i_UV).xyz;
+    // normal = TBN * normalMap;
 
     vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
     float metallic = metallicRoughness.y;
@@ -171,7 +171,7 @@ void main()
     vec3 diffuseCubeColor = texture(diffuseCube, reflect(-v, n)).xyz;
     vec3 ambient = baseColor * diffuseCubeColor / M_PI;
 
-    o_Color = vec4(color * shadowAttenuation + ambient, 1);
+    o_Color = vec4(color + ambient, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
