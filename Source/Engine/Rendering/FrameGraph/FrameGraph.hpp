@@ -203,6 +203,7 @@ private:
     Shader* templateSceneResourceShader;
 
     Texture* diffuseCube = nullptr;
+    Texture* specularCube = nullptr;
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};

@@ -49,12 +49,14 @@ void SceneEnvironment::SetSpecularCube(Texture* specularCube)
 
 void SceneEnvironment::Serialize(Serializer* s) const
 {
+    Component::Serialize(s);
     s->Serialize("diffuseCube", diffuseCube);
     s->Serialize("specularCube", specularCube);
 }
 
 void SceneEnvironment::Deserialize(Serializer* s)
 {
+    Component::Deserialize(s);
     s->Deserialize("diffuseCube", diffuseCube);
     s->Deserialize("specularCube", specularCube);
 }

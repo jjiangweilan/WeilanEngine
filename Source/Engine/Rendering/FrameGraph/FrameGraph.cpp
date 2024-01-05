@@ -214,6 +214,13 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         sceneShaderResource->SetImage("diffuseCube", diffuseCube->GetGfxImage());
     }
 
+    auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
+    if (specularCube && specularCube != this->specularCube)
+    {
+        this->specularCube = specularCube;
+        sceneShaderResource->SetImage("specularCube", specularCube->GetGfxImage());
+    }
+
     for (auto& n : nodes)
     {
         n->Execute(graphResource);

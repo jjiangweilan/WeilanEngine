@@ -39,7 +39,7 @@ layout(set = SET_GLOBAL, binding = 4) uniform sampler shadowMapSampler;
 layout(set = SET_GLOBAL, binding = 4) uniform samplerShadow shadowMapSampler;
 #endif
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube diffuseCube;
-// layout(set = SET_GLOBAL, binding = 6) uniform samplerCube specularCube;
+layout(set = SET_GLOBAL, binding = 6) uniform samplerCube specularCube;
 
 #if G_PCF
 float PcfShadow(vec2 shadowCoord, float objShadowDepth)

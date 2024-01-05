@@ -96,6 +96,11 @@ vec2 SphericalToUV(vec3 v)
     return uv;
 }
 
+float Fresnel(float metallic, float dotVH)
+{
+    return metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+}
+
 float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
 {
     vec3 h = normalize(l + v);
@@ -115,7 +120,7 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
     float G = Gv * Gl;
 
 // fresnel
-    float F = metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    float F = Fresnel(metallic, dotVH);
 
     float brdf = (G * F * D) / (4 * dotNL * dotNV);
     return brdf;
@@ -171,7 +176,14 @@ void main()
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
     vec3 ambient = baseColor * diffuseCubeColor / M_PI;
 
-    o_Color = vec4(color * shadowAttenuation + ambient, 1);
+    // specular cube light
+    vec3 lightDir = reflect(-v, n);
+    vec3 specularCubeColor = texture(specularCube, lightDir).xyz;
+    float dotNL = max(dot(n, lightDir), NearZero);
+    float brdf = Fresnel(metallic, dotNL);
+    vec3 envSpecular = specularCubeColor * dotNL * brdf;
+
+    o_Color = vec4(color + ambient + envSpecular, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
