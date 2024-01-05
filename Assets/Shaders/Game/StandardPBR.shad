@@ -168,10 +168,10 @@ void main()
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
     // diffuse cube light
-    vec3 diffuseCubeColor = texture(diffuseCube, reflect(-v, n)).xyz;
+    vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
     vec3 ambient = baseColor * diffuseCubeColor / M_PI;
 
-    o_Color = vec4(color + ambient, 1);
+    o_Color = vec4(color * shadowAttenuation + ambient, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);
