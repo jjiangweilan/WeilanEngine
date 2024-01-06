@@ -97,7 +97,7 @@ public:
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override{};
 
-    void Execute(GraphResource& graphResource) override {}
+    void Execute(RenderingData& renderingData) override {}
 
 private:
     RenderGraph::RenderNode* node;

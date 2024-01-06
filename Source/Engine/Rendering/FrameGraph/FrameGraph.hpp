@@ -2,10 +2,10 @@
 #include "Asset/Shader.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "GraphResource.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+#include "RenderingData.hpp"
 
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
@@ -199,7 +199,7 @@ private:
 #endif
     bool compiled = false;
     Node* outputImageNode = nullptr;
-    GraphResource graphResource;
+    RenderingData renderingData;
     Shader* templateSceneResourceShader;
 
     Texture* diffuseCube = nullptr;

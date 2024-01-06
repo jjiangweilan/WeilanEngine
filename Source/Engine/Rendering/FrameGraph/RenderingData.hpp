@@ -1,9 +1,11 @@
 #pragma once
-#include "Core/Component/Camera.hpp"
+class Camera;
+class Terrain;
 namespace FrameGraph
 {
-struct GraphResource
+struct RenderingData
 {
     Camera* mainCamera;
+    Terrain* terrain;
 };
 } // namespace FrameGraph
