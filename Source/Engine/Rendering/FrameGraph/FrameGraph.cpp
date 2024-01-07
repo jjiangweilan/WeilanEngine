@@ -204,7 +204,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     Camera* camera = scene.GetMainCamera();
     if (!compiled || camera == nullptr)
         return;
-    graphResource.mainCamera = camera;
+    renderingData.mainCamera = camera;
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
@@ -221,9 +221,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         sceneShaderResource->SetImage("specularCube", specularCube->GetGfxImage());
     }
 
+    renderingData.terrain = scene.GetRenderingScene().GetTerrain();
+
     for (auto& n : nodes)
     {
-        n->Execute(graphResource);
+        n->Execute(renderingData);
     }
 
     GameObject* camGo = camera->GetGameObject();

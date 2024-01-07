@@ -30,11 +30,11 @@ public:
         };
     }
 
-    void Execute(GraphResource& graphResource) override
+    void Execute(RenderingData& renderingData) override
     {
         drawList->clear();
 
-        Scene* scene = graphResource.mainCamera->GetGameObject()->GetScene();
+        Scene* scene = renderingData.mainCamera->GetGameObject()->GetScene();
         for (auto r : scene->GetRenderingScene().GetRenderers())
         {
             if (r && r->IsEnabled())

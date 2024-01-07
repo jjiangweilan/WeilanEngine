@@ -11,7 +11,7 @@ class Component : public Object, public Serializable
 {
 public:
     Component(GameObject* gameObject);
-    virtual ~Component() = 0;
+    virtual ~Component();
     virtual void Tick(){};
 
     virtual const std::string& GetName() = 0;

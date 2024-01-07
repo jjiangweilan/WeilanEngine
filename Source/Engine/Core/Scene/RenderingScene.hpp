@@ -7,6 +7,7 @@
 
 class MeshRenderer;
 class SceneEnvironment;
+class Terrain;
 class RenderingScene
 {
 public:
@@ -28,6 +29,24 @@ public:
         {
             this->sceneEnvironment = nullptr;
         }
+    }
+
+    void SetTerrain(Terrain& terrain)
+    {
+        this->terrain = &terrain;
+    }
+
+    void RemoveTerrain(Terrain& terrain)
+    {
+        if (this->terrain == &terrain)
+        {
+            this->terrain = nullptr;
+        }
+    }
+
+    Terrain* GetTerrain()
+    {
+        return terrain;
     }
 
     void AddRenderer(MeshRenderer& meshRenderer)
@@ -58,4 +77,5 @@ public:
 private:
     std::vector<MeshRenderer*> meshRenderers;
     SceneEnvironment* sceneEnvironment = nullptr;
+    Terrain* terrain = nullptr;
 };
