@@ -88,6 +88,14 @@ target_link_directories(
     "${CMAKE_BINARY_DIR}/lib"
 )
 
+set (PHYSX_LIBS 
+    PhysX_64
+    PhysXCommon_64
+    PhysXFoundation_64
+    PhysXExtensions_static_64
+    PhysXPvdSDK_static_64
+    )
+
 target_link_libraries( WeilanEngine
     # assimp
     ${Vulkan_LIBRARIES}

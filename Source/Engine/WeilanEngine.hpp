@@ -6,6 +6,7 @@
 #include "Core/Time.hpp"
 #include "Event/Event.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Physics/Physics.hpp"
 #include "Rendering/Shaders.hpp"
 #include <filesystem>
 #include <spdlog/sinks/ringbuffer_sink.h>
@@ -53,6 +54,7 @@ public:
 private:
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
     std::vector<std::unique_ptr<GameLoop>> gameLoops;
+    Physics physics;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;

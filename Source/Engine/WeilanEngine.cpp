@@ -8,6 +8,7 @@
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
+    physics.Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 }
@@ -34,6 +35,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     AssetDatabase::instance = assetDatabase.get();
+    physics.Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
