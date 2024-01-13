@@ -3,12 +3,15 @@
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
+#include "Physics/Physics.hpp"
 #include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
+WeilanEngine::WeilanEngine() {};
+
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
-    physics.Destroy();
+    physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 }
@@ -35,7 +38,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     AssetDatabase::instance = assetDatabase.get();
-    physics.Init();
+    physics = std::make_unique<Physics>();
+    physics->Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();

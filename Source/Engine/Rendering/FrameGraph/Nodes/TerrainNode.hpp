@@ -8,8 +8,8 @@ class TerrainNode : public Node
     DECLARE_OBJECT();
 
 public:
-    TerrainNode();
-    TerrainNode(FGID id);
+    TerrainNode(){};
+    TerrainNode(FGID id) : Node("Terrain", id){};
 
     static char _reg;
 };
