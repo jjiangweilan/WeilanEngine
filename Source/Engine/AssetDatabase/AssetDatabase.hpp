@@ -45,6 +45,13 @@ private:
     class Assets
     {
     public:
+        struct PathHasher
+        {
+            size_t operator()(const std::filesystem::path& path) const
+            {
+                return std::filesystem::hash_value(path);
+            }
+        };
         Asset* Add(std::unique_ptr<AssetData>&& asset);
 
         // used for internal asset, internal asset needs to first Add to Assets but it doesn't have contained objects
@@ -55,7 +62,7 @@ private:
         // get by asset's uuid
         AssetData* GetAssetData(const UUID& uuid);
 
-        std::unordered_map<std::filesystem::path, AssetData*, std::hash<std::filesystem::path>> byPath;
+        std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
         std::unordered_map<UUID, AssetData*> byUUID;
         std::vector<std::unique_ptr<AssetData>> data;
     } assets;
