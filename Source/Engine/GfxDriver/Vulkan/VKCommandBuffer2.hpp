@@ -1,11 +1,13 @@
 #pragma once
 #include "../CommandBuffer.hpp"
+#include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "VKRenderPass.hpp"
 #include "VKRenderTarget.hpp"
 #include <functional>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -14,12 +16,113 @@ namespace Gfx
 class VKShaderResource;
 class VKShaderProgram;
 class VKDevice;
-class VKCommandBuffer : public CommandBuffer
+
+struct VKDrawIndexedCmd
+{
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    uint32_t vertexOffset;
+    uint32_t firstInstance;
+
+    void operator()(VkCommandBuffer cmd)
+    {
+        vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+};
+
+struct VKDrawCmd
+{
+    uint32_t vertexCount;
+    uint32_t instanceCount;
+    uint32_t firstVertex;
+    uint32_t firstInstance;
+
+    void operator()(VkCommandBuffer cmd)
+    {
+        vkCmdDraw(cmd, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+};
+
+struct VKBeginRenderPassCmd
+{
+    Gfx::RenderPass* renderPass;
+    Gfx::ClearValue clearValues[8];
+};
+
+struct VKEndRenderPassCmd
+{};
+
+struct VKBindResourceCmd
+{
+    uint32_t set;
+    VKShaderResource* resource;
+};
+
+struct VKBindShaderProgramCmd
+{
+    VKShaderProgram* program;
+    const ShaderConfig* config;
+};
+
+struct VKBindVertexBufferCmd
+{
+    uint32_t firstBindingIndex;
+    VertexBufferBinding verteBufferBindings[8];
+};
+
+struct VKBindIndexBufferCmd
+{
+    VKBuffer* buffer;
+    uint64_t offset;
+    VkIndexType indexType;
+};
+
+enum class VKCmdType
+{
+    DrawIndexed,
+    Draw,
+    BeginRenderPass,
+    EndRenderPass,
+    Blit,
+    BindResource,
+    BindVertexBuffer,
+    BindShaderProgram,
+    BindIndexBuffer,
+    SetViewport,
+    CopyImageToBuffer,
+    SetPushConstant,
+    SetScissor,
+    Dispatch,
+    DispatchIndir,
+    NextRenderPass,
+    PushDescriptorSet,
+    CopyBuffer,
+    CopyBufferToImage,
+    Begin,
+    End
+};
+struct VKCmd
+{
+    VKCmdType type;
+    union
+    {
+        VKDrawIndexedCmd drawIndexed;
+        VKDrawCmd draw;
+        VKBeginRenderPassCmd beginRenderPass;
+        VKEndRenderPassCmd endRenderPass;
+        VKBindResourceCmd bindResource;
+        VKBindShaderProgramCmd bindShaderProgram;
+        VKBindVertexBufferCmd bindVertexBuffer;
+        VKBindIndexBufferCmd bindIndexBuffer;
+    };
+};
+class VKCommandBuffer2 : public CommandBuffer
 {
 public:
-    VKCommandBuffer(VkCommandBuffer vkCmdBuf);
-    VKCommandBuffer(const VKCommandBuffer& other) = delete;
-    ~VKCommandBuffer();
+    VKCommandBuffer2(VkCommandBuffer vkCmdBuf);
+    VKCommandBuffer2(const VKCommandBuffer2& other) = delete;
+    ~VKCommandBuffer2();
 
     void BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
     void EndRenderPass() override;
@@ -57,47 +160,12 @@ public:
     void End() override;
     void Reset(bool releaseResource) override;
 
-    VkCommandBuffer GetHandle() const
-    {
-        return vkCmdBuf;
-    }
+    void Execute(VkCommandBuffer cmd);
 
 private:
-    VkCommandBuffer vkCmdBuf;
-
-    std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
-    std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
-    std::vector<VkMemoryBarrier> memoryMemoryBarriers;
-
-    struct ImageMemoryAccess
-    {
-        VkImageLayout layout;
-        VkAccessFlags accessFlags;
-        VkPipelineStageFlags stageFlags;
-        ImageSubresourceRange range;
-    };
-    struct BufferMemoryAccess
-    {};
-
-    // record last memory access in the commandbuffer
-    std::unordered_map<VkImage, ImageMemoryAccess> imageLastAccess;
-    std::unordered_map<VkBuffer, BufferMemoryAccess> bufferLastAccess;
-
-    VkDescriptorSet bindedDescriptorSets[4];
-    VKRenderPass* renderPass = nullptr;
-    uint32_t renderIndex = -1;
-
-    // pending state
-    struct SetResources
-    {
-        bool needUpdate = false;
-        VKShaderResource* resource = VK_NULL_HANDLE;
-    } setResources[4] = {};
-
-    VKShaderProgram* shaderProgram;
-    const ShaderConfig* shaderConfig;
-
-    void UpdateDescriptorSetBinding();
-    void UpdateDescriptorSetBinding(uint32_t set);
+    // BlitCmd, BindResourceCmd, BindVertexBufferCmd, BindShaderProgramCmd, BindIndexBufferCmd, SetViewportCmd,
+    // CopyImageToBufferCmd, SetPushConstantCmd, SetScissorCmd, DispatchCmd, DispatchIndirCmd, NextRenderPassCmd,
+    // PushDescriptorSetCmd, CopyBufferCmd, CopyBufferToImageCmd, BeginCmd, EndCmd>;
+    std::vector<VKCmd> cmds;
 };
 } // namespace Gfx
