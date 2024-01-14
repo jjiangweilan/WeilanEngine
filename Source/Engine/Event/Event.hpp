@@ -12,10 +12,16 @@ struct WindowClose
     bool state;
 };
 
+struct SwapchainRecreated
+{
+    bool state;
+};
+
 class Event
 {
 public:
     void Poll();
+    void Reset();
 
     const WindowSizeChange& GetWindowSizeChanged()
     {
@@ -25,10 +31,15 @@ public:
     {
         return windowClose;
     }
+    const SwapchainRecreated& GetSwapchainRecreated()
+    {
+        return swapchainRecreated;
+    }
 
 private:
     WindowSizeChange windowSizeChange;
     WindowClose windowClose;
+    SwapchainRecreated swapchainRecreated;
 
-    void Reset();
+    friend class WeilanEngine;
 };

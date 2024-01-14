@@ -10,7 +10,7 @@
 namespace Gfx
 {
 VKMemAllocator::VKMemAllocator(
-    VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
+    VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
 )
     : device(device), queueFamilyIndex(transferQueueIndex), pendingBuffers(), pendingImages()
 {
@@ -18,7 +18,7 @@ VKMemAllocator::VKMemAllocator(
     VmaAllocatorCreateInfo vmaAllocatorCreateInfo{};
     vmaAllocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
     vmaAllocatorCreateInfo.physicalDevice = physicalDevice;
-    vmaAllocatorCreateInfo.device = device->GetHandle();
+    vmaAllocatorCreateInfo.device = device;
     vmaAllocatorCreateInfo.instance = instance;
 
     VK_CHECK(vmaCreateAllocator(&vmaAllocatorCreateInfo, &allocator_vma));

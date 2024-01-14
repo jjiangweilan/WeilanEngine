@@ -1,5 +1,5 @@
 #pragma once
-#include "../GraphResource.hpp"
+#include "../RenderingData.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
@@ -279,7 +279,7 @@ public:
     }
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
     virtual void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource){};
-    virtual void Execute(GraphResource& graphResource){};
+    virtual void Execute(RenderingData& renderingData){};
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
     {

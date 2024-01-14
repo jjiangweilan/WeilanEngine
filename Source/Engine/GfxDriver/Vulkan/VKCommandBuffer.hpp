@@ -96,7 +96,6 @@ private:
 
     VKShaderProgram* shaderProgram;
     const ShaderConfig* shaderConfig;
-    bool needUpdateDescriptorSetBinding;
 
     void UpdateDescriptorSetBinding();
     void UpdateDescriptorSetBinding(uint32_t set);

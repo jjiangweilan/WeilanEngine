@@ -1,8 +1,6 @@
 #include "Mesh.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/GLB.hpp"
-#include "Rendering/ImmediateGfx.hpp"
-#include "Rendering/RenderPipeline.hpp"
 #include <filesystem>
 
 DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
@@ -16,8 +14,8 @@ Submesh::Submesh(
     int indexCount,
     std::string_view name
 )
-    : vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer)), indexBufferType(indexBufferType),
-      bindings(std::move(bindings)), indexCount(indexCount), name(name)
+    : indexBufferType(indexBufferType), bindings(std::move(bindings)), indexCount(indexCount), name(name),
+      vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer))
 {
     // calculate vertex buffer size
     std::size_t vertexBufferSize = 0;
@@ -46,8 +44,8 @@ Submesh::Submesh(
     // bufCreateInfo.visibleInCPU = true;
     // auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
 
-    RenderPipeline::Singleton().UploadBuffer(*gfxVertexBuffer, vertexBuffer.get(), vertexBufferSize);
-    RenderPipeline::Singleton().UploadBuffer(*gfxIndexBuffer, indexBuffer.get(), indexBufferSize);
+    GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, vertexBuffer.get(), vertexBufferSize);
+    GetGfxDriver()->UploadBuffer(*gfxIndexBuffer, indexBuffer.get(), indexBufferSize);
 
     // memcpy(stagingBuffer->GetCPUVisibleAddress(), this->vertexBuffer.get(), vertexBufferSize);
     // memcpy(
@@ -146,17 +144,13 @@ void Submesh::Apply()
     bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
     bufCreateInfo.debugName = "mesh staging buffer";
     bufCreateInfo.visibleInCPU = true;
-    auto stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    uint8_t* staging = new uint8_t[indexBufferSize + vertexBufferSize];
 
     size_t positionDataSize = positions.size() * sizeof(glm::vec3);
     size_t attribtueDataSize = attributes.GetData().size();
 
-    memcpy(stagingBuffer->GetCPUVisibleAddress(), positions.data(), positionDataSize);
-    memcpy(
-        (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize,
-        attributes.GetData().data(),
-        attribtueDataSize
-    );
+    memcpy(staging, positions.data(), positionDataSize);
+    memcpy(staging + positionDataSize, attributes.GetData().data(), attribtueDataSize);
 
     if (indexBufferType == Gfx::IndexBufferType::UInt16)
     {
@@ -166,32 +160,26 @@ void Submesh::Apply()
         {
             temp[i] = indices[i];
         }
-        memcpy(
-            (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize + attribtueDataSize,
-            temp.data(),
-            indicesSize * sizeof(uint16_t)
-        );
+        memcpy(staging + positionDataSize + attribtueDataSize, temp.data(), indicesSize * sizeof(uint16_t));
     }
     else
     {
-        memcpy(
-            (uint8_t*)stagingBuffer->GetCPUVisibleAddress() + positionDataSize + attribtueDataSize,
-            indices.data(),
-            indices.size() * sizeof(uint32_t)
-        );
+        memcpy(staging + positionDataSize + attribtueDataSize, indices.data(), indices.size() * sizeof(uint32_t));
     }
     indexCount = indices.size();
 
-    ImmediateGfx::OnetimeSubmit(
-        [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
-        {
-            Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
-            cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
-
-            bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
-            cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
-        }
-    );
+    GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, staging, vertexBufferSize, 0);
+    GetGfxDriver()->UploadBuffer(*gfxIndexBuffer, staging + vertexBufferSize, indexBufferSize, 0);
+    // GetGfxDriver()->Schedule(
+    //     [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
+    //     {
+    //         Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
+    //         cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
+    //
+    //         bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
+    //         cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
+    //     }
+    // );
 }
 
 const AABB& Submesh::GetAABB() const

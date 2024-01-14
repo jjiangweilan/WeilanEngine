@@ -1,7 +1,6 @@
 #pragma once
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 
 namespace FrameGraph
@@ -43,7 +42,7 @@ public:
             memcpy(staging->GetCPUVisibleAddress(), giScene->surfels.data(), giSceneSize);
 
             passResource->SetBuffer("GIScene", buf.get());
-            ImmediateGfx::OnetimeSubmit(
+            GetGfxDriver()->ExecuteImmediately(
                 [&](Gfx::CommandBuffer& cmd)
                 {
                     Gfx::BufferCopyRegion region[1] = {Gfx::BufferCopyRegion{0, 0, buf->GetSize()}};
@@ -98,7 +97,7 @@ public:
 
     void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override{};
 
-    void Execute(GraphResource& graphResource) override {}
+    void Execute(RenderingData& renderingData) override {}
 
 private:
     RenderGraph::RenderNode* node;

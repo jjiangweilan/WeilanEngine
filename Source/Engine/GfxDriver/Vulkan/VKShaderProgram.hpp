@@ -68,7 +68,10 @@ public:
     ~VKShaderProgram() override;
 
     VkPipelineLayout GetVKPipelineLayout();
-    VkDescriptorSet GetVKDescriptorSet();
+    bool HasSet(uint32_t set)
+    {
+        return GetLayoutHash(set) != 0;
+    }
 
     // request a pipeline object according to config
     // we may have slightly different pipelines with different configs, VKShader should cache these pipelines(TODO)
@@ -107,7 +110,6 @@ private:
     UniPtr<VKShaderModule> fragShaderModule;
     std::unique_ptr<VKShaderModule> computeShaderModule;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    VKSwapChain* swapchain;
     std::vector<PipelineCache> caches;
     std::vector<VkSampler> immutableSamplers;
     std::vector<size_t> layoutHash;

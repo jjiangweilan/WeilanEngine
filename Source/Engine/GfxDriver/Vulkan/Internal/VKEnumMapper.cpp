@@ -225,7 +225,7 @@ VkImageUsageFlags MapImageUsage(ImageUsageFlags in)
     if (in & ImageUsage::DepthStencilAttachment)
         flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     if (in & ImageUsage::Texture)
-        flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+        flags |= (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
     if (in & ImageUsage::TransferSrc)
         flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     if (in & ImageUsage::TransferDst)

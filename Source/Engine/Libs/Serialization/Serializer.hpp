@@ -115,6 +115,9 @@ public:
     virtual void Serialize(std::string_view name, const std::string& val) = 0;
     virtual void Deserialize(std::string_view name, std::string& val) = 0;
 
+    virtual void Serialize(std::string_view name, const bool val) = 0;
+    virtual void Deserialize(std::string_view name, bool& val) = 0;
+
     virtual void Serialize(std::string_view name, const UUID& uuid) = 0;
     virtual void Deserialize(std::string_view name, UUID& uuid) = 0;
 

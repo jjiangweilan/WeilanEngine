@@ -76,9 +76,14 @@ private:
 class VKSwapchainImageView : public VKImageView
 {
 public:
-    VKSwapchainImageView(VKSwapChainImage& swapchainImage) : swapchainImage(&swapchainImage)
+    VKSwapchainImageView()
     {
         imageViewType = ImageViewType::Image_2D;
+    }
+
+    void SetSwapchainImage(VKSwapChainImage& swapchainImage)
+    {
+        this->swapchainImage = &swapchainImage;
         image = &swapchainImage;
     }
 

@@ -89,6 +89,11 @@ VkDescriptorSet VKDescriptorPool::Allocate()
     return set;
 }
 
+void VKDescriptorPool::Free(VkDescriptorSet set)
+{
+    vkFreeDescriptorSets(context->device, freePool, 1, &set);
+}
+
 VkDescriptorPool VKDescriptorPool::CreateNewPool()
 {
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

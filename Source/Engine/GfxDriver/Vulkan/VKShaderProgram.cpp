@@ -142,7 +142,7 @@ VKShaderProgram::VKShaderProgram(
     const unsigned char* compute,
     uint32_t computeSize
 )
-    : ShaderProgram(true), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+    : ShaderProgram(true), name(name), objManager(context->objManager)
 {
     computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
 }
@@ -165,7 +165,7 @@ VKShaderProgram::VKShaderProgram(
     const unsigned char* fragCode,
     uint32_t fragSize
 )
-    : ShaderProgram(false), name(name), objManager(context->objManager.Get()), swapchain(context->swapchain.Get())
+    : ShaderProgram(false), name(name), objManager(context->objManager)
 {
     bool vertInterleaved = true;
     if (config != nullptr)
@@ -189,7 +189,7 @@ VKShaderProgram::VKShaderProgram(
     for (auto& iter : shaderInfo.bindings)
     {
         ShaderInfo::Binding& binding = iter.second;
-        VkDescriptorSetLayoutBinding b;
+        VkDescriptorSetLayoutBinding b{};
         b.stageFlags = ShaderInfo::Utils::MapShaderStage(binding.stages);
         b.binding = binding.bindingNum;
         b.descriptorCount = binding.count;
@@ -309,7 +309,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
     std::vector<VkDescriptorSetLayout> layouts(setCount);
     for (uint32_t i = 0; i < setCount; ++i)
     {
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo;
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
         if (name == "ImGui")
@@ -360,12 +360,6 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
 const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
 {
     return *defaultShaderConfig;
-}
-
-VkDescriptorSet VKShaderProgram::GetVKDescriptorSet()
-{
-    assert(0 && "Not implmented");
-    return 0;
 }
 
 VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass)
@@ -438,8 +432,8 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
     VkViewport viewPort{};
     viewPort.x = 0;
     viewPort.y = 0;
-    viewPort.width = swapchain->GetSwapChainInfo().extent.width;
-    viewPort.height = swapchain->GetSwapChainInfo().extent.height;
+    viewPort.width = GetSwapchain()->extent.width;
+    viewPort.height = GetSwapchain()->extent.height;
     viewPort.minDepth = 0;
     viewPort.maxDepth = 1;
     pipelineViewportStateCreateInfo.pViewports = &viewPort;
@@ -447,7 +441,7 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
 
     VkRect2D scissor;
     pipelineViewportStateCreateInfo.scissorCount = 1;
-    scissor.extent = {swapchain->GetSwapChainInfo().extent.width, swapchain->GetSwapChainInfo().extent.height};
+    scissor.extent = {GetSwapchain()->extent.width, GetSwapchain()->extent.height};
     scissor.offset = {0, 0};
     pipelineViewportStateCreateInfo.pScissors = &scissor;
 

@@ -10,20 +10,19 @@ if (INSTALL_DEPENDENCY)
         if (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64")
             set (PHYSX_CONFIG_COMMAND sh ./generate_projects.sh mac-arm64)
             set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
-            set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
+            set (PHYSX_BUILD_COMMAND cmake --build ./compiler/mac-arm64 --target PhysX PhysXExtensions --config "${PHYSX_CONFIG_TYPE}")
             set (PHYSX_LIB_PATH "./bin/mac.x86_64/${PHYSX_CONFIG_TYPE}")
             set (PHYSX_INSTALL_COMMAND 
                     cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/physx/" &&
                     cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/")
-            set (PHYSX_LIBS PhysX_static_64 PhysXCommon_static_64 PhysXFoundation_static_64)
         endif()
     endif(APPLE)
 
     if (WIN32)
         set (PHYSX_CONFIG_COMMAND ./generate_projects.bat vc17win64)
         set (PHYSX_CONFIG_TYPE "$<IF:$<CONFIG:Release>,release,checked>")
-        set (PHYSX_BUILD_COMMAND cmake --build ./compiler/vc17win64 --target PhysX --config "${PHYSX_CONFIG_TYPE}")
-        set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.mt/${PHYSX_CONFIG_TYPE}") # this is actually vc143, but it seems the naming can't be changed from our side: check this https://github.com/NVIDIA-Omniverse/PhysX/issues/59 (guess it's the same issue)
+        set (PHYSX_BUILD_COMMAND cmake --build "./compiler/vc17win64" --target PhysX PhysXExtensions --config "${PHYSX_CONFIG_TYPE}")
+        set (PHYSX_LIB_PATH "./bin/win.x86_64.vc142.md/${PHYSX_CONFIG_TYPE}") # this is actually vc143, but it seems the naming can't be changed from our side: check this https://github.com/NVIDIA-Omniverse/PhysX/issues/59 (guess it's the same issue)
         set (PHYSX_INSTALL_COMMAND 
                 cmake -E copy_directory "./include/" "<INSTALL_DIR>/include/physx/" &&
                 cmake -E copy_directory "${PHYSX_LIB_PATH}" "<INSTALL_DIR>/lib/" &&
@@ -31,13 +30,12 @@ if (INSTALL_DEPENDENCY)
                                 "<INSTALL_DIR>/lib/PhysXCommon_64.dll"
                                 "<INSTALL_DIR>/lib/PhysXFoundation_64.dll"
                                 "<INSTALL_DIR>/bin/")
-        set (PHYSX_LIBS PhysX_64 PhysXCommon_64 PhysXFoundation_64)
     endif(WIN32)
 
     ExternalProject_Add(PhysX
         PREFIX "ThirdParty/PhysX"
         GIT_REPOSITORY "https://github.com/jjiangweilan/PhysX.git"
-        GIT_TAG "e23b94c3b4dbea4265493055eb61ca24cf99a663"
+        GIT_TAG "8ce68f900e79bf1a68a74e53a44b6fa11da73807"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX"
         BINARY_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX/physx"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"

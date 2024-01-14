@@ -37,7 +37,13 @@ public:
         return internalAssets;
     }
 
+    static AssetDatabase* Singleton()
+    {
+        return instance;
+    }
+
 private:
+    static AssetDatabase* instance;
     const std::filesystem::path projectRoot;
     const std::filesystem::path assetDirectory;
     const std::filesystem::path assetDatabaseDirectory;
@@ -74,4 +80,7 @@ private:
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
+
+    // used to set instance
+    friend class WeilanEngine;
 };

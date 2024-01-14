@@ -15,10 +15,7 @@ public:
     MeshRenderer();
     MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
     MeshRenderer(GameObject* owner);
-    ~MeshRenderer() override
-    {
-        RemoveFromRenderingScene();
-    };
+    ~MeshRenderer() override{};
 
     void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
@@ -32,11 +29,12 @@ public:
 
 private:
     Mesh* mesh = nullptr;
-    RenderingScene* renderingScene = nullptr;
     std::vector<Material*> materials = {};
     AABB aabb;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
-    void NotifyGameObjectGameSceneSet() override;
+
+    void EnableImple() override;
+    void DisableImple() override;
 };

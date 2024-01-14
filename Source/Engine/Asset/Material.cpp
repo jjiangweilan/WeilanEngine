@@ -2,8 +2,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
-#include "Rendering/ImmediateGfx.hpp"
-#include "Rendering/RenderPipeline.hpp"
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material() : shader(nullptr), shaderResource(nullptr)
@@ -309,8 +307,8 @@ void Material::UploadDataToGPU()
                     u.second.buffer = std::move(buffer);
                 }
 
-                std::vector<uint8_t> data;
-                data.resize(bindingIter->second.binding.ubo.data.size);
+                tempUploadData.clear();
+                tempUploadData.resize(bindingIter->second.binding.ubo.data.size);
 
                 for (auto& f : u.second.floats)
                 {
@@ -321,7 +319,7 @@ void Material::UploadDataToGPU()
                         if (memberIter->second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
                         {
                             size_t offset = memberIter->second.offset;
-                            *((float*)(data.data() + offset)) = f.second;
+                            *((float*)(tempUploadData.data() + offset)) = f.second;
                         }
                     }
                 }
@@ -337,12 +335,12 @@ void Material::UploadDataToGPU()
                             type == Gfx::ShaderInfo::ShaderDataType::Vec3)
                         {
                             size_t offset = memberIter->second.offset;
-                            *((glm::vec4*)(data.data() + offset)) = v.second;
+                            *((glm::vec4*)(tempUploadData.data() + offset)) = v.second;
                         }
                         else if (memberIter->second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
                         {
                             size_t offset = memberIter->second.offset;
-                            *((glm::vec2*)(data.data() + offset)) = glm::vec2(v.second);
+                            *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(v.second);
                         }
                     }
                 }
@@ -357,12 +355,12 @@ void Material::UploadDataToGPU()
                         if (type == Gfx::ShaderInfo::ShaderDataType::Mat4)
                         {
                             size_t offset = memberIter->second.offset;
-                            *((glm::mat4*)(data.data() + offset)) = m.second;
+                            *((glm::mat4*)(tempUploadData.data() + offset)) = m.second;
                         }
                     }
                 }
 
-                RenderPipeline::Singleton().UploadBuffer(*u.second.buffer, data.data(), data.size(), 0);
+                GetGfxDriver()->UploadBuffer(*u.second.buffer, tempUploadData.data(), tempUploadData.size(), 0);
                 u.second.dirty = false;
             }
         }

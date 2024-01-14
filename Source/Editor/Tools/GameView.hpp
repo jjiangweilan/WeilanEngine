@@ -3,9 +3,12 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 
+namespace RenderGraph
+{
+class Graph;
+}
 namespace Editor
 {
-
 class GameView : public Tool
 {
 public:
@@ -42,6 +45,7 @@ private:
 
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
+    std::unique_ptr<RenderGraph::Graph> gameViewPostProcess;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect);

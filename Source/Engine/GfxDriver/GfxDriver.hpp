@@ -45,6 +45,11 @@ enum class AcquireNextSwapChainImageResult
     Recreated
 };
 
+enum class GfxEvent
+{
+    SwapchainRecreated
+};
+
 class GfxDriver
 {
 public:
@@ -63,11 +68,14 @@ public:
     virtual bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual Image* GetSwapChainImage() = 0;
-    virtual RefPtr<CommandQueue> GetQueue(QueueType flags) = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
     virtual Backend GetGfxBackendType() = 0;
     virtual Extent2D GetSurfaceSize() = 0;
 
+    virtual bool BeginFrame() = 0;
+
+    // return true if swapchain recreated
+    virtual bool EndFrame() = 0;
     virtual UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
@@ -108,13 +116,26 @@ public:
     ) = 0;
     virtual void ForceSyncResources() = 0;
     virtual void WaitForIdle() = 0;
-    virtual RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) = 0;
 
     // return true if swapchain is recreated
-    virtual AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) = 0;
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;
+
+    // RHI implementation
+    virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
+    virtual void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
+    virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
+
+    virtual void UploadImage(
+        Gfx::Image& dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel = 0,
+        uint32_t arayLayer = 0,
+        Gfx::ImageAspect aspect = Gfx::ImageAspect::Color
+    ) = 0;
+    virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
 private:
     static GfxDriver*& InstanceInternal();

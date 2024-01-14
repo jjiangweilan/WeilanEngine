@@ -2,6 +2,7 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
@@ -21,17 +22,13 @@ public:
         if (ImGui::BeginMenu("Create Component"))
         {
             if (ImGui::MenuItem("Camera"))
-            {
-                auto camera = target->AddComponent<Camera>();
-            }
+                target->AddComponent<Camera>();
             if (ImGui::MenuItem("MeshRenderer"))
-            {
-                auto meshRenderer = target->AddComponent<MeshRenderer>();
-            }
+                target->AddComponent<MeshRenderer>();
             if (ImGui::MenuItem("Light"))
-            {
-                auto light = target->AddComponent<Light>();
-            }
+                target->AddComponent<Light>();
+            if (ImGui::MenuItem("SceneEnvironment"))
+                target->AddComponent<SceneEnvironment>();
 
             ImGui::EndMenu();
         }
@@ -42,6 +39,14 @@ public:
         auto& name = target->GetName();
         char cname[1024];
         strcpy(cname, name.data());
+        bool enabled = target->IsEnabled();
+        if (ImGui::Checkbox("##Enable Box", &enabled))
+        {
+            target->SetEnable(enabled);
+        }
+
+        ImGui::SameLine();
+
         if (ImGui::InputText("Name", cname, 1024))
         {
             target->SetName(cname);
@@ -76,125 +81,20 @@ public:
         {
             auto& c = *co;
             ImGui::Separator();
+            bool cEnabled = c.IsEnabled();
+            if (ImGui::Checkbox("##Enable", &cEnabled))
+            {
+                if (cEnabled)
+                    c.Enable();
+                else
+                    c.Disable();
+            }
+            ImGui::SameLine();
             ImGui::Text("%s", c.GetName().c_str());
 
-            if (typeid(c) == typeid(Light))
-            {
-                Light* light = static_cast<Light*>(&c);
-                float intensity = light->GetIntensity();
-                ImGui::DragFloat("intensity", &intensity);
-                light->SetIntensity(intensity);
-                continue;
-            }
-            else if (typeid(c) == typeid(Camera))
-            {
-                Camera& camera = static_cast<Camera&>(c);
-                if (ImGui::Button("Set as main camera"))
-                {
-                    if (EditorState::activeScene)
-                    {
-                        EditorState::activeScene->SetMainCamera(&camera);
-                    }
-                }
-
-                auto frameGraph = camera.GetFrameGraph();
-                const char* buttonName = "empty";
-                if (frameGraph)
-                {
-                    buttonName = frameGraph->GetName().c_str();
-                }
-                ImGui::Text("Frame Graph: ");
-                ImGui::SameLine();
-                if (ImGui::Button(buttonName))
-                {
-                    EditorState::selectedObject = frameGraph;
-                }
-
-                if (ImGui::BeginDragDropTarget())
-                {
-                    auto payload = ImGui::AcceptDragDropPayload("object");
-                    if (payload && payload->IsDelivery())
-                    {
-                        if (FrameGraph::Graph* fg = dynamic_cast<FrameGraph::Graph*>(*(Object**)payload->Data))
-                        {
-                            camera.SetFrameGraph(fg);
-                        }
-                    }
-                    ImGui::EndDragDropTarget();
-                }
-
-                ImGui::SameLine();
-                if (ImGui::Button("Clear"))
-                {
-                    camera.SetFrameGraph(nullptr);
-                }
-            }
-            else if (typeid(c) == typeid(MeshRenderer))
-            {
-                MeshRenderer& meshRenderer = static_cast<MeshRenderer&>(c);
-                Mesh* mesh = meshRenderer.GetMesh();
-
-                std::string meshGUIID = "emtpy";
-                if (mesh)
-                    meshGUIID = mesh->GetName();
-
-                ImGui::Text("Mesh: ");
-                ImGui::SameLine();
-
-                bool bp = ImGui::Button(meshGUIID.c_str());
-                if (ImGui::BeginDragDropTarget())
-                {
-                    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-                    if (payload && payload->IsDelivery())
-                    {
-                        Object& obj = **(Object**)payload->Data;
-                        if (typeid(obj) == typeid(Mesh))
-                        {
-                            Mesh* mesh = static_cast<Mesh*>(&obj);
-
-                            meshRenderer.SetMesh(mesh);
-                            mesh = meshRenderer.GetMesh();
-                        }
-                    }
-                    ImGui::EndDragDropTarget();
-                }
-                else if (bp)
-                {
-                    EditorState::selectedObject = mesh;
-                }
-                // show materials
-                ImGui::Text("Materials: ");
-                std::vector<Material*> mats = meshRenderer.GetMaterials();
-                for (int i = 0; i < mats.size(); ++i)
-                {
-                    Material* mat = mats[i];
-                    std::string buttonID;
-                    if (mat)
-                        buttonID = fmt::format("{}: {}", i, mats[i]->GetName());
-                    else
-                        buttonID = fmt::format("{}##{}", "emtpy", i);
-
-                    if (ImGui::Button(buttonID.c_str()))
-                    {
-                        EditorState::selectedObject = mats[i];
-                    };
-
-                    if (ImGui::BeginDragDropTarget())
-                    {
-                        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-                        if (payload && payload->IsDelivery())
-                        {
-                            Object& obj = **(Object**)payload->Data;
-                            if (typeid(obj) == typeid(Material))
-                            {
-                                mats[i] = static_cast<Material*>(&obj);
-                                meshRenderer.SetMaterials(mats);
-                            }
-                        }
-                        ImGui::EndDragDropTarget();
-                    }
-                }
-            }
+            auto inspector = InspectorRegistry::GetInspector(c);
+            inspector->OnEnable(c);
+            inspector->DrawInspector(editor);
         }
     }
 

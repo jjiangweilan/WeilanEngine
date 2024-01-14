@@ -17,9 +17,10 @@
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
 
+#include "RHI/Buffer.hpp"
+
 namespace Gfx
 {
-class VKAppWindow;
 class VKInstance;
 class VKSurface;
 class VKDevice;
@@ -30,6 +31,7 @@ class VKFrameBuffer;
 class VKRenderPass;
 class VKSharedResource;
 class VKContext;
+class VKDataUploader;
 struct VKDescriptorPoolCache;
 class VKDriver : public Gfx::GfxDriver
 {
@@ -47,9 +49,7 @@ public:
         std::span<RefPtr<Semaphore>> signalSemaphroes,
         RefPtr<Fence> signalFence
     ) override;
-    RefPtr<Semaphore> Present(std::vector<RefPtr<Semaphore>>&& semaphores) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
-    AcquireNextSwapChainImageResult AcquireNextSwapChainImage(RefPtr<Semaphore> imageAcquireSemaphore) override;
     const GPUFeatures& GetGPUFeatures() override
     {
         return gpuFeatures;
@@ -57,7 +57,6 @@ public:
 
     bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages) override;
     ;
-    RefPtr<CommandQueue> GetQueue(QueueType flags) override;
     SDL_Window* GetSDLWindow() override;
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
@@ -98,30 +97,119 @@ public:
 
     void ClearResources() override;
 
-private:
-    VKInstance* instance;
-    VKDevice* device;
-    VKAppWindow* appWindow;
-    VKSurface* surface;
-    VKPhysicalDevice* gpu;
-    VKSwapChain* swapchain;
-
-    VKMemAllocator* memAllocator;
-    VKObjectManager* objectManager;
-
-    VkDevice device_vk;
-    VKSwapChainImage* swapChainImage;
-    UniPtr<VKContext> context;
-    UniPtr<VKSharedResource> sharedResource;
-    UniPtr<VKDescriptorPoolCache> descriptorPoolCache;
-    RefPtr<VKCommandQueue> mainQueue;
-
-    UniPtr<VKCommandPool> commandPool;
-
-    struct InFlightFrame
+    // RHI implementation
+    void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
+    void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
+    void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
+    void UploadImage(
+        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, Gfx::ImageAspect aspect
+    ) override;
+    void GenerateMipmaps(Gfx::Image& image) override
     {
-        UniPtr<VKSemaphore> imageAcquireSemaphore;
-    } inFlightFrame;
+        GenerateMipmaps(static_cast<VKImage&>(image));
+    }
+    bool BeginFrame() override;
+    bool EndFrame() override;
+
+    void GenerateMipmaps(VKImage& image);
+
+public:
+    std::unique_ptr<VKMemAllocator> memAllocator;
+    std::unique_ptr<VKObjectManager> objectManager;
+
+    std::unique_ptr<VKContext> context;
+    std::unique_ptr<VKSharedResource> sharedResource;
+    std::unique_ptr<VKDescriptorPoolCache> descriptorPoolCache;
+    std::unique_ptr<VKDataUploader> dataUploader;
+    VkCommandPool mainCmdPool;
+
+    struct DriverConfig
+    {
+        int swapchainImageCount = 3;
+        Extent2D initialWindowSize = {1920, 1080};
+    } driverConfig;
+
+    struct Instance
+    {
+        VkInstance handle;
+        VkDebugUtilsMessengerEXT debugMessenger;
+    } instance;
+
+    struct Device
+    {
+        VkDevice handle;
+    } device;
+
+    Queue mainQueue;
+
+    GPU gpu;
+    Swapchain swapchain;
+
+    struct Surface
+    {
+        VkSurfaceKHR handle;
+        VkSurfaceCapabilitiesKHR surfaceCapabilities;
+        std::vector<VkPresentModeKHR> surfacePresentModes;
+        std::vector<VkSurfaceFormatKHR> surfaceFormats;
+    } surface;
+
+    struct AppWidnow
+    {
+        SDL_Window* handle;
+        Extent2D size;
+    } window;
+
     GPUFeatures gpuFeatures;
+
+    // RHI implementation
+    struct InflightData
+    {
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence cmdFence = VK_NULL_HANDLE;
+        VkSemaphore imageAcquireSemaphore;
+        VkSemaphore presentSemaphore;
+        uint32_t swapchainIndex;
+    };
+    std::vector<InflightData> inflightData = {};
+    uint32_t currentInflightIndex = 0;
+    std::unique_ptr<VKSwapChainImage> swapchainImage = nullptr;
+    std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
+    std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
+    VkSemaphore transferSignalSemaphore;
+
+    VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
+    VkFence immediateCmdFence = VK_NULL_HANDLE;
+
+    void CreateInstance();
+    void CreatePhysicalDevice();
+    void CreateDevice();
+    void CreateAppWindow();
+    void CreateSurface();
+    bool CreateOrOverrideSwapChain();
+
+    Vulkan::Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
+    void Driver_DestroyBuffer(Vulkan::Buffer& b);
+
+    std::vector<const char*> AppWindowGetRequiredExtensions();
+    bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
+    bool Swapchain_GetImagesFromVulkan();
+    void Surface_QuerySurfaceProperties();
+
+private:
+    void FrameEndClear();
+
+    VkResult CreateDebugUtilsMessengerEXT(
+        VkInstance instance,
+        const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator,
+        VkDebugUtilsMessengerEXT* pDebugMessenger
+    );
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+        void* pUserData
+    );
 };
 } // namespace Gfx

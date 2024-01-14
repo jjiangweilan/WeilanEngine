@@ -13,7 +13,7 @@ public:
     {
         return queueFamilyIndex;
     }
-    VkQueue queue = VK_NULL_HANDLE;
+    VkQueue handle = VK_NULL_HANDLE;
     uint32_t queueIndex = -1;
     uint32_t queueFamilyIndex = -1;
 };

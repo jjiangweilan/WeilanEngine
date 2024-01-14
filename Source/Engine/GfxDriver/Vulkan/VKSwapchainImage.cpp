@@ -41,7 +41,11 @@ void VKSwapChainImage::Recreate(
         this->swapchainImages.emplace_back(ptr);
     }
 
-    imageView = std::make_unique<VKSwapchainImageView>(*this);
+    if (imageView == nullptr)
+    {
+        imageView = std::make_unique<VKSwapchainImageView>();
+    }
+    ((VKSwapchainImageView*)imageView.get())->SetSwapchainImage(*this);
 }
 
 // VkImageView VKSwapChainImage::GetDefaultVkImageView()

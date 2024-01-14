@@ -5,6 +5,7 @@
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
 #include "VKDebugUtils.hpp"
+#include "VKDriver.hpp"
 #include "VKImageView.hpp"
 #include <vma/vk_mem_alloc.h>
 
@@ -181,6 +182,11 @@ VkImageSubresourceRange VKImage::GetDefaultSubresourceRange()
 ImageLayout VKImage::GetImageLayout()
 {
     return MapVKImageLayout(layout);
+}
+
+void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer)
+{
+    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), mip, layer, GetSubresourceRange().aspectMask);
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

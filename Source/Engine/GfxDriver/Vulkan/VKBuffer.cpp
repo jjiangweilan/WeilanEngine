@@ -54,7 +54,7 @@ VKBuffer::VKBuffer(const CreateInfo& createInfo)
     vkCreateInfo.usage = usage;
     vkCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     vkCreateInfo.queueFamilyIndexCount = 1;
-    uint32_t queueFamily = VKContext::Instance()->mainQueue->queueFamilyIndex;
+    uint32_t queueFamily = GetMainQueue()->queueFamilyIndex;
     vkCreateInfo.pQueueFamilyIndices = &queueFamily;
 
     VmaAllocationCreateInfo allocationCreateInfo{};

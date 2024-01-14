@@ -8,12 +8,37 @@
 #include "VKSharedResource.hpp"
 namespace Gfx
 {
-class VKDevice;
-class VKMemAllocator;
-class VKObjectManager;
-class VKSharedResource;
-class VKSwapChain;
 class VKDriver;
+
+struct Queue
+{
+    VkQueue handle;
+    uint32_t queueIndex;
+    uint32_t queueFamilyIndex;
+};
+struct GPU
+{
+    VkPhysicalDevice handle;
+
+    VkPhysicalDeviceMemoryProperties memProperties;
+    VkPhysicalDeviceProperties physicalDeviceProperties{};
+    VkPhysicalDeviceFeatures physicalDeviceFeatures{};
+
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+    std::vector<VkExtensionProperties> availableExtensions;
+};
+
+struct Swapchain
+{
+    VkSwapchainKHR handle = VK_NULL_HANDLE;
+    VkSurfaceFormatKHR surfaceFormat;
+    VkExtent2D extent;
+    VkImageUsageFlags imageUsageFlags;
+    VkSurfaceTransformFlagBitsKHR surfaceTransform;
+    VkPresentModeKHR presentMode;
+    uint32_t numberOfImages;
+};
+
 class VKContext
 {
 public:
@@ -21,20 +46,28 @@ public:
     {
         return context;
     }
-    RefPtr<VKDevice> device;
-    RefPtr<VKMemAllocator> allocator;
-    RefPtr<VKObjectManager> objManager;
-    RefPtr<VKSharedResource> sharedResource;
-    RefPtr<VKSwapChain> swapchain;
-    RefPtr<const VKCommandQueue> mainQueue;
-    RefPtr<VKDescriptorPoolCache> descriptorPoolCache;
+    VKDriver* driver;
+    VkDevice device;
+    GPU* gpu;
+    Swapchain* swapchain;
+    Queue* mainQueue;
+
+    VKMemAllocator* allocator;
+    VKObjectManager* objManager;
+    VKSharedResource* sharedResource;
+    VKDescriptorPoolCache* descriptorPoolCache;
 
 private:
     static RefPtr<VKContext> context;
     friend class VKDriver;
 };
 
-inline RefPtr<VKDevice> GetDevice()
+inline VKDriver* GetDriver()
+{
+    return VKContext::Instance()->driver;
+}
+
+inline VkDevice GetDevice()
 {
     return VKContext::Instance()->device;
 }
@@ -45,5 +78,20 @@ inline RefPtr<VKMemAllocator> GetMemAllocator()
 inline RefPtr<VKObjectManager> GetObjManager()
 {
     return VKContext::Instance()->objManager;
+}
+
+inline GPU* GetGPU()
+{
+    return VKContext::Instance()->gpu;
+}
+
+inline Swapchain* GetSwapchain()
+{
+    return VKContext::Instance()->swapchain;
+}
+
+inline Queue* GetMainQueue()
+{
+    return VKContext::Instance()->mainQueue;
 }
 } // namespace Gfx

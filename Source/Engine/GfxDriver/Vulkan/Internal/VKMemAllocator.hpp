@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Libs/Ptr.hpp"
-#include "VKDevice.hpp"
 #include <functional>
 #include <utility>
 #include <vector>
@@ -23,9 +22,7 @@ class VKBuffer;
 class VKMemAllocator
 {
 public:
-    VKMemAllocator(
-        VkInstance instance, RefPtr<VKDevice> device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex
-    );
+    VKMemAllocator(VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice, uint32_t transferQueueIndex);
     VKMemAllocator(const VKMemAllocator& other) = delete;
     ~VKMemAllocator();
 
@@ -56,17 +53,13 @@ public:
 
     void DestroyPendingResources();
 
-    RefPtr<VKDevice> GetDevice()
-    {
-        return device;
-    }
     inline VmaAllocator GetHandle()
     {
         return allocator_vma;
     };
 
     VmaAllocator allocator_vma;
-    RefPtr<VKDevice> device;
+    VkDevice device;
     uint32_t queueFamilyIndex;
 
     VkBuffer GetStageBuffer(uint32_t size, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo);

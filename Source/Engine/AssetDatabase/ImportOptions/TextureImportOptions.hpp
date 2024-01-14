@@ -1,0 +1,4 @@
+struct TextureImportOptions
+{
+    bool cubeMap;
+};

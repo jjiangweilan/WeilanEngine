@@ -1,5 +1,4 @@
 #include "GIScene.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include "spdlog/spdlog.h"
 
 namespace SurfelGI
@@ -115,7 +114,7 @@ Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
 {
     cameraGO->SetModelMatrix(camModel);
 
-    ImmediateGfx::OnetimeSubmit(
+    GetGfxDriver()->ExecuteImmediately(
         [&](Gfx::CommandBuffer& cmd)
         {
             Gfx::GPUBarrier memBarrier{

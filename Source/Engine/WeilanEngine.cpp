@@ -3,14 +3,17 @@
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
+#include "Physics/Physics.hpp"
 #include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
+WeilanEngine::WeilanEngine() {};
+
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
+    physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
-    RenderPipeline::Deinit();
 }
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
@@ -34,7 +37,9 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
-    RenderPipeline::Init();
+    AssetDatabase::instance = assetDatabase.get();
+    physics = std::make_unique<Physics>();
+    physics->Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
@@ -48,6 +53,9 @@ bool WeilanEngine::BeginFrame()
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
+
+    if (!gfxDriver->BeginFrame())
+        return false;
 
 #if ENGINE_EDITOR
     ImGui_ImplSDL2_NewFrame();
@@ -64,8 +72,13 @@ void WeilanEngine::EndFrame()
     ImGui::EndFrame();
 #endif
 
+    event->Reset();
+
     // submit anything in the active command and present the surface
-    RenderPipeline::Singleton().Render();
+    if (gfxDriver->EndFrame())
+        event->swapchainRecreated.state = true;
+    else
+        event->swapchainRecreated.state = false;
 
 #if ENGINE_EDITOR
     assetDatabase->RefreshShader();

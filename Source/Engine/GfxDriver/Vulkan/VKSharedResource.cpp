@@ -1,10 +1,11 @@
 #include "VKSharedResource.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "VKContext.hpp"
+#include "VKDriver.hpp"
 #include "VKImage.hpp"
 namespace Gfx
 {
-VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
+VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
 {
     // create default sampler
     VkSamplerCreateInfo samplerCreateInfo{};
@@ -26,7 +27,7 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
     samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
-    context->objManager->CreateSampler(samplerCreateInfo, defaultSampler);
+    driver->objectManager->CreateSampler(samplerCreateInfo, defaultSampler);
 
     // create default image
     ImageDescription desc{};
@@ -35,13 +36,11 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     desc.width = 2;
     desc.mipLevels = 1;
     desc.isCubemap = false;
-    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
-    // desc.data = (unsigned char*)pxls;
     desc.multiSampling = MultiSampling::Sample_Count_1;
     defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
     defaultTexture->SetName("Default Texture");
-    // default storage buffer
-    // defaultStorageBuffer = MakeUnique<VKStorageBuffer>(32);
+    uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
+    defaultTexture->SetData(pxls, 0, 0);
 
     ImageDescription descCube{};
     descCube.format = ImageFormat::R8G8B8A8_UNorm;
@@ -55,10 +54,16 @@ VKSharedResource::VKSharedResource(RefPtr<VKContext> context) : context(context)
     descCube.multiSampling = MultiSampling::Sample_Count_1;
     defaultCubemap = MakeUnique<VKImage>(descCube, ImageUsage::Texture | ImageUsage::TransferDst);
     defaultCubemap->SetName("Default Cubemap");
+    defaultCubemap->SetData(pxls, 0, 0);
+    defaultCubemap->SetData(pxls, 0, 1);
+    defaultCubemap->SetData(pxls, 0, 2);
+    defaultCubemap->SetData(pxls, 0, 3);
+    defaultCubemap->SetData(pxls, 0, 4);
+    defaultCubemap->SetData(pxls, 0, 5);
 }
 
 VKSharedResource::~VKSharedResource()
 {
-    context->objManager->DestroySampler(defaultSampler);
+    driver->objectManager->DestroySampler(defaultSampler);
 }
 } // namespace Gfx

@@ -82,6 +82,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("scale", scale);
     s->Serialize("parent", parent);
     s->Serialize("children", children);
+    s->Serialize("enabled", enabled);
 }
 
 void GameObject::SetModelMatrix(const glm::mat4& model)
@@ -98,17 +99,27 @@ void GameObject::SetModelMatrix(const glm::mat4& model)
 void GameObject::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
-    s->Deserialize("components", components);
-    s->Deserialize("gameScene", gameScene);
-    s->Deserialize("rotation", rotation);
-    s->Deserialize("position", position);
-    s->Deserialize("scale", scale);
-    s->Deserialize("parent", parent);
+    s->Deserialize("enabled", enabled);
     s->Deserialize("children", children);
+    s->Deserialize("parent", parent);
+    s->Deserialize("scale", scale);
+    s->Deserialize("position", position);
+    s->Deserialize("rotation", rotation);
+    s->Deserialize("gameScene", gameScene);
+    s->Deserialize("components", components);
 
     for (auto& c : components)
     {
         c->gameObject = this;
+    }
+
+    if (enabled)
+    {
+        for (auto& c : components)
+        {
+            if (c->IsEnabled())
+                c->EnableImple();
+        }
     }
 }
 
@@ -157,9 +168,56 @@ void GameObject::SetParent(GameObject* parent)
 
 void GameObject::SetScene(Scene* scene)
 {
-    this->gameScene = scene;
-    for (auto& c : components)
+    if (this->gameScene != scene)
     {
-        c->NotifyGameObjectGameSceneSet();
+        if (this->gameScene != nullptr)
+        {
+            for (auto& c : components)
+            {
+                if (c->IsEnabled())
+                    c->DisableImple();
+            }
+        }
+
+        this->gameScene = scene;
+        for (auto& c : components)
+        {
+            if (c->IsEnabled() && enabled)
+                c->EnableImple();
+        }
     }
+}
+
+void GameObject::SetEnable(bool isEnabled)
+{
+    if (enabled == isEnabled)
+        return;
+
+    for (auto child : children)
+    {
+        // child may be nullptr when deserializing
+        if (child)
+            child->SetEnable(isEnabled);
+    }
+
+    if (isEnabled)
+    {
+        for (auto& c : components)
+        {
+            if (c->IsEnabled())
+            {
+                c->EnableImple();
+            }
+        }
+    }
+    else
+    {
+        for (auto& c : components)
+        {
+            if (c->IsEnabled())
+                c->DisableImple();
+        }
+    }
+
+    enabled = isEnabled;
 }

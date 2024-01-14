@@ -135,7 +135,7 @@ private:
 VKRenderTarget::VKRenderTarget(VKContext* context,
                                VKAppWindow* window,
                                const RenderTargetDescription& renderTargetDescription)
-    : RenderTarget(), memAllocator(context->allocator.Get()), window(window), objectManager(context->objManager.Get()),
+    : RenderTarget(), memAllocator(context->allocator), window(window), objectManager(context->objManager),
       context(context)
 {
     SetRenderTargetDescription(renderTargetDescription);

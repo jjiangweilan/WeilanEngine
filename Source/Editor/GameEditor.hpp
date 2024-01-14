@@ -14,6 +14,7 @@ namespace Editor
 {
 
 class Tool;
+class InspectorBase;
 class GameEditor
 {
 public:
@@ -54,6 +55,9 @@ private:
     bool openSceneWindow = false;
     bool createSceneWindow = false;
     bool surfelGIBaker = false;
+
+    InspectorBase* primaryInspector = nullptr;
+    InspectorBase* secondaryInspector = nullptr;
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;

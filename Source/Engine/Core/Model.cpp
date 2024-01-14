@@ -5,29 +5,29 @@
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
-static std::unique_ptr<GameObject> CreateGameObjectFromNode(
+static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh*> meshes,
-    std::unordered_map<int, Material*> materials
+    std::unordered_map<int, Mesh*>& meshes,
+    std::unordered_map<int, Material*>& materials
 );
 
 static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-static std::unique_ptr<GameObject> CreateGameObjectFromNode(
+static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
-    std::unordered_map<int, Mesh*> meshes,
-    std::unordered_map<int, Material*> materials
+    std::unordered_map<int, Mesh*>& meshes,
+    std::unordered_map<int, Material*>& materials
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
-    auto gameObject = MakeUnique<GameObject>();
+    auto gameObject = std::make_unique<GameObject>();
 
     // name
-    gameObject->SetName(nodeJson.value("name", "A GameObject"));
+    gameObject->SetName(nodeJson.value("name", "New GameObject"));
 
     // TRS
     std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
@@ -53,7 +53,23 @@ static std::unique_ptr<GameObject> CreateGameObjectFromNode(
         }
     }
 
-    return gameObject;
+    std::vector<std::unique_ptr<GameObject>> rlt;
+    auto temp = gameObject.get();
+    rlt.push_back(std::move(gameObject));
+    if (nodeJson.contains("children"))
+    {
+        for (int i : nodeJson["children"])
+        {
+            auto children = CreateGameObjectFromNode(j, i, meshes, materials);
+            for (auto& c : children)
+            {
+                c->SetParent(temp);
+            }
+            rlt.insert(rlt.end(), std::make_move_iterator(children.begin()), std::make_move_iterator(children.end()));
+        }
+    }
+
+    return rlt;
 }
 
 static std::size_t WriteAccessorDataToBuffer(
@@ -68,6 +84,16 @@ static std::size_t WriteAccessorDataToBuffer(
     memcpy(dstBuffer + dstOffset, srcBuffer + byteOffset, byteLength);
 
     return byteLength;
+}
+
+static int GetImageIndex(nlohmann::json& texJson)
+{
+    if (texJson.contains("source"))
+    {
+        return texJson["source"];
+    }
+
+    return texJson["extensions"]["KHR_texture_basisu"]["source"];
 }
 
 bool Model::LoadFromFile(const char* cpath)
@@ -96,10 +122,22 @@ bool Model::LoadFromFile(const char* cpath)
     for (int i = 0; i < textureSize; ++i)
     {
         int bufferViewIndex = jsonData["images"][i]["bufferView"];
+        std::string mimeType = jsonData["images"][i]["mimeType"];
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
         int byteOffset = bufferViewJson["byteOffset"];
-        auto tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+
+        std::unique_ptr<Texture> tex = nullptr;
+        if (mimeType == "image/jpeg" || mimeType == "image/png")
+        {
+            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+        }
+        else if (mimeType == "image/ktx2")
+        {
+            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::Ktx, UUID{});
+        }
+        else
+            throw std::runtime_error("unsupported mime type");
         Utils::GLB::SetAssetName(tex.get(), jsonData, "images", i);
 
         toOurTexture[i] = tex.get();
@@ -135,7 +173,7 @@ bool Model::LoadFromFile(const char* cpath)
             int baseColorSamplerIndex = matJson["pbrMetallicRoughness"]["baseColorTexture"].value("index", -1);
             if (baseColorSamplerIndex != -1)
             {
-                int baseColorImageIndex = texJson[baseColorSamplerIndex]["source"];
+                int baseColorImageIndex = GetImageIndex(texJson[baseColorSamplerIndex]);
                 mat->SetTexture("baseColorTex", toOurTexture[baseColorImageIndex]);
             }
         }
@@ -146,7 +184,7 @@ bool Model::LoadFromFile(const char* cpath)
             int normalTextureSamplerIndex = matJson["normalTexture"].value("index", -1);
             if (normalTextureSamplerIndex != -1)
             {
-                int normalTextureImageInex = texJson[normalTextureSamplerIndex]["source"];
+                int normalTextureImageInex = GetImageIndex(texJson[normalTextureSamplerIndex]);
                 mat->SetTexture("normalMap", toOurTexture[normalTextureImageInex]);
             }
         }
@@ -161,7 +199,7 @@ bool Model::LoadFromFile(const char* cpath)
             int textureSamplerIndex = matJson["emissiveTexture"].value("index", -1);
             if (textureSamplerIndex != -1)
             {
-                int emissiveTextureImageIndex = texJson[textureSamplerIndex]["source"];
+                int emissiveTextureImageIndex = GetImageIndex(texJson[textureSamplerIndex]);
                 mat->SetTexture("emissiveMap", toOurTexture[emissiveTextureImageIndex]);
             }
         }
@@ -173,7 +211,7 @@ bool Model::LoadFromFile(const char* cpath)
                 matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
             if (metallicRougnessSamplerIndex != -1)
             {
-                int metallicRoughnessImageIndex = texJson[metallicRougnessSamplerIndex]["source"];
+                int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
                 mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
             }
         }
@@ -196,13 +234,21 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
         nlohmann::json& sceneJson = scenesJson[i];
         std::unique_ptr<GameObject> rootGameObject = MakeUnique<GameObject>();
         Utils::GLB::SetAssetName(rootGameObject.get(), jsonData, "scenes", i);
-        rootGameObject->SetName(std::string(sceneJson["name"]));
+        rootGameObject->SetName(std::string(sceneJson.value("name", "root")));
 
         for (int nodeIndex : sceneJson["nodes"])
         {
-            auto gameObject = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
-            gameObject->SetParent(rootGameObject.get());
-            gameObjects.push_back(std::move(gameObject));
+            auto gameObjectsCreated = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial);
+            for (auto& go : gameObjectsCreated)
+            {
+                go->SetParent(rootGameObject.get());
+            }
+
+            gameObjects.insert(
+                gameObjects.end(),
+                std::make_move_iterator(gameObjectsCreated.begin()),
+                std::make_move_iterator(gameObjectsCreated.end())
+            );
         }
 
         rootGameObjects.push_back(rootGameObject.get());

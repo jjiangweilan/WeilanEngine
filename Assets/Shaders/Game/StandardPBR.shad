@@ -96,6 +96,11 @@ vec2 SphericalToUV(vec3 v)
     return uv;
 }
 
+float Fresnel(float metallic, float dotVH)
+{
+    return metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+}
+
 float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
 {
     vec3 h = normalize(l + v);
@@ -115,7 +120,7 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
     float G = Gv * Gl;
 
 // fresnel
-    float F = metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    float F = Fresnel(metallic, dotVH);
 
     float brdf = (G * F * D) / (4 * dotNL * dotNV);
     return brdf;
@@ -127,16 +132,16 @@ void main()
     vec3 tangent = normalize(i_TangentWS);
     vec3 normal = normalize(i_NormalWS);
     vec3 bitangent = normalize(i_BitangentWS);
-    mat3 TBN = {tangent, bitangent, normal};
-    vec3 normalMap = texture(NormalMap, i_UV).xyz;
-    normal = TBN * normalMap;
+    // mat3 TBN = {tangent, bitangent, normal};
+    // vec3 normalMap = texture(NormalMap, i_UV).xyz;
+    // normal = TBN * normalMap;
 
     vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
     float metallic = metallicRoughness.y;
-    float roughness = metallicRoughness.x;
+    float roughness = max(metallicRoughness.x, 0.01);
     vec3 color = vec3(0,0,0);
 
-    vec3 baseColor = texture(BaseColorTex, i_UV).xyz / M_PI * matParams.baseColorFactor.xyz;
+    vec3 baseColor = texture(BaseColorTex, i_UV).xyz * matParams.baseColorFactor.xyz;
     vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
     vec3 n = normalize(normal);
 
@@ -167,8 +172,11 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    const float ambient = 10;
-    o_Color = vec4(color * shadowAttenuation + baseColor / M_PI * ambient, 1);
+    // diffuse cube light
+    vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
+    vec3 ambient = baseColor * diffuseCubeColor / M_PI;
+
+    o_Color = vec4(color + ambient, 1);
 #ifdef G_SURFEL_BAKE
     o_Color = vec4(texture(BaseColorTex, i_UV).xyz, 1.0);
     o_Normal = vec4(n, 1.0f);

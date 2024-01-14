@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/ImmediateGfx.hpp"
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -61,6 +60,8 @@ Renderer::Renderer(const char* customFont)
     vertexBuffer =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, 2048, false});
     stagingBuffer =
+        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
+    stagingBuffer2 =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     ShaderCompiler compiler;
@@ -355,74 +356,8 @@ std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     );
     fontImage->SetName("ImGUI font");
     uint32_t fontTexSize = bytePerPixel * width * height;
-    auto tsfBuffer = GetGfxDriver()->CreateBuffer({
-        .usages = Gfx::BufferUsage::Transfer_Src,
-        .size = fontTexSize,
-        .visibleInCPU = true,
-    });
-    memcpy(tsfBuffer->GetCPUVisibleAddress(), fontData, fontTexSize);
 
-    ImmediateGfx::OnetimeSubmit(
-        [&tsfBuffer, &fontImage, width, height](Gfx::CommandBuffer& cmd)
-        {
-            Gfx::BufferImageCopyRegion copyRegion[] = {{
-                .srcOffset = 0,
-                .layers =
-                    {
-                        .aspectMask = Gfx::ImageAspectFlags::Color,
-                        .mipLevel = 0,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
-                .offset = {0, 0, 0},
-                .extend = {(uint32_t)width, (uint32_t)height, 1},
-            }};
-            Gfx::GPUBarrier toTransferDst = {
-                .image = fontImage,
-                .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,
-                .dstStageMask = Gfx::PipelineStage::Transfer,
-                .srcAccessMask = Gfx::AccessMask::None,
-                .dstAccessMask = Gfx::AccessMask::Transfer_Write,
-                .imageInfo = {
-                    .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = Gfx::ImageLayout::Undefined,
-                    .newLayout = Gfx::ImageLayout::Transfer_Dst,
-                    .subresourceRange =
-                        {
-                            .aspectMask = Gfx::ImageAspectFlags::Color,
-                            .baseMipLevel = 0,
-                            .levelCount = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        },
-                }};
-            cmd.Barrier(&toTransferDst, 1);
-            cmd.CopyBufferToImage(tsfBuffer, fontImage, copyRegion);
-
-            Gfx::GPUBarrier toTexture = {
-                .image = fontImage,
-                .srcStageMask = Gfx::PipelineStage::Transfer,
-                .dstStageMask = Gfx::PipelineStage::Bottom_Of_Pipe,
-                .srcAccessMask = Gfx::AccessMask::Transfer_Write,
-                .dstAccessMask = Gfx::AccessMask::None,
-                .imageInfo = {
-                    .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = Gfx::ImageLayout::Transfer_Dst,
-                    .newLayout = Gfx::ImageLayout::Shader_Read_Only,
-                    .subresourceRange =
-                        {
-                            .aspectMask = Gfx::ImageAspectFlags::Color,
-                            .baseMipLevel = 0,
-                            .levelCount = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        },
-                }};
-            cmd.Barrier(&toTexture, 1);
-        }
-    );
+    GetGfxDriver()->UploadImage(*fontImage, fontData, fontTexSize);
     return fontImage;
 }
 

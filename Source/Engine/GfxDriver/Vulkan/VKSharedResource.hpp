@@ -4,13 +4,13 @@
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
-class VKContext;
+class VKDriver;
 class VKImage;
 // class VKStorageBuffer;
 class VKSharedResource
 {
 public:
-    VKSharedResource(RefPtr<VKContext> context);
+    VKSharedResource(VKDriver* driver);
     ~VKSharedResource();
     VkSampler GetDefaultSampler()
     {
@@ -27,8 +27,7 @@ public:
     // RefPtr<VKStorageBuffer> GetDefaultStorageBuffer() {return defaultStorageBuffer; }
 
 private:
-    RefPtr<VKContext> context;
-
+    VKDriver* driver;
     // UniPtr<VKStorageBuffer> defaultStorageBuffer;
     VkSampler defaultSampler;
     UniPtr<VKImage> defaultTexture;

@@ -14,17 +14,17 @@ public:
         vkCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         vkCreateInfo.pNext = VK_NULL_HANDLE;
         vkCreateInfo.flags = createInfo.signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
-        vkCreateFence(GetDevice()->GetHandle(), &vkCreateInfo, VK_NULL_HANDLE, &vkFence);
+        vkCreateFence(GetDevice(), &vkCreateInfo, VK_NULL_HANDLE, &vkFence);
     }
 
     ~VKFence()
     {
-        vkDestroyFence(GetDevice()->GetHandle(), vkFence, VK_NULL_HANDLE);
+        vkDestroyFence(GetDevice(), vkFence, VK_NULL_HANDLE);
     }
 
     void Reset()
     {
-        vkResetFences(GetDevice()->GetHandle(), 1, &vkFence);
+        vkResetFences(GetDevice(), 1, &vkFence);
     };
     VkFence GetHandle() const
     {

@@ -90,7 +90,7 @@ public:
         passResource->SetImage("source", image);
     }
 
-    void Execute(GraphResource& graphResource) override {}
+    void Execute(RenderingData& renderingData) override {}
 
 private:
     RenderGraph::RenderNode* fullScreenPassNode;

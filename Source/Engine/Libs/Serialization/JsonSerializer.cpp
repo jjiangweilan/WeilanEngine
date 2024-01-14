@@ -219,6 +219,16 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec2& v)
     }
 }
 
+void JsonSerializer::Serialize(std::string_view name, const bool val)
+{
+    j[TO_JSON_PTR(name)] = val;
+}
+
+void JsonSerializer::Deserialize(std::string_view name, bool& val)
+{
+    val = j.value(TO_JSON_PTR(name), false);
+}
+
 void JsonSerializer::Serialize(std::string_view name, nullptr_t)
 {
     j[TO_JSON_PTR(name)] = nullptr;

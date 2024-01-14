@@ -1,5 +1,7 @@
 #include "FrameGraph.hpp"
+#include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Texture.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 
@@ -199,19 +201,31 @@ void Graph::ProcessLights(Scene& gameScene)
 
 void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 {
-    if (!compiled)
-        return;
-
     Camera* camera = scene.GetMainCamera();
-
-    if (camera == nullptr)
+    if (!compiled || camera == nullptr)
         return;
+    renderingData.mainCamera = camera;
 
-    graphResource.mainCamera = camera;
+    auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
+    auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
+    if (diffuseCube && diffuseCube != this->diffuseCube)
+    {
+        this->diffuseCube = diffuseCube;
+        sceneShaderResource->SetImage("diffuseCube", diffuseCube->GetGfxImage());
+    }
+
+    auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
+    if (specularCube && specularCube != this->specularCube)
+    {
+        this->specularCube = specularCube;
+        sceneShaderResource->SetImage("specularCube", specularCube->GetGfxImage());
+    }
+
+    renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
     for (auto& n : nodes)
     {
-        n->Execute(graphResource);
+        n->Execute(renderingData);
     }
 
     GameObject* camGo = camera->GetGameObject();

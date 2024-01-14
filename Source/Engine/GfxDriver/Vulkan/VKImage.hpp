@@ -35,6 +35,8 @@ public:
         return layout;
     }
 
+    void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer) override;
+
     virtual ImageLayout GetImageLayout() override;
     virtual const ImageDescription& GetDescription() override
     {
@@ -74,6 +76,8 @@ protected:
     ImageSubresourceRange GenerateDefaultSubresourceRange();
     void MakeVkObjects();
     void CreateImageView();
+
+    friend class VKDriver;
 };
 
 // class VKSwapChainImageProxy : public VKImage

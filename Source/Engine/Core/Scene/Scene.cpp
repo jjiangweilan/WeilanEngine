@@ -12,6 +12,7 @@ GameObject* Scene::CreateGameObject()
     gameObjects.push_back(std::move(newObj));
     GameObject* refObj = gameObjects.back().get();
     roots.push_back(refObj);
+    refObj->SetEnable(true);
     return refObj;
 }
 
@@ -98,19 +99,17 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
 
 void Scene::DestroyGameObject(GameObject* obj)
 {
-    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
-    if (iter != gameObjects.end())
-    {
-        for (auto child : obj->GetChildren())
-        {
-            DestroyGameObject(child);
-        }
+    if (obj == nullptr)
+        return;
 
-        if (GameObject* parent = obj->GetParent())
-        {
-            parent->RemoveChild(obj);
-            gameObjects.erase(iter);
-        }
+    for (auto child : obj->GetChildren())
+    {
+        DestroyGameObject(child);
+    }
+
+    if (GameObject* parent = obj->GetParent())
+    {
+        parent->RemoveChild(obj);
     }
 
     auto rootIter = std::find(roots.begin(), roots.end(), obj);
@@ -124,6 +123,10 @@ void Scene::DestroyGameObject(GameObject* obj)
     {
         externalGameObjects.erase(rootIter);
     }
+
+    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
+    if (iter != gameObjects.end())
+        gameObjects.erase(iter);
 }
 
 void Scene::RemoveGameObjectFromRoot(GameObject* obj)

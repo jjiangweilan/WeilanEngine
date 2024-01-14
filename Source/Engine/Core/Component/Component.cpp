@@ -21,10 +21,12 @@ void Component::Serialize(Serializer* s) const
 {
     s->Serialize("uuid", uuid);
     s->Serialize("gameObject", gameObject);
+    s->Serialize("enabled", enabled);
 }
 
 void Component::Deserialize(Serializer* s)
 {
     s->Deserialize("uuid", uuid);
     s->Deserialize("gameObject", gameObject);
+    s->Deserialize("enabled", enabled);
 }

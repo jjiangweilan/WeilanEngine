@@ -47,15 +47,19 @@ protected:
     };
     std::unordered_map<std::string, ResourceRef> bindings;
     VkPipelineLayout layout = VK_NULL_HANDLE;
-    uint32_t set = -1;
 
     VKSharedResource* sharedResource;
-    VKDevice* device;
 
     VKDescriptorPool* descriptorPool = nullptr;
     std::unordered_map<std::string, std::unique_ptr<VKBuffer>> buffers;
 
-    std::unordered_map<size_t, VkDescriptorSet> sets;
-    bool rebuild = false;
+    struct SetInfo
+    {
+        VkDescriptorSet set = VK_NULL_HANDLE;
+        bool rebuild = false;
+    };
+    std::unordered_map<VKShaderProgram*, SetInfo> sets;
+
+    void RebuildAll();
 };
 } // namespace Gfx
