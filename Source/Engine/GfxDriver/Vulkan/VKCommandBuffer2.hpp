@@ -78,6 +78,68 @@ struct VKBindIndexBufferCmd
     VkIndexType indexType;
 };
 
+struct VKSetViewportCmd
+{
+    Viewport viewport;
+};
+
+struct VKCopyImageToBufferCmd
+{
+    VKImage* src;
+    VKBuffer* dst;
+    BufferImageCopyRegion regions[8];
+};
+
+struct VKSetPushConstantCmd
+{
+    VKShaderProgram* shaderProgram;
+    uint8_t data[128];
+};
+
+struct VKSetScissorCmd
+{
+    uint32_t firstScissor;
+    uint32_t scissorCount;
+    Rect2D rect[8];
+};
+
+struct VKDispatchCmd
+{
+    uint32_t groupCountX;
+    uint32_t groupCountY;
+    uint32_t groupCountZ;
+};
+
+struct VKDispatchIndirectCmd
+{
+    VKBuffer* buffer;
+    size_t bufferOffset;
+};
+
+struct VKNextRenderPassCmd
+{};
+
+struct VKPushDescriptorCmd
+{
+    VKShaderProgram* shader;
+    uint32_t set;
+    DescriptorBinding bindings[8];
+};
+
+struct VKCopyBufferCmd
+{
+    VKBuffer* src;
+    VKBuffer* dst;
+    BufferCopyRegion copyRegions[8];
+};
+
+struct VKCopyBufferToImageCmd
+{
+    VKBuffer* src;
+    VKImage* dst;
+    BufferImageCopyRegion regions[8];
+};
+
 enum class VKCmdType
 {
     DrawIndexed,
@@ -99,8 +161,6 @@ enum class VKCmdType
     PushDescriptorSet,
     CopyBuffer,
     CopyBufferToImage,
-    Begin,
-    End
 };
 struct VKCmd
 {
@@ -115,6 +175,17 @@ struct VKCmd
         VKBindShaderProgramCmd bindShaderProgram;
         VKBindVertexBufferCmd bindVertexBuffer;
         VKBindIndexBufferCmd bindIndexBuffer;
+
+        VKSetViewportCmd setViewport;
+        VKCopyImageToBufferCmd copyImageToBuffer;
+        VKSetPushConstantCmd setPushConstant;
+        VKSetScissorCmd setScissor;
+        VKDispatchCmd dispatch;
+        VKDispatchIndirectCmd dispatchIndir;
+        VKNextRenderPassCmd nextRenderPass;
+        VKPushDescriptorCmd pushDescriptor;
+        VKCopyBufferCmd copyBuffer;
+        VKCopyBufferToImageCmd copyBufferToImage;
     };
 };
 class VKCommandBuffer2 : public CommandBuffer
@@ -124,6 +195,10 @@ public:
     VKCommandBuffer2(const VKCommandBuffer2& other) = delete;
     ~VKCommandBuffer2();
 
+    void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
+    void DrawIndexed(
+        uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
+    ) override;
     void BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
     void EndRenderPass() override;
 
@@ -137,15 +212,11 @@ public:
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
 
-    void DrawIndexed(
-        uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
-    ) override;
     void SetViewport(const Viewport& viewport) override;
     void CopyImageToBuffer(RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions)
         override;
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
-    void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
     void DispatchIndir(Buffer* buffer, size_t bufferOffset) override;
     void NextRenderPass() override;
@@ -158,6 +229,7 @@ public:
     void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override;
     void Begin() override;
     void End() override;
+
     void Reset(bool releaseResource) override;
 
     void Execute(VkCommandBuffer cmd);
