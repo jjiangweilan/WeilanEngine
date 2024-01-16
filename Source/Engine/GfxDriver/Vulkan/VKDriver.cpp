@@ -5,6 +5,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
+#include "VKCommandBuffer2.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
@@ -1232,5 +1233,10 @@ void VKDriver::UploadImage(
 {
     auto& vkDst = static_cast<VKImage&>(dst);
     dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect));
+}
+
+void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& gfxCmd)
+{
+    VKCommandBuffer2* cmd = static_cast<VKCommandBuffer2*>(&gfxCmd);
 }
 } // namespace Gfx

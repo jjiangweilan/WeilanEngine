@@ -125,6 +125,7 @@ public:
     // RHI implementation
     virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
     virtual void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
+    virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;
     virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
 
     virtual void UploadImage(
