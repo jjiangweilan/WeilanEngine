@@ -17,6 +17,17 @@ class VKShaderProgram;
 class VKDescriptorPool;
 class VKDriver;
 
+struct VKWritableGPUResource
+{
+    enum class Type
+    {
+        Buffer,
+        Image
+    };
+    Type type;
+    void* data;
+};
+
 // actually a binding resource
 class VKShaderResource : public ShaderResource
 {
@@ -28,6 +39,7 @@ public:
     void SetImage(const std::string& name, Gfx::ImageView* imageView) override;
     void SetImage(const std::string& name, nullptr_t) override;
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
+    const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
 
     // ---------------------------- Old API ----------------------------------
 public:

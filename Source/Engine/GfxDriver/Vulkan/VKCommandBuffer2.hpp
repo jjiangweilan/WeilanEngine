@@ -46,7 +46,7 @@ struct VKDrawCmd
 
 struct VKBeginRenderPassCmd
 {
-    Gfx::RenderPass* renderPass;
+    VKRenderPass* renderPass;
     Gfx::ClearValue clearValues[8];
 };
 
@@ -234,7 +234,7 @@ public:
 
     void Execute(VkCommandBuffer cmd);
 
-    const std::vector<VKCmd>& GetCmds();
+    std::span<VKCmd> GetCmds();
 
 private:
     // BlitCmd, BindResourceCmd, BindVertexBufferCmd, BindShaderProgramCmd, BindIndexBufferCmd, SetViewportCmd,
