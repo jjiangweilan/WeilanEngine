@@ -26,6 +26,21 @@ struct VKWritableGPUResource
     };
     Type type;
     void* data;
+    VKImageView* imageView;
+    bool write = false;
+    VkPipelineStageFlags stages;
+    VkImageLayout layout;
+    VkAccessFlags access;
+};
+
+struct Barrier
+{
+    VkPipelineStageFlags srcStageMask;
+    VkPipelineStageFlags dstStageMask;
+    uint32_t barrierCount;
+    const VkMemoryBarrier* pMemoryBarriers = nullptr;
+    const VkBufferMemoryBarrier* pBufferMemoryBarrier = nullptr;
+    const VkImageMemoryBarrier* pImageMemoryBarriers = nullptr;
 };
 
 // actually a binding resource
@@ -71,6 +86,7 @@ protected:
         bool rebuild = false;
     };
     std::unordered_map<VKShaderProgram*, SetInfo> sets;
+    std::vector<Barrier> barriers;
 
     void RebuildAll();
 };

@@ -3,15 +3,28 @@
 
 namespace Gfx::VK::RenderGraph
 {
-enum class RenderingOperationType
+enum class RenderingNodeType
 {
     RenderPass,
     Compute
 };
 
-struct RenderingOperation
+struct RenderPassNode
 {
-    RenderingOperationType type;
+    int cmdBegin;
+    int cmdEnd;
+    int barrierOffset;
+    int barrierCount;
+};
+
+struct RenderingNode
+{
+    RenderingNodeType type;
+
+    union
+    {
+        RenderPassNode renderPass;
+    };
 };
 
 enum class ResourceType
@@ -20,14 +33,24 @@ enum class ResourceType
     Buffer
 };
 
+struct ResourceUsage
+{
+    VkPipelineStageFlags stages;
+    VkAccessFlags access;
+    int usageIndex;
+
+    // valid when it's a image resource
+    Gfx::ImageSubresourceRange range;
+    VkImageLayout layout;
+};
+
 struct ResourceUsageTrack
 {
-    using UsageIndex = int; // index to renderingOperations
     ResourceType type;
 
-    void* res; // ImageView when type is ResourceType::Image
+    void* res;
 
-    std::vector<UsageIndex> usages;
+    std::vector<ResourceUsage> usages;
 };
 
 class Graph
@@ -40,15 +63,28 @@ public:
 private:
     struct FlushBindResource
     {
-        size_t bindedProgram;
-        size_t bindedResources[4];
+        int bindProgramIndex;
+        int bindSetCmdIndex[4];
+        bool bindedSetUpdateNeeded[4] = {false, false, false, false};
     } state;
 
-    std::span<VKCmd> activeSchedulingCmds;
-    std::vector<RenderingOperation> renderingOperations;
+    std::vector<VKCmd> activeSchedulingCmds;
+    std::vector<RenderingNode> renderingNodes;
     std::unordered_map<void*, ResourceUsageTrack> resourceUsageTracks;
+    std::vector<Barrier> barriers;
+
     void CreateRenderPassNode(int visitIndex);
+    void TrackResource(
+        int renderingOpIndex,
+        ResourceType type,
+        void* writableResource,
+        Gfx::ImageSubresourceRange range,
+        VkImageLayout layout,
+        VkPipelineStageFlags stages,
+        VkAccessFlags access
+    );
     void RegisterRenderPass(int& visitIndex);
     void FlushBindResourceTrack();
+    int MakeBarrier(void* res, int usageIndex);
 };
 } // namespace Gfx::VK::RenderGraph
