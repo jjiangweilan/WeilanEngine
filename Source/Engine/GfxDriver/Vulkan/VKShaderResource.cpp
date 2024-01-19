@@ -75,6 +75,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
     VkDescriptorSet finalReturn = VK_NULL_HANDLE;
     bool rebuild = false;
+    std::vector<VKWritableGPUResource>* writableGPUResources;
     if (iter == sets.end())
     {
         layout = shaderProgram->GetVKPipelineLayout();
@@ -82,10 +83,16 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         VkDescriptorSet descriptorSet = descriptorPool->Allocate();
         finalReturn = descriptorSet;
         rebuild = true;
-        sets[shaderProgram] = {descriptorSet, false};
+        sets[shaderProgram] = {set, descriptorSet, false};
+        writableGPUResources = &sets[shaderProgram].writableGPUResources;
     }
     else
     {
+        if (iter->second.creationSetIndex != set)
+        {
+            SPDLOG_ERROR("shader resource is binded to a different set, this is not allowed");
+            return VK_NULL_HANDLE;
+        }
         rebuild = iter->second.rebuild;
         if (rebuild)
         {
@@ -94,11 +101,13 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
             iter->second.set = finalReturn;
             descriptorPool->Deallocate(iter->second.set);
             iter->second.rebuild = false;
+            writableGPUResources = &iter->second.writableGPUResources;
         }
     }
 
     if (rebuild)
     {
+        writableGPUResources->clear();
         auto& shaderInfo = shaderProgram->GetShaderInfo();
         VKDebugUtils::SetDebugName(
             VK_OBJECT_TYPE_DESCRIPTOR_SET,
@@ -163,6 +172,21 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     buffer = (VKBuffer*)resRef.res;
                                 }
 
+                                if (buffer->IsGPUWrite())
+                                {
+                                    VKWritableGPUResource gpuResource{
+                                        .type = VKWritableGPUResource::Type::Buffer,
+                                        .data = buffer,
+                                        .stages = Gfx::ShaderInfo::Utils::MapShaderStage(b.second.stages),
+                                        .access = static_cast<VkAccessFlags>(
+                                            VK_ACCESS_SHADER_READ_BIT |
+                                            (b.second.type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT
+                                                                                            : 0)
+                                        ),
+                                    };
+
+                                    writableGPUResources->push_back(gpuResource);
+                                }
                                 bufferInfo.buffer = buffer->GetHandle();
                                 bufferInfo.offset = i * b.second.binding.ubo.data.size;
                                 bufferInfo.range = b.second.binding.ubo.data.size;
@@ -173,6 +197,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                     case ShaderInfo::BindingType::Texture:
                     case ShaderInfo::BindingType::SeparateImage:
                         {
+                            VKImageView* imageView = (VKImageView*)resRef.res;
                             if (b.second.binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
                             {
                                 VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
@@ -180,7 +205,6 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 imageInfo.sampler = b.second.type == ShaderInfo::BindingType::Texture
                                                         ? sharedResource->GetDefaultSampler()
                                                         : VK_NULL_HANDLE;
-                                VKImageView* imageView = (VKImageView*)resRef.res;
                                 if (resRef.res != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
                                     resRef.type == ResourceType::ImageView)
                                 {
@@ -199,7 +223,6 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                 imageInfo.sampler = sharedResource->GetDefaultSampler();
 
-                                VKImageView* imageView = (VKImageView*)resRef.res;
                                 if (resRef.res != nullptr && imageView->GetImage().GetDescription().isCubemap &&
                                     resRef.type == ResourceType::ImageView)
                                 {
@@ -212,6 +235,19 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 }
 
                                 writes[writeCount].pImageInfo = &imageInfo;
+                            }
+
+                            if (imageView->GetImage().IsGPUWrite())
+                            {
+                                VKWritableGPUResource gpuResource{
+                                    .type = VKWritableGPUResource::Type::Image,
+                                    .data = &imageView->GetImage(),
+                                    .stages = Gfx::ShaderInfo::Utils::MapShaderStage(b.second.stages),
+                                    .access = VK_ACCESS_SHADER_READ_BIT,
+                                    .imageView = imageView,
+                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+
+                                writableGPUResources->push_back(gpuResource);
                             }
                             break;
                         }

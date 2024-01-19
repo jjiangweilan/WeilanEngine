@@ -32,7 +32,7 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 }
 
 VKBuffer::VKBuffer(const CreateInfo& createInfo)
-    : Buffer(createInfo.usages), allocator(VKContext::Instance()->allocator)
+    : Buffer(createInfo.usages, createInfo.gpuWrite), allocator(VKContext::Instance()->allocator)
 {
     usage = MapBufferUsage(createInfo.usages);
     size = createInfo.size;

@@ -4,8 +4,6 @@
 namespace Gfx::VK::RenderGraph
 {
 
-void BuildDependencyGraph() {}
-
 void Graph::TrackResource(
     int renderingOpIndex,
     ResourceType type,
@@ -219,23 +217,27 @@ int Graph::MakeBarrier(void* res, int usageIndex)
                         }
                     }
 
-                    if (srcStages != Gfx::PipelineStage::None || srcAccess != Gfx::AccessMask::None ||
-                        preUsedDesc.imageLayout != desc.imageLayout)
+                    if (srcStages != VK_PIPELINE_STAGE_NONE || srcAccess != VK_ACCESS_NONE ||
+                        preUsage.layout != currentUsage.layout)
                     {
                         auto image = (Gfx::Image*)r->resourceRef.GetResource();
-                        if (srcStages == Gfx::PipelineStage::None)
-                            srcStages = Gfx::PipelineStage::Top_Of_Pipe;
+                        if (srcStages == VK_PIPELINE_STAGE_NONE)
+                            srcStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                        Barrier barrier;
+                        barrier.srcStageMask = srcStages;
+                        barrier.dstStageMask = currentUsage.stages;
+
                         Gfx::GPUBarrier barrier{
                             .image = image,
                             .srcStageMask = srcStages,
-                            .dstStageMask = desc.stageFlags,
+                            .dstStageMask = currentUsage.stages,
                             .srcAccessMask = srcAccess,
-                            .dstAccessMask = desc.accessFlags,
+                            .dstAccessMask = currentUsage.access,
                             .imageInfo = {
                                 .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
                                 .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                                .oldLayout = preUsedDesc.imageLayout,
-                                .newLayout = desc.imageLayout,
+                                .oldLayout = preUsage.layout,
+                                .newLayout = currentUsage.layout,
                                 .subresourceRange = overlapping}};
 
                         barriers[sortIndex].push_back(barrier);

@@ -134,15 +134,21 @@ class ImageView;
 class Image
 {
 public:
+    Image(bool isGPUWrite) : isGPUWrite(isGPUWrite) {}
     virtual ~Image(){};
     virtual void SetName(std::string_view name) = 0;
     virtual const ImageDescription& GetDescription() = 0;
     virtual void SetData(std::span<uint8_t> binaryData, uint32_t mip = 0, uint32_t layer = 0) = 0;
+    bool IsGPUWrite()
+    {
+        return isGPUWrite;
+    }
 
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
     virtual ImageLayout GetImageLayout() = 0;
 
 protected:
+    bool isGPUWrite;
 };
 } // namespace Gfx

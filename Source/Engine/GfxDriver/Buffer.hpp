@@ -18,14 +18,19 @@ public:
         size_t size;
         bool visibleInCPU;
         const char* debugName;
+        bool gpuWrite = false;
     };
 
 public:
-    Buffer(BufferUsageFlags usages) : bufferUsages(usages){};
+    Buffer(BufferUsageFlags usages, bool gpuWrite) : bufferUsages(usages), gpuWrite(gpuWrite){};
     virtual ~Buffer(){};
     virtual void* GetCPUVisibleAddress() = 0;
     virtual void SetDebugName(const char* name) = 0;
     virtual size_t GetSize() = 0;
+    bool IsGPUWrite()
+    {
+        return gpuWrite;
+    };
 
     BufferUsageFlags GetUsages()
     {
@@ -34,5 +39,6 @@ public:
 
 private:
     BufferUsageFlags bufferUsages;
+    bool gpuWrite;
 };
 } // namespace Gfx

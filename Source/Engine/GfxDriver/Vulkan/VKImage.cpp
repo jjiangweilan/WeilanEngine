@@ -13,10 +13,15 @@
 
 namespace Gfx
 {
+static bool IsGPUWrite(ImageUsageFlags usageFlags)
+{
+    return (usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment);
+}
 
-VKImage::VKImage() : imageView(nullptr){};
+VKImage::VKImage() : Image(false), imageView(nullptr){};
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
-    : usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription), imageView(nullptr)
+    : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription),
+      imageView(nullptr)
 {
     format_vk = MapFormat(imageDescription.format);
 
@@ -32,7 +37,8 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
 }
 
 VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
-    : usageFlags(MapImageUsage(usageFlags)), image_vk(image), imageDescription(imageDescription), imageView(nullptr)
+    : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), image_vk(image),
+      imageDescription(imageDescription), imageView(nullptr)
 {
     format_vk = MapFormat(imageDescription.format);
 
@@ -46,8 +52,8 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
 }
 
 VKImage::VKImage(VKImage&& other)
-    : arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk), usageFlags(other.usageFlags),
-      image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
+    : Image(other.usageFlags), arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk),
+      usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
       allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), layout(other.layout),
       stageMask(other.stageMask), accessMask(other.accessMask), imageDescription(other.imageDescription),
       imageView(std::exchange(other.imageView, VK_NULL_HANDLE))
