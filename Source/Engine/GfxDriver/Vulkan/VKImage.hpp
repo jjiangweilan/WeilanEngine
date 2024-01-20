@@ -80,6 +80,8 @@ protected:
     friend class VKDriver;
 };
 
+VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& range);
+
 // class VKSwapChainImageProxy : public VKImage
 // {
 // public:

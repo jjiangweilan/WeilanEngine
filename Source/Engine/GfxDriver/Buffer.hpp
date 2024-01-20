@@ -18,7 +18,7 @@ public:
         size_t size;
         bool visibleInCPU;
         const char* debugName;
-        bool gpuWrite = false;
+        bool gpuWrite;
     };
 
 public:

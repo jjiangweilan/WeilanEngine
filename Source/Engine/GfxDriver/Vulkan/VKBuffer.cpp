@@ -70,7 +70,8 @@ VKBuffer::VKBuffer(const CreateInfo& createInfo)
 }
 
 VKBuffer::VKBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocationCreateInfo, const char* debugName)
-    : Buffer(BufferUsage::None), allocator(VKContext::Instance()->allocator), usage(createInfo.usage), allocationInfo{}
+    : Buffer(BufferUsage::None, false), allocator(VKContext::Instance()->allocator), usage(createInfo.usage),
+      allocationInfo{}
 {
     allocator->CreateBuffer(createInfo, allocationCreateInfo, buffer, allocation, &allocationInfo);
     if (debugName)

@@ -47,7 +47,12 @@ struct VKDrawCmd
 struct VKBeginRenderPassCmd
 {
     VKRenderPass* renderPass;
-    Gfx::ClearValue clearValues[8];
+    VkClearValue clearValues[8];
+    int clearValueCount;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKEndRenderPassCmd
@@ -68,7 +73,8 @@ struct VKBindShaderProgramCmd
 struct VKBindVertexBufferCmd
 {
     uint32_t firstBindingIndex;
-    VertexBufferBinding verteBufferBindings[8];
+    VertexBufferBinding vertexBufferBindings[8];
+    uint32_t vertexBufferBindingCount;
 };
 
 struct VKBindIndexBufferCmd
@@ -80,7 +86,7 @@ struct VKBindIndexBufferCmd
 
 struct VKSetViewportCmd
 {
-    Viewport viewport;
+    VkViewport viewport;
 };
 
 struct VKCopyImageToBufferCmd
@@ -93,6 +99,8 @@ struct VKCopyImageToBufferCmd
 struct VKSetPushConstantCmd
 {
     VKShaderProgram* shaderProgram;
+    VkShaderStageFlags stages;
+    uint32_t dataSize;
     uint8_t data[128];
 };
 
@@ -100,7 +108,7 @@ struct VKSetScissorCmd
 {
     uint32_t firstScissor;
     uint32_t scissorCount;
-    Rect2D rect[8];
+    VkRect2D rects[8];
 };
 
 struct VKDispatchCmd
@@ -123,6 +131,7 @@ struct VKPushDescriptorCmd
 {
     VKShaderProgram* shader;
     uint32_t set;
+    uint32_t bindingCount;
     DescriptorBinding bindings[8];
 };
 
@@ -130,14 +139,23 @@ struct VKCopyBufferCmd
 {
     VKBuffer* src;
     VKBuffer* dst;
-    BufferCopyRegion copyRegions[8];
+    uint32_t copyRegionCount;
+    VkBufferCopy copyRegions[8];
 };
 
 struct VKCopyBufferToImageCmd
 {
     VKBuffer* src;
     VKImage* dst;
-    BufferImageCopyRegion regions[8];
+    uint32_t regionCount;
+    VkBufferImageCopy regions[8];
+};
+
+struct VKBlitCmd
+{
+    VKImage* from;
+    VKImage* to;
+    BlitOp blitOp;
 };
 
 enum class VKCmdType
@@ -171,6 +189,7 @@ struct VKCmd
         VKDrawCmd draw;
         VKBeginRenderPassCmd beginRenderPass;
         VKEndRenderPassCmd endRenderPass;
+        VKBlitCmd blit;
         VKBindResourceCmd bindResource;
         VKBindShaderProgramCmd bindShaderProgram;
         VKBindVertexBufferCmd bindVertexBuffer;
@@ -234,7 +253,10 @@ public:
 
     void Execute(VkCommandBuffer cmd);
 
-    std::span<VKCmd> GetCmds();
+    std::span<VKCmd> GetCmds()
+    {
+        return cmds;
+    }
 
 private:
     // BlitCmd, BindResourceCmd, BindVertexBufferCmd, BindShaderProgramCmd, BindIndexBufferCmd, SetViewportCmd,

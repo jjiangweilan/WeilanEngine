@@ -195,6 +195,17 @@ void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t laye
     GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), mip, layer, GetSubresourceRange().aspectMask);
 }
 
+VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& r)
+{
+    VkImageSubresourceRange range;
+    range.aspectMask = MapImageAspect(r.aspectMask);
+    range.baseMipLevel = r.baseMipLevel;
+    range.levelCount = r.levelCount;
+    range.baseArrayLayer = r.baseArrayLayer;
+    range.layerCount = r.layerCount;
+    return range;
+}
+
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}
 //
 // VKSwapChainImageProxy::VKSwapChainImageProxy(){};

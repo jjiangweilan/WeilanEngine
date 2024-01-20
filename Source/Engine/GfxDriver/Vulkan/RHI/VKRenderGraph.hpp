@@ -3,28 +3,12 @@
 
 namespace Gfx::VK::RenderGraph
 {
-enum class RenderingNodeType
-{
-    RenderPass,
-    Compute
-};
-
 struct RenderPassNode
 {
     int cmdBegin;
     int cmdEnd;
     int barrierOffset;
     int barrierCount;
-};
-
-struct RenderingNode
-{
-    RenderingNodeType type;
-
-    union
-    {
-        RenderPassNode renderPass;
-    };
 };
 
 enum class ResourceType
@@ -37,7 +21,6 @@ struct ResourceUsage
 {
     VkPipelineStageFlags stages;
     VkAccessFlags access;
-    int usageIndex;
 
     // valid when it's a image resource
     Gfx::ImageSubresourceRange range;
@@ -58,7 +41,7 @@ class Graph
 public:
     void Schedule(VKCommandBuffer2& cmd);
 
-    void Execute();
+    void Execute(VkCommandBuffer cmd);
 
 private:
     struct FlushBindResource
@@ -66,16 +49,34 @@ private:
         int bindProgramIndex;
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
-    } state;
+    } recordState;
+
+    struct ExecutionState
+    {
+        struct SetResources
+        {
+            bool needUpdate = false;
+            VKShaderResource* resource = VK_NULL_HANDLE;
+        } setResources[4] = {};
+
+        VKShaderProgram* lastBindedShader; // shader that is set to be binded
+        VKShaderProgram* bindedShader;     // shader that is actually binded
+        const ShaderConfig* shaderConfig;
+        VkDescriptorSet bindedDescriptorSets[4];
+        int subpassIndex = -1;
+        VKRenderPass* renderPass;
+    } exeState;
 
     std::vector<VKCmd> activeSchedulingCmds;
-    std::vector<RenderingNode> renderingNodes;
     std::unordered_map<void*, ResourceUsageTrack> resourceUsageTracks;
+
     std::vector<Barrier> barriers;
+    std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
+    std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
+    std::vector<VkMemoryBarrier> memoryBarriers;
 
     void CreateRenderPassNode(int visitIndex);
     void TrackResource(
-        int renderingOpIndex,
         ResourceType type,
         void* writableResource,
         Gfx::ImageSubresourceRange range,
@@ -83,8 +84,13 @@ private:
         VkPipelineStageFlags stages,
         VkAccessFlags access
     );
-    void RegisterRenderPass(int& visitIndex);
+    void AddBarrierToRenderPass(int& visitIndex);
     void FlushBindResourceTrack();
     int MakeBarrier(void* res, int usageIndex);
+
+    void TryBindShader(VkCommandBuffer cmd);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd);
+    void PutBarrier(VkCommandBuffer cmd, int index);
 };
 } // namespace Gfx::VK::RenderGraph

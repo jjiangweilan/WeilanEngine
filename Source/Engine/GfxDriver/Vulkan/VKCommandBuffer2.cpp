@@ -1,4 +1,5 @@
 #include "VKCommandBuffer2.hpp"
+#include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "VKBuffer.hpp"
@@ -16,7 +17,10 @@ void VKCommandBuffer2::BeginRenderPass(Gfx::RenderPass& renderPass, const std::v
     cmd.type = VKCmdType::BeginRenderPass;
     cmd.beginRenderPass.renderPass = static_cast<VKRenderPass*>(&renderPass);
     for (int i = 0; i < clearValues.size() && i < 8; ++i)
-        cmd.beginRenderPass.clearValues[i] = clearValues[i];
+    {
+        memcpy(cmd.beginRenderPass.clearValues, clearValues.data(), clearValues.size() * sizeof(Gfx::ClearValue));
+    }
+    cmd.beginRenderPass.clearValueCount = clearValues.size();
 
     cmds.push_back(cmd);
 }
@@ -70,8 +74,9 @@ void VKCommandBuffer2::BindVertexBuffer(
 
     VKCmd cmd{VKCmdType::BindVertexBuffer};
     for (int i = 0; i < vertexBufferBindings.size() && i < 8; ++i)
-        cmd.bindVertexBuffer.verteBufferBindings[i] = vertexBufferBindings[i];
+        cmd.bindVertexBuffer.vertexBufferBindings[i] = vertexBufferBindings[i];
     cmd.bindVertexBuffer.firstBindingIndex = firstBindingIndex;
+    cmd.bindVertexBuffer.vertexBufferBindingCount = vertexBufferBindings.size();
 
     cmds.push_back(cmd);
 }
@@ -93,7 +98,14 @@ void VKCommandBuffer2::BindIndexBuffer(
 void VKCommandBuffer2::SetViewport(const Viewport& viewport)
 {
     VKCmd cmd{VKCmdType::SetViewport};
-    cmd.setViewport.viewport = viewport;
+    VkViewport v{
+        .x = viewport.x,
+        .y = viewport.y,
+        .width = viewport.width,
+        .height = viewport.height,
+        .minDepth = viewport.minDepth,
+        .maxDepth = viewport.maxDepth};
+    cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
 
@@ -116,11 +128,14 @@ void VKCommandBuffer2::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram,
     cmd.setPushConstant.shaderProgram = static_cast<VKShaderProgram*>(shaderProgram.Get());
 
     uint32_t totalSize = 0;
+    cmd.setPushConstant.stages = 0;
     for (auto& ps : shaderProgram->GetShaderInfo().pushConstants)
     {
         auto& pushConstant = ps.second;
+        cmd.setPushConstant.stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
         totalSize += pushConstant.data.size;
     }
+    cmd.setPushConstant.dataSize = totalSize;
     memcpy(cmd.setPushConstant.data, data, totalSize < 128 ? totalSize : 128);
     cmds.push_back(cmd);
 };
@@ -130,7 +145,16 @@ void VKCommandBuffer2::SetScissor(uint32_t firstScissor, uint32_t scissorCount, 
     VKCmd cmd{VKCmdType::SetScissor};
     cmd.setScissor.firstScissor = firstScissor;
     cmd.setScissor.scissorCount = scissorCount;
-    memcpy(cmd.setScissor.rect, rect, scissorCount);
+
+    for (int i = 0; i < scissorCount; ++i)
+    {
+        cmd.setScissor.rects[i].offset.x = rect->offset.x;
+        cmd.setScissor.rects[i].offset.y = rect->offset.y;
+        cmd.setScissor.rects[i].extent.width = rect->extent.width;
+        cmd.setScissor.rects[i].extent.height = rect->extent.height;
+    }
+
+    memcpy(cmd.setScissor.rects, rect, scissorCount);
     cmds.push_back(cmd);
 };
 void VKCommandBuffer2::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -161,7 +185,8 @@ void VKCommandBuffer2::PushDescriptor(ShaderProgram& shader, uint32_t set, std::
     VKCmd cmd{VKCmdType::PushDescriptorSet};
     cmd.pushDescriptor.shader = static_cast<VKShaderProgram*>(&shader);
     cmd.pushDescriptor.set = set;
-    memcpy(cmd.pushDescriptor.bindings, bindings.data(), bindings.size() <= 8 ? bindings.size() : 8);
+    cmd.pushDescriptor.bindingCount = bindings.size() <= 8 ? bindings.size() : 8;
+    memcpy(cmd.pushDescriptor.bindings, bindings.data(), cmd.pushDescriptor.bindingCount);
     cmds.push_back(cmd);
 };
 
@@ -173,7 +198,12 @@ void VKCommandBuffer2::CopyBuffer(
     VKCmd cmd{VKCmdType::CopyBuffer};
     cmd.copyBuffer.src = static_cast<VKBuffer*>(bSrc.Get());
     cmd.copyBuffer.dst = static_cast<VKBuffer*>(bDst.Get());
-    memcpy(cmd.copyBuffer.copyRegions, copyRegions.data(), copyRegions.size() <= 8 ? copyRegions.size() : 8);
+    cmd.copyBuffer.copyRegionCount = copyRegions.size();
+    for (int i = 0; i < copyRegions.size(); ++i)
+    {
+        auto& c = copyRegions[i];
+        cmd.copyBuffer.copyRegions[i] = {c.srcOffset, c.dstOffset, c.size};
+    }
     cmds.push_back(cmd);
 };
 void VKCommandBuffer2::CopyBufferToImage(
@@ -185,8 +215,33 @@ void VKCommandBuffer2::CopyBufferToImage(
     cmd.copyBufferToImage.src = static_cast<VKBuffer*>(src.Get());
     cmd.copyBufferToImage.dst = static_cast<VKImage*>(dst.Get());
 
-    memcpy(cmd.copyBufferToImage.regions, regions.data(), regions.size() <= 8 ? regions.size() : 8);
+    int i = 0;
+    for (auto& r : regions)
+    {
+        VkBufferImageCopy region;
+        region.bufferOffset = r.srcOffset;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);
+        region.imageSubresource.mipLevel = r.layers.mipLevel;
+        region.imageSubresource.baseArrayLayer = r.layers.baseArrayLayer;
+        region.imageSubresource.layerCount = r.layers.layerCount;
+        region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
+        region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
+
+        cmd.copyBufferToImage.regions[i] = region;
+        i += 1;
+    }
+    cmd.copyBufferToImage.regionCount = regions.size();
 
     cmds.push_back(cmd);
 };
+
+void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp)
+{
+    VKCmd cmd{VKCmdType::Blit};
+    cmd.blit.from = static_cast<VKImage*>(from.Get());
+    cmd.blit.to = static_cast<VKImage*>(to.Get());
+    cmd.blit.blitOp = blitOp;
+}
 } // namespace Gfx

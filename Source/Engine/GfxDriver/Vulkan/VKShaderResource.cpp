@@ -237,7 +237,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 writes[writeCount].pImageInfo = &imageInfo;
                             }
 
-                            if (imageView->GetImage().IsGPUWrite())
+                            if (imageView && imageView->GetImage().IsGPUWrite())
                             {
                                 VKWritableGPUResource gpuResource{
                                     .type = VKWritableGPUResource::Type::Image,
@@ -277,5 +277,19 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
     }
 
     return iter->second.set;
+}
+
+const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
+    uint32_t set, VKShaderProgram* shaderProgram
+)
+{
+    auto iter = sets.find(shaderProgram);
+    if (iter != sets.end() && iter->second.creationSetIndex == set)
+    {
+        return iter->second.writableGPUResources;
+    }
+
+    static std::vector<VKWritableGPUResource> empty;
+    return empty;
 }
 } // namespace Gfx

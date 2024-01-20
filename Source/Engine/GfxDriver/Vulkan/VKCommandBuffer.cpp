@@ -51,18 +51,6 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass_, const std::v
     }
     renderPassBeginInfo.pClearValues = vkClearValues;
 
-    // record image memory access in this render pass
-    auto& subpasses = vRenderPass.GetSubpesses();
-    for (auto& subpass : subpasses)
-    {
-        for (auto& c : subpass.colors)
-        {
-            VkImage image = static_cast<VKImage*>(&c.imageView->GetImage())->GetImage();
-            ImageMemoryAccess& imageMemAccess = imageLastAccess[image];
-            c.imageView->GetSubresourceRange();
-        }
-    }
-
     vkCmdBeginRenderPass(vkCmdBuf, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
