@@ -9,6 +9,7 @@
 
 #include "../GfxDriver.hpp"
 
+#include "RHI/VKRenderGraph.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommonDefinations.hpp"
 
@@ -177,6 +178,7 @@ public:
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
     VkSemaphore transferSignalSemaphore;
+    VK::RenderGraph::Graph renderGraph;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;

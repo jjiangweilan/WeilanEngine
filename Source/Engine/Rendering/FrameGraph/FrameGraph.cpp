@@ -274,12 +274,13 @@ bool Graph::Compile()
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
-    sceneGlobalBuffer = GetGfxDriver()->CreateBuffer({
-        .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
-        .size = sizeof(SceneInfo),
-        .visibleInCPU = false,
-        .debugName = "Scene Info Buffer",
-    });
+    sceneGlobalBuffer = GetGfxDriver()->CreateBuffer(
+        {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+         .size = sizeof(SceneInfo),
+         .visibleInCPU = false,
+         .debugName = "Scene Info Buffer",
+         .gpuWrite = true}
+    );
     sceneShaderResource->SetBuffer("SceneInfo", sceneGlobalBuffer.get());
 
     graph = std::make_unique<RenderGraph::Graph>();

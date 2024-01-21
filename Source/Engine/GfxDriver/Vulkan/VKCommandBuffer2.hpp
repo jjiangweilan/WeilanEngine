@@ -94,6 +94,10 @@ struct VKCopyImageToBufferCmd
     VKImage* src;
     VKBuffer* dst;
     BufferImageCopyRegion regions[8];
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKSetPushConstantCmd
@@ -141,6 +145,10 @@ struct VKCopyBufferCmd
     VKBuffer* dst;
     uint32_t copyRegionCount;
     VkBufferCopy copyRegions[8];
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKCopyBufferToImageCmd
@@ -149,6 +157,10 @@ struct VKCopyBufferToImageCmd
     VKImage* dst;
     uint32_t regionCount;
     VkBufferImageCopy regions[8];
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKBlitCmd
@@ -156,10 +168,24 @@ struct VKBlitCmd
     VKImage* from;
     VKImage* to;
     BlitOp blitOp;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
+};
+
+struct VKPresentCmd
+{
+    VKImage* image;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 enum class VKCmdType
 {
+    None,
     DrawIndexed,
     Draw,
     BeginRenderPass,
@@ -179,6 +205,7 @@ enum class VKCmdType
     PushDescriptorSet,
     CopyBuffer,
     CopyBufferToImage,
+    Present,
 };
 struct VKCmd
 {
@@ -205,14 +232,15 @@ struct VKCmd
         VKPushDescriptorCmd pushDescriptor;
         VKCopyBufferCmd copyBuffer;
         VKCopyBufferToImageCmd copyBufferToImage;
+        VKPresentCmd present;
     };
 };
 class VKCommandBuffer2 : public CommandBuffer
 {
 public:
-    VKCommandBuffer2(VkCommandBuffer vkCmdBuf);
+    VKCommandBuffer2() {}
     VKCommandBuffer2(const VKCommandBuffer2& other) = delete;
-    ~VKCommandBuffer2();
+    ~VKCommandBuffer2(){};
 
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(
@@ -245,11 +273,16 @@ public:
         override;
     void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions)
         override;
-    void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override;
-    void Begin() override;
-    void End() override;
+    void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override {}
+    void Begin() override {}
+    void End() override {}
 
-    void Reset(bool releaseResource) override;
+    void PresentImage(VKImage* image);
+
+    void Reset(bool releaseResource) override
+    {
+        cmds.clear();
+    }
 
     void Execute(VkCommandBuffer cmd);
 

@@ -31,6 +31,18 @@ void VKCommandBuffer2::EndRenderPass()
     cmds.push_back(cmd);
 }
 
+void VKCommandBuffer2::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+{
+    VKCmd cmd{VKCmdType::Draw};
+
+    cmd.draw.vertexCount = vertexCount;
+    cmd.draw.instanceCount = instanceCount;
+    cmd.draw.firstVertex = firstVertex;
+    cmd.draw.firstInstance = firstInstance;
+
+    cmds.push_back(cmd);
+}
+
 void VKCommandBuffer2::DrawIndexed(
     uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
 )
@@ -186,7 +198,7 @@ void VKCommandBuffer2::PushDescriptor(ShaderProgram& shader, uint32_t set, std::
     cmd.pushDescriptor.shader = static_cast<VKShaderProgram*>(&shader);
     cmd.pushDescriptor.set = set;
     cmd.pushDescriptor.bindingCount = bindings.size() <= 8 ? bindings.size() : 8;
-    memcpy(cmd.pushDescriptor.bindings, bindings.data(), cmd.pushDescriptor.bindingCount);
+    memcpy(cmd.pushDescriptor.bindings, bindings.data(), cmd.pushDescriptor.bindingCount * sizeof(DescriptorBinding));
     cmds.push_back(cmd);
 };
 
@@ -237,11 +249,20 @@ void VKCommandBuffer2::CopyBufferToImage(
     cmds.push_back(cmd);
 };
 
-void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp)
+void VKCommandBuffer2::Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp)
 {
     VKCmd cmd{VKCmdType::Blit};
     cmd.blit.from = static_cast<VKImage*>(from.Get());
     cmd.blit.to = static_cast<VKImage*>(to.Get());
     cmd.blit.blitOp = blitOp;
+
+    cmds.push_back(cmd);
+}
+
+void VKCommandBuffer2::PresentImage(VKImage* image)
+{
+    VKCmd cmd{VKCmdType::Present};
+    cmd.present.image = image;
+    cmds.push_back(cmd);
 }
 } // namespace Gfx

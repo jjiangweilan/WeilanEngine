@@ -174,10 +174,15 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                 if (buffer->IsGPUWrite())
                                 {
+                                    VkPipelineStageFlags pipelineStages = 0;
+                                    if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Vert)
+                                        pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                                    if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Frag)
+                                        pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Buffer,
                                         .data = buffer,
-                                        .stages = Gfx::ShaderInfo::Utils::MapShaderStage(b.second.stages),
+                                        .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
                                             (b.second.type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT
@@ -239,10 +244,15 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                             if (imageView && imageView->GetImage().IsGPUWrite())
                             {
+                                VkPipelineStageFlags pipelineStages = 0;
+                                if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Vert)
+                                    pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                                if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Frag)
+                                    pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                                 VKWritableGPUResource gpuResource{
                                     .type = VKWritableGPUResource::Type::Image,
                                     .data = &imageView->GetImage(),
-                                    .stages = Gfx::ShaderInfo::Utils::MapShaderStage(b.second.stages),
+                                    .stages = pipelineStages,
                                     .access = VK_ACCESS_SHADER_READ_BIT,
                                     .imageView = imageView,
                                     .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
@@ -284,6 +294,11 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
 )
 {
     auto iter = sets.find(shaderProgram);
+    if (iter == sets.end())
+    {
+        GetDescriptorSet(set, shaderProgram);
+        iter = sets.find(shaderProgram);
+    }
     if (iter != sets.end() && iter->second.creationSetIndex == set)
     {
         return iter->second.writableGPUResources;

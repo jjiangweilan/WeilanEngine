@@ -33,7 +33,8 @@ struct ResourceUsageTrack
 
     void* res;
 
-    std::vector<ResourceUsage> usages;
+    std::vector<ResourceUsage> previousFrameUsages;
+    std::vector<ResourceUsage> currentFrameUsages;
 };
 
 class Graph
@@ -67,8 +68,12 @@ private:
         VKRenderPass* renderPass;
     } exeState;
 
-    std::vector<VKCmd> activeSchedulingCmds;
+    std::vector<VKCmd> previousSchedulingCmds;
+    std::vector<VKCmd> currentSchedulingCmds;
+    size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<void*, ResourceUsageTrack> resourceUsageTracks;
+    // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
+    size_t evenRecordActiveSchedulingCmdsIndex;
 
     std::vector<Barrier> barriers;
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
@@ -77,16 +82,17 @@ private:
 
     void CreateRenderPassNode(int visitIndex);
     void TrackResource(
-        ResourceType type,
-        void* writableResource,
+        VKImage* writableResource,
         Gfx::ImageSubresourceRange range,
         VkImageLayout layout,
         VkPipelineStageFlags stages,
         VkAccessFlags access
     );
+    void TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
     void AddBarrierToRenderPass(int& visitIndex);
+    size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
-    int MakeBarrier(void* res, int usageIndex);
+    int MakeBarrierForLastUsage(void* res);
 
     void TryBindShader(VkCommandBuffer cmd);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index);

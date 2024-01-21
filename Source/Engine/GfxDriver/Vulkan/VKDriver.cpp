@@ -512,21 +512,25 @@ bool VKDriver::EndFrame()
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
 
+    VKCommandBuffer2 cmd2;
+    for (auto& f : pendingCommands)
+    {
+        f(cmd2);
+    }
+    cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    renderGraph.Schedule(cmd2);
+
     vkResetCommandBuffer(cmd, 0);
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(cmd, &beginInfo);
 
-    VKCommandBuffer vkCmd(cmd);
     for (auto& f : internalPendingCommands)
     {
         f(cmd);
     }
+    renderGraph.Execute(cmd);
 
-    for (auto& f : pendingCommands)
-    {
-        f(vkCmd);
-    }
     vkEndCommandBuffer(cmd);
 
     VkPipelineStageFlags waitFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};

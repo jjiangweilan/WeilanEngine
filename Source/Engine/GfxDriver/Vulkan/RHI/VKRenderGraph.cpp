@@ -9,8 +9,7 @@ namespace Gfx::VK::RenderGraph
 {
 
 void Graph::TrackResource(
-    ResourceType type,
-    void* writableResource,
+    VKImage* writableResource,
     Gfx::ImageSubresourceRange range,
     VkImageLayout layout,
     VkPipelineStageFlags stages,
@@ -21,22 +20,50 @@ void Graph::TrackResource(
 
     if (iter != resourceUsageTracks.end())
     {
-        iter->second.usages.push_back({stages, access, range, layout});
+        iter->second.currentFrameUsages.push_back({stages, access, range, layout});
     }
     else
     {
         ResourceUsageTrack track;
-        track.type = type;
+        track.type = ResourceType::Image;
         track.res = writableResource;
-        track.usages.push_back({stages, access, range, layout});
+        track.currentFrameUsages.push_back({stages, access, range, layout});
 
         resourceUsageTracks[writableResource] = track;
     }
 }
+
+void Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
+{
+    auto iter = resourceUsageTracks.find(writableResource);
+
+    if (iter != resourceUsageTracks.end())
+    {
+        iter->second.currentFrameUsages.push_back(
+            {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+        );
+    }
+    else
+    {
+        ResourceUsageTrack track;
+        track.type = ResourceType::Buffer;
+        track.res = writableResource;
+        track.currentFrameUsages.push_back({stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED});
+
+        resourceUsageTracks[writableResource] = track;
+    }
+}
+
 void Graph::AddBarrierToRenderPass(int& visitIndex)
 {
-    assert(activeSchedulingCmds[visitIndex].type == VKCmdType::BeginRenderPass);
-    auto& cmd = activeSchedulingCmds[visitIndex].beginRenderPass;
+    assert(currentSchedulingCmds[visitIndex].type == VKCmdType::BeginRenderPass);
+    auto& cmd = currentSchedulingCmds[visitIndex].beginRenderPass;
+
+    int barrierOffset = barriers.size();
+    int barrierCount = 0;
+
+    // handle case like shadow map being binded to global descriptor set but also set to render pass attachment
+    std::vector<VKImage*> shaderImageSampleIgnoreList(8);
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
     // and AddSubpass(0)
@@ -45,7 +72,7 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
         auto& s = cmd.renderPass->GetSubpesses()[0];
         for (auto& c : s.colors)
         {
-            Image* image = &c.imageView->GetImage();
+            VKImage* image = static_cast<VKImage*>(&c.imageView->GetImage());
             VKImageView* imageView = static_cast<VKImageView*>(c.imageView);
 
             VkAccessFlags flags = 0;
@@ -55,44 +82,44 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                 flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
             TrackResource(
-                ResourceType::Image,
-                image,
+                static_cast<VKImage*>(image),
                 imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                 flags
             );
+
+            barrierCount += MakeBarrierForLastUsage(image);
+            shaderImageSampleIgnoreList.push_back(image);
         }
 
         if (s.depth.has_value())
         {
-            Image* image = &s.depth->imageView->GetImage();
+            VKImage* image = static_cast<VKImage*>(&s.depth->imageView->GetImage());
             VKImageView* imageView = static_cast<VKImageView*>(s.depth->imageView);
 
             VkAccessFlags flags = 0;
             if (s.depth->loadOp == AttachmentLoadOperation::Load)
-                flags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+                flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
             if (s.depth->storeOp == AttachmentStoreOperation::Store)
-                flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
             TrackResource(
-                ResourceType::Image,
-                image,
+                static_cast<VKImage*>(image),
                 imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
                 VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
                 flags
             );
+            barrierCount += MakeBarrierForLastUsage(image);
+            shaderImageSampleIgnoreList.push_back(image);
         }
     }
-
-    int barrierOffset = barriers.size();
-    int barrierCount = 0;
     // proceed to End Render Pass, make necessary barriers
     for (;;)
     {
         visitIndex += 1;
-        auto& cmd = activeSchedulingCmds[visitIndex];
+        auto& cmd = currentSchedulingCmds[visitIndex];
         if (cmd.type == VKCmdType::EndRenderPass)
             break;
         else if (cmd.type == VKCmdType::BindResource)
@@ -110,15 +137,16 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
             {
                 if (recordState.bindedSetUpdateNeeded[i] == true)
                 {
+                    recordState.bindedSetUpdateNeeded[i] = false;
                     auto bindSetCmdIndex = recordState.bindSetCmdIndex[i];
                     auto bindProgramIndex = recordState.bindProgramIndex;
-                    auto program = activeSchedulingCmds[bindProgramIndex].bindShaderProgram.program;
-                    auto& bindSetCmd = activeSchedulingCmds[bindSetCmdIndex].bindResource;
+                    auto program = currentSchedulingCmds[bindProgramIndex].bindShaderProgram.program;
+                    auto& bindSetCmd = currentSchedulingCmds[bindSetCmdIndex].bindResource;
                     auto resource = bindSetCmd.resource;
                     auto& writableResources = resource->GetWritableResources(bindSetCmd.set, program);
                     for (auto& w : writableResources)
                     {
-                        ResourceType type;
+                        ResourceType type = ResourceType::Image;
                         switch (w.type)
                         {
                             case VKWritableGPUResource::Type::Image: type = ResourceType::Image; break;
@@ -126,9 +154,17 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                         }
                         if (type == ResourceType::Image)
                         {
+                            if (std::find(
+                                    shaderImageSampleIgnoreList.begin(),
+                                    shaderImageSampleIgnoreList.end(),
+                                    w.data
+                                ) != shaderImageSampleIgnoreList.end())
+                            {
+                                continue;
+                            }
+
                             TrackResource(
-                                type,
-                                w.data,
+                                (VKImage*)w.data,
                                 w.imageView ? w.imageView->GetSubresourceRange()
                                             : static_cast<VKImage*>(w.data)->GetSubresourceRange(),
                                 w.layout,
@@ -138,15 +174,19 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                         }
                         else
                         {
-                            TrackResource(type, w.data, Gfx::ImageSubresourceRange(), w.layout, w.stages, w.access);
+                            TrackResource((VKBuffer*)w.data, w.stages, w.access);
                         }
 
-                        barrierCount += MakeBarrier(w.data, resourceUsageTracks.size() - 1);
+                        barrierCount += MakeBarrierForLastUsage(w.data);
                     }
                 }
             }
         }
-        else if (visitIndex >= activeSchedulingCmds.size())
+        else if (cmd.type == VKCmdType::PushDescriptorSet)
+        {
+            barrierCount += TrackResourceForPushDescriptorSet(cmd, true);
+        }
+        else if (visitIndex >= currentSchedulingCmds.size())
             break;
     }
 
@@ -154,25 +194,41 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
     cmd.barrierOffset = barrierOffset;
 }
 
-int Graph::MakeBarrier(void* res, int usageIndex)
+int Graph::MakeBarrierForLastUsage(void* res)
 {
     auto iter = resourceUsageTracks.find(res);
     assert(iter != resourceUsageTracks.end());
 
     int barrierCount = 0;
+    auto& currentFrameUsages = iter->second.currentFrameUsages;
+    auto& currentUsage = currentFrameUsages.back();
+    size_t usageIndex = currentFrameUsages.size() - 1;
+    size_t previousUsageIndex = 0;
+    std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
     if (iter->second.type == ResourceType::Image)
     {
         VKImage* image = (VKImage*)iter->second.res;
 
         // TODO: optimize heap allocation
-        std::vector<Gfx::ImageSubresourceRange> remainingRange{iter->second.usages[usageIndex].range};
+        std::vector<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
         std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
-        auto& usages = iter->second.usages;
-        auto& currentUsage = usages[usageIndex];
-
-        for (int preUsed = usageIndex - 1; preUsed >= 0; preUsed--)
+        for (;;)
         {
-            auto& preUsage = usages[preUsed];
+            if (usageIndex == 0)
+            {
+                if (!iter->second.previousFrameUsages.empty())
+                {
+                    usagesSource = &iter->second.previousFrameUsages;
+                    usageIndex = iter->second.previousFrameUsages.size() - 1;
+                }
+                else
+                    break;
+            }
+            else
+            {
+                usageIndex -= 1;
+            }
+            auto& preUsage = (*usagesSource)[usageIndex];
 
             for (auto& currentRange : remainingRange)
             {
@@ -206,7 +262,10 @@ int Graph::MakeBarrier(void* res, int usageIndex)
                         preUsage.layout != currentUsage.layout)
                     {
                         if (srcStages == VK_PIPELINE_STAGE_NONE)
-                            srcStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                        {
+                            srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                            srcAccess = VK_ACCESS_NONE;
+                        }
                         Barrier barrier;
                         barrier.srcStageMask = srcStages;
                         barrier.dstStageMask = currentUsage.stages;
@@ -243,35 +302,275 @@ int Graph::MakeBarrier(void* res, int usageIndex)
             if (remainingRange.empty())
                 break;
         }
+
+        if (usageIndex == 0)
+        {
+            Barrier barrier;
+            barrier.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+            barrier.dstStageMask = currentUsage.stages;
+
+            VkImageMemoryBarrier imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            imageBarrier.srcAccessMask = VK_ACCESS_NONE;
+            imageBarrier.dstAccessMask = currentUsage.access;
+            imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageBarrier.newLayout = currentUsage.layout;
+            imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.subresourceRange = Gfx::MapVkImageSubresourceRange(currentUsage.range);
+            imageBarrier.image = image->GetImage();
+
+            barrier.barrierCount = 1;
+            barrier.imageMemorybarrierIndex = imageMemoryBarriers.size();
+            barriers.push_back(barrier);
+            barrierCount += 1;
+            imageMemoryBarriers.push_back(imageBarrier);
+        }
     }
     else if (iter->second.type == ResourceType::Buffer)
     {
-        throw std::runtime_error("not implemented");
-    }
+        VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        VkAccessFlags srcAccessMask = VK_ACCESS_NONE;
 
+        if (usageIndex == 0)
+        {
+            if (!iter->second.previousFrameUsages.empty())
+            {
+                usagesSource = &iter->second.previousFrameUsages;
+                previousUsageIndex = iter->second.previousFrameUsages.size() - 1;
+            }
+        }
+        else
+            previousUsageIndex = usageIndex - 1;
+
+        if (usageIndex != 0 || usagesSource != &currentFrameUsages)
+        {
+            auto& preUsage = (*usagesSource)[previousUsageIndex];
+            if (HasWriteAccessMask(currentUsage.access))
+            {
+                // write after write
+                if (HasWriteAccessMask(preUsage.access))
+                {
+                    srcAccessMask |= preUsage.access;
+                    srcStages |= preUsage.stages;
+                }
+
+                // write after read
+                if (HasReadAccessMask(preUsage.access))
+                {
+                    srcAccessMask |= preUsage.access;
+                    srcStages |= preUsage.stages;
+                }
+            }
+
+            if (HasReadAccessMask(currentUsage.access))
+            {
+                // read after write
+                if (HasWriteAccessMask(preUsage.access))
+                {
+                    srcAccessMask |= preUsage.access;
+                    srcStages |= preUsage.stages;
+                }
+            }
+
+            if (srcStages != VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT || srcAccessMask != VK_ACCESS_NONE)
+            {
+                Barrier barrier;
+                barrier.srcStageMask = srcStages;
+                barrier.dstStageMask = currentUsage.stages;
+                VkBufferMemoryBarrier bufferBarrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+                bufferBarrier.srcAccessMask =
+                    srcStages == VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT ? VK_ACCESS_NONE : srcAccessMask;
+                bufferBarrier.dstAccessMask = currentUsage.access;
+                bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                bufferBarrier.buffer = ((VKBuffer*)iter->second.res)->GetHandle();
+                bufferBarrier.offset = 0;
+                bufferBarrier.size = GFX_WHOLE_SIZE;
+
+                barrier.barrierCount = 1;
+                barrier.bufferMemoryBarrierIndex = bufferMemoryBarriers.size();
+                bufferMemoryBarriers.push_back(bufferBarrier);
+            }
+        }
+    }
     return barrierCount;
 }
 
 void Graph::FlushBindResourceTrack() {}
 
+size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
+{
+    int imageIndex = 0;
+    int barrierCount = 0;
+    for (int bindingIndex = 0; bindingIndex < cmd.pushDescriptor.bindingCount; ++bindingIndex)
+    {
+        auto& b = cmd.pushDescriptor.bindings[bindingIndex];
+        if (b.imageView != nullptr)
+        {
+            for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
+            {
+                VKImageView* vkImageView = static_cast<VKImageView*>(b.imageView + imageJedex);
+                auto layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                auto image = static_cast<VKImage*>(&vkImageView->GetImage());
+                if (image->IsGPUWrite())
+                {
+                    TrackResource(
+                        image,
+                        vkImageView->GetSubresourceRange(),
+                        layout,
+                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                        VK_ACCESS_2_MEMORY_READ_BIT
+                    );
+
+                    if (addBarrier)
+                    {
+                        barrierCount += MakeBarrierForLastUsage(image);
+                    }
+                }
+            }
+        }
+    }
+
+    return barrierCount;
+}
 void Graph::Schedule(VKCommandBuffer2& cmd)
 {
-    int cmdIndexOffset = activeSchedulingCmds.size();
-    activeSchedulingCmds.insert(activeSchedulingCmds.end(), cmd.GetCmds().begin(), cmd.GetCmds().end());
+    int cmdIndexOffset = currentSchedulingCmds.size();
+    currentSchedulingCmds.insert(currentSchedulingCmds.end(), cmd.GetCmds().begin(), cmd.GetCmds().end());
 
-    // add barrier to BeginRenderPass
-    for (int visitIndex = cmdIndexOffset; visitIndex < activeSchedulingCmds.size(); visitIndex++)
+    // track where to put barriers
+    for (int visitIndex = cmdIndexOffset; visitIndex < currentSchedulingCmds.size(); visitIndex++)
     {
-        auto& cmd = activeSchedulingCmds[visitIndex];
+        auto& cmd = currentSchedulingCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
             AddBarrierToRenderPass(visitIndex);
+        else if (cmd.type == VKCmdType::BindResource)
+        {
+            recordState.bindSetCmdIndex[cmd.bindResource.set] = visitIndex;
+            recordState.bindedSetUpdateNeeded[cmd.bindResource.set] = true;
+        }
+        else if (cmd.type == VKCmdType::BindShaderProgram)
+        {
+            recordState.bindProgramIndex = visitIndex;
+        }
+        else if (cmd.type == VKCmdType::CopyBuffer)
+        {
+            size_t barrierOffset = barriers.size();
+            size_t barrierCount = 0;
+            TrackResource(cmd.copyBuffer.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+            barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.src);
+
+            TrackResource(cmd.copyBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
+            barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.dst);
+
+            cmd.copyBuffer.barrierOffset = barrierOffset;
+            cmd.copyBuffer.barrierCount = barrierCount;
+        }
+        else if (cmd.type == VKCmdType::Blit)
+        {
+            size_t barrierOffset = barriers.size();
+            size_t barrierCount = 0;
+            Gfx::ImageSubresourceRange srcRange{
+                .aspectMask = Gfx::MapVKImageAspect(cmd.blit.to->GetDefaultSubresourceRange().aspectMask),
+                .baseMipLevel = cmd.blit.blitOp.srcMip.value_or(0),
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
+            };
+
+            TrackResource(
+                cmd.blit.from,
+                srcRange,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_ACCESS_TRANSFER_READ_BIT
+            );
+            barrierCount += MakeBarrierForLastUsage(cmd.blit.from);
+
+            Gfx::ImageSubresourceRange dstRange{
+                .aspectMask = Gfx::MapVKImageAspect(cmd.blit.to->GetDefaultSubresourceRange().aspectMask),
+                .baseMipLevel = cmd.blit.blitOp.dstMip.value_or(0),
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
+            };
+
+            TrackResource(
+                cmd.blit.from,
+                dstRange,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_ACCESS_TRANSFER_WRITE_BIT
+            );
+            barrierCount += MakeBarrierForLastUsage(cmd.blit.to);
+
+            cmd.blit.barrierOffset = barrierOffset;
+            cmd.blit.barrierCount = barrierCount;
+        }
+        else if (cmd.type == VKCmdType::CopyBufferToImage)
+        {
+            size_t barrierOffset = barriers.size();
+            size_t barrierCount = 0;
+            TrackResource(cmd.copyBufferToImage.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+            barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.src);
+
+            for (int i = 0; i < cmd.copyBufferToImage.regionCount; ++i)
+            {
+                auto& subresource = cmd.copyBufferToImage.regions[i].imageSubresource;
+                Gfx::ImageSubresourceRange range{
+                    .aspectMask = Gfx::MapVKImageAspect(subresource.aspectMask),
+                    .baseMipLevel = subresource.mipLevel,
+                    .levelCount = 1,
+                    .baseArrayLayer = subresource.baseArrayLayer,
+                    .layerCount = subresource.layerCount,
+                };
+
+                TrackResource(
+                    cmd.copyBufferToImage.dst,
+                    range,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT
+                );
+                barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.dst);
+            }
+
+            cmd.copyBufferToImage.barrierOffset = barrierOffset;
+            cmd.copyBufferToImage.barrierCount = barrierCount;
+        }
+        else if (cmd.type == VKCmdType::PushDescriptorSet)
+        {
+            TrackResourceForPushDescriptorSet(cmd, false);
+        }
+        else if (cmd.type == VKCmdType::Present)
+        {
+            Gfx::ImageSubresourceRange range{
+                .aspectMask = ImageAspectFlags::Color,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            };
+            size_t barrierOffset = barriers.size();
+            TrackResource(
+                cmd.present.image,
+                range,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                VK_ACCESS_NONE
+            );
+            size_t barrierCount = MakeBarrierForLastUsage(cmd.present.image);
+            cmd.present.barrierOffset = barrierOffset;
+            cmd.present.barrierCount = barrierCount;
+        }
     }
 }
 
 void Graph::Execute(VkCommandBuffer vkcmd)
 {
-    for (auto& cmd : activeSchedulingCmds)
+    for (size_t i = 0; i < currentSchedulingCmds.size(); ++i)
     {
+        auto& cmd = currentSchedulingCmds[i];
         switch (cmd.type)
         {
             case VKCmdType::DrawIndexed:
@@ -365,6 +664,13 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
                                                      // without much configuration
 
+                    auto barrierOffset = cmd.blit.barrierOffset;
+                    auto barrierCount = cmd.blit.barrierCount;
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
+
                     vkCmdBlitImage(
                         vkcmd,
                         cmd.blit.from->GetImage(),
@@ -447,6 +753,13 @@ void Graph::Execute(VkCommandBuffer vkcmd)
 
                     VKImage* srcImage = cmd.copyImageToBuffer.src;
                     VKBuffer* dstBuffer = cmd.copyImageToBuffer.dst;
+
+                    auto barrierOffset = cmd.copyImageToBuffer.barrierOffset;
+                    auto barrierCount = cmd.copyImageToBuffer.barrierCount;
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
 
                     vkCmdCopyImageToBuffer(
                         vkcmd,
@@ -533,9 +846,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                                                                                // iterate through ShaderInfo.bindings)
                                 .pImageInfo = imageInfos,
                             };
+                            i += 1;
                         }
-
-                        i += 1;
                     }
 
                     VKExtensionFunc::vkCmdPushDescriptorSetKHR(
@@ -551,6 +863,13 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::CopyBuffer:
                 {
+                    auto barrierOffset = cmd.copyBuffer.barrierOffset;
+                    auto barrierCount = cmd.copyBuffer.barrierCount;
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
+
                     vkCmdCopyBuffer(
                         vkcmd,
                         cmd.copyBuffer.src->GetHandle(),
@@ -562,6 +881,13 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::CopyBufferToImage:
                 {
+                    auto barrierOffset = cmd.copyBufferToImage.barrierOffset;
+                    auto barrierCount = cmd.copyBufferToImage.barrierCount;
+
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
                     vkCmdCopyBufferToImage(
                         vkcmd,
                         cmd.copyBufferToImage.src->GetHandle(),
@@ -572,16 +898,34 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     );
                     break;
                 }
+            case VKCmdType::Present:
+                {
+                    auto barrierOffset = cmd.present.barrierOffset;
+                    auto barrierCount = cmd.present.barrierCount;
+
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
+                    break;
+                }
         }
     }
 
-    activeSchedulingCmds.clear();
+    std::swap(currentSchedulingCmds, previousSchedulingCmds);
+    currentSchedulingCmds.clear();
+    for (auto& r : resourceUsageTracks)
+    {
+        std::swap(r.second.currentFrameUsages, r.second.previousFrameUsages);
+        r.second.currentFrameUsages.clear();
+    }
+    exeState = ExecutionState();
+    recordState = FlushBindResource();
+
     imageMemoryBarriers.clear();
     bufferMemoryBarriers.clear();
     memoryBarriers.clear();
-    resourceUsageTracks.clear();
-    exeState = ExecutionState();
-    recordState = FlushBindResource();
+    barriers.clear();
 }
 
 void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd)
