@@ -1,14 +1,33 @@
 #pragma once
+#include "../SwapchainImage.hpp"
 #include "VKImage.hpp"
 #include "VKImageView.hpp"
 
 namespace Gfx
 {
 
+class VKSwapchainImage2 : public SwapchainImage
+{
+public:
+    void SetActiveImage(VKImage* image){};
+    VKImage* GetActiveImage() override
+    {
+        return activeImage;
+    };
+
+private:
+    VKImage* activeImage = nullptr;
+};
+
 class VKSwapChainImage : public VKImage
 {
 public:
-    VKSwapChainImage() = default;
+    VKSwapChainImage()
+    {
+        activeIndex = 0;
+        imageDescription = {};
+        isSwapchainProxy = true;
+    }
     VKSwapChainImage(VKSwapChainImage&& other) : VKImage(std::move(other)){};
 
     ~VKSwapChainImage() override;
@@ -25,6 +44,11 @@ public:
     void NotifyLayoutChange(VkImageLayout newLayout) override
     {
         swapchainImages[activeIndex]->NotifyLayoutChange(newLayout);
+    }
+
+    const ImageDescription& GetDescription() override
+    {
+        return swapchainImages[activeIndex]->GetDescription();
     }
 
     VkImageLayout GetLayout() override
