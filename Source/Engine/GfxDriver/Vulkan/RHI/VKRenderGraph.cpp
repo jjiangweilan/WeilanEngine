@@ -73,6 +73,13 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
         for (auto& c : s.colors)
         {
             VKImage* image = static_cast<VKImage*>(&c.imageView->GetImage());
+
+            if (image->IsSwapchainProxy())
+            {
+                auto swapchainImage = static_cast<VKSwapChainImage*>(image);
+                image = swapchainImage->GetImage(swapchainImage->GetActiveIndex());
+            }
+
             VKImageView* imageView = static_cast<VKImageView*>(c.imageView);
 
             VkAccessFlags flags = 0;

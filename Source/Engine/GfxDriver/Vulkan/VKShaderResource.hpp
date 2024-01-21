@@ -50,6 +50,8 @@ class VKShaderResource : public ShaderResource
 public:
     VKShaderResource();
     void SetBuffer(const std::string& name, Gfx::Buffer* buffer) override;
+
+    // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(const std::string& name, Gfx::Image* image) override;
     void SetImage(const std::string& name, Gfx::ImageView* imageView) override;
     void SetImage(const std::string& name, nullptr_t) override;

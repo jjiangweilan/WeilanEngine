@@ -53,6 +53,11 @@ public:
         this->layout = newLayout;
     }
 
+    bool IsSwapchainProxy()
+    {
+        return isSwapchainProxy;
+    }
+
 protected:
     VKImage();
     uint32_t arrayLayers = 1;
@@ -71,6 +76,7 @@ protected:
     ImageDescription imageDescription;
     std::unique_ptr<VKImageView> imageView;
     std::string name;
+    bool isSwapchainProxy = false;
 
     ImageViewType GenerateDefaultImageViewViewType();
     ImageSubresourceRange GenerateDefaultSubresourceRange();
