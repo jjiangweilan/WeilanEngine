@@ -36,6 +36,87 @@ void GameView::Init()
     CreateRenderData(1960, 1080);
 }
 
+static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
+{
+    auto mr = obj->GetComponent<MeshRenderer>();
+    if (mr)
+    {
+        auto model = obj->GetModelMatrix();
+        auto mesh = mr->GetMesh();
+        if (mesh)
+        {
+            for (const Submesh& submesh : mesh->GetSubmeshes())
+            {
+                auto& indices = submesh.GetIndices();
+                auto& positions = submesh.GetPositions();
+
+                // I just assume binding zero is a vec3 position, this is not robust
+                for (int i = 0; i < submesh.GetIndexCount(); i += 3)
+                {
+                    int j = i + 1;
+                    int k = i + 2;
+
+                    glm::vec3 v0, v1, v2;
+                    v0 = model * glm::vec4(positions[indices[i]], 1.0);
+                    v1 = model * glm::vec4(positions[indices[j]], 1.0);
+                    v2 = model * glm::vec4(positions[indices[k]], 1.0);
+
+                    glm::vec2 bary;
+                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
+                        return true;
+                }
+            }
+        }
+    }
+
+    // ray is not tested, there is no mesh maybe use a box as proxy?
+    return false;
+}
+
+static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
+{
+    if (Scene* scene = EditorState::activeScene)
+    {
+        auto objs = scene->GetAllGameObjects();
+        auto mainCam = scene->GetMainCamera();
+        Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+
+        auto ori = ray.origin;
+        auto dir = ray.direction;
+        struct Intersected
+        {
+            GameObject* go;
+            float distance;
+        };
+        std::vector<Intersected> intersected;
+        intersected.reserve(32);
+        for (auto obj : objs)
+        {
+            if (obj == nullptr)
+                continue;
+
+            float distance = std::numeric_limits<float>::max();
+            if (IsRayObjectIntersect(ori, dir, obj, distance))
+            {
+                intersected.push_back(Intersected{obj, distance});
+            }
+        }
+
+        auto iter = std::min_element(
+            intersected.begin(),
+            intersected.end(),
+            [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
+        );
+
+        if (iter != intersected.end())
+        {
+            return iter->go;
+        }
+    }
+
+    return nullptr;
+}
+
 static void EditorCameraWalkAround(Camera& editorCamera)
 {
     if (!ImGui::IsWindowHovered())
@@ -150,87 +231,6 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
         cmd.Barrier(&barrier, 1);
     }
-}
-
-static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
-{
-    auto mr = obj->GetComponent<MeshRenderer>();
-    if (mr)
-    {
-        auto model = obj->GetModelMatrix();
-        auto mesh = mr->GetMesh();
-        if (mesh)
-        {
-            for (const Submesh& submesh : mesh->GetSubmeshes())
-            {
-                auto& indices = submesh.GetIndices();
-                auto& positions = submesh.GetPositions();
-
-                // I just assume binding zero is a vec3 position, this is not robust
-                for (int i = 0; i < submesh.GetIndexCount(); i += 3)
-                {
-                    int j = i + 1;
-                    int k = i + 2;
-
-                    glm::vec3 v0, v1, v2;
-                    v0 = model * glm::vec4(positions[indices[i]], 1.0);
-                    v1 = model * glm::vec4(positions[indices[j]], 1.0);
-                    v2 = model * glm::vec4(positions[indices[k]], 1.0);
-
-                    glm::vec2 bary;
-                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
-                        return true;
-                }
-            }
-        }
-    }
-
-    // ray is not tested, there is no mesh maybe use a box as proxy?
-    return false;
-}
-
-static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
-{
-    if (Scene* scene = EditorState::activeScene)
-    {
-        auto objs = scene->GetAllGameObjects();
-        auto mainCam = scene->GetMainCamera();
-        Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
-
-        auto ori = ray.origin;
-        auto dir = ray.direction;
-        struct Intersected
-        {
-            GameObject* go;
-            float distance;
-        };
-        std::vector<Intersected> intersected;
-        intersected.reserve(32);
-        for (auto obj : objs)
-        {
-            if (obj == nullptr)
-                continue;
-
-            float distance = std::numeric_limits<float>::max();
-            if (IsRayObjectIntersect(ori, dir, obj, distance))
-            {
-                intersected.push_back(Intersected{obj, distance});
-            }
-        }
-
-        auto iter = std::min_element(
-            intersected.begin(),
-            intersected.end(),
-            [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
-        );
-
-        if (iter != intersected.end())
-        {
-            return iter->go;
-        }
-    }
-
-    return nullptr;
 }
 
 bool GameView::Tick()
