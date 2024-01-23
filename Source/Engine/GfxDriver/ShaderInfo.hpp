@@ -228,6 +228,7 @@ struct Binding
     uint32_t setNum;
     uint32_t bindingNum;
     std::string name;
+    std::string actualName;
     uint8_t count = 1;
     union BindingUnion
     {
@@ -272,7 +273,7 @@ struct ShaderInfo
 {
     std::string vertName;
     std::string fragName;
-    std::unordered_map<SetNum, DescriptorSetInfo> descriptorSetBinidngMap;
+    std::unordered_map<SetNum, std::vector<Binding*>> descriptorSetBindingMap;
     Bindings bindings;
     PushConstants pushConstants;
 };

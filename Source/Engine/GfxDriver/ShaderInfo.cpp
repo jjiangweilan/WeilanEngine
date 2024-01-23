@@ -327,6 +327,7 @@ void Process(
             }
             b.count = bindingJson.value("array", std::vector<int>{1})[0];
             b.name = RemoveShaderNameConfigText(name);
+            b.actualName = name;
             b.stages = stage;
         }
         else
@@ -367,9 +368,6 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
         if (iter == to.bindings.end())
         {
             iter = to.bindings.insert(std::make_pair(binding.first, binding.second)).first;
-            to.descriptorSetBinidngMap[iter->second.setNum].bindings.insert(
-                std::make_pair(binding.first, binding.second)
-            );
         }
         iter->second.stages |= binding.second.stages;
     }

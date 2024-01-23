@@ -80,7 +80,6 @@ protected:
     VKSharedResource* sharedResource;
 
     VKDescriptorPool* descriptorPool = nullptr;
-    std::unordered_map<std::string, std::unique_ptr<VKBuffer>> buffers;
 
     struct SetInfo
     {

@@ -183,6 +183,11 @@ VKShaderProgram::VKShaderProgram(
     ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
     ShaderInfo::Utils::Merge(shaderInfo, fragShaderModule->GetShaderInfo());
 
+    for(auto& b : shaderInfo.bindings)
+    {
+        shaderInfo.descriptorSetBindingMap[b.second.setNum].push_back(&b.second);
+    }
+
     // generate bindings
     DescriptorSetBindings descriptorSetBindings;
     std::vector<VkSampler> immutableSamplerHandles;

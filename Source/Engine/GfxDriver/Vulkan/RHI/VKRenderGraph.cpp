@@ -265,7 +265,6 @@ int Graph::MakeBarrierForLastUsage(void* res)
     if (iter->second.type == ResourceType::Image)
     {
         VKImage* image = (VKImage*)iter->second.res;
-
         // TODO: optimize heap allocation
         std::vector<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
         std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
@@ -1047,7 +1046,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index)
 
 void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
 {
-    auto& barrier = barriers[index];
+    Barrier& barrier = barriers[index];
     if (barrier.bufferMemoryBarrierIndex != -1)
     {
         vkCmdPipelineBarrier(
