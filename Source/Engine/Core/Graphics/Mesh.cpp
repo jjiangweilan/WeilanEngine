@@ -170,6 +170,7 @@ void Submesh::Apply()
 
     GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, staging, vertexBufferSize, 0);
     GetGfxDriver()->UploadBuffer(*gfxIndexBuffer, staging + vertexBufferSize, indexBufferSize, 0);
+    delete[] staging;
     // GetGfxDriver()->Schedule(
     //     [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
     //     {
