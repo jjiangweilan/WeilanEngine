@@ -454,7 +454,6 @@ protected:
 private:
     std::vector<std::unique_ptr<RenderNode>> nodes;
     std::vector<RenderNode*> sortedNodes;
-    std::vector<std::unique_ptr<RenderNode>> barrierNodes;
     std::vector<std::unique_ptr<ResourceOwner>> resourceOwners;
     ResourcePool resourcePool;
 }; // namespace RenderGraph

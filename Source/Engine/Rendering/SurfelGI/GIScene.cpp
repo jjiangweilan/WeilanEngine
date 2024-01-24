@@ -117,31 +117,8 @@ Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
     GetGfxDriver()->ExecuteImmediately(
         [&](Gfx::CommandBuffer& cmd)
         {
-            Gfx::GPUBarrier memBarrier{
-                .srcStageMask = Gfx::PipelineStage::All_Commands,
-                .dstStageMask = Gfx::PipelineStage::All_Commands,
-                .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write};
-            cmd.Barrier(&memBarrier, 1);
-
             auto graph = bakerCamera->GetFrameGraph();
             graph->Execute(cmd, *scene);
-
-            Gfx::GPUBarrier layoutBarrier{
-                .image = surfelBakeNode->albedo,
-                .srcStageMask = Gfx::PipelineStage::Transfer,
-                .dstStageMask = Gfx::PipelineStage::Transfer,
-                .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                .imageInfo = {
-                    .oldLayout = Gfx::ImageLayout::Transfer_Dst,
-                    .newLayout = Gfx::ImageLayout::Transfer_Src,
-                    .subresourceRange = Gfx::ImageSubresourceRange{.baseMipLevel = surfelBakeNode->mipLevel - 1}}};
-            cmd.Barrier(&layoutBarrier, 1);
-            layoutBarrier.image = surfelBakeNode->position;
-            cmd.Barrier(&layoutBarrier, 1);
-            layoutBarrier.image = surfelBakeNode->normal;
-            cmd.Barrier(&layoutBarrier, 1);
 
             Gfx::BufferImageCopyRegion region{
                 .srcOffset = 0,

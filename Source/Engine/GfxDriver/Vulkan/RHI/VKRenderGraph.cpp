@@ -442,7 +442,7 @@ int Graph::MakeBarrierForLastUsage(void* res)
                 bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 bufferBarrier.buffer = ((VKBuffer*)iter->second.res)->GetHandle();
                 bufferBarrier.offset = 0;
-                bufferBarrier.size = GFX_WHOLE_SIZE;
+                bufferBarrier.size = VK_WHOLE_SIZE;
 
                 barrier.barrierCount = 1;
                 barrier.bufferMemoryBarrierIndex = bufferMemoryBarriers.size();

@@ -273,7 +273,6 @@ public:
         override;
     void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions)
         override;
-    void Barrier(GPUBarrier* barriers, uint32_t barrierCount) override {}
     void Begin() override {}
     void End() override {}
 

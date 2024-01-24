@@ -72,14 +72,6 @@ public:
 
                 cmd.SetScissor(0, 1, &rect);
 
-                Gfx::GPUBarrier memBarrier{
-                    .srcStageMask = Gfx::PipelineStage::All_Commands,
-                    .dstStageMask = Gfx::PipelineStage::All_Commands,
-                    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write};
-
-                cmd.Barrier(&memBarrier, 1);
-
                 cmd.BeginRenderPass(pass, clearValues);
                 for (auto& draw : *drawList)
                 {
@@ -92,13 +84,6 @@ public:
                 }
                 cmd.EndRenderPass();
 
-                Gfx::GPUBarrier barrier{
-                    .srcStageMask = Gfx::PipelineStage::Bottom_Of_Pipe,
-                    .dstStageMask = Gfx::PipelineStage::Top_Of_Pipe,
-                    .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                    .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-                };
-                cmd.Barrier(&barrier, 1);
                 GenerateMip(cmd, albedo, Gfx::ImageAspect::Color);
                 GenerateMip(cmd, normal, Gfx::ImageAspect::Color);
                 GenerateMip(cmd, position, Gfx::ImageAspect::Color);
@@ -238,55 +223,8 @@ private:
 
     void GenerateMip(Gfx::CommandBuffer& cmd, Gfx::Image* image, Gfx::ImageAspect aspect)
     {
-        Gfx::GPUBarrier barriers[2];
         for (uint32_t mip = 1; mip < mipLevel; ++mip)
         {
-            barriers[0] = {
-                .image = image,
-                .srcStageMask = mip == 1 ? Gfx::PipelineStage::Color_Attachment_Output : Gfx::PipelineStage::Transfer,
-                .dstStageMask = Gfx::PipelineStage::Transfer,
-                .srcAccessMask = mip == 1
-                                     ? Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMask::Color_Attachment_Read
-                                     : Gfx::AccessMask::Transfer_Write,
-                .dstAccessMask = Gfx::AccessMask::Transfer_Read,
-
-                .imageInfo = {
-                    .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = Gfx::ImageLayout::Dynamic,
-                    .newLayout = Gfx::ImageLayout::Transfer_Src,
-                    .subresourceRange =
-                        {
-                            .aspectMask = aspect,
-                            .baseMipLevel = mip - 1,
-                            .levelCount = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        },
-                }};
-
-            barriers[1] = {
-                .image = image,
-                .srcStageMask = Gfx::PipelineStage::Top_Of_Pipe,
-                .dstStageMask = Gfx::PipelineStage::Transfer,
-                .srcAccessMask = Gfx::AccessMask::None,
-                .dstAccessMask = Gfx::AccessMask::Transfer_Write,
-
-                .imageInfo = {
-                    .srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED,
-                    .oldLayout = Gfx::ImageLayout::Undefined,
-                    .newLayout = Gfx::ImageLayout::Transfer_Dst,
-                    .subresourceRange =
-                        {
-                            .aspectMask = aspect,
-                            .baseMipLevel = mip,
-                            .levelCount = 1,
-                            .baseArrayLayer = 0,
-                            .layerCount = 1,
-                        },
-                }};
-            cmd.Barrier(barriers, 2);
             Gfx::BlitOp blitOp = {
                 .srcMip = {mip - 1},
                 .dstMip = {mip},

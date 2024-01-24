@@ -213,23 +213,6 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     {
         auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
-
-        Gfx::GPUBarrier barrier{
-            .image = graphOutputImage,
-            .srcStageMask = Gfx::PipelineStage::All_Graphics,
-            .dstStageMask = Gfx::PipelineStage::Transfer,
-            .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-            .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-
-            .imageInfo =
-                {
-                    .oldLayout = Gfx::ImageLayout::Dynamic,
-                    .newLayout = Gfx::ImageLayout::Shader_Read_Only,
-                    .subresourceRange = graphOutputImage->GetSubresourceRange(),
-                },
-        };
-
-        cmd.Barrier(&barrier, 1);
     }
 }
 

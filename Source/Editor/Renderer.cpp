@@ -181,19 +181,6 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
         indexCopy[0] = {vertexSize, 0, indexSize};
         cmd.CopyBuffer(stagingBuffer, vertexBuffer, vertexCopy);
         cmd.CopyBuffer(stagingBuffer, indexBuffer, indexCopy);
-
-        Gfx::GPUBarrier memTransferBarrier[2]{};
-        memTransferBarrier[0].buffer = vertexBuffer.get();
-        memTransferBarrier[0].srcStageMask = Gfx::PipelineStage::Transfer;
-        memTransferBarrier[0].dstStageMask = Gfx::PipelineStage::Vertex_Input;
-        memTransferBarrier[0].srcAccessMask = Gfx::AccessMask::Transfer_Write;
-        memTransferBarrier[0].dstAccessMask = Gfx::AccessMask::Vertex_Attribute_Read;
-        memTransferBarrier[1].buffer = indexBuffer.get();
-        memTransferBarrier[1].srcStageMask = Gfx::PipelineStage::Transfer;
-        memTransferBarrier[1].dstStageMask = Gfx::PipelineStage::Vertex_Input;
-        memTransferBarrier[1].srcAccessMask = Gfx::AccessMask::Transfer_Write;
-        memTransferBarrier[1].dstAccessMask = Gfx::AccessMask::Index_Read;
-        cmd.Barrier(memTransferBarrier, 2);
     }
 
     Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();

@@ -19,37 +19,6 @@ enum class CommandBufferType
     Secondary
 };
 
-#define GFX_QUEUE_FAMILY_IGNORED ~0U
-#define GFX_WHOLE_SIZE ~0ULL
-// source stage/accessMask/queueFamilyIndex/imageLayout is tracked by
-// buffer/image itself the tracking is done by driver
-struct GPUBarrier
-{
-    RefPtr<Gfx::Buffer> buffer = nullptr;
-    RefPtr<Gfx::Image> image = nullptr;
-    Gfx::PipelineStageFlags srcStageMask = Gfx::PipelineStage::Bottom_Of_Pipe;
-    Gfx::PipelineStageFlags dstStageMask = Gfx::PipelineStage::Top_Of_Pipe;
-    Gfx::AccessMaskFlags srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
-    Gfx::AccessMaskFlags dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write;
-
-    struct BufferInfo
-    {
-        uint32_t srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-        uint32_t dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-        uint64_t offset = 0;
-        uint64_t size = GFX_WHOLE_SIZE;
-    } bufferInfo;
-
-    struct ImageInfo
-    {
-        uint32_t srcQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-        uint32_t dstQueueFamilyIndex = GFX_QUEUE_FAMILY_IGNORED;
-        Gfx::ImageLayout oldLayout;
-        Gfx::ImageLayout newLayout;
-        Gfx::ImageSubresourceRange subresourceRange;
-    } imageInfo;
-};
-
 struct BufferCopyRegion
 {
     uint64_t srcOffset;
@@ -147,7 +116,6 @@ public:
     virtual void CopyBufferToImage(
         RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
     ) = 0;
-    virtual void Barrier(GPUBarrier* barriers, uint32_t barrierCount) = 0;
     virtual void Begin() = 0;
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;

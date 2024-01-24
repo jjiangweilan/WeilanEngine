@@ -251,15 +251,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
 
     cmd.BindResource(0, sceneShaderResource.get());
-    Gfx::GPUBarrier barrier{
-        .buffer = sceneGlobalBuffer,
-        .srcStageMask = Gfx::PipelineStage::Transfer,
-        .dstStageMask = Gfx::PipelineStage::Vertex_Shader | Gfx::PipelineStage::Fragment_Shader,
-        .srcAccessMask = Gfx::AccessMask::Transfer_Write,
-        .dstAccessMask = Gfx::AccessMask::Memory_Read,
-    };
-
-    cmd.Barrier(&barrier, 1);
     graph->Execute(cmd);
 }
 

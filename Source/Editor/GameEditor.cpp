@@ -502,15 +502,6 @@ void GameEditor::SurfelGIBakerWindow()
 void GameEditor::Render(Gfx::CommandBuffer& cmd)
 {
     // make sure we don't have sync issue with game rendering
-    Gfx::GPUBarrier barrier{
-        .buffer = nullptr,
-        .image = nullptr,
-        .srcStageMask = Gfx::PipelineStage::All_Commands,
-        .dstStageMask = Gfx::PipelineStage::All_Commands,
-        .srcAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-        .dstAccessMask = Gfx::AccessMask::Memory_Read | Gfx::AccessMask::Memory_Write,
-    };
-    cmd.Barrier(&barrier, 1);
 
     for (auto& t : registeredTools)
     {
@@ -520,9 +511,6 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd)
 
     if (EditorState::activeScene)
         gameView.Render(cmd, EditorState::activeScene);
-
-    // make sure we don't have  sync issue with tool rendering
-    cmd.Barrier(&barrier, 1);
 
     gameEditorRenderer->Execute(cmd);
 }
