@@ -122,27 +122,27 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         uint32_t bufferWriteIndex = 0;
         uint32_t imageWriteIndex = 0;
         uint32_t writeCount = 0;
-        auto iter = shaderInfo.descriptorSetBinidngMap.find(set);
-        if (iter != shaderInfo.descriptorSetBinidngMap.end())
+        auto iter = shaderInfo.descriptorSetBindingMap.find(set);
+        if (iter != shaderInfo.descriptorSetBindingMap.end())
         {
             assert(iter->second.bindings.size() < 64);
 
-            for (auto& b : iter->second.bindings)
+            for (auto b : iter->second)
             {
                 writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[writeCount].pNext = VK_NULL_HANDLE;
                 writes[writeCount].dstSet = finalReturn;
-                writes[writeCount].descriptorType = ShaderInfo::Utils::MapBindingType(b.second.type);
-                writes[writeCount].dstBinding = b.second.bindingNum;
+                writes[writeCount].descriptorType = ShaderInfo::Utils::MapBindingType(b->type);
+                writes[writeCount].dstBinding = b->bindingNum;
                 writes[writeCount].dstArrayElement = 0;
-                writes[writeCount].descriptorCount = b.second.count;
+                writes[writeCount].descriptorCount = b->count;
                 writes[writeCount].pImageInfo = VK_NULL_HANDLE;
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                ResourceRef resRef = bindings[b.second.name];
+                ResourceRef resRef = bindings[b->name];
 
-                switch (b.second.type)
+                switch (b->type)
                 {
                     case ShaderInfo::BindingType::UBO:
                     case ShaderInfo::BindingType::SSBO:
@@ -157,15 +157,14 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         fmt::format("Default Buffer for {}", shaderProgram->GetName());
                                     Buffer::CreateInfo createInfo{
                                         .usages =
-                                            (b.second.type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
+                                            (b->type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
                                                                                            : BufferUsage::Storage) |
                                             BufferUsage::Transfer_Dst,
-                                        .size = b.second.binding.ubo.data.size,
+                                        .size = b->binding.ubo.data.size,
                                         .visibleInCPU = false,
                                         .debugName = bufferName.c_str()};
                                     auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
-                                    buffers.insert(std::make_pair(b.first, std::move(defaultBuffer)));
                                 }
                                 else
                                 {
@@ -175,9 +174,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 if (buffer->IsGPUWrite())
                                 {
                                     VkPipelineStageFlags pipelineStages = 0;
-                                    if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Vert)
+                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Vert)
                                         pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                                    if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Frag)
+                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Frag)
                                         pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Buffer,
@@ -185,7 +184,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
-                                            (b.second.type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT
+                                            (b->type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT
                                                                                             : 0)
                                         ),
                                     };
@@ -193,8 +192,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     writableGPUResources->push_back(gpuResource);
                                 }
                                 bufferInfo.buffer = buffer->GetHandle();
-                                bufferInfo.offset = i * b.second.binding.ubo.data.size;
-                                bufferInfo.range = b.second.binding.ubo.data.size;
+                                bufferInfo.offset = i * b->binding.ubo.data.size;
+                                bufferInfo.range = b->binding.ubo.data.size;
                                 writes[writeCount].pBufferInfo = &bufferInfo;
                             }
                             break;
@@ -203,11 +202,11 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                     case ShaderInfo::BindingType::SeparateImage:
                         {
                             VKImageView* imageView = (VKImageView*)resRef.res;
-                            if (b.second.binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
+                            if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
                             {
                                 VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                                imageInfo.sampler = b.second.type == ShaderInfo::BindingType::Texture
+                                imageInfo.sampler = b->type == ShaderInfo::BindingType::Texture
                                                         ? sharedResource->GetDefaultSampler()
                                                         : VK_NULL_HANDLE;
                                 if (resRef.res != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
@@ -222,7 +221,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 }
                                 writes[writeCount].pImageInfo = &imageInfo;
                             }
-                            else if (b.second.binding.texture.type == ShaderInfo::Texture::Type::TexCube)
+                            else if (b->binding.texture.type == ShaderInfo::Texture::Type::TexCube)
                             {
                                 VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -245,9 +244,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                             if (imageView && imageView->GetImage().IsGPUWrite())
                             {
                                 VkPipelineStageFlags pipelineStages = 0;
-                                if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Vert)
+                                if (b->stages & Gfx::ShaderInfo::ShaderStage::Vert)
                                     pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                                if (b.second.stages & Gfx::ShaderInfo::ShaderStage::Frag)
+                                if (b->stages & Gfx::ShaderInfo::ShaderStage::Frag)
                                     pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
                                 VKWritableGPUResource gpuResource{
                                     .type = VKWritableGPUResource::Type::Image,
@@ -264,8 +263,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                     case ShaderInfo::BindingType::SeparateSampler:
                         {
                             auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
-                                b.first,
-                                b.second.binding.separateSampler.enableCompare
+                                b->actualName,
+                                b->binding.separateSampler.enableCompare
                             );
                             VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
                             VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];

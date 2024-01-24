@@ -19,6 +19,7 @@ enum class ResourceType
 
 struct ResourceUsage
 {
+    bool operator==(const ResourceUsage& other) const = default;
     VkPipelineStageFlags stages;
     VkAccessFlags access;
 
@@ -81,14 +82,14 @@ private:
     std::vector<VkMemoryBarrier> memoryBarriers;
 
     void CreateRenderPassNode(int visitIndex);
-    void TrackResource(
+    bool TrackResource(
         VKImage* writableResource,
         Gfx::ImageSubresourceRange range,
         VkImageLayout layout,
         VkPipelineStageFlags stages,
         VkAccessFlags access
     );
-    void TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
+    bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
     void AddBarrierToRenderPass(int& visitIndex);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();

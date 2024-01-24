@@ -8,7 +8,7 @@
 namespace Gfx::VK::RenderGraph
 {
 
-void Graph::TrackResource(
+bool Graph::TrackResource(
     VKImage* writableResource,
     Gfx::ImageSubresourceRange range,
     VkImageLayout layout,
@@ -20,7 +20,21 @@ void Graph::TrackResource(
 
     if (iter != resourceUsageTracks.end())
     {
-        iter->second.currentFrameUsages.push_back({stages, access, range, layout});
+        ResourceUsage usage{stages, access, range, layout};
+        if (iter->second.currentFrameUsages.empty())
+        {
+            iter->second.currentFrameUsages.push_back(usage);
+            return true;
+        }
+        else
+        {
+            auto& lastUsage = iter->second.currentFrameUsages.back();
+            if (usage != lastUsage)
+            {
+                iter->second.currentFrameUsages.push_back(usage);
+                return true;
+            }
+        }
     }
     else
     {
@@ -30,18 +44,40 @@ void Graph::TrackResource(
         track.currentFrameUsages.push_back({stages, access, range, layout});
 
         resourceUsageTracks[writableResource] = track;
+        return true;
     }
+
+    return false;
 }
 
-void Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
+bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
 {
     auto iter = resourceUsageTracks.find(writableResource);
 
     if (iter != resourceUsageTracks.end())
     {
-        iter->second.currentFrameUsages.push_back(
-            {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
-        );
+        ResourceUsage usage{stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED};
+        if (iter->second.currentFrameUsages.empty())
+        {
+            iter->second.currentFrameUsages.push_back(
+                {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+            );
+
+            return true;
+        }
+        else
+        {
+            auto& lastUsage = iter->second.currentFrameUsages.back();
+
+            if (usage != lastUsage)
+            {
+                iter->second.currentFrameUsages.push_back(
+                    {stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED}
+                );
+
+                return true;
+            }
+        }
     }
     else
     {
@@ -51,7 +87,10 @@ void Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
         track.currentFrameUsages.push_back({stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED});
 
         resourceUsageTracks[writableResource] = track;
+        return true;
     }
+
+    return false;
 }
 
 void Graph::AddBarrierToRenderPass(int& visitIndex)
@@ -63,7 +102,8 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
     int barrierCount = 0;
 
     // handle case like shadow map being binded to global descriptor set but also set to render pass attachment
-    std::vector<VKImage*> shaderImageSampleIgnoreList(8);
+    std::vector<VKImage*> shaderImageSampleIgnoreList;
+    shaderImageSampleIgnoreList.reserve(8);
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
     // and AddSubpass(0)
@@ -88,15 +128,17 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
             if (c.storeOp == AttachmentStoreOperation::Store)
                 flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-            TrackResource(
-                static_cast<VKImage*>(image),
-                imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                flags
-            );
+            if (TrackResource(
+                    static_cast<VKImage*>(image),
+                    imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                    flags
+                ))
+            {
+                barrierCount += MakeBarrierForLastUsage(image);
+            }
 
-            barrierCount += MakeBarrierForLastUsage(image);
             shaderImageSampleIgnoreList.push_back(image);
         }
 
@@ -111,17 +153,20 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
             if (s.depth->storeOp == AttachmentStoreOperation::Store)
                 flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-            TrackResource(
-                static_cast<VKImage*>(image),
-                imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                flags
-            );
-            barrierCount += MakeBarrierForLastUsage(image);
+            if (TrackResource(
+                    static_cast<VKImage*>(image),
+                    imageView ? imageView->GetSubresourceRange() : image->GetSubresourceRange(),
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                    flags
+                ))
+            {
+                barrierCount += MakeBarrierForLastUsage(image);
+            }
             shaderImageSampleIgnoreList.push_back(image);
         }
     }
+
     // proceed to End Render Pass, make necessary barriers
     for (;;)
     {
@@ -170,21 +215,26 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                                 continue;
                             }
 
-                            TrackResource(
-                                (VKImage*)w.data,
-                                w.imageView ? w.imageView->GetSubresourceRange()
-                                            : static_cast<VKImage*>(w.data)->GetSubresourceRange(),
-                                w.layout,
-                                w.stages,
-                                w.access
-                            );
+                            if (TrackResource(
+                                    (VKImage*)w.data,
+                                    w.imageView ? w.imageView->GetSubresourceRange()
+                                                : static_cast<VKImage*>(w.data)->GetSubresourceRange(),
+                                    w.layout,
+                                    w.stages,
+                                    w.access
+                                ))
+                            {
+                                barrierCount += MakeBarrierForLastUsage(w.data);
+                            }
                         }
                         else
                         {
-                            TrackResource((VKBuffer*)w.data, w.stages, w.access);
-                        }
+                            if (TrackResource((VKBuffer*)w.data, w.stages, w.access))
+                            {
 
-                        barrierCount += MakeBarrierForLastUsage(w.data);
+                                barrierCount += MakeBarrierForLastUsage(w.data);
+                            }
+                        }
                     }
                 }
             }
@@ -215,7 +265,6 @@ int Graph::MakeBarrierForLastUsage(void* res)
     if (iter->second.type == ResourceType::Image)
     {
         VKImage* image = (VKImage*)iter->second.res;
-
         // TODO: optimize heap allocation
         std::vector<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
         std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
@@ -310,7 +359,8 @@ int Graph::MakeBarrierForLastUsage(void* res)
                 break;
         }
 
-        if (usageIndex == 0)
+        // handle the first frame when the image layout is undefined
+        if (usageIndex == 0 && barrierCount == 0)
         {
             Barrier barrier;
             barrier.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -397,6 +447,8 @@ int Graph::MakeBarrierForLastUsage(void* res)
                 barrier.barrierCount = 1;
                 barrier.bufferMemoryBarrierIndex = bufferMemoryBarriers.size();
                 bufferMemoryBarriers.push_back(bufferBarrier);
+                barriers.push_back(barrier);
+                barrierCount += 1;
             }
         }
     }
@@ -421,15 +473,14 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
                 auto image = static_cast<VKImage*>(&vkImageView->GetImage());
                 if (image->IsGPUWrite())
                 {
-                    TrackResource(
-                        image,
-                        vkImageView->GetSubresourceRange(),
-                        layout,
-                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
-                        VK_ACCESS_2_MEMORY_READ_BIT
-                    );
-
-                    if (addBarrier)
+                    if (TrackResource(
+                            image,
+                            vkImageView->GetSubresourceRange(),
+                            layout,
+                            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT,
+                            VK_ACCESS_2_MEMORY_READ_BIT
+                        ) &&
+                        addBarrier)
                     {
                         barrierCount += MakeBarrierForLastUsage(image);
                     }
@@ -464,11 +515,11 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            TrackResource(cmd.copyBuffer.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-            barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.src);
+            if (TrackResource(cmd.copyBuffer.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+                barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.src);
 
-            TrackResource(cmd.copyBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-            barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.dst);
+            if (TrackResource(cmd.copyBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.dst);
 
             cmd.copyBuffer.barrierOffset = barrierOffset;
             cmd.copyBuffer.barrierCount = barrierCount;
@@ -485,14 +536,14 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
                 .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
             };
 
-            TrackResource(
-                cmd.blit.from,
-                srcRange,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_ACCESS_TRANSFER_READ_BIT
-            );
-            barrierCount += MakeBarrierForLastUsage(cmd.blit.from);
+            if (TrackResource(
+                    cmd.blit.from,
+                    srcRange,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT
+                ))
+                barrierCount += MakeBarrierForLastUsage(cmd.blit.from);
 
             Gfx::ImageSubresourceRange dstRange{
                 .aspectMask = Gfx::MapVKImageAspect(cmd.blit.to->GetDefaultSubresourceRange().aspectMask),
@@ -502,14 +553,14 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
                 .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
             };
 
-            TrackResource(
-                cmd.blit.from,
-                dstRange,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_ACCESS_TRANSFER_WRITE_BIT
-            );
-            barrierCount += MakeBarrierForLastUsage(cmd.blit.to);
+            if (TrackResource(
+                    cmd.blit.from,
+                    dstRange,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT
+                ))
+                barrierCount += MakeBarrierForLastUsage(cmd.blit.to);
 
             cmd.blit.barrierOffset = barrierOffset;
             cmd.blit.barrierCount = barrierCount;
@@ -518,8 +569,8 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            TrackResource(cmd.copyBufferToImage.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-            barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.src);
+            if (TrackResource(cmd.copyBufferToImage.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+                barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.src);
 
             for (int i = 0; i < cmd.copyBufferToImage.regionCount; ++i)
             {
@@ -532,14 +583,14 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
                     .layerCount = subresource.layerCount,
                 };
 
-                TrackResource(
-                    cmd.copyBufferToImage.dst,
-                    range,
-                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_ACCESS_TRANSFER_WRITE_BIT
-                );
-                barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.dst);
+                if (TrackResource(
+                        cmd.copyBufferToImage.dst,
+                        range,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT
+                    ))
+                    barrierCount += MakeBarrierForLastUsage(cmd.copyBufferToImage.dst);
             }
 
             cmd.copyBufferToImage.barrierOffset = barrierOffset;
@@ -559,14 +610,17 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
                 .layerCount = 1,
             };
             size_t barrierOffset = barriers.size();
-            TrackResource(
-                cmd.present.image,
-                range,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                VK_ACCESS_NONE
-            );
-            size_t barrierCount = MakeBarrierForLastUsage(cmd.present.image);
+            size_t barrierCount = 0;
+            if (TrackResource(
+                    cmd.present.image,
+                    range,
+                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    VK_ACCESS_NONE
+                ))
+            {
+                barrierCount += MakeBarrierForLastUsage(cmd.present.image);
+            }
             cmd.present.barrierOffset = barrierOffset;
             cmd.present.barrierCount = barrierCount;
         }
@@ -992,7 +1046,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index)
 
 void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
 {
-    auto& barrier = barriers[index];
+    Barrier& barrier = barriers[index];
     if (barrier.bufferMemoryBarrierIndex != -1)
     {
         vkCmdPipelineBarrier(
