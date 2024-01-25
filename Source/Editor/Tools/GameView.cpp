@@ -213,6 +213,22 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     {
         auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
+
+        Gfx::ImageDescription desc{
+            .width = sceneImage->GetDescription().width,
+            .height = sceneImage->GetDescription().height,
+            .format = sceneImage->GetDescription().format,
+            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
+            .mipLevels = 1,
+            .isCubemap = false};
+        cmd.AllocateAttachmentRT(outlineRT, desc);
+
+        outlinePass.SetAttachment(0, outlineRT);
+        Gfx::ClearValue clears[] = {{0.f, 0.f, 0.f, 0.f}};
+        cmd.BeginRenderPass(outlinePass, clears);
+
+        cmd.SetTexture(Gfx::ResourceHandle(""), );
+        cmd.EndRenderPass();
     }
 }
 

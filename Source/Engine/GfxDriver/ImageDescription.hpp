@@ -11,7 +11,6 @@ struct ImageDescription
     Gfx::ImageFormat format;
     Gfx::MultiSampling multiSampling;
     uint32_t mipLevels;
-
     bool isCubemap;
 
     uint32_t GetLayer() const

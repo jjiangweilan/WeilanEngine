@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxEnums.hpp"
 
 #include <cinttypes>
+#include <glm/glm.hpp>
 #include <optional>
 #include <vector>
 
@@ -20,6 +21,20 @@ struct ClearDepthStencilValue
 
 union ClearValue
 {
+    ClearValue() : color({.float32 = {0, 0, 0, 0}}) {}
+    ClearValue(float x, float y, float z, float w) : color(ClearColorValue{.float32 = {x, y, z, w}}){};
+    ClearValue(int32_t x, int32_t y, int32_t z, int32_t w) : color(ClearColorValue{.int32 = {x, y, z, w}}){};
+    ClearValue(uint32_t x, uint32_t y, uint32_t z, uint32_t w) : color(ClearColorValue{.uint32 = {x, y, z, w}}){};
+    ClearValue(const glm::vec4& v) : color(ClearColorValue{.float32 = {v.x, v.y, v.z, v.w}}){};
+    ClearValue(const glm::ivec4& v) : color(ClearColorValue{.int32 = {v.x, v.y, v.z, v.w}}){};
+    ClearValue(const glm::uvec4& v) : color(ClearColorValue{.uint32 = {v.x, v.y, v.z, v.w}}){};
+    ClearValue& operator=(const glm::vec4& v)
+    {
+        color = {.float32 = {v.x, v.y, v.z, v.w}};
+        return *this;
+    }
+    ClearValue(float depth, uint32_t stencil = 0) : depthStencil({depth, stencil}){};
+
     ClearColorValue color;
     ClearDepthStencilValue depthStencil;
 };

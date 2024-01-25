@@ -156,10 +156,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     std::string bufferName =
                                         fmt::format("Default Buffer for {}", shaderProgram->GetName());
                                     Buffer::CreateInfo createInfo{
-                                        .usages =
-                                            (b->type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
+                                        .usages = (b->type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
                                                                                            : BufferUsage::Storage) |
-                                            BufferUsage::Transfer_Dst,
+                                                  BufferUsage::Transfer_Dst,
                                         .size = b->binding.ubo.data.size,
                                         .visibleInCPU = false,
                                         .debugName = bufferName.c_str()};
@@ -184,8 +183,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
-                                            (b->type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT
-                                                                                            : 0)
+                                            (b->type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT : 0)
                                         ),
                                     };
 

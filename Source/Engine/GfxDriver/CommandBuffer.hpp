@@ -5,6 +5,7 @@
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
+#include "RenderGraph.hpp"
 #include "RenderPass.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"
@@ -13,6 +14,7 @@
 #include <span>
 namespace Gfx
 {
+
 enum class CommandBufferType
 {
     Primary,
@@ -119,5 +121,8 @@ public:
     virtual void Begin() = 0;
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
+
+    virtual void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc);
+    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues);
 };
 } // namespace Gfx

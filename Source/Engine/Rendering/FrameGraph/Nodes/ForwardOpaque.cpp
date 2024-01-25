@@ -62,6 +62,7 @@ public:
                 {.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1}
             );
             Rect2D rect = {{0, 0}, {width, height}};
+            clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
                 {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
             clearValues[1].depthStencil = {1};
