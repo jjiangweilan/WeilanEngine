@@ -25,7 +25,7 @@ public:
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
         auto vsmID = shadowmapShader->GetFeaturesID({"G_VSM"});
         boxFilterShader = GetConfigurableVal<Shader*>("two pass filter shader");
-        std::vector<Gfx::ClearValue> vsmClears = {{.color = {{1, 1, 1, 1}}}, {.depthStencil = {1}}};
+        std::vector<Gfx::ClearValue> vsmClears = {{1, 1, 1, 1}, {1.0f, 0}};
 
         vsmPass = graph.AddNode2(
             {},
@@ -84,7 +84,7 @@ public:
             }
         );
 
-        std::vector<Gfx::ClearValue> boxFilterClears = {{.color = {{1, 1, 1, 1}}}};
+        std::vector<Gfx::ClearValue> boxFilterClears = {{1, 1, 1, 1}};
         vsmBoxFilterPass0 = graph.AddNode2(
             {
                 RenderGraph::PassDependency{

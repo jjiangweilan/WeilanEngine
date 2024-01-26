@@ -23,7 +23,7 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
-        std::vector<Gfx::ClearValue> shadowMapClears = {{.depthStencil = {1}}};
+        std::vector<Gfx::ClearValue> shadowMapClears = { {1.0f, 0} };
 
         shadowMapPass = graph.AddNode2(
             {},

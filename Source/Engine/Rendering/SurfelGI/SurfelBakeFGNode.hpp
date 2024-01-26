@@ -28,25 +28,10 @@ public:
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         std::vector<Gfx::ClearValue> clearValues = {
-            Gfx::ClearValue{
-                .color =
-                    {
-                        {0, 0, 0, 0},
-                    },
-            },
-            Gfx::ClearValue{
-                .color =
-                    {
-                        {0, 0, 0, 0},
-                    },
-            },
-            Gfx::ClearValue{
-                .color =
-                    {
-                        {0, 0, 0, 0},
-                    },
-            },
-            Gfx::ClearValue{.depthStencil = {1, 0}},
+            Gfx::ClearValue{ 0, 0, 0, 0 },
+            Gfx::ClearValue{ 0, 0, 0, 0 },
+            Gfx::ClearValue{ 0, 0, 0, 0 },
+            Gfx::ClearValue{1, 0},
         };
 
         RenderGraph::RenderPass::ImageView v{

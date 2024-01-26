@@ -8,6 +8,7 @@ namespace Gfx::RG
 class ResourceHandle
 {
 public:
+    ResourceHandle() : hash(0){}
     ResourceHandle(std::string_view name) : hash(XXH64((void*)name.data(), name.size(), 0)) {}
 
 private:

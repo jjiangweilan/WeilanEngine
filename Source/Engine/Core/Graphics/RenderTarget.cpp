@@ -2,7 +2,7 @@
 
 RenderTargetAttachmentDescription::RenderTargetAttachmentDescription()
     : format(Gfx::ImageFormat::R16G16B16A16_SFloat), multiSampling(Gfx::MultiSampling::Sample_Count_1), mipLevels(1),
-      clearValue{{0, 0, 0, 0}}
+      clearValue{0, 0, 0, 0}
 {}
 
 RenderTarget::RenderTarget() {}
