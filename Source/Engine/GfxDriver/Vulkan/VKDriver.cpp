@@ -106,11 +106,12 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
 
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].imageAcquireSemaphore);
-        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
+        vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presendSemaphore);
     }
     immediateCmd = cmds[driverConfig.swapchainImageCount];
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
     vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &transferSignalSemaphore);
+    vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &dataUploaderWaitSemaphore);
 
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
@@ -134,9 +135,10 @@ VKDriver::~VKDriver()
     {
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
-        vkDestroySemaphore(device.handle, inflight.presentSemaphore, VK_NULL_HANDLE);
+        vkDestroySemaphore(device.handle, inflight.presendSemaphore, VK_NULL_HANDLE);
     }
     vkDestroySemaphore(device.handle, transferSignalSemaphore, VK_NULL_HANDLE);
+    vkDestroySemaphore(device.handle, dataUploaderWaitSemaphore, VK_NULL_HANDLE);
     vkDestroyFence(device.handle, immediateCmdFence, VK_NULL_HANDLE);
 
     SamplerCachePool::DestroyPool();
@@ -504,14 +506,7 @@ bool VKDriver::BeginFrame()
 
 bool VKDriver::EndFrame()
 {
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
-
-    dataUploader->UploadAllPending(transferSignalSemaphore);
-
-    // record scheduled commands
-    auto cmd = inflightData[currentInflightIndex].cmd;
-
+    // scheduling has to happen before dataUploader because the delayed function call `f(cmd2);` may contain data uploading
     VKCommandBuffer2 cmd2;
     for (auto& f : pendingCommands)
     {
@@ -520,6 +515,16 @@ bool VKDriver::EndFrame()
     cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
     renderGraph.Schedule(cmd2);
 
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+
+    dataUploader
+        ->UploadAllPending(transferSignalSemaphore, firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+    firstFrame = false;
+
+    // record scheduled commands
+    auto cmd = inflightData[currentInflightIndex].cmd;
+    
     vkResetCommandBuffer(cmd, 0);
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -535,17 +540,18 @@ bool VKDriver::EndFrame()
 
     VkPipelineStageFlags waitFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
+    VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.waitSemaphoreCount = 2;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitFlags;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &inflightData[currentInflightIndex].presentSemaphore;
+    submitInfo.signalSemaphoreCount = 2;
+    submitInfo.pSignalSemaphores = signalSemaphores;
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
 
-    VkSemaphore presentSemaphore = inflightData[currentInflightIndex].presentSemaphore;
+    VkSemaphore presentSemaphore = inflightData[currentInflightIndex].presendSemaphore;
     VkSwapchainKHR swapChainHandle = swapchain.handle;
     VkPresentInfoKHR presentInfo = {
         VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -555,7 +561,8 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     FrameEndClear();
 
@@ -567,6 +574,10 @@ bool VKDriver::EndFrame()
         Swapchain_GetImagesFromVulkan();
         return true;
     }
+
+    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers execution shares the same staing buffer
+    // the staging buffer can be overriden by next frame CPU logics before GPU uploads it
+    dataUploader->WaitForUploadFinish();
 
     return false;
 }
@@ -682,8 +693,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -967,7 +979,8 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain};
+        oldSwapChain
+    };
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1035,7 +1048,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

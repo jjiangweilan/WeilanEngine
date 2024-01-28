@@ -1,7 +1,6 @@
 #include "VKDataUploader.hpp"
 #include "../VKBuffer.hpp"
 #include "../VKDriver.hpp"
-#include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx
@@ -42,7 +41,7 @@ void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, siz
 
     if (offset + size > stagingBufferSize)
     {
-        UploadAllPending(VK_NULL_HANDLE);
+        UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
     }
 
@@ -68,7 +67,7 @@ void VKDataUploader::UploadImage(
 
     if (offset + size + align > stagingBufferSize)
     {
-        UploadAllPending(VK_NULL_HANDLE);
+        UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
     }
 
@@ -82,12 +81,20 @@ void VKDataUploader::UploadImage(
         size,
         mipLevel,
         arayLayer,
-        aspect});
+        aspect
+    });
 
     offset += align + size;
 }
 
-void VKDataUploader::UploadAllPending(VkSemaphore signalSemaphore)
+void VKDataUploader::WaitForUploadFinish()
+{
+    vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
+}
+
+void VKDataUploader::UploadAllPending(
+    VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages
+)
 {
     vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
     vkResetFences(driver->device.handle, 1, &fence);
@@ -209,13 +216,14 @@ void VKDataUploader::UploadAllPending(VkSemaphore signalSemaphore)
     offset = 0;
 
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-    submitInfo.pWaitDstStageMask = VK_NULL_HANDLE;
+    submitInfo.waitSemaphoreCount = waitSemaphore == VK_NULL_HANDLE ? 0 : 1;
+    submitInfo.pWaitSemaphores = &waitSemaphore;
+    submitInfo.pWaitDstStageMask = &waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
     submitInfo.signalSemaphoreCount = signalSemaphore == VK_NULL_HANDLE ? 0 : 1;
     submitInfo.pSignalSemaphores = &signalSemaphore;
     vkQueueSubmit(driver->mainQueue.handle, 1, &submitInfo, fence);
+
 }
 } // namespace Gfx

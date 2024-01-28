@@ -55,6 +55,9 @@ public:
     void End() override;
     void Reset(bool releaseResource) override;
 
+    void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
+    void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
+
     VkCommandBuffer GetHandle() const
     {
         return vkCmdBuf;

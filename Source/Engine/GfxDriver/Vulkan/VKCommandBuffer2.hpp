@@ -276,6 +276,9 @@ public:
     void Begin() override {}
     void End() override {}
 
+    void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
+    void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
+
     void PresentImage(VKImage* image);
 
     void Reset(bool releaseResource) override

@@ -169,7 +169,7 @@ public:
         VkCommandBuffer cmd = VK_NULL_HANDLE;
         VkFence cmdFence = VK_NULL_HANDLE;
         VkSemaphore imageAcquireSemaphore;
-        VkSemaphore presentSemaphore;
+        VkSemaphore presendSemaphore;
         uint32_t swapchainIndex;
     };
     std::vector<InflightData> inflightData = {};
@@ -178,6 +178,8 @@ public:
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
     VkSemaphore transferSignalSemaphore;
+    VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
+    bool firstFrame = true;
     VK::RenderGraph::Graph renderGraph;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;

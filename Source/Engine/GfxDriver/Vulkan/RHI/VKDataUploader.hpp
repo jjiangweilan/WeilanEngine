@@ -18,8 +18,8 @@ public:
     void UploadImage(
         VKImage* dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, VkImageAspectFlags aspect
     );
-    void UploadAllPending(VkSemaphore signalSemaphore);
-
+    void UploadAllPending(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages);
+    void WaitForUploadFinish();
 private:
     struct PendingBufferUpload
     {

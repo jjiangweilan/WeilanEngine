@@ -122,7 +122,7 @@ public:
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
 
-    virtual void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc);
-    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues);
+    virtual void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) = 0;
+    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 };
 } // namespace Gfx
