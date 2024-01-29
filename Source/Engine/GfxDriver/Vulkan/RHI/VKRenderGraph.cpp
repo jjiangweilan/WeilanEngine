@@ -1,7 +1,9 @@
 #include "VKRenderGraph.hpp"
 #include "../VKBuffer.hpp"
+#include "../VKDriver.hpp"
 #include "../VKExtensionFunc.hpp"
 #include "../VKShaderProgram.hpp"
+#include "../VKShaderResource.hpp"
 #include "../VKUtils.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 
@@ -181,7 +183,12 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
-            recordState.bindProgramIndex = visitIndex;
+            if (cmd.bindShaderProgram.program != recordState.bindedProgram)
+            {
+                recordState.bindedProgram = cmd.bindShaderProgram.program;
+                recordState.bindedSetUpdateNeeded[0] = true;
+                recordState.bindProgramIndex = visitIndex;
+            }
         }
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed)
         {
@@ -194,8 +201,9 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                     auto bindProgramIndex = recordState.bindProgramIndex;
                     auto program = currentSchedulingCmds[bindProgramIndex].bindShaderProgram.program;
                     auto& bindSetCmd = currentSchedulingCmds[bindSetCmdIndex].bindResource;
-                    auto resource = bindSetCmd.resource;
-                    auto& writableResources = resource->GetWritableResources(bindSetCmd.set, program);
+                    uint32_t updateSet = i != 0 ? bindSetCmd.set : 0;
+                    VKShaderResource* resource = i != 0 ? bindSetCmd.resource : globalResource.get();
+                    auto& writableResources = resource->GetWritableResources(updateSet, program);
                     for (auto& w : writableResources)
                     {
                         ResourceType type = ResourceType::Image;
@@ -509,7 +517,12 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
-            recordState.bindProgramIndex = visitIndex;
+            if (cmd.bindShaderProgram.program != recordState.bindedProgram)
+            {
+                recordState.bindedProgram = cmd.bindShaderProgram.program;
+                recordState.bindedSetUpdateNeeded[0] = true;
+                recordState.bindProgramIndex = visitIndex;
+            }
         }
         else if (cmd.type == VKCmdType::CopyBuffer)
         {
@@ -707,7 +720,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -719,7 +733,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -970,6 +985,17 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     }
                     break;
                 }
+            case VKCmdType::SetTexture:
+                {
+                    globalResource->SetImage(cmd.setTexture.handle, cmd.setTexture.image);
+                    break;
+                }
+            case VKCmdType::SetUniformBuffer:
+                {
+                    globalResource->SetBuffer(cmd.setUniformBuffer.handle, cmd.setUniformBuffer.buffer);
+                    break;
+                }
+            case VKCmdType::None: break;
         }
     }
 
@@ -1092,5 +1118,9 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
             VK_NULL_HANDLE
         );
     }
+}
+Graph::Graph()
+{
+    globalResource = std::make_unique<VKShaderResource>();
 }
 } // namespace Gfx::VK::RenderGraph

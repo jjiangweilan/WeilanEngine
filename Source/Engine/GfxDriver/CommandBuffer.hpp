@@ -122,8 +122,16 @@ public:
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
 
-    virtual void SetTexture(RG::ResourceHandle name, Gfx::Image& image) = 0;
-    virtual void SetUniformBuffer(RG::ResourceHandle name, uint8_t* data, uint32_t size) = 0;
+    virtual void SetTexture(ResourceHandle name, Gfx::Image& image) = 0;
+    virtual void SetUniformBuffer(ResourceHandle name, Gfx::Buffer& buffer) = 0;
+    void SetTexture(std::string_view name, Gfx::Image& image)
+    {
+        SetTexture(ResourceHandle(name), image);
+    }
+    void SetUniformBuffer(std::string_view name, Gfx::Buffer& buffer)
+    {
+        SetUniformBuffer(ResourceHandle(name), buffer);
+    }
 
     virtual void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;

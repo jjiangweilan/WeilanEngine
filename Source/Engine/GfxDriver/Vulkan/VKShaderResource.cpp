@@ -1,5 +1,4 @@
 #include "VKShaderResource.hpp"
-#include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
@@ -7,7 +6,6 @@
 #include "VKDriver.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
-#include <algorithm>
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
@@ -43,28 +41,43 @@ void VKShaderResource::RebuildAll()
     }
 }
 
-void VKShaderResource::SetBuffer(const std::string& name, Gfx::Buffer* buffer)
+void VKShaderResource::SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer)
 {
-    bindings[name] = {buffer, ResourceType::Buffer};
-    RebuildAll();
+    auto old = bindings[handle].res;
+    if (old != buffer)
+    {
+        bindings[handle] = {buffer, ResourceType::Buffer};
+        RebuildAll();
+    }
 }
 
-void VKShaderResource::SetImage(const std::string& name, Gfx::Image* image)
+void VKShaderResource::SetImage(ResourceHandle handle, Gfx::Image* image)
 {
-    bindings[name] = {&image->GetDefaultImageView(), ResourceType::ImageView};
-    RebuildAll();
+    auto old = bindings[handle].res;
+    if (old != &image->GetDefaultImageView())
+    {
+        bindings[handle] = {&image->GetDefaultImageView(), ResourceType::ImageView};
+        RebuildAll();
+    }
 }
 
-void VKShaderResource::SetImage(const std::string& name, Gfx::ImageView* imageView)
+void VKShaderResource::SetImage(ResourceHandle handle, Gfx::ImageView* imageView)
 {
-    bindings[name] = {imageView, ResourceType::ImageView};
-    RebuildAll();
+    auto old = bindings[handle].res;
+    if (old != imageView)
+    {
+        bindings[handle] = {imageView, ResourceType::ImageView};
+        RebuildAll();
+    }
 }
 
-void VKShaderResource::SetImage(const std::string& name, nullptr_t)
+void VKShaderResource::SetImage(ResourceHandle handle, nullptr_t)
 {
-    bindings.erase(name);
-    RebuildAll();
+    if (bindings.contains(handle))
+    {
+        bindings.erase(handle);
+        RebuildAll();
+    }
 }
 
 VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram)
@@ -125,7 +138,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         auto iter = shaderInfo.descriptorSetBindingMap.find(set);
         if (iter != shaderInfo.descriptorSetBindingMap.end())
         {
-            assert(iter->second.bindings.size() < 64);
+            assert(iter->second.size() < 64);
 
             for (auto b : iter->second)
             {
@@ -140,7 +153,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                ResourceRef resRef = bindings[b->name];
+                ResourceRef resRef = bindings[ResourceHandle(b->name)];
 
                 switch (b->type)
                 {
@@ -161,7 +174,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                   BufferUsage::Transfer_Dst,
                                         .size = b->binding.ubo.data.size,
                                         .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()};
+                                        .debugName = bufferName.c_str()
+                                    };
                                     auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
@@ -252,7 +266,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     .stages = pipelineStages,
                                     .access = VK_ACCESS_SHADER_READ_BIT,
                                     .imageView = imageView,
-                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                };
 
                                 writableGPUResources->push_back(gpuResource);
                             }

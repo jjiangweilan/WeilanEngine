@@ -1,24 +1,11 @@
 #include "Image.hpp"
+#include "ResourceHandle.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <optional>
 #include <vector>
 
 namespace Gfx::RG
 {
-class ResourceHandle
-{
-public:
-    ResourceHandle() : hash(0) {}
-    ResourceHandle(std::string_view name) : hash(XXH64((void*)name.data(), name.size(), 0)) {}
-
-    uint64_t operator()() const
-    {
-        return hash;
-    }
-
-private:
-    uint64_t hash;
-};
 using AttachmentHandle = size_t;
 struct AttachmentIdentifier
 {

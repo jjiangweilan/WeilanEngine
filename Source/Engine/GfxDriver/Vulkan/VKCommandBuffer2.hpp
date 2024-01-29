@@ -2,12 +2,8 @@
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Internal/VKMemAllocator.hpp"
-#include "Internal/VKObjectManager.hpp"
+#include "Libs/LinearAllocator.hpp"
 #include "VKRenderPass.hpp"
-#include "VKRenderTarget.hpp"
-#include <functional>
-#include <unordered_map>
-#include <variant>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -86,15 +82,14 @@ struct VKBindIndexBufferCmd
 
 struct VKSetTextureCmd
 {
-    RG::ResourceHandle handle;
+    ResourceHandle handle;
     Gfx::Image* image;
 };
 
 struct VKSetUniformBufferCmd
 {
-    RG::ResourceHandle handle;
-    uint8_t* data;
-    uint32_t size;
+    ResourceHandle handle;
+    VKBuffer* buffer;
 };
 
 struct VKSetViewportCmd
@@ -218,6 +213,8 @@ enum class VKCmdType
     PushDescriptorSet,
     CopyBuffer,
     CopyBufferToImage,
+    SetUniformBuffer,
+    SetTexture,
     Present,
 };
 struct VKCmd
@@ -245,6 +242,9 @@ struct VKCmd
         VKPushDescriptorCmd pushDescriptor;
         VKCopyBufferCmd copyBuffer;
         VKCopyBufferToImageCmd copyBufferToImage;
+
+        VKSetTextureCmd setTexture;
+        VKSetUniformBufferCmd setUniformBuffer;
         VKPresentCmd present;
     };
 };
@@ -289,8 +289,8 @@ public:
     void Begin() override {}
     void End() override {}
 
-    void SetTexture(RG::ResourceHandle name, Gfx::Image& image) override;
-    void SetUniformBuffer(RG::ResourceHandle name, uint8_t* data, uint32_t size) override;
+    void SetTexture(ResourceHandle handle, Gfx::Image& image) override;
+    void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override;
 
     void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
@@ -310,10 +310,7 @@ public:
     }
 
 private:
-    // BlitCmd, BindResourceCmd, BindVertexBufferCmd, BindShaderProgramCmd, BindIndexBufferCmd, SetViewportCmd,
-    // CopyImageToBufferCmd, SetPushConstantCmd, SetScissorCmd, DispatchCmd, DispatchIndirCmd, NextRenderPassCmd,
-    // PushDescriptorSetCmd, CopyBufferCmd, CopyBufferToImageCmd, BeginCmd, EndCmd>;
     std::vector<VKCmd> cmds;
-    std::vector<std::byte> tempData;
+    LinearAllocator<32 * 1024> tempMemory;
 };
 } // namespace Gfx

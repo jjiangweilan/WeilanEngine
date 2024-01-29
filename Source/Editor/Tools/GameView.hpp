@@ -46,7 +46,7 @@ private:
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
     std::unique_ptr<RenderGraph::Graph> gameViewPostProcess;
-    Gfx::RG::ResourceHandle outlineRT;
+    Gfx::ResourceHandle outlineRT;
     Gfx::RG::RenderPass outlinePass = Gfx::RG::RenderPass::SingleColor();
 
     void CreateRenderData(uint32_t width, uint32_t height);

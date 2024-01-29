@@ -41,6 +41,7 @@ struct ResourceUsageTrack
 class Graph
 {
 public:
+    Graph();
     void Schedule(VKCommandBuffer2& cmd);
 
     void Execute(VkCommandBuffer cmd);
@@ -48,6 +49,7 @@ public:
 private:
     struct FlushBindResource
     {
+        VKShaderProgram* bindedProgram = nullptr;
         int bindProgramIndex;
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
@@ -80,6 +82,8 @@ private:
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
     std::vector<VkMemoryBarrier> memoryBarriers;
+
+    std::unique_ptr<VKShaderResource> globalResource;
 
     void CreateRenderPassNode(int visitIndex);
     bool TrackResource(

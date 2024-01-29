@@ -43,18 +43,21 @@ struct Barrier
     int imageMemorybarrierIndex = -1;
 };
 
-// actually a binding resource
+// TODO:
+// 1. improve when we should BuildAll
+// 2. descriptor set should be release when it's not used anymore
 class VKShaderResource : public ShaderResource
 {
     // ---------------------------- New API ----------------------------------
 public:
     VKShaderResource();
-    void SetBuffer(const std::string& name, Gfx::Buffer* buffer) override;
+    void SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer) override;
 
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
-    void SetImage(const std::string& name, Gfx::Image* image) override;
-    void SetImage(const std::string& name, Gfx::ImageView* imageView) override;
-    void SetImage(const std::string& name, nullptr_t) override;
+    void SetImage(ResourceHandle handle, Gfx::Image* image) override;
+    void SetImage(ResourceHandle handle, Gfx::ImageView* imageView) override;
+    void SetImage(ResourceHandle handle, nullptr_t) override;
+
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
     const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
 
@@ -74,7 +77,7 @@ protected:
         void* res = nullptr;
         ResourceType type;
     };
-    std::unordered_map<std::string, ResourceRef> bindings;
+    std::unordered_map<ResourceHandle, ResourceRef> bindings;
     VkPipelineLayout layout = VK_NULL_HANDLE;
 
     VKSharedResource* sharedResource;

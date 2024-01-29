@@ -116,7 +116,8 @@ void VKCommandBuffer2::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth};
+        .maxDepth = viewport.maxDepth
+    };
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
@@ -266,6 +267,23 @@ void VKCommandBuffer2::PresentImage(VKImage* image)
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer2::SetTexture(RG::ResourceHandle name, Gfx::Image& image) {}
-void VKCommandBuffer2::SetUniformBuffer(RG::ResourceHandle name, uint8_t* data, uint32_t size) {}
+void VKCommandBuffer2::SetTexture(ResourceHandle handle, Gfx::Image& image)
+{
+    VKCmd cmd{VKCmdType::SetTexture};
+
+    cmd.setTexture.handle = handle;
+    cmd.setTexture.image = &image;
+
+    cmds.push_back(cmd);
+}
+
+void VKCommandBuffer2::SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer)
+{
+    VKCmd cmd{VKCmdType::SetUniformBuffer};
+
+    cmd.setUniformBuffer.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.setUniformBuffer.handle = handle;
+
+    cmds.push_back(cmd);
+}
 } // namespace Gfx

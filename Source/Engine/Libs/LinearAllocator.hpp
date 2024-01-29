@@ -28,9 +28,12 @@ public:
     }
 
     template <class T>
-    T* Allocate()
+    T* Allocate(size_t count = 1)
     {
-        static_assert(chunkSize > sizeof(T));
+        size_t size = sizeof(T) * count;
+
+        if (size > chunkSize)
+            return nullptr;
 
         if (freeChunkIndex == chunks.size())
         {
@@ -38,17 +41,17 @@ public:
         }
 
         auto& chunk = chunks[freeChunkIndex];
-        if (T* result = (T*)std::align(alignof(T), sizeof(T), chunk.p, chunk.space))
+        if (T* result = (T*)std::align(alignof(T), size, chunk.p, chunk.space))
         {
-            chunk.p = (uint8_t*)chunk.p + sizeof(T);
-            chunk.space = chunk.space - sizeof(T);
+            chunk.p = (uint8_t*)chunk.p + size;
+            chunk.space = chunk.space - size;
 
             return result;
         }
         else
         {
             freeChunkIndex += 1;
-            return Allocate<T>();
+            return Allocate<T>(count);
         }
 
         return nullptr;
