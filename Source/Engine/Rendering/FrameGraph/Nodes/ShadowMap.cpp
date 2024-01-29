@@ -23,7 +23,7 @@ public:
     {
         glm::vec2 shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
         Shader* shadowmapShader = GetConfigurableVal<Shader*>("shadow map shader");
-        std::vector<Gfx::ClearValue> shadowMapClears = { {1.0f, 0} };
+        std::vector<Gfx::ClearValue> shadowMapClears = {{1.0f, 0}};
 
         shadowMapPass = graph.AddNode2(
             {},
@@ -64,6 +64,9 @@ public:
                 }
 
                 cmd.EndRenderPass();
+
+                Gfx::Image* shadowImage = (Gfx::Image*)shadowMapPass->GetPass()->GetResourceRef(2)->GetResource();
+                cmd.SetTexture("shadowMap", *shadowImage);
             }
         );
 
@@ -71,12 +74,6 @@ public:
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["shadow map"], shadowMapPass, 2),
         };
     };
-
-    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
-    {
-        Gfx::Image* shadowImage = (Gfx::Image*)shadowMapPass->GetPass()->GetResourceRef(2)->GetResource();
-        sceneShaderResource.SetImage("shadowMap", shadowImage);
-    }
 
     bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {

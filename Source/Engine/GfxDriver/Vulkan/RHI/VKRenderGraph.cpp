@@ -637,6 +637,14 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
             cmd.present.barrierOffset = barrierOffset;
             cmd.present.barrierCount = barrierCount;
         }
+        else if (cmd.type == VKCmdType::SetTexture)
+        {
+            globalResource->SetImage(cmd.setTexture.handle, cmd.setTexture.image);
+        }
+        else if (cmd.type == VKCmdType::SetUniformBuffer)
+        {
+            globalResource->SetBuffer(cmd.setUniformBuffer.handle, cmd.setUniformBuffer.buffer);
+        }
     }
 }
 
@@ -792,6 +800,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 {
                     exeState.lastBindedShader = cmd.bindShaderProgram.program;
                     exeState.shaderConfig = cmd.bindShaderProgram.config;
+                    exeState.setResources[0].needUpdate = true;
                     break;
                 }
             case VKCmdType::BindIndexBuffer:
@@ -985,16 +994,6 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     }
                     break;
                 }
-            case VKCmdType::SetTexture:
-                {
-                    globalResource->SetImage(cmd.setTexture.handle, cmd.setTexture.image);
-                    break;
-                }
-            case VKCmdType::SetUniformBuffer:
-                {
-                    globalResource->SetBuffer(cmd.setUniformBuffer.handle, cmd.setUniformBuffer.buffer);
-                    break;
-                }
             case VKCmdType::None: break;
         }
     }
@@ -1007,6 +1006,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
         r.second.currentFrameUsages.clear();
     }
     exeState = ExecutionState();
+    exeState.setResources[0].resource = globalResource.get();
     recordState = FlushBindResource();
 
     imageMemoryBarriers.clear();
@@ -1122,5 +1122,6 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
 Graph::Graph()
 {
     globalResource = std::make_unique<VKShaderResource>();
+    exeState.setResources[0].resource = globalResource.get();
 }
 } // namespace Gfx::VK::RenderGraph

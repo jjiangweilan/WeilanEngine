@@ -116,12 +116,14 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
+    renderGraph = std::make_unique<VK::RenderGraph::Graph>();
 }
 
 VKDriver::~VKDriver()
 {
     vkDeviceWaitIdle(device.handle);
 
+    renderGraph = nullptr;
     swapchainImage = nullptr;
     sharedResource = nullptr;
 
@@ -506,25 +508,29 @@ bool VKDriver::BeginFrame()
 
 bool VKDriver::EndFrame()
 {
-    // scheduling has to happen before dataUploader because the delayed function call `f(cmd2);` may contain data uploading
+    // scheduling has to happen before dataUploader because the delayed function call `f(cmd2);` may contain data
+    // uploading
     VKCommandBuffer2 cmd2;
     for (auto& f : pendingCommands)
     {
         f(cmd2);
     }
     cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
-    renderGraph.Schedule(cmd2);
+    renderGraph->Schedule(cmd2);
 
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
 
-    dataUploader
-        ->UploadAllPending(transferSignalSemaphore, firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+    dataUploader->UploadAllPending(
+        transferSignalSemaphore,
+        firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+    );
     firstFrame = false;
 
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
-    
+
     vkResetCommandBuffer(cmd, 0);
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -534,7 +540,7 @@ bool VKDriver::EndFrame()
     {
         f(cmd);
     }
-    renderGraph.Execute(cmd);
+    renderGraph->Execute(cmd);
 
     vkEndCommandBuffer(cmd);
 
@@ -575,8 +581,9 @@ bool VKDriver::EndFrame()
         return true;
     }
 
-    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers execution shares the same staing buffer
-    // the staging buffer can be overriden by next frame CPU logics before GPU uploads it
+    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers
+    // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
+    // uploads it
     dataUploader->WaitForUploadFinish();
 
     return false;

@@ -35,7 +35,8 @@ public:
                 Gfx::BufferUsage::Storage | Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Transfer_Src,
                 giSceneSize,
                 false,
-                "GI Scene"};
+                "GI Scene"
+            };
             buf = GetGfxDriver()->CreateBuffer(createInfo);
             createInfo.visibleInCPU = true;
             auto staging = GetGfxDriver()->CreateBuffer(createInfo);
@@ -76,7 +77,8 @@ public:
 
         return {
             Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["color"], node, 0),
-            Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["depth"], node, 1)};
+            Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["depth"], node, 1)
+        };
     }
 
     bool Build(RenderGraph::Graph& graph, Resources& resources) override
@@ -94,8 +96,6 @@ public:
             return false;
         return true;
     };
-
-    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override{};
 
     void Execute(RenderingData& renderingData) override {}
 

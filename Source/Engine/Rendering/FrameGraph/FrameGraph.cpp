@@ -207,19 +207,13 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     renderingData.mainCamera = camera;
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
+
+    cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
-    if (diffuseCube && diffuseCube != this->diffuseCube)
-    {
-        this->diffuseCube = diffuseCube;
-        sceneShaderResource->SetImage("diffuseCube", diffuseCube->GetGfxImage());
-    }
+    cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
 
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
-    if (specularCube && specularCube != this->specularCube)
-    {
-        this->specularCube = specularCube;
-        sceneShaderResource->SetImage("specularCube", specularCube->GetGfxImage());
-    }
+    cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
@@ -250,7 +244,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
     cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
 
-    cmd.BindResource(0, sceneShaderResource.get());
     graph->Execute(cmd);
 }
 
@@ -258,7 +251,6 @@ bool Graph::Compile()
 {
     GetGfxDriver()->WaitForIdle();
 
-    sceneShaderResource = Gfx::GfxDriver::Instance()->CreateShaderResource();
     stagingBuffer = GetGfxDriver()->CreateBuffer({
         .usages = Gfx::BufferUsage::Transfer_Src,
         .size = 1024 * 1024, // 1 MB
@@ -272,7 +264,6 @@ bool Graph::Compile()
          .debugName = "Scene Info Buffer",
          .gpuWrite = true}
     );
-    sceneShaderResource->SetBuffer("SceneInfo", sceneGlobalBuffer.get());
 
     graph = std::make_unique<RenderGraph::Graph>();
 
@@ -313,7 +304,7 @@ bool Graph::Compile()
 
     for (auto& n : nodes)
     {
-        n->ProcessSceneShaderResource(*sceneShaderResource);
+        n->ProcessSceneShaderResource();
     }
 
     for (auto& n : nodes)

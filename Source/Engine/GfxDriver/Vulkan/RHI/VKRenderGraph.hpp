@@ -1,6 +1,10 @@
 #pragma once
 #include "../VKCommandBuffer2.hpp"
 
+namespace
+{
+class VKDriver;
+}
 namespace Gfx::VK::RenderGraph
 {
 struct RenderPassNode

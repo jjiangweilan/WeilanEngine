@@ -64,9 +64,9 @@ public:
             Rect2D rect = {{0, 0}, {width, height}};
             clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
-                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
+            };
             clearValues[1].depthStencil = {1};
-            cmd.BindResource(0, sceneShaderResource);
 
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, clearValues);
@@ -87,7 +87,8 @@ public:
                 cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
                 auto& cubeSubmesh = cube->GetSubmeshes()[0];
                 Gfx::VertexBufferBinding bindins[] = {
-                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
+                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
+                };
                 cmd.BindVertexBuffer(bindins, 0);
                 cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
                 cmd.BindResource(2, skyboxResources.get());
@@ -119,7 +120,8 @@ public:
                 outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
-            )};
+            )
+        };
     }
 
     bool Build(RenderGraph::Graph& graph, Resources& resources) override
@@ -144,17 +146,11 @@ public:
         return true;
     };
 
-    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
-    {
-        this->sceneShaderResource = &sceneShaderResource;
-    };
-
     void Execute(RenderingData& renderingData) override {}
 
 private:
     RenderGraph::RenderNode* forwardNode;
     const DrawList* drawList;
-    Gfx::ShaderResource* sceneShaderResource;
     std::vector<Gfx::ClearValue> clearValues;
 
     Mesh* cube;

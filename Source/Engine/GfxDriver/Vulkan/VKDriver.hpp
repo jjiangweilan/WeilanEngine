@@ -180,7 +180,7 @@ public:
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
-    VK::RenderGraph::Graph renderGraph;
+    std::unique_ptr<VK::RenderGraph::Graph> renderGraph;
 
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;

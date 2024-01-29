@@ -28,21 +28,21 @@ public:
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
         std::vector<Gfx::ClearValue> clearValues = {
-            Gfx::ClearValue{ 0, 0, 0, 0 },
-            Gfx::ClearValue{ 0, 0, 0, 0 },
-            Gfx::ClearValue{ 0, 0, 0, 0 },
+            Gfx::ClearValue{0, 0, 0, 0},
+            Gfx::ClearValue{0, 0, 0, 0},
+            Gfx::ClearValue{0, 0, 0, 0},
             Gfx::ClearValue{1, 0},
         };
 
-        RenderGraph::RenderPass::ImageView v{
-            .imageViewType = Gfx::ImageViewType::Image_2D,
-            .subresourceRange = {
-                .aspectMask = Gfx::ImageAspectFlags::Color,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            }};
+        RenderGraph::RenderPass::ImageView
+            v{.imageViewType = Gfx::ImageViewType::Image_2D,
+              .subresourceRange = {
+                  .aspectMask = Gfx::ImageAspectFlags::Color,
+                  .baseMipLevel = 0,
+                  .levelCount = 1,
+                  .baseArrayLayer = 0,
+                  .layerCount = 1,
+              }};
         surfelDrawScene = graph.AddNode(
             [=](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
             {
@@ -177,10 +177,7 @@ public:
         return true;
     };
 
-    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
-    {
-        this->sceneShaderResource = &sceneShaderResource;
-    };
+    void ProcessSceneShaderResource() override{};
 
     void Finalize(RenderGraph::Graph& graph, Resources& resources) override
     {

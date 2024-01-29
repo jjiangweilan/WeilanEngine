@@ -206,7 +206,6 @@ private:
     Texture* specularCube = nullptr;
 
     std::unique_ptr<RenderGraph::Graph> graph;
-    std::unique_ptr<Gfx::ShaderResource> sceneShaderResource{};
     std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 

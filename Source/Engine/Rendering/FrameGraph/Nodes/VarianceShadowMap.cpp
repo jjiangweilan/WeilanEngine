@@ -192,6 +192,9 @@ public:
                 cmd.SetPushConstant(boxFilterShader->GetDefaultShaderProgram(), &pval);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
+
+                Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
+                cmd.SetTexture("shadowMap", *shadowImage);
             }
         );
         graph.Connect(vsmPass, 0, vsmBoxFilterPass1, RenderGraph::StrToHandle("dst"));
@@ -225,12 +228,6 @@ public:
         vsmBoxFilterResource1->SetImage("source", vsmBoxFilterPass0Image);
 
         Shader::EnableFeature("G_VSM");
-    }
-
-    void ProcessSceneShaderResource(Gfx::ShaderResource& sceneShaderResource) override
-    {
-        Gfx::Image* shadowImage = (Gfx::Image*)vsmPass->GetPass()->GetResourceRef(0)->GetResource();
-        sceneShaderResource.SetImage("shadowMap", shadowImage);
     }
 
     bool Build(RenderGraph::Graph& graph, Resources& resources) override

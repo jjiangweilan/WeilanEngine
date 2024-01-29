@@ -58,6 +58,9 @@ public:
     void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
 
+    void SetTexture(ResourceHandle handle, Gfx::Image& image) override{};
+    void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override{};
+
     VkCommandBuffer GetHandle() const
     {
         return vkCmdBuf;
