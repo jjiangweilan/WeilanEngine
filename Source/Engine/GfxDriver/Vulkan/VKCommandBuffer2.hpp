@@ -84,6 +84,19 @@ struct VKBindIndexBufferCmd
     VkIndexType indexType;
 };
 
+struct VKSetTextureCmd
+{
+    RG::ResourceHandle handle;
+    Gfx::Image* image;
+};
+
+struct VKSetUniformBufferCmd
+{
+    RG::ResourceHandle handle;
+    uint8_t* data;
+    uint32_t size;
+};
+
 struct VKSetViewportCmd
 {
     VkViewport viewport;
@@ -276,6 +289,9 @@ public:
     void Begin() override {}
     void End() override {}
 
+    void SetTexture(RG::ResourceHandle name, Gfx::Image& image) override;
+    void SetUniformBuffer(RG::ResourceHandle name, uint8_t* data, uint32_t size) override;
+
     void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
 
@@ -298,5 +314,6 @@ private:
     // CopyImageToBufferCmd, SetPushConstantCmd, SetScissorCmd, DispatchCmd, DispatchIndirCmd, NextRenderPassCmd,
     // PushDescriptorSetCmd, CopyBufferCmd, CopyBufferToImageCmd, BeginCmd, EndCmd>;
     std::vector<VKCmd> cmds;
+    std::vector<std::byte> tempData;
 };
 } // namespace Gfx

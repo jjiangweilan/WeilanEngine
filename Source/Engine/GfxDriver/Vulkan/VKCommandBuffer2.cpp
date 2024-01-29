@@ -265,4 +265,7 @@ void VKCommandBuffer2::PresentImage(VKImage* image)
     cmd.present.image = image;
     cmds.push_back(cmd);
 }
+
+void VKCommandBuffer2::SetTexture(RG::ResourceHandle name, Gfx::Image& image) {}
+void VKCommandBuffer2::SetUniformBuffer(RG::ResourceHandle name, uint8_t* data, uint32_t size) {}
 } // namespace Gfx
