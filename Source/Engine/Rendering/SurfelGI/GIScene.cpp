@@ -19,7 +19,6 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     cameraGO->SetRotation({0, 0, 0});
 
     FrameGraph::Graph graph;
-    graph.SetTemplateSceneShader(bakerConfig.templateShader);
     surfelBakeNode = nullptr;
     FrameGraph::Node* sceneSort = nullptr;
     for (auto& bp : FrameGraph::NodeBlueprintRegisteration::GetNodeBlueprints())

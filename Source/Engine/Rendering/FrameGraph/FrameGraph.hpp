@@ -67,17 +67,6 @@ public:
         return outputImageNode;
     }
 
-    Shader* GetTemplateSceneShader()
-    {
-        return templateSceneResourceShader;
-    };
-
-    void SetTemplateSceneShader(Shader* shader)
-    {
-        SetDirty();
-        this->templateSceneResourceShader = shader;
-    }
-
     std::span<std::unique_ptr<Node>> GetNodes()
     {
         return nodes;
@@ -200,10 +189,6 @@ private:
     bool compiled = false;
     Node* outputImageNode = nullptr;
     RenderingData renderingData;
-    Shader* templateSceneResourceShader;
-
-    Texture* diffuseCube = nullptr;
-    Texture* specularCube = nullptr;
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;

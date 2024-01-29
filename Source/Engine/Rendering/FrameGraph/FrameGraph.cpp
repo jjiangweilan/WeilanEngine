@@ -123,7 +123,6 @@ void Graph::Serialize(Serializer* s) const
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
     s->Serialize("outputImageNode", outputImageNode->GetID());
-    s->Serialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
 void Graph::Deserialize(Serializer* s)
@@ -142,7 +141,6 @@ void Graph::Deserialize(Serializer* s)
             break;
         }
     }
-    s->Deserialize("templateSceneResourceShader", templateSceneResourceShader);
 }
 
 void Graph::ReportValidation()
@@ -208,11 +206,10 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
 
-    cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
-    cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
-
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
+    cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
+    cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();

@@ -152,30 +152,6 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     }
     ImGui::SameLine();
 
-    Shader* s = graph->GetTemplateSceneShader();
-    const char* templateShaderName = "Template Scene Shader";
-    if (s != nullptr)
-    {
-        templateShaderName = s->GetName().c_str();
-    }
-    if (ImGui::Button(templateShaderName))
-    {
-        EditorState::selectedObject = s;
-    }
-    if (ImGui::BeginDragDropTarget())
-    {
-        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-        if (payload && payload->IsDelivery())
-        {
-            Object* obj = *(Object**)payload->Data;
-            if (Shader* shader = dynamic_cast<Shader*>(obj))
-            {
-                graph->SetTemplateSceneShader(shader);
-            }
-        }
-        ImGui::EndDragDropTarget();
-    }
-
     auto overlayCursor = ImGui::GetCursorPos();
 
     ed::SetCurrentEditor(context);
