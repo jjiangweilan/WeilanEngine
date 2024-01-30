@@ -209,8 +209,10 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
     cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
-    cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
-    cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
+    if (diffuseCube)
+        cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
+    if (specularCube)
+        cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
