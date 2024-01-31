@@ -286,4 +286,14 @@ void VKCommandBuffer2::SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buff
 
     cmds.push_back(cmd);
 }
+
+void VKCommandBuffer2::AllocateAttachment(ResourceHandle& handle, RG::AttachmentDescription& desc)
+{
+    VKCmd cmd{VKCmdType::AllocateAttachment};
+
+    cmd.allocateAttachment.handle = handle;
+    cmd.allocateAttachment.desc = desc;
+
+    cmds.push_back(cmd);
+}
 } // namespace Gfx

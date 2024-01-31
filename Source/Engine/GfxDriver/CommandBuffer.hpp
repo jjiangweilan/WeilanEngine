@@ -133,7 +133,7 @@ public:
         SetUniformBuffer(ResourceHandle(name), buffer);
     }
 
-    virtual void AllocateAttachmentRT(ResourceHandle& handle, const ImageDescription& desc) = 0;
+    virtual void AllocateAttachment(ResourceHandle& handle, RG::AttachmentDescription& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 };
 } // namespace Gfx

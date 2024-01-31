@@ -56,6 +56,11 @@ struct AttachmentDescription
         return format;
     }
 
+    uint64_t GetHash()
+    {
+        return hash;
+    }
+
 private:
     uint32_t width;
     uint32_t height;

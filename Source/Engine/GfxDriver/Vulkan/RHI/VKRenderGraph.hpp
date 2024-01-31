@@ -51,6 +51,7 @@ public:
     void Execute(VkCommandBuffer cmd);
 
 private:
+    class ResourceAllocator;
     struct ShaderBinding
     {
         ResourceType type;
@@ -96,6 +97,8 @@ private:
     std::unordered_map<ShaderProgram*, VKShaderResource> globalResources;
     std::unordered_map<ResourceHandle, ShaderBinding> globalResourcePool;
     // std::unique_ptr<VKShaderResource> globalResource;
+    //
+    std::unique_ptr<ResourceAllocator> resourceAllocator;
 
     void CreateRenderPassNode(int visitIndex);
     bool TrackResource(

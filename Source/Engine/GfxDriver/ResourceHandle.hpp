@@ -20,6 +20,11 @@ public:
         return hash;
     }
 
+    uint64_t GetHash() const
+    {
+        return hash;
+    }
+
     bool operator==(const ResourceHandle& other) const = default;
 
 private:

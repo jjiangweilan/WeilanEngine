@@ -9,6 +9,26 @@
 
 namespace Gfx::VK::RenderGraph
 {
+class Graph::ResourceAllocator
+{
+public:
+    VKImage* Request(RG::AttachmentDescription& desc)
+    {
+        auto hash = desc.GetHash();
+        auto iter = images.find(hash);
+        if (iter != images.end())
+        {
+            return iter->second.get();
+        }
+        else
+        {
+            VKImage()
+        }
+    }
+
+private:
+    std::unordered_map<uint64_t, std::unique_ptr<VKImage>> images;
+};
 
 bool Graph::TrackResource(
     VKImage* writableResource,
@@ -635,6 +655,12 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setUniformBuffer.handle] = {ResourceType::Buffer, cmd.setUniformBuffer.buffer};
         }
+        else if (cmd.type == VKCmdType::AllocateAttachment)
+        {
+            cmd.allocateAttachment.desc.GetHash();
+            if (cmd.allocateAttachment.handle.GetHash() == 0)
+            {}
+        }
     }
 }
 
@@ -718,7 +744,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -730,7 +757,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1140,5 +1168,9 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
         }
     }
 }
-Graph::Graph() {}
+
+Graph::Graph()
+{
+    resourceAllocator = std::make_unique<ResourceAllocator>();
+}
 } // namespace Gfx::VK::RenderGraph

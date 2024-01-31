@@ -214,14 +214,12 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
         auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
 
-        Gfx::ImageDescription desc{
-            .width = sceneImage->GetDescription().width,
-            .height = sceneImage->GetDescription().height,
-            .format = sceneImage->GetDescription().format,
-            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 1,
-            .isCubemap = false};
-        cmd.AllocateAttachmentRT(outlineRT, desc);
+        Gfx::RG::AttachmentDescription desc{
+            sceneImage->GetDescription().width,
+            sceneImage->GetDescription().height,
+            sceneImage->GetDescription().format,
+        };
+        cmd.AllocateAttachment(outlineRT, desc);
 
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
         outlinePass.SetAttachment(0, outlineRT);
@@ -229,13 +227,6 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
         cmd.SetTexture("mainTex", *graphOutputImage);
         cmd.Draw(6, 1, 0, 0);
         cmd.EndRenderPass();
-
-        // outlinePass.SetAttachment(0, outlineRT);
-        // Gfx::ClearValue clears[] = {{0.f, 0.f, 0.f, 0.f}};
-        // cmd.BeginRenderPass(outlinePass, clears);
-
-        // cmd.SetTexture(Gfx::ResourceHandle(""), );
-        // cmd.EndRenderPass();
     }
 }
 
@@ -369,7 +360,8 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y};
+                            mousePos.y - windowPos.y - imagePos.y
+                        };
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 

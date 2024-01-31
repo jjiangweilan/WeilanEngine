@@ -191,6 +191,12 @@ struct VKPresentCmd
     int barrierCount;
 };
 
+struct VKAllocateAttachmentCmd
+{
+    ResourceHandle handle;
+    RG::AttachmentDescription desc;
+};
+
 enum class VKCmdType
 {
     None,
@@ -215,6 +221,7 @@ enum class VKCmdType
     CopyBufferToImage,
     SetUniformBuffer,
     SetTexture,
+    AllocateAttachment,
     Present,
 };
 struct VKCmd
@@ -246,6 +253,8 @@ struct VKCmd
         VKSetTextureCmd setTexture;
         VKSetUniformBufferCmd setUniformBuffer;
         VKPresentCmd present;
+
+        VKAllocateAttachmentCmd allocateAttachment;
     };
 };
 class VKCommandBuffer2 : public CommandBuffer
@@ -292,7 +301,7 @@ public:
     void SetTexture(ResourceHandle handle, Gfx::Image& image) override;
     void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachmentRT(ResourceHandle& handle, const ImageDescription& desc) override{};
+    void AllocateAttachment(ResourceHandle& handle, RG::AttachmentDescription& desc) override;
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
 
     void PresentImage(VKImage* image);
