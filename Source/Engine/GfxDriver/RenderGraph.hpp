@@ -6,7 +6,69 @@
 
 namespace Gfx::RG
 {
-using AttachmentHandle = size_t;
+struct AttachmentDescription
+{
+    AttachmentDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format)
+        : width(width), height(height), format(format)
+    {
+        Rehash();
+    }
+
+    void SetWidth(uint32_t width)
+    {
+        if (this->width != width)
+        {
+            this->width = width;
+            Rehash();
+        }
+    }
+
+    void SetHeight(uint32_t height)
+    {
+        if (this->height != height)
+        {
+            this->height = height;
+            Rehash();
+        }
+    }
+
+    void SetFormat(Gfx::ImageFormat format)
+    {
+        if (this->format != format)
+        {
+            this->format = format;
+            Rehash();
+        }
+    }
+
+    uint32_t GetWidth()
+    {
+        return width;
+    }
+
+    uint32_t GetHeight()
+    {
+        return height;
+    }
+
+    Gfx::ImageFormat GetFormat()
+    {
+        return format;
+    }
+
+private:
+    uint32_t width;
+    uint32_t height;
+    Gfx::ImageFormat format;
+
+    uint64_t hash;
+
+    void Rehash()
+    {
+        hash = XXH3_64bits(this, sizeof(AttachmentDescription));
+    }
+};
+
 struct AttachmentIdentifier
 {
     enum class Type
@@ -18,7 +80,7 @@ struct AttachmentIdentifier
 
     AttachmentIdentifier() : type(Type::None), image(nullptr) {}
     AttachmentIdentifier(Image& image) : type(Type::Image), image(&image) {}
-    AttachmentIdentifier(AttachmentHandle rthandle) : type(Type::Handle), rtHandle(rthandle) {}
+    AttachmentIdentifier(ResourceHandle rthandle) : type(Type::Handle), rtHandle(rthandle) {}
 
     Type GetType()
     {
@@ -30,7 +92,7 @@ private:
     union
     {
         Image* image;
-        size_t rtHandle;
+        ResourceHandle rtHandle;
     };
 };
 

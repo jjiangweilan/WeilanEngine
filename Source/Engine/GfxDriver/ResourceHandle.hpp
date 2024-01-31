@@ -10,7 +10,7 @@ class ResourceHandle
 {
 public:
     ResourceHandle() : hash(0) {}
-    ResourceHandle(const std::string_view& name) : hash(XXH64((void*)name.data(), name.size(), 0))
+    ResourceHandle(const std::string_view& name) : hash(XXH3_64bits((void*)name.data(), name.size()))
     {
         // spdlog::info("hash {}, result {}, size {}", name, hash, name.size());
     }
