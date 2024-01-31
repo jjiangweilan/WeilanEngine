@@ -51,6 +51,12 @@ public:
     void Execute(VkCommandBuffer cmd);
 
 private:
+    struct ShaderBinding
+    {
+        ResourceType type;
+        void* res;
+    };
+
     struct FlushBindResource
     {
         VKShaderProgram* bindedProgram = nullptr;
@@ -87,7 +93,9 @@ private:
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
     std::vector<VkMemoryBarrier> memoryBarriers;
 
-    std::unique_ptr<VKShaderResource> globalResource;
+    std::unordered_map<ShaderProgram*, VKShaderResource> globalResources;
+    std::unordered_map<ResourceHandle, ShaderBinding> globalResourcePool;
+    // std::unique_ptr<VKShaderResource> globalResource;
 
     void CreateRenderPassNode(int visitIndex);
     bool TrackResource(
@@ -103,6 +111,7 @@ private:
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res);
 
+    void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd);

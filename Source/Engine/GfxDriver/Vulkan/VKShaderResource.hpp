@@ -51,6 +51,7 @@ class VKShaderResource : public ShaderResource
     // ---------------------------- New API ----------------------------------
 public:
     VKShaderResource();
+    VKShaderResource(const VKShaderResource& other) = delete;
     void SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer) override;
 
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)

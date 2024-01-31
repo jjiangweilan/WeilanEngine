@@ -55,7 +55,7 @@ public:
     void End() override;
     void Reset(bool releaseResource) override;
 
-    void AllocateAttachmentRT(RG::AttachmentIdentifier identifier, const ImageDescription& desc) override{};
+    void AllocateAttachmentRT(ResourceHandle handle, const ImageDescription& desc) override{};
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
 
     void SetTexture(ResourceHandle handle, Gfx::Image& image) override{};

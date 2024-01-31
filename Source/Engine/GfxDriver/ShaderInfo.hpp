@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "DescriptorSetSlot.hpp"
+#include "GfxDriver/ResourceHandle.hpp"
 #include "Libs/Ptr.hpp"
 
 namespace Gfx::ShaderInfo
@@ -159,7 +160,8 @@ struct Binding
     Binding() = default;
 
     Binding(const Binding& other)
-        : stages(other.stages), setNum(other.setNum), bindingNum(other.bindingNum), name(other.name), count(other.count)
+        : stages(other.stages), setNum(other.setNum), bindingNum(other.bindingNum), name(other.name),
+          resourceHandle(other.resourceHandle), count(other.count)
     {
         switch (other.type)
         {
@@ -228,6 +230,7 @@ struct Binding
     uint32_t setNum;
     uint32_t bindingNum;
     std::string name;
+    ResourceHandle resourceHandle; // used by render graph
     std::string actualName;
     uint8_t count = 1;
     union BindingUnion

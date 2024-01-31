@@ -183,12 +183,7 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
-            if (cmd.bindShaderProgram.program != recordState.bindedProgram)
-            {
-                recordState.bindedProgram = cmd.bindShaderProgram.program;
-                recordState.bindedSetUpdateNeeded[0] = true;
-                recordState.bindProgramIndex = visitIndex;
-            }
+            ScheduleBindShaderProgram(cmd, visitIndex);
         }
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed)
         {
@@ -200,9 +195,9 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
                     auto bindSetCmdIndex = recordState.bindSetCmdIndex[i];
                     auto bindProgramIndex = recordState.bindProgramIndex;
                     auto program = currentSchedulingCmds[bindProgramIndex].bindShaderProgram.program;
-                    auto& bindSetCmd = currentSchedulingCmds[bindSetCmdIndex].bindResource;
-                    uint32_t updateSet = i != 0 ? bindSetCmd.set : 0;
-                    VKShaderResource* resource = i != 0 ? bindSetCmd.resource : globalResource.get();
+                    auto* bindSetCmd = i == 0 ? nullptr : &currentSchedulingCmds[bindSetCmdIndex].bindResource;
+                    uint32_t updateSet = i == 0 ? 0 : bindSetCmd->set;
+                    VKShaderResource* resource = i == 0 ? &globalResources[program] : bindSetCmd->resource;
                     auto& writableResources = resource->GetWritableResources(updateSet, program);
                     for (auto& w : writableResources)
                     {
@@ -517,12 +512,7 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
-            if (cmd.bindShaderProgram.program != recordState.bindedProgram)
-            {
-                recordState.bindedProgram = cmd.bindShaderProgram.program;
-                recordState.bindedSetUpdateNeeded[0] = true;
-                recordState.bindProgramIndex = visitIndex;
-            }
+            ScheduleBindShaderProgram(cmd, visitIndex);
         }
         else if (cmd.type == VKCmdType::CopyBuffer)
         {
@@ -639,11 +629,11 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         }
         else if (cmd.type == VKCmdType::SetTexture)
         {
-            globalResource->SetImage(cmd.setTexture.handle, cmd.setTexture.image);
+            globalResourcePool[cmd.setTexture.handle] = {ResourceType::Image, cmd.setTexture.image};
         }
         else if (cmd.type == VKCmdType::SetUniformBuffer)
         {
-            globalResource->SetBuffer(cmd.setUniformBuffer.handle, cmd.setUniformBuffer.buffer);
+            globalResourcePool[cmd.setUniformBuffer.handle] = {ResourceType::Buffer, cmd.setUniformBuffer.buffer};
         }
     }
 }
@@ -728,8 +718,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -741,8 +730,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -801,6 +789,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     exeState.lastBindedShader = cmd.bindShaderProgram.program;
                     exeState.shaderConfig = cmd.bindShaderProgram.config;
                     exeState.setResources[0].needUpdate = true;
+                    exeState.setResources[0].resource = &globalResources[cmd.bindShaderProgram.program];
                     break;
                 }
             case VKCmdType::BindIndexBuffer:
@@ -1006,7 +995,6 @@ void Graph::Execute(VkCommandBuffer vkcmd)
         r.second.currentFrameUsages.clear();
     }
     exeState = ExecutionState();
-    exeState.setResources[0].resource = globalResource.get();
     recordState = FlushBindResource();
 
     imageMemoryBarriers.clear();
@@ -1119,9 +1107,38 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
         );
     }
 }
-Graph::Graph()
+
+void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 {
-    globalResource = std::make_unique<VKShaderResource>();
-    exeState.setResources[0].resource = globalResource.get();
+    if (cmd.bindShaderProgram.program != recordState.bindedProgram)
+    {
+        recordState.bindedProgram = cmd.bindShaderProgram.program;
+        recordState.bindProgramIndex = visitIndex;
+        auto& resource = globalResources[cmd.bindShaderProgram.program];
+        auto& bindingMap = cmd.bindShaderProgram.program->GetShaderInfo().descriptorSetBindingMap;
+        auto iter = bindingMap.find(0);
+        if (iter != bindingMap.end())
+        {
+            recordState.bindedSetUpdateNeeded[0] = true;
+            for (auto& binding : iter->second)
+            {
+                auto resourceFromPool = globalResourcePool.find(binding->resourceHandle);
+                if (resourceFromPool != globalResourcePool.end())
+                {
+                    if ((binding->type == ShaderInfo::BindingType::UBO || binding->type == ShaderInfo::BindingType::SSBO
+                        ) &&
+                        resourceFromPool->second.type == ResourceType::Buffer)
+                    {
+                        resource.SetBuffer(binding->resourceHandle, (VKBuffer*)resourceFromPool->second.res);
+                    }
+                    else if ((binding->type == ShaderInfo::BindingType::SeparateImage || binding->type == ShaderInfo::BindingType::Texture) && resourceFromPool->second.type == ResourceType::Image)
+                    {
+                        resource.SetImage(binding->resourceHandle, (VKImage*)resourceFromPool->second.res);
+                    }
+                }
+            }
+        }
+    }
 }
+Graph::Graph() {}
 } // namespace Gfx::VK::RenderGraph

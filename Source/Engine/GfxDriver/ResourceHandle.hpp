@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ThirdParty/xxHash/xxhash.h"
+#include <spdlog/spdlog.h>
 #include <string_view>
 
 namespace Gfx
@@ -9,7 +10,10 @@ class ResourceHandle
 {
 public:
     ResourceHandle() : hash(0) {}
-    ResourceHandle(const std::string_view& name) : hash(XXH64((void*)name.data(), name.size(), 0)) {}
+    ResourceHandle(const std::string_view& name) : hash(XXH64((void*)name.data(), name.size(), 0))
+    {
+        // spdlog::info("hash {}, result {}, size {}", name, hash, name.size());
+    }
 
     uint64_t operator()() const
     {
