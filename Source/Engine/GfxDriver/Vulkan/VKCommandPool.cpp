@@ -21,25 +21,25 @@ VKCommandPool::~VKCommandPool()
 
 std::vector<UniPtr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
 {
-    VkCommandBuffer* cmdBufsTemp = new VkCommandBuffer[count];
+    //VkCommandBuffer* cmdBufsTemp = new VkCommandBuffer[count];
 
-    VkCommandBufferAllocateInfo cmdAllocInfo;
-    cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdAllocInfo.pNext = VK_NULL_HANDLE;
-    cmdAllocInfo.commandPool = commandPool;
-    cmdAllocInfo.level =
-        type == CommandBufferType::Primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
-    cmdAllocInfo.commandBufferCount = count;
-    vkAllocateCommandBuffers(GetDevice(), &cmdAllocInfo, cmdBufsTemp);
+    //VkCommandBufferAllocateInfo cmdAllocInfo;
+    //cmdAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    //cmdAllocInfo.pNext = VK_NULL_HANDLE;
+    //cmdAllocInfo.commandPool = commandPool;
+    //cmdAllocInfo.level =
+    //    type == CommandBufferType::Primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+    //cmdAllocInfo.commandBufferCount = count;
+    //vkAllocateCommandBuffers(GetDevice(), &cmdAllocInfo, cmdBufsTemp);
 
-    std::vector<UniPtr<Gfx::CommandBuffer>> rlt;
-    for (int i = 0; i < count; ++i)
-    {
-        rlt.push_back(MakeUnique<VKCommandBuffer>(cmdBufsTemp[i]));
-    }
+    //std::vector<UniPtr<Gfx::CommandBuffer>> rlt;
+    //for (int i = 0; i < count; ++i)
+    //{
+    //    rlt.push_back(MakeUnique<VKCommandBuffer>(cmdBufsTemp[i]));
+    //}
 
-    delete[] cmdBufsTemp;
-    return rlt;
+    //delete[] cmdBufsTemp;
+    return std::vector<UniPtr<Gfx::CommandBuffer>>();
 }
 
 void VKCommandPool::ResetCommandPool()

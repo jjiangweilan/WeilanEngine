@@ -283,7 +283,7 @@ void VKDriver::QueueSubmit(
 
     for (auto c : cmdBufs)
     {
-        vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c)->GetHandle());
+        // vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c)->GetHandle());
     }
 
     VkSubmitInfo submitInfo;
@@ -567,8 +567,7 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     FrameEndClear();
 
@@ -700,9 +699,8 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -986,8 +984,7 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain
-    };
+        oldSwapChain};
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1055,8 +1052,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
@@ -1217,27 +1213,27 @@ void VKDriver::FrameEndClear()
 
 void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
 {
-    vkResetCommandBuffer(immediateCmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-
-    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(immediateCmd, &beginInfo);
-    VKCommandBuffer cmd(immediateCmd);
-    f(cmd);
-    vkEndCommandBuffer(immediateCmd);
-
-    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-    submitInfo.pWaitDstStageMask = VK_NULL_HANDLE;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &immediateCmd;
-    submitInfo.signalSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
-    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, immediateCmdFence);
-
-    vkWaitForFences(device.handle, 1, &immediateCmdFence, true, -1);
-    vkResetFences(device.handle, 1, &immediateCmdFence);
+    // vkResetCommandBuffer(immediateCmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+    //
+    // VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    // beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    // vkBeginCommandBuffer(immediateCmd, &beginInfo);
+    // VKCommandBuffer cmd(immediateCmd);
+    // f(cmd);
+    // vkEndCommandBuffer(immediateCmd);
+    //
+    // VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    // submitInfo.waitSemaphoreCount = 0;
+    // submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+    // submitInfo.pWaitDstStageMask = VK_NULL_HANDLE;
+    // submitInfo.commandBufferCount = 1;
+    // submitInfo.pCommandBuffers = &immediateCmd;
+    // submitInfo.signalSemaphoreCount = 0;
+    // submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
+    // vkQueueSubmit(mainQueue.handle, 1, &submitInfo, immediateCmdFence);
+    //
+    // vkWaitForFences(device.handle, 1, &immediateCmdFence, true, -1);
+    // vkResetFences(device.handle, 1, &immediateCmdFence);
 }
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)

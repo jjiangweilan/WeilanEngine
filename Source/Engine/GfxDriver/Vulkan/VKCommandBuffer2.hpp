@@ -292,7 +292,7 @@ public:
     void SetTexture(ResourceHandle handle, Gfx::Image& image) override;
     void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachmentRT(ResourceHandle handle, const ImageDescription& desc) override{};
+    void AllocateAttachmentRT(ResourceHandle& handle, const ImageDescription& desc) override{};
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
 
     void PresentImage(VKImage* image);
