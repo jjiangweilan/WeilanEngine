@@ -18,16 +18,62 @@ public:
         auto iter = images.find(hash);
         if (iter != images.end())
         {
-            return iter->second.get();
+            iter->second.frameCountFromLastRequest = 0;
+            return iter->second.image.get();
         }
         else
         {
-            VKImage()
+            Gfx::ImageDescription imageDesc;
+            imageDesc.width = desc.GetWidth();
+            imageDesc.height = desc.GetHeight();
+            imageDesc.format = desc.GetFormat();
+            imageDesc.multiSampling = MultiSampling::Sample_Count_1;
+            imageDesc.mipLevels = 1;
+            imageDesc.isCubemap = false;
+
+            images[hash] = {
+                std::make_unique<VKImage>(
+                    imageDesc,
+                    Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc |
+                        Gfx::ImageUsage::Texture
+                ),
+                0
+            };
+
+            return images[hash].image.get();
+        }
+
+        return nullptr;
+    }
+
+    VKRenderPass* Request(RG::RenderPass& renderPass) {}
+
+    void Tick()
+    {
+        int removeCount = 0;
+        uint64_t readyToRemove[8];
+        for (auto& iter : images)
+        {
+            if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
+            {
+                readyToRemove[removeCount++] = iter.first;
+            }
+            iter.second.frameCountFromLastRequest += 1;
+        }
+
+        for (int i = 0; i < removeCount; ++i)
+        {
+            images.erase(readyToRemove[i]);
         }
     }
 
 private:
-    std::unordered_map<uint64_t, std::unique_ptr<VKImage>> images;
+    struct AllocatedImage
+    {
+        std::unique_ptr<VKImage> image;
+        int frameCountFromLastRequest = 0;
+    };
+    std::unordered_map<uint64_t, AllocatedImage> images;
 };
 
 bool Graph::TrackResource(
@@ -1029,6 +1075,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
     bufferMemoryBarriers.clear();
     memoryBarriers.clear();
     barriers.clear();
+
+    resourceAllocator->Tick();
 }
 
 void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd)
