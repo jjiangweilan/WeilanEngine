@@ -37,8 +37,7 @@ public:
                     Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc |
                         Gfx::ImageUsage::Texture
                 ),
-                0
-            };
+                0};
 
             return images[hash].image.get();
         }
@@ -46,13 +45,51 @@ public:
         return nullptr;
     }
 
+    VKRenderPass* RequestRenderPass(RG::RenderPass& pass)
+    {
+        auto hash = pass.GetHash();
+        auto iter = renderPasses.find(hash);
+        if (iter != renderPasses.end())
+        {
+            iter->second.frameCountFromLastRequest = 0;
+            return iter->second.renderPass.get();
+        }
+        else
+        {
+            auto renderPass = std::make_unique<VKRenderPass>();
+        }
+    }
+
     VKRenderPass* Request(RG::RenderPass& renderPass) {}
 
     void Tick()
     {
+        UpdateResources(images);
+        UpdateResources(renderPasses);
+    }
+
+private:
+    struct AllocatedImage
+    {
+        std::unique_ptr<VKImage> image;
+        int frameCountFromLastRequest = 0;
+    };
+
+    struct AllocatedRenderPass
+    {
+        std::unique_ptr<VKRenderPass> renderPass;
+        int frameCountFromLastRequest = 0;
+    };
+
+    std::unordered_map<uint64_t, AllocatedImage> images;
+    std::unordered_map<uint64_t, AllocatedRenderPass> renderPasses;
+
+    template <class T>
+    void UpdateResources(std::unordered_map<uint64_t, T>& resources)
+    {
         int removeCount = 0;
         uint64_t readyToRemove[8];
-        for (auto& iter : images)
+        for (auto& iter : resources)
         {
             if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
             {
@@ -63,17 +100,9 @@ public:
 
         for (int i = 0; i < removeCount; ++i)
         {
-            images.erase(readyToRemove[i]);
+            resources.erase(readyToRemove[i]);
         }
     }
-
-private:
-    struct AllocatedImage
-    {
-        std::unique_ptr<VKImage> image;
-        int frameCountFromLastRequest = 0;
-    };
-    std::unordered_map<uint64_t, AllocatedImage> images;
 };
 
 bool Graph::TrackResource(
@@ -790,8 +819,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -803,8 +831,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst

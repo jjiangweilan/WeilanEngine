@@ -104,7 +104,7 @@ private:
 struct Subpass
 {
     std::vector<int> colors;
-    std::optional<int> depth;
+    int depth;
 };
 
 class RenderPass
@@ -121,6 +121,7 @@ public:
         if (index < attachments.size())
         {
             attachments[index] = id;
+            Rehash();
         }
     }
 
@@ -129,8 +130,14 @@ public:
         if (index < subpasses.size())
         {
             subpasses[index].colors = std::vector<int>(colors.begin(), colors.end());
-            subpasses[index].depth = depth;
+            subpasses[index].depth = depth.value_or(-1);
+            Rehash();
         }
+    }
+
+    uint64_t GetHash() const
+    {
+        return hash;
     }
 
     static RenderPass Default()
@@ -153,5 +160,33 @@ public:
 private:
     std::vector<AttachmentIdentifier> attachments;
     std::vector<Subpass> subpasses;
+
+    uint64_t hash;
+
+    void Rehash()
+    {
+        size_t sizeOfAttachments = attachments.size() * sizeof(AttachmentIdentifier);
+        size_t sizeOfSubpasses = 0;
+        for (auto& s : subpasses)
+        {
+            sizeOfSubpasses += s.colors.size() * sizeof(int);
+            sizeOfSubpasses += sizeof(int); // depth
+        }
+
+        uint8_t* data = new uint8_t[sizeOfSubpasses + sizeOfAttachments];
+        memcpy(data, attachments.data(), sizeOfAttachments);
+        data += sizeOfAttachments;
+
+        for (auto& s : subpasses)
+        {
+            size_t colorsSize = s.colors.size() * sizeof(int);
+            memcpy(data, s.colors.data(), colorsSize);
+            data += colorsSize;
+            memcpy(data, &s.depth, sizeof(int));
+        }
+
+        hash = XXH3_64bits(data, sizeOfSubpasses + sizeOfAttachments);
+        delete[] data;
+    }
 };
 } // namespace Gfx::RG
