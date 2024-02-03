@@ -21,7 +21,8 @@ struct v2f {
 #if VERT
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
-layout(location = 2) in vec2 uv;
+layout(location = 2) in vec4 iTangent;
+layout(location = 3) in vec2 uv;
 
 layout(location = 0) out v2f vOut;
 void main()
