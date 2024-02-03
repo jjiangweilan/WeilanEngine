@@ -46,9 +46,14 @@ class Graph
 {
 public:
     Graph();
+    ~Graph();
     void Schedule(VKCommandBuffer2& cmd);
 
     void Execute(VkCommandBuffer cmd);
+
+    VKImage* GetImage(uint64_t hash);
+    VKImage* Request(RG::AttachmentDescription& desc);
+    VKRenderPass* Request(RG::RenderPass& renderPass);
 
 private:
     class ResourceAllocator;
@@ -109,7 +114,7 @@ private:
         VkAccessFlags access
     );
     bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
-    void AddBarrierToRenderPass(int& visitIndex);
+    void AddBarrierToRenderPass(VKRenderPass& renderPass, int& visitIndex, int& barrierCount, int& barrierOffset);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res);

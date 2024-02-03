@@ -1,5 +1,6 @@
 #pragma once
 #include "../Tool.hpp"
+#include "Asset/Shader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 
@@ -46,8 +47,13 @@ private:
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
     std::unique_ptr<RenderGraph::Graph> gameViewPostProcess;
-    Gfx::ResourceHandle outlineRT;
-    Gfx::RG::RenderPass outlinePass = Gfx::RG::RenderPass::SingleColor();
+    Gfx::RG::AttachmentIdentifier outlineSrcRT;
+    Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
+    Gfx::RG::RenderPass outlieFinalPass = Gfx::RG::RenderPass::SingleColor(
+        "outline final pass", Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store
+    );
+    Shader* outlineRawColorPassShader;
+    Shader* outlineFullScreenPassShader;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect);

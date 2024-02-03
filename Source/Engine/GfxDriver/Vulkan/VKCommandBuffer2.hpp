@@ -9,6 +9,11 @@
 
 namespace Gfx
 {
+namespace VK::RenderGraph
+{
+class Graph;
+}
+
 class VKShaderResource;
 class VKShaderProgram;
 class VKDevice;
@@ -43,6 +48,17 @@ struct VKDrawCmd
 struct VKBeginRenderPassCmd
 {
     VKRenderPass* renderPass;
+    VkClearValue clearValues[8];
+    int clearValueCount;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
+};
+
+struct VKRGBeginRenderPassCmd
+{
+    RG::RenderPass* renderPass;
     VkClearValue clearValues[8];
     int clearValueCount;
 
@@ -193,7 +209,7 @@ struct VKPresentCmd
 
 struct VKAllocateAttachmentCmd
 {
-    ResourceHandle handle;
+    RG::AttachmentIdentifier* id;
     RG::AttachmentDescription desc;
 };
 
@@ -203,6 +219,7 @@ enum class VKCmdType
     DrawIndexed,
     Draw,
     BeginRenderPass,
+    RGBeginRenderPass,
     EndRenderPass,
     Blit,
     BindResource,
@@ -232,6 +249,7 @@ struct VKCmd
         VKDrawIndexedCmd drawIndexed;
         VKDrawCmd draw;
         VKBeginRenderPassCmd beginRenderPass;
+        VKRGBeginRenderPassCmd rgBeginRenderPass;
         VKEndRenderPassCmd endRenderPass;
         VKBlitCmd blit;
         VKBindResourceCmd bindResource;
@@ -257,10 +275,11 @@ struct VKCmd
         VKAllocateAttachmentCmd allocateAttachment;
     };
 };
+
 class VKCommandBuffer2 : public CommandBuffer
 {
 public:
-    VKCommandBuffer2() {}
+    VKCommandBuffer2(VK::RenderGraph::Graph* graph) : graph(graph) {}
     VKCommandBuffer2(const VKCommandBuffer2& other) = delete;
     ~VKCommandBuffer2(){};
 
@@ -298,11 +317,12 @@ public:
     void Begin() override {}
     void End() override {}
 
+    void SetTexture(ResourceHandle handle, RG::AttachmentIdentifier id) override;
     void SetTexture(ResourceHandle handle, Gfx::Image& image) override;
     void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachment(ResourceHandle& handle, RG::AttachmentDescription& desc) override;
-    void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override{};
+    void AllocateAttachment(RG::AttachmentIdentifier& id, RG::AttachmentDescription& desc) override;
+    void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
 
     void PresentImage(VKImage* image);
 
@@ -321,5 +341,6 @@ public:
 private:
     std::vector<VKCmd> cmds;
     LinearAllocator<32 * 1024> tempMemory;
+    VK::RenderGraph::Graph* graph;
 };
 } // namespace Gfx

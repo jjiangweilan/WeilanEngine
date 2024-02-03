@@ -37,7 +37,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
-    AssetDatabase::instance = assetDatabase.get();
+    AssetDatabase::SingletonReference() = assetDatabase.get();
     physics = std::make_unique<Physics>();
     physics->Init();
     event = std::make_unique<Event>();

@@ -12,6 +12,16 @@ namespace Gfx::VK::RenderGraph
 class Graph::ResourceAllocator
 {
 public:
+    VKImage* GetImage(uint64_t hash)
+    {
+        auto iter = images.find(hash);
+        if (iter != images.end())
+        {
+            return iter->second.image.get();
+        }
+        return nullptr;
+    }
+
     VKImage* Request(RG::AttachmentDescription& desc)
     {
         auto hash = desc.GetHash();
@@ -37,17 +47,16 @@ public:
                     Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc |
                         Gfx::ImageUsage::Texture
                 ),
-                0};
+                0
+            };
 
             return images[hash].image.get();
         }
-
-        return nullptr;
     }
 
-    VKRenderPass* RequestRenderPass(RG::RenderPass& pass)
+    VKRenderPass* Request(RG::RenderPass& renderPass)
     {
-        auto hash = pass.GetHash();
+        auto hash = renderPass.GetHash();
         auto iter = renderPasses.find(hash);
         if (iter != renderPasses.end())
         {
@@ -56,11 +65,76 @@ public:
         }
         else
         {
-            auto renderPass = std::make_unique<VKRenderPass>();
+            auto renderPassObj = std::make_unique<VKRenderPass>();
+
+            auto attachments = renderPass.GetAttachments();
+            for (auto& subpass : renderPass.GetSubpasses())
+            {
+                std::vector<Attachment> colors;
+                for (RG::SubpassAttachment color : subpass.colors)
+                {
+                    if (attachments[color.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Image)
+                    {
+                        colors.push_back(Attachment{
+                            &attachments[color.attachmentIndex].GetAsImage()->GetDefaultImageView(),
+                            Gfx::MultiSampling::Sample_Count_1,
+                            color.loadOp,
+                            color.storeOp,
+                            color.stencilLoadOp,
+                            color.stencilStoreOp,
+                        });
+                    }
+                    else if (attachments[color.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Handle)
+                    {
+                        auto& image = images[attachments[color.attachmentIndex].GetAsHash()];
+                        colors.push_back(Attachment{
+                            &image.image->GetDefaultImageView(),
+                            Gfx::MultiSampling::Sample_Count_1,
+                            color.loadOp,
+                            color.storeOp,
+                            color.stencilLoadOp,
+                            color.stencilStoreOp,
+                        });
+                    }
+                }
+
+                std::optional<Attachment> depth;
+                if (subpass.depth.attachmentIndex != -1)
+                {
+                    if (attachments[subpass.depth.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Image)
+                    {
+                        depth = Attachment{
+                            &attachments[subpass.depth.attachmentIndex].GetAsImage()->GetDefaultImageView(),
+                            Gfx::MultiSampling::Sample_Count_1,
+                            subpass.depth.loadOp,
+                            subpass.depth.storeOp,
+                            subpass.depth.stencilLoadOp,
+                            subpass.depth.stencilStoreOp,
+                        };
+                    }
+                    else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Handle)
+                    {
+                        auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsHash()];
+                        depth = Attachment{
+                            &image.image->GetDefaultImageView(),
+                            Gfx::MultiSampling::Sample_Count_1,
+                            subpass.depth.loadOp,
+                            subpass.depth.storeOp,
+                            subpass.depth.stencilLoadOp,
+                            subpass.depth.stencilStoreOp,
+                        };
+                    }
+                }
+
+                renderPassObj->AddSubpass(colors, depth);
+            }
+
+            auto temp = renderPassObj.get();
+            renderPasses[hash] = {std::move(renderPassObj), 0};
+
+            return temp;
         }
     }
-
-    VKRenderPass* Request(RG::RenderPass& renderPass) {}
 
     void Tick()
     {
@@ -147,6 +221,16 @@ bool Graph::TrackResource(
     return false;
 }
 
+VKImage* Graph::Request(RG::AttachmentDescription& desc)
+{
+    return resourceAllocator->Request(desc);
+}
+
+VKRenderPass* Graph::Request(RG::RenderPass& renderPass)
+{
+    return resourceAllocator->Request(renderPass);
+}
+
 bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
 {
     auto iter = resourceUsageTracks.find(writableResource);
@@ -190,11 +274,10 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
     return false;
 }
 
-void Graph::AddBarrierToRenderPass(int& visitIndex)
+void Graph::AddBarrierToRenderPass(
+    VKRenderPass& renderPass, int& visitIndex, int& barrierCountResult, int& barrierOffsetResult
+)
 {
-    assert(currentSchedulingCmds[visitIndex].type == VKCmdType::BeginRenderPass);
-    auto& cmd = currentSchedulingCmds[visitIndex].beginRenderPass;
-
     int barrierOffset = barriers.size();
     int barrierCount = 0;
 
@@ -204,9 +287,9 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
     // and AddSubpass(0)
-    if (!cmd.renderPass->GetSubpesses().empty())
+    if (!renderPass.GetSubpesses().empty())
     {
-        auto& s = cmd.renderPass->GetSubpesses()[0];
+        auto& s = renderPass.GetSubpesses()[0];
         for (auto& c : s.colors)
         {
             VKImage* image = static_cast<VKImage*>(&c.imageView->GetImage());
@@ -345,8 +428,8 @@ void Graph::AddBarrierToRenderPass(int& visitIndex)
             break;
     }
 
-    cmd.barrierCount = barrierCount;
-    cmd.barrierOffset = barrierOffset;
+    barrierCountResult = barrierCount;
+    barrierOffsetResult = barrierOffset;
 }
 
 int Graph::MakeBarrierForLastUsage(void* res)
@@ -599,7 +682,22 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
     {
         auto& cmd = currentSchedulingCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
-            AddBarrierToRenderPass(visitIndex);
+            AddBarrierToRenderPass(
+                *cmd.beginRenderPass.renderPass,
+                visitIndex,
+                cmd.beginRenderPass.barrierCount,
+                cmd.beginRenderPass.barrierOffset
+            );
+        else if (cmd.type == VKCmdType::RGBeginRenderPass)
+        {
+            auto renderPass = resourceAllocator->Request(*cmd.rgBeginRenderPass.renderPass);
+            AddBarrierToRenderPass(
+                *renderPass,
+                visitIndex,
+                cmd.rgBeginRenderPass.barrierCount,
+                cmd.rgBeginRenderPass.barrierOffset
+            );
+        }
         else if (cmd.type == VKCmdType::BindResource)
         {
             recordState.bindSetCmdIndex[cmd.bindResource.set] = visitIndex;
@@ -732,9 +830,7 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
-            cmd.allocateAttachment.desc.GetHash();
-            if (cmd.allocateAttachment.handle.GetHash() == 0)
-            {}
+            // done in command buffer
         }
     }
 }
@@ -819,7 +915,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -831,7 +928,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1084,6 +1182,38 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     }
                     break;
                 }
+
+            case VKCmdType::RGBeginRenderPass:
+                {
+                    Gfx::VKRenderPass* renderPass = resourceAllocator->Request(*cmd.rgBeginRenderPass.renderPass);
+                    VkRenderPass vkRenderPass = renderPass->GetHandle();
+                    exeState.renderPass = renderPass;
+                    exeState.subpassIndex = 0;
+
+                    // framebuffer has to get inside the execution function due to how
+                    // RenderPass handle swapchain image as framebuffer attachment
+                    VkFramebuffer vkFramebuffer = renderPass->GetFrameBuffer();
+
+                    auto extent = renderPass->GetExtent();
+                    VkRenderPassBeginInfo renderPassBeginInfo;
+                    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                    renderPassBeginInfo.pNext = VK_NULL_HANDLE;
+                    renderPassBeginInfo.renderPass = vkRenderPass;
+                    renderPassBeginInfo.framebuffer = vkFramebuffer;
+                    renderPassBeginInfo.renderArea = {{0, 0}, {extent.width, extent.height}};
+                    renderPassBeginInfo.clearValueCount = cmd.rgBeginRenderPass.clearValueCount;
+                    renderPassBeginInfo.pClearValues = cmd.rgBeginRenderPass.clearValues;
+
+                    auto barrierOffset = cmd.rgBeginRenderPass.barrierOffset;
+                    auto barrierCount = cmd.rgBeginRenderPass.barrierCount;
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
+
+                    vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                    break;
+                }
             case VKCmdType::None: break;
         }
     }
@@ -1244,8 +1374,15 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
     }
 }
 
+VKImage* Graph::GetImage(uint64_t hash)
+{
+    return resourceAllocator->GetImage(hash);
+}
+
 Graph::Graph()
 {
     resourceAllocator = std::make_unique<ResourceAllocator>();
 }
+Graph::~Graph() {}
+
 } // namespace Gfx::VK::RenderGraph

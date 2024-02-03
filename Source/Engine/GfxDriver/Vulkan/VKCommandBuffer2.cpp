@@ -2,6 +2,7 @@
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
+#include "RHI/VKRenderGraph.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
 
@@ -267,6 +268,30 @@ void VKCommandBuffer2::PresentImage(VKImage* image)
     cmds.push_back(cmd);
 }
 
+void VKCommandBuffer2::SetTexture(ResourceHandle handle, RG::AttachmentIdentifier id)
+{
+    if (id.GetType() == RG::AttachmentIdentifier::Type::Image)
+    {
+        VKCmd cmd{VKCmdType::SetTexture};
+
+        cmd.setTexture.handle = handle;
+        cmd.setTexture.image = id.GetAsImage();
+
+        cmds.push_back(cmd);
+    }
+    else if (id.GetType() == RG::AttachmentIdentifier::Type::Handle)
+    {
+        auto image = graph->GetImage(id.GetAsHash());
+
+        VKCmd cmd{VKCmdType::SetTexture};
+
+        cmd.setTexture.handle = handle;
+        cmd.setTexture.image = image;
+
+        cmds.push_back(cmd);
+    }
+}
+
 void VKCommandBuffer2::SetTexture(ResourceHandle handle, Gfx::Image& image)
 {
     VKCmd cmd{VKCmdType::SetTexture};
@@ -287,12 +312,22 @@ void VKCommandBuffer2::SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buff
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer2::AllocateAttachment(ResourceHandle& handle, RG::AttachmentDescription& desc)
+void VKCommandBuffer2::AllocateAttachment(RG::AttachmentIdentifier& id, RG::AttachmentDescription& desc)
 {
-    VKCmd cmd{VKCmdType::AllocateAttachment};
+    id = *graph->Request(desc);
+}
 
-    cmd.allocateAttachment.handle = handle;
-    cmd.allocateAttachment.desc = desc;
+void VKCommandBuffer2::BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues)
+{
+    VKCmd cmd{VKCmdType::RGBeginRenderPass};
+
+    cmd.rgBeginRenderPass.renderPass = &renderPass;
+    memcpy(
+        cmd.rgBeginRenderPass.clearValues,
+        clearValues.data(),
+        clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue)
+    );
+    cmd.rgBeginRenderPass.clearValueCount = clearValues.size() <= 8 ? clearValues.size() : 8;
 
     cmds.push_back(cmd);
 }

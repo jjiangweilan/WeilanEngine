@@ -39,11 +39,11 @@ public:
 
     static AssetDatabase* Singleton()
     {
-        return instance;
+        return SingletonReference();
     }
 
 private:
-    static AssetDatabase* instance;
+    static AssetDatabase*& SingletonReference();
     const std::filesystem::path projectRoot;
     const std::filesystem::path assetDirectory;
     const std::filesystem::path assetDatabaseDirectory;

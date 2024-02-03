@@ -34,6 +34,13 @@ void GameView::Init()
     }
 
     CreateRenderData(1960, 1080);
+
+    outlineRawColorPassShader =
+        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineRawColorPass.shad")
+        );
+    outlineFullScreenPassShader =
+        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineFullScreenPass.shad"
+        ));
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
@@ -214,19 +221,51 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
         auto graphOutputImage = graph->GetOutputImage();
         graph->Execute(cmd, *scene);
 
-        Gfx::RG::AttachmentDescription desc{
-            sceneImage->GetDescription().width,
-            sceneImage->GetDescription().height,
-            sceneImage->GetDescription().format,
-        };
-        cmd.AllocateAttachment(outlineRT, desc);
+        // selection outline
+        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+        {
+            auto meshRenderer = go->GetComponent<MeshRenderer>();
+            if (meshRenderer)
+            {
+                FrameGraph::DrawList drawList;
+                drawList.Add(*meshRenderer);
 
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-        outlinePass.SetAttachment(0, outlineRT);
-        cmd.BeginRenderPass(outlinePass, clears);
-        cmd.SetTexture("mainTex", *graphOutputImage);
-        cmd.Draw(6, 1, 0, 0);
-        cmd.EndRenderPass();
+                Gfx::RG::AttachmentDescription desc{
+                    sceneImage->GetDescription().width,
+                    sceneImage->GetDescription().height,
+                    sceneImage->GetDescription().format,
+                };
+                cmd.AllocateAttachment(outlineSrcRT, desc);
+
+                Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+                outlineSrcPass.SetAttachment(0, outlineSrcRT);
+                cmd.BeginRenderPass(outlineSrcPass, clears);
+                for (auto& draw : drawList)
+                {
+                    cmd.BindShaderProgram(
+                        outlineRawColorPassShader->GetDefaultShaderProgram(),
+                        outlineRawColorPassShader->GetDefaultShaderConfig()
+                    );
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                }
+                cmd.EndRenderPass();
+
+                outlieFinalPass.SetAttachment(0, *graphOutputImage);
+                cmd.SetTexture("mainTex", outlineSrcRT);
+                cmd.BeginRenderPass(outlieFinalPass, clears);
+                cmd.BindShaderProgram(
+                    outlineFullScreenPassShader->GetDefaultShaderProgram(),
+                    outlineFullScreenPassShader->GetDefaultShaderConfig()
+                );
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
+
+                // cmd.SetTexture("mainTex", *graphOutputImage);
+            }
+        }
     }
 }
 

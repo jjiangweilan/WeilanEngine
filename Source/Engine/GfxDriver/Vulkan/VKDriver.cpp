@@ -510,7 +510,7 @@ bool VKDriver::EndFrame()
 {
     // scheduling has to happen before dataUploader because the delayed function call `f(cmd2);` may contain data
     // uploading
-    VKCommandBuffer2 cmd2;
+    VKCommandBuffer2 cmd2(renderGraph.get());
     for (auto& f : pendingCommands)
     {
         f(cmd2);
