@@ -45,18 +45,26 @@ layout(set = 0, binding = 0) uniform sampler2D mainTex;
 
 void main() {
     ivec2 coord = ivec2(gl_FragCoord.xy);
-    for(int i = -5; i < 5; ++i)
+    
+    vec4 c00 = texelFetch(mainTex, coord + ivec2(-1,-1), 0);
+    vec4 c01 = texelFetch(mainTex, coord + ivec2(-1, 0), 0);
+    vec4 c02 = texelFetch(mainTex, coord + ivec2(-1, 1), 0);
+    vec4 c10 = texelFetch(mainTex, coord + ivec2(0, -1), 0);
+    vec4 c12 = texelFetch(mainTex, coord + ivec2(0, 1), 0);
+    vec4 c20 = texelFetch(mainTex, coord + ivec2(1, -1), 0);
+    vec4 c21 = texelFetch(mainTex, coord + ivec2(1, 0), 0);
+    vec4 c22 = texelFetch(mainTex, coord + ivec2(1, 1), 0);
+
+    // x axis
+    vec4 xVal = c00 * -1 + c01 * -2 + c02 * -1 + c20 * 1 + c21 * 2 + c22 * 1;
+    vec4 yVal = c00 * -1 + c10 * -2 + c20 * -1 + c02 * 1 + c12 * 2 + c22 * 1;
+
+    if (dot(xVal, yVal) != 0)
     {
-        for (int j = -5; j < 5; ++j)
-        {
-            vec4 col = texelFetch(mainTex, coord + ivec2(i,j), 0);
-            if (col.x != 0)
-            {
-                o_Color = vec4(1, 0.647, 0, 1);
-                return;
-            }
-        }
+        o_Color = vec4(1, 0.647, 0, 1);
+        return;
     }
+
     o_Color = vec4(0,0,0,0);
 }
 
