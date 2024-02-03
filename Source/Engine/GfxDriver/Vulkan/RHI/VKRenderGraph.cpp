@@ -12,6 +12,7 @@ namespace Gfx::VK::RenderGraph
 class Graph::ResourceAllocator
 {
 public:
+    ResourceAllocator(Graph* graph) : graph(graph) {}
     VKImage* GetImage(uint64_t hash)
     {
         auto iter = images.find(hash);
@@ -138,7 +139,29 @@ public:
 
     void Tick()
     {
-        UpdateResources(images);
+        // remove images
+        int removeCount = 0;
+        uint64_t readyToRemove[8];
+        for (auto& iter : images)
+        {
+            if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
+            {
+                readyToRemove[removeCount++] = iter.first;
+                for (auto& r : graph->globalResourcePool)
+                {
+                    if (r.second.res == iter.second.image.get())
+                    {
+                        r.second.res = nullptr;
+                    }
+                }
+            }
+            iter.second.frameCountFromLastRequest += 1;
+        }
+        for (int i = 0; i < removeCount; ++i)
+        {
+            images.erase(readyToRemove[i]);
+        }
+
         UpdateResources(renderPasses);
     }
 
@@ -155,6 +178,7 @@ private:
         int frameCountFromLastRequest = 0;
     };
 
+    Graph* graph;
     std::unordered_map<uint64_t, AllocatedImage> images;
     std::unordered_map<uint64_t, AllocatedRenderPass> renderPasses;
 
@@ -1366,6 +1390,8 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
                     }
                     else if ((binding->type == ShaderInfo::BindingType::SeparateImage || binding->type == ShaderInfo::BindingType::Texture) && resourceFromPool->second.type == ResourceType::Image)
                     {
+                        if (resourceFromPool->second.res == nullptr)
+                            int x = 0;
                         resource.SetImage(binding->resourceHandle, (VKImage*)resourceFromPool->second.res);
                     }
                 }
@@ -1381,7 +1407,7 @@ VKImage* Graph::GetImage(uint64_t hash)
 
 Graph::Graph()
 {
-    resourceAllocator = std::make_unique<ResourceAllocator>();
+    resourceAllocator = std::make_unique<ResourceAllocator>(this);
 }
 Graph::~Graph() {}
 

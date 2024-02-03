@@ -46,7 +46,10 @@ void VKShaderResource::SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer)
     auto old = bindings[handle].res;
     if (old != buffer)
     {
-        bindings[handle] = {buffer, ResourceType::Buffer};
+        if (buffer == nullptr)
+            bindings.erase(handle);
+        else
+            bindings[handle] = {buffer, ResourceType::Buffer};
         RebuildAll();
     }
 }
@@ -56,7 +59,10 @@ void VKShaderResource::SetImage(ResourceHandle handle, Gfx::Image* image)
     auto old = bindings[handle].res;
     if (old != &image->GetDefaultImageView())
     {
-        bindings[handle] = {&image->GetDefaultImageView(), ResourceType::ImageView};
+        if (image == nullptr)
+            bindings.erase(handle);
+        else
+            bindings[handle] = {&image->GetDefaultImageView(), ResourceType::ImageView};
         RebuildAll();
     }
 }
@@ -66,12 +72,15 @@ void VKShaderResource::SetImage(ResourceHandle handle, Gfx::ImageView* imageView
     auto old = bindings[handle].res;
     if (old != imageView)
     {
-        bindings[handle] = {imageView, ResourceType::ImageView};
+        if (imageView == nullptr)
+            bindings.erase(handle);
+        else
+            bindings[handle] = {imageView, ResourceType::ImageView};
         RebuildAll();
     }
 }
 
-void VKShaderResource::SetImage(ResourceHandle handle, nullptr_t)
+void VKShaderResource::Remove(ResourceHandle handle)
 {
     if (bindings.contains(handle))
     {
@@ -306,7 +315,7 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
 )
 {
     auto iter = sets.find(shaderProgram);
-    if (iter == sets.end())
+    if (iter == sets.end() || iter->second.rebuild)
     {
         GetDescriptorSet(set, shaderProgram);
         iter = sets.find(shaderProgram);

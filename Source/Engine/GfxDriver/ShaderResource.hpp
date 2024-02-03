@@ -20,8 +20,12 @@ public:
     virtual void SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer) = 0;
     virtual void SetImage(ResourceHandle handle, Gfx::Image* buffer) = 0;
     virtual void SetImage(ResourceHandle handle, Gfx::ImageView* imageView) = 0;
-    virtual void SetImage(ResourceHandle handle, nullptr_t) = 0;
+    virtual void Remove(ResourceHandle handle) = 0;
 
+    void Remove(std::string_view name)
+    {
+        Remove(ResourceHandle(name));
+    }
     void SetBuffer(std::string_view name, Gfx::Buffer* buffer)
     {
         SetBuffer(ResourceHandle(name), buffer);
@@ -33,10 +37,6 @@ public:
     void SetImage(std::string_view name, Gfx::ImageView* imageView)
     {
         SetImage(ResourceHandle(name), imageView);
-    }
-    void SetImage(std::string_view name, nullptr_t)
-    {
-        SetImage(ResourceHandle(name), nullptr);
     }
 
     virtual ~ShaderResource(){};

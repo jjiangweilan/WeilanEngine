@@ -41,7 +41,7 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
     textureValues.erase(param);
     if (shaderResource != nullptr)
-        shaderResource->SetImage(param, nullptr);
+        shaderResource->Remove(param);
     SetDirty();
 }
 

@@ -57,7 +57,7 @@ public:
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(ResourceHandle handle, Gfx::Image* image) override;
     void SetImage(ResourceHandle handle, Gfx::ImageView* imageView) override;
-    void SetImage(ResourceHandle handle, nullptr_t) override;
+    void Remove(ResourceHandle handle) override;
 
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
     const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
