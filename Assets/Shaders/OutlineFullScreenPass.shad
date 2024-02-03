@@ -59,7 +59,7 @@ void main() {
     vec4 xVal = c00 * -1 + c01 * -2 + c02 * -1 + c20 * 1 + c21 * 2 + c22 * 1;
     vec4 yVal = c00 * -1 + c10 * -2 + c20 * -1 + c02 * 1 + c12 * 2 + c22 * 1;
 
-    if (dot(xVal, yVal) != 0)
+    if (dot(xVal, xVal) != 0 || dot(yVal, yVal) != 0)
     {
         o_Color = vec4(1, 0.647, 0, 1);
         return;

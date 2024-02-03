@@ -99,7 +99,7 @@ static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
         intersected.reserve(32);
         for (auto obj : objs)
         {
-            if (obj == nullptr)
+            if (obj == nullptr || !obj->IsEnabled())
                 continue;
 
             float distance = std::numeric_limits<float>::max();
