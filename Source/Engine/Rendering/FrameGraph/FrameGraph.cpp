@@ -4,6 +4,7 @@
 #include "Core/Texture.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
+#include <stack>
 
 namespace FrameGraph
 {
@@ -194,6 +195,65 @@ void Graph::ProcessLights(Scene& gameScene)
     if (light)
     {
         sceneInfo.worldToShadow = light->WorldToShadowMatrix();
+    }
+}
+static void SortNodesInternal(
+    FGID visit,
+    std::unordered_map<FGID, std::vector<FGID>>& fromNodeToNode,
+    std::unordered_map<FGID, bool>& visited,
+    std::stack<FGID>& stack
+)
+{
+    visited[visit] = true;
+
+    for (auto& id : fromNodeToNode[visit])
+    {
+        if (!visited[id])
+            SortNodesInternal(id, fromNodeToNode, visited, stack);
+    }
+
+    stack.push(visit);
+}
+
+void Graph::SortNodes()
+{
+    std::unordered_map<FGID, std::vector<FGID>> fromNodeToNode;
+    for (FGID connection : connections)
+    {
+        FGID fromNode = GetSrcNodeIDFromConnect(connection);
+        FGID toNode = GetDstNodeIDFromConnect(connection);
+
+        fromNodeToNode[fromNode].push_back(toNode);
+    }
+
+    std::unordered_map<FGID, bool> visited;
+    for (auto& n : fromNodeToNode)
+    {
+        visited[n.first] = false;
+    }
+
+    bool allFinished = true;
+    std::stack<FGID> sorted;
+    do
+    {
+        allFinished = true;
+        for (auto& n : visited)
+        {
+            if (n.second == false)
+            {
+                allFinished = false;
+                SortNodesInternal(n.first, fromNodeToNode, visited, sorted);
+                break;
+            }
+        }
+    }
+    while (!allFinished);
+
+    this->sortedNodes.clear();
+    while (sorted.empty() == false)
+    {
+        this->sortedNodes.push_back(GetNode(sorted.top()));
+        sorted.pop();
     }
 }
 
