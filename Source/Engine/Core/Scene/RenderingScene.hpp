@@ -8,6 +8,7 @@
 class MeshRenderer;
 class SceneEnvironment;
 class Terrain;
+class Cloud;
 class RenderingScene
 {
 public:
@@ -49,24 +50,44 @@ public:
         return terrain;
     }
 
-    void AddRenderer(MeshRenderer& meshRenderer)
+    void AddRenderer(MeshRenderer& renderingObject)
     {
-        meshRenderers.push_back(&meshRenderer);
+        meshRenderers.push_back(&renderingObject);
     }
 
-    void RemoveRenderer(MeshRenderer& meshRenderer)
+    void AddRenderer(Cloud& renderingObject)
     {
-        auto iter = std::find(meshRenderers.begin(), meshRenderers.end(), &meshRenderer);
+        clouds.push_back(&renderingObject);
+    }
+
+    void RemoveRenderer(MeshRenderer& renderingObject)
+    {
+        auto iter = std::find(meshRenderers.begin(), meshRenderers.end(), &renderingObject);
         if (iter != meshRenderers.end())
         {
             std::swap(*iter, meshRenderers.back());
             meshRenderers.pop_back();
         }
-    };
+    }
 
-    const std::vector<MeshRenderer*>& GetRenderers()
+    void RemoveRenderer(Cloud& renderingObject)
+    {
+        auto iter = std::find(clouds.begin(), clouds.end(), &renderingObject);
+        if (iter != clouds.end())
+        {
+            std::swap(*iter, clouds.back());
+            clouds.pop_back();
+        }
+    }
+
+    const std::vector<MeshRenderer*>& GetMeshRenderers()
     {
         return meshRenderers;
+    }
+
+    const std::vector<Cloud*>& GetClouds()
+    {
+        return clouds;
     }
 
     SceneEnvironment* GetSceneEnvironment()
@@ -76,6 +97,7 @@ public:
 
 private:
     std::vector<MeshRenderer*> meshRenderers;
+    std::vector<Cloud*> clouds;
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
 };
