@@ -5,19 +5,13 @@
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
-Cloud::Cloud(GameObject* parent) : Cloud(parent, nullptr, nullptr) {}
+Cloud::Cloud() : Component(nullptr), mesh(nullptr){};
 
-Cloud::Cloud() : Component(nullptr), mesh(nullptr), materials(){};
+Cloud::Cloud(GameObject* owner) : Component(owner), mesh(nullptr){};
 
 void Cloud::SetMesh(Mesh* mesh)
 {
     this->mesh = mesh;
-    this->materials.resize(mesh->GetSubmeshes().size());
-}
-
-void Cloud::SetMaterials(std::span<Material*> materials)
-{
-    this->materials = std::vector<Material*>(materials.begin(), materials.end());
 }
 
 Mesh* Cloud::GetMesh()
@@ -25,16 +19,12 @@ Mesh* Cloud::GetMesh()
     return mesh;
 }
 
-const std::vector<Material*>& Cloud::GetMaterials()
-{
-    return materials;
-}
-
 void Cloud::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     s->Serialize("mesh", mesh);
 }
+
 void Cloud::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
