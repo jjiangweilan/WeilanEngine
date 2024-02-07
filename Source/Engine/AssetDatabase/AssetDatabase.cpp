@@ -354,9 +354,11 @@ void AssetDatabase::LoadEngineInternal()
     f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
     f("0138F949-B23B-48F6-9C25-4138EB0A6A0C", "Shaders/Game/SurfelCube.shad");
     f("B13C7AA7-AD74-4641-9A1A-AA7C7A153B5C", "Shaders/Game/Skybox.shad");
+    f("E5C9437D-F308-41D7-8C41-97A1FC45DBFD", "Shaders/Game/VolumetricFog.shad");
     f("B307F24D-658B-4FE9-835E-5F11302E6B67", "Shaders/Game/PostProcess/FXAA.shad");
     f("6F2137D1-345A-40CE-B1BD-11585675D36D", "Shaders/Game/PostProcess/ReinhardToneMapping.shad");
     f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
+    f("4EBE2B1B-22F6-43BC-93AA-4A3FCEE47694", "Shaders/Utils/RayMarcher.shad");
     f("E1E88FC8-45F0-495E-A3A6-6774D0B74281", "Shaders/OutlineRawColorPass.shad");
     f("D2F7271E-B38D-4C96-A4F6-EB8850591D79", "Shaders/OutlineFullScreenPass.shad");
     f("46BFD6F6-3E6E-4E48-97F8-A15561AFFBF5", "Shaders/Utils/BoxFilter.shad");

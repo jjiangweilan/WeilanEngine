@@ -1,0 +1,63 @@
+#version 450
+#include "Common/Lighting/Lighting.glsl"
+#if CONFIG
+name: Utils/RayMarcher
+#endif
+
+layout( push_constant ) uniform Transform
+{
+    mat4 model;
+} pconst;
+
+#define MAX_LIGHT_COUNT 32
+layout(set = 0, binding = 0) uniform SceneInfo
+{
+    vec4 viewPos;
+    mat4 view;
+    mat4 projection;
+    mat4 viewProjection;
+    mat4 worldToShadow;
+    vec4 lightCount; // x: lightCount
+    vec4 shadowMapSize;
+    Light lights[MAX_LIGHT_COUNT];
+} scene;
+
+struct VertexOutput {
+    vec3 positionWS;
+    vec2 uv;
+};
+
+#if VERT
+layout(location = 0) in vec3 iPosition;
+layout(location = 1) in vec3 iNormal;
+layout(location = 2) in vec2 iUV;
+
+layout(location = 0) out VertexOutput oVert;
+#define MAX_LIGHT_COUNT 32
+void main()
+{
+    vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
+    oVert.positionWS = positionWS;
+    oVert.uv = iUV;
+
+    gl_Position = scene.viewProjection * vec4(positionWS, 1);
+}
+#endif
+
+#if FRAG
+
+layout(set = 2, binding = 0) uniform Properties
+{
+    vec4 color;
+} vals;
+
+layout(location = 0) in VertexOutput iFrag;
+layout(set = 0, binding = 1) uniform sampler2D fogMap;
+
+layout(location = 0) out vec4 oColor;
+
+void main()
+{
+    oColor = vec4(texture(fogMap, iFrag.uv).xyz, 1.0);
+}
+#endif

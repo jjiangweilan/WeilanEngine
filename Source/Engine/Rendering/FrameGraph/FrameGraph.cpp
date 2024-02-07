@@ -2,6 +2,7 @@
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Texture.hpp"
+#include "Core/Time.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 
@@ -216,6 +217,9 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
+    globalInfo.time = Time::TimeSinceLuanch();
+    GetGfxDriver()->UploadBuffer(*globalInfoBuffer, (uint8_t*)&globalInfo, sizeof(GlobalInfo), 0);
+    cmd.SetUniformBuffer("Global", *globalInfoBuffer);
     for (auto& n : nodes)
     {
         n->Execute(renderingData);
@@ -261,6 +265,13 @@ bool Graph::Compile()
          .size = sizeof(SceneInfo),
          .visibleInCPU = false,
          .debugName = "Scene Info Buffer",
+         .gpuWrite = true}
+    );
+    globalInfoBuffer = GetGfxDriver()->CreateBuffer(
+        {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+         .size = sizeof(GlobalInfo),
+         .visibleInCPU = false,
+         .debugName = "Glbal Info Buffer",
          .gpuWrite = true}
     );
 

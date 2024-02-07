@@ -167,6 +167,11 @@ private:
         float padding1;
     };
 
+    struct GlobalInfo
+    {
+        float time;
+    } globalInfo;
+
     static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
     struct SceneInfo
     {
@@ -192,6 +197,7 @@ private:
 
     std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;
+    std::unique_ptr<Gfx::Buffer> globalInfoBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     bool HasCycleIfLink(FGID src, FGID dst)

@@ -159,7 +159,7 @@ public:
         subpasses.resize(subpassCount);
     }
 
-    void SetAttachment(int index, AttachmentIdentifier id)
+    void SetAttachment(int index, const AttachmentIdentifier& id)
     {
         if (index < attachments.size())
         {

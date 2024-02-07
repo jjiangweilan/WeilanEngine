@@ -23,6 +23,10 @@ public:
 
     std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
     {
+        volumetricFogShader = static_cast<Shader*>(
+            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/VolumetricFog.shad")
+        );
+
         glm::vec4* clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
         auto opaqueColorHandle = RenderGraph::StrToHandle("opaque color");
         auto opaqueDepthHnadle = RenderGraph::StrToHandle("opaque depth");
@@ -55,6 +59,8 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
+            FogPass(cmd);
+
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
             uint32_t height = color->GetDescription().height;
@@ -124,6 +130,26 @@ public:
         };
     }
 
+    void FogPass(Gfx::CommandBuffer& cmd)
+    {
+        Gfx::RG::AttachmentDescription desc(512, 512, Gfx::ImageFormat::R8G8B8A8_SRGB);
+        cmd.AllocateAttachment(fogRT, desc);
+
+        fogGenerationPass.SetAttachment(0, fogRT);
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+        Rect2D rect{{0, 0}, {512, 512}};
+        cmd.SetViewport({0, 0, 512, 512, 0, 1});
+        cmd.SetScissor(0, 1, &rect);
+        cmd.BeginRenderPass(fogGenerationPass, clears);
+        cmd.BindShaderProgram(
+            volumetricFogShader->GetDefaultShaderProgram(),
+            volumetricFogShader->GetDefaultShaderConfig()
+        );
+        cmd.Draw(6, 1, 0, 0);
+        cmd.EndRenderPass();
+        cmd.SetTexture("fogMap", fogRT);
+    }
+
     bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
@@ -149,6 +175,10 @@ public:
     void Execute(RenderingData& renderingData) override {}
 
 private:
+    Gfx::RG::RenderPass fogGenerationPass = Gfx::RG::RenderPass::SingleColor();
+    Gfx::RG::AttachmentIdentifier fogRT;
+    Shader* volumetricFogShader;
+
     RenderGraph::RenderNode* forwardNode;
     const DrawList* drawList;
     std::vector<Gfx::ClearValue> clearValues;

@@ -8,14 +8,25 @@ public:
 
     static float DeltaTime()
     {
-        return DeltaTimeIntenral();
+        return GetTimeInternal().deltaTime;
     }
+
+    static float TimeSinceLuanch()
+    {
+        return GetTimeInternal().timeSinceLuanch;
+    };
 
 private:
     using Clock = std::chrono::high_resolution_clock;
     using TimePoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-    static float& DeltaTimeIntenral();
+    Time();
 
-    static TimePoint lastTime;
+    static Time& GetTimeInternal();
+
+    TimePoint lastTime;
+    TimePoint launchTime;
+
+    float timeSinceLuanch;
+    float deltaTime;
 };
