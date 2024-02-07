@@ -35,7 +35,7 @@ public:
         drawList->clear();
 
         Scene* scene = renderingData.mainCamera->GetGameObject()->GetScene();
-        for (auto r : scene->GetRenderingScene().GetRenderers())
+        for (auto r : scene->GetRenderingScene().GetMeshRenderers())
         {
             if (r && r->IsEnabled())
             {

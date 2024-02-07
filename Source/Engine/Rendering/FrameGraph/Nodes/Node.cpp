@@ -171,36 +171,77 @@ void DrawList::Add(MeshRenderer& meshRenderer)
     auto& submeshes = mesh->GetSubmeshes();
     auto& materials = meshRenderer.GetMaterials();
 
-    for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
+    if (!meshRenderer.IsMultipassEnabled())
     {
-        auto material = i < materials.size() ? materials[i] : nullptr;
-        auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
-        auto shader = material ? material->GetShaderProgram() : nullptr;
-
-        if (submesh != nullptr && material != nullptr && shader != nullptr)
+        for (int i = 0; i < submeshes.size() || i < materials.size(); ++i)
         {
-            // material->SetMatrix("Transform", "model",
-            // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
-            uint32_t indexCount = submesh->GetIndexCount();
+            auto material = i < materials.size() ? materials[i] : nullptr;
+            auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
+            auto shader = material ? material->GetShaderProgram() : nullptr;
 
-            SceneObjectDrawData drawData;
-            drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
-            for (auto& binding : submesh->GetBindings())
+            if (submesh != nullptr && material != nullptr && shader != nullptr)
             {
-                drawData.vertexBufferBinding.push_back({submesh->GetVertexBuffer(), binding.byteOffset});
+                // material->SetMatrix("Transform", "model",
+                // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+                uint32_t indexCount = submesh->GetIndexCount();
+
+                SceneObjectDrawData drawData;
+                drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
+                for (auto& binding : submesh->GetBindings())
+                {
+                    drawData.vertexBufferBinding.push_back({submesh->GetVertexBuffer(), binding.byteOffset});
+                }
+                drawData.indexBuffer = submesh->GetIndexBuffer();
+                drawData.indexBufferType = submesh->GetIndexBufferType();
+
+                material->UploadDataToGPU();
+                drawData.shaderResource = material->GetShaderResource();
+                drawData.shader = shader;
+                drawData.shaderConfig = &material->GetShaderConfig();
+                auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
+                drawData.pushConstant = modelMatrix;
+                drawData.indexCount = indexCount;
+
+                push_back(std::move(drawData));
             }
-            drawData.indexBuffer = submesh->GetIndexBuffer();
-            drawData.indexBufferType = submesh->GetIndexBufferType();
+        }
+    }
+    else
+    {
+        for (int i = 0; i < materials.size(); ++i)
+        {
+            auto material = materials[i];
+            if (material == nullptr) continue;
 
+            auto shader = material ? material->GetShaderProgram() : nullptr;
             material->UploadDataToGPU();
-            drawData.shaderResource = material->GetShaderResource();
-            drawData.shader = shader;
-            drawData.shaderConfig = &material->GetShaderConfig();
-            auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
-            drawData.pushConstant = modelMatrix;
-            drawData.indexCount = indexCount;
+            for (auto& submesh : submeshes)
+            {
+                if (material != nullptr && shader != nullptr)
+                {
+                    // material->SetMatrix("Transform", "model",
+                    // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+                    uint32_t indexCount = submesh.GetIndexCount();
 
-            push_back(std::move(drawData));
+                    SceneObjectDrawData drawData;
+                    drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
+                    for (auto& binding : submesh.GetBindings())
+                    {
+                        drawData.vertexBufferBinding.push_back({submesh.GetVertexBuffer(), binding.byteOffset});
+                    }
+                    drawData.indexBuffer = submesh.GetIndexBuffer();
+                    drawData.indexBufferType = submesh.GetIndexBufferType();
+
+                    drawData.shaderResource = material->GetShaderResource();
+                    drawData.shader = shader;
+                    drawData.shaderConfig = &material->GetShaderConfig();
+                    auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
+                    drawData.pushConstant = modelMatrix;
+                    drawData.indexCount = indexCount;
+
+                    push_back(std::move(drawData));
+                }
+            }
         }
     }
 }

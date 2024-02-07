@@ -188,6 +188,7 @@ private:
     IDPool nodeIDPool;
     std::vector<FGID> connections;
     std::vector<std::unique_ptr<Node>> nodes;
+    std::vector<Node*> sortedNodes;
 #if ENGINE_EDITOR
     ax::NodeEditor::EditorContext* graphContext;
 #endif
@@ -210,6 +211,8 @@ private:
     {
         compiled = false;
     }
+
+    void SortNodes();
 };
 
 } // namespace FrameGraph

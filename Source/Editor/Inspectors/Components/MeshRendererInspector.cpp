@@ -17,6 +17,27 @@ public:
         if (mesh)
             meshGUIID = mesh->GetName();
 
+        bool multipass = meshRenderer->IsMultipassEnabled();
+        if (ImGui::Checkbox("Multipass", &multipass))
+        {
+            if (multipass)
+                meshRenderer->EnableMultipass();
+            else
+                meshRenderer->DisableMultipass();
+        }
+
+        if (multipass)
+        {
+            int size = meshRenderer->GetMaterialSize();
+            if (ImGui::InputInt("Material Size", &size))
+            {
+                if (meshRenderer->GetMaterialSize() != size)
+                {
+                    meshRenderer->SetMaterialSize(size);
+                }
+            }
+        }
+
         ImGui::Text("Mesh: ");
         ImGui::SameLine();
 

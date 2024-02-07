@@ -17,6 +17,41 @@ public:
     MeshRenderer(GameObject* owner);
     ~MeshRenderer() override{};
 
+    // multi pass MeshRenderer draw the mesh multiple times using the materials
+    // in pipeline it does:
+    // 1. bind material 0
+    //   draw mesh -- all submeshes
+    // 2. bindg material 1
+    //   draw mesh -- all submeshes
+    // ...
+    void EnableMultipass()
+    {
+        multipass = true;
+    }
+
+    void DisableMultipass()
+    {
+        multipass = false;
+    }
+
+    bool IsMultipassEnabled()
+    {
+        return multipass;
+    }
+
+    void SetMaterialSize(int size)
+    {
+        if (size >= 0)
+        {
+            materials.resize(size);
+        }
+    }
+
+    int GetMaterialSize()
+    {
+        return materials.size();
+    }
+
     void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
@@ -31,6 +66,7 @@ private:
     Mesh* mesh = nullptr;
     std::vector<Material*> materials = {};
     AABB aabb;
+    bool multipass = false;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
