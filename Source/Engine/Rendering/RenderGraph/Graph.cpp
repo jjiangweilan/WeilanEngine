@@ -18,22 +18,6 @@ ResourceHandle StrToHandle(const std::string& str)
 
 void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {
-    RenderNode* present = AddNode(
-        [](auto& cmd, auto& renderPass, const auto& bufs) {},
-        {{
-            .name = "swapchainImage",
-            .handle = 0,
-            .type = ResourceType::Image,
-            .accessFlags = Gfx::AccessMask::None,
-            .stageFlags = Gfx::PipelineStage::Bottom_Of_Pipe,
-            .imageUsagesFlags = Gfx::ImageUsage::TransferDst,
-            .imageLayout = Gfx::ImageLayout::Present_Src_Khr,
-        }},
-        {}
-    );
-
-    Connect(presentNode, resourceHandle, present, 0);
-
     Process();
 
     if (presentNode != nullptr)
@@ -378,15 +362,7 @@ NodeBuilder& NodeBuilder::AllocateRT(
                            ? Gfx::ImageLayout::Depth_Stencil_Attachment
                            : Gfx::ImageLayout::Color_Attachment, // changed later in AddColor
 
-        .imageCreateInfo =
-            {
-                .width = width,
-                .height = height,
-                .format = format,
-                .multiSampling = multiSampling,
-                .mipLevels = mipLevel,
-                .isCubemap = false,
-            },
+        .imageCreateInfo = Gfx::ImageDescription(width, height, 1, format, multiSampling, mipLevel, false),
 
         .externalImage = nullptr,
     };

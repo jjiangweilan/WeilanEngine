@@ -34,15 +34,15 @@ public:
             Gfx::ClearValue{1, 0},
         };
 
-        RenderGraph::RenderPass::ImageView
-            v{.imageViewType = Gfx::ImageViewType::Image_2D,
-              .subresourceRange = {
-                  .aspectMask = Gfx::ImageAspectFlags::Color,
-                  .baseMipLevel = 0,
-                  .levelCount = 1,
-                  .baseArrayLayer = 0,
-                  .layerCount = 1,
-              }};
+        RenderGraph::RenderPass::ImageView v{
+            .imageViewType = Gfx::ImageViewType::Image_2D,
+            .subresourceRange = {
+                .aspectMask = Gfx::ImageAspectFlags::Color,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            }};
         surfelDrawScene = graph.AddNode(
             [=](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
             {
@@ -83,15 +83,15 @@ public:
                     .imageUsagesFlags = Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc |
                                         Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::ColorAttachment,
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                    .imageCreateInfo =
-                        {
-                            .width = size,
-                            .height = size,
-                            .format = Gfx::ImageFormat::R32G32B32A32_SFloat,
-                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                            .mipLevels = mipLevel,
-                            .isCubemap = false,
-                        },
+                    .imageCreateInfo = Gfx::ImageDescription(
+                        size,
+                        size,
+                        1,
+                        Gfx::ImageFormat::R32G32B32A32_SFloat,
+                        Gfx::MultiSampling::Sample_Count_1,
+                        mipLevel,
+                        false
+                    ),
                 },
                 {
                     .name = "surfel normal",
@@ -104,12 +104,13 @@ public:
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = size,
-                            .height = size,
-                            .format = Gfx::ImageFormat::R32G32B32A32_SFloat,
-                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                            .mipLevels = mipLevel,
-                            .isCubemap = false,
+                            size,
+                            size,
+                            1,
+                            Gfx::ImageFormat::R32G32B32A32_SFloat,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            mipLevel,
+                            false,
                         },
                 },
                 {
@@ -123,12 +124,13 @@ public:
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = size,
-                            .height = size,
-                            .format = Gfx::ImageFormat::R32G32B32A32_SFloat,
-                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                            .mipLevels = mipLevel,
-                            .isCubemap = false,
+                            size,
+                            size,
+                            1,
+                            Gfx::ImageFormat::R32G32B32A32_SFloat,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            mipLevel,
+                            false,
                         },
                 },
                 {
@@ -143,12 +145,13 @@ public:
                     .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
                     .imageCreateInfo =
                         {
-                            .width = size,
-                            .height = size,
-                            .format = Gfx::ImageFormat::D32_SFloat,
-                            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                            .mipLevels = 1,
-                            .isCubemap = false,
+                            size,
+                            size,
+                            1,
+                            Gfx::ImageFormat::D32_SFloat,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            1,
+                            false,
                         },
                 },
             },

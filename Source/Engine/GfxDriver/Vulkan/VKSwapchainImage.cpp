@@ -27,14 +27,11 @@ void VKSwapChainImage::Recreate(
     {
         VKImage* ptr = new VKImage(
             image,
-            {
-                .width = width,
-                .height = height,
-                .format = MapVKFormat(format),
-                .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-                .mipLevels = 1,
-                .isCubemap = false,
-            },
+            ImageDescription(
+                width,
+                height,
+                MapVKFormat(format)
+            ),
             usageFlags
         );
         // static_cast<VKImageView&>(ptr->GetDefaultImageView()).ChangeOwner(this);

@@ -157,6 +157,7 @@ enum Enum : uint32_t
     ColorAttachment = 0x1,
     DepthStencilAttachment = 0x2,
     Texture = 0x4,
+    Storage = 0x8,
 
     TransferSrc = 0x8, // deprecated
     TransferDst = 0x10 // deprecated

@@ -331,14 +331,11 @@ std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     int width, height, bytePerPixel;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
     auto fontImage = GetGfxDriver()->CreateImage(
-        {
-            .width = (uint32_t)width,
-            .height = (uint32_t)height,
-            .format = Gfx::ImageFormat::R8G8B8A8_UNorm,
-            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 1,
-            .isCubemap = false,
-        },
+        Gfx::ImageDescription(
+            (uint32_t)width,
+            (uint32_t)height,
+            Gfx::ImageFormat::R8G8B8A8_UNorm
+        ),
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
     fontImage->SetName("ImGUI font");

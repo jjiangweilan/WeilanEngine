@@ -189,14 +189,11 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     GetGfxDriver()->WaitForIdle();
     sceneImage = GetGfxDriver()->CreateImage(
-        {
-            .width = width,
-            .height = height,
-            .format = Gfx::ImageFormat::R8G8B8A8_SRGB,
-            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 1,
-            .isCubemap = false,
-        },
+        Gfx::ImageDescription(
+            width,
+            height,
+            Gfx::ImageFormat::R8G8B8A8_SRGB
+        ),
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 

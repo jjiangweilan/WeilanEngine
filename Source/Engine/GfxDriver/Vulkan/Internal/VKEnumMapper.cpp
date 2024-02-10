@@ -230,6 +230,10 @@ VkImageUsageFlags MapImageUsage(ImageUsageFlags in)
         flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     if (in & ImageUsage::TransferDst)
         flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (in & ImageUsage::Storage)
+        flags |=
+            (VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+             VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
     return flags;
 }

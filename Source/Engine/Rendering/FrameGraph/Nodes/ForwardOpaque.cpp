@@ -55,6 +55,7 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
+
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
             uint32_t height = color->GetDescription().height;
@@ -152,6 +153,8 @@ private:
 
     Mesh* cube;
     Shader* skyboxShader;
+    ComputeShader* fluidCompute;
+    std::unique_ptr<Gfx::Image> fog;
     std::unique_ptr<Gfx::ShaderResource> skyboxResources;
 
     void DefineNode()
@@ -167,7 +170,19 @@ private:
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
         clearValues.resize(2);
+
+        fluidCompute = static_cast<ComputeShader*>(
+            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
+        );
     }
+
+    void MakeFog(Gfx::CommandBuffer& cmd)
+    {
+        cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
+        cmd.SetTexture("imgOutput", *fog);
+        cmd.Dispatch(16, 16, 16);
+    }
+
     static char _reg;
 }; // namespace FrameGraph
 

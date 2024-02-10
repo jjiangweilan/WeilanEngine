@@ -286,15 +286,15 @@ public:
                     .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
                     .imageUsagesFlags = Gfx::ImageUsage::ColorAttachment,
                     .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                    .imageCreateInfo =
-                        {
-                            .width = color.create ? subpass.width : 0,
-                            .height = color.create ? subpass.height : 0,
-                            .format = color.format,
-                            .multiSampling = color.multiSampling,
-                            .mipLevels = color.mipLevels,
-                            .isCubemap = color.isCubemap,
-                        },
+                    .imageCreateInfo = Gfx::ImageDescription(
+                        color.create ? subpass.width : 0,
+                        color.create ? subpass.height : 0,
+                        1,
+                        color.format,
+                        color.multiSampling,
+                        color.mipLevels,
+                        color.isCubemap
+                    ),
                     .externalImage = color.externalImage,
                 };
 
@@ -349,15 +349,15 @@ public:
                     .stageFlags = Gfx::PipelineStage::Early_Fragment_Tests | Gfx::PipelineStage::Late_Fragment_Tests,
                     .imageUsagesFlags = Gfx::ImageUsage::DepthStencilAttachment,
                     .imageLayout = Gfx::ImageLayout::Depth_Stencil_Attachment,
-                    .imageCreateInfo =
-                        {
-                            .width = subpass.depth->create ? subpass.width : 0,
-                            .height = subpass.depth->create ? subpass.height : 0,
-                            .format = subpass.depth->format,
-                            .multiSampling = subpass.depth->multiSampling,
-                            .mipLevels = subpass.depth->mipLevels,
-                            .isCubemap = subpass.depth->isCubemap,
-                        },
+                    .imageCreateInfo = Gfx::ImageDescription(
+                        subpass.depth->create ? subpass.width : 0,
+                        subpass.depth->create ? subpass.height : 0,
+                        1,
+                        subpass.depth->format,
+                        subpass.depth->multiSampling,
+                        subpass.depth->mipLevels,
+                        subpass.depth->isCubemap
+                    ),
                     .externalImage = subpass.depth->externalImage,
                 };
 

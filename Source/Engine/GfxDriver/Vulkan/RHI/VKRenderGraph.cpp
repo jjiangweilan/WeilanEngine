@@ -37,6 +37,7 @@ public:
             Gfx::ImageDescription imageDesc;
             imageDesc.width = desc.GetWidth();
             imageDesc.height = desc.GetHeight();
+            imageDesc.depth = 1;
             imageDesc.format = desc.GetFormat();
             imageDesc.multiSampling = MultiSampling::Sample_Count_1;
             imageDesc.mipLevels = 1;
@@ -48,8 +49,7 @@ public:
                     Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc |
                         Gfx::ImageUsage::Texture
                 ),
-                0
-            };
+                0};
 
             return images[hash].image.get();
         }
@@ -939,8 +939,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -952,8 +951,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
