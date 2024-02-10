@@ -212,8 +212,10 @@ ShaderStage::Flag MapStage(const std::string& str)
 {
     if (str == "vert")
         return ShaderStage::Vert;
-    if (str == "frag")
+    else if (str == "frag")
         return ShaderStage::Frag;
+    else if (str == "comp")
+        return ShaderStage::Comp;
 
     assert(0 && "Map stage failed");
     return ShaderStage::Vert;

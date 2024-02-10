@@ -1,0 +1,18 @@
+#version 450
+
+#if CONFIG
+name: Game/Fluid/Fog
+#endif
+
+#if COMP
+
+layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+layout(r32f) uniform image3D imgOutput;
+
+void main() {
+    ivec3 coord = ivec3(gl_GlobalInvocationID.xyz);
+    imageStore(imgOutput, coord, vec4(1.0f));
+}
+#endif
+
+

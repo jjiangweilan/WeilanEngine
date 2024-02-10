@@ -256,6 +256,7 @@ ENUM_FLAGS(AccessMask, uint64_t){
 bool HasWriteAccessMask(AccessMaskFlags flags);
 bool HasReadAccessMask(AccessMaskFlags flags);
 bool IsDepthStencilFormat(ImageFormat format);
+bool HasStencil(ImageFormat format);
 bool IsColoFormat(ImageFormat format);
 uint32_t MapImageFormatToByteSize(ImageFormat format);
 

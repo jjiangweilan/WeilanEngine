@@ -37,7 +37,7 @@ void main()
 
 #if FRAG
 
-layout(set = SET_MATERIAL, binding = 0) uniform Unlit
+layout(set = SET_MATERIAL) uniform Unlit
 {
     vec4 color;
     vec4 emission;

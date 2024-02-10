@@ -225,6 +225,17 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
     return 64;
 };
 
+bool HasStencil(ImageFormat format)
+{
+    switch (format)
+    {
+        case ImageFormat::D16_UNorm_S8_UInt:
+        case ImageFormat::D24_UNorm_S8_UInt:
+        case ImageFormat::D32_SFLOAT_S8_UInt: return true;
+        default: return false;
+    }
+}
+
 bool IsDepthStencilFormat(ImageFormat format)
 {
     switch (format)

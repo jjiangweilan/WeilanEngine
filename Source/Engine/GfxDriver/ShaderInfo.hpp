@@ -135,7 +135,8 @@ namespace ShaderStage
 enum Flag
 {
     Vert = 0x1,
-    Frag = 0x2
+    Frag = 0x2,
+    Comp = 0x4,
 };
 }
 using ShaderStageFlags = uint32_t;
