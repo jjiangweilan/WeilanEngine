@@ -55,6 +55,7 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
+            MakeFog(cmd);
 
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
@@ -174,6 +175,7 @@ private:
         fluidCompute = static_cast<ComputeShader*>(
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
         );
+        fog = GetGfxDriver()->CreateImage({64, 64, 64, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
     }
 
     void MakeFog(Gfx::CommandBuffer& cmd)

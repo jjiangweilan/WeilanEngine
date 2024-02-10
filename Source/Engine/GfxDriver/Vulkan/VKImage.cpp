@@ -68,6 +68,11 @@ VKImage::~VKImage()
 
 void VKImage::MakeVkObjects()
 {
+    if (imageDescription.depth > 1)
+    {
+        imageType_vk = VK_IMAGE_TYPE_3D;
+    }
+
     // create the image
     VkImageCreateInfo imageCreateInfo;
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

@@ -468,7 +468,9 @@ NodeBuilder& NodeBuilder::AddDepthStencil(
                 .imageViewType = Gfx::ImageViewType::Image_2D,
                 .subresourceRange =
                     {
-                        .aspectMask = Gfx::ImageAspect::Depth | Gfx::ImageAspect::Stencil,
+                        .aspectMask = Gfx::ImageAspect::Depth |
+                                      (Gfx::HasStencil(desc.imageCreateInfo.format) ? Gfx::ImageAspect::Stencil
+                                                                                    : Gfx::ImageAspect::None),
                         .baseMipLevel = mip,
                         .levelCount = 1,
                         .baseArrayLayer = arrayLayer,

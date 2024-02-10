@@ -102,6 +102,7 @@ enum class ImageFormat
     R32G32B32A32_UInt,
     R32G32B32A32_SInt,
     R32G32B32A32_SFloat,
+    R32_Float,
     D16_UNorm,
     D16_UNorm_S8_UInt,
     D32_SFloat,

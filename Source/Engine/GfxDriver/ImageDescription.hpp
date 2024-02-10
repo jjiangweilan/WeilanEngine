@@ -25,6 +25,11 @@ struct ImageDescription
           mipLevels(1), isCubemap(false)
     {}
 
+    ImageDescription(uint32_t width, uint32_t height, uint32_t depth, Gfx::ImageFormat format)
+        : width(width), height(height), depth(depth), format(format), multiSampling(MultiSampling::Sample_Count_1),
+          mipLevels(1), isCubemap(false)
+    {}
+
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t depth = 1;
