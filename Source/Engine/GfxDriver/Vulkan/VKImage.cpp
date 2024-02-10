@@ -15,7 +15,8 @@ namespace Gfx
 {
 static bool IsGPUWrite(ImageUsageFlags usageFlags)
 {
-    return (usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment);
+    return (usageFlags & ImageUsage::Storage) ||
+           ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
 VKImage::VKImage() : Image(false), imageView(nullptr){};
@@ -74,7 +75,7 @@ void VKImage::MakeVkObjects()
     imageCreateInfo.flags = imageDescription.isCubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
     imageCreateInfo.imageType = imageType_vk;
     imageCreateInfo.format = format_vk;
-    imageCreateInfo.extent = {imageDescription.width, imageDescription.height, 1};
+    imageCreateInfo.extent = {imageDescription.width, imageDescription.height, imageDescription.depth};
     imageCreateInfo.mipLevels = imageDescription.mipLevels;
     imageCreateInfo.arrayLayers = arrayLayers;
     imageCreateInfo.samples = MapSampleCount(imageDescription.multiSampling);

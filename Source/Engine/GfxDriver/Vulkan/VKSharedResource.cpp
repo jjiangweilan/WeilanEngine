@@ -34,6 +34,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     desc.format = ImageFormat::R8G8B8A8_UNorm;
     desc.height = 2;
     desc.width = 2;
+    desc.depth = 1;
     desc.mipLevels = 1;
     desc.isCubemap = false;
     desc.multiSampling = MultiSampling::Sample_Count_1;
@@ -46,6 +47,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     descCube.format = ImageFormat::R8G8B8A8_UNorm;
     descCube.height = 2;
     descCube.width = 2;
+    descCube.depth = 1;
     descCube.isCubemap = true;
     descCube.multiSampling = MultiSampling::Sample_Count_1;
     descCube.mipLevels = 1;
