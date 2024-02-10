@@ -30,11 +30,6 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
         arrayLayers = 6;
     }
 
-    if (imageDescription.format == Gfx::ImageFormat::D32_SFLOAT_S8_UInt)
-    {
-        int i = 0;
-    }
-
     MakeVkObjects();
     CreateImageView();
 
