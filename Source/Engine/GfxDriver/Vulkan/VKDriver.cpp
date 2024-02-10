@@ -572,7 +572,7 @@ bool VKDriver::EndFrame()
     FrameEndClear();
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
         Surface_QuerySurfaceProperties();
         CreateOrOverrideSwapChain();
@@ -1120,15 +1120,15 @@ void VKDriver::CreateDevice()
 
     VkDeviceCreateInfo deviceCreateInfo = {};
 
-#if __APPLE__
-    for (auto extension : gpu.GetAvailableExtensions())
-    {
-        if (std::strcmp(extension.extensionName, "VK_KHR_portability_subset") == 0)
-        {
-            deviceExtensions.push_back("VK_KHR_portability_subset");
-        }
-    }
-#endif
+    // #if __APPLE__
+    //     for (auto extension : gpu.GetAvailableExtensions())
+    //     {
+    //         if (std::strcmp(extension.extensionName, "VK_KHR_portability_subset") == 0)
+    //         {
+    //             deviceExtensions.push_back("VK_KHR_portability_subset");
+    //         }
+    //     }
+    // #endif
 
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     deviceCreateInfo.pNext = VK_NULL_HANDLE;
@@ -1139,6 +1139,10 @@ void VKDriver::CreateDevice()
     std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+#endif
+
+#if __APPLE__
+    deviceExtensions.push_back("VK_KHR_portability_subset");
 #endif
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
     deviceCreateInfo.enabledExtensionCount = deviceExtensions.size();

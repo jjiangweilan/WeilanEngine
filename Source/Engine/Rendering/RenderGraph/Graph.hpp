@@ -10,6 +10,7 @@
 
 namespace RenderGraph
 {
+class Graph;
 class RenderNode;
 using SortIndex = int;
 

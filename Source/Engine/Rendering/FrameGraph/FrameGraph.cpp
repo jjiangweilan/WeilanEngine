@@ -123,7 +123,10 @@ void Graph::Serialize(Serializer* s) const
     s->Serialize("nodeIDPool", nodeIDPool);
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
-    s->Serialize("outputImageNode", outputImageNode->GetID());
+    FGID id = 0;
+    if (outputImageNode)
+        id = outputImageNode->GetID();
+    s->Serialize("outputImageNode", id);
 }
 
 void Graph::Deserialize(Serializer* s)

@@ -1,4 +1,5 @@
 #include "WeilanEngine.hpp"
+#include "Core/GameLoop.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -11,7 +12,7 @@ WeilanEngine::WeilanEngine() {};
 WeilanEngine::~WeilanEngine()
 {
     gfxDriver->WaitForIdle();
-    physics->Destroy();
+    // physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 }
@@ -38,8 +39,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     AssetDatabase::SingletonReference() = assetDatabase.get();
-    physics = std::make_unique<Physics>();
-    physics->Init();
+    //physics = std::make_unique<Physics>();
+    //physics->Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
@@ -87,7 +88,7 @@ void WeilanEngine::EndFrame()
 
 GameLoop* WeilanEngine::CreateGameLoop()
 {
-    auto loop = std::make_unique<GameLoop>();
+    std::unique_ptr<GameLoop> loop = std::make_unique<GameLoop>();
     auto temp = loop.get();
     gameLoops.push_back(std::move(loop));
     return temp;

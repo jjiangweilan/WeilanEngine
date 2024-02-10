@@ -11,7 +11,7 @@
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
-class Physics;
+// class Physics;
 class WeilanEngine
 {
 public:
@@ -54,7 +54,7 @@ public:
 private:
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
     std::vector<std::unique_ptr<GameLoop>> gameLoops;
-    std::unique_ptr<Physics> physics;
+    // std::unique_ptr<Physics> physics;
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;
