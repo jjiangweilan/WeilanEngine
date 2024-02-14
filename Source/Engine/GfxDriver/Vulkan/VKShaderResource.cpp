@@ -238,7 +238,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                             VKWritableGPUResource gpuResource{
                                 .type = VKWritableGPUResource::Type::Image,
-                                .data = resRef.res,
+                                .data = &imageView->GetImage(),
                                 .stages = pipelineStages,
                                 .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
                                 .imageView = imageView,

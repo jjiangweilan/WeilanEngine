@@ -180,8 +180,8 @@ private:
 
     void MakeFog(Gfx::CommandBuffer& cmd)
     {
-        cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
         cmd.SetTexture("imgOutput", *fog);
+        cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
         cmd.Dispatch(16, 16, 16);
     }
 
