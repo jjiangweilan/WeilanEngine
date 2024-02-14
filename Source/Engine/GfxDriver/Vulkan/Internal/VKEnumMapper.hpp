@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../../GfxEnums.hpp"
 #include <vulkan/vulkan.h>
 namespace Gfx

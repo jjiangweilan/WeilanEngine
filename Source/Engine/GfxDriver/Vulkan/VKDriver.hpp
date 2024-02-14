@@ -104,8 +104,19 @@ public:
     void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
     void UploadImage(
-        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, Gfx::ImageAspect aspect
+        Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
     ) override;
+
+    void UploadImage(
+        Gfx::Image& dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel,
+        uint32_t arrayLayer,
+        Gfx::ImageAspect aspect,
+        VkImageLayout finalLayout
+    );
+
     void GenerateMipmaps(Gfx::Image& image) override
     {
         GenerateMipmaps(static_cast<VKImage&>(image));

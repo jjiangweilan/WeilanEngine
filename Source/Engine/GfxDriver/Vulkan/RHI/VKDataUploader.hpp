@@ -16,10 +16,17 @@ public:
 
     void UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset);
     void UploadImage(
-        VKImage* dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, VkImageAspectFlags aspect
+        VKImage* dst,
+        uint8_t* data,
+        size_t size,
+        uint32_t mipLevel,
+        uint32_t arayLayer,
+        VkImageAspectFlags aspect,
+        VkImageLayout finalLayout
     );
     void UploadAllPending(VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages);
     void WaitForUploadFinish();
+
 private:
     struct PendingBufferUpload
     {
@@ -39,6 +46,7 @@ private:
         uint32_t mipLevel;
         uint32_t arrayLayer;
         VkImageAspectFlags aspect;
+        VkImageLayout finalLayout;
     };
 
     VKDriver* driver;

@@ -349,6 +349,7 @@ void AssetDatabase::LoadEngineInternal()
         return nullptr;
     };
 
+    f("6FB59E89-8943-411A-81C9-B6D12986049E", "Shaders/Game/Fluid/Fog.comp");
     Shader* standardShader = (Shader*)f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
     f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
     f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
@@ -356,7 +357,6 @@ void AssetDatabase::LoadEngineInternal()
     f("B13C7AA7-AD74-4641-9A1A-AA7C7A153B5C", "Shaders/Game/Skybox.shad");
     f("B307F24D-658B-4FE9-835E-5F11302E6B67", "Shaders/Game/PostProcess/FXAA.shad");
     f("6F2137D1-345A-40CE-B1BD-11585675D36D", "Shaders/Game/PostProcess/ReinhardToneMapping.shad");
-    f("6FB59E89-8943-411A-81C9-B6D12986049E", "Shaders/Game/Fluid/Fog.comp");
     f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
     f("E1E88FC8-45F0-495E-A3A6-6774D0B74281", "Shaders/OutlineRawColorPass.shad");
     f("D2F7271E-B38D-4C96-A4F6-EB8850591D79", "Shaders/OutlineFullScreenPass.shad");

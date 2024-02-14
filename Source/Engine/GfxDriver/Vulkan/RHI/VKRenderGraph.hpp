@@ -121,8 +121,8 @@ private:
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
 };
 } // namespace Gfx::VK::RenderGraph

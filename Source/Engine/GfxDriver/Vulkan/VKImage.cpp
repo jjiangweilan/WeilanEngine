@@ -198,7 +198,20 @@ ImageLayout VKImage::GetImageLayout()
 
 void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer)
 {
-    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), mip, layer, GetSubresourceRange().aspectMask);
+    SetData(binaryData, mip, layer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer, VkImageLayout finalLayout)
+{
+    GetDriver()->UploadImage(
+        *this,
+        binaryData.data(),
+        binaryData.size(),
+        mip,
+        layer,
+        GetSubresourceRange().aspectMask,
+        finalLayout
+    );
 }
 
 VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& r)

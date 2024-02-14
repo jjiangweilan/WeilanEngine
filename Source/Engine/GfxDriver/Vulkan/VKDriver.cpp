@@ -1256,8 +1256,21 @@ void VKDriver::UploadImage(
 
 )
 {
+    this->UploadImage(dst, data, size, mipLevel, arrayLayer, aspect, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void VKDriver::UploadImage(
+    Gfx::Image& dst,
+    uint8_t* data,
+    size_t size,
+    uint32_t mipLevel,
+    uint32_t arrayLayer,
+    Gfx::ImageAspect aspect,
+    VkImageLayout finalLayout
+)
+{
     auto& vkDst = static_cast<VKImage&>(dst);
-    dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect));
+    dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
 }
 
 void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& gfxCmd)

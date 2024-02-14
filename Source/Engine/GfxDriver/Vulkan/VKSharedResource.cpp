@@ -43,6 +43,19 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
     defaultTexture->SetData(pxls, 0, 0);
 
+    ImageDescription storageDesc{};
+    storageDesc.format = ImageFormat::R8G8B8A8_UNorm;
+    storageDesc.height = 2;
+    storageDesc.width = 2;
+    storageDesc.depth = 2;
+    storageDesc.mipLevels = 1;
+    storageDesc.isCubemap = false;
+    storageDesc.multiSampling = MultiSampling::Sample_Count_1;
+    defaultStorageImage = MakeUnique<VKImage>(storageDesc, ImageUsage::Storage | ImageUsage::TransferDst);
+    defaultStorageImage->SetName("Default Storage Image");
+    uint8_t storagePxls[32] = {};
+    defaultStorageImage->SetData(storagePxls, 0, 0, VK_IMAGE_LAYOUT_GENERAL);
+
     ImageDescription descCube{};
     descCube.format = ImageFormat::R8G8B8A8_UNorm;
     descCube.height = 2;

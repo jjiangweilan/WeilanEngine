@@ -121,6 +121,9 @@ struct Texture
 struct SeparateImage
 {};
 
+struct StorageImage
+{};
+
 struct SeparateSampler
 {
     bool enableCompare;
@@ -132,13 +135,14 @@ using UBOs = std::vector<UBO>;
 
 namespace ShaderStage
 {
+// value copies from Vulkan VkShaderStageFlagBits
 enum Flag
 {
-    Vert = 0x1,
-    Frag = 0x2,
-    Comp = 0x4,
+    Vert = 0x00000001,
+    Frag = 0x00000010,
+    Comp = 0x00000020,
 };
-}
+} // namespace ShaderStage
 using ShaderStageFlags = uint32_t;
 
 enum class BindingType
@@ -146,6 +150,7 @@ enum class BindingType
     UBO,
     SSBO,
     Texture,
+    StorageImage,
     SeparateImage,
     SeparateSampler
 };
@@ -173,6 +178,15 @@ struct Binding
                         new (&binding.ubo) UBO();
                     }
                     binding.ubo = other.binding.ubo;
+                    break;
+                }
+            case BindingType::StorageImage:
+                {
+                    if (type != BindingType::StorageImage)
+                    {
+                        new (&binding.storageImage) StorageImage();
+                    }
+                    binding.storageImage = other.binding.storageImage;
                     break;
                 }
             case BindingType::SSBO:
@@ -219,6 +233,7 @@ struct Binding
         switch (type)
         {
             case BindingType::UBO: binding.ubo.~UBO(); break;
+            case BindingType::StorageImage: binding.storageImage.~StorageImage(); break;
             case BindingType::Texture: binding.texture.~Texture(); break;
             case BindingType::SeparateImage: binding.separateImage.~SeparateImage(); break;
             case BindingType::SeparateSampler: binding.separateSampler.~SeparateSampler(); break;
@@ -239,6 +254,7 @@ struct Binding
         BindingUnion() : ubo{} {}
         ~BindingUnion() {}
         Texture texture;
+        StorageImage storageImage;
         SeparateImage separateImage;
         SeparateSampler separateSampler;
         UBO ubo;
@@ -277,6 +293,7 @@ struct ShaderInfo
 {
     std::string vertName;
     std::string fragName;
+    std::string compName;
     std::unordered_map<SetNum, std::vector<Binding*>> descriptorSetBindingMap;
     Bindings bindings;
     PushConstants pushConstants;

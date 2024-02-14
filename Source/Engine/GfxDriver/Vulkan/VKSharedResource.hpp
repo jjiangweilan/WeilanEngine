@@ -20,6 +20,10 @@ public:
     {
         return defaultTexture;
     }
+    VKImage* GetDefaultStorageImage()
+    {
+        return defaultStorageImage.get();
+    }
     VKImage* GetDefaultTextureCube()
     {
         return defaultCubemap.get();
@@ -31,6 +35,7 @@ private:
     // UniPtr<VKStorageBuffer> defaultStorageBuffer;
     VkSampler defaultSampler;
     UniPtr<VKImage> defaultTexture;
+    std::unique_ptr<VKImage> defaultStorageImage;
     std::unique_ptr<VKImage> defaultCubemap;
 };
 } // namespace Gfx

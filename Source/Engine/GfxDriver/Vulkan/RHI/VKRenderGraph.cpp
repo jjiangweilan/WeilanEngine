@@ -51,7 +51,9 @@ public:
                 ),
                 0};
 
-            return images[hash].image.get();
+            auto& image = images[hash].image;
+            image->SetName(std::to_string(hash));
+            return image.get();
         }
     }
 
@@ -869,7 +871,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
             case VKCmdType::DrawIndexed:
                 {
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndexed(
                         vkcmd,
                         cmd.drawIndexed.indexCount,
@@ -883,7 +885,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
             case VKCmdType::Draw:
                 {
                     TryBindShader(vkcmd);
-                    UpdateDescriptorSetBinding(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDraw(
                         vkcmd,
                         cmd.draw.vertexCount,
@@ -1092,13 +1094,15 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::Dispatch:
                 {
-                    UpdateDescriptorSetBinding(vkcmd);
+                    TryBindShader(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
                     vkCmdDispatch(vkcmd, cmd.dispatch.groupCountX, cmd.dispatch.groupCountY, cmd.dispatch.groupCountZ);
                     break;
                 }
             case VKCmdType::DispatchIndir:
                 {
-                    UpdateDescriptorSetBinding(vkcmd);
+                    TryBindShader(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
                     vkCmdDispatchIndirect(vkcmd, cmd.dispatchIndir.buffer->GetHandle(), cmd.dispatchIndir.bufferOffset);
                     break;
                 }
@@ -1258,31 +1262,35 @@ void Graph::Execute(VkCommandBuffer vkcmd)
     resourceAllocator->Tick();
 }
 
-void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd)
+void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint)
 {
-    UpdateDescriptorSetBinding(cmd, 0);
-    UpdateDescriptorSetBinding(cmd, 1);
-    UpdateDescriptorSetBinding(cmd, 2);
-    UpdateDescriptorSetBinding(cmd, 3);
+    UpdateDescriptorSetBinding(cmd, 0, bindPoint);
+    UpdateDescriptorSetBinding(cmd, 1, bindPoint);
+    UpdateDescriptorSetBinding(cmd, 2, bindPoint);
+    UpdateDescriptorSetBinding(cmd, 3, bindPoint);
 }
 
 void Graph::TryBindShader(VkCommandBuffer cmd)
 {
     if (exeState.bindedShader != exeState.lastBindedShader && exeState.lastBindedShader != nullptr)
     {
-        // binding pipeline
-        auto pipeline = exeState.lastBindedShader->RequestPipeline(
-            *exeState.shaderConfig,
-            exeState.renderPass->GetHandle(),
-            exeState.subpassIndex
-        );
 
         if (exeState.lastBindedShader->IsCompute())
         {
+            auto pipeline = exeState.lastBindedShader->RequestComputePipeline(*exeState.shaderConfig);
+
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
         }
         else
         {
+
+            // binding pipeline
+            auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
+                *exeState.shaderConfig,
+                exeState.renderPass->GetHandle(),
+                exeState.subpassIndex
+            );
+
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         }
 
@@ -1290,7 +1298,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
     }
 }
 
-void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index)
+void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint)
 {
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
@@ -1300,7 +1308,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index)
             exeState.bindedDescriptorSets[index] = sourceSet;
             vkCmdBindDescriptorSets(
                 cmd,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                bindPoint,
                 exeState.lastBindedShader->GetVKPipelineLayout(),
                 index,
                 1,

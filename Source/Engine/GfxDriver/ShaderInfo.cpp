@@ -270,6 +270,8 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
         Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr);
     if (sr.contains("separate_samplers"))
         Process(out.bindings, BindingType::SeparateSampler, out.stage, sr["separate_samplers"], sr);
+    if (sr.contains("images"))
+        Process(out.bindings, BindingType::StorageImage, out.stage, sr["images"], sr);
 }
 
 void Process(
@@ -298,6 +300,11 @@ void Process(
                     {
                         new (&b.binding.ssbo) SSBO();
                         Process(b.binding.ssbo.data, bindingJson["type"], root, "");
+                        break;
+                    }
+                case BindingType::StorageImage:
+                    {
+                        new (&b.binding.storageImage) StorageImage();
                         break;
                     }
                 case BindingType::Texture:
@@ -363,6 +370,7 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
     {
         case ShaderStage::Vert: to.vertName = from.name; break;
         case ShaderStage::Frag: to.fragName = from.name; break;
+        case ShaderStage::Comp: to.compName = from.name; break;
         default: assert(0 && "Shader Stage not handled");
     }
     for (auto& binding : from.bindings)
