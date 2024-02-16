@@ -280,9 +280,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
-    globalInfo.time = Time::TimeSinceLuanch();
-    GetGfxDriver()->UploadBuffer(*globalInfoBuffer, (uint8_t*)&globalInfo, sizeof(GlobalInfo), 0);
-    cmd.SetUniformBuffer("Global", *globalInfoBuffer);
     for (auto& n : nodes)
     {
         n->Execute(renderingData);
@@ -310,7 +307,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
     cmd.CopyBuffer(stagingBuffer, sceneInfoBuffer, regions);
 
-    shaderGlobal.time += Time::DeltaTime();
+    shaderGlobal.time = Time::TimeSinceLaunch();
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
     cmd.SetUniformBuffer("Global", *shaderGlobalBuffer);
 

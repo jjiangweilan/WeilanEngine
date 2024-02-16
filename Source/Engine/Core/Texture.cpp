@@ -201,8 +201,7 @@ void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
                             throw std::runtime_error("Texture-failed to get image offset");
                         ktx_size_t byteSize = ktxTexture_GetImageSize(texture, level);
 
-                        GetGfxDriver()
-                            ->UploadImage(*image, data + offset, byteSize, level, layer + face);
+                        GetGfxDriver()->UploadImage(*image, data + offset, byteSize, level, layer + face);
                     }
                 }
             }
@@ -235,7 +234,8 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     TextureDescription texDesc{};
     texDesc.img.width = width;
     texDesc.img.height = height;
-    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::min(width, height))) + 1;
+    texDesc.img.depth = 1;
+    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
     texDesc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
     texDesc.img.isCubemap = false;
     texDesc.data = loaded;

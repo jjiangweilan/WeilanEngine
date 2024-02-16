@@ -160,8 +160,8 @@ enum Enum : uint32_t
     Texture = 0x4,
     Storage = 0x8,
 
-    TransferSrc = 0x8, // deprecated
-    TransferDst = 0x10 // deprecated
+    TransferSrc = 0x10, // deprecated
+    TransferDst = 0x20 // deprecated
 };
 }
 typedef uint32_t ImageUsageFlags;

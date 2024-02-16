@@ -11,7 +11,7 @@ public:
         return GetTimeInternal().deltaTime;
     }
 
-    static float TimeSinceLuanch()
+    static float TimeSinceLaunch()
     {
         return GetTimeInternal().timeSinceLuanch;
     };
