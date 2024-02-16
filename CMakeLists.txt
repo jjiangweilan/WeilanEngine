@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.18)
+cmake_policy(SET CMP0114 NEW)
 
 project(WeilanEngine)
 
 option(INSTALL_DEPENDENCY "install/update dependencies" OFF)
+
 if (INSTALL_DEPENDENCY)
     include(ExternalProject)
 
@@ -35,7 +37,7 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(PhysX
         PREFIX "ThirdParty/PhysX"
         GIT_REPOSITORY "https://github.com/jjiangweilan/PhysX.git"
-        GIT_TAG "8ce68f900e79bf1a68a74e53a44b6fa11da73807"
+        GIT_TAG "main"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX"
         BINARY_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/PhysX/physx"
         INSTALL_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
@@ -43,7 +45,7 @@ if (INSTALL_DEPENDENCY)
         BUILD_COMMAND ${PHYSX_BUILD_COMMAND}
         INSTALL_COMMAND ${PHYSX_INSTALL_COMMAND}
     )
-    list(APPEND DEPEND_NAMES PhysX)
+#list(APPEND DEPEND_NAMES PhysX)
 
     ExternalProject_Add(SPIRV-Cross
         PREFIX "ThirdParty/SPIRV-Cross"
@@ -211,7 +213,7 @@ if (INSTALL_DEPENDENCY)
             "-DASSIMP_BUILD_ASSIMP_TOOLS=OFF"
             "-DASSIMP_INSTALL_PDB=OFF"
     )
-    list(APPEND DEPEND_NAMES ASSIMP)
+# list(APPEND DEPEND_NAMES ASSIMP)
 
     ExternalProject_Add(nlohmann-json
         PREFIX "ThirdParty/nlohmann-json"

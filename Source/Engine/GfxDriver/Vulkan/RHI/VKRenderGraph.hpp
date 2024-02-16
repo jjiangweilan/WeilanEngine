@@ -63,7 +63,7 @@ private:
         void* res;
     };
 
-    struct FlushBindResource
+    struct RecordState
     {
         VKShaderProgram* bindedProgram = nullptr;
         int bindProgramIndex;
@@ -106,6 +106,8 @@ private:
     std::unique_ptr<ResourceAllocator> resourceAllocator;
 
     void CreateRenderPassNode(int visitIndex);
+    // scheduling
+    void FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded);
     bool TrackResource(
         VKImage* writableResource,
         Gfx::ImageSubresourceRange range,
@@ -121,8 +123,8 @@ private:
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index);
-    void UpdateDescriptorSetBinding(VkCommandBuffer cmd);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
+    void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
 };
 } // namespace Gfx::VK::RenderGraph

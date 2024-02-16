@@ -185,6 +185,11 @@ private:
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
 
+    struct ShaderGlobal
+    {
+        float time;
+    } shaderGlobal;
+
     IDPool nodeIDPool;
     std::vector<FGID> connections;
     std::vector<std::unique_ptr<Node>> nodes;
@@ -197,8 +202,8 @@ private:
     RenderingData renderingData;
 
     std::unique_ptr<RenderGraph::Graph> graph;
-    std::unique_ptr<Gfx::Buffer> sceneGlobalBuffer;
-    std::unique_ptr<Gfx::Buffer> globalInfoBuffer;
+    std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
+    std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;
 
     bool HasCycleIfLink(FGID src, FGID dst)

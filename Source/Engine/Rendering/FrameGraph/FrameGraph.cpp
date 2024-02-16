@@ -124,7 +124,10 @@ void Graph::Serialize(Serializer* s) const
     s->Serialize("nodeIDPool", nodeIDPool);
     s->Serialize("connections", connections);
     s->Serialize("nodes", nodes);
-    s->Serialize("outputImageNode", outputImageNode->GetID());
+    FGID id = 0;
+    if (outputImageNode)
+        id = outputImageNode->GetID();
+    s->Serialize("outputImageNode", id);
 }
 
 void Graph::Deserialize(Serializer* s)
@@ -269,7 +272,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
-    cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
+    cmd.SetUniformBuffer("SceneInfo", *sceneInfoBuffer);
     if (diffuseCube)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)
@@ -297,7 +300,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.view = viewMatrix;
     ProcessLights(scene);
 
-    size_t copySize = sceneGlobalBuffer->GetSize();
+    size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{
         .srcOffset = 0,
         .dstOffset = 0,
@@ -305,7 +308,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     }};
 
     memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
-    cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+    cmd.CopyBuffer(stagingBuffer, sceneInfoBuffer, regions);
+
+    shaderGlobal.time += Time::DeltaTime();
+    GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
+    cmd.SetUniformBuffer("Global", *shaderGlobalBuffer);
 
     graph->Execute(cmd);
 }
@@ -320,18 +327,18 @@ bool Graph::Compile()
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
-    sceneGlobalBuffer = GetGfxDriver()->CreateBuffer(
+    sceneInfoBuffer = GetGfxDriver()->CreateBuffer(
         {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
          .size = sizeof(SceneInfo),
          .visibleInCPU = false,
          .debugName = "Scene Info Buffer",
          .gpuWrite = true}
     );
-    globalInfoBuffer = GetGfxDriver()->CreateBuffer(
+    shaderGlobalBuffer = GetGfxDriver()->CreateBuffer(
         {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
-         .size = sizeof(GlobalInfo),
+         .size = sizeof(SceneInfo),
          .visibleInCPU = false,
-         .debugName = "Glbal Info Buffer",
+         .debugName = "Shader Global Buffer",
          .gpuWrite = true}
     );
 

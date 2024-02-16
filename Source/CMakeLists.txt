@@ -1,6 +1,5 @@
 # WeilanEngine
 cmake_minimum_required(VERSION 3.18.0)
-cmake_policy(SET CMP0114 NEW)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
@@ -99,16 +98,16 @@ set (PHYSX_LIBS
 target_link_libraries( WeilanEngine
     # assimp
     ${Vulkan_LIBRARIES}
-    ${PHYSX_LIBS}
+    # ${PHYSX_LIBS}
     sdl2$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spdlog$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-core$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-reflect$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     spirv-cross-glsl$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
     fmt$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    shaderc_shared
     ktx
     ryml
+    shaderc_shared
     )
 
 target_compile_definitions(

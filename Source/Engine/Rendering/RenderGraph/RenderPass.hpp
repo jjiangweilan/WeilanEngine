@@ -37,11 +37,8 @@ public:
         Gfx::ImageLayout imageLayout;
 
         // creational info
-        union
-        {
-            Gfx::ImageDescription imageCreateInfo;
-            Gfx::Buffer::CreateInfo bufferCreateInfo;
-        };
+        Gfx::ImageDescription imageCreateInfo;
+        Gfx::Buffer::CreateInfo bufferCreateInfo;
 
         Gfx::Image* externalImage;
         Gfx::Buffer* externalBuffer;

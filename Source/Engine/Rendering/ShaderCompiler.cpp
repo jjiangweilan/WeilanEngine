@@ -119,6 +119,7 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
 {
     shaderc::CompileOptions option;
     option.AddMacroDefinition(shaderStage, "1");
+    option.SetAutoBindUniforms(true);
     for (auto& f : features)
     {
         option.AddMacroDefinition(f, "1");

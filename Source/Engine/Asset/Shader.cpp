@@ -208,6 +208,7 @@ bool ComputeShader::LoadFromFile(const char* path)
     catch (const std::exception& e)
     {
         SPDLOG_ERROR("{}", e.what());
+        return false;
     }
 
     return true;

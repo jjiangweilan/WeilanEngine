@@ -11,6 +11,19 @@
 
 namespace Gfx
 {
+static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderInfo::ShaderStageFlags stages)
+{
+    using namespace ShaderInfo;
+    VkPipelineStageFlags pipelineStages = 0;
+    if (stages & ShaderStage::Vert)
+        pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+    if (stages & ShaderStage::Frag)
+        pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    if (stages & ShaderStage::Comp)
+        pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+    return pipelineStages;
+}
 DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 {
     switch (frequency)
@@ -183,8 +196,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                   BufferUsage::Transfer_Dst,
                                         .size = b->binding.ubo.data.size,
                                         .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()
-                                    };
+                                        .debugName = bufferName.c_str()};
                                     auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
@@ -217,6 +229,36 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 bufferInfo.range = b->binding.ubo.data.size;
                                 writes[writeCount].pBufferInfo = &bufferInfo;
                             }
+                            break;
+                        }
+                    case ShaderInfo::BindingType::StorageImage:
+                        {
+                            VKImageView* imageView = (VKImageView*)resRef.res;
+                            VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
+
+                            VKWritableGPUResource gpuResource{
+                                .type = VKWritableGPUResource::Type::Image,
+                                .data = &imageView->GetImage(),
+                                .stages = pipelineStages,
+                                .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+                                .imageView = imageView,
+                                .layout = VK_IMAGE_LAYOUT_GENERAL,
+                            };
+
+                            writableGPUResources->push_back(gpuResource);
+
+                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                            imageInfo.sampler = sharedResource->GetDefaultSampler();
+                            if (resRef.res != nullptr && resRef.type == ResourceType::ImageView)
+                            {
+                                imageInfo.imageView = imageView->GetHandle();
+                            }
+                            else
+                            {
+                                imageInfo.imageView = sharedResource->GetDefaultStorageImage()->GetDefaultVkImageView();
+                            }
+                            writes[writeCount].pImageInfo = &imageInfo;
                             break;
                         }
                     case ShaderInfo::BindingType::Texture:
@@ -264,19 +306,14 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                             if (imageView && imageView->GetImage().IsGPUWrite())
                             {
-                                VkPipelineStageFlags pipelineStages = 0;
-                                if (b->stages & Gfx::ShaderInfo::ShaderStage::Vert)
-                                    pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                                if (b->stages & Gfx::ShaderInfo::ShaderStage::Frag)
-                                    pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                                VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
                                 VKWritableGPUResource gpuResource{
                                     .type = VKWritableGPUResource::Type::Image,
                                     .data = &imageView->GetImage(),
                                     .stages = pipelineStages,
                                     .access = VK_ACCESS_SHADER_READ_BIT,
                                     .imageView = imageView,
-                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                };
+                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
                                 writableGPUResources->push_back(gpuResource);
                             }

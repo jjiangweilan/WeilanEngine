@@ -82,8 +82,8 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
 
     for (auto child : gameObject.GetChildren())
     {
-        GameObject* child = CopyGameObject(*child);
-        child->SetParent(newObj.get());
+        GameObject* copy = CopyGameObject(*child);
+        copy->SetParent(newObj.get());
     }
 
     GameObject* top = newObj.get();

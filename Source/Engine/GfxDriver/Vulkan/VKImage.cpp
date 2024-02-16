@@ -15,7 +15,8 @@ namespace Gfx
 {
 static bool IsGPUWrite(ImageUsageFlags usageFlags)
 {
-    return (usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment);
+    return (usageFlags & ImageUsage::Storage) ||
+           ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
 VKImage::VKImage() : Image(false), imageView(nullptr){};
@@ -67,6 +68,11 @@ VKImage::~VKImage()
 
 void VKImage::MakeVkObjects()
 {
+    if (imageDescription.depth > 1)
+    {
+        imageType_vk = VK_IMAGE_TYPE_3D;
+    }
+
     // create the image
     VkImageCreateInfo imageCreateInfo;
     imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -74,7 +80,7 @@ void VKImage::MakeVkObjects()
     imageCreateInfo.flags = imageDescription.isCubemap ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
     imageCreateInfo.imageType = imageType_vk;
     imageCreateInfo.format = format_vk;
-    imageCreateInfo.extent = {imageDescription.width, imageDescription.height, 1};
+    imageCreateInfo.extent = {imageDescription.width, imageDescription.height, imageDescription.depth};
     imageCreateInfo.mipLevels = imageDescription.mipLevels;
     imageCreateInfo.arrayLayers = arrayLayers;
     imageCreateInfo.samples = MapSampleCount(imageDescription.multiSampling);
@@ -192,7 +198,20 @@ ImageLayout VKImage::GetImageLayout()
 
 void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer)
 {
-    GetDriver()->UploadImage(*this, binaryData.data(), binaryData.size(), mip, layer, GetSubresourceRange().aspectMask);
+    SetData(binaryData, mip, layer, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+}
+
+void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer, VkImageLayout finalLayout)
+{
+    GetDriver()->UploadImage(
+        *this,
+        binaryData.data(),
+        binaryData.size(),
+        mip,
+        layer,
+        GetSubresourceRange().aspectMask,
+        finalLayout
+    );
 }
 
 VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& r)

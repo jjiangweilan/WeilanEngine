@@ -41,6 +41,7 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::R32G32B32A32_UInt: return VK_FORMAT_R32G32B32A32_UINT;
         case ImageFormat::R32G32B32A32_SInt: return VK_FORMAT_R32G32B32A32_SINT;
         case ImageFormat::R32G32B32A32_SFloat: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case ImageFormat::R32_Float: return VK_FORMAT_R32_SFLOAT;
         case ImageFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         default: assert(0 && "Format map failed");
     }
@@ -87,6 +88,7 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_R32G32B32A32_UINT: return ImageFormat::R32G32B32A32_UInt;
         case VK_FORMAT_R32G32B32A32_SINT: return ImageFormat::R32G32B32A32_SInt;
         case VK_FORMAT_R32G32B32A32_SFLOAT: return ImageFormat::R32G32B32A32_SFloat;
+        case VK_FORMAT_R32_SFLOAT: return ImageFormat::R32_Float;
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return ImageFormat::B10G11R11_UFloat_Pack32;
         default: assert(0 && "VK format map failed");
     }
@@ -230,6 +232,10 @@ VkImageUsageFlags MapImageUsage(ImageUsageFlags in)
         flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     if (in & ImageUsage::TransferDst)
         flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    if (in & ImageUsage::Storage)
+        flags |=
+            (VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+             VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
     return flags;
 }

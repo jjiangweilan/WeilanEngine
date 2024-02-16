@@ -36,6 +36,7 @@ public:
     }
 
     void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer) override;
+    void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer, VkImageLayout finalLayout);
 
     virtual ImageLayout GetImageLayout() override;
     virtual const ImageDescription& GetDescription() override
@@ -46,7 +47,10 @@ public:
 
     virtual VkImageSubresourceRange GetDefaultSubresourceRange();
     virtual void SetName(std::string_view name) override;
-    virtual const std::string& GetName() override { return name; };
+    virtual const std::string& GetName() override
+    {
+        return name;
+    };
 
     // used in command buffer
     virtual void NotifyLayoutChange(VkImageLayout newLayout)

@@ -153,6 +153,8 @@ const char* MapImageFormatToString(ImageFormat format)
         return "R32G32B32A32_SInt";
     else if (format == ImageFormat::R32G32B32A32_SFloat)
         return "R32G32B32A32_SFloat";
+    else if (format == ImageFormat::R32_Float)
+        return "R32_Float";
     else if (format == ImageFormat::D16_UNorm)
         return "D16_UNorm";
     else if (format == ImageFormat::D16_UNorm_S8_UInt)
@@ -196,6 +198,7 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
         case ImageFormat::R8G8B8_SRGB: return 3;
         case ImageFormat::R8G8_SRGB: return 2;
         case ImageFormat::R8_SRGB: return 1;
+        case ImageFormat::R32_Float: return 4;
         case ImageFormat::R16G16_UNorm: return 4;
         case ImageFormat::R16G16_SNorm: return 4;
         case ImageFormat::R16G16_UScaled: return 4;
@@ -224,6 +227,17 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
 
     return 64;
 };
+
+bool HasStencil(ImageFormat format)
+{
+    switch (format)
+    {
+        case ImageFormat::D16_UNorm_S8_UInt:
+        case ImageFormat::D24_UNorm_S8_UInt:
+        case ImageFormat::D32_SFLOAT_S8_UInt: return true;
+        default: return false;
+    }
+}
 
 bool IsDepthStencilFormat(ImageFormat format)
 {

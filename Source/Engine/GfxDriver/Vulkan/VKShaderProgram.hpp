@@ -75,7 +75,8 @@ public:
 
     // request a pipeline object according to config
     // we may have slightly different pipelines with different configs, VKShader should cache these pipelines(TODO)
-    VkPipeline RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass);
+    VkPipeline RequestGraphicsPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass);
+    VkPipeline RequestComputePipeline(const ShaderConfig& config);
     VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
 
     const ShaderConfig& GetDefaultShaderConfig() override;
@@ -106,8 +107,8 @@ private:
     std::string name;
     ShaderInfo::ShaderInfo shaderInfo;
     VKObjectManager* objManager;
-    UniPtr<VKShaderModule> vertShaderModule;
-    UniPtr<VKShaderModule> fragShaderModule;
+    std::unique_ptr<VKShaderModule> vertShaderModule;
+    std::unique_ptr<VKShaderModule> fragShaderModule;
     std::unique_ptr<VKShaderModule> computeShaderModule;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::vector<PipelineCache> caches;
@@ -116,6 +117,7 @@ private:
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;
 
+    void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
 
     std::shared_ptr<const ShaderConfig> defaultShaderConfig = {};

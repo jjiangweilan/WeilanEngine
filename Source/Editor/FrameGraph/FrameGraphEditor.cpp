@@ -130,6 +130,7 @@ void FrameGraphEditor::DrawConfigurableField(
             if (payload && payload->IsDelivery())
             {
                 config.data = *(Object**)payload->Data;
+
                 graph->SetDirty();
             }
             ImGui::EndDragDropTarget();
@@ -225,8 +226,8 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
                     }
                 }
             }
-            ed::EndCreate();
         }
+        ed::EndCreate();
 
         // make links
         for (auto c : graph->GetConnections())

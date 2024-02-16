@@ -144,12 +144,20 @@ struct VKDispatchCmd
     uint32_t groupCountX;
     uint32_t groupCountY;
     uint32_t groupCountZ;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKDispatchIndirectCmd
 {
     VKBuffer* buffer;
     size_t bufferOffset;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
 };
 
 struct VKNextRenderPassCmd

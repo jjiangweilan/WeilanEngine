@@ -1,0 +1,78 @@
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Game/Cloud
+#endif
+
+struct v2f {
+    vec3 positionWS;
+    vec3 normalWS;
+    vec4 shadowCoord;
+    vec2 uv;
+};
+
+#if VERT
+layout(location = 0) in vec3 iPosition;
+layout(location = 1) in vec3 iNormal;
+layout(location = 2) in vec2 iUV;
+
+layout(location = 0) out v2f vOut;
+void main()
+{
+    vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
+    vOut.normalWS = (inverse(transpose(mat3(pconst.model))) * iNormal);
+    vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
+    vOut.positionWS = positionWS.xyz;
+    vOut.uv = iUV;
+    gl_Position = scene.viewProjection * vec4(positionWS, 1);
+}
+#endif
+
+#if FRAG
+
+layout(set = SET_MATERIAL) uniform Cloud
+{
+    vec4 position;
+    float size;
+    float delta;
+} prop;
+
+layout(location = 0) in v2f fragInput;
+
+layout(location = 0) out vec4 oColor;
+
+float sdfSphere( vec3 p, float s )
+{
+    return length(p)-s;
+}
+
+void main()
+{
+    vec3 center = pconst.model[3].xyz + prop.position.xyz;
+    vec3 dir = normalize(fragInput.positionWS.xyz - scene.viewPos.xyz);
+    vec3 start = fragInput.positionWS.xyz;
+    vec3 curr = start;
+
+    oColor = vec4(0,0,0,0);
+    for(int i = 0; i < 1000; i++)
+    {
+        if (sdfSphere(curr - center, prop.size) < 0)
+        {
+            vec3 normal = normalize(curr - center);
+            vec3 lighting = vec3(0);
+
+            // lighting
+            if (scene.lightCount.x > 0)
+            {
+                float ndotl = dot(normal, scene.lights[0].position.xyz);
+                lighting += ndotl;
+            }
+
+            oColor = vec4(lighting,1);
+            break;
+        }
+        curr += dir * prop.delta;
+    }
+}
+#endif

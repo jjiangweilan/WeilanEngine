@@ -145,6 +145,9 @@ VKShaderProgram::VKShaderProgram(
     : ShaderProgram(true), name(name), objManager(context->objManager)
 {
     computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
+
+    ShaderInfo::Utils::Merge(shaderInfo, computeShaderModule->GetShaderInfo());
+    CreateShaderPipeline(config, computeShaderModule.get());
 }
 
 VKShaderProgram::VKShaderProgram(
@@ -183,7 +186,28 @@ VKShaderProgram::VKShaderProgram(
     ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
     ShaderInfo::Utils::Merge(shaderInfo, fragShaderModule->GetShaderInfo());
 
-    for(auto& b : shaderInfo.bindings)
+    CreateShaderPipeline(config, fragShaderModule.get());
+}
+
+VKShaderProgram::~VKShaderProgram()
+{
+    if (pipelineLayout)
+    {
+        objManager->DestroyPipelineLayout(pipelineLayout);
+    }
+
+    for (auto v : caches)
+    {
+        objManager->DestroyPipeline(v.pipeline);
+    }
+}
+
+void VKShaderProgram::CreateShaderPipeline(
+    std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule
+)
+{
+
+    for (auto& b : shaderInfo.bindings)
     {
         shaderInfo.descriptorSetBindingMap[b.second.setNum].push_back(&b.second);
     }
@@ -252,7 +276,7 @@ VKShaderProgram::VKShaderProgram(
     {
         ShaderConfig defaultShaderConfig;
         // generate default shader config
-        auto& outputs = fragShaderModule->GetShaderInfo().outputs;
+        auto& outputs = fallbackConfigModule->GetShaderInfo().outputs;
         defaultShaderConfig.depth.writeEnable = true;
         defaultShaderConfig.depth.testEnable = true;
         defaultShaderConfig.depth.boundTestEnable = false;
@@ -276,19 +300,6 @@ VKShaderProgram::VKShaderProgram(
     }
 }
 
-VKShaderProgram::~VKShaderProgram()
-{
-    if (pipelineLayout)
-    {
-        objManager->DestroyPipelineLayout(pipelineLayout);
-    }
-
-    for (auto v : caches)
-    {
-        objManager->DestroyPipeline(v.pipeline);
-    }
-}
-
 void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined)
 {
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
@@ -301,6 +312,8 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         modules.push_back(vertShaderModule);
     if (fragShaderModule != nullptr)
         modules.push_back(fragShaderModule);
+    if (computeShaderModule != nullptr)
+        modules.push_back(computeShaderModule);
 
     // we use fixed amount of descriptor set. They are grouped by update frequency. TODO: this is a very hard coded
     // solution. Need to change
@@ -367,7 +380,7 @@ const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
     return *defaultShaderConfig;
 }
 
-VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass)
+VkPipeline VKShaderProgram::RequestComputePipeline(const ShaderConfig& config)
 {
     if (isCompute)
     {
@@ -394,7 +407,17 @@ VkPipeline VKShaderProgram::RequestPipeline(const ShaderConfig& config, VkRender
 
         return pipeline;
     }
+    else
+    {
+        SPDLOG_ERROR("Requesting a non compute shader");
+        return VK_NULL_HANDLE;
+    }
+}
 
+VkPipeline VKShaderProgram::RequestGraphicsPipeline(
+    const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass
+)
+{
     for (auto& cache : caches)
     {
         if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass)

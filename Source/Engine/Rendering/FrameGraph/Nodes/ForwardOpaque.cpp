@@ -59,7 +59,7 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
-            FogPass(cmd);
+            MakeFog(cmd);
 
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
@@ -70,8 +70,7 @@ public:
             Rect2D rect = {{0, 0}, {width, height}};
             clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
-                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
-            };
+                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
             clearValues[1].depthStencil = {1};
 
             cmd.SetScissor(0, 1, &rect);
@@ -93,8 +92,7 @@ public:
                 cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
                 auto& cubeSubmesh = cube->GetSubmeshes()[0];
                 Gfx::VertexBufferBinding bindins[] = {
-                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
-                };
+                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
                 cmd.BindVertexBuffer(bindins, 0);
                 cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
                 cmd.BindResource(2, skyboxResources.get());
@@ -126,8 +124,7 @@ public:
                 outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
-            )
-        };
+            )};
     }
 
     void FogPass(Gfx::CommandBuffer& cmd)
@@ -167,7 +164,7 @@ public:
             return true;
         }
         else
-            false;
+            return false;
 
         return true;
     };
@@ -185,6 +182,8 @@ private:
 
     Mesh* cube;
     Shader* skyboxShader;
+    ComputeShader* fluidCompute;
+    std::unique_ptr<Gfx::Image> fog;
     std::unique_ptr<Gfx::ShaderResource> skyboxResources;
 
     void DefineNode()
@@ -200,7 +199,21 @@ private:
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
         clearValues.resize(2);
+
+        fluidCompute = static_cast<ComputeShader*>(
+            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
+        );
+        fog = GetGfxDriver()->CreateImage({256, 256, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
     }
+
+    void MakeFog(Gfx::CommandBuffer& cmd)
+    {
+        cmd.SetTexture("imgOutput", *fog);
+        cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
+        cmd.Dispatch(32, 32, 1);
+        cmd.SetTexture("fogTest", *fog);
+    }
+
     static char _reg;
 }; // namespace FrameGraph
 

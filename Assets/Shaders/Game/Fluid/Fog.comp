@@ -1,0 +1,26 @@
+#version 450
+
+#if CONFIG
+name: Game/Fluid/Fog
+#endif
+
+#if COMP
+
+layout(local_size_x = 8, local_size_y = 8) in;
+layout(r32f) uniform image2D imgOutput;
+layout(set = 0) uniform Global
+{
+    float time;
+} g;
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    vec2 fcoord = coord / 256.0f;
+    coord += ivec2(g.time) * 5;
+    coord %= 256;
+    imageStore(imgOutput, coord, vec4(fcoord, 1.0f, 1.0f));
+}
+
+#endif
+
+

@@ -102,6 +102,7 @@ enum class ImageFormat
     R32G32B32A32_UInt,
     R32G32B32A32_SInt,
     R32G32B32A32_SFloat,
+    R32_Float,
     D16_UNorm,
     D16_UNorm_S8_UInt,
     D32_SFloat,
@@ -157,6 +158,7 @@ enum Enum : uint32_t
     ColorAttachment = 0x1,
     DepthStencilAttachment = 0x2,
     Texture = 0x4,
+    Storage = 0x8,
 
     TransferSrc = 0x8, // deprecated
     TransferDst = 0x10 // deprecated
@@ -256,6 +258,7 @@ ENUM_FLAGS(AccessMask, uint64_t){
 bool HasWriteAccessMask(AccessMaskFlags flags);
 bool HasReadAccessMask(AccessMaskFlags flags);
 bool IsDepthStencilFormat(ImageFormat format);
+bool HasStencil(ImageFormat format);
 bool IsColoFormat(ImageFormat format);
 uint32_t MapImageFormatToByteSize(ImageFormat format);
 

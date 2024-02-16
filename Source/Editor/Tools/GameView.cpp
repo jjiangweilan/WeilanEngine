@@ -189,14 +189,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
     GetGfxDriver()->WaitForIdle();
     sceneImage = GetGfxDriver()->CreateImage(
-        {
-            .width = width,
-            .height = height,
-            .format = Gfx::ImageFormat::R8G8B8A8_SRGB,
-            .multiSampling = Gfx::MultiSampling::Sample_Count_1,
-            .mipLevels = 1,
-            .isCubemap = false,
-        },
+        Gfx::ImageDescription(width, height, Gfx::ImageFormat::R8G8B8A8_SRGB),
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
@@ -399,8 +392,7 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y
-                        };
+                            mousePos.y - windowPos.y - imagePos.y};
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 

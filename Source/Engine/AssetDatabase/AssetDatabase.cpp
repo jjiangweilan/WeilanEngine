@@ -349,12 +349,13 @@ void AssetDatabase::LoadEngineInternal()
         return nullptr;
     };
 
+    f("6FB59E89-8943-411A-81C9-B6D12986049E", "Shaders/Game/Fluid/Fog.comp");
     Shader* standardShader = (Shader*)f("118DF4BB-B41A-452A-BE48-CE95019AAF2E", "Shaders/Game/StandardPBR.shad");
     f("31D454BF-3D2D-46C4-8201-80377D12E1D2", "Shaders/Game/ShadowMap.shad");
     f("57F37367-05D5-4570-AFBB-C4146042B31E", "Shaders/Game/SimpleLit.shad");
     f("0138F949-B23B-48F6-9C25-4138EB0A6A0C", "Shaders/Game/SurfelCube.shad");
     f("B13C7AA7-AD74-4641-9A1A-AA7C7A153B5C", "Shaders/Game/Skybox.shad");
-    f("E5C9437D-F308-41D7-8C41-97A1FC45DBFD", "Shaders/Game/VolumetricFog.shad");
+    f("1FB384C4-5975-4401-B009-C1DC83F40ACF", "Shaders/Game/Cloud.shad");
     f("B307F24D-658B-4FE9-835E-5F11302E6B67", "Shaders/Game/PostProcess/FXAA.shad");
     f("6F2137D1-345A-40CE-B1BD-11585675D36D", "Shaders/Game/PostProcess/ReinhardToneMapping.shad");
     f("D2D2BB92-14F1-4C1C-B671-22EB78909BB5", "Shaders/Utils/CopyOnly.shad");
@@ -397,11 +398,14 @@ void AssetDatabase::RefreshShader()
             if (requestShaderRefreshAll || d->NeedRefresh())
             {
                 auto asset = d->GetAsset();
-                if (Shader* s = dynamic_cast<Shader*>(asset))
+                if (ShaderBase* s = dynamic_cast<ShaderBase*>(asset))
                 {
                     try
                     {
-                        s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str());
+                        if (s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str()))
+                        {
+                            SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
+                        }
                         d->UpdateAssetUUIDs();
                         d->UpdateLastWriteTime();
                     }

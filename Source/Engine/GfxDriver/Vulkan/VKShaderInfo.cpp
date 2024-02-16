@@ -10,6 +10,7 @@ VkDescriptorType MapBindingType(BindingType type)
         case BindingType::UBO: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         case BindingType::SeparateImage: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         case BindingType::SeparateSampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
+        case BindingType::StorageImage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         default: assert(0 && "Map BindingType failed");
     }
 
@@ -24,6 +25,8 @@ VkShaderStageFlags MapShaderStage(ShaderStageFlags stages)
         rtn |= VK_SHADER_STAGE_VERTEX_BIT;
     if (stages & Frag)
         rtn |= VK_SHADER_STAGE_FRAGMENT_BIT;
+    if (stages & Comp)
+        rtn |= VK_SHADER_STAGE_COMPUTE_BIT;
 
     return rtn;
 }

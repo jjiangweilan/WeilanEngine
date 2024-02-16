@@ -51,7 +51,13 @@ void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, siz
 }
 
 void VKDataUploader::UploadImage(
-    VKImage* dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arayLayer, VkImageAspectFlags aspect
+    VKImage* dst,
+    uint8_t* data,
+    size_t size,
+    uint32_t mipLevel,
+    uint32_t arayLayer,
+    VkImageAspectFlags aspect,
+    VkImageLayout finalLayout
 )
 {
     auto vkDst = static_cast<VKImage*>(dst);
@@ -81,8 +87,8 @@ void VKDataUploader::UploadImage(
         size,
         mipLevel,
         arayLayer,
-        aspect
-    });
+        aspect,
+        finalLayout});
 
     offset += align + size;
 }
@@ -193,7 +199,7 @@ void VKDataUploader::UploadAllPending(
                 b.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
                 b.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
                 b.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                b.newLayout = p.finalLayout;
             }
             vkCmdPipelineBarrier(
                 cmd,
@@ -224,6 +230,5 @@ void VKDataUploader::UploadAllPending(
     submitInfo.signalSemaphoreCount = signalSemaphore == VK_NULL_HANDLE ? 0 : 1;
     submitInfo.pSignalSemaphores = &signalSemaphore;
     vkQueueSubmit(driver->mainQueue.handle, 1, &submitInfo, fence);
-
 }
 } // namespace Gfx
