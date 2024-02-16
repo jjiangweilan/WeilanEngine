@@ -2,6 +2,7 @@
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Texture.hpp"
+#include "Core/Time.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 #include <stack>
@@ -271,7 +272,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
-    cmd.SetUniformBuffer("SceneInfo", *sceneGlobalBuffer);
+    cmd.SetUniformBuffer("SceneInfo", *sceneInfoBuffer);
     if (diffuseCube)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)
@@ -296,7 +297,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.view = viewMatrix;
     ProcessLights(scene);
 
-    size_t copySize = sceneGlobalBuffer->GetSize();
+    size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{
         .srcOffset = 0,
         .dstOffset = 0,
@@ -304,7 +305,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     }};
 
     memcpy(stagingBuffer->GetCPUVisibleAddress(), &sceneInfo, sizeof(sceneInfo));
-    cmd.CopyBuffer(stagingBuffer, sceneGlobalBuffer, regions);
+    cmd.CopyBuffer(stagingBuffer, sceneInfoBuffer, regions);
+
+    shaderGlobal.time += Time::DeltaTime();
+    GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
+    cmd.SetUniformBuffer("Global", *shaderGlobalBuffer);
 
     graph->Execute(cmd);
 }
@@ -319,11 +324,18 @@ bool Graph::Compile()
         .visibleInCPU = true,
         .debugName = "dual moon graph staging buffer",
     });
-    sceneGlobalBuffer = GetGfxDriver()->CreateBuffer(
+    sceneInfoBuffer = GetGfxDriver()->CreateBuffer(
         {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
          .size = sizeof(SceneInfo),
          .visibleInCPU = false,
          .debugName = "Scene Info Buffer",
+         .gpuWrite = true}
+    );
+    shaderGlobalBuffer = GetGfxDriver()->CreateBuffer(
+        {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+         .size = sizeof(SceneInfo),
+         .visibleInCPU = false,
+         .debugName = "Shader Global Buffer",
          .gpuWrite = true}
     );
 

@@ -175,14 +175,15 @@ private:
         fluidCompute = static_cast<ComputeShader*>(
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
         );
-        fog = GetGfxDriver()->CreateImage({64, 64, 64, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
+        fog = GetGfxDriver()->CreateImage({256, 256, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
     }
 
     void MakeFog(Gfx::CommandBuffer& cmd)
     {
         cmd.SetTexture("imgOutput", *fog);
         cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
-        cmd.Dispatch(16, 16, 16);
+        cmd.Dispatch(32, 32, 1);
+        cmd.SetTexture("fogTest", *fog);
     }
 
     static char _reg;

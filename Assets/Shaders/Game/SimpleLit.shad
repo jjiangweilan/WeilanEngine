@@ -16,13 +16,13 @@ struct v2f {
     vec3 positionWS;
     vec3 normalWS;
     vec4 shadowCoord;
+    vec2 uv;
 };
 
 #if VERT
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
-layout(location = 2) in vec4 iTangent;
-layout(location = 3) in vec2 uv;
+layout(location = 3) in vec2 iUV;
 
 layout(location = 0) out v2f vOut;
 void main()
@@ -31,6 +31,7 @@ void main()
     vOut.normalWS = (inverse(transpose(mat3(pconst.model))) * iNormal);
     vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
     vOut.positionWS = positionWS.xyz;
+    vOut.uv = iUV;
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
 }
 #endif
@@ -44,6 +45,8 @@ layout(set = SET_MATERIAL) uniform Unlit
     float shadowBleedingClamp;
     float shadowMDClamp;
 } vals;
+
+layout(set = 0) uniform sampler2D fogTest;
 
 layout(location = 0) in v2f fragInput;
 
@@ -85,5 +88,7 @@ void main()
 
     oColor = vec4(vec3(color * shadowAttenuation) + vals.emission.xyz, 1.0);
 #endif
+
+    oColor = texture(fogTest, fragInput.uv);
 }
 #endif
