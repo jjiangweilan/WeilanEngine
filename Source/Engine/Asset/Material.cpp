@@ -8,6 +8,7 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
 {
     SetName("new material");
     schedule = std::make_shared<Schedule>();
+    shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
 Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
@@ -25,6 +26,8 @@ Material::Material(const Material& other) : Asset(other), shader(nullptr), shade
 
     if (other.shader)
         SetShader(other.shader);
+
+    shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
 Material::Material(RefPtr<Shader> shader) : Material()
@@ -33,6 +36,7 @@ Material::Material(RefPtr<Shader> shader) : Material()
     SetShader(shader);
 
     schedule = std::make_shared<Schedule>();
+    shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
 Material::~Material(){};
@@ -155,7 +159,6 @@ void Material::SetShaderNoProtection(RefPtr<Shader> shader)
     // {
     //     GetGfxDriver()->WaitForIdle();
     // }
-    shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
 void Material::Serialize(Serializer* s) const
