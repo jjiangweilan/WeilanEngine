@@ -18,6 +18,12 @@ std::unique_ptr<Asset> AssetRegistry::CreateAssetByExtension(const Extension& id
     return nullptr;
 }
 
+bool AssetRegistry::IsExtensionAnAsset(const std::string& ext)
+{
+    auto registery = GetAssetExtensionRegistry();
+    return registery->find(ext) != registery->end();
+}
+
 std::unordered_map<AssetRegistry::Extension, std::function<std::unique_ptr<Asset>()>>* AssetRegistry::
     GetAssetExtensionRegistry()
 {

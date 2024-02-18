@@ -100,6 +100,7 @@ public:
     static std::unique_ptr<T> CreateAsset(const ObjectTypeID& id);
     static char RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
     static char RegisterExternalAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
+    static bool IsExtensionAnAsset(const std::string& ext);
 
 private:
     static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Asset>()>>* GetAssetTypeRegistery();

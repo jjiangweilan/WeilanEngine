@@ -640,33 +640,47 @@ void GameEditor::AssetWindow()
     if (assetWindow)
     {
         ImGui::Begin("Assets", &assetWindow);
-        AssetShowDir(engine->GetProjectPath() / "Assets");
-        ImGui::End();
-
-        ImGui::Begin("Internal Assets", &assetWindow);
-        auto& internalAssets = engine->assetDatabase->GetInternalAssets();
-        for (AssetData* internalAsset : internalAssets)
+        if (ImGui::TreeNode("_engine_internal_asset"))
         {
-            ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
-
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+            auto& internalAssets = engine->assetDatabase->GetInternalAssets();
+            for (AssetData* internalAsset : internalAssets)
             {
-                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
-                ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
-
-                ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
-
-                ImGui::EndDragDropSource();
-            }
-            else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-            {
-                Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
-                if (asset)
+                auto path = std::filesystem::relative(internalAsset->GetAssetPath(), "_engine_internal/").string();
+                if (ImGui::TreeNodeEx(path.c_str(), ImGuiTreeNodeFlags_Leaf))
                 {
-                    EditorState::selectedObject = asset;
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                    {
+                        Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                        ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
+
+                        ImGui::Text("%s", internalAsset->GetAssetPath().string().c_str());
+
+                        ImGui::EndDragDropSource();
+                    }
+                    else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                    {
+                        Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                        if (asset)
+                        {
+                            EditorState::selectedObject = asset;
+                        }
+                    }
+
+                    if (ImGui::IsItemHovered())
+                    {
+                        if (ImGui::BeginTooltip())
+                        {
+                            ImGui::Text("%s", path.c_str());
+                            ImGui::EndTooltip();
+                        }
+                    }
+                    ImGui::TreePop();
                 }
             }
+            ImGui::TreePop();
         }
+        ImGui::Separator();
+        AssetShowDir(engine->GetProjectPath() / "Assets");
         ImGui::End();
     }
 }

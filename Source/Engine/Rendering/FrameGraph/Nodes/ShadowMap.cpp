@@ -46,27 +46,30 @@ public:
              shadowmapShader,
              shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& ref)
             {
-                cmd.SetViewport(
-                    {.x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1}
-                );
-                Rect2D rect = {{0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y}};
-                cmd.SetScissor(0, 1, &rect);
-                cmd.BeginRenderPass(pass, shadowMapClears);
-                auto program = shadowmapShader->GetShaderProgram(0);
-
-                for (auto& draw : *drawList)
+                if (shadowmapShader)
                 {
-                    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
-                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(program, (void*)&draw.pushConstant);
-                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    cmd.SetViewport(
+                        { .x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1 }
+                    );
+                    Rect2D rect = { {0, 0}, {(uint32_t)shadowMapSize.x, (uint32_t)shadowMapSize.y} };
+                    cmd.SetScissor(0, 1, &rect);
+                    cmd.BeginRenderPass(pass, shadowMapClears);
+                    auto program = shadowmapShader->GetShaderProgram(0);
+
+                    for (auto& draw : *drawList)
+                    {
+                        cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                        cmd.SetPushConstant(program, (void*)&draw.pushConstant);
+                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    }
+
+                    cmd.EndRenderPass();
+
+                    Gfx::Image* shadowImage = (Gfx::Image*)shadowMapPass->GetPass()->GetResourceRef(2)->GetResource();
+                    cmd.SetTexture("shadowMap", *shadowImage);
                 }
-
-                cmd.EndRenderPass();
-
-                Gfx::Image* shadowImage = (Gfx::Image*)shadowMapPass->GetPass()->GetResourceRef(2)->GetResource();
-                cmd.SetTexture("shadowMap", *shadowImage);
             }
         );
 

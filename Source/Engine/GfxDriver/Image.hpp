@@ -140,6 +140,7 @@ public:
     virtual const std::string& GetName() = 0;
     virtual const ImageDescription& GetDescription() = 0;
     virtual void SetData(std::span<uint8_t> binaryData, uint32_t mip = 0, uint32_t layer = 0) = 0;
+
     bool IsGPUWrite()
     {
         return isGPUWrite;

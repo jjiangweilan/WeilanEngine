@@ -35,7 +35,7 @@ blendOp:
 
 #if FRAG
 
-layout(set = SET_SHADER, binding = 0) uniform sampler2D mainTex;
+layout(set = 1, binding = 0) uniform sampler2D mainTex;
 
 layout(location = 0) in vec2 i_uv;
 layout(location = 0) out vec4 o_Color0;
