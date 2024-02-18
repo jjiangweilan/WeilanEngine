@@ -1,5 +1,6 @@
 #include "AssetDatabase.hpp"
 #include "Importers.hpp"
+#include "Libs/Profiler.hpp"
 #include <iostream>
 #include <spdlog/spdlog.h>
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
@@ -72,6 +73,9 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 
     if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
+
+    // this asset is going to be loaded from disk, start the profiler
+    // SCOPED_PROFILER(path.string());
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
     std::filesystem::path ext = absoluteAssetPath.extension();
