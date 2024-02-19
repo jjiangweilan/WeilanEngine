@@ -3,7 +3,9 @@
 
 #if CONFIG
 name: Game/Cloud
-cull: none
+cull: front
+blend:
+- srcAlpha oneMinusSrcAlpha
 #endif
 
 struct v2f {
@@ -30,36 +32,97 @@ void main()
 
 #if FRAG
 
-layout(set = SET_MATERIAL) uniform Cloud
+layout(set = 2, binding = 0) uniform Cloud
 {
     vec4 position;
     float size;
     float delta;
-    float freq;
-    float amp;
+    float perlin_freq;
+    float perlin_amp;
+    float worley_freq;
+    float worley_amp;
+    float worley_scale;
+
+    float lacunarity;
+    float gain;
+    float densityScale;
+    float cloudBlend;
 } prop;
 
-// layout(set = SET_MATERIAL) uniform sampler2D noiseTex;
+layout(set = 2, binding = 1) uniform sampler2D noiseTex;
 layout(set = SET_GLOBAL, binding = 7) uniform Global
 {
     float time;
 } g;
 
-#define USE_WORLEY_NOISE
-#define NOISE_WORLEY_NOISE_NUM_CELLS 16
+#define USE_PERLIN_NOISE_3D
+#define NOISE_WHITE_NOISE_TEX noiseTex
+#define USE_WORLEY_NOISE_3D
+#define NOISE_WORLEY_NOISE_NUM_CELLS 8
 #include "Lib/Noise.glsl"
 
 layout(location = 0) in v2f fragInput;
 layout(location = 0) out vec4 oColor;
 
+float CloudDensity(vec3 pos)
+{
+    // Properties
+    const int octaves = 4;
+    float lacunarity = prop.lacunarity;
+    float gain = prop.gain;
+    //
+    // Initial values
+    float amplitude = prop.worley_amp;
+    float frequency = prop.worley_freq;
+    float val = 0;
+    //
+    // Loop of octaves
+    for (int i = 0; i < octaves; i++) {
+        val += amplitude * (1 - worley3D(frequency * pos, prop.worley_scale));
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+
+    return val;
+}
+
+float BoxSdf(vec3 p)
+{
+  // mat4 model = pconst.model[3].xyz;
+  vec3 q = abs(p - pconst.model[3].xyz) - vec3(100, 10, 100);
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+float RayMarching(vec3 origin, vec3 dir)
+{
+    const float travelDistance = 50;
+    const float delta = 0.1;
+
+    float travel = 0;
+    float col = 0;
+    vec3 curr = origin;
+    for(;travel < travelDistance; travel += delta)
+    {
+        if (BoxSdf(curr) < 0)
+        {
+            col = mix(col, CloudDensity(curr + vec3(0,0,g.time)) * prop.densityScale, prop.cloudBlend);
+        }
+
+        curr += dir * delta;
+    }
+
+    return col;
+}
+
 void main()
 {
     vec3 center = pconst.model[3].xyz + prop.position.xyz;
-    vec3 dir = normalize(fragInput.positionWS.xyz - scene.viewPos.xyz);
+    vec3 dir = normalize(scene.viewPos.xyz - fragInput.positionWS.xyz);
     vec3 start = fragInput.positionWS.xyz;
-    vec3 curr = start;
-
+    // float worley = prop.worley_amp * (1 - worley3D(fragInput.positionWS.xyz * prop.worley_freq, prop.worley_scale));
+    // float perlin = prop.perlin_amp * perlinNoise3D(fragInput.positionWS.xyz * prop.perlin_freq);
     // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
-    oColor = vec4(prop.amp * (worley(prop.freq * fragInput.uv)));
+    oColor = vec4(1,1,1, RayMarching(start, dir));
+    // oColor = vec4(dir, 1);
 }
 #endif

@@ -70,11 +70,25 @@ public:
             Rect2D rect = {{0, 0}, {width, height}};
             clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
-                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
+            };
             clearValues[1].depthStencil = {1};
 
             cmd.SetScissor(0, 1, &rect);
             cmd.BeginRenderPass(pass, clearValues);
+
+            if (!invalidSkybox)
+            {
+                cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
+                auto& cubeSubmesh = cube->GetSubmeshes()[0];
+                Gfx::VertexBufferBinding bindins[] = {
+                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
+                };
+                cmd.BindVertexBuffer(bindins, 0);
+                cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
+                cmd.BindResource(2, skyboxResources.get());
+                cmd.DrawIndexed(cubeSubmesh.GetIndexCount(), 1, 0, 0, 0);
+            }
 
             // draw scene objects
             for (auto& draw : *drawList)
@@ -85,18 +99,6 @@ public:
                 cmd.BindResource(2, draw.shaderResource);
                 cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-            }
-
-            if (!invalidSkybox)
-            {
-                cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
-                auto& cubeSubmesh = cube->GetSubmeshes()[0];
-                Gfx::VertexBufferBinding bindins[] = {
-                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
-                cmd.BindVertexBuffer(bindins, 0);
-                cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
-                cmd.BindResource(2, skyboxResources.get());
-                cmd.DrawIndexed(cubeSubmesh.GetIndexCount(), 1, 0, 0, 0);
             }
 
             cmd.EndRenderPass();
@@ -124,7 +126,8 @@ public:
                 outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
-            )};
+            )
+        };
     }
 
     void FogPass(Gfx::CommandBuffer& cmd)

@@ -1,9 +1,14 @@
 #ifndef NOISE_INCLUDED
 #define NOISE_INCLUDED
 
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
 // 3d perlin noise
 // from https://www.shadertoy.com/view/XlKyRw
-#if defined(USE_PERLIN_NOISE_3D) && defined(NOISE_WHITE_NOISE_TEX)
+// define NOISE_WHITE_NOISE_TEX to a sampler2D if you don't want to generate random number by code
+#if defined(USE_PERLIN_NOISE_3D)
 float fade(float t) 
 {
     return t*t*t*(t*(6.0*t-15.0)+10.0); 
@@ -12,7 +17,11 @@ float fade(float t)
 float hash13(vec3 pos)
 {
     vec2 uv = pos.xy + pos.z;
+#if defined(NOISE_WHITE_NOISE_TEX)
     return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
+#else
+    return rand(uv);
+#endif
 }
 
 float grad3D(float hash, vec3 pos) 
@@ -47,15 +56,10 @@ float perlinNoise3D(vec3 pos)
 // from https://www.shadertoy.com/view/MstGRl
 #if defined(USE_WORLEY_NOISE) && defined(NOISE_WORLEY_NOISE_NUM_CELLS)
 
-// Arbitrary random, can be replaced with a function of your choice
-float rand(vec2 co){
-    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-}
-
 // Returns the point in a given cell
 vec2 get_cell_point(ivec2 cell) {
-	vec2 cell_base = vec2(cell) / NOISE_WORLEY_NOISE_NUM_CELLS;
-	float noise_x = rand(vec2(cell));
+    vec2 cell_base = vec2(cell) / NOISE_WORLEY_NOISE_NUM_CELLS;
+    float noise_x = rand(vec2(cell));
     float noise_y = rand(vec2(cell.yx));
     return cell_base + (0.5 + 1.5 * vec2(noise_x, noise_y)) / NOISE_WORLEY_NOISE_NUM_CELLS;
 }
@@ -65,19 +69,59 @@ vec2 get_cell_point(ivec2 cell) {
 float worley(vec2 coord) {
     ivec2 cell = ivec2(coord * NOISE_WORLEY_NOISE_NUM_CELLS);
     float dist = 1.0;
-    
+
     // Search in the surrounding 5x5 cell block
     for (int x = 0; x < 5; x++) { 
         for (int y = 0; y < 5; y++) {
-        	vec2 cell_point = get_cell_point(cell + ivec2(x-2, y-2));
+            vec2 cell_point = get_cell_point(cell + ivec2(x-2, y-2));
             dist = min(dist, distance(cell_point, coord));
 
         }
     }
-    
+
     dist /= length(vec2(1.0 / NOISE_WORLEY_NOISE_NUM_CELLS));
-    dist = 1.0 - dist;
     return dist;
+}
+#endif
+
+// from https://www.shadertoy.com/view/3d3fWN
+#if defined(USE_WORLEY_NOISE_3D)
+vec3 hash33(vec3 p3) {
+    vec3 p = fract(p3 * vec3(.1031,.11369,.13787));
+    p += dot(p, p.yxz+19.19);
+    return -1.0 + 2.0 * fract(vec3((p.x + p.y)*p.z, (p.x+p.z)*p.y, (p.y+p.z)*p.x));
+}
+
+float worley3D(vec3 p, float scale){
+
+    vec3 id = floor(p*scale);
+    vec3 fd = fract(p*scale);
+
+    float n = 0.;
+
+    float minimalDist = 1.;
+
+
+    for(float x = -1.; x <=1.; x++){
+        for(float y = -1.; y <=1.; y++){
+            for(float z = -1.; z <=1.; z++){
+
+                vec3 coord = vec3(x,y,z);
+                vec3 rId = hash33(mod(id+coord,scale))*0.5+0.5;
+
+                vec3 r = coord + rId - fd; 
+
+                float d = dot(r,r);
+
+                if(d < minimalDist){
+                    minimalDist = d;
+                }
+
+            }//z
+        }//y
+    }//x
+
+    return minimalDist;
 }
 #endif
 
