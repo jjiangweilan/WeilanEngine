@@ -9,7 +9,6 @@ cull: none
 struct v2f {
     vec3 positionWS;
     vec3 normalWS;
-    vec4 shadowCoord;
     vec2 uv;
 };
 
@@ -23,7 +22,6 @@ void main()
 {
     vec3 positionWS = vec3(pconst.model * vec4(iPosition, 1)).xyz;
     vOut.normalWS = (inverse(transpose(mat3(pconst.model))) * iNormal);
-    vOut.shadowCoord = scene.worldToShadow * vec4(positionWS, 1.0);
     vOut.positionWS = positionWS.xyz;
     vOut.uv = iUV;
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
@@ -41,14 +39,14 @@ layout(set = SET_MATERIAL) uniform Cloud
     float amp;
 } prop;
 
-layout(set = SET_MATERIAL) uniform sampler2D noiseTex;
+// layout(set = SET_MATERIAL) uniform sampler2D noiseTex;
 layout(set = SET_GLOBAL, binding = 7) uniform Global
 {
     float time;
 } g;
 
-#define USE_PERLIN_NOISE_3D
-#define NOISE_WHITE_NOISE_TEX noiseTex
+#define USE_WORLEY_NOISE
+#define NOISE_WORLEY_NOISE_NUM_CELLS 16
 #include "Lib/Noise.glsl"
 
 layout(location = 0) in v2f fragInput;
@@ -61,6 +59,7 @@ void main()
     vec3 start = fragInput.positionWS.xyz;
     vec3 curr = start;
 
-    oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
+    // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
+    oColor = vec4(prop.amp * (worley(prop.freq * fragInput.uv)));
 }
 #endif
