@@ -84,18 +84,27 @@ float worley(vec2 coord) {
 }
 #endif
 
-// from https://www.shadertoy.com/view/3d3fWN
+// modified from https://www.shadertoy.com/view/3d3fWN
 #if defined(USE_WORLEY_NOISE_3D)
-vec3 hash33(vec3 p3) {
-    vec3 p = fract(p3 * vec3(.1031,.11369,.13787));
-    p += dot(p, p.yxz+19.19);
-    return -1.0 + 2.0 * fract(vec3((p.x + p.y)*p.z, (p.x+p.z)*p.y, (p.y+p.z)*p.x));
+
+// iq hash
+// https://www.shadertoy.com/view/XlXcW4
+vec3 hash(vec3 xx)
+{
+    uvec3 x = floatBitsToUint(xx);
+    const uint k = 1103515245U;  // GLIB C
+
+    x = ((x>>8U)^x.yzx)*k;
+    x = ((x>>8U)^x.yzx)*k;
+    x = ((x>>8U)^x.yzx)*k;
+    
+    return vec3(x)*(1.0/float(0xffffffffU));
 }
 
-float worley3D(vec3 p, float scale){
+float worley3D(vec3 p){
 
-    vec3 id = floor(p*scale);
-    vec3 fd = fract(p*scale);
+    vec3 id = floor(p);
+    vec3 fd = fract(p);
 
     float n = 0.;
 
@@ -107,7 +116,7 @@ float worley3D(vec3 p, float scale){
             for(float z = -1.; z <=1.; z++){
 
                 vec3 coord = vec3(x,y,z);
-                vec3 rId = hash33(mod(id+coord,scale))*0.5+0.5;
+                vec3 rId = hash(id+coord);
 
                 vec3 r = coord + rId - fd; 
 

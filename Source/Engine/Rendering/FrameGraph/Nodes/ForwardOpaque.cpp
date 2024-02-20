@@ -59,7 +59,7 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
-            MakeFog(cmd);
+            // MakeCloudNoise(cmd);
 
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
@@ -70,8 +70,7 @@ public:
             Rect2D rect = {{0, 0}, {width, height}};
             clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
-                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
-            };
+                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
             clearValues[1].depthStencil = {1};
 
             cmd.SetScissor(0, 1, &rect);
@@ -82,8 +81,7 @@ public:
                 cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
                 auto& cubeSubmesh = cube->GetSubmeshes()[0];
                 Gfx::VertexBufferBinding bindins[] = {
-                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
-                };
+                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
                 cmd.BindVertexBuffer(bindins, 0);
                 cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
                 cmd.BindResource(2, skyboxResources.get());
@@ -126,8 +124,7 @@ public:
                 outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
-            )
-        };
+            )};
     }
 
     void FogPass(Gfx::CommandBuffer& cmd)
@@ -206,10 +203,10 @@ private:
         fluidCompute = static_cast<ComputeShader*>(
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
         );
-        fog = GetGfxDriver()->CreateImage({256, 256, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
+        fog = GetGfxDriver()->CreateImage({128, 128, 128, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
     }
 
-    void MakeFog(Gfx::CommandBuffer& cmd)
+    void MakeCloudNoise(Gfx::CommandBuffer& cmd)
     {
         cmd.SetTexture("imgOutput", *fog);
         cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());

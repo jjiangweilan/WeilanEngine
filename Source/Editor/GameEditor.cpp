@@ -423,6 +423,13 @@ void GameEditor::GUIPass()
         engine->assetDatabase->RequestShaderRefresh(false);
     }
 
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S))
+    {
+        engine->assetDatabase->SaveDirtyAssets();
+        if (EditorState::activeScene)
+            engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+    }
+
     if (EditorState::activeScene)
     {
         if (EditorState::activeScene)
