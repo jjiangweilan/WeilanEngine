@@ -11,6 +11,7 @@
 #include "Tools/EnvironmentBaker.hpp"
 #include "spdlog/spdlog.h"
 #include <glm/gtx/matrix_decompose.hpp>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <unordered_map>
 
 namespace Editor
@@ -21,6 +22,15 @@ GameEditor::GameEditor(const char* path)
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
     loop = engine->CreateGameLoop();
+
+    // engine is in another dynamic library which has different static logger instance, we need to register it for
+    // editor too
+    auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    auto logger = std::make_shared<spdlog::logger>(
+        "engine logger",
+        spdlog::sinks_init_list{engine->GetRingBufferLoggerSink(), consoleSink}
+    );
+    spdlog::set_default_logger(logger);
 
     auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
     bool createEditorConfigJson = true;
@@ -428,6 +438,7 @@ void GameEditor::GUIPass()
         engine->assetDatabase->SaveDirtyAssets();
         if (EditorState::activeScene)
             engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+        SPDLOG_INFO("project saved");
     }
 
     if (EditorState::activeScene)

@@ -1,9 +1,31 @@
 #ifndef NOISE_INCLUDED
 #define NOISE_INCLUDED
 
+// seems not working on RTX gpu, maybe because of sin?
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
+
+vec3 hash3(uvec3 x)
+{
+    const uint k = 1103515245U;  // GLIB C
+
+    x = ((x>>8U)^x.yzx)*k;
+    x = ((x>>8U)^x.yzx)*k;
+    x = ((x>>8U)^x.yzx)*k;
+    
+    return vec3(x)*(1.0/float(0xffffffffU));
+}
+
+// iq hash
+// https://www.shadertoy.com/view/4tXyWN
+float hash1( uvec2 x )
+{
+    uvec2 q = 1103515245U * ( (x>>1U) ^ (x.yx   ) );
+    uint  n = 1103515245U * ( (q.x  ) ^ (q.y>>3U) );
+    return float(n) * (1.0/float(0xffffffffU));
+}
+
 
 // 3d perlin noise
 // from https://www.shadertoy.com/view/XlKyRw
@@ -20,7 +42,7 @@ float hash13(vec3 pos)
 #if defined(NOISE_WHITE_NOISE_TEX)
     return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
 #else
-    return rand(uv);
+    return hash1(floatBitsToUint(uv));
 #endif
 }
 
@@ -32,6 +54,7 @@ float grad3D(float hash, vec3 pos)
     return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
 }
 
+// range (-1, 1)
 float perlinNoise3D(vec3 pos)
 {
     vec3 pi = floor(pos); 
@@ -87,20 +110,7 @@ float worley(vec2 coord) {
 // modified from https://www.shadertoy.com/view/3d3fWN
 #if defined(USE_WORLEY_NOISE_3D)
 
-// iq hash
-// https://www.shadertoy.com/view/XlXcW4
-vec3 hash(vec3 xx)
-{
-    uvec3 x = floatBitsToUint(xx);
-    const uint k = 1103515245U;  // GLIB C
-
-    x = ((x>>8U)^x.yzx)*k;
-    x = ((x>>8U)^x.yzx)*k;
-    x = ((x>>8U)^x.yzx)*k;
-    
-    return vec3(x)*(1.0/float(0xffffffffU));
-}
-
+// range (0, 1)
 float worley3D(vec3 p){
 
     vec3 id = floor(p);
@@ -116,7 +126,7 @@ float worley3D(vec3 p){
             for(float z = -1.; z <=1.; z++){
 
                 vec3 coord = vec3(x,y,z);
-                vec3 rId = hash(id+coord);
+                vec3 rId = hash3(floatBitsToUint(id+coord));
 
                 vec3 r = coord + rId - fd; 
 

@@ -277,8 +277,9 @@ void Material::UBO::Serialize(Serializer* ser) const
 void Material::UBO::Deserialize(Serializer* ser)
 {
     ser->Deserialize("floats", floats);
-    ser->Deserialize("vector", vectors);
+    ser->Deserialize("vectors", vectors);
     ser->Deserialize("matrices", matrices);
+    dirty = true;
 }
 
 void Material::UploadDataToGPU()
@@ -291,6 +292,7 @@ void Material::UploadDataToGPU()
     {
         if (u.second.dirty)
         {
+            u.second.dirty = false;
             auto bindingIter = shaderProgram->GetShaderInfo().bindings.find(u.first);
             if (bindingIter != shaderProgram->GetShaderInfo().bindings.end() &&
                 bindingIter->second.type == Gfx::ShaderInfo::BindingType::UBO)
@@ -313,58 +315,55 @@ void Material::UploadDataToGPU()
                 tempUploadData.clear();
                 tempUploadData.resize(bindingIter->second.binding.ubo.data.size);
 
-                for (auto& f : u.second.floats)
+                auto& members = bindingIter->second.binding.ubo.data.members;
+                for (auto& m : members)
                 {
-                    auto& members = bindingIter->second.binding.ubo.data.members;
-                    auto memberIter = members.find(f.first);
-                    if (memberIter != members.end())
+                    switch (m.second.data->type)
                     {
-                        if (memberIter->second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
+                        case Gfx::ShaderInfo::ShaderDataType::Float:
                         {
-                            size_t offset = memberIter->second.offset;
-                            *((float*)(tempUploadData.data() + offset)) = f.second;
+                            auto iter = u.second.floats.find(m.first);
+                            if (iter != u.second.floats.end())
+                            {
+                                size_t offset = m.second.offset;
+                                *((float*)(tempUploadData.data() + offset)) = iter->second;
+                            }
+                            break;
+                        }
+                        case Gfx::ShaderInfo::ShaderDataType::Vec4:
+                        case Gfx::ShaderInfo::ShaderDataType::Vec3:
+                        {
+                            auto iter = u.second.vectors.find(m.first);
+                            if (iter != u.second.vectors.end())
+                            {
+                                size_t offset = m.second.offset;
+                                *((glm::vec4*)(tempUploadData.data() + offset)) = iter->second;
+                            }
+                            break;
+                        }
+                        case Gfx::ShaderInfo::ShaderDataType::Vec2:
+                        {
+                            auto iter = u.second.vectors.find(m.first);
+                            if (iter != u.second.vectors.end())
+                            {
+                                size_t offset = m.second.offset;
+                                *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(iter->second);
+                            }
+                            break;
+                        }
+                        case Gfx::ShaderInfo::ShaderDataType::Mat4:
+                        {
+                            auto iter = u.second.matrices.find(m.first);
+                            if (iter != u.second.matrices.end())
+                            {
+                                size_t offset = m.second.offset;
+                                *((glm::mat4*)(tempUploadData.data() + offset)) = iter->second;
+                            }
+                            break;
                         }
                     }
                 }
-
-                for (auto& v : u.second.vectors)
-                {
-                    auto& members = bindingIter->second.binding.ubo.data.members;
-                    auto memberIter = members.find(v.first);
-                    if (memberIter != members.end())
-                    {
-                        auto type = memberIter->second.data->type;
-                        if (type == Gfx::ShaderInfo::ShaderDataType::Vec4 ||
-                            type == Gfx::ShaderInfo::ShaderDataType::Vec3)
-                        {
-                            size_t offset = memberIter->second.offset;
-                            *((glm::vec4*)(tempUploadData.data() + offset)) = v.second;
-                        }
-                        else if (memberIter->second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
-                        {
-                            size_t offset = memberIter->second.offset;
-                            *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(v.second);
-                        }
-                    }
-                }
-
-                for (auto& m : u.second.matrices)
-                {
-                    auto& members = bindingIter->second.binding.ubo.data.members;
-                    auto memberIter = members.find(m.first);
-                    if (memberIter != members.end())
-                    {
-                        auto type = memberIter->second.data->type;
-                        if (type == Gfx::ShaderInfo::ShaderDataType::Mat4)
-                        {
-                            size_t offset = memberIter->second.offset;
-                            *((glm::mat4*)(tempUploadData.data() + offset)) = m.second;
-                        }
-                    }
-                }
-
                 GetGfxDriver()->UploadBuffer(*u.second.buffer, tempUploadData.data(), tempUploadData.size(), 0);
-                u.second.dirty = false;
             }
         }
     }
