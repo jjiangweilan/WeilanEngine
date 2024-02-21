@@ -33,7 +33,7 @@ void GameView::Init()
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
-    CreateRenderData(1960, 1080);
+    CreateRenderData(960, 480);
 
     outlineRawColorPassShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineRawColorPass.shad")
@@ -392,7 +392,8 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y};
+                            mousePos.y - windowPos.y - imagePos.y
+                        };
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 

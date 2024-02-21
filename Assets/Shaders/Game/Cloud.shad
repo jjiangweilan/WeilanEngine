@@ -6,7 +6,7 @@
 name: Game/Cloud
 cull: back
 blend:
-- one srcAlpha
+- srcAlpha oneMinusSrcAlpha
 #endif
 
 struct v2f {
@@ -36,7 +36,6 @@ void main()
 layout(set = 2, binding = 0) uniform Cloud
 {
     vec4 position;
-    float size;
     float delta;
     float lightStep;
     float phaseFactor;
@@ -45,11 +44,8 @@ layout(set = 2, binding = 0) uniform Cloud
     vec4 perlin0_freq;
     vec4 perlin1_freq;
 
-    float lacunarity;
-    float gain;
-    float densityScale;
-    float cloudBlend;
-    float fade;
+    float cloudDensity;
+    float absorption;
     float dualLobHenyeyGreenstein;
 } prop;
 
@@ -63,36 +59,39 @@ layout(set = SET_GLOBAL, binding = 7) uniform Global
 #define NOISE_WHITE_NOISE_TEX noiseTex
 #define USE_WORLEY_NOISE_3D
 #include "Lib/Noise.glsl"
+#include "Lib/Util.glsl"
 
 layout(location = 0) in v2f fragInput;
 layout(location = 0) out vec4 oColor;
 
 float CloudDensity(vec3 pos)
 {
-    pos += vec3(0,0,g.time);
+    pos += vec3(0,0,g.time/2);
     //
     // Initial values
     vec4 frequency = prop.worley_freq;
-    float val = 0;
+    float perlin = 0;
+    float worley = 0;
     //
 
     float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
 
-    val += perlinNoise3D(pos * prop.perlin0_freq.x) / (prop.perlin0_freq.x);
-    val += perlinNoise3D(pos * prop.perlin0_freq.y) / (prop.perlin0_freq.y);
-    val += perlinNoise3D(pos * prop.perlin0_freq.z) / (prop.perlin0_freq.z);
-    val += perlinNoise3D(pos * prop.perlin0_freq.w) / (prop.perlin0_freq.w);
-    // val += perlinNoise3D(pos * prop.perlin1_freq.x) / (prop.perlin1_freq.x);
-    // val += perlinNoise3D(pos * prop.perlin1_freq.y) / (prop.perlin1_freq.y);
-    // val += perlinNoise3D(pos * prop.perlin1_freq.z) / (prop.perlin1_freq.z);
-    // val += perlinNoise3D(pos * prop.perlin1_freq.z);
+    perlin += perlinNoise3D(pos * prop.perlin0_freq.x) / (prop.perlin0_freq.x);
+    perlin += perlinNoise3D(pos * prop.perlin0_freq.y) / (prop.perlin0_freq.y);
+    perlin += perlinNoise3D(pos * prop.perlin0_freq.z) / (prop.perlin0_freq.z);
+    perlin += perlinNoise3D(pos * prop.perlin0_freq.w) / (prop.perlin0_freq.w);
+    perlin = perlin * 0.5 + 0.5;
 
+    worley += 0.625 * (worley3D(frequency.x * pos));
+    worley += 0.25 *  (worley3D(frequency.y * pos));
+    worley += 0.125 * (worley3D(frequency.z * pos));
 
-    // val += 0.625 * (1 - worley3D(frequency.x * pos));
-    // val += 0.25 *  (1 - worley3D(frequency.y * pos));
-    // val += 0.125 * (1 - worley3D(frequency.z * pos));
+    float perlinWorley = remap(max(0,perlin), (1-max(0,worley)), 1.2, 0, 1);
 
-    return abs(2 * val + 1);
+    // perlin worley
+    
+
+    return perlinWorley * prop.cloudDensity;
 }
 
 float BoxSdf(vec3 p)
@@ -104,7 +103,7 @@ float BoxSdf(vec3 p)
 
 float Absorption(float d)
 {
-    return exp(-1 * d * prop.densityScale);
+    return exp(-1 * d * prop.absorption);
 }
 
 float HenyeyGreenstein(float g, float costh)
@@ -151,7 +150,6 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     vec3 lighting = vec3(0);
     float distance = 0;
     vec3 L = vec3(scene.lights[0].intensity);
-    float normFactor = 0;
     for(;travel < travelDistance; travel += delta)
     {
         float boxSdf = BoxSdf(curr);
@@ -165,14 +163,12 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
             float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
             float reflectAbsorption = Absorption(distance);
             lighting += reflectAbsorption * L * phase * LightAbsorption(curr, ldir);
-            normFactor += 1;
         }
 
         curr += dir * delta;
     }
 
     directAbsorption = Absorption(distance);
-    lighting /= normFactor;
     return lighting;
 }
 
@@ -184,9 +180,10 @@ void main()
     // float worley = prop.worley_amp * (1 - worley3D(fragInput.positionWS.xyz * prop.worley_freq));
     // float perlin = prop.perlin_amp * perlinNoise3D(fragInput.positionWS.xyz * prop.perlin_freq);
     // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
-    float directAbsorption;
-    vec3 lighting = RayMarching(start, dir, directAbsorption);
-    oColor = vec4(lighting, clamp(directAbsorption,0,1));
+    // float directAbsorption;
+    // vec3 lighting = RayMarching(start, dir, directAbsorption);
+    // oColor = vec4(lighting, directAbsorption);//clamp(directAbsorption,0,1));
+    oColor = vec4(1,1,1, clamp(1 - LightAbsorption(start, dir),0,1));//clamp(directAbsorption,0,1));
     // oColor = vec4(dir, 1);
     // oColor = vec4(hash(fragInput.positionWS.xyz),1.0);
     // oColor = vec4(vec3(CloudDensity(fragInput.positionWS.xyz)), 1);
