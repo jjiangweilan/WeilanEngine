@@ -6,7 +6,7 @@
 name: Game/Cloud
 cull: back
 blend:
-- srcAlpha oneMinusSrcAlpha
+- one srcAlpha
 #endif
 
 struct v2f {
@@ -50,6 +50,7 @@ layout(set = 2, binding = 0) uniform Cloud
     float densityScale;
     float cloudBlend;
     float fade;
+    float dualLobHenyeyGreenstein;
 } prop;
 
 layout(set = 2, binding = 1) uniform sampler2D noiseTex;
@@ -111,6 +112,11 @@ float HenyeyGreenstein(float g, float costh)
     return (1.0 - g * g) / (4.0 * M_PI * pow(1.0 + g * g - 2.0 * g * costh, 3.0/2.0));
 }
 
+float DualLobHenyeyGreenstein(float g, float costh, float K)
+{
+    return mix(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), K);
+}
+
 // dir: pointing to light
 float LightAbsorption(vec3 start, vec3 dir)
 {
@@ -154,11 +160,11 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
             float cloudDensity = CloudDensity(curr);
             distance += delta * cloudDensity;
             
-            vec3 ldir = -normalize(scene.lights[0].position.xyz);
-            float phaseCos = dot(ldir, -dir);
-            float phase = HenyeyGreenstein(prop.phaseFactor, phaseCos);
+            vec3 ldir = normalize(scene.lights[0].position.xyz);
+            float phaseCos = dot(-ldir, -dir);
+            float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
             float reflectAbsorption = Absorption(distance);
-            lighting += reflectAbsorption * L * phase * LightAbsorption(curr, -ldir);
+            lighting += reflectAbsorption * L * phase * LightAbsorption(curr, ldir);
             normFactor += 1;
         }
 
@@ -180,7 +186,7 @@ void main()
     // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
     float directAbsorption;
     vec3 lighting = RayMarching(start, dir, directAbsorption);
-    oColor = vec4(lighting, 1 - clamp(directAbsorption,0,1));
+    oColor = vec4(lighting, clamp(directAbsorption,0,1));
     // oColor = vec4(dir, 1);
     // oColor = vec4(hash(fragInput.positionWS.xyz),1.0);
     // oColor = vec4(vec3(CloudDensity(fragInput.positionWS.xyz)), 1);
