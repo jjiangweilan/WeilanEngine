@@ -29,6 +29,8 @@ Texture::Type MapStringToTextureType(const std::string& typeStr)
         return Texture::Type::Tex2D;
     else if (typeStr == "samplerCube")
         return Texture::Type::TexCube;
+    else if (typeStr == "sampler3D")
+        return Texture::Type::Tex3D;
 
     assert(false && "non handled Texture::Type");
     return Texture::Type::Tex2D;

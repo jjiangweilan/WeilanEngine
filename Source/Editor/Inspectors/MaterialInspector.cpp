@@ -32,9 +32,8 @@ public:
             if (payload && payload->IsDelivery())
             {
                 Object& obj = **(Object**)payload->Data;
-                if (typeid(obj) == typeid(Shader))
+                if (ShaderBase* sourceShader = dynamic_cast<ShaderBase*>(&obj))
                 {
-                    Shader* sourceShader = static_cast<Shader*>(&obj);
                     target->SetShader(sourceShader);
                 }
             }

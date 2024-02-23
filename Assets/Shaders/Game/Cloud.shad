@@ -55,6 +55,8 @@ layout(set = SET_GLOBAL, binding = 7) uniform Global
     float time;
 } g;
 
+layout(set = 0, binding = 8) uniform sampler3D cloudDensity;
+
 #define USE_PERLIN_NOISE_3D
 #define NOISE_WHITE_NOISE_TEX noiseTex
 #define USE_WORLEY_NOISE_3D
@@ -76,17 +78,16 @@ float CloudDensity(vec3 pos)
 
     float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
 
-    perlin += perlinNoise3D(pos * prop.perlin0_freq.x) / (prop.perlin0_freq.x);
-    perlin += perlinNoise3D(pos * prop.perlin0_freq.y) / (prop.perlin0_freq.y);
-    perlin += perlinNoise3D(pos * prop.perlin0_freq.z) / (prop.perlin0_freq.z);
-    perlin += perlinNoise3D(pos * prop.perlin0_freq.w) / (prop.perlin0_freq.w);
-    perlin = perlin * 0.5 + 0.5;
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5) / (prop.perlin0_freq.x);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5) / (prop.perlin0_freq.y);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5) / (prop.perlin0_freq.z);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5) / (prop.perlin0_freq.w);
 
-    worley += 0.625 * (worley3D(frequency.x * pos));
-    worley += 0.25 *  (worley3D(frequency.y * pos));
-    worley += 0.125 * (worley3D(frequency.z * pos));
+    worley += 0.625 * (1 - worley3D(frequency.x * pos));
+    worley += 0.25 *  (1 - worley3D(frequency.y * pos));
+    worley += 0.125 * (1 - worley3D(frequency.z * pos));
 
-    float perlinWorley = remap(max(0,perlin), (1-max(0,worley)), 1.2, 0, 1);
+    float perlinWorley = remap(max(0,perlin), (max(0,worley)), 1, 0, 1);
 
     // perlin worley
     
@@ -116,6 +117,17 @@ float DualLobHenyeyGreenstein(float g, float costh, float K)
     return mix(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), K);
 }
 
+vec3 NormalizePosition(vec3 pos)
+{
+    // we use a 2m box
+    vec3 extend = vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+    vec3 cubePos = pconst.model[3].xyz;
+
+    vec3 o = pos - cubePos + extend;
+    return o;
+
+}
+
 // dir: pointing to light
 float LightAbsorption(vec3 start, vec3 dir)
 {
@@ -130,7 +142,7 @@ float LightAbsorption(vec3 start, vec3 dir)
         float boxSdf = BoxSdf(curr);
         if (boxSdf < 0)
         {
-            float cloudDensity = CloudDensity(curr);
+            float cloudDensity = texture(cloudDensity, NormalizePosition(curr)).x; // CloudDensity(curr);//
             distance += delta * cloudDensity;
         }
 
@@ -155,7 +167,7 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
         float boxSdf = BoxSdf(curr);
         if (boxSdf < 0)
         {
-            float cloudDensity = CloudDensity(curr);
+            float cloudDensity = texture(cloudDensity, curr).x;// CloudDensity(curr);
             distance += delta * cloudDensity;
             
             vec3 ldir = normalize(scene.lights[0].position.xyz);

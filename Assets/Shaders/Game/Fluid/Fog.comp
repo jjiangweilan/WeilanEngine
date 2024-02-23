@@ -6,19 +6,71 @@ name: Game/Fluid/Fog
 
 #if COMP
 
-layout(local_size_x = 8, local_size_y = 8) in;
-layout(r32f) uniform image2D imgOutput;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+layout(set = 0, r32f) uniform image3D imgOutput;
 layout(set = 0) uniform Global
 {
     float time;
 } g;
 
+layout(set = 2) uniform Fog
+{
+    vec4 position;
+    float delta;
+    float lightStep;
+    float phaseFactor;
+
+    vec4 worley_freq;
+    vec4 perlin0_freq;
+    vec4 perlin1_freq;
+
+    float uvScale;
+    float cloudDensity;
+    float absorption;
+    float dualLobHenyeyGreenstein;
+} prop;
+layout(set = 2) uniform sampler2D noiseTex;
+
+#define USE_PERLIN_NOISE_3D
+#define NOISE_WHITE_NOISE_TEX noiseTex
+#define USE_WORLEY_NOISE_3D
+#include "Lib/Noise.glsl"
+#include "Lib/Util.glsl"
+
+float CloudDensity(vec3 pos)
+{
+    pos += vec3(0,0,g.time/2);
+    //
+    // Initial values
+    vec4 frequency = prop.worley_freq;
+    float perlin = 0;
+    float worley = 0;
+    //
+
+    float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
+
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5) / (prop.perlin0_freq.x);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5) / (prop.perlin0_freq.y);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5) / (prop.perlin0_freq.z);
+    perlin += (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5) / (prop.perlin0_freq.w);
+
+    worley += 0.625 * (1 - worley3D(frequency.x * pos));
+    worley += 0.25 *  (1 - worley3D(frequency.y * pos));
+    worley += 0.125 * (1 - worley3D(frequency.z * pos));
+
+    float perlinWorley = remap(max(0,perlin), (max(0,worley)), 1.2, 0, 1);
+
+    // perlin worley
+    
+
+    return perlinWorley * prop.cloudDensity;
+}
+
 void main() {
-    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-    vec2 fcoord = coord / 256.0f;
-    coord += ivec2(g.time) * 5;
-    coord %= 256;
-    imageStore(imgOutput, coord, vec4(fcoord, 1.0f, 1.0f));
+    ivec3 coord = ivec3(gl_GlobalInvocationID.xyz);
+    vec3 uv = coord / 128.0f * prop.uvScale;
+    imageStore(imgOutput, coord, vec4(vec3(CloudDensity(uv)), 1.0f));
 }
 
 #endif

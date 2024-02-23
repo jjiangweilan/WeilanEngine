@@ -59,7 +59,7 @@ public:
              opaqueColorHandle,
              invalidSkybox](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
         {
-            // MakeCloudNoise(cmd);
+            MakeCloudNoise(cmd);
 
             Gfx::Image* color = (Gfx::Image*)res.at(opaqueColorHandle)->GetResource();
             uint32_t width = color->GetDescription().width;
@@ -70,7 +70,8 @@ public:
             Rect2D rect = {{0, 0}, {width, height}};
             clearValues[0] = *clearValuesVal;
             clearValues[0].color = {
-                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+                {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
+            };
             clearValues[1].depthStencil = {1};
 
             cmd.SetScissor(0, 1, &rect);
@@ -81,7 +82,8 @@ public:
                 cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
                 auto& cubeSubmesh = cube->GetSubmeshes()[0];
                 Gfx::VertexBufferBinding bindins[] = {
-                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
+                    {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
+                };
                 cmd.BindVertexBuffer(bindins, 0);
                 cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
                 cmd.BindResource(2, skyboxResources.get());
@@ -124,7 +126,8 @@ public:
                 outputPropertyIDs["depth"],
                 forwardNode,
                 RenderGraph::StrToHandle("opaque depth")
-            )};
+            )
+        };
     }
 
     void FogPass(Gfx::CommandBuffer& cmd)
@@ -186,6 +189,7 @@ private:
     std::unique_ptr<Gfx::Image> fog;
     std::unique_ptr<Gfx::ShaderResource> skyboxResources;
 
+    uint32_t cloudTexSize = 128;
     void DefineNode()
     {
         AddInputProperty("color", PropertyType::RenderGraphLink);
@@ -198,20 +202,31 @@ private:
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
+        AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
         clearValues.resize(2);
 
         fluidCompute = static_cast<ComputeShader*>(
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
         );
-        fog = GetGfxDriver()->CreateImage({128, 128, 128, Gfx::ImageFormat::R32_Float}, Gfx::ImageUsage::Storage);
+        fog = GetGfxDriver()->CreateImage(
+            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R32_Float},
+            Gfx::ImageUsage::Storage
+        );
     }
 
     void MakeCloudNoise(Gfx::CommandBuffer& cmd)
     {
-        cmd.SetTexture("imgOutput", *fog);
-        cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
-        cmd.Dispatch(32, 32, 1);
-        cmd.SetTexture("fogTest", *fog);
+        Material* cloudNoiseMaterial = GetConfigurableVal<Material*>("cloud noise material");
+
+        if (cloudNoiseMaterial)
+        {
+            cloudNoiseMaterial->UploadDataToGPU();
+            cmd.SetTexture("imgOutput", *fog);
+            cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
+            cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
+            cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
+            cmd.SetTexture("cloudDensity", *fog);
+        }
     }
 
     static char _reg;

@@ -30,7 +30,7 @@ Material::Material(const Material& other) : Asset(other), shader(nullptr), shade
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-Material::Material(RefPtr<Shader> shader) : Material()
+Material::Material(ShaderBase* shader) : Material()
 {
     SetName("new material");
     SetShader(shader);
@@ -141,7 +141,7 @@ float Material::GetFloat(const std::string& param, const std::string& member)
     return 0;
 }
 
-void Material::SetShader(RefPtr<Shader> shader)
+void Material::SetShader(ShaderBase* shader)
 {
     if (shader != nullptr) // why null check? I think we don't need it
     {
@@ -151,9 +151,9 @@ void Material::SetShader(RefPtr<Shader> shader)
     }
 }
 
-void Material::SetShaderNoProtection(RefPtr<Shader> shader)
+void Material::SetShaderNoProtection(ShaderBase* shader)
 {
-    this->shader = shader.Get();
+    this->shader = shader;
     shaderConfig = shader->GetDefaultShaderConfig();
     // if (shaderResource != nullptr)
     // {

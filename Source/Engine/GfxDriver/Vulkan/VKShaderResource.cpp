@@ -196,7 +196,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                   BufferUsage::Transfer_Dst,
                                         .size = b->binding.ubo.data.size,
                                         .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()};
+                                        .debugName = bufferName.c_str()
+                                    };
                                     auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
@@ -256,7 +257,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                             }
                             else
                             {
-                                imageInfo.imageView = sharedResource->GetDefaultStorageImage()->GetDefaultVkImageView();
+                                assert(false && "a storage image has to be set before use");
+                                // imageInfo.imageView = sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
                             }
                             writes[writeCount].pImageInfo = &imageInfo;
                             break;
@@ -265,7 +267,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                     case ShaderInfo::BindingType::SeparateImage:
                         {
                             VKImageView* imageView = (VKImageView*)resRef.res;
-                            if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
+                            if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D ||
+                                b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
                             {
                                 VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                 imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -279,8 +282,12 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 }
                                 else
                                 {
-                                    imageInfo.imageView =
-                                        sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
+                                    if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
+                                    else if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
                                 }
                                 writes[writeCount].pImageInfo = &imageInfo;
                             }
@@ -313,7 +320,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     .stages = pipelineStages,
                                     .access = VK_ACCESS_SHADER_READ_BIT,
                                     .imageView = imageView,
-                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                };
 
                                 writableGPUResources->push_back(gpuResource);
                             }

@@ -43,18 +43,18 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
     defaultTexture->SetData(pxls, 0, 0);
 
-    ImageDescription storageDesc{};
-    storageDesc.format = ImageFormat::R8G8B8A8_UNorm;
-    storageDesc.height = 2;
-    storageDesc.width = 2;
-    storageDesc.depth = 2;
-    storageDesc.mipLevels = 1;
-    storageDesc.isCubemap = false;
-    storageDesc.multiSampling = MultiSampling::Sample_Count_1;
-    defaultStorageImage = MakeUnique<VKImage>(storageDesc, ImageUsage::Storage | ImageUsage::TransferDst);
-    defaultStorageImage->SetName("Default Storage Image");
-    uint8_t storagePxls[32] = {};
-    defaultStorageImage->SetData(storagePxls, 0, 0, VK_IMAGE_LAYOUT_GENERAL);
+    ImageDescription tex3DDesc{};
+    tex3DDesc.format = ImageFormat::R8G8B8A8_UNorm;
+    tex3DDesc.height = 2;
+    tex3DDesc.width = 2;
+    tex3DDesc.depth = 2;
+    tex3DDesc.mipLevels = 1;
+    tex3DDesc.isCubemap = false;
+    tex3DDesc.multiSampling = MultiSampling::Sample_Count_1;
+    defaultTexture3D = std::make_unique<VKImage>(tex3DDesc, ImageUsage::Texture | ImageUsage::TransferDst);
+    defaultTexture3D->SetName("Default 3D Image");
+    uint8_t tex3DData[32] = {};
+    defaultTexture3D->SetData(tex3DData, 0, 0);
 
     ImageDescription descCube{};
     descCube.format = ImageFormat::R8G8B8A8_UNorm;

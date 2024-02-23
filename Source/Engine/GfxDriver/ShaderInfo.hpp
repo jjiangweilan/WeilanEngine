@@ -110,6 +110,7 @@ struct Texture
     enum class Type
     {
         Tex2D,
+        Tex3D,
         TexCube,
     };
 

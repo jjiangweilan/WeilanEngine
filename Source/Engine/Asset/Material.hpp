@@ -22,13 +22,13 @@ class Material : public Asset
     DECLARE_ASSET();
 
 public:
-    Material(RefPtr<Shader> shader);
+    Material(ShaderBase* shader);
     Material();
     Material(const Material& other);
     ~Material() override;
 
-    void SetShader(RefPtr<Shader> shader);
-    Shader* GetShader()
+    void SetShader(ShaderBase* shader);
+    ShaderBase* GetShader()
     {
         return shader;
     }
@@ -111,7 +111,7 @@ private:
         std::vector<ScheduledUpdate> updates;
     };
 
-    Shader* shader = nullptr;
+    ShaderBase* shader = nullptr;
     uint32_t shaderContentHash = -1;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
@@ -127,6 +127,6 @@ private:
 
     std::vector<uint8_t> tempUploadData;
 
-    void SetShaderNoProtection(RefPtr<Shader> shader);
+    void SetShaderNoProtection(ShaderBase* shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
 };
