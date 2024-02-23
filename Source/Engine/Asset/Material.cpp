@@ -312,8 +312,9 @@ void Material::UploadDataToGPU()
                     u.second.buffer = std::move(buffer);
                 }
 
+                auto bufSize = bindingIter->second.binding.ubo.data.size;
                 tempUploadData.clear();
-                tempUploadData.resize(bindingIter->second.binding.ubo.data.size);
+                tempUploadData.resize(bufSize);
 
                 auto& members = bindingIter->second.binding.ubo.data.members;
                 for (auto& m : members)
@@ -321,46 +322,50 @@ void Material::UploadDataToGPU()
                     switch (m.second.data->type)
                     {
                         case Gfx::ShaderInfo::ShaderDataType::Float:
-                        {
-                            auto iter = u.second.floats.find(m.first);
-                            if (iter != u.second.floats.end())
                             {
-                                size_t offset = m.second.offset;
-                                *((float*)(tempUploadData.data() + offset)) = iter->second;
+                                auto iter = u.second.floats.find(m.first);
+                                if (iter != u.second.floats.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(float) <= bufSize);
+                                    *((float*)(tempUploadData.data() + offset)) = iter->second;
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case Gfx::ShaderInfo::ShaderDataType::Vec4:
                         case Gfx::ShaderInfo::ShaderDataType::Vec3:
-                        {
-                            auto iter = u.second.vectors.find(m.first);
-                            if (iter != u.second.vectors.end())
                             {
-                                size_t offset = m.second.offset;
-                                *((glm::vec4*)(tempUploadData.data() + offset)) = iter->second;
+                                auto iter = u.second.vectors.find(m.first);
+                                if (iter != u.second.vectors.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(glm::vec4) <= bufSize);
+                                    *((glm::vec4*)(tempUploadData.data() + offset)) = iter->second;
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case Gfx::ShaderInfo::ShaderDataType::Vec2:
-                        {
-                            auto iter = u.second.vectors.find(m.first);
-                            if (iter != u.second.vectors.end())
                             {
-                                size_t offset = m.second.offset;
-                                *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(iter->second);
+                                auto iter = u.second.vectors.find(m.first);
+                                if (iter != u.second.vectors.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(glm::vec2) <= bufSize);
+                                    *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(iter->second);
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case Gfx::ShaderInfo::ShaderDataType::Mat4:
-                        {
-                            auto iter = u.second.matrices.find(m.first);
-                            if (iter != u.second.matrices.end())
                             {
-                                size_t offset = m.second.offset;
-                                *((glm::mat4*)(tempUploadData.data() + offset)) = iter->second;
+                                auto iter = u.second.matrices.find(m.first);
+                                if (iter != u.second.matrices.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(glm::mat4) <= bufSize);
+                                    *((glm::mat4*)(tempUploadData.data() + offset)) = iter->second;
+                                }
+                                break;
                             }
-                            break;
-                        }
                     }
                 }
                 GetGfxDriver()->UploadBuffer(*u.second.buffer, tempUploadData.data(), tempUploadData.size(), 0);

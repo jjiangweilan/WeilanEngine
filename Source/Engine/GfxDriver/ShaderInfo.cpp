@@ -136,6 +136,7 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
         }
 
         data.size = 0;
+        int maxOffset = -1;
         for (auto& iter : data.members)
         {
             int count = iter.second.dimension[0];
@@ -145,7 +146,12 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
                 count *= iter.second.dimension[i];
             }
 
-            data.size += iter.second.data->size * count;
+            // we can't just add the size * count of all members because that doesn't take alignment into account
+            if ((int)iter.second.offset > maxOffset)
+            {
+                data.size = iter.second.offset + iter.second.data->size * count;
+                maxOffset = iter.second.offset;
+            }
         }
     }
     else
