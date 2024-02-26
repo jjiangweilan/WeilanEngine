@@ -39,7 +39,7 @@ float CloudDensity(vec3 pos)
     float perlin = 0;
     float worley = 0;
 
-    vec4 amp = prop.perlin0_amp / length(prop.perlin0_amp);
+    vec4 amp = prop.perlin0_amp;
     perlin += amp.x * (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5);
     perlin += amp.y * (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5);
     perlin += amp.z * (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5);
@@ -54,7 +54,7 @@ float CloudDensity(vec3 pos)
     // perlin worley
     
 
-    return perlinWorley;
+    return max(perlinWorley, 0);
 }
 
 void main() {
