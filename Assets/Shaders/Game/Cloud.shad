@@ -40,9 +40,9 @@ layout(set = 2, binding = 0) uniform Cloud
     float lightStep;
     float phaseFactor;
 
-    vec4 worley_freq;
-    vec4 perlin0_freq;
-    vec4 perlin1_freq;
+   // vec4 worley_freq;
+   // vec4 perlin0_freq;
+   // vec4 perlin1_freq;
 
     float cloudDensity;
     float absorption;
@@ -66,34 +66,33 @@ layout(set = 0, binding = 8) uniform sampler3D cloudDensity;
 layout(location = 0) in v2f fragInput;
 layout(location = 0) out vec4 oColor;
 
-float CloudDensity(vec3 pos)
-{
-    pos += vec3(0,0,g.time/2);
-    //
-    // Initial values
-    vec4 frequency = prop.worley_freq;
-    float perlin = 0;
-    float worley = 0;
-    //
-
-    float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
-
-    perlin += (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5) / (prop.perlin0_freq.x);
-    perlin += (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5) / (prop.perlin0_freq.y);
-    perlin += (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5) / (prop.perlin0_freq.z);
-    perlin += (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5) / (prop.perlin0_freq.w);
-
-    worley += 0.625 * (1 - worley3D(frequency.x * pos));
-    worley += 0.25 *  (1 - worley3D(frequency.y * pos));
-    worley += 0.125 * (1 - worley3D(frequency.z * pos));
-
-    float perlinWorley = remap(max(0,perlin), (max(0,worley)), 1, 0, 1);
-
-    // perlin worley
-    
-
-    return perlinWorley * prop.cloudDensity;
-}
+// float CloudDensity(vec3 pos)
+// {
+//     pos += vec3(0,0,g.time/2);
+//     //
+//     // Initial values
+//     vec4 frequency = prop.worley_freq;
+//     float perlin = 0;
+//     float worley = 0;
+//
+//     float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
+//
+//     perlin += (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5) / (prop.perlin0_freq.x + 0.00001);
+//     perlin += (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5) / (prop.perlin0_freq.y + 0.00001);
+//     perlin += (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5) / (prop.perlin0_freq.z + 0.00001);
+//     perlin += (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5) / (prop.perlin0_freq.w + 0.00001);
+//
+//     worley += 0.625 * (1 - worley3D(frequency.x * pos));
+//     worley += 0.25 *  (1 - worley3D(frequency.y * pos));
+//     worley += 0.125 * (1 - worley3D(frequency.z * pos));
+//
+//     float perlinWorley = remap(max(0,perlin), (max(0,worley)), 1, 0, 1);
+//
+//     // perlin worley
+//     
+//
+//     return perlinWorley * prop.cloudDensity;
+// }
 
 float BoxSdf(vec3 p)
 {

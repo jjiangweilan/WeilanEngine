@@ -16,19 +16,10 @@ layout(set = 0) uniform Global
 
 layout(set = 2) uniform Fog
 {
-    vec4 position;
-    float delta;
-    float lightStep;
-    float phaseFactor;
-
     vec4 worley_freq;
     vec4 perlin0_freq;
-    vec4 perlin1_freq;
 
     float uvScale;
-    float cloudDensity;
-    float absorption;
-    float dualLobHenyeyGreenstein;
 } prop;
 layout(set = 2) uniform sampler2D noiseTex;
 
@@ -48,8 +39,6 @@ float CloudDensity(vec3 pos)
     float worley = 0;
     //
 
-    float norm = prop.perlin0_freq.x + prop.perlin0_freq.y + prop.perlin0_freq.z + prop.perlin0_freq.w + prop.perlin1_freq.x + prop.perlin1_freq.y + prop.perlin1_freq.z;
-
     perlin += (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5) / (prop.perlin0_freq.x);
     perlin += (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5) / (prop.perlin0_freq.y);
     perlin += (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5) / (prop.perlin0_freq.z);
@@ -64,7 +53,7 @@ float CloudDensity(vec3 pos)
     // perlin worley
     
 
-    return perlinWorley * prop.cloudDensity;
+    return perlinWorley;
 }
 
 void main() {
