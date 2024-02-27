@@ -9,10 +9,10 @@ name: Game/Fluid/Fog
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(set = 0, r32f) uniform image3D imgOutput;
-layout(set = 0) uniform Global
-{
-    float time;
-} g;
+// layout(set = 0) uniform Global
+// {
+//     float time;
+// } g;
 
 layout(set = 2) uniform Fog
 {
@@ -21,6 +21,7 @@ layout(set = 2) uniform Fog
     vec4 perlin0_amp;
 
     float uvScale;
+    float p;
 } prop;
 layout(set = 2) uniform sampler2D noiseTex;
 
@@ -32,7 +33,7 @@ layout(set = 2) uniform sampler2D noiseTex;
 
 float CloudDensity(vec3 pos)
 {
-    pos += vec3(0,0,g.time/2);
+    // pos += vec3(0,0,g.time/2);
     //
     // Initial values
     vec4 frequency = prop.worley_freq;
@@ -44,17 +45,16 @@ float CloudDensity(vec3 pos)
     perlin += amp.y * (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5);
     perlin += amp.z * (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5);
     perlin += amp.w * (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5);
+    perlin = abs(perlin * 2. - 1.);
     
     worley += 0.625 * (1 - worley3D(frequency.x * pos));
     worley += 0.25 *  (1 - worley3D(frequency.y * pos));
     worley += 0.125 * (1 - worley3D(frequency.z * pos));
 
-    float perlinWorley = remap(perlin, worley, 1, 0, 1);
+    float perlinWorley = remap(perlin, 0, 1, worley - 1, 1);
+    float cloud = remap(perlinWorley, 0., 1., prop.p, 1.); // fake cloud coverage
 
-    // perlin worley
-    
-
-    return max(perlinWorley, 0);
+    return cloud;
 }
 
 void main() {
