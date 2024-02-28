@@ -6,7 +6,7 @@
 name: Game/Cloud
 cull: back
 blend:
-- srcAlpha one
+- one oneMinusSrcAlpha
 #endif
 
 struct v2f {
@@ -47,6 +47,7 @@ layout(set = 2, binding = 0) uniform Cloud
     float cloudDensity;
     float absorption;
     float dualLobHenyeyGreenstein;
+    vec4 cloudDensity_remap;
 } prop;
 
 layout(set = 2, binding = 1) uniform sampler2D noiseTex;
@@ -156,7 +157,7 @@ float LightAbsorption(vec3 start, vec3 dir)
 
 float SampleCloudDensity(vec3 pos)
 {
-    return texture(cloudDensity, NormalizePosition(pos)).x * prop.cloudDensity;
+    return clamp(remap(texture(cloudDensity, NormalizePosition(pos)).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
 }
 
 vec4 Render(vec3 start, vec3 dir)
@@ -196,6 +197,7 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     vec3 lighting = vec3(0);
     float distance = 0;
     vec3 L = vec3(scene.lights[0].intensity);
+    vec3 ldir = normalize(scene.lights[0].position.xyz);
     for(;travel < travelDistance; travel += delta)
     {
         float boxSdf = BoxSdf(curr);
@@ -204,11 +206,11 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
             float cloudDensityVal = SampleCloudDensity(curr);// CloudDensity(curr);
             distance += delta * cloudDensityVal;
             
-            vec3 ldir = normalize(scene.lights[0].position.xyz);
             float phaseCos = dot(-ldir, -dir);
             float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
             float reflectAbsorption = Absorption(distance);
-            lighting += reflectAbsorption * L * phase * LightAbsorption(curr, ldir);
+            float ndotl = (cloudDensityVal - SampleCloudDensity(curr + 0.5 * ldir)) / 0.3;
+            lighting += reflectAbsorption * L * phase * LightAbsorption(curr, ldir) ;
         }
 
         curr += dir * delta;
@@ -218,7 +220,7 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     return lighting;
 }
 
-float RayMarching1(vec3 origin, vec3 dir)
+vec4 RayMarching1(vec3 origin, vec3 dir)
 {
     const float travelDistance = 20;
     const float delta = prop.delta > 0 ? prop.delta : 0.01f;
@@ -226,6 +228,8 @@ float RayMarching1(vec3 origin, vec3 dir)
     float travel = 0.01;
     vec3 curr = origin;
     float distance = 0;
+    vec3 ldir = normalize(scene.lights[0].position.xyz);
+    vec4 light = vec4(0);
     for(;travel < travelDistance; travel += delta)
     {
         float boxSdf = BoxSdf(curr);
@@ -233,13 +237,17 @@ float RayMarching1(vec3 origin, vec3 dir)
         {
 
             float cloudDensity = SampleCloudDensity(curr);
-            distance += delta * cloudDensity;
+            float cloudDensity1 = SampleCloudDensity(curr + 0.1 * ldir);
+            vec4 col = vec4(vec3(cloudDensity * cloudDensity), cloudDensity);
+            float ndotl = (cloudDensity - cloudDensity1);
+            col.rgb *= max(ndotl, 0);
+            light += col * (1-light.a);
         }
 
         curr += dir * delta;
     }
 
-    return exp(-1 * distance * prop.absorption);
+    return light;
 }
 
 void main()
@@ -249,18 +257,22 @@ void main()
     // float worley = prop.worley_amp * (1 - worley3D(fragInput.positionWS.xyz * prop.worley_freq));
     // float perlin = prop.perlin_amp * perlinNoise3D(fragInput.positionWS.xyz * prop.perlin_freq);
     // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
-    // float directAbsorption;
-    // vec3 lighting = RayMarching(start, dir, directAbsorption);
-    // oColor = vec4(lighting, directAbsorption);//clamp(directAbsorption,0,1));
-    if (true)
-{
-    float absorption = RayMarching1(start, dir);
-    vec4 col = vec4(vec3(1), clamp(1-absorption,0 ,1));
-    oColor = col;//vec4(SampleCloudDensity(fragInput.positionWS.xyz));//clamp(directAbsorption,0,1));
-}else
-{
-     oColor = vec4(vec3(SampleCloudDensity(fragInput.positionWS.xyz)), 1);
-}
+
+    vec4 lighting = RayMarching1(start, dir);
+    oColor = lighting;//clamp(directAbsorption,0,1));
+
+    // debugging
+    // if (true)
+    // {
+    //     // requires blend mode srcAlpha oneMinusSrcAlpha
+    //     float absorption = RayMarching1(start, dir);
+    //     vec4 col = vec4(vec3(1), clamp(1 - absorption,0 ,1));
+    //     oColor = col;//vec4(SampleCloudDensity(fragInput.positionWS.xyz));//clamp(directAbsorption,0,1));
+    // }
+    // else
+    // {
+    //     oColor = vec4(vec3(SampleCloudDensity(fragInput.positionWS.xyz)), 1);
+    // }
     // oColor = vec4(dir, 1);
     // oColor = vec4(hash(fragInput.positionWS.xyz),1.0);
 }
