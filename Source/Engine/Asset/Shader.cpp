@@ -175,14 +175,14 @@ bool Shader::LoadFromFile(const char* path)
 }
 bool ComputeShader::LoadFromFile(const char* path)
 {
+    cachedShaderProgram = nullptr;
+
     if (name.empty())
     {
         std::filesystem::path apath(path);
         this->name = apath.string();
     }
     ShaderCompiler compiler;
-    std::filesystem::path p(path);
-    auto ext = p.extension();
     std::fstream f(path);
     std::stringstream ss;
     ss << f.rdbuf();

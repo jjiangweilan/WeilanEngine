@@ -9,16 +9,19 @@ name: Game/Fluid/Fog
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(set = 0, r32f) uniform image3D imgOutput;
-// layout(set = 0) uniform Global
-// {
-//     float time;
-// } g;
+layout(set = 0) uniform Global
+{
+    float time;
+} g;
 
 layout(set = 2) uniform Fog
 {
     vec4 worley_freq;
+    vec4 worley_amp;
+    vec4 worley_remap;
     vec4 perlin0_freq;
     vec4 perlin0_amp;
+    vec4 perlin0_remap;
 
     float uvScale;
     float p;
@@ -33,7 +36,7 @@ layout(set = 2) uniform sampler2D noiseTex;
 
 float CloudDensity(vec3 pos)
 {
-    // pos += vec3(0,0,g.time/2);
+    pos += vec3(0,0,g.time*4);
     //
     // Initial values
     vec4 frequency = prop.worley_freq;
@@ -41,20 +44,23 @@ float CloudDensity(vec3 pos)
     float worley = 0;
 
     vec4 amp = prop.perlin0_amp;
-    perlin += amp.x * (perlinNoise3D(pos * prop.perlin0_freq.x) * 0.5 + 0.5);
-    perlin += amp.y * (perlinNoise3D(pos * prop.perlin0_freq.y) * 0.5 + 0.5);
-    perlin += amp.z * (perlinNoise3D(pos * prop.perlin0_freq.z) * 0.5 + 0.5);
-    perlin += amp.w * (perlinNoise3D(pos * prop.perlin0_freq.w) * 0.5 + 0.5);
-    perlin = abs(perlin * 2. - 1.);
+    perlin += amp.x * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.x) * 0.5 + 0.5);
+    perlin += amp.y * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.y) * 0.5 + 0.5);
+    perlin += amp.z * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.z) * 0.5 + 0.5);
+    perlin += amp.w * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.w) * 0.5 + 0.5);
+    perlin = remap(perlin, prop.perlin0_remap.x, prop.perlin0_remap.y, prop.perlin0_remap.z, prop.perlin0_remap.w);
+    // perlin = abs(perlin * 2. - 1.);
     
-    worley += 0.625 * (1 - worley3D(frequency.x * pos));
-    worley += 0.25 *  (1 - worley3D(frequency.y * pos));
-    worley += 0.125 * (1 - worley3D(frequency.z * pos));
+    worley += prop.worley_amp.x * (1 - worley3D(frequency.x * pos));
+    worley += prop.worley_amp.y * (1 - worley3D(frequency.y * pos));
+    worley += prop.worley_amp.z * (1 - worley3D(frequency.z * pos));
+    worley = remap(worley, prop.worley_remap.x, prop.worley_remap.y, prop.worley_remap.z, prop.worley_remap.w);
 
-    float perlinWorley = remap(perlin, 0, 1, worley - 1, 1);
-    float cloud = remap(perlinWorley, 0., 1., prop.p, 1.); // fake cloud coverage
+    float perlinWorley = remap(perlin, 0, 1, worley, 1);
+    // perlinWorley = remap(perlinWorley, 1 worley, 1, 0, 1 );
+    // float cloud = remap(perlinWorley, 0., 1., prop.p, 1.); // fake cloud coverage
 
-    return cloud;
+    return perlinWorley;//perlinWorley;//max(cloud, 0);
 }
 
 void main() {

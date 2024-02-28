@@ -5,8 +5,8 @@
 #if CONFIG
 name: Game/Cloud
 cull: back
-//blend:
-//- one oneMinusSrcAlpha
+blend:
+- srcAlpha one
 #endif
 
 struct v2f {
@@ -173,8 +173,8 @@ vec4 Render(vec3 start, vec3 dir)
         float boxSdf = BoxSdf(curr);
         if (boxSdf > 0)
         {
-            float cloudDensityVal = (SampleCloudDensity(curr)) * delta; // CloudDensity(curr);//
-            vec4 col = vec4(vec3(cloudDensityVal), cloudDensityVal);
+            float cloudDensityVal = SampleCloudDensity(curr) * delta; // CloudDensity(curr);//
+            vec4 col = vec4(vec3(cloudDensityVal), Absorption(cloudDensityVal));
 
             col.rgb *= col.a;
             light += col * (1-light.a);
@@ -218,6 +218,30 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     return lighting;
 }
 
+float RayMarching1(vec3 origin, vec3 dir)
+{
+    const float travelDistance = 20;
+    const float delta = prop.delta > 0 ? prop.delta : 0.01f;
+
+    float travel = 0.01;
+    vec3 curr = origin;
+    float distance = 0;
+    for(;travel < travelDistance; travel += delta)
+    {
+        float boxSdf = BoxSdf(curr);
+        if (boxSdf > 0)
+        {
+
+            float cloudDensity = SampleCloudDensity(curr);
+            distance += delta * cloudDensity;
+        }
+
+        curr += dir * delta;
+    }
+
+    return exp(-1 * distance * prop.absorption);
+}
+
 void main()
 {
     vec3 dir = normalize(fragInput.positionWS.xyz - scene.viewPos.xyz);
@@ -228,11 +252,16 @@ void main()
     // float directAbsorption;
     // vec3 lighting = RayMarching(start, dir, directAbsorption);
     // oColor = vec4(lighting, directAbsorption);//clamp(directAbsorption,0,1));
-    vec4 light = Render(start, dir);
-    vec4 col = vec4(light.rgb, light.a);
-    oColor = vec4(SampleCloudDensity(fragInput.positionWS.xyz));//clamp(directAbsorption,0,1));
+    if (true)
+{
+    float absorption = RayMarching1(start, dir);
+    vec4 col = vec4(vec3(1), clamp(1-absorption,0 ,1));
+    oColor = col;//vec4(SampleCloudDensity(fragInput.positionWS.xyz));//clamp(directAbsorption,0,1));
+}else
+{
+     oColor = vec4(vec3(SampleCloudDensity(fragInput.positionWS.xyz)), 1);
+}
     // oColor = vec4(dir, 1);
     // oColor = vec4(hash(fragInput.positionWS.xyz),1.0);
-    // oColor = vec4(vec3(CloudDensity(fragInput.positionWS.xyz)), 1);
 }
 #endif
