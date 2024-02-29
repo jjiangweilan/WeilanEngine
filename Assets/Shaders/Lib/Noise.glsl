@@ -28,12 +28,12 @@ float hash1( uvec2 x )
 
 
 // 3d perlin noise
-// from https://www.shadertoy.com/view/XlKyRw
+// modified from https://www.shadertoy.com/view/XlKyRw
 // define NOISE_WHITE_NOISE_TEX to a sampler2D if you don't want to generate random number by code
 #if defined(USE_PERLIN_NOISE_3D)
 float fade(float t) 
 {
-    return t*t*t*(t*(6.0*t-15.0)+10.0); 
+    return t*t*t*(t*(6.0*t-15.0) + 10.0f); 
 }
 
 float hash13(vec3 pos)
@@ -54,27 +54,7 @@ float grad3D(float hash, vec3 pos)
     return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
 }
 
-// range (-1, 1)
 float perlinNoise3D(vec3 pos)
-{
-    vec3 pi = floor(pos); 
-    vec3 pf = pos - pi;
-
-    float u = fade(pf.x);
-    float v = fade(pf.y);
-    float w = fade(pf.z);
-
-    return mix( mix( mix( hash13(pi + vec3(0, 0, 0)),
-                    hash13(pi + vec3(1, 0, 0)), u ),
-                mix( hash13(pi + vec3(0, 1, 0)),
-                    hash13(pi + vec3(1, 1, 0)),  u ), v ),
-            mix( mix( hash13(pi + vec3(0, 0, 1)),
-                    hash13(pi + vec3(1, 0, 1)),  u ),
-                mix( hash13(pi + vec3(0, 1, 1)),
-                    hash13(pi + vec3(1, 1, 1)),  u ), v ), w );
-}
-
-float perlinNoise3DTilable(vec3 pos)
 {
     vec3 pi = floor(pos); 
     vec3 pf = pos - pi;
