@@ -38,12 +38,12 @@ float fade(float t)
 
 float hash13(vec3 pos)
 {
-    vec2 uv = pos.xy + pos.z;
-#if defined(NOISE_WHITE_NOISE_TEX)
-    return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
-#else
+    vec2 uv = pos.xy + pos.z * 1341.5331;
     return hash1(floatBitsToUint(uv));
-#endif
+// #if defined(NOISE_WHITE_NOISE_TEX)
+//     return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
+// #else
+// #endif
 }
 
 float grad3D(float hash, vec3 pos) 
@@ -56,6 +56,25 @@ float grad3D(float hash, vec3 pos)
 
 // range (-1, 1)
 float perlinNoise3D(vec3 pos)
+{
+    vec3 pi = floor(pos); 
+    vec3 pf = pos - pi;
+
+    float u = fade(pf.x);
+    float v = fade(pf.y);
+    float w = fade(pf.z);
+
+    return mix( mix( mix( hash13(pi + vec3(0, 0, 0)),
+                    hash13(pi + vec3(1, 0, 0)), u ),
+                mix( hash13(pi + vec3(0, 1, 0)),
+                    hash13(pi + vec3(1, 1, 0)),  u ), v ),
+            mix( mix( hash13(pi + vec3(0, 0, 1)),
+                    hash13(pi + vec3(1, 0, 1)),  u ),
+                mix( hash13(pi + vec3(0, 1, 1)),
+                    hash13(pi + vec3(1, 1, 1)),  u ), v ), w );
+}
+
+float perlinNoise3DTilable(vec3 pos)
 {
     vec3 pi = floor(pos); 
     vec3 pf = pos - pi;
