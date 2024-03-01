@@ -9,10 +9,10 @@ name: Game/Fluid/Fog
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 layout(set = 0, r32f) uniform image3D imgOutput;
-// layout(set = 0) uniform Global
-// {
-//     float time;
-// } g;
+layout(set = 0) uniform Global
+{
+    float time;
+} g;
 
 layout(set = 2) uniform Fog
 {
@@ -36,7 +36,7 @@ layout(set = 2) uniform Fog
 
 float CloudDensity(vec3 pos)
 {
-    pos += vec3(0,0,prop.time);
+    pos += vec3(0,0,g.time);
     //
     // Initial values
     vec4 frequency = prop.worley_freq;
@@ -44,10 +44,10 @@ float CloudDensity(vec3 pos)
     float worley = 0;
 
     vec4 amp = prop.perlin0_amp;
-    perlin += amp.x * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.x));
-    perlin += amp.y * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.y));
-    perlin += amp.z * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.z));
-    perlin += amp.w * (perlinNoise3D(pos * 0.8 * prop.perlin0_freq.w));
+    perlin += amp.x * (perlinNoise3D(pos * prop.perlin0_freq.x));
+    perlin += amp.y * (perlinNoise3D(pos * prop.perlin0_freq.y));
+    perlin += amp.z * (perlinNoise3D(pos * prop.perlin0_freq.z));
+    perlin += amp.w * (perlinNoise3D(pos * prop.perlin0_freq.w));
     perlin = remap(perlin, prop.perlin0_remap.x, prop.perlin0_remap.y, prop.perlin0_remap.z, prop.perlin0_remap.w);
     perlin = abs(perlin * 2. - 1.);
     

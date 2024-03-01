@@ -48,6 +48,9 @@ layout(set = 2, binding = 0) uniform Cloud
     float absorption;
     float dualLobHenyeyGreenstein;
     vec4 cloudDensity_remap;
+    vec2 edgeFade;
+    float lightIntensityScale;
+    float sdfScale;
 } prop;
 
 // layout(set = SET_GLOBAL, binding = 7) uniform Global
@@ -55,7 +58,7 @@ layout(set = 2, binding = 0) uniform Cloud
 //     float time;
 // } g;
 
-layout(set = 0, binding = 8) uniform sampler3D cloudDensity_linear_clamp;
+layout(set = 0, binding = 8) uniform sampler3D cloudDensity_linear_clampToBorder;
 
 #define USE_PERLIN_NOISE_3D
 #define USE_WORLEY_NOISE_3D
@@ -99,17 +102,17 @@ float BoxSdf(vec3 p, out vec3 size)
   size = vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
   vec3 q = abs(p - pconst.model[3].xyz) - size;
   float d = length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  return -d;
+  return d;
   // return -length(p - pconst.model[3].xyz)+length(pconst.model[0].xyz);
 }
 
-float BoxSdf(vec3 p)
+float BoxSdf(vec3 p, float scale)
 {
   // // mat4 model = pconst.model[3].xyz;
-  vec3 size = vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+  vec3 size = scale * vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
   vec3 q = abs(p - pconst.model[3].xyz) - size;
   float d = length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  return -d;
+  return d;
   // return -length(p - pconst.model[3].xyz)+length(pconst.model[0].xyz);
 }
 
@@ -151,10 +154,10 @@ float LightAbsorption(vec3 start, vec3 dir)
     float a = 0;
     for(;travel < travelDistance; travel += delta)
     {
-        float boxSdf = BoxSdf(curr);
+        float boxSdf = BoxSdf(curr, 1);
         if (boxSdf > 0)
         {
-            float cloudDensityVal = texture(cloudDensity_linear_clamp, NormalizePosition(curr)).x; // CloudDensity(curr);//
+            float cloudDensityVal = texture(cloudDensity_linear_clampToBorder, NormalizePosition(curr)).x; // CloudDensity(curr);//
             density += cloudDensityVal;
         }
 
@@ -166,19 +169,19 @@ float LightAbsorption(vec3 start, vec3 dir)
 
 float SampleCloudDensity(vec3 pos)
 {
-    return clamp(remap(texture(cloudDensity_linear_clamp, NormalizePosition(pos)).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    return clamp(remap(texture(cloudDensity_linear_clampToBorder, NormalizePosition(pos)).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
 }
 
 float SampleCloudDensity(vec3 pos, out vec3 normalizedPos)
 {
     normalizedPos = NormalizePosition(pos);
-    return clamp(remap(texture(cloudDensity_linear_clamp, normalizedPos).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    return clamp(remap(texture(cloudDensity_linear_clampToBorder, normalizedPos).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
 }
 
 
 float SampleCloudDensity1(vec3 uv)
 {
-    return clamp(remap(texture(cloudDensity_linear_clamp, uv).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    return clamp(remap(texture(cloudDensity_linear_clampToBorder, uv).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
 }
 
 vec4 Render(vec3 start, vec3 dir)
@@ -192,7 +195,7 @@ vec4 Render(vec3 start, vec3 dir)
     vec4 light = vec4(0);
     for(;travel < travelDistance; travel += delta)
     {
-        float boxSdf = BoxSdf(curr);
+        float boxSdf = BoxSdf(curr, 1);
         if (boxSdf > 0)
         {
             float cloudDensityVal = SampleCloudDensity(curr) * delta; // CloudDensity(curr);//
@@ -221,7 +224,7 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     vec3 ldir = normalize(scene.lights[0].position.xyz);
     for(;travel < travelDistance; travel += delta)
     {
-        float boxSdf = BoxSdf(curr);
+        float boxSdf = BoxSdf(curr, 1);
         if (boxSdf > 0)
         {
             float cloudDensityVal = SampleCloudDensity(curr);// CloudDensity(curr);
@@ -241,6 +244,15 @@ vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
     return lighting;
 }
 
+float GetDensity(vec3 curr)
+{
+    float sdf = BoxSdf(curr, prop.sdfScale);
+    vec3 normalizedPos = NormalizePosition(curr);
+    float den = texture(cloudDensity_linear_clampToBorder, normalizedPos).x;
+
+    return remap(den - sdf / prop.edgeFade.x, prop.cloudDensity_remap);
+}
+
 vec4 RayMarching1(vec3 origin, vec3 dir)
 {
     const float travelDistance = 20;
@@ -253,24 +265,20 @@ vec4 RayMarching1(vec3 origin, vec3 dir)
     vec4 light = vec4(0);
     for(;travel < travelDistance; travel += delta)
     {
-        vec3 size;
-        float boxSdf = BoxSdf(curr, size);
-        if (boxSdf > 0)
+        float cloudDensity = GetDensity(curr);
+
+        if (cloudDensity > 0.01)
         {
-
-            vec3 normalizedPos;
-            float cloudDensity = max(SampleCloudDensity(curr, normalizedPos) - normalizedPos.y,0);
-            // float val = normalizedPos.y*2-1;
-            // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
-            // cloudDensity *= heightDensity;
-
-            float cloudDensity1 = SampleCloudDensity(curr + 0.1 * ldir);
-
-            vec4 col = vec4(vec3(cloudDensity * cloudDensity), cloudDensity);
-            // float ndotl = (cloudDensity - cloudDensity1);
-            // col.rgb *= max(ndotl, 0);
+            float den = clamp(cloudDensity * prop.cloudDensity, 0, 1);
+            float cloudDensity1 = GetDensity(curr + 0.5 * ldir);
+            vec4 col = vec4((vec3(0.65,0.65,0.75)*1.1 + 0.8*vec3(1.0,0.6,0.3) * prop.lightIntensityScale), den);
+            float ndotl = clamp(cloudDensity - cloudDensity1,0,1);
+            col.rgb *= (col.a * ndotl);
             light += col * (1-light.a);
         }
+        // float val = normalizedPos.y*2-1;
+        // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
+        // cloudDensity *= heightDensity;
 
         curr += dir * delta;
     }

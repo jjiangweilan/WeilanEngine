@@ -12,7 +12,9 @@ namespace Utils
 // e.g. sampler binding have _point _clamp etc... we don't want them in our binding name
 std::string RemoveShaderNameConfigText(std::string text)
 {
-    const char* configPattern[] = {"_sampler", "_point", "_clamp", "_linear", "_repeat"};
+    // _clampToBorder should be placed before _clamp to make the code work
+    const char* configPattern[] =
+        {"_sampler", "_point", "_clampToBorder", "_clamptoborder", "_clamp", "_linear", "_repeat"};
 
     for (auto c : configPattern)
     {

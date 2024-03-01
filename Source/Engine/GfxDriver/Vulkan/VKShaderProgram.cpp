@@ -54,7 +54,10 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
         filter = VK_FILTER_NEAREST;
 
     VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
+
+    if (lowerBindingName.find("_clamptoborder") != lowerBindingName.npos)
+        addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    else if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
         addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
     VkBool32 anisotropyEnable = VK_FALSE;
