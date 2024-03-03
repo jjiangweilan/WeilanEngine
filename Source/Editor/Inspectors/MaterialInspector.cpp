@@ -68,20 +68,39 @@ public:
                 }
             }
 
+            std::sort(
+                numericBindings.begin(),
+                numericBindings.end(),
+                [](Gfx::ShaderInfo::Binding& left, Gfx::ShaderInfo::Binding& right) { return left.name < right.name; }
+            );
+
+            std::sort(
+                textureBindings.begin(),
+                textureBindings.end(),
+                [](Gfx::ShaderInfo::Binding& left, Gfx::ShaderInfo::Binding& right) { return left.name < right.name; }
+            );
+
             ImGui::Spacing();
             ImGui::Text("Numerics");
             ImGui::Separator();
             for (auto& numBinding : numericBindings)
             {
                 ImGui::Text("%s", numBinding.name.c_str());
-                for (auto& m : numBinding.binding.ubo.data.members)
+                std::vector<std::pair<std::string, Gfx::ShaderInfo::Member*>> members;
+                for (auto& iter : numBinding.binding.ubo.data.members)
+                {
+                    members.push_back(std::make_pair(iter.first, &iter.second));
+                }
+                std::sort(members.begin(), members.end(), [](auto& l, auto& r) { return l.first < r.first; });
+
+                for (auto& m : members)
                 {
                     std::string id = fmt::format("##{}", m.first);
                     ImGui::Indent();
 
-                    ImGui::Text("%s", m.second.name.c_str());
+                    ImGui::Text("%s", m.second->name.c_str());
                     ImGui::SameLine();
-                    if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
+                    if (m.second->data->type == Gfx::ShaderInfo::ShaderDataType::Float)
                     {
                         float val = target->GetFloat(numBinding.name, m.first);
                         if (ImGui::DragFloat(id.c_str(), &val))
@@ -89,7 +108,7 @@ public:
                             target->SetFloat(numBinding.name, m.first, val);
                         }
                     }
-                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
+                    else if (m.second->data->type == Gfx::ShaderInfo::ShaderDataType::Vec2)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
                         if (ImGui::DragFloat2(id.c_str(), &val[0]))
@@ -97,7 +116,7 @@ public:
                             target->SetVector(numBinding.name, m.first, val);
                         }
                     }
-                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
+                    else if (m.second->data->type == Gfx::ShaderInfo::ShaderDataType::Vec3)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
                         if (ImGui::DragFloat3(id.c_str(), &val[0]))
@@ -105,7 +124,7 @@ public:
                             target->SetVector(numBinding.name, m.first, val);
                         }
                     }
-                    else if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
+                    else if (m.second->data->type == Gfx::ShaderInfo::ShaderDataType::Vec4)
                     {
                         auto val = target->GetVector(numBinding.name, m.first);
                         if (ImGui::DragFloat4(id.c_str(), &val[0]))

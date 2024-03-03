@@ -166,10 +166,15 @@ struct Binding
 {
     Binding() = default;
 
-    Binding(const Binding& other)
-        : stages(other.stages), setNum(other.setNum), bindingNum(other.bindingNum), name(other.name),
-          resourceHandle(other.resourceHandle), count(other.count)
+    Binding& operator=(const Binding& other)
     {
+        stages = other.stages;
+        setNum = other.setNum;
+        bindingNum = other.bindingNum;
+        name = other.name;
+        resourceHandle = other.resourceHandle;
+        count = other.count;
+        type = other.type;
         switch (other.type)
         {
             case BindingType::UBO:
@@ -225,8 +230,12 @@ struct Binding
                     break;
                 }
         }
+        return *this;
+    }
 
-        type = other.type;
+    Binding(const Binding& other)
+    {
+        *this = other;
     }
 
     ~Binding()

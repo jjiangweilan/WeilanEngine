@@ -4,7 +4,7 @@
 
 #if CONFIG
 name: Game/Cloud
-cull: back
+cull: front
 blend:
 - one oneMinusSrcAlpha
 #endif
@@ -50,7 +50,9 @@ layout(set = 2, binding = 0) uniform Cloud
     vec4 cloudDensity_remap;
     vec2 edgeFade;
     float lightIntensityScale;
-    float sdfScale;
+    vec4 sdfScale;
+    vec4 lighting_remap;
+    vec4 worley_amp;
 } prop;
 
 // layout(set = SET_GLOBAL, binding = 7) uniform Global
@@ -96,29 +98,27 @@ layout(location = 0) out vec4 oColor;
 //     return perlinWorley * prop.cloudDensity;
 // }
 
-float BoxSdf(vec3 p, out vec3 size)
-{
-  // // mat4 model = pconst.model[3].xyz;
-  size = vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
-  vec3 q = abs(p - pconst.model[3].xyz) - size;
-  float d = length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  return d;
-  // return -length(p - pconst.model[3].xyz)+length(pconst.model[0].xyz);
-}
-
 float BoxSdf(vec3 p, float scale)
 {
   // // mat4 model = pconst.model[3].xyz;
-  vec3 size = scale * vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
-  vec3 q = abs(p - pconst.model[3].xyz) - size;
-  float d = length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-  return d;
+  vec3 b = 0.5 * scale * vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+  vec3 q = abs(p - pconst.model[3].xyz) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+  // return -length(p - pconst.model[3].xyz)+length(pconst.model[0].xyz);
+}
+
+float BoxSdf(vec3 p, vec3 scale)
+{
+  // // mat4 model = pconst.model[3].xyz;
+  vec3 b = 0.5 * scale * vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+  vec3 q = abs(p - pconst.model[3].xyz) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
   // return -length(p - pconst.model[3].xyz)+length(pconst.model[0].xyz);
 }
 
 float Absorption(float d)
 {
-    return exp(-1 * d * prop.absorption);
+    return 2 * exp(-1 * d * prop.absorption) * (1-exp(-d*2));
 }
 
 float HenyeyGreenstein(float g, float costh)
@@ -142,34 +142,17 @@ vec3 NormalizePosition(vec3 pos)
 
 }
 
-// dir: pointing to light
-float LightAbsorption(vec3 start, vec3 dir)
-{
-    const float travelDistance = 20;
-    const float delta = prop.lightStep > 0 ? prop.lightStep : 1;
-
-    float travel = 0;
-    vec3 curr = start;
-    float density = 0;
-    float a = 0;
-    for(;travel < travelDistance; travel += delta)
-    {
-        float boxSdf = BoxSdf(curr, 1);
-        if (boxSdf > 0)
-        {
-            float cloudDensityVal = texture(cloudDensity_linear_clampToBorder, NormalizePosition(curr)).x; // CloudDensity(curr);//
-            density += cloudDensityVal;
-        }
-
-        curr += dir * delta;
-    }
-
-    return density;//Absorption(distance);
-}
 
 float SampleCloudDensity(vec3 pos)
 {
-    return clamp(remap(texture(cloudDensity_linear_clampToBorder, NormalizePosition(pos)).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    vec4 cloud0 = texture(cloudDensity_linear_clampToBorder, NormalizePosition(pos));
+
+    float perlinWorley = cloud0.x;
+    float worley = cloud0.y * .625 + cloud0.z * .125 + cloud0.w * .25; 
+
+    float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
+
+    return clamp(remap(cloud * prop.cloudDensity, prop.cloudDensity_remap),0, 1);
 }
 
 float SampleCloudDensity(vec3 pos, out vec3 normalizedPos)
@@ -184,73 +167,60 @@ float SampleCloudDensity1(vec3 uv)
     return clamp(remap(texture(cloudDensity_linear_clampToBorder, uv).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
 }
 
-vec4 Render(vec3 start, vec3 dir)
+float GetDensity(vec3 curr)
+{
+    float sdf = BoxSdf(curr, prop.sdfScale.xyz);
+    vec3 normalizedPos = NormalizePosition(curr);
+
+    vec4 cloud0 = texture(cloudDensity_linear_clampToBorder, normalizedPos);
+
+    float perlinWorley = cloud0.x;
+    float worley = cloud0.y * prop.worley_amp.x + cloud0.z * prop.worley_amp.y + cloud0.w * prop.worley_amp.z; 
+
+    float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
+
+    return remap(cloud - max(sdf, 0)* prop.edgeFade.x, prop.cloudDensity_remap);
+}
+
+vec3 LightMarch(vec3 end, vec3 ldir)
 {
     const float travelDistance = 20;
     const float delta = prop.lightStep > 0 ? prop.lightStep : 1;
 
     float travel = 0;
-    vec3 curr = start;
-    float distance = 0;
+    vec3 curr = end - travelDistance * ldir;
+    vec3 lightColor = vec3(prop.lightIntensityScale);
     vec4 light = vec4(0);
     for(;travel < travelDistance; travel += delta)
     {
-        float boxSdf = BoxSdf(curr, 1);
-        if (boxSdf > 0)
-        {
-            float cloudDensityVal = SampleCloudDensity(curr) * delta; // CloudDensity(curr);//
-            vec4 col = vec4(vec3(cloudDensityVal), Absorption(cloudDensityVal));
+        float cloudDensity = GetDensity(curr);
 
-            col.rgb *= col.a;
+        if (cloudDensity > 0)
+        {
+            float den = cloudDensity;
+            // float cloudDensity0 = GetDensity(curr + 0.3 * ldir);
+            // float den1 = SampleCloudDensity(curr + 0.1 * ldir);
+
+            // float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
+            float phaseCos = 1;
+            float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
+            float reflectAbsorption = Absorption(den);
+            // float ndotl = clamp((den - den1) / 0.3,0,1);
+
+            vec4 col = vec4(lightColor.xyz, den);
+
+
+            col.rgb *= (col.a * phase * reflectAbsorption );
             light += col * (1-light.a);
         }
+        // float val = normalizedPos.y*2-1;
+        // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
+        // cloudDensity *= heightDensity;
 
-        curr += dir * delta;
+        curr += ldir * delta;
     }
 
-    return light;// Absorption(distance);
-}
-
-vec3 RayMarching(vec3 origin, vec3 dir, out float directAbsorption)
-{
-    const float travelDistance = 20;
-    const float delta = prop.delta > 0 ? prop.delta : 0.01f;
-
-    float travel = 0;
-    vec3 curr = origin;
-    vec3 lighting = vec3(0);
-    float distance = 0;
-    vec3 L = vec3(scene.lights[0].intensity);
-    vec3 ldir = normalize(scene.lights[0].position.xyz);
-    for(;travel < travelDistance; travel += delta)
-    {
-        float boxSdf = BoxSdf(curr, 1);
-        if (boxSdf > 0)
-        {
-            float cloudDensityVal = SampleCloudDensity(curr);// CloudDensity(curr);
-            distance += delta * cloudDensityVal;
-            
-            float phaseCos = dot(-ldir, -dir);
-            float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
-            float reflectAbsorption = Absorption(distance);
-            float ndotl = (cloudDensityVal - SampleCloudDensity(curr + 0.5 * ldir)) / 0.3;
-            lighting += reflectAbsorption * L * phase * LightAbsorption(curr, ldir) ;
-        }
-
-        curr += dir * delta;
-    }
-
-    directAbsorption = Absorption(distance);
-    return lighting;
-}
-
-float GetDensity(vec3 curr)
-{
-    float sdf = BoxSdf(curr, prop.sdfScale);
-    vec3 normalizedPos = NormalizePosition(curr);
-    float den = texture(cloudDensity_linear_clampToBorder, normalizedPos).x;
-
-    return remap(den - sdf / prop.edgeFade.x, prop.cloudDensity_remap);
+    return light.xyz;//Absorption(distance);
 }
 
 vec4 RayMarching1(vec3 origin, vec3 dir)
@@ -267,13 +237,21 @@ vec4 RayMarching1(vec3 origin, vec3 dir)
     {
         float cloudDensity = GetDensity(curr);
 
-        if (cloudDensity > 0.01)
+        if (cloudDensity > 0)
         {
-            float den = clamp(cloudDensity * prop.cloudDensity, 0, 1);
-            float cloudDensity1 = GetDensity(curr + 0.5 * ldir);
-            vec4 col = vec4((vec3(0.65,0.65,0.75)*1.1 + 0.8*vec3(1.0,0.6,0.3) * prop.lightIntensityScale), den);
-            float ndotl = clamp(cloudDensity - cloudDensity1,0,1);
-            col.rgb *= (col.a * ndotl);
+            float den = cloudDensity;
+            float cloudDensity0 = GetDensity(curr + 0.1 * ldir);
+
+            float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
+            vec3 l = vec3(vec3(0.93,0.85,0.75)*0.9 + prop.lightIntensityScale*vec3(1.0,0.6,0.3)*ndotl);
+
+            float phaseCos = dot(-dir, -ldir);
+            // float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
+            float absorption = Absorption(den);
+
+            // vec3 lightColor = LightMarch(curr, ldir);
+            vec4 col = vec4( mix( vec3(1.0,0.93,0.84), vec3(0.25,0.3,0.4), den), min(den * absorption, 1));
+            col.rgb *= l * (col.a * absorption);// * phase );
             light += col * (1-light.a);
         }
         // float val = normalizedPos.y*2-1;
@@ -288,14 +266,16 @@ vec4 RayMarching1(vec3 origin, vec3 dir)
 
 void main()
 {
-    vec3 dir = normalize(fragInput.positionWS.xyz - scene.viewPos.xyz);
-    vec3 start = fragInput.positionWS.xyz;
+float len = length(fragInput.positionWS.xyz - scene.viewPos.xyz);
+    vec3 dir = (fragInput.positionWS.xyz - scene.viewPos.xyz) / len;
+    vec3 end = fragInput.positionWS.xyz;
+    const float travelDistance = min(20, len);
     // float worley = prop.worley_amp * (1 - worley3D(fragInput.positionWS.xyz * prop.worley_freq));
     // float perlin = prop.perlin_amp * perlinNoise3D(fragInput.positionWS.xyz * prop.perlin_freq);
     // oColor = vec4(prop.amp * (perlinNoise3D(prop.freq * fragInput.positionWS.xyz) * 0.5f + 0.5f));
 
-    vec4 lighting = RayMarching1(start, dir);
-    oColor = lighting;//clamp(directAbsorption,0,1));
+    vec4 lighting = RayMarching1(end - travelDistance * dir, dir);
+    oColor = vec4(remap(lighting.xyz, prop.lighting_remap), clamp(lighting.a, 0, 1));//clamp(directAbsorption,0,1));
 
     // debugging
     // if (true)
@@ -307,9 +287,7 @@ void main()
     // }
     // else
     // {
-         // oColor = vec4(vec3(SampleCloudDensity(fragInput.positionWS.xyz)), 1);
-         // if (oColor.x < 0)
-         //    oColor = vec4(1);
+    // oColor = vec4(vec3(SampleCloudDensity(fragInput.positionWS.xyz)), 1);
     // }
     // oColor = vec4(dir, 1);
     // oColor = vec4(hash(fragInput.positionWS.xyz),1.0);
