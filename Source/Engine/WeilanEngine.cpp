@@ -7,7 +7,7 @@
 #include "Physics/Physics.hpp"
 #include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
-WeilanEngine::WeilanEngine() {};
+WeilanEngine::WeilanEngine(){};
 
 WeilanEngine::~WeilanEngine()
 {
@@ -39,8 +39,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
     AssetDatabase::SingletonReference() = assetDatabase.get();
-    //physics = std::make_unique<Physics>();
-    //physics->Init();
+    // physics = std::make_unique<Physics>();
+    // physics->Init();
     event = std::make_unique<Event>();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
@@ -51,6 +51,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 bool WeilanEngine::BeginFrame()
 {
     Time::Tick();
+
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();

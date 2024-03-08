@@ -100,26 +100,6 @@ public:
             )};
     }
 
-    void FogPass(Gfx::CommandBuffer& cmd)
-    {
-        Gfx::RG::AttachmentDescription desc(512, 512, Gfx::ImageFormat::R8G8B8A8_SRGB);
-        cmd.AllocateAttachment(fogRT, desc);
-
-        fogGenerationPass.SetAttachment(0, fogRT);
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-        Rect2D rect{{0, 0}, {512, 512}};
-        cmd.SetViewport({0, 0, 512, 512, 0, 1});
-        cmd.SetScissor(0, 1, &rect);
-        cmd.BeginRenderPass(fogGenerationPass, clears);
-        cmd.BindShaderProgram(
-            volumetricFogShader->GetDefaultShaderProgram(),
-            volumetricFogShader->GetDefaultShaderConfig()
-        );
-        cmd.Draw(6, 1, 0, 0);
-        cmd.EndRenderPass();
-        cmd.SetTexture("fogMap", fogRT);
-    }
-
     bool Build(RenderGraph::Graph& graph, Resources& resources) override
     {
         auto [colorNode, colorHandle] =
@@ -193,7 +173,6 @@ public:
 
 private:
     Gfx::RG::RenderPass fogGenerationPass = Gfx::RG::RenderPass::SingleColor();
-    Gfx::RG::AttachmentIdentifier fogRT;
     Shader* volumetricFogShader;
     Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::Default();
 
@@ -205,7 +184,8 @@ private:
     Mesh* cube;
     Shader* skyboxShader;
     ComputeShader* fluidCompute;
-    std::unique_ptr<Gfx::Image> fog;
+    std::unique_ptr<Gfx::Image> cloudRT;
+    std::unique_ptr<Gfx::Image> cloud2RT;
     std::unique_ptr<Gfx::ShaderResource> skyboxResources;
     bool invalidSkybox = true;
 
@@ -224,6 +204,7 @@ private:
     } output;
 
     uint32_t cloudTexSize = 128;
+    uint32_t cloudTex2Size = 64;
     void DefineNode()
     {
         input.color = AddInputProperty("color", PropertyType::Attachment);
@@ -242,8 +223,13 @@ private:
         fluidCompute = static_cast<ComputeShader*>(
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
         );
-        fog = GetGfxDriver()->CreateImage(
-            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R32_Float},
+        cloudRT = GetGfxDriver()->CreateImage(
+            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R8G8B8A8_UNorm},
+            Gfx::ImageUsage::Storage
+        );
+
+        cloud2RT = GetGfxDriver()->CreateImage(
+            {cloudTex2Size, cloudTex2Size, cloudTex2Size, Gfx::ImageFormat::R8G8B8A8_UNorm},
             Gfx::ImageUsage::Storage
         );
     }
@@ -255,11 +241,12 @@ private:
         if (cloudNoiseMaterial)
         {
             cloudNoiseMaterial->UploadDataToGPU();
-            cmd.SetTexture("imgOutput", *fog);
+            cmd.SetTexture("imgOutput", *cloudRT);
+            cmd.SetTexture("imgOutput2", *cloud2RT);
             cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
             cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
             cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
-            cmd.SetTexture("cloudDensity", *fog);
+            cmd.SetTexture("cloudDensity", *cloudRT);
         }
     }
 
