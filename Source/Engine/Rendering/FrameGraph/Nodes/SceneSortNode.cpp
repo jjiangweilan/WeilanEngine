@@ -23,13 +23,6 @@ public:
         DefineNode();
     }
 
-    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
-    {
-        return {
-            Resource(ResourceTag::DrawList{}, outputPropertyIDs["draw list"], drawList.get()),
-        };
-    }
-
     void Compile() override
     {
         output.drawList->SetValue(drawList.get());

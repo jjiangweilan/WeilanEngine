@@ -310,8 +310,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     shaderGlobal.time = Time::TimeSinceLaunch();
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
     cmd.SetUniformBuffer("Global", *shaderGlobalBuffer);
-
-    graph->Execute(cmd);
 }
 
 bool Graph::Compile()
@@ -322,7 +320,7 @@ bool Graph::Compile()
         .usages = Gfx::BufferUsage::Transfer_Src,
         .size = 1024 * 1024, // 1 MB
         .visibleInCPU = true,
-        .debugName = "dual moon graph staging buffer",
+        .debugName = "frame graph staging buffer",
     });
     sceneInfoBuffer = GetGfxDriver()->CreateBuffer(
         {.usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
@@ -339,8 +337,6 @@ bool Graph::Compile()
          .gpuWrite = true}
     );
 
-    graph = std::make_unique<RenderGraph::Graph>();
-
     SortNodes();
 
     for (auto c : connections)
@@ -356,32 +352,6 @@ bool Graph::Compile()
     {
         n->Compile();
     }
-
-    // Resources buildResources;
-    //
-    //
-
-    //
-    // for (auto& n : nodes)
-    // {
-    //     if (!n->Build(*graph, buildResources))
-    //     {
-    //         compiled = false;
-    //         return compiled;
-    //     }
-    // }
-    //
-    // graph->Process();
-    //
-    // for (auto& n : nodes)
-    // {
-    //     n->ProcessSceneShaderResource();
-    // }
-    //
-    // for (auto& n : nodes)
-    // {
-    //     n->Finalize(*graph, buildResources);
-    // }
 
     compiled = true;
     return compiled;

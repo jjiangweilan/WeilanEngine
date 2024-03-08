@@ -328,20 +328,9 @@ public:
     {
         return id;
     }
-
-    virtual std::vector<Resource> Preprocess(RenderGraph::Graph& graph)
-    {
-        return {};
-    }
-    virtual bool Build(RenderGraph::Graph& graph, Resources& resources)
-    {
-        return true;
-    }
-
     virtual void Compile() {}
-    virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
-    virtual void ProcessSceneShaderResource(){};
     virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData){};
+
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
     {

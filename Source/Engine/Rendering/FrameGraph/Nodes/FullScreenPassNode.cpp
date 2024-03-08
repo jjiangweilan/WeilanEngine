@@ -52,32 +52,6 @@ public:
         clears = {v};
     }
 
-    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
-    {
-
-        return {Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["color"], fullScreenPassNode, 0)};
-    }
-
-    bool Build(RenderGraph::Graph& graph, Resources& resources) override
-    {
-        auto [sourceNode, sourceHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["source"]);
-        auto [targetColor, targetHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["target color"]);
-
-        return graph.Connect(sourceNode, sourceHandle, fullScreenPassNode, 1) &&
-               graph.Connect(targetColor, targetHandle, fullScreenPassNode, 0);
-    };
-
-    void Finalize(RenderGraph::Graph& graph, Resources& resources) override
-    {
-        auto [sourceNode, sourceHandle] =
-            resources.GetResource(ResourceTag::RenderGraphLink{}, inputPropertyIDs["source"]);
-
-        Gfx::Image* image = (Gfx::Image*)sourceNode->GetPass()->GetResourceRef(sourceHandle)->GetResource();
-        passResource->SetImage("source", image);
-    }
-
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
         auto id = input.source->GetValue<AttachmentProperty>().id;

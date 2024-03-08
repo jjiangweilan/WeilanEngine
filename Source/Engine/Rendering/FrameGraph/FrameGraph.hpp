@@ -201,7 +201,6 @@ private:
     Node* outputImageNode = nullptr;
     RenderingData renderingData;
 
-    std::unique_ptr<RenderGraph::Graph> graph;
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
     std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;
     std::unique_ptr<Gfx::Buffer> stagingBuffer;

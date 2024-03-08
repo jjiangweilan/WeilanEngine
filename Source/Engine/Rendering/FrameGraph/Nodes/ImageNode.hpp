@@ -14,7 +14,6 @@ public:
     ImageNode(FGID id);
 
     Gfx::Image* GetImage();
-    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override;
     void Compile() override;
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override;
 

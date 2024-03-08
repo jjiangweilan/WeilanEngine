@@ -19,46 +19,6 @@ public:
         DefineNode();
     }
 
-    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
-    {
-
-        // shadowMapPass = graph.AddNode2(
-        //     {},
-        //     {
-        //         {
-        //             .width = (uint32_t)shadowMapSize.x,
-        //             .height = (uint32_t)shadowMapSize.y,
-        //             .depth =
-        //                 RenderGraph::Attachment{
-        //                     .name = "shadow depth",
-        //                     .handle = 2,
-        //                     .create = true,
-        //                     .format = Gfx::ImageFormat::D32_SFloat,
-        //                     .storeOp = Gfx::AttachmentStoreOperation::Store,
-        //                 },
-        //         },
-        //     },
-        //     [this,
-        //      shadowMapClears,
-        //      shadowmapShader,
-        //      shadowMapSize](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& ref) {}
-        // );
-
-        return {
-            Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["shadow map"], shadowMapPass, 2),
-        };
-    };
-
-    bool Build(RenderGraph::Graph& graph, Resources& resources) override
-    {
-        drawList = resources.GetResource(ResourceTag::DrawList{}, inputPropertyIDs["draw list"]);
-
-        if (drawList == nullptr)
-            return false;
-
-        return true;
-    };
-
     void Compile() override
     {
         shadowMapSize = GetConfigurableVal<glm::vec2>("shadow map size");
