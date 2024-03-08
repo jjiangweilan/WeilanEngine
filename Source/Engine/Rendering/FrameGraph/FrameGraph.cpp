@@ -280,9 +280,9 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
-    for (auto& n : nodes)
+    for (auto& n : sortedNodes)
     {
-        n->Execute(renderingData);
+        n->Execute(cmd, renderingData);
     }
 
     GameObject* camGo = camera->GetGameObject();
@@ -341,50 +341,47 @@ bool Graph::Compile()
 
     graph = std::make_unique<RenderGraph::Graph>();
 
-    Resources buildResources;
+    SortNodes();
 
-    for (auto& n : nodes)
+    for (auto c : connections)
     {
-        auto resources = n->Preprocess(*graph);
-        for (auto& r : resources)
-        {
-            if (r.type == ResourceType::Forwarding)
-            {
-                throw std::runtime_error("Not implemented");
-            }
-            else
-            {
-                for (auto c : connections)
-                {
-                    if (GetSrcPropertyIDFromConnectionID(c) == r.propertyID)
-                    {
-                        buildResources.resources.emplace(GetDstPropertyIDFromConnectionID(c), r);
-                    }
-                }
-            }
-        }
+        auto srcNode = GetNode(GetSrcNodeIDFromConnect(c));
+        auto srcProperty = srcNode->GetProperty(GetSrcPropertyIDFromConnectionID(c));
+
+        auto dstNode = GetNode(GetDstNodeIDFromConnect(c));
+        dstNode->GetProperty(GetDstPropertyIDFromConnectionID(c))->LinkFromOutput(*srcProperty);
     }
 
-    for (auto& n : nodes)
+    for (auto n : sortedNodes)
     {
-        if (!n->Build(*graph, buildResources))
-        {
-            compiled = false;
-            return compiled;
-        }
+        n->Compile();
     }
 
-    graph->Process();
+    // Resources buildResources;
+    //
+    //
 
-    for (auto& n : nodes)
-    {
-        n->ProcessSceneShaderResource();
-    }
-
-    for (auto& n : nodes)
-    {
-        n->Finalize(*graph, buildResources);
-    }
+    //
+    // for (auto& n : nodes)
+    // {
+    //     if (!n->Build(*graph, buildResources))
+    //     {
+    //         compiled = false;
+    //         return compiled;
+    //     }
+    // }
+    //
+    // graph->Process();
+    //
+    // for (auto& n : nodes)
+    // {
+    //     n->ProcessSceneShaderResource();
+    // }
+    //
+    // for (auto& n : nodes)
+    // {
+    //     n->Finalize(*graph, buildResources);
+    // }
 
     compiled = true;
     return compiled;

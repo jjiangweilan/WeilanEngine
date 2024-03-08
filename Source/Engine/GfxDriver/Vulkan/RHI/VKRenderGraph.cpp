@@ -46,13 +46,14 @@ public:
             images[hash] = {
                 std::make_unique<VKImage>(
                     imageDesc,
-                    Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc |
-                        Gfx::ImageUsage::Texture
+                    (Gfx::IsColoFormat(imageDesc.format) ? Gfx::ImageUsage::ColorAttachment
+                                                         : Gfx::ImageUsage::DepthStencilAttachment) |
+                        Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture
                 ),
                 0};
 
             auto& image = images[hash].image;
-            image->SetName(std::to_string(hash));
+            image->SetName(fmt::format("vk render graph allocated: {}", hash));
             return image.get();
         }
     }

@@ -30,7 +30,12 @@ public:
         };
     }
 
-    void Execute(RenderingData& renderingData) override
+    void Compile() override
+    {
+        output.drawList->SetValue(drawList.get());
+    }
+
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
         drawList->clear();
 
@@ -42,14 +47,22 @@ public:
                 drawList->Add(*r);
             }
         }
+
+        output.drawList->SetValue(drawList.get());
     }
 
 private:
     std::unique_ptr<DrawList> drawList;
     DrawList* append;
+
+    struct
+    {
+        PropertyHandle drawList;
+    } output;
     void DefineNode()
     {
-        AddOutputProperty("draw list", PropertyType::DrawList);
+        output.drawList = AddOutputProperty("draw list", PropertyType::DrawListPointer);
+        output.drawList->SetValue(drawList.get());
         drawList = std::make_unique<DrawList>();
     }
     static char _reg;

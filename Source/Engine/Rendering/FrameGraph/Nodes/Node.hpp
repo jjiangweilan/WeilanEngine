@@ -8,7 +8,9 @@
 #include <glm/glm.hpp>
 #include <span>
 #include <string>
+#include <variant>
 #include <vector>
+
 class MeshRenderer;
 namespace FrameGraph
 {
@@ -116,10 +118,17 @@ private:
     friend class Node;
 };
 
+struct AttachmentProperty
+{
+    Gfx::RG::AttachmentIdentifier id;
+    Gfx::RG::AttachmentDescription desc;
+};
+
 class Node;
 enum class PropertyType
 {
-    DrawList,
+    Attachment,
+    DrawListPointer,
     RenderGraphLink,
     Float // float
 };
@@ -160,12 +169,43 @@ public:
         return isInput;
     }
 
+    template <class T>
+    void SetValue(const T& val)
+    {
+        if (!isInput)
+            asOutput = val;
+    }
+
+    template <class T>
+    T GetValue()
+    {
+        if (asInput)
+        {
+            return std::get<T>(*asInput);
+        }
+        else
+            return std::get<T>(asOutput);
+        static T defaultVal;
+        return defaultVal;
+    }
+
+    void LinkFromOutput(Property& src)
+    {
+        if (src.type == type)
+        {
+            asInput = &src.asOutput;
+        }
+    }
+
 protected:
     Node* parent;
     std::string name;
     PropertyType type;
     FGID id;
     bool isInput;
+
+    std::variant<DrawList*, AttachmentProperty> asOutput;
+    std::variant<DrawList*, AttachmentProperty>* asInput = nullptr;
 
     friend class Node;
 };
@@ -257,6 +297,26 @@ private:
     friend class Graph;
 };
 
+struct PropertyHandle
+{
+    PropertyHandle() : properties(nullptr), index(-1) {}
+    PropertyHandle(std::vector<Property>* properties, size_t index) : properties(properties), index(index) {}
+
+    Property& operator*()
+    {
+        return properties->at(index);
+    }
+
+    Property* operator->()
+    {
+        return &properties->at(index);
+    }
+
+private:
+    std::vector<Property>* properties;
+    size_t index;
+};
+
 class Node : public Object, public Serializable
 {
 public:
@@ -277,9 +337,11 @@ public:
     {
         return true;
     }
+
+    virtual void Compile() {}
     virtual void Finalize(RenderGraph::Graph& graph, Resources& resources){};
     virtual void ProcessSceneShaderResource(){};
-    virtual void Execute(RenderingData& renderingData){};
+    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData){};
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
     {
@@ -366,7 +428,7 @@ protected:
         return nullptr;
     }
 
-    FGID AddInputProperty(const char* name, PropertyType type)
+    PropertyHandle AddInputProperty(const char* name, PropertyType type)
     {
         FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
         inputProperties.emplace_back(this, name, type, id,
@@ -374,10 +436,10 @@ protected:
 
         inputPropertyIDs[name] = id;
 
-        return id;
+        return {&inputProperties, inputProperties.size() - 1};
     }
 
-    FGID AddOutputProperty(const char* name, PropertyType type)
+    PropertyHandle AddOutputProperty(const char* name, PropertyType type)
     {
         FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
         outputProperties.emplace_back(this, name, type, id,
@@ -385,7 +447,7 @@ protected:
 
         outputPropertyIDs[name] = id;
 
-        return id;
+        return {&outputProperties, outputProperties.size() - 1};
     }
 
     template <ConfigurableType type, class T>

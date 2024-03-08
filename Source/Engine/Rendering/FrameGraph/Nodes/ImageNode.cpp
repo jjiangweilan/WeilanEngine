@@ -15,6 +15,33 @@ ImageNode::ImageNode(FGID id) : Node("Image", id)
     DefineNode();
 }
 
+void ImageNode::Compile()
+{
+    glm::uvec2 size = GetConfigurableVal<glm::ivec2>("size");
+    Gfx::ImageFormat format = GetConfigurableVal<Gfx::ImageFormat>("format");
+
+    desc = {size.x, size.y, format};
+
+    if (Gfx::IsColoFormat(format))
+        image = GetGfxDriver()->CreateImage(
+            Gfx::ImageDescription{size.x, size.y, format},
+            Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
+        );
+    else
+        image = GetGfxDriver()->CreateImage(
+            Gfx::ImageDescription{size.x, size.y, format},
+            Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
+        );
+
+    image->SetName(fmt::format("image node {}", GetName()));
+    id = *image;
+}
+
+void ImageNode::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData)
+{
+    output.attachment->SetValue(AttachmentProperty{id, desc});
+}
+
 std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
 {
     glm::ivec2 size = GetConfigurableVal<glm::ivec2>("size");
@@ -57,7 +84,7 @@ std::vector<Resource> ImageNode::Preprocess(RenderGraph::Graph& graph)
 
 void ImageNode::DefineNode()
 {
-    AddOutputProperty("image", PropertyType::RenderGraphLink);
+    output.attachment = AddOutputProperty("image", PropertyType::Attachment);
 
     AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
     AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);
@@ -66,7 +93,7 @@ void ImageNode::DefineNode()
 
 Gfx::Image* ImageNode::GetImage()
 {
-    return (Gfx::Image*)imageNode->GetPass()->GetResourceRef(0)->GetResource();
+    return image.get();
 }
 char ImageNode::_reg = NodeBlueprintRegisteration::Register<ImageNode>("Image");
 } // namespace FrameGraph

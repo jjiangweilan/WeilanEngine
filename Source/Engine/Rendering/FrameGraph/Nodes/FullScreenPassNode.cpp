@@ -18,14 +18,14 @@ public:
         DefineNode();
     }
 
-    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
+    void Compile() override
     {
-        Shader* shader = GetConfigurableVal<Shader*>("shader");
+        shader = GetConfigurableVal<Shader*>("shader");
         passResource = GetGfxDriver()->CreateShaderResource();
 
         ClearConfigs();
         AddConfig<ConfigurableType::ObjectPtr>("shader", shader);
-        
+
         if (shader)
         {
             for (auto& b : shader->GetDefaultShaderProgram()->GetShaderInfo().bindings)
@@ -49,26 +49,11 @@ public:
         v.color.float32[2] = 0;
         v.color.float32[3] = 0;
 
-        std::vector<Gfx::ClearValue> clears = {v};
-        auto execFunc =
-            [this, clears, shader](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
-        {
-            if (shader != nullptr)
-            {
-                cmd.BeginRenderPass(pass, clears);
-                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
-                cmd.BindResource(1, passResource.get());
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-            }
-        };
+        clears = {v};
+    }
 
-        fullScreenPassNode = graph.AddNode(GetCustomName())
-                                 .InputTexture("input color", 1, Gfx::PipelineStage::Fragment_Shader)
-                                 .InputRT("target color", 0)
-                                 .AddColor(0)
-                                 .SetExecFunc(execFunc)
-                                 .Finish();
+    std::vector<Resource> Preprocess(RenderGraph::Graph& graph) override
+    {
 
         return {Resource(ResourceTag::RenderGraphLink{}, outputPropertyIDs["color"], fullScreenPassNode, 0)};
     }
@@ -93,21 +78,52 @@ public:
         passResource->SetImage("source", image);
     }
 
-    void Execute(RenderingData& renderingData) override {}
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    {
+        auto id = input.source->GetValue<AttachmentProperty>().id;
+        auto targetColor = input.targetColor->GetValue<AttachmentProperty>().id;
+        if (shader != nullptr)
+        {
+            mainPass.SetAttachment(0, targetColor);
+            cmd.BeginRenderPass(mainPass, clears);
+            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            cmd.BindResource(1, passResource.get());
+            cmd.SetTexture(sourceHandle, id);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+        }
+
+        output.color->SetValue(input.targetColor->GetValue<AttachmentProperty>());
+    }
 
 private:
+    Shader* shader;
+    std::vector<Gfx::ClearValue> clears;
     RenderGraph::RenderNode* fullScreenPassNode;
     const DrawList* drawList;
     std::unique_ptr<Gfx::ShaderResource> passResource;
+    Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::SingleColor("full screen pass");
+    Gfx::ResourceHandle sourceHandle = Gfx::ResourceHandle("source");
+
+    struct
+    {
+        PropertyHandle source;
+        PropertyHandle targetColor;
+    } input;
+
+    struct
+    {
+        PropertyHandle color;
+    } output;
 
     void DefineNode()
     {
         AddConfig<ConfigurableType::ObjectPtr>("shader", nullptr);
         AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
 
-        AddInputProperty("source", PropertyType::RenderGraphLink);
-        AddInputProperty("target color", PropertyType::RenderGraphLink);
-        AddOutputProperty("color", PropertyType::RenderGraphLink);
+        input.source = AddInputProperty("source", PropertyType::Attachment);
+        input.targetColor = AddInputProperty("target color", PropertyType::Attachment);
+        output.color = AddOutputProperty("color", PropertyType::Attachment);
     }
     static char _reg;
 }; // namespace FrameGraph

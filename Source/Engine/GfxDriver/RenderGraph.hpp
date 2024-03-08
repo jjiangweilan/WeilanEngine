@@ -8,6 +8,7 @@ namespace Gfx::RG
 {
 struct AttachmentDescription
 {
+    AttachmentDescription() {}
     AttachmentDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format) : data({width, height, format})
     {
         Rehash();
@@ -40,22 +41,22 @@ struct AttachmentDescription
         }
     }
 
-    uint32_t GetWidth()
+    uint32_t GetWidth() const
     {
         return data.width;
     }
 
-    uint32_t GetHeight()
+    uint32_t GetHeight() const
     {
         return data.height;
     }
 
-    Gfx::ImageFormat GetFormat()
+    Gfx::ImageFormat GetFormat() const
     {
         return data.format;
     }
 
-    uint64_t GetHash()
+    uint64_t GetHash() const
     {
         return hash;
     }

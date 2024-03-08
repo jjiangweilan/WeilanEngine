@@ -203,7 +203,7 @@ private:
 
     void DefineNode()
     {
-        inputDrawList = AddInputProperty("draw list", PropertyType::DrawList);
+        // inputDrawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
     }
 
     void GenerateMip(Gfx::CommandBuffer& cmd, Gfx::Image* image, Gfx::ImageAspect aspect)
