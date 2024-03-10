@@ -25,8 +25,8 @@ private:
 
     RenderGraph::RenderNode* imageNode;
     std::unique_ptr<Gfx::Image> image;
-    Gfx::RG::AttachmentIdentifier id;
-    Gfx::RG::AttachmentDescription desc;
+    Gfx::RG::ImageIdentifier id;
+    Gfx::RG::ImageDescription desc;
 
     void DefineNode();
     static char _reg;

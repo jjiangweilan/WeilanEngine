@@ -47,7 +47,7 @@ private:
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
     std::unique_ptr<RenderGraph::Graph> gameViewPostProcess;
-    Gfx::RG::AttachmentIdentifier outlineSrcRT;
+    Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
     Gfx::RG::RenderPass outlieFinalPass = Gfx::RG::RenderPass::SingleColor(
         "outline final pass", Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store

@@ -349,9 +349,9 @@ void Process(
                 default: assert(0 && "Not implemented");
             }
             b.count = bindingJson.value("array", std::vector<int>{1})[0];
-            b.name = RemoveShaderNameConfigText(name);
-            b.resourceHandle = ResourceHandle(b.name);
             b.actualName = name;
+            b.name = RemoveShaderNameConfigText(name);
+            b.resourceHandle = ShaderBindingHandle(b.name);
             b.stages = stage;
         }
         else

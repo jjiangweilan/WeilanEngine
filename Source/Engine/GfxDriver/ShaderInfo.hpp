@@ -172,6 +172,7 @@ struct Binding
         setNum = other.setNum;
         bindingNum = other.bindingNum;
         name = other.name;
+        actualName = other.actualName;
         resourceHandle = other.resourceHandle;
         count = other.count;
         type = other.type;
@@ -256,7 +257,7 @@ struct Binding
     uint32_t setNum;
     uint32_t bindingNum;
     std::string name;
-    ResourceHandle resourceHandle; // used by render graph
+    ShaderBindingHandle resourceHandle; // used by render graph
     std::string actualName;
     uint8_t count = 1;
     union BindingUnion

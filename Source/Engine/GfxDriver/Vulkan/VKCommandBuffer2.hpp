@@ -98,14 +98,16 @@ struct VKBindIndexBufferCmd
 
 struct VKSetTextureCmd
 {
-    ResourceHandle handle;
+    ShaderBindingHandle handle;
     Gfx::Image* image;
+    int index;
 };
 
-struct VKSetUniformBufferCmd
+struct VKSetBufferCmd
 {
-    ResourceHandle handle;
+    ShaderBindingHandle handle;
     VKBuffer* buffer;
+    int index;
 };
 
 struct VKSetViewportCmd
@@ -217,8 +219,8 @@ struct VKPresentCmd
 
 struct VKAllocateAttachmentCmd
 {
-    RG::AttachmentIdentifier* id;
-    RG::AttachmentDescription desc;
+    RG::ImageIdentifier* id;
+    RG::ImageDescription desc;
 };
 
 enum class VKCmdType
@@ -244,7 +246,7 @@ enum class VKCmdType
     PushDescriptorSet,
     CopyBuffer,
     CopyBufferToImage,
-    SetUniformBuffer,
+    SetBuffer,
     SetTexture,
     AllocateAttachment,
     Present,
@@ -277,7 +279,7 @@ struct VKCmd
         VKCopyBufferToImageCmd copyBufferToImage;
 
         VKSetTextureCmd setTexture;
-        VKSetUniformBufferCmd setUniformBuffer;
+        VKSetBufferCmd setBuffer;
         VKPresentCmd present;
 
         VKAllocateAttachmentCmd allocateAttachment;
@@ -325,11 +327,11 @@ public:
     void Begin() override {}
     void End() override {}
 
-    void SetTexture(ResourceHandle handle, RG::AttachmentIdentifier id) override;
-    void SetTexture(ResourceHandle handle, Gfx::Image& image) override;
-    void SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer) override;
+    void SetTexture(ShaderBindingHandle handle, int index, RG::ImageIdentifier id) override;
+    void SetTexture(ShaderBindingHandle handle, int index, Gfx::Image& image) override;
+    void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachment(RG::AttachmentIdentifier& id, RG::AttachmentDescription& desc) override;
+    void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) override;
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
 
     void PresentImage(VKImage* image);

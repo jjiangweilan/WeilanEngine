@@ -54,46 +54,46 @@ void VKShaderResource::RebuildAll()
     }
 }
 
-void VKShaderResource::SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer)
+void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer)
 {
-    auto old = bindings[handle].res;
+    auto old = bindings[handle][index].res;
     if (old != buffer)
     {
         if (buffer == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle] = {buffer, ResourceType::Buffer};
+            bindings[handle][index] = {buffer, ShaderBindingType::Buffer};
         RebuildAll();
     }
 }
 
-void VKShaderResource::SetImage(ResourceHandle handle, Gfx::Image* image)
+void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image)
 {
-    auto old = bindings[handle].res;
+    auto old = bindings[handle][index].res;
     if (old != &image->GetDefaultImageView())
     {
         if (image == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle] = {&image->GetDefaultImageView(), ResourceType::ImageView};
+            bindings[handle][index] = {&image->GetDefaultImageView(), ShaderBindingType::ImageView};
         RebuildAll();
     }
 }
 
-void VKShaderResource::SetImage(ResourceHandle handle, Gfx::ImageView* imageView)
+void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView)
 {
-    auto old = bindings[handle].res;
+    auto old = bindings[handle][index].res;
     if (old != imageView)
     {
         if (imageView == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle] = {imageView, ResourceType::ImageView};
+            bindings[handle][index] = {imageView, ShaderBindingType::ImageView};
         RebuildAll();
     }
 }
 
-void VKShaderResource::Remove(ResourceHandle handle)
+void VKShaderResource::Remove(ShaderBindingHandle handle)
 {
     if (bindings.contains(handle))
     {
@@ -175,18 +175,43 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                ResourceRef resRef = bindings[ResourceHandle(b->name)];
+                auto& binding = bindings[ShaderBindingHandle(b->name)];
+
+                int anyNonNullIndex = 0;
+                for (auto& bindingElement : binding)
+                {
+                    if (bindingElement.second.res != nullptr)
+                    {
+                        anyNonNullIndex = bindingElement.first;
+                    }
+                }
 
                 switch (b->type)
                 {
-                    case ShaderInfo::BindingType::UBO:
-                    case ShaderInfo::BindingType::SSBO:
-                        {
-                            for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                    case Gfx::ShaderInfo::BindingType::UBO:
+                    case Gfx::ShaderInfo::BindingType::SSBO:
+                        writes[writeCount].pBufferInfo = &bufferInfos[bufferWriteIndex];
+                        break;
+                    case Gfx::ShaderInfo::BindingType::Texture:
+                    case Gfx::ShaderInfo::BindingType::StorageImage:
+                    case Gfx::ShaderInfo::BindingType::SeparateImage:
+                    case Gfx::ShaderInfo::BindingType::SeparateSampler:
+                        writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex];
+                        break;
+                }
+
+                for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
+                {
+                    ResourceRef resRef = binding[i];
+
+                    switch (b->type)
+                    {
+                        case ShaderInfo::BindingType::UBO:
+                        case ShaderInfo::BindingType::SSBO:
                             {
                                 VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                                 VKBuffer* buffer = nullptr;
-                                if (resRef.type != ResourceType::Buffer || resRef.res == nullptr)
+                                if (resRef.type != ShaderBindingType::Buffer || resRef.res == nullptr)
                                 {
                                     std::string bufferName =
                                         fmt::format("Default Buffer for {}", shaderProgram->GetName());
@@ -198,7 +223,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .visibleInCPU = false,
                                         .debugName = bufferName.c_str()
                                     };
-                                    auto defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                                    defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
                                 else
@@ -213,6 +238,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
                                     if (b->stages & Gfx::ShaderInfo::ShaderStage::Frag)
                                         pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Comp)
+                                        pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Buffer,
                                         .data = buffer,
@@ -228,120 +256,128 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 bufferInfo.buffer = buffer->GetHandle();
                                 bufferInfo.offset = i * b->binding.ubo.data.size;
                                 bufferInfo.range = b->binding.ubo.data.size;
-                                writes[writeCount].pBufferInfo = &bufferInfo;
+                                break;
                             }
-                            break;
-                        }
-                    case ShaderInfo::BindingType::StorageImage:
-                        {
-                            VKImageView* imageView = (VKImageView*)resRef.res;
-                            VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
-
-                            VKWritableGPUResource gpuResource{
-                                .type = VKWritableGPUResource::Type::Image,
-                                .data = &imageView->GetImage(),
-                                .stages = pipelineStages,
-                                .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
-                                .imageView = imageView,
-                                .layout = VK_IMAGE_LAYOUT_GENERAL,
-                            };
-
-                            writableGPUResources->push_back(gpuResource);
-
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
-                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-                            imageInfo.sampler = sharedResource->GetDefaultSampler();
-                            if (resRef.res != nullptr && resRef.type == ResourceType::ImageView)
+                        case ShaderInfo::BindingType::StorageImage:
                             {
-                                imageInfo.imageView = imageView->GetHandle();
-                            }
-                            else
-                            {
-                                assert(false && "a storage image has to be set before use");
-                                // imageInfo.imageView = sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
-                            }
-                            writes[writeCount].pImageInfo = &imageInfo;
-                            break;
-                        }
-                    case ShaderInfo::BindingType::Texture:
-                    case ShaderInfo::BindingType::SeparateImage:
-                        {
-                            VKImageView* imageView = (VKImageView*)resRef.res;
-                            if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D ||
-                                b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
-                            {
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
-                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                                imageInfo.sampler = b->type == ShaderInfo::BindingType::Texture
-                                                        ? sharedResource->GetDefaultSampler()
-                                                        : VK_NULL_HANDLE;
-                                if (resRef.res != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
-                                    resRef.type == ResourceType::ImageView)
+                                // it's possible a storage image isn't used if it's an array
+                                if (resRef.res == nullptr)
                                 {
-                                    imageInfo.imageView = imageView->GetHandle();
-                                }
-                                else
-                                {
-                                    if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
-                                        imageInfo.imageView =
-                                            sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
-                                    else if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
-                                        imageInfo.imageView =
-                                            sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
-                                }
-                                writes[writeCount].pImageInfo = &imageInfo;
-                            }
-                            else if (b->binding.texture.type == ShaderInfo::Texture::Type::TexCube)
-                            {
-                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
-                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                                imageInfo.sampler = sharedResource->GetDefaultSampler();
-
-                                if (resRef.res != nullptr && imageView->GetImage().GetDescription().isCubemap &&
-                                    resRef.type == ResourceType::ImageView)
-                                {
-                                    imageInfo.imageView = imageView->GetHandle();
-                                }
-                                else
-                                {
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.sampler = VK_NULL_HANDLE;
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                     imageInfo.imageView =
-                                        sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
+                                        sharedResource->GetDefaultStoargeImage2D()->GetDefaultVkImageView();
+                                }
+                                else
+                                {
+                                    VKImageView* imageView = (VKImageView*)resRef.res;
+                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
+
+                                    VKWritableGPUResource gpuResource{
+                                        .type = VKWritableGPUResource::Type::Image,
+                                        .data = &imageView->GetImage(),
+                                        .stages = pipelineStages,
+                                        .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+                                        .imageView = imageView,
+                                        .layout = VK_IMAGE_LAYOUT_GENERAL,
+                                    };
+
+                                    writableGPUResources->push_back(gpuResource);
+
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                                    imageInfo.sampler = sharedResource->GetDefaultSampler();
+                                    if (resRef.res != nullptr && resRef.type == ShaderBindingType::ImageView)
+                                    {
+                                        imageInfo.imageView = imageView->GetHandle();
+                                    }
+                                    else
+                                    {
+                                        assert(false && "a storage image has to be set before use");
+                                        // imageInfo.imageView =
+                                        // sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
+                                    }
                                 }
 
-                                writes[writeCount].pImageInfo = &imageInfo;
+                                break;
                             }
-
-                            if (imageView && imageView->GetImage().IsGPUWrite())
+                        case ShaderInfo::BindingType::Texture:
+                        case ShaderInfo::BindingType::SeparateImage:
                             {
-                                VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
-                                VKWritableGPUResource gpuResource{
-                                    .type = VKWritableGPUResource::Type::Image,
-                                    .data = &imageView->GetImage(),
-                                    .stages = pipelineStages,
-                                    .access = VK_ACCESS_SHADER_READ_BIT,
-                                    .imageView = imageView,
-                                    .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                };
+                                VKImageView* imageView = (VKImageView*)resRef.res;
+                                if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D ||
+                                    b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
+                                {
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                    imageInfo.sampler = b->type == ShaderInfo::BindingType::Texture
+                                                            ? sharedResource->GetDefaultSampler()
+                                                            : VK_NULL_HANDLE;
+                                    if (resRef.res != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
+                                        resRef.type == ShaderBindingType::ImageView)
+                                    {
+                                        imageInfo.imageView = imageView->GetHandle();
+                                    }
+                                    else
+                                    {
+                                        if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
+                                            imageInfo.imageView =
+                                                sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
+                                        else if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
+                                            imageInfo.imageView =
+                                                sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
+                                    }
+                                }
+                                else if (b->binding.texture.type == ShaderInfo::Texture::Type::TexCube)
+                                {
+                                    VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                    imageInfo.sampler = sharedResource->GetDefaultSampler();
 
-                                writableGPUResources->push_back(gpuResource);
+                                    if (resRef.res != nullptr && imageView->GetImage().GetDescription().isCubemap &&
+                                        resRef.type == ShaderBindingType::ImageView)
+                                    {
+                                        imageInfo.imageView = imageView->GetHandle();
+                                    }
+                                    else
+                                    {
+                                        imageInfo.imageView =
+                                            sharedResource->GetDefaultTextureCube()->GetDefaultVkImageView();
+                                    }
+                                }
+
+                                if (imageView && imageView->GetImage().IsGPUWrite())
+                                {
+                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
+                                    VKWritableGPUResource gpuResource{
+                                        .type = VKWritableGPUResource::Type::Image,
+                                        .data = &imageView->GetImage(),
+                                        .stages = pipelineStages,
+                                        .access = VK_ACCESS_SHADER_READ_BIT,
+                                        .imageView = imageView,
+                                        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                    };
+
+                                    writableGPUResources->push_back(gpuResource);
+                                }
+                                break;
                             }
-                            break;
-                        }
-                    case ShaderInfo::BindingType::SeparateSampler:
-                        {
-                            auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
-                                b->actualName,
-                                b->binding.separateSampler.enableCompare
-                            );
-                            VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
-                            VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
-                            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                            imageInfo.sampler = sampler;
-                            imageInfo.imageView = VK_NULL_HANDLE;
-                            writes[writeCount].pImageInfo = &imageInfo;
-                            break;
-                        }
-                    default: assert(0 && "Not implemented"); break;
+                        case ShaderInfo::BindingType::SeparateSampler:
+                            {
+                                auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
+                                    b->actualName,
+                                    b->binding.separateSampler.enableCompare
+                                );
+                                VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
+                                VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
+                                imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                                imageInfo.sampler = sampler;
+                                imageInfo.imageView = VK_NULL_HANDLE;
+                                break;
+                            }
+                        default: assert(0 && "Not implemented"); break;
+                    }
                 }
 
                 writeCount += 1;

@@ -272,7 +272,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
-    cmd.SetUniformBuffer("SceneInfo", *sceneInfoBuffer);
+    cmd.SetBuffer("SceneInfo", *sceneInfoBuffer);
     if (diffuseCube)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)
@@ -309,7 +309,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     shaderGlobal.time = Time::TimeSinceLaunch();
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
-    cmd.SetUniformBuffer("Global", *shaderGlobalBuffer);
+    cmd.SetBuffer("Global", *shaderGlobalBuffer);
 }
 
 bool Graph::Compile()

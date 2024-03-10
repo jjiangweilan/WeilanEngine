@@ -13,10 +13,13 @@ name: HizSetup
 #define FFX_SPD_BIND_UAV_INTERNAL_GLOBAL_ATOMIC 2
 #define FFX_SPD_BIND_UAV_INPUT_DOWNSAMPLE_SRC_MID_MIPMAP 3
 #define FFX_SPD_BIND_UAV_INPUT_DOWNSAMPLE_SRC_MIPS 4
+#define FFX_SPD_OPTION_DOWNSAMPLE_FILTER 1
 
 #include "ffx/spd/ffx_spd_callbacks_glsl.h"
 #include "ffx/spd/ffx_spd_downsample.h"
 
+
+layout(local_size_x = 256) in;
 void main()
 {
     DOWNSAMPLE(gl_LocalInvocationID.x, gl_WorkGroupID.xyz);

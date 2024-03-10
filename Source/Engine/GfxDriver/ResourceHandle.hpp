@@ -6,11 +6,11 @@
 
 namespace Gfx
 {
-class ResourceHandle
+class ShaderBindingHandle
 {
 public:
-    ResourceHandle() : hash(0) {}
-    ResourceHandle(const std::string_view& name) : hash(XXH3_64bits((void*)name.data(), name.size()))
+    ShaderBindingHandle() : hash(0) {}
+    ShaderBindingHandle(const std::string_view& name) : hash(XXH3_64bits((void*)name.data(), name.size()))
     {
         // spdlog::info("hash {}, result {}, size {}", name, hash, name.size());
     }
@@ -25,20 +25,20 @@ public:
         return hash;
     }
 
-    bool operator==(const ResourceHandle& other) const = default;
+    bool operator==(const ShaderBindingHandle& other) const = default;
 
 private:
     uint64_t hash;
 
-    friend class std::hash<Gfx::ResourceHandle>;
+    friend class std::hash<Gfx::ShaderBindingHandle>;
 };
 } // namespace Gfx
   //
 
 template <>
-struct std::hash<Gfx::ResourceHandle>
+struct std::hash<Gfx::ShaderBindingHandle>
 {
-    size_t operator()(Gfx::ResourceHandle handle) const
+    size_t operator()(Gfx::ShaderBindingHandle handle) const
     {
         return std::hash<uint64_t>()(handle.hash);
     }

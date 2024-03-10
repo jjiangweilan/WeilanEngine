@@ -77,7 +77,7 @@ private:
     const DrawList* drawList;
     std::unique_ptr<Gfx::ShaderResource> passResource;
     Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::SingleColor("full screen pass");
-    Gfx::ResourceHandle sourceHandle = Gfx::ResourceHandle("source");
+    Gfx::ShaderBindingHandle sourceHandle = Gfx::ShaderBindingHandle("source");
 
     struct
     {

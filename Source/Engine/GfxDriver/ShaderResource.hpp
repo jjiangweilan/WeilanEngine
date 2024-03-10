@@ -17,26 +17,40 @@ class Image;
 class ShaderResource
 {
 public:
-    virtual void SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer) = 0;
-    virtual void SetImage(ResourceHandle handle, Gfx::Image* buffer) = 0;
-    virtual void SetImage(ResourceHandle handle, Gfx::ImageView* imageView) = 0;
-    virtual void Remove(ResourceHandle handle) = 0;
+    void SetBuffer(ShaderBindingHandle handle, Gfx::Buffer* buffer)
+    {
+        SetBuffer(handle, 0, buffer);
+    }
+    void SetImage(ShaderBindingHandle handle, Gfx::Image* buffer)
+    {
+        SetImage(handle, 0, buffer);
+    }
+    void SetImage(ShaderBindingHandle handle, Gfx::ImageView* imageView)
+    {
+        SetImage(handle, 0, imageView);
+    }
+
+    virtual void Remove(ShaderBindingHandle handle) = 0;
+
+    virtual void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer) = 0;
+    virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* buffer) = 0;
+    virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) = 0;
 
     void Remove(std::string_view name)
     {
-        Remove(ResourceHandle(name));
+        Remove(ShaderBindingHandle(name));
     }
     void SetBuffer(std::string_view name, Gfx::Buffer* buffer)
     {
-        SetBuffer(ResourceHandle(name), buffer);
+        SetBuffer(ShaderBindingHandle(name), buffer);
     }
     void SetImage(std::string_view name, Gfx::Image* buffer)
     {
-        SetImage(ResourceHandle(name), buffer);
+        SetImage(ShaderBindingHandle(name), buffer);
     }
     void SetImage(std::string_view name, Gfx::ImageView* imageView)
     {
-        SetImage(ResourceHandle(name), imageView);
+        SetImage(ShaderBindingHandle(name), imageView);
     }
 
     virtual ~ShaderResource(){};

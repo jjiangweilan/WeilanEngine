@@ -56,6 +56,19 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     uint8_t tex3DData[32] = {};
     defaultTexture3D->SetData(tex3DData, 0, 0);
 
+    ImageDescription storageImage2DDesc{};
+    storageImage2DDesc.format = ImageFormat::R8G8B8A8_UNorm;
+    storageImage2DDesc.height = 2;
+    storageImage2DDesc.width = 2;
+    storageImage2DDesc.depth = 1;
+    storageImage2DDesc.mipLevels = 1;
+    storageImage2DDesc.isCubemap = false;
+    storageImage2DDesc.multiSampling = MultiSampling::Sample_Count_1;
+    defaultStorage2DImage =
+        std::make_unique<VKImage>(storageImage2DDesc, ImageUsage::Storage | ImageUsage::TransferDst);
+    defaultStorage2DImage->SetName("Default 2D Stoage Image");
+    defaultStorage2DImage->SetData(pxls, 0, 0, VK_IMAGE_LAYOUT_GENERAL);
+
     ImageDescription descCube{};
     descCube.format = ImageFormat::R8G8B8A8_UNorm;
     descCube.height = 2;

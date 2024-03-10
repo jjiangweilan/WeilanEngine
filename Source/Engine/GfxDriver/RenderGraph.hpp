@@ -6,12 +6,22 @@
 
 namespace Gfx::RG
 {
-struct AttachmentDescription
+struct ImageDescription
 {
-    AttachmentDescription() {}
-    AttachmentDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format) : data({width, height, format})
+    ImageDescription() {}
+    ImageDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format, bool randomWrite = false)
+        : data({width, height, format, randomWrite})
     {
         Rehash();
+    }
+
+    void SetRandomWrite(bool enable)
+    {
+        if (data.randomWrite != enable)
+        {
+            data.randomWrite = enable;
+            Rehash();
+        }
     }
 
     void SetWidth(uint32_t width)
@@ -61,12 +71,18 @@ struct AttachmentDescription
         return hash;
     }
 
+    bool GetRandomWrite() const
+    {
+        return data.randomWrite;
+    }
+
 private:
     struct InternalData
     {
         uint32_t width;
         uint32_t height;
         Gfx::ImageFormat format;
+        bool randomWrite = false;
     } data;
 
     uint64_t hash;
@@ -77,7 +93,7 @@ private:
     }
 };
 
-struct AttachmentIdentifier
+struct ImageIdentifier
 {
     enum class Type
     {
@@ -86,11 +102,11 @@ struct AttachmentIdentifier
         Handle
     };
 
-    AttachmentIdentifier() : type(Type::None), image(nullptr) {}
-    AttachmentIdentifier(Image& image) : type(Type::Image), image(&image) {}
-    AttachmentIdentifier(uint64_t rgHash) : type(Type::Handle), rtHandle(rgHash) {}
+    ImageIdentifier() : type(Type::None), image(nullptr) {}
+    ImageIdentifier(Image& image) : type(Type::Image), image(&image) {}
+    ImageIdentifier(uint64_t rgHash) : type(Type::Handle), rtHandle(rgHash) {}
 
-    bool operator==(const AttachmentIdentifier& other) const
+    bool operator==(const ImageIdentifier& other) const
     {
         if (type != other.type)
         {
@@ -160,7 +176,7 @@ public:
         subpasses.resize(subpassCount);
     }
 
-    void SetAttachment(int index, const AttachmentIdentifier& id)
+    void SetAttachment(int index, const ImageIdentifier& id)
     {
         if (index < attachments.size())
         {
@@ -172,7 +188,7 @@ public:
         }
     }
 
-    const std::vector<AttachmentIdentifier>& GetAttachments()
+    const std::vector<ImageIdentifier>& GetAttachments()
     {
         return attachments;
     }
@@ -251,14 +267,14 @@ public:
 
 private:
     std::string name;
-    std::vector<AttachmentIdentifier> attachments;
+    std::vector<ImageIdentifier> attachments;
     std::vector<Subpass> subpasses;
 
     uint64_t hash;
 
     void Rehash()
     {
-        size_t sizeOfAttachments = attachments.size() * sizeof(AttachmentIdentifier);
+        size_t sizeOfAttachments = attachments.size() * sizeof(ImageIdentifier);
         size_t sizeOfSubpasses = 0;
         for (auto& s : subpasses)
         {

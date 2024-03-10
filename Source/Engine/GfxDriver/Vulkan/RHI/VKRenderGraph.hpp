@@ -52,7 +52,7 @@ public:
     void Execute(VkCommandBuffer cmd);
 
     VKImage* GetImage(uint64_t hash);
-    VKImage* Request(RG::AttachmentDescription& desc);
+    VKImage* Request(RG::ImageDescription& desc);
     VKRenderPass* Request(RG::RenderPass& renderPass);
 
 private:
@@ -100,7 +100,7 @@ private:
     std::vector<VkMemoryBarrier> memoryBarriers;
 
     std::unordered_map<ShaderProgram*, VKShaderResource> globalResources;
-    std::unordered_map<ResourceHandle, ShaderBinding> globalResourcePool;
+    std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ShaderBinding>> globalResourcePool;
     // std::unique_ptr<VKShaderResource> globalResource;
     //
     std::unique_ptr<ResourceAllocator> resourceAllocator;

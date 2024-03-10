@@ -122,24 +122,41 @@ public:
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
 
-    virtual void SetTexture(ResourceHandle name, RG::AttachmentIdentifier id) = 0;
-    virtual void SetTexture(ResourceHandle name, Gfx::Image& image) = 0;
-    virtual void SetUniformBuffer(ResourceHandle name, Gfx::Buffer& buffer) = 0;
+    virtual void SetTexture(ShaderBindingHandle name, int index, RG::ImageIdentifier id) = 0;
+    virtual void SetTexture(ShaderBindingHandle name, int index, Gfx::Image& image) = 0;
+    virtual void SetBuffer(ShaderBindingHandle name, int index, Gfx::Buffer& buffer) = 0;
+
+    virtual void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
+    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
+
+    void SetTexture(ShaderBindingHandle name, RG::ImageIdentifier id)
+    {
+        SetTexture(name, 0, id);
+    }
+
+    void SetTexture(ShaderBindingHandle name, Gfx::Image& image)
+    {
+        SetTexture(name, 0, image);
+    }
+
+    void SetBuffer(ShaderBindingHandle name, Gfx::Buffer& buffer)
+    {
+        SetBuffer(name, 0, buffer);
+    }
+
     void SetTexture(std::string_view name, Gfx::Image& image)
     {
-        SetTexture(ResourceHandle(name), image);
+        SetTexture(ShaderBindingHandle(name), 0, image);
     }
 
-    void SetTexture(std::string_view name, RG::AttachmentIdentifier id)
+    void SetTexture(std::string_view name, RG::ImageIdentifier id)
     {
-        SetTexture(ResourceHandle(name), id);
-    }
-    void SetUniformBuffer(std::string_view name, Gfx::Buffer& buffer)
-    {
-        SetUniformBuffer(ResourceHandle(name), buffer);
+        SetTexture(ShaderBindingHandle(name), 0, id);
     }
 
-    virtual void AllocateAttachment(RG::AttachmentIdentifier& id, RG::AttachmentDescription& desc) = 0;
-    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
+    void SetBuffer(std::string_view name, Gfx::Buffer& buffer)
+    {
+        SetBuffer(ShaderBindingHandle(name), 0, buffer);
+    }
 };
 } // namespace Gfx

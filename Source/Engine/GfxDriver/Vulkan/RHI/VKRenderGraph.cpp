@@ -23,7 +23,7 @@ public:
         return nullptr;
     }
 
-    VKImage* Request(RG::AttachmentDescription& desc)
+    VKImage* Request(RG::ImageDescription& desc)
     {
         auto hash = desc.GetHash();
         auto iter = images.find(hash);
@@ -48,9 +48,11 @@ public:
                     imageDesc,
                     (Gfx::IsColoFormat(imageDesc.format) ? Gfx::ImageUsage::ColorAttachment
                                                          : Gfx::ImageUsage::DepthStencilAttachment) |
-                        Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture
+                        Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture |
+                        (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
-                0};
+                0
+            };
 
             auto& image = images[hash].image;
             image->SetName(fmt::format("vk render graph allocated: {}", hash));
@@ -77,7 +79,7 @@ public:
                 std::vector<Attachment> colors;
                 for (RG::SubpassAttachment color : subpass.colors)
                 {
-                    if (attachments[color.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Image)
+                    if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
                     {
                         colors.push_back(Attachment{
                             &attachments[color.attachmentIndex].GetAsImage()->GetDefaultImageView(),
@@ -88,7 +90,7 @@ public:
                             color.stencilStoreOp,
                         });
                     }
-                    else if (attachments[color.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Handle)
+                    else if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[color.attachmentIndex].GetAsHash()];
                         colors.push_back(Attachment{
@@ -105,7 +107,7 @@ public:
                 std::optional<Attachment> depth;
                 if (subpass.depth.attachmentIndex != -1)
                 {
-                    if (attachments[subpass.depth.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Image)
+                    if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
                     {
                         depth = Attachment{
                             &attachments[subpass.depth.attachmentIndex].GetAsImage()->GetDefaultImageView(),
@@ -116,7 +118,7 @@ public:
                             subpass.depth.stencilStoreOp,
                         };
                     }
-                    else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::AttachmentIdentifier::Type::Handle)
+                    else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsHash()];
                         depth = Attachment{
@@ -152,9 +154,12 @@ public:
                 readyToRemove[removeCount++] = iter.first;
                 for (auto& r : graph->globalResourcePool)
                 {
-                    if (r.second.res == iter.second.image.get())
+                    for (auto& e : r.second)
                     {
-                        r.second.res = nullptr;
+                        if (e.second.res == iter.second.image.get())
+                        {
+                            e.second.res = nullptr;
+                        }
                     }
                 }
             }
@@ -248,7 +253,7 @@ bool Graph::TrackResource(
     return false;
 }
 
-VKImage* Graph::Request(RG::AttachmentDescription& desc)
+VKImage* Graph::Request(RG::ImageDescription& desc)
 {
     return resourceAllocator->Request(desc);
 }
@@ -796,11 +801,17 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         }
         else if (cmd.type == VKCmdType::SetTexture)
         {
-            globalResourcePool[cmd.setTexture.handle] = {ResourceType::Image, cmd.setTexture.image};
+            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
+                ResourceType::Image,
+                cmd.setTexture.image
+            };
         }
-        else if (cmd.type == VKCmdType::SetUniformBuffer)
+        else if (cmd.type == VKCmdType::SetBuffer)
         {
-            globalResourcePool[cmd.setUniformBuffer.handle] = {ResourceType::Buffer, cmd.setUniformBuffer.buffer};
+            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
+                ResourceType::Buffer,
+                cmd.setBuffer.buffer
+            };
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -903,7 +914,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -915,7 +927,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1364,21 +1377,28 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
                 auto resourceFromPool = globalResourcePool.find(binding->resourceHandle);
                 if (resourceFromPool != globalResourcePool.end())
                 {
-                    bool isBufferType = (binding->type == ShaderInfo::BindingType::UBO ||
-                                         binding->type == ShaderInfo::BindingType::SSBO) &&
-                                        resourceFromPool->second.type == ResourceType::Buffer;
-                    bool isImageType = (binding->type == ShaderInfo::BindingType::SeparateImage ||
-                                        binding->type == ShaderInfo::BindingType::Texture ||
-                                        binding->type == ShaderInfo::BindingType::StorageImage) &&
-                                       resourceFromPool->second.type == ResourceType::Image;
+                    for (int elementIndex = 0; elementIndex < binding->count; ++elementIndex)
+                    {
+                        auto& element = resourceFromPool->second[elementIndex];
+                        if (element.res != nullptr)
+                        {
+                            bool isBufferType = (binding->type == ShaderInfo::BindingType::UBO ||
+                                                 binding->type == ShaderInfo::BindingType::SSBO) &&
+                                                element.type == ResourceType::Buffer;
+                            bool isImageType = (binding->type == ShaderInfo::BindingType::SeparateImage ||
+                                                binding->type == ShaderInfo::BindingType::Texture ||
+                                                binding->type == ShaderInfo::BindingType::StorageImage) &&
+                                               element.type == ResourceType::Image;
 
-                    if (isBufferType)
-                    {
-                        resource.SetBuffer(binding->resourceHandle, (VKBuffer*)resourceFromPool->second.res);
-                    }
-                    else if (isImageType)
-                    {
-                        resource.SetImage(binding->resourceHandle, (VKImage*)resourceFromPool->second.res);
+                            if (isBufferType)
+                            {
+                                resource.SetBuffer(binding->resourceHandle, elementIndex, (VKBuffer*)element.res);
+                            }
+                            else if (isImageType)
+                            {
+                                resource.SetImage(binding->resourceHandle, elementIndex, (VKImage*)element.res);
+                            }
+                        }
                     }
                 }
             }

@@ -268,18 +268,19 @@ void VKCommandBuffer2::PresentImage(VKImage* image)
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer2::SetTexture(ResourceHandle handle, RG::AttachmentIdentifier id)
+void VKCommandBuffer2::SetTexture(ShaderBindingHandle handle, int index, RG::ImageIdentifier id)
 {
-    if (id.GetType() == RG::AttachmentIdentifier::Type::Image)
+    if (id.GetType() == RG::ImageIdentifier::Type::Image)
     {
         VKCmd cmd{VKCmdType::SetTexture};
 
         cmd.setTexture.handle = handle;
         cmd.setTexture.image = id.GetAsImage();
+        cmd.setTexture.index = index;
 
         cmds.push_back(cmd);
     }
-    else if (id.GetType() == RG::AttachmentIdentifier::Type::Handle)
+    else if (id.GetType() == RG::ImageIdentifier::Type::Handle)
     {
         auto image = graph->GetImage(id.GetAsHash());
 
@@ -287,32 +288,35 @@ void VKCommandBuffer2::SetTexture(ResourceHandle handle, RG::AttachmentIdentifie
 
         cmd.setTexture.handle = handle;
         cmd.setTexture.image = image;
+        cmd.setTexture.index = index;
 
         cmds.push_back(cmd);
     }
 }
 
-void VKCommandBuffer2::SetTexture(ResourceHandle handle, Gfx::Image& image)
+void VKCommandBuffer2::SetTexture(ShaderBindingHandle handle, int index, Gfx::Image& image)
 {
     VKCmd cmd{VKCmdType::SetTexture};
 
     cmd.setTexture.handle = handle;
     cmd.setTexture.image = &image;
+    cmd.setTexture.index = index;
 
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer2::SetUniformBuffer(ResourceHandle handle, Gfx::Buffer& buffer)
+void VKCommandBuffer2::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer)
 {
-    VKCmd cmd{VKCmdType::SetUniformBuffer};
+    VKCmd cmd{VKCmdType::SetBuffer};
 
-    cmd.setUniformBuffer.buffer = static_cast<VKBuffer*>(&buffer);
-    cmd.setUniformBuffer.handle = handle;
+    cmd.setBuffer.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.setBuffer.handle = handle;
+    cmd.setTexture.index = index;
 
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer2::AllocateAttachment(RG::AttachmentIdentifier& id, RG::AttachmentDescription& desc)
+void VKCommandBuffer2::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc)
 {
     id = *graph->Request(desc);
 }

@@ -1,37 +1,37 @@
 // This file is part of the FidelityFX SDK.
 //
 // Copyright (C) 2023 Advanced Micro Devices, Inc.
-// 
-// Permission is hereby granted, free of charge, to any person obtaining a copy 
-// of this software and associated documentation files(the “Software”), to deal 
-// in the Software without restriction, including without limitation the rights 
-// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell 
-// copies of the Software, and to permit persons to whom the Software is 
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the “Software”), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and /or sell
+// copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions :
-// 
-// The above copyright notice and this permission notice shall be included in 
+//
+// The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
-// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE 
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+//
+// THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
 #include "ffx/ffx_core.h"
 
 #if FFX_HALF
-    #define FFX_SPD_PACKED_ONLY 1
+#define FFX_SPD_PACKED_ONLY 1
 #endif // FFX_HALF
 
 #if FFX_SPD_OPTION_LINEAR_SAMPLE
-    #define SPD_LINEAR_SAMPLER 1
+#define SPD_LINEAR_SAMPLER 1
 #endif // FFX_SPD_OPTION_LINEAR_SAMPLE
 
 #if FFX_SPD_OPTION_WAVE_INTEROP_LDS
-    #define FFX_SPD_NO_WAVE_OPERATIONS 1
+#define FFX_SPD_NO_WAVE_OPERATIONS 1
 #endif // FFX_SPD_OPTION_WAVE_INTEROP_LDS
 
 FFX_GROUPSHARED FfxUInt32 spdCounter;
@@ -84,7 +84,8 @@ FfxFloat16x4 SpdLoadIntermediateH(FfxUInt32 x, FfxUInt32 y)
         spdIntermediateRG[x][y].x,
         spdIntermediateRG[x][y].y,
         spdIntermediateBA[x][y].x,
-        spdIntermediateBA[x][y].y);
+        spdIntermediateBA[x][y].y
+    );
 }
 
 void SpdStoreIntermediateH(FfxUInt32 x, FfxUInt32 y, FfxFloat16x4 value)

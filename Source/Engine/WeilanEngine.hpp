@@ -6,7 +6,6 @@
 #include "Core/Time.hpp"
 #include "Event/Event.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/Shaders.hpp"
 #include <filesystem>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>

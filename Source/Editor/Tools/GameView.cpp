@@ -223,10 +223,10 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
                 FrameGraph::DrawList drawList;
                 drawList.Add(*meshRenderer);
 
-                Gfx::RG::AttachmentDescription desc{
+                Gfx::RG::ImageDescription desc{
                     sceneImage->GetDescription().width,
                     sceneImage->GetDescription().height,
-                    sceneImage->GetDescription().format,
+                    sceneImage->GetDescription().format
                 };
                 cmd.AllocateAttachment(outlineSrcRT, desc);
 

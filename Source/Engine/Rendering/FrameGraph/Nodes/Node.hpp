@@ -120,13 +120,15 @@ private:
 
 struct AttachmentProperty
 {
-    Gfx::RG::AttachmentIdentifier id;
-    Gfx::RG::AttachmentDescription desc;
+    Gfx::RG::ImageIdentifier id;
+    Gfx::RG::ImageDescription desc;
 };
 
 class Node;
 enum class PropertyType
 {
+    GraphFlow, // used when no actual data is passed, or data is implicitly passed (through other mechanism) but the
+               // execution has to be enforced
     Attachment,
     DrawListPointer,
     RenderGraphLink,
@@ -469,3 +471,26 @@ private:
     std::vector<Configurable> configs;
 };
 } // namespace FrameGraph
+  //
+
+#define DECLARE_FRAME_GRAPH_NODE(className)                                                                            \
+private:                                                                                                               \
+    DECLARE_OBJECT();                                                                                                  \
+    static char _reg;                                                                                                  \
+                                                                                                                       \
+public:                                                                                                                \
+    className()                                                                                                        \
+    {                                                                                                                  \
+        DefineNode();                                                                                                  \
+    };                                                                                                                 \
+    className(FGID id) : Node(#className, id)                                                                          \
+    {                                                                                                                  \
+        DefineNode();                                                                                                  \
+    }                                                                                                                  \
+                                                                                                                       \
+private:                                                                                                               \
+    void DefineNode()
+
+#define DEFIND_FRAME_GRAPH_NODE(className, id)                                                                         \
+    char className::_reg = NodeBlueprintRegisteration::Register<className>(#className);                                \
+    DEFINE_OBJECT(className, id);

@@ -52,12 +52,12 @@ class VKShaderResource : public ShaderResource
 public:
     VKShaderResource();
     VKShaderResource(const VKShaderResource& other) = delete;
-    void SetBuffer(ResourceHandle handle, Gfx::Buffer* buffer) override;
+    void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer) override;
 
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
-    void SetImage(ResourceHandle handle, Gfx::Image* image) override;
-    void SetImage(ResourceHandle handle, Gfx::ImageView* imageView) override;
-    void Remove(ResourceHandle handle) override;
+    void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
+    void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
+    void Remove(ShaderBindingHandle handle) override;
 
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
     const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
@@ -67,7 +67,7 @@ public:
     ~VKShaderResource() override;
 
 protected:
-    enum class ResourceType
+    enum class ShaderBindingType
     {
         ImageView,
         Buffer
@@ -75,10 +75,13 @@ protected:
 
     struct ResourceRef
     {
-        void* res = nullptr;
-        ResourceType type;
+        void* res;
+        ShaderBindingType type;
     };
-    std::unordered_map<ResourceHandle, ResourceRef> bindings;
+
+    // first key: binding name
+    // second key: array index
+    std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ResourceRef>> bindings;
     VkPipelineLayout layout = VK_NULL_HANDLE;
 
     VKSharedResource* sharedResource;
@@ -93,6 +96,8 @@ protected:
         std::vector<VKWritableGPUResource> writableGPUResources;
     };
     std::unordered_map<VKShaderProgram*, SetInfo> sets;
+
+    std::unique_ptr<VKBuffer> defaultBuffer;
 
     void RebuildAll();
 };
