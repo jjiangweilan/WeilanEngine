@@ -15,12 +15,12 @@
    "floats": {
     "0_key": "size",
     "0_value": 1.309999942779541,
-    "10_key": "densityScale",
-    "10_value": 0.10000000149011612,
-    "11_key": "sdfScale",
-    "11_value": 0.27000001072883606,
-    "12_key": "perlin_amp",
-    "12_value": 0.0,
+    "10_key": "fade",
+    "10_value": 0.03999999910593033,
+    "11_key": "perlin_amp",
+    "11_value": 0.0,
+    "12_key": "sdfScale",
+    "12_value": 0.27000001072883606,
     "13_key": "cloudDensity",
     "13_value": 0.4000000059604645,
     "14_key": "absorption",
@@ -39,69 +39,69 @@
     "1_value": 0.019999999552965164,
     "20_key": "lightIntensityScale",
     "20_value": 2.0299999713897705,
-    "2_key": "gain",
-    "2_value": 0.3499999940395355,
-    "3_key": "worley_scale",
-    "3_value": 11.399999618530273,
-    "4_key": "worley_freq",
-    "4_value": 0.14100000262260437,
-    "5_key": "worley_amp",
-    "5_value": 0.6200000047683716,
-    "6_key": "worley_fraq",
-    "6_value": 0.5799999833106995,
-    "7_key": "cloudBlend",
-    "7_value": 13.079999923706055,
-    "8_key": "lacunarity",
-    "8_value": 2.7699999809265137,
-    "9_key": "fade",
-    "9_value": 0.03999999910593033,
+    "2_key": "worley_scale",
+    "2_value": 11.399999618530273,
+    "3_key": "worley_freq",
+    "3_value": 0.14100000262260437,
+    "4_key": "gain",
+    "4_value": 0.3499999940395355,
+    "5_key": "worley_fraq",
+    "5_value": 0.5799999833106995,
+    "6_key": "worley_amp",
+    "6_value": 0.6200000047683716,
+    "7_key": "lacunarity",
+    "7_value": 2.7699999809265137,
+    "8_key": "cloudBlend",
+    "8_value": 13.079999923706055,
+    "9_key": "densityScale",
+    "9_value": 0.10000000149011612,
     "size": 21
    },
    "matrices": {
     "size": 0
    },
    "vectors": {
-    "0_key": "sdfScale",
+    "0_key": "worley_freq",
     "0_value": [
-     0.8299999833106995,
-     0.05000000074505806,
-     0.7900000214576721,
-     0.5
-    ],
-    "1_key": "worley_freq",
-    "1_value": [
      0.7099999785423279,
      0.800000011920929,
      1.0299999713897705,
      1.4800000190734863
     ],
-    "2_key": "cloudDensity_remap",
-    "2_value": [
-     0.0,
-     1.0,
-     -0.30000001192092896,
-     1.0
+    "1_key": "sdfScale",
+    "1_value": [
+     0.8299999833106995,
+     0.05000000074505806,
+     0.7900000214576721,
+     0.5
     ],
-    "3_key": "perlin0_freq",
-    "3_value": [
+    "2_key": "perlin0_freq",
+    "2_value": [
      1.0499999523162842,
      0.33000001311302185,
      7.349999904632568,
      10.1899995803833
     ],
-    "4_key": "edgeFade",
-    "4_value": [
-     0.5,
+    "3_key": "cloudDensity_remap",
+    "3_value": [
      0.0,
-     0.0,
-     0.0
+     1.0,
+     -0.30000001192092896,
+     1.0
     ],
-    "5_key": "worley_amp",
-    "5_value": [
+    "4_key": "worley_amp",
+    "4_value": [
      0.23999999463558197,
      0.8999999761581421,
      0.17000000178813934,
      15.0
+    ],
+    "5_key": "edgeFade",
+    "5_value": [
+     0.5,
+     0.0,
+     0.0,
+     0.0
     ],
     "6_key": "lighting_remap",
     "6_value": [
@@ -115,5 +115,5 @@
   },
   "size": 1
  },
- "uuid": "649a705c-bc28-401d-841a-3e27eee08d66"
+ "uuid": "aa07624b-31d2-525d-8899-596efa51d394"
 }

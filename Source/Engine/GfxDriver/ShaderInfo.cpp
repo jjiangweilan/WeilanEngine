@@ -77,11 +77,11 @@ uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberNam
     //     else
     //         baseTypeSize = sizeof(char);
     // }
-    if (typeName == "vec4")
+    if (typeName == "vec4" || typeName == "uvec4")
         return baseTypeSize * 4;
-    else if (typeName == "vec3")
-        return baseTypeSize * 3;
-    else if (typeName == "vec2")
+    else if (typeName == "vec3" || typeName == "uvec3")
+        return baseTypeSize * 3; // ?? 3 or 4?
+    else if (typeName == "vec2" || typeName == "uvec2")
         return baseTypeSize * 2;
     else if (typeName == "mat2")
         return baseTypeSize * 4;
@@ -90,6 +90,10 @@ uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberNam
     else if (typeName == "mat4")
         return baseTypeSize * 16;
     else if (typeName == "float")
+        return baseTypeSize;
+    else if (typeName == "uint")
+        return baseTypeSize;
+    else if (typeName == "int")
         return baseTypeSize;
 
     SPDLOG_ERROR("Failed to map stride");
@@ -274,13 +278,13 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
         Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr);
     if (sr.contains("ssbos"))
         Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr);
-    if (sr.contains("textures"))
+    if (sr.contains("textures")) // combined sampler and texture
         Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr);
-    if (sr.contains("separate_images"))
+    if (sr.contains("separate_images")) // separated sampled texture
         Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr);
     if (sr.contains("separate_samplers"))
         Process(out.bindings, BindingType::SeparateSampler, out.stage, sr["separate_samplers"], sr);
-    if (sr.contains("images"))
+    if (sr.contains("images")) // storage images
         Process(out.bindings, BindingType::StorageImage, out.stage, sr["images"], sr);
 }
 

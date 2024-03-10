@@ -154,7 +154,7 @@ bool Shader::LoadFromFile(const char* path)
 #if ENGINE_EDITOR
         debugMode = true;
 #endif
-        compiler.Compile(ss.str(), debugMode);
+        compiler.Compile(path, ss.str(), debugMode);
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPrograms[iter.first] =
@@ -193,7 +193,7 @@ bool ComputeShader::LoadFromFile(const char* path)
         debugMode = true;
 #endif
 
-        compiler.CompileComputeShader(ss.str(), debugMode);
+        compiler.CompileComputeShader(path, ss.str(), debugMode);
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPrograms[iter.first] =

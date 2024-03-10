@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
+#include <stack>
 
 struct CompiledSpv
 {
@@ -40,7 +41,7 @@ private:
             std::string sourceName;
         };
 
-        std::filesystem::path requestingSourceRelativeFullPath;
+        std::filesystem::path shaderRootPath = "Assets/Shaders/";
         std::set<std::filesystem::path>* includedFiles;
 
     public:
@@ -68,10 +69,10 @@ public:
     }
 
     // compile graphics shader
-    void Compile(const std::string& buf, bool debug);
+    void Compile(const char* filepath, const std::string& buf, bool debug);
 
     // compile compute shader
-    void CompileComputeShader(const std::string& buf, bool debug);
+    void CompileComputeShader(const char* path, const std::string& buf, bool debug);
 
     const std::vector<uint32_t>& GetVertexSPV()
     {
@@ -120,7 +121,7 @@ private:
         const char* shaderStage,
         shaderc_shader_kind kind,
         bool debug,
-        const char* debugName,
+        const char* filepath,
         const char* buf,
         int bufSize,
         std::set<std::filesystem::path>& includedTrack,

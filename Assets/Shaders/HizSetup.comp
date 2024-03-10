@@ -1,0 +1,24 @@
+#version 450
+
+#if CONFIG
+name: HizSetup
+#endif
+
+#if COMP
+#define FFX_GPU
+#define FFX_GLSL
+#define FFX_SPD_OPTION_WAVE_INTEROP_LDS 1
+#define FFX_SPD_BIND_CB_SPD 0
+#define FFX_SPD_BIND_SRV_INPUT_DOWNSAMPLE_SRC 1
+#define FFX_SPD_BIND_UAV_INTERNAL_GLOBAL_ATOMIC 2
+#define FFX_SPD_BIND_UAV_INPUT_DOWNSAMPLE_SRC_MID_MIPMAP 3
+#define FFX_SPD_BIND_UAV_INPUT_DOWNSAMPLE_SRC_MIPS 4
+
+#include "ffx/spd/ffx_spd_callbacks_glsl.h"
+#include "ffx/spd/ffx_spd_downsample.h"
+
+void main()
+{
+    DOWNSAMPLE(gl_LocalInvocationID.x, gl_WorkGroupID.xyz);
+}
+#endif

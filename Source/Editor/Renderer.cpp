@@ -65,7 +65,7 @@ Renderer::Renderer(const char* customFont)
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     ShaderCompiler compiler;
-    compiler.Compile(imguiShader, false);
+    compiler.Compile("", imguiShader, false);
 
     auto config = compiler.GetConfig();
     auto& verSPV = compiler.GetVertexSPV();

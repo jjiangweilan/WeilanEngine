@@ -1,42 +1,31 @@
 #include "ShaderCompiler.hpp"
-
+#include <spdlog/spdlog.h>
 shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
-    const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth
+    const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t includeDepth
 )
 {
+    std::filesystem::path requestedSource(requested_source);
     std::filesystem::path requestingSource(requesting_source);
-    if (include_depth == 1)
-    {
-        requestingSourceRelativeFullPath = "Assets/Shaders/";
-    }
-    else
-    {
-        requestingSourceRelativeFullPath /= requestingSource.parent_path();
-    }
 
-    // if the we can't find the included file in the project, try find it in
-    // the internal assets
-    std::filesystem::path relativePath = requestingSourceRelativeFullPath / std::filesystem::path(requested_source);
-    // #if GAME_EDITOR
-    //             if (!std::filesystem::exists(relativePath))
-    //             {
-    //                 std::filesystem::path enginePath =
-    //                 Editor::ProjectManagement::GetInternalRootPath();
-    //                 relativePath = enginePath / relativePath;
-    //             }
-    // #endif
+    // test relative path to requestingSource firest
+    auto finalPath = requestingSource.parent_path() / requestedSource;
+    if (!std::filesystem::exists(finalPath))
+    {
+        // if relative path not working, try final it as relative to shader root
+        finalPath = shaderRootPath / requestedSource;
+    }
 
     std::fstream f;
-    f.open(relativePath, std::ios::in);
+    f.open(finalPath, std::ios::in);
     if (f.fail())
     {
         return new shaderc_include_result{"", 0, "Can't find requested shader file."};
     }
     if (includedFiles)
-        includedFiles->insert(std::filesystem::absolute(relativePath));
+        includedFiles->insert(std::filesystem::absolute(finalPath));
 
     FileData* fileData = new FileData();
-    fileData->sourceName = std::string(requested_source);
+    fileData->sourceName = std::string(finalPath.string());
     fileData->content = std::vector<char>(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
 
     shaderc_include_result* result = new shaderc_include_result;
@@ -110,7 +99,7 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     const char* shaderStage,
     shaderc_shader_kind kind,
     bool debug,
-    const char* debugName,
+    const char* filepath,
     const char* buf,
     int bufSize,
     std::set<std::filesystem::path>& includedTrack,
@@ -124,14 +113,15 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     {
         option.AddMacroDefinition(f, "1");
     }
-    option.SetIncluder(std::make_unique<ShaderIncluder>(&includedTrack));
+    auto includer = std::make_unique<ShaderIncluder>(&includedTrack);
+    option.SetIncluder(std::move(includer));
     if (debug)
     {
         option.SetGenerateDebugInfo();
         option.SetOptimizationLevel(shaderc_optimization_level_zero);
     }
     shaderc::Compiler compiler;
-    auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, debugName, option);
+    auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
     if (compiled.GetNumErrors() > 0)
     {
         auto msg = fmt::format("Shader[{}] failed: {}", name, compiled.GetErrorMessage().c_str());
@@ -368,7 +358,7 @@ uint64_t ShaderCompiler::GenerateFeatureCombination(
     return featureCombination;
 }
 
-void ShaderCompiler::CompileComputeShader(const std::string& buf, bool debug)
+void ShaderCompiler::CompileComputeShader(const char* filepath, const std::string& buf, bool debug)
 {
     std::stringstream f;
     f << buf;
@@ -422,7 +412,7 @@ void ShaderCompiler::CompileComputeShader(const std::string& buf, bool debug)
             "COMP",
             shaderc_compute_shader,
             debug,
-            "compute shader",
+            filepath,
             buf.c_str(),
             bufSize,
             includedTrack,
@@ -433,7 +423,7 @@ void ShaderCompiler::CompileComputeShader(const std::string& buf, bool debug)
     }
 }
 
-void ShaderCompiler::Compile(const std::string& buf, bool debug)
+void ShaderCompiler::Compile(const char* filepath, const std::string& buf, bool debug)
 {
     std::stringstream f;
     f << buf;
@@ -487,7 +477,7 @@ void ShaderCompiler::Compile(const std::string& buf, bool debug)
             "VERT",
             shaderc_vertex_shader,
             debug,
-            "vertex shader",
+            filepath,
             buf.c_str(),
             bufSize,
             includedTrack,
@@ -498,7 +488,7 @@ void ShaderCompiler::Compile(const std::string& buf, bool debug)
             "FRAG",
             shaderc_fragment_shader,
             debug,
-            "fragment shader",
+            filepath,
             buf.c_str(),
             bufSize,
             includedTrack,
