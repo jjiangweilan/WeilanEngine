@@ -170,6 +170,7 @@ struct Subpass
 class RenderPass
 {
 public:
+    RenderPass() {}
     RenderPass(int subpassCount, int attachmentCount)
     {
         attachments.resize(attachmentCount);

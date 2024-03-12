@@ -21,16 +21,14 @@ class HiZSetupNode : public Node
             .size = sizeof(uint32_t) * 6, // 6 is defined ffx_spd_callbacks_glsl
             .visibleInCPU = false,
             .debugName = "rw_internal_global_atomic",
-            .gpuWrite = true
-        });
+            .gpuWrite = true});
 
         spdUbo = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
             .usages = Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
             .size = sizeof(cbFSR1_t),
             .visibleInCPU = false,
             .debugName = "spd cbFSR1_t",
-            .gpuWrite = true
-        });
+            .gpuWrite = true});
 
         hiZSetupCompute =
             static_cast<ComputeShader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/HiZSetup.comp")
@@ -156,5 +154,5 @@ private:
     }
 }; // namespace FrameGraph
 
-DEFIND_FRAME_GRAPH_NODE(HiZSetupNode, "C4147D77-145B-405F-9B02-CADF10CB4F86")
+DEFINE_FRAME_GRAPH_NODE(HiZSetupNode, "C4147D77-145B-405F-9B02-CADF10CB4F86")
 } // namespace FrameGraph

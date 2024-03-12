@@ -168,18 +168,18 @@ private:
 
     void MakeCloudNoise(Gfx::CommandBuffer& cmd)
     {
-        Material* cloudNoiseMaterial = GetConfigurableVal<Material*>("cloud noise material");
-
-        if (cloudNoiseMaterial)
-        {
-            cloudNoiseMaterial->UploadDataToGPU();
-            cmd.SetTexture("imgOutput", *cloudRT);
-            cmd.SetTexture("imgOutput2", *cloud2RT);
-            cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
-            cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
-            cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
-            cmd.SetTexture("cloudDensity", *cloudRT);
-        }
+        // Material* cloudNoiseMaterial = GetConfigurableVal<Material*>("cloud noise material");
+        //
+        // if (cloudNoiseMaterial)
+        // {
+        //     cloudNoiseMaterial->UploadDataToGPU();
+        //     cmd.SetTexture("imgOutput", *cloudRT);
+        //     cmd.SetTexture("imgOutput2", *cloud2RT);
+        //     cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
+        //     cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
+        //     cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
+        //     cmd.SetTexture("cloudDensity", *cloudRT);
+        // }
     }
 
     static char _reg;

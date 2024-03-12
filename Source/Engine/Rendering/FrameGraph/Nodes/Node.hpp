@@ -491,6 +491,6 @@ public:                                                                         
 private:                                                                                                               \
     void DefineNode()
 
-#define DEFIND_FRAME_GRAPH_NODE(className, id)                                                                         \
+#define DEFINE_FRAME_GRAPH_NODE(className, id)                                                                         \
     char className::_reg = NodeBlueprintRegisteration::Register<className>(#className);                                \
     DEFINE_OBJECT(className, id);

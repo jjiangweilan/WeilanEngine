@@ -1,0 +1,89 @@
+// Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+#version 450
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: Game/GBufferPass
+#endif
+
+#if VERT
+layout(location = 0) in vec3 i_Position;
+layout(location = 1) in vec3 i_Normal;
+layout(location = 2) in vec4 i_Tangent;
+layout(location = 3) in vec2 i_UV;
+
+layout(location = 0) out vec3 o_PositionWS;
+layout(location = 1) out vec3 o_NormalWS;
+layout(location = 2) out vec3 o_TangentWS;
+layout(location = 3) out vec3 o_BitangentWS;
+layout(location = 4) out vec2 o_UV;
+void main()
+{
+    o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
+    o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz, 1)).xyz;
+    o_BitangentWS = i_Tangent.w * cross(o_NormalWS, o_TangentWS);
+    o_UV = i_UV;
+
+    gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec3 i_PositionWS;
+layout(location = 1) in vec3 i_NormalWS;
+layout(location = 2) in vec3 i_TangentWS; // maybe look at MikkTSpace
+layout(location = 3) in vec3 i_BitangentWS;
+layout(location = 4) in vec2 i_UV;
+layout(early_fragment_tests) in;
+
+layout(location = 0) out vec4 o_Lighting;
+layout(location = 1) out vec4 o_Albedo;
+layout(location = 2) out vec4 o_Normal;
+layout(location = 3) out vec4 o_Property;
+
+#define BaseColorTex baseColorTex_sampler_linear
+#define NormalMap normalMap_sampler_linear
+#define EmissiveMap emissiveMap_sampler_linear
+#define MetallicRoughnessMap metallicRoughnessMap_sampler_linear
+
+layout(set = SET_MATERIAL, binding = 0) uniform PBR
+{
+    vec4 baseColorFactor;
+    float roughness;
+    float metallic;
+} matParams;
+
+layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
+layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;
+layout(set = SET_MATERIAL, binding = 3) uniform sampler2D MetallicRoughnessMap;
+layout(set = SET_MATERIAL, binding = 4) uniform sampler2D EmissiveMap;
+#define Roughness matParams.roughness
+#define Metallic matParams.metallic
+#define NearZero 0.000001
+
+void main()
+{
+    vec3 normal = normalize(i_NormalWS);
+    vec3 tangent = normalize(i_TangentWS);
+    vec3 bitangent = normalize(i_BitangentWS);
+
+    vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
+    float metallic = metallicRoughness.y;
+    float roughness = max(metallicRoughness.x, 0.01);
+    vec3 color = vec3(0,0,0);
+
+    vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
+    vec3 n = normalize(normal);
+
+    vec4 baseColor = texture(BaseColorTex, i_UV) * matParams.baseColorFactor;
+    o_Albedo = baseColor;
+    o_Normal = vec4(n, 0);
+
+    vec4 emission = texture(EmissiveMap, i_UV);
+    o_Property = vec4(metallic, roughness, 0, 0);
+    o_Lighting = emission;
+}
+#endif
+
+
