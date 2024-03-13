@@ -44,7 +44,7 @@ name: VirtualTexture/FeedbackTex
     layout(location = 0) in vec2 i_VtCoord;
     layout(location = 0) out vec4 o_Color;
 
-    layout(set = SET_MATERIAL, binding = 0) uniform FeedbackTexParam
+    layout(set = 2, binding = 0) uniform FeedbackTexParam
     {
         vec2 vtTexPixelExtent;
         float mipBias;

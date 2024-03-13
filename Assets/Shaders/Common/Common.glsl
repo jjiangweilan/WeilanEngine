@@ -22,6 +22,7 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
     mat4 projection;
     mat4 viewProjection;
     mat4 worldToShadow;
+    mat4 invNDCToWorld;
     vec4 lightCount; // x: lightCount
     vec4 shadowMapSize;
     Light lights[MAX_LIGHT_COUNT];
@@ -30,16 +31,14 @@ layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
 #define shadowMapSampler shadowMapSampler_sampler_linear
 #define shadowMap shadowMap_sampler_linear
 
-layout(set = SET_GLOBAL, binding = 1) uniform sampler2D vtCache;
-layout(set = SET_GLOBAL, binding = 2) uniform sampler2D vtIndir;
-layout(set = SET_GLOBAL, binding = 3) uniform texture2D shadowMap;
+layout(set = SET_GLOBAL, binding = 1) uniform texture2D shadowMap;
 #ifdef G_VSM
-layout(set = SET_GLOBAL, binding = 4) uniform sampler shadowMapSampler;
+layout(set = SET_GLOBAL, binding = 2) uniform sampler shadowMapSampler;
 #else
-layout(set = SET_GLOBAL, binding = 4) uniform samplerShadow shadowMapSampler;
+layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler;
 #endif
-layout(set = SET_GLOBAL, binding = 5) uniform samplerCube diffuseCube;
-layout(set = SET_GLOBAL, binding = 6) uniform samplerCube specularCube;
+layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
+layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;
 
 #if G_PCF
 float PcfShadow(vec2 shadowCoord, float objShadowDepth)
