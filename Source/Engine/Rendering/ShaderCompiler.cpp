@@ -107,6 +107,8 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
 )
 {
     shaderc::CompileOptions option;
+    // https://github.com/google/shaderc/commit/ca4c38cbc8137fba6fc3ddbf0d95362a04612fa2
+    option.SetPreserveBindings(true);
     option.AddMacroDefinition(shaderStage, "1");
     option.SetAutoBindUniforms(true);
     for (auto& f : features)
@@ -408,16 +410,8 @@ void ShaderCompiler::CompileComputeShader(const char* filepath, const std::strin
 
         CompiledSpv compiledSpv;
 
-        compiledSpv.compSpv = CompileShader(
-            "COMP",
-            shaderc_compute_shader,
-            debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c
-        );
+        compiledSpv.compSpv =
+            CompileShader("COMP", shaderc_compute_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
 
         compiledSpvs[featureCombination] = std::move(compiledSpv);
     }
@@ -473,27 +467,11 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf, bool 
 
         CompiledSpv compiledSpv;
 
-        compiledSpv.vertSpv = CompileShader(
-            "VERT",
-            shaderc_vertex_shader,
-            debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c
-        );
+        compiledSpv.vertSpv =
+            CompileShader("VERT", shaderc_vertex_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
 
-        compiledSpv.fragSpv = CompileShader(
-            "FRAG",
-            shaderc_fragment_shader,
-            debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c
-        );
+        compiledSpv.fragSpv =
+            CompileShader("FRAG", shaderc_fragment_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
 
         compiledSpvs[featureCombination] = std::move(compiledSpv);
     }

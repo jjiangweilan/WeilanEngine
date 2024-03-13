@@ -24,7 +24,10 @@ class DeferredMainPassNode : public Node
         AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
 
         gbufferPass = Gfx::RG::RenderPass(1, 5);
-        Gfx::RG::SubpassAttachment lighting{0};
+        Gfx::RG::SubpassAttachment lighting{
+            0,
+            Gfx::AttachmentLoadOperation::Clear,
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -32,11 +35,26 @@ class DeferredMainPassNode : public Node
         Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
         gbufferPass.SetSubpass(0, subpassAttachments, depth);
 
+        lightingPass = Gfx::RG::RenderPass(1, 1);
+
+        Gfx::RG::SubpassAttachment lightingPassAttachment{
+            0,
+            Gfx::AttachmentLoadOperation::Load,
+            Gfx::AttachmentStoreOperation::Store};
+        Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
+        lightingPass.SetSubpass(0, lightingPassAttachments);
+
         gbufferPassShader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/GBufferPass.shad");
+        lightingPassShader =
+            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+        lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
     }
 
-    void Compile() override {}
+    void Compile() override
+    {
+        clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
+    }
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
@@ -50,20 +68,20 @@ class DeferredMainPassNode : public Node
         normalDesc.SetWidth(colorProp.desc.GetWidth());
         normalDesc.SetHeight(colorProp.desc.GetHeight());
         normalDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
-        propertyDesc.SetWidth(colorProp.desc.GetWidth());
-        propertyDesc.SetHeight(colorProp.desc.GetHeight());
-        propertyDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+        maskDesc.SetWidth(colorProp.desc.GetWidth());
+        maskDesc.SetHeight(colorProp.desc.GetHeight());
+        maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
 
         cmd.AllocateAttachment(albedoRTID, albedoDesc);
         cmd.AllocateAttachment(normalRTID, normalDesc);
-        cmd.AllocateAttachment(propertyRTID, propertyDesc);
+        cmd.AllocateAttachment(maskRTID, maskDesc);
 
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+        Gfx::ClearValue clears[] = {*clearValuesVal, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
 
         gbufferPass.SetAttachment(0, colorProp.id);
         gbufferPass.SetAttachment(1, albedoRTID);
         gbufferPass.SetAttachment(2, normalRTID);
-        gbufferPass.SetAttachment(3, propertyRTID);
+        gbufferPass.SetAttachment(3, maskRTID);
         gbufferPass.SetAttachment(4, depthProp.id);
         cmd.BeginRenderPass(gbufferPass, clears);
 
@@ -84,7 +102,17 @@ class DeferredMainPassNode : public Node
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
         }
+        cmd.EndRenderPass();
 
+        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
+        lightingPass.SetAttachment(0, colorProp.id);
+        cmd.BeginRenderPass(lightingPass, lightingPassClearValues);
+        cmd.SetTexture("albedoTex", albedoRTID);
+        cmd.SetTexture("normalTex", normalRTID);
+        cmd.SetTexture("maskTex", maskRTID);
+        cmd.SetTexture("depthTex", depthProp.id);
+        cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassShaderProgram->GetDefaultShaderConfig());
+        cmd.Draw(6, 1, 0, 0);
         cmd.EndRenderPass();
 
         output.color->SetValue(input.color->GetValue<AttachmentProperty>());
@@ -98,15 +126,18 @@ private:
 
     Gfx::RG::ImageIdentifier albedoRTID = Gfx::RG::ImageIdentifier("gbuffer albedo");
     Gfx::RG::ImageIdentifier normalRTID = Gfx::RG::ImageIdentifier("gbuffer normal");
-    Gfx::RG::ImageIdentifier propertyRTID = Gfx::RG::ImageIdentifier("gbuffer property");
+    Gfx::RG::ImageIdentifier maskRTID = Gfx::RG::ImageIdentifier("gbuffer property");
 
     Gfx::RG::ImageDescription albedoDesc;
     Gfx::RG::ImageDescription normalDesc;
-    Gfx::RG::ImageDescription propertyDesc;
+    Gfx::RG::ImageDescription maskDesc;
 
     Gfx::RG::RenderPass gbufferPass;
+    Gfx::RG::RenderPass lightingPass;
 
     Shader* gbufferPassShader;
+    Shader* lightingPassShader;
+    Gfx::ShaderProgram* lightingPassShaderProgram;
 
     struct
     {

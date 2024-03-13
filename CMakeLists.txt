@@ -131,7 +131,7 @@ if (INSTALL_DEPENDENCY)
      ExternalProject_Add(spirv-headers
          PREFIX "ThirdParty/spirv-headers"
          GIT_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Headers.git"
-         GIT_TAG "0bcc624926a25a2a273d07877fd25a6ff5ba1cfb" #from shaderc's DEPS file
+         GIT_TAG "8b246ff75c6615ba4532fe4fde20f1be090c3764" #from shaderc's DEPS file
          SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/spirv-headers"
          INSTALL_COMMAND ""
          CMAKE_ARGS 
@@ -145,7 +145,7 @@ if (INSTALL_DEPENDENCY)
      ExternalProject_Add(spirv-tools
          PREFIX "ThirdParty/spirv-tools"
          GIT_REPOSITORY "https://github.com/KhronosGroup/SPIRV-Tools.git"
-         GIT_TAG "3a8a961cffb7699422a05dcbafdd721226b4547d" #from shaderc's DEPS file
+         GIT_TAG "04896c462d9f3f504c99a4698605b6524af813c1" #from shaderc's DEPS file
          SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/spirv-tools"
          INSTALL_COMMAND ""
          DEPENDS spirv-headers
@@ -161,21 +161,23 @@ if (INSTALL_DEPENDENCY)
     ExternalProject_Add(KHR_glslang
         PREFIX "ThirdParty/glslang"
         GIT_REPOSITORY "https://github.com/KhronosGroup/glslang.git"
-        GIT_TAG "f771c1293dce29e1ac3557cf994169136155c81f" #from shaderc's DEPS file
+        GIT_TAG "d73712b8f6c9047b09e99614e20d456d5ada2390" #from shaderc's DEPS file
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/glslang"
         INSTALL_COMMAND ""
         # INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+        DEPENDS spirv-tools
         CMAKE_ARGS 
         #"-DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>"
            # "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
             "-DENABLE_CTEST=OFF"
             "-DENABLE_GLSLANG_BINARIES=OFF"
+            "-DALLOW_EXTERNAL_SPIRV_TOOLS=ON"
     )
 
     ExternalProject_Add(shaderc
         PREFIX "ThirdParty/shaderc"
         GIT_REPOSITORY "https://github.com/google/shaderc.git"
-        GIT_TAG "v2022.2"
+        GIT_TAG "v2024.0"
         SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/ThirdParty/shaderc"
         INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}"
         DEPENDS spirv-tools KHR_glslang spirv-headers

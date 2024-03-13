@@ -116,7 +116,7 @@ private:
         VkAccessFlags access
     );
     bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
-    void AddBarrierToRenderPass(VKRenderPass& renderPass, int& visitIndex, int& barrierCount, int& barrierOffset);
+    void GoThroughRenderPass(VKRenderPass& renderPass, int& visitIndex, int& barrierCount, int& barrierOffset);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res);

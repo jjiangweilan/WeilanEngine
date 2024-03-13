@@ -295,6 +295,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.viewProjection = vp;
     sceneInfo.viewPos = viewPos;
     sceneInfo.view = viewMatrix;
+    sceneInfo.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
     ProcessLights(scene);
 
     size_t copySize = sceneInfoBuffer->GetSize();

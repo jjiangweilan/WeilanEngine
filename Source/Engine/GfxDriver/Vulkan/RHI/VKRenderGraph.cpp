@@ -306,7 +306,7 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
     return false;
 }
 
-void Graph::AddBarrierToRenderPass(
+void Graph::GoThroughRenderPass(
     VKRenderPass& renderPass, int& visitIndex, int& barrierCountResult, int& barrierOffsetResult
 )
 {
@@ -402,6 +402,18 @@ void Graph::AddBarrierToRenderPass(
         else if (cmd.type == VKCmdType::PushDescriptorSet)
         {
             barrierCount += TrackResourceForPushDescriptorSet(cmd, true);
+        }
+        else if (cmd.type == VKCmdType::SetTexture)
+        {
+            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
+                ResourceType::Image,
+                cmd.setTexture.image};
+        }
+        else if (cmd.type == VKCmdType::SetBuffer)
+        {
+            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
+                ResourceType::Buffer,
+                cmd.setBuffer.buffer};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -661,7 +673,7 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
     {
         auto& cmd = currentSchedulingCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
-            AddBarrierToRenderPass(
+            GoThroughRenderPass(
                 *cmd.beginRenderPass.renderPass,
                 visitIndex,
                 cmd.beginRenderPass.barrierCount,
@@ -670,7 +682,7 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
             auto renderPass = resourceAllocator->Request(*cmd.rgBeginRenderPass.renderPass);
-            AddBarrierToRenderPass(
+            GoThroughRenderPass(
                 *renderPass,
                 visitIndex,
                 cmd.rgBeginRenderPass.barrierCount,
