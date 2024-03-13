@@ -17,6 +17,8 @@ class DeferredMainPassNode : public Node
         input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
 
         output.color = AddOutputProperty("color", PropertyType::Attachment);
+        output.normal = AddOutputProperty("normal", PropertyType::Attachment);
+        output.mask = AddOutputProperty("mask", PropertyType::Attachment);
         output.depth = AddOutputProperty("depth", PropertyType::Attachment);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
@@ -117,6 +119,8 @@ class DeferredMainPassNode : public Node
 
         output.color->SetValue(input.color->GetValue<AttachmentProperty>());
         output.depth->SetValue(input.depth->GetValue<AttachmentProperty>());
+        output.normal->SetValue(AttachmentProperty{normalRTID, normalDesc});
+        output.mask->SetValue(AttachmentProperty{maskRTID, maskDesc});
     }
 
 private:
@@ -150,6 +154,8 @@ private:
     struct
     {
         PropertyHandle color;
+        PropertyHandle normal;
+        PropertyHandle mask;
         PropertyHandle depth;
     } output;
 

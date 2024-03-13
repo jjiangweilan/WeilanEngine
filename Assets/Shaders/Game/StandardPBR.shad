@@ -210,28 +210,7 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-#ifdef G_DEFERRED
-    if (i_UV.x < 0.2)
-        o_Color = vec4(color + ambient, 1);
-    else if (i_UV.x < 0.202)
-        o_Color = vec4(1,1,1,1);
-    else if(i_UV.x < 0.4)
-        o_Color = vec4(baseColor,1);
-    else if (i_UV.x < 0.402)
-        o_Color = vec4(1,1,1,1);
-    else if (i_UV.x < 0.6)
-        o_Color = vec4(n, 1);
-    else if (i_UV.x < 0.602)
-        o_Color = vec4(1,1,1,1);
-    else if (i_UV.x < 0.8)
-        o_Color = vec4(metallic, roughness, 0, 1);
-    else if (i_UV.x < 0.802)
-        o_Color = vec4(1,1,1,1);
-    else
-        o_Color = vec4(vec3(depth * 0.5), 1);
-#else
-    o_Color = vec4(color + ambient, 0);
-#endif
+    o_Color = vec4(color + ambient, 1);
 
 }
 #endif

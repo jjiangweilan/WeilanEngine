@@ -1,0 +1,184 @@
+#version 450
+
+#if CONFIG
+name: Game/PostProcess/SSR
+blend:
+    - srcAlpha one
+#endif
+#include "Utils/FullScreen.glsl"
+
+#if FRAG
+
+layout(location = 0) in vec2 i_UV;
+layout(set=2) uniform SSR
+{
+    vec4 targetRTSize;
+    float iteration;
+    float thickness;
+    float downsampleScale;
+
+} ssr;
+
+layout(set=0) uniform sampler2D sourceTex_point;
+layout(set=0) uniform sampler2D normalTex;
+layout(set=0) uniform sampler2D maskTex;
+layout(set=0) uniform texture2D hiZBuffers[13];
+layout(set=0) uniform sampler s_point_clamp;
+layout(location = 0) out vec4 o_Color;
+#include "Common/SceneInfo.glsl"
+
+vec2 UvToNdc(vec2 uv)
+{
+    uv = uv * 2 - 1;
+    return uv;
+}
+
+vec2 NdcToUv(vec2 ndc)
+{
+    ndc = ndc * 0.5 + 0.5;
+    return ndc;
+}
+
+float GetCellDepth(vec3 ray, uint mip)
+{
+    float hiz = texture(sampler2D(hiZBuffers[mip], s_point_clamp), ray.xy).x;
+    return hiz;
+}
+
+float LinearEyeDepth(float inDepth)
+{
+    return 1.0 / (scene.cameraZBufferParams.z * inDepth + scene.cameraZBufferParams.w);
+}
+
+bool DiffLessThanThickness(float d0, float d1, float thickness)
+{
+    return abs(LinearEyeDepth(d0) - LinearEyeDepth(d1)) < thickness;
+}
+
+void main()
+{
+    vec2 uv = i_UV.xy;
+    float roughness = texture(maskTex, uv).g;
+    if (roughness > 0.1)
+    {
+        o_Color = vec4(0);
+        return;
+    }
+
+    float depth = GetCellDepth(vec3(uv, 0), 0);
+
+    // current pixel position in VS
+    vec3 normalWS = texture(normalTex, uv).xyz;
+    vec3 normalVS = normalize(mat3(scene.view) * normalWS);
+
+    vec2 ndc = UvToNdc(uv);
+    vec3 positionNDC = vec3(ndc, depth);
+
+    vec4 positionVS = scene.invProjection * vec4(positionNDC, 1.0);
+    positionVS /= positionVS.w;
+
+    vec3 reflectedView = reflect(positionVS.xyz, normalVS.xyz);
+
+    vec3 p_ss_0 = vec3(uv, depth); // p
+    vec4 p_ss_1 = scene.projection * vec4(positionVS.xyz + reflectedView, 1.0);
+    p_ss_1 /= p_ss_1.w;
+    p_ss_1.xy = NdcToUv(p_ss_1.xy);
+
+    vec3 v_ss_reflect = p_ss_1.xyz - p_ss_0.xyz;
+
+    vec3 dir = v_ss_reflect.xyz / abs(v_ss_reflect.z); // v
+
+    vec3 curr = p_ss_0;
+    int mip = 3;
+    float iteration = 0;
+
+    vec3 tmpRay;
+    const int maxMip = 6;
+    float cellDepth = 0;
+    vec2 rootRtSize = ssr.targetRTSize.xy;
+    vec2 smallCellDepthSampleOffset = 1 / (rootRtSize.xy * rootRtSize.xy) * (ssr.downsampleScale == 1 ? 0 : 1);
+    const float mipOffset = round(log2(1.0f/ssr.downsampleScale));
+    const float e = 0.00014;
+    const vec2 epslison = vec2(e, e / ssr.targetRTSize.y * ssr.targetRTSize.x) ;
+    while(mip >= 0 && iteration < ssr.iteration)
+    {
+        vec2 workSize = rootRtSize / (1 << mip);
+        vec2 cell = (curr.xy * workSize);
+
+        vec2 invMipScreenSize = 1 / workSize;
+        vec2 boundary;
+        boundary.x = dir.x > 0 ? (ceil(cell.x) - epslison.x) * invMipScreenSize.x : (floor(cell.x) + epslison.x) * invMipScreenSize.x;
+        boundary.y = dir.y > 0 ? (ceil(cell.y) - epslison.y) * invMipScreenSize.y : (floor(cell.y) + epslison.y) * invMipScreenSize.y;
+
+        // vec2 s = vec2(dir.x > 0 ? 1 : -1, dir.y > 0 ? 1 : -1);
+
+        vec2 t;
+        t.x = (boundary.x - curr.x) / dir.x;
+        t.y = (boundary.y - curr.y) / dir.y;
+
+        // vec2 stepSize = epslison *  s * invMipScreenSize / dir.xy;
+
+        if (abs(t.x) < abs(t.y))
+            tmpRay = curr + (t.x) * dir;
+        else
+            tmpRay = curr + (t.y) * dir;
+
+        uvec2 oldCellIndex = uvec2(floor(curr.xy * rootRtSize));
+        uvec2 newCellIndex = uvec2(floor(tmpRay.xy * rootRtSize));
+
+        // cross to next cell
+        if (all(equal(oldCellIndex, newCellIndex)))
+        {
+            boundary.x = dir.x > 0 ? (ceil(cell.x + 1) - epslison.x) * invMipScreenSize.x : (floor(cell.x - 1) + epslison.x) * invMipScreenSize.x;
+            boundary.y = dir.y > 0 ? (ceil(cell.y + 1) - epslison.y) * invMipScreenSize.y : (floor(cell.y - 1) + epslison.y) * invMipScreenSize.y;
+
+            t.x = (boundary.x - curr.x) / dir.x;
+            t.y = (boundary.y - curr.y) / dir.y;
+
+            if (abs(t.x) < abs(t.y))
+                tmpRay = curr + (t.x) * dir;
+            else
+                tmpRay = curr + (t.y) * dir;
+        }
+
+        cellDepth = GetCellDepth(tmpRay + vec3(smallCellDepthSampleOffset.xy, 0), uint(mip + mipOffset));
+
+        // ray can safely step through the current cell
+        if (cellDepth > tmpRay.z)
+        {
+            curr = tmpRay;
+
+            mip = min(maxMip, mip + 1) + 1;
+        }
+        else if (cellDepth > curr.z)
+        {
+            float d = (cellDepth - curr.z - 0.0000001);
+            curr += d * dir;
+        }
+
+        mip--;
+
+        iteration++;
+
+        // DEBUG_TRACK_CURRENT(1)
+    }
+
+    if (mip == -1)
+    {
+        curr = tmpRay;
+    }
+
+    uv = curr.xy;
+    bool reject = (cellDepth < depth) || any(greaterThan(curr, vec3(0.999999))) || any(lessThan(curr, vec3(0.000001)));
+
+    if (!reject)
+    {
+        vec3 refColor = texture(sourceTex_point, uv).xyz;
+        uv.xy = uv.xy * 2 - 1;
+        float tt = max(abs(uv.x), abs(uv.y));
+        o_Color = vec4(refColor, smoothstep(1, 0.7, tt));
+    }
+    else
+        o_Color = vec4(0);
+}
+#endif

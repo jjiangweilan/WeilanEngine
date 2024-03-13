@@ -60,9 +60,6 @@ public:
         cbFSR1.invInputSize = {1.0f / srcDepth.desc.GetWidth(), 1.0f / srcDepth.desc.GetHeight()};
         GetGfxDriver()->UploadBuffer(*spdUbo, (uint8_t*)&cbFSR1, sizeof(cbFSR1));
 
-        Gfx::ShaderBindingHandle srcMipBinding("rw_input_downsample_src_mips");
-        Gfx::ShaderBindingHandle srcMidMipBinding("rw_input_downsample_src_mid_mip");
-        Gfx::ShaderBindingHandle inputSrcBinding("r_input_downsample_src");
         cmd.SetTexture(inputSrcBinding, srcDepth.id);
         cmd.SetBuffer("rw_internal_global_atomic_t", *spdAtomicCounter);
         cmd.SetBuffer("cbFSR1_t", *spdUbo);
@@ -85,6 +82,12 @@ public:
         }
         cmd.BindShaderProgram(hiZSetupCompute->GetDefaultShaderProgram(), hiZSetupCompute->GetDefaultShaderConfig());
         cmd.Dispatch(dispatchThreadGroupCountXY.x, dispatchThreadGroupCountXY.y, 1);
+
+        cmd.SetTexture(hizBuffers, 0, srcDepth.id);
+        for (int i = 1; i < mipCount; ++i)
+        {
+            cmd.SetTexture(hizBuffers, i, hizIds[i]);
+        }
     }
 
 private:
@@ -112,6 +115,11 @@ private:
     std::unique_ptr<Gfx::Buffer> spdAtomicCounter;
     std::unique_ptr<Gfx::Buffer> spdUbo;
     ComputeShader* hiZSetupCompute;
+
+    Gfx::ShaderBindingHandle hizBuffers = Gfx::ShaderBindingHandle("hiZBuffers");
+    Gfx::ShaderBindingHandle srcMipBinding = Gfx::ShaderBindingHandle("rw_input_downsample_src_mips");
+    Gfx::ShaderBindingHandle srcMidMipBinding = Gfx::ShaderBindingHandle("rw_input_downsample_src_mid_mip");
+    Gfx::ShaderBindingHandle inputSrcBinding = Gfx::ShaderBindingHandle("r_input_downsample_src");
 
     // maximum mip levels is defined in ffx_spd_resources.h
     const int MAX_MIP = 12;

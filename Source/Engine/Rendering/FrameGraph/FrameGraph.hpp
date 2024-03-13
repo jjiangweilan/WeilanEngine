@@ -180,9 +180,11 @@ private:
         glm::mat4 projection;
         glm::mat4 viewProjection;
         glm::mat4 worldToShadow;
+        glm::mat4 invProjection;
         glm::mat4 invNDCToWorld;
         glm::vec4 lightCount;
         glm::vec4 shadowMapSize;
+        glm::vec4 cameraZBufferParams;
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
 

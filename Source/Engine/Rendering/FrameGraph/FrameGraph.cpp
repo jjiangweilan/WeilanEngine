@@ -295,7 +295,14 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.viewProjection = vp;
     sceneInfo.viewPos = viewPos;
     sceneInfo.view = viewMatrix;
+    sceneInfo.invProjection = glm::inverse(projectionMatrix);
     sceneInfo.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
+    sceneInfo.cameraZBufferParams = glm::vec4(
+        camera->GetNear(),
+        camera->GetFar(),
+        (camera->GetFar() - camera->GetNear()) / (camera->GetNear() * camera->GetFar()),
+        1.0f / camera->GetFar()
+    );
     ProcessLights(scene);
 
     size_t copySize = sceneInfoBuffer->GetSize();

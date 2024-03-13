@@ -2,31 +2,19 @@
 
 #ifndef COMMON_INCLUDED
 #define COMMON_INCLUDED
-#include "Lighting/Lighting.glsl"
 
 #define SET_GLOBAL 0
 #define SET_PASS 1
 #define SET_MATERIAL 2
 #define SET_OBJECT 3
-#define MAX_LIGHT_COUNT 32
 
 layout( push_constant ) uniform Transform
 {
     mat4 model;
 } pconst;
 
-layout(set = SET_GLOBAL, binding = 0) uniform SceneInfo
-{
-    vec4 viewPos;
-    mat4 view;
-    mat4 projection;
-    mat4 viewProjection;
-    mat4 worldToShadow;
-    mat4 invNDCToWorld;
-    vec4 lightCount; // x: lightCount
-    vec4 shadowMapSize;
-    Light lights[MAX_LIGHT_COUNT];
-} scene;
+#define SCENE_INFO_BINDING 0
+#include "Common/SceneInfo.glsl"
 
 #define shadowMapSampler shadowMapSampler_sampler_linear
 #define shadowMap shadowMap_sampler_linear
