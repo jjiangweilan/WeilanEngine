@@ -117,8 +117,7 @@ void VKCommandBuffer2::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth
-    };
+        .maxDepth = viewport.maxDepth};
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
@@ -282,7 +281,7 @@ void VKCommandBuffer2::SetTexture(ShaderBindingHandle handle, int index, RG::Ima
     }
     else if (id.GetType() == RG::ImageIdentifier::Type::Handle)
     {
-        auto image = graph->GetImage(id.GetAsHash());
+        auto image = graph->GetImage(id.GetAsUUID());
 
         VKCmd cmd{VKCmdType::SetTexture};
 
@@ -318,7 +317,7 @@ void VKCommandBuffer2::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buf
 
 void VKCommandBuffer2::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc)
 {
-    id = *graph->Request(desc);
+    graph->Request(id, desc);
 }
 
 void VKCommandBuffer2::BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues)

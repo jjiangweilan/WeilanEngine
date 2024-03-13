@@ -96,9 +96,9 @@ private:
 
     glm::vec4* clearValuesVal;
 
-    Gfx::RG::ImageIdentifier albedoRTID;
-    Gfx::RG::ImageIdentifier normalRTID;
-    Gfx::RG::ImageIdentifier propertyRTID;
+    Gfx::RG::ImageIdentifier albedoRTID = Gfx::RG::ImageIdentifier("gbuffer albedo");
+    Gfx::RG::ImageIdentifier normalRTID = Gfx::RG::ImageIdentifier("gbuffer normal");
+    Gfx::RG::ImageIdentifier propertyRTID = Gfx::RG::ImageIdentifier("gbuffer property");
 
     Gfx::RG::ImageDescription albedoDesc;
     Gfx::RG::ImageDescription normalDesc;

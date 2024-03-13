@@ -1,4 +1,5 @@
 #include "Image.hpp"
+#include "Libs/UUID.hpp"
 #include "ResourceHandle.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <optional>
@@ -13,6 +14,11 @@ struct ImageDescription
         : data({width, height, format, randomWrite})
     {
         Rehash();
+    }
+
+    bool operator==(const ImageDescription& other) const
+    {
+        return data == other.data;
     }
 
     void SetRandomWrite(bool enable)
@@ -83,6 +89,7 @@ private:
         uint32_t height;
         Gfx::ImageFormat format;
         bool randomWrite = false;
+        bool operator==(const InternalData& other) const = default;
     } data;
 
     uint64_t hash;
@@ -102,9 +109,9 @@ struct ImageIdentifier
         Handle
     };
 
-    ImageIdentifier() : type(Type::None), image(nullptr) {}
+    ImageIdentifier() : type(Type::Handle), rtHandle(UUID()) {}
+    ImageIdentifier(std::string_view name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(Image& image) : type(Type::Image), image(&image) {}
-    ImageIdentifier(uint64_t rgHash) : type(Type::Handle), rtHandle(rgHash) {}
 
     bool operator==(const ImageIdentifier& other) const
     {
@@ -137,18 +144,28 @@ struct ImageIdentifier
         return image;
     }
 
-    uint64_t GetAsHash()
+    UUID GetAsUUID()
     {
         return rtHandle;
     }
 
+    const std::string& GetName()
+    {
+        return name;
+    }
+
 private:
     Type type;
-    union
+    std::string name;
+    Image* image;
+    UUID rtHandle;
+
+    void Copy(const ImageIdentifier& other)
     {
-        Image* image;
-        uint64_t rtHandle;
-    };
+        name = other.name;
+        image = other.image;
+        rtHandle = other.rtHandle;
+    }
 };
 
 struct SubpassAttachment

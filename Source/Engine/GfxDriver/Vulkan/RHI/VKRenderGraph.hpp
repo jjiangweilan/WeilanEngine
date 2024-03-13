@@ -51,8 +51,8 @@ public:
 
     void Execute(VkCommandBuffer cmd);
 
-    VKImage* GetImage(uint64_t hash);
-    VKImage* Request(RG::ImageDescription& desc);
+    VKImage* GetImage(const UUID& id);
+    VKImage* Request(RG::ImageIdentifier& id, RG::ImageDescription& desc);
     VKRenderPass* Request(RG::RenderPass& renderPass);
 
 private:

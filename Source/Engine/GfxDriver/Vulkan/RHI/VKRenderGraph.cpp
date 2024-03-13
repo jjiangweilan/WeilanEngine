@@ -13,7 +13,7 @@ class Graph::ResourceAllocator
 {
 public:
     ResourceAllocator(Graph* graph) : graph(graph) {}
-    VKImage* GetImage(uint64_t hash)
+    VKImage* GetImage(const UUID& hash)
     {
         auto iter = images.find(hash);
         if (iter != images.end())
@@ -23,11 +23,10 @@ public:
         return nullptr;
     }
 
-    VKImage* Request(RG::ImageDescription& desc)
+    VKImage* Request(RG::ImageIdentifier& id, RG::ImageDescription& desc)
     {
-        auto hash = desc.GetHash();
-        auto iter = images.find(hash);
-        if (iter != images.end())
+        auto iter = images.find(id.GetAsUUID());
+        if (iter != images.end() && iter->second.desc == desc)
         {
             iter->second.frameCountFromLastRequest = 0;
             return iter->second.image.get();
@@ -43,7 +42,7 @@ public:
             imageDesc.mipLevels = 1;
             imageDesc.isCubemap = false;
 
-            images[hash] = {
+            images[id.GetAsUUID()] = {
                 std::make_unique<VKImage>(
                     imageDesc,
                     (Gfx::IsColoFormat(imageDesc.format) ? Gfx::ImageUsage::ColorAttachment
@@ -51,11 +50,11 @@ public:
                         Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::Texture |
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
-                0
-            };
+                0,
+                desc};
 
-            auto& image = images[hash].image;
-            image->SetName(fmt::format("vk render graph allocated: {}", hash));
+            auto& image = images[id.GetAsUUID()].image;
+            image->SetName(fmt::format("rg-{}", id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName()));
             return image.get();
         }
     }
@@ -92,7 +91,7 @@ public:
                     }
                     else if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
-                        auto& image = images[attachments[color.attachmentIndex].GetAsHash()];
+                        auto& image = images[attachments[color.attachmentIndex].GetAsUUID()];
                         colors.push_back(Attachment{
                             &image.image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
@@ -120,7 +119,7 @@ public:
                     }
                     else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
-                        auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsHash()];
+                        auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsUUID()];
                         depth = Attachment{
                             &image.image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
@@ -146,7 +145,7 @@ public:
     {
         // remove images
         int removeCount = 0;
-        uint64_t readyToRemove[8];
+        UUID readyToRemove[8];
         for (auto& iter : images)
         {
             if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
@@ -178,6 +177,7 @@ private:
     {
         std::unique_ptr<VKImage> image;
         int frameCountFromLastRequest = 0;
+        RG::ImageDescription desc;
     };
 
     struct AllocatedRenderPass
@@ -187,7 +187,7 @@ private:
     };
 
     Graph* graph;
-    std::unordered_map<uint64_t, AllocatedImage> images;
+    std::unordered_map<UUID, AllocatedImage> images;
     std::unordered_map<uint64_t, AllocatedRenderPass> renderPasses;
 
     template <class T>
@@ -253,9 +253,9 @@ bool Graph::TrackResource(
     return false;
 }
 
-VKImage* Graph::Request(RG::ImageDescription& desc)
+VKImage* Graph::Request(RG::ImageIdentifier& id, RG::ImageDescription& desc)
 {
-    return resourceAllocator->Request(desc);
+    return resourceAllocator->Request(id, desc);
 }
 
 VKRenderPass* Graph::Request(RG::RenderPass& renderPass)
@@ -803,15 +803,13 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image
-            };
+                cmd.setTexture.image};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer
-            };
+                cmd.setBuffer.buffer};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -914,8 +912,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -927,8 +924,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1406,7 +1402,7 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
     }
 }
 
-VKImage* Graph::GetImage(uint64_t hash)
+VKImage* Graph::GetImage(const UUID& hash)
 {
     return resourceAllocator->GetImage(hash);
 }
