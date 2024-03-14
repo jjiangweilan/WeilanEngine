@@ -72,8 +72,8 @@ target_include_directories( WeilanEngineEditor
     "Editor/"
 
     SYSTEM
-    "${CMAKE_BINARY_DIR}/bin"
-    "${CMAKE_BINARY_DIR}/include"
+    # "${CMAKE_BINARY_DIR}/bin"
+    # "${CMAKE_BINARY_DIR}/include"
     ${Vulkan_INCLUDE_DIRS}
 )
 
@@ -81,33 +81,29 @@ if (INSTALL_DEPENDENCY)
     add_dependencies(WeilanEngine ${DEPEND_NAMES})
 endif()
 
-target_link_directories(
-    WeilanEngine
-    PUBLIC 
-    "${CMAKE_BINARY_DIR}/lib"
-)
+# target_link_directories(
+#     WeilanEngine
+#     PUBLIC 
+#     "${CMAKE_BINARY_DIR}/lib"
+# )
 
-set (PHYSX_LIBS 
-    PhysX_64
-    PhysXCommon_64
-    PhysXFoundation_64
-    PhysXExtensions_static_64
-    PhysXPvdSDK_static_64
-    )
 
 target_link_libraries( WeilanEngine
     # assimp
+    PUBLIC
     ${Vulkan_LIBRARIES}
-    # ${PHYSX_LIBS}
-    sdl2$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    spdlog$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    spirv-cross-core$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    spirv-cross-reflect$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    spirv-cross-glsl$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
-    fmt$<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:d>
+    ryml::ryml
+    sdl2
+    spdlog
+    spirv-cross-core
+    spirv-cross-reflect
+    spirv-cross-glsl
+    fmt
     ktx
-    ryml
+    glm
+    vma
     shaderc_shared
+    nlohmann_json::nlohmann_json
     )
 
 target_compile_definitions(
