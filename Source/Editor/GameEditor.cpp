@@ -649,6 +649,9 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
 
                 ImGui::TreePop();
             }
+
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {}
         }
     }
 }

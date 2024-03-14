@@ -7,16 +7,16 @@
 
 namespace FrameGraph
 {
-class ForwardOpaqueNode : public Node
+class ForwardShadingNode : public Node
 {
     DECLARE_OBJECT();
 
 public:
-    ForwardOpaqueNode()
+    ForwardShadingNode()
     {
         DefineNode();
     };
-    ForwardOpaqueNode(FGID id) : Node("Forward Opaque", id)
+    ForwardShadingNode(FGID id) : Node("Forward Shading", id)
     {
         DefineNode();
     }
@@ -185,7 +185,7 @@ private:
     static char _reg;
 }; // namespace FrameGraph
 
-char ForwardOpaqueNode::_reg = NodeBlueprintRegisteration::Register<ForwardOpaqueNode>("Forward Opaque");
+char ForwardShadingNode::_reg = NodeBlueprintRegisteration::Register<ForwardShadingNode>("Forward Shading");
 
-DEFINE_OBJECT(ForwardOpaqueNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
+DEFINE_OBJECT(ForwardShadingNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
 } // namespace FrameGraph

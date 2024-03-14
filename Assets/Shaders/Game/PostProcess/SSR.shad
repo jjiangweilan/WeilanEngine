@@ -16,6 +16,7 @@ layout(set=2) uniform SSR
     float iteration;
     float thickness;
     float downsampleScale;
+    float objectThickness;
 
 } ssr;
 
@@ -155,7 +156,12 @@ void main()
             float d = (cellDepth - curr.z - 0.0000001);
             curr += d * dir;
         }
+        else if (mip < 3 && tmpRay.z - cellDepth > ssr.objectThickness)
+        {
+            curr = tmpRay;
 
+            mip++;
+        }
         mip--;
 
         iteration++;
@@ -169,7 +175,7 @@ void main()
     }
 
     uv = curr.xy;
-    bool reject = (cellDepth < depth) || any(greaterThan(curr, vec3(0.999999))) || any(lessThan(curr, vec3(0.000001)));
+    bool reject = !DiffLessThanThickness(curr.z, cellDepth, ssr.thickness) || (cellDepth < depth) || any(greaterThan(curr, vec3(0.999999))) || any(lessThan(curr, vec3(0.000001)));
 
     if (!reject)
     {
@@ -179,6 +185,9 @@ void main()
         o_Color = vec4(refColor, smoothstep(1, 0.7, tt));
     }
     else
+    {
+        // if it's a planar we can use planar ssr https://remi-genin.github.io/posts/screen-space-planar-reflections-in-ghost-recon-wildlands/
         o_Color = vec4(0);
+    }
 }
 #endif
