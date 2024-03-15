@@ -17,7 +17,7 @@
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
-#include <SDL2/SDL_vulkan.h>
+#include <SDL_vulkan.h>
 
 #include <algorithm>
 #include <set>
@@ -29,7 +29,7 @@
 #pragma GCC diagnostic ignored "-Wswitch"
 #endif
 #define VMA_IMPLEMENTATION
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 
 #if !_MSC_VER
 #pragma GCC diagnostic pop

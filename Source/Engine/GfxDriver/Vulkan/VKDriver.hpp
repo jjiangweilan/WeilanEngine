@@ -1,10 +1,10 @@
 #pragma once
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include "../GfxDriver.hpp"

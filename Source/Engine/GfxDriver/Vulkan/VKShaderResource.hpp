@@ -7,7 +7,7 @@
 #include "VKShaderInfo.hpp"
 #include "VKSharedResource.hpp"
 #include <unordered_map>
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 
 namespace Gfx
 {

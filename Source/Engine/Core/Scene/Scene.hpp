@@ -7,7 +7,8 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "RenderingScene.hpp"
-#include <SDL2/SDL.h>
+#include <SDL.h>
+
 #include <iterator>
 class Scene : public Asset
 {

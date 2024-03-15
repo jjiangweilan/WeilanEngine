@@ -1,19 +1,15 @@
 # WeilanEngine
 cmake_minimum_required(VERSION 3.18.0)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_EXPORT_COMPILE_COMMANDS True)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
 if (WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin" )
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin" )
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin" )
-endif()
+# if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin" )
+#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin" )
+#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin" )
+# endif()
 
 option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
@@ -55,6 +51,7 @@ target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
 target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
 target_link_libraries(WeilanEngineEditor WeilanEngine)
 
+# for vulkan spirv-cross shaderc
 find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngine
@@ -62,10 +59,14 @@ target_include_directories( WeilanEngine
     "Engine/"
 
     SYSTEM
-    "${CMAKE_BINARY_DIR}/bin"
-    "${CMAKE_BINARY_DIR}/include"
+    ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
 )
+
+target_link_directories(WeilanEngine
+    PUBLIC
+    $ENV{VULKAN_SDK}/Lib
+    )
 
 target_include_directories( WeilanEngineEditor
     PUBLIC
@@ -74,26 +75,15 @@ target_include_directories( WeilanEngineEditor
     SYSTEM
     # "${CMAKE_BINARY_DIR}/bin"
     # "${CMAKE_BINARY_DIR}/include"
+    ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
 )
-
-if (INSTALL_DEPENDENCY)
-    add_dependencies(WeilanEngine ${DEPEND_NAMES})
-endif()
-
-# target_link_directories(
-#     WeilanEngine
-#     PUBLIC 
-#     "${CMAKE_BINARY_DIR}/lib"
-# )
-
 
 target_link_libraries( WeilanEngine
     # assimp
     PUBLIC
-    ${Vulkan_LIBRARIES}
     ryml::ryml
-    sdl2
+    SDL2::SDL2
     spdlog
     spirv-cross-core
     spirv-cross-reflect
@@ -101,9 +91,9 @@ target_link_libraries( WeilanEngine
     fmt
     ktx
     glm
-    vma
     shaderc_shared
     nlohmann_json::nlohmann_json
+    ${Vulkan_LIBRARIES}
     )
 
 target_compile_definitions(

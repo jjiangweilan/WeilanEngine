@@ -19,18 +19,12 @@ Enter your project path and click `Confirm`
 
 ## Build and Compile Tools
 - [x] Windows: MSVC
-- [ ] Macos: Clang 12+
-
-## How to Build
-The project uses a super-build system for it's dependencies. The only dependency you need to install manually is VulkanSDK. Others are downloaded and installed automatically by CMake into the local project folder.<br>
-The build has some side-effect of installing resources into your system's data folder (~/.config/WeilaEngine on MacOS and $LOCALAPPDATA$/WeilanEngine on Windows)
-
-note: after the first successful build, you can set `INSTALL_DEPENDENCE` to `OFF`. I recommand set shaderc's build type to RelWithDebugInfo, it's too slow in debug mode.
+- [x] Macos: Clang 12+
 
 ### Windows
 1. `mkdir build`
 2. `cd build`
-3. `cmake -DINSTALL_DEPENDENCY=ON ..`
+3. `cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..`
 4. `cmake --build . --target WeilanEngineEditor -j12`<br>
 
 ### MacOS

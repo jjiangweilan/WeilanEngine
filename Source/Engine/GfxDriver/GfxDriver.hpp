@@ -11,7 +11,7 @@
 #include "Libs/Ptr.hpp"
 #include "Semaphore.hpp"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <span>

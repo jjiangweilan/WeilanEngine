@@ -9,7 +9,8 @@
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/pattern_formatter.h>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <unordered_map>
