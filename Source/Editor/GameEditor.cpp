@@ -9,10 +9,10 @@
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/EnvironmentBaker.hpp"
-#include <spdlog/spdlog.h>
-#include <spdlog/pattern_formatter.h>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #include <unordered_map>
 
 namespace Editor
@@ -619,12 +619,25 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
         }
     }
 
+    bool changeFileName = false;
+    static std::filesystem::path changeFileNameTarget;
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_regular_file())
         {
             std::string pathStr = entry.path().filename().string();
-            if (ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf))
+            bool open = ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf);
+            if (ImGui::BeginPopupContextItem("asset window context menu"))
+            {
+                if (ImGui::Selectable("Change File Name"))
+                {
+                    changeFileName = true;
+                    changeFileNameTarget =
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                }
+                ImGui::EndPopup();
+            }
+            if (open)
             {
                 if (ImGui::BeginDragDropSource())
                 {
@@ -650,10 +663,28 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
 
                 ImGui::TreePop();
             }
-
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-            {}
         }
+    }
+
+    static char fn[1024];
+    if (changeFileName)
+    {
+        ImGui::OpenPopup("Change File Name");
+        strcpy(fn, changeFileNameTarget.string().c_str());
+    }
+    if (ImGui::BeginPopupModal("Change File Name"))
+    {
+        ImGui::InputText("File Name: ", fn, 1024);
+
+        if (ImGui::Selectable("Confirm"))
+        {
+            AssetDatabase::Singleton()->ChangeAssetPath(changeFileNameTarget, fn);
+        }
+        if (ImGui::Selectable("Chancel"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
     }
 }
 

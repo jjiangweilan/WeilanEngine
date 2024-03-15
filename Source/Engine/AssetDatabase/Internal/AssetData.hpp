@@ -52,6 +52,8 @@ public:
         return absolutePath;
     }
 
+    bool ChangeAssetPath(const std::filesystem::path& path, const std::filesystem::path& projectRoot);
+
     void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();

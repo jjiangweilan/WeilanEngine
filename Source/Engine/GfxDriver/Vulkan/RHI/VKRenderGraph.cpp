@@ -61,8 +61,8 @@ public:
 
     VKRenderPass* Request(RG::RenderPass& renderPass)
     {
-        auto hash = renderPass.GetHash();
-        auto iter = renderPasses.find(hash);
+        auto uuid = renderPass.GetUUID();
+        auto iter = renderPasses.find(uuid);
         if (iter != renderPasses.end())
         {
             iter->second.frameCountFromLastRequest = 0;
@@ -135,7 +135,7 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            renderPasses[hash] = {std::move(renderPassObj), 0};
+            renderPasses[uuid] = {std::move(renderPassObj), 0};
 
             return temp;
         }
@@ -188,25 +188,25 @@ private:
 
     Graph* graph;
     std::unordered_map<UUID, AllocatedImage> images;
-    std::unordered_map<uint64_t, AllocatedRenderPass> renderPasses;
+    std::unordered_map<UUID, AllocatedRenderPass> renderPasses;
 
     template <class T>
-    void UpdateResources(std::unordered_map<uint64_t, T>& resources)
+    void UpdateResources(std::unordered_map<UUID, T>& resources)
     {
         int removeCount = 0;
-        uint64_t readyToRemove[8];
+        const UUID* readyToRemove[8];
         for (auto& iter : resources)
         {
             if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
             {
-                readyToRemove[removeCount++] = iter.first;
+                readyToRemove[removeCount++] = &iter.first;
             }
             iter.second.frameCountFromLastRequest += 1;
         }
 
         for (int i = 0; i < removeCount; ++i)
         {
-            resources.erase(readyToRemove[i]);
+            resources.erase(*readyToRemove[i]);
         }
     }
 };

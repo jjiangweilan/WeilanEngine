@@ -6,72 +6,75 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
+option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdl tools, useful when we want to build in Debug build type" ON)
+
 project(WeilanEngine)
 
 include (FetchContent)
-
-# FetchContent_Declare(SPIRV-Cross
-#         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
-#         GIT_TAG vulkan-sdk-1.3.275.0 # match the least sdk
-#         GIT_PROGRESS TRUE
-#         )
-#
-# set(SPIRV_CROSS_CLI OFF)
-# set(SPIRV_CROSS_ENABLE_TESTS OFF)
-# FetchContent_MakeAvailable(SPIRV-Cross)
-#
-# FetchContent_Declare(SPIRV-Headers
-#         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
-#         GIT_TAG 8b246ff75c6615ba4532fe4fde20f1be090c3764
-#         GIT_PROGRESS TRUE
-#         )
-# set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
-# set(SPIRV_HEADERS_SKIP_INSTALL ON)
-# FetchContent_MakeAvailable(SPIRV-Headers)
-#
-# FetchContent_Declare(SPIRV-Tools
-#         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
-#         GIT_TAG 04896c462d9f3f504c99a4698605b6524af813c1
-#         GIT_PROGRESS TRUE
-#         )
-# set(SKIP_SPIRV_TOOLS_INSTALL ON)
-# set(SPIRV_SKIP_EXECUTABLES ON)
-# set(SPIRV_SKIP_TESTS ON)
-# FetchContent_MakeAvailable(SPIRV-Tools)
-#
-# FetchContent_Declare(glslang
-#         GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-#         GIT_TAG d73712b8f6c9047b09e99614e20d456d5ada2390
-#         GIT_PROGRESS TRUE
-#         )
-# set(SKIP_GLSLANG_INSTALL ON)
-# set(ENABLE_SPVREMAPPER OFF)
-# set(ENABLE_GLSLANG_BINARIES OFF)
-# set(ENABLE_GLSLANG_JS OFF)
-# set(ENABLE_GLSLANG_BINARIES OFF)
-# FetchContent_MakeAvailable(glslang)
-#
-#
-# FetchContent_Declare(shaderc
-#         GIT_REPOSITORY https://github.com/google/shaderc.git
-#         GIT_TAG v2024.0
-#         GIT_PROGRESS TRUE
-#         )
-# set(SHADERC_ENABLE_WGSL_OUTPUT OFF)
-# set(SHADERC_SKIP_INSTALL ON)
-# set(SHADERC_SKIP_TESTS ON)
-# set(SHADERC_SKIP_EXAMPLES ON)
-# set(SHADERC_SKIP_COPYRIGHT_CHECK ON)
-# set(SHADERC_SKIP_COPYRIGHT_CHECK ON)
-# set(SHADERC_ENABLE_WERROR_COMPILE OFF)
-# set(SHADERC_ENABLE_SHARED_CRT ON)
-# FetchContent_MakeAvailable(shaderc
-
-FetchContent_Declare(SDL2
-        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-        GIT_TAG "release-2.24.x"
+if(NOT USE_VULKAN_SDK_TOOLS)
+    FetchContent_Declare(SPIRV-Cross
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
+        GIT_TAG vulkan-sdk-1.3.275.0 # match the least sdk
         GIT_PROGRESS TRUE
         )
+
+    set(SPIRV_CROSS_CLI OFF)
+    set(SPIRV_CROSS_ENABLE_TESTS OFF)
+    FetchContent_MakeAvailable(SPIRV-Cross)
+
+    FetchContent_Declare(SPIRV-Headers
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
+        GIT_TAG 8b246ff75c6615ba4532fe4fde20f1be090c3764
+        GIT_PROGRESS TRUE
+        )
+    set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
+    set(SPIRV_HEADERS_SKIP_INSTALL ON)
+    FetchContent_MakeAvailable(SPIRV-Headers)
+
+    FetchContent_Declare(SPIRV-Tools
+        GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
+        GIT_TAG 04896c462d9f3f504c99a4698605b6524af813c1
+        GIT_PROGRESS TRUE
+        )
+    set(SKIP_SPIRV_TOOLS_INSTALL ON)
+    set(SPIRV_SKIP_EXECUTABLES ON)
+    set(SPIRV_SKIP_TESTS ON)
+    FetchContent_MakeAvailable(SPIRV-Tools)
+
+    FetchContent_Declare(glslang
+        GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
+        GIT_TAG d73712b8f6c9047b09e99614e20d456d5ada2390
+        GIT_PROGRESS TRUE
+        )
+    set(SKIP_GLSLANG_INSTALL ON)
+    set(ENABLE_SPVREMAPPER OFF)
+    set(ENABLE_GLSLANG_BINARIES OFF)
+    set(ENABLE_GLSLANG_JS OFF)
+    set(ENABLE_GLSLANG_BINARIES OFF)
+    FetchContent_MakeAvailable(glslang)
+
+
+    FetchContent_Declare(shaderc
+        GIT_REPOSITORY https://github.com/google/shaderc.git
+        GIT_TAG v2024.0
+        GIT_PROGRESS TRUE
+        )
+    set(SHADERC_ENABLE_WGSL_OUTPUT OFF)
+    set(SHADERC_SKIP_INSTALL ON)
+    set(SHADERC_SKIP_TESTS ON)
+    set(SHADERC_SKIP_EXAMPLES ON)
+    set(SHADERC_SKIP_COPYRIGHT_CHECK ON)
+    set(SHADERC_SKIP_COPYRIGHT_CHECK ON)
+    set(SHADERC_ENABLE_WERROR_COMPILE OFF)
+    set(SHADERC_ENABLE_SHARED_CRT ON)
+    FetchContent_MakeAvailable(shaderc)
+endif()
+
+FetchContent_Declare(SDL2
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+    GIT_TAG "release-2.24.x"
+    GIT_PROGRESS TRUE
+    )
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(fmt
@@ -109,9 +112,9 @@ set(JSON_BuildTests OFF)
 FetchContent_MakeAvailable(json)
 
 FetchContent_Declare(glm
-        GIT_REPOSITORY "https://github.com/g-truc/glm.git"
-        GIT_TAG "0.9.9.8"
-        GIT_PROGRESS TRUE
+    GIT_REPOSITORY "https://github.com/g-truc/glm.git"
+    GIT_TAG "0.9.9.8"
+    GIT_PROGRESS TRUE
     )
 FetchContent_MakeAvailable(glm)
 

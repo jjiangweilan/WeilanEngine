@@ -145,7 +145,7 @@ void VKDataUploader::UploadAllPending(
 
         bufferImageCopies.push_back(region);
 
-        if (i + 1 == pendingImageUploads.size() - 1 || pendingImageUploads[i + 1].dst != p.dst)
+        if (i + 1 == pendingImageUploads.size() || pendingImageUploads[i + 1].dst != p.dst)
         {
             barriers.clear();
             for (auto& bic : bufferImageCopies)

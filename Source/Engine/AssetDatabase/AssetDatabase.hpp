@@ -21,6 +21,7 @@ public:
 
     void RequestShaderRefresh(bool all = false);
     void RefreshShader();
+    bool ChangeAssetPath(const std::filesystem::path& src, const std::filesystem::path& dst);
 
     const std::filesystem::path& GetAssetDirectory()
     {

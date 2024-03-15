@@ -20,7 +20,7 @@ void ImageNode::Compile()
     glm::uvec2 size = GetConfigurableVal<glm::ivec2>("size");
     Gfx::ImageFormat format = GetConfigurableVal<Gfx::ImageFormat>("format");
 
-    desc = {size.x, size.y, format};
+    desc = {size.x, size.y, format, false};
 
     if (Gfx::IsColoFormat(format))
         image = GetGfxDriver()->CreateImage(
@@ -33,7 +33,7 @@ void ImageNode::Compile()
             Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
         );
 
-    image->SetName(fmt::format("image node {}", GetName()));
+    image->SetName(fmt::format("image node {}", GetCustomName()));
     id = *image;
 }
 

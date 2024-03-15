@@ -8,26 +8,6 @@ using namespace Gfx::ShaderInfo;
 
 namespace Gfx
 {
-ShaderDataType MapShaderDataType(const std::string& typeStr)
-{
-    if (typeStr == "vec4")
-        return ShaderDataType::Vec4;
-    else if (typeStr == "vec3")
-        return ShaderDataType::Vec3;
-    else if (typeStr == "vec2")
-        return ShaderDataType::Vec2;
-    else if (typeStr == "mat4")
-        return ShaderDataType::Mat4;
-    else if (typeStr == "mat3")
-        return ShaderDataType::Mat3;
-    else if (typeStr == "mat2")
-        return ShaderDataType::Mat2;
-    else if (typeStr[0] == '_')
-        return ShaderDataType::Structure;
-
-    assert(0 && "Shader Data Type map failed");
-    return ShaderDataType::Vec4;
-}
 
 VkShaderStageFlagBits MapStage(const std::string& str)
 {

@@ -61,12 +61,15 @@ target_include_directories( WeilanEngine
     SYSTEM
     ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
-)
-
-target_link_directories(WeilanEngine
-    PUBLIC
-    $ENV{VULKAN_SDK}/Lib
     )
+
+if(USE_VULKAN_SDK_TOOLS)
+    target_link_directories(WeilanEngine
+        PUBLIC
+        $ENV{VULKAN_SDK}/Lib
+        )
+endif()
+
 
 target_include_directories( WeilanEngineEditor
     PUBLIC
@@ -77,7 +80,7 @@ target_include_directories( WeilanEngineEditor
     # "${CMAKE_BINARY_DIR}/include"
     ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
-)
+    )
 
 target_link_libraries( WeilanEngine
     # assimp
@@ -102,7 +105,7 @@ target_compile_definitions(
     SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
     SPDLOG_FMT_EXTERNAL
     GLM_FORCE_DEPTH_ZERO_TO_ONE
-)
+    )
 
 if (MSVC)
     target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
@@ -110,29 +113,29 @@ endif()
 
 if (NOT SHIP)
 
-file(GLOB_RECURSE Dev_Tool_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-file(GLOB_RECURSE Dev_Tool_INCLUDE "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-target_sources(WeilanEngine 
-    PRIVATE ${Dev_Tool_SRC}
-    PRIVATE ${Dev_Tool_INCLUDE}
-    )
-    
-target_include_directories(WeilanEngine
-    PUBLIC
-    "./Editor"
-)
+    file(GLOB_RECURSE Dev_Tool_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
+    file(GLOB_RECURSE Dev_Tool_INCLUDE "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
+    target_sources(WeilanEngine 
+        PRIVATE ${Dev_Tool_SRC}
+        PRIVATE ${Dev_Tool_INCLUDE}
+        )
 
-# add_subdirectory("Editor/")
-add_compile_definitions(NSHIP)
-# target_link_libraries(
-#     WeilanEngine
-#     DevTool
-# )
-# # target_include_directories(
-# #     WeilanEngine
-# #     PRIVATE
-# #     "Editor/"
-# # )
+    target_include_directories(WeilanEngine
+        PUBLIC
+        "./Editor"
+        )
+
+    # add_subdirectory("Editor/")
+    add_compile_definitions(NSHIP)
+    # target_link_libraries(
+    #     WeilanEngine
+    #     DevTool
+    # )
+    # # target_include_directories(
+    # #     WeilanEngine
+    # #     PRIVATE
+    # #     "Editor/"
+    # # )
 endif()
 
 source_group(
@@ -141,7 +144,7 @@ source_group(
     FILES
     ${CORE_ENGINE_SRC}
     ${Dev_Tool_SRC}
-)
+    )
 
 #add_custom_target(
 # spv2glsl ALL

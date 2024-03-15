@@ -85,6 +85,7 @@ private:
         float iteration;
         float thickness;
         float downsampleScale;
+        float padding;
     };
     struct
     {

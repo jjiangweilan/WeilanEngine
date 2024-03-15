@@ -332,6 +332,17 @@ void Material::UploadDataToGPU()
                                 }
                                 break;
                             }
+                        case Gfx::ShaderInfo::ShaderDataType::UInt:
+                        {
+                            auto iter = u.second.floats.find(m.first);
+                            if (iter != u.second.floats.end())
+                            {
+                                size_t offset = m.second.offset;
+                                assert(offset + sizeof(float) <= bufSize);
+                                *((uint32_t*)(tempUploadData.data() + offset)) = (uint32_t)iter->second;
+                            }
+                            break;
+                        }
                         case Gfx::ShaderInfo::ShaderDataType::Vec4:
                         case Gfx::ShaderInfo::ShaderDataType::Vec3:
                             {

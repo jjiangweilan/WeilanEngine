@@ -424,6 +424,22 @@ void AssetDatabase::RefreshShader()
     }
 }
 
+bool AssetDatabase::ChangeAssetPath(const std::filesystem::path& src, const std::filesystem::path& dst)
+{
+    AssetData* data = assets.GetAssetData(src);
+    if (data)
+    {
+        if (data->ChangeAssetPath(dst, projectRoot))
+        {
+            assets.byPath.erase(src);
+            assets.byPath[dst] = data;
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
 AssetDatabase*& AssetDatabase::SingletonReference()
 {
     static AssetDatabase* instance;

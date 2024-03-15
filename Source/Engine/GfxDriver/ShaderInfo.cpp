@@ -54,6 +54,10 @@ ShaderDataType MapShaderDataType(const std::string& typeStr)
         return ShaderDataType::Mat2;
     else if (typeStr == "float")
         return ShaderDataType::Float;
+    else if (typeStr == "uint")
+        return ShaderDataType::UInt;
+    else if (typeStr == "uvec2")
+        return ShaderDataType::UVec2;
     else if (typeStr[0] == '_')
         return ShaderDataType::Structure;
 

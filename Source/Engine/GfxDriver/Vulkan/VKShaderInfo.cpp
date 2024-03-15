@@ -14,6 +14,7 @@ VkDescriptorType MapBindingType(BindingType type)
         default: assert(0 && "Map BindingType failed");
     }
 
+    SPDLOG_CRITICAL("failed to map binding type");
     return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 }
 

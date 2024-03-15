@@ -15,10 +15,12 @@ namespace Gfx::ShaderInfo
 enum class ShaderDataType
 {
     Float,
+    UInt,
     Half,
     Vec4,
     Vec3,
     Vec2,
+    UVec2,
     Mat4,
     Mat3,
     Mat2,

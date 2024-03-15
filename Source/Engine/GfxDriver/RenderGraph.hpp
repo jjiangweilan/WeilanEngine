@@ -130,7 +130,7 @@ struct ImageIdentifier
                 return rtHandle == other.rtHandle;
             }
 
-            return true;
+            return false;
         }
     }
 
@@ -155,10 +155,10 @@ struct ImageIdentifier
     }
 
 private:
-    Type type;
-    std::string name;
-    Image* image;
-    UUID rtHandle;
+    Type type = Type::None;
+    std::string name = "";
+    Image* image = nullptr;
+    UUID rtHandle = UUID::GetEmptyUUID();
 
     void Copy(const ImageIdentifier& other)
     {
@@ -201,7 +201,7 @@ public:
             if (attachments[index] != id)
             {
                 attachments[index] = id;
-                Rehash();
+                uuid = UUID();
             }
         }
     }
@@ -226,7 +226,7 @@ public:
             {
                 subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
                 subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
-                Rehash();
+                uuid = UUID();
             }
             else
             {
@@ -240,15 +240,15 @@ public:
                 {
                     subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
                     subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
-                    Rehash();
+                    uuid = UUID();
                 }
             }
         }
     }
 
-    uint64_t GetHash() const
+    const UUID& GetUUID() const
     {
-        return hash;
+        return uuid;
     }
 
     static RenderPass Default()
@@ -288,33 +288,6 @@ private:
     std::vector<ImageIdentifier> attachments;
     std::vector<Subpass> subpasses;
 
-    uint64_t hash;
-
-    void Rehash()
-    {
-        size_t sizeOfAttachments = attachments.size() * sizeof(ImageIdentifier);
-        size_t sizeOfSubpasses = 0;
-        for (auto& s : subpasses)
-        {
-            sizeOfSubpasses += s.colors.size() * sizeof(SubpassAttachment);
-            sizeOfSubpasses += sizeof(SubpassAttachment); // depth
-        }
-
-        uint8_t* data = new uint8_t[sizeOfSubpasses + sizeOfAttachments];
-        uint8_t* ori = data;
-        memcpy(data, attachments.data(), sizeOfAttachments);
-        data += sizeOfAttachments;
-
-        for (auto& s : subpasses)
-        {
-            size_t colorsSize = s.colors.size() * sizeof(SubpassAttachment);
-            memcpy(data, s.colors.data(), colorsSize);
-            data += colorsSize;
-            memcpy(data, &s.depth, sizeof(SubpassAttachment));
-        }
-
-        hash = XXH3_64bits(data, sizeOfSubpasses + sizeOfAttachments);
-        delete[] ori;
-    }
+    UUID uuid;
 };
 } // namespace Gfx::RG

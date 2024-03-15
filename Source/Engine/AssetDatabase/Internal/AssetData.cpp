@@ -133,7 +133,7 @@ void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
         assetTypeID = this->asset->GetObjectTypeID();
 
         std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
-        std::ofstream f(path);
+        std::ofstream f(path, std::ios::trunc);
         if (f.is_open() && f.good())
         {
             nlohmann::json j = {};
@@ -170,4 +170,23 @@ bool AssetData::NeedRefresh() const
 void AssetData::UpdateLastWriteTime()
 {
     lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+}
+
+bool AssetData::ChangeAssetPath(const std::filesystem::path& path, const std::filesystem::path& projectRoot)
+{
+    auto newAbsolutePath = projectRoot / "Assets" / path;
+
+    try
+    {
+        std::filesystem::rename(absolutePath, newAbsolutePath);
+    }
+    catch (...)
+    {
+        return false;
+    }
+
+    assetPath = path;
+    absolutePath = newAbsolutePath;
+    UpdateLastWriteTime();
+    SaveToDisk(projectRoot);
 }
