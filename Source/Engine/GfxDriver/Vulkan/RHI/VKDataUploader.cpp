@@ -88,7 +88,8 @@ void VKDataUploader::UploadImage(
         mipLevel,
         arayLayer,
         aspect,
-        finalLayout});
+        finalLayout
+    });
 
     offset += align + size;
 }

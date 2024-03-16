@@ -280,11 +280,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
 
-    for (auto& n : sortedNodes)
-    {
-        n->Execute(cmd, renderingData);
-    }
-
     GameObject* camGo = camera->GetGameObject();
 
     glm::mat4 viewMatrix = camera->GetViewMatrix();
@@ -318,6 +313,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     shaderGlobal.time = Time::TimeSinceLaunch();
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
     cmd.SetBuffer("Global", *shaderGlobalBuffer);
+
+    for (auto& n : sortedNodes)
+    {
+        n->Execute(cmd, renderingData);
+    }
 }
 
 bool Graph::Compile()

@@ -508,16 +508,6 @@ bool VKDriver::BeginFrame()
 
 bool VKDriver::EndFrame()
 {
-    // scheduling has to happen before dataUploader because the delayed function call `f(cmd2);` may contain data
-    // uploading
-    VKCommandBuffer2 cmd2(renderGraph.get());
-    for (auto& f : pendingCommands)
-    {
-        f(cmd2);
-    }
-    cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
-    renderGraph->Schedule(cmd2);
-
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
 
@@ -527,6 +517,14 @@ bool VKDriver::EndFrame()
         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
     );
     firstFrame = false;
+
+    VKCommandBuffer2 cmd2(renderGraph.get());
+    for (auto& f : pendingCommands)
+    {
+        f(cmd2);
+    }
+    cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    renderGraph->Schedule(cmd2);
 
     // record scheduled commands
     auto cmd = inflightData[currentInflightIndex].cmd;
@@ -544,7 +542,10 @@ bool VKDriver::EndFrame()
 
     vkEndCommandBuffer(cmd);
 
-    VkPipelineStageFlags waitFlags[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT};
+    VkPipelineStageFlags waitFlags[] = {
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+    };
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -567,7 +568,8 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     FrameEndClear();
 
@@ -699,8 +701,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -984,7 +987,8 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain};
+        oldSwapChain
+    };
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1052,7 +1056,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
