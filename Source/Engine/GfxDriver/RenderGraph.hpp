@@ -134,22 +134,22 @@ struct ImageIdentifier
         }
     }
 
-    Type GetType()
+    Type GetType() const
     {
         return type;
     }
 
-    Image* GetAsImage()
+    Image* GetAsImage() const
     {
         return image;
     }
 
-    UUID GetAsUUID()
+    UUID GetAsUUID() const
     {
         return rtHandle;
     }
 
-    const std::string& GetName()
+    const std::string& GetName() const
     {
         return name;
     }

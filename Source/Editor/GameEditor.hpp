@@ -61,6 +61,7 @@ private:
 
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
 
     void OpenSceneWindow();
     void MainMenuBar();

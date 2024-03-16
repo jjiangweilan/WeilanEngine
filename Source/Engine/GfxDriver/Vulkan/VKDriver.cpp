@@ -519,10 +519,6 @@ bool VKDriver::EndFrame()
     firstFrame = false;
 
     VKCommandBuffer2 cmd2(renderGraph.get());
-    for (auto& f : pendingCommands)
-    {
-        f(cmd2);
-    }
     cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
     renderGraph->Schedule(cmd2);
 
@@ -1208,15 +1204,9 @@ void VKDriver::Driver_DestroyBuffer(Vulkan::Buffer& b)
     memAllocator->DestroyBuffer(b.handle, b.allocation);
 }
 
-void VKDriver::Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
-{
-    pendingCommands.push_back(std::move(f));
-}
-
 void VKDriver::FrameEndClear()
 {
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
-    pendingCommands.clear();
     internalPendingCommands.clear();
 }
 
@@ -1278,8 +1268,26 @@ void VKDriver::UploadImage(
     dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
 }
 
-void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& gfxCmd)
+void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 {
-    VKCommandBuffer2* cmd = static_cast<VKCommandBuffer2*>(&gfxCmd);
+    renderGraph->Schedule((VKCommandBuffer2&)cmd);
+}
+
+Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id)
+{
+    if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Image)
+    {
+        return id.GetAsImage();
+    }
+    else if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Handle)
+    {
+        return renderGraph->GetImage(id.GetAsUUID());
+    }
+    return nullptr;
+}
+
+std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
+{
+    return std::unique_ptr<CommandBuffer>(new VKCommandBuffer2(renderGraph.get()));
 }
 } // namespace Gfx

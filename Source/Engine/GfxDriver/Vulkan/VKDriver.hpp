@@ -87,6 +87,7 @@ public:
     std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
         const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
     ) override;
+    std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name,
@@ -101,7 +102,6 @@ public:
 
     // RHI implementation
     void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
-    void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
     void UploadImage(
         Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
@@ -125,6 +125,8 @@ public:
     bool EndFrame() override;
 
     void GenerateMipmaps(VKImage& image);
+
+    Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id);
 
 public:
     std::unique_ptr<VKMemAllocator> memAllocator;
@@ -187,7 +189,6 @@ public:
     uint32_t currentInflightIndex = 0;
     std::unique_ptr<VKSwapChainImage> swapchainImage = nullptr;
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
-    std::vector<std::function<void(Gfx::CommandBuffer&)>> pendingCommands = {};
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;

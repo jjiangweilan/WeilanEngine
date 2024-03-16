@@ -35,6 +35,15 @@ public:
 
 private:
     std::unique_ptr<Gfx::Image> sceneImage;
+
+    // scene image can't be deleted immediately because it's tracked by the VKDriver for at least two frame (it holds a
+    // pointer and doesn't check its validity)
+    struct PendingDelete
+    {
+        std::unique_ptr<Gfx::Image> image;
+        int frameCount = 0;
+    };
+    std::list<PendingDelete> pendingDeleteSceneImages;
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;
     bool useViewCamera = true;
@@ -57,5 +66,6 @@ private:
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect);
+    void ChangeGameScreenResolution(glm::ivec2 resolution);
 };
 } // namespace Editor

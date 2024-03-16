@@ -1,4 +1,4 @@
-#include "GameEditor.hpp"
+#include "GameEditor.hpp" gameeitor
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
@@ -73,6 +73,8 @@ GameEditor::GameEditor(const char* path)
         rt.isOpen = false;
         registeredTools.push_back(rt);
     }
+
+    cmd = GetGfxDriver()->CreateCommandBuffer();
 };
 
 GameEditor::~GameEditor()
@@ -410,7 +412,10 @@ void GameEditor::Start()
 
             loop->Tick();
 
-            GetGfxDriver()->Schedule([this](Gfx::CommandBuffer& cmd) { Render(cmd); });
+            cmd->Reset(true);
+            Render(*cmd);
+
+            GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
             engine->EndFrame();
         }

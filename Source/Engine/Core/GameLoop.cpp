@@ -4,12 +4,12 @@
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
 
-Gfx::Image* GameLoop::Tick()
+void GameLoop::Tick()
 {
-    return RenderScene();
+    RenderScene();
 }
 
-Gfx::Image* GameLoop::RenderScene()
+void GameLoop::RenderScene()
 {
     if (scene)
     {
@@ -26,16 +26,12 @@ Gfx::Image* GameLoop::RenderScene()
             if (!compiled)
             {
                 SPDLOG_WARN("frame graph failed to compile");
-                return nullptr;
             }
 
-            GetGfxDriver()->Schedule([mainCam](Gfx::CommandBuffer& cmd)
-                                     { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene()); }
-            );
-
-            return frameGraph->GetOutputImage();
+            // GetGfxDriver()->Schedule([mainCam](Gfx::CommandBuffer& cmd)
+            //                          { mainCam->GetFrameGraph()->Execute(cmd, *mainCam->GetGameObject()->GetScene());
+            //                          }
+            // );
         }
     }
-
-    return nullptr;
 }

@@ -341,8 +341,6 @@ public:
         cmds.clear();
     }
 
-    void Execute(VkCommandBuffer cmd);
-
     std::span<VKCmd> GetCmds()
     {
         return cmds;
@@ -350,7 +348,6 @@ public:
 
 private:
     std::vector<VKCmd> cmds;
-    LinearAllocator<32 * 1024> tempMemory;
     VK::RenderGraph::Graph* graph;
 };
 } // namespace Gfx

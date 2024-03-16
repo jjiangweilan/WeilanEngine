@@ -17,10 +17,10 @@ public:
         return scene;
     }
 
-    Gfx::Image* Tick();
+    void Tick();
 
 private:
     Scene* scene = nullptr;
 
-    Gfx::Image* RenderScene();
+    void RenderScene();
 };

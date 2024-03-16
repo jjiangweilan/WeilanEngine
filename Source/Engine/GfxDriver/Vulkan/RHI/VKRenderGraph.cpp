@@ -33,6 +33,7 @@ public:
         }
         else
         {
+            id = RG::ImageIdentifier();
             Gfx::ImageDescription imageDesc;
             imageDesc.width = desc.GetWidth();
             imageDesc.height = desc.GetHeight();
@@ -744,7 +745,7 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
             };
 
             if (TrackResource(
-                    cmd.blit.from,
+                    cmd.blit.to,
                     dstRange,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,

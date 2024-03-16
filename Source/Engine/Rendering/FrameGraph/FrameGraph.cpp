@@ -392,7 +392,7 @@ Node* Graph::GetNode(FGID nodeID)
     return nullptr;
 }
 
-Gfx::Image* Graph::GetOutputImage()
+const Gfx::RG::ImageIdentifier* Graph::GetOutputImage(int& outputWidth, int& outputHeight)
 {
     if (this->outputImageNode == nullptr || !compiled)
     {
@@ -401,7 +401,7 @@ Gfx::Image* Graph::GetOutputImage()
 
     if (ImageNode* outputImageNode = dynamic_cast<ImageNode*>(this->outputImageNode))
     {
-        return outputImageNode->GetImage();
+        return &outputImageNode->GetImage();
     }
 
     return nullptr;

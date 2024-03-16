@@ -13,9 +13,14 @@ public:
     ImageNode();
     ImageNode(FGID id);
 
-    Gfx::Image* GetImage();
+    const Gfx::RG::ImageIdentifier& GetImage();
     void Compile() override;
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override;
+
+    glm::ivec2 GetRenderingImageSize()
+    {
+        return {desc.GetWidth(), desc.GetHeight()};
+    }
 
 private:
     struct
@@ -23,10 +28,11 @@ private:
         PropertyHandle attachment;
     } output;
 
-    RenderGraph::RenderNode* imageNode;
-    std::unique_ptr<Gfx::Image> image;
     Gfx::RG::ImageIdentifier id;
     Gfx::RG::ImageDescription desc;
+
+    glm::vec2* size;
+    Gfx::ImageFormat* format;
 
     void DefineNode();
     static char _reg;

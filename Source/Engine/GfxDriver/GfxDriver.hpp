@@ -106,6 +106,8 @@ public:
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
     virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
 
+    virtual std::unique_ptr<CommandBuffer> CreateCommandBuffer() = 0;
+
     virtual void QueueSubmit(
         RefPtr<CommandQueue> queue,
         std::span<Gfx::CommandBuffer*> cmdBufs,
@@ -123,10 +125,12 @@ public:
     virtual void ClearResources() = 0;
 
     // RHI implementation
-    virtual void Schedule(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
     virtual void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
     virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;
     virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
+
+    // use this with caution, the image may be destroyed and recreated everyframe for the same id
+    virtual Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) = 0;
 
     virtual void UploadImage(
         Gfx::Image& dst,

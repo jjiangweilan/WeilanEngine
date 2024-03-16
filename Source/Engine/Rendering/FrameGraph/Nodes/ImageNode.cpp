@@ -15,30 +15,33 @@ ImageNode::ImageNode(FGID id) : Node("Image", id)
     DefineNode();
 }
 
-void ImageNode::Compile()
-{
-    glm::uvec2 size = GetConfigurableVal<glm::ivec2>("size");
-    Gfx::ImageFormat format = GetConfigurableVal<Gfx::ImageFormat>("format");
-
-    desc = {size.x, size.y, format, false};
-
-    if (Gfx::IsColoFormat(format))
-        image = GetGfxDriver()->CreateImage(
-            Gfx::ImageDescription{size.x, size.y, format},
-            Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture
-        );
-    else
-        image = GetGfxDriver()->CreateImage(
-            Gfx::ImageDescription{size.x, size.y, format},
-            Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
-        );
-
-    image->SetName(fmt::format("image node {}", GetCustomName()));
-    id = *image;
-}
+void ImageNode::Compile() {}
 
 void ImageNode::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData)
 {
+    const auto& screenSize = renderingData.screenSize;
+    if (size->x == 0)
+    {
+        desc.SetWidth(screenSize.x);
+    }
+    else if (size->x < 0)
+    {
+        desc.SetWidth(screenSize.x * -size->x);
+    }
+    else
+        desc.SetWidth(size->x);
+    if (size->y == 0)
+    {
+        desc.SetHeight(screenSize.y);
+    }
+    else if (size->y < 0)
+    {
+        desc.SetHeight(screenSize.y * -size->y);
+    }
+    else
+        desc.SetHeight(size->y);
+    desc.SetFormat(*format);
+    cmd.AllocateAttachment(id, desc);
     output.attachment->SetValue(AttachmentProperty{id, desc});
 }
 
@@ -46,14 +49,17 @@ void ImageNode::DefineNode()
 {
     output.attachment = AddOutputProperty("image", PropertyType::Attachment);
 
-    AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
+    AddConfig<ConfigurableType::Vec2>("size", glm::vec2{512.0f, 512.0f});
     AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);
     AddConfig<ConfigurableType::Int>("mip level", int{1});
+
+    size = GetConfigurablePtr<glm::vec2>("size");
+    format = GetConfigurablePtr<Gfx::ImageFormat>("format");
 }
 
-Gfx::Image* ImageNode::GetImage()
+const Gfx::RG::ImageIdentifier& ImageNode::GetImage()
 {
-    return image.get();
+    return id;
 }
 char ImageNode::_reg = NodeBlueprintRegisteration::Register<ImageNode>("Image");
 } // namespace FrameGraph

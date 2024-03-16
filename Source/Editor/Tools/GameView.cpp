@@ -187,7 +187,8 @@ static void EditorCameraWalkAround(Camera& editorCamera)
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
 {
-    GetGfxDriver()->WaitForIdle();
+    pendingDeleteSceneImages.push_back({std::move(sceneImage), 0});
+
     sceneImage = GetGfxDriver()->CreateImage(
         Gfx::ImageDescription(width, height, Gfx::ImageFormat::R8G8B8A8_SRGB),
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
@@ -201,18 +202,25 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     if (!scene || !scene->GetMainCamera())
         return;
 
-    float width = sceneImage->GetDescription().width;
-    float height = sceneImage->GetDescription().height;
-    cmd.SetViewport({.x = 0, .y = 0, .width = width, .height = height, .minDepth = 0, .maxDepth = 1});
-    Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
-    cmd.SetScissor(0, 1, &rect);
-
-    FrameGraph::Graph* graph = scene->GetMainCamera()->GetFrameGraph();
+    auto camera = scene->GetMainCamera();
+    FrameGraph::Graph* graph = camera->GetFrameGraph();
 
     if (graph && graph->IsCompiled())
     {
-        auto graphOutputImage = graph->GetOutputImage();
+        int width = sceneImage->GetDescription().width;
+        int height = sceneImage->GetDescription().height;
+        cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
+        Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
+        cmd.SetScissor(0, 1, &rect);
+        graph->SetScreenSize(width, height);
         graph->Execute(cmd, *scene);
+        auto graphOutputImage = graph->GetOutputImage(width, height);
+        if (graphOutputImage)
+        {
+            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*graphOutputImage);
+            if (outputImage)
+                cmd.Blit(outputImage, sceneImage.get());
+        }
 
         // selection outline
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
@@ -264,6 +272,12 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
 
 bool GameView::Tick()
 {
+    for (auto& p : pendingDeleteSceneImages)
+    {
+        p.frameCount += 1;
+    }
+    pendingDeleteSceneImages.remove_if([](PendingDelete& p) { return p.frameCount > 5; });
+
     bool open = true;
 
     ImGui::Begin("Game View", &open, ImGuiWindowFlags_MenuBar);
@@ -281,6 +295,10 @@ bool GameView::Tick()
         if (ImGui::MenuItem("Resolution"))
         {
             menuSelected = "Change Resolution";
+        }
+        if (ImGui::MenuItem("Auto Resize"))
+        {
+            menuSelected = "Auto Resize";
         }
         ImGui::EndMenuBar();
     }
@@ -316,13 +334,19 @@ bool GameView::Tick()
         auto height = sceneImage->GetDescription().height;
         d.resolution = {width, height};
     }
+    else if (strcmp(menuSelected, "Auto Resize") == 0)
+    {
+        int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+        int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
+        ChangeGameScreenResolution({width, height});
+    }
 
     if (ImGui::BeginPopup("Change Resolution"))
     {
         ImGui::InputInt2("Resolution", (int*)&d.resolution);
         if (ImGui::Button("Confirm"))
         {
-            CreateRenderData(d.resolution.x, d.resolution.y);
+            ChangeGameScreenResolution(d.resolution);
         }
         if (ImGui::Button("Close"))
         {
@@ -355,15 +379,11 @@ bool GameView::Tick()
         auto mainCamera = scene->GetMainCamera();
         if (mainCamera)
         {
-            FrameGraph::Graph* graph = mainCamera->GetFrameGraph();
-            auto targetImage = graph ? graph->GetOutputImage() : sceneImage.get();
 
-            if (targetImage)
+            if (sceneImage)
             {
-                float width = targetImage->GetDescription().width;
-                float height = targetImage->GetDescription().height;
-                float imageWidth = width;
-                float imageHeight = height;
+                float imageWidth = sceneImage->GetDescription().width;
+                float imageHeight = sceneImage->GetDescription().height;
 
                 // shrink width
                 if (imageWidth > contentWidth)
@@ -381,7 +401,7 @@ bool GameView::Tick()
                 }
 
                 auto imagePos = ImGui::GetCursorPos();
-                ImGui::Image(&targetImage->GetDefaultImageView(), {imageWidth, imageHeight});
+                ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
                 auto windowPos = ImGui::GetWindowPos();
                 if (!ImGuizmo::IsUsing())
@@ -484,6 +504,11 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
         NULL,
         nullptr /* useSnap ? &snap.x : NULL */
     );
+}
+
+void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
+{
+    CreateRenderData(resolution.x, resolution.y);
 }
 
 } // namespace Editor

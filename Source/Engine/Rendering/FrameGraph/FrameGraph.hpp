@@ -49,6 +49,11 @@ public:
     }
 #endif
 
+    void SetScreenSize(int width, int height)
+    {
+        renderingData.screenSize = {width, height};
+    }
+
     void Execute(Gfx::CommandBuffer& cmd, Scene& scene);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
@@ -61,7 +66,7 @@ public:
     bool Compile();
     void SetOutputImageNode(FGID nodeID);
     Node* GetNode(FGID nodeID);
-    Gfx::Image* GetOutputImage();
+    const Gfx::RG::ImageIdentifier* GetOutputImage(int& outputWidth, int& outputHeight);
     Node* GetOutputImageNode()
     {
         return outputImageNode;
