@@ -190,9 +190,15 @@ void main()
     // shadow mask
     float shadowAttenuation = 1.0;
 #ifdef G_DEFERRED
+    vec4 shadowCS = scene.worldToShadow * positionWS;
+    shadowCS = shadowCS / shadowCS.w;
+    vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
+    const float shadowBias = 0.00012f;
+    float objShadowDepth = shadowCS.z - shadowBias;
 #else
     vec2 shadowUV = i_ShadowCS.xy / i_ShadowCS.w * 0.5 + 0.5;
     float objShadowDepth = i_ShadowCS.z / i_ShadowCS.w;
+#endif
     if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
     {
 #ifdef G_VSM
@@ -202,7 +208,6 @@ void main()
 #endif
     }
 
-#endif
 
     // diffuse cube light
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
@@ -210,7 +215,7 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(color + ambient, 1);
+    o_Color = vec4(color * shadowAttenuation + ambient, 1);
 
 }
 #endif

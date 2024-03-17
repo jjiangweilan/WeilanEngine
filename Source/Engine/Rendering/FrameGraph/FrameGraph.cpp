@@ -290,6 +290,12 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.viewProjection = vp;
     sceneInfo.viewPos = viewPos;
     sceneInfo.view = viewMatrix;
+    sceneInfo.shadowMapSize = {
+        1024,
+        1024,
+        1.0 / 1024.0f,
+        1.0 / 1024.0f,
+    };
     sceneInfo.invProjection = glm::inverse(projectionMatrix);
     sceneInfo.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
     sceneInfo.cameraZBufferParams = glm::vec4(

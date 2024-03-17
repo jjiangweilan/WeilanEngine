@@ -29,7 +29,8 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -42,7 +43,8 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -60,12 +62,17 @@ class DeferredShadingNode : public Node
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
+#if ENGINE_DEV_BUILD
+        lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
+#endif
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
         drawList = input.drawList->GetValue<DrawList*>();
 
-        albedoDesc.SetWidth(colorProp.desc.GetWidth());
-        albedoDesc.SetHeight(colorProp.desc.GetHeight());
+        int rtWidth = colorProp.desc.GetWidth();
+        int rtHeight = colorProp.desc.GetHeight();
+        albedoDesc.SetWidth(rtWidth);
+        albedoDesc.SetHeight(rtHeight);
         albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
         normalDesc.SetWidth(colorProp.desc.GetWidth());
         normalDesc.SetHeight(colorProp.desc.GetHeight());
@@ -78,8 +85,13 @@ class DeferredShadingNode : public Node
         cmd.AllocateAttachment(normalRTID, normalDesc);
         cmd.AllocateAttachment(maskRTID, maskDesc);
 
-        Gfx::ClearValue clears[] = {*clearValuesVal, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+        // set scissor and viewport
+        Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(rtWidth), static_cast<uint32_t>(rtHeight)}};
+        cmd.SetScissor(0, 1, &scissor);
+        Gfx::Viewport viewport{0, 0, static_cast<float>(rtWidth), static_cast<float>(rtHeight), 0, 1};
+        cmd.SetViewport(viewport);
 
+        Gfx::ClearValue clears[] = {*clearValuesVal, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
         gbufferPass.SetAttachment(0, colorProp.id);
         gbufferPass.SetAttachment(1, albedoRTID);
         gbufferPass.SetAttachment(2, normalRTID);

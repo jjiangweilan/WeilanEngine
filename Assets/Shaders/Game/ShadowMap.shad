@@ -3,6 +3,7 @@
 
 #if CONFIG
 name: Game/ShadowMap
+cull: back
 features:
     - [G_PCF, G_VSM]
 #endif

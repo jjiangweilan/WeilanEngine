@@ -209,18 +209,9 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
     {
         int width = sceneImage->GetDescription().width;
         int height = sceneImage->GetDescription().height;
-        cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
-        Rect2D rect = {{0, 0}, {(uint32_t)width, (uint32_t)height}};
-        cmd.SetScissor(0, 1, &rect);
         graph->SetScreenSize(width, height);
         graph->Execute(cmd, *scene);
         auto graphOutputImage = graph->GetOutputImage(width, height);
-        if (graphOutputImage)
-        {
-            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*graphOutputImage);
-            if (outputImage)
-                cmd.Blit(outputImage, sceneImage.get());
-        }
 
         // selection outline
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
@@ -267,6 +258,13 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
                 // cmd.SetTexture("mainTex", *graphOutputImage);
             }
         }
+
+        if (graphOutputImage)
+        {
+            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*graphOutputImage);
+            if (outputImage)
+                cmd.Blit(outputImage, sceneImage.get());
+        }
     }
 }
 
@@ -299,6 +297,10 @@ bool GameView::Tick()
         if (ImGui::MenuItem("Auto Resize"))
         {
             menuSelected = "Auto Resize";
+        }
+        if (ImGui::MenuItem("Play"))
+        {
+            menuSelected = "Play";
         }
         ImGui::EndMenuBar();
     }
@@ -339,6 +341,10 @@ bool GameView::Tick()
         int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
         ChangeGameScreenResolution({width, height});
+    }
+    else if (strcmp(menuSelected, "Play") == 0)
+    {
+        PlayTheGame();
     }
 
     if (ImGui::BeginPopup("Change Resolution"))
@@ -509,6 +515,10 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
 void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 {
     CreateRenderData(resolution.x, resolution.y);
+}
+
+void GameView::PlayTheGame() {
+
 }
 
 } // namespace Editor

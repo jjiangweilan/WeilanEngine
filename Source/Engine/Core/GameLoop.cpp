@@ -9,6 +9,16 @@ void GameLoop::Tick()
     RenderScene();
 }
 
+void GameLoop::Play()
+{
+    if (scene == nullptr)
+        return;
+    isPlaying = true;
+
+    for (auto obj : scene->GetAllGameObjects())
+    {}
+}
+
 void GameLoop::RenderScene()
 {
     if (scene)
