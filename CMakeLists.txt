@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 cmake_policy(SET CMP0114 NEW)
 
+project(WeilanEngine)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
@@ -8,9 +10,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdl tools, useful when we want to build in Debug build type" ON)
 
-project(WeilanEngine)
+include(CheckIPOSupported)
+include(FetchContent)
 
-include (FetchContent)
 if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(SPIRV-Cross
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
@@ -135,5 +137,40 @@ FetchContent_Declare(ktx_software
 set(BASISU_SUPPORT_SSE "${BASISU_SUPPORT_SSE}")
 set(KTX_FEATURE_TESTS OFF)
 FetchContent_MakeAvailable(ktx_software)
+
+
+FetchContent_Declare(
+        JoltPhysics
+        GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
+        GIT_TAG "v4.0.2"
+        SOURCE_SUBDIR "Jolt"
+)
+check_ipo_supported(RESULT IS_IPO_SUPPORTED)
+set(DOUBLE_PRECISION OFF)
+set(GENERATE_DEBUG_SYMBOLS OFF)
+set(CROSS_PLATFORM_DETERMINISTIC ON)
+set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
+set(OBJECT_LAYER_BITS 32)
+set(USE_SSE4_1 ON)
+set(USE_SSE4_2 ON)
+set(USE_AVX ON)
+set(USE_AVX2 ON)
+set(USE_AVX512 OFF)
+set(USE_LZCNT ON)
+set(USE_TZCNT ON)
+set(USE_F16C ON)
+set(USE_FMADD ON)
+# set(BUILD_SHARED_LIBS ON)
+set(INTERPROCEDURAL_OPTIMIZATION=${IS_IPO_SUPPORTED})
+if(NOT JoltPhysics_POPULATED)
+  FetchContent_Populate(JoltPhysics)
+
+  set(PHYSICS_REPO_ROOT ${joltphysics_SOURCE_DIR})
+  include(${joltphysics_SOURCE_DIR}/Jolt/Jolt.cmake)
+  target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_PROFILE_ENABLED;JPH_DEBUG_RENDERER>")
+  if (FLOATING_POINT_EXCEPTIONS_ENABLED AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+      target_compile_definitions(Jolt PUBLIC "$<$<CONFIG:RelWithDebInfo>:JPH_FLOATING_POINT_EXCEPTIONS_ENABLED>")
+  endif()
+endif()
 
 add_subdirectory(Source)

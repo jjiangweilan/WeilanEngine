@@ -29,7 +29,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngineEditor PRIVATE "/Ob0")
 endif()
 
-
+set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
 
 file(GLOB_RECURSE CORE_ENGINE_SRC "Engine/*.c" "Engine/*.cpp" "Engine/*.hpp" "Engine/*.h" "Engine/*.tpp")
 file(GLOB_RECURSE EDITOR_ENGINE_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
@@ -95,6 +95,7 @@ target_link_libraries( WeilanEngine
     ktx
     glm
     shaderc_shared
+    Jolt
     nlohmann_json::nlohmann_json
     ${Vulkan_LIBRARIES}
     )
@@ -109,6 +110,8 @@ target_compile_definitions(
 
 if (MSVC)
     target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
+    set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "WeilanEngineEditor")
+    set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
 if (NOT SHIP)
