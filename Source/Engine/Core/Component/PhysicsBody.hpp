@@ -22,6 +22,6 @@ public:
     const std::string& GetName() override;
 
 private:
-    void EnableImple() override{};
-    void DisableImple() override{};
+    void EnableImple() override;
+    void DisableImple() override;
 };

@@ -27,3 +27,14 @@ std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
 
     return clone;
 }
+
+void PhysicsBody::EnableImple()
+{
+    Scene* scene = GetScene();
+
+    if (scene)
+    {
+        auto physicsWorld = &scene->GetPhysicsWorld();
+    }
+}
+void PhysicsBody::DisableImple() {}
