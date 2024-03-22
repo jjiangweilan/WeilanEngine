@@ -103,12 +103,5 @@ void Physics::Init()
     // Remove and destroy the floor
     body_interface.RemoveBody(floor->GetID());
     body_interface.DestroyBody(floor->GetID());
-
-    // Unregisters all types with the factory and cleans up the default material
-    UnregisterTypes();
-
-    // Destroy the factory
-    delete Factory::sInstance;
-    Factory::sInstance = nullptr;
 }
 void Physics::Destroy(){};

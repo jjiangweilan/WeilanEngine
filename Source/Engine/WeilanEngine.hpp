@@ -57,4 +57,7 @@ private:
 
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;
+
+    void InitJoltPhysics();
+    void DeinitJoltPhysics();
 };
