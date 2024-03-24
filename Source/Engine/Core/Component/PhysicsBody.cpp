@@ -1,5 +1,6 @@
 #include "PhysicsBody.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Scene/Scene.hpp"
 
 DEFINE_OBJECT(PhysicsBody, "670E10EF-2532-4977-A356-63C9B07C6F5D");
 PhysicsBody::PhysicsBody() : Component(nullptr) {}
@@ -28,13 +29,26 @@ std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
     return clone;
 }
 
-void PhysicsBody::EnableImple()
+void PhysicsBody::EnableImple() {}
+void PhysicsBody::DisableImple() {}
+
+void PhysicsBody::UpdateBody()
 {
     Scene* scene = GetScene();
 
     if (scene)
     {
-        auto physicsWorld = &scene->GetPhysicsWorld();
+        auto& physicsWorld = scene->GetPhysicsScene();
     }
 }
-void PhysicsBody::DisableImple() {}
+
+bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
+{
+    auto result = shape.Create();
+    if (!result.IsValid())
+    {
+        return false;
+    }
+
+    shapeRef = result.Get();
+}

@@ -4,12 +4,12 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Scene/PhysicsScene.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
 
-#include <iterator>
 class Scene : public Asset
 {
     DECLARE_ASSET();
@@ -79,9 +79,15 @@ public:
         return renderingScene;
     }
 
+    PhysicsScene& GetPhysicsScene()
+    {
+        return physicsScene;
+    }
+
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;
+    PhysicsScene physicsScene;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<GameObject*> externalGameObjects;

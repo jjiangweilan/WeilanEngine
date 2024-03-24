@@ -14,7 +14,6 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 #include <spdlog/spdlog.h>
-#include <stdarg.h>
 
 using namespace JPH;
 using namespace JPH::literals;
