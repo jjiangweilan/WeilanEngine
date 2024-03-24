@@ -52,7 +52,10 @@ GameObject::GameObject(const GameObject& other)
     }
 }
 
-GameObject::~GameObject() {}
+GameObject::~GameObject()
+{
+    components.clear();
+}
 
 void GameObject::Tick()
 {

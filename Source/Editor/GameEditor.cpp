@@ -23,6 +23,7 @@ GameEditor::GameEditor(const char* path)
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
     loop = engine->CreateGameLoop();
+    EditorState::gameLoop = loop;
 
     // engine is in another dynamic library which has different static logger instance, we need to register it for
     // editor too
@@ -410,10 +411,13 @@ void GameEditor::Start()
 
             GUIPass();
 
-            loop->Tick();
+            auto sceneImage = gameView.GetSceneImage();
+            const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
+            if (sceneImage && EditorState::activeScene)
+                gameOutputImage = loop->Tick(*EditorState::activeScene, *sceneImage);
 
             cmd->Reset(true);
-            Render(*cmd);
+            Render(*cmd, gameOutputImage);
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
@@ -523,7 +527,7 @@ void GameEditor::SurfelGIBakerWindow()
     }
 }
 
-void GameEditor::Render(Gfx::CommandBuffer& cmd)
+void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage)
 {
     // make sure we don't have sync issue with game rendering
 
@@ -533,8 +537,8 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd)
             t.tool->Render(cmd);
     }
 
-    if (EditorState::activeScene)
-        gameView.Render(cmd, EditorState::activeScene);
+    if (gameImage)
+        gameView.Render(cmd, gameImage);
 
     gameEditorRenderer->Execute(cmd);
 }
@@ -781,4 +785,5 @@ void GameEditor::ConsoleOutputWindow()
 GameEditor* GameEditor::instance = nullptr;
 Object* EditorState::selectedObject = nullptr;
 Scene* EditorState::activeScene = nullptr;
+GameLoop* EditorState::gameLoop = nullptr;
 } // namespace Editor

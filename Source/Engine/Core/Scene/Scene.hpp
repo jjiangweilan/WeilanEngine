@@ -16,7 +16,7 @@ class Scene : public Asset
 
 public:
     Scene();
-    ~Scene() {}
+    ~Scene();
     GameObject* CreateGameObject();
     void AddGameObject(GameObject* newGameObject);
     GameObject* AddGameObject(std::unique_ptr<GameObject>&& newGameObject);

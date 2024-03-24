@@ -9,7 +9,6 @@ public:
 
     void SaveDirtyAssets();
 
-public:
     // path: relative path as projectRoot/Assets/{path}
     Asset* LoadAsset(std::filesystem::path path);
     Asset* LoadAssetByID(const UUID& uuid);

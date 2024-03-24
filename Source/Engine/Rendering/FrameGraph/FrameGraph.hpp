@@ -66,7 +66,7 @@ public:
     bool Compile();
     void SetOutputImageNode(FGID nodeID);
     Node* GetNode(FGID nodeID);
-    const Gfx::RG::ImageIdentifier* GetOutputImage(int& outputWidth, int& outputHeight);
+    const Gfx::RG::ImageIdentifier* GetOutputImage();
     Node* GetOutputImageNode()
     {
         return outputImageNode;

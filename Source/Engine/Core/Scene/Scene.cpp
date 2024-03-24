@@ -6,6 +6,11 @@ Scene::Scene() : Asset(), systemEventCallbacks()
     name = "New GameScene";
 }
 
+Scene::~Scene()
+{
+    gameObjects.clear();
+}
+
 GameObject* Scene::CreateGameObject()
 {
     std::unique_ptr<GameObject> newObj = std::make_unique<GameObject>(this);

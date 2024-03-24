@@ -2,6 +2,7 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Component/PhysicsBody.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
@@ -29,6 +30,8 @@ public:
                 target->AddComponent<Light>();
             if (ImGui::MenuItem("SceneEnvironment"))
                 target->AddComponent<SceneEnvironment>();
+            if (ImGui::MenuItem("PhysicsBody"))
+                target->AddComponent<PhysicsBody>();
 
             ImGui::EndMenu();
         }

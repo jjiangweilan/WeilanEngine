@@ -398,7 +398,7 @@ Node* Graph::GetNode(FGID nodeID)
     return nullptr;
 }
 
-const Gfx::RG::ImageIdentifier* Graph::GetOutputImage(int& outputWidth, int& outputHeight)
+const Gfx::RG::ImageIdentifier* Graph::GetOutputImage()
 {
     if (this->outputImageNode == nullptr || !compiled)
     {

@@ -197,22 +197,10 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
     editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
 }
 
-void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
+void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage)
 {
-    if (!scene || !scene->GetMainCamera())
-        return;
-
-    auto camera = scene->GetMainCamera();
-    FrameGraph::Graph* graph = camera->GetFrameGraph();
-
-    if (graph && graph->IsCompiled())
+    if (gameImage)
     {
-        int width = sceneImage->GetDescription().width;
-        int height = sceneImage->GetDescription().height;
-        graph->SetScreenSize(width, height);
-        graph->Execute(cmd, *scene);
-        auto graphOutputImage = graph->GetOutputImage(width, height);
-
         // selection outline
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
         {
@@ -245,7 +233,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
                 }
                 cmd.EndRenderPass();
 
-                outlieFinalPass.SetAttachment(0, *graphOutputImage);
+                outlieFinalPass.SetAttachment(0, *gameImage);
                 cmd.SetTexture("mainTex", outlineSrcRT);
                 cmd.BeginRenderPass(outlieFinalPass, clears);
                 cmd.BindShaderProgram(
@@ -259,9 +247,9 @@ void GameView::Render(Gfx::CommandBuffer& cmd, Scene* scene)
             }
         }
 
-        if (graphOutputImage)
+        if (gameImage)
         {
-            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*graphOutputImage);
+            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
             if (outputImage)
                 cmd.Blit(outputImage, sceneImage.get());
         }
@@ -301,6 +289,10 @@ bool GameView::Tick()
         if (ImGui::MenuItem("Play"))
         {
             menuSelected = "Play";
+        }
+        if (ImGui::MenuItem("Pause"))
+        {
+            menuSelected = "Pause";
         }
         ImGui::EndMenuBar();
     }
@@ -344,7 +336,11 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
-        PlayTheGame();
+        EditorState::gameLoop->Play();
+    }
+    else if (strcmp(menuSelected, "Pause") == 0)
+    {
+        EditorState::gameLoop->Stop();
     }
 
     if (ImGui::BeginPopup("Change Resolution"))
@@ -515,10 +511,6 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
 void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 {
     CreateRenderData(resolution.x, resolution.y);
-}
-
-void GameView::PlayTheGame() {
-
 }
 
 } // namespace Editor

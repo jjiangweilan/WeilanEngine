@@ -1,4 +1,6 @@
 #pragma once
+#include "GfxDriver/CommandBuffer.hpp"
+#include <memory>
 
 namespace Gfx
 {
@@ -8,23 +10,18 @@ class Scene;
 class GameLoop
 {
 public:
+    GameLoop();
+    ~GameLoop();
     void Play();
     void Stop();
 
-    void SetActiveScene(Scene* scene)
-    {
-        this->scene = scene;
-    }
-    Scene* GetActiveScene()
-    {
-        return scene;
-    }
-
-    void Tick();
+    // I think we better render into outputImage (Like we render directly into a swapchain when we are in release
+    // mode?), currently I just use it to pass some information about the screen (size)
+    const Gfx::RG::ImageIdentifier* Tick(Scene& scene, Gfx::Image& outputImage);
 
 private:
-    Scene* scene = nullptr;
     bool isPlaying = false;
 
     void RenderScene();
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
 };

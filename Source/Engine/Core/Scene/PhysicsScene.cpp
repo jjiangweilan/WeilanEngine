@@ -1,4 +1,5 @@
 #include "PhysicsScene.hpp"
+#include "Core/Component/PhysicsBody.hpp"
 
 PhysicsScene::PhysicsScene()
     : temp_allocator(10 * 1024 * 1024),
@@ -38,20 +39,25 @@ PhysicsScene::PhysicsScene()
         object_vs_object_layer_filter
     );
 
-    // A body activation listener gets notified when bodies activate and go to sleep
-    // Note that this is called from a job so whatever you do here needs to be thread safe.
-    // Registering one is entirely optional.
-    MyBodyActivationListener body_activation_listener;
     physicsSystem.SetBodyActivationListener(&body_activation_listener);
-
-    // A contact listener gets notified when bodies (are about to) collide, and when they separate again.
-    // Note that this is called from a job so whatever you do here needs to be thread safe.
-    // Registering one is entirely optional.
-    MyContactListener contact_listener;
     physicsSystem.SetContactListener(&contact_listener);
 
-    // The main way to interact with the bodies in the physics system is through the body interface. There is a
-    // locking and a non-locking variant of this. We're going to use the locking version (even though we're not
-    // planning to access bodies from multiple threads)
     bodyInterface = &physicsSystem.GetBodyInterface();
+
+    physicsSystem.SetGravity({0, -0.98, 0});
+}
+
+PhysicsScene::~PhysicsScene() {}
+
+void PhysicsScene::Tick()
+{
+    const float cDeltaTime = 1.0f / 60.0f;
+    const int cCollisionSteps = 1;
+    // Step the world
+    physicsSystem.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
+
+    for (auto b : bodies)
+    {
+        b->UpdateGameObject();
+    }
 }

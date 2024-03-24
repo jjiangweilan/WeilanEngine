@@ -26,11 +26,16 @@ public:
 
     bool Tick() override;
 
-    void Render(Gfx::CommandBuffer& cmd, Scene* scene);
+    void Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage);
 
     Camera* GetEditorCamera() const
     {
         return editorCamera;
+    }
+
+    Gfx::Image* GetSceneImage()
+    {
+        return sceneImage.get();
     }
 
 private:
@@ -67,6 +72,5 @@ private:
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect);
     void ChangeGameScreenResolution(glm::ivec2 resolution);
-    void PlayTheGame();
 };
 } // namespace Editor
