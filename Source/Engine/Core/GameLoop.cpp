@@ -20,27 +20,29 @@ static void TickGameObject(GameObject* go)
     }
 }
 
-const Gfx::RG::ImageIdentifier* GameLoop::Tick(Scene& scene, Gfx::Image& outputImage)
+const Gfx::RG::ImageIdentifier* GameLoop::Tick(Gfx::Image& outputImage)
 {
+    if (scene == nullptr)
+        return nullptr;
     // update physics
     if (isPlaying)
     {
-        scene.GetPhysicsScene().Tick();
+        scene->GetPhysicsScene().Tick();
 
-        for (auto go : scene.GetRootObjects())
+        for (auto go : scene->GetRootObjects())
         {
             TickGameObject(go);
         }
     }
 
     // render
-    auto camera = scene.GetMainCamera();
+    auto camera = scene->GetMainCamera();
     FrameGraph::Graph* graph = camera->GetFrameGraph();
 
     if (graph && graph->IsCompiled())
     {
         graph->SetScreenSize(outputImage.GetDescription().width, outputImage.GetDescription().height);
-        graph->Execute(*cmd, scene);
+        graph->Execute(*cmd, *scene);
     }
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
@@ -50,7 +52,15 @@ const Gfx::RG::ImageIdentifier* GameLoop::Tick(Scene& scene, Gfx::Image& outputI
 
 void GameLoop::Play()
 {
+    if (scene == nullptr)
+        return;
+
     isPlaying = true;
+
+    for (auto go : scene->GetAllGameObjects())
+    {
+        go->Awake();
+    }
 }
 
 void GameLoop::Stop()

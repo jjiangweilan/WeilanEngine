@@ -413,8 +413,9 @@ void GameEditor::Start()
 
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
-            if (sceneImage && EditorState::activeScene)
-                gameOutputImage = loop->Tick(*EditorState::activeScene, *sceneImage);
+            if (EditorState::activeScene)
+                loop->SetScene(*EditorState::activeScene);
+            gameOutputImage = loop->Tick(*sceneImage);
 
             cmd->Reset(true);
             Render(*cmd, gameOutputImage);

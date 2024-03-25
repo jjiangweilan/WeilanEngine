@@ -119,7 +119,8 @@ PhysicsBody::~PhysicsBody()
 
 void PhysicsBody::Init()
 {
-    JPH::BoxShapeSettings shape(Vec3{0.5f, 0.5f, 0.5f});
+    auto scale = gameObject->GetScale();
+    JPH::BoxShapeSettings shape(Vec3{scale.x, scale.y, scale.z});
     Scene* scene = GetScene();
     if (scene == nullptr)
         return;
@@ -156,19 +157,15 @@ void PhysicsBody::Init()
 
     body = bodyInterface.CreateBody(bodyCreationSettings);
     bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
-    SetGravityFactory(0);
+    SetGravityFactor(0);
 }
 
-void PhysicsBody::SetGravityFactory(float f)
+void PhysicsBody::SetGravityFactor(float f)
 {
     gravityFactor = f;
     if (auto i = GetBodyInterface())
     {
         i->SetGravityFactor(body->GetID(), f);
-        if (f != 0)
-        {
-            i->ActivateBody(body->GetID());
-        }
     }
 }
 
@@ -193,12 +190,12 @@ void PhysicsBody::SetAsSphere(float radius)
     SetShape(s);
 }
 
-void PhysicsBody::SetAsBox(glm::vec3 halfExtent)
+void PhysicsBody::SetAsBox(glm::vec3 extent)
 {
-    if (glm::any(glm::lessThanEqual(halfExtent, glm::vec3(0))))
+    if (glm::any(glm::lessThanEqual(extent, glm::vec3(0))))
         return;
-    JPH::BoxShapeSettings s({halfExtent.x, halfExtent.y, halfExtent.z});
-    bodyScale = glm::vec4(halfExtent, bodyScale.w);
+    JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
+    bodyScale = glm::vec4(extent, bodyScale.w);
     SetShape(s);
 }
 
@@ -208,5 +205,23 @@ void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
     if (auto interface = GetBodyInterface())
     {
         interface->SetMotionType(body->GetID(), motionType, EActivation::DontActivate);
+    }
+}
+
+void PhysicsBody::Awake()
+{
+    if (auto i = GetBodyInterface())
+    {
+        if (body)
+        {
+            auto pos = gameObject->GetPosition();
+            auto rot = gameObject->GetRotation();
+            i->SetPositionAndRotation(
+                body->GetID(),
+                {pos.x, pos.y, pos.z},
+                {rot.x, rot.y, rot.z, rot.w},
+                motionType == EMotionType::Static ? EActivation::DontActivate : EActivation::Activate
+            );
+        }
     }
 }

@@ -86,6 +86,14 @@ public:
         this->scale = scale;
     }
 
+    void Awake()
+    {
+        for (auto& c : components)
+        {
+            c->Awake();
+        }
+    }
+
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
     {
         if (coord == RotationCoordinate::Self)

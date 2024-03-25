@@ -44,6 +44,8 @@ public:
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
+    virtual void Awake() {}
+
 protected:
     virtual void EnableImple(){};
     virtual void DisableImple(){};

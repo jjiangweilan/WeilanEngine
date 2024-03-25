@@ -213,8 +213,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                 Gfx::RG::ImageDescription desc{
                     sceneImage->GetDescription().width,
                     sceneImage->GetDescription().height,
-                    sceneImage->GetDescription().format
-                };
+                    sceneImage->GetDescription().format};
                 cmd.AllocateAttachment(outlineSrcRT, desc);
 
                 Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
@@ -336,7 +335,8 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
-        EditorState::gameLoop->Play();
+        if (EditorState::activeScene)
+            EditorState::gameLoop->Play();
     }
     else if (strcmp(menuSelected, "Pause") == 0)
     {
@@ -414,8 +414,7 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y
-                        };
+                            mousePos.y - windowPos.y - imagePos.y};
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 

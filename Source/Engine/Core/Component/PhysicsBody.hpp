@@ -24,7 +24,7 @@ public:
     ~PhysicsBody() override;
 
     void SetAsSphere(float radius);
-    void SetAsBox(glm::vec3 halfExtent);
+    void SetAsBox(glm::vec3 extent);
     void SetLayer(PhysicsLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
 
@@ -48,7 +48,9 @@ public:
         return gravityFactor;
     }
 
-    void SetGravityFactory(float f);
+    void Awake() override;
+
+    void SetGravityFactor(float f);
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

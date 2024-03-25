@@ -44,7 +44,7 @@ public:
         float gf = target->GetGravityFactory();
         if (ImGui::InputFloat("gravity factor", &gf))
         {
-            target->SetGravityFactory(gf);
+            target->SetGravityFactor(gf);
         }
 
         // motion type
