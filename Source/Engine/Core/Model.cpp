@@ -44,13 +44,16 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
         auto meshRenderer = gameObject->AddComponent<MeshRenderer>();
         int meshIndex = nodeJson["mesh"];
         meshRenderer->SetMesh(meshes[meshIndex]);
-        int primitiveSize = j["meshes"][meshIndex]["primitives"].size();
+        auto& primitives = j["meshes"][meshIndex]["primitives"];
+        int primitiveSize = primitives.size();
         std::vector<Material*> mats;
         for (int i = 0; i < primitiveSize; ++i)
         {
-            mats.push_back(materials[i]);
-            meshRenderer->SetMaterials(mats);
+            auto& p = primitives[i];
+            int matIndex = p.value("material", 0);
+            mats.push_back(materials[matIndex]);
         }
+        meshRenderer->SetMaterials(mats);
     }
 
     std::vector<std::unique_ptr<GameObject>> rlt;
@@ -161,11 +164,10 @@ bool Model::LoadFromFile(const char* cpath)
         mat->SetShaderConfig(config);
 
         // baseColorFactor
+        auto& pbrMetallicRoughness = matJson["pbrMetallicRoughness"];
         std::array<float, 3> baseColorFactor =
-            matJson["pbrMetallicRoughness"].value("baseColorFactor", std::array<float, 3>{1, 1, 1});
+            pbrMetallicRoughness.value("baseColorFactor", std::array<float, 3>{1, 1, 1});
         mat->SetVector("PBR", "baseColorFactor", {baseColorFactor[0], baseColorFactor[1], baseColorFactor[2], 1});
-        mat->SetFloat("PBR", "roughness", 1.0);
-        mat->SetFloat("PBR", "metallic", 1.0);
 
         // baseColorTex
         if (matJson["pbrMetallicRoughness"].contains("baseColorTexture"))
@@ -203,6 +205,10 @@ bool Model::LoadFromFile(const char* cpath)
                 mat->SetTexture("emissiveMap", toOurTexture[emissiveTextureImageIndex]);
             }
         }
+
+        mat->SetFloat("PBR", "emissive", matJson.value("emissiveFactor", 0.0f));
+        mat->SetFloat("PBR", "roughness", pbrMetallicRoughness.value("roughnessFactor", 1.0f));
+        mat->SetFloat("PBR", "metallic", pbrMetallicRoughness.value("metallicFactor", 1.0f));
 
         // metallicRoughnessMap
         if (matJson["pbrMetallicRoughness"].contains("metallicRoughnessTexture"))

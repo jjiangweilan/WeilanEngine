@@ -216,8 +216,6 @@ void VKShaderProgram::CreateShaderPipeline(
     }
 
     // generate bindings
-    DescriptorSetBindings descriptorSetBindings;
-    std::vector<VkSampler> immutableSamplerHandles;
     for (auto& iter : shaderInfo.bindings)
     {
         ShaderInfo::Binding& binding = iter.second;

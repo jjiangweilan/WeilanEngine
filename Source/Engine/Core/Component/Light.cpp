@@ -14,12 +14,14 @@ void Light::SetLightType(LightType type)
     this->lightType = type;
 }
 
-glm::mat4 Light::WorldToShadowMatrix()
+glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
 {
     glm::mat4 proj = glm::ortho(-30., 30., -30., 30., -10., 1000.);
     proj[1][1] *= -1;
     proj[2] *= -1;
-    return proj * glm::inverse(gameObject->GetModelMatrix());
+    auto model = gameObject->GetModelMatrix();
+    model[3] = glm::vec4(follow, 1.0);
+    return proj * glm::inverse(model);
 }
 
 void Light::Serialize(Serializer* s) const

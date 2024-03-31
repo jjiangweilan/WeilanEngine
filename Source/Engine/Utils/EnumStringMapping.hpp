@@ -9,6 +9,7 @@ Gfx::CullMode MapCullMode(const std::string str);
 Gfx::BlendOp MapBlendOp(const std::string& str);
 Gfx::CompareOp MapCompareOp(const std::string& str);
 Gfx::StencilOp MapStencilOp(const std::string& str);
+Gfx::ColorComponentBits MapColorMask(const std::string& str);
 
 const char* MapStrBlendFactor(Gfx::BlendFactor factor);
 const char* MapStrCullMode(Gfx::CullMode cull);

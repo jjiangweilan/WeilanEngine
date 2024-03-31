@@ -29,5 +29,5 @@ private:
 
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
-    Scene* scene;
+    Scene* scene = nullptr;
 };

@@ -26,7 +26,7 @@ public:
         if (currentShapeIndex == 0)
         {
             auto bodyScale = target->GetBodyScale();
-            if (ImGui::InputFloat3("half extent", &bodyScale[0]))
+            if (ImGui::InputFloat3("extent", &bodyScale[0]))
             {
                 target->SetAsBox(bodyScale);
             }

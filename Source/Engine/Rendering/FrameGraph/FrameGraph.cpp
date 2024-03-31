@@ -198,7 +198,7 @@ void Graph::ProcessLights(Scene& gameScene)
     sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
     if (light)
     {
-        sceneInfo.worldToShadow = light->WorldToShadowMatrix();
+        sceneInfo.worldToShadow = light->WorldToShadowMatrix(gameScene.GetMainCamera()->GetGameObject()->GetPosition());
     }
 }
 static void SortNodesInternal(

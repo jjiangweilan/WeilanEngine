@@ -121,6 +121,7 @@ void PhysicsBody::Init()
 {
     auto scale = gameObject->GetScale();
     JPH::BoxShapeSettings shape(Vec3{scale.x, scale.y, scale.z});
+    bodyScale = glm::vec4(scale, 1.0);
     Scene* scene = GetScene();
     if (scene == nullptr)
         return;

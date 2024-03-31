@@ -1,0 +1,71 @@
+#version 450
+
+#if CONFIG
+name: Game/PostProcess/SSAO
+mask: B
+#endif
+
+#include "Utils/FullScreen.glsl"
+
+#if FRAG
+
+#include "Common/SceneInfo.glsl"
+#include "Utils/SpaceConversion.glsl"
+
+layout(location = 0) in vec2 uv;
+layout(location = 0) out vec4 oAO;
+
+layout(set = 0) uniform sampler2D depth_clamp;
+layout(set = 0) uniform sampler2D normal_clamp;
+
+#define depthTex depth_clamp
+#define normalTex normal_clamp
+
+#define SSAO_SAMPLE_COUNT 64
+layout(set = 1) uniform SSAO
+{
+    vec4 samples[SSAO_SAMPLE_COUNT];
+} ssao;
+
+layout(set = 1) uniform SSAOParam
+{
+    float bias;
+    float radius;
+} param;
+
+void main()
+{
+    vec3 normalVS = mat3(scene.view) * texture(normalTex, uv).xyz;
+
+    float depthVal = texture(depthTex, uv).x;
+    vec3 screenPos = vec3(uv * 2 - 1, depthVal);
+    vec4 pixelVS = scene.invProjection * vec4(screenPos, 1.0);
+    pixelVS /= pixelVS.w;
+
+    vec3 anyVec = vec3(1,0,0);
+    anyVec = all(equal(normalVS, anyVec)) ? vec3(0,1,0) : anyVec;
+    vec3 tangent   = normalize(anyVec - normalVS * dot(anyVec, normalVS));
+    vec3 bitangent = cross(normalVS, tangent);
+    mat3 TBN       = mat3(tangent, bitangent, normalVS); 
+
+    // const float bias = 0.005;
+    float occlusion = 0;
+    const float depthValVS = LinearEyeDepth(depthVal);
+    for(int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+    {
+        vec3 sampleVS = pixelVS.xyz + TBN * ssao.samples[i].xyz * param.radius;
+        vec4 sampleCS = scene.projection * vec4(sampleVS, 1.0);
+        sampleCS /= sampleCS.w;
+
+        vec2 uv = sampleCS.xy * 0.5 + 0.5;
+        float sampleDepth = texture(depthTex, uv).x;
+
+        float rangeCheck = smoothstep(0.0, 1.0, param.radius / abs(depthValVS - LinearEyeDepth(sampleDepth)));
+        occlusion  += (sampleDepth >= (sampleCS.z + param.bias) ? 1.0 : 0.0) * rangeCheck;
+    }
+    occlusion /= SSAO_SAMPLE_COUNT;
+
+    oAO = vec4(0, 0, occlusion, 0);
+}
+
+#endif

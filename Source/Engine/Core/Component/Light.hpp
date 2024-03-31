@@ -26,7 +26,7 @@ public:
     {
         this->intensity = intensity;
     }
-    glm::mat4 WorldToShadowMatrix();
+    glm::mat4 WorldToShadowMatrix(const glm::vec3& follow);
 
     LightType GetLightType() const
     {

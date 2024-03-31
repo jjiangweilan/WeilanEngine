@@ -151,7 +151,6 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     {
         graph->ReportValidation();
     }
-    ImGui::SameLine();
 
     auto overlayCursor = ImGui::GetCursorPos();
 

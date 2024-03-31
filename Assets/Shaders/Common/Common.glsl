@@ -36,7 +36,7 @@ float PcfShadow(vec2 shadowCoord, float objShadowDepth)
     float x,y;
 
     const float steps = 2;
-    const float filterSize = 3;
+    const float filterSize = 1;
     const float halfFilterSize = filterSize / 2;
     const float filterStep = filterSize / steps;
     const float totalSample = (steps + 1) * (steps + 1);

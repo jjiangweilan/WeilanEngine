@@ -148,15 +148,44 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
     root.get_if("interleaved", &config.vertexInterleaved);
     config.depth.boundTestEnable = false;
 
+    if (root.has_child("mask"))
+    {
+        if (root["mask"].is_val()) // mask for the first render target
+        {
+            std::string val;
+            root["mask"] >> val;
+            Gfx::ColorBlendAttachmentState state{};
+            state.colorWriteMask = Utils::MapColorMask(val);
+            config.color.blends.push_back(state);
+        }
+        else if (root["mask"].is_seq()) // mask for multiple render target, to be implmented
+        {
+            throw std::runtime_error("not implmented");
+            Gfx::ColorBlendAttachmentState state;
+            config.color.blends.push_back(state);
+        }
+    }
+
     if (root.has_child("blend"))
     {
         if (root["blend"].is_seq())
         {
+            int i = 0;
             for (const ryml::NodeRef& iter : root["blend"])
             {
                 if (iter.is_val())
                 {
-                    Gfx::ColorBlendAttachmentState state;
+                    Gfx::ColorBlendAttachmentState* state;
+                    if (i < config.color.blends.size())
+                    {
+                        state = &config.color.blends[i];
+                    }
+                    else
+                    {
+                        config.color.blends.push_back(Gfx::ColorBlendAttachmentState{});
+                        state = &config.color.blends.back();
+                    }
+
                     std::string val;
                     iter >> val;
 
@@ -165,34 +194,33 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
                     std::cmatch m;
                     if (std::regex_match(val.c_str(), m, blendWithColorPattern))
                     {
-                        state.blendEnable = true;
+                        state->blendEnable = true;
                         std::string srcColorBlendFactor = m[1].str();
                         std::string srcAlphaBlendFactor = m[2].str();
                         std::string dstColorBlendFactor = m[3].str();
                         std::string dstAlphaBlendFactor = m[4].str();
 
-                        state.srcColorBlendFactor = Utils::MapBlendFactor(srcColorBlendFactor);
-                        state.srcAlphaBlendFactor = Utils::MapBlendFactor(srcAlphaBlendFactor);
-                        state.dstColorBlendFactor = Utils::MapBlendFactor(dstColorBlendFactor);
-                        state.dstAlphaBlendFactor = Utils::MapBlendFactor(dstAlphaBlendFactor);
+                        state->srcColorBlendFactor = Utils::MapBlendFactor(srcColorBlendFactor);
+                        state->srcAlphaBlendFactor = Utils::MapBlendFactor(srcAlphaBlendFactor);
+                        state->dstColorBlendFactor = Utils::MapBlendFactor(dstColorBlendFactor);
+                        state->dstAlphaBlendFactor = Utils::MapBlendFactor(dstAlphaBlendFactor);
                     }
                     else if (std::regex_match(val.c_str(), m, blendPattern))
                     {
-                        state.blendEnable = true;
+                        state->blendEnable = true;
                         std::string srcAlphaBlendFactor = m[1].str();
                         std::string dstAlphaBlendFactor = m[2].str();
-                        state.srcAlphaBlendFactor = Utils::MapBlendFactor(srcAlphaBlendFactor);
-                        state.dstAlphaBlendFactor = Utils::MapBlendFactor(dstAlphaBlendFactor);
-                        state.srcColorBlendFactor = state.srcAlphaBlendFactor;
-                        state.dstColorBlendFactor = state.dstAlphaBlendFactor;
+                        state->srcAlphaBlendFactor = Utils::MapBlendFactor(srcAlphaBlendFactor);
+                        state->dstAlphaBlendFactor = Utils::MapBlendFactor(dstAlphaBlendFactor);
+                        state->srcColorBlendFactor = state->srcAlphaBlendFactor;
+                        state->dstColorBlendFactor = state->dstAlphaBlendFactor;
 
-                        if (state.srcAlphaBlendFactor == Gfx::BlendFactor::One &&
-                            state.dstAlphaBlendFactor == Gfx::BlendFactor::Zero)
-                            state.blendEnable = false;
+                        if (state->srcAlphaBlendFactor == Gfx::BlendFactor::One &&
+                            state->dstAlphaBlendFactor == Gfx::BlendFactor::Zero)
+                            state->blendEnable = false;
                     }
-
-                    config.color.blends.push_back(state);
                 }
+                i++;
             }
         }
     }

@@ -117,6 +117,10 @@ private:
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;
 
+    // descriptor pool takea pointer to these value so these can't be temp values
+    DescriptorSetBindings descriptorSetBindings;
+    std::vector<VkSampler> immutableSamplerHandles;
+
     void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
 

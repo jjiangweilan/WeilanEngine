@@ -15,6 +15,8 @@ features:
 #if G_DEFERRED
 depth:
     testEnable: False
+blend:
+    - one one
 #endif
 #endif
 
@@ -92,6 +94,7 @@ layout(set = SET_MATERIAL, binding = 0) uniform PBR
     vec4 baseColorFactor;
     float roughness;
     float metallic;
+    float emissive;
 } matParams;
 layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
 layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;
@@ -160,6 +163,7 @@ void main()
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
     float roughness = mask.y;
+    float ao = mask.z;
     vec3 baseColor = texture(albedoTex, i_UV).xyz;
     float depth = texture(depthTex, i_UV).x;
     vec4 positionWS = scene.invNDCToWorld * vec4(i_UV * 2 - 1, depth, 1.0);
@@ -169,6 +173,7 @@ void main()
     vec3 n = normalize(i_NormalWS);
     vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
     float metallic = metallicRoughness.y;
+    float ao = 0;
     float roughness = max(metallicRoughness.x, 0.01);
     vec3 baseColor = texture(BaseColorTex, i_UV).xyz * matParams.baseColorFactor.xyz;
     vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
@@ -211,7 +216,7 @@ void main()
 
     // diffuse cube light
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
-    vec3 ambient = baseColor * diffuseCubeColor / M_PI;
+    vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI;
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 

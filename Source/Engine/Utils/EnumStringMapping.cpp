@@ -2,6 +2,29 @@
 
 namespace Utils
 {
+Gfx::ColorComponentBits MapColorMask(const std::string& str)
+{
+    Gfx::ColorComponentBits mask = 0;
+    if (str.find("R") != str.npos)
+    {
+        mask |= Gfx::ColorComponentBit::Component_R_Bit;
+    }
+    if (str.find("G") != str.npos)
+    {
+        mask |= Gfx::ColorComponentBit::Component_G_Bit;
+    }
+    if (str.find("B") != str.npos)
+    {
+        mask |= Gfx::ColorComponentBit::Component_B_Bit;
+    }
+    if (str.find("A") != str.npos)
+    {
+        mask |= Gfx::ColorComponentBit::Component_A_Bit;
+    }
+
+    return mask;
+}
+
 Gfx::BlendFactor MapBlendFactor(const std::string& str)
 {
     if (str == "zero")

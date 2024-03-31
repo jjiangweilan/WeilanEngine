@@ -6,16 +6,16 @@
 
 namespace FrameGraph
 {
-class DeferredShadingNode : public Node
+class GBufferPassNode : public Node
 {
-    DECLARE_FRAME_GRAPH_NODE(DeferredShadingNode)
+    DECLARE_FRAME_GRAPH_NODE(GBufferPassNode)
     {
         input.color = AddInputProperty("color", PropertyType::Attachment);
         input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
         input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
 
         output.color = AddOutputProperty("color", PropertyType::Attachment);
+        output.albedo = AddOutputProperty("albedo", PropertyType::Attachment);
         output.normal = AddOutputProperty("normal", PropertyType::Attachment);
         output.mask = AddOutputProperty("mask", PropertyType::Attachment);
         output.depth = AddOutputProperty("depth", PropertyType::Attachment);
@@ -37,21 +37,8 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
         gbufferPass.SetSubpass(0, subpassAttachments, depth);
 
-        lightingPass = Gfx::RG::RenderPass(1, 1);
-
-        Gfx::RG::SubpassAttachment lightingPassAttachment{
-            0,
-            Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        };
-        Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
-        lightingPass.SetSubpass(0, lightingPassAttachments);
-
         gbufferPassShader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/GBufferPass.shad");
-        lightingPassShader =
-            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
-        lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
     }
 
     void Compile() override
@@ -61,23 +48,20 @@ class DeferredShadingNode : public Node
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
-#if ENGINE_DEV_BUILD
-        lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
-#endif
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
         drawList = input.drawList->GetValue<DrawList*>();
 
-        int rtWidth = colorProp.desc.GetWidth();
-        int rtHeight = colorProp.desc.GetHeight();
+        int rtWidth = depthProp.desc.GetWidth();
+        int rtHeight = depthProp.desc.GetHeight();
         albedoDesc.SetWidth(rtWidth);
         albedoDesc.SetHeight(rtHeight);
         albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
-        normalDesc.SetWidth(colorProp.desc.GetWidth());
-        normalDesc.SetHeight(colorProp.desc.GetHeight());
+        normalDesc.SetWidth(depthProp.desc.GetWidth());
+        normalDesc.SetHeight(depthProp.desc.GetHeight());
         normalDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
-        maskDesc.SetWidth(colorProp.desc.GetWidth());
-        maskDesc.SetHeight(colorProp.desc.GetHeight());
+        maskDesc.SetWidth(depthProp.desc.GetWidth());
+        maskDesc.SetHeight(depthProp.desc.GetHeight());
         maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
 
         cmd.AllocateAttachment(albedoRTID, albedoDesc);
@@ -117,19 +101,9 @@ class DeferredShadingNode : public Node
         }
         cmd.EndRenderPass();
 
-        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
-        lightingPass.SetAttachment(0, colorProp.id);
-        cmd.BeginRenderPass(lightingPass, lightingPassClearValues);
-        cmd.SetTexture("albedoTex", albedoRTID);
-        cmd.SetTexture("normalTex", normalRTID);
-        cmd.SetTexture("maskTex", maskRTID);
-        cmd.SetTexture("depthTex", depthProp.id);
-        cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassShaderProgram->GetDefaultShaderConfig());
-        cmd.Draw(6, 1, 0, 0);
-        cmd.EndRenderPass();
-
-        output.color->SetValue(input.color->GetValue<AttachmentProperty>());
-        output.depth->SetValue(input.depth->GetValue<AttachmentProperty>());
+        output.color->SetValue(colorProp);
+        output.albedo->SetValue(AttachmentProperty{albedoRTID, albedoDesc});
+        output.depth->SetValue(depthProp);
         output.normal->SetValue(AttachmentProperty{normalRTID, normalDesc});
         output.mask->SetValue(AttachmentProperty{maskRTID, maskDesc});
     }
@@ -148,48 +122,26 @@ private:
     Gfx::RG::ImageDescription maskDesc;
 
     Gfx::RG::RenderPass gbufferPass;
-    Gfx::RG::RenderPass lightingPass;
 
     Shader* gbufferPassShader;
-    Shader* lightingPassShader;
-    Gfx::ShaderProgram* lightingPassShaderProgram;
 
     struct
     {
         PropertyHandle color;
         PropertyHandle depth;
-        PropertyHandle shadowMap;
         PropertyHandle drawList;
     } input;
 
     struct
     {
         PropertyHandle color;
+        PropertyHandle albedo;
         PropertyHandle normal;
         PropertyHandle mask;
         PropertyHandle depth;
     } output;
-
-    uint32_t cloudTexSize = 128;
-    uint32_t cloudTex2Size = 64;
-
-    void MakeCloudNoise(Gfx::CommandBuffer& cmd)
-    {
-        // Material* cloudNoiseMaterial = GetConfigurableVal<Material*>("cloud noise material");
-        //
-        // if (cloudNoiseMaterial)
-        // {
-        //     cloudNoiseMaterial->UploadDataToGPU();
-        //     cmd.SetTexture("imgOutput", *cloudRT);
-        //     cmd.SetTexture("imgOutput2", *cloud2RT);
-        //     cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
-        //     cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
-        //     cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
-        //     cmd.SetTexture("cloudDensity", *cloudRT);
-        // }
-    }
 };
 
-DEFINE_FRAME_GRAPH_NODE(DeferredShadingNode, "3D8FE097-C835-41EE-9C9C-8E8667DC4DFD");
+DEFINE_FRAME_GRAPH_NODE(GBufferPassNode, "BA901CE6-84C1-4689-A0E3-87E548314A45");
 } // namespace FrameGraph
   //
