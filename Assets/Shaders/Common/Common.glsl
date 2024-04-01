@@ -23,7 +23,7 @@ layout(set = SET_GLOBAL, binding = 1) uniform texture2D shadowMap;
 #ifdef G_VSM
 layout(set = SET_GLOBAL, binding = 2) uniform sampler shadowMapSampler;
 #else
-layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler;
+layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_clamp;
 #endif
 layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;
@@ -35,20 +35,16 @@ float PcfShadow(vec2 shadowCoord, float objShadowDepth)
 
     float x,y;
 
-    const float steps = 2;
-    const float filterSize = 1;
-    const float halfFilterSize = filterSize / 2;
-    const float filterStep = filterSize / steps;
-    const float totalSample = (steps + 1) * (steps + 1);
-    for (y = -halfFilterSize; y <= halfFilterSize; y += filterStep)
-        for (x = -halfFilterSize; x <= halfFilterSize; x += filterStep)
+    float halfFilterSize = 3;
+    for (y = -halfFilterSize; y <= halfFilterSize; y += 1)
+        for (x = -halfFilterSize; x <= halfFilterSize; x += 1)
         {
-            vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
+            vec2 uv = shadowCoord + 0.8 * vec2(x, y) * scene.shadowMapSize.zw;
             vec3 uvd = vec3(uv, objShadowDepth);
-            shadow += texture(sampler2DShadow(shadowMap, shadowMapSampler), uvd).x;
+            shadow += texture(sampler2DShadow(shadowMap, shadowMapSampler_clamp), uvd).x;
         }
 
-    return shadow / totalSample;
+    return shadow / 49.0f;
 }
 #endif
 
