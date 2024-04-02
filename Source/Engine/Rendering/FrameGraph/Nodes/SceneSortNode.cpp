@@ -5,6 +5,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 namespace FrameGraph
 {
@@ -41,7 +42,50 @@ public:
             }
         }
 
+        Sort(*drawList, renderingData);
+
         output.drawList->SetValue(drawList.get());
+    }
+
+    void Sort(DrawList& drawList, RenderingData& renderingData)
+    {
+        auto pos = renderingData.mainCamera->GetGameObject()->GetPosition();
+        std::sort(
+            drawList.begin(),
+            drawList.end(),
+            [&pos](const SceneObjectDrawData& left, const SceneObjectDrawData& right) {
+                return glm::distance2(pos, glm::vec3(left.pushConstant[3])) <
+                       glm::distance2(pos, glm::vec3(right.pushConstant[3]));
+            }
+        );
+
+        // partition transparent object to the end
+        auto transparentIter = std::stable_partition(
+            drawList.begin(),
+            drawList.end(),
+            [](const SceneObjectDrawData& val) { 
+                return !val.shaderConfig->color.blends[0].blendEnable; 
+            }
+        );
+        drawList.transparentIndex = std::distance(drawList.begin(), transparentIter);
+
+        // partition opaque and alpha tested objects
+        auto alphaTestIter = std::stable_partition(
+            drawList.begin(),
+            transparentIter,
+            [](const SceneObjectDrawData& val)
+            {
+                static std::string alphaTest = "_AlphaTest";
+                for (auto& fs : val.shaderConfig->features)
+                {
+                    if (std::find(fs.begin(), fs.end(), alphaTest) != fs.end())
+                        return false;
+                }
+                return true;
+            }
+        );
+        drawList.opaqueIndex = 0;
+        drawList.alphaTestIndex = std::distance(drawList.begin(), alphaTestIter);
     }
 
 private:

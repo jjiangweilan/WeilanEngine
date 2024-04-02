@@ -162,6 +162,13 @@ void Node::Deserialize(Serializer* s)
     s->Deserialize("customName", customName);
 }
 
+void swap(SceneObjectDrawData&& a, SceneObjectDrawData&& b)
+{
+    SceneObjectDrawData c(std::move(a));
+    a = std::move(b);
+    b = std::move(c);
+}
+
 void DrawList::Add(MeshRenderer& meshRenderer)
 {
     auto mesh = meshRenderer.GetMesh();
@@ -211,7 +218,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
         for (int i = 0; i < materials.size(); ++i)
         {
             auto material = materials[i];
-            if (material == nullptr) continue;
+            if (material == nullptr)
+                continue;
 
             auto shader = material ? material->GetShaderProgram() : nullptr;
             material->UploadDataToGPU();

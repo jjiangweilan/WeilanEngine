@@ -112,6 +112,8 @@ void Scene::DestroyGameObject(GameObject* obj)
         DestroyGameObject(child);
     }
 
+    obj->SetEnable(false);
+
     if (GameObject* parent = obj->GetParent())
     {
         parent->RemoveChild(obj);

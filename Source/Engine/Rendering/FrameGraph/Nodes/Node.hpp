@@ -47,6 +47,7 @@ struct SceneObjectDrawData
 {
     SceneObjectDrawData() = default;
     SceneObjectDrawData(SceneObjectDrawData&& other) = default;
+    SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
     Gfx::ShaderProgram* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
@@ -56,9 +57,14 @@ struct SceneObjectDrawData
     glm::mat4 pushConstant;
     uint32_t indexCount;
 };
+void swap(SceneObjectDrawData&& a, SceneObjectDrawData&& b);
+
 class DrawList : public std::vector<SceneObjectDrawData>
 {
 public:
+    int opaqueIndex;
+    int alphaTestIndex;
+    int transparentIndex;
     void Add(MeshRenderer& meshRenderer);
 };
 
