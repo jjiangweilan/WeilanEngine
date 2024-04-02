@@ -50,9 +50,9 @@ layout(location = 3) out vec4 o_Property;
 layout(set = SET_MATERIAL, binding = 0) uniform PBR
 {
     vec4 baseColorFactor;
+    vec4 emissive;
     float roughness;
     float metallic;
-    float emissive;
 } matParams;
 
 layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
@@ -79,7 +79,7 @@ void main()
 
     vec4 emission = texture(EmissiveMap, i_UV);
     o_Property = vec4(metallic, roughness, 0, 0);
-    o_Lighting = emission * matParams.emissive;
+    o_Lighting = vec4(emission.xyz * matParams.emissive.xyz, 1.0f);
 }
 #endif
 

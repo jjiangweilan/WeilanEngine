@@ -206,7 +206,9 @@ bool Model::LoadFromFile(const char* cpath)
             }
         }
 
-        mat->SetFloat("PBR", "emissive", matJson.value("emissiveFactor", 0.0f));
+        std::array<float, 3> emissive = {0, 0, 0};
+        emissive = matJson.value("emissiveFactor", emissive);
+        mat->SetVector("PBR", "emissive", glm::vec4(emissive[0], emissive[1], emissive[2], 1.0f));
         mat->SetFloat("PBR", "roughness", pbrMetallicRoughness.value("roughnessFactor", 1.0f));
         mat->SetFloat("PBR", "metallic", pbrMetallicRoughness.value("metallicFactor", 1.0f));
 
