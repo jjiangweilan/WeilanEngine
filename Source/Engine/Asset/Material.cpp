@@ -198,10 +198,10 @@ Gfx::ShaderProgram* Material::GetShaderProgram()
         shaderContentHash = shader->GetContentHash();
 
         this->globalShaderFeaturesHash = globalShaderFeaturesHash;
-        std::vector<std::string> features(enabledFeatures.begin(), enabledFeatures.end());
+        cachedShaderProgramFeatures = std::vector<std::string>(enabledFeatures.begin(), enabledFeatures.end());
         auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
-        features.insert(features.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
-        auto newProgram = shader->GetShaderProgram(features);
+        cachedShaderProgramFeatures.insert(cachedShaderProgramFeatures.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
+        auto newProgram = shader->GetShaderProgram(cachedShaderProgramFeatures);
 
         if (newProgram != cachedShaderProgram)
         {

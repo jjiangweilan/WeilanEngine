@@ -540,8 +540,7 @@ bool VKDriver::EndFrame()
 
     VkPipelineStageFlags waitFlags[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-    };
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -564,8 +563,7 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     FrameEndClear();
 
@@ -697,9 +695,8 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -983,8 +980,7 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain
-    };
+        oldSwapChain};
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1052,8 +1048,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
@@ -1136,7 +1131,10 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
-    deviceCreateInfo.pEnabledFeatures = VK_NULL_HANDLE;
+    VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.independentBlend = true;
+
+    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);

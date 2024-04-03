@@ -37,7 +37,7 @@ const Gfx::RG::ImageIdentifier* GameLoop::Tick(Gfx::Image& outputImage)
 
     // render
     auto camera = scene->GetMainCamera();
-    FrameGraph::Graph* graph = camera->GetFrameGraph();
+    FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
 
     if (graph && graph->IsCompiled())
     {
@@ -47,7 +47,10 @@ const Gfx::RG::ImageIdentifier* GameLoop::Tick(Gfx::Image& outputImage)
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
     cmd->Reset(true);
-    return graph->GetOutputImage();
+    if (graph)
+        return graph->GetOutputImage();
+    else
+        return nullptr;
 }
 
 void GameLoop::Play()

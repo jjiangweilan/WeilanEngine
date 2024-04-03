@@ -64,8 +64,7 @@ public:
             drawList.begin(),
             drawList.end(),
             [](const SceneObjectDrawData& val) { 
-                return !val.shaderConfig->color.blends[0].blendEnable; 
-            }
+                return val.shaderConfig->color.blends.empty() ? true : !val.shaderConfig->color.blends[0].blendEnable; }
         );
         drawList.transparentIndex = std::distance(drawList.begin(), transparentIter);
 
@@ -76,16 +75,13 @@ public:
             [](const SceneObjectDrawData& val)
             {
                 static std::string alphaTest = "_AlphaTest";
-                for (auto& fs : val.shaderConfig->features)
-                {
-                    if (std::find(fs.begin(), fs.end(), alphaTest) != fs.end())
-                        return false;
-                }
-                return true;
+
+                auto& features = val.material->GetCachedShaderProgramFeatureUsed();
+                return std::find(features.begin(), features.end(), alphaTest) == features.end();
             }
         );
-        drawList.opaqueIndex = 0;
         drawList.alphaTestIndex = std::distance(drawList.begin(), alphaTestIter);
+        drawList.opaqueIndex = 0;
     }
 
 private:

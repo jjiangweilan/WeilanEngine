@@ -159,10 +159,6 @@ bool Model::LoadFromFile(const char* cpath)
         Utils::GLB::SetAssetName(mat.get(), jsonData, "materials", i);
 
         nlohmann::json& matJson = jsonData["materials"][i];
-        auto config = mat->GetShaderConfig();
-        config.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
-        mat->SetShaderConfig(config);
-
         // baseColorFactor
         auto& pbrMetallicRoughness = matJson["pbrMetallicRoughness"];
         std::array<float, 3> baseColorFactor =
@@ -206,16 +202,21 @@ bool Model::LoadFromFile(const char* cpath)
             }
         }
 
+        auto shaderConfig = mat->GetShaderConfig();
+        shaderConfig.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
         std::array<float, 3> emissive = {0, 0, 0};
         std::string alphaModel = matJson.value("alphaMode", "OPAQUE");
-        auto shaderConfig = mat->GetShaderConfig();
+        shaderConfig.depth.testEnable = true;
+        if (shaderConfig.color.blends.empty())
+        {
+            shaderConfig.color.blends.push_back({});
+        }
         if (alphaModel == "MASK")
         {
             mat->SetFloat("PBR", "alphaCutoff", matJson.value("alphaCutoff", 0.5f));
             mat->EnableFeature("_AlphaTest");
             auto& blend = shaderConfig.color.blends[0];
             blend.blendEnable = false;
-            mat->SetShaderConfig(shaderConfig);
         }
         else if (alphaModel == "BLEND")
         {
@@ -227,15 +228,15 @@ bool Model::LoadFromFile(const char* cpath)
             blend.srcAlphaBlendFactor = Gfx::BlendFactor::Src_Alpha;
             blend.dstAlphaBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
             blend.alphaBlendOp = Gfx::BlendOp::Add;
-            mat->SetShaderConfig(shaderConfig);
         }
         else
         {
             mat->SetFloat("PBR", "alphaCutoff", 0.0f);
             auto& blend = shaderConfig.color.blends[0];
             blend.blendEnable = false;
-            mat->SetShaderConfig(shaderConfig);
         }
+        mat->SetShaderConfig(shaderConfig);
+
         emissive = matJson.value("emissiveFactor", emissive);
         mat->SetVector("PBR", "emissive", glm::vec4(emissive[0], emissive[1], emissive[2], 1.0f));
         mat->SetFloat("PBR", "roughness", pbrMetallicRoughness.value("roughnessFactor", 1.0f));

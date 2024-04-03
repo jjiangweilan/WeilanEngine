@@ -188,8 +188,6 @@ void DrawList::Add(MeshRenderer& meshRenderer)
 
             if (submesh != nullptr && material != nullptr && shader != nullptr)
             {
-                // material->SetMatrix("Transform", "model",
-                // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
                 uint32_t indexCount = submesh->GetIndexCount();
 
                 SceneObjectDrawData drawData;
@@ -208,6 +206,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                 auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
                 drawData.pushConstant = modelMatrix;
                 drawData.indexCount = indexCount;
+                drawData.material = material;
 
                 push_back(std::move(drawData));
             }

@@ -97,6 +97,8 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::BC3_SRGB_Block;
     else if (name == "B10G11R11_UFloat_Pack32")
         return ImageFormat::B10G11R11_UFloat_Pack32;
+    else if (name == "A2B10G10R10_UNorm")
+        return ImageFormat::A2B10G10R10_UNorm;
 
     return ImageFormat::Invalid;
 }
@@ -175,6 +177,8 @@ const char* MapImageFormatToString(ImageFormat format)
         return "BC3_SRGB_Block";
     else if (format == ImageFormat::B10G11R11_UFloat_Pack32)
         return "B10G11R11_UFloat_Pack32";
+    else if (format == ImageFormat::A2B10G10R10_UNorm)
+        return "A2B10G10R10_UNorm";
 
     return "Invalid";
 }

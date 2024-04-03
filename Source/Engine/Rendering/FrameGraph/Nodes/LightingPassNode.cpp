@@ -32,14 +32,24 @@ class LightingPassNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
         lightingPassShader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
         lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
+        lightingPassConfig = lightingPassShaderProgram->GetDefaultShaderConfig();
+        lightingPassConfig.color.blends.push_back({
+            .blendEnable = true,
+            .srcColorBlendFactor = Gfx::BlendFactor::One,
+            .dstColorBlendFactor = Gfx::BlendFactor::One,
+            .colorBlendOp = Gfx::BlendOp::Add,
+            .srcAlphaBlendFactor = Gfx::BlendFactor::One,
+            .dstAlphaBlendFactor = Gfx::BlendFactor::Zero,
+            .alphaBlendOp = Gfx::BlendOp::Add,
+            .colorWriteMask = Gfx::ColorComponentBit::Component_All_Bits,
+        });
     }
 
     void Compile() override
@@ -75,7 +85,7 @@ class LightingPassNode : public Node
         cmd.SetTexture("normalTex", normalProp.id);
         cmd.SetTexture("maskTex", maskProp.id);
         cmd.SetTexture("depthTex", depthProp.id);
-        cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassShaderProgram->GetDefaultShaderConfig());
+        cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassConfig);
         cmd.Draw(6, 1, 0, 0);
         cmd.EndRenderPass();
 
@@ -98,6 +108,7 @@ private:
 
     Shader* lightingPassShader;
     Gfx::ShaderProgram* lightingPassShaderProgram;
+    Gfx::ShaderConfig lightingPassConfig;
 
     struct
     {

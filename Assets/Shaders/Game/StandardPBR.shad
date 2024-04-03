@@ -12,11 +12,10 @@ name: Game/StandardPBR
 features:
     - [G_PCF, G_VSM]
     - [_, G_DEFERRED]
+    - [_, _AlphaTest]
 #if G_DEFERRED
 depth:
     testEnable: False
-blend:
-    - one one
 #endif
 #endif
 
@@ -160,7 +159,7 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
 void main()
 {
 #ifdef G_DEFERRED
-    vec3 n = texture(normalTex, i_UV).xyz;
+    vec3 n = texture(normalTex, i_UV).xyz * 2 - 1.0f;
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
     float roughness = mask.y;
@@ -195,8 +194,8 @@ void main()
 
     // shadow mask
     float shadowAttenuation = 1.0;
-    const float shadowBias = 0.0001f;
-    const float shadowNormalBias = 0.1f;
+    const float shadowBias = 0.00001f;
+    const float shadowNormalBias = 0.03f;
 #ifdef G_DEFERRED
     vec4 shadowCS = scene.worldToShadow * vec4(positionWS.xyz + shadowNormalBias * n, 1.0);
     shadowCS = shadowCS / shadowCS.w;

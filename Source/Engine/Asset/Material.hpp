@@ -78,6 +78,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
+    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const { return cachedShaderProgramFeatures; }
 private:
     struct UBO
     {
@@ -116,6 +117,7 @@ private:
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
     Gfx::ShaderProgram* cachedShaderProgram = nullptr;
+    std::vector<std::string> cachedShaderProgramFeatures;
     uint64_t globalShaderFeaturesHash;
     bool overrideShaderConfig = false;
 

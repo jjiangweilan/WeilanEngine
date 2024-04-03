@@ -35,7 +35,7 @@ layout(set = 1) uniform SSAOParam
 
 void main()
 {
-    vec3 normalVS = mat3(scene.view) * texture(normalTex, uv).xyz;
+    vec3 normalVS = mat3(scene.view) * (texture(normalTex, uv).xyz * 2.0f - 1.0f);
 
     float depthVal = texture(depthTex, uv).x;
     vec3 screenPos = vec3(uv * 2 - 1, depthVal);

@@ -80,8 +80,10 @@ void main()
     float roughness = max(metallicRoughness.x, 0.01);
     vec3 color = vec3(0,0,0);
 
-    vec3 v = normalize(scene.viewPos.xyz - i_PositionWS);
-    vec3 n = normalize(i_NormalWS);
+
+    vec3 normal = texture(NormalMap, i_UV).xyz;
+    mat3 TBN = mat3(i_TangentWS, i_BitangentWS, i_NormalWS);
+    vec3 n = normalize(TBN * normal * 0.5 + 0.5);
 
     o_Albedo = baseColor;
     o_Normal = vec4(n, 0);

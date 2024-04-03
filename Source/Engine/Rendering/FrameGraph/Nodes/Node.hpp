@@ -1,5 +1,6 @@
 #pragma once
 #include "../RenderingData.hpp"
+#include "Asset/Material.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
@@ -50,6 +51,7 @@ struct SceneObjectDrawData
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
     Gfx::ShaderProgram* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
+    Material* material = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
     Gfx::Buffer* indexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType;

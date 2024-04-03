@@ -59,7 +59,7 @@ class GBufferPassNode : public Node
         albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
         normalDesc.SetWidth(depthProp.desc.GetWidth());
         normalDesc.SetHeight(depthProp.desc.GetHeight());
-        normalDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+        normalDesc.SetFormat(Gfx::ImageFormat::A2B10G10R10_UNorm);
         maskDesc.SetWidth(depthProp.desc.GetWidth());
         maskDesc.SetHeight(depthProp.desc.GetHeight());
         maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
@@ -96,19 +96,18 @@ class GBufferPassNode : public Node
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
                 cmd.BindResource(2, draw.shaderResource);
-                cmd.BindShaderProgram(gbufferPassShader->GetDefaultShaderProgram(), *draw.shaderConfig);
                 cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
 
             auto alphaTestedShader = gbufferPassShader->GetShaderProgram(alphaTestFeatureID);
+            cmd.BindShaderProgram(alphaTestedShader, alphaTestedShader->GetDefaultShaderConfig());
             for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
             {
                 auto& draw = drawList->at(i);
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
                 cmd.BindResource(2, draw.shaderResource);
-                cmd.BindShaderProgram(alphaTestedShader, *draw.shaderConfig);
                 cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }

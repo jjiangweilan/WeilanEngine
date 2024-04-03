@@ -81,7 +81,7 @@ void GLB::SetAssetName(Asset* asset, nlohmann::json& j, const std::string& asset
     if (meshJson.contains("name"))
     {
         std::string meshName = meshJson["name"];
-        asset->SetName(meshName);
+        asset->SetName(meshName + "_" + assetGroupName);
     }
     else
     {
