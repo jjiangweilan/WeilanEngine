@@ -53,7 +53,6 @@ std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
 
     clone->mesh = mesh;
     clone->materials = materials;
-    clone->aabb = aabb;
 
     return clone;
 }
@@ -92,4 +91,13 @@ void MeshRenderer::EnableImple()
 void MeshRenderer::DisableImple()
 {
     RemoveFromRenderingScene();
+}
+
+AABB MeshRenderer::GetAABB()
+{
+    auto model = GetGameObject()->GetModelMatrix();
+    AABB aabb = mesh->GetAABB();
+    aabb.Transform(glm::mat3(model), model[3]);
+
+    return aabb;
 }

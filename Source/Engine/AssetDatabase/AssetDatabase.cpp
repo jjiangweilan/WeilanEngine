@@ -140,9 +140,9 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     assets.Add(std::move(ad));
                 }
 
-                // resolve reference, skip scene resolve
                 for (auto& iter : resolveMap)
                 {
+                    if (iter.second.empty()) continue;
                     // resolve external reference
                     Asset* externalAsset = LoadAssetByID(iter.first);
                     if (externalAsset)
@@ -153,7 +153,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     // resolve internal reference
                     // currently I didn't resolve reference to external contained object
                     // that can be done by cache a list of contained objects
-                    auto objs = ser.GetContainedObjects();
+                    const auto& objs = ser.GetContainedObjects();
                     auto containedObj = objs.find(iter.first);
                     if (containedObj != objs.end())
                     {

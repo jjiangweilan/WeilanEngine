@@ -42,10 +42,13 @@ public:
             }
         }
 
+
         Sort(*drawList, renderingData);
 
         output.drawList->SetValue(drawList.get());
     }
+
+    bool FrustumCull(MeshRenderer& r) {}
 
     void Sort(DrawList& drawList, RenderingData& renderingData)
     {
@@ -63,8 +66,8 @@ public:
         auto transparentIter = std::stable_partition(
             drawList.begin(),
             drawList.end(),
-            [](const SceneObjectDrawData& val) { 
-                return val.shaderConfig->color.blends.empty() ? true : !val.shaderConfig->color.blends[0].blendEnable; }
+            [](const SceneObjectDrawData& val)
+            { return val.shaderConfig->color.blends.empty() ? true : !val.shaderConfig->color.blends[0].blendEnable; }
         );
         drawList.transparentIndex = std::distance(drawList.begin(), transparentIter);
 

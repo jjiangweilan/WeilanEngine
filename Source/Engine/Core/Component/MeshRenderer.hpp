@@ -55,6 +55,7 @@ public:
     void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
+    AABB GetAABB();
     const std::vector<Material*>& GetMaterials();
 
     void Serialize(Serializer* s) const override;
@@ -65,7 +66,6 @@ public:
 private:
     Mesh* mesh = nullptr;
     std::vector<Material*> materials = {};
-    AABB aabb;
     bool multipass = false;
 
     void AddToRenderingScene();

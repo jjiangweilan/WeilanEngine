@@ -62,16 +62,20 @@ public:
         return parent;
     }
     void SetParent(GameObject* parent);
+
     void SetRotation(const glm::vec3& rotation)
     {
+        updateModelMatrix = true;
         this->rotation = glm::quat(rotation);
     };
     void SetRotation(const glm::quat& rotation)
     {
+        updateModelMatrix = true;
         this->rotation = rotation;
     }
     void SetPosition(const glm::vec3& position)
     {
+        updateModelMatrix = true;
         auto delta = position - this->position;
         this->position = position;
 
@@ -83,6 +87,7 @@ public:
 
     void SetScale(const glm::vec3& scale)
     {
+        updateModelMatrix = true;
         this->scale = scale;
     }
 
@@ -96,6 +101,7 @@ public:
 
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
     {
+        updateModelMatrix = true;
         if (coord == RotationCoordinate::Self)
         {
             rotation = glm::rotate(rotation, angle, axis);
@@ -111,6 +117,7 @@ public:
     }
     void Translate(const glm::vec3& translate)
     {
+        updateModelMatrix = true;
         this->position += translate;
 
         for (GameObject* child : children)
@@ -144,12 +151,15 @@ public:
         return glm::eulerAngles(GetRotation());
     }
 
-    glm::mat4 GetModelMatrix() const
+    glm::mat4 GetModelMatrix()
     {
-        glm::mat4 rst =
-            glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+        if (updateModelMatrix)
+        {
+            modelMatrix =
+                glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+        }
 
-        return rst;
+        return modelMatrix;
     }
     void SetModelMatrix(const glm::mat4& model);
 
@@ -162,7 +172,9 @@ private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
+    glm::mat4 modelMatrix;
     bool enabled = false;
+    bool updateModelMatrix = true;
 
     std::vector<GameObject*> children;
     std::vector<std::unique_ptr<Component>> components;

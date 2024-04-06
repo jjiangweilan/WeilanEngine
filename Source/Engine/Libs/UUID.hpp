@@ -26,7 +26,7 @@ public:
     }
     const UUID& operator=(const UUID& other);
     bool IsEmpty() const;
-    const std::string& ToString() const;
+    std::string ToString() const;
     static const UUID& GetEmptyUUID();
 
 private:
@@ -36,7 +36,6 @@ private:
     static std::mt19937 generator;
     static uuids::uuid_name_generator nameGenerator;
     uuids::uuid id;
-    std::string strID;
 
     friend class std::hash<UUID>;
 };

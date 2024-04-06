@@ -669,8 +669,6 @@ bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<con
 
 void VKDriver::CreateInstance()
 {
-    bool enableValidationLayers = false;
-
     // Create vulkan application info
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -700,6 +698,7 @@ void VKDriver::CreateInstance()
         "VK_LAYER_KHRONOS_synchronization2"
     }; // If you don't get syncrhonization validation work, be sure it's enabled
        // and overrided in vkconfig app in VulkanSDK
+    bool enableValidationLayers = false;
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -741,6 +740,7 @@ void VKDriver::CreateInstance()
         throw std::runtime_error("failed to create instance!");
     }
 
+    instance.debugMessenger = nullptr;
     if (enableValidationLayers)
     {
         // If we enable validation layer, then we also want to enable debug messenger

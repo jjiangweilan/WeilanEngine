@@ -171,8 +171,8 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0);
         glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
         lastMouseDelta = mouseLastClickDelta;
-        auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
-        auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
+        auto upDown = glm::radians(mouseDelta.y * 50) * Time::DeltaTime();
+        auto leftRight = glm::radians(mouseDelta.x * 50) * Time::DeltaTime();
 
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right - upDown * up;

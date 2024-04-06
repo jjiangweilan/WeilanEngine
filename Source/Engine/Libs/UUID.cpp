@@ -4,10 +4,9 @@
 UUID::UUID()
 {
     id = uuids::uuid_random_generator{generator}();
-    strID = uuids::to_string(id);
 }
 
-UUID::UUID(const UUID& uuid) : id(uuid.id), strID(uuid.strID) {}
+UUID::UUID(const UUID& uuid) : id(uuid.id) {}
 
 UUID::UUID(const std::string& uuid)
 {
@@ -15,12 +14,10 @@ UUID::UUID(const std::string& uuid)
     if (optionalUUID.has_value())
     {
         id = optionalUUID.value();
-        strID = uuid;
     }
     else
     {
         id = uuids::uuid();
-        strID = uuids::to_string(id);
     }
 }
 
@@ -33,7 +30,7 @@ bool UUID::IsEmpty() const
     return id.is_nil();
 }
 
-UUID::UUID(const std::string& str, FromStrTag) : id(nameGenerator(str)), strID(uuids::to_string(id)) {}
+UUID::UUID(const std::string& str, FromStrTag) : id(nameGenerator(str)) {}
 
 const std::mt19937 CreateGenerator()
 {
@@ -46,9 +43,9 @@ const std::mt19937 CreateGenerator()
     return generator;
 }
 
-const std::string& UUID::ToString() const
+std::string UUID::ToString() const
 {
-    return strID;
+    return uuids::to_string(id);
 }
 
 UUID::UUID(UUID::EmptyTag) : id() {}
@@ -56,7 +53,6 @@ UUID::UUID(UUID::EmptyTag) : id() {}
 const UUID& UUID::operator=(const UUID& other)
 {
     id = other.id;
-    strID = other.strID;
 
     return *this;
 }

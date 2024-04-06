@@ -38,4 +38,23 @@ struct AABB
 {
     glm::vec3 min;
     glm::vec3 max;
+
+    void Transform(const glm::mat3& rs, const glm::vec3& t)
+    {
+
+        glm::vec3 nmin, nmax;
+        nmin = t;
+        nmax = t;
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j)
+            {
+                float a = rs[i][j] * min[j];
+                float b = rs[i][j] * max[j];
+                nmin[i] += a < b ? a : b;
+                nmax[i] += a < b ? b : a;
+            }
+
+        min = nmin;
+        max = nmax;
+    }
 };
