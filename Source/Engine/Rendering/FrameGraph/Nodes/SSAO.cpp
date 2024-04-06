@@ -22,6 +22,16 @@ class SSAONode : public Node
 
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
         AddConfig<ConfigurableType::Float>("radius", 0.3f);
+        enable = AddConfig<ConfigurableType::Bool>("enable", true);
+
+        Gfx::RG::SubpassAttachment c[] = {{
+            0,
+            Gfx::AttachmentLoadOperation::Load,
+            Gfx::AttachmentStoreOperation::Store,
+        }};
+        mainPass = Gfx::RG::RenderPass(1, 1);
+        mainPass.SetSubpass(0, c);
+        mainPass.SetName("SSAO");
     }
 
     void Compile() override
@@ -82,25 +92,28 @@ class SSAONode : public Node
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
-        SSAOParam newParam{*bias, *radius};
-        if (ssaoParam != newParam)
+        if (*enable)
         {
-            ssaoParam = newParam;
-            GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&ssaoParam, sizeof(SSAOParam));
-        }
-        auto depth = input.depth->GetValue<AttachmentProperty>().id;
-        auto normal = input.normal->GetValue<AttachmentProperty>().id;
-        auto attachment = input.attachment->GetValue<AttachmentProperty>().id;
-        if (shader != nullptr)
-        {
-            mainPass.SetAttachment(0, attachment);
-            cmd.BeginRenderPass(mainPass, clears);
-            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
-            cmd.BindResource(1, passResource.get());
-            cmd.SetTexture(depthHandle, depth);
-            cmd.SetTexture(normalHandle, normal);
-            cmd.Draw(6, 1, 0, 0);
-            cmd.EndRenderPass();
+            SSAOParam newParam{*bias, *radius};
+            if (ssaoParam != newParam)
+            {
+                ssaoParam = newParam;
+                GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&ssaoParam, sizeof(SSAOParam));
+            }
+            auto depth = input.depth->GetValue<AttachmentProperty>().id;
+            auto normal = input.normal->GetValue<AttachmentProperty>().id;
+            auto attachment = input.attachment->GetValue<AttachmentProperty>().id;
+            if (shader != nullptr)
+            {
+                mainPass.SetAttachment(0, attachment);
+                cmd.BeginRenderPass(mainPass, clears);
+                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+                cmd.BindResource(1, passResource.get());
+                cmd.SetTexture(depthHandle, depth);
+                cmd.SetTexture(normalHandle, normal);
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
+            }
         }
 
         output.color->SetValue(input.attachment->GetValue<AttachmentProperty>());
@@ -110,11 +123,12 @@ private:
     Shader* shader;
     float* bias;
     float* radius;
+    bool* enable;
     std::vector<Gfx::ClearValue> clears;
     std::unique_ptr<Gfx::ShaderResource> passResource;
     std::unique_ptr<Gfx::Buffer> ssaoBuf;
     std::unique_ptr<Gfx::Buffer> ssaoParamBuf;
-    Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::SingleColor("SSAO");
+    Gfx::RG::RenderPass mainPass;
     Gfx::ShaderBindingHandle depthHandle = Gfx::ShaderBindingHandle("depth");
     Gfx::ShaderBindingHandle normalHandle = Gfx::ShaderBindingHandle("normal");
 

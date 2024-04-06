@@ -228,7 +228,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                     );
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
+                    cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
                 cmd.EndRenderPass();

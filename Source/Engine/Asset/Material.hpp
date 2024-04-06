@@ -33,7 +33,16 @@ public:
         return shader;
     }
 
-    Gfx::ShaderProgram* GetShaderProgram();
+    Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass)
+    {
+        int pass = shader->FindShaderPass(shaderPass);
+        if (pass != -1)
+        {
+            return GetShaderProgram(pass);
+        }
+        return nullptr;
+    }
+    Gfx::ShaderProgram* GetShaderProgram(int shaderPassIndex = 0);
 
     Gfx::ShaderResource* GetShaderResource()
     {
@@ -78,7 +87,11 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const { return cachedShaderProgramFeatures; }
+    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const
+    {
+        return cachedShaderProgramFeatures;
+    }
+
 private:
     struct UBO
     {

@@ -28,17 +28,14 @@ class GBufferPassNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
         Gfx::RG::SubpassAttachment depth{4};
         Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
         gbufferPass.SetSubpass(0, subpassAttachments, depth);
-
-        gbufferPassShader =
-            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/GBufferPass.shad");
-        alphaTestFeatureID = gbufferPassShader->GetFeaturesID({"_AlphaTest"});
     }
 
     void Compile() override
@@ -74,7 +71,9 @@ class GBufferPassNode : public Node
         Gfx::Viewport viewport{0, 0, static_cast<float>(rtWidth), static_cast<float>(rtHeight), 0, 1};
         cmd.SetViewport(viewport);
 
-        Gfx::ClearValue clears[] = {*clearValuesVal, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+        // clear albedo to black
+        // masks to 1 (mainly for ao)
+        Gfx::ClearValue clears[] = {*clearValuesVal, {0, 0, 0, 0}, {0, 0, 0, 0}, {1.0f, 1.0f, 1.0f, 1.0f}, {1, 0}};
         gbufferPass.SetAttachment(0, colorProp.id);
         gbufferPass.SetAttachment(1, albedoRTID);
         gbufferPass.SetAttachment(2, normalRTID);
@@ -86,31 +85,37 @@ class GBufferPassNode : public Node
 
         if (drawList)
         {
-            cmd.BindShaderProgram(
-                gbufferPassShader->GetDefaultShaderProgram(),
-                gbufferPassShader->GetDefaultShaderConfig()
-            );
             for (int i = 0; i < drawList->alphaTestIndex; ++i)
             {
                 auto& draw = drawList->at(i);
-                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(2, draw.shaderResource);
-                cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
-                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+                if (shaderProgram)
+                {
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.BindResource(2, draw.shaderResource);
+                    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                    cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                }
             }
 
-            auto alphaTestedShader = gbufferPassShader->GetShaderProgram(alphaTestFeatureID);
-            cmd.BindShaderProgram(alphaTestedShader, alphaTestedShader->GetDefaultShaderConfig());
+            Shader::EnableFeature("_AlphaTest");
             for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
             {
                 auto& draw = drawList->at(i);
-                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(2, draw.shaderResource);
-                cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
-                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+                if (shaderProgram)
+                {
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.BindResource(2, draw.shaderResource);
+                    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                    cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                }
             }
+            Shader::DisableFeature("_AlphaTest");
         }
         cmd.EndRenderPass();
 
@@ -136,8 +141,6 @@ private:
 
     Gfx::RG::RenderPass gbufferPass;
     uint64_t alphaTestFeatureID;
-
-    Shader* gbufferPassShader;
 
     struct
     {

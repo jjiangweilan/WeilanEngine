@@ -23,7 +23,7 @@ void FrameGraphEditor::DrawConfigurableField(
     else if (config.type == fg::ConfigurableType::Float)
     {
         float v = std::any_cast<float>(config.data);
-        if (ImGui::InputFloat("", &v))
+        if (ImGui::InputFloat("", &v, 0, 0, "%.7f"))
         {
             config.data = v;
             graph->SetDirty();
@@ -41,7 +41,7 @@ void FrameGraphEditor::DrawConfigurableField(
     else if (config.type == fg::ConfigurableType::Vec2)
     {
         glm::vec2 v = std::any_cast<glm::vec2>(config.data);
-        if (ImGui::InputFloat2("", &v[0]))
+        if (ImGui::InputFloat2("", &v[0], "%.7f"))
         {
             config.data = v;
             graph->SetDirty();
@@ -50,7 +50,7 @@ void FrameGraphEditor::DrawConfigurableField(
     else if (config.type == fg::ConfigurableType::Vec3)
     {
         glm::vec3 v = std::any_cast<glm::vec3>(config.data);
-        if (ImGui::InputFloat3("", &v[0]))
+        if (ImGui::InputFloat3("", &v[0], "%.7f"))
         {
             config.data = v;
             graph->SetDirty();
@@ -59,7 +59,7 @@ void FrameGraphEditor::DrawConfigurableField(
     else if (config.type == fg::ConfigurableType::Vec4)
     {
         glm::vec4 v = std::any_cast<glm::vec4>(config.data);
-        if (ImGui::InputFloat4("", &v[0]))
+        if (ImGui::InputFloat4("", &v[0], "%.7f"))
         {
             config.data = v;
             graph->SetDirty();

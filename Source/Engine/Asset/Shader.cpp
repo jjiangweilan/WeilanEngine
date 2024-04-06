@@ -9,7 +9,10 @@ DEFINE_ASSET(ComputeShader, "91093726-6D8F-440C-B617-6AA3FDA08DEA", "comp");
 
 ShaderBase::ShaderBase(const std::string& name, std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram, const UUID& uuid)
 {
-    shaderPrograms[0] = std::move(shaderProgram);
+    auto shaderPass = std::make_unique<ShaderPass>();
+    shaderPass->shaderPrograms[0] = std::move(shaderProgram);
+    shaderPass->name = "Default";
+    shaderPasses.push_back(std::move(shaderPass));
     SetUUID(uuid);
     this->name = name;
 }
@@ -18,10 +21,12 @@ void ShaderBase::Reload(Asset&& other)
 {
     ShaderBase* casted = static_cast<ShaderBase*>(&other);
     shaderName = (std::move(casted->shaderName));
-    shaderPrograms = (std::move(casted->shaderPrograms));
-    cachedShaderProgram = nullptr;
+    shaderPasses = std::move(casted->shaderPasses);
+    for (auto& s : shaderPasses)
+    {
+        s->cachedShaderProgram = nullptr;
+    }
     contentHash = 0;
-    featureToBitMask = std::move(casted->featureToBitMask);
     Asset::Reload(std::move(other));
 }
 
@@ -61,9 +66,27 @@ void ShaderBase::GlobalShaderFeature::EnableFeature(const char* name)
     }
 }
 
+int ShaderBase::FindShaderPass(std::string_view name)
+{
+    for (int i = 0; i < shaderPasses.size(); ++i)
+    {
+        if (shaderPasses[i]->name == name)
+            return i;
+    }
+
+    return -1;
+}
+
 Gfx::ShaderProgram* ShaderBase::GetShaderProgram(size_t enabledFeatureHash)
 {
-    for (auto& s : shaderPrograms)
+    return GetShaderProgram(0, enabledFeatureHash);
+}
+
+Gfx::ShaderProgram* ShaderBase::GetShaderProgram(int shaderPassIndex, size_t enabledFeatureHash)
+{
+    assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
+
+    for (auto& s : shaderPasses[shaderPassIndex]->shaderPrograms)
     {
         if ((enabledFeatureHash & s.first) == enabledFeatureHash)
         {
@@ -74,12 +97,14 @@ Gfx::ShaderProgram* ShaderBase::GetShaderProgram(size_t enabledFeatureHash)
     return nullptr;
 }
 
-uint64_t ShaderBase::GetFeaturesID(const std::vector<std::string>& enabledFeature)
+uint64_t ShaderBase::GetFeaturesID(int shaderPassIndex, const std::vector<std::string>& enabledFeature)
 {
+    assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
+
     uint64_t id = 0;
     for (auto& f : enabledFeature)
     {
-        id |= featureToBitMask[f];
+        id |= shaderPasses[shaderPassIndex]->featureToBitMask[f];
     }
 
     return id;
@@ -107,26 +132,22 @@ void ShaderBase::GlobalShaderFeature::Rehash()
     setHash = XXH64(concat.data(), concat.size(), 0);
 }
 
-Gfx::ShaderProgram* ShaderBase::GetShaderProgram(const std::vector<std::string>& enabledFeature)
-{
-    uint64_t id = GetFeaturesID(enabledFeature);
-
-    return GetShaderProgram(id);
-}
-
 Gfx::ShaderProgram* ShaderBase::GetDefaultShaderProgram()
 {
+    assert(shaderPasses.size() != 0);
+    auto& shaderPass = shaderPasses[0];
+
     uint64_t globalShaderFeaturesHash = ShaderBase::GetEnabledFeaturesHash();
 
-    if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash)
+    if (shaderPass->cachedShaderProgram == nullptr || shaderPass->globalShaderFeaturesHash != globalShaderFeaturesHash)
     {
-        this->globalShaderFeaturesHash = globalShaderFeaturesHash;
+        shaderPass->globalShaderFeaturesHash = globalShaderFeaturesHash;
         auto& globalEnabledFeatures = ShaderBase::GetEnabledFeatures();
-        cachedShaderProgram =
+        shaderPass->cachedShaderProgram =
             GetShaderProgram(std::vector<std::string>(globalEnabledFeatures.begin(), globalEnabledFeatures.end()));
     }
 
-    return cachedShaderProgram;
+    return shaderPass->cachedShaderProgram;
 }
 
 ShaderBase::GlobalShaderFeature& ShaderBase::GetGlobalShaderFeature()
@@ -137,8 +158,6 @@ ShaderBase::GlobalShaderFeature& ShaderBase::GetGlobalShaderFeature()
 
 bool Shader::LoadFromFile(const char* path)
 {
-    cachedShaderProgram = nullptr;
-
     if (name.empty())
     {
         std::filesystem::path apath(path);
@@ -148,23 +167,89 @@ bool Shader::LoadFromFile(const char* path)
     std::fstream f(path);
     std::stringstream ss;
     ss << f.rdbuf();
+    std::string ssf = ss.str();
+
+    // preprocess shader pass
+    std::regex shaderPassReg("ShaderPass\\s+(\\w+)");
+
+    contentHash += 1;
+    shaderPasses.clear();
     try
     {
-        bool debugMode = false;
-#if ENGINE_EDITOR
-        debugMode = true;
-#endif
-        compiler.Compile(path, ss.str(), debugMode);
-        for (auto& iter : compiler.GetCompiledSpvs())
+        for (std::sregex_iterator it(ssf.begin(), ssf.end(), shaderPassReg), it_end; it != it_end; ++it)
         {
-            shaderPrograms[iter.first] =
-                GetGfxDriver()
-                    ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
-        }
-        this->name = compiler.GetName();
-        contentHash += 1;
+            std::string shaderPassName = it->str(1);
+            int nameStart = it->position(1);
+            int nameLength = it->length(1);
 
-        featureToBitMask = compiler.GetFeatureToBitMask();
+            int index = nameStart + nameLength;
+            // find first '{'
+            while (ssf[index] != '{' && index < ssf.size())
+            {
+                index++;
+            }
+
+            if (ssf[index] != '{')
+                throw std::exception("failed to found valid shader pass block");
+            int quoteCount = 1;
+            int shaderPassBlockStart = index + 1;
+            index += 1;
+            while (index < ssf.size() && quoteCount != 0)
+            {
+                if (ssf[index] == '{')
+                    quoteCount += 1;
+                if (ssf[index] == '}')
+                    quoteCount -= 1;
+                index++;
+            }
+            if (ssf[index-1] != '}')
+                throw std::exception("failed to found valid shader pass block");
+            int shaderPassBlockEnd = index-1;
+
+            // compile shader pass block
+            auto shaderPass = std::make_unique<ShaderPass>();
+
+            bool debugMode = false;
+#if ENGINE_EDITOR
+            debugMode = true;
+#endif
+            std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
+            compiler.Compile(path, shaderPassBlock, debugMode);
+            for (auto& iter : compiler.GetCompiledSpvs())
+            {
+                shaderPass->shaderPrograms[iter.first] =
+                    GetGfxDriver()
+                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+            }
+
+            shaderPass->name = shaderPassName;
+            shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+            shaderPasses.push_back(std::move(shaderPass));
+        }
+
+        // no shader pass use the whole as single pass
+        if (shaderPasses.empty())
+        {
+            auto shaderPass = std::make_unique<ShaderPass>();
+
+            bool debugMode = false;
+#if ENGINE_EDITOR
+            debugMode = true;
+#endif
+            compiler.Compile(path, ssf, debugMode);
+            for (auto& iter : compiler.GetCompiledSpvs())
+            {
+                shaderPass->shaderPrograms[iter.first] =
+                    GetGfxDriver()
+                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+            }
+
+            shaderPass->name = compiler.GetName();
+            shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+            shaderPass->cachedShaderProgram = nullptr;
+            shaderPasses.push_back(std::move(shaderPass));
+        }
+        // this->name = compiler.GetName();
     }
     catch (const std::exception& e)
     {
@@ -175,7 +260,9 @@ bool Shader::LoadFromFile(const char* path)
 }
 bool ComputeShader::LoadFromFile(const char* path)
 {
-    cachedShaderProgram = nullptr;
+    auto shaderPass = std::make_unique<ShaderPass>();
+
+    shaderPass->cachedShaderProgram = nullptr;
 
     if (name.empty())
     {
@@ -196,14 +283,15 @@ bool ComputeShader::LoadFromFile(const char* path)
         compiler.CompileComputeShader(path, ss.str(), debugMode);
         for (auto& iter : compiler.GetCompiledSpvs())
         {
-            shaderPrograms[iter.first] =
+            shaderPass->shaderPrograms[iter.first] =
                 GetGfxDriver()->CreateComputeShaderProgram(path, compiler.GetConfig(), iter.second.compSpv);
         }
 
         this->name = compiler.GetName();
         contentHash += 1;
 
-        featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPasses.push_back(std::move(shaderPass));
     }
     catch (const std::exception& e)
     {

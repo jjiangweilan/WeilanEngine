@@ -6,6 +6,11 @@
 name: Game/GBufferPass
 features:
     - [_, _AlphaTest]
+    - [_, _BaseColorMap]
+    - [_, _NormalMap]
+    - [_, _EmissiveMap]
+    - [_, _MetallicRoughnessMap]
+queue: 2000
 #endif
 
 #if VERT

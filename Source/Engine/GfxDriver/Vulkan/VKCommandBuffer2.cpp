@@ -117,7 +117,8 @@ void VKCommandBuffer2::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth};
+        .maxDepth = viewport.maxDepth
+    };
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
@@ -325,11 +326,8 @@ void VKCommandBuffer2::BeginRenderPass(RG::RenderPass& renderPass, std::span<Cle
     VKCmd cmd{VKCmdType::RGBeginRenderPass};
 
     cmd.rgBeginRenderPass.renderPass = &renderPass;
-    memcpy(
-        cmd.rgBeginRenderPass.clearValues,
-        clearValues.data(),
-        clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue)
-    );
+    int copySize = clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue);
+    memcpy(cmd.rgBeginRenderPass.clearValues, clearValues.data(), copySize);
     cmd.rgBeginRenderPass.clearValueCount = clearValues.size() <= 8 ? clearValues.size() : 8;
 
     cmds.push_back(cmd);

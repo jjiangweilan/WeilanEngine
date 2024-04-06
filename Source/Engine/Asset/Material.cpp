@@ -186,7 +186,7 @@ Gfx::ShaderResource* Material::ValidateGetShaderResource()
     return shaderResource.get();
 }
 
-Gfx::ShaderProgram* Material::GetShaderProgram()
+Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
 {
     if (!shader)
         return nullptr;
@@ -200,8 +200,12 @@ Gfx::ShaderProgram* Material::GetShaderProgram()
         this->globalShaderFeaturesHash = globalShaderFeaturesHash;
         cachedShaderProgramFeatures = std::vector<std::string>(enabledFeatures.begin(), enabledFeatures.end());
         auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
-        cachedShaderProgramFeatures.insert(cachedShaderProgramFeatures.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
-        auto newProgram = shader->GetShaderProgram(cachedShaderProgramFeatures);
+        cachedShaderProgramFeatures
+            .insert(cachedShaderProgramFeatures.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
+        auto newProgram = shader->GetShaderProgram(
+            shaderPassIndex,
+            shader->GetFeaturesID(shaderPassIndex, cachedShaderProgramFeatures)
+        );
 
         if (newProgram != cachedShaderProgram)
         {
@@ -333,16 +337,16 @@ void Material::UploadDataToGPU()
                                 break;
                             }
                         case Gfx::ShaderInfo::ShaderDataType::UInt:
-                        {
-                            auto iter = u.second.floats.find(m.first);
-                            if (iter != u.second.floats.end())
                             {
-                                size_t offset = m.second.offset;
-                                assert(offset + sizeof(float) <= bufSize);
-                                *((uint32_t*)(tempUploadData.data() + offset)) = (uint32_t)iter->second;
+                                auto iter = u.second.floats.find(m.first);
+                                if (iter != u.second.floats.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(float) <= bufSize);
+                                    *((uint32_t*)(tempUploadData.data() + offset)) = (uint32_t)iter->second;
+                                }
+                                break;
                             }
-                            break;
-                        }
                         case Gfx::ShaderInfo::ShaderDataType::Vec4:
                         case Gfx::ShaderInfo::ShaderDataType::Vec3:
                             {

@@ -1,4 +1,5 @@
 #include "AssetDatabase.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
 #include <iostream>
@@ -139,7 +140,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     assets.Add(std::move(ad));
                 }
 
-                // resolve reference
+                // resolve reference, skip scene resolve
                 for (auto& iter : resolveMap)
                 {
                     // resolve external reference

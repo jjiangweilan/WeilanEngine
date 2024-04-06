@@ -540,7 +540,8 @@ bool VKDriver::EndFrame()
 
     VkPipelineStageFlags waitFlags[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+    };
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -563,7 +564,8 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     FrameEndClear();
 
@@ -667,7 +669,7 @@ bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<con
 
 void VKDriver::CreateInstance()
 {
-    bool enableValidationLayers = true;
+    bool enableValidationLayers = false;
 
     // Create vulkan application info
     VkApplicationInfo appInfo{};
@@ -695,8 +697,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -704,11 +707,6 @@ void VKDriver::CreateInstance()
             throw std::runtime_error("validation layers requested, but not available!");
         }
 
-        // VK_EXT_DEBUG_UTILS_EXTENSION_NAME enables message callback
-        extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#if __APPLE__
-        extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
 
@@ -726,6 +724,12 @@ void VKDriver::CreateInstance()
 
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     }
+
+    // VK_EXT_DEBUG_UTILS_EXTENSION_NAME enables message callback
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#if __APPLE__
+    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 
     // Enable instance extension
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
@@ -980,7 +984,8 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain};
+        oldSwapChain
+    };
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1048,7 +1053,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

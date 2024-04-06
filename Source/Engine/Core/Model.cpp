@@ -174,6 +174,7 @@ bool Model::LoadFromFile(const char* cpath)
                 int baseColorImageIndex = GetImageIndex(texJson[baseColorSamplerIndex]);
                 mat->SetTexture("baseColorTex", toOurTexture[baseColorImageIndex]);
             }
+            mat->EnableFeature("_BaseColorMap");
         }
 
         // normal map
@@ -185,10 +186,7 @@ bool Model::LoadFromFile(const char* cpath)
                 int normalTextureImageInex = GetImageIndex(texJson[normalTextureSamplerIndex]);
                 mat->SetTexture("normalMap", toOurTexture[normalTextureImageInex]);
             }
-        }
-        else
-        {
-            // TODO: disable shader feature for normal texture
+            mat->EnableFeature("_NormalMap");
         }
 
         // emission
@@ -200,6 +198,7 @@ bool Model::LoadFromFile(const char* cpath)
                 int emissiveTextureImageIndex = GetImageIndex(texJson[textureSamplerIndex]);
                 mat->SetTexture("emissiveMap", toOurTexture[emissiveTextureImageIndex]);
             }
+            mat->EnableFeature("_EmissiveMap");
         }
 
         auto shaderConfig = mat->GetShaderConfig();
@@ -252,6 +251,7 @@ bool Model::LoadFromFile(const char* cpath)
                 int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
                 mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
             }
+            mat->EnableFeature("_MetallicRoughnessMap");
         }
 
         toOurMaterial[i] = mat.get();

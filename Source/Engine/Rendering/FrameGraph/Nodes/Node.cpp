@@ -184,7 +184,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
         {
             auto material = i < materials.size() ? materials[i] : nullptr;
             auto submesh = i < submeshes.size() ? &submeshes[i] : nullptr;
-            auto shader = material ? material->GetShaderProgram() : nullptr;
+            auto shader = material ? material->GetShader() : nullptr;
 
             if (submesh != nullptr && material != nullptr && shader != nullptr)
             {
@@ -201,7 +201,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
 
                 material->UploadDataToGPU();
                 drawData.shaderResource = material->GetShaderResource();
-                drawData.shader = shader;
+                drawData.shader = (Shader*)shader;
                 drawData.shaderConfig = &material->GetShaderConfig();
                 auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
                 drawData.pushConstant = modelMatrix;
@@ -240,7 +240,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                     drawData.indexBufferType = submesh.GetIndexBufferType();
 
                     drawData.shaderResource = material->GetShaderResource();
-                    drawData.shader = shader;
+                    drawData.shader = (Shader*)shader;
                     drawData.shaderConfig = &material->GetShaderConfig();
                     auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
                     drawData.pushConstant = modelMatrix;

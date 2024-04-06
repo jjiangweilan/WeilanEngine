@@ -1,0 +1,152 @@
+// Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+#version 450
+#define G_PCF
+#include "Common/Common.glsl"
+#include "Common/DeferredShading.glsl"
+
+#if CONFIG
+name: Game/StandardPBRLighting
+features:
+    - [_, _AlphaTest]
+depth:
+    testEnable: False
+#endif
+
+#define LOC_ShadowMapCS 5
+
+#if VERT
+layout(location = 0) out vec2 o_uv;
+
+void main()
+{
+    vec4 c_Positions[6] = 
+    {
+        {-1,-1,0.5,1},
+        {-1, 1,0.5,1},
+        { 1, 1,0.5,1},
+
+        {-1,-1,0.5,1},
+        {1,  1,0.5,1},
+        { 1,-1,0.5,1}
+    };
+
+    gl_Position = c_Positions[gl_VertexIndex];
+    o_uv = gl_Position.xy * 0.5f + 0.5f;
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec2 i_UV;
+layout(set = 0, binding = 6) uniform sampler2D albedoTex;
+layout(set = 0, binding = 7) uniform sampler2D normalTex;
+layout(set = 0, binding = 8) uniform sampler2D maskTex;
+layout(set = 0, binding = 9) uniform sampler2D depthTex;
+layout(set = 1) uniform ShadingProperties
+{
+    float shadowConstantBias;
+    float shadowNormalBias;
+} prop;
+
+layout(location = 0) out vec4 o_Color;
+
+#define NearZero 0.000001
+
+float pow2(float x)
+{
+    return x * x;
+}
+
+const vec2 invAtan = vec2(0.1591, 0.3183);
+vec2 SphericalToUV(vec3 v)
+{
+    // -asin because we have top-left uv origin
+    vec2 uv = vec2(atan(v.z, v.x), -asin(v.y));
+
+    // convert to [0,1]
+    uv *= invAtan;
+    uv += 0.5;
+    return uv;
+}
+
+float Fresnel(float metallic, float dotVH)
+{
+    return metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+}
+
+float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
+{
+    vec3 h = normalize(l + v);
+    float dotNH = max(dot(n,h), NearZero);
+    float dotNV = max(dot(n,v), NearZero);
+    float dotNL = max(dot(n,l), NearZero);
+    float dotVH = max(dot(v,h), NearZero);
+    float r2 = roughness * roughness;
+    r2 *= r2;
+// ndf
+    float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
+
+// geometry
+    float k = pow2(roughness + 1) / 8;
+    float Gv = dotNV / (dotNV * (1 - k) + k);
+    float Gl = dotNL / (dotNL * (1 - k) + k);
+    float G = Gv * Gl;
+
+// fresnel
+    float F = Fresnel(metallic, dotVH);
+
+    float brdf = (G * F * D) / (4 * dotNL * dotNV);
+    return brdf;
+}
+
+void main()
+{
+    vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
+    vec4 mask = texture(maskTex, i_UV);
+    float metallic = mask.x;
+    float roughness = mask.y;
+    float ao = mask.z;
+    vec3 baseColor = texture(albedoTex, i_UV).xyz;
+    float depth = texture(depthTex, i_UV).x;
+    vec4 positionWS = scene.invNDCToWorld * vec4(i_UV * 2 - 1, depth, 1.0);
+    positionWS /= positionWS.w;
+    vec3 v = normalize(scene.viewPos.xyz - positionWS.xyz);
+
+    vec3 color = vec3(0,0,0);
+    for (int i = 0; i < scene.lightCount.x; ++i)
+    {
+        vec4 lightPos = scene.lights[i].position;
+        vec3 l = lightPos.xyz;
+
+        float dotNL = max(dot(n,l), NearZero);
+        float brdf = SpecularBRDF(l, v, n, metallic, roughness);
+
+        float light = dotNL * scene.lights[i].intensity;
+        color += light * (baseColor / M_PI * ao + brdf);
+    }
+
+    // shadow mask
+    float shadowAttenuation = 1.0;
+    const float shadowBias = prop.shadowConstantBias;
+    const float shadowNormalBias = prop.shadowNormalBias;
+    vec4 shadowCS = scene.worldToShadow * vec4(positionWS.xyz + shadowNormalBias * n, 1.0);
+    shadowCS = shadowCS / shadowCS.w;
+    vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
+    float objShadowDepth = shadowCS.z - shadowBias;
+    if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
+    {
+        shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+    }
+
+    // diffuse cube light
+    vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
+    vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI;
+
+    // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
+
+    o_Color = vec4(color * shadowAttenuation + ambient, 1);
+
+}
+#endif
+
+
+

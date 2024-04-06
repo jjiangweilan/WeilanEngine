@@ -49,7 +49,7 @@ struct SceneObjectDrawData
     SceneObjectDrawData() = default;
     SceneObjectDrawData(SceneObjectDrawData&& other) = default;
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
-    Gfx::ShaderProgram* shader = nullptr;
+    Shader* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Material* material = nullptr;
     Gfx::ShaderResource* shaderResource = nullptr;
@@ -450,7 +450,7 @@ protected:
     }
 
     template <ConfigurableType type, class T>
-    void AddConfig(const char* name, const T& defaultVal)
+    T* AddConfig(const char* name, const T& defaultVal)
     {
         if constexpr (std::is_pointer_v<T>)
         {
@@ -460,6 +460,10 @@ protected:
         {
             configs.emplace_back(Configurable::C<type>(name, defaultVal));
         }
+
+        auto& c = configs.back();
+
+        return std::any_cast<T>(&c.data);
     }
 
     void ClearConfigs()

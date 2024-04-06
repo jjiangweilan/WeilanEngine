@@ -150,18 +150,19 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
 
     if (root.has_child("mask"))
     {
-        if (root["mask"].is_val()) // mask for the first render target
+
+        if (root["mask"].is_seq()) // mask for multiple render target, to be implmented
+        {
+            throw std::runtime_error("not implmented");
+            Gfx::ColorBlendAttachmentState state;
+            config.color.blends.push_back(state);
+        }
+        else // mask for the first render target
         {
             std::string val;
             root["mask"] >> val;
             Gfx::ColorBlendAttachmentState state{};
             state.colorWriteMask = Utils::MapColorMask(val);
-            config.color.blends.push_back(state);
-        }
-        else if (root["mask"].is_seq()) // mask for multiple render target, to be implmented
-        {
-            throw std::runtime_error("not implmented");
-            Gfx::ColorBlendAttachmentState state;
             config.color.blends.push_back(state);
         }
     }

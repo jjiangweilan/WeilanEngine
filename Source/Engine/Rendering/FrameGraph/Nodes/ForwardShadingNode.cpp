@@ -65,8 +65,8 @@ public:
         cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
         Rect2D rect = {{0, 0}, {width, height}};
         clearValues[0] = *clearValuesVal;
-        clearValues[0].color = {
-            {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+        clearValues[0].color = {{(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
+        };
         clearValues[1].depthStencil = {1};
 
         cmd.SetScissor(0, 1, &rect);
@@ -79,7 +79,8 @@ public:
             cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
             auto& cubeSubmesh = cube->GetSubmeshes()[0];
             Gfx::VertexBufferBinding bindins[] = {
-                {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
+                {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
+            };
             cmd.BindVertexBuffer(bindins, 0);
             cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
             cmd.BindResource(2, skyboxResources.get());
@@ -89,11 +90,11 @@ public:
         // draw scene objects
         for (auto& draw : *drawList)
         {
-            cmd.BindShaderProgram(draw.shader, *draw.shaderConfig);
+            cmd.BindShaderProgram(draw.shader->GetShaderProgram(0, 0), *draw.shaderConfig);
             cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
             cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
             cmd.BindResource(2, draw.shaderResource);
-            cmd.SetPushConstant(draw.shader, (void*)&draw.pushConstant);
+            cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
             cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
         }
 

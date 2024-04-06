@@ -7,6 +7,7 @@
 #define SET_PASS 1
 #define SET_MATERIAL 2
 #define SET_OBJECT 3
+#define M_PI 3.1415926535897932384626433832795
 
 layout( push_constant ) uniform Transform
 {
@@ -28,7 +29,7 @@ layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_cla
 layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;
 
-#if G_PCF
+#ifdef G_PCF
 float PcfShadow(vec2 shadowCoord, float objShadowDepth)
 {
     float shadow = 0;
