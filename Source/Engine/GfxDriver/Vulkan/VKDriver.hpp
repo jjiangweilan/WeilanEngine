@@ -159,14 +159,7 @@ public:
 
     GPU gpu;
     Swapchain swapchain;
-
-    struct Surface
-    {
-        VkSurfaceKHR handle;
-        VkSurfaceCapabilitiesKHR surfaceCapabilities;
-        std::vector<VkPresentModeKHR> surfacePresentModes;
-        std::vector<VkSurfaceFormatKHR> surfaceFormats;
-    } surface;
+    Surface surface;
 
     GPUFeatures gpuFeatures;
 
@@ -203,7 +196,6 @@ public:
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
     bool Swapchain_GetImagesFromVulkan();
-    void Surface_QuerySurfaceProperties();
 
 private:
     SDL_Window* window;

@@ -27,7 +27,7 @@ public:
         return engine.get();
     }
 
-    GameEditor* Instance();
+    std::unique_ptr<Gfx::Image> fontImage;
     nlohmann::json editorConfig;
     static GameEditor* instance;
 

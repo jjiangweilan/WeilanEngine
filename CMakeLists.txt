@@ -17,6 +17,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(SPIRV-Cross
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
         GIT_TAG vulkan-sdk-1.3.275.0 # match the least sdk
+        UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
 
@@ -27,6 +28,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(SPIRV-Headers
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
         GIT_TAG 8b246ff75c6615ba4532fe4fde20f1be090c3764
+        UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
     set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
@@ -36,6 +38,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(SPIRV-Tools
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
         GIT_TAG 04896c462d9f3f504c99a4698605b6524af813c1
+        UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
     set(SKIP_SPIRV_TOOLS_INSTALL ON)
@@ -46,6 +49,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(glslang
         GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
         GIT_TAG d73712b8f6c9047b09e99614e20d456d5ada2390
+        UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
     set(SKIP_GLSLANG_INSTALL ON)
@@ -59,6 +63,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(shaderc
         GIT_REPOSITORY https://github.com/google/shaderc.git
         GIT_TAG v2024.0
+        UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
     set(SHADERC_ENABLE_WGSL_OUTPUT OFF)
@@ -75,6 +80,7 @@ endif()
 FetchContent_Declare(SDL2
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG "release-2.24.x"
+    UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     )
 FetchContent_MakeAvailable(SDL2)
@@ -82,6 +88,7 @@ FetchContent_MakeAvailable(SDL2)
 FetchContent_Declare(fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
     GIT_TAG 9.1.0
+    UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     )
 set(FMT_DOC OFF)
@@ -93,6 +100,7 @@ FetchContent_Declare(SPDLOG
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.9.2
     GIT_PROGRESS TRUE
+    UPDATE_DISCONNECTED TRUE
     )
 set(SPDLOG_BUILD_EXAMPLE OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
@@ -102,6 +110,7 @@ FetchContent_Declare(rapidyaml
     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
     GIT_TAG v0.4.1
     GIT_PROGRESS TRUE
+    UPDATE_DISCONNECTED TRUE
     )
 FetchContent_MakeAvailable(rapidyaml)
 
@@ -109,6 +118,7 @@ FetchContent_Declare(json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG v3.10.4
     GIT_PROGRESS TRUE
+    UPDATE_DISCONNECTED TRUE
     )
 set(JSON_BuildTests OFF)
 FetchContent_MakeAvailable(json)
@@ -117,12 +127,14 @@ FetchContent_Declare(glm
     GIT_REPOSITORY "https://github.com/g-truc/glm.git"
     GIT_TAG "0.9.9.8"
     GIT_PROGRESS TRUE
+    UPDATE_DISCONNECTED TRUE
     )
 FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(vma
     GIT_REPOSITORY "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
     GIT_TAG "0aa3989b8f382f185fdf646cc83a1d16fa31d6ab"
+    UPDATE_DISCONNECTED TRUE
     )
 FetchContent_GetProperties(vma)
 if(NOT vma_POPULATED)
@@ -132,6 +144,7 @@ endif()
 FetchContent_Declare(ktx_software
     GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
     GIT_TAG v4.3.1
+    UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     )
 set(BASISU_SUPPORT_SSE "${BASISU_SUPPORT_SSE}")
@@ -143,6 +156,7 @@ FetchContent_Declare(
         JoltPhysics
         GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
         GIT_TAG "v4.0.2"
+        UPDATE_DISCONNECTED TRUE
         SOURCE_SUBDIR "Jolt"
 )
 check_ipo_supported(RESULT IS_IPO_SUPPORTED)

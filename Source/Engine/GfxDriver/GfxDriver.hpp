@@ -10,6 +10,7 @@
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Ptr.hpp"
 #include "Semaphore.hpp"
+#include "Swapchain.hpp"
 
 #include <SDL.h>
 #include <glm/glm.hpp>
@@ -49,9 +50,6 @@ enum class GfxEvent
 {
     SwapchainRecreated
 };
-
-struct Swapchain
-{};
 
 class GfxDriver
 {

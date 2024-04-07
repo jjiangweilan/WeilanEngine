@@ -63,6 +63,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VKContext::context = context.get();
     context->driver = this;
     context->allocator = memAllocator.get();
+    context->instance = instance.handle;
     context->objManager = objectManager.get();
     context->device = device.handle;
     context->gpu = &gpu;
@@ -537,7 +538,8 @@ bool VKDriver::EndFrame()
 
     VkPipelineStageFlags waitFlags[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+    };
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -560,14 +562,15 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     FrameEndClear();
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        Surface_QuerySurfaceProperties();
+        surface.QuerySurfaceProperties(gpu.handle);
         CreateOrOverrideSwapChain();
         Swapchain_GetImagesFromVulkan();
         return true;
@@ -658,8 +661,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = false;
     if (enableValidationLayers)
     {
@@ -832,51 +836,6 @@ VkResult VKDriver::CreateDebugUtilsMessengerEXT(
     }
 }
 
-void VKDriver::Surface_QuerySurfaceProperties()
-{
-    // Get surface capabilities
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.handle, surface.handle, &surface.surfaceCapabilities) !=
-        VK_SUCCESS)
-    {
-        throw std::runtime_error("Could not check presentation surface capabilities!");
-    }
-
-    // Get surface present mode
-    uint32_t presentModesCount;
-    if ((vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.handle, surface.handle, &presentModesCount, nullptr) !=
-         VK_SUCCESS) ||
-        (presentModesCount == 0))
-    {
-        throw std::runtime_error("Error occurred during presentation surface present modes enumeration!");
-    }
-
-    surface.surfacePresentModes.resize(presentModesCount);
-    if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-            gpu.handle,
-            surface.handle,
-            &presentModesCount,
-            &surface.surfacePresentModes[0]
-        ) != VK_SUCCESS)
-    {
-        SPDLOG_ERROR("Error occurred during presentation surface present modes enumeration!");
-    }
-
-    // Get surface formats
-    uint32_t formatsCount;
-    if ((vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, nullptr) != VK_SUCCESS) ||
-        (formatsCount == 0))
-    {
-        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
-    }
-
-    surface.surfaceFormats.resize(formatsCount);
-    if (vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, &surface.surfaceFormats[0]) !=
-        VK_SUCCESS)
-    {
-        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
-    }
-}
-
 void VKDriver::CreateSurface()
 {
     if (!SDL_Vulkan_CreateSurface(window, instance.handle, &surface.handle))
@@ -884,7 +843,7 @@ void VKDriver::CreateSurface()
         spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
     }
 
-    Surface_QuerySurfaceProperties();
+    surface.QuerySurfaceProperties(gpu.handle);
 }
 
 bool VKDriver::CreateOrOverrideSwapChain()
@@ -946,7 +905,8 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain};
+        oldSwapChain
+    };
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1014,7 +974,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

@@ -17,6 +17,41 @@
 
 namespace Editor
 {
+
+static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
+{
+    assert(customFont == nullptr && "customFont not implemented");
+
+    unsigned char* fontData;
+    auto& io = ImGui::GetIO();
+    ImFontConfig config;
+    ImFont* font = nullptr;
+    // if (customFont)
+    // {
+    //     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
+    //     font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+    //         (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
+    //             .string()
+    //             .c_str(),
+    //         14,
+    //         &config,
+    //         icon_ranges
+    //     );
+    // }
+    io.FontDefault = font;
+    int width, height, bytePerPixel;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
+    auto fontImage = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription((uint32_t)width, (uint32_t)height, Gfx::ImageFormat::R8G8B8A8_UNorm),
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
+    );
+    fontImage->SetName("ImGUI font");
+    uint32_t fontTexSize = bytePerPixel * width * height;
+
+    GetGfxDriver()->UploadImage(*fontImage, fontData, fontTexSize);
+    return fontImage;
+}
+
 GameEditor::GameEditor(const char* path)
 {
     instance = this;
@@ -62,8 +97,8 @@ GameEditor::GameEditor(const char* path)
 
     gameView.Init();
 
-    gameEditorRenderer = std::make_unique<Editor::Renderer>();
-    gameEditorRenderer->BuildGraph();
+    fontImage = CreateImGuiFont(nullptr);
+    gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
 
     // toolList.emplace_back(new EnvironmentBaker());
 
@@ -891,12 +926,17 @@ static bool ImGui_ImplSDL2_GetWindowMinimized(ImGuiViewport* viewport)
 struct GfxDriverWindowData
 {
     std::unique_ptr<Gfx::Swapchain> swapchain;
+    std::unique_ptr<Renderer> renderer;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
 };
 
 static void ImGui_GfxDriver_CreateWindow(ImGuiViewport* viewport)
 {
     GfxDriverWindowData* data = new GfxDriverWindowData();
     data->swapchain = GetGfxDriver()->CreateExtraSwapchain((SDL_Window*)viewport->PlatformHandle);
+    data->renderer =
+        std::make_unique<Renderer>(data->swapchain->GetSwapchainImage(), GameEditor::instance->fontImage.get());
+    data->cmd = GetGfxDriver()->CreateCommandBuffer();
     viewport->RendererUserData = data;
 }
 
@@ -906,11 +946,26 @@ static void ImGui_GfxDriver_DestroyWindow(ImGuiViewport* viewport)
     viewport->RendererUserData = nullptr;
 }
 
-static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size) {}
+static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
+{
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->swapchain->SetSurfaceSize(size.x, size.y);
+}
 
-static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg) {}
+static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg)
+{
 
-static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void* render_arg) {}
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->cmd->Reset(true);
+    data->renderer->Execute(*data->cmd);
+    GetGfxDriver()->ExecuteCommandBuffer(*data->cmd);
+}
+
+static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void* render_arg)
+{
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->swapchain->Present();
+}
 
 void GameEditor::EnableMultiViewport()
 {
