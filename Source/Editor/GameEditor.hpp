@@ -63,6 +63,8 @@ private:
     std::vector<std::unique_ptr<Tool>> toolList;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
 
+    void EnableMultiViewport();
+
     void OpenSceneWindow();
     void MainMenuBar();
     void OpenWindow();

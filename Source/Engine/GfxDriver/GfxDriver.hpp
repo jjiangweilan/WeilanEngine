@@ -50,6 +50,9 @@ enum class GfxEvent
     SwapchainRecreated
 };
 
+struct Swapchain
+{};
+
 class GfxDriver
 {
 public:
@@ -141,6 +144,8 @@ public:
         Gfx::ImageAspect aspect = Gfx::ImageAspect::Color
     ) = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;
+
+    virtual std::unique_ptr<Swapchain> CreateExtraSwapchain(SDL_Window* window) = 0;
 
 private:
     static GfxDriver*& InstanceInternal();

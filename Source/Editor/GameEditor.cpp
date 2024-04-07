@@ -783,6 +783,159 @@ void GameEditor::ConsoleOutputWindow()
     ImGui::End();
 }
 
+static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
+{
+    Uint32 sdl_flags = 0;
+    sdl_flags |= SDL_WINDOW_VULKAN;
+    sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+    sdl_flags |= SDL_WINDOW_HIDDEN;
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? SDL_WINDOW_BORDERLESS : 0;
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? 0 : SDL_WINDOW_RESIZABLE;
+#if !defined(_WIN32)
+    // See SDL hack in ImGui_ImplSDL2_ShowWindow().
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon) ? SDL_WINDOW_SKIP_TASKBAR : 0;
+#endif
+#if SDL_HAS_ALWAYS_ON_TOP
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_TopMost) ? SDL_WINDOW_ALWAYS_ON_TOP : 0;
+#endif
+    SDL_Window* window = SDL_CreateWindow(
+        "No Title Yet",
+        (int)viewport->Pos.x,
+        (int)viewport->Pos.y,
+        (int)viewport->Size.x,
+        (int)viewport->Size.y,
+        sdl_flags
+    );
+
+    viewport->PlatformHandle = window;
+}
+
+static void ImGui_ImplSDL2_DestroyWindow(ImGuiViewport* viewport)
+{
+    SDL_DestroyWindow((SDL_Window*)viewport->PlatformHandle);
+    viewport->PlatformHandle = nullptr;
+}
+
+static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
+{
+    // #if defined(_WIN32)
+    //     HWND hwnd = (HWND)viewport->PlatformHandleRaw;
+    //
+    //     // SDL hack: Hide icon from task bar
+    //     // Note: SDL 2.0.6+ has a SDL_WINDOW_SKIP_TASKBAR flag which is supported under Windows but the way it create
+    //     the
+    //     // window breaks our seamless transition.
+    //     if (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
+    //     {
+    //         LONG ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
+    //         ex_style &= ~WS_EX_APPWINDOW;
+    //         ex_style |= WS_EX_TOOLWINDOW;
+    //         ::SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);
+    //     }
+    //
+    //     // SDL hack: SDL always activate/focus windows :/
+    //     if (viewport->Flags & ImGuiViewportFlags_NoFocusOnAppearing)
+    //     {
+    //         ::ShowWindow(hwnd, SW_SHOWNA);
+    //         return;
+    //     }
+    // #endif
+
+    SDL_ShowWindow((SDL_Window*)viewport->PlatformHandle);
+}
+
+static ImVec2 ImGui_ImplSDL2_GetWindowPos(ImGuiViewport* viewport)
+{
+    int x = 0, y = 0;
+    SDL_GetWindowPosition((SDL_Window*)viewport->PlatformHandle, &x, &y);
+    return ImVec2((float)x, (float)y);
+}
+
+static void ImGui_ImplSDL2_SetWindowPos(ImGuiViewport* viewport, ImVec2 pos)
+{
+    SDL_SetWindowPosition((SDL_Window*)viewport->PlatformHandle, (int)pos.x, (int)pos.y);
+}
+
+static ImVec2 ImGui_ImplSDL2_GetWindowSize(ImGuiViewport* viewport)
+{
+    int w = 0, h = 0;
+    SDL_GetWindowSize((SDL_Window*)viewport->PlatformHandle, &w, &h);
+    return ImVec2((float)w, (float)h);
+}
+
+static void ImGui_ImplSDL2_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
+{
+    SDL_SetWindowSize((SDL_Window*)viewport->PlatformHandle, (int)size.x, (int)size.y);
+}
+
+static void ImGui_ImplSDL2_SetWindowTitle(ImGuiViewport* viewport, const char* title)
+{
+    SDL_SetWindowTitle((SDL_Window*)viewport->PlatformHandle, title);
+}
+
+static void ImGui_ImplSDL2_SetWindowFocus(ImGuiViewport* viewport)
+{
+    SDL_RaiseWindow((SDL_Window*)viewport->PlatformHandle);
+}
+
+static bool ImGui_ImplSDL2_GetWindowFocus(ImGuiViewport* viewport)
+{
+    return (SDL_GetWindowFlags((SDL_Window*)viewport->PlatformHandle) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
+static bool ImGui_ImplSDL2_GetWindowMinimized(ImGuiViewport* viewport)
+{
+    return (SDL_GetWindowFlags((SDL_Window*)viewport->PlatformHandle) & SDL_WINDOW_MINIMIZED) != 0;
+}
+
+struct GfxDriverWindowData
+{
+    std::unique_ptr<Gfx::Swapchain> swapchain;
+};
+
+static void ImGui_GfxDriver_CreateWindow(ImGuiViewport* viewport)
+{
+    GfxDriverWindowData* data = new GfxDriverWindowData();
+    data->swapchain = GetGfxDriver()->CreateExtraSwapchain((SDL_Window*)viewport->PlatformHandle);
+    viewport->RendererUserData = data;
+}
+
+static void ImGui_GfxDriver_DestroyWindow(ImGuiViewport* viewport)
+{
+    delete (GfxDriverWindowData*)viewport->RendererUserData;
+    viewport->RendererUserData = nullptr;
+}
+
+static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size) {}
+
+static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg) {}
+
+static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void* render_arg) {}
+
+void GameEditor::EnableMultiViewport()
+{
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    platform_io.Platform_CreateWindow = ImGui_ImplSDL2_CreateWindow;
+    platform_io.Platform_DestroyWindow = ImGui_ImplSDL2_DestroyWindow;
+    platform_io.Platform_ShowWindow = ImGui_ImplSDL2_ShowWindow;
+    platform_io.Platform_SetWindowPos = ImGui_ImplSDL2_SetWindowPos;
+    platform_io.Platform_GetWindowPos = ImGui_ImplSDL2_GetWindowPos;
+    platform_io.Platform_SetWindowSize = ImGui_ImplSDL2_SetWindowSize;
+    platform_io.Platform_GetWindowSize = ImGui_ImplSDL2_GetWindowSize;
+    platform_io.Platform_SetWindowFocus = ImGui_ImplSDL2_SetWindowFocus;
+    platform_io.Platform_GetWindowFocus = ImGui_ImplSDL2_GetWindowFocus;
+    platform_io.Platform_GetWindowMinimized = ImGui_ImplSDL2_GetWindowMinimized;
+    platform_io.Platform_SetWindowTitle = ImGui_ImplSDL2_SetWindowTitle;
+    // platform_io.Platform_RenderWindow = ImGui_ImplSDL2_RenderWindow;
+    // platform_io.Platform_SwapBuffers = ImGui_ImplSDL2_SwapBuffers;
+
+    platform_io.Renderer_CreateWindow = ImGui_GfxDriver_CreateWindow;
+    platform_io.Renderer_DestroyWindow = ImGui_GfxDriver_DestroyWindow;
+    platform_io.Renderer_SetWindowSize = ImGui_GfxDriver_SetWindowSize;
+    platform_io.Renderer_RenderWindow = ImGui_GfxDriver_RenderWindow;
+    platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
+}
+
 GameEditor* GameEditor::instance = nullptr;
 Object* EditorState::selectedObject = nullptr;
 Scene* EditorState::activeScene = nullptr;
