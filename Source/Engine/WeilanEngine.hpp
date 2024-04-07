@@ -51,6 +51,11 @@ public:
     std::unique_ptr<AssetDatabase> assetDatabase;
 
 private:
+    struct MainWindow
+    {
+        SDL_Window* handle;
+        Extent2D size = {1920, 1080};
+    } mainWindow;
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
     std::vector<std::unique_ptr<GameLoop>> gameLoops;
     // std::unique_ptr<Physics> physics;
@@ -60,4 +65,7 @@ private:
 
     void InitJoltPhysics();
     void DeinitJoltPhysics();
+
+    void InitSDL();
+    void DeinitSDL();
 };

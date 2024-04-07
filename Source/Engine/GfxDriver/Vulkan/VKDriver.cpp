@@ -50,7 +50,7 @@ UniPtr<T> MakeUnique1(Args&&... args)
 
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
-    CreateAppWindow();
+    window = createInfo.window;
     CreateInstance();
     CreatePhysicalDevice();
     CreateSurface();
@@ -150,9 +150,6 @@ VKDriver::~VKDriver()
     objectManager = nullptr;
     vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
 
-    // destroy appWindow
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
-
     vkDestroyDevice(device.handle, nullptr);
 
     if (instance.debugMessenger != VK_NULL_HANDLE)
@@ -186,7 +183,7 @@ Backend VKDriver::GetGfxBackendType()
 
 SDL_Window* VKDriver::GetSDLWindow()
 {
-    return window.handle;
+    return window;
 }
 
 Image* VKDriver::GetSwapChainImage()
@@ -540,8 +537,7 @@ bool VKDriver::EndFrame()
 
     VkPipelineStageFlags waitFlags[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
-    };
+        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
     VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
     VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -564,8 +560,7 @@ bool VKDriver::EndFrame()
         1,
         &swapChainHandle,
         &inflightData[currentInflightIndex].swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     FrameEndClear();
 
@@ -586,48 +581,16 @@ bool VKDriver::EndFrame()
     return false;
 }
 
-void VKDriver::CreateAppWindow()
-{
-    if (!SDL_WasInit(SDL_INIT_VIDEO))
-        SDL_InitSubSystem(SDL_INIT_VIDEO);
-
-    SDL_DisplayMode displayMode;
-    // MacOS return points not pixels
-    SDL_GetCurrentDisplayMode(0, &displayMode);
-
-    window.size = driverConfig.initialWindowSize;
-
-    if (window.size.width > displayMode.w)
-        window.size.width = displayMode.w * 0.8;
-    if (window.size.height > displayMode.h)
-        window.size.height = displayMode.h * 0.8;
-
-    window.handle = SDL_CreateWindow(
-        "WeilanGame",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        window.size.width,
-        window.size.height,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
-    );
-
-    int drawableWidth, drawbaleHeight;
-    SDL_GL_GetDrawableSize(window.handle, &drawableWidth, &drawbaleHeight);
-
-    window.size.width = drawableWidth;
-    window.size.height = drawbaleHeight;
-}
-
 std::vector<const char*> VKDriver::AppWindowGetRequiredExtensions()
 {
     unsigned int count;
-    if (!SDL_Vulkan_GetInstanceExtensions(window.handle, &count, nullptr))
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &count, nullptr))
     {
         SPDLOG_CRITICAL(SDL_GetError());
     }
 
     std::vector<const char*> names(count);
-    if (!SDL_Vulkan_GetInstanceExtensions(window.handle, &count, names.data()))
+    if (!SDL_Vulkan_GetInstanceExtensions(window, &count, names.data()))
     {
         SPDLOG_CRITICAL(SDL_GetError());
     }
@@ -695,9 +658,8 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = false;
     if (enableValidationLayers)
     {
@@ -844,7 +806,7 @@ void VKDriver::CreatePhysicalDevice()
         if (!requiredExtensions.empty())
             continue; // early skip if this device is not suitable
 
-        // This gpu passed all the test!
+        // This gpu passed all the tests!
         this->gpu = g;
         return;
     }
@@ -917,7 +879,7 @@ void VKDriver::Surface_QuerySurfaceProperties()
 
 void VKDriver::CreateSurface()
 {
-    if (!SDL_Vulkan_CreateSurface(window.handle, instance.handle, &surface.handle))
+    if (!SDL_Vulkan_CreateSurface(window, instance.handle, &surface.handle))
     {
         spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
     }
@@ -984,8 +946,7 @@ bool VKDriver::CreateOrOverrideSwapChain()
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         swapchain.presentMode,
         VK_TRUE,
-        oldSwapChain
-    };
+        oldSwapChain};
 
     if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
     {
@@ -1053,8 +1014,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

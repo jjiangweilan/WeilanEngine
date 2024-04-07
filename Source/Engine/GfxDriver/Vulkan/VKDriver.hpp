@@ -34,6 +34,7 @@ class VKSharedResource;
 class VKContext;
 class VKDataUploader;
 struct VKDescriptorPoolCache;
+
 class VKDriver : public Gfx::GfxDriver
 {
 public:
@@ -126,7 +127,7 @@ public:
 
     void GenerateMipmaps(VKImage& image);
 
-    Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id);
+    Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) override;
 
 public:
     std::unique_ptr<VKMemAllocator> memAllocator;
@@ -141,7 +142,6 @@ public:
     struct DriverConfig
     {
         int swapchainImageCount = 3;
-        Extent2D initialWindowSize = {1920, 1080};
     } driverConfig;
 
     struct Instance
@@ -167,12 +167,6 @@ public:
         std::vector<VkPresentModeKHR> surfacePresentModes;
         std::vector<VkSurfaceFormatKHR> surfaceFormats;
     } surface;
-
-    struct AppWidnow
-    {
-        SDL_Window* handle;
-        Extent2D size;
-    } window;
 
     GPUFeatures gpuFeatures;
 
@@ -200,7 +194,6 @@ public:
     void CreateInstance();
     void CreatePhysicalDevice();
     void CreateDevice();
-    void CreateAppWindow();
     void CreateSurface();
     bool CreateOrOverrideSwapChain();
 
@@ -213,6 +206,7 @@ public:
     void Surface_QuerySurfaceProperties();
 
 private:
+    SDL_Window* window;
     void FrameEndClear();
 
     VkResult CreateDebugUtilsMessengerEXT(

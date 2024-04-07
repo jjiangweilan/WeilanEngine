@@ -24,10 +24,12 @@ WeilanEngine::~WeilanEngine()
     // physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
+    DeinitSDL();
 }
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
+    InitSDL();
     projectPath = createInfo.projectPath;
     try
     {
@@ -44,7 +46,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
 
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{{1960, 1024}};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     InitJoltPhysics();
     assetDatabase = std::make_unique<AssetDatabase>(projectPath);
@@ -168,4 +170,40 @@ void WeilanEngine::DeinitJoltPhysics()
     // Destroy the factory
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
+}
+
+void WeilanEngine::InitSDL()
+{
+    if (!SDL_WasInit(SDL_INIT_VIDEO))
+        SDL_InitSubSystem(SDL_INIT_VIDEO);
+
+    SDL_DisplayMode displayMode;
+    // MacOS return points not pixels
+    SDL_GetCurrentDisplayMode(0, &displayMode);
+
+    if (mainWindow.size.width > displayMode.w)
+        mainWindow.size.width = displayMode.w * 0.8;
+    if (mainWindow.size.height > displayMode.h)
+        mainWindow.size.height = displayMode.h * 0.8;
+
+    mainWindow.handle = SDL_CreateWindow(
+        "WeilanGame",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        mainWindow.size.width,
+        mainWindow.size.height,
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+    );
+
+    int drawableWidth, drawbaleHeight;
+    SDL_GL_GetDrawableSize(mainWindow.handle, &drawableWidth, &drawbaleHeight);
+
+    mainWindow.size.width = drawableWidth;
+    mainWindow.size.height = drawbaleHeight;
+}
+
+void WeilanEngine::DeinitSDL()
+{
+    // destroy appWindow
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
