@@ -16,20 +16,24 @@ public:
 
     Image* GetSwapchainImage() override;
     void SetSurfaceSize(int width, int height) override;
-    void Present() override{
-        // do nothing, present is managed by vkdriver and is done every frame
+    void SetSurfaceSizeImple(int width, int height);
+    void Present() override
+    {
+        presentRequest.requested = true;
     };
 
     struct
     {
         bool requested = false;
-        uint32_t width, height;
-    } recreateRequest;
+    } presentRequest;
+
+    SDL_Window* window;
     Swapchain swapchain;
     Surface surface;
     int swapchainCount;
     uint32_t swapchainIndex;
-    VkSemaphore imageAcquireSemaphore;
-    VkSemaphore presentSemaphore;
+    uint32_t activeIndex;
+    std::vector<VkSemaphore> imageAcquireSemaphores;
+    std::vector<VkSemaphore> presentSemaphores;
 };
 } // namespace Gfx

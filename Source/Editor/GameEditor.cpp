@@ -966,11 +966,16 @@ static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
 
 static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg)
 {
-
     GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
     data->cmd->Reset(true);
     data->renderer->Execute(viewport->DrawData, *data->cmd);
     GetGfxDriver()->ExecuteCommandBuffer(*data->cmd);
+}
+
+static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void*)
+{
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->window->Present();
 }
 
 void GameEditor::EnableMultiViewport()
@@ -993,7 +998,7 @@ void GameEditor::EnableMultiViewport()
     platform_io.Renderer_DestroyWindow = ImGui_GfxDriver_DestroyWindow;
     platform_io.Renderer_SetWindowSize = ImGui_GfxDriver_SetWindowSize;
     platform_io.Renderer_RenderWindow = ImGui_GfxDriver_RenderWindow;
-    // platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
+    platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
 
     auto& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;

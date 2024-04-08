@@ -7,19 +7,6 @@
 namespace Gfx
 {
 
-class VKSwapchainImage2 : public SwapchainImage
-{
-public:
-    void SetActiveImage(VKImage* image){};
-    VKImage* GetActiveImage() override
-    {
-        return activeImage;
-    };
-
-private:
-    VKImage* activeImage = nullptr;
-};
-
 class VKSwapChainImage : public VKImage
 {
 public:

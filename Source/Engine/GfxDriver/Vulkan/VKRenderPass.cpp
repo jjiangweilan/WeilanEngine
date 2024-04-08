@@ -258,6 +258,10 @@ VkRenderPass VKRenderPass::GetHandle()
     bool recreate = (swapChainProxy != nullptr && swapChainProxy->GetID() != swapChainProxyUUIDCopy);
     if (recreate)
     {
+        for (auto fb : frameBuffers)
+            VKContext::Instance()->objManager->DestroyFramebuffer(fb);
+
+        frameBuffers.clear();
         swapChainProxy = nullptr;
 
         if (renderPass != VK_NULL_HANDLE)

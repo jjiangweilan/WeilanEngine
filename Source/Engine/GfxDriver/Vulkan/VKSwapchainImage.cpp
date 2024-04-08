@@ -14,7 +14,7 @@ void VKSwapChainImage::Recreate(
     std::span<VkImage> swapchainImages, VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usageFlags
 )
 {
-    this->swapchainImages.clear();
+    std::vector<std::unique_ptr<VKImage>> newImages;
 
     format_vk = format;
     imageDescription.format = MapVKFormat(format);
@@ -27,8 +27,10 @@ void VKSwapChainImage::Recreate(
     {
         VKImage* ptr = new VKImage(image, ImageDescription(width, height, MapVKFormat(format)), usageFlags);
         // static_cast<VKImageView&>(ptr->GetDefaultImageView()).ChangeOwner(this);
-        this->swapchainImages.emplace_back(ptr);
+        newImages.emplace_back(ptr);
     }
+
+    this->swapchainImages = std::move(newImages);
 
     if (imageView == nullptr)
     {

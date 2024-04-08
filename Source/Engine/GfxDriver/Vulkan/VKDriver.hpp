@@ -171,7 +171,7 @@ public:
         VkCommandBuffer cmd = VK_NULL_HANDLE;
         VkFence cmdFence = VK_NULL_HANDLE;
         VkSemaphore imageAcquireSemaphore;
-        VkSemaphore presendSemaphore;
+        VkSemaphore presentSemaphore;
         uint32_t swapchainIndex;
     };
     std::vector<InflightData> inflightData = {};
@@ -197,7 +197,7 @@ public:
         VkSwapchainKHR swapChainHandle,
         Surface& surface,
         Swapchain& swapchain,
-        uint32_t& swapchainIndex
+        uint32_t swapchainIndex
     );
 
     std::vector<const char*> AppWindowGetRequiredExtensions();

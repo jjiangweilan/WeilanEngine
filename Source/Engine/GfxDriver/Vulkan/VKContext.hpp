@@ -63,6 +63,7 @@ struct Swapchain
     uint32_t currentInflightIndex = 0;
 
     bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);
+
 private:
     bool GetImagesFromVulkan();
 };

@@ -29,6 +29,7 @@ public:
         subpasses.clear();
     }
 
+    // you should first call GetHandle then GetFrameBuffer
     VkFramebuffer GetFrameBuffer();
     VkRenderPass GetHandle();
     Extent2D GetExtent();
