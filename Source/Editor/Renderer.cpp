@@ -2,7 +2,6 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
-#include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
 
 namespace Editor
@@ -115,8 +114,7 @@ void Renderer::BuildGraph()
 
 void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
 {
-
-    ImDrawData* imguiDrawData = ImGui::GetDrawData();
+    ImDrawData* imguiDrawData = drawData;
 
     if (imguiDrawData->TotalVtxCount > 0)
     {
@@ -306,8 +304,9 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
     cmd.EndRenderPass();
 }
 
-void Renderer::Execute(Gfx::CommandBuffer& cmd)
+void Renderer::Execute(ImDrawData* data, Gfx::CommandBuffer& cmd)
 {
+    this->drawData = data;
     graph->Execute(cmd);
 }
 } // namespace Editor

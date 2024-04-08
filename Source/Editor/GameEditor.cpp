@@ -117,6 +117,7 @@ GameEditor::GameEditor(const char* path)
 
 GameEditor::~GameEditor()
 {
+    fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
     engine->DestroyGameLoop(loop);
     loop = nullptr;
@@ -579,7 +580,7 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier*
         gameView.Render(cmd, gameImage);
 
     ImGui::Render();
-    gameEditorRenderer->Execute(cmd);
+    gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
 
     auto& io = ImGui::GetIO();
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -972,14 +973,8 @@ static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_a
 
     GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
     data->cmd->Reset(true);
-    data->renderer->Execute(*data->cmd);
+    data->renderer->Execute(viewport->DrawData, *data->cmd);
     GetGfxDriver()->ExecuteCommandBuffer(*data->cmd);
-}
-
-static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void* render_arg)
-{
-    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
-    data->window->Present();
 }
 
 void GameEditor::EnableMultiViewport()
@@ -997,13 +992,12 @@ void GameEditor::EnableMultiViewport()
     platform_io.Platform_GetWindowMinimized = ImGui_ImplSDL2_GetWindowMinimized;
     platform_io.Platform_SetWindowTitle = ImGui_ImplSDL2_SetWindowTitle;
     // platform_io.Platform_RenderWindow = ImGui_ImplSDL2_RenderWindow;
-    // platform_io.Platform_SwapBuffers = ImGui_ImplSDL2_SwapBuffers;
 
     platform_io.Renderer_CreateWindow = ImGui_GfxDriver_CreateWindow;
     platform_io.Renderer_DestroyWindow = ImGui_GfxDriver_DestroyWindow;
     platform_io.Renderer_SetWindowSize = ImGui_GfxDriver_SetWindowSize;
     platform_io.Renderer_RenderWindow = ImGui_GfxDriver_RenderWindow;
-    platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
+    // platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
 
     auto& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;

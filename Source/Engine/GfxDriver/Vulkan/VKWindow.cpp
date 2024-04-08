@@ -38,8 +38,8 @@ VKWindow::~VKWindow()
     c->objManager->DestroySemaphore(imageAcquireSemaphore);
     c->objManager->DestroySemaphore(presentSemaphore);
 
-    vkDestroySurfaceKHR(c->instance, surface.handle, VK_NULL_HANDLE);
     vkDestroySwapchainKHR(c->device, swapchain.handle, VK_NULL_HANDLE);
+    vkDestroySurfaceKHR(c->instance, surface.handle, VK_NULL_HANDLE);
 }
 
 Image* VKWindow::GetSwapchainImage()

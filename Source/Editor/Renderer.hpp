@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderGraph/Graph.hpp"
+#include "ThirdParty/imgui/imgui.h"
 #include <tuple>
 
 namespace Editor
@@ -12,7 +13,7 @@ public:
     Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage);
     ~Renderer();
     void BuildGraph();
-    void Execute(Gfx::CommandBuffer& cmd);
+    void Execute(ImDrawData* drawData, Gfx::CommandBuffer& cmd);
 
 private:
     std::unique_ptr<Gfx::Buffer> indexBuffer = nullptr;
@@ -23,6 +24,7 @@ private:
     Gfx::Image* fontImage = nullptr;
     Gfx::Image* finalImage = nullptr;
     std::unique_ptr<RenderGraph::Graph> graph = nullptr;
+    ImDrawData* drawData;
 
     void RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res);
     void Process(RenderGraph::RenderNode* presentNode, RenderGraph::ResourceHandle resourceHandle);
