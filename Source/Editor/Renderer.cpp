@@ -115,7 +115,6 @@ void Renderer::BuildGraph()
 
 void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
 {
-    ImGui::Render();
 
     ImDrawData* imguiDrawData = ImGui::GetDrawData();
 

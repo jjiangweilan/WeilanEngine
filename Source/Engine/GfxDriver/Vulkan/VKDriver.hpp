@@ -9,6 +9,7 @@
 
 #include "../GfxDriver.hpp"
 
+#include "GfxDriver/Vulkan/VKWindow.hpp"
 #include "RHI/VKRenderGraph.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKCommonDefinations.hpp"
@@ -84,6 +85,8 @@ public:
         const unsigned char* frag,
         uint32_t fragSize
     ) override;
+    Window* CreateExtraWindow(SDL_Window* window) override;
+    void DestroyExtraWindow(Window* window) override;
 
     std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
         const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
@@ -156,12 +159,11 @@ public:
     } device;
 
     Queue mainQueue;
-
     GPU gpu;
     Swapchain swapchain;
     Surface surface;
-
     GPUFeatures gpuFeatures;
+    std::vector<std::unique_ptr<VKWindow>> extraWindows;
 
     // RHI implementation
     struct InflightData
@@ -174,7 +176,6 @@ public:
     };
     std::vector<InflightData> inflightData = {};
     uint32_t currentInflightIndex = 0;
-    std::unique_ptr<VKSwapChainImage> swapchainImage = nullptr;
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
@@ -188,14 +189,19 @@ public:
     void CreatePhysicalDevice();
     void CreateDevice();
     void CreateSurface();
-    bool CreateOrOverrideSwapChain();
 
     Vulkan::Buffer Driver_CreateBuffer(size_t size, VkBufferUsageFlags usage, VmaAllocationCreateFlags vmaCreateFlags);
     void Driver_DestroyBuffer(Vulkan::Buffer& b);
+    bool Present(
+        VkSemaphore presentSemaphore,
+        VkSwapchainKHR swapChainHandle,
+        Surface& surface,
+        Swapchain& swapchain,
+        uint32_t& swapchainIndex
+    );
 
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
-    bool Swapchain_GetImagesFromVulkan();
 
 private:
     SDL_Window* window;
@@ -214,5 +220,7 @@ private:
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
     );
+
+    LinearAllocator<1024> allocator;
 };
 } // namespace Gfx

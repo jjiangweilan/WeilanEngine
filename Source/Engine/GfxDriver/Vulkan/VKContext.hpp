@@ -51,7 +51,18 @@ struct Swapchain
     uint32_t numberOfImages;
     std::unique_ptr<VKSwapChainImage> swapchainImage;
 
-    bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount);
+    struct InflightData
+    {
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence cmdFence = VK_NULL_HANDLE;
+        VkSemaphore imageAcquireSemaphore;
+        VkSemaphore presendSemaphore;
+        uint32_t swapchainIndex;
+    };
+    std::vector<InflightData> inflightData = {};
+    uint32_t currentInflightIndex = 0;
+
+    bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);
     bool GetImagesFromVulkan();
 };
 

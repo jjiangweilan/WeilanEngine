@@ -1,4 +1,4 @@
-#include "GameEditor.hpp" gameeitor
+#include "GameEditor.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
@@ -92,8 +92,10 @@ GameEditor::GameEditor(const char* path)
         EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
     }
 
-    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+    auto& io = ImGui::GetIO();
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    EnableMultiViewport();
 
     gameView.Init();
 
@@ -576,7 +578,15 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier*
     if (gameImage)
         gameView.Render(cmd, gameImage);
 
+    ImGui::Render();
     gameEditorRenderer->Execute(cmd);
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 }
 
 void GameEditor::OpenWindow() {}
@@ -925,7 +935,7 @@ static bool ImGui_ImplSDL2_GetWindowMinimized(ImGuiViewport* viewport)
 
 struct GfxDriverWindowData
 {
-    std::unique_ptr<Gfx::Swapchain> swapchain;
+    Gfx::Window* window;
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
 };
@@ -933,23 +943,28 @@ struct GfxDriverWindowData
 static void ImGui_GfxDriver_CreateWindow(ImGuiViewport* viewport)
 {
     GfxDriverWindowData* data = new GfxDriverWindowData();
-    data->swapchain = GetGfxDriver()->CreateExtraSwapchain((SDL_Window*)viewport->PlatformHandle);
+    data->window = GetGfxDriver()->CreateExtraWindow((SDL_Window*)viewport->PlatformHandle);
     data->renderer =
-        std::make_unique<Renderer>(data->swapchain->GetSwapchainImage(), GameEditor::instance->fontImage.get());
+        std::make_unique<Renderer>(data->window->GetSwapchainImage(), GameEditor::instance->fontImage.get());
     data->cmd = GetGfxDriver()->CreateCommandBuffer();
     viewport->RendererUserData = data;
 }
 
 static void ImGui_GfxDriver_DestroyWindow(ImGuiViewport* viewport)
 {
-    delete (GfxDriverWindowData*)viewport->RendererUserData;
-    viewport->RendererUserData = nullptr;
+    auto d = (GfxDriverWindowData*)viewport->RendererUserData;
+    if (d != nullptr)
+    {
+        GetGfxDriver()->DestroyExtraWindow(d->window);
+        delete d;
+        viewport->RendererUserData = nullptr;
+    }
 }
 
 static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
 {
     GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
-    data->swapchain->SetSurfaceSize(size.x, size.y);
+    data->window->SetSurfaceSize(size.x, size.y);
 }
 
 static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg)
@@ -964,7 +979,7 @@ static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_a
 static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void* render_arg)
 {
     GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
-    data->swapchain->Present();
+    data->window->Present();
 }
 
 void GameEditor::EnableMultiViewport()
@@ -989,6 +1004,11 @@ void GameEditor::EnableMultiViewport()
     platform_io.Renderer_SetWindowSize = ImGui_GfxDriver_SetWindowSize;
     platform_io.Renderer_RenderWindow = ImGui_GfxDriver_RenderWindow;
     platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
+
+    auto& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 }
 
 GameEditor* GameEditor::instance = nullptr;

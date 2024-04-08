@@ -10,7 +10,7 @@
 #include "Libs/EnumFlags.hpp"
 #include "Libs/Ptr.hpp"
 #include "Semaphore.hpp"
-#include "Swapchain.hpp"
+#include "Window.hpp"
 
 #include <SDL.h>
 #include <glm/glm.hpp>
@@ -143,7 +143,8 @@ public:
     ) = 0;
     virtual void GenerateMipmaps(Gfx::Image& image) = 0;
 
-    virtual std::unique_ptr<Swapchain> CreateExtraSwapchain(SDL_Window* window) = 0;
+    virtual Window* CreateExtraWindow(SDL_Window* window) = 0;
+    virtual void DestroyExtraWindow(Window* window) = 0;
 
 private:
     static GfxDriver*& InstanceInternal();

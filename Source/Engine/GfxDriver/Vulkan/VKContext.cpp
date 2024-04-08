@@ -1,6 +1,6 @@
 #include "VKContext.hpp"
 #include "VKSwapchainImage.hpp"
-
+#include <spdlog/spdlog.h>
 namespace Gfx
 {
 VKContext* VKContext::context = nullptr;
@@ -43,7 +43,7 @@ void Surface::QuerySurfaceProperties(VkPhysicalDevice gpu)
     }
 }
 
-bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount)
+bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width, uint32_t height)
 {
     VKContext* c = VKContext::Instance();
     vkDeviceWaitIdle(c->device);
@@ -78,6 +78,10 @@ bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageC
     }
 
     extent = surface.surfaceCapabilities.currentExtent;
+    if (width != 0 && height != 0)
+    {
+        extent = {width, height};
+    }
     imageUsageFlags = surface.surfaceCapabilities.supportedUsageFlags;
     surfaceTransform = surface.surfaceCapabilities.currentTransform;
     presentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -103,8 +107,7 @@ bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageC
         VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         presentMode,
         VK_TRUE,
-        oldSwapChain
-    };
+        oldSwapChain};
 
     if (extent.width == 0 || extent.height == 0)
     {
