@@ -245,8 +245,6 @@ public:
     }
 
 private:
-    RenderGraph::RenderNode* vsmPass;
-    RenderGraph::RenderNode* vsmBoxFilterPass0;
 
     const DrawList* drawList;
     std::unique_ptr<Gfx::ShaderResource> vsmBoxFilterResource0{};

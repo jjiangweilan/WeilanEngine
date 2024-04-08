@@ -22,7 +22,6 @@ public:
     // void Execute(RenderingData& renderingData) override {}
 
 private:
-    RenderGraph::RenderNode* node;
 
     std::unique_ptr<Gfx::Buffer> buf;
     std::unique_ptr<Gfx::ShaderResource> passResource;

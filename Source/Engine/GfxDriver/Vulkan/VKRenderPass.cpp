@@ -45,6 +45,8 @@ VkFramebuffer VKRenderPass::CreateFrameBuffer()
             if (swapChainProxy == nullptr)
             {
                 swapChainProxy = dynamic_cast<VKSwapChainImage*>(&colorAtta.imageView->GetImage());
+                if (swapChainProxy)
+                    swapChainProxyUUIDCopy = swapChainProxy->GetID();
             }
 
             imageViews[attaIndex] = imageView->GetHandle();
@@ -253,6 +255,21 @@ VkFramebuffer VKRenderPass::GetFrameBuffer()
 
 VkRenderPass VKRenderPass::GetHandle()
 {
+    bool recreate = (swapChainProxy != nullptr && swapChainProxy->GetID() != swapChainProxyUUIDCopy);
+    if (recreate)
+    {
+        swapChainProxy = nullptr;
+
+        if (renderPass != VK_NULL_HANDLE)
+            VKContext::Instance()->objManager->DestroyRenderPass(renderPass);
+
+        for (auto fb : frameBuffers)
+            VKContext::Instance()->objManager->DestroyFramebuffer(fb);
+        frameBuffers.clear();
+
+        renderPass = VK_NULL_HANDLE;
+    }
+
     if (renderPass == VK_NULL_HANDLE)
     {
         CreateRenderPass();

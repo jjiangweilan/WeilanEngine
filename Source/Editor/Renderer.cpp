@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "spdlog/spdlog.h"
 
@@ -47,8 +46,6 @@ void main()
 }
 #endif
 )";
-void BuildGraphNode() {}
-
 Renderer::~Renderer() {}
 
 Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
@@ -71,48 +68,9 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
 
     this->fontImage = fontImage;
     this->finalImage = finalImage;
-    graph = std::make_unique<RenderGraph::Graph>();
-    BuildGraph();
 }
 
-void Renderer::BuildGraph()
-{
-    graph->Clear();
-
-    auto renderEditor = graph->AddNode(
-        [&](Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
-        { this->RenderEditor(cmd, pass, res); },
-        {
-            {
-                .name = "output image",
-                .handle = 0,
-                .type = RenderGraph::ResourceType::Image,
-                .accessFlags = Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMaskFlags::Color_Attachment_Read,
-                .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
-                .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .externalImage = finalImage,
-            },
-        },
-        {
-            {
-                .colors =
-                    {
-                        {
-                            .handle = 0,
-                            .loadOp = Gfx::AttachmentLoadOperation::Clear,
-                            .storeOp = Gfx::AttachmentStoreOperation::Store,
-                        },
-                    },
-            },
-        }
-    );
-
-    graph->Process(renderEditor, 0);
-
-    return;
-}
-
-void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
+void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
 {
     ImDrawData* imguiDrawData = drawData;
 
@@ -180,14 +138,15 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
         cmd.CopyBuffer(stagingBuffer, indexBuffer, indexCopy);
     }
 
-    Gfx::Image* color = (Gfx::Image*)res.at(0)->GetResource();
+    Gfx::Image* color = (Gfx::Image*)finalImage;
     uint32_t width = color->GetDescription().width;
     uint32_t height = color->GetDescription().height;
     cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
     std::vector<Gfx::ClearValue> clears(2);
     clears[0].color = {{0, 0, 0, 0}};
     clears[1].depthStencil.depth = 1;
-    cmd.BeginRenderPass(pass, clears);
+    mainPass.SetAttachment(0, *finalImage);
+    cmd.BeginRenderPass(mainPass, clears);
 
     // draw
     // Will project scissor/clipping rectangles into framebuffer space
@@ -307,6 +266,6 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
 void Renderer::Execute(ImDrawData* data, Gfx::CommandBuffer& cmd)
 {
     this->drawData = data;
-    graph->Execute(cmd);
+    RenderEditor(cmd);
 }
 } // namespace Editor

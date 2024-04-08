@@ -442,10 +442,6 @@ void GameEditor::Start()
             {
                 return;
             }
-            if (engine->event->GetSwapchainRecreated().state)
-            {
-                gameEditorRenderer->BuildGraph();
-            }
 
             GUIPass();
 

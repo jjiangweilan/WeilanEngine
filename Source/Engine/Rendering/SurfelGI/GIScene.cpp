@@ -23,14 +23,14 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     FrameGraph::Node* sceneSort = nullptr;
     for (auto& bp : FrameGraph::NodeBlueprintRegisteration::GetNodeBlueprints())
     {
-        if (bp.GetName() == "Surfel Bake Node")
-        {
-            surfelBakeNode = (FrameGraph::SurfelBakeFGNode*)&graph.AddNode(bp);
-        }
-        else if (bp.GetName() == "Scene Sort")
-        {
-            sceneSort = &graph.AddNode(bp);
-        }
+        //if (bp.GetName() == "Surfel Bake Node")
+        //{
+        //    surfelBakeNode = (FrameGraph::SurfelBakeFGNode*)&graph.AddNode(bp);
+        //}
+        //else if (bp.GetName() == "Scene Sort")
+        //{
+        //    sceneSort = &graph.AddNode(bp);
+        //}
     }
 
     graph.Connect(sceneSort->GetOutput()[0].GetID(), surfelBakeNode->inputDrawList);

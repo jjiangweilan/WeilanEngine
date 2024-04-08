@@ -4,10 +4,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 
-namespace RenderGraph
-{
-class Graph;
-}
 namespace Editor
 {
 class GameView : public Tool
@@ -60,7 +56,6 @@ private:
 
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
-    std::unique_ptr<RenderGraph::Graph> gameViewPostProcess;
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
     Gfx::RG::RenderPass outlieFinalPass = Gfx::RG::RenderPass::SingleColor(

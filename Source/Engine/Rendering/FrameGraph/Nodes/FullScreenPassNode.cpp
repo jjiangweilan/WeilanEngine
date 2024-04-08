@@ -73,7 +73,6 @@ public:
 private:
     Shader* shader;
     std::vector<Gfx::ClearValue> clears;
-    RenderGraph::RenderNode* fullScreenPassNode;
     const DrawList* drawList;
     std::unique_ptr<Gfx::ShaderResource> passResource;
     Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::SingleColor("full screen pass");

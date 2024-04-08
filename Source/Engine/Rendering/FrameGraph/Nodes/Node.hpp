@@ -4,7 +4,6 @@
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
-#include "Rendering/RenderGraph/Graph.hpp"
 #include <any>
 #include <glm/glm.hpp>
 #include <span>
@@ -243,11 +242,6 @@ struct Forwarding
   //
 struct Resource
 {
-    Resource(
-        ResourceTag::RenderGraphLink, FGID propertyID, RenderGraph::RenderNode* node, RenderGraph::ResourceHandle handle
-    )
-        : type(ResourceType::RenderGraphLink), propertyID(propertyID), node(node), handle(handle)
-    {}
     Resource(ResourceTag::DrawList, FGID propertyID, const DrawList* drawList)
         : type(ResourceType::DrawList), propertyID(propertyID), drawList(drawList)
     {}
@@ -258,10 +252,6 @@ struct Resource
     ResourceType type;
     FGID propertyID;
 
-    // RenderGraphLink
-    RenderGraph::RenderNode* node;
-    RenderGraph::ResourceHandle handle;
-
     const DrawList* drawList;
 
     float val;
@@ -270,21 +260,6 @@ struct Resource
 class Resources
 {
 public:
-    std::tuple<RenderGraph::RenderNode*, RenderGraph::ResourceHandle> GetResource(ResourceTag::RenderGraphLink, FGID id)
-    {
-        auto iter = resources.find(id);
-        if (iter != resources.end())
-        {
-            if (iter->second.type != ResourceType::RenderGraphLink)
-            {
-                throw std::logic_error("mismatched type");
-            }
-
-            return {iter->second.node, iter->second.handle};
-        }
-
-        return {nullptr, -1};
-    }
     const DrawList* GetResource(ResourceTag::DrawList, FGID id)
     {
         auto iter = resources.find(id);

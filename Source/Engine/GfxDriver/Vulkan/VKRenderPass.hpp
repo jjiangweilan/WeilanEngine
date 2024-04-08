@@ -48,6 +48,7 @@ protected:
     // is only one
     std::vector<VkFramebuffer> frameBuffers;
     VKSwapChainImage* swapChainProxy = nullptr;
+    UUID swapChainProxyUUIDCopy;
     Extent2D extent;
     std::vector<Subpass> subpasses;
 };

@@ -20,6 +20,11 @@ public:
         // do nothing, present is managed by vkdriver and is done every frame
     };
 
+    struct
+    {
+        bool requested = false;
+        uint32_t width, height;
+    } recreateRequest;
     Swapchain swapchain;
     Surface surface;
     int swapchainCount;

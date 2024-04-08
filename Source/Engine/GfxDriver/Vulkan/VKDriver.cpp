@@ -620,7 +620,6 @@ bool VKDriver::Present(
     {
         surface.QuerySurfaceProperties(gpu.handle);
         swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount);
-        swapchain.GetImagesFromVulkan();
         return true;
     }
 

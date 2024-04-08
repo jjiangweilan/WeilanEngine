@@ -197,7 +197,6 @@ public:
     }
 
 private:
-    RenderGraph::RenderNode* surfelDrawScene;
     const DrawList* drawList;
     Gfx::ShaderResource* sceneShaderResource;
 

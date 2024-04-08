@@ -109,7 +109,6 @@ private:
     Shader* volumetricFogShader;
     Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::Default();
 
-    RenderGraph::RenderNode* forwardNode;
     const DrawList* drawList;
     std::vector<Gfx::ClearValue> clearValues;
 

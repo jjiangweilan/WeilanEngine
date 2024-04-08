@@ -68,8 +68,6 @@ public:
     }
 
 private:
-    RenderGraph::RenderNode* shadowMapPass;
-    RenderGraph::RenderNode* vsmBoxFilterPass0;
     Gfx::RG::RenderPass shadowPass = Gfx::RG::RenderPass(1, 1);
     Gfx::RG::ImageIdentifier shadowMapId;
     Gfx::RG::ImageDescription shadowDescription;

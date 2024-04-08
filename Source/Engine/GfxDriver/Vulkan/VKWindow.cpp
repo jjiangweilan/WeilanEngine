@@ -49,7 +49,8 @@ Image* VKWindow::GetSwapchainImage()
 
 void VKWindow::SetSurfaceSize(int width, int height)
 {
-    swapchain.CreateOrOverrideSwapChain(surface, swapchainCount, width, height);
+    recreateRequest.requested = false;
+    recreateRequest.width = width;
+    recreateRequest.height = height;
 }
-
 } // namespace Gfx

@@ -1,5 +1,6 @@
 #pragma once
 #include "../SwapchainImage.hpp"
+#include "Libs/UUID.hpp"
 #include "VKImage.hpp"
 #include "VKImageView.hpp"
 
@@ -29,10 +30,13 @@ public:
         isSwapchainProxy = true;
     }
     VKSwapChainImage(VKSwapChainImage&& other) : VKImage(std::move(other)){};
+    const UUID& GetID()
+    {
+        return id;
+    }
 
     ~VKSwapChainImage() override;
 
-public:
     void Recreate(
         std::span<VkImage> swapchainImages,
         VkFormat format,
@@ -93,6 +97,7 @@ public:
 private:
     std::vector<std::unique_ptr<VKImage>> swapchainImages;
     int activeIndex;
+    UUID id;
 
     friend class VKSwapchainImageView;
 };
