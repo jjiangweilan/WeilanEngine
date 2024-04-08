@@ -2,7 +2,6 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Rendering/RenderGraph/NodeBuilder.hpp"
 #include "Rendering/ShaderCompiler.hpp"
-#include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
 
 namespace Editor
@@ -50,11 +49,9 @@ void main()
 )";
 void BuildGraphNode() {}
 
-std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont);
-
 Renderer::~Renderer() {}
 
-Renderer::Renderer(const char* customFont)
+Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
 {
     indexBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, 2048, false});
     vertexBuffer =
@@ -72,8 +69,10 @@ Renderer::Renderer(const char* customFont)
     auto& fragSPV = compiler.GetFragSPV();
     shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, verSPV, fragSPV);
 
-    fontImage = CreateImGuiFont(customFont);
+    this->fontImage = fontImage;
+    this->finalImage = finalImage;
     graph = std::make_unique<RenderGraph::Graph>();
+    BuildGraph();
 }
 
 void Renderer::BuildGraph()
@@ -85,13 +84,13 @@ void Renderer::BuildGraph()
         { this->RenderEditor(cmd, pass, res); },
         {
             {
-                .name = "SwapChain",
+                .name = "output image",
                 .handle = 0,
                 .type = RenderGraph::ResourceType::Image,
                 .accessFlags = Gfx::AccessMask::Color_Attachment_Write | Gfx::AccessMaskFlags::Color_Attachment_Read,
                 .stageFlags = Gfx::PipelineStage::Color_Attachment_Output,
                 .imageLayout = Gfx::ImageLayout::Color_Attachment,
-                .externalImage = GetGfxDriver()->GetSwapChainImage(),
+                .externalImage = finalImage,
             },
         },
         {
@@ -115,9 +114,7 @@ void Renderer::BuildGraph()
 
 void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, const RenderGraph::ResourceRefs& res)
 {
-    ImGui::Render();
-
-    ImDrawData* imguiDrawData = ImGui::GetDrawData();
+    ImDrawData* imguiDrawData = drawData;
 
     if (imguiDrawData->TotalVtxCount > 0)
     {
@@ -307,42 +304,9 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd, Gfx::RenderPass& pass, cons
     cmd.EndRenderPass();
 }
 
-std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
+void Renderer::Execute(ImDrawData* data, Gfx::CommandBuffer& cmd)
 {
-    assert(customFont == nullptr && "customFont not implemented");
-
-    unsigned char* fontData;
-    auto& io = ImGui::GetIO();
-    ImFontConfig config;
-    ImFont* font = nullptr;
-    // if (customFont)
-    // {
-    //     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
-    //     font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-    //         (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
-    //             .string()
-    //             .c_str(),
-    //         14,
-    //         &config,
-    //         icon_ranges
-    //     );
-    // }
-    io.FontDefault = font;
-    int width, height, bytePerPixel;
-    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
-    auto fontImage = GetGfxDriver()->CreateImage(
-        Gfx::ImageDescription((uint32_t)width, (uint32_t)height, Gfx::ImageFormat::R8G8B8A8_UNorm),
-        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
-    );
-    fontImage->SetName("ImGUI font");
-    uint32_t fontTexSize = bytePerPixel * width * height;
-
-    GetGfxDriver()->UploadImage(*fontImage, fontData, fontTexSize);
-    return fontImage;
-}
-
-void Renderer::Execute(Gfx::CommandBuffer& cmd)
-{
+    this->drawData = data;
     graph->Execute(cmd);
 }
 } // namespace Editor

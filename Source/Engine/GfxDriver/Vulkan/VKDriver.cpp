@@ -63,13 +63,14 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     VKContext::context = context.get();
     context->driver = this;
     context->allocator = memAllocator.get();
+    context->instance = instance.handle;
     context->objManager = objectManager.get();
     context->device = device.handle;
     context->gpu = &gpu;
     context->swapchain = &swapchain;
     context->mainQueue = &mainQueue;
 
-    CreateOrOverrideSwapChain();
+    swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount);
 
     // descriptor pool cache
     descriptorPoolCache = std::make_unique<VKDescriptorPoolCache>(context);
@@ -124,12 +125,13 @@ VKDriver::~VKDriver()
     vkDeviceWaitIdle(device.handle);
 
     renderGraph = nullptr;
-    swapchainImage = nullptr;
     sharedResource = nullptr;
 
     descriptorPoolCache = nullptr;
     dataUploader = nullptr;
     objectManager->DestroyPendingResources();
+
+    swapchain.swapchainImage = nullptr;
 
     // destroy inflight data
     vkDestroyCommandPool(device.handle, mainCmdPool, VK_NULL_HANDLE);
@@ -188,7 +190,7 @@ SDL_Window* VKDriver::GetSDLWindow()
 
 Image* VKDriver::GetSwapChainImage()
 {
-    return swapchainImage.get();
+    return swapchain.swapchainImage.get();
 }
 
 void VKDriver::ForceSyncResources()
@@ -276,11 +278,6 @@ void VKDriver::QueueSubmit(
     for (auto p : waitDstStageMasks)
     {
         vkPipelineStageFlags.push_back(MapPipelineStage(p));
-    }
-
-    for (auto c : cmdBufs)
-    {
-        // vkCmdBufs.push_back(static_cast<VKCommandBuffer*>(c)->GetHandle());
     }
 
     VkSubmitInfo submitInfo;
@@ -498,7 +495,20 @@ bool VKDriver::BeginFrame()
         VK_NULL_HANDLE,
         &inflightData[currentInflightIndex].swapchainIndex
     );
-    swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+    swapchain.swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+
+    for (auto& w : extraWindows)
+    {
+        VkResult acquireResult = vkAcquireNextImageKHR(
+            device.handle,
+            w->swapchain.handle,
+            -1,
+            w->imageAcquireSemaphore,
+            VK_NULL_HANDLE,
+            &w->swapchainIndex
+        );
+        w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
+    }
 
     return true;
 }
@@ -516,7 +526,11 @@ bool VKDriver::EndFrame()
     firstFrame = false;
 
     VKCommandBuffer2 cmd2(renderGraph.get());
-    cmd2.PresentImage(swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    for (auto& w : extraWindows)
+    {
+        cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchainIndex));
+    }
     renderGraph->Schedule(cmd2);
 
     // record scheduled commands
@@ -535,23 +549,62 @@ bool VKDriver::EndFrame()
 
     vkEndCommandBuffer(cmd);
 
-    VkPipelineStageFlags waitFlags[] = {
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT};
-    VkSemaphore waitSemaphores[] = {inflightData[currentInflightIndex].imageAcquireSemaphore, transferSignalSemaphore};
-    VkSemaphore signalSemaphores[] = {inflightData[currentInflightIndex].presendSemaphore, dataUploaderWaitSemaphore};
+    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
+    VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
+    VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
+    waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    waitFlags[1] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    waitSemaphores[0] = inflightData[currentInflightIndex].imageAcquireSemaphore;
+    waitSemaphores[1] = transferSignalSemaphore;
+    signalSemaphores[0] = inflightData[currentInflightIndex].presendSemaphore;
+    signalSemaphores[1] = dataUploaderWaitSemaphore;
+    for (int i = 0; i < extraWindows.size(); ++i)
+    {
+        waitFlags[i + 2] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        waitSemaphores[i + 2] = extraWindows[i]->imageAcquireSemaphore;
+        signalSemaphores[i + 2] = extraWindows[i]->presentSemaphore;
+    }
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    submitInfo.waitSemaphoreCount = 2;
+    submitInfo.waitSemaphoreCount = 2 + extraWindows.size();
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitFlags;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmd;
-    submitInfo.signalSemaphoreCount = 2;
+    submitInfo.signalSemaphoreCount = 2 + extraWindows.size();
     submitInfo.pSignalSemaphores = signalSemaphores;
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    allocator.Reset();
 
-    VkSemaphore presentSemaphore = inflightData[currentInflightIndex].presendSemaphore;
-    VkSwapchainKHR swapChainHandle = swapchain.handle;
+    bool swapchainRecreated = Present(
+        inflightData[currentInflightIndex].presendSemaphore,
+        swapchain.handle,
+        surface,
+        swapchain,
+        inflightData[currentInflightIndex].swapchainIndex
+    );
+
+    for (auto& w : extraWindows)
+    {
+        Present(w->presentSemaphore, w->swapchain.handle, w->surface, w->swapchain, w->swapchainIndex);
+    }
+
+    FrameEndClear();
+    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers
+    // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
+    // uploads it
+    dataUploader->WaitForUploadFinish();
+
+    return swapchainRecreated;
+}
+
+bool VKDriver::Present(
+    VkSemaphore presentSemaphore,
+    VkSwapchainKHR swapChainHandle,
+    Surface& surface,
+    Swapchain& swapchain,
+    uint32_t& swapchainIndex
+)
+{
     VkPresentInfoKHR presentInfo = {
         VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         nullptr,
@@ -559,24 +612,17 @@ bool VKDriver::EndFrame()
         &presentSemaphore,
         1,
         &swapChainHandle,
-        &inflightData[currentInflightIndex].swapchainIndex,
+        &swapchainIndex,
         nullptr};
-
-    FrameEndClear();
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        Surface_QuerySurfaceProperties();
-        CreateOrOverrideSwapChain();
-        Swapchain_GetImagesFromVulkan();
+        surface.QuerySurfaceProperties(gpu.handle);
+        swapchain.CreateOrOverrideSwapChain(surface, driverConfig.swapchainImageCount);
+        swapchain.GetImagesFromVulkan();
         return true;
     }
-
-    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers
-    // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
-    // uploads it
-    dataUploader->WaitForUploadFinish();
 
     return false;
 }
@@ -660,7 +706,7 @@ void VKDriver::CreateInstance()
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
                                               // and overrided in vkconfig app in VulkanSDK
-    bool enableValidationLayers = false;
+    bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))
@@ -832,51 +878,6 @@ VkResult VKDriver::CreateDebugUtilsMessengerEXT(
     }
 }
 
-void VKDriver::Surface_QuerySurfaceProperties()
-{
-    // Get surface capabilities
-    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu.handle, surface.handle, &surface.surfaceCapabilities) !=
-        VK_SUCCESS)
-    {
-        throw std::runtime_error("Could not check presentation surface capabilities!");
-    }
-
-    // Get surface present mode
-    uint32_t presentModesCount;
-    if ((vkGetPhysicalDeviceSurfacePresentModesKHR(gpu.handle, surface.handle, &presentModesCount, nullptr) !=
-         VK_SUCCESS) ||
-        (presentModesCount == 0))
-    {
-        throw std::runtime_error("Error occurred during presentation surface present modes enumeration!");
-    }
-
-    surface.surfacePresentModes.resize(presentModesCount);
-    if (vkGetPhysicalDeviceSurfacePresentModesKHR(
-            gpu.handle,
-            surface.handle,
-            &presentModesCount,
-            &surface.surfacePresentModes[0]
-        ) != VK_SUCCESS)
-    {
-        SPDLOG_ERROR("Error occurred during presentation surface present modes enumeration!");
-    }
-
-    // Get surface formats
-    uint32_t formatsCount;
-    if ((vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, nullptr) != VK_SUCCESS) ||
-        (formatsCount == 0))
-    {
-        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
-    }
-
-    surface.surfaceFormats.resize(formatsCount);
-    if (vkGetPhysicalDeviceSurfaceFormatsKHR(gpu.handle, surface.handle, &formatsCount, &surface.surfaceFormats[0]) !=
-        VK_SUCCESS)
-    {
-        throw std::runtime_error("Error occurred during presentation surface formats enumeration!");
-    }
-}
-
 void VKDriver::CreateSurface()
 {
     if (!SDL_Vulkan_CreateSurface(window, instance.handle, &surface.handle))
@@ -884,123 +885,7 @@ void VKDriver::CreateSurface()
         spdlog::critical("Window surface creation failed: {0}", SDL_GetError());
     }
 
-    Surface_QuerySurfaceProperties();
-}
-
-bool VKDriver::CreateOrOverrideSwapChain()
-{
-    vkDeviceWaitIdle(device.handle);
-
-    // Get Format
-    auto& surfaceFormats = surface.surfaceFormats;
-
-    // Check if list contains most widely used R8 G8 B8 A8 format
-    // with nonlinear color space
-    bool foundSurfaceFormat = false;
-    for (const VkSurfaceFormatKHR& surfaceFormat : surfaceFormats)
-    {
-        if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
-            surfaceFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            swapchain.surfaceFormat = surfaceFormat;
-            foundSurfaceFormat = true;
-            break;
-        }
-    }
-
-    if (!foundSurfaceFormat)
-        return false;
-
-    // check surface capabilities
-    if ((surface.surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT &
-         VK_IMAGE_USAGE_TRANSFER_DST_BIT) ||
-        std::find(surface.surfacePresentModes.begin(), surface.surfacePresentModes.end(), VK_PRESENT_MODE_FIFO_KHR) ==
-            surface.surfacePresentModes.end())
-    {
-        throw std::runtime_error("unsupported usage");
-    }
-
-    swapchain.extent = surface.surfaceCapabilities.currentExtent;
-    swapchain.imageUsageFlags = surface.surfaceCapabilities.supportedUsageFlags;
-    swapchain.surfaceTransform = surface.surfaceCapabilities.currentTransform;
-    swapchain.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    swapchain.numberOfImages = driverConfig.swapchainImageCount;
-
-    VkSwapchainKHR oldSwapChain = swapchain.handle;
-
-    VkSwapchainCreateInfoKHR swapChainCreateInfo = {
-        VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        nullptr,
-        0,
-        surface.handle,
-        swapchain.numberOfImages,
-        swapchain.surfaceFormat.format,
-        swapchain.surfaceFormat.colorSpace,
-        swapchain.extent,
-        1,
-        swapchain.imageUsageFlags,
-        VK_SHARING_MODE_EXCLUSIVE,
-        0,
-        nullptr,
-        swapchain.surfaceTransform,
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        swapchain.presentMode,
-        VK_TRUE,
-        oldSwapChain};
-
-    if (swapchain.extent.width == 0 || swapchain.extent.height == 0)
-    {
-        return false;
-    }
-
-    if (vkCreateSwapchainKHR(device.handle, &swapChainCreateInfo, nullptr, &swapchain.handle) != VK_SUCCESS)
-    {
-        std::runtime_error("Cloud not create swap chain!");
-    }
-
-    if (oldSwapChain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(device.handle, oldSwapChain, nullptr);
-    }
-
-    bool r = Swapchain_GetImagesFromVulkan();
-    if (!r)
-        return false;
-
-    int minImageCount = surface.surfaceCapabilities.minImageCount;
-    int maxImageCount = surface.surfaceCapabilities.maxImageCount;
-    driverConfig.swapchainImageCount =
-        driverConfig.swapchainImageCount < minImageCount ? minImageCount : driverConfig.swapchainImageCount;
-    driverConfig.swapchainImageCount =
-        driverConfig.swapchainImageCount > maxImageCount ? maxImageCount : driverConfig.swapchainImageCount;
-
-    return true;
-}
-
-bool VKDriver::Swapchain_GetImagesFromVulkan()
-{
-    uint32_t imageCount = 0;
-
-    vkGetSwapchainImagesKHR(device.handle, swapchain.handle, &imageCount, VK_NULL_HANDLE);
-    std::vector<VkImage> swapChainImagesTemp(imageCount);
-    if (vkGetSwapchainImagesKHR(device.handle, swapchain.handle, &imageCount, swapChainImagesTemp.data()) != VK_SUCCESS)
-    {
-        return false;
-    }
-
-    if (swapchainImage == nullptr)
-        swapchainImage = std::make_unique<VKSwapChainImage>();
-
-    swapchainImage->Recreate(
-        swapChainImagesTemp,
-        swapchain.surfaceFormat.format,
-        swapchain.extent.width,
-        swapchain.extent.height,
-        swapchain.imageUsageFlags
-    );
-    swapchainImage->SetName("Swapchain Image");
-
-    return true;
+    surface.QuerySurfaceProperties(gpu.handle);
 }
 
 void VKDriver::CreateDevice()
@@ -1253,5 +1138,22 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id
 std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 {
     return std::unique_ptr<CommandBuffer>(new VKCommandBuffer2(renderGraph.get()));
+}
+
+Window* VKDriver::CreateExtraWindow(SDL_Window* window)
+{
+    auto newWindow = std::make_unique<VKWindow>(window, driverConfig.swapchainImageCount);
+    Window* tmp = newWindow.get();
+    extraWindows.push_back(std::move(newWindow));
+    return tmp;
+}
+
+void VKDriver::DestroyExtraWindow(Window* window)
+{
+    auto iter = std::find_if(extraWindows.begin(), extraWindows.end(), [window](auto& w) { return w.get() == window; });
+    if (iter != extraWindows.end())
+    {
+        extraWindows.erase(iter);
+    }
 }
 } // namespace Gfx

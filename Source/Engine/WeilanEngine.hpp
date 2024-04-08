@@ -29,6 +29,10 @@ public:
     GameLoop* CreateGameLoop();
     void DestroyGameLoop(GameLoop* loop);
     void EndFrame();
+    SDL_Window* GetMainWindow()
+    {
+        return mainWindow.handle;
+    }
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
     {

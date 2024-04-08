@@ -19,14 +19,6 @@ ResourceHandle StrToHandle(const std::string& str)
 void Graph::Process(RenderNode* presentNode, ResourceHandle resourceHandle)
 {
     Process();
-
-    if (presentNode != nullptr)
-    {
-        if (presentNode->pass->GetResourceRef(resourceHandle)->GetResource() != GetGfxDriver()->GetSwapChainImage())
-        {
-            throw std::logic_error("present port needs to be swapchain image");
-        }
-    }
 }
 
 Graph::~Graph() {}

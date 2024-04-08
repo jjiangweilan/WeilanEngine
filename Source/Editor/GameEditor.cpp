@@ -1,4 +1,4 @@
-#include "GameEditor.hpp" gameeitor
+#include "GameEditor.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
@@ -17,6 +17,41 @@
 
 namespace Editor
 {
+
+static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
+{
+    assert(customFont == nullptr && "customFont not implemented");
+
+    unsigned char* fontData;
+    auto& io = ImGui::GetIO();
+    ImFontConfig config;
+    ImFont* font = nullptr;
+    // if (customFont)
+    // {
+    //     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
+    //     font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+    //         (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
+    //             .string()
+    //             .c_str(),
+    //         14,
+    //         &config,
+    //         icon_ranges
+    //     );
+    // }
+    io.FontDefault = font;
+    int width, height, bytePerPixel;
+    ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
+    auto fontImage = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription((uint32_t)width, (uint32_t)height, Gfx::ImageFormat::R8G8B8A8_UNorm),
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
+    );
+    fontImage->SetName("ImGUI font");
+    uint32_t fontTexSize = bytePerPixel * width * height;
+
+    GetGfxDriver()->UploadImage(*fontImage, fontData, fontTexSize);
+    return fontImage;
+}
+
 GameEditor::GameEditor(const char* path)
 {
     instance = this;
@@ -57,13 +92,15 @@ GameEditor::GameEditor(const char* path)
         EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
     }
 
-    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
-    ImGui::GetIO().ConfigFlags += ImGuiConfigFlags_DockingEnable;
+    auto& io = ImGui::GetIO();
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    EnableMultiViewport();
 
     gameView.Init();
 
-    gameEditorRenderer = std::make_unique<Editor::Renderer>();
-    gameEditorRenderer->BuildGraph();
+    fontImage = CreateImGuiFont(nullptr);
+    gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
 
     // toolList.emplace_back(new EnvironmentBaker());
 
@@ -80,6 +117,7 @@ GameEditor::GameEditor(const char* path)
 
 GameEditor::~GameEditor()
 {
+    fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
     engine->DestroyGameLoop(loop);
     loop = nullptr;
@@ -541,7 +579,15 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier*
     if (gameImage)
         gameView.Render(cmd, gameImage);
 
-    gameEditorRenderer->Execute(cmd);
+    ImGui::Render();
+    gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
+
+    auto& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 }
 
 void GameEditor::OpenWindow() {}
@@ -781,6 +827,182 @@ void GameEditor::ConsoleOutputWindow()
             ImGui::PopStyleColor();
     }
     ImGui::End();
+}
+
+static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
+{
+    Uint32 sdl_flags = 0;
+    sdl_flags |= SDL_WINDOW_VULKAN;
+    sdl_flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+    sdl_flags |= SDL_WINDOW_HIDDEN;
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? SDL_WINDOW_BORDERLESS : 0;
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? 0 : SDL_WINDOW_RESIZABLE;
+#if !defined(_WIN32)
+    // See SDL hack in ImGui_ImplSDL2_ShowWindow().
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon) ? SDL_WINDOW_SKIP_TASKBAR : 0;
+#endif
+#if SDL_HAS_ALWAYS_ON_TOP
+    sdl_flags |= (viewport->Flags & ImGuiViewportFlags_TopMost) ? SDL_WINDOW_ALWAYS_ON_TOP : 0;
+#endif
+    SDL_Window* window = SDL_CreateWindow(
+        "No Title Yet",
+        (int)viewport->Pos.x,
+        (int)viewport->Pos.y,
+        (int)viewport->Size.x,
+        (int)viewport->Size.y,
+        sdl_flags
+    );
+
+    viewport->PlatformHandle = window;
+}
+
+static void ImGui_ImplSDL2_DestroyWindow(ImGuiViewport* viewport)
+{
+    SDL_DestroyWindow((SDL_Window*)viewport->PlatformHandle);
+    viewport->PlatformHandle = nullptr;
+}
+
+static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
+{
+    // #if defined(_WIN32)
+    //     HWND hwnd = (HWND)viewport->PlatformHandleRaw;
+    //
+    //     // SDL hack: Hide icon from task bar
+    //     // Note: SDL 2.0.6+ has a SDL_WINDOW_SKIP_TASKBAR flag which is supported under Windows but the way it create
+    //     the
+    //     // window breaks our seamless transition.
+    //     if (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
+    //     {
+    //         LONG ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
+    //         ex_style &= ~WS_EX_APPWINDOW;
+    //         ex_style |= WS_EX_TOOLWINDOW;
+    //         ::SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);
+    //     }
+    //
+    //     // SDL hack: SDL always activate/focus windows :/
+    //     if (viewport->Flags & ImGuiViewportFlags_NoFocusOnAppearing)
+    //     {
+    //         ::ShowWindow(hwnd, SW_SHOWNA);
+    //         return;
+    //     }
+    // #endif
+
+    SDL_ShowWindow((SDL_Window*)viewport->PlatformHandle);
+}
+
+static ImVec2 ImGui_ImplSDL2_GetWindowPos(ImGuiViewport* viewport)
+{
+    int x = 0, y = 0;
+    SDL_GetWindowPosition((SDL_Window*)viewport->PlatformHandle, &x, &y);
+    return ImVec2((float)x, (float)y);
+}
+
+static void ImGui_ImplSDL2_SetWindowPos(ImGuiViewport* viewport, ImVec2 pos)
+{
+    SDL_SetWindowPosition((SDL_Window*)viewport->PlatformHandle, (int)pos.x, (int)pos.y);
+}
+
+static ImVec2 ImGui_ImplSDL2_GetWindowSize(ImGuiViewport* viewport)
+{
+    int w = 0, h = 0;
+    SDL_GetWindowSize((SDL_Window*)viewport->PlatformHandle, &w, &h);
+    return ImVec2((float)w, (float)h);
+}
+
+static void ImGui_ImplSDL2_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
+{
+    SDL_SetWindowSize((SDL_Window*)viewport->PlatformHandle, (int)size.x, (int)size.y);
+}
+
+static void ImGui_ImplSDL2_SetWindowTitle(ImGuiViewport* viewport, const char* title)
+{
+    SDL_SetWindowTitle((SDL_Window*)viewport->PlatformHandle, title);
+}
+
+static void ImGui_ImplSDL2_SetWindowFocus(ImGuiViewport* viewport)
+{
+    SDL_RaiseWindow((SDL_Window*)viewport->PlatformHandle);
+}
+
+static bool ImGui_ImplSDL2_GetWindowFocus(ImGuiViewport* viewport)
+{
+    return (SDL_GetWindowFlags((SDL_Window*)viewport->PlatformHandle) & SDL_WINDOW_INPUT_FOCUS) != 0;
+}
+
+static bool ImGui_ImplSDL2_GetWindowMinimized(ImGuiViewport* viewport)
+{
+    return (SDL_GetWindowFlags((SDL_Window*)viewport->PlatformHandle) & SDL_WINDOW_MINIMIZED) != 0;
+}
+
+struct GfxDriverWindowData
+{
+    Gfx::Window* window;
+    std::unique_ptr<Renderer> renderer;
+    std::unique_ptr<Gfx::CommandBuffer> cmd;
+};
+
+static void ImGui_GfxDriver_CreateWindow(ImGuiViewport* viewport)
+{
+    GfxDriverWindowData* data = new GfxDriverWindowData();
+    data->window = GetGfxDriver()->CreateExtraWindow((SDL_Window*)viewport->PlatformHandle);
+    data->renderer =
+        std::make_unique<Renderer>(data->window->GetSwapchainImage(), GameEditor::instance->fontImage.get());
+    data->cmd = GetGfxDriver()->CreateCommandBuffer();
+    viewport->RendererUserData = data;
+}
+
+static void ImGui_GfxDriver_DestroyWindow(ImGuiViewport* viewport)
+{
+    auto d = (GfxDriverWindowData*)viewport->RendererUserData;
+    if (d != nullptr)
+    {
+        GetGfxDriver()->DestroyExtraWindow(d->window);
+        delete d;
+        viewport->RendererUserData = nullptr;
+    }
+}
+
+static void ImGui_GfxDriver_SetWindowSize(ImGuiViewport* viewport, ImVec2 size)
+{
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->window->SetSurfaceSize(size.x, size.y);
+}
+
+static void ImGui_GfxDriver_RenderWindow(ImGuiViewport* viewport, void* render_arg)
+{
+
+    GfxDriverWindowData* data = (GfxDriverWindowData*)viewport->RendererUserData;
+    data->cmd->Reset(true);
+    data->renderer->Execute(viewport->DrawData, *data->cmd);
+    GetGfxDriver()->ExecuteCommandBuffer(*data->cmd);
+}
+
+void GameEditor::EnableMultiViewport()
+{
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    platform_io.Platform_CreateWindow = ImGui_ImplSDL2_CreateWindow;
+    platform_io.Platform_DestroyWindow = ImGui_ImplSDL2_DestroyWindow;
+    platform_io.Platform_ShowWindow = ImGui_ImplSDL2_ShowWindow;
+    platform_io.Platform_SetWindowPos = ImGui_ImplSDL2_SetWindowPos;
+    platform_io.Platform_GetWindowPos = ImGui_ImplSDL2_GetWindowPos;
+    platform_io.Platform_SetWindowSize = ImGui_ImplSDL2_SetWindowSize;
+    platform_io.Platform_GetWindowSize = ImGui_ImplSDL2_GetWindowSize;
+    platform_io.Platform_SetWindowFocus = ImGui_ImplSDL2_SetWindowFocus;
+    platform_io.Platform_GetWindowFocus = ImGui_ImplSDL2_GetWindowFocus;
+    platform_io.Platform_GetWindowMinimized = ImGui_ImplSDL2_GetWindowMinimized;
+    platform_io.Platform_SetWindowTitle = ImGui_ImplSDL2_SetWindowTitle;
+    // platform_io.Platform_RenderWindow = ImGui_ImplSDL2_RenderWindow;
+
+    platform_io.Renderer_CreateWindow = ImGui_GfxDriver_CreateWindow;
+    platform_io.Renderer_DestroyWindow = ImGui_GfxDriver_DestroyWindow;
+    platform_io.Renderer_SetWindowSize = ImGui_GfxDriver_SetWindowSize;
+    platform_io.Renderer_RenderWindow = ImGui_GfxDriver_RenderWindow;
+    // platform_io.Renderer_SwapBuffers = ImGui_GfxDriver_SwapBuffers;
+
+    auto& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
+    io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 }
 
 GameEditor* GameEditor::instance = nullptr;

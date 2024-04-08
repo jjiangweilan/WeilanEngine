@@ -8,6 +8,7 @@
 #include "VKSharedResource.hpp"
 namespace Gfx
 {
+class VKSwapChainImage;
 class VKDriver;
 
 struct Queue
@@ -28,8 +29,19 @@ struct GPU
     std::vector<VkExtensionProperties> availableExtensions;
 };
 
+struct Surface
+{
+    VkSurfaceKHR handle;
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    std::vector<VkPresentModeKHR> surfacePresentModes;
+    std::vector<VkSurfaceFormatKHR> surfaceFormats;
+
+    void QuerySurfaceProperties(VkPhysicalDevice gpu);
+};
+
 struct Swapchain
 {
+    ~Swapchain();
     VkSwapchainKHR handle = VK_NULL_HANDLE;
     VkSurfaceFormatKHR surfaceFormat;
     VkExtent2D extent;
@@ -37,17 +49,33 @@ struct Swapchain
     VkSurfaceTransformFlagBitsKHR surfaceTransform;
     VkPresentModeKHR presentMode;
     uint32_t numberOfImages;
+    std::unique_ptr<VKSwapChainImage> swapchainImage;
+
+    struct InflightData
+    {
+        VkCommandBuffer cmd = VK_NULL_HANDLE;
+        VkFence cmdFence = VK_NULL_HANDLE;
+        VkSemaphore imageAcquireSemaphore;
+        VkSemaphore presendSemaphore;
+        uint32_t swapchainIndex;
+    };
+    std::vector<InflightData> inflightData = {};
+    uint32_t currentInflightIndex = 0;
+
+    bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);
+    bool GetImagesFromVulkan();
 };
 
 class VKContext
 {
 public:
-    static inline RefPtr<VKContext> Instance()
+    static inline VKContext* Instance()
     {
         return context;
     }
     VKDriver* driver;
     VkDevice device;
+    VkInstance instance;
     GPU* gpu;
     Swapchain* swapchain;
     Queue* mainQueue;
@@ -58,7 +86,7 @@ public:
     VKDescriptorPoolCache* descriptorPoolCache;
 
 private:
-    static RefPtr<VKContext> context;
+    static VKContext* context;
     friend class VKDriver;
 };
 
