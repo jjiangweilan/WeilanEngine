@@ -165,6 +165,8 @@ public:
     GPUFeatures gpuFeatures;
     std::vector<std::unique_ptr<VKWindow>> extraWindows;
 
+    std::mutex driverMutex;
+
     // RHI implementation
     struct InflightData
     {

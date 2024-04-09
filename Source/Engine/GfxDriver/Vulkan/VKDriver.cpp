@@ -20,6 +20,7 @@
 #include <SDL_vulkan.h>
 
 #include <algorithm>
+#include <mutex>
 #include <set>
 #include <spdlog/spdlog.h>
 #include <string>
@@ -205,36 +206,43 @@ std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
     const std::vector<uint32_t>& frag
 )
 {
+    std::scoped_lock lock(driverMutex);
     return std::make_unique<VKShaderProgram>(config, context, name, vert, frag);
 }
 
 UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKSemaphore>(createInfo.signaled);
 }
 
 UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKFence>(createInfo);
 }
 
 UniPtr<Buffer> VKDriver::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKBuffer>(createInfo);
 }
 
 UniPtr<RenderPass> VKDriver::CreateRenderPass()
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKRenderPass>();
 }
 
 UniPtr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKFrameBuffer>(renderPass);
 }
 
 UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUsageFlags usages)
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKImage>(description, usages);
 }
 UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
@@ -246,6 +254,7 @@ UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
     uint32_t fragSize
 )
 {
+    std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
 }
 
@@ -330,6 +339,7 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
 
 void VKDriver::GenerateMipmaps(VKImage& image)
 {
+    std::scoped_lock lock(driverMutex);
     internalPendingCommands.push_back(
         [&](VkCommandBuffer cmd)
         {
@@ -481,6 +491,7 @@ void VKDriver::ClearResources()
 
 std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 {
+    std::scoped_lock lock(driverMutex);
     return std::make_unique<VKShaderResource>();
 }
 
@@ -626,8 +637,7 @@ bool VKDriver::Present(
         1,
         &swapChainHandle,
         &swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -717,9 +727,8 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
@@ -913,8 +922,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
@@ -1105,6 +1113,8 @@ void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&&
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
 {
+    std::scoped_lock lock(driverMutex);
+
     auto& vkDst = static_cast<VKBuffer&>(dst);
     if (dstOffset + size > dst.GetSize())
     {
@@ -1132,6 +1142,7 @@ void VKDriver::UploadImage(
     VkImageLayout finalLayout
 )
 {
+    std::scoped_lock lock(driverMutex);
     auto& vkDst = static_cast<VKImage&>(dst);
     dataUploader->UploadImage(&vkDst, data, size, mipLevel, arrayLayer, Gfx::MapImageAspect(aspect), finalLayout);
 }
