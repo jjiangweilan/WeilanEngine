@@ -13,6 +13,8 @@ public:
     Asset* LoadAsset(std::filesystem::path path);
     Asset* LoadAssetByID(const UUID& uuid);
 
+    std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
+
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
     void SaveAsset(Asset& asset);
 

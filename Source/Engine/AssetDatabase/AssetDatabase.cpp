@@ -2,8 +2,10 @@
 #include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
+#include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
+
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     : projectRoot(projectRoot), assetDirectory(projectRoot / "Assets"),
       assetDatabaseDirectory(projectRoot / "AssetDatabase")
@@ -56,6 +58,177 @@ void AssetDatabase::SaveAsset(Asset& asset)
 bool AssetDatabase::IsAssetInDatabase(Asset& asset)
 {
     return assets.GetAssetData(asset.GetUUID()) != nullptr;
+}
+
+std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> pathes)
+{
+    struct AsyncImport
+    {
+        // 0: init, 1: imported, 2: invalid, 3. async external import 4. async internal import
+        int stateTrack;
+        std::filesystem::path absoluteAssetPath;
+        AssetData* assetData = nullptr;
+        std::unique_ptr<Asset> newAsset = nullptr;
+        std::future<void> import;
+        std::unique_ptr<SerializeReferenceResolveMap> resolveMap = nullptr;
+        std::unique_ptr<JsonSerializer> ser = nullptr;
+    };
+    const int size = pathes.size();
+    std::vector<Asset*> results(size, nullptr);
+    std::vector<AsyncImport> asyncImport(size);
+
+    for (int i = 0; i < pathes.size(); ++i)
+    {
+        auto& path = pathes[i];
+        auto assetData = assets.GetAssetData(path);
+        asyncImport[i].assetData = assetData;
+        asyncImport[i].absoluteAssetPath = assetDirectory / path;
+        if (assetData)
+        {
+            // override the asset path because this asset may be an internal asset
+            asyncImport[i].absoluteAssetPath = assetData->GetAssetAbsolutePath();
+            auto a = assetData->GetAsset();
+            if (a)
+            {
+                results[i] = a;
+                asyncImport[i].stateTrack = 1;
+            }
+        }
+
+        if (!std::filesystem::exists(asyncImport[i].absoluteAssetPath))
+        {
+            asyncImport[i].stateTrack = 2;
+        }
+    }
+
+    for (int i = 0; i < size; ++i)
+    {
+        if (asyncImport[i].stateTrack == 0)
+        {
+            std::filesystem::path ext = asyncImport[i].absoluteAssetPath.extension();
+            asyncImport[i].newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
+
+            if (asyncImport[i].newAsset->IsExternalAsset())
+            {
+                asyncImport[i].stateTrack = 3;
+                asyncImport[i].import = std::async(
+                    std::launch::async,
+                    [asyncImport = &asyncImport[i]]()
+                    { asyncImport->newAsset->LoadFromFile(asyncImport->absoluteAssetPath.string().c_str()); }
+                );
+            }
+            else
+            {
+                std::ifstream f(asyncImport[i].absoluteAssetPath, std::ios::binary);
+                if (f.is_open() && f.good())
+                {
+                    asyncImport[i].stateTrack = 4;
+                    size_t fileSize = std::filesystem::file_size(asyncImport[i].absoluteAssetPath);
+                    std::vector<uint8_t> binary(fileSize);
+                    f.read((char*)binary.data(), fileSize);
+                    asyncImport[i].resolveMap = std::make_unique<SerializeReferenceResolveMap>();
+                    asyncImport[i].ser = std::make_unique<JsonSerializer>(binary, asyncImport[i].resolveMap.get());
+                    asyncImport[i].import = std::async(
+                        std::launch::async,
+                        [asyncImport = &asyncImport[i]]()
+                        {
+                            asyncImport->newAsset->Deserialize(asyncImport->ser.get());
+                        }
+                    );
+                }
+                else
+                {
+                    asyncImport[i].stateTrack = 1;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < size; ++i)
+    {
+        if (asyncImport[i].stateTrack == 3 || asyncImport[i].stateTrack == 4)
+        {
+            asyncImport[i].import.wait();
+            results[i] = asyncImport[i].newAsset.get();
+            if (asyncImport[i].assetData)
+            {
+                asyncImport[i].assetData->SetAsset(std::move(asyncImport[i].newAsset));
+            }
+            // a new asset needs to be recored/imported in assetDatabase
+            else
+            {
+                std::unique_ptr<AssetData> ad =
+                    std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), pathes[i], projectRoot);
+                ad->SaveToDisk(projectRoot);
+                assets.Add(std::move(ad));
+            }
+        }
+
+        if (asyncImport[i].stateTrack == 4)
+        {
+            auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+            {
+                while (!resolves.empty())
+                {
+                    auto& toresolve = resolves.back();
+                    toresolve.target = resolved;
+                    if (toresolve.callback)
+                        toresolve.callback(resolved);
+
+                    resolves.pop_back();
+                }
+            };
+            for (auto& iter : *asyncImport[i].resolveMap)
+            {
+                if (iter.second.empty())
+                    continue;
+                // resolve external reference
+                Asset* externalAsset = LoadAssetByID(iter.first);
+                if (externalAsset)
+                {
+                    ResolveAll(iter.second, externalAsset);
+                }
+
+                // resolve internal reference
+                // currently I didn't resolve reference to external contained object
+                // that can be done by cache a list of contained objects
+                const auto& objs = (*asyncImport[i].ser).GetContainedObjects();
+                auto containedObj = objs.find(iter.first);
+                if (containedObj != objs.end())
+                {
+                    auto resolved = containedObj->second;
+                    ResolveAll(iter.second, resolved);
+                }
+
+                // add whatever is not resolved to assetDatabase's resolve map
+                if (!iter.second.empty())
+                {
+                    auto& vec = referenceResolveMap[iter.first];
+                    for (auto& r : iter.second)
+                    {
+                        vec.emplace_back(r.target, r.targetUUID, r.callback);
+                    }
+                }
+            }
+        }
+
+        // see if there is any reference need to be resolved to this object
+        auto iter = referenceResolveMap.find(results[i]->GetUUID());
+        if (iter != referenceResolveMap.end())
+        {
+            for (auto& resolve : iter->second)
+            {
+                resolve.target = results[i];
+                if (resolve.callback)
+                {
+                    resolve.callback(results[i]);
+                }
+            }
+            referenceResolveMap.erase(iter);
+        }
+    }
+
+    return results;
 }
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
@@ -112,19 +285,6 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 JsonSerializer ser(binary, &resolveMap);
                 newAsset->Deserialize(&ser);
 
-                auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
-                {
-                    while (!resolves.empty())
-                    {
-                        auto& toresolve = resolves.back();
-                        toresolve.target = resolved;
-                        if (toresolve.callback)
-                            toresolve.callback(resolved);
-
-                        resolves.pop_back();
-                    }
-                };
-
                 if (assetData)
                 {
                     // this needs to be done after importing becuase if not we don't have internal game object's name to
@@ -140,9 +300,22 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     assets.Add(std::move(ad));
                 }
 
+                auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+                {
+                    while (!resolves.empty())
+                    {
+                        auto& toresolve = resolves.back();
+                        toresolve.target = resolved;
+                        if (toresolve.callback)
+                            toresolve.callback(resolved);
+
+                        resolves.pop_back();
+                    }
+                };
                 for (auto& iter : resolveMap)
                 {
-                    if (iter.second.empty()) continue;
+                    if (iter.second.empty())
+                        continue;
                     // resolve external reference
                     Asset* externalAsset = LoadAssetByID(iter.first);
                     if (externalAsset)
@@ -333,28 +506,7 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-    static auto f = [this](const char* path) -> Asset*
-    {
-        auto assetData =
-            std::make_unique<AssetData>(UUID(path, UUID::FromStrTag{}), path, AssetData::InternalAssetDataTag{});
-        internalAssets.push_back(assetData.get());
-        if (assetData->IsValid())
-        {
-            auto temp = assetData.get();
-            assets.Add(std::move(assetData));
-
-            // we don't have a way to tell the contained asset inside an internal asset(unless we specify them manually)
-            // we have to load them first so that other aseet can find the internal asset
-            LoadAsset(temp->GetAssetPath());
-
-            assets.UpdateAssetData(temp);
-
-            return temp->GetAsset();
-        }
-
-        return nullptr;
-    };
-
+    std::vector<std::string> pathes;
     for (auto entry : std::filesystem::recursive_directory_iterator("./Assets"))
     {
         if (!entry.is_directory())
@@ -364,9 +516,35 @@ void AssetDatabase::LoadEngineInternal()
             {
                 auto str = relative.string();
                 std::replace(str.begin(), str.end(), '\\', '/');
-                f(str.c_str());
+                pathes.push_back(str);
             }
         }
+    }
+
+    std::vector<std::filesystem::path> importPathes;
+    std::vector<AssetData*> validAssetData;
+    for (int i = 0; i < pathes.size(); ++i)
+    {
+        auto assetData = std::make_unique<AssetData>(
+            UUID(pathes[i], UUID::FromStrTag{}),
+            pathes[i],
+            AssetData::InternalAssetDataTag{}
+        );
+        if (assetData->IsValid())
+        {
+            AssetData* tmp = assetData.get();
+            internalAssets.push_back(tmp);
+            validAssetData.push_back(tmp);
+            assets.Add(std::move(assetData));
+            importPathes.push_back(tmp->GetAssetPath());
+        }
+    }
+
+    LoadAssets(importPathes);
+
+    for (auto a : validAssetData)
+    {
+        assets.UpdateAssetData(a);
     }
 
     Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
