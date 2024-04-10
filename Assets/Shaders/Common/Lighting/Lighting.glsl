@@ -3,10 +3,12 @@
 
 struct Light
 {
+    vec4 lightColor;
     vec4 position;
+    float ambientScale;
     float range;
     float intensity;
-    vec2 padding; // if not when running from xcode, it will report error
+    float padding; // if not when running from xcode, it will report error
 };
 
 #endif

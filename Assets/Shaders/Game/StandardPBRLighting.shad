@@ -120,8 +120,8 @@ void main()
         float dotNL = max(dot(n,l), NearZero);
         float brdf = SpecularBRDF(l, v, n, metallic, roughness);
 
-        float light = dotNL * scene.lights[i].intensity;
-        color += light * (baseColor / M_PI * ao + brdf);
+        vec3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
+        color += light * (ao * baseColor / M_PI + brdf);
     }
 
     // shadow mask
@@ -139,7 +139,7 @@ void main()
 
     // diffuse cube light
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
-    vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI;
+    vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 

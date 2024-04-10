@@ -26,12 +26,16 @@ glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
 void Light::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
+    s->Serialize("ambientScale", ambientScale);
+    s->Serialize("ambient", ambient);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
 }
 void Light::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
+    s->Deserialize("ambientScale", ambientScale);
+    s->Deserialize("ambient", ambient);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
 }

@@ -20,9 +20,10 @@ class SSAONode : public Node
 
         output.color = AddOutputProperty("attachment", PropertyType::Attachment);
 
+        AddConfig<ConfigurableType::Bool>("enable", true);
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
         AddConfig<ConfigurableType::Float>("radius", 0.3f);
-        enable = AddConfig<ConfigurableType::Bool>("enable", true);
+        AddConfig<ConfigurableType::Float>("range check", 0.f);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -36,25 +37,24 @@ class SSAONode : public Node
 
     void Compile() override
     {
+        enable = GetConfigurablePtr<bool>("enable");
         bias = GetConfigurablePtr<float>("bias");
         radius = GetConfigurablePtr<float>("radius");
-
+        rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
         ssaoBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
             Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
             sizeof(SSAO),
             false,
             "SSAO Buffer",
-            false
-        });
+            false});
 
         ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
             Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
             sizeof(SSAOParam),
             false,
             "SSAO param Buffer",
-            false
-        });
+            false});
 
         Gfx::ClearValue v;
         v.color.float32[0] = 0;
@@ -94,7 +94,7 @@ class SSAONode : public Node
     {
         if (*enable)
         {
-            SSAOParam newParam{*bias, *radius};
+            SSAOParam newParam{*bias, *radius, *rangeCheck};
             if (ssaoParam != newParam)
             {
                 ssaoParam = newParam;
@@ -122,6 +122,7 @@ class SSAONode : public Node
 private:
     Shader* shader;
     float* bias;
+    float* rangeCheck;
     float* radius;
     bool* enable;
     std::vector<Gfx::ClearValue> clears;
@@ -143,6 +144,7 @@ private:
 
         float bias;
         float radius;
+        float rangeCheck;
     } ssaoParam;
 
     struct

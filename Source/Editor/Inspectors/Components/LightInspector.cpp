@@ -10,9 +10,21 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         Light* light = target;
+        glm::vec3 lightColor = light->GetLightColor();
         float intensity = light->GetIntensity();
-        ImGui::DragFloat("intensity", &intensity);
-        light->SetIntensity(intensity);
+        float ambientScale = light->GetAmbientScale();
+        if (ImGui::DragFloat("ambient scale", &ambientScale))
+        {
+            light->SetAmbientScale(ambientScale);
+        }
+        if (ImGui::ColorPicker3("lightColor", &lightColor[0]))
+        {
+            light->SetLightColor(lightColor);
+        }
+        if (ImGui::DragFloat("intensity", &intensity))
+        {
+            light->SetIntensity(intensity);
+        }
     }
 
 private:

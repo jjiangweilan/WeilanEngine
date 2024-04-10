@@ -32,13 +32,35 @@ public:
     {
         return lightType;
     }
+
     float GetRange() const
     {
         return range;
     }
     float GetIntensity() const
+
     {
         return intensity;
+    }
+
+    glm::vec3 GetLightColor() const
+    {
+        return ambient;
+    }
+
+    float GetAmbientScale() const
+    {
+        return ambientScale;
+    }
+
+    void SetAmbientScale(float scale)
+    {
+        this->ambientScale = scale;
+    }
+
+    void SetLightColor(glm::vec3 ambient)
+    {
+        this->ambient = glm::vec4(ambient, 1.0);
     }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
@@ -46,8 +68,10 @@ public:
 
 private:
     LightType lightType = LightType::Directional;
-    float range; // valid when it's a point light
-    float intensity;
+    glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
+    float ambientScale = 1.0f;
+    float range = 10.0f; // valid when it's a point light
+    float intensity = 1.0f;
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

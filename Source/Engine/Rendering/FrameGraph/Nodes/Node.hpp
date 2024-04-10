@@ -425,7 +425,7 @@ protected:
     }
 
     template <ConfigurableType type, class T>
-    T* AddConfig(const char* name, const T& defaultVal)
+    void AddConfig(const char* name, const T& defaultVal)
     {
         if constexpr (std::is_pointer_v<T>)
         {
@@ -435,10 +435,6 @@ protected:
         {
             configs.emplace_back(Configurable::C<type>(name, defaultVal));
         }
-
-        auto& c = configs.back();
-
-        return std::any_cast<T>(&c.data);
     }
 
     void ClearConfigs()

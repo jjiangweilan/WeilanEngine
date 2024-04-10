@@ -182,6 +182,8 @@ void Graph::ProcessLights(Scene& gameScene)
     Light* light = nullptr;
     for (int i = 0; i < lights.size(); ++i)
     {
+        sceneInfo.lights[i].ambientScale = lights[i]->GetAmbientScale();
+        sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetModelMatrix();
         sceneInfo.lights[i].position = glm::vec4(-glm::normalize(glm::vec3(model[2])), 0);

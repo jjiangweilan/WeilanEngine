@@ -2,9 +2,9 @@
 #include "Asset/Shader.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
 #include "RenderingData.hpp"
-#include "NodeBlueprint.hpp"
 
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
@@ -164,10 +164,11 @@ private:
 
     struct LightInfo
     {
+        glm::vec4 lightColor;
         glm::vec4 position;
+        float ambientScale;
         float range;
         float intensity;
-        float padding0;
         float padding1;
     };
 

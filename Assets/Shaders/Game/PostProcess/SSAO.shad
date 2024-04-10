@@ -32,6 +32,7 @@ layout(set = 1) uniform SSAOParam
 {
     float bias;
     float radius;
+    float rangeCheck;
 } param;
 
 void main()
@@ -59,14 +60,15 @@ void main()
         sampleCS /= sampleCS.w;
 
         vec2 uv = sampleCS.xy * 0.5 + 0.5;
-        float sampleDepth = texture(depthTex, uv).x;
+        float sampleDepth = LinearEyeDepth(texture(depthTex, uv).x);
+        float sampleCSLinearZ = LinearEyeDepth(sampleCS.z);
 
-        float rangeCheck = smoothstep(0.0, 1.0, param.radius / abs(depthValVS - LinearEyeDepth(sampleDepth)));
-        occlusion  += (sampleDepth >= (sampleCS.z + param.bias) ? 1.0 : 0.0) * rangeCheck;
+        float rangeCheck = smoothstep(0.0, 1.0f, param.rangeCheck * param.radius / abs(depthValVS - sampleDepth));
+        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 1.0 : 0.0) * rangeCheck;
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 
-    oAO = vec4(0, 0, occlusion, 0);
+    oAO = vec4(0, 0, 1 - occlusion, 0);
 }
 
 #endif
