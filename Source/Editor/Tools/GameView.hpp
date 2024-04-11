@@ -54,6 +54,7 @@ private:
         glm::ivec2 resolution;
     } d; // data
 
+    bool firstFrame = true;
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;
     Gfx::RG::ImageIdentifier outlineSrcRT;

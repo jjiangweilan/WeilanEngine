@@ -33,8 +33,6 @@ void GameView::Init()
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
-    CreateRenderData(960, 480);
-
     outlineRawColorPassShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineRawColorPass.shad")
         );
@@ -374,6 +372,15 @@ bool GameView::Tick()
                 EditorState::selectedObject = scene->CopyGameObject(*selected);
         }
     }
+
+    // auto resize first frame
+    if (firstFrame)
+    {
+        int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+        int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
+        ChangeGameScreenResolution({width, height});
+    }
+    firstFrame = false;
 
     if (useViewCamera)
         EditorCameraWalkAround(*editorCamera);

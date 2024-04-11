@@ -3,22 +3,28 @@
 #if CONFIG
 name: Game/PostProcess/SSAO
 mask: B
+features:
+    - [_CrysisAO, _AlchemyAO]
 #endif
 
-#include "Utils/FullScreen.glsl"
-#include "Common/DeferredShading.glsl"
 
 #if FRAG
 
-#include "Common/SceneInfo.glsl"
+#include "Utils/FullScreen.glsl"
 #include "Utils/SpaceConversion.glsl"
+#include "Common/SceneInfo.glsl"
+#include "Common/DeferredShading.glsl"
 
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 oAO;
 
 layout(set = 0) uniform sampler2D depth_clamp;
 layout(set = 0) uniform sampler2D normal_clamp;
+#ifdef _AlchemyAO
+layout(set = 0) uniform sampler2D noise_point;
+#endif
 
+#define noiseTex noise_point;
 #define depthTex depth_clamp
 #define normalTex normal_clamp
 
@@ -30,12 +36,14 @@ layout(set = 1) uniform SSAO
 
 layout(set = 1) uniform SSAOParam
 {
+    vec4 sourceTexelSize;
     float bias;
     float radius;
     float rangeCheck;
 } param;
 
-void main()
+#ifdef _CrysisAO
+float GetSSAO()
 {
     vec3 normalVS = mat3(scene.view) * (DecodeGBufferNormal(texture(normalTex, uv).xyz));
 
@@ -68,6 +76,46 @@ void main()
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 
+    return occlusion;
+}
+#endif
+
+#ifdef _AlchemyAO
+
+vec2 PickSamplePoint(vec2 uv, int i, float radius)
+{
+    vec2 noise = texture(noise_point, uv + vec2(i * 123, i * 12)).xy;
+    uv += (noise * 2 - 1) * radius * param.sourceTexelSize.zw;
+    return uv;
+}
+
+float GetSSAO()
+{
+
+    for(int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+    {
+        vec2 PickSamplePoint(uv, i, 8);
+
+        vec3 sampleVS = ;
+        vec4 sampleCS = scene.projection * vec4(sampleVS, 1.0);
+        sampleCS /= sampleCS.w;
+
+        vec2 uv = sampleCS.xy * 0.5 + 0.5;
+        float sampleDepth = LinearEyeDepth(texture(depthTex, uv).x);
+        float sampleCSLinearZ = LinearEyeDepth(sampleCS.z);
+
+        float rangeCheck = smoothstep(0.0, 1.0f, param.rangeCheck * param.radius / abs(depthValVS - sampleDepth));
+        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 1.0 : 0.0) * rangeCheck;
+    }
+    occlusion /= SSAO_SAMPLE_COUNT;
+
+    return occlusion;
+}
+#endif
+
+void main()
+{
+    float occlusion = GetSSAO();
     oAO = vec4(0, 0, 1 - occlusion, 0);
 }
 
