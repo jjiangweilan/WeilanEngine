@@ -15,6 +15,9 @@
 #include <Jolt/Core/TempAllocator.h>
 #include <Jolt/RegisterTypes.h>
 // clang-format on
+//
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/glm.hpp>
 WeilanEngine::WeilanEngine(){};
 
 WeilanEngine::~WeilanEngine()

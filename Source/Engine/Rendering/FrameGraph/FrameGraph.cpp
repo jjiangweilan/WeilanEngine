@@ -303,8 +303,8 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.cameraZBufferParams = glm::vec4(
         camera->GetNear(),
         camera->GetFar(),
-        (camera->GetFar() - camera->GetNear()) / (camera->GetNear() * camera->GetFar()),
-        1.0f / camera->GetFar()
+        (camera->GetNear() - camera->GetFar()) / (camera->GetNear() * camera->GetFar()),
+        1.0f / camera->GetNear()
     );
     ProcessLights(scene);
 

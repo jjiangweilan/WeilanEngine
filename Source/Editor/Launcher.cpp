@@ -53,6 +53,24 @@ public:
 
 int main(int argc, char** argv)
 {
+    glm::vec3 position{ 0, 0, 2.0f };
+    glm::quat rotation{1,0,0,0};
+    glm::vec3 scale{ 1,1,1 };
+
+    glm::mat4 modelMatrix =
+        glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+    glm::mat4 viewMatrix = glm::inverse(modelMatrix);
+    glm::mat4 viewMatrix0 =
+        glm::inverse(glm::translate(glm::mat4(1), glm::vec3{0,0,0.0}) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale));
+    glm::mat4 proj = glm::perspective(glm::radians(60.0f), 1080.0f / 1920.0f, 0.01f, 1000.0f);
+    proj[1][1] *= -1;
+    glm::vec4 ss = proj * viewMatrix * glm::vec4(0, 0, 5.0f, 1.0);
+    glm::vec4 ss0 = proj * viewMatrix0 * glm::vec4(0, 0, 5.0f, 1.0);
+    ss /= ss.w;
+    ss0 /= ss0.w;
+    std::cout << fmt::format("{}, {}, {}, {}", ss.x, ss.y, ss.z, ss.w) << std::endl;
+    std::cout << fmt::format("{}, {}, {}, {}", ss0.x, ss0.y, ss0.z, ss0.w);
+    return 0;
     Launcher l;
     l.ArgsParser(argc, argv);
 }

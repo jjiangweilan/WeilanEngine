@@ -7,12 +7,12 @@ features:
     - [_CrysisAO, _AlchemyAO]
 #endif
 
+#include "Utils/FullScreen.glsl"
+#include "Common/SceneInfo.glsl"
+#include "Utils/SpaceConversion.glsl"
 
 #if FRAG
 
-#include "Utils/FullScreen.glsl"
-#include "Utils/SpaceConversion.glsl"
-#include "Common/SceneInfo.glsl"
 #include "Common/DeferredShading.glsl"
 
 layout(location = 0) in vec2 uv;
@@ -82,30 +82,30 @@ float GetSSAO()
 
 #ifdef _AlchemyAO
 
-vec2 PickSamplePoint(vec2 uv, int i, float radius)
+// vec2 in [-1, 1] in a disk
+vec2 PickSampleOffsetDisk(vec2 uv, int i)
 {
-    vec2 noise = texture(noise_point, uv + vec2(i * 123, i * 12)).xy;
-    uv += (noise * 2 - 1) * radius * param.sourceTexelSize.zw;
-    return uv;
+    const float M_PI = 3.14159265359;
+    float noise = texture(noise_point, uv + vec2(i * 123, i * 12)).x;
+    noise *= 2 * M_PI;
+
+    return vec2(cos(noise), sin(noise));
 }
 
 float GetSSAO()
 {
+    float depth = texture(depthTex, uv).x;
+    vec4 posVS = scene.invProjection * vec4(uv * 2 - 1, depth, 1.0);
+    posVS /= posVS.w;
 
+    float occlusion = 0;
     for(int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
     {
-        vec2 PickSamplePoint(uv, i, 8);
-
-        vec3 sampleVS = ;
-        vec4 sampleCS = scene.projection * vec4(sampleVS, 1.0);
+        vec2 offset = PickSampleOffsetDisk(uv, i);
+        vec4 sampleCS = scene.projection * vec4(posVS.xyz + vec3(offset, 0.0), 1.0);
         sampleCS /= sampleCS.w;
-
-        vec2 uv = sampleCS.xy * 0.5 + 0.5;
-        float sampleDepth = LinearEyeDepth(texture(depthTex, uv).x);
-        float sampleCSLinearZ = LinearEyeDepth(sampleCS.z);
-
-        float rangeCheck = smoothstep(0.0, 1.0f, param.rangeCheck * param.radius / abs(depthValVS - sampleDepth));
-        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 1.0 : 0.0) * rangeCheck;
+        sampleCS.xy = sampleCS.xy * 0.5 + 0.5;
+        float sampleDepth = texture(depthTex, sampleCS.xy).x;
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 

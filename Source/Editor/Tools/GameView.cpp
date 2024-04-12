@@ -149,11 +149,11 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         }
         if (ImGui::IsKeyDown(ImGuiKey_W))
         {
-            dir -= forward * speed;
+            dir += forward * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_S))
         {
-            dir += forward * speed;
+            dir -= forward * speed;
         }
         if (ImGui::IsKeyDown(ImGuiKey_E))
         {
@@ -174,8 +174,10 @@ static void EditorCameraWalkAround(Camera& editorCamera)
 
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right - upDown * up;
-        auto final = glm::lookAt(eye, eye - forward + lookAtDelta, glm::vec3(0, 1, 0));
-        go->SetModelMatrix(glm::inverse(final));
+        auto final = glm::lookAt(eye, eye + forward + lookAtDelta, glm::vec3(0, 1, 0));
+        final = glm::inverse(final);
+        final[2] *= -1;
+        go->SetModelMatrix(final);
     }
     else
     {
@@ -506,12 +508,10 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
     }
     glm::mat4 view = camera.GetViewMatrix();
     glm::mat4 proj = camera.GetProjectionMatrix();
-    proj[1][1] *= -1;
+    proj[1] *= -1;
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetGizmoSizeClipSpace(0.2f);
     ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
-    // ImGuizmo::ViewManipulate(&view[0][0], 100, {10, 10}, {128, 128}, 0);
-    // camera.GetGameObject()->GetTransform()->SetModelMatrix(glm::inverse(view));
     ImGuizmo::Manipulate(
         &view[0][0],
         &proj[0][0],
