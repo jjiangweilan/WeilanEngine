@@ -131,9 +131,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                     asyncImport[i].import = std::async(
                         std::launch::async,
                         [asyncImport = &asyncImport[i]]()
-                        {
-                            asyncImport->newAsset->Deserialize(asyncImport->ser.get());
-                        }
+                        { asyncImport->newAsset->Deserialize(asyncImport->ser.get()); }
                     );
                 }
                 else

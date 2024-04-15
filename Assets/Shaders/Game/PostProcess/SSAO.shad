@@ -34,7 +34,9 @@ layout(set = 1) uniform SSAO
     vec4 samples[SSAO_SAMPLE_COUNT];
 } ssao;
 
-layout(set = 1) uniform SSAOParam
+#ifdef _CrysisAO
+
+layout(set = 1, binding = 0) uniform SSAOParam
 {
     vec4 sourceTexelSize;
     float bias;
@@ -42,7 +44,6 @@ layout(set = 1) uniform SSAOParam
     float rangeCheck;
 } param;
 
-#ifdef _CrysisAO
 float GetSSAO()
 {
     vec3 normalVS = mat3(scene.view) * (DecodeGBufferNormal(texture(normalTex, uv).xyz));
@@ -72,7 +73,7 @@ float GetSSAO()
         float sampleCSLinearZ = LinearEyeDepth(sampleCS.z);
 
         float rangeCheck = smoothstep(0.0, 1.0f, param.rangeCheck * param.radius / abs(depthValVS - sampleDepth));
-        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 1.0 : 0.0) * rangeCheck;
+        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 0.0f : 1.0f) * rangeCheck;
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 
@@ -82,10 +83,20 @@ float GetSSAO()
 
 #ifdef _AlchemyAO
 
+layout(set = 1, binding = 1) uniform SSAOParam
+{
+    vec4 sourceTexelSize;
+    float u;
+    float u_2; // u^2
+    float sampleCount;
+    float radius;
+} param;
+
+#define M_PI 3.14159265359f
+
 // vec2 in [-1, 1] in a disk
 vec2 PickSampleOffsetDisk(vec2 uv, int i)
 {
-    const float M_PI = 3.14159265359;
     float noise = texture(noise_point, uv + vec2(i * 123, i * 12)).x;
     noise *= 2 * M_PI;
 
@@ -98,18 +109,27 @@ float GetSSAO()
     vec4 posVS = scene.invProjection * vec4(uv * 2 - 1, depth, 1.0);
     posVS /= posVS.w;
 
-    float occlusion = 0;
-    for(int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
-    {
-        vec2 offset = PickSampleOffsetDisk(uv, i);
-        vec4 sampleCS = scene.projection * vec4(posVS.xyz + vec3(offset, 0.0), 1.0);
-        sampleCS /= sampleCS.w;
-        sampleCS.xy = sampleCS.xy * 0.5 + 0.5;
-        float sampleDepth = texture(depthTex, sampleCS.xy).x;
-    }
-    occlusion /= SSAO_SAMPLE_COUNT;
+    vec3 normalVS = mat3(scene.view) * texture(normalTex, uv).xyz;
 
-    return occlusion;
+    const float sampleCount = param.sampleCount;
+    float A = 0;
+    for(int i = 0; i < sampleCount; ++i)
+    {
+        vec2 offset = 8 * param.sourceTexelSize.xy * PickSampleOffsetDisk(uv, i);
+        vec2 sampleUV = uv + offset;
+        float sampleFragDepth = texture(depthTex, sampleUV).x;
+
+        vec4 sampleVS2 = scene.invProjection * vec4(sampleUV, sampleFragDepth, 1.0);
+        sampleVS2 /= sampleVS2.w;
+
+        vec3 vi = sampleVS2.xyz - posVS.xyz;
+
+        A += max(0, dot(vi, normalVS)) * step(0, param.radius - length(vi)) / max(param.u_2, dot(vi, vi));
+    }
+
+    A = 2 * M_PI * param.u / sampleCount * A;
+
+    return A;
 }
 #endif
 

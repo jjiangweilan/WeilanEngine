@@ -281,7 +281,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
-
+    camera->SetProjectionMatrix(glm::radians(60.0f), 1920.0f / 1080.0f, 0.01f, 1000.f);
     GameObject* camGo = camera->GetGameObject();
 
     glm::mat4 viewMatrix = camera->GetViewMatrix();

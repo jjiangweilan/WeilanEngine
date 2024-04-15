@@ -13,6 +13,12 @@ class SSAONode : public Node
     {
         SetCustomName("SSAO z channel");
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/SSAO.shad");
+        noiseTex = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/noise.ktx");
+
+        if (aoType == AOType::AlchmeyAO)
+        {
+            shaderProgram = shader->GetShaderProgram({"_AlchemyAO"});
+        }
 
         input.attachment = AddInputProperty("attachment", PropertyType::Attachment);
         input.depth = AddInputProperty("depth", PropertyType::Attachment);
@@ -22,8 +28,10 @@ class SSAONode : public Node
 
         AddConfig<ConfigurableType::Bool>("enable", true);
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
-        AddConfig<ConfigurableType::Float>("radius", 0.3f);
         AddConfig<ConfigurableType::Float>("range check", 0.f);
+        AddConfig<ConfigurableType::Float>("radius", 0.3f);
+        AddConfig<ConfigurableType::Float>("u", 0.5f);
+        AddConfig<ConfigurableType::Float>("sample count", 0.f);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -42,19 +50,43 @@ class SSAONode : public Node
         radius = GetConfigurablePtr<float>("radius");
         rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
-        ssaoBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
-            Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
-            sizeof(SSAO),
-            false,
-            "SSAO Buffer",
-            false});
+        u = GetConfigurablePtr<float>("u");
+        sampleCount = GetConfigurablePtr<float>("sample count");
 
-        ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
-            Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
-            sizeof(SSAOParam),
-            false,
-            "SSAO param Buffer",
-            false});
+        switch (aoType)
+        {
+            case AOType::CrysisAO:
+                {
+                    ssaoBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
+                        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
+                        sizeof(RandomSamples),
+                        false,
+                        "SSAO Buffer",
+                        false
+                    });
+
+                    ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
+                        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
+                        sizeof(CrysisAO),
+                        false,
+                        "SSAO param Buffer",
+                        false
+                    });
+                    break;
+                }
+
+            case AOType::AlchmeyAO:
+                {
+                    ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
+                        Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
+                        sizeof(Alchmey),
+                        false,
+                        "SSAO param Buffer",
+                        false
+                    });
+                    break;
+                }
+        }
 
         Gfx::ClearValue v;
         v.color.float32[0] = 0;
@@ -63,30 +95,33 @@ class SSAONode : public Node
         v.color.float32[3] = 0;
         clears = {v};
 
-        SSAO ssao{};
-        // from LearnOpenGL
-        std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
-        std::default_random_engine generator;
-        for (unsigned int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+        if (aoType == AOType::CrysisAO)
         {
-            glm::vec4 sample(
-                randomFloats(generator) * 2.0 - 1.0,
-                randomFloats(generator) * 2.0 - 1.0,
-                randomFloats(generator),
-                1.0
-            );
-            sample = glm::normalize(sample);
-            sample *= randomFloats(generator);
+            RandomSamples ssao{};
+            // from LearnOpenGL
+            std::uniform_real_distribution<float> randomFloats(0.0, 1.0); // random floats between [0.0, 1.0]
+            std::default_random_engine generator;
+            for (unsigned int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+            {
+                glm::vec4 sample(
+                    randomFloats(generator) * 2.0 - 1.0,
+                    randomFloats(generator) * 2.0 - 1.0,
+                    randomFloats(generator),
+                    1.0
+                );
+                sample = glm::normalize(sample);
+                sample *= randomFloats(generator);
 
-            float scale = (float)i / 64.0;
-            scale = 0.1f + 0.9 * scale * scale; // lerp
-            sample *= scale;
+                float scale = (float)i / 64.0;
+                scale = 0.1f + 0.9 * scale * scale; // lerp
+                sample *= scale;
 
-            ssao.samples[i] = glm::vec4(glm::normalize(glm::vec3(sample)), 1.0);
+                ssao.samples[i] = glm::vec4(glm::normalize(glm::vec3(sample)), 1.0);
+            }
+
+            GetGfxDriver()->UploadBuffer(*ssaoBuf, (uint8_t*)&ssao, sizeof(RandomSamples));
+            passResource->SetBuffer("SSAO", ssaoBuf.get());
         }
-
-        GetGfxDriver()->UploadBuffer(*ssaoBuf, (uint8_t*)&ssao, sizeof(SSAO));
-        passResource->SetBuffer("SSAO", ssaoBuf.get());
         passResource->SetBuffer("SSAOParam", ssaoParamBuf.get());
     }
 
@@ -94,23 +129,41 @@ class SSAONode : public Node
     {
         if (*enable)
         {
-            SSAOParam newParam{*bias, *radius, *rangeCheck};
-            if (ssaoParam != newParam)
-            {
-                ssaoParam = newParam;
-                GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&ssaoParam, sizeof(SSAOParam));
-            }
             auto depth = input.depth->GetValue<AttachmentProperty>().id;
-            auto normal = input.normal->GetValue<AttachmentProperty>().id;
+            auto normal = input.normal->GetValue<AttachmentProperty>();
             auto attachment = input.attachment->GetValue<AttachmentProperty>().id;
+
+            float width = normal.desc.GetWidth();
+            float height = normal.desc.GetHeight();
+
+            if (aoType == AOType::CrysisAO)
+            {
+                CrysisAO newParam{{1 / width, 1 / height, width, height}, *bias, *radius, *rangeCheck};
+                if (crysis != newParam)
+                {
+                    crysis = newParam;
+                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&crysis, sizeof(CrysisAO));
+                }
+            }
+            else if (aoType == AOType::AlchmeyAO)
+            {
+                Alchmey newParam{{1 / width, 1 / height, width, height}, *u, *(u) * *(u), *sampleCount, *radius};
+                if (alchmey != newParam)
+                {
+                    alchmey = newParam;
+                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&alchmey, sizeof(Alchmey));
+                }
+            }
+
             if (shader != nullptr)
             {
                 mainPass.SetAttachment(0, attachment);
                 cmd.BeginRenderPass(mainPass, clears);
-                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.BindResource(1, passResource.get());
+                cmd.SetTexture("noise", *noiseTex->GetGfxImage());
                 cmd.SetTexture(depthHandle, depth);
-                cmd.SetTexture(normalHandle, normal);
+                cmd.SetTexture(normalHandle, normal.id);
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -120,10 +173,20 @@ class SSAONode : public Node
     }
 
 private:
+    enum class AOType
+    {
+        CrysisAO,
+        AlchmeyAO
+    } aoType = AOType::AlchmeyAO;
+
     Shader* shader;
+    Gfx::ShaderProgram* shaderProgram;
     float* bias;
-    float* rangeCheck;
+    float* u;
     float* radius;
+    float* rangeCheck;
+    float* sampleCount;
+
     bool* enable;
     std::vector<Gfx::ClearValue> clears;
     std::unique_ptr<Gfx::ShaderResource> passResource;
@@ -132,20 +195,33 @@ private:
     Gfx::RG::RenderPass mainPass;
     Gfx::ShaderBindingHandle depthHandle = Gfx::ShaderBindingHandle("depth");
     Gfx::ShaderBindingHandle normalHandle = Gfx::ShaderBindingHandle("normal");
+    Texture* noiseTex;
 
-    struct SSAO
+    struct RandomSamples
     {
         glm::vec4 samples[SSAO_SAMPLE_COUNT];
     };
 
-    struct SSAOParam
+    struct CrysisAO
     {
-        bool operator==(const SSAOParam& other) const = default;
+        bool operator==(const CrysisAO& other) const = default;
 
+        glm::vec4 sourceTexelSize;
         float bias;
         float radius;
         float rangeCheck;
-    } ssaoParam;
+    } crysis;
+
+    struct Alchmey
+    {
+        bool operator==(const Alchmey& other) const = default;
+
+        glm::vec4 sourceTexelSize;
+        float u;
+        float u_2; // u^2
+        float sampleCount;
+        float radius;
+    } alchmey;
 
     struct
     {

@@ -47,14 +47,25 @@ float Camera::GetFar()
 glm::mat4 Camera::GetViewMatrix() const
 {
     auto view = glm::inverse(gameObject->GetModelMatrix());
+
+    // handess swap, world space is in right handed but we want view space in left handed
+    view[0] *= -1;
     return view;
 }
 
-void Camera::SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar)
+void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
 {
-    projectionMatrix = glm::perspective(fovy, aspect, zNear, zFar);
-    projectionMatrix[2] *= -1;
-    projectionMatrix[1][1] *= -1;
+    float tangent = glm::tan(fovy / 2);
+    float t = n * tangent;
+    float r = t * aspect;
+
+    glm::mat4 proj(0.0f);
+    proj[0][0] = n / r;
+    proj[1][1] = -n / t;
+    proj[2][2] = f / (f - n);
+    proj[2][3] = 1;
+    proj[3][2] = -f * n / (f - n);
+    projectionMatrix = proj;
 }
 
 const glm::mat4& Camera::GetProjectionMatrix() const

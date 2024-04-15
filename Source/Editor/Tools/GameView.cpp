@@ -168,15 +168,15 @@ static void EditorCameraWalkAround(Camera& editorCamera)
 
         auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0);
         glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
+        mouseDelta.y = -mouseDelta.y;
         lastMouseDelta = mouseLastClickDelta;
         auto upDown = glm::radians(mouseDelta.y * 50) * Time::DeltaTime();
         auto leftRight = glm::radians(mouseDelta.x * 50) * Time::DeltaTime();
 
         auto eye = go->GetPosition();
-        auto lookAtDelta = leftRight * right - upDown * up;
-        auto final = glm::lookAt(eye, eye + forward + lookAtDelta, glm::vec3(0, 1, 0));
+        auto lookAtDelta = leftRight * right + upDown * up;
+        auto final = glm::lookAt(eye, eye - (forward + lookAtDelta), glm::vec3(0, 1, 0));
         final = glm::inverse(final);
-        final[2] *= -1;
         go->SetModelMatrix(final);
     }
     else
@@ -194,7 +194,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
-    editorCamera->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
+    editorCamera->SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
 }
 
 void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage)
@@ -213,7 +213,8 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                 Gfx::RG::ImageDescription desc{
                     sceneImage->GetDescription().width,
                     sceneImage->GetDescription().height,
-                    sceneImage->GetDescription().format};
+                    sceneImage->GetDescription().format
+                };
                 cmd.AllocateAttachment(outlineSrcRT, desc);
 
                 Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
@@ -226,7 +227,8 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                     static_cast<float>(rect.extent.width),
                     static_cast<float>(rect.extent.height),
                     0,
-                    1});
+                    1
+                });
                 cmd.BeginRenderPass(outlineSrcPass, clears);
                 for (auto& draw : drawList)
                 {
@@ -380,6 +382,11 @@ bool GameView::Tick()
     {
         int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
+        if (width == 0 || height == 0)
+        {
+            width = 1920;
+            height = 1080;
+        }
         ChangeGameScreenResolution({width, height});
     }
     firstFrame = false;
@@ -432,7 +439,8 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y};
+                            mousePos.y - windowPos.y - imagePos.y
+                        };
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
