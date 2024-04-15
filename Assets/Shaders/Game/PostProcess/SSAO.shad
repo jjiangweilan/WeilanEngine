@@ -19,20 +19,23 @@ layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 oAO;
 
 layout(set = 0) uniform sampler2D depth_clamp;
-layout(set = 0) uniform sampler2D normal_clamp;
-#ifdef _AlchemyAO
-layout(set = 0) uniform sampler2D noise_point;
-#endif
+layout(set = 0) uniform sampler2D noise_linear;
 
-#define noiseTex noise_point;
+#define noiseTex noise_linear
 #define depthTex depth_clamp
-#define normalTex normal_clamp
+// #define normalTex normal_clamp
 
 #define SSAO_SAMPLE_COUNT 64
 layout(set = 1) uniform SSAO
 {
     vec4 samples[SSAO_SAMPLE_COUNT];
 } ssao;
+
+vec3 NormalReconstruction(vec3 viewPos)
+{
+    //dFdx returns either dFdxCoarse or dFdxFine. dFdy returns either dFdyCoarse or dFdyFine.
+    return normalize(cross(dFdx(viewPos), dFdy(viewPos)));
+}
 
 #ifdef _CrysisAO
 
@@ -46,12 +49,13 @@ layout(set = 1, binding = 0) uniform SSAOParam
 
 float GetSSAO()
 {
-    vec3 normalVS = mat3(scene.view) * (DecodeGBufferNormal(texture(normalTex, uv).xyz));
 
     float depthVal = texture(depthTex, uv).x;
     vec3 screenPos = vec3(uv * 2 - 1, depthVal);
     vec4 pixelVS = scene.invProjection * vec4(screenPos, 1.0);
     pixelVS /= pixelVS.w;
+
+    vec3 normalVS = NormalReconstruction(pixelVS.xyz); // mat3(scene.view) * (DecodeGBufferNormal(texture(normalTex, uv).xyz));
 
     vec3 anyVec = vec3(1,0,0);
     anyVec = all(equal(normalVS, anyVec)) ? vec3(0,1,0) : anyVec;
@@ -77,7 +81,7 @@ float GetSSAO()
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 
-    return occlusion;
+    return 1 - occlusion;
 }
 #endif
 
@@ -86,8 +90,11 @@ float GetSSAO()
 layout(set = 1, binding = 1) uniform SSAOParam
 {
     vec4 sourceTexelSize;
-    float u;
-    float u_2; // u^2
+    float sigma;
+    float k;
+    float beta;
+    float theta;
+
     float sampleCount;
     float radius;
 } param;
@@ -95,12 +102,12 @@ layout(set = 1, binding = 1) uniform SSAOParam
 #define M_PI 3.14159265359f
 
 // vec2 in [-1, 1] in a disk
-vec2 PickSampleOffsetDisk(vec2 uv, int i)
+vec2 PickSampleOffsetDisk(vec2 uv, int i, float sampleCount)
 {
-    float noise = texture(noise_point, uv + vec2(i * 123, i * 12)).x;
-    noise *= 2 * M_PI;
-
-    return vec2(cos(noise), sin(noise));
+    float noiseVal = texture(noiseTex, uv * param.sourceTexelSize.zw / 128.0f).x;
+    float u = ((i+1)/sampleCount);
+    float r = u * 6 * M_PI;
+    return vec2(cos(r), sin(r)) * noiseVal;
 }
 
 float GetSSAO()
@@ -109,34 +116,40 @@ float GetSSAO()
     vec4 posVS = scene.invProjection * vec4(uv * 2 - 1, depth, 1.0);
     posVS /= posVS.w;
 
-    vec3 normalVS = mat3(scene.view) * texture(normalTex, uv).xyz;
+    vec3 normalVS = NormalReconstruction(posVS.xyz);//mat3(scene.view) * DecodeGBufferNormal(texture(normalTex, uv).xyz);
 
     const float sampleCount = param.sampleCount;
     float A = 0;
     for(int i = 0; i < sampleCount; ++i)
     {
-        vec2 offset = 8 * param.sourceTexelSize.xy * PickSampleOffsetDisk(uv, i);
-        vec2 sampleUV = uv + offset;
-        float sampleFragDepth = texture(depthTex, sampleUV).x;
+        vec2 offset = param.radius * PickSampleOffsetDisk(uv, i, sampleCount);
+        vec4 sampleVS = vec4(posVS.xyz + vec3(offset, 0), 1.0f);
+        vec4 sampleCS = scene.projection * sampleVS;
+        sampleCS /= sampleCS.w;
+        sampleCS.xy = sampleCS.xy * 0.5 + 0.5;
+        float sampleFragDepth = texture(depthTex, sampleCS.xy).x;
 
-        vec4 sampleVS2 = scene.invProjection * vec4(sampleUV, sampleFragDepth, 1.0);
+        vec4 sampleVS2 = scene.invProjection * vec4(sampleCS.xy * 2 - 1, sampleFragDepth, 1.0);
         sampleVS2 /= sampleVS2.w;
 
         vec3 vi = sampleVS2.xyz - posVS.xyz;
 
-        A += max(0, dot(vi, normalVS)) * step(0, param.radius - length(vi)) / max(param.u_2, dot(vi, vi));
+        float vi_n = dot(vi, normalVS);
+        float vi_vi = dot(vi, vi);
+        float rangeCheck = 2 - clamp(length(vi) / param.radius, 0.0, 2.0);
+        A += max(0, vi_n - posVS.z * param.beta) / (vi_vi + param.theta) * rangeCheck;
     }
 
-    A = 2 * M_PI * param.u / sampleCount * A;
+    A = max(0, pow(2 * param.sigma/sampleCount * A, param.k));
 
-    return A;
+    return 1 - A;
 }
 #endif
 
 void main()
 {
     float occlusion = GetSSAO();
-    oAO = vec4(0, 0, 1 - occlusion, 0);
+    oAO = vec4(0, 0, occlusion, 0);
 }
 
 #endif

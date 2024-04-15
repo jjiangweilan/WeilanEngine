@@ -30,7 +30,10 @@ class SSAONode : public Node
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
         AddConfig<ConfigurableType::Float>("range check", 0.f);
         AddConfig<ConfigurableType::Float>("radius", 0.3f);
-        AddConfig<ConfigurableType::Float>("u", 0.5f);
+        AddConfig<ConfigurableType::Float>("sigma", 0.5f);
+        AddConfig<ConfigurableType::Float>("k", 0.5f);
+        AddConfig<ConfigurableType::Float>("beta", 0.5f);
+        AddConfig<ConfigurableType::Float>("theta", 0.5f);
         AddConfig<ConfigurableType::Float>("sample count", 0.f);
 
         Gfx::RG::SubpassAttachment c[] = {{
@@ -50,7 +53,10 @@ class SSAONode : public Node
         radius = GetConfigurablePtr<float>("radius");
         rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
-        u = GetConfigurablePtr<float>("u");
+        sigma = GetConfigurablePtr<float>("sigma");
+        k = GetConfigurablePtr<float>("k");
+        theta = GetConfigurablePtr<float>("theta");
+        beta = GetConfigurablePtr<float>("beta");
         sampleCount = GetConfigurablePtr<float>("sample count");
 
         switch (aoType)
@@ -62,16 +68,14 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false
-                    });
+                        false});
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
 
@@ -82,8 +86,7 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
         }
@@ -147,13 +150,19 @@ class SSAONode : public Node
             }
             else if (aoType == AOType::AlchmeyAO)
             {
-                Alchmey newParam{{1 / width, 1 / height, width, height}, *u, *(u) * *(u), *sampleCount, *radius};
+                Alchmey
+                    newParam{{1 / width, 1 / height, width, height}, *sigma, *k, *beta, *theta, *sampleCount, *radius};
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
                     GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&alchmey, sizeof(Alchmey));
                 }
             }
+
+#if ENGINE_DEV_BUILD
+            if (aoType == AOType::AlchmeyAO)
+                shaderProgram = shader->GetShaderProgram({"_AlchemyAO"});
+#endif
 
             if (shader != nullptr)
             {
@@ -182,7 +191,10 @@ private:
     Shader* shader;
     Gfx::ShaderProgram* shaderProgram;
     float* bias;
-    float* u;
+    float* sigma;
+    float* k;
+    float* beta;
+    float* theta;
     float* radius;
     float* rangeCheck;
     float* sampleCount;
@@ -217,8 +229,11 @@ private:
         bool operator==(const Alchmey& other) const = default;
 
         glm::vec4 sourceTexelSize;
-        float u;
-        float u_2; // u^2
+        float sigma;
+        float k;
+        float beta;
+        float theta;
+
         float sampleCount;
         float radius;
     } alchmey;
