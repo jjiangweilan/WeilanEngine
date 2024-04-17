@@ -35,6 +35,7 @@ struct ShaderConfig
 {
     bool vertexInterleaved = false;
     CullMode cullMode = CullMode::Back;
+    bool debug = false;
 
     struct
     {

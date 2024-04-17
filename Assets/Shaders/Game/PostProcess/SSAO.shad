@@ -1,10 +1,12 @@
 #version 450
 
 #if CONFIG
-name: Game/PostProcess/SSAO
-mask: B
-features:
-    - [_CrysisAO, _AlchemyAO]
+name : Game / PostProcess / SSAO
+mask : B
+debug: true
+features :
+    - [ _CrysisAO, _AlchemyAO ]
+
 #endif
 
 #include "Utils/FullScreen.glsl"
@@ -18,18 +20,12 @@ features:
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 oAO;
 
-layout(set = 0) uniform sampler2D depth_clamp;
-layout(set = 0) uniform sampler2D noise_linear;
+layout(set = 0, binding = 1) uniform sampler2D depth_clamp;
+layout(set = 0, binding = 2) uniform sampler2D noise_linear;
 
 #define noiseTex noise_linear
 #define depthTex depth_clamp
 // #define normalTex normal_clamp
-
-#define SSAO_SAMPLE_COUNT 64
-layout(set = 1) uniform SSAO
-{
-    vec4 samples[SSAO_SAMPLE_COUNT];
-} ssao;
 
 vec3 NormalReconstruction(vec3 viewPos)
 {
@@ -39,7 +35,13 @@ vec3 NormalReconstruction(vec3 viewPos)
 
 #ifdef _CrysisAO
 
-layout(set = 1, binding = 0) uniform SSAOParam
+#define SSAO_SAMPLE_COUNT 64
+layout(set = 1) uniform SSAO
+{
+    vec4 samples[SSAO_SAMPLE_COUNT];
+} ssao;
+
+layout(set = 1) uniform SSAOParam
 {
     vec4 sourceTexelSize;
     float bias;
@@ -49,7 +51,6 @@ layout(set = 1, binding = 0) uniform SSAOParam
 
 float GetSSAO()
 {
-
     float depthVal = texture(depthTex, uv).x;
     vec3 screenPos = vec3(uv * 2 - 1, depthVal);
     vec4 pixelVS = scene.invProjection * vec4(screenPos, 1.0);
@@ -57,16 +58,16 @@ float GetSSAO()
 
     vec3 normalVS = NormalReconstruction(pixelVS.xyz); // mat3(scene.view) * (DecodeGBufferNormal(texture(normalTex, uv).xyz));
 
-    vec3 anyVec = vec3(1,0,0);
-    anyVec = all(equal(normalVS, anyVec)) ? vec3(0,1,0) : anyVec;
-    vec3 tangent   = normalize(anyVec - normalVS * dot(anyVec, normalVS));
+    vec3 anyVec = vec3(1, 0, 0);
+    anyVec = all(equal(normalVS, anyVec)) ? vec3(0, 1, 0) : anyVec;
+    vec3 tangent = normalize(anyVec - normalVS * dot(anyVec, normalVS));
     vec3 bitangent = cross(normalVS, tangent);
-    mat3 TBN       = mat3(tangent, bitangent, normalVS); 
+    mat3 TBN = mat3(tangent, bitangent, normalVS);
 
     // const float bias = 0.005;
     float occlusion = 0;
     const float depthValVS = LinearEyeDepth(depthVal);
-    for(int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
+    for (int i = 0; i < SSAO_SAMPLE_COUNT; ++i)
     {
         vec3 sampleVS = pixelVS.xyz + TBN * ssao.samples[i].xyz * param.radius;
         vec4 sampleCS = scene.projection * vec4(sampleVS, 1.0);
@@ -77,7 +78,7 @@ float GetSSAO()
         float sampleCSLinearZ = LinearEyeDepth(sampleCS.z);
 
         float rangeCheck = smoothstep(0.0, 1.0f, param.rangeCheck * param.radius / abs(depthValVS - sampleDepth));
-        occlusion  += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 0.0f : 1.0f) * rangeCheck;
+        occlusion += (sampleDepth >= (sampleCSLinearZ + param.bias) ? 0.0f : 1.0f) * rangeCheck;
     }
     occlusion /= SSAO_SAMPLE_COUNT;
 
@@ -87,7 +88,7 @@ float GetSSAO()
 
 #ifdef _AlchemyAO
 
-layout(set = 1, binding = 1) uniform SSAOParam
+layout(set = 1) uniform SSAOParam
 {
     vec4 sourceTexelSize;
     float sigma;
@@ -105,7 +106,7 @@ layout(set = 1, binding = 1) uniform SSAOParam
 vec2 PickSampleOffsetDisk(vec2 uv, int i, float sampleCount)
 {
     float noiseVal = texture(noiseTex, uv * param.sourceTexelSize.zw / 128.0f).x;
-    float u = ((i+1)/sampleCount);
+    float u = ((i + 1) / sampleCount);
     float r = u * 6 * M_PI;
     return vec2(cos(r), sin(r)) * noiseVal;
 }
@@ -113,14 +114,15 @@ vec2 PickSampleOffsetDisk(vec2 uv, int i, float sampleCount)
 float GetSSAO()
 {
     float depth = texture(depthTex, uv).x;
-    vec4 posVS = scene.invProjection * vec4(uv * 2 - 1, depth, 1.0);
+    vec4 posNDC = vec4(uv * 2 - 1, depth, 1.0);
+    vec4 posVS = scene.invProjection * posNDC;
     posVS /= posVS.w;
 
-    vec3 normalVS = NormalReconstruction(posVS.xyz);//mat3(scene.view) * DecodeGBufferNormal(texture(normalTex, uv).xyz);
+    vec3 normalVS = NormalReconstruction(posVS.xyz); //mat3(scene.view) * DecodeGBufferNormal(texture(normalTex, uv).xyz);
 
     const float sampleCount = param.sampleCount;
     float A = 0;
-    for(int i = 0; i < sampleCount; ++i)
+    for (int i = 0; i < sampleCount; ++i)
     {
         vec2 offset = param.radius * PickSampleOffsetDisk(uv, i, sampleCount);
         vec4 sampleVS = vec4(posVS.xyz + vec3(offset, 0), 1.0f);
@@ -140,7 +142,7 @@ float GetSSAO()
         A += max(0, vi_n - posVS.z * param.beta) / (vi_vi + param.theta) * rangeCheck;
     }
 
-    A = max(0, pow(2 * param.sigma/sampleCount * A, param.k));
+    A = max(0, pow(2 * param.sigma / sampleCount * A, param.k));
 
     return 1 - A;
 }

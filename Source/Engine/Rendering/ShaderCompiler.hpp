@@ -10,10 +10,10 @@
 #include <set>
 #include <shaderc/shaderc.hpp>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
-#include <stack>
 
 struct CompiledSpv
 {
@@ -69,10 +69,10 @@ public:
     }
 
     // compile graphics shader
-    void Compile(const char* filepath, const std::string& buf, bool debug);
+    void Compile(const char* filepath, const std::string& buf);
 
     // compile compute shader
-    void CompileComputeShader(const char* path, const std::string& buf, bool debug);
+    void CompileComputeShader(const char* path, const std::string& buf);
 
     const std::vector<uint32_t>& GetVertexSPV()
     {

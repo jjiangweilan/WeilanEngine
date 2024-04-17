@@ -28,13 +28,13 @@ class SSAONode : public Node
 
         AddConfig<ConfigurableType::Bool>("enable", true);
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
-        AddConfig<ConfigurableType::Float>("range check", 0.f);
-        AddConfig<ConfigurableType::Float>("radius", 0.3f);
-        AddConfig<ConfigurableType::Float>("sigma", 0.5f);
-        AddConfig<ConfigurableType::Float>("k", 0.5f);
-        AddConfig<ConfigurableType::Float>("beta", 0.5f);
-        AddConfig<ConfigurableType::Float>("theta", 0.5f);
-        AddConfig<ConfigurableType::Float>("sample count", 0.f);
+        AddConfig<ConfigurableType::Float>("range check", 1.f);
+        AddConfig<ConfigurableType::Float>("radius", 0.5f);
+        AddConfig<ConfigurableType::Float>("stength", 1.0f);
+        AddConfig<ConfigurableType::Float>("k", 1.0f);
+        AddConfig<ConfigurableType::Float>("self bias", 0.001f);
+        AddConfig<ConfigurableType::Float>("theta", 1.0f);
+        AddConfig<ConfigurableType::Float>("sample count", 8.f);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -53,10 +53,10 @@ class SSAONode : public Node
         radius = GetConfigurablePtr<float>("radius");
         rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
-        sigma = GetConfigurablePtr<float>("sigma");
+        sigma = GetConfigurablePtr<float>("stength");
         k = GetConfigurablePtr<float>("k");
         theta = GetConfigurablePtr<float>("theta");
-        beta = GetConfigurablePtr<float>("beta");
+        beta = GetConfigurablePtr<float>("self bias");
         sampleCount = GetConfigurablePtr<float>("sample count");
 
         switch (aoType)

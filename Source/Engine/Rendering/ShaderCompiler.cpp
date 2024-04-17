@@ -108,20 +108,26 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
 {
     shaderc::CompileOptions option;
     // https://github.com/google/shaderc/commit/ca4c38cbc8137fba6fc3ddbf0d95362a04612fa2
-    option.SetPreserveBindings(true);
     option.AddMacroDefinition(shaderStage, "1");
-    option.SetAutoBindUniforms(true);
     for (auto& f : features)
     {
         option.AddMacroDefinition(f, "1");
     }
     auto includer = std::make_unique<ShaderIncluder>(&includedTrack);
     option.SetIncluder(std::move(includer));
+
+    // currently settings for textures are derived from binding name but if we use optimization, the name will be
+    // replaced causing to failed to generate correct ShaderInfo.
+    // We can move the setting from binding name to CONFIG section
     if (debug)
     {
         option.SetGenerateDebugInfo();
         option.SetOptimizationLevel(shaderc_optimization_level_zero);
     }
+    else
+        option.SetOptimizationLevel(shaderc_optimization_level_zero);
+    option.SetAutoBindUniforms(true);
+    option.SetPreserveBindings(false);
     shaderc::Compiler compiler;
     auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
     if (compiled.GetNumErrors() > 0)
@@ -146,6 +152,7 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
 
     root.get_if("name", &name);
     root.get_if("interleaved", &config.vertexInterleaved);
+    root.get_if("debug", &config.debug);
     config.depth.boundTestEnable = false;
 
     if (root.has_child("mask"))
@@ -389,7 +396,7 @@ uint64_t ShaderCompiler::GenerateFeatureCombination(
     return featureCombination;
 }
 
-void ShaderCompiler::CompileComputeShader(const char* filepath, const std::string& buf, bool debug)
+void ShaderCompiler::CompileComputeShader(const char* filepath, const std::string& buf)
 {
     std::stringstream f;
     f << buf;
@@ -439,14 +446,22 @@ void ShaderCompiler::CompileComputeShader(const char* filepath, const std::strin
 
         CompiledSpv compiledSpv;
 
-        compiledSpv.compSpv =
-            CompileShader("COMP", shaderc_compute_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
+        compiledSpv.compSpv = CompileShader(
+            "COMP",
+            shaderc_compute_shader,
+            config->debug,
+            filepath,
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
 
         compiledSpvs[featureCombination] = std::move(compiledSpv);
     }
 }
 
-void ShaderCompiler::Compile(const char* filepath, const std::string& buf, bool debug)
+void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
 {
     std::stringstream f;
     f << buf;
@@ -496,11 +511,27 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf, bool 
 
         CompiledSpv compiledSpv;
 
-        compiledSpv.vertSpv =
-            CompileShader("VERT", shaderc_vertex_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
+        compiledSpv.vertSpv = CompileShader(
+            "VERT",
+            shaderc_vertex_shader,
+            config->debug,
+            filepath,
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
 
-        compiledSpv.fragSpv =
-            CompileShader("FRAG", shaderc_fragment_shader, debug, filepath, buf.c_str(), bufSize, includedTrack, c);
+        compiledSpv.fragSpv = CompileShader(
+            "FRAG",
+            shaderc_fragment_shader,
+            config->debug,
+            filepath,
+            buf.c_str(),
+            bufSize,
+            includedTrack,
+            c
+        );
 
         compiledSpvs[featureCombination] = std::move(compiledSpv);
     }

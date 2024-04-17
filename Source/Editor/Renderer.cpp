@@ -59,7 +59,7 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     ShaderCompiler compiler;
-    compiler.Compile("", imguiShader, false);
+    compiler.Compile("", imguiShader);
 
     auto config = compiler.GetConfig();
     auto& verSPV = compiler.GetVertexSPV();

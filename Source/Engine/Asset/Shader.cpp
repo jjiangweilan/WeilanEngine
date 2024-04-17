@@ -202,19 +202,15 @@ bool Shader::LoadFromFile(const char* path)
                     quoteCount -= 1;
                 index++;
             }
-            if (ssf[index-1] != '}')
+            if (ssf[index - 1] != '}')
                 throw std::exception("failed to found valid shader pass block");
-            int shaderPassBlockEnd = index-1;
+            int shaderPassBlockEnd = index - 1;
 
             // compile shader pass block
             auto shaderPass = std::make_unique<ShaderPass>();
 
-            bool debugMode = false;
-#if ENGINE_EDITOR
-            debugMode = true;
-#endif
             std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
-            compiler.Compile(path, shaderPassBlock, debugMode);
+            compiler.Compile(path, shaderPassBlock);
             for (auto& iter : compiler.GetCompiledSpvs())
             {
                 shaderPass->shaderPrograms[iter.first] =
@@ -232,11 +228,7 @@ bool Shader::LoadFromFile(const char* path)
         {
             auto shaderPass = std::make_unique<ShaderPass>();
 
-            bool debugMode = false;
-#if ENGINE_EDITOR
-            debugMode = true;
-#endif
-            compiler.Compile(path, ssf, debugMode);
+            compiler.Compile(path, ssf);
             for (auto& iter : compiler.GetCompiledSpvs())
             {
                 shaderPass->shaderPrograms[iter.first] =
@@ -275,12 +267,7 @@ bool ComputeShader::LoadFromFile(const char* path)
     ss << f.rdbuf();
     try
     {
-        bool debugMode = false;
-#if ENGINE_EDITOR
-        debugMode = true;
-#endif
-
-        compiler.CompileComputeShader(path, ss.str(), debugMode);
+        compiler.CompileComputeShader(path, ss.str());
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPass->shaderPrograms[iter.first] =

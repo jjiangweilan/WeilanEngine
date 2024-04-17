@@ -108,8 +108,7 @@ VKShaderModule::VKShaderModule(const std::string& name, const std::vector<uint32
 VKShaderModule::VKShaderModule(
     const std::string& name, const unsigned char* code, uint32_t codeByteSize, bool vertInterleaved
 )
-    : vertInterleaved(vertInterleaved),
-      gpuProperties(GetGPU()->physicalDeviceProperties)
+    : vertInterleaved(vertInterleaved), gpuProperties(GetGPU()->physicalDeviceProperties)
 {
     spirv_cross::CompilerReflection compilerReflection((const uint32_t*)code, codeByteSize / sizeof(uint32_t));
     nlohmann::json jsonInfo = nlohmann::json::parse(compilerReflection.compile());
