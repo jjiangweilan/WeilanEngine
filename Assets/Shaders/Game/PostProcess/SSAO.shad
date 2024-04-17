@@ -6,7 +6,6 @@ mask : B
 debug: true
 features :
     - [ _CrysisAO, _AlchemyAO ]
-
 #endif
 
 #include "Utils/FullScreen.glsl"
