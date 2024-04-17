@@ -14,6 +14,10 @@ class GaussianBlurNode : public Node
         shader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/GaussianBlur.shad"
             );
+#if ENGINE_DEV_BUILD
+        hShader = shader->GetShaderProgram({"_Horizontal"});
+        vShader = shader->GetShaderProgram({"_Vertical"});
+#endif
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
@@ -26,9 +30,17 @@ class GaussianBlurNode : public Node
             Gfx::AttachmentLoadOperation::Clear,
             Gfx::AttachmentStoreOperation::Store,
         }};
-        mainPass = Gfx::RG::RenderPass(1, 1);
-        mainPass.SetSubpass(0, c);
-        mainPass.SetName("GaussianBlur");
+        hPass = Gfx::RG::RenderPass(1, 1);
+        hPass.SetSubpass(0, c);
+        hPass.SetName("GaussianBlurH");
+
+        vPass = Gfx::RG::RenderPass(1, 1);
+        vPass.SetSubpass(0, c);
+        vPass.SetName("GaussianBlurV");
+
+        paramsBuffer = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
+            Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(GaussianBlur)
+        });
     }
 
     void Compile() override
@@ -43,13 +55,37 @@ class GaussianBlurNode : public Node
         if (*config.enable)
         {
             auto inputAttachment = input.target->GetValue<AttachmentProperty>();
-            mainPass.SetAttachment(0, inputAttachment.id);
-            cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
-            cmd.BeginRenderPass(mainPass, clears);
-            cmd.SetTexture(sourceHandle, input.source->GetValue<AttachmentProperty>().id);
-            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
-            cmd.Draw(6, 1, 0, 0);
 
+            GaussianBlur newParam = {glm::vec4{
+                1.0f / inputAttachment.desc.GetWidth(),
+                1.0f / inputAttachment.desc.GetHeight(),
+                inputAttachment.desc.GetWidth(),
+                inputAttachment.desc.GetHeight()}};
+            if (newParam != params)
+            {
+                params = newParam;
+                GetGfxDriver()->UploadBuffer(*paramsBuffer, (uint8_t*)&params, sizeof(GaussianBlur));
+            }
+
+            cmd.SetBuffer("GaussianBlur", *paramsBuffer);
+            cmd.AllocateAttachment(tmpRT, inputAttachment.desc);
+            hPass.SetAttachment(0, tmpRT);
+            cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
+            cmd.BeginRenderPass(hPass, clears);
+            cmd.SetTexture(sourceHandle, input.source->GetValue<AttachmentProperty>().id);
+#if ENGINE_DEV_BUILD
+            hShader = shader->GetShaderProgram({"_Horizontal"});
+            vShader = shader->GetShaderProgram({"_Vertical"});
+#endif
+            cmd.BindShaderProgram(hShader, hShader->GetDefaultShaderConfig());
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+
+            vPass.SetAttachment(0, inputAttachment.id);
+            cmd.BeginRenderPass(vPass, clears);
+            cmd.SetTexture(sourceHandle, tmpRT);
+            cmd.BindShaderProgram(vShader, vShader->GetDefaultShaderConfig());
+            cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }
 
@@ -58,10 +94,22 @@ class GaussianBlurNode : public Node
 
 private:
     Shader* shader;
+    Gfx::ShaderProgram* hShader;
+    Gfx::ShaderProgram* vShader;
+    Gfx::RG::ImageIdentifier tmpRT;
+    std::unique_ptr<Gfx::Buffer> paramsBuffer;
+
     std::vector<Gfx::ClearValue> clears;
-    Gfx::RG::RenderPass mainPass;
+    Gfx::RG::RenderPass hPass;
+    Gfx::RG::RenderPass vPass;
     Texture* noiseTex;
     Gfx::ShaderBindingHandle sourceHandle = Gfx::ShaderBindingHandle("source");
+
+    struct GaussianBlur
+    {
+        bool operator==(const GaussianBlur& other) const = default;
+        glm::vec4 sourceTexelSize;
+    } params;
 
     struct
     {
