@@ -197,6 +197,9 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
         }
     }
 
+    for (auto& g : gameObjects)
+        g->SetEnable(true);
+
     this->gameObjects.insert(
         this->gameObjects.end(),
         std::make_move_iterator(gameObjects.begin()),

@@ -231,6 +231,7 @@ void GameEditor::SceneTree(Scene& scene)
             {
                 // pass null to set this transform to root
                 obj->SetParent(nullptr);
+                obj->SetEnable(true);
             }
         }
 
