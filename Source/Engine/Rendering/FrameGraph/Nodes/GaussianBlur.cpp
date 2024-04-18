@@ -14,10 +14,8 @@ class GaussianBlurNode : public Node
         shader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/GaussianBlur.shad"
             );
-#if ENGINE_DEV_BUILD
         hShader = shader->GetShaderProgram({"_Horizontal"});
         vShader = shader->GetShaderProgram({"_Vertical"});
-#endif
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
@@ -38,9 +36,9 @@ class GaussianBlurNode : public Node
         vPass.SetSubpass(0, c);
         vPass.SetName("GaussianBlurV");
 
-        paramsBuffer = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
-            Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(GaussianBlur)
-        });
+        paramsBuffer = GetGfxDriver()->CreateBuffer(
+            Gfx::Buffer::CreateInfo{Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(GaussianBlur)}
+        );
     }
 
     void Compile() override

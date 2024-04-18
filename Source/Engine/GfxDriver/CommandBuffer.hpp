@@ -137,6 +137,7 @@ public:
         SetViewport(viewport);
     }
 
+    // note: currently to correctly setup global binding, this function should be called before BindShaderProgram
     void SetTexture(ShaderBindingHandle name, RG::ImageIdentifier id)
     {
         SetTexture(name, 0, id);

@@ -60,9 +60,9 @@ public:
         {
             mainPass.SetAttachment(0, targetColor);
             cmd.BeginRenderPass(mainPass, clears);
+            cmd.SetTexture(sourceHandle, id);
             cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
             cmd.BindResource(1, passResource.get());
-            cmd.SetTexture(sourceHandle, id);
             cmd.Draw(6, 1, 0, 0);
             cmd.EndRenderPass();
         }

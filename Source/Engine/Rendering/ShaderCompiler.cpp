@@ -125,7 +125,10 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
         option.SetOptimizationLevel(shaderc_optimization_level_zero);
     }
     else
+    {
+        option.SetGenerateDebugInfo();
         option.SetOptimizationLevel(shaderc_optimization_level_zero);
+    }
     option.SetAutoBindUniforms(true);
     option.SetPreserveBindings(false);
     shaderc::Compiler compiler;

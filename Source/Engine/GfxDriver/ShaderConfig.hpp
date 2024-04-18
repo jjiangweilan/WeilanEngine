@@ -14,7 +14,7 @@ struct StencilOpState
     uint32_t writeMask = 0xffffffff;
     uint32_t reference = 0;
 
-    bool operator==(const StencilOpState& other) const noexcept;
+    bool operator==(const StencilOpState& other) const noexcept = default;
 };
 
 struct ColorBlendAttachmentState
@@ -28,7 +28,7 @@ struct ColorBlendAttachmentState
     BlendOp alphaBlendOp = BlendOp::Add;
     ColorComponentBits colorWriteMask = ColorComponentBit::Component_All_Bits;
 
-    bool operator==(const ColorBlendAttachmentState& other) const noexcept;
+    bool operator==(const ColorBlendAttachmentState& other) const noexcept = default;
 };
 
 struct ShaderConfig
@@ -37,8 +37,9 @@ struct ShaderConfig
     CullMode cullMode = CullMode::Back;
     bool debug = false;
 
-    struct
+    struct Depth
     {
+        bool operator==(const Depth& other) const = default;
         bool writeEnable = true;
         bool testEnable = true;
         CompareOp compOp = CompareOp::Less_or_Equal;
@@ -47,21 +48,23 @@ struct ShaderConfig
         float maxBounds = 1;
     } depth;
 
-    struct
+    struct Stencil
     {
+        bool operator==(const Stencil& other) const = default;
         bool testEnable = false;
         StencilOpState front;
         StencilOpState back;
     } stencil;
 
-    struct
+    struct Color
     {
+        bool operator==(const Color& other) const = default;
         std::vector<ColorBlendAttachmentState> blends;
         float blendConstants[4] = {1, 1, 1, 1};
     } color;
 
     std::vector<std::vector<std::string>> features;
 
-    bool operator==(const ShaderConfig& other) const noexcept;
+    bool operator==(const ShaderConfig& other) const noexcept = default;
 };
 } // namespace Gfx

@@ -1,5 +1,4 @@
 #version 450
-
 #if CONFIG
 name : Game / PostProcess / SSAO
 mask : B

@@ -3,10 +3,10 @@
   "size": 0
  },
  "name": "Ray Marcher",
- "shader": "a80daac6-5e41-5b63-bf91-655cb23b72b9",
+ "shader": "00000000-0000-0000-0000-000000000000",
  "textureValues": {
   "0_key": "noiseTex",
-  "0_value": "",
+  "0_value": "00000000-0000-0000-0000-000000000000",
   "size": 1
  },
  "ubos": {

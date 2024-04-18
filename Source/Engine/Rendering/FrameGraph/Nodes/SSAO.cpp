@@ -44,6 +44,32 @@ class SSAONode : public Node
         mainPass = Gfx::RG::RenderPass(1, 1);
         mainPass.SetSubpass(0, c);
         mainPass.SetName("SSAO");
+
+        // setup blur
+        blur.shader =
+            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/GaussianBlur.shad"
+            );
+        blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
+        blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
+        Gfx::RG::SubpassAttachment blurAttachments[] = {{
+            0,
+            Gfx::AttachmentLoadOperation::Clear,
+            Gfx::AttachmentStoreOperation::Store,
+        }};
+        blur.hPass = Gfx::RG::RenderPass(1, 1);
+        blur.hPass.SetSubpass(0, blurAttachments);
+        blur.hPass.SetName("GaussianBlurH");
+
+        blur.vPass = Gfx::RG::RenderPass(1, 1);
+        blur.vPass.SetSubpass(0, c);
+        blur.vPass.SetName("GaussianBlurV");
+        blur.paramsBuffer = GetGfxDriver()->CreateBuffer(
+            Gfx::Buffer::CreateInfo{Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(GaussianBlur)}
+        );
+        blur.config = blur.hShader->GetDefaultShaderConfig();
+        blur.config.color.blends.push_back(Gfx::ColorBlendAttachmentState{});
+        blur.config.color.blends[0].colorWriteMask = Gfx::ColorComponentBit::Component_B_Bit;
+        blur.tmpRT = Gfx::RG::ImageIdentifier("SSAO-blur-tmp");
     }
 
     void Compile() override
@@ -130,11 +156,11 @@ class SSAONode : public Node
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
     {
+        auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
         if (*enable)
         {
             auto depth = input.depth->GetValue<AttachmentProperty>().id;
             auto normal = input.normal->GetValue<AttachmentProperty>();
-            auto attachment = input.attachment->GetValue<AttachmentProperty>().id;
 
             float width = normal.desc.GetWidth();
             float height = normal.desc.GetHeight();
@@ -166,7 +192,7 @@ class SSAONode : public Node
 
             if (shader != nullptr)
             {
-                mainPass.SetAttachment(0, attachment);
+                mainPass.SetAttachment(0, inputAttachment.id);
                 cmd.BeginRenderPass(mainPass, clears);
                 cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.BindResource(1, passResource.get());
@@ -176,6 +202,39 @@ class SSAONode : public Node
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
+
+            // blur
+            GaussianBlur newParam = {glm::vec4{
+                1.0f / inputAttachment.desc.GetWidth(),
+                1.0f / inputAttachment.desc.GetHeight(),
+                inputAttachment.desc.GetWidth(),
+                inputAttachment.desc.GetHeight()}};
+            if (newParam != blurParams)
+            {
+                blurParams = newParam;
+                GetGfxDriver()->UploadBuffer(*blur.paramsBuffer, (uint8_t*)&blurParams, sizeof(GaussianBlur));
+            }
+
+            cmd.SetBuffer("GaussianBlur", *blur.paramsBuffer);
+            cmd.AllocateAttachment(blur.tmpRT, inputAttachment.desc);
+            blur.hPass.SetAttachment(0, blur.tmpRT);
+            cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
+            cmd.BeginRenderPass(blur.hPass, clears);
+            cmd.SetTexture(sourceHandle, inputAttachment.id);
+#if ENGINE_DEV_BUILD
+            blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
+            blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
+#endif
+            cmd.BindShaderProgram(blur.hShader, blur.config);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
+
+            blur.vPass.SetAttachment(0, inputAttachment.id);
+            cmd.BeginRenderPass(blur.vPass, clears);
+            cmd.SetTexture(sourceHandle, blur.tmpRT);
+            cmd.BindShaderProgram(blur.vShader, blur.config);
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
         }
 
         output.color->SetValue(input.attachment->GetValue<AttachmentProperty>());
@@ -207,7 +266,26 @@ private:
     Gfx::RG::RenderPass mainPass;
     Gfx::ShaderBindingHandle depthHandle = Gfx::ShaderBindingHandle("depth");
     Gfx::ShaderBindingHandle normalHandle = Gfx::ShaderBindingHandle("normal");
+    Gfx::ShaderBindingHandle sourceHandle = Gfx::ShaderBindingHandle("source");
     Texture* noiseTex;
+
+    struct GaussianBlur
+    {
+        bool operator==(const GaussianBlur& other) const = default;
+        glm::vec4 sourceTexelSize;
+    } blurParams;
+
+    struct BlurPass
+    {
+        Shader* shader;
+        Gfx::ShaderProgram* hShader;
+        Gfx::ShaderProgram* vShader;
+        Gfx::RG::ImageIdentifier tmpRT;
+        std::unique_ptr<Gfx::Buffer> paramsBuffer;
+        Gfx::RG::RenderPass hPass;
+        Gfx::RG::RenderPass vPass;
+        Gfx::ShaderConfig config;
+    } blur;
 
     struct RandomSamples
     {
