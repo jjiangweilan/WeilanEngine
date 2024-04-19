@@ -1,4 +1,6 @@
 #include "Physics.hpp"
+// clang-format off
+#include <Jolt/Jolt.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
@@ -9,6 +11,7 @@
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
+// clang-format on
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <stdarg.h>

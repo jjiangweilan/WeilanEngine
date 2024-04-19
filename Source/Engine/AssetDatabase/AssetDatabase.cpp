@@ -164,7 +164,10 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 
         if (asyncImport[i].stateTrack == 4)
         {
-            auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+            const auto& managedObjectCounters = asyncImport[i].ser->GetManagedObjects();
+            this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
+
+            auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
             {
                 while (!resolves.empty())
                 {
@@ -172,6 +175,19 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                     toresolve.target = resolved;
                     if (toresolve.callback)
                         toresolve.callback(resolved);
+
+                    if (toresolve.managedObjectRefCounter)
+                    {
+                        auto counterIter = this->managedObjectCounters.find(resolved->GetUUID());
+                        if (counterIter != this->managedObjectCounters.end())
+                        {
+                            *toresolve.managedObjectRefCounter = counterIter->second;
+                            if (*toresolve.managedObjectRefCounter)
+                            {
+                                **toresolve.managedObjectRefCounter += 1;
+                            }
+                        }
+                    }
 
                     resolves.pop_back();
                 }
@@ -298,7 +314,10 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                     assets.Add(std::move(ad));
                 }
 
-                auto ResolveAll = [](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+                const auto& managedObjectCounters = ser.GetManagedObjects();
+                this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
+
+                auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
                 {
                     while (!resolves.empty())
                     {
@@ -306,6 +325,19 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                         toresolve.target = resolved;
                         if (toresolve.callback)
                             toresolve.callback(resolved);
+
+                        if (toresolve.managedObjectRefCounter)
+                        {
+                            auto counterIter = this->managedObjectCounters.find(resolved->GetUUID());
+                            if (counterIter != this->managedObjectCounters.end())
+                            {
+                                *toresolve.managedObjectRefCounter = counterIter->second;
+                                if (*toresolve.managedObjectRefCounter)
+                                {
+                                    **toresolve.managedObjectRefCounter += 1;
+                                }
+                            }
+                        }
 
                         resolves.pop_back();
                     }
@@ -338,7 +370,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                         auto& vec = referenceResolveMap[iter.first];
                         for (auto& r : iter.second)
                         {
-                            vec.emplace_back(r.target, r.targetUUID, r.callback);
+                            vec.emplace_back(r.target, r.targetUUID, r.callback, r.managedObjectRefCounter);
                         }
                     }
                 }

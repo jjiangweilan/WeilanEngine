@@ -76,6 +76,8 @@ private:
     } assets;
 
     SerializeReferenceResolveMap referenceResolveMap;
+    std::unordered_map<UUID, int*> managedObjectCounters;
+
     std::vector<AssetData*> internalAssets;
     bool requestShaderRefresh = false;
     bool requestShaderRefreshAll = false;

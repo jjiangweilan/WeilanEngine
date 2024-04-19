@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/ManagedObject.hpp"
 #include "Core/Object.hpp"
 #include "Libs/Ptr.hpp"
 #include "Libs/UUID.hpp"
@@ -43,11 +44,18 @@ struct HasUUIDContained<T<U>> : std::true_type
 
 struct SerializeReferenceResolve
 {
-    SerializeReferenceResolve(void*& target, const UUID& targetUUID, const ReferenceResolveCallback& callback)
-        : target(target), targetUUID(targetUUID), callback(callback){};
+    SerializeReferenceResolve(
+        void*& target,
+        const UUID& targetUUID,
+        const ReferenceResolveCallback& callback,
+        int** managedObjectRefCounter = nullptr
+    )
+        : target(target), targetUUID(targetUUID), callback(callback),
+          managedObjectRefCounter(managedObjectRefCounter){};
     void*& target;
     UUID targetUUID;
     ReferenceResolveCallback callback;
+    int** managedObjectRefCounter;
 };
 
 using SerializeReferenceResolveMap = std::unordered_map<UUID, std::vector<SerializeReferenceResolve>>;
@@ -93,6 +101,11 @@ public:
     template <class T>
     void Deserialize(std::string_view name, std::unique_ptr<T>& val);
 
+    template <class T>
+    void Serialize(std::string_view name, const ManagedObject<T>& val);
+    template <class T>
+    void Deserialize(std::string_view name, ManagedObject<T>& val);
+
     template <IsSerializable T>
     void Serialize(std::string_view name, const T& val);
     template <IsSerializable T>
@@ -104,6 +117,13 @@ public:
     void Deserialize(std::string_view name, T*& val);
     template <HasUUID T>
     void Deserialize(std::string_view name, T*& val, const ReferenceResolveCallback& callback);
+
+    template <HasUUID T>
+    void Serialize(std::string_view name, Ref<T> val);
+    template <HasUUID T>
+    void Deserialize(std::string_view name, Ref<T>& val);
+    template <HasUUID T>
+    void Deserialize(std::string_view name, Ref<T>& val, const ReferenceResolveCallback& callback);
 
     template <HasUUID T>
     void Serialize(std::string_view name, RefPtr<T> val);
@@ -161,9 +181,15 @@ public:
         return objects;
     }
 
+    const std::unordered_map<UUID, int*>& GetManagedObjects()
+    {
+        return managedObjects;
+    }
+
 protected:
     SerializeReferenceResolveMap* resolveCallbacks;
     std::unordered_map<UUID, Object*> objects;
+    std::unordered_map<UUID, int*> managedObjects;
 
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
@@ -301,6 +327,60 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
     }
 }
 
+template <class T>
+void Serializer::Serialize(std::string_view name, const ManagedObject<T>& val)
+{
+    if (val == nullptr)
+        Serialize(name, nullptr);
+
+    if constexpr (std::is_abstract_v<T>)
+    {
+        std::string path = fmt::format("{}/objectTypeID", name);
+        Serialize(path, val->GetObjectTypeID());
+        path = fmt::format("{}/object", name);
+        Serialize(path, *val);
+    }
+    else
+        Serialize(name, *val);
+}
+
+template <class T>
+void Serializer::Deserialize(std::string_view name, ManagedObject<T>& val)
+{
+    // if it's a null it's should stay as null
+    if (!IsNull(name))
+    {
+        T* newVal = nullptr;
+        if constexpr (std::is_abstract_v<T>)
+        {
+            std::string path = fmt::format("{}/objectTypeID", name);
+            ObjectTypeID id;
+            Deserialize(path, id);
+            auto obj = ObjectRegistry::CreateObject(id);
+            if (obj)
+            {
+                auto objPtr = obj.release();
+                val = ManagedObject<T>(static_cast<T*>(objPtr));
+            }
+
+            path = fmt::format("{}/object", name);
+            Deserialize(path, *val);
+        }
+        else
+        {
+            newVal = new T();
+            val = ManagedObject<T>(newVal);
+            Deserialize(name, *val);
+        }
+
+        if constexpr (std::is_base_of_v<Object, T>)
+        {
+            objects[val->GetUUID()] = val.get();
+            managedObjects[val->GetUUID()] = val.referenceCounter;
+        }
+    }
+}
+
 template <IsSerializable T>
 void Serializer::Serialize(std::string_view name, const T& val)
 {
@@ -380,3 +460,26 @@ void Serializer::Deserialize(std::string_view name, RefPtr<T>& val, const Refere
 {
     Deserialize(name, val.GetPtrRef(), callback);
 }
+
+template <HasUUID T>
+void Serializer::Serialize(std::string_view name, Ref<T> val)
+{
+    if (val)
+        Serialize(name, val->GetUUID());
+    else
+        Serialize(name, UUID::GetEmptyUUID());
+}
+template <HasUUID T>
+void Serializer::Deserialize(std::string_view name, Ref<T>& val)
+{
+    UUID uuid;
+    Deserialize(name, uuid);
+    val = nullptr;
+    if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
+    {
+        (*resolveCallbacks)[uuid].emplace_back((void*&)val.object, uuid, nullptr, val.referenceCounter);
+    }
+}
+template <HasUUID T>
+void Serializer::Deserialize(std::string_view name, Ref<T>& val, const ReferenceResolveCallback& callback)
+{}

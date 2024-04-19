@@ -2,12 +2,12 @@
 
 #include "Component.hpp"
 #include "Core/Scene/PhysicsLayer.hpp"
-#include "Jolt/Physics/Body/BodyInterface.h"
 #include <memory>
 
 // clang-format off
 #include <Jolt/Jolt.h>
 // clang-format on
+#include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionProperties.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>

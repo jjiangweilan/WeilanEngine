@@ -2,6 +2,9 @@
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 
+using namespace JPH;
+using namespace JPH::literals;
+
 DEFINE_OBJECT(PhysicsBody, "670E10EF-2532-4977-A356-63C9B07C6F5D");
 PhysicsBody::PhysicsBody() : Component(nullptr) {}
 

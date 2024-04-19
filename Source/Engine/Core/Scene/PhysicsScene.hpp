@@ -17,14 +17,12 @@
 #include <spdlog/spdlog.h>
 
 class PhysicsBody;
-using namespace JPH;
-using namespace JPH::literals;
 
 /// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter
+class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 {
 public:
-    virtual bool ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
+    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
     {
         switch (static_cast<PhysicsLayer>(inObject1))
         {
@@ -44,14 +42,14 @@ public:
 // your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
 namespace BroadPhaseLayers
 {
-static constexpr BroadPhaseLayer NON_MOVING(0);
-static constexpr BroadPhaseLayer MOVING(1);
-static constexpr uint NUM_LAYERS(2);
+static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
+static constexpr JPH::BroadPhaseLayer MOVING(1);
+static constexpr JPH::uint NUM_LAYERS(2);
 }; // namespace BroadPhaseLayers
 
 // BroadPhaseLayerInterface implementation
 // This defines a mapping between object and broadphase layers.
-class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface
+class BPLayerInterfaceImpl final : public JPH::BroadPhaseLayerInterface
 {
 public:
     BPLayerInterfaceImpl()
@@ -61,38 +59,38 @@ public:
         mObjectToBroadPhase[static_cast<int>(PhysicsLayer::MOVING)] = BroadPhaseLayers::MOVING;
     }
 
-    virtual uint GetNumBroadPhaseLayers() const override
+    virtual JPH::uint GetNumBroadPhaseLayers() const override
     {
         return BroadPhaseLayers::NUM_LAYERS;
     }
 
-    virtual BroadPhaseLayer GetBroadPhaseLayer(ObjectLayer inLayer) const override
+    virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
     {
-        JPH_ASSERT(inLayer < PhysicsLayer::NUM_LAYERS);
+        JPH_ASSERT(inLayer < static_cast<JPH::ObjectLayer>(PhysicsLayer::NUM_LAYERS));
         return mObjectToBroadPhase[inLayer];
     }
 
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(BroadPhaseLayer inLayer) const override
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
     {
-        switch ((BroadPhaseLayer::Type)inLayer)
+        switch ((JPH::BroadPhaseLayer::Type)inLayer)
         {
-            case (BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING: return "NON_MOVING";
-            case (BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
+            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING: return "NON_MOVING";
+            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
             default: JPH_ASSERT(false); return "INVALID";
         }
     }
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
 private:
-    BroadPhaseLayer mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NUM_LAYERS)];
+    JPH::BroadPhaseLayer mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NUM_LAYERS)];
 };
 
 /// Class that determines if an object layer can collide with a broadphase layer
-class ObjectVsBroadPhaseLayerFilterImpl : public ObjectVsBroadPhaseLayerFilter
+class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFilter
 {
 public:
-    virtual bool ShouldCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2) const override
+    virtual bool ShouldCollide(JPH::ObjectLayer inLayer1, JPH::BroadPhaseLayer inLayer2) const override
     {
         switch (inLayer1)
         {
@@ -104,50 +102,59 @@ public:
 };
 
 // An example contact listener
-class MyContactListener : public ContactListener
+class MyContactListener : public JPH::ContactListener
 {
 public:
     // See: ContactListener
-    virtual ValidateResult OnContactValidate(
-        const Body& inBody1, const Body& inBody2, RVec3Arg inBaseOffset, const CollideShapeResult& inCollisionResult
+    virtual JPH::ValidateResult OnContactValidate(
+        const JPH::Body& inBody1,
+        const JPH::Body& inBody2,
+        JPH::RVec3Arg inBaseOffset,
+        const JPH::CollideShapeResult& inCollisionResult
     ) override
     {
         spdlog::info("Contact validate callback");
 
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-        return ValidateResult::AcceptAllContactsForThisBodyPair;
+        return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
     }
 
     virtual void OnContactAdded(
-        const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings
+        const JPH::Body& inBody1,
+        const JPH::Body& inBody2,
+        const JPH::ContactManifold& inManifold,
+        JPH::ContactSettings& ioSettings
     ) override
     {
         spdlog::info("A contact was added");
     }
 
     virtual void OnContactPersisted(
-        const Body& inBody1, const Body& inBody2, const ContactManifold& inManifold, ContactSettings& ioSettings
+        const JPH::Body& inBody1,
+        const JPH::Body& inBody2,
+        const JPH::ContactManifold& inManifold,
+        JPH::ContactSettings& ioSettings
     ) override
     {
         spdlog::info("A contact was persisted");
     }
 
-    virtual void OnContactRemoved(const SubShapeIDPair& inSubShapePair) override
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
     {
         spdlog::info("A contact was removed");
     }
 };
 
 // An example activation listener
-class MyBodyActivationListener : public BodyActivationListener
+class MyBodyActivationListener : public JPH::BodyActivationListener
 {
 public:
-    virtual void OnBodyActivated(const BodyID& inBodyID, uint64 inBodyUserData) override
+    virtual void OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
         spdlog::info("A body got activated");
     }
 
-    virtual void OnBodyDeactivated(const BodyID& inBodyID, uint64 inBodyUserData) override
+    virtual void OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
         spdlog::info("A body went to sleep");
     }
