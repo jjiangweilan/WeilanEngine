@@ -31,7 +31,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::selectedObject = mesh.get();
+                EditorState::selectedObject = mesh->GetSRef();
             }
         }
         ImGui::Unindent();
@@ -56,7 +56,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::selectedObject = material.get();
+                EditorState::selectedObject = material->GetSRef();
             }
 
             ImGui::SameLine();
@@ -93,7 +93,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::selectedObject = texture.get();
+                EditorState::selectedObject = texture->GetSRef();
             }
         }
         ImGui::Unindent();

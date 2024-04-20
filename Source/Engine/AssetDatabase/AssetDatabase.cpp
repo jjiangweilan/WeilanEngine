@@ -570,15 +570,23 @@ void AssetDatabase::LoadEngineInternal()
         }
     }
 
-    LoadAssets(importPathes);
+    auto shaderIter = std::partition(
+        importPathes.begin(),
+        importPathes.end(),
+        [](std::filesystem::path& path) { return path.extension() == ".shad"; }
+    );
+    std::vector<std::filesystem::path> shaderPathes(importPathes.begin(), shaderIter);
+    LoadAssets(shaderPathes);
+    Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+    Shader::SetDefault(standardShader);
+
+    std::vector<std::filesystem::path> others(shaderIter, importPathes.end());
+    LoadAssets(others);
 
     for (auto a : validAssetData)
     {
         assets.UpdateAssetData(a);
     }
-
-    Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
-    Shader::SetDefault(standardShader);
 }
 
 void AssetDatabase::Assets::UpdateAssetData(AssetData* assetData)

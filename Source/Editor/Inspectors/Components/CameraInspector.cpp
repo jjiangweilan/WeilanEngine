@@ -29,7 +29,7 @@ public:
         ImGui::SameLine();
         if (ImGui::Button(buttonName))
         {
-            EditorState::selectedObject = frameGraph;
+            EditorState::selectedObject = frameGraph->GetSRef();
         }
 
         if (ImGui::BeginDragDropTarget())

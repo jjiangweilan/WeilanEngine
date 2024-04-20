@@ -201,59 +201,63 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
 {
     if (gameImage)
     {
+
         // selection outline
-        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
         {
-            auto meshRenderer = go->GetComponent<MeshRenderer>();
-            if (meshRenderer)
+            auto mrs = go->GetComponentsInChildren<MeshRenderer>();
+            for (MeshRenderer* meshRenderer : mrs)
             {
-                FrameGraph::DrawList drawList;
-                drawList.Add(*meshRenderer);
-
-                Gfx::RG::ImageDescription desc{
-                    sceneImage->GetDescription().width,
-                    sceneImage->GetDescription().height,
-                    sceneImage->GetDescription().format
-                };
-                cmd.AllocateAttachment(outlineSrcRT, desc);
-
-                Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-                outlineSrcPass.SetAttachment(0, outlineSrcRT);
-                Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
-                cmd.SetScissor(0, 1, &rect);
-                cmd.SetViewport(Gfx::Viewport{
-                    0,
-                    0,
-                    static_cast<float>(rect.extent.width),
-                    static_cast<float>(rect.extent.height),
-                    0,
-                    1
-                });
-                cmd.BeginRenderPass(outlineSrcPass, clears);
-                for (auto& draw : drawList)
+                if (meshRenderer)
                 {
+                    FrameGraph::DrawList drawList;
+                    drawList.Add(*meshRenderer);
+
+                    Gfx::RG::ImageDescription desc{
+                        sceneImage->GetDescription().width,
+                        sceneImage->GetDescription().height,
+                        sceneImage->GetDescription().format
+                    };
+                    cmd.AllocateAttachment(outlineSrcRT, desc);
+
+                    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+                    outlineSrcPass.SetAttachment(0, outlineSrcRT);
+                    Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
+                    cmd.SetScissor(0, 1, &rect);
+                    cmd.SetViewport(Gfx::Viewport{
+                        0,
+                        0,
+                        static_cast<float>(rect.extent.width),
+                        static_cast<float>(rect.extent.height),
+                        0,
+                        1
+                    });
+                    cmd.BeginRenderPass(outlineSrcPass, clears);
+                    for (auto& draw : drawList)
+                    {
+                        cmd.BindShaderProgram(
+                            outlineRawColorPassShader->GetDefaultShaderProgram(),
+                            outlineRawColorPassShader->GetDefaultShaderConfig()
+                        );
+                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                        cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    }
+                    cmd.EndRenderPass();
+
+                    outlieFinalPass.SetAttachment(0, *gameImage);
+                    cmd.SetTexture("mainTex", outlineSrcRT);
+                    cmd.BeginRenderPass(outlieFinalPass, clears);
                     cmd.BindShaderProgram(
-                        outlineRawColorPassShader->GetDefaultShaderProgram(),
-                        outlineRawColorPassShader->GetDefaultShaderConfig()
+                        outlineFullScreenPassShader->GetDefaultShaderProgram(),
+                        outlineFullScreenPassShader->GetDefaultShaderConfig()
                     );
-                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
-                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                    cmd.Draw(6, 1, 0, 0);
+                    cmd.EndRenderPass();
+
+                    // cmd.SetTexture("mainTex", *graphOutputImage);
                 }
-                cmd.EndRenderPass();
-
-                outlieFinalPass.SetAttachment(0, *gameImage);
-                cmd.SetTexture("mainTex", outlineSrcRT);
-                cmd.BeginRenderPass(outlieFinalPass, clears);
-                cmd.BindShaderProgram(
-                    outlineFullScreenPassShader->GetDefaultShaderProgram(),
-                    outlineFullScreenPassShader->GetDefaultShaderConfig()
-                );
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-
-                // cmd.SetTexture("mainTex", *graphOutputImage);
             }
         }
 
@@ -372,8 +376,17 @@ bool GameView::Tick()
     {
         if (Scene* scene = EditorState::activeScene)
         {
-            if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject))
-                EditorState::selectedObject = scene->CopyGameObject(*selected);
+            if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+                EditorState::selectedObject = scene->CopyGameObject(*selected)->GetSRef();
+        }
+    }
+
+    if (ImGui::IsKeyReleased(ImGuiKey_F))
+    {
+        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+        {
+            if (scene->GetMainCamera())
+                FocusOnObject(*scene->GetMainCamera(), *go);
         }
     }
 
@@ -446,7 +459,7 @@ bool GameView::Tick()
 
                         if (selected)
                         {
-                            EditorState::selectedObject = selected;
+                            EditorState::selectedObject = selected->GetSRef();
                         }
                         else
                         {
@@ -461,7 +474,7 @@ bool GameView::Tick()
                     auto mainCam = scene->GetMainCamera();
                     if (mainCam)
                     {
-                        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject))
+                        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
                         {
                             auto model = go->GetModelMatrix();
                             ImGui::SetCursorPos(imagePos);
@@ -534,6 +547,23 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
 void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 {
     CreateRenderData(resolution.x, resolution.y);
+}
+
+void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
+{
+    auto mr = gameObject.GetComponent<MeshRenderer>();
+    float distance = 1;
+    if (mr)
+    {
+        AABB aabb = mr->GetAABB();
+        distance = glm::length(aabb.max - aabb.min) * 1.2;
+    }
+
+    auto dir = cam.GetForward();
+
+    glm::vec3 center = gameObject.GetPosition();
+    auto model = glm::lookAt(center - dir * distance, center, glm::vec3(0, 1, 0));
+    cam.GetGameObject()->SetModelMatrix(model);
 }
 
 } // namespace Editor

@@ -21,6 +21,7 @@ public:
     const glm::mat4& GetProjectionMatrix() const;
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
+    glm::vec3 GetForward();
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
     void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
     void SetProjectionMatrix(const glm::mat4& proj);

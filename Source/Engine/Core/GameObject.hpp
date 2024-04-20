@@ -50,6 +50,9 @@ public:
         return children;
     }
 
+    template <class T>
+    std::vector<T*> GetComponentsInChildren();
+
     bool IsEnabled()
     {
         return enabled;
@@ -202,4 +205,20 @@ T* GameObject::GetComponent()
             return cast;
     }
     return nullptr;
+}
+
+template <class T>
+std::vector<T*> GameObject::GetComponentsInChildren()
+{
+    std::vector<T*> results;
+
+    results.push_back(GetComponent<T>());
+
+    for (auto c : children)
+    {
+        std::vector<T*> cs = c->GetComponentsInChildren<T>();
+        results.insert(results.end(), cs.begin(), cs.end());
+    }
+
+    return results;
 }

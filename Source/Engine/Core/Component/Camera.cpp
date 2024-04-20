@@ -138,3 +138,8 @@ void Camera::SetFrameGraph(FrameGraph::Graph* graph)
 {
     this->frameGraph = graph;
 }
+
+glm::vec3 Camera::GetForward()
+{
+    return -gameObject->GetForward();
+}

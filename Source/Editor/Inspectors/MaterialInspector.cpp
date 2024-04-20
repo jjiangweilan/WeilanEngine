@@ -43,7 +43,7 @@ public:
         {
             if (shader != nullptr)
             {
-                EditorState::selectedObject = shader;
+                EditorState::selectedObject = shader->GetSRef();
             }
         }
 
@@ -158,7 +158,7 @@ public:
 
                     if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                     {
-                        EditorState::selectedObject = tex;
+                        EditorState::selectedObject = tex->GetSRef();
                     }
                 }
                 else

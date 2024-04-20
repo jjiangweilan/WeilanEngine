@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Libs/UUID.hpp"
-#include <string>
-#include <typeinfo>
+#include "SafeReferenceable.hpp"
 #include <unordered_map>
-class Object
+
+class Object : public SafeReferenceable<Object>
 {
 public:
     Object() = default;
