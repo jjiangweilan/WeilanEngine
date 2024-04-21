@@ -377,7 +377,9 @@ bool GameView::Tick()
         if (Scene* scene = EditorState::activeScene)
         {
             if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+            {
                 EditorState::selectedObject = scene->CopyGameObject(*selected)->GetSRef();
+            }
         }
     }
 
@@ -551,19 +553,8 @@ void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 
 void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
 {
-    auto mr = gameObject.GetComponent<MeshRenderer>();
-    float distance = 1;
-    if (mr)
-    {
-        AABB aabb = mr->GetAABB();
-        distance = glm::length(aabb.max - aabb.min) * 1.2;
-    }
-
-    auto dir = cam.GetForward();
-
     glm::vec3 center = gameObject.GetPosition();
-    auto model = glm::lookAt(center - dir * distance, center, glm::vec3(0, 1, 0));
-    cam.GetGameObject()->SetModelMatrix(model);
+    cam.GetGameObject()->SetPosition(center);
 }
 
 } // namespace Editor

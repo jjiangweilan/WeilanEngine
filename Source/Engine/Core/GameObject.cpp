@@ -38,18 +38,23 @@ GameObject::GameObject(const GameObject& other)
     position = other.position;
     scale = other.scale;
     rotation = other.rotation;
-    parent = other.parent;
+    gameScene = other.gameScene;
+    enabled = other.enabled;
 
     for (auto& c : other.components)
     {
         components.push_back(c->Clone(*this));
     }
 
-    for (GameObject* child : other.children)
+    if (gameScene)
     {
-        GameObject* childClone = gameScene->AddGameObject(std::make_unique<GameObject>(*child));
-        childClone->SetParent(this);
+        for (GameObject* child : other.children)
+        {
+            GameObject* childClone = gameScene->AddGameObject(std::make_unique<GameObject>(*child));
+            childClone->SetParent(this);
+        }
     }
+
 }
 
 GameObject::~GameObject()

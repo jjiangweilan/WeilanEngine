@@ -54,6 +54,12 @@ std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
     clone->mesh = mesh;
     clone->materials = materials;
 
+    if (IsEnabled())
+    {
+        clone->enabled = true;
+        clone->EnableImple();
+    }
+
     return clone;
 }
 

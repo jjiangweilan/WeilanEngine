@@ -52,7 +52,8 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc};
+                desc
+            };
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format("rg-{}", id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName()));
@@ -64,7 +65,7 @@ public:
     {
         auto uuid = renderPass.GetUUID();
         auto iter = renderPasses.find(uuid);
-        if (iter != renderPasses.end())
+        if (iter != renderPasses.end() && iter->second.CheckValidationOfAttachments())
         {
             iter->second.frameCountFromLastRequest = 0;
             return iter->second.renderPass.get();
@@ -72,6 +73,7 @@ public:
         else
         {
             auto renderPassObj = std::make_unique<VKRenderPass>();
+            std::vector<SRef<Image>> imageReferences;
 
             auto attachments = renderPass.GetAttachments();
             for (auto& subpass : renderPass.GetSubpasses())
@@ -81,8 +83,10 @@ public:
                 {
                     if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
                     {
+                        auto image = attachments[color.attachmentIndex].GetAsImage();
+                        imageReferences.push_back(image->GetSRef());
                         colors.push_back(Attachment{
-                            &attachments[color.attachmentIndex].GetAsImage()->GetDefaultImageView(),
+                            &image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
                             color.loadOp,
                             color.storeOp,
@@ -93,6 +97,7 @@ public:
                     else if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[color.attachmentIndex].GetAsUUID()];
+                        imageReferences.push_back(image.image->GetSRef());
                         colors.push_back(Attachment{
                             &image.image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
@@ -109,8 +114,10 @@ public:
                 {
                     if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
                     {
+                        auto image = attachments[subpass.depth.attachmentIndex].GetAsImage();
+                        imageReferences.push_back(image->GetSRef());
                         depth = Attachment{
-                            &attachments[subpass.depth.attachmentIndex].GetAsImage()->GetDefaultImageView(),
+                            &image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
                             subpass.depth.loadOp,
                             subpass.depth.storeOp,
@@ -121,6 +128,7 @@ public:
                     else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsUUID()];
+                        imageReferences.push_back(image.image->GetSRef());
                         depth = Attachment{
                             &image.image->GetDefaultImageView(),
                             Gfx::MultiSampling::Sample_Count_1,
@@ -136,7 +144,7 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            renderPasses[uuid] = {std::move(renderPassObj), 0};
+            renderPasses[uuid] = {std::move(renderPassObj), std::move(imageReferences), 0};
 
             return temp;
         }
@@ -184,7 +192,19 @@ private:
     struct AllocatedRenderPass
     {
         std::unique_ptr<VKRenderPass> renderPass;
+        std::vector<SRef<Image>> attachments;
         int frameCountFromLastRequest = 0;
+
+        bool CheckValidationOfAttachments()
+        {
+            for (auto& r : attachments)
+            {
+                if (r == nullptr)
+                    return false;
+            }
+
+            return true;
+        }
     };
 
     Graph* graph;
@@ -408,13 +428,15 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image};
+                cmd.setTexture.image
+            };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer};
+                cmd.setBuffer.buffer
+            };
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -816,13 +838,15 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image};
+                cmd.setTexture.image
+            };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer};
+                cmd.setBuffer.buffer
+            };
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -925,7 +949,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -937,7 +962,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst

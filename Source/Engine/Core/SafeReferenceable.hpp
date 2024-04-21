@@ -1,3 +1,4 @@
+#pragma once
 #include <memory>
 #include <stdexcept>
 template <class T>
@@ -87,6 +88,14 @@ public:
         }
     }
 
+    bool operator==(std::nullptr_t)
+    {
+        if (referenceCount)
+            return *referenceCount < 0;
+
+        return true;
+    }
+
     operator bool()
     {
         if (referenceCount)
@@ -157,3 +166,15 @@ public:
 private:
     std::shared_ptr<int> referenceCount = nullptr;
 };
+
+namespace std
+{
+template <class T>
+struct hash<SRef<T>>
+{
+    size_t operator()(const SRef<T>& x) const
+    {
+        return std::hash(x.Get());
+    }
+};
+} // namespace std

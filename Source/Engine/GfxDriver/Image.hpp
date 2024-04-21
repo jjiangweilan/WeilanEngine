@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
 
+#include "Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
 #include <cinttypes>
 #include <glm/glm.hpp>
@@ -46,7 +47,8 @@ struct ImageSubresourceRange
                 baseMipLevel,
                 (uint32_t)rBaseMipLevelLeftCount,
                 baseArrayLayer,
-                (uint32_t)rBaseLayerLeftCount});
+                (uint32_t)rBaseLayerLeftCount
+            });
         }
 
         if (rBaseMipLevelLeftCount != 0 && rBaseLayerRightCount != 0)
@@ -131,7 +133,7 @@ struct ImageSubresourceLayers
 };
 
 class ImageView;
-class Image
+class Image : public SafeReferenceable<Image>
 {
 public:
     Image(bool isGPUWrite) : isGPUWrite(isGPUWrite) {}

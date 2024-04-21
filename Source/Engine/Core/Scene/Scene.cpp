@@ -32,7 +32,7 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
 {
     GameObject* temp = newGameObject.get();
     gameObjects.push_back(std::move(newGameObject));
-    if (newGameObject->GetParent() == nullptr)
+    if (temp->GetParent() == nullptr)
     {
         roots.push_back(temp);
     }
@@ -85,18 +85,16 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     auto newObj = std::make_unique<GameObject>(gameObject);
     newObj->SetScene(this);
 
-    for (auto child : gameObject.GetChildren())
-    {
-        GameObject* copy = CopyGameObject(*child);
-        copy->SetParent(newObj.get());
-    }
-
     GameObject* top = newObj.get();
     gameObjects.push_back(std::move(newObj));
 
     if (gameObject.GetParent() == nullptr)
     {
         roots.push_back(top);
+    }
+    else
+    {
+        top->SetParent(gameObject.GetParent());
     }
 
     return top;

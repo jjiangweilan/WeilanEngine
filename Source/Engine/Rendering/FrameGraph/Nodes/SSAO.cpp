@@ -94,14 +94,16 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false});
+                        false
+                    });
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
 
@@ -112,7 +114,8 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
         }
@@ -194,11 +197,11 @@ class SSAONode : public Node
             {
                 mainPass.SetAttachment(0, inputAttachment.id);
                 cmd.BeginRenderPass(mainPass, clears);
-                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.BindResource(1, passResource.get());
                 cmd.SetTexture("noise", *noiseTex->GetGfxImage());
                 cmd.SetTexture(depthHandle, depth);
                 cmd.SetTexture(normalHandle, normal.id);
+                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -208,7 +211,8 @@ class SSAONode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()}};
+                inputAttachment.desc.GetHeight()
+            }};
             if (newParam != blurParams)
             {
                 blurParams = newParam;

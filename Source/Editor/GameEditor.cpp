@@ -634,7 +634,8 @@ void GameEditor::InspectorWindow()
             if (EditorState::selectedObject)
             {
                 bool noInspector = secondaryInspector == nullptr;
-                bool chageInspector = !noInspector && secondaryInspector->GetTarget() != EditorState::selectedObject.Get();
+                bool chageInspector =
+                    !noInspector && secondaryInspector->GetTarget() != EditorState::selectedObject.Get();
                 if (noInspector || chageInspector)
                 {
                     secondaryInspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
