@@ -33,6 +33,11 @@ public:
         }
         else
         {
+            if (iter != images.end())
+            {
+                RemoveImageRelatedInfo(iter->second.image.get());
+            }
+
             // id = RG::ImageIdentifier();
             Gfx::ImageDescription imageDesc;
             imageDesc.width = desc.GetWidth();
@@ -57,6 +62,11 @@ public:
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format("rg-{}", id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName()));
+            SPDLOG_INFO(
+                "VKRenderGraph: create new iamge({}) {}",
+                reinterpret_cast<size_t>(image.get()),
+                id.GetAsUUID().ToString()
+            );
             return image.get();
         }
     }
@@ -144,10 +154,27 @@ public:
             }
 
             auto temp = renderPassObj.get();
+            SPDLOG_INFO("VKRenderGraph: create new iamge({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
             renderPasses[uuid] = {std::move(renderPassObj), std::move(imageReferences), 0};
 
             return temp;
         }
+    }
+
+    void RemoveImageRelatedInfo(Image* ptr)
+    {
+        for (auto& r : graph->globalResourcePool)
+        {
+            for (auto& e : r.second)
+            {
+                if (e.second.res == ptr)
+                {
+                    e.second.res = nullptr;
+                }
+            }
+        }
+
+        graph->resourceUsageTracks.erase(ptr);
     }
 
     void Tick()
@@ -160,19 +187,11 @@ public:
             if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
             {
                 readyToRemove[removeCount++] = iter.first;
-                for (auto& r : graph->globalResourcePool)
-                {
-                    for (auto& e : r.second)
-                    {
-                        if (e.second.res == iter.second.image.get())
-                        {
-                            e.second.res = nullptr;
-                        }
-                    }
-                }
+                RemoveImageRelatedInfo(iter.second.image.get());
             }
             iter.second.frameCountFromLastRequest += 1;
         }
+
         for (int i = 0; i < removeCount; ++i)
         {
             images.erase(readyToRemove[i]);
