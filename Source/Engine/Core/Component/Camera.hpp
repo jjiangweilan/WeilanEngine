@@ -47,4 +47,7 @@ private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     FrameGraph::Graph* frameGraph = nullptr;
+    float near;
+    float far;
+    float fov;
 };

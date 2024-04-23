@@ -26,46 +26,48 @@ Camera::Camera() : Component(nullptr), projectionMatrix(), viewMatrix()
 
 float Camera::GetProjectionRight()
 {
-    return 0.01f / projectionMatrix[0][0]; // projection matrix is hard coded
+    return near / projectionMatrix[0][0]; // projection matrix is hard coded
 }
 
 float Camera::GetProjectionTop()
 {
-    return 0.01f / projectionMatrix[1][1]; // projection matrix is hard coded
+    return near / projectionMatrix[1][1]; // projection matrix is hard coded
 }
 
 float Camera::GetNear()
 {
-    return 0.01f;
+    return near;
 }
 
 float Camera::GetFar()
 {
-    return 1000.f;
+    return far;
 }
 
 glm::mat4 Camera::GetViewMatrix() const
 {
     auto view = glm::inverse(gameObject->GetModelMatrix());
-
-    // handess swap, world space is in right handed but we want view space in left handed
-    view[0] *= -1;
     return view;
 }
 
 void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
 {
-    float tangent = glm::tan(fovy / 2);
-    float t = n * tangent;
-    float r = t * aspect;
+    // float tangent = glm::tan(fovy / 2);
+    // float t = n * tangent;
+    // float r = t * aspect;
+    //
+    // glm::mat4 proj(0.0f);
+    // proj[0][0] = n / r;
+    // proj[1][1] = -n / t;
+    // proj[2][2] = f / (f - n);
+    // proj[2][3] = 1;
+    // proj[3][2] = -f * n / (f - n);
+    projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, n, f);
+    projectionMatrix[1] = -projectionMatrix[1];
 
-    glm::mat4 proj(0.0f);
-    proj[0][0] = n / r;
-    proj[1][1] = -n / t;
-    proj[2][2] = f / (f - n);
-    proj[2][3] = 1;
-    proj[3][2] = -f * n / (f - n);
-    projectionMatrix = proj;
+    fov = fovy;
+    near = n;
+    far = f;
 }
 
 const glm::mat4& Camera::GetProjectionMatrix() const
@@ -79,7 +81,7 @@ glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 {
     return glm::vec3(
         (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), GetProjectionTop()},
-        -GetNear()
+        GetNear()
     );
 }
 

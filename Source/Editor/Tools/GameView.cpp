@@ -216,8 +216,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                     Gfx::RG::ImageDescription desc{
                         sceneImage->GetDescription().width,
                         sceneImage->GetDescription().height,
-                        sceneImage->GetDescription().format
-                    };
+                        sceneImage->GetDescription().format};
                     cmd.AllocateAttachment(outlineSrcRT, desc);
 
                     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
@@ -230,8 +229,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                         static_cast<float>(rect.extent.width),
                         static_cast<float>(rect.extent.height),
                         0,
-                        1
-                    });
+                        1});
                     cmd.BeginRenderPass(outlineSrcPass, clears);
                     for (auto& draw : drawList)
                     {
@@ -454,8 +452,7 @@ bool GameView::Tick()
                         auto mousePos = ImGui::GetMousePos();
                         glm::vec2 mouseContentPos{
                             mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y
-                        };
+                            mousePos.y - windowPos.y - imagePos.y};
                         GameObject* selected =
                             PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
