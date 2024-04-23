@@ -1,5 +1,6 @@
 #pragma once
 #include "../VKCommandBuffer2.hpp"
+#include <variant>
 
 namespace
 {
@@ -36,7 +37,7 @@ struct ResourceUsageTrack
 {
     ResourceType type;
 
-    void* res;
+    std::variant<SRef<Image>, SRef<Buffer>> res;
 
     std::vector<ResourceUsage> previousFrameUsages;
     std::vector<ResourceUsage> currentFrameUsages;

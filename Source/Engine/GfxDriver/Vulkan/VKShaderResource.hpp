@@ -8,7 +8,7 @@
 #include "VKSharedResource.hpp"
 #include <unordered_map>
 #include <vk_mem_alloc.h>
-
+#include <variant>
 namespace Gfx
 {
 class VKBuffer;
@@ -25,7 +25,8 @@ struct VKWritableGPUResource
         Image
     };
     Type type;
-    void* data;
+    std::variant<SRef<Image>, SRef<Buffer>> data;
+
     VkPipelineStageFlags stages;
     VkAccessFlags access;
 

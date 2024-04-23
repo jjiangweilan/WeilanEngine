@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/SafeReferenceable.hpp"
 #include "GfxEnums.hpp"
 #include <string>
 namespace Gfx
@@ -9,7 +10,7 @@ enum class IndexBufferType
     UInt32
 };
 
-class Buffer
+class Buffer : public SafeReferenceable<Buffer>
 {
 public:
     struct CreateInfo

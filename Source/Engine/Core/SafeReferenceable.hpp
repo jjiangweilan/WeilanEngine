@@ -137,7 +137,7 @@ template <class T>
 class SafeReferenceable
 {
 public:
-    ~SafeReferenceable()
+    virtual ~SafeReferenceable()
     {
         if (referenceCount)
         {

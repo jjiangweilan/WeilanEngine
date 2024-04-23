@@ -243,7 +243,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Buffer,
-                                        .data = buffer,
+                                        .data = buffer->GetSRef(),
                                         .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
@@ -276,7 +276,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
-                                        .data = &imageView->GetImage(),
+                                        .data = imageView->GetImage().GetSRef(),
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
                                         .imageView = imageView,
@@ -352,7 +352,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
-                                        .data = &imageView->GetImage(),
+                                        .data = imageView->GetImage().GetSRef(),
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_SHADER_READ_BIT,
                                         .imageView = imageView,

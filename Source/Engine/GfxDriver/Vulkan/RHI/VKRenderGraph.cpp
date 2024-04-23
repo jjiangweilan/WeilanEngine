@@ -57,8 +57,7 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc
-            };
+                desc};
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format("rg-{}", id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName()));
@@ -283,7 +282,7 @@ bool Graph::TrackResource(
     {
         ResourceUsageTrack track;
         track.type = ResourceType::Image;
-        track.res = writableResource;
+        track.res = writableResource->GetSRef();
         track.currentFrameUsages.push_back({stages, access, range, layout});
 
         resourceUsageTracks[writableResource] = track;
@@ -336,7 +335,7 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
     {
         ResourceUsageTrack track;
         track.type = ResourceType::Buffer;
-        track.res = writableResource;
+        track.res = writableResource->GetSRef();
         track.currentFrameUsages.push_back({stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED});
 
         resourceUsageTracks[writableResource] = track;
@@ -447,15 +446,13 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image
-            };
+                cmd.setTexture.image};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer
-            };
+                cmd.setBuffer.buffer};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -478,7 +475,14 @@ int Graph::MakeBarrierForLastUsage(void* res)
     std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
     if (iter->second.type == ResourceType::Image)
     {
-        VKImage* image = (VKImage*)iter->second.res;
+        VKImage* image = (VKImage*)std::get<SRef<Image>>(iter->second.res).Get();
+        if (image == nullptr)
+        {
+            // garbage image remove it
+            resourceUsageTracks.erase(iter);
+            return 0;
+        }
+
         // TODO: optimize heap allocation
         std::vector<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
         std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
@@ -601,6 +605,13 @@ int Graph::MakeBarrierForLastUsage(void* res)
     {
         VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         VkAccessFlags srcAccessMask = VK_ACCESS_NONE;
+        VKBuffer* buffer = ((VKBuffer*)std::get<SRef<Buffer>>(iter->second.res).Get());
+        if (buffer == nullptr)
+        {
+            // garbage buffer remove it
+            resourceUsageTracks.erase(iter);
+            return 0;
+        }
 
         if (usageIndex == 0)
         {
@@ -654,7 +665,7 @@ int Graph::MakeBarrierForLastUsage(void* res)
                 bufferBarrier.dstAccessMask = currentUsage.access;
                 bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                bufferBarrier.buffer = ((VKBuffer*)iter->second.res)->GetHandle();
+                bufferBarrier.buffer = buffer->GetHandle();
                 bufferBarrier.offset = 0;
                 bufferBarrier.size = VK_WHOLE_SIZE;
 
@@ -857,15 +868,13 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image
-            };
+                cmd.setTexture.image};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer
-            };
+                cmd.setBuffer.buffer};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -968,8 +977,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -981,8 +989,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1495,30 +1502,36 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
                 }
                 if (type == ResourceType::Image)
                 {
-                    if (std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), w.data) !=
+                    VKImage* data = static_cast<VKImage*>(std::get<SRef<Image>>(w.data).Get());
+
+                    if (data == nullptr || std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
                         shaderImageSampleIgnoreList.end())
                     {
                         continue;
                     }
 
                     if (TrackResource(
-                            (VKImage*)w.data,
+                            data,
                             w.imageView ? w.imageView->GetSubresourceRange()
-                                        : static_cast<VKImage*>(w.data)->GetSubresourceRange(),
+                                        : data->GetSubresourceRange(),
                             w.layout,
                             w.stages,
                             w.access
                         ))
                     {
-                        barrierCountAdded += MakeBarrierForLastUsage(w.data);
+                        barrierCountAdded += MakeBarrierForLastUsage(data);
                     }
                 }
                 else
                 {
-                    if (TrackResource((VKBuffer*)w.data, w.stages, w.access))
+                    VKBuffer* data = static_cast<VKBuffer*>(std::get<SRef<Buffer>>(w.data).Get());
+                    if (data == nullptr)
+                        continue;
+
+                    if (TrackResource((VKBuffer*)data, w.stages, w.access))
                     {
 
-                        barrierCountAdded += MakeBarrierForLastUsage(w.data);
+                        barrierCountAdded += MakeBarrierForLastUsage(data);
                     }
                 }
             }
