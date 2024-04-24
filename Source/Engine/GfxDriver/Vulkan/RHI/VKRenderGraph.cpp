@@ -36,6 +36,7 @@ public:
             if (iter != images.end())
             {
                 RemoveImageRelatedInfo(iter->second.image.get());
+                images.erase(iter);
             }
 
             // id = RG::ImageIdentifier();
@@ -60,7 +61,11 @@ public:
                 desc};
 
             auto& image = images[id.GetAsUUID()].image;
-            image->SetName(fmt::format("rg-{}", id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName()));
+            image->SetName(fmt::format(
+                "rg-{}-{}",
+                id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName(),
+                reinterpret_cast<size_t>(image->GetImage())
+            ));
             SPDLOG_INFO(
                 "VKRenderGraph: create new iamge({}) {}",
                 reinterpret_cast<size_t>(image.get()),
@@ -166,9 +171,9 @@ public:
         {
             for (auto& e : r.second)
             {
-                if (e.second.res == ptr)
+                if (e.second.type == ResourceType::Image && std::get<SRef<Image>>(e.second.res).Get() == ptr)
                 {
-                    e.second.res = nullptr;
+                    e.second.res = SRef<Image>(nullptr);
                 }
             }
         }
@@ -446,13 +451,13 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image};
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer};
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -868,13 +873,13 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image};
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer};
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -1441,7 +1446,7 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
                     for (int elementIndex = 0; elementIndex < binding->count; ++elementIndex)
                     {
                         auto& element = resourceFromPool->second[elementIndex];
-                        if (element.res != nullptr)
+                        if (!element.IsNull())
                         {
                             bool isBufferType = (binding->type == ShaderInfo::BindingType::UBO ||
                                                  binding->type == ShaderInfo::BindingType::SSBO) &&
@@ -1453,11 +1458,13 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 
                             if (isBufferType)
                             {
-                                resource.SetBuffer(binding->resourceHandle, elementIndex, (VKBuffer*)element.res);
+                                auto& res = std::get<SRef<Buffer>>(element.res);
+                                resource.SetBuffer(binding->resourceHandle, elementIndex, res.Get());
                             }
                             else if (isImageType)
                             {
-                                resource.SetImage(binding->resourceHandle, elementIndex, (VKImage*)element.res);
+                                auto& res = std::get<SRef<Image>>(element.res);
+                                resource.SetImage(binding->resourceHandle, elementIndex, res.Get());
                             }
                         }
                     }
@@ -1504,16 +1511,16 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
                 {
                     VKImage* data = static_cast<VKImage*>(std::get<SRef<Image>>(w.data).Get());
 
-                    if (data == nullptr || std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
-                        shaderImageSampleIgnoreList.end())
+                    if (data == nullptr ||
+                        std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
+                            shaderImageSampleIgnoreList.end())
                     {
                         continue;
                     }
 
                     if (TrackResource(
                             data,
-                            w.imageView ? w.imageView->GetSubresourceRange()
-                                        : data->GetSubresourceRange(),
+                            w.imageView ? w.imageView->GetSubresourceRange() : data->GetSubresourceRange(),
                             w.layout,
                             w.stages,
                             w.access

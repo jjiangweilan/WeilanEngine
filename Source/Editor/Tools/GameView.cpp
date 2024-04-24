@@ -206,57 +206,50 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
         {
             auto mrs = go->GetComponentsInChildren<MeshRenderer>();
+            FrameGraph::DrawList drawList;
             for (MeshRenderer* meshRenderer : mrs)
             {
                 if (meshRenderer)
                 {
-                    FrameGraph::DrawList drawList;
                     drawList.Add(*meshRenderer);
-
-                    Gfx::RG::ImageDescription desc{
-                        sceneImage->GetDescription().width,
-                        sceneImage->GetDescription().height,
-                        sceneImage->GetDescription().format};
-                    cmd.AllocateAttachment(outlineSrcRT, desc);
-
-                    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-                    outlineSrcPass.SetAttachment(0, outlineSrcRT);
-                    Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
-                    cmd.SetScissor(0, 1, &rect);
-                    cmd.SetViewport(Gfx::Viewport{
-                        0,
-                        0,
-                        static_cast<float>(rect.extent.width),
-                        static_cast<float>(rect.extent.height),
-                        0,
-                        1});
-                    cmd.BeginRenderPass(outlineSrcPass, clears);
-                    for (auto& draw : drawList)
-                    {
-                        cmd.BindShaderProgram(
-                            outlineRawColorPassShader->GetDefaultShaderProgram(),
-                            outlineRawColorPassShader->GetDefaultShaderConfig()
-                        );
-                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
-                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                    }
-                    cmd.EndRenderPass();
-
-                    outlieFinalPass.SetAttachment(0, *gameImage);
-                    cmd.SetTexture("mainTex", outlineSrcRT);
-                    cmd.BeginRenderPass(outlieFinalPass, clears);
-                    cmd.BindShaderProgram(
-                        outlineFullScreenPassShader->GetDefaultShaderProgram(),
-                        outlineFullScreenPassShader->GetDefaultShaderConfig()
-                    );
-                    cmd.Draw(6, 1, 0, 0);
-                    cmd.EndRenderPass();
-
-                    // cmd.SetTexture("mainTex", *graphOutputImage);
                 }
             }
+
+            Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
+            cmd.SetScissor(0, 1, &rect);
+            cmd.SetViewport(
+                Gfx::Viewport{0, 0, static_cast<float>(rect.extent.width), static_cast<float>(rect.extent.height), 0, 1}
+            );
+            Gfx::RG::ImageDescription desc{
+                sceneImage->GetDescription().width,
+                sceneImage->GetDescription().height,
+                sceneImage->GetDescription().format};
+            cmd.AllocateAttachment(outlineSrcRT, desc);
+            outlineSrcPass.SetAttachment(0, outlineSrcRT);
+            Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+            cmd.BeginRenderPass(outlineSrcPass, clears);
+            cmd.BindShaderProgram(
+                outlineRawColorPassShader->GetDefaultShaderProgram(),
+                outlineRawColorPassShader->GetDefaultShaderConfig()
+            );
+            for (auto& draw : drawList)
+            {
+                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+            }
+            cmd.EndRenderPass();
+
+            outlieFinalPass.SetAttachment(0, *gameImage);
+            cmd.SetTexture("mainTex", outlineSrcRT);
+            cmd.BeginRenderPass(outlieFinalPass, clears);
+            cmd.BindShaderProgram(
+                outlineFullScreenPassShader->GetDefaultShaderProgram(),
+                outlineFullScreenPassShader->GetDefaultShaderConfig()
+            );
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
         }
 
         if (gameImage)
@@ -473,17 +466,34 @@ bool GameView::Tick()
                     auto mainCam = scene->GetMainCamera();
                     if (mainCam)
                     {
+                        glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
+                        ImGuizmo::SetDrawlist();
+                        ImGuizmo::SetGizmoSizeClipSpace(0.2f);
+                        ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
+
+                        glm::mat4 proj = mainCam->GetProjectionMatrix();
+                        proj[1] *= -1;
+
+                        // Gizmo
                         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
                         {
                             auto model = go->GetModelMatrix();
                             ImGui::SetCursorPos(imagePos);
-                            EditTransform(
-                                *mainCam,
-                                model,
-                                {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight}
-                            );
+                            EditTransform(*mainCam, model, proj, rect);
                             go->SetModelMatrix(model);
                         }
+
+                        // Camera Gizmo
+                        glm::mat4 view = mainCam->GetViewMatrix();
+                        view[1] = -view[1];
+                        ImGuizmo::ViewManipulate(
+                            &view[0][0],
+                            5.0f,
+                            ImVec2(rect.x + imageWidth - 150, rect.y + 5),
+                            ImVec2(100, 100),
+                            0x10101010
+                        );
+                        mainCam->GetGameObject()->SetModelMatrix(glm::inverse(view));
                     }
                 }
             }
@@ -494,7 +504,7 @@ bool GameView::Tick()
     return open;
 }
 
-void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect)
+void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj, const glm::vec4& rect)
 {
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
@@ -527,11 +537,6 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4&
             mCurrentGizmoMode = ImGuizmo::WORLD;
     }
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 proj = camera.GetProjectionMatrix();
-    proj[1] *= -1;
-    ImGuizmo::SetDrawlist();
-    ImGuizmo::SetGizmoSizeClipSpace(0.2f);
-    ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
     ImGuizmo::Manipulate(
         &view[0][0],
         &proj[0][0],

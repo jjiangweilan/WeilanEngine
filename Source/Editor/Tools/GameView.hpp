@@ -66,7 +66,7 @@ private:
     Shader* outlineFullScreenPassShader;
 
     void CreateRenderData(uint32_t width, uint32_t height);
-    void EditTransform(Camera& camera, glm::mat4& matrix, const glm::vec4& rect);
+    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj, const glm::vec4& rect);
     void ChangeGameScreenResolution(glm::ivec2 resolution);
     void FocusOnObject(Camera& camera, GameObject& gameObject);
 };

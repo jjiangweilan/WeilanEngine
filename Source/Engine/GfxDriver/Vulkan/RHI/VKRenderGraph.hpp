@@ -61,7 +61,13 @@ private:
     struct ShaderBinding
     {
         ResourceType type;
-        void* res;
+        std::variant<SRef<Image>, SRef<Buffer>> res;
+        bool IsNull()
+        {
+            bool isNull = false;
+            std::visit([&isNull](auto&& arg) { isNull = arg.Get() == nullptr; }, res);
+            return isNull;
+        }
     };
 
     struct RecordState
