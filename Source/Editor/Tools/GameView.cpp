@@ -22,11 +22,20 @@ void GameView::Init()
     {
         auto& camJson = GameEditor::instance->editorConfig["editorCamera"];
         std::array<float, 3> pos{0, 0, 0};
-        pos = camJson.value("position", pos);
-        std::array<float, 4> rot{1, 0, 0, 0};
-        rot = camJson.value("rotation", rot);
-        std::array<float, 3> scale{1, 1, 1};
-        scale = camJson.value("scale", scale);
+        std::array<float, 4> rot{ 1, 0, 0, 0 };
+        std::array<float, 3> scale{ 1, 1, 1 };
+        try
+        {
+            pos = camJson.value("position", pos);
+            rot = camJson.value("rotation", rot);
+            scale = camJson.value("scale", scale);
+        }
+        catch(...)
+        {
+            pos = { 0,0,0 };
+            rot = { 1,0,0,0 };
+            scale = { 1, 1,1 };
+        }
 
         editorCamera->GetGameObject()->SetPosition({pos[0], pos[1], pos[2]});
         editorCamera->GetGameObject()->SetRotation(glm::quat{rot[0], rot[1], rot[2], rot[3]});
@@ -475,7 +484,8 @@ bool GameView::Tick()
                         proj[1] *= -1;
 
                         // Gizmo
-                        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+                        GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+                        if (go)
                         {
                             auto model = go->GetModelMatrix();
                             ImGui::SetCursorPos(imagePos);
@@ -484,13 +494,17 @@ bool GameView::Tick()
                         }
 
                         // Camera Gizmo
+                        float distance = 5.0f;
+                        if (go)
+                        {
+                            distance = glm::length(go->GetPosition() - mainCam->GetGameObject()->GetPosition());
+                        }
                         glm::mat4 view = mainCam->GetViewMatrix();
-                        view[1] = -view[1];
                         ImGuizmo::ViewManipulate(
                             &view[0][0],
-                            5.0f,
-                            ImVec2(rect.x + imageWidth - 150, rect.y + 5),
-                            ImVec2(100, 100),
+                            distance,
+                            ImVec2(rect.x + imageWidth - 105, rect.y + 105),
+                            ImVec2(100, -100),
                             0x10101010
                         );
                         mainCam->GetGameObject()->SetModelMatrix(glm::inverse(view));
