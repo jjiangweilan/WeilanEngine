@@ -142,7 +142,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
     if (rebuild)
     {
-        spdlog::info("rebuild");
+        SPDLOG_INFO("VKShaderResource: rebuild descriptor set");
         writableGPUResources->clear();
         auto& shaderInfo = shaderProgram->GetShaderInfo();
         VKDebugUtils::SetDebugName(
@@ -315,7 +315,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     imageInfo.sampler = b->type == ShaderInfo::BindingType::Texture
                                                             ? sharedResource->GetDefaultSampler()
                                                             : VK_NULL_HANDLE;
-                                    if (resRef.GetRef() != nullptr && !imageView->GetImage().GetDescription().isCubemap &&
+                                    if (resRef.GetRef() != nullptr &&
+                                        !imageView->GetImage().GetDescription().isCubemap &&
                                         resRef.type == ShaderBindingType::ImageView)
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
@@ -336,7 +337,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                     imageInfo.sampler = sharedResource->GetDefaultSampler();
 
-                                    if (resRef.GetRef() != nullptr && imageView->GetImage().GetDescription().isCubemap &&
+                                    if (resRef.GetRef() != nullptr &&
+                                        imageView->GetImage().GetDescription().isCubemap &&
                                         resRef.type == ShaderBindingType::ImageView)
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
