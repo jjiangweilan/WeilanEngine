@@ -1084,6 +1084,7 @@ void VKDriver::FrameEndClear()
     }
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
     internalPendingCommands.clear();
+    ClearResources();
 }
 
 void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)

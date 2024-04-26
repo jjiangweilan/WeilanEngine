@@ -39,6 +39,8 @@ public:
     float GetNear();
     float GetFar();
 
+    void DrawGizmos();
+
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;

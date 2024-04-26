@@ -58,7 +58,8 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc};
+                desc
+            };
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format(
@@ -158,7 +159,7 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            SPDLOG_INFO("VKRenderGraph: create new iamge({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
+            SPDLOG_INFO("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
             renderPasses[uuid] = {std::move(renderPassObj), std::move(imageReferences), 0};
 
             return temp;
@@ -188,7 +189,7 @@ public:
         UUID readyToRemove[8];
         for (auto& iter : images)
         {
-            if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
+            if (iter.second.frameCountFromLastRequest > 8 && removeCount < 8)
             {
                 readyToRemove[removeCount++] = iter.first;
                 RemoveImageRelatedInfo(iter.second.image.get());
@@ -241,7 +242,7 @@ private:
         const UUID* readyToRemove[8];
         for (auto& iter : resources)
         {
-            if (iter.second.frameCountFromLastRequest > 5 && removeCount < 8)
+            if (iter.second.frameCountFromLastRequest > 8 && removeCount < 8)
             {
                 readyToRemove[removeCount++] = &iter.first;
             }
@@ -451,13 +452,15 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()};
+                cmd.setTexture.image->GetSRef()
+            };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()};
+                cmd.setBuffer.buffer->GetSRef()
+            };
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -873,13 +876,15 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()};
+                cmd.setTexture.image->GetSRef()
+            };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()};
+                cmd.setBuffer.buffer->GetSRef()
+            };
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -982,7 +987,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -994,7 +1000,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1};
+                        1
+                    };
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1466,6 +1473,10 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
                                 auto& res = std::get<SRef<Image>>(element.res);
                                 resource.SetImage(binding->resourceHandle, elementIndex, res.Get());
                             }
+                        }
+                        else
+                        {
+                            int i = 0;
                         }
                     }
                 }

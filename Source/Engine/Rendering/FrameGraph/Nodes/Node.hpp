@@ -314,7 +314,7 @@ public:
         return id;
     }
     virtual void Compile() {}
-    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData){};
+    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) {};
 
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
