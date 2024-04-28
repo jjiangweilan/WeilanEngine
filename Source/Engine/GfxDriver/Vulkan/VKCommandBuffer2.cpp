@@ -332,4 +332,35 @@ void VKCommandBuffer2::BeginRenderPass(RG::RenderPass& renderPass, std::span<Cle
 
     cmds.push_back(cmd);
 }
+
+void VKCommandBuffer2::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp)
+{
+    VKCmd cmd{VKCmdType::Blit};
+
+    VKImage* from = nullptr;
+    VKImage* to = nullptr;
+    if (src.GetType() == RG::ImageIdentifier::Type::Image)
+    {
+        from = static_cast<VKImage*>(src.GetAsImage());
+    }
+    else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
+    {
+        from = graph->GetImage(src.GetAsUUID());
+    }
+
+    if (dst.GetType() == RG::ImageIdentifier::Type::Image)
+    {
+        to = static_cast<VKImage*>(dst.GetAsImage());
+    }
+    else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
+    {
+        to = graph->GetImage(dst.GetAsUUID());
+    }
+
+    cmd.blit.from = static_cast<VKImage*>(from);
+    cmd.blit.to = static_cast<VKImage*>(to);
+    cmd.blit.blitOp = blitOp;
+
+    cmds.push_back(cmd);
+}
 } // namespace Gfx

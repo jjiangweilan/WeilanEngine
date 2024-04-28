@@ -179,8 +179,16 @@ class SSAONode : public Node
             }
             else if (aoType == AOType::AlchmeyAO)
             {
-                Alchmey
-                    newParam{{1 / width, 1 / height, width, height}, *sigma, *k, *beta, *theta, *sampleCount, *radius};
+                Alchmey newParam{
+                    {1 / width, 1 / height, width, height},
+                    *sigma,
+                    *k,
+                    *beta,
+                    *theta,
+                    *sampleCount,
+                    *radius,
+                    *rangeCheck
+                };
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
@@ -318,6 +326,7 @@ private:
 
         float sampleCount;
         float radius;
+        float rangeCheck;
     } alchmey;
 
     struct

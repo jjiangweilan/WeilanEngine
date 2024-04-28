@@ -129,6 +129,7 @@ public:
     virtual void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 
+    virtual void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp = {}) = 0;
     void UpdateViewportAndScissor(uint32_t width, uint32_t height)
     {
         Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}};
