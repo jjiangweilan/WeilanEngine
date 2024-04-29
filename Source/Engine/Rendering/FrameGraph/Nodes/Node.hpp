@@ -137,6 +137,7 @@ enum class PropertyType
     GraphFlow, // used when no actual data is passed, or data is implicitly passed (through other mechanism) but the
                // execution has to be enforced
     Attachment,
+    GfxBuffer,
     DrawListPointer,
     RenderGraphLink,
     Float // float
@@ -213,8 +214,8 @@ protected:
     FGID id;
     bool isInput;
 
-    std::variant<DrawList*, AttachmentProperty> asOutput;
-    std::variant<DrawList*, AttachmentProperty>* asInput = nullptr;
+    std::variant<DrawList*, AttachmentProperty, Gfx::Buffer*> asOutput;
+    std::variant<DrawList*, AttachmentProperty, Gfx::Buffer*>* asInput = nullptr;
 
     friend class Node;
 };
