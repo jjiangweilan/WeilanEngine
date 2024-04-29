@@ -255,8 +255,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     writableGPUResources->push_back(gpuResource);
                                 }
                                 bufferInfo.buffer = buffer->GetHandle();
-                                bufferInfo.offset = i * b->binding.ubo.data.size;
-                                bufferInfo.range = b->binding.ubo.data.size;
+                                bufferInfo.offset = 0;
+                                bufferInfo.range = VK_WHOLE_SIZE;
                                 break;
                             }
                         case ShaderInfo::BindingType::StorageImage:
