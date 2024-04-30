@@ -190,7 +190,7 @@ bool Shader::LoadFromFile(const char* path)
             }
 
             if (ssf[index] != '{')
-                throw std::exception("failed to found valid shader pass block");
+                throw std::runtime_error("failed to found valid shader pass block");
             int quoteCount = 1;
             int shaderPassBlockStart = index + 1;
             index += 1;
@@ -203,7 +203,7 @@ bool Shader::LoadFromFile(const char* path)
                 index++;
             }
             if (ssf[index - 1] != '}')
-                throw std::exception("failed to found valid shader pass block");
+                throw std::runtime_error("failed to found valid shader pass block");
             int shaderPassBlockEnd = index - 1;
 
             // compile shader pass block

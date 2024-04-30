@@ -1,4 +1,3 @@
-#pragma once
 #include "ImageNode.hpp"
 
 namespace FrameGraph
