@@ -63,6 +63,26 @@ public:
         this->ambient = glm::vec4(ambient, 1.0);
     }
 
+    void SetPointLightLinear(float t)
+    {
+        this->pointLightTerm1 = t;
+    }
+
+    void SetPointLightQuadratic(float t)
+    {
+        this->pointLightTerm2 = t;
+    }
+
+    float GetPointLightLinear()
+    {
+        return pointLightTerm1;
+    }
+
+    float GetPointLightQuadratic()
+    {
+        return pointLightTerm2;
+    }
+
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
 
@@ -72,6 +92,8 @@ private:
     float ambientScale = 1.0f;
     float range = 10.0f; // valid when it's a point light
     float intensity = 1.0f;
+    float pointLightTerm1 = 0.7f;
+    float pointLightTerm2 = 1.8f;
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

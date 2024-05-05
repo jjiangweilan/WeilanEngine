@@ -30,6 +30,9 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("ambient", ambient);
     s->Serialize("range", range);
     s->Serialize("intensity", intensity);
+    s->Serialize("pointLightTerm1", pointLightTerm1);
+    s->Serialize("pointLightTerm2", pointLightTerm2);
+    s->Serialize("lightType", static_cast<int>(lightType));
 }
 void Light::Deserialize(Serializer* s)
 {
@@ -38,6 +41,11 @@ void Light::Deserialize(Serializer* s)
     s->Deserialize("ambient", ambient);
     s->Deserialize("range", range);
     s->Deserialize("intensity", intensity);
+    s->Deserialize("pointLightTerm1", pointLightTerm1);
+    s->Deserialize("pointLightTerm2", pointLightTerm2);
+    int lightType;
+    s->Deserialize("lightType", lightType);
+    this->lightType = static_cast<LightType>(lightType);
 }
 
 const std::string& Light::GetName()

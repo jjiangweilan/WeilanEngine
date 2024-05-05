@@ -169,7 +169,10 @@ private:
         float ambientScale;
         float range;
         float intensity;
-        float padding1;
+        float pointLightTerm1;
+        float pointLightTerm2;
+
+        float p0, p1, p2; // padding
     };
 
     struct GlobalInfo
@@ -177,7 +180,7 @@ private:
         float time;
     } globalInfo;
 
-    static const int MAX_LIGHT_COUNT = 32; // defined in Commom.glsl
+    static const int MAX_LIGHT_COUNT = 128; // defined in Commom.glsl
     struct SceneInfo
     {
         glm::vec4 viewPos;

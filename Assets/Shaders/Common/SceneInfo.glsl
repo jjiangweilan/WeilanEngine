@@ -2,7 +2,7 @@
 #define SCENE_INFO_INCLUDED
 
 #include "Lighting/Lighting.glsl"
-#define MAX_LIGHT_COUNT 32
+#define MAX_LIGHT_COUNT 128
 
 #ifndef SCENE_INFO_BINDING
 layout(set = 0) uniform SceneInfo
