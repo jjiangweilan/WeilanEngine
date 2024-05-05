@@ -1,4 +1,3 @@
-#pragma once
 #include "../NodeBlueprint.hpp"
 
 namespace FrameGraph

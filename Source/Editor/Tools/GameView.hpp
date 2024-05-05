@@ -3,7 +3,7 @@
 #include "Asset/Shader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
-
+#include <list>
 namespace Editor
 {
 class GameView : public Tool
