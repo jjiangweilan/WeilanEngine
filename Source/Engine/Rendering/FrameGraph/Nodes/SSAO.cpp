@@ -27,6 +27,7 @@ class SSAONode : public Node
         output.color = AddOutputProperty("attachment", PropertyType::Attachment);
 
         AddConfig<ConfigurableType::Bool>("enable", true);
+        AddConfig<ConfigurableType::Int>("blur count", 1);
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
         AddConfig<ConfigurableType::Float>("range check", 1.f);
         AddConfig<ConfigurableType::Float>("radius", 0.5f);
@@ -75,6 +76,7 @@ class SSAONode : public Node
     void Compile() override
     {
         enable = GetConfigurablePtr<bool>("enable");
+        blurCount = GetConfigurablePtr<int>("blur count");
         bias = GetConfigurablePtr<float>("bias");
         radius = GetConfigurablePtr<float>("radius");
         rangeCheck = GetConfigurablePtr<float>("range check");
@@ -227,26 +229,29 @@ class SSAONode : public Node
                 GetGfxDriver()->UploadBuffer(*blur.paramsBuffer, (uint8_t*)&blurParams, sizeof(GaussianBlur));
             }
 
-            cmd.SetBuffer("GaussianBlur", *blur.paramsBuffer);
-            cmd.AllocateAttachment(blur.tmpRT, inputAttachment.desc);
-            blur.hPass.SetAttachment(0, blur.tmpRT);
-            cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
-            cmd.BeginRenderPass(blur.hPass, clears);
-            cmd.SetTexture(sourceHandle, inputAttachment.id);
+            for (int i = 0; i < *blurCount; ++i)
+            {
+                cmd.SetBuffer("GaussianBlur", *blur.paramsBuffer);
+                cmd.AllocateAttachment(blur.tmpRT, inputAttachment.desc);
+                blur.hPass.SetAttachment(0, blur.tmpRT);
+                cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
+                cmd.BeginRenderPass(blur.hPass, clears);
+                cmd.SetTexture(sourceHandle, inputAttachment.id);
 #if ENGINE_DEV_BUILD
-            blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
-            blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
+                blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
+                blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
 #endif
-            cmd.BindShaderProgram(blur.hShader, blur.config);
-            cmd.Draw(6, 1, 0, 0);
-            cmd.EndRenderPass();
+                cmd.BindShaderProgram(blur.hShader, blur.config);
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
 
-            blur.vPass.SetAttachment(0, inputAttachment.id);
-            cmd.BeginRenderPass(blur.vPass, clears);
-            cmd.SetTexture(sourceHandle, blur.tmpRT);
-            cmd.BindShaderProgram(blur.vShader, blur.config);
-            cmd.Draw(6, 1, 0, 0);
-            cmd.EndRenderPass();
+                blur.vPass.SetAttachment(0, inputAttachment.id);
+                cmd.BeginRenderPass(blur.vPass, clears);
+                cmd.SetTexture(sourceHandle, blur.tmpRT);
+                cmd.BindShaderProgram(blur.vShader, blur.config);
+                cmd.Draw(6, 1, 0, 0);
+                cmd.EndRenderPass();
+            }
         }
 
         output.color->SetValue(input.attachment->GetValue<AttachmentProperty>());
@@ -271,6 +276,7 @@ private:
     float* sampleCount;
 
     bool* enable;
+    int* blurCount;
     std::vector<Gfx::ClearValue> clears;
     std::unique_ptr<Gfx::ShaderResource> passResource;
     std::unique_ptr<Gfx::Buffer> ssaoBuf;
