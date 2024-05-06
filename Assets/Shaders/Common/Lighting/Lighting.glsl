@@ -8,7 +8,8 @@ struct Light
     float ambientScale;
     float range;
     float intensity;
-    float padding; // if not when running from xcode, it will report error
+    float pointLightTerm1;
+    float pointLightTerm2;
 };
 
 #endif

@@ -96,6 +96,7 @@ layout(set = 1) uniform SSAOParam
 
     float sampleCount;
     float radius;
+    float rangeCheck;
 } param;
 
 #define M_PI 3.14159265359f
@@ -136,7 +137,7 @@ float GetSSAO()
 
         float vi_n = dot(vi, normalVS);
         float vi_vi = dot(vi, vi);
-        float rangeCheck = 2 - clamp(length(vi) / param.radius, 0.0, 2.0);
+        float rangeCheck = 1 - clamp(length(vi) * param.rangeCheck / param.radius, 0.0, 1.0);
         A += max(0, vi_n - posVS.z * param.beta) / (vi_vi + param.theta) * rangeCheck;
     }
 

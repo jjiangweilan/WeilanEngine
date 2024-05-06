@@ -179,28 +179,43 @@ void Graph::ProcessLights(Scene& gameScene)
 {
     auto lights = gameScene.GetActiveLights();
 
-    Light* light = nullptr;
+    Light* shadowLight = nullptr;
     for (int i = 0; i < lights.size(); ++i)
     {
         sceneInfo.lights[i].ambientScale = lights[i]->GetAmbientScale();
         sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetModelMatrix();
-        sceneInfo.lights[i].position = glm::vec4(-glm::normalize(glm::vec3(model[2])), 0);
-
-        if (lights[i]->GetLightType() == LightType::Directional)
+        glm::vec4 position{};
+        switch (lights[i]->GetLightType())
         {
-            if (light == nullptr || light->GetIntensity() < lights[i]->GetIntensity())
-            {
-                light = lights[i];
-            }
+            case LightType::Directional:
+                {
+                    glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
+                    sceneInfo.lights[i].position = {pos, 0};
+
+                    if (shadowLight == nullptr || shadowLight->GetIntensity() < lights[i]->GetIntensity())
+                    {
+                        shadowLight = lights[i];
+                    }
+                    break;
+                }
+            case LightType::Point:
+                {
+                    glm::vec3 pos = model[3];
+                    sceneInfo.lights[i].position = {pos, 1};
+                    sceneInfo.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
+                    sceneInfo.lights[i].pointLightTerm2 = lights[i]->GetPointLightQuadratic();
+                    break;
+                }
         }
     }
 
     sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
-    if (light)
+    if (shadowLight)
     {
-        sceneInfo.worldToShadow = light->WorldToShadowMatrix(gameScene.GetMainCamera()->GetGameObject()->GetPosition());
+        sceneInfo.worldToShadow =
+            shadowLight->WorldToShadowMatrix(gameScene.GetMainCamera()->GetGameObject()->GetPosition());
     }
 }
 static void SortNodesInternal(

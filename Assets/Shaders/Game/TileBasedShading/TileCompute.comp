@@ -1,0 +1,25 @@
+#version 450
+
+#if CONFIG
+name: Game/TileBasedShading/TileCompute
+#endif
+
+#if COMP
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(std430) writeonly buffer Tiles
+{
+    uint buckets[];
+} tiles;
+
+void main() {
+    ivec3 coord = ivec3(gl_GlobalInvocationID.xyz);
+
+    if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0)
+        tiles.buckets[0] = 5;
+}
+
+#endif
+
+

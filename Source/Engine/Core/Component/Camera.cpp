@@ -145,3 +145,4 @@ glm::vec3 Camera::GetForward()
 {
     return -gameObject->GetForward();
 }
+

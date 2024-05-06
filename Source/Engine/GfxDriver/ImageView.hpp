@@ -4,7 +4,7 @@
 
 namespace Gfx
 {
-class ImageView
+class ImageView : public SafeReferenceable<ImageView>
 {
 public:
     struct CreateInfo

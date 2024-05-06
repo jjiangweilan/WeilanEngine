@@ -13,6 +13,15 @@ public:
         glm::vec3 lightColor = light->GetLightColor();
         float intensity = light->GetIntensity();
         float ambientScale = light->GetAmbientScale();
+        int lightType = static_cast<int>(light->GetLightType());
+        const char* lightTypes[] = {"Directional", "Point"};
+
+        ImGui::Combo("light type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
+        if (light->GetLightType() != static_cast<LightType>(lightType))
+        {
+            light->SetLightType(static_cast<LightType>(lightType));
+        }
+
         if (ImGui::DragFloat("ambient scale", &ambientScale))
         {
             light->SetAmbientScale(ambientScale);
@@ -24,6 +33,21 @@ public:
         if (ImGui::DragFloat("intensity", &intensity))
         {
             light->SetIntensity(intensity);
+        }
+
+        if (light->GetLightType() == LightType::Point)
+        {
+            float v0 = light->GetPointLightLinear();
+            if (ImGui::DragFloat("point light intensity 1", &v0))
+            {
+                light->SetPointLightLinear(v0);
+            }
+
+            float v1 = light->GetPointLightQuadratic();
+            if (ImGui::DragFloat("point light intensity 2", &v1))
+            {
+                light->SetPointLightQuadratic(v1);
+            }
         }
     }
 

@@ -1,8 +1,10 @@
 #include "GameLoop.hpp"
+#include "Libs/Profiler.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
+
 GameLoop::GameLoop()
 {
     cmd = GetGfxDriver()->CreateCommandBuffer();

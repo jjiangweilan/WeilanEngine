@@ -1,4 +1,3 @@
-#pragma once
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"

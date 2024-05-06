@@ -327,6 +327,7 @@ public:
     void Begin() override {}
     void End() override {}
 
+    void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp) override;
     void SetTexture(ShaderBindingHandle handle, int index, RG::ImageIdentifier id) override;
     void SetTexture(ShaderBindingHandle handle, int index, Gfx::Image& image) override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;

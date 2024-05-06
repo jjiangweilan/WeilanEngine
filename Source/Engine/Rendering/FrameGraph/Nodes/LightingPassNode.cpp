@@ -23,6 +23,8 @@ class LightingPassNode : public Node
         output.mask = AddOutputProperty("mask", PropertyType::Attachment);
         output.depth = AddOutputProperty("depth", PropertyType::Attachment);
 
+        input.tileBuffer = AddInputProperty("tile buffer", PropertyType::GfxBuffer);
+
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
         AddConfig<ConfigurableType::Float>("shadow constant bias", 0.0003f);
@@ -33,7 +35,8 @@ class LightingPassNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -58,7 +61,8 @@ class LightingPassNode : public Node
             .size = sizeof(ShadingProperties),
             .visibleInCPU = false,
             .debugName = "lighting pass buffer",
-            .gpuWrite = false});
+            .gpuWrite = false
+        });
         shaderResource->SetBuffer("ShadingProperties", shadingPropertiesBuffer.get());
     }
 
@@ -138,6 +142,7 @@ private:
         PropertyHandle depth;
         PropertyHandle shadowMap;
         PropertyHandle drawList;
+        PropertyHandle tileBuffer;
     } input;
 
     struct

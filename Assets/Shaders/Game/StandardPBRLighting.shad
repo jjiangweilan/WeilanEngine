@@ -1,5 +1,5 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-#version 450
+#version 450 
 #define G_PCF
 #include "Common/Common.glsl"
 #include "Common/DeferredShading.glsl"
@@ -99,6 +99,12 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
     return brdf;
 }
 
+// http://www.ogre3d.org/tikiwiki/tiki-index.php?page=-Point+Light+Attenuation
+float PointLightAttenuation(float distance, float t1, float t2)
+{
+    return 1.0f / (1.0f + t1 * distance + t2 * distance * distance);
+}
+
 void main()
 {
     vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
@@ -116,27 +122,33 @@ void main()
     for (int i = 0; i < scene.lightCount.x; ++i)
     {
         vec4 lightPos = scene.lights[i].position;
-        vec3 l = lightPos.xyz;
+        vec3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
         float dotNL = max(dot(n,l), NearZero);
         float brdf = SpecularBRDF(l, v, n, metallic, roughness);
 
         vec3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
-        color += light * (ao * baseColor / M_PI + brdf);
+        float attenuation = lightPos.a == 0 ? 1 : PointLightAttenuation(distance(lightPos.xyz, positionWS.xyz), scene.lights[i].pointLightTerm1, scene.lights[i].pointLightTerm2);
+        vec3 lighting = light * (ao * baseColor / M_PI + brdf) * attenuation;
+
+        // shadow mask
+        float shadowAttenuation = 1.0;
+        if (lightPos.a == 0)
+        {
+            const float shadowBias = prop.shadowConstantBias;
+            const float shadowNormalBias = prop.shadowNormalBias;
+            vec4 shadowCS = scene.worldToShadow * vec4(positionWS.xyz + shadowNormalBias * n, 1.0);
+            shadowCS = shadowCS / shadowCS.w;
+            vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
+            float objShadowDepth = shadowCS.z - shadowBias;
+            if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
+            {
+                shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
+            }
+        }
+        color += lighting * shadowAttenuation;
     }
 
-    // shadow mask
-    float shadowAttenuation = 1.0;
-    const float shadowBias = prop.shadowConstantBias;
-    const float shadowNormalBias = prop.shadowNormalBias;
-    vec4 shadowCS = scene.worldToShadow * vec4(positionWS.xyz + shadowNormalBias * n, 1.0);
-    shadowCS = shadowCS / shadowCS.w;
-    vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
-    float objShadowDepth = shadowCS.z - shadowBias;
-    if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
-    {
-        shadowAttenuation = PcfShadow(shadowUV, objShadowDepth);
-    }
 
     // diffuse cube light
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
@@ -144,7 +156,7 @@ void main()
 
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
-    o_Color = vec4(color * shadowAttenuation + ambient, 1);
+    o_Color = vec4(color + ambient, 1);
 
 }
 #endif

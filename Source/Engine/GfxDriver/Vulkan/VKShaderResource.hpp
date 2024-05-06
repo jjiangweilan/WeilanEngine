@@ -70,14 +70,34 @@ public:
 protected:
     enum class ShaderBindingType
     {
+        None,
         ImageView,
         Buffer
     };
 
     struct ResourceRef
     {
-        void* res;
-        ShaderBindingType type;
+        bool IsValidRef()
+        {
+            if (type == ShaderBindingType::None) return false;
+            else if (type == ShaderBindingType::Buffer)
+                return std::get<SRef<Buffer>>(res) != nullptr;
+            else if (type == ShaderBindingType::ImageView)
+                return std::get<SRef<ImageView>>(res) != nullptr;
+        }
+
+        void* GetRef()
+        {
+            if (type == ShaderBindingType::Buffer)
+                return std::get<SRef<Buffer>>(res).Get();
+            else if (type == ShaderBindingType::ImageView)
+                return std::get<SRef<ImageView>>(res).Get();
+            else
+                return nullptr;
+        }
+
+        std::variant<SRef<ImageView>, SRef<Buffer>> res = SRef<ImageView>(nullptr);
+        ShaderBindingType type = ShaderBindingType::None;
     };
 
     // first key: binding name
