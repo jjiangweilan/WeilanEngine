@@ -64,3 +64,5 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
 
     return clone;
 }
+
+void Light::OnDrawGizmos(gizmos) {}

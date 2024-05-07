@@ -8,6 +8,7 @@
 #include <ryml.hpp>
 #include <ryml_std.hpp>
 #include <set>
+#include <shaderc/shaderc.h>
 #include <shaderc/shaderc.hpp>
 #include <sstream>
 #include <stack>

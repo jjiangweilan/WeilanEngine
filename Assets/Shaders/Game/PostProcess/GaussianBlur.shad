@@ -28,17 +28,30 @@ vec4 BlurSample5x5(vec2 center, vec2 axis)
     return c + s0 + s1;
 }
 
+// https://github.com/Experience-Monks/glsl-fast-gaussian-blur/blob/master/9.glsl
+vec4 BlurSample9x9(vec2 center, vec2 axis) {
+  vec4 color = vec4(0.0);
+  vec2 off1 = vec2(1.3846153846) * axis;
+  vec2 off2 = vec2(3.2307692308) * axis;
+  color += texture(source, center) * 0.2270270270;
+  color += texture(source, center + (off1 * param.sourceTexelSize.xy)) * 0.3162162162;
+  color += texture(source, center - (off1 * param.sourceTexelSize.xy)) * 0.3162162162;
+  color += texture(source, center + (off2 * param.sourceTexelSize.xy)) * 0.0702702703;
+  color += texture(source, center - (off2 * param.sourceTexelSize.xy)) * 0.0702702703;
+  return color;
+}
+
 #ifdef _Horizontal
     vec4 Blur()
     {
-        return BlurSample5x5(uv, vec2(1, 0));
+        return BlurSample9x9(uv, vec2(1, 0));
     }
 #endif
 
 #ifdef _Vertical
     vec4 Blur()
     {
-        return BlurSample5x5(uv, vec2(0, 1));
+        return BlurSample9x9(uv, vec2(0, 1));
     }
 #endif
 

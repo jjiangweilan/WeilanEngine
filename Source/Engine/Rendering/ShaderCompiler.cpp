@@ -131,6 +131,7 @@ std::vector<uint32_t> ShaderCompiler::CompileShader(
     }
     option.SetAutoBindUniforms(true);
     option.SetPreserveBindings(false);
+
     shaderc::Compiler compiler;
     auto compiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
     if (compiled.GetNumErrors() > 0)

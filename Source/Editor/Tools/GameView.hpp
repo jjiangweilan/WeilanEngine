@@ -1,16 +1,18 @@
 #pragma once
 #include "../Tool.hpp"
 #include "Asset/Shader.hpp"
+#include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 #include <list>
+
 namespace Editor
 {
 class GameView : public Tool
 {
 public:
     GameView();
-    ~GameView() override{};
+    ~GameView() override;
 
 public:
     std::vector<std::string> GetToolMenuItem() override
@@ -59,11 +61,12 @@ private:
     Camera* editorCamera = nullptr;
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
-    Gfx::RG::RenderPass outlieFinalPass = Gfx::RG::RenderPass::SingleColor(
-        "outline final pass", Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store
+    Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::SingleColor(
+        "gameImage pass", Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store
     );
     Shader* outlineRawColorPassShader;
     Shader* outlineFullScreenPassShader;
+    Gizmos gizmos;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj, const glm::vec4& rect);

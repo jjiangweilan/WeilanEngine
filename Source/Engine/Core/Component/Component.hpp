@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Asset.hpp"
+#include "Core/Gizmo.hpp"
 #include "Libs/Ptr.hpp"
 #include <functional>
 #include <string>
@@ -45,6 +46,7 @@ public:
     Scene* GetScene();
 
     virtual void Awake() {}
+    virtual void OnDrawGizmos(Gizmos& gizmos){};
 
 protected:
     virtual void EnableImple(){};

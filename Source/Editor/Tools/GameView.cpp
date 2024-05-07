@@ -1,6 +1,8 @@
 #include "GameView.hpp"
+
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/Gizmo.hpp"
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
@@ -11,6 +13,7 @@
 namespace Editor
 {
 GameView::GameView() {}
+GameView::~GameView() {}
 
 void GameView::Init()
 {
@@ -22,19 +25,19 @@ void GameView::Init()
     {
         auto& camJson = GameEditor::instance->editorConfig["editorCamera"];
         std::array<float, 3> pos{0, 0, 0};
-        std::array<float, 4> rot{ 1, 0, 0, 0 };
-        std::array<float, 3> scale{ 1, 1, 1 };
+        std::array<float, 4> rot{1, 0, 0, 0};
+        std::array<float, 3> scale{1, 1, 1};
         try
         {
             pos = camJson.value("position", pos);
             rot = camJson.value("rotation", rot);
             scale = camJson.value("scale", scale);
         }
-        catch(...)
+        catch (...)
         {
-            pos = { 0,0,0 };
-            rot = { 1,0,0,0 };
-            scale = { 1, 1,1 };
+            pos = {0, 0, 0};
+            rot = {1, 0, 0, 0};
+            scale = {1, 1, 1};
         }
 
         editorCamera->GetGameObject()->SetPosition({pos[0], pos[1], pos[2]});
@@ -250,14 +253,16 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
             }
             cmd.EndRenderPass();
 
-            outlieFinalPass.SetAttachment(0, *gameImage);
+            gameImagePass.SetAttachment(0, *gameImage);
             cmd.SetTexture("mainTex", outlineSrcRT);
-            cmd.BeginRenderPass(outlieFinalPass, clears);
+            cmd.BeginRenderPass(gameImagePass, clears);
             cmd.BindShaderProgram(
                 outlineFullScreenPassShader->GetDefaultShaderProgram(),
                 outlineFullScreenPassShader->GetDefaultShaderConfig()
             );
+
             cmd.Draw(6, 1, 0, 0);
+            gizmos.Draw(cmd);
             cmd.EndRenderPass();
         }
 
@@ -415,101 +420,97 @@ bool GameView::Tick()
     const float contentWidth = contentMax.x - contentMin.x;
     const float contentHeight = contentMax.y - contentMin.y;
 
-    // imgui image
-    if (scene)
+    if (sceneImage)
     {
-        auto mainCamera = scene->GetMainCamera();
-        if (mainCamera)
+        float imageWidth = sceneImage->GetDescription().width;
+        float imageHeight = sceneImage->GetDescription().height;
+
+        // shrink width
+        if (imageWidth > contentWidth)
         {
+            float ratio = contentWidth / (float)imageWidth;
+            imageWidth = contentWidth;
+            imageHeight *= ratio;
+        }
 
-            if (sceneImage)
+        if (imageHeight > contentHeight)
+        {
+            float ratio = contentHeight / (float)imageHeight;
+            imageHeight = contentHeight;
+            imageWidth *= ratio;
+        }
+
+        auto imagePos = ImGui::GetCursorPos();
+        ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+
+        auto windowPos = ImGui::GetWindowPos();
+        if (!ImGuizmo::IsUsing())
+        {
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
             {
-                float imageWidth = sceneImage->GetDescription().width;
-                float imageHeight = sceneImage->GetDescription().height;
+                auto mousePos = ImGui::GetMousePos();
+                glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
+                GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
 
-                // shrink width
-                if (imageWidth > contentWidth)
+                if (selected)
                 {
-                    float ratio = contentWidth / (float)imageWidth;
-                    imageWidth = contentWidth;
-                    imageHeight *= ratio;
+                    EditorState::selectedObject = selected->GetSRef();
                 }
-
-                if (imageHeight > contentHeight)
+                else
                 {
-                    float ratio = contentHeight / (float)imageHeight;
-                    imageHeight = contentHeight;
-                    imageWidth *= ratio;
+                    EditorState::selectedObject = nullptr;
                 }
+            }
+        }
 
-                auto imagePos = ImGui::GetCursorPos();
-                ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+        Scene* scene = EditorState::activeScene;
+        if (scene != nullptr)
+        {
+            auto mainCam = scene->GetMainCamera();
+            if (mainCam)
+            {
+                glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
+                ImGuizmo::SetDrawlist();
+                ImGuizmo::SetGizmoSizeClipSpace(0.2f);
+                ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
 
-                auto windowPos = ImGui::GetWindowPos();
-                if (!ImGuizmo::IsUsing())
+                glm::mat4 proj = mainCam->GetProjectionMatrix();
+                proj[1] *= -1;
+
+                // Gizmo
+                gizmos.Clear();
+                for (auto* g : scene->GetAllGameObjects())
                 {
-                    if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() &&
-                        ImGui::IsWindowFocused())
+                    for (auto& c : g->GetComponents())
                     {
-                        auto mousePos = ImGui::GetMousePos();
-                        glm::vec2 mouseContentPos{
-                            mousePos.x - windowPos.x - imagePos.x,
-                            mousePos.y - windowPos.y - imagePos.y};
-                        GameObject* selected =
-                            PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
-
-                        if (selected)
-                        {
-                            EditorState::selectedObject = selected->GetSRef();
-                        }
-                        else
-                        {
-                            EditorState::selectedObject = nullptr;
-                        }
+                        c->OnDrawGizmos(gizmos);
                     }
                 }
 
-                Scene* scene = EditorState::activeScene;
-                if (scene != nullptr)
+                GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+                if (go)
                 {
-                    auto mainCam = scene->GetMainCamera();
-                    if (mainCam)
-                    {
-                        glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
-                        ImGuizmo::SetDrawlist();
-                        ImGuizmo::SetGizmoSizeClipSpace(0.2f);
-                        ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
-
-                        glm::mat4 proj = mainCam->GetProjectionMatrix();
-                        proj[1] *= -1;
-
-                        // Gizmo
-                        GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
-                        if (go)
-                        {
-                            auto model = go->GetModelMatrix();
-                            ImGui::SetCursorPos(imagePos);
-                            EditTransform(*mainCam, model, proj, rect);
-                            go->SetModelMatrix(model);
-                        }
-
-                        // Camera Gizmo
-                        float distance = 5.0f;
-                        if (go)
-                        {
-                            distance = glm::length(go->GetPosition() - mainCam->GetGameObject()->GetPosition());
-                        }
-                        glm::mat4 view = mainCam->GetViewMatrix();
-                        ImGuizmo::ViewManipulate(
-                            &view[0][0],
-                            distance,
-                            ImVec2(rect.x + imageWidth - 105, rect.y + 105),
-                            ImVec2(100, -100),
-                            0x10101010
-                        );
-                        mainCam->GetGameObject()->SetModelMatrix(glm::inverse(view));
-                    }
+                    auto model = go->GetModelMatrix();
+                    ImGui::SetCursorPos(imagePos);
+                    EditTransform(*mainCam, model, proj, rect);
+                    go->SetModelMatrix(model);
                 }
+
+                // Camera Gizmo
+                float distance = 5.0f;
+                if (go)
+                {
+                    distance = glm::length(go->GetPosition() - mainCam->GetGameObject()->GetPosition());
+                }
+                glm::mat4 view = mainCam->GetViewMatrix();
+                ImGuizmo::ViewManipulate(
+                    &view[0][0],
+                    distance,
+                    ImVec2(rect.x + imageWidth - 105, rect.y + 105),
+                    ImVec2(100, -100),
+                    0x10101010
+                );
+                mainCam->GetGameObject()->SetModelMatrix(glm::inverse(view));
             }
         }
     }

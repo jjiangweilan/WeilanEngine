@@ -97,4 +97,5 @@ private:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    void OnDrawGizmos(Gizmos& gizmos) override;
 };
