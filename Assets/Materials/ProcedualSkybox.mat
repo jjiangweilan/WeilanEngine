@@ -1,0 +1,42 @@
+{
+ "enabledFeature": {
+  "size": 0
+ },
+ "name": "new material",
+ "shader": "e4a2bc99-b3fc-5297-8832-fbca9a35fef7",
+ "textureValues": {
+  "size": 0
+ },
+ "ubos": {
+  "0_key": "Params",
+  "0_value": {
+   "floats": {
+    "0_key": "horizonToSkyMix",
+    "0_value": 3.369999885559082,
+    "size": 1
+   },
+   "matrices": {
+    "size": 0
+   },
+   "vectors": {
+    "0_key": "horizon_color",
+    "0_value": [
+     0.03999999910593033,
+     0.4099999964237213,
+     0.3700000047683716,
+     0.0
+    ],
+    "1_key": "sky_color",
+    "1_value": [
+     0.14000000059604645,
+     0.07000000029802322,
+     0.5699999928474426,
+     0.0
+    ],
+    "size": 2
+   }
+  },
+  "size": 1
+ },
+ "uuid": "a9cdce1b-754b-52b8-b4d9-49e3efac83bf"
+}

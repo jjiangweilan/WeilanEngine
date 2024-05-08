@@ -1,4 +1,5 @@
 #include "../NodeBlueprint.hpp"
+#include "Asset/Material.hpp"
 #include "Asset/Shader.hpp"
 #include "Core/Component/Camera.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
@@ -15,6 +16,7 @@ class SkyboxPassNode : public Node
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset(
             "_engine_internal/Shaders/Game/ProcedualSkybox.shad"
         );
+        skyboxMat = (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/ProcedualSkybox.mat");
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
@@ -73,6 +75,11 @@ class SkyboxPassNode : public Node
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
             cmd.BindVertexBuffer(vertexBufferBinding, 0);
             cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            if (skyboxMat)
+            {
+                skyboxMat->UploadDataToGPU();
+                cmd.BindResource(2, skyboxMat->GetShaderResource());
+            }
             glm::vec4 position(renderingData.mainCamera->GetGameObject()->GetPosition(), 1.0);
             cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &position);
             cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
@@ -85,6 +92,8 @@ class SkyboxPassNode : public Node
 
 private:
     Shader* shader;
+    Material* skyboxMat;
+
     std::unique_ptr<Gfx::Buffer> paramsBuffer;
 
     std::vector<Gfx::ClearValue> clears;

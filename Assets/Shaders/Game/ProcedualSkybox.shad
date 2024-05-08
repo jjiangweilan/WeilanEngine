@@ -1,7 +1,7 @@
 #version 450
 #if CONFIG
-name: ProcedualSkybox
-cull: none
+name : ProcedualSkybox
+cull : none
 #endif
 
 #if VERT
@@ -23,9 +23,48 @@ void main()
 #if FRAG
 layout(location = 0) in vec3 posOS;
 layout(location = 0) out vec4 oColor;
+layout(set = 2, binding = 0) uniform Params
+{
+    vec4 horizon_color;
+    vec4 sky_color;
+    float horizonToSkyMix;
+} params;
+
+// https://www.shadertoy.com/view/4tsXRH
+float Voronoi(vec2 uv)
+{
+    vec2 q = uv;
+    q.x += 2.0;
+    vec2 p = 10. * q * mat2(0.7071, -0.7071, 0.7071, 0.7071);
+
+    vec2 pi = floor(p);
+    vec4 v = vec4(pi.xy, pi.xy + 1.0);
+    v -= 64. * floor(v * 0.015);
+    v.xz = v.xz * 1.435 + 34.423;
+    v.yw = v.yw * 2.349 + 183.37;
+    v = v.xzxz * v.yyww;
+    v *= v;
+
+    vec4 vx = 0.5 * (step(0.0, fract(v * 0.00047) - 0.5) - 0.5);
+    vec4 vy = 0.5 * (step(0.0, fract(v * 0.00074) - 0.5) - 0.5);
+
+    vec2 pf = p - pi;
+    vx += vec4(0., 1., 0., 1.) - pf.xxxx;
+    vy += vec4(0., 0., 1., 1.) - pf.yyyy;
+    v = vx * vx + vy * vy;
+
+    return min(v.x, v.y);
+}
+
 void main()
 {
+    const float PI = 3.14159265359;
     vec3 dir = normalize(posOS);
-    oColor = vec4(dir, 1.0);
+    vec2 voronoiUV;
+    voronoiUV.x = atan(dir.x, dir.z) / PI * 0.5 + 0.5;
+    voronoiUV.y = acos(dir.y) / PI * 0.7;
+    float star = step(0.5, smoothstep(0.9985f, 1.0f, 1 - Voronoi(voronoiUV * 10)));
+    vec3 col = vec3(star) + mix(params.horizon_color.xyz, params.sky_color.xyz, params.horizonToSkyMix * max(0, dir.y));
+    oColor = vec4(col, 1.0);
 }
 #endif
