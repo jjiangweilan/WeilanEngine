@@ -1,0 +1,31 @@
+#version 450
+#if CONFIG
+name: ProcedualSkybox
+cull: none
+#endif
+
+#if VERT
+#include "Common/SceneInfo.glsl"
+layout(location = 0) in vec3 position;
+layout(location = 0) out vec3 posOS;
+layout(push_constant) uniform Model
+{
+    vec4 position;
+} pconst;
+void main()
+{
+    posOS = position.xyz;
+    gl_Position = scene.viewProjection * vec4(position + pconst.position.xyz, 1.0);
+    gl_Position.z = gl_Position.w;
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec3 posOS;
+layout(location = 0) out vec4 oColor;
+void main()
+{
+    vec3 dir = normalize(posOS);
+    oColor = vec4(dir, 1.0);
+}
+#endif
