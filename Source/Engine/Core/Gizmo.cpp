@@ -5,16 +5,25 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include <glm/glm.hpp>
 
-GizmoDirectionalLight::GizmoDirectionalLight(glm::vec3 position) : position(position) {}
+Shader* GizmoBase::GetBillboardShader()
+{
+    static Shader* shader = nullptr;
+    if (shader == nullptr)
+        shader = static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Billboard.shad"));
+
+    return shader;
+}
+
+GizmoDirectionalLight::GizmoDirectionalLight(const glm::vec3& position) : position(position) {}
 void GizmoDirectionalLight::Draw(Gfx::CommandBuffer& cmd)
 {
     Shader* shader = GizmoBase::GetBillboardShader();
 
     glm::vec4 pos(position, 1.0);
     Gfx::ShaderProgram* program = shader->GetDefaultShaderProgram();
-    cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
-    cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &pos);
     cmd.SetTexture("mainTex", *GetDirectionalLightTexture()->GetGfxImage());
+    cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
+    cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &pos);
     cmd.Draw(6, 1, 0, 0);
 }
 

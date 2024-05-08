@@ -215,7 +215,9 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
     {
 
         // selection outline
-        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+        GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+        if (go)
         {
             auto mrs = go->GetComponentsInChildren<MeshRenderer>();
             FrameGraph::DrawList drawList;
@@ -238,7 +240,6 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                 sceneImage->GetDescription().format};
             cmd.AllocateAttachment(outlineSrcRT, desc);
             outlineSrcPass.SetAttachment(0, outlineSrcRT);
-            Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
             cmd.BeginRenderPass(outlineSrcPass, clears);
             cmd.BindShaderProgram(
                 outlineRawColorPassShader->GetDefaultShaderProgram(),
@@ -252,26 +253,27 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
             cmd.EndRenderPass();
+        }
 
-            gameImagePass.SetAttachment(0, *gameImage);
+        gameImagePass.SetAttachment(0, *gameImage);
+        cmd.BeginRenderPass(gameImagePass, clears);
+
+        if (go)
+        {
             cmd.SetTexture("mainTex", outlineSrcRT);
-            cmd.BeginRenderPass(gameImagePass, clears);
             cmd.BindShaderProgram(
                 outlineFullScreenPassShader->GetDefaultShaderProgram(),
                 outlineFullScreenPassShader->GetDefaultShaderConfig()
             );
-
-            cmd.Draw(6, 1, 0, 0);
-            gizmos.Draw(cmd);
-            cmd.EndRenderPass();
         }
 
-        if (gameImage)
-        {
-            auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
-            if (outputImage)
-                cmd.Blit(outputImage, sceneImage.get());
-        }
+        cmd.Draw(6, 1, 0, 0);
+        gizmos.Draw(cmd);
+        cmd.EndRenderPass();
+
+        auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
+        if (outputImage)
+            cmd.Blit(outputImage, sceneImage.get());
     }
 }
 

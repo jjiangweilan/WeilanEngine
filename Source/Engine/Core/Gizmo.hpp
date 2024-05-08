@@ -17,11 +17,12 @@ public:
     static Shader* GetBillboardShader();
 };
 
-class GizmoDirectionalLight final : public GizmoBase
+class GizmoDirectionalLight : public GizmoBase
 {
 
 public:
-    GizmoDirectionalLight(glm::vec3 position);
+    GizmoDirectionalLight() : position({ 0 }) {};
+    GizmoDirectionalLight(const glm::vec3& position);
     void Draw(Gfx::CommandBuffer& cmd);
 
 private:
@@ -38,7 +39,7 @@ public:
     template <std::derived_from<GizmoBase> T, class... Args>
     void Add(Args&&... args)
     {
-        gizmos.push_back(T(std::forward(args)...));
+        gizmos.push_back(T(std::forward<Args>(args)...));
     }
 
     void Draw(Gfx::CommandBuffer& cmd)
