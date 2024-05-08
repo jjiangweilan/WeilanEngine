@@ -1,5 +1,5 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-#version 450
+#version 460
 #include "Common/Common.glsl"
 
 #if CONFIG

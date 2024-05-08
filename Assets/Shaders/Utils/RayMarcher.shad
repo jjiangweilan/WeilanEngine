@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #include "Common/Lighting/Lighting.glsl"
 #if CONFIG
 name: Utils/RayMarcher

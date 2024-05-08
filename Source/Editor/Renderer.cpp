@@ -6,7 +6,7 @@
 namespace Editor
 {
 static const char* imguiShader =
-    R"(#version 450 core
+    R"(#version 460 core
 
 #if CONFIG
 name: ImGui

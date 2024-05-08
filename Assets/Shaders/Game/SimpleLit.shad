@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #include "Common/Common.glsl"
 #if G_VSM
 #define VSM_SHADOW_MAP_SAMPLING_PASS

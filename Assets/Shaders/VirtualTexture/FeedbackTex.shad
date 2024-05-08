@@ -1,4 +1,4 @@
-#version 450
+#version 460
 #include "Common/Common.glsl"
 
 #define MAX_LOD 6.0f
