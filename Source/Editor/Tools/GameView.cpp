@@ -15,6 +15,12 @@ namespace Editor
 GameView::GameView() {}
 GameView::~GameView() {}
 
+struct Intersected
+{
+    GameObject* go;
+    float distance;
+};
+
 void GameView::Init()
 {
     editorCameraGO = std::make_unique<GameObject>();
@@ -90,23 +96,14 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
     return false;
 }
 
-static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
+static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
 {
     if (Scene* scene = EditorState::activeScene)
     {
         auto objs = scene->GetAllGameObjects();
-        auto mainCam = scene->GetMainCamera();
-        Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
 
         auto ori = ray.origin;
         auto dir = ray.direction;
-        struct Intersected
-        {
-            GameObject* go;
-            float distance;
-        };
-        std::vector<Intersected> intersected;
-        intersected.reserve(32);
         for (auto obj : objs)
         {
             if (obj == nullptr || !obj->IsEnabled())
@@ -118,20 +115,7 @@ static GameObject* PickGameObjectFromScene(glm::vec2 screenUV)
                 intersected.push_back(Intersected{obj, distance});
             }
         }
-
-        auto iter = std::min_element(
-            intersected.begin(),
-            intersected.end(),
-            [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
-        );
-
-        if (iter != intersected.end())
-        {
-            return iter->go;
-        }
     }
-
-    return nullptr;
 }
 
 static void EditorCameraWalkAround(Camera& editorCamera)
@@ -237,7 +221,8 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
             Gfx::RG::ImageDescription desc{
                 sceneImage->GetDescription().width,
                 sceneImage->GetDescription().height,
-                sceneImage->GetDescription().format};
+                sceneImage->GetDescription().format
+            };
             cmd.AllocateAttachment(outlineSrcRT, desc);
             outlineSrcPass.SetAttachment(0, outlineSrcRT);
             cmd.BeginRenderPass(outlineSrcPass, clears);
@@ -442,6 +427,22 @@ bool GameView::Tick()
             imageWidth *= ratio;
         }
 
+        if (scene)
+        {
+            // Gizmo
+            gizmos.Clear();
+            for (auto* g : scene->GetAllGameObjects())
+            {
+                int startIndex = gizmos.GetSize();
+                for (auto& c : g->GetComponents())
+                {
+                    c->OnDrawGizmos(gizmos);
+                }
+                int endIndex = gizmos.GetSize();
+                gizmos.AssignCarrier(g, startIndex, endIndex);
+            }
+        }
+
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
 
@@ -452,7 +453,41 @@ bool GameView::Tick()
             {
                 auto mousePos = ImGui::GetMousePos();
                 glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
-                GameObject* selected = PickGameObjectFromScene(mouseContentPos / glm::vec2{imageWidth, imageHeight});
+
+                glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
+
+                auto mainCam = scene->GetMainCamera();
+                Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+
+                std::vector<Intersected> intersected;
+                intersected.reserve(32);
+                std::vector<GameObject*> results;
+                gizmos.PickGizmos(ray, results);
+                if (results.empty())
+                {
+                    PickGameObjectFromScene(ray, screenUV, intersected);
+                }
+                else
+                {
+                    for (auto g : results)
+                    {
+                        intersected.push_back(
+                            {g, glm::length(g->GetPosition() - mainCam->GetGameObject()->GetPosition())}
+                        );
+                    }
+                }
+
+                auto iter = std::min_element(
+                    intersected.begin(),
+                    intersected.end(),
+                    [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
+                );
+
+                GameObject* selected = nullptr;
+                if (iter != intersected.end())
+                {
+                    selected = iter->go;
+                }
 
                 if (selected)
                 {
@@ -465,7 +500,6 @@ bool GameView::Tick()
             }
         }
 
-        Scene* scene = EditorState::activeScene;
         if (scene != nullptr)
         {
             auto mainCam = scene->GetMainCamera();
@@ -478,16 +512,6 @@ bool GameView::Tick()
 
                 glm::mat4 proj = mainCam->GetProjectionMatrix();
                 proj[1] *= -1;
-
-                // Gizmo
-                gizmos.Clear();
-                for (auto* g : scene->GetAllGameObjects())
-                {
-                    for (auto& c : g->GetComponents())
-                    {
-                        c->OnDrawGizmos(gizmos);
-                    }
-                }
 
                 GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
                 if (go)

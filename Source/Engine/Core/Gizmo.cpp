@@ -20,8 +20,7 @@ void GizmoDirectionalLight::Draw(Gfx::CommandBuffer& cmd)
     Shader* shader = GizmoBase::GetBillboardShader();
 
     glm::vec4 pos(position, 1.0);
-    glm::vec4 scale(0.35f, 0.35f, 0.35f, 1.0);
-    glm::vec4 pconst[2] = {pos, scale};
+    glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
     Gfx::ShaderProgram* program = shader->GetDefaultShaderProgram();
     cmd.SetTexture("mainTex", *GetDirectionalLightTexture()->GetGfxImage());
     cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
