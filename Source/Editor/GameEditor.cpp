@@ -143,12 +143,26 @@ GameEditor::~GameEditor()
     editorConfigFile << editorConfig.dump(0);
 }
 
-void GameEditor::SceneTree(GameObject* go, int imguiID)
+bool IsAncestorOf(GameObject* ancestor, GameObject* child)
+{
+    GameObject* parent = child->GetParent();
+    while (parent != ancestor && parent != nullptr)
+    {
+        parent = parent->GetParent();
+    }
+
+    return parent == ancestor;
+}
+
+void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand)
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-    if (go == EditorState::selectedObject.Get())
+    if (go == currentSelected)
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
+
+    if (autoExpand && currentSelected != nullptr && IsAncestorOf(go, currentSelected))
+        ImGui::SetNextItemOpen(true);
 
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
     if (ImGui::IsItemHovered())
@@ -193,7 +207,7 @@ void GameEditor::SceneTree(GameObject* go, int imguiID)
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, ++imguiID);
+            SceneTree(child, ++imguiID, currentSelected, autoExpand);
         }
         ImGui::TreePop();
     }
@@ -247,10 +261,16 @@ void GameEditor::SceneTree(Scene& scene)
         ImGui::EndDragDropTarget();
     }
 
+    static GameObject* currentSelected = nullptr;
+    bool autoExpand = false;
+    GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+    if (currentSelected != selected)
+        autoExpand = true;
+    currentSelected = selected;
     size_t imguiTreeId = 0;
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, ++imguiTreeId);
+        SceneTree(root, ++imguiTreeId, currentSelected, autoExpand);
     }
     ImGui::End();
 }

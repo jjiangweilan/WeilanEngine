@@ -11,6 +11,8 @@ class CameraInspector : public Inspector<Camera>
 public:
     void DrawInspector(GameEditor& editor) override
     {
+        Inspector<Camera>::DrawInspector(editor);
+
         if (ImGui::Button("Set as main camera"))
         {
             if (EditorState::activeScene)

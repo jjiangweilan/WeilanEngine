@@ -79,6 +79,6 @@ private:
     void ConsoleOutputWindow();
 
     void SceneTree(Scene& scene);
-    void SceneTree(GameObject* go, int imguiID);
+    void SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand);
 };
 } // namespace Editor

@@ -1,16 +1,19 @@
 #include "../EditorState.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
+#include "Core/Component/LuaScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "GamePlay/Component/PlayerController.hpp"
 #include "Inspector.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+
 namespace Editor
 {
 class GameObjectInspector : public Inspector<GameObject>
@@ -32,6 +35,10 @@ public:
                 target->AddComponent<SceneEnvironment>();
             if (ImGui::MenuItem("PhysicsBody"))
                 target->AddComponent<PhysicsBody>();
+            if (ImGui::MenuItem("LuaScript"))
+                target->AddComponent<LuaScript>();
+            if (ImGui::MenuItem("PlayerController"))
+                target->AddComponent<PlayerController>();
 
             ImGui::EndMenu();
         }

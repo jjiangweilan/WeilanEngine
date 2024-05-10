@@ -13,7 +13,7 @@ class Component : public Object, public Serializable
 public:
     Component(GameObject* gameObject);
     virtual ~Component();
-    virtual void Tick(){};
+    virtual void Tick() {};
 
     virtual const std::string& GetName() = 0;
     virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
@@ -32,6 +32,7 @@ public:
             EnableImple();
         }
     };
+
     void Disable()
     {
         if (enabled == true)
@@ -46,11 +47,11 @@ public:
     Scene* GetScene();
 
     virtual void Awake() {}
-    virtual void OnDrawGizmos(Gizmos& gizmos){};
+    virtual void OnDrawGizmos(Gizmos& gizmos) {};
 
 protected:
-    virtual void EnableImple(){};
-    virtual void DisableImple(){};
+    virtual void EnableImple() {};
+    virtual void DisableImple() {};
     bool enabled = false;
     GameObject* gameObject;
 

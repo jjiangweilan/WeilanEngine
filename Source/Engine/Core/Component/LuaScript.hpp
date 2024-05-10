@@ -4,6 +4,8 @@
 
 class LuaScript : public Component
 {
+    DECLARE_OBJECT();
+
 public:
     LuaScript();
     LuaScript(GameObject* gameObject);

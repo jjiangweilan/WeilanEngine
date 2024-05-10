@@ -4,6 +4,9 @@
 #include "Script/LuaWraps.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
+
+DEFINE_OBJECT(LuaScript, "8584BFED-B936-44D3-9011-9D492118A17C");
+
 #define L LuaBackend::Instance()->GetL()
 
 #define GetLuaMember(luaRefName)                                                                                       \
