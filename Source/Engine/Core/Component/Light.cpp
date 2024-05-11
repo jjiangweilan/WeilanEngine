@@ -67,5 +67,5 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
 
 void Light::OnDrawGizmos(Gizmos& gizmos)
 {
-    gizmos.Add<GizmoDirectionalLight>(gameObject->GetPosition());
+    gizmos.Add<GizmoLight>(gameObject->GetPosition());
 }

@@ -338,7 +338,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     for (auto& n : sortedNodes)
     {
+
+        float color[4] = {0.235294f, 0.882353f, 0.941176f, 1.0f};
+        cmd.BeginLabel(n->GetCustomName(), color);
         n->Execute(cmd, renderingData);
+        cmd.EndLabel();
     }
 }
 

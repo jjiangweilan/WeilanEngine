@@ -33,11 +33,11 @@ protected:
     GameObject* carrier;
 };
 
-class GizmoDirectionalLight : public GizmoBase
+class GizmoLight : public GizmoBase
 {
 public:
-    GizmoDirectionalLight() : position(0){};
-    GizmoDirectionalLight(const glm::vec3& position);
+    GizmoLight() : position(0){};
+    GizmoLight(const glm::vec3& position);
     void Draw(Gfx::CommandBuffer& cmd);
     AABB GetAABB()
     {
@@ -47,11 +47,23 @@ public:
 private:
     glm::vec3 position;
     const glm::vec3 scale = glm::vec3(0.7f);
-    static Texture* GetDirectionalLightTexture();
+    static Texture* GetLightTexture();
 };
-// namespace Gizmos
 
-using GizmoVariant = std::variant<GizmoDirectionalLight>;
+class GizmoCamera : public GizmoBase
+{
+public:
+    GizmoCamera(){};
+    GizmoCamera(float fov, float near, float far, float aspect);
+
+private:
+    float fov;
+    float near;
+    float far;
+    float aspect;
+};
+
+using GizmoVariant = std::variant<GizmoLight>;
 
 class Gizmos
 {

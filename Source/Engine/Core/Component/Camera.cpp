@@ -65,6 +65,7 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
     projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, n, f);
     projectionMatrix[1] = -projectionMatrix[1];
 
+    this->aspect = aspect;
     fov = fovy;
     near = n;
     far = f;
@@ -146,3 +147,7 @@ glm::vec3 Camera::GetForward()
     return -gameObject->GetForward();
 }
 
+void Camera::OnDrawGizmos(Gizmos& gizmos)
+{
+    // gizmos.Add<GizmoCamera>();
+}

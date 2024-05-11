@@ -44,6 +44,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
+    void OnDrawGizmos(Gizmos& gizmos) override;
 
 private:
     glm::mat4 projectionMatrix;
@@ -52,4 +53,5 @@ private:
     float near;
     float far;
     float fov;
+    float aspect;
 };
