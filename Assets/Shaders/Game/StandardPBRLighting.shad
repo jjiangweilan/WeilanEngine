@@ -1,5 +1,5 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-#version 460 
+#version 460
 #define G_PCF
 #include "Common/Common.glsl"
 #include "Common/DeferredShading.glsl"
@@ -20,7 +20,7 @@ layout(location = 0) out vec2 o_uv;
 
 void main()
 {
-    vec4 c_Positions[6] = 
+    vec4 c_Positions[6] =
     {
         {-1, 1,0.5,1},
         {-1,-1,0.5,1},
@@ -77,22 +77,22 @@ float Fresnel(float metallic, float dotVH)
 float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
 {
     vec3 h = normalize(l + v);
-    float dotNH = max(dot(n,h), NearZero);
-    float dotNV = max(dot(n,v), NearZero);
-    float dotNL = max(dot(n,l), NearZero);
-    float dotVH = max(dot(v,h), NearZero);
+    float dotNH = max(dot(n, h), NearZero);
+    float dotNV = max(dot(n, v), NearZero);
+    float dotNL = max(dot(n, l), NearZero);
+    float dotVH = max(dot(v, h), NearZero);
     float r2 = roughness * roughness;
     r2 *= r2;
-// ndf
+    // ndf
     float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
 
-// geometry
+    // geometry
     float k = pow2(roughness + 1) / 8;
     float Gv = dotNV / (dotNV * (1 - k) + k);
     float Gl = dotNL / (dotNL * (1 - k) + k);
     float G = Gv * Gl;
 
-// fresnel
+    // fresnel
     float F = Fresnel(metallic, dotVH);
 
     float brdf = (G * F * D) / (4 * dotNL * dotNV);
@@ -118,18 +118,22 @@ void main()
     positionWS /= positionWS.w;
     vec3 v = normalize(scene.viewPos.xyz - positionWS.xyz);
 
-    vec3 color = vec3(0,0,0);
+    vec3 color = vec3(0, 0, 0);
     for (int i = 0; i < scene.lightCount.x; ++i)
     {
         vec4 lightPos = scene.lights[i].position;
         vec3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
-        float dotNL = max(dot(n,l), NearZero);
+        float dotNL = max(dot(n, l), NearZero);
         float brdf = SpecularBRDF(l, v, n, metallic, roughness);
 
         vec3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
         float attenuation = lightPos.a == 0 ? 1 : PointLightAttenuation(distance(lightPos.xyz, positionWS.xyz), scene.lights[i].pointLightTerm1, scene.lights[i].pointLightTerm2);
-        vec3 lighting = light * (ao * baseColor / M_PI + brdf) * attenuation;
+
+        vec3 lighting = light * (ao * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
+        // possible solution https://bruop.github.io/ibl/
+        // const float DIELECTRIC_SPECULAR = 0.04;
+        // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)
 
         // shadow mask
         float shadowAttenuation = 1.0;
@@ -149,7 +153,6 @@ void main()
         color += lighting * shadowAttenuation;
     }
 
-
     // diffuse cube light
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
     vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
@@ -157,9 +160,5 @@ void main()
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
     o_Color = vec4(color + ambient, 1);
-
 }
 #endif
-
-
-

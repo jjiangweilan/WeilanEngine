@@ -637,8 +637,7 @@ bool VKDriver::Present(
         1,
         &swapChainHandle,
         &swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -723,14 +722,18 @@ void VKDriver::CreateInstance()
 #if __APPLE__
     createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
+
     std::vector<const char*> extensions = AppWindowGetRequiredExtensions();
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#if __APPLE__
+    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
@@ -756,12 +759,6 @@ void VKDriver::CreateInstance()
 
         createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
     }
-
-    // VK_EXT_DEBUG_UTILS_EXTENSION_NAME enables message callback
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#if __APPLE__
-    extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
-#endif
 
     // Enable instance extension
     createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
@@ -924,8 +921,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

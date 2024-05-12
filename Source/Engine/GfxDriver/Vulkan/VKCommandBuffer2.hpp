@@ -217,6 +217,21 @@ struct VKPresentCmd
     int barrierCount;
 };
 
+struct VKBeginLabelCmd
+{
+    char* label;
+    float color[4];
+};
+
+struct VKEndLabelCmd
+{};
+
+struct VKInsetLabelCmd
+{
+    char* label;
+    float color[4];
+};
+
 struct VKAllocateAttachmentCmd
 {
     RG::ImageIdentifier* id;
@@ -250,6 +265,9 @@ enum class VKCmdType
     SetTexture,
     AllocateAttachment,
     Present,
+    BeginLabel,
+    EndLabel,
+    InsertLabel,
 };
 struct VKCmd
 {
@@ -282,6 +300,10 @@ struct VKCmd
         VKSetBufferCmd setBuffer;
         VKPresentCmd present;
 
+        VKBeginLabelCmd beginLabel;
+        VKEndLabelCmd endLabel;
+        VKInsetLabelCmd insertLabel;
+
         VKAllocateAttachmentCmd allocateAttachment;
     };
 };
@@ -293,6 +315,9 @@ public:
     VKCommandBuffer2(const VKCommandBuffer2& other) = delete;
     ~VKCommandBuffer2(){};
 
+    void BeginLabel(std::string_view label, float color[4]) override;
+    void EndLabel() override;
+    void InsertLabel(std::string_view label, float color[4]) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
@@ -340,6 +365,7 @@ public:
     void Reset(bool releaseResource) override
     {
         cmds.clear();
+        tmpMemory.Reset();
     }
 
     std::span<VKCmd> GetCmds()
@@ -349,6 +375,7 @@ public:
 
 private:
     std::vector<VKCmd> cmds;
+    LinearAllocator<1024> tmpMemory;
     VK::RenderGraph::Graph* graph;
 };
 } // namespace Gfx

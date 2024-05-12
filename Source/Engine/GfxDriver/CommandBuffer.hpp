@@ -74,7 +74,10 @@ public:
 
     void BindSubmesh(const Submesh& submesh);
 
-    // virtual void BindResource(RefPtr<Gfx::ShaderResource> resource) = 0;
+    virtual void BeginLabel(std::string_view label, float color[4]) = 0;
+    virtual void EndLabel() = 0;
+    virtual void InsertLabel(std::string_view label, float color[4]) = 0;
+
     virtual void BindResource(uint32_t set, Gfx::ShaderResource* resource) = 0;
     virtual void BindVertexBuffer(
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex

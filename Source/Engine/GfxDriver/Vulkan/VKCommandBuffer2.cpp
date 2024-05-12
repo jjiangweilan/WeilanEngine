@@ -117,8 +117,7 @@ void VKCommandBuffer2::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth
-    };
+        .maxDepth = viewport.maxDepth};
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
@@ -360,6 +359,35 @@ void VKCommandBuffer2::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bl
     cmd.blit.from = static_cast<VKImage*>(from);
     cmd.blit.to = static_cast<VKImage*>(to);
     cmd.blit.blitOp = blitOp;
+
+    cmds.push_back(cmd);
+}
+
+void VKCommandBuffer2::BeginLabel(std::string_view label, float color[4])
+{
+    VKCmd cmd{VKCmdType::BeginLabel};
+
+    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
+    strcpy(tmp, (char*)label.data());
+    cmd.beginLabel.label = tmp;
+    memcpy(cmd.beginLabel.color, color, sizeof(float) * 4);
+
+    cmds.push_back(cmd);
+}
+void VKCommandBuffer2::EndLabel()
+{
+    VKCmd cmd{VKCmdType::EndLabel};
+
+    cmds.push_back(cmd);
+}
+void VKCommandBuffer2::InsertLabel(std::string_view label, float color[4])
+{
+    VKCmd cmd{VKCmdType::InsertLabel};
+
+    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
+    strcpy(tmp, (char*)label.data());
+    cmd.insertLabel.label = tmp;
+    memcpy(cmd.insertLabel.color, color, sizeof(float) * 4);
 
     cmds.push_back(cmd);
 }

@@ -58,8 +58,7 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc
-            };
+                desc};
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format(
@@ -452,15 +451,13 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -876,15 +873,13 @@ void Graph::Schedule(VKCommandBuffer2& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -987,8 +982,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -1000,8 +994,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1300,6 +1293,21 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     }
 
                     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                    break;
+                }
+            case Gfx::VKCmdType::BeginLabel:
+                {
+                    VKDebugUtils::CmdBeginLabel(vkcmd, cmd.beginLabel.label, cmd.beginLabel.color);
+                    break;
+                }
+            case Gfx::VKCmdType::EndLabel:
+                {
+                    VKDebugUtils::CmdEndLabel(vkcmd);
+                    break;
+                }
+            case Gfx::VKCmdType::InsertLabel:
+                {
+                    VKDebugUtils::CmdInsertLabel(vkcmd, cmd.insertLabel.label, cmd.insertLabel.color);
                     break;
                 }
             case VKCmdType::None: break;
