@@ -13,9 +13,14 @@
    69805828600365058,
    69805820010430467,
    69805824305397761,
-   70368761373720580
+   70368761373720580,
+   70087273512632322,
+   69242848581976076,
+   69524353623326721,
+   69524366508228610,
+   68961382195724289
   ],
-  "size": 13
+  "size": 18
  },
  "name": "New Frame Graph",
  "nodeIDPool": {
@@ -265,13 +270,9 @@
     241,
     242,
     243,
-    244,
-    245,
-    246,
-    255,
-    249
+    244
    ],
-   "size": 249
+   "size": 245
   }
  },
  "nodes": {
@@ -288,7 +289,7 @@
       0.0
      ]
     },
-    "objectTypeID": "FE0667ED-89FA-4986-842B-158654543C18"
+    "objectTypeID": "fe0667ed-89fa-4986-842b-158654543c18"
    },
    {
     "object": {
@@ -302,7 +303,7 @@
       0.0
      ]
     },
-    "objectTypeID": "FE0667ED-89FA-4986-842B-158654543C18"
+    "objectTypeID": "fe0667ed-89fa-4986-842b-158654543c18"
    },
    {
     "object": {
@@ -310,7 +311,7 @@
      "id": 16449536,
      "name": "Scene Sort"
     },
-    "objectTypeID": "24B2D306-5827-479E-A3C8-6B5D0742BCD8"
+    "objectTypeID": "24b2d306-5827-479e-a3c8-6b5d0742bcd8"
    },
    {
     "object": {
@@ -323,17 +324,25 @@
       1024.0
      ]
     },
-    "objectTypeID": "A486879A-5EA3-456A-ACF0-ED3E536826A0"
+    "objectTypeID": "a486879a-5ea3-456a-acf0-ed3e536826a0"
    },
    {
     "object": {
      "bias": 0.0,
+     "blur count": 0,
      "customName": "SSAO z channel Node",
+     "enable": 1,
      "id": 16384000,
+     "k": 1.0,
      "name": "SSAONode",
-     "radius": 0.30000001192092896
+     "radius": 0.5,
+     "range check": 0.20000000298023224,
+     "sample count": 8.0,
+     "self bias": 0.011000001803040504,
+     "stength": 0.5,
+     "theta": 0.30000001192092896
     },
-    "objectTypeID": "D80FC5C3-E17B-45BD-90C8-C6384D6362A1"
+    "objectTypeID": "d80fc5c3-e17b-45bd-90c8-c6384d6362a1"
    },
    {
     "object": {
@@ -343,13 +352,13 @@
       0.9215686321258545,
       1.0
      ],
-     "cloud noise material": "",
+     "cloud noise material": "00000000-0000-0000-0000-000000000000",
      "customName": "GBufferPassNode",
      "id": 16252928,
      "name": "GBufferPassNode",
-     "skybox": ""
+     "skybox": "00000000-0000-0000-0000-000000000000"
     },
-    "objectTypeID": "BA901CE6-84C1-4689-A0E3-87E548314A45"
+    "objectTypeID": "ba901ce6-84c1-4689-a0e3-87e548314a45"
    },
    {
     "object": {
@@ -359,17 +368,58 @@
       0.9215686321258545,
       1.0
      ],
-     "cloud noise material": "",
      "customName": "LightingPassNode",
      "id": 16187392,
      "name": "LightingPassNode",
-     "skybox": ""
+     "shadow constant bias": 9.999999747378752e-06,
+     "shadow normal bias": 0.029999999329447746,
+     "skybox": "00000000-0000-0000-0000-000000000000"
     },
-    "objectTypeID": "92AECADA-9A17-4D88-9A01-FBB8F19E3173"
+    "objectTypeID": "92aecada-9a17-4d88-9a01-fbb8f19e3173"
+   },
+   {
+    "object": {
+     "customName": "tonemap",
+     "format": 4,
+     "id": 16318464,
+     "mip level": 1,
+     "name": "Image",
+     "size": [
+      0.0,
+      0.0
+     ]
+    },
+    "objectTypeID": "fe0667ed-89fa-4986-842b-158654543c18"
+   },
+   {
+    "object": {
+     "customName": "Full Screen Pass",
+     "id": 16711680,
+     "name": "Full Screen Pass",
+     "shader": "c3317a82-f870-53be-848a-c7d76b83438f"
+    },
+    "objectTypeID": "f52a89d5-d830-4dd2-84df-6a82a5f9f4cd"
+   },
+   {
+    "object": {
+     "customName": "TileBasedShadingComputeNode",
+     "id": 16121856,
+     "name": "TileBasedShadingComputeNode"
+    },
+    "objectTypeID": "2954bad9-5137-49d9-830c-f8a47addc619"
+   },
+   {
+    "object": {
+     "customName": "Skybox",
+     "enable": 1,
+     "id": 16056320,
+     "name": "SkyboxPassNode"
+    },
+    "objectTypeID": "f6d6cecc-f140-45b8-b8f7-501bb1f9b87e"
    }
   ],
-  "size": 7
+  "size": 11
  },
- "outputImageNode": 16646144,
+ "outputImageNode": 16318464,
  "uuid": "afd00f87-53b3-4927-bae7-24f75514668a"
 }
