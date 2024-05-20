@@ -300,6 +300,10 @@ bool GameView::Tick()
         {
             menuSelected = "Pause";
         }
+        if (ImGui::MenuItem("Overlay"))
+        {
+            menuSelected = "Overlay";
+        }
         ImGui::EndMenuBar();
     }
 
@@ -349,6 +353,8 @@ bool GameView::Tick()
     {
         EditorState::gameLoop->Stop();
     }
+    else if (strcmp(menuSelected, "Overlay") == 0)
+    {}
 
     if (ImGui::BeginPopup("Change Resolution"))
     {
@@ -442,6 +448,11 @@ bool GameView::Tick()
                 gizmos.AssignCarrier(g, startIndex, endIndex);
             }
         }
+
+        auto contentRegionWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+        auto cursorPos = ImGui::GetCursorPos();
+        cursorPos.x = cursorPos.x + contentRegionWidth / 2.0f - imageWidth / 2.0f;
+        ImGui::SetCursorPos(cursorPos);
 
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
