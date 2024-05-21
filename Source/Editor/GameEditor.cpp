@@ -226,6 +226,12 @@ void GameEditor::SceneTree(Scene& scene)
         }
         ImGui::EndMenu();
     }
+    if (ImGui::BeginMenu("Objects"))
+    {
+        if (ImGui::MenuItem("Ok"))
+            spdlog::info("ok");
+        ImGui::EndMenu();
+    }
     ImGui::EndMenuBar();
 
     auto contentMax = ImGui::GetWindowContentRegionMax();
@@ -450,6 +456,11 @@ void GameEditor::MainMenuBar()
         ImGui::EndMenu();
     }
 
+    for (auto& windowInfo : WindowRegistery::GetRegistery())
+    {
+        WindowRegisteryIteration(windowInfo, 0);
+    }
+
     ImGui::EndMainMenuBar();
 }
 
@@ -492,6 +503,21 @@ void GameEditor::GUIPass()
     AssetWindow();
     InspectorWindow();
     SurfelGIBakerWindow();
+
+    std::vector<std::unique_ptr<Window>*> toClose;
+    for (auto& w : activeWindows)
+    {
+        if (!w->Tick())
+        {
+            w->OnClose();
+            toClose.push_back(&w);
+        }
+    }
+    for (auto close : toClose)
+    {
+        activeWindows.remove(*close);
+    }
+
     gameView.Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
@@ -1026,6 +1052,26 @@ void GameEditor::EnableMultiViewport()
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
+}
+
+void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex)
+{
+    int maxPathIndex = info.menuPath.size() - 1;
+    if (pathIndex != maxPathIndex)
+    {
+        if (ImGui::BeginMenu(info.menuPath[pathIndex].c_str()))
+        {
+            WindowRegisteryIteration(info, pathIndex + 1);
+            ImGui::EndMenu();
+        }
+    }
+    else
+    {
+        if (ImGui::MenuItem(info.menuPath[pathIndex].c_str()))
+        {
+            activeWindows.push_back(info.factory());
+        }
+    }
 }
 
 GameEditor* GameEditor::instance = nullptr;

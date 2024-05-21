@@ -6,6 +6,7 @@
 #include "ThirdParty/imgui/imgui.h"
 #include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
+#include "Window.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
@@ -62,6 +63,7 @@ private:
     std::vector<RegisteredTool> registeredTools;
     std::vector<std::unique_ptr<Tool>> toolList;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
+    std::list<std::unique_ptr<Window>> activeWindows;
 
     void EnableMultiViewport();
 
@@ -80,5 +82,7 @@ private:
 
     void SceneTree(Scene& scene);
     void SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand);
+
+    void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
 };
 } // namespace Editor
