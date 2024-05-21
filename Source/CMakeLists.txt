@@ -17,23 +17,15 @@ option(EDITOR_ON "compile with game editor" ON)
 option(DEV_BUILD "use internal asset inside the source tree instead of installed location" ON)
 
 add_library(WeilanEngine SHARED)
-add_executable(WeilanEngineEditor
-    Editor/Launcher.cpp)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PRIVATE "/Zi")
     target_compile_options(WeilanEngine PRIVATE "/Od")
     target_compile_options(WeilanEngine PRIVATE "/Ob0")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Od")
-    target_compile_options(WeilanEngineEditor PRIVATE "/Ob0")
 endif()
 
 set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
-
 file(GLOB_RECURSE CORE_ENGINE_SRC "Engine/*.c" "Engine/*.cpp" "Engine/*.hpp" "Engine/*.h" "Engine/*.tpp")
-file(GLOB_RECURSE EDITOR_ENGINE_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-
 if (${DEV_BUILD})
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
     target_compile_definitions(WeilanEngine PUBLIC ENGINE_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
@@ -46,12 +38,6 @@ else()
 endif()
 
 target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
-
-# link WeilanEngine to editor
-target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
-target_link_libraries(WeilanEngineEditor WeilanEngine)
-
-# for vulkan spirv-cross shaderc
 find_package(Vulkan REQUIRED)
 
 target_include_directories( WeilanEngine
@@ -69,18 +55,6 @@ if(USE_VULKAN_SDK_TOOLS)
         $ENV{VULKAN_SDK}/Lib
         )
 endif()
-
-
-target_include_directories( WeilanEngineEditor
-    PUBLIC
-    "Editor/"
-
-    SYSTEM
-    # "${CMAKE_BINARY_DIR}/bin"
-    # "${CMAKE_BINARY_DIR}/include"
-    ${vma_SOURCE_DIR}/include
-    ${Vulkan_INCLUDE_DIRS}
-    )
 
 target_link_libraries( WeilanEngine
     # assimp
@@ -108,38 +82,59 @@ target_compile_definitions(
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     )
 
+# link WeilanEngine to editor
+add_executable(WeilanEngineEditor
+    Editor/Launcher.cpp)
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Od")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Ob0")
+endif()
+file(GLOB_RECURSE EDITOR_ENGINE_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
+target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
+target_link_libraries(WeilanEngineEditor WeilanEngine)
+target_include_directories( WeilanEngineEditor
+    PUBLIC
+    "Editor/"
+
+    SYSTEM
+    # "${CMAKE_BINARY_DIR}/bin"
+    # "${CMAKE_BINARY_DIR}/include"
+    ${vma_SOURCE_DIR}/include
+    ${Vulkan_INCLUDE_DIRS}
+    )
+
 if (MSVC)
     target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "WeilanEngineEditor")
     set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
 
-if (NOT SHIP)
+# if (NOT SHIP)
+#     file(GLOB_RECURSE Dev_Tool_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
+#     file(GLOB_RECURSE Dev_Tool_INCLUDE "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
+#     target_sources(WeilanEngine 
+#         PRIVATE ${Dev_Tool_SRC}
+#         PRIVATE ${Dev_Tool_INCLUDE}
+#         )
 
-    file(GLOB_RECURSE Dev_Tool_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-    file(GLOB_RECURSE Dev_Tool_INCLUDE "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-    target_sources(WeilanEngine 
-        PRIVATE ${Dev_Tool_SRC}
-        PRIVATE ${Dev_Tool_INCLUDE}
-        )
+#     target_include_directories(WeilanEngine
+#         PUBLIC
+#         "./Editor"
+#         )
 
-    target_include_directories(WeilanEngine
-        PUBLIC
-        "./Editor"
-        )
-
-    # add_subdirectory("Editor/")
-    add_compile_definitions(NSHIP)
-    # target_link_libraries(
-    #     WeilanEngine
-    #     DevTool
-    # )
-    # # target_include_directories(
-    # #     WeilanEngine
-    # #     PRIVATE
-    # #     "Editor/"
-    # # )
-endif()
+#     # add_subdirectory("Editor/")
+#     add_compile_definitions(NSHIP)
+#     # target_link_libraries(
+#     #     WeilanEngine
+#     #     DevTool
+#     # )
+#     # # target_include_directories(
+#     # #     WeilanEngine
+#     # #     PRIVATE
+#     # #     "Editor/"
+#     # # )
+# endif()
 
 source_group(
     TREE
