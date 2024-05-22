@@ -1,7 +1,9 @@
 #include "../Window.hpp"
+#include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Gizmo.hpp"
 #include "ThirdParty/imgui/imgui.h"
+class Shader;
 namespace Editor
 {
 class WorldGridModuleEditor : public Window
@@ -15,20 +17,19 @@ class WorldGridModuleEditor : public Window
     {
         bool open = true;
         ImGui::Begin("World Grid Module", &open);
-        if (ImGui::Checkbox("show grid", &showGrid))
-        {
-            if (showGrid)
-                ShowGrid();
-            else
-                HideGrid();
-        }
+        ImGui::Checkbox("show grid", &showGrid);
         ImGui::End();
+
+        if (showGrid)
+            ShowGrid();
+
         return open;
     }
 
     void OnOpen() override
     {
         plane = static_cast<Mesh*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"));
+        gridShader = static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/PlaneGrid.shad"));
     }
 
     void ShowGrid()

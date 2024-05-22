@@ -158,4 +158,6 @@ void GizmoBase::ClearActiveCarrier()
     GetActiveCarrier() = nullptr;
 }
 
+void Gizmos::Draw(Mesh& mesh, int submeshIndex, Shader* shader) {}
+
 // namespace Gizmos
