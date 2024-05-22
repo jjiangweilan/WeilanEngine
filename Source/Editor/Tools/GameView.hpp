@@ -74,7 +74,6 @@ private:
     );
     Shader* outlineRawColorPassShader;
     Shader* outlineFullScreenPassShader;
-    Gizmos gizmos;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj, const glm::vec4& rect);

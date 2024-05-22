@@ -147,7 +147,7 @@ glm::vec3 Camera::GetForward()
     return -gameObject->GetForward();
 }
 
-void Camera::OnDrawGizmos(Gizmos& gizmos)
+void Camera::OnDrawGizmos()
 {
     // gizmos.Add<GizmoCamera>();
 }

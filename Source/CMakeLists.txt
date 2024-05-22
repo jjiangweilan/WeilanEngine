@@ -5,12 +5,6 @@ if (WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-# if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
-#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin" )
-#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin" )
-#     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin" )
-# endif()
-
 option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
@@ -19,6 +13,7 @@ option(DEV_BUILD "use internal asset inside the source tree instead of installed
 add_library(WeilanEngine SHARED)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
     target_compile_options(WeilanEngine PRIVATE "/Zi")
     target_compile_options(WeilanEngine PRIVATE "/Od")
     target_compile_options(WeilanEngine PRIVATE "/Ob0")
@@ -105,36 +100,9 @@ target_include_directories( WeilanEngineEditor
     )
 
 if (MSVC)
-    target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
     set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "WeilanEngineEditor")
     set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 endif()
-
-# if (NOT SHIP)
-#     file(GLOB_RECURSE Dev_Tool_SRC "Editor/*.c" "Editor/*.cpp" "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-#     file(GLOB_RECURSE Dev_Tool_INCLUDE "Editor/*.hpp" "Editor/*.h" "Editor/*.tpp")
-#     target_sources(WeilanEngine 
-#         PRIVATE ${Dev_Tool_SRC}
-#         PRIVATE ${Dev_Tool_INCLUDE}
-#         )
-
-#     target_include_directories(WeilanEngine
-#         PUBLIC
-#         "./Editor"
-#         )
-
-#     # add_subdirectory("Editor/")
-#     add_compile_definitions(NSHIP)
-#     # target_link_libraries(
-#     #     WeilanEngine
-#     #     DevTool
-#     # )
-#     # # target_include_directories(
-#     # #     WeilanEngine
-#     # #     PRIVATE
-#     # #     "Editor/"
-#     # # )
-# endif()
 
 source_group(
     TREE

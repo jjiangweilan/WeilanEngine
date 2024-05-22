@@ -47,7 +47,7 @@ public:
     Scene* GetScene();
 
     virtual void Awake() {}
-    virtual void OnDrawGizmos(Gizmos& gizmos) {};
+    virtual void OnDrawGizmos() {};
 
 protected:
     virtual void EnableImple() {};

@@ -22,16 +22,17 @@ class WorldGridModuleEditor : public Window
             else
                 HideGrid();
         }
-
         ImGui::End();
         return open;
     }
 
-    void OnOpen() override{
+    void OnOpen() override
+    {
         plane = static_cast<Mesh*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"));
     }
 
-    void ShowGrid() {
+    void ShowGrid()
+    {
         Gizmos::Draw(*plane, 0, gridShader);
     }
 

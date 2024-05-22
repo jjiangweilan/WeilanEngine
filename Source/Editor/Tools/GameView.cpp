@@ -222,7 +222,8 @@ void GameView::Render(
             Gfx::RG::ImageDescription desc{
                 sceneImage->GetDescription().width,
                 sceneImage->GetDescription().height,
-                sceneImage->GetDescription().format};
+                sceneImage->GetDescription().format
+            };
             cmd.AllocateAttachment(outlineSrcRT, desc);
             outlineSrcPass.SetAttachment(0, outlineSrcRT);
             cmd.BeginRenderPass(outlineSrcPass, clears);
@@ -255,7 +256,8 @@ void GameView::Render(
             cmd.Draw(6, 1, 0, 0);
         }
 
-        gizmos.Draw(cmd);
+        Gizmos::DispatchAllDiszmos(cmd);
+        Gizmos::ClearAllRegisteredGizmos();
         cmd.EndRenderPass();
 
         auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
@@ -438,16 +440,14 @@ bool GameView::Tick()
         if (scene)
         {
             // Gizmo
-            gizmos.Clear();
-            for (auto* g : scene->GetAllGameObjects())
+            for (auto g : scene->GetAllGameObjects())
             {
-                int startIndex = gizmos.GetSize();
+                GizmoBase::SetActiveCarrier(g);
                 for (auto& c : g->GetComponents())
                 {
-                    c->OnDrawGizmos(gizmos);
+                    c->OnDrawGizmos();
                 }
-                int endIndex = gizmos.GetSize();
-                gizmos.AssignCarrier(g, startIndex, endIndex);
+                GizmoBase::ClearActiveCarrier();
             }
         }
 
@@ -475,7 +475,7 @@ bool GameView::Tick()
                 std::vector<Intersected> intersected;
                 intersected.reserve(32);
                 std::vector<GameObject*> results;
-                gizmos.PickGizmos(ray, results);
+                Gizmos::PickGizmos(ray, results);
                 if (results.empty())
                 {
                     PickGameObjectFromScene(ray, screenUV, intersected);
