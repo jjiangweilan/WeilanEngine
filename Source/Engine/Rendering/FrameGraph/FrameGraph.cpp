@@ -142,7 +142,7 @@ void Graph::Deserialize(Serializer* s)
     FGID outputImageNodeID;
     s->Deserialize("outputImageNode", outputImageNodeID);
     FGID outputDepthImageNodeID;
-    s->Deserialize("outputDepthImageNode", outputDepthImageNode);
+    s->Deserialize("outputDepthImageNode", outputDepthImageNodeID);
     for (auto& n : nodes)
     {
         if (n->GetID() == outputDepthImageNodeID)

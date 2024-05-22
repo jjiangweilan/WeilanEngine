@@ -1,7 +1,10 @@
 #version 460
 
 #if CONFIG
-name : Billboard
+name: Billboard
+depth:
+    testEnable: false
+
 #endif
 
 #if VERT
@@ -53,7 +56,9 @@ layout(set = 0, binding = 1) uniform sampler2D mainTex;
 void main()
 {
     oColor = texture(mainTex, uv);
-    if(oColor.a < 0.5)
+    if (oColor.a < 0.5)
         discard;
+
+    oColor.a = 0.6;
 }
 #endif
