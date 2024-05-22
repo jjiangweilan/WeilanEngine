@@ -1,0 +1,26 @@
+#version 460
+#include "Common/Common.glsl"
+
+#if CONFIG
+name: "PlaneGrid"
+#endif
+
+#if VERT
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec3 normal;
+layout(location = 2) in vec4 tangent;
+layout(location = 3) in vec2 uv;
+
+void main()
+{
+    gl_Position = scene.viewProjection * pconst.model * vec4(position, 1.0f);
+}
+#endif
+
+#if FRAG
+layout(location = 0) out vec4 oColor;
+void main()
+{
+    oColor = vec4(1.0f);
+}
+#endif

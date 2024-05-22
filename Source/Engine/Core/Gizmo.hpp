@@ -68,6 +68,9 @@ using GizmoVariant = std::variant<GizmoLight>;
 class Gizmos
 {
 public:
+    static void Draw(Mesh& mesh, int submeshIndex, Shader* shader);
+    static void DrawLight(const glm::vec3& position);
+
     void AssignCarrier(GameObject* carrier, int from, int to)
     {
         for (int i = from; i < to; ++i)

@@ -1077,7 +1077,9 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
     {
         if (ImGui::MenuItem(info.menuPath[pathIndex].c_str()))
         {
-            activeWindows.push_back(info.factory());
+            auto w = info.factory();
+            w->OnOpen();
+            activeWindows.push_back(std::move(w));
         }
     }
 }

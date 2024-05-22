@@ -15,6 +15,7 @@ class Window
 {
 public:
     virtual bool Tick() = 0;
+    virtual void OnOpen() {};
     virtual void OnClose(){};
 
 private:
