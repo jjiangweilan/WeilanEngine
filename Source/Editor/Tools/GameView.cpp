@@ -193,13 +193,14 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
     editorCamera->SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
 }
 
-void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage)
+void GameView::Render(
+    Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage, const Gfx::RG::ImageIdentifier* gameDepthImage
+)
 {
-    if (gameImage)
+    if (gameImage && gameDepthImage)
     {
-
         // selection outline
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {1.0f, 0}};
         GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
         if (go)
         {
@@ -221,8 +222,7 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
             Gfx::RG::ImageDescription desc{
                 sceneImage->GetDescription().width,
                 sceneImage->GetDescription().height,
-                sceneImage->GetDescription().format
-            };
+                sceneImage->GetDescription().format};
             cmd.AllocateAttachment(outlineSrcRT, desc);
             outlineSrcPass.SetAttachment(0, outlineSrcRT);
             cmd.BeginRenderPass(outlineSrcPass, clears);
@@ -241,6 +241,8 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
         }
 
         gameImagePass.SetAttachment(0, *gameImage);
+        if (gameDepthImage)
+            gameImagePass.SetAttachment(1, *gameDepthImage);
         cmd.BeginRenderPass(gameImagePass, clears);
 
         if (go)
@@ -250,9 +252,9 @@ void GameView::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* g
                 outlineFullScreenPassShader->GetDefaultShaderProgram(),
                 outlineFullScreenPassShader->GetDefaultShaderConfig()
             );
+            cmd.Draw(6, 1, 0, 0);
         }
 
-        cmd.Draw(6, 1, 0, 0);
         gizmos.Draw(cmd);
         cmd.EndRenderPass();
 

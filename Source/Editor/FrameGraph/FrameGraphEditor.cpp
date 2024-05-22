@@ -310,6 +310,10 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
             {
                 graph->SetOutputImageNode(id);
             }
+            else if (ImGui::MenuItem("Set As Output Depth Image"))
+            {
+                graph->SetOutputDepthImageNode(id);
+            }
         }
 
         if (ImGui::MenuItem("Delete"))

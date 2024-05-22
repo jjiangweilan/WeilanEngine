@@ -251,11 +251,17 @@ public:
         return uuid;
     }
 
-    static RenderPass Default()
+    static RenderPass Default(
+        std::string_view name = "default render pass",
+        Gfx::AttachmentLoadOperation loadOp = Gfx::AttachmentLoadOperation::Clear,
+        Gfx::AttachmentStoreOperation storeOp = Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation depthLoadOp = Gfx::AttachmentLoadOperation::Clear,
+        Gfx::AttachmentStoreOperation depthStoreOp = Gfx::AttachmentStoreOperation::Store
+    )
     {
         auto rp = RenderPass(1, 2);
-        SubpassAttachment colors[] = {{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}};
-        SubpassAttachment depth = {1, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
+        SubpassAttachment colors[] = {{0, loadOp, storeOp}};
+        SubpassAttachment depth = {1, depthLoadOp, depthStoreOp};
         rp.SetSubpass(0, colors, depth);
         return rp;
     }

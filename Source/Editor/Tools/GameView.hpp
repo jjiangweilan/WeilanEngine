@@ -24,7 +24,11 @@ public:
 
     bool Tick() override;
 
-    void Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage);
+    void Render(
+        Gfx::CommandBuffer& cmd,
+        const Gfx::RG::ImageIdentifier* gameImage,
+        const Gfx::RG::ImageIdentifier* gameDepthImage
+    );
 
     Camera* GetEditorCamera() const
     {
@@ -61,8 +65,12 @@ private:
     Camera* editorCamera = nullptr;
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
-    Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::SingleColor(
-        "gameImage pass", Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store
+    Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::Default(
+        "gameImage pass",
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
     );
     Shader* outlineRawColorPassShader;
     Shader* outlineFullScreenPassShader;

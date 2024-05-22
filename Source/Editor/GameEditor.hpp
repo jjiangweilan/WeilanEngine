@@ -71,7 +71,11 @@ private:
     void MainMenuBar();
     void OpenWindow();
     void GUIPass();
-    void Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage);
+    void Render(
+        Gfx::CommandBuffer& cmd,
+        const Gfx::RG::ImageIdentifier* gameImage,
+        const Gfx::RG::ImageIdentifier* gameDepthImage
+    );
 
     void AssetWindow();
     void AssetShowDir(const std::filesystem::path& path);

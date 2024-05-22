@@ -64,8 +64,10 @@ public:
     void Deserialize(Serializer* s) override;
     bool Compile();
     void SetOutputImageNode(FGID nodeID);
+    void SetOutputDepthImageNode(FGID nodeID);
     Node* GetNode(FGID nodeID);
     const Gfx::RG::ImageIdentifier* GetOutputImage();
+    const Gfx::RG::ImageIdentifier* GetOutputDepthImage();
     Node* GetOutputImageNode()
     {
         return outputImageNode;
@@ -210,6 +212,7 @@ private:
 #endif
     bool compiled = false;
     Node* outputImageNode = nullptr;
+    Node* outputDepthImageNode = nullptr;
     RenderingData renderingData;
 
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;

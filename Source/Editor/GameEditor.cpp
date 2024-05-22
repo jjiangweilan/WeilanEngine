@@ -95,7 +95,8 @@ GameEditor::GameEditor(const char* path)
     auto& io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-    EnableMultiViewport();
+
+    // EnableMultiViewport();
 
     gameView.Init();
 
@@ -479,12 +480,13 @@ void GameEditor::Start()
 
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
+            const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
             if (EditorState::activeScene)
                 loop->SetScene(*EditorState::activeScene);
-            gameOutputImage = loop->Tick(*sceneImage);
+            loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
 
             cmd->Reset(true);
-            Render(*cmd, gameOutputImage);
+            Render(*cmd, gameOutputImage, gameOutputDepthImage);
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
@@ -509,8 +511,8 @@ void GameEditor::GUIPass()
     {
         if (!w->Tick())
         {
-            w->OnClose();
             toClose.push_back(&w);
+            w->OnClose();
         }
     }
     for (auto close : toClose)
@@ -609,7 +611,9 @@ void GameEditor::SurfelGIBakerWindow()
     }
 }
 
-void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage)
+void GameEditor::Render(
+    Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage, const Gfx::RG::ImageIdentifier* gameDepthImage
+)
 {
     // make sure we don't have sync issue with game rendering
 
@@ -620,7 +624,7 @@ void GameEditor::Render(Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier*
     }
 
     if (gameImage)
-        gameView.Render(cmd, gameImage);
+        gameView.Render(cmd, gameImage, gameDepthImage);
 
     ImGui::Render();
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
@@ -843,6 +847,7 @@ void GameEditor::ConsoleOutputWindow()
     auto ringBufferSink = engine->GetRingBufferLoggerSink();
     auto lastRaw = ringBufferSink->last_raw();
     static auto formatter = std::make_unique<spdlog::pattern_formatter>();
+    ImGui::SetNextWindowSize({300, 300}, ImGuiCond_FirstUseEver);
     ImGui::Begin("Console");
     for (auto r = lastRaw.rbegin(); r != lastRaw.rend(); r++)
     {
@@ -1028,6 +1033,9 @@ static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void*)
 
 void GameEditor::EnableMultiViewport()
 {
+    // bug: when there is not imgui.init and the initial window size is out of main viewport, there is an extra viewport
+    // will be created, which SDL can't successfully create
+
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     platform_io.Platform_CreateWindow = ImGui_ImplSDL2_CreateWindow;
     platform_io.Platform_DestroyWindow = ImGui_ImplSDL2_DestroyWindow;

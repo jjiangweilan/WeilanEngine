@@ -22,10 +22,14 @@ static void TickGameObject(GameObject* go)
     }
 }
 
-const Gfx::RG::ImageIdentifier* GameLoop::Tick(Gfx::Image& outputImage)
+const void GameLoop::Tick(
+    Gfx::Image& outputImage,
+    const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
+    const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
+)
 {
     if (scene == nullptr)
-        return nullptr;
+        return;
     // update physics
     if (isPlaying)
     {
@@ -50,9 +54,12 @@ const Gfx::RG::ImageIdentifier* GameLoop::Tick(Gfx::Image& outputImage)
 
     cmd->Reset(true);
     if (graph)
-        return graph->GetOutputImage();
+    {
+        outGraphOutputImage = graph->GetOutputImage();
+        outGraphOutputDepthImage = graph->GetOutputDepthImage();
+    }
     else
-        return nullptr;
+        return;
 }
 
 void GameLoop::Play()

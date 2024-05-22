@@ -42,13 +42,15 @@ public:
             }
         }
 
-
         Sort(*drawList, renderingData);
 
         output.drawList->SetValue(drawList.get());
     }
 
-    bool FrustumCull(MeshRenderer& r) {}
+    bool FrustumCull(MeshRenderer& r)
+    {
+        return false;
+    }
 
     void Sort(DrawList& drawList, RenderingData& renderingData)
     {

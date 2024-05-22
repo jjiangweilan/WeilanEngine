@@ -22,7 +22,11 @@ public:
 
     // I think we better render into outputImage (Like we render directly into a swapchain when we are in release
     // mode?), currently I just use it to pass some information about the screen (size)
-    const Gfx::RG::ImageIdentifier* Tick(Gfx::Image& outputImage);
+    const void Tick(
+        Gfx::Image& outputImage,
+        const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
+        const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
+    );
 
 private:
     bool isPlaying = false;

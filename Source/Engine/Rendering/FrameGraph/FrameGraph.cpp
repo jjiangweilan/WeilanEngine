@@ -128,6 +128,9 @@ void Graph::Serialize(Serializer* s) const
     if (outputImageNode)
         id = outputImageNode->GetID();
     s->Serialize("outputImageNode", id);
+    if (outputDepthImageNode)
+        id = outputDepthImageNode->GetID();
+    s->Serialize("outputDepthImageNode", id);
 }
 
 void Graph::Deserialize(Serializer* s)
@@ -138,6 +141,16 @@ void Graph::Deserialize(Serializer* s)
     s->Deserialize("nodes", nodes);
     FGID outputImageNodeID;
     s->Deserialize("outputImageNode", outputImageNodeID);
+    FGID outputDepthImageNodeID;
+    s->Deserialize("outputDepthImageNode", outputDepthImageNode);
+    for (auto& n : nodes)
+    {
+        if (n->GetID() == outputDepthImageNodeID)
+        {
+            outputDepthImageNode = n.get();
+            break;
+        }
+    }
     for (auto& n : nodes)
     {
         if (n->GetID() == outputImageNodeID)
@@ -391,6 +404,22 @@ bool Graph::Compile()
     return compiled;
 }
 
+void Graph::SetOutputDepthImageNode(FGID nodeID)
+{
+    for (auto& n : nodes)
+    {
+        if (n->GetID() == nodeID)
+        {
+            if (n->GetObjectTypeID() == ImageNode::StaticGetObjectTypeID())
+            {
+                outputDepthImageNode = n.get();
+                SetDirty();
+                return;
+            }
+        }
+    }
+}
+
 void Graph::SetOutputImageNode(FGID nodeID)
 {
     for (auto& n : nodes)
@@ -426,6 +455,21 @@ const Gfx::RG::ImageIdentifier* Graph::GetOutputImage()
     }
 
     if (ImageNode* outputImageNode = dynamic_cast<ImageNode*>(this->outputImageNode))
+    {
+        return &outputImageNode->GetImage();
+    }
+
+    return nullptr;
+}
+
+const Gfx::RG::ImageIdentifier* Graph::GetOutputDepthImage()
+{
+    if (this->outputDepthImageNode == nullptr || !compiled)
+    {
+        return nullptr;
+    }
+
+    if (ImageNode* outputImageNode = dynamic_cast<ImageNode*>(this->outputDepthImageNode))
     {
         return &outputImageNode->GetImage();
     }
