@@ -1,5 +1,6 @@
 #include "../Window.hpp"
 #include "Asset/Shader.hpp"
+#include "Core/Model.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Gizmo.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -28,13 +29,13 @@ class WorldGridModuleEditor : public Window
 
     void OnOpen() override
     {
-        plane = static_cast<Mesh*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"));
-        gridShader = static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/PlaneGrid.shad"));
+        plane = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"))->GetMeshes()[0].get();
+        gridShader = static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
     }
 
     void ShowGrid()
     {
-        Gizmos::Draw(*plane, 0, gridShader);
+        Gizmos::DrawMesh(*plane, 0, gridShader, glm::mat4(1));
     }
 
     void HideGrid() {}

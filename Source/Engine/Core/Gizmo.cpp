@@ -54,6 +54,47 @@ private:
     }
 };
 
+class GizmoDrawMesh : public GizmoBase
+{
+public:
+    GizmoDrawMesh(Mesh* mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
+        : mesh(mesh), submeshIndex(submeshIndex), shader(shader), modelMatrix(modelMatrix)
+    {}
+
+    void Draw(Gfx::CommandBuffer& cmd) override
+    {
+        auto& submeshes = mesh->GetSubmeshes();
+        if (submeshIndex < submeshes.size())
+        {
+            auto& submesh = submeshes[submeshIndex];
+            cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
+            cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
+            cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &modelMatrix);
+            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
+        }
+    }
+    AABB GetAABB() override
+    {
+        auto& submeshes = mesh->GetSubmeshes();
+        if (submeshIndex < submeshes.size())
+        {
+            auto aabb = submeshes[submeshIndex].GetAABB();
+            aabb.max += glm::vec3(modelMatrix[3]);
+            aabb.min += glm::vec3(modelMatrix[3]);
+            return aabb;
+        }
+        else
+            return AABB(glm::vec3(0), glm::vec3(0));
+    }
+
+private:
+    Mesh* mesh;
+    int submeshIndex;
+    Shader* shader;
+    glm::mat4 modelMatrix;
+};
+
 class GizmoCamera : public GizmoBase
 {
 public:
@@ -137,11 +178,6 @@ void Gizmos::DispatchAllDiszmos(Gfx::CommandBuffer& cmd)
     }
 }
 
-void Gizmos::DrawLight(const glm::vec3& position)
-{
-    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawLight>(position));
-}
-
 GameObject*& GizmoBase::GetActiveCarrier()
 {
     static GameObject* activeCarrier;
@@ -158,6 +194,14 @@ void GizmoBase::ClearActiveCarrier()
     GetActiveCarrier() = nullptr;
 }
 
-void Gizmos::Draw(Mesh& mesh, int submeshIndex, Shader* shader) {}
+void Gizmos::DrawLight(const glm::vec3& position)
+{
+    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawLight>(position));
+}
+
+void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
+{
+    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
+}
 
 // namespace Gizmos

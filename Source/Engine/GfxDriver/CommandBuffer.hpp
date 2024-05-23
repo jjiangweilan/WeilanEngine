@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Buffer.hpp"
-#include "Core/Graphics/Mesh.hpp"
 #include "FrameBuffer.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
@@ -10,6 +9,7 @@
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"
 #include "Utils/Structs.hpp"
+#include "VertexBufferBinding.hpp"
 #include <memory>
 #include <span>
 namespace Gfx
@@ -34,12 +34,6 @@ struct BufferImageCopyRegion
     Gfx::ImageSubresourceLayers layers;
     Offset3D offset;
     Extent3D extend;
-};
-
-struct VertexBufferBinding
-{
-    Gfx::Buffer* buffer;
-    uint64_t offset;
 };
 
 struct Viewport
@@ -71,8 +65,6 @@ class CommandBuffer
 {
 public:
     virtual ~CommandBuffer(){};
-
-    void BindSubmesh(const Submesh& submesh);
 
     virtual void BeginLabel(std::string_view label, float color[4]) = 0;
     virtual void EndLabel() = 0;

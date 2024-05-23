@@ -171,16 +171,12 @@ void Submesh::Apply()
     GetGfxDriver()->UploadBuffer(*gfxVertexBuffer, staging, vertexBufferSize, 0);
     GetGfxDriver()->UploadBuffer(*gfxIndexBuffer, staging + vertexBufferSize, indexBufferSize, 0);
     delete[] staging;
-    // GetGfxDriver()->Schedule(
-    //     [this, vertexBufferSize, indexBufferSize, &stagingBuffer](Gfx::CommandBuffer& cmd)
-    //     {
-    //         Gfx::BufferCopyRegion bufferCopyRegions[] = {{0, 0, vertexBufferSize}};
-    //         cmd.CopyBuffer(stagingBuffer, gfxVertexBuffer, bufferCopyRegions);
-    //
-    //         bufferCopyRegions[0] = {vertexBufferSize, 0, indexBufferSize};
-    //         cmd.CopyBuffer(stagingBuffer, gfxIndexBuffer, bufferCopyRegions);
-    //     }
-    // );
+
+    // generate gfx vertex binding
+    for (auto& b : bindings)
+    {
+        gfxBindings.push_back({GetVertexBuffer(), b.byteOffset});
+    };
 }
 
 const AABB& Submesh::GetAABB() const

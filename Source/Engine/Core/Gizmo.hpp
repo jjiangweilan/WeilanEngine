@@ -43,7 +43,7 @@ private:
 class Gizmos
 {
 public:
-    static void Draw(Mesh& mesh, int submeshIndex, Shader* shader);
+    static void DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix);
     static void DrawLight(const glm::vec3& position);
     static void DispatchAllDiszmos(Gfx::CommandBuffer& cmd);
 

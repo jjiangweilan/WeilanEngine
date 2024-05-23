@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Asset.hpp"
 #include "GfxDriver/Buffer.hpp"
+#include "GfxDriver/VertexBufferBinding.hpp"
 #include "Libs/Ptr.hpp"
 #include "Utils/Structs.hpp"
 #include <glm/glm.hpp>
@@ -101,11 +102,17 @@ public:
         return bindings;
     }
 
+    std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const
+    {
+        return gfxBindings;
+    }
+
 private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt16;
     std::vector<VertexBinding> bindings;
+    std::vector<Gfx::VertexBufferBinding> gfxBindings;
     AABB aabb;
     int indexCount = 0;
     std::string name;
