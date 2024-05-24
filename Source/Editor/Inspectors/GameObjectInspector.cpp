@@ -68,16 +68,17 @@ public:
             target->SetPosition(pos);
         }
 
-        auto rotation = glm::eulerAngles(target->GetRotation());
+        auto rotation = target->GetEuluerAngles();
         auto degree = glm::degrees(rotation);
         auto newDegree = degree;
         if (ImGui::DragFloat3("rotation", &newDegree[0]))
         {
             auto delta = newDegree - degree;
             auto radians = glm::radians(delta);
-            float length = glm::length(radians);
-            if (length != 0)
-                target->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
+            target->SetEulerAngles(glm::radians(newDegree));
+            // float length = glm::length(radians);
+            // if (length != 0)
+            //     target->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
         }
 
         auto scale = target->GetScale();

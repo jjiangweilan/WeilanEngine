@@ -5,6 +5,7 @@
 #include "Libs/Ptr.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <memory>
 #include <string>
 #include <typeinfo>
@@ -151,7 +152,13 @@ public:
 
     glm::vec3 GetEuluerAngles()
     {
-        return glm::eulerAngles(GetRotation());
+        return eulerAngles;
+    }
+
+    void SetEulerAngles(const glm::vec3& eulerAngles)
+    {
+        this->eulerAngles = eulerAngles;
+        rotation = glm::quat(eulerAngles);
     }
 
     glm::mat4 GetModelMatrix()
@@ -174,7 +181,11 @@ public:
 private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
+
+    // euler angle is defined as Y * X * Z (yaw pitch row). use detail::tmat4x4<valType> glm::yawPitchRoll
+    // this makes y axis rotation fixed in world space
     glm::quat rotation = glm::quat(1, 0, 0, 0);
+    glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     glm::mat4 modelMatrix;
     bool enabled = false;
     bool updateModelMatrix = true;

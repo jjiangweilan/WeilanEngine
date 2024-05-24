@@ -1,8 +1,6 @@
 #include "GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
-#include <algorithm>
 #include <glm/gtx/matrix_decompose.hpp>
-#include <stdexcept>
 
 DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "gobj");
 
@@ -30,6 +28,7 @@ void GameObject::ResetTransform()
     position = glm::vec3(0);
     scale = glm::vec3(1);
     rotation = glm::identity<glm::quat>();
+    eulerAngles = glm::vec3(0, 0, 0);
 }
 
 GameObject::GameObject(const GameObject& other)
@@ -38,6 +37,7 @@ GameObject::GameObject(const GameObject& other)
     position = other.position;
     scale = other.scale;
     rotation = other.rotation;
+    eulerAngles = other.eulerAngles;
     gameScene = other.gameScene;
     enabled = other.enabled;
 
@@ -54,7 +54,6 @@ GameObject::GameObject(const GameObject& other)
             childClone->SetParent(this);
         }
     }
-
 }
 
 GameObject::~GameObject()
@@ -99,6 +98,7 @@ void GameObject::SetModelMatrix(const glm::mat4& model)
     glm::vec4 perspective;
     glm::vec3 position;
     glm::decompose(model, scale, rotation, position, skew, perspective);
+    eulerAngles = glm::eulerAngles(rotation);
 
     // this is needed to propagate translation to children
     SetPosition(position);
@@ -113,6 +113,7 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("scale", scale);
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
+    eulerAngles = glm::eulerAngles(rotation);
     s->Deserialize("gameScene", gameScene);
     s->Deserialize("components", components);
 
