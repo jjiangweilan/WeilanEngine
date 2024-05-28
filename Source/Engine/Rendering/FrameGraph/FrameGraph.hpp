@@ -195,6 +195,7 @@ private:
         glm::vec4 lightCount;
         glm::vec4 shadowMapSize;
         glm::vec4 cameraZBufferParams;
+        glm::vec4 cameraFrustum;
         LightInfo lights[MAX_LIGHT_COUNT];
     } sceneInfo;
 

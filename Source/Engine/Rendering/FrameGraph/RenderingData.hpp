@@ -9,5 +9,6 @@ struct RenderingData
     glm::ivec2 screenSize;
     Camera* mainCamera;
     Terrain* terrain;
+    int lightCount;
 };
 } // namespace FrameGraph

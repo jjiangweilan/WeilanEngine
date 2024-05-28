@@ -1,25 +1,81 @@
 #version 460
 
 #if CONFIG
-name: Game/TileBasedShading/TileCompute
+name : Game / TileBasedShading / TileCompute
 #endif
 
 #if COMP
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
+#include "Common/SceneInfo.glsl"
+#define cameraNear scene.cameraZBufferParams.x
+#define cameraFar scene.cameraZBufferParams.y
+#define cameraLeft scene.cameraFrustum.x
+#define cameraRight scene.cameraFrustum.y
+#define cameraBottom scene.cameraFrustum.z
+#define cameraTop scene.cameraFrustum.w
+
+layout(set = 0) readonly buffer lightData
+{
+    vec4 lightPos[];
+};
+
+layout(push_constant) uniform TileComputeParams
+{
+    vec4 tileSize;
+    float bucketCount;
+};
+
 layout(std430) writeonly buffer Tiles
 {
     uint buckets[];
-} tiles;
+};
+
+void GenerateNearFarTileLine(uvec2 tileIndex, out vec3 tileNearCenter, out vec3 tileFarCenter, out float nearRadius)
+{
+    float right = cameraLeft + (tileIndex.x + 1) * tileSize.x;
+    float left = cameraLeft + tileIndex.x * tileSize.x;
+    float top = cameraBottom + (tileIndex.y + 1) * tileSize.y;
+    float bottom = cameraBottom + tileIndex.y * tileSize.y;
+
+    tileNearCenter = vec3((right + left) / 2.0f, (top + bottom) / 2.0f, -cameraNear);
+    tileFarCenter.xy = tileNearCenter.xy / cameraNear * cameraFar;
+    tileFarCenter.z = -cameraFar;
+
+    vec2 d = vec2(abs(right - left), abs(top - bottom)) / 2.0f;
+    nearRadius = length(d);
+}
 
 void main() {
-    ivec3 coord = ivec3(gl_GlobalInvocationID.xyz);
+    uvec2 tileIndex2D = gl_GlobalInvocationID.xy;
+    if (any(greaterThanEqual(vec2(tileIndex2D), tileSize.zw))) return;
 
-    if (gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0)
-        tiles.buckets[0] = 5;
+    vec3 tileNearCenter;
+    vec3 tileFarCenter;
+    float nearRadius;
+    GenerateNearFarTileLine(tileIndex2D, tileNearCenter, tileFarCenter, nearRadius);
+
+    uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
+    for (uint bucketIndex = 0; bucketIndex < bucketCount; ++bucketIndex)
+    {
+        buckets[uint(tileIndex * bucketCount + bucketIndex)] = 0;
+        for (uint ii = 32 * bucketIndex; ii < min(float((bucketIndex + 1) * 32), scene.lightCount.x); ++ii)
+        {
+            uint bitMask = ii - bucketIndex * 32;
+            vec3 tileCenterLine = tileFarCenter - tileNearCenter;
+            vec3 projSphereOrigin = tileNearCenter + dot(lightPos[ii].xyz - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
+            float r = -projSphereOrigin.z / cameraNear * nearRadius;
+            float sphereOrigin_to_projectedCenter = length(projSphereOrigin - lightPos[ii].xyz);
+            bool outside = sphereOrigin_to_projectedCenter > (r + lightPos[ii].w);
+            // outside = !IsInsideFrustum(planes, lightData[ii].posVS);
+
+            if (!outside)
+            {
+                buckets[uint(tileIndex * bucketCount + bucketIndex)] |= 1 << bitMask;
+            }
+        }
+    }
 }
 
 #endif
-
-

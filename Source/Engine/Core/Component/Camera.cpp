@@ -26,12 +26,12 @@ Camera::Camera() : Component(nullptr), projectionMatrix(), viewMatrix()
 
 float Camera::GetProjectionRight()
 {
-    return near / projectionMatrix[0][0]; // projection matrix is hard coded
+    return near / projectionMatrix[0][0];
 }
 
 float Camera::GetProjectionTop()
 {
-    return near / projectionMatrix[1][1]; // projection matrix is hard coded
+    return near / projectionMatrix[1][1];
 }
 
 float Camera::GetNear()

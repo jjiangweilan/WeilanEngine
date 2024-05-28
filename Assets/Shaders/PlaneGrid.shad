@@ -30,7 +30,7 @@ void main()
     vec2 cosPos = cos(worldPos.xz * PI);
     vec2 minPos = min(dFdxFine(cosPos), dFdyFine(cosPos));
     float minVal = min(minPos.x, minPos.y);
-    if (minVal < 0.1)
+    if (minVal < 0.00000000001)
         oColor = vec4(1.0);
     else
         discard;
