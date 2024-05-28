@@ -14,6 +14,13 @@ class TileBasedShadingComputeNode : public Node
         tileBasedShadingCompute = (ComputeShader*)AssetDatabase::Singleton()->LoadAsset(
             "_engine_internal/Shaders/Game/TileBasedShading/TileCompute.comp"
         );
+        tilesCullingUbo = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
+                .usages = Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
+                .size = 20, // vec4 + float
+                .visibleInCPU = false,
+                .debugName = "tile culling ubo",
+                .gpuWrite = false
+                });
     }
 
     void Compile() override {}
@@ -24,13 +31,16 @@ class TileBasedShadingComputeNode : public Node
         PrepareAndPreprocess(renderingData.screenSize, xTileCount, yTileCount);
 
         cmd.SetBuffer(tilesShaderHandle, *tiles);
+        cmd.SetBuffer(tilesUboShaderHandle, *tilesCullingUbo);
         float pushConstants[] = {
             (2 * renderingData.mainCamera->GetProjectionRight()) / (float)xTileCount,
             (2 * renderingData.mainCamera->GetProjectionTop()) / (float)yTileCount,
             (float)xTileCount,
             (float)yTileCount,
-            glm::ceil(renderingData.lightCount / 32.0f)};
-        cmd.SetPushConstant(tileBasedShadingCompute->GetDefaultShaderProgram(), pushConstants);
+            glm::ceil(renderingData.sceneInfo->lightCount / 32.0f)
+        };
+        GetGfxDriver()->UploadBuffer(*tilesCullingUbo, (uint8_t*)&pushConstants, sizeof(pushConstants));
+
         cmd.BindShaderProgram(
             tileBasedShadingCompute->GetDefaultShaderProgram(),
             tileBasedShadingCompute->GetDefaultShaderConfig()
@@ -47,13 +57,15 @@ private:
     } output;
 
     std::unique_ptr<Gfx::Buffer> tiles = nullptr;
+    std::unique_ptr<Gfx::Buffer> tilesCullingUbo = nullptr;
     ComputeShader* tileBasedShadingCompute;
 
     const glm::ivec2 tilePixelSize = {16, 16};
-    const int maxLights = 256;
+    const int maxLights = 128;
     const int totalBitMask = 32;
     const int bucketCountPerTile = glm::ceil(maxLights / totalBitMask);
     Gfx::ShaderBindingHandle tilesShaderHandle = Gfx::ShaderBindingHandle("Tiles");
+    Gfx::ShaderBindingHandle tilesUboShaderHandle = Gfx::ShaderBindingHandle("TileComputeParams");
     Gfx::ShaderBindingHandle lightPositionHandle = Gfx::ShaderBindingHandle("LightPositions");
 
     void PrepareAndPreprocess(glm::ivec2 screenSize, int& xTileCount, int& yTileCount)
@@ -61,7 +73,7 @@ private:
         xTileCount = glm::ceil(screenSize.x / 8.0f);
         yTileCount = glm::ceil(screenSize.y / 8.0f);
         int currentSize = tiles ? tiles->GetSize() : 0;
-        size_t sizeNeeded = xTileCount * yTileCount * bucketCountPerTile * totalBitMask / 8;
+        size_t sizeNeeded = xTileCount * yTileCount * bucketCountPerTile * sizeof(uint32_t);
         if (sizeNeeded > currentSize)
         {
             tiles = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{

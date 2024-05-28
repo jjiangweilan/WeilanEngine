@@ -16,20 +16,20 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #define cameraBottom scene.cameraFrustum.z
 #define cameraTop scene.cameraFrustum.w
 
-layout(set = 0) readonly buffer lightData
+layout(std430, set = 0, binding = 1) readonly buffer lightData
 {
     vec4 lightPos[];
 };
 
-layout(push_constant) uniform TileComputeParams
+layout(std430, set = 0, binding = 2) writeonly buffer Tiles
+{
+    uint buckets[];
+};
+
+layout(set = 0, binding = 3) uniform TileComputeParams
 {
     vec4 tileSize;
     float bucketCount;
-};
-
-layout(std430) writeonly buffer Tiles
-{
-    uint buckets[];
 };
 
 void GenerateNearFarTileLine(uvec2 tileIndex, out vec3 tileNearCenter, out vec3 tileFarCenter, out float nearRadius)
@@ -64,10 +64,10 @@ void main() {
         {
             uint bitMask = ii - bucketIndex * 32;
             vec3 tileCenterLine = tileFarCenter - tileNearCenter;
-            vec3 projSphereOrigin = tileNearCenter + dot(lightPos[ii].xyz - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
+            vec3 projSphereOrigin = tileNearCenter + dot(scene.lights[ii].position.xyz - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
             float r = -projSphereOrigin.z / cameraNear * nearRadius;
-            float sphereOrigin_to_projectedCenter = length(projSphereOrigin - lightPos[ii].xyz);
-            bool outside = sphereOrigin_to_projectedCenter > (r + lightPos[ii].w);
+            float sphereOrigin_to_projectedCenter = length(projSphereOrigin - scene.lights[ii].position.xyz);
+            bool outside = sphereOrigin_to_projectedCenter > (r + scene.lights[ii].pointLightTerm2);
             // outside = !IsInsideFrustum(planes, lightData[ii].posVS);
 
             if (!outside)

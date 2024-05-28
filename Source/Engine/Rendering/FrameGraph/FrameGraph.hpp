@@ -164,40 +164,12 @@ private:
         std::vector<uint32_t> freeID;
     };
 
-    struct LightInfo
-    {
-        glm::vec4 lightColor;
-        glm::vec4 position;
-        float ambientScale;
-        float range;
-        float intensity;
-        float pointLightTerm1;
-        float pointLightTerm2;
-
-        float p0, p1, p2; // padding
-    };
-
     struct GlobalInfo
     {
         float time;
     } globalInfo;
 
-    static const int MAX_LIGHT_COUNT = 128; // defined in Commom.glsl
-    struct SceneInfo
-    {
-        glm::vec4 viewPos;
-        glm::mat4 view;
-        glm::mat4 projection;
-        glm::mat4 viewProjection;
-        glm::mat4 worldToShadow;
-        glm::mat4 invProjection;
-        glm::mat4 invNDCToWorld;
-        glm::vec4 lightCount;
-        glm::vec4 shadowMapSize;
-        glm::vec4 cameraZBufferParams;
-        glm::vec4 cameraFrustum;
-        LightInfo lights[MAX_LIGHT_COUNT];
-    } sceneInfo;
+    SceneInfo sceneInfo;
 
     struct ShaderGlobal
     {

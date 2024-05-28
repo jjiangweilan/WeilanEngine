@@ -21,15 +21,15 @@ layout(location = 0) out vec2 o_uv;
 void main()
 {
     vec4 c_Positions[6] =
-    {
-        {-1, 1,0.5,1},
-        {-1,-1,0.5,1},
-        { 1, 1,0.5,1},
+        {
+        { -1, 1, 0.5, 1 },
+        { -1, -1, 0.5, 1 },
+        { 1, 1, 0.5, 1 },
 
-        {-1,-1,0.5,1},
-        { 1,-1,0.5,1},
-        {1,  1,0.5,1}
-    };
+        { -1, -1, 0.5, 1 },
+        { 1, -1, 0.5, 1 },
+        { 1, 1, 0.5, 1 }
+        };
 
     gl_Position = c_Positions[gl_VertexIndex];
     o_uv = gl_Position.xy * 0.5f + 0.5f;
@@ -42,6 +42,15 @@ layout(set = 0, binding = 6) uniform sampler2D albedoTex;
 layout(set = 0, binding = 7) uniform sampler2D normalTex;
 layout(set = 0, binding = 8) uniform sampler2D maskTex;
 layout(set = 0, binding = 9) uniform sampler2D depthTex;
+layout(set = 0, binding = 11) uniform TileComputeParams
+{
+    vec4 tileSize;
+    float bucketCount;
+};
+layout(std430, set = 0, binding = 10) readonly buffer Tiles
+{
+    uint buckets[];
+};
 layout(set = 1) uniform ShadingProperties
 {
     float shadowConstantBias;
@@ -107,6 +116,19 @@ float PointLightAttenuation(float distance, float t1, float t2)
 
 void main()
 {
+    uvec2 tileIndex2D = uvec2(gl_FragCoord.xy / 16);
+    uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
+    bool hasLight = false;
+    for (uint i = 0; i < 4; ++i)
+    {
+        hasLight = hasLight || (buckets[uint(tileIndex * 4 + i)] != 0);
+    }
+    if (hasLight)
+        o_Color = vec4(1, 0, 0, 1);
+    else
+        o_Color = vec4(0, 1, 0, 1);
+    return;
+
     vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;

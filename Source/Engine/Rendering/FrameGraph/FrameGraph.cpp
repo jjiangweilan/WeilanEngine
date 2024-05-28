@@ -224,7 +224,7 @@ void Graph::ProcessLights(Scene& gameScene)
         }
     }
 
-    sceneInfo.lightCount = glm::vec4(lights.size(), 0, 0, 0);
+    sceneInfo.lightCount = lights.size();
     if (shadowLight)
     {
         sceneInfo.worldToShadow =
@@ -297,6 +297,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     if (!compiled || camera == nullptr)
         return;
     renderingData.mainCamera = camera;
+    renderingData.sceneInfo = &sceneInfo;
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
 
@@ -340,7 +341,6 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         camera->GetProjectionTop()
     );
     ProcessLights(scene);
-    renderingData.lightCount = sceneInfo.lightCount.x;
 
     size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{
