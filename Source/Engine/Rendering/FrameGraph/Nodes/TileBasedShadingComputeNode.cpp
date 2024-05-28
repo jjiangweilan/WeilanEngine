@@ -2,6 +2,7 @@
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/Camera.hpp"
 
 namespace FrameGraph
 {
@@ -23,6 +24,13 @@ class TileBasedShadingComputeNode : public Node
         PrepareAndPreprocess(renderingData.screenSize, xTileCount, yTileCount);
 
         cmd.SetBuffer(tilesShaderHandle, *tiles);
+        float pushConstants[] = {
+            (2 * renderingData.mainCamera->GetProjectionRight()) / (float)xTileCount,
+            (2 * renderingData.mainCamera->GetProjectionTop()) / (float)yTileCount,
+            (float)xTileCount,
+            (float)yTileCount,
+            glm::ceil(renderingData.lightCount / 32.0f)};
+        cmd.SetPushConstant(tileBasedShadingCompute->GetDefaultShaderProgram(), pushConstants);
         cmd.BindShaderProgram(
             tileBasedShadingCompute->GetDefaultShaderProgram(),
             tileBasedShadingCompute->GetDefaultShaderConfig()
@@ -41,11 +49,12 @@ private:
     std::unique_ptr<Gfx::Buffer> tiles = nullptr;
     ComputeShader* tileBasedShadingCompute;
 
-    const glm::ivec2 tilePixelSize = {8, 8};
+    const glm::ivec2 tilePixelSize = {16, 16};
     const int maxLights = 256;
     const int totalBitMask = 32;
     const int bucketCountPerTile = glm::ceil(maxLights / totalBitMask);
     Gfx::ShaderBindingHandle tilesShaderHandle = Gfx::ShaderBindingHandle("Tiles");
+    Gfx::ShaderBindingHandle lightPositionHandle = Gfx::ShaderBindingHandle("LightPositions");
 
     void PrepareAndPreprocess(glm::ivec2 screenSize, int& xTileCount, int& yTileCount)
     {
@@ -55,9 +64,7 @@ private:
         size_t sizeNeeded = xTileCount * yTileCount * bucketCountPerTile * totalBitMask / 8;
         if (sizeNeeded > currentSize)
         {
-
             tiles = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
-
                 .usages = Gfx::BufferUsage::Storage,
                 .size = sizeNeeded,
                 .visibleInCPU = false,

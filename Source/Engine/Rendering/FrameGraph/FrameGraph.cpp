@@ -333,7 +333,14 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         (camera->GetNear() - camera->GetFar()) / (camera->GetNear() * camera->GetFar()),
         1.0f / camera->GetNear()
     );
+    sceneInfo.cameraFrustum = glm::vec4(
+        camera->GetProjectionRight(),
+        -camera->GetProjectionRight(),
+        -camera->GetProjectionTop(),
+        camera->GetProjectionTop()
+    );
     ProcessLights(scene);
+    renderingData.lightCount = sceneInfo.lightCount.x;
 
     size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{

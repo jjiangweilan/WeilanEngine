@@ -220,7 +220,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .usages = (b->type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
                                                                                            : BufferUsage::Storage) |
                                                   BufferUsage::Transfer_Dst,
-                                        .size = b->binding.ubo.data.size,
+                                        .size = 1,
                                         .visibleInCPU = false,
                                         .debugName = bufferName.c_str()
                                     };
