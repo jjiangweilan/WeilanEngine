@@ -10,6 +10,9 @@ option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
 option(DEV_BUILD "use internal asset inside the source tree instead of installed location" ON)
 
+# link WeilanEngine to editor
+add_executable(WeilanEngineEditor
+    Editor/Launcher.cpp)
 add_library(WeilanEngine SHARED)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
@@ -77,9 +80,6 @@ target_compile_definitions(
     GLM_FORCE_DEPTH_ZERO_TO_ONE
     )
 
-# link WeilanEngine to editor
-add_executable(WeilanEngineEditor
-    Editor/Launcher.cpp)
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
     target_compile_options(WeilanEngineEditor PRIVATE "/Od")

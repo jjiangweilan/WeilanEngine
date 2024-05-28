@@ -16,7 +16,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     cameraGO = scene->CreateGameObject();
     bakerCamera = cameraGO->AddComponent<Camera>();
     cameraGO->SetPosition({0, 0, 0});
-    cameraGO->SetRotation({0, 0, 0});
+    cameraGO->SetEulerAngles({0, 0, 0});
 
     FrameGraph::Graph graph;
     surfelBakeNode = nullptr;

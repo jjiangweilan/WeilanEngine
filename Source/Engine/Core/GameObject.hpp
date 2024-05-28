@@ -67,11 +67,6 @@ public:
     }
     void SetParent(GameObject* parent);
 
-    void SetRotation(const glm::vec3& rotation)
-    {
-        updateModelMatrix = true;
-        this->rotation = glm::quat(rotation);
-    };
     void SetRotation(const glm::quat& rotation)
     {
         updateModelMatrix = true;
@@ -116,6 +111,7 @@ public:
         {
             // rotate around world
             glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetModelMatrix();
+
             SetModelMatrix(trs);
         }
     }
@@ -130,33 +126,34 @@ public:
         }
     }
 
-    glm::vec3 GetPosition()
+    glm::vec3 GetPosition() const
     {
         return position;
     }
 
-    glm::vec3 GetScale()
+    glm::vec3 GetScale() const
     {
         return scale;
     };
 
-    glm::quat GetRotation()
+    glm::quat GetRotation() const
     {
         return rotation;
     };
 
-    glm::vec3 GetForward()
+    glm::vec3 GetForward() const
     {
         return glm::mat4_cast(rotation)[2];
     }
 
-    glm::vec3 GetEuluerAngles()
+    glm::vec3 GetEuluerAngles() const
     {
         return eulerAngles;
     }
 
     void SetEulerAngles(const glm::vec3& eulerAngles)
     {
+        updateModelMatrix = true;
         this->eulerAngles = eulerAngles;
         rotation = glm::quat(eulerAngles);
     }
@@ -167,6 +164,7 @@ public:
         {
             modelMatrix =
                 glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+            updateModelMatrix = false;
         }
 
         return modelMatrix;
@@ -182,9 +180,8 @@ private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
 
-    // euler angle is defined as Y * X * Z (yaw pitch row). use detail::tmat4x4<valType> glm::yawPitchRoll
-    // this makes y axis rotation fixed in world space
     glm::quat rotation = glm::quat(1, 0, 0, 0);
+    // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     glm::mat4 modelMatrix;
     bool enabled = false;

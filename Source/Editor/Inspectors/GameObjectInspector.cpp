@@ -18,7 +18,12 @@ namespace Editor
 {
 class GameObjectInspector : public Inspector<GameObject>
 {
-public:
+    inline void PreventNegativeZero(float& val)
+    {
+        if (val == -0.0f)
+            val = 0.0f;
+    }
+
     void DrawInspector(GameEditor& editor) override
     {
         ImGui::BeginMenuBar();
@@ -70,15 +75,9 @@ public:
 
         auto rotation = target->GetEuluerAngles();
         auto degree = glm::degrees(rotation);
-        auto newDegree = degree;
-        if (ImGui::DragFloat3("rotation", &newDegree[0]))
+        if (ImGui::DragFloat3("rotation", &degree[0]))
         {
-            auto delta = newDegree - degree;
-            auto radians = glm::radians(delta);
-            target->SetEulerAngles(glm::radians(newDegree));
-            // float length = glm::length(radians);
-            // if (length != 0)
-            //     target->Rotate(length, glm::normalize(radians), RotationCoordinate::Self);
+            target->SetEulerAngles(glm::radians(degree));
         }
 
         auto scale = target->GetScale();

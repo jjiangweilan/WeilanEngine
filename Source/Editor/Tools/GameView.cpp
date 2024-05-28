@@ -532,7 +532,8 @@ bool GameView::Tick()
                     auto model = go->GetModelMatrix();
                     ImGui::SetCursorPos(imagePos);
                     EditTransform(*mainCam, model, proj, rect);
-                    go->SetModelMatrix(model);
+                    if (ImGuizmo::IsUsing())
+                        go->SetModelMatrix(model);
                 }
 
                 // Camera Gizmo
