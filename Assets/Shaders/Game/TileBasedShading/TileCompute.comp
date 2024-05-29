@@ -39,9 +39,9 @@ void GenerateNearFarTileLine(uvec2 tileIndex, out vec3 tileNearCenter, out vec3 
     float top = cameraBottom + (tileIndex.y + 1) * tileSize.y;
     float bottom = cameraBottom + tileIndex.y * tileSize.y;
 
-    tileNearCenter = vec3((right + left) / 2.0f, (top + bottom) / 2.0f, -cameraNear);
+    tileNearCenter = vec3((right + left) / 2.0f, (top + bottom) / 2.0f, cameraNear);
     tileFarCenter.xy = tileNearCenter.xy / cameraNear * cameraFar;
-    tileFarCenter.z = -cameraFar;
+    tileFarCenter.z = cameraFar;
 
     vec2 d = vec2(abs(right - left), abs(top - bottom)) / 2.0f;
     nearRadius = length(d);
@@ -62,11 +62,13 @@ void main() {
         buckets[uint(tileIndex * bucketCount + bucketIndex)] = 0;
         for (uint ii = 32 * bucketIndex; ii < min(float((bucketIndex + 1) * 32), scene.lightCount.x); ++ii)
         {
+            if (scene.lights[ii].position.w == 0) continue;
             uint bitMask = ii - bucketIndex * 32;
             vec3 tileCenterLine = tileFarCenter - tileNearCenter;
-            vec3 projSphereOrigin = tileNearCenter + dot(scene.lights[ii].position.xyz - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
-            float r = -projSphereOrigin.z / cameraNear * nearRadius;
-            float sphereOrigin_to_projectedCenter = length(projSphereOrigin - scene.lights[ii].position.xyz);
+            vec3 lightViewPos = (scene.view * vec4(scene.lights[ii].position.xyz, 1.0)).xyz;
+            vec3 projSphereOrigin = tileNearCenter + dot(lightViewPos - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
+            float r = projSphereOrigin.z / cameraNear * nearRadius;
+            float sphereOrigin_to_projectedCenter = length(projSphereOrigin - lightViewPos);
             bool outside = sphereOrigin_to_projectedCenter > (r + scene.lights[ii].pointLightTerm2);
             // outside = !IsInsideFrustum(planes, lightData[ii].posVS);
 

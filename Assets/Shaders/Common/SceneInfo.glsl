@@ -21,6 +21,7 @@ layout(set = 0, binding = SCENE_INFO_BINDING) uniform SceneInfo
     vec4 shadowMapSize;
     vec4 cameraZBufferParams;
     vec4 cameraFrustum;// left right bottom top
+    vec4 screenSize;
     Light lights[MAX_LIGHT_COUNT];
 } scene;
 #endif

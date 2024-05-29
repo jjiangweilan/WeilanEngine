@@ -37,7 +37,7 @@ class TileBasedShadingComputeNode : public Node
             (2 * renderingData.mainCamera->GetProjectionTop()) / (float)yTileCount,
             (float)xTileCount,
             (float)yTileCount,
-            glm::ceil(renderingData.sceneInfo->lightCount / 32.0f)
+            (float)bucketCountPerTile
         };
         GetGfxDriver()->UploadBuffer(*tilesCullingUbo, (uint8_t*)&pushConstants, sizeof(pushConstants));
 
@@ -70,8 +70,8 @@ private:
 
     void PrepareAndPreprocess(glm::ivec2 screenSize, int& xTileCount, int& yTileCount)
     {
-        xTileCount = glm::ceil(screenSize.x / 8.0f);
-        yTileCount = glm::ceil(screenSize.y / 8.0f);
+        xTileCount = glm::ceil(screenSize.x / (float)tilePixelSize.x);
+        yTileCount = glm::ceil(screenSize.y / (float)tilePixelSize.y);
         int currentSize = tiles ? tiles->GetSize() : 0;
         size_t sizeNeeded = xTileCount * yTileCount * bucketCountPerTile * sizeof(uint32_t);
         if (sizeNeeded > currentSize)

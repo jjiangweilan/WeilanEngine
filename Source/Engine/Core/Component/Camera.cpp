@@ -31,7 +31,7 @@ float Camera::GetProjectionRight()
 
 float Camera::GetProjectionTop()
 {
-    return near / projectionMatrix[1][1];
+    return -near / projectionMatrix[1][1];
 }
 
 float Camera::GetNear()

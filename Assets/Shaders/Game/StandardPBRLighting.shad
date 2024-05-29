@@ -116,7 +116,8 @@ float PointLightAttenuation(float distance, float t1, float t2)
 
 void main()
 {
-    uvec2 tileIndex2D = uvec2(gl_FragCoord.xy / 16);
+    uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
+    uvec2 tileIndex2D = uvec2(viewCoord / 16);
     uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
     bool hasLight = false;
     for (uint i = 0; i < 4; ++i)

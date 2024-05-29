@@ -35,6 +35,7 @@ struct SceneInfo
     glm::vec4 shadowMapSize;
     glm::vec4 cameraZBufferParams;
     glm::vec4 cameraFrustum;
+    glm::vec4 screenSize;
     LightInfo lights[MAX_LIGHT_COUNT];
 };
 

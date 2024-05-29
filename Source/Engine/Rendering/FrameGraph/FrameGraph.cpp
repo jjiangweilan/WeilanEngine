@@ -335,11 +335,12 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         1.0f / camera->GetNear()
     );
     sceneInfo.cameraFrustum = glm::vec4(
-        camera->GetProjectionRight(),
         -camera->GetProjectionRight(),
+        camera->GetProjectionRight(),
         -camera->GetProjectionTop(),
         camera->GetProjectionTop()
     );
+    sceneInfo.screenSize = glm::vec4(renderingData.screenSize.x, renderingData.screenSize.y, 1.0f / renderingData.screenSize.x, 1.0f / renderingData.screenSize.y);
     ProcessLights(scene);
 
     size_t copySize = sceneInfoBuffer->GetSize();
