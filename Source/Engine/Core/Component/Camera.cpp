@@ -81,7 +81,7 @@ RefPtr<Camera> Camera::mainCamera = nullptr;
 glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 {
     return glm::vec3(
-        (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), GetProjectionTop()},
+        (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), -GetProjectionTop()},
         GetNear()
     );
 }

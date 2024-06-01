@@ -47,6 +47,46 @@ void GenerateNearFarTileLine(uvec2 tileIndex, out vec3 tileNearCenter, out vec3 
     nearRadius = length(d);
 }
 
+float DistanceToPlane( vec4 vPlane, vec3 vPoint )
+{
+    return dot(vec4(vPoint, -1.0), vPlane);
+}
+
+bool CullSphere(vec4 vPlanes[4], vec4 sphere)
+{
+    bool outside = DistanceToPlane(vPlanes[0], sphere.xyz) + sphere.w < 0
+    || DistanceToPlane(vPlanes[1], sphere.xyz) + sphere.w < 0
+    || DistanceToPlane(vPlanes[2], sphere.xyz) + sphere.w < 0
+    || DistanceToPlane(vPlanes[3], sphere.xyz) + sphere.w < 0;
+
+    return outside;
+}
+
+void GenerateFrustum(uvec2 tileIndex, out vec4 pright, out vec4 pleft, out vec4 ptop, out vec4 pbottom)
+{
+    const vec4 r3 = vec4(0,0,1,0);
+    const float n = cameraNear;
+
+    float right = cameraLeft + (tileIndex.x + 1) * tileSize.x;
+    float left = cameraLeft + tileIndex.x * tileSize.x;
+    float m00 = 2 * n / (left - right);
+    float m02 = (right + left) / (right - left);
+    pright = r3 - vec4(m00, 0, m02, 0);
+    pleft = r3 + vec4(m00, 0, m02, 0);
+
+    float top = cameraBottom + (tileIndex.y + 1) * tileSize.y;
+    float bottom = cameraBottom + tileIndex.y * tileSize.y;
+    float m11 = 2 * n / (bottom - top);
+    float m12 = (top + bottom) / (top - bottom);
+    ptop = r3 + vec4(0, m11, m12, 0);
+    pbottom = r3 - vec4(0, m11, m12, 0);
+
+    pright = pright / length(pright.xz);
+    pleft = pleft / length(pleft.xz);
+    ptop = ptop / length(ptop.yz);
+    pbottom = pbottom / length(pbottom.yz);
+}
+
 void main() {
     uvec2 tileIndex2D = gl_GlobalInvocationID.xy;
     if (any(greaterThanEqual(vec2(tileIndex2D), tileSize.zw))) return;
@@ -56,6 +96,9 @@ void main() {
     float nearRadius;
     GenerateNearFarTileLine(tileIndex2D, tileNearCenter, tileFarCenter, nearRadius);
 
+//    vec4 planes[4];
+//    GenerateFrustum(tileIndex2D, planes[0], planes[1], planes[2], planes[3]);
+
     uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
     for (uint bucketIndex = 0; bucketIndex < bucketCount; ++bucketIndex)
     {
@@ -63,16 +106,16 @@ void main() {
         for (uint ii = 32 * bucketIndex; ii < min(float((bucketIndex + 1) * 32), scene.lightCount.x); ++ii)
         {
             if (scene.lights[ii].position.w == 0) continue;
+            vec3 lightViewPos = (scene.view * vec4(scene.lights[ii].position.xyz, 1.0)).xyz;
             uint bitMask = ii - bucketIndex * 32;
             vec3 tileCenterLine = tileFarCenter - tileNearCenter;
-            vec3 lightViewPos = (scene.view * vec4(scene.lights[ii].position.xyz, 1.0)).xyz;
             vec3 projSphereOrigin = tileNearCenter + dot(lightViewPos - tileNearCenter, tileCenterLine) / dot(tileCenterLine, tileCenterLine) * tileCenterLine;
             float r = projSphereOrigin.z / cameraNear * nearRadius;
             float sphereOrigin_to_projectedCenter = length(projSphereOrigin - lightViewPos);
-            bool outside = sphereOrigin_to_projectedCenter > (r + scene.lights[ii].pointLightTerm2);
-            // outside = !IsInsideFrustum(planes, lightData[ii].posVS);
+            bool cull = sphereOrigin_to_projectedCenter > (r + scene.lights[ii].pointLightTerm2);
+            // bool cull = CullSphere(planes, vec4(lightViewPos, scene.lights[ii].pointLightTerm2));
 
-            if (!outside)
+            if (!cull)
             {
                 buckets[uint(tileIndex * bucketCount + bucketIndex)] |= 1 << bitMask;
             }

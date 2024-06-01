@@ -111,25 +111,19 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
 // http://www.ogre3d.org/tikiwiki/tiki-index.php?page=-Point+Light+Attenuation
 float PointLightAttenuation(float distance, float t1, float t2)
 {
-    return 1.0f / (1.0f + t1 * distance + t2 * distance * distance);
+    float s = distance / t2;
+    if (s < 1)
+    {
+        s *= s;
+        float n0 = (1-s);
+        return n0 * n0 / (1 + t1  * s);
+    }
+    else
+        return 0;
 }
 
 void main()
 {
-    uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
-    uvec2 tileIndex2D = uvec2(viewCoord / 16);
-    uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
-    bool hasLight = false;
-    for (uint i = 0; i < 4; ++i)
-    {
-        hasLight = hasLight || (buckets[uint(tileIndex * 4 + i)] != 0);
-    }
-    if (hasLight)
-        o_Color = vec4(1, 0, 0, 1);
-    else
-        o_Color = vec4(0, 1, 0, 1);
-    return;
-
     vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
@@ -183,5 +177,16 @@ void main()
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
     o_Color = vec4(color + ambient, 1);
+
+    uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
+    uvec2 tileIndex2D = uvec2(viewCoord / 16);
+    uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
+    bool hasLight = false;
+    for (uint i = 0; i < 4; ++i)
+    {
+        hasLight = hasLight || (buckets[uint(tileIndex * 4 + i)] != 0);
+    }
+    if (hasLight)
+        o_Color += vec4(0.31, 0, 0, 1);
 }
 #endif
