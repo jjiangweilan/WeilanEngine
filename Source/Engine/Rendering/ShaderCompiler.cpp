@@ -171,7 +171,7 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
         {
             for (const ryml::NodeRef& iter : root["input"])
             {
-                std::string inputName = iter.key().str;
+                std::string inputName(iter.key().begin(), iter.key().size());
                 if (iter.has_child("baseTypeSize"))
                 {
                     int size = 0;
