@@ -2,10 +2,6 @@
 
 namespace Rendering
 {
-class RenderPipeline
-{
-public:
-    RenderPipeline();
-};
-
+class GBufferPass
+{};
 } // namespace Rendering

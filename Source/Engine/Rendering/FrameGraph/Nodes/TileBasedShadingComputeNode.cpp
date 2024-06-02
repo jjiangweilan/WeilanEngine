@@ -4,7 +4,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class TileBasedShadingComputeNode : public Node
 {
@@ -87,7 +87,7 @@ private:
         }
     }
 
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 DEFINE_FRAME_GRAPH_NODE(TileBasedShadingComputeNode, "2954BAD9-5137-49D9-830C-F8A47ADDC619");
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

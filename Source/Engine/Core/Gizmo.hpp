@@ -21,6 +21,7 @@ public:
     {
         carrier = GetActiveCarrier();
     }
+    virtual ~GizmoBase() {}
     // a gizmos can be associated with a GameObject, Gizmos use static pattern so the associated carrier is recorded
     // besides OnDrawGizmos by the caller
     static void SetActiveCarrier(GameObject* carrier);

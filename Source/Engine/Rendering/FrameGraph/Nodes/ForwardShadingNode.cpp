@@ -4,7 +4,7 @@
 #include "Core/Model.hpp"
 #include <spdlog/spdlog.h>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class ForwardShadingNode : public Node
 {
@@ -182,9 +182,9 @@ private:
     }
 
     static char _reg;
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 
 char ForwardShadingNode::_reg = NodeBlueprintRegisteration::Register<ForwardShadingNode>("Forward Shading");
 
 DEFINE_OBJECT(ForwardShadingNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

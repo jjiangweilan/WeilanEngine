@@ -5,7 +5,7 @@
 
 namespace Editor
 {
-class FrameGraphInspector : public Inspector<FrameGraph::Graph>
+class FrameGraphInspector : public Inspector<Rendering::FrameGraph::Graph>
 {
 public:
     void DrawInspector(GameEditor& editor) override
@@ -26,6 +26,6 @@ private:
     static const char _register;
 };
 
-const char FrameGraphInspector::_register = InspectorRegistry::Register<FrameGraphInspector, FrameGraph::Graph>();
+const char FrameGraphInspector::_register = InspectorRegistry::Register<FrameGraphInspector, Rendering::FrameGraph::Graph>();
 
 } // namespace Editor

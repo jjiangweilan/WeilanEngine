@@ -6,7 +6,7 @@
 #include "Core/Model.hpp"
 #include <random>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class SkyboxPassNode : public Node
 {
@@ -123,7 +123,7 @@ private:
         PropertyHandle color;
     } output;
 
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 DEFINE_FRAME_GRAPH_NODE(SkyboxPassNode, "F6D6CECC-F140-45B8-B8F7-501BB1F9B87E");
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

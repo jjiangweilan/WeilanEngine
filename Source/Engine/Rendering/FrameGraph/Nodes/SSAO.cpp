@@ -4,7 +4,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include <random>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 #define SSAO_SAMPLE_COUNT 64
 class SSAONode : public Node
@@ -347,7 +347,7 @@ private:
         PropertyHandle color;
     } output;
 
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 DEFINE_FRAME_GRAPH_NODE(SSAONode, "D80FC5C3-E17B-45BD-90C8-C6384D6362A1");
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

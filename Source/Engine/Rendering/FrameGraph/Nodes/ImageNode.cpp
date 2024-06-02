@@ -1,6 +1,6 @@
 #include "ImageNode.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 DEFINE_OBJECT(ImageNode, "FE0667ED-89FA-4986-842B-158654543C18");
 
@@ -61,4 +61,4 @@ const Gfx::RG::ImageIdentifier& ImageNode::GetImage()
     return id;
 }
 char ImageNode::_reg = NodeBlueprintRegisteration::Register<ImageNode>("Image");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

@@ -3,7 +3,7 @@
 #include "Asset/Shader.hpp"
 #include "GfxDriver/Image.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class VarianceShadowMapNode : public Node
 {
@@ -265,4 +265,4 @@ private:
 
 char VarianceShadowMapNode::_reg = NodeBlueprintRegisteration::Register<VarianceShadowMapNode>("Variance Shadow Map");
 DEFINE_OBJECT(VarianceShadowMapNode, "BED9EF19-14FD-4FE9-959B-2410E44A5669");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

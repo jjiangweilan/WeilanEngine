@@ -4,7 +4,7 @@
 #include "Core/Model.hpp"
 #include <spdlog/spdlog.h>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class DeferredShadingNode : public Node
 {
@@ -191,5 +191,5 @@ private:
 };
 
 DEFINE_FRAME_GRAPH_NODE(DeferredShadingNode, "3D8FE097-C835-41EE-9C9C-8E8667DC4DFD");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
   //

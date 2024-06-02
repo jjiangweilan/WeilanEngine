@@ -39,7 +39,7 @@ public:
             auto payload = ImGui::AcceptDragDropPayload("object");
             if (payload && payload->IsDelivery())
             {
-                if (FrameGraph::Graph* fg = dynamic_cast<FrameGraph::Graph*>(*(Object**)payload->Data))
+                if (Rendering::FrameGraph::Graph* fg = dynamic_cast<Rendering::FrameGraph::Graph*>(*(Object**)payload->Data))
                 {
                     target->SetFrameGraph(fg);
                 }

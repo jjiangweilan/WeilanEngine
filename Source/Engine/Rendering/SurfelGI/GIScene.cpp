@@ -18,14 +18,14 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     cameraGO->SetPosition({0, 0, 0});
     cameraGO->SetEulerAngles({0, 0, 0});
 
-    FrameGraph::Graph graph;
+    Rendering::FrameGraph::Graph graph;
     surfelBakeNode = nullptr;
-    FrameGraph::Node* sceneSort = nullptr;
-    for (auto& bp : FrameGraph::NodeBlueprintRegisteration::GetNodeBlueprints())
+    Rendering::FrameGraph::Node* sceneSort = nullptr;
+    for (auto& bp : Rendering::FrameGraph::NodeBlueprintRegisteration::GetNodeBlueprints())
     {
         //if (bp.GetName() == "Surfel Bake Node")
         //{
-        //    surfelBakeNode = (FrameGraph::SurfelBakeFGNode*)&graph.AddNode(bp);
+        //    surfelBakeNode = (Rendering::FrameGraph::SurfelBakeFGNode*)&graph.AddNode(bp);
         //}
         //else if (bp.GetName() == "Scene Sort")
         //{

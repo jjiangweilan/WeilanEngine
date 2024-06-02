@@ -4,7 +4,7 @@
 #include "Core/Math/Geometry.hpp"
 #include <glm/glm.hpp>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class Graph;
 }
@@ -26,8 +26,8 @@ public:
     void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
     void SetProjectionMatrix(const glm::mat4& proj);
 
-    void SetFrameGraph(FrameGraph::Graph* graph);
-    FrameGraph::Graph* GetFrameGraph() const
+    void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
+    Rendering::FrameGraph::Graph* GetFrameGraph() const
     {
         return frameGraph;
     }
@@ -49,7 +49,7 @@ public:
 private:
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    FrameGraph::Graph* frameGraph = nullptr;
+    Rendering::FrameGraph::Graph* frameGraph = nullptr;
     float near;
     float far;
     float fov;

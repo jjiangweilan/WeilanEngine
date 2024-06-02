@@ -4,7 +4,7 @@
 #include "Core/Model.hpp"
 #include <spdlog/spdlog.h>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class LightingPassNode : public Node
 {
@@ -169,5 +169,5 @@ private:
 };
 
 DEFINE_FRAME_GRAPH_NODE(LightingPassNode, "92AECADA-9A17-4D88-9A01-FBB8F19E3173");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
   //

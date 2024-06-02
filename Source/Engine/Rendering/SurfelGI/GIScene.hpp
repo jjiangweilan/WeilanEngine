@@ -60,7 +60,7 @@ private:
     GameObject* cameraGO;
     Camera* bakerCamera;
     Scene* scene;
-    FrameGraph::SurfelBakeFGNode* surfelBakeNode;
+    Rendering::FrameGraph::SurfelBakeFGNode* surfelBakeNode;
     UniPtr<Gfx::Buffer> albedoBuf;
     UniPtr<Gfx::Buffer> positionBuf;
     UniPtr<Gfx::Buffer> normalBuf;

@@ -205,7 +205,7 @@ void GameView::Render(
         if (go)
         {
             auto mrs = go->GetComponentsInChildren<MeshRenderer>();
-            FrameGraph::DrawList drawList;
+            Rendering::FrameGraph::DrawList drawList;
             for (MeshRenderer* meshRenderer : mrs)
             {
                 if (meshRenderer)

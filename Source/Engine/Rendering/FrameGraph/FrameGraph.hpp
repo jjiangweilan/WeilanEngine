@@ -4,7 +4,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
-#include "RenderingData.hpp"
 
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
@@ -14,8 +13,9 @@
 #include <vector>
 
 class Texture;
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
+using namespace Rendering;
 class Graph : public Asset
 {
     DECLARE_ASSET();
@@ -206,4 +206,4 @@ private:
     void SortNodes();
 };
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

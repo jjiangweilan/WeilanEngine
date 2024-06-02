@@ -137,7 +137,7 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     return clone;
 }
 
-void Camera::SetFrameGraph(FrameGraph::Graph* graph)
+void Camera::SetFrameGraph(Rendering::FrameGraph::Graph* graph)
 {
     this->frameGraph = graph;
 }

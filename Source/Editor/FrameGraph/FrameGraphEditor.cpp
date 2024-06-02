@@ -5,10 +5,10 @@
 namespace Editor
 {
 namespace ed = ax::NodeEditor;
-namespace fg = FrameGraph;
+namespace fg = Rendering::FrameGraph;
 
 void FrameGraphEditor::DrawConfigurableField(
-    bool& openImageFormatPopup, const FrameGraph::Configurable*& targetConfig, const FrameGraph::Configurable& config
+    bool& openImageFormatPopup, const Rendering::FrameGraph::Configurable*& targetConfig, const Rendering::FrameGraph::Configurable& config
 )
 {
     if (config.type == fg::ConfigurableType::Bool)
@@ -137,7 +137,7 @@ void FrameGraphEditor::DrawConfigurableField(
         }
     }
 }
-void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph_)
+void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::FrameGraph::Graph& graph_)
 {
     this->graph = &graph_;
 
@@ -160,11 +160,11 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     ed::Begin("Frame Graph");
     {
         bool openImageFormatPopup = false;
-        static const FrameGraph::Configurable* targetConfig = nullptr;
+        static const Rendering::FrameGraph::Configurable* targetConfig = nullptr;
         if (graph)
         {
             int nodePushID = 0;
-            for (std::unique_ptr<FrameGraph::Node>& node : graph->GetNodes())
+            for (std::unique_ptr<Rendering::FrameGraph::Node>& node : graph->GetNodes())
             {
                 nodePushID += 1;
                 ImGui::PushID(nodePushID);
@@ -289,7 +289,7 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
         {
             if (ImGui::MenuItem(bp.GetName().c_str()))
             {
-                FrameGraph::Node& node = graph->AddNode(bp);
+                Rendering::FrameGraph::Node& node = graph->AddNode(bp);
                 ed::SetNodePosition(node.GetID(), ed::ScreenToCanvas(popupMousePos));
             }
         }
@@ -304,7 +304,7 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
         fg::FGID id = nodeContext.Get();
 
         fg::Node* n = graph->GetNode(id);
-        if (n->GetObjectTypeID() == FrameGraph::ImageNode::StaticGetObjectTypeID())
+        if (n->GetObjectTypeID() == Rendering::FrameGraph::ImageNode::StaticGetObjectTypeID())
         {
             if (ImGui::MenuItem("Set As Output Image"))
             {
@@ -351,14 +351,14 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, FrameGraph::
     ImGui::Text("Output Image: %s", outputImageName);
 }
 
-void FrameGraphEditor::DrawFloatProp(FrameGraph::Property& p) {}
+void FrameGraphEditor::DrawFloatProp(Rendering::FrameGraph::Property& p) {}
 
-void FrameGraphEditor::DrawImageProp(FrameGraph::Property& p)
+void FrameGraphEditor::DrawImageProp(Rendering::FrameGraph::Property& p)
 {
     // ImGui::Text("%s", p.GetName().c_str());
 }
 
-void FrameGraphEditor::DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
+void FrameGraphEditor::DrawProperty(Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
 {
     if (kind == ed::PinKind::Output)
         ImGui::Indent(330);

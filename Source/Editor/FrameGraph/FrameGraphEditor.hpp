@@ -13,10 +13,10 @@ struct FrameGraphNode
 class FrameGraphEditor
 {
 public:
-    void Draw(ax::NodeEditor::EditorContext* context, FrameGraph::Graph& graph);
+    void Draw(ax::NodeEditor::EditorContext* context, Rendering::FrameGraph::Graph& graph);
 
 private:
-    FrameGraph::Graph* graph = nullptr;
+    Rendering::FrameGraph::Graph* graph = nullptr;
     ax::NodeEditor::NodeId nodeContext;
 
     struct LinkInfo
@@ -26,17 +26,17 @@ private:
         ax::NodeEditor::PinId OutputId;
     };
 
-    void DrawProperty(FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
-    void DrawFloatProp(FrameGraph::Property& p);
-    void DrawImageProp(FrameGraph::Property& p);
+    void DrawProperty(Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
+    void DrawFloatProp(Rendering::FrameGraph::Property& p);
+    void DrawImageProp(Rendering::FrameGraph::Property& p);
 
     void DrawFloatConfig();
     void DrawVectorConfig();
 
     void DrawConfigurableField(
         bool& openImageFormatPopup,
-        const FrameGraph::Configurable*& targetConfig,
-        const FrameGraph::Configurable& config
+        const Rendering::FrameGraph::Configurable*& targetConfig,
+        const Rendering::FrameGraph::Configurable& config
     );
 };
 } // namespace Editor

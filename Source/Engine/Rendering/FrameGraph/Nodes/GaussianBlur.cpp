@@ -3,7 +3,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include <random>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class GaussianBlurNode : public Node
 {
@@ -124,7 +124,7 @@ private:
         PropertyHandle color;
     } output;
 
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 DEFINE_FRAME_GRAPH_NODE(GaussianBlurNode, "80E6C82C-9FD2-442D-9694-8DCD259A9A4D");
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

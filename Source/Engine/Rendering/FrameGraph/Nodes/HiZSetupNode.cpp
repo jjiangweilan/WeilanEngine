@@ -3,7 +3,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include <glm/glm.hpp>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class HiZSetupNode : public Node
 {
@@ -159,7 +159,7 @@ private:
             numWorkGroupsAndMips[1] = uint32_t((glm::min(floor(log2(float(resolution))), float(MAX_MIP))));
         }
     }
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 
 DEFINE_FRAME_GRAPH_NODE(HiZSetupNode, "C4147D77-145B-405F-9B02-CADF10CB4F86")
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

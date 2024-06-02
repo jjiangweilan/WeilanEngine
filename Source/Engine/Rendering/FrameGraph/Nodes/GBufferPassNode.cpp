@@ -4,7 +4,7 @@
 #include "Core/Model.hpp"
 #include <spdlog/spdlog.h>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class GBufferPassNode : public Node
 {
@@ -28,8 +28,7 @@ class GBufferPassNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -43,7 +42,7 @@ class GBufferPassNode : public Node
         clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, Rendering::RenderingData& renderingData) override
     {
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
@@ -160,5 +159,5 @@ private:
 };
 
 DEFINE_FRAME_GRAPH_NODE(GBufferPassNode, "BA901CE6-84C1-4689-A0E3-87E548314A45");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
   //

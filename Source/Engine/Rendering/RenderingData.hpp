@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
 class Camera;
 class Terrain;
-namespace FrameGraph
+namespace Rendering
 {
 static const int MAX_LIGHT_COUNT = 128; // defined in Commom.glsl
 
@@ -46,4 +46,4 @@ struct RenderingData
     Terrain* terrain;
     SceneInfo* sceneInfo;
 };
-} // namespace FrameGraph
+} // namespace Rendering

@@ -3,7 +3,7 @@
 #include "Asset/Shader.hpp"
 #include "GfxDriver/Image.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class ShadowMapNode : public Node
 {
@@ -100,4 +100,4 @@ private:
 
 char ShadowMapNode::_reg = NodeBlueprintRegisteration::Register<ShadowMapNode>("Shadow Map");
 DEFINE_OBJECT(ShadowMapNode, "A486879A-5EA3-456A-ACF0-ED3E536826A0");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

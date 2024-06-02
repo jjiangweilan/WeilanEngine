@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 #include <stack>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
 
@@ -484,4 +484,4 @@ const Gfx::RG::ImageIdentifier* Graph::GetOutputDepthImage()
 
     return nullptr;
 }
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

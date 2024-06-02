@@ -1,5 +1,5 @@
 #pragma once
-#include "../RenderingData.hpp"
+#include "../../RenderingData.hpp"
 #include "Asset/Material.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
@@ -12,7 +12,7 @@
 #include <vector>
 
 class MeshRenderer;
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 
 // frame graph ID, nodes, properties and links share the same id space
@@ -315,7 +315,7 @@ public:
         return id;
     }
     virtual void Compile() {}
-    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) {};
+    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData){};
 
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
@@ -454,7 +454,7 @@ private:
     std::string customName;
     std::vector<Configurable> configs;
 };
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
   //
 
 #define DECLARE_FRAME_GRAPH_NODE(className)                                                                            \

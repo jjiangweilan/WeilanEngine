@@ -5,12 +5,12 @@
 #include "Common/DeferredShading.glsl"
 
 #if CONFIG
-name: Game/StandardPBRLighting
-features:
-    - [_, _AlphaTest]
-depth:
-    testEnable: False
-debug: True
+name : Game / StandardPBRLighting
+features :
+    - [ _, _AlphaTest ]
+depth :
+testEnable : False
+debug : True
 #endif
 
 #define LOC_ShadowMapCS 5
@@ -115,8 +115,8 @@ float PointLightAttenuation(float distance, float t1, float t2)
     if (s < 1)
     {
         s *= s;
-        float n0 = (1-s);
-        return n0 * n0 / (1 + t1  * s);
+        float n0 = (1 - s);
+        return n0 * n0 / (1 + t1 * s);
     }
     else
         return 0;
@@ -177,16 +177,15 @@ void main()
     // vec3 emissive = texture(emissiveMap_sampler_linear, i_UV).xyz;
 
     o_Color = vec4(color + ambient, 1);
-
-    uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
-    uvec2 tileIndex2D = uvec2(viewCoord / 16);
-    uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
-    bool hasLight = false;
-    for (uint i = 0; i < 4; ++i)
-    {
-        hasLight = hasLight || (buckets[uint(tileIndex * 4 + i)] != 0);
-    }
-    if (hasLight)
-        o_Color += vec4(0.31, 0, 0, 1);
+    // uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
+    // uvec2 tileIndex2D = uvec2(viewCoord / 16);
+    // uint tileIndex = uint(tileIndex2D.x + tileIndex2D.y * tileSize.z);
+    // bool hasLight = false;
+    // for (uint i = 0; i < 4; ++i)
+    // {
+    //     hasLight = hasLight || (buckets[uint(tileIndex * 4 + i)] != 0);
+    // }
+    // if (hasLight)
+    //     o_Color += vec4(0.31, 0, 0, 1);
 }
 #endif

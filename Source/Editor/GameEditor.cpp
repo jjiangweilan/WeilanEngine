@@ -410,7 +410,7 @@ void GameEditor::MainMenuBar()
             }
             if (ImGui::MenuItem("Frame Graph"))
             {
-                auto graph = std::make_unique<FrameGraph::Graph>();
+                auto graph = std::make_unique<Rendering::FrameGraph::Graph>();
                 engine->assetDatabase->SaveAsset(std::move(graph), "new frame graph");
             }
             ImGui::EndMenu();

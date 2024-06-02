@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class SceneSortNode : public Node
 {
@@ -108,4 +108,4 @@ private:
 
 char SceneSortNode::_reg = NodeBlueprintRegisteration::Register<SceneSortNode>("Scene Sort");
 DEFINE_OBJECT(SceneSortNode, "24B2D306-5827-479E-A3C8-6B5D0742BCD8");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

@@ -1,6 +1,6 @@
 #include "../NodeBlueprint.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class CopyNode : public Node
 {
@@ -34,7 +34,7 @@ private:
         PropertyHandle target;
     } output;
 
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 DEFINE_FRAME_GRAPH_NODE(CopyNode, "996C6B2B-56D4-4DA2-B3E6-A73A0DDAF6B4");
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

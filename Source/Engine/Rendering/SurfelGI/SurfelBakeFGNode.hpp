@@ -2,7 +2,7 @@
 #include "Asset/Shader.hpp"
 #include "Rendering/FrameGraph/NodeBlueprint.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class SurfelBakeFGNode : public Node
 {
@@ -217,5 +217,5 @@ private:
         }
     }
     static char _reg;
-}; // namespace FrameGraph
-} // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
+} // namespace Rendering::FrameGraph

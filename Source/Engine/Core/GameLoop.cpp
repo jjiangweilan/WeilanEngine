@@ -43,7 +43,7 @@ const void GameLoop::Tick(
 
     // render
     auto camera = scene->GetMainCamera();
-    FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
+    Rendering::FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
 
     if (graph && graph->IsCompiled())
     {

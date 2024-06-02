@@ -3,7 +3,7 @@
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class SSRNode : public Node
 {
@@ -106,4 +106,4 @@ private:
 };
 
 DEFINE_FRAME_GRAPH_NODE(SSRNode, "131CD668-C0ED-4995-AB0F-444D33A0618B");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

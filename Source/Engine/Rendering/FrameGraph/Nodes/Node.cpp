@@ -2,7 +2,7 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 void Node::Serialize(Serializer* s) const
 {
@@ -253,4 +253,4 @@ void DrawList::Add(MeshRenderer& meshRenderer)
     }
 }
 
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph

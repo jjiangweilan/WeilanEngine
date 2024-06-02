@@ -1,7 +1,7 @@
 #pragma once
 #include "../NodeBlueprint.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class TerrainNode : public Node
 {
@@ -13,6 +13,6 @@ public:
 
     static char _reg;
 };
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
 
 #pragma once

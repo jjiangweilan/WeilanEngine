@@ -1,7 +1,7 @@
 #include "../NodeBlueprint.hpp"
 #include "Asset/Shader.hpp"
 
-namespace FrameGraph
+namespace Rendering::FrameGraph
 {
 class FullScreenPassNode : public Node
 {
@@ -98,9 +98,9 @@ private:
         output.color = AddOutputProperty("color", PropertyType::Attachment);
     }
     static char _reg;
-}; // namespace FrameGraph
+}; // namespace Rendering::FrameGraph
 
 char FullScreenPassNode::_reg = NodeBlueprintRegisteration::Register<FullScreenPassNode>("Full Screen Pass");
 
 DEFINE_OBJECT(FullScreenPassNode, "F52A89D5-D830-4DD2-84DF-6A82A5F9F4CD");
-} // namespace FrameGraph
+} // namespace Rendering::FrameGraph
