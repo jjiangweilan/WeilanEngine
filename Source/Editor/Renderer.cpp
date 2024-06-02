@@ -16,10 +16,11 @@ blend:
 blendOp:
 - add
 cull: none
+input:
+    aColor: {baseTypeSize: 1}
 #endif
 
 #if VERT
-#define aColor aColor_8
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aUV;
 layout(location = 2) in vec4 aColor;
@@ -38,11 +39,11 @@ void main()
 
 #if FRAG
 layout(location = 0) out vec4 fColor;
-layout(set=0, binding=0) uniform sampler2D sTexture_sampler;
+layout(set=0, binding=0) uniform sampler2D sTexture;
 layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 void main()
 {
-    fColor = In.Color * texture(sTexture_sampler, In.UV.st);
+    fColor = In.Color * texture(sTexture, In.UV.st);
 }
 #endif
 )";
@@ -62,9 +63,8 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
     compiler.Compile("", imguiShader);
 
     auto config = compiler.GetConfig();
-    auto& verSPV = compiler.GetVertexSPV();
-    auto& fragSPV = compiler.GetFragSPV();
-    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, verSPV, fragSPV);
+    
+    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, compiler.GetCompiledSpvs().at(0));
 
     this->fontImage = fontImage;
     this->finalImage = finalImage;

@@ -1,4 +1,5 @@
 #pragma once
+#include "GfxDriver/CompiledSpv.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Utils/EnumStringMapping.hpp"
 #include <filesystem>
@@ -15,13 +16,6 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
-
-struct CompiledSpv
-{
-    std::vector<uint32_t> vertSpv;
-    std::vector<uint32_t> fragSpv;
-    std::vector<uint32_t> compSpv;
-};
 
 class ShaderCompiler
 {
@@ -85,7 +79,7 @@ public:
         return compiledSpvs[0].fragSpv;
     }
 
-    const std::unordered_map<uint64_t, CompiledSpv>& GetCompiledSpvs()
+    std::unordered_map<uint64_t, Gfx::CompiledSpv>& GetCompiledSpvs()
     {
         return compiledSpvs;
     }
@@ -107,7 +101,7 @@ public:
     }
 
 private:
-    std::unordered_map<uint64_t, CompiledSpv> compiledSpvs;
+    std::unordered_map<uint64_t, Gfx::CompiledSpv> compiledSpvs;
 
     std::set<std::filesystem::path> includedTrack;
     std::shared_ptr<Gfx::ShaderConfig> config;
@@ -118,7 +112,7 @@ private:
 
     // shaderStage: VERT for vertex shader, FRAG for fragment shader, COMP for compute shader(COMP or not doesn't really
     // matter) actually matter)
-    std::vector<uint32_t> CompileShader(
+    void CompileShader(
         const char* shaderStage,
         shaderc_shader_kind kind,
         bool debug,
@@ -126,7 +120,9 @@ private:
         const char* buf,
         int bufSize,
         std::set<std::filesystem::path>& includedTrack,
-        const std::vector<std::string>& features
+        const std::vector<std::string>& features,
+        std::vector<uint32_t>& unoptimized,
+        std::vector<uint32_t>& optimized
     );
     std::vector<std::vector<std::string>> FeatureToCombinations(const std::vector<std::vector<std::string>>&);
     uint64_t GenerateFeatureCombination(

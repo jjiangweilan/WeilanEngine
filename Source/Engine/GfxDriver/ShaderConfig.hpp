@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
+#include <string>
 #include <vector>
 
 namespace Gfx
@@ -64,6 +65,8 @@ struct ShaderConfig
     } color;
 
     std::vector<std::vector<std::string>> features;
+
+    std::unordered_map<std::string, size_t> shaderInfoInputBaseTypeSizeOverride;
 
     bool operator==(const ShaderConfig& other) const noexcept = default;
 };

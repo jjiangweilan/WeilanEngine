@@ -215,7 +215,7 @@ bool Shader::LoadFromFile(const char* path)
             {
                 shaderPass->shaderPrograms[iter.first] =
                     GetGfxDriver()
-                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second);
             }
 
             shaderPass->name = shaderPassName;
@@ -233,7 +233,7 @@ bool Shader::LoadFromFile(const char* path)
             {
                 shaderPass->shaderPrograms[iter.first] =
                     GetGfxDriver()
-                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second.vertSpv, iter.second.fragSpv);
+                        ->CreateShaderProgram(path, compiler.GetConfig(), iter.second);
             }
 
             shaderPass->name = compiler.GetName();
@@ -272,7 +272,7 @@ bool ComputeShader::LoadFromFile(const char* path)
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPass->shaderPrograms[iter.first] =
-                GetGfxDriver()->CreateComputeShaderProgram(path, compiler.GetConfig(), iter.second.compSpv);
+                GetGfxDriver()->CreateShaderProgram(path, compiler.GetConfig(), iter.second);
         }
 
         this->name = compiler.GetName();

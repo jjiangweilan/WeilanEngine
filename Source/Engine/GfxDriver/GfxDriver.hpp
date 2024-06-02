@@ -4,6 +4,7 @@
 #include "CommandBuffer.hpp"
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
+#include "CompiledSpv.hpp"
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
@@ -84,24 +85,8 @@ public:
     virtual UniPtr<RenderPass> CreateRenderPass() = 0;
     virtual UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
     virtual UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
-    virtual UniPtr<ShaderProgram> CreateShaderProgram(
-        const std::string& name,
-        std::shared_ptr<const ShaderConfig> config,
-        const unsigned char* vert,
-        uint32_t vertSize,
-        const unsigned char* frag,
-        uint32_t fragSize
-    ) = 0;
-
     virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name,
-        std::shared_ptr<const ShaderConfig> config,
-        const std::vector<uint32_t>& vert,
-        const std::vector<uint32_t>& frag
-    ) = 0;
-
-    virtual std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
     ) = 0;
 
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;

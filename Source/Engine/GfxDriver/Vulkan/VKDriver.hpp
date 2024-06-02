@@ -77,27 +77,12 @@ public:
     UniPtr<RenderPass> CreateRenderPass() override;
     UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
     UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
-    UniPtr<ShaderProgram> CreateShaderProgram(
-        const std::string& name,
-        std::shared_ptr<const ShaderConfig> config,
-        const unsigned char* vert,
-        uint32_t vertSize,
-        const unsigned char* frag,
-        uint32_t fragSize
-    ) override;
     Window* CreateExtraWindow(SDL_Window* window) override;
     void DestroyExtraWindow(Window* window) override;
-
-    std::unique_ptr<ShaderProgram> CreateComputeShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
-    ) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name,
-        std::shared_ptr<const ShaderConfig> config,
-        const std::vector<uint32_t>& vert,
-        const std::vector<uint32_t>& frag
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
     ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;

@@ -5,12 +5,12 @@
 #include "Common/DeferredShading.glsl"
 
 #if CONFIG
-name : Game / StandardPBRLighting
-features :
+name: Game / StandardPBRLighting
+features:
     - [ _, _AlphaTest ]
-depth :
-testEnable : False
-debug : True
+depth:
+    testEnable: False
+debug: True
 #endif
 
 #define LOC_ShadowMapCS 5

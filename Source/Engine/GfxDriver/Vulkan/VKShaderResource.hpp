@@ -84,6 +84,8 @@ protected:
                 return std::get<SRef<Buffer>>(res) != nullptr;
             else if (type == ShaderBindingType::ImageView)
                 return std::get<SRef<ImageView>>(res) != nullptr;
+
+            return false;
         }
 
         void* GetRef()
@@ -92,8 +94,8 @@ protected:
                 return std::get<SRef<Buffer>>(res).Get();
             else if (type == ShaderBindingType::ImageView)
                 return std::get<SRef<ImageView>>(res).Get();
-            else
-                return nullptr;
+
+            return nullptr;
         }
 
         std::variant<SRef<ImageView>, SRef<Buffer>> res = SRef<ImageView>(nullptr);

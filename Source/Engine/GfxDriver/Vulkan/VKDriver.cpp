@@ -200,14 +200,11 @@ void VKDriver::ForceSyncResources()
 }
 
 std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
-    const std::string& name,
-    std::shared_ptr<const ShaderConfig> config,
-    const std::vector<uint32_t>& vert,
-    const std::vector<uint32_t>& frag
+    const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
 )
 {
     std::scoped_lock lock(driverMutex);
-    return std::make_unique<VKShaderProgram>(config, context, name, vert, frag);
+    return std::make_unique<VKShaderProgram>(config, context.get(), name, compiledSpv);
 }
 
 UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
@@ -244,18 +241,6 @@ UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUs
 {
     std::scoped_lock lock(driverMutex);
     return MakeUnique1<VKImage>(description, usages);
-}
-UniPtr<ShaderProgram> VKDriver::CreateShaderProgram(
-    const std::string& name,
-    std::shared_ptr<const ShaderConfig> config,
-    const unsigned char* vert,
-    uint32_t vertSize,
-    const unsigned char* frag,
-    uint32_t fragSize
-)
-{
-    std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKShaderProgram>(config, context, name, vert, vertSize, frag, fragSize);
 }
 
 void VKDriver::QueueSubmit(
@@ -469,13 +454,6 @@ void VKDriver::GenerateMipmaps(VKImage& image)
             );
         }
     );
-}
-
-std::unique_ptr<ShaderProgram> VKDriver::CreateComputeShaderProgram(
-    const std::string& name, std::shared_ptr<const ShaderConfig> config, const std::vector<uint32_t>& comp
-)
-{
-    return std::make_unique<VKShaderProgram>(config, context, name, comp);
 }
 
 std::unique_ptr<ImageView> VKDriver::CreateImageView(const ImageView::CreateInfo& createInfo)

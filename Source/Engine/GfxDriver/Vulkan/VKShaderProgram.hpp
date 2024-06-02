@@ -1,4 +1,5 @@
 #pragma once
+#include "../CompiledSpv.hpp"
 #include "../DescriptorSetSlot.hpp"
 #include "../ShaderProgram.hpp"
 #include "VKShaderInfo.hpp"
@@ -34,36 +35,11 @@ public:
     using SetNum = uint32_t;
     VKShaderProgram(
         std::shared_ptr<const ShaderConfig> config,
-        RefPtr<VKContext> context,
-        const std::string& name,
-        const unsigned char* vert,
-        uint32_t vertSize,
-        const unsigned char* frag,
-        uint32_t fragSize
-    );
-
-    VKShaderProgram(
-        std::shared_ptr<const ShaderConfig> config,
         VKContext* context,
         const std::string& name,
-        const unsigned char* compute,
-        uint32_t computeSize
+        CompiledSpv& compiledSpv
     );
 
-    VKShaderProgram(
-        std::shared_ptr<const ShaderConfig> config,
-        RefPtr<VKContext> context,
-        const std::string& name,
-        const std::vector<uint32_t>& comp
-    );
-
-    VKShaderProgram(
-        std::shared_ptr<const ShaderConfig> config,
-        RefPtr<VKContext> context,
-        const std::string& name,
-        const std::vector<uint32_t>& vert,
-        const std::vector<uint32_t>& frag
-    );
     VKShaderProgram(const VKShaderProgram& other) = delete;
     ~VKShaderProgram() override;
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "GfxDriver/ShaderConfig.hpp"
 #include <cinttypes>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -314,13 +315,32 @@ struct ShaderInfo
 
 namespace Utils
 {
-void Process(ShaderStageInfo& out, nlohmann::json& shaderReflect);
-void Process(StructuredData& out, nlohmann::json& typeJson, nlohmann::json& root, const std::string& memberName);
-void Process(PushConstants& out, ShaderStage::Flag stage, nlohmann::json& typeJson, nlohmann::json& root);
-void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root);
-void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root);
+// entry point
+void Process(ShaderStageInfo& out, nlohmann::json& shaderReflect, const ShaderConfig& config);
+
 void Process(
-    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root
+    StructuredData& out,
+    nlohmann::json& typeJson,
+    nlohmann::json& root,
+    const std::string& memberName,
+    const ShaderConfig& config
+);
+void Process(
+    PushConstants& out,
+    ShaderStage::Flag stage,
+    nlohmann::json& typeJson,
+    nlohmann::json& root,
+    const ShaderConfig& config
+);
+void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root, const ShaderConfig& config);
+void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root, const ShaderConfig& config);
+void Process(
+    Bindings& out,
+    BindingType type,
+    ShaderStage::Flag stage,
+    nlohmann::json& bindingsJson,
+    nlohmann::json& root,
+    const ShaderConfig& config
 );
 
 void Merge(ShaderInfo& to, const ShaderStageInfo& from);

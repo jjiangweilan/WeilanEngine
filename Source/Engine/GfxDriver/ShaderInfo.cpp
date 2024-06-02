@@ -65,15 +65,20 @@ ShaderDataType MapShaderDataType(const std::string& typeStr)
     return ShaderDataType::Vec4;
 }
 
-uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberName)
+uint32_t MapTypeToSize(
+    const std::string& typeName,
+    const std::string& memberName,
+    const std::unordered_map<std::string, size_t>& baseTypeSizeOverride
+)
 {
     std::string lowerName = ::Utils::strTolower(memberName);
 
     uint32_t baseTypeSize = 4;
-    if (lowerName.find("_16") != lowerName.npos)
-        baseTypeSize = 2;
-    else if (lowerName.find("_8") != lowerName.npos)
-        baseTypeSize = 1;
+    auto baseTypeSizeOverrideIter = baseTypeSizeOverride.find(memberName);
+    if (baseTypeSizeOverrideIter != baseTypeSizeOverride.end())
+    {
+        baseTypeSize = baseTypeSizeOverrideIter->second;
+    }
     // if (lowerName.find("color") != lowerName.npos)
     //{
     //     if (lowerName.find("16") != lowerName.npos)
@@ -104,7 +109,13 @@ uint32_t MapTypeToSize(const std::string& typeName, const std::string& memberNam
     return 0;
 }
 
-void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& root, const std::string& memberName)
+void Process(
+    StructuredData& data,
+    nlohmann::json& typeJson,
+    nlohmann::json& root,
+    const std::string& memberName,
+    const ShaderConfig& config
+)
 {
     data.type = MapShaderDataType(typeJson);
     if (data.type == ShaderDataType::Structure)
@@ -118,7 +129,7 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
             Member member;
             member.name = memJson.at("name");
             member.data = MakeUnique<StructuredData>();
-            Process(*member.data, memJson.at("type"), root, member.name);
+            Process(*member.data, memJson.at("type"), root, member.name, config);
 
             if (memJson.contains("array"))
             {
@@ -169,11 +180,11 @@ void Process(StructuredData& data, nlohmann::json& typeJson, nlohmann::json& roo
     else
     {
         data.name = typeJson;
-        data.size = MapTypeToSize(typeJson, memberName);
+        data.size = MapTypeToSize(typeJson, memberName, config.shaderInfoInputBaseTypeSizeOverride);
     }
 }
 
-void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root)
+void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root, const ShaderConfig& config)
 {
     out.clear();
     out.resize(inputsJson.size());
@@ -183,14 +194,14 @@ void Process(Inputs& out, nlohmann::json& inputsJson, nlohmann::json& root)
         Input input;
         input.location = inputJson.at("location");
         input.name = inputJson.at("name");
-        Process(input.data, inputJson.at("type"), root, input.name);
+        Process(input.data, inputJson.at("type"), root, input.name, config);
 
         out[i] = std::move(input);
         i--;
     }
 }
 
-void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root)
+void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root, const ShaderConfig& config)
 {
     out.clear();
     for (auto& outputJson : outputsJson)
@@ -198,12 +209,18 @@ void Process(Outputs& out, nlohmann::json& outputsJson, nlohmann::json& root)
         Output output;
         output.location = outputJson.at("location");
         output.name = outputJson.at("name");
-        Process(output.data, outputJson.at("type"), root, "");
+        Process(output.data, outputJson.at("type"), root, "", config);
         out.push_back(std::move(output));
     }
 }
 
-void Process(PushConstants& data, ShaderStage::Flag stage, nlohmann::json& pushConstantsJson, nlohmann::json& root)
+void Process(
+    PushConstants& data,
+    ShaderStage::Flag stage,
+    nlohmann::json& pushConstantsJson,
+    nlohmann::json& root,
+    const ShaderConfig& config
+)
 {
     for (auto& pushConstantJson : pushConstantsJson)
     {
@@ -212,7 +229,7 @@ void Process(PushConstants& data, ShaderStage::Flag stage, nlohmann::json& pushC
         {
             PushConstant pushConstant;
             pushConstant.stages = stage;
-            Process(pushConstant.data, pushConstantJson.at("type"), root, "");
+            Process(pushConstant.data, pushConstantJson.at("type"), root, "", config);
 
             // push constant is a bit special here, spirv-cross reports the name in pushConstantJson as "pushConstant",
             // so we use the data's name instead
@@ -256,20 +273,20 @@ SamplerFilterMode MapStringToSamplerFilterMode(std::string_view str)
     return SamplerFilterMode::Point;
 }
 
-void Process(ShaderStageInfo& out, nlohmann::json& sr)
+void Process(ShaderStageInfo& out, nlohmann::json& sr, const ShaderConfig& config)
 {
     out.name = sr.at("spvPath");
     assert(sr["entryPoints"].size() == 1);
     out.stage = MapStage(sr["entryPoints"][0]["mode"]);
     if (sr.contains("inputs"))
-        Process(out.inputs, sr["inputs"], sr);
+        Process(out.inputs, sr["inputs"], sr, config);
     std::sort(
         out.inputs.begin(),
         out.inputs.end(),
         [](const Input& l, const Input& r) { return l.location < r.location; }
     );
     if (sr.contains("outputs"))
-        Process(out.outputs, sr["outputs"], sr);
+        Process(out.outputs, sr["outputs"], sr, config);
 
     std::sort(
         out.outputs.begin(),
@@ -277,23 +294,28 @@ void Process(ShaderStageInfo& out, nlohmann::json& sr)
         [](const Output& l, const Output& r) { return l.location < r.location; }
     );
     if (sr.contains("push_constants"))
-        Process(out.pushConstants, out.stage, sr["push_constants"], sr);
+        Process(out.pushConstants, out.stage, sr["push_constants"], sr, config);
     if (sr.contains("ubos"))
-        Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr);
+        Process(out.bindings, BindingType::UBO, out.stage, sr["ubos"], sr, config);
     if (sr.contains("ssbos"))
-        Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr);
+        Process(out.bindings, BindingType::SSBO, out.stage, sr["ssbos"], sr, config);
     if (sr.contains("textures")) // combined sampler and texture
-        Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr);
+        Process(out.bindings, BindingType::Texture, out.stage, sr["textures"], sr, config);
     if (sr.contains("separate_images")) // separated sampled texture
-        Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr);
+        Process(out.bindings, BindingType::SeparateImage, out.stage, sr["separate_images"], sr, config);
     if (sr.contains("separate_samplers"))
-        Process(out.bindings, BindingType::SeparateSampler, out.stage, sr["separate_samplers"], sr);
+        Process(out.bindings, BindingType::SeparateSampler, out.stage, sr["separate_samplers"], sr, config);
     if (sr.contains("images")) // storage images
-        Process(out.bindings, BindingType::StorageImage, out.stage, sr["images"], sr);
+        Process(out.bindings, BindingType::StorageImage, out.stage, sr["images"], sr, config);
 }
 
 void Process(
-    Bindings& out, BindingType type, ShaderStage::Flag stage, nlohmann::json& bindingsJson, nlohmann::json& root
+    Bindings& out,
+    BindingType type,
+    ShaderStage::Flag stage,
+    nlohmann::json& bindingsJson,
+    nlohmann::json& root,
+    const ShaderConfig& config
 )
 {
     for (auto& bindingJson : bindingsJson)
@@ -311,13 +333,13 @@ void Process(
                 case BindingType::UBO:
                     {
                         new (&b.binding.ubo) UBO();
-                        Process(b.binding.ubo.data, bindingJson["type"], root, "");
+                        Process(b.binding.ubo.data, bindingJson["type"], root, "", config);
                         break;
                     }
                 case BindingType::SSBO:
                     {
                         new (&b.binding.ssbo) SSBO();
-                        Process(b.binding.ssbo.data, bindingJson["type"], root, "");
+                        Process(b.binding.ssbo.data, bindingJson["type"], root, "", config);
                         break;
                     }
                 case BindingType::StorageImage:

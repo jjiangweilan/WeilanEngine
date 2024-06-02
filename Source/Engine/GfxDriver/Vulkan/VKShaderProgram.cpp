@@ -122,74 +122,57 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
 }
 
 VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config,
-    RefPtr<VKContext> context,
-    const std::string& name,
-    const std::vector<uint32_t>& vert,
-    const std::vector<uint32_t>& frag
+    std::shared_ptr<const ShaderConfig> config, VKContext* context, const std::string& name, CompiledSpv& compiledSpv
 )
-    : VKShaderProgram(
-          config,
-          context,
-          name,
-          (const unsigned char*)&vert[0],
-          vert.size() * sizeof(uint32_t),
-          (const unsigned char*)&frag[0],
-          frag.size() * sizeof(uint32_t)
-      )
-{}
-VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config,
-    VKContext* context,
-    const std::string& name,
-    const unsigned char* compute,
-    uint32_t computeSize
-)
-    : ShaderProgram(true), name(name), objManager(context->objManager)
+    : ShaderProgram(compiledSpv.compSpv.size() != 0), name(name), objManager(context->objManager)
 {
-    computeShaderModule = std::make_unique<VKShaderModule>(name, compute, computeSize, false);
+    // compile as a compute shader
+    if (compiledSpv.compSpv.size() != 0)
+    {
+        computeShaderModule = std::make_unique<VKShaderModule>(
+            name,
+            (const unsigned char*)compiledSpv.compSpv_noOp.data(),
+            compiledSpv.compSpv_noOp.size() * sizeof(uint32_t),
+            (const unsigned char*)compiledSpv.compSpv.data(),
+            compiledSpv.compSpv.size() * sizeof(uint32_t),
+            false,
+            *config
+        );
 
-    ShaderInfo::Utils::Merge(shaderInfo, computeShaderModule->GetShaderInfo());
-    CreateShaderPipeline(config, computeShaderModule.get());
-}
+        ShaderInfo::Utils::Merge(shaderInfo, computeShaderModule->GetShaderInfo());
+        CreateShaderPipeline(config, computeShaderModule.get());
+    }
+    else
+    {
+        bool vertInterleaved = true;
+        if (config != nullptr)
+            vertInterleaved = config->vertexInterleaved;
 
-VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config,
-    RefPtr<VKContext> context,
-    const std::string& name,
-    const std::vector<uint32_t>& comp
-)
-    : VKShaderProgram(config, context.Get(), name, (const unsigned char*)&comp[0], comp.size() * sizeof(uint32_t))
-{}
+        vertShaderModule = MakeUnique<VKShaderModule>(
+            name,
+            (const unsigned char*)compiledSpv.vertSpv_noOp.data(),
+            compiledSpv.vertSpv_noOp.size() * sizeof(uint32_t),
+            (const unsigned char*)compiledSpv.vertSpv.data(),
+            compiledSpv.vertSpv.size() * sizeof(uint32_t),
+            vertInterleaved,
+            *config
+        ); // the  namespace is necessary to pass MSVC compilation
+        fragShaderModule = MakeUnique<VKShaderModule>(
+            name,
+            (const unsigned char*)compiledSpv.fragSpv_noOp.data(),
+            compiledSpv.fragSpv_noOp.size() * sizeof(uint32_t),
+            (const unsigned char*)compiledSpv.fragSpv.data(),
+            compiledSpv.fragSpv.size() * sizeof(uint32_t),
+            vertInterleaved,
+            *config
+        );
 
-VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config,
-    RefPtr<VKContext> context,
-    const std::string& name,
-    const unsigned char* vertCode,
-    uint32_t vertSize,
-    const unsigned char* fragCode,
-    uint32_t fragSize
-)
-    : ShaderProgram(false), name(name), objManager(context->objManager)
-{
-    bool vertInterleaved = true;
-    if (config != nullptr)
-        vertInterleaved = config->vertexInterleaved;
+        // combine ShaderStageInfo into ShaderInfo
+        ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
+        ShaderInfo::Utils::Merge(shaderInfo, fragShaderModule->GetShaderInfo());
 
-    vertShaderModule = MakeUnique<VKShaderModule>(
-        name,
-        vertCode,
-        vertSize,
-        vertInterleaved
-    ); // the  namespace is necessary to pass MSVC compilation
-    fragShaderModule = MakeUnique<VKShaderModule>(name, fragCode, fragSize, vertInterleaved);
-
-    // combine ShaderStageInfo into ShaderInfo
-    ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
-    ShaderInfo::Utils::Merge(shaderInfo, fragShaderModule->GetShaderInfo());
-
-    CreateShaderPipeline(config, fragShaderModule.get());
+        CreateShaderPipeline(config, fragShaderModule.get());
+    }
 }
 
 VKShaderProgram::~VKShaderProgram()
