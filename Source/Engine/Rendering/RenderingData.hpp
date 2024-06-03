@@ -1,4 +1,5 @@
 #pragma once
+#include "Rendering/DrawList.hpp"
 #include <glm/glm.hpp>
 class Camera;
 class Terrain;
@@ -45,5 +46,6 @@ struct RenderingData
     Camera* mainCamera;
     Terrain* terrain;
     SceneInfo* sceneInfo;
+    DrawList* drawList;
 };
 } // namespace Rendering

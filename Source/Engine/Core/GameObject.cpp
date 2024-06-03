@@ -31,6 +31,12 @@ void GameObject::ResetTransform()
     eulerAngles = glm::vec3(0, 0, 0);
 }
 
+std::unique_ptr<Asset> GameObject::Clone()
+{
+    auto clone = std::make_unique<GameObject>(*this);
+    return clone;
+}
+
 GameObject::GameObject(const GameObject& other)
 {
     SetName(other.GetName());

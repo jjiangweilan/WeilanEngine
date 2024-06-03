@@ -30,6 +30,8 @@ public:
     GameObject(const GameObject& other);
     GameObject();
     ~GameObject();
+
+    std::unique_ptr<Asset> Clone() override;
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
 

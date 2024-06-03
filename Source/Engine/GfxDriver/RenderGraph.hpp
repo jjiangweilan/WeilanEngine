@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Image.hpp"
 #include "Libs/UUID.hpp"
 #include "ResourceHandle.hpp"

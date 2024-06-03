@@ -57,6 +57,8 @@ public:
         return materials;
     }
 
+    Material* GetDefaultMaterial();
+
 private:
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
@@ -65,4 +67,7 @@ private:
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;
     std::unordered_map<int, Material*> toOurMaterial;
+
+    // per model default material
+    std::unique_ptr<Material> material = nullptr;
 };

@@ -168,10 +168,13 @@ void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelec
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
     if (ImGui::IsItemHovered())
     {
+        // select game object
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
             EditorState::selectedObject = go->GetSRef();
         }
+
+        // open context tree
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
         {
             sceneTreeContextObject = go;
@@ -279,7 +282,60 @@ void GameEditor::SceneTree(Scene& scene)
     {
         SceneTree(root, ++imguiTreeId, currentSelected, autoExpand);
     }
+
     ImGui::End();
+
+    // context menu of scene tree
+    static const char* gameObjectContextMenu = "GameObject Context Menu";
+    static const char* sceneTreeContextMenu = "Scene Tree Context Menu";
+    if (beginSceneTreeContextPopup)
+    {
+        beginSceneTreeContextPopup = false;
+        ImGui::OpenPopup(gameObjectContextMenu);
+    }
+
+    if (ImGui::BeginPopup(gameObjectContextMenu))
+    {
+        if (ImGui::Button("Delete"))
+        {
+            EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
+            ImGui::CloseCurrentPopup();
+            sceneTreeContextObject = nullptr;
+        }
+        ImGui::EndPopup();
+    }
+
+    // scene tree context menu
+    if (!ImGui::IsPopupOpen(gameObjectContextMenu) && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+    {
+        ImGui::OpenPopup(sceneTreeContextMenu);
+    }
+    if (ImGui::BeginPopup(sceneTreeContextMenu))
+    {
+        if (ImGui::BeginMenu("Create 3D Objects"))
+        {
+            if (ImGui::MenuItem("Cube"))
+            {
+                auto model =
+                    static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Cube.glb"));
+                auto gameObjects = model->CreateGameObject();
+                auto cube = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
+                std::unique_ptr<GameObject> cubeClone(static_cast<GameObject*>(cube->Clone().release()));
+                scene.AddGameObject(std::move(cubeClone));
+            }
+            else if (ImGui::MenuItem("Plane"))
+            {
+                auto model =
+                    static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"));
+                auto gameObjects = model->CreateGameObject();
+                auto plane = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
+                std::unique_ptr<GameObject> planeClone(static_cast<GameObject*>(plane->Clone().release()));
+                scene.AddGameObject(std::move(planeClone));
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndPopup();
+    }
 }
 
 static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
@@ -537,25 +593,7 @@ void GameEditor::GUIPass()
 
     if (EditorState::activeScene)
     {
-        if (EditorState::activeScene)
-            SceneTree(*EditorState::activeScene);
-
-        if (beginSceneTreeContextPopup)
-        {
-            beginSceneTreeContextPopup = false;
-            ImGui::OpenPopup("GameObject Context Menu");
-        }
-
-        if (ImGui::BeginPopup("GameObject Context Menu"))
-        {
-            if (ImGui::Button("Delete"))
-            {
-                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
-                ImGui::CloseCurrentPopup();
-                sceneTreeContextObject = nullptr;
-            }
-            ImGui::EndPopup();
-        }
+        SceneTree(*EditorState::activeScene);
     }
 
     ConsoleOutputWindow();
@@ -917,8 +955,8 @@ static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
     //     HWND hwnd = (HWND)viewport->PlatformHandleRaw;
     //
     //     // SDL hack: Hide icon from task bar
-    //     // Note: SDL 2.0.6+ has a SDL_WINDOW_SKIP_TASKBAR flag which is supported under Windows but the way it create
-    //     the
+    //     // Note: SDL 2.0.6+ has a SDL_WINDOW_SKIP_TASKBAR flag which is supported under Windows but the way it
+    //     create the
     //     // window breaks our seamless transition.
     //     if (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
     //     {
@@ -1033,8 +1071,8 @@ static void ImGui_GfxDriver_SwapBuffers(ImGuiViewport* viewport, void*)
 
 void GameEditor::EnableMultiViewport()
 {
-    // bug: when there is not imgui.init and the initial window size is out of main viewport, there is an extra viewport
-    // will be created, which SDL can't successfully create
+    // bug: when there is not imgui.init and the initial window size is out of main viewport, there is an extra
+    // viewport will be created, which SDL can't successfully create
 
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     platform_io.Platform_CreateWindow = ImGui_ImplSDL2_CreateWindow;

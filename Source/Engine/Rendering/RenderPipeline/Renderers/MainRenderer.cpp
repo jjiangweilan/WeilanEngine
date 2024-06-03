@@ -7,13 +7,23 @@
 namespace Rendering
 {
 
-MainRenderer::MainRenderer() {}
+MainRenderer::MainRenderer()
+{
+    CreateCameraImages();
+}
 
 void MainRenderer::Setup(Camera& camera, Gfx::CommandBuffer& cmd)
 {
     auto scene = camera.GetScene();
     if (scene == nullptr)
         return;
+
+    SetupFrame(camera, cmd);
+}
+
+void MainRenderer::SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd)
+{
+    auto scene = camera.GetScene();
 
     renderingData.mainCamera = &camera;
     renderingData.sceneInfo = &sceneInfo;
@@ -81,15 +91,13 @@ void MainRenderer::Setup(Camera& camera, Gfx::CommandBuffer& cmd)
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
     cmd.SetBuffer("Global", *shaderGlobalBuffer);
 }
-void MainRenderer::Execute(Gfx::CommandBuffer& cmd)
+
+void MainRenderer::Execute(Gfx::CommandBuffer& cmd) {}
+
+void MainRenderer::CreateCameraImages()
 {
-    // for (auto& n : sortedNodes)
-    // {
-    //     float color[4] = {0.235294f, 0.882353f, 0.941176f, 1.0f};
-    //     cmd.BeginLabel(n->GetCustomName(), color);
-    //     n->Execute(cmd, renderingData);
-    //     cmd.EndLabel();
-    // }
+    mainColor = Gfx::RG::ImageIdentifier("_MainColor");
+    mainColor = Gfx::RG::ImageIdentifier("_MainDepth");
 }
 
 void MainRenderer::ProcessLights(Scene& gameScene)

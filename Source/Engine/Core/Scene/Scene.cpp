@@ -24,6 +24,7 @@ GameObject* Scene::CreateGameObject()
 void Scene::AddGameObject(GameObject* newGameObject)
 {
     newGameObject->SetScene(this);
+    newGameObject->SetEnable(true);
     roots.push_back(newGameObject);
     externalGameObjects.push_back(newGameObject);
 }
@@ -32,6 +33,9 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
 {
     GameObject* temp = newGameObject.get();
     gameObjects.push_back(std::move(newGameObject));
+    
+    temp->SetScene(this);
+    temp->SetEnable(true);
     if (temp->GetParent() == nullptr)
     {
         roots.push_back(temp);

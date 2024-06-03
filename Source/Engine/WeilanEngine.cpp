@@ -4,7 +4,6 @@
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #endif
-#include "Physics/Physics.hpp"
 #include <iostream>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
