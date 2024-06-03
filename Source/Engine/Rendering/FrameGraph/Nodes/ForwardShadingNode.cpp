@@ -53,7 +53,7 @@ public:
         drawList = input.drawList->GetValue<DrawList*>();
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         MakeCloudNoise(cmd);
 

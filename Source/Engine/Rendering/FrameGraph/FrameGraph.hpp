@@ -186,7 +186,7 @@ private:
     bool compiled = false;
     Node* outputImageNode = nullptr;
     Node* outputDepthImageNode = nullptr;
-    RenderingData renderingData;
+    FrameData renderingData;
 
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
     std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;

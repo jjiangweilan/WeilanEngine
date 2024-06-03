@@ -28,7 +28,8 @@ class GBufferPassNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -42,7 +43,7 @@ class GBufferPassNode : public Node
         clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, Rendering::RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, Rendering::FrameData& renderingData) override
     {
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();

@@ -14,10 +14,10 @@ GBufferPass::GBufferPass()
     gbufferPass.SetSubpass(0, subpassAttachments, depth);
 }
 
-void GBufferPass::Execute(Gfx::CommandBuffer& cmd, Rendering::RenderingData& renderingData, GBufferPassSetting& setting)
+void GBufferPass::Execute(Gfx::CommandBuffer& cmd, FrameData& frameData, GBufferPassSetting& setting)
 {
 
-    drawList = renderingData.drawList;
+    drawList = frameData.drawList;
 
     int rtWidth = input.colorDesc.GetWidth();
     int rtHeight = input.colorDesc.GetHeight();

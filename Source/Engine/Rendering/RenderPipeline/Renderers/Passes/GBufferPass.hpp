@@ -3,19 +3,18 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Rendering/DrawList.hpp"
-#include "Rendering/RenderingData.hpp"
+#include "Rendering/FrameData.hpp"
 
 namespace Rendering
 {
-
-struct GBufferPassSetting
-{
-    glm::vec4 clearValuesVal;
-};
-
 class GBufferPass
 {
 public:
+    struct Setting
+    {
+        glm::vec4 clearValuesVal;
+    };
+
     struct
     {
         Gfx::RG::ImageIdentifier color;
@@ -31,7 +30,7 @@ public:
     } output;
 
     GBufferPass();
-    void Execute(Gfx::CommandBuffer& cmd, Rendering::RenderingData& renderingData, GBufferPassSetting& setting);
+    void Execute(Gfx::CommandBuffer& cmd, Rendering::FrameData& frameData, Setting& setting);
 
 private:
     const DrawList* drawList;

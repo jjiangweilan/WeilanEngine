@@ -1,6 +1,6 @@
 #pragma once
 #include "../../DrawList.hpp"
-#include "../../RenderingData.hpp"
+#include "../../FrameData.hpp"
 #include "Asset/Material.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
@@ -290,7 +290,7 @@ public:
         return id;
     }
     virtual void Compile() {}
-    virtual void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData){};
+    virtual void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) {};
 
     virtual void OnDestroy() {}
     std::span<Property> GetInput()

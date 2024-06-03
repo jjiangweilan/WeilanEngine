@@ -15,17 +15,17 @@ class TileBasedShadingComputeNode : public Node
             "_engine_internal/Shaders/Game/TileBasedShading/TileCompute.comp"
         );
         tilesCullingUbo = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
-                .usages = Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
-                .size = 20, // vec4 + float
-                .visibleInCPU = false,
-                .debugName = "tile culling ubo",
-                .gpuWrite = false
-                });
+            .usages = Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
+            .size = 20, // vec4 + float
+            .visibleInCPU = false,
+            .debugName = "tile culling ubo",
+            .gpuWrite = false
+        });
     }
 
     void Compile() override {}
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         int xTileCount, yTileCount;
         PrepareAndPreprocess(renderingData.screenSize, xTileCount, yTileCount);

@@ -1,8 +1,5 @@
 #include "../NodeBlueprint.hpp"
-#include "Asset/Shader.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
-#include <spdlog/spdlog.h>
 
 namespace Rendering::FrameGraph
 {
@@ -59,7 +56,7 @@ class DeferredShadingNode : public Node
         clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
 #if ENGINE_DEV_BUILD
         lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
@@ -111,7 +108,7 @@ class DeferredShadingNode : public Node
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
                 cmd.BindResource(2, draw.shaderResource);
-                cmd.SetPushConstant(draw.shader->GetShaderProgram(0,0), (void*)&draw.pushConstant);
+                cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
         }

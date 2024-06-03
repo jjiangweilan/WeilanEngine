@@ -159,7 +159,7 @@ class SSAONode : public Node
         passResource->SetBuffer("SSAOParam", ssaoParamBuf.get());
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
         if (*enable)

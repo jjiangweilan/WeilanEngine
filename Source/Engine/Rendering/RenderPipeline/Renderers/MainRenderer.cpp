@@ -3,6 +3,8 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
+#include "Rendering/RenderingUtils.hpp"
 
 namespace Rendering
 {
@@ -12,21 +14,45 @@ MainRenderer::MainRenderer()
     CreateCameraImages();
 }
 
-void MainRenderer::Setup(Camera& camera, Gfx::CommandBuffer& cmd)
+void MainRenderer::Setup(Gfx::CommandBuffer& cmd, FrameData& frameData)
 {
-    auto scene = camera.GetScene();
+    auto scene = frameData.mainCamera->GetScene();
     if (scene == nullptr)
         return;
 
-    SetupFrame(camera, cmd);
+    SetupFrame(cmd, frameData);
+    PassesSetup(cmd, frameData);
 }
 
-void MainRenderer::SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd)
+void MainRenderer::PassesSetup(Gfx::CommandBuffer& cmd, FrameData& frameData)
 {
+    // setup gbuffer
+    Gfx::RG::ImageDescription colorDesc(
+        frameData.screenSize.x,
+        frameData.screenSize.y,
+        Gfx::ImageFormat::R16G16B16A16_SFloat
+    );
+    RenderingUtils::DynamicScaleImageDescription(colorDesc, {rendererData.renderScale, rendererData.renderScale});
+    Gfx::RG::ImageDescription depthDesc(
+        colorDesc.GetWidth(),
+        colorDesc.GetHeight(),
+        Gfx::ImageFormat::D32_SFLOAT_S8_UInt
+    );
+
+    cmd.AllocateAttachment(mainColor, colorDesc);
+    gbuffer.pass.input.color = mainColor;
+    gbuffer.pass.input.depth = mainDepth;
+    gbuffer.pass.input.colorDesc = colorDesc;
+}
+
+void MainRenderer::SetupFrame(Gfx::CommandBuffer& cmd, FrameData& frameData)
+{
+    auto& camera = *frameData.mainCamera;
+
     auto scene = camera.GetScene();
 
-    renderingData.mainCamera = &camera;
-    renderingData.sceneInfo = &sceneInfo;
+    frameData.mainCamera = &camera;
+    frameData.sceneInfo = &sceneInfo;
 
     auto sceneEnvironment = scene->GetRenderingScene().GetSceneEnvironment();
 
@@ -38,7 +64,7 @@ void MainRenderer::SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd)
     if (specularCube)
         cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
-    renderingData.terrain = scene->GetRenderingScene().GetTerrain();
+    frameData.terrain = scene->GetRenderingScene().GetTerrain();
     GameObject* camGo = camera.GetGameObject();
 
     glm::mat4 viewMatrix = camera.GetViewMatrix();
@@ -70,10 +96,10 @@ void MainRenderer::SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd)
         camera.GetProjectionTop()
     );
     sceneInfo.screenSize = glm::vec4(
-        renderingData.screenSize.x,
-        renderingData.screenSize.y,
-        1.0f / renderingData.screenSize.x,
-        1.0f / renderingData.screenSize.y
+        frameData.screenSize.x,
+        frameData.screenSize.y,
+        1.0f / frameData.screenSize.x,
+        1.0f / frameData.screenSize.y
     );
     ProcessLights(*scene);
 
@@ -92,7 +118,10 @@ void MainRenderer::SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd)
     cmd.SetBuffer("Global", *shaderGlobalBuffer);
 }
 
-void MainRenderer::Execute(Gfx::CommandBuffer& cmd) {}
+void MainRenderer::Execute(Gfx::CommandBuffer& cmd, FrameData& frameData)
+{
+    PassesSetup(cmd, frameData);
+}
 
 void MainRenderer::CreateCameraImages()
 {
@@ -111,7 +140,6 @@ void MainRenderer::ProcessLights(Scene& gameScene)
         sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetModelMatrix();
-        glm::vec4 position{};
         switch (lights[i]->GetLightType())
         {
             case LightType::Directional:

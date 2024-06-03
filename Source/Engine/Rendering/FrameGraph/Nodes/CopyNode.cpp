@@ -16,7 +16,7 @@ class CopyNode : public Node
 
     void Compile() override {}
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         cmd.Blit(input.source->GetValue<AttachmentProperty>().id, input.target->GetValue<AttachmentProperty>().id);
         output.target->SetValue(input.target->GetValue<AttachmentProperty>());

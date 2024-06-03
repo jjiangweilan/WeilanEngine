@@ -1,35 +1,36 @@
-#include "../NodeBlueprint.hpp"
+#pragma once
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Model.hpp"
+#include "GfxDriver/RenderGraph.hpp"
+#include "Rendering/DrawList.hpp"
+#include "Rendering/FrameData.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Rendering::FrameGraph
+namespace Rendering
 {
-class LightingPassNode : public Node
+class DeferredShading
 {
-    DECLARE_FRAME_GRAPH_NODE(LightingPassNode)
+public:
+    struct Setting
     {
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.albedo = AddInputProperty("albedo", PropertyType::Attachment);
-        input.normal = AddInputProperty("normal", PropertyType::Attachment);
-        input.mask = AddInputProperty("mask", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
+        glm::vec4 clearValues;
+        float shadowConstantBias = 0.0003f;
+        float shadowNormalBias = 0.1f;
+    };
+    struct
+    {
+        Gfx::RG::ImageIdentifier color;
+        Gfx::RG::ImageDescription colorDesc;
+        Gfx::RG::ImageIdentifier albedo;
+        Gfx::RG::ImageIdentifier normal;
+        Gfx::RG::ImageIdentifier mask;
+        Gfx::RG::ImageIdentifier depth;
+        Gfx::RG::ImageIdentifier shadowMap;
+        Gfx::Buffer* tileBuffer;
+    } input;
 
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
-        output.normal = AddOutputProperty("normal", PropertyType::Attachment);
-        output.mask = AddOutputProperty("mask", PropertyType::Attachment);
-        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
-
-        input.tileBuffer = AddInputProperty("tile buffer", PropertyType::GfxBuffer);
-
-        AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
-        AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
-        AddConfig<ConfigurableType::Float>("shadow constant bias", 0.0003f);
-        AddConfig<ConfigurableType::Float>("shadow normal bias", 0.1f);
-
+    DeferredShading()
+    {
         lightingPass = Gfx::RG::RenderPass(1, 1);
 
         Gfx::RG::SubpassAttachment lightingPassAttachment{
@@ -66,29 +67,15 @@ class LightingPassNode : public Node
         shaderResource->SetBuffer("ShadingProperties", shadingPropertiesBuffer.get());
     }
 
-    void Compile() override
-    {
-        clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
-        config.shadowConstantBias = GetConfigurablePtr<float>("shadow constant bias");
-        config.shadowNormalBias = GetConfigurablePtr<float>("shadow normal bias");
-    }
-
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& frameData, Setting& setting)
     {
         // upload buffer
         prop.shadowConstantBias = *config.shadowConstantBias;
         prop.shadowNormalBias = *config.shadowNormalBias;
         GetGfxDriver()->UploadBuffer(*shadingPropertiesBuffer, (uint8_t*)&prop, shadingPropertiesBuffer->GetSize());
 
-        AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
-        AttachmentProperty albedoProp = input.albedo->GetValue<AttachmentProperty>();
-        AttachmentProperty normalProp = input.normal->GetValue<AttachmentProperty>();
-        AttachmentProperty maskProp = input.mask->GetValue<AttachmentProperty>();
-        AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
-        drawList = input.drawList->GetValue<DrawList*>();
-
-        int rtWidth = depthProp.desc.GetWidth();
-        int rtHeight = depthProp.desc.GetHeight();
+        int rtWidth = input.colorDesc.GetWidth();
+        int rtHeight = input.colorDesc.GetHeight();
 
         // set scissor and viewport
         Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(rtWidth), static_cast<uint32_t>(rtHeight)}};
@@ -133,26 +120,6 @@ private:
     Gfx::ShaderProgram* lightingPassShaderProgram;
     Gfx::ShaderConfig lightingPassConfig;
 
-    struct
-    {
-        PropertyHandle color;
-        PropertyHandle albedo;
-        PropertyHandle normal;
-        PropertyHandle mask;
-        PropertyHandle depth;
-        PropertyHandle shadowMap;
-        PropertyHandle drawList;
-        PropertyHandle tileBuffer;
-    } input;
-
-    struct
-    {
-        PropertyHandle color;
-        PropertyHandle normal;
-        PropertyHandle mask;
-        PropertyHandle depth;
-    } output;
-
     struct ShadingProperties
     {
         float shadowConstantBias;
@@ -166,8 +133,5 @@ private:
     } config;
     std::unique_ptr<Gfx::Buffer> shadingPropertiesBuffer;
     std::unique_ptr<Gfx::ShaderResource> shaderResource;
-};
-
-DEFINE_FRAME_GRAPH_NODE(LightingPassNode, "92AECADA-9A17-4D88-9A01-FBB8F19E3173");
-} // namespace Rendering::FrameGraph
-  //
+    ;
+} // namespace Rendering

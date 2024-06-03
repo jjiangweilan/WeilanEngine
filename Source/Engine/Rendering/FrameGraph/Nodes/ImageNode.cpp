@@ -16,7 +16,7 @@ ImageNode::ImageNode(FGID id) : Node("Image", id)
 
 void ImageNode::Compile() {}
 
-void ImageNode::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData)
+void ImageNode::Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData)
 {
     const auto& screenSize = renderingData.screenSize;
     if (size->x == 0)

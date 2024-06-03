@@ -40,7 +40,7 @@ struct SceneInfo
     LightInfo lights[MAX_LIGHT_COUNT];
 };
 
-struct RenderingData
+struct FrameData
 {
     glm::ivec2 screenSize;
     Camera* mainCamera;

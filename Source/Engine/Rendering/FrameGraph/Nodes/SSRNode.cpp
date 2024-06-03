@@ -31,7 +31,8 @@ class SSRNode : public Node
             sizeof(SSR),
             false,
             "SSR parameters",
-            false});
+            false
+        });
 
         ssrResource->SetBuffer("SSR", ssrBuffer.get());
     }
@@ -42,7 +43,7 @@ class SSRNode : public Node
         iteration = GetConfigurablePtr<float>("iteration");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         auto source = input.source->GetValue<AttachmentProperty>();
         SSR ssr{

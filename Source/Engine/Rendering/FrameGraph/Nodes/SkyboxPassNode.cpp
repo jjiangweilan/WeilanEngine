@@ -1,8 +1,8 @@
 #include "../NodeBlueprint.hpp"
 #include "Asset/Material.hpp"
 #include "Asset/Shader.hpp"
-#include "Core/Component/Camera.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/Camera.hpp"
 #include "Core/Model.hpp"
 #include <random>
 
@@ -13,9 +13,7 @@ class SkyboxPassNode : public Node
     DECLARE_FRAME_GRAPH_NODE(SkyboxPassNode)
     {
         SetCustomName("Skybox");
-        shader = (Shader*)AssetDatabase::Singleton()->LoadAsset(
-            "_engine_internal/Shaders/Game/ProcedualSkybox.shad"
-        );
+        shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/ProcedualSkybox.shad");
         skyboxMat = (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/ProcedualSkybox.mat");
 
         AddConfig<ConfigurableType::Bool>("enable", true);
@@ -24,18 +22,16 @@ class SkyboxPassNode : public Node
         input.depth = AddInputProperty("depth", PropertyType::Attachment);
         output.color = AddOutputProperty("color", PropertyType::Attachment);
 
-        Gfx::RG::SubpassAttachment c[] = {
-            {
-                0,
-                Gfx::AttachmentLoadOperation::Load,
-                Gfx::AttachmentStoreOperation::Store,
-            }
-            };
+        Gfx::RG::SubpassAttachment c[] = {{
+            0,
+            Gfx::AttachmentLoadOperation::Load,
+            Gfx::AttachmentStoreOperation::Store,
+        }};
         Gfx::RG::SubpassAttachment d = {
-                1,
-                Gfx::AttachmentLoadOperation::Load,
-                Gfx::AttachmentStoreOperation::Store,
-            };
+            1,
+            Gfx::AttachmentLoadOperation::Load,
+            Gfx::AttachmentStoreOperation::Store,
+        };
         skyboxPass = Gfx::RG::RenderPass(1, 2);
         skyboxPass.SetSubpass(0, c, d);
         skyboxPass.SetName("skybox pass");
@@ -55,7 +51,7 @@ class SkyboxPassNode : public Node
         clears = {v};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         if (*config.enable)
         {

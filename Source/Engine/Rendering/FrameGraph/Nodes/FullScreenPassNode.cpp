@@ -51,7 +51,7 @@ public:
         clears = {v};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         auto id = input.source->GetValue<AttachmentProperty>().id;
         auto targetColor = input.targetColor->GetValue<AttachmentProperty>().id;

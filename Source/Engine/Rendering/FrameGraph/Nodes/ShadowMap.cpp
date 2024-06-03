@@ -31,7 +31,7 @@ public:
         );
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         drawList = input.drawList->GetValue<DrawList*>();
 

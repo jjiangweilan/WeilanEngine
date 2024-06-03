@@ -29,7 +29,7 @@ public:
         output.drawList->SetValue(drawList.get());
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData) override
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
     {
         drawList->clear();
 
@@ -52,7 +52,7 @@ public:
         return false;
     }
 
-    void Sort(DrawList& drawList, RenderingData& renderingData)
+    void Sort(DrawList& drawList, FrameData& renderingData)
     {
         auto pos = renderingData.mainCamera->GetGameObject()->GetPosition();
         std::sort(

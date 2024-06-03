@@ -1,8 +1,8 @@
 #pragma once
-#include "Core/Component/Camera.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "MainRendererData.hpp"
 #include "Passes/GBufferPass.hpp"
-#include "Rendering/RenderingData.hpp"
+#include "Rendering/FrameData.hpp"
 
 namespace Rendering
 {
@@ -11,12 +11,10 @@ class MainRenderer
 public:
     MainRenderer();
 
-    void Setup(Camera& camera, Gfx::CommandBuffer& cmd);
-    void Execute(Gfx::CommandBuffer& cmd);
+    void Execute(Gfx::CommandBuffer& cmd, FrameData& frameData);
 
 private:
     SceneInfo sceneInfo;
-    RenderingData renderingData;
 
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
     std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;
@@ -25,15 +23,27 @@ private:
     Gfx::RG::ImageIdentifier mainColor;
     Gfx::RG::ImageIdentifier mainDepth;
 
-    GBufferPass gbufferPass;
+    template <class T>
+    struct PassWrapper
+    {
+        T pass;
+        T::Setting setting;
+    };
+
+    PassWrapper<GBufferPass> gbuffer;
 
     struct ShaderGlobal
     {
         float time;
     } shaderGlobal;
 
+    MainRendererData rendererData;
+
     void ProcessLights(Scene& gameScene);
     void CreateCameraImages();
-    void SetupFrame(Camera& camera, Gfx::CommandBuffer& cmd);
+
+    void Setup(Gfx::CommandBuffer& cmd, FrameData& frameData);
+    void SetupFrame(Gfx::CommandBuffer& cmd, FrameData& frameData);
+    void PassesSetup(Gfx::CommandBuffer& cmd, FrameData& frameData);
 };
 } // namespace Rendering
