@@ -4,7 +4,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
-
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
 #endif
@@ -186,7 +185,8 @@ private:
     bool compiled = false;
     Node* outputImageNode = nullptr;
     Node* outputDepthImageNode = nullptr;
-    FrameData renderingData;
+    RenderingData renderingData;
+    RenderingContext renderingContext;
 
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
     std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;

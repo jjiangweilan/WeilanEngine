@@ -428,7 +428,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     pipelineInputAssemblyStateCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineInputAssemblyStateCreateInfo.flags = 0;
-    pipelineInputAssemblyStateCreateInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    pipelineInputAssemblyStateCreateInfo.topology = MapPrimitiveTopology(config.topology);
     pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
     createInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
 
@@ -531,7 +531,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.blendConstants[3] = config.color.blendConstants[3];
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
-    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
 
     // TODO: these dynamic states need to be handled, some of them are currently compared in ShaderConfig, we need to
     // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_BLEND_CONSTANTS,

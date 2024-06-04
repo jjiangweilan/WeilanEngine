@@ -2,6 +2,7 @@
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
+#include "Rendering/RenderingUtils.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Rendering::FrameGraph
@@ -28,8 +29,7 @@ class GBufferPassNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -43,8 +43,9 @@ class GBufferPassNode : public Node
         clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, Rendering::FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
         drawList = input.drawList->GetValue<DrawList*>();
@@ -81,10 +82,9 @@ class GBufferPassNode : public Node
         gbufferPass.SetAttachment(4, depthProp.id);
         cmd.BeginRenderPass(gbufferPass, clears);
 
-        // draw scene objects
-
         if (drawList)
         {
+            // draw opaque objects
             for (int i = 0; i < drawList->alphaTestIndex; ++i)
             {
                 auto& draw = drawList->at(i);
@@ -100,6 +100,7 @@ class GBufferPassNode : public Node
                 }
             }
 
+            // draw alpha tested objects
             Shader::EnableFeature("_AlphaTest");
             for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
             {
@@ -116,6 +117,9 @@ class GBufferPassNode : public Node
                 }
             }
             Shader::DisableFeature("_AlphaTest");
+
+            // direct draw to main color buffer in a forward based manner
+            RenderingUtils::DrawGraphics(cmd);
         }
         cmd.EndRenderPass();
 

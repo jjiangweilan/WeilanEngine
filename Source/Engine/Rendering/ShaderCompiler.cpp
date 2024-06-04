@@ -215,6 +215,13 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
         }
     }
 
+    if (root.has_child("topology"))
+    {
+        std::string val;
+        root["topology"] >> val;
+        config.topology = Utils::MapTopology(val);
+    }
+
     if (root.has_child("blend"))
     {
         if (root["blend"].is_seq())

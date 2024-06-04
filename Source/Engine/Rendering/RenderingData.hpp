@@ -40,12 +40,13 @@ struct SceneInfo
     LightInfo lights[MAX_LIGHT_COUNT];
 };
 
-struct FrameData
+struct RenderingData
 {
     glm::ivec2 screenSize;
     Camera* mainCamera;
     Terrain* terrain;
     SceneInfo* sceneInfo;
     DrawList* drawList;
+    Gfx::CommandBuffer* cmd;
 };
 } // namespace Rendering

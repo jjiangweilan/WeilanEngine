@@ -56,6 +56,11 @@ struct VKBeginRenderPassCmd
     int barrierCount;
 };
 
+struct VKSetLineWidthCmd
+{
+    float lineWidth;
+};
+
 struct VKRGBeginRenderPassCmd
 {
     RG::RenderPass* renderPass;
@@ -265,6 +270,7 @@ enum class VKCmdType
     SetTexture,
     AllocateAttachment,
     Present,
+    SetLineWidth,
     BeginLabel,
     EndLabel,
     InsertLabel,
@@ -285,6 +291,7 @@ struct VKCmd
         VKBindVertexBufferCmd bindVertexBuffer;
         VKBindIndexBufferCmd bindIndexBuffer;
 
+        VKSetLineWidthCmd setLineWidth;
         VKSetViewportCmd setViewport;
         VKCopyImageToBufferCmd copyImageToBuffer;
         VKSetPushConstantCmd setPushConstant;
@@ -359,6 +366,7 @@ public:
 
     void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) override;
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
+    void SetLineWidth(float lineWidth) override;
 
     void PresentImage(VKImage* image);
 

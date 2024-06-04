@@ -31,8 +31,9 @@ public:
         );
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         drawList = input.drawList->GetValue<DrawList*>();
 
         if (shadowmapShader)

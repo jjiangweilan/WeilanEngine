@@ -51,8 +51,9 @@ class SkyboxPassNode : public Node
         clears = {v};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         if (*config.enable)
         {
             auto inputAttachment = input.color->GetValue<AttachmentProperty>();

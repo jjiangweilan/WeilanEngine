@@ -7,6 +7,8 @@
 #include <spdlog/spdlog.h>
 #include <stack>
 
+#include "Rendering/Graphics.hpp"
+
 namespace Rendering::FrameGraph
 {
 DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
@@ -293,11 +295,13 @@ void Graph::SortNodes()
 
 void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 {
+    Graphics::DrawLine({0, 0, 0}, {5, 5, 5}, {0.5, 0.5, 0.5, 1.0});
     Camera* camera = scene.GetMainCamera();
     if (!compiled || camera == nullptr)
         return;
     renderingData.mainCamera = camera;
     renderingData.sceneInfo = &sceneInfo;
+    renderingData.cmd = &cmd;
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
 
@@ -340,7 +344,12 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         -camera->GetProjectionTop(),
         camera->GetProjectionTop()
     );
-    sceneInfo.screenSize = glm::vec4(renderingData.screenSize.x, renderingData.screenSize.y, 1.0f / renderingData.screenSize.x, 1.0f / renderingData.screenSize.y);
+    sceneInfo.screenSize = glm::vec4(
+        renderingData.screenSize.x,
+        renderingData.screenSize.y,
+        1.0f / renderingData.screenSize.x,
+        1.0f / renderingData.screenSize.y
+    );
     ProcessLights(scene);
 
     size_t copySize = sceneInfoBuffer->GetSize();
@@ -359,10 +368,9 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 
     for (auto& n : sortedNodes)
     {
-
         float color[4] = {0.235294f, 0.882353f, 0.941176f, 1.0f};
         cmd.BeginLabel(n->GetCustomName(), color);
-        n->Execute(cmd, renderingData);
+        n->Execute(renderingContext, renderingData);
         cmd.EndLabel();
     }
 }

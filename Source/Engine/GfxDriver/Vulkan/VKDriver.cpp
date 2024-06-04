@@ -982,9 +982,6 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.independentBlend = true;
-
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 #if ENGINE_EDITOR

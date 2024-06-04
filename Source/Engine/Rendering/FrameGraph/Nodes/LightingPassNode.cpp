@@ -35,8 +35,7 @@ class LightingPassNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -61,8 +60,7 @@ class LightingPassNode : public Node
             .size = sizeof(ShadingProperties),
             .visibleInCPU = false,
             .debugName = "lighting pass buffer",
-            .gpuWrite = false
-        });
+            .gpuWrite = false});
         shaderResource->SetBuffer("ShadingProperties", shadingPropertiesBuffer.get());
     }
 
@@ -73,8 +71,9 @@ class LightingPassNode : public Node
         config.shadowNormalBias = GetConfigurablePtr<float>("shadow normal bias");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         // upload buffer
         prop.shadowConstantBias = *config.shadowConstantBias;
         prop.shadowNormalBias = *config.shadowNormalBias;

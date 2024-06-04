@@ -19,14 +19,14 @@ class TileBasedShadingComputeNode : public Node
             .size = 20, // vec4 + float
             .visibleInCPU = false,
             .debugName = "tile culling ubo",
-            .gpuWrite = false
-        });
+            .gpuWrite = false});
     }
 
     void Compile() override {}
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         int xTileCount, yTileCount;
         PrepareAndPreprocess(renderingData.screenSize, xTileCount, yTileCount);
 
@@ -37,8 +37,7 @@ class TileBasedShadingComputeNode : public Node
             (2 * renderingData.mainCamera->GetProjectionTop()) / (float)yTileCount,
             (float)xTileCount,
             (float)yTileCount,
-            (float)bucketCountPerTile
-        };
+            (float)bucketCountPerTile};
         GetGfxDriver()->UploadBuffer(*tilesCullingUbo, (uint8_t*)&pushConstants, sizeof(pushConstants));
 
         cmd.BindShaderProgram(

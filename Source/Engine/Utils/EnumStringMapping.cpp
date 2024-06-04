@@ -71,7 +71,7 @@ Gfx::BlendFactor MapBlendFactor(const std::string& str)
 
 Gfx::CullMode MapCullMode(const std::string str)
 {
-    if (str == "none")
+    if (str == "none" || str == "off")
         return Gfx::CullMode::None;
     else if (str == "front")
         return Gfx::CullMode::Front;
@@ -222,5 +222,33 @@ const char* MapStrStencilOp(Gfx::StencilOp op)
         case (Gfx::StencilOp::Increment_And_Wrap): return "increment_And_Wrap";
         case (Gfx::StencilOp::Decrement_And_Wrap): return "decrement_And_Wrap";
     }
+}
+
+Gfx::Topology MapTopology(const std::string& str)
+{
+    if (str == "triangleStrip")
+        return Gfx::Topology::Triangle_Strip;
+    else if (str == "lineStrip")
+    {
+        return Gfx::Topology::Line_Strip;
+    }
+    else if (str == "triangleList")
+    {
+        return Gfx::Topology::Triangle_List;
+    }
+
+    return Gfx::Topology::Triangle_List;
+}
+
+const char* MapTopology(Gfx::Topology topology)
+{
+    switch (topology)
+    {
+        case (Gfx::Topology::Triangle_List): return "triangleList";
+        case (Gfx::Topology::Triangle_Strip): return "triangleStrip";
+        case (Gfx::Topology::Line_Strip): return "lineStrip";
+    }
+
+    return "triangleList";
 }
 } // namespace Utils

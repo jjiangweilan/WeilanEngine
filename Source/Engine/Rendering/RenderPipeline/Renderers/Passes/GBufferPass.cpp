@@ -1,5 +1,5 @@
 #include "GBufferPass.hpp"
-
+#include "Rendering/RenderingUtils.hpp"
 namespace Rendering
 {
 GBufferPass::GBufferPass()
@@ -14,10 +14,10 @@ GBufferPass::GBufferPass()
     gbufferPass.SetSubpass(0, subpassAttachments, depth);
 }
 
-void GBufferPass::Execute(Gfx::CommandBuffer& cmd, FrameData& frameData, GBufferPassSetting& setting)
+void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, GBufferPass::Setting& setting)
 {
 
-    drawList = frameData.drawList;
+    drawList = renderingData.drawList;
 
     int rtWidth = input.colorDesc.GetWidth();
     int rtHeight = input.colorDesc.GetHeight();
@@ -86,6 +86,8 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, FrameData& frameData, GBuffer
             }
         }
         Shader::DisableFeature("_AlphaTest");
+
+        RenderingUtils::DrawGraphics(cmd);
     }
     cmd.EndRenderPass();
 }

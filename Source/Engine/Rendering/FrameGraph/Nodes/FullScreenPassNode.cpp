@@ -51,8 +51,9 @@ public:
         clears = {v};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         auto id = input.source->GetValue<AttachmentProperty>().id;
         auto targetColor = input.targetColor->GetValue<AttachmentProperty>().id;
         if (shader != nullptr)

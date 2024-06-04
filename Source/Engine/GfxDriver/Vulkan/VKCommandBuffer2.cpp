@@ -391,4 +391,13 @@ void VKCommandBuffer2::InsertLabel(std::string_view label, float color[4])
 
     cmds.push_back(cmd);
 }
+
+void VKCommandBuffer2::SetLineWidth(float lineWidth)
+{
+    VKCmd cmd{VKCmdType::SetLineWidth};
+
+    cmd.setLineWidth.lineWidth = lineWidth;
+
+    cmds.push_back(cmd);
+}
 } // namespace Gfx

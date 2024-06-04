@@ -20,16 +20,14 @@ class HiZSetupNode : public Node
             .size = sizeof(uint32_t) * 6, // 6 is defined ffx_spd_callbacks_glsl
             .visibleInCPU = false,
             .debugName = "rw_internal_global_atomic",
-            .gpuWrite = true
-        });
+            .gpuWrite = true});
 
         spdUbo = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
             .usages = Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
             .size = sizeof(cbFSR1_t),
             .visibleInCPU = false,
             .debugName = "spd cbFSR1_t",
-            .gpuWrite = true
-        });
+            .gpuWrite = true});
 
         hiZSetupCompute =
             static_cast<ComputeShader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/HiZSetup.comp")
@@ -39,8 +37,9 @@ class HiZSetupNode : public Node
 public:
     void Compile() override {}
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         if (hiZSetupCompute == nullptr)
             return;
 

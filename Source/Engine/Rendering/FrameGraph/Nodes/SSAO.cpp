@@ -96,16 +96,14 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false
-                    });
+                        false});
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
 
@@ -116,8 +114,7 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
         }
@@ -159,8 +156,9 @@ class SSAONode : public Node
         passResource->SetBuffer("SSAOParam", ssaoParamBuf.get());
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
         if (*enable)
         {
@@ -189,8 +187,7 @@ class SSAONode : public Node
                     *theta,
                     *sampleCount,
                     *radius,
-                    *rangeCheck
-                };
+                    *rangeCheck};
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
@@ -221,8 +218,7 @@ class SSAONode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()
-            }};
+                inputAttachment.desc.GetHeight()}};
             if (newParam != blurParams)
             {
                 blurParams = newParam;

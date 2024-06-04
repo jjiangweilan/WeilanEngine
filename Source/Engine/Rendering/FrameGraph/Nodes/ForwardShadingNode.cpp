@@ -8,16 +8,33 @@ namespace Rendering::FrameGraph
 {
 class ForwardShadingNode : public Node
 {
-    DECLARE_OBJECT();
+    DECLARE_FRAME_GRAPH_NODE(ForwardShadingNode)
+    {
+        input.color = AddInputProperty("color", PropertyType::Attachment);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment);
+        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
+        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
 
-public:
-    ForwardShadingNode()
-    {
-        DefineNode();
-    };
-    ForwardShadingNode(FGID id) : Node("Forward Shading", id)
-    {
-        DefineNode();
+        output.color = AddOutputProperty("color", PropertyType::Attachment);
+        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
+
+        AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
+        AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
+        AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
+        clearValues.resize(2);
+
+        fluidCompute = static_cast<ComputeShader*>(
+            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
+        );
+        cloudRT = GetGfxDriver()->CreateImage(
+            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R8G8B8A8_UNorm},
+            Gfx::ImageUsage::Storage
+        );
+
+        cloud2RT = GetGfxDriver()->CreateImage(
+            {cloudTex2Size, cloudTex2Size, cloudTex2Size, Gfx::ImageFormat::R8G8B8A8_UNorm},
+            Gfx::ImageUsage::Storage
+        );
     }
 
     void Compile() override
@@ -53,8 +70,9 @@ public:
         drawList = input.drawList->GetValue<DrawList*>();
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         MakeCloudNoise(cmd);
 
         auto desc = input.color->GetValue<AttachmentProperty>().desc;
@@ -64,8 +82,8 @@ public:
         cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
         Rect2D rect = {{0, 0}, {width, height}};
         clearValues[0] = *clearValuesVal;
-        clearValues[0].color = {{(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
-        };
+        clearValues[0].color = {
+            {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
         clearValues[1].depthStencil = {1};
 
         cmd.SetScissor(0, 1, &rect);
@@ -78,8 +96,7 @@ public:
             cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
             auto& cubeSubmesh = cube->GetSubmeshes()[0];
             Gfx::VertexBufferBinding bindins[] = {
-                {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}
-            };
+                {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
             cmd.BindVertexBuffer(bindins, 0);
             cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
             cmd.BindResource(2, skyboxResources.get());
@@ -136,34 +153,6 @@ private:
 
     uint32_t cloudTexSize = 128;
     uint32_t cloudTex2Size = 64;
-    void DefineNode()
-    {
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
-
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
-        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
-
-        AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
-        AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
-        AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
-        clearValues.resize(2);
-
-        fluidCompute = static_cast<ComputeShader*>(
-            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
-        );
-        cloudRT = GetGfxDriver()->CreateImage(
-            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R8G8B8A8_UNorm},
-            Gfx::ImageUsage::Storage
-        );
-
-        cloud2RT = GetGfxDriver()->CreateImage(
-            {cloudTex2Size, cloudTex2Size, cloudTex2Size, Gfx::ImageFormat::R8G8B8A8_UNorm},
-            Gfx::ImageUsage::Storage
-        );
-    }
 
     void MakeCloudNoise(Gfx::CommandBuffer& cmd)
     {
@@ -181,10 +170,7 @@ private:
         // }
     }
 
-    static char _reg;
 }; // namespace Rendering::FrameGraph
 
-char ForwardShadingNode::_reg = NodeBlueprintRegisteration::Register<ForwardShadingNode>("Forward Shading");
-
-DEFINE_OBJECT(ForwardShadingNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
+DEFINE_FRAME_GRAPH_NODE(ForwardShadingNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");
 } // namespace Rendering::FrameGraph

@@ -1,10 +1,11 @@
 #pragma once
 #include "../../DrawList.hpp"
-#include "../../FrameData.hpp"
+#include "../../RenderingData.hpp"
 #include "Asset/Material.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
+#include "Rendering/RenderContext.hpp"
 #include <any>
 #include <glm/glm.hpp>
 #include <span>
@@ -290,7 +291,7 @@ public:
         return id;
     }
     virtual void Compile() {}
-    virtual void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) {};
+    virtual void Execute(RenderingContext& renderContext, RenderingData& renderingData){};
 
     virtual void OnDestroy() {}
     std::span<Property> GetInput()

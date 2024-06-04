@@ -2,6 +2,7 @@
 #include "EditorState.hpp"
 #include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
+
 namespace Editor
 {
 namespace ed = ax::NodeEditor;

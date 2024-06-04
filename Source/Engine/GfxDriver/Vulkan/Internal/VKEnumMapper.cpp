@@ -560,4 +560,26 @@ ImageLayout MapVKImageLayout(VkImageLayout layout)
 
     return ImageLayout::Undefined;
 }
+
+VkPrimitiveTopology MapPrimitiveTopology(Topology topology)
+{
+    switch (topology)
+    {
+        case Topology::Triangle_List: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case Topology::Triangle_Strip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        case Topology::Line_Strip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+    }
+
+    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+}
+Topology MapVKPrimitiveTopology(VkPrimitiveTopology topology)
+{
+    switch (topology)
+    {
+        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST): return Topology::Triangle_List;
+        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP): return Topology::Triangle_Strip;
+        case (VK_PRIMITIVE_TOPOLOGY_LINE_STRIP): return Topology::Line_Strip;
+    }
+    return Topology::Triangle_List;
+}
 } // namespace Gfx

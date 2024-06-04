@@ -151,6 +151,13 @@ enum class CullMode
     Both
 };
 
+enum class Topology
+{
+    Triangle_List,
+    Triangle_Strip,
+    Line_Strip
+};
+
 namespace ImageUsage
 {
 enum Enum : uint32_t

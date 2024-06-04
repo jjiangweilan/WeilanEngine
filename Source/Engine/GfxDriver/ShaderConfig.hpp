@@ -1,8 +1,9 @@
 #pragma once
 #include "GfxDriver/GfxEnums.hpp"
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
+
 namespace Gfx
 {
 struct StencilOpState
@@ -35,8 +36,9 @@ struct ColorBlendAttachmentState
 struct ShaderConfig
 {
     bool vertexInterleaved = false;
-    CullMode cullMode = CullMode::Back;
     bool debug = false;
+    CullMode cullMode = CullMode::Back;
+    Topology topology = Topology::Triangle_List;
 
     struct Depth
     {

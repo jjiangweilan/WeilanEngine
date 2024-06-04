@@ -909,6 +909,11 @@ void Graph::Execute(VkCommandBuffer vkcmd)
         auto& cmd = currentSchedulingCmds[i];
         switch (cmd.type)
         {
+            case VKCmdType::SetLineWidth:
+                {
+                    vkCmdSetLineWidth(vkcmd, cmd.setLineWidth.lineWidth);
+                    break;
+                }
             case VKCmdType::DrawIndexed:
                 {
                     TryBindShader(vkcmd);

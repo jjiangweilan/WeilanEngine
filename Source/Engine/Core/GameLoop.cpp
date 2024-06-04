@@ -1,6 +1,7 @@
 #include "GameLoop.hpp"
 #include "Libs/Profiler.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
+#include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
@@ -53,6 +54,7 @@ const void GameLoop::Tick(
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
     cmd->Reset(true);
+    Graphics::GetSingleton().ClearDraws();
     if (graph)
     {
         outGraphOutputImage = graph->GetOutputImage();

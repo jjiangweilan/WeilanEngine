@@ -15,7 +15,7 @@ public:
 
     const Gfx::RG::ImageIdentifier& GetImage();
     void Compile() override;
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override;
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override;
 
     glm::ivec2 GetRenderingImageSize()
     {

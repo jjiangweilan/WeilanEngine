@@ -3,6 +3,8 @@
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
+VkPrimitiveTopology MapPrimitiveTopology(Topology topology);
+Topology MapVKPrimitiveTopology(VkPrimitiveTopology topology);
 VkFormat MapFormat(ImageFormat format);
 ImageFormat MapVKFormat(VkFormat format);
 VkAttachmentLoadOp MapAttachmentLoadOp(AttachmentLoadOperation loadOp);

@@ -14,7 +14,7 @@ MainRenderer::MainRenderer()
     CreateCameraImages();
 }
 
-void MainRenderer::Setup(Gfx::CommandBuffer& cmd, FrameData& frameData)
+void MainRenderer::Setup(Gfx::CommandBuffer& cmd, RenderingData& frameData)
 {
     auto scene = frameData.mainCamera->GetScene();
     if (scene == nullptr)
@@ -24,7 +24,7 @@ void MainRenderer::Setup(Gfx::CommandBuffer& cmd, FrameData& frameData)
     PassesSetup(cmd, frameData);
 }
 
-void MainRenderer::PassesSetup(Gfx::CommandBuffer& cmd, FrameData& frameData)
+void MainRenderer::PassesSetup(Gfx::CommandBuffer& cmd, RenderingData& frameData)
 {
     // setup gbuffer
     Gfx::RG::ImageDescription colorDesc(
@@ -43,9 +43,15 @@ void MainRenderer::PassesSetup(Gfx::CommandBuffer& cmd, FrameData& frameData)
     gbuffer.pass.input.color = mainColor;
     gbuffer.pass.input.depth = mainDepth;
     gbuffer.pass.input.colorDesc = colorDesc;
+
+    deferredShading.pass.input.color = mainColor;
+    deferredShading.pass.input.depth = mainDepth;
+    deferredShading.pass.input.mask = gbuffer.pass.output.mask;
+    deferredShading.pass.input.normal = gbuffer.pass.output.normal;
+    deferredShading.pass.input.mask = gbuffer.pass.output.mask;
 }
 
-void MainRenderer::SetupFrame(Gfx::CommandBuffer& cmd, FrameData& frameData)
+void MainRenderer::SetupFrame(Gfx::CommandBuffer& cmd, RenderingData& frameData)
 {
     auto& camera = *frameData.mainCamera;
 
@@ -118,10 +124,7 @@ void MainRenderer::SetupFrame(Gfx::CommandBuffer& cmd, FrameData& frameData)
     cmd.SetBuffer("Global", *shaderGlobalBuffer);
 }
 
-void MainRenderer::Execute(Gfx::CommandBuffer& cmd, FrameData& frameData)
-{
-    PassesSetup(cmd, frameData);
-}
+void MainRenderer::Execute(RenderingContext& renderContext, RenderingData& renderingData) {}
 
 void MainRenderer::CreateCameraImages()
 {

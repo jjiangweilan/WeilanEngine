@@ -143,6 +143,10 @@ public:
         VkDevice handle;
     } device;
 
+    VkPhysicalDeviceFeatures deviceFeatures {
+        .independentBlend = true,
+    };
+
     Queue mainQueue;
     GPU gpu;
     Swapchain swapchain;

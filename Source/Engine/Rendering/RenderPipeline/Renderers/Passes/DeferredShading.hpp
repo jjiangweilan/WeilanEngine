@@ -3,7 +3,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Rendering/DrawList.hpp"
-#include "Rendering/FrameData.hpp"
+#include "Rendering/RenderingData.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Rendering
@@ -17,6 +17,7 @@ public:
         float shadowConstantBias = 0.0003f;
         float shadowNormalBias = 0.1f;
     };
+
     struct
     {
         Gfx::RG::ImageIdentifier color;
@@ -36,8 +37,7 @@ public:
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -62,12 +62,11 @@ public:
             .size = sizeof(ShadingProperties),
             .visibleInCPU = false,
             .debugName = "lighting pass buffer",
-            .gpuWrite = false
-        });
+            .gpuWrite = false});
         shaderResource->SetBuffer("ShadingProperties", shadingPropertiesBuffer.get());
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& frameData, Setting& setting)
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& frameData, Setting& setting)
     {
         // upload buffer
         prop.shadowConstantBias = *config.shadowConstantBias;
@@ -88,21 +87,16 @@ public:
 #endif
 
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
-        lightingPass.SetAttachment(0, colorProp.id);
+        lightingPass.SetAttachment(0, input.color);
         cmd.BeginRenderPass(lightingPass, lightingPassClearValues);
-        cmd.SetTexture("albedoTex", albedoProp.id);
-        cmd.SetTexture("normalTex", normalProp.id);
-        cmd.SetTexture("maskTex", maskProp.id);
-        cmd.SetTexture("depthTex", depthProp.id);
+        cmd.SetTexture("albedoTex", input.albedo);
+        cmd.SetTexture("normalTex", input.normal);
+        cmd.SetTexture("maskTex", input.mask);
+        cmd.SetTexture("depthTex", input.depth);
         cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassConfig);
         cmd.BindResource(1, shaderResource.get());
         cmd.Draw(6, 1, 0, 0);
         cmd.EndRenderPass();
-
-        output.color->SetValue(colorProp);
-        output.normal->SetValue(normalProp);
-        output.mask->SetValue(maskProp);
-        output.depth->SetValue(depthProp);
     }
 
 private:
@@ -133,5 +127,5 @@ private:
     } config;
     std::unique_ptr<Gfx::Buffer> shadingPropertiesBuffer;
     std::unique_ptr<Gfx::ShaderResource> shaderResource;
-    ;
+};
 } // namespace Rendering

@@ -3,7 +3,8 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Rendering/DrawList.hpp"
-#include "Rendering/FrameData.hpp"
+#include "Rendering/RenderContext.hpp"
+#include "Rendering/RenderingData.hpp"
 
 namespace Rendering
 {
@@ -30,7 +31,7 @@ public:
     } output;
 
     GBufferPass();
-    void Execute(Gfx::CommandBuffer& cmd, Rendering::FrameData& frameData, Setting& setting);
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, Setting& setting);
 
 private:
     const DrawList* drawList;

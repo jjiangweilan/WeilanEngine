@@ -1,4 +1,5 @@
 #include "RenderingUtils.hpp"
+#include "Graphics.hpp"
 
 namespace Rendering
 {
@@ -25,5 +26,10 @@ void RenderingUtils::DynamicScaleImageDescription(Gfx::RG::ImageDescription& des
     }
     else
         desc.SetHeight(scale.y);
+}
+
+void RenderingUtils::DrawGraphics(Gfx::CommandBuffer& cmd)
+{
+    Graphics::GetSingleton().DispatchDraws(cmd);
 }
 } // namespace Rendering

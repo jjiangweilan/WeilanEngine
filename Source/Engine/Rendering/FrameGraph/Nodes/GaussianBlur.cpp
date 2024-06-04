@@ -47,8 +47,9 @@ class GaussianBlurNode : public Node
         clears = {v};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
         if (*config.enable)
         {
             auto inputAttachment = input.target->GetValue<AttachmentProperty>();
@@ -57,8 +58,7 @@ class GaussianBlurNode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()
-            }};
+                inputAttachment.desc.GetHeight()}};
             if (newParam != params)
             {
                 params = newParam;

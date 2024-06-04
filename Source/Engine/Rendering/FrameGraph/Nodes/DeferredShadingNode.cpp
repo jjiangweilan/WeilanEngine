@@ -1,4 +1,5 @@
 #include "../NodeBlueprint.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
 
 namespace Rendering::FrameGraph
@@ -25,8 +26,7 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -39,8 +39,7 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        };
+            Gfx::AttachmentStoreOperation::Store};
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -56,8 +55,9 @@ class DeferredShadingNode : public Node
         clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& renderingData) override
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
+        auto& cmd = *renderingData.cmd;
 #if ENGINE_DEV_BUILD
         lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
 #endif

@@ -1,8 +1,9 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
 #include "MainRendererData.hpp"
+#include "Passes/DeferredShading.hpp"
 #include "Passes/GBufferPass.hpp"
-#include "Rendering/FrameData.hpp"
+#include "Rendering/RenderingData.hpp"
 
 namespace Rendering
 {
@@ -11,7 +12,7 @@ class MainRenderer
 public:
     MainRenderer();
 
-    void Execute(Gfx::CommandBuffer& cmd, FrameData& frameData);
+    void Execute(RenderingContext& renderContext, RenderingData& renderingData);
 
 private:
     SceneInfo sceneInfo;
@@ -31,6 +32,7 @@ private:
     };
 
     PassWrapper<GBufferPass> gbuffer;
+    PassWrapper<DeferredShading> deferredShading;
 
     struct ShaderGlobal
     {
@@ -42,8 +44,8 @@ private:
     void ProcessLights(Scene& gameScene);
     void CreateCameraImages();
 
-    void Setup(Gfx::CommandBuffer& cmd, FrameData& frameData);
-    void SetupFrame(Gfx::CommandBuffer& cmd, FrameData& frameData);
-    void PassesSetup(Gfx::CommandBuffer& cmd, FrameData& frameData);
+    void Setup(Gfx::CommandBuffer& cmd, RenderingData& frameData);
+    void SetupFrame(Gfx::CommandBuffer& cmd, RenderingData& frameData);
+    void PassesSetup(Gfx::CommandBuffer& cmd, RenderingData& frameData);
 };
 } // namespace Rendering
