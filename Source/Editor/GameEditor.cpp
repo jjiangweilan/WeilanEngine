@@ -283,6 +283,7 @@ void GameEditor::SceneTree(Scene& scene)
         SceneTree(root, ++imguiTreeId, currentSelected, autoExpand);
     }
 
+    bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
     ImGui::End();
 
     // context menu of scene tree
@@ -306,7 +307,8 @@ void GameEditor::SceneTree(Scene& scene)
     }
 
     // scene tree context menu
-    if (!ImGui::IsPopupOpen(gameObjectContextMenu) && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+    if (!ImGui::IsPopupOpen(gameObjectContextMenu) && ImGui::IsMouseReleased(ImGuiMouseButton_Right) &&
+        isSceneTreeWindowHovered)
     {
         ImGui::OpenPopup(sceneTreeContextMenu);
     }
