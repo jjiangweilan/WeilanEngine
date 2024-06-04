@@ -15,6 +15,7 @@ class VKObjectManager;
 class VKDescriptorPool;
 class VKShaderBufferStrategy;
 class VKContext;
+class VKRenderPass;
 struct ShaderPushConstant;
 class SamplerCachePool
 {
@@ -51,7 +52,7 @@ public:
 
     // request a pipeline object according to config
     // we may have slightly different pipelines with different configs, VKShader should cache these pipelines(TODO)
-    VkPipeline RequestGraphicsPipeline(const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass);
+    VkPipeline RequestGraphicsPipeline(const ShaderConfig& config, VKRenderPass* renderPass, uint32_t subpass);
     VkPipeline RequestComputePipeline(const ShaderConfig& config);
     VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
 

@@ -1,7 +1,6 @@
-#include "Libs/Ptr.hpp"
+#include "VKRenderPass.hpp"
 
 #include "Internal/VKEnumMapper.hpp"
-#include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
@@ -9,7 +8,6 @@
 #include "VKDescriptorPool.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderProgram.hpp"
-#include <algorithm>
 #include <assert.h>
 #include <spdlog/spdlog.h>
 
@@ -399,12 +397,12 @@ VkPipeline VKShaderProgram::RequestComputePipeline(const ShaderConfig& config)
 }
 
 VkPipeline VKShaderProgram::RequestGraphicsPipeline(
-    const ShaderConfig& config, VkRenderPass renderPass, uint32_t subpass
+    const ShaderConfig& config, VKRenderPass* renderPass, uint32_t subpassIndex
 )
 {
     for (auto& cache : caches)
     {
-        if (cache.config == config && cache.subpass == subpass && cache.renderPass == renderPass)
+        if (cache.config == config && cache.subpass == subpassIndex && cache.renderPass == renderPass->GetHandle())
             return cache.pipeline;
     }
 
@@ -421,7 +419,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 
     VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {
         vertGPInfos.pipelineShaderStageCreateInfo,
-        fragGPInfos.pipelineShaderStageCreateInfo};
+        fragGPInfos.pipelineShaderStageCreateInfo
+    };
     createInfo.pStages = shaderStageCreateInfos;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};
@@ -508,9 +507,11 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.logicOpEnable = false;
     colorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_AND;
 
-    std::vector<VkPipelineColorBlendAttachmentState> blendStates(fragShaderModule->GetShaderInfo().outputs.size());
+    auto& subpass = renderPass->GetSubpesses()[subpassIndex];
+    size_t subpassSize = subpass.colors.size();
+    std::vector<VkPipelineColorBlendAttachmentState> blendStates(subpassSize);
 
-    for (uint32_t i = 0; i < fragShaderModule->GetShaderInfo().outputs.size(); ++i)
+    for (uint32_t i = 0; i < subpassSize; ++i)
     {
         if (i < config.color.blends.size())
         {
@@ -519,8 +520,15 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
         else
         {
             blendStates[i].blendEnable = false;
-            blendStates[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            if (i < fragShaderModule->GetShaderInfo().outputs.size())
+            {
+                blendStates[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            }
+            else
+            {
+                blendStates[i].colorWriteMask = 0;
+            }
         }
     }
     colorBlendStateCreateInfo.attachmentCount = blendStates.size();
@@ -548,8 +556,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     createInfo.pDynamicState = &dynamicStateCreateInfo;
 
     createInfo.layout = pipelineLayout;
-    createInfo.renderPass = renderPass;
-    createInfo.subpass = subpass;
+    createInfo.renderPass = renderPass->GetHandle();
+    createInfo.subpass = subpassIndex;
     createInfo.basePipelineHandle = VK_NULL_HANDLE;
     createInfo.basePipelineIndex = 0;
 
@@ -559,8 +567,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     PipelineCache newCache;
     newCache.pipeline = pipeline;
     newCache.config = config;
-    newCache.renderPass = renderPass;
-    newCache.subpass = subpass;
+    newCache.renderPass = renderPass->GetHandle();
+    newCache.subpass = subpassIndex;
     caches.push_back(newCache);
 
     return pipeline;
