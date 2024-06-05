@@ -507,10 +507,10 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.logicOpEnable = false;
     colorBlendStateCreateInfo.logicOp = VK_LOGIC_OP_AND;
 
+    // protect unwritten output with color mask
     auto& subpass = renderPass->GetSubpesses()[subpassIndex];
     size_t subpassSize = subpass.colors.size();
     std::vector<VkPipelineColorBlendAttachmentState> blendStates(subpassSize);
-
     for (uint32_t i = 0; i < subpassSize; ++i)
     {
         if (i < config.color.blends.size())
@@ -539,7 +539,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     colorBlendStateCreateInfo.blendConstants[3] = config.color.blendConstants[3];
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
-    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_LINE_WIDTH};
+    VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     // TODO: these dynamic states need to be handled, some of them are currently compared in ShaderConfig, we need to
     // remove that VK_DYNAMIC_STATE_LINE_WIDTH, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_BLEND_CONSTANTS,

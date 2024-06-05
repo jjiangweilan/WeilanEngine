@@ -185,18 +185,23 @@ public:
         return submeshes;
     };
 
+    Submesh* GetSubmesh(int index)
+    {
+        if (index < submeshes.size())
+        {
+            return &submeshes[index];
+        }
+        return nullptr;
+    };
+
     void SetSubmeshes(std::vector<Submesh>&& submeshes)
     {
         this->submeshes = std::move(submeshes);
 
-        glm::vec3 min = {
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::max(),
-            std::numeric_limits<float>::max()};
-        glm::vec3 max = {
-            std::numeric_limits<float>::min(),
-            std::numeric_limits<float>::min(),
-            std::numeric_limits<float>::min()};
+        glm::vec3 min =
+            {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+        glm::vec3 max =
+            {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
 
         for (auto& submesh : submeshes)
         {

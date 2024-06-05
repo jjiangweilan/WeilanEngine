@@ -295,7 +295,6 @@ void Graph::SortNodes()
 
 void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
 {
-    Graphics::DrawLine({0, 0, 0}, {5, 5, 5}, {0.5, 0.5, 0.5, 1.0});
     Camera* camera = scene.GetMainCamera();
     if (!compiled || camera == nullptr)
         return;

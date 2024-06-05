@@ -4,6 +4,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Model.hpp"
+#include "Rendering/Graphics.hpp"
 #include <random>
 
 namespace Rendering::FrameGraph

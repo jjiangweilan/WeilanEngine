@@ -1,9 +1,9 @@
 #version 460 core
 
 #if CONFIG
-name: LineShader
-topology: triangleStrip
-cull: off
+name : LineShader
+topology : lineList
+cull : off
 #endif
 
 #include "Common/SceneInfo.glsl"
@@ -18,16 +18,7 @@ layout(push_constant) uniform ps
 #if VERT
 void main()
 {
-    vec3 quad[] = {
-        // left
-        vec3(-0.5, -0.5, 0) + fromWS.xyz,
-        vec3(-0.5, 0.5, 0) + fromWS.xyz,
-
-        // right
-        vec3(0.5, 0.5, 0) + toWS.xyz,
-        vec3(-0.5, 0.5,0) + toWS.xyz
-    };
-    vec4 pos = vec4(quad[gl_VertexIndex], 1.0f);
+    vec4 pos = vec4(gl_VertexIndex == 0 ? fromWS.xyz : toWS.xyz, 1.0f);
     gl_Position = scene.viewProjection * pos;
 }
 #endif
@@ -36,7 +27,6 @@ void main()
 layout(location = 0) out vec4 outColor;
 void main()
 {
-    outColor = vec4(1,1,1,1);
+    outColor = color;
 }
 #endif
-

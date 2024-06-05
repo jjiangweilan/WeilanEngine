@@ -1,9 +1,21 @@
 #include "Graphics.hpp"
+#include "Asset/Material.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "EngineInternalShaders.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 void Graphics::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
     GetSingleton().DrawLineImpl(from, to, color);
+}
+
+void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
+{
+    GetSingleton().DrawMeshImpl(mesh, submeshIndex, model, material);
+}
+
+void Graphics::DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
+{
+    drawCmds.push_back(DrawMeshCmd{mesh.GetSRef<Mesh>(), material.GetSRef<Material>(), model, submeshIndex});
 }
 
 Graphics& Graphics::GetSingleton()
@@ -29,6 +41,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 {
                     DrawLineCommand(cmd, draw);
                 }
+                else if constexpr (std::is_same_v<T, DrawMeshCmd>)
+                {
+                    DrawMeshCommand(cmd, draw);
+                }
             },
             drawCmd
         );
@@ -38,6 +54,28 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
 void Graphics::ClearDraws()
 {
     drawCmds.clear();
+}
+
+void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
+{
+    Mesh* mesh = drawMesh.mesh.Get();
+    Material* mat = drawMesh.material.Get();
+
+    if (mesh && mat)
+    {
+        Submesh* submesh = mesh->GetSubmesh(drawMesh.submeshIndex);
+        Gfx::ShaderProgram* shader = mat->GetShaderProgram();
+        if (submesh && shader)
+        {
+            auto bindings = submesh->GetGfxVertexBufferBindings();
+            cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
+            cmd.BindVertexBuffer(bindings, 0);
+            cmd.SetPushConstant(shader, &drawMesh.model);
+            cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+            cmd.BindResource(2, mat->GetShaderResource());
+            cmd.DrawIndexed(submesh->GetIndexCount(), 1, 0, 0, 0);
+        }
+    }
 }
 
 void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
@@ -54,5 +92,5 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     Gfx::ShaderProgram* lineShaderProgram = EngineInternalShaders::GetLineShader()->GetDefaultShaderProgram();
     cmd.SetPushConstant(lineShaderProgram, (void*)&data);
     cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
-    cmd.Draw(4, 1, 0, 0);
+    cmd.Draw(2, 1, 0, 0);
 }

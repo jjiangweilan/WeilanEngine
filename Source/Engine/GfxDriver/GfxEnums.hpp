@@ -153,9 +153,10 @@ enum class CullMode
 
 enum class Topology
 {
-    Triangle_List,
-    Triangle_Strip,
-    Line_Strip
+    TriangleList,
+    TriangleStrip,
+    LineStrip,
+    LineList
 };
 
 namespace ImageUsage

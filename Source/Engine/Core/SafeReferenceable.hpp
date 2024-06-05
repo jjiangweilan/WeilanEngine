@@ -160,7 +160,7 @@ public:
         if (referenceCount == nullptr)
             referenceCount = std::make_shared<int>(0);
 
-        return SRef<U>(this, referenceCount);
+        return SRef<U>(static_cast<U*>(this), referenceCount);
     }
 
 private:

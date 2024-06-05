@@ -29,7 +29,8 @@ class GBufferPassNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -117,9 +118,6 @@ class GBufferPassNode : public Node
                 }
             }
             Shader::DisableFeature("_AlphaTest");
-
-            // direct draw to main color buffer in a forward based manner
-            RenderingUtils::DrawGraphics(cmd);
         }
         cmd.EndRenderPass();
 

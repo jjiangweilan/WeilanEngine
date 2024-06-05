@@ -227,26 +227,29 @@ const char* MapStrStencilOp(Gfx::StencilOp op)
 Gfx::Topology MapTopology(const std::string& str)
 {
     if (str == "triangleStrip")
-        return Gfx::Topology::Triangle_Strip;
+        return Gfx::Topology::TriangleStrip;
     else if (str == "lineStrip")
     {
-        return Gfx::Topology::Line_Strip;
+        return Gfx::Topology::LineStrip;
     }
     else if (str == "triangleList")
     {
-        return Gfx::Topology::Triangle_List;
+        return Gfx::Topology::TriangleList;
     }
+    else if (str == "lineList")
+        return Gfx::Topology::LineList;
 
-    return Gfx::Topology::Triangle_List;
+    return Gfx::Topology::TriangleList;
 }
 
 const char* MapTopology(Gfx::Topology topology)
 {
     switch (topology)
     {
-        case (Gfx::Topology::Triangle_List): return "triangleList";
-        case (Gfx::Topology::Triangle_Strip): return "triangleStrip";
-        case (Gfx::Topology::Line_Strip): return "lineStrip";
+        case (Gfx::Topology::TriangleList): return "triangleList";
+        case (Gfx::Topology::TriangleStrip): return "triangleStrip";
+        case (Gfx::Topology::LineStrip): return "lineStrip";
+        case (Gfx::Topology::LineList): return "lineList";
     }
 
     return "triangleList";

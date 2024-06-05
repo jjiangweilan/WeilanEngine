@@ -38,7 +38,7 @@ struct ShaderConfig
     bool vertexInterleaved = false;
     bool debug = false;
     CullMode cullMode = CullMode::Back;
-    Topology topology = Topology::Triangle_List;
+    Topology topology = Topology::TriangleList;
 
     struct Depth
     {

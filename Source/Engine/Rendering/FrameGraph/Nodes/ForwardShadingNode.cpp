@@ -2,6 +2,7 @@
 #include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
+#include "Rendering/RenderingUtils.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Rendering::FrameGraph
@@ -22,19 +23,6 @@ class ForwardShadingNode : public Node
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
         AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
         clearValues.resize(2);
-
-        fluidCompute = static_cast<ComputeShader*>(
-            AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Fluid/Fog.comp")
-        );
-        cloudRT = GetGfxDriver()->CreateImage(
-            {cloudTexSize, cloudTexSize, cloudTexSize, Gfx::ImageFormat::R8G8B8A8_UNorm},
-            Gfx::ImageUsage::Storage
-        );
-
-        cloud2RT = GetGfxDriver()->CreateImage(
-            {cloudTex2Size, cloudTex2Size, cloudTex2Size, Gfx::ImageFormat::R8G8B8A8_UNorm},
-            Gfx::ImageUsage::Storage
-        );
     }
 
     void Compile() override
@@ -44,36 +32,12 @@ class ForwardShadingNode : public Node
             AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/VolumetricFog.shad")
         );
 
-        auto skybox = GetConfigurableVal<Texture*>("skybox");
-
-        auto cubeModel = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Cube.glb"));
-        cube = cubeModel ? cubeModel->GetMeshes()[0].get() : nullptr;
-        skyboxShader =
-            static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/Skybox.shad"));
-
-        bool validCube = true;
-        if (!cube || cube->GetSubmeshes().empty() || cube->GetSubmeshes()[0].GetBindings().empty())
-            validCube = false;
-
-        bool invalidSkybox = cube == nullptr || skyboxShader == nullptr || !validCube || skybox == nullptr ||
-                             !skybox->GetDescription().img.isCubemap;
-        if (invalidSkybox)
-        {
-            SPDLOG_WARN("failed to load skybox data, skybox won't render");
-        }
-        else
-        {
-            skyboxResources = GetGfxDriver()->CreateShaderResource();
-            skyboxResources->SetImage("envMap", skybox->GetGfxImage());
-        }
-
         drawList = input.drawList->GetValue<DrawList*>();
     }
 
     void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
         auto& cmd = *renderingData.cmd;
-        MakeCloudNoise(cmd);
 
         auto desc = input.color->GetValue<AttachmentProperty>().desc;
 
@@ -82,8 +46,8 @@ class ForwardShadingNode : public Node
         cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
         Rect2D rect = {{0, 0}, {width, height}};
         clearValues[0] = *clearValuesVal;
-        clearValues[0].color = {
-            {(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}};
+        clearValues[0].color = {{(*clearValuesVal)[0], (*clearValuesVal)[1], (*clearValuesVal)[2], (*clearValuesVal)[3]}
+        };
         clearValues[1].depthStencil = {1};
 
         cmd.SetScissor(0, 1, &rect);
@@ -91,28 +55,17 @@ class ForwardShadingNode : public Node
         mainPass.SetAttachment(1, input.depth->GetValue<AttachmentProperty>().id);
         cmd.BeginRenderPass(mainPass, clearValues);
 
-        if (!invalidSkybox)
-        {
-            cmd.BindShaderProgram(skyboxShader->GetDefaultShaderProgram(), skyboxShader->GetDefaultShaderConfig());
-            auto& cubeSubmesh = cube->GetSubmeshes()[0];
-            Gfx::VertexBufferBinding bindins[] = {
-                {cubeSubmesh.GetVertexBuffer(), cubeSubmesh.GetBindings()[0].byteOffset}};
-            cmd.BindVertexBuffer(bindins, 0);
-            cmd.BindIndexBuffer(cubeSubmesh.GetIndexBuffer(), 0, cubeSubmesh.GetIndexBufferType());
-            cmd.BindResource(2, skyboxResources.get());
-            cmd.DrawIndexed(cubeSubmesh.GetIndexCount(), 1, 0, 0, 0);
-        }
-
+        RenderingUtils::DrawGraphics(cmd);
         // draw scene objects
-        for (auto& draw : *drawList)
-        {
-            cmd.BindShaderProgram(draw.shader->GetShaderProgram(0, 0), *draw.shaderConfig);
-            cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-            cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-            cmd.BindResource(2, draw.shaderResource);
-            cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
-            cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-        }
+        // for (auto& draw : *drawList)
+        // {
+        //     cmd.BindShaderProgram(draw.shader->GetShaderProgram(0, 0), *draw.shaderConfig);
+        //     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+        //     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+        //     cmd.BindResource(2, draw.shaderResource);
+        //     cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+        //     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+        // }
 
         cmd.EndRenderPass();
 
@@ -123,19 +76,18 @@ class ForwardShadingNode : public Node
 private:
     Gfx::RG::RenderPass fogGenerationPass = Gfx::RG::RenderPass::SingleColor();
     Shader* volumetricFogShader;
-    Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::Default();
+    Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::Default(
+        "Forward Shading Pass",
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
+    );
 
     const DrawList* drawList;
     std::vector<Gfx::ClearValue> clearValues;
 
     glm::vec4* clearValuesVal;
-    Mesh* cube;
-    Shader* skyboxShader;
-    ComputeShader* fluidCompute;
-    std::unique_ptr<Gfx::Image> cloudRT;
-    std::unique_ptr<Gfx::Image> cloud2RT;
-    std::unique_ptr<Gfx::ShaderResource> skyboxResources;
-    bool invalidSkybox = true;
 
     struct
     {
@@ -153,23 +105,6 @@ private:
 
     uint32_t cloudTexSize = 128;
     uint32_t cloudTex2Size = 64;
-
-    void MakeCloudNoise(Gfx::CommandBuffer& cmd)
-    {
-        // Material* cloudNoiseMaterial = GetConfigurableVal<Material*>("cloud noise material");
-        //
-        // if (cloudNoiseMaterial)
-        // {
-        //     cloudNoiseMaterial->UploadDataToGPU();
-        //     cmd.SetTexture("imgOutput", *cloudRT);
-        //     cmd.SetTexture("imgOutput2", *cloud2RT);
-        //     cmd.BindShaderProgram(fluidCompute->GetDefaultShaderProgram(), fluidCompute->GetDefaultShaderConfig());
-        //     cmd.BindResource(2, cloudNoiseMaterial->GetShaderResource());
-        //     cmd.Dispatch(cloudTexSize / 4, cloudTexSize / 4, cloudTexSize / 4);
-        //     cmd.SetTexture("cloudDensity", *cloudRT);
-        // }
-    }
-
 }; // namespace Rendering::FrameGraph
 
 DEFINE_FRAME_GRAPH_NODE(ForwardShadingNode, "E6188926-D83E-4B17-9C7C-060A5862BDCA");

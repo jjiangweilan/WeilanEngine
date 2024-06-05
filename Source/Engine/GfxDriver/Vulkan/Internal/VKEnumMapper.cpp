@@ -565,9 +565,10 @@ VkPrimitiveTopology MapPrimitiveTopology(Topology topology)
 {
     switch (topology)
     {
-        case Topology::Triangle_List: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        case Topology::Triangle_Strip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        case Topology::Line_Strip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        case Topology::TriangleList: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case Topology::TriangleStrip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        case Topology::LineStrip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        case Topology::LineList: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
     }
 
     return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -576,10 +577,11 @@ Topology MapVKPrimitiveTopology(VkPrimitiveTopology topology)
 {
     switch (topology)
     {
-        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST): return Topology::Triangle_List;
-        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP): return Topology::Triangle_Strip;
-        case (VK_PRIMITIVE_TOPOLOGY_LINE_STRIP): return Topology::Line_Strip;
+        case (VK_PRIMITIVE_TOPOLOGY_LINE_LIST): return Topology::LineList;
+        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST): return Topology::TriangleList;
+        case (VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP): return Topology::TriangleStrip;
+        case (VK_PRIMITIVE_TOPOLOGY_LINE_STRIP): return Topology::LineStrip;
     }
-    return Topology::Triangle_List;
+    return Topology::TriangleList;
 }
 } // namespace Gfx
