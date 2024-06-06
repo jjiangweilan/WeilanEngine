@@ -56,8 +56,18 @@ void PhysicsScene::Tick()
     // Step the world
     physicsSystem.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
 
+    JPH::BodyManager::DrawSettings drawSettings;
+
+    bodyDrawFilter.drawRequested.clear();
     for (auto b : bodies)
     {
         b->UpdateGameObject();
+        if (b->debugDrawRequest)
+        {
+            b->debugDrawRequest = false;
+            bodyDrawFilter.drawRequested.emplace(b->GetBody()->GetID());
+        }
     }
+
+    physicsSystem.DrawBodies(drawSettings, &debugRenderer, &bodyDrawFilter);
 }

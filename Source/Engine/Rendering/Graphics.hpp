@@ -16,6 +16,9 @@ class Graphics
 public:
     static void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color = {1, 1, 1, 1});
     static void DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
+    static void DrawTriangle(
+        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color = {1, 1, 1, 1}
+    );
 
     static Graphics& GetSingleton();
 
@@ -37,13 +40,23 @@ private:
         int submeshIndex;
     };
 
-    using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd>;
+    struct DrawTriangleCmd
+    {
+        glm::vec3 v0;
+        glm::vec3 v1;
+        glm::vec3 v2;
+        glm::vec4 color;
+    };
+
+    using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd>;
 
     std::vector<DrawCmds> drawCmds;
 
     void DrawLineImpl(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color);
+    void DrawTriangleImpl(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color);
     void DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
 
     static void DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine);
     static void DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh);
+    static void DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& drawMesh);
 };

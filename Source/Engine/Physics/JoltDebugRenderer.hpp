@@ -5,8 +5,15 @@
 // clang-format on
 //
 
+class Material;
+class Mesh;
 class JoltDebugRenderer : public JPH::DebugRenderer
 {
+public:
+    JoltDebugRenderer() 
+    {
+        Initialize();
+    }
     void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override;
     void DrawTriangle(
         JPH::RVec3Arg inV1,
@@ -43,6 +50,10 @@ private:
     class BatchImpl : public JPH::RefTargetVirtual
     {
     public:
+        BatchImpl();
+        ~BatchImpl();
+        std::unique_ptr<Mesh> mesh;
+        std::unique_ptr<Material> material;
         virtual void AddRef() override
         {
             refCount += 1;

@@ -14,6 +14,7 @@ namespace Editor
 class Window
 {
 public:
+    virtual ~Window() {}
     virtual bool Tick() = 0;
     virtual void OnOpen() {};
     virtual void OnClose(){};

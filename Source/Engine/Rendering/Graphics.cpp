@@ -13,9 +13,19 @@ void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Ma
     GetSingleton().DrawMeshImpl(mesh, submeshIndex, model, material);
 }
 
+void Graphics::DrawTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)
+{
+    GetSingleton().DrawTriangleImpl(v0, v1, v2, color);
+}
+
 void Graphics::DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
 {
     drawCmds.push_back(DrawMeshCmd{mesh.GetSRef<Mesh>(), material.GetSRef<Material>(), model, submeshIndex});
+}
+
+void Graphics::DrawTriangleImpl(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)
+{
+    drawCmds.push_back(DrawTriangleCmd{v0, v1, v2, color});
 }
 
 Graphics& Graphics::GetSingleton()
@@ -44,6 +54,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 else if constexpr (std::is_same_v<T, DrawMeshCmd>)
                 {
                     DrawMeshCommand(cmd, draw);
+                }
+                else if constexpr (std::is_same_v<T, DrawTriangleCmd>)
+                {
+                    DrawTriangleCommand(cmd, draw);
                 }
             },
             drawCmd
@@ -93,4 +107,23 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     cmd.SetPushConstant(lineShaderProgram, (void*)&data);
     cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(2, 1, 0, 0);
+}
+
+void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& drawTriangle)
+{
+    struct
+    {
+        glm::vec4 v0, v1, v2;
+        glm::vec4 color;
+    } data;
+
+    data.v0 = glm::vec4(drawTriangle.v0, 1.0f);
+    data.v1 = glm::vec4(drawTriangle.v1, 1.0f);
+    data.v2 = glm::vec4(drawTriangle.v2, 1.0f);
+    data.color = drawTriangle.color;
+
+    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalShaders::GetLineShader()->GetDefaultShaderProgram();
+    cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
+    cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
+    cmd.Draw(3, 1, 0, 0);
 }

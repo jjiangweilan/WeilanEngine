@@ -59,6 +59,14 @@ public:
 
     void UpdateGameObject();
 
+    // set this to true, the physics scene will try to draw this physics body in this frame
+    bool debugDrawRequest = false;
+
+    JPH::Body* GetBody()
+    {
+        return body;
+    }
+
 private:
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 0.5};
     std::unique_ptr<JPH::MotionProperties> motionProperty;

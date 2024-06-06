@@ -5,6 +5,7 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
 // clang-format on
+#include "Physics/JoltDebugRenderer.hpp"
 #include "PhysicsLayer.hpp"
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -15,6 +16,7 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
 #include <spdlog/spdlog.h>
+#include <unordered_set>
 
 class PhysicsBody;
 
@@ -195,6 +197,19 @@ private:
     std::vector<PhysicsBody*> bodies;
     JPH::PhysicsSystem physicsSystem;
     JPH::BodyInterface* bodyInterface;
+
+    JoltDebugRenderer debugRenderer;
+    class DebugBodyDrawFilter : public JPH::BodyDrawFilter
+    {
+    public:
+        DebugBodyDrawFilter() : drawRequested(32) {}
+        bool ShouldDraw(const JPH::Body& inBody)
+        {
+            return drawRequested.contains(inBody.GetID());
+        }
+        std::unordered_set<JPH::BodyID> drawRequested;
+
+    } bodyDrawFilter;
 
     BPLayerInterfaceImpl broad_phase_layer_interface;
 

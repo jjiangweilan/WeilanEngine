@@ -55,6 +55,8 @@ public:
         {
             target->SetMotionType(static_cast<JPH::EMotionType>(currentMotionType));
         }
+
+        target->debugDrawRequest = true;
     }
 
 private:
