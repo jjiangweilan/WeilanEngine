@@ -6,6 +6,7 @@
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
+#include "Physics/JoltDebugRenderer.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
 #include "spdlog/spdlog.h"
@@ -307,6 +308,10 @@ bool GameView::Tick()
         if (ImGui::MenuItem("Overlay"))
         {
             menuSelected = "Overlay";
+        }
+        if (ImGui::MenuItem("Physics Debug Draw"))
+        {
+            JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
         }
         ImGui::EndMenuBar();
     }

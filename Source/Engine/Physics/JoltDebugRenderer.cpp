@@ -65,6 +65,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     submesh.SetIndices(std::move(indices));
     submesh.SetPositions(std::move(positions));
     submesh.SetVertexAttribute(std::move(attributes));
+    submesh.Apply();
     std::vector<Submesh> submeshes;
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
@@ -113,6 +114,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
     submesh.SetIndices(std::move(indices));
     submesh.SetPositions(std::move(positions));
     submesh.SetVertexAttribute(std::move(attributes));
+    submesh.Apply();
     std::vector<Submesh> submeshes;
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
@@ -144,8 +146,11 @@ void JoltDebugRenderer::DrawGeometry(
         {c0.GetX(), c0.GetY(), c0.GetZ(), c0.GetW()},
         {c1.GetX(), c1.GetY(), c1.GetZ(), c1.GetW()},
         {c2.GetX(), c2.GetY(), c2.GetZ(), c2.GetW()},
-        {c3.GetX(), c3.GetY(), c3.GetZ(), c3.GetW()}};
+        {c3.GetX(), c3.GetY(), c3.GetZ(), c3.GetW()}
+    };
 
+    // all geometry is drawn in wire frame regardless of the settings
+    // it's hard set in shader
     Graphics::DrawMesh(*batchImpl->mesh, 0, model, *batchImpl->material);
 }
 
@@ -156,3 +161,9 @@ void JoltDebugRenderer::DrawText3D(
 
 JoltDebugRenderer::BatchImpl::BatchImpl() {}
 JoltDebugRenderer::BatchImpl::~BatchImpl() {}
+
+bool& JoltDebugRenderer::GetDrawAll()
+{
+    static bool drawAll = false;
+    return drawAll;
+}

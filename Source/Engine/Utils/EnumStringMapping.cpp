@@ -224,6 +224,30 @@ const char* MapStrStencilOp(Gfx::StencilOp op)
     }
 }
 
+Gfx::PolygonMode MapPolygonMode(const std::string& str)
+{
+    if (str == "line")
+        return Gfx::PolygonMode::Line;
+    if (str == "point")
+        return Gfx::PolygonMode::Point;
+    if (str == "fill")
+        return Gfx::PolygonMode::Fill;
+
+    return Gfx::PolygonMode::Fill;
+}
+
+const char* MapPolygonMode(Gfx::PolygonMode mode)
+{
+    switch (mode)
+    {
+        case Gfx::PolygonMode::Point: return "point";
+        case Gfx::PolygonMode::Line: return "line";
+        case Gfx::PolygonMode::Fill: return "fill";
+    }
+
+    return "fill";
+}
+
 Gfx::Topology MapTopology(const std::string& str)
 {
     if (str == "triangleStrip")

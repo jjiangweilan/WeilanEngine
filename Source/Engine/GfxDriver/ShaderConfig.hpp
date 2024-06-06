@@ -39,6 +39,7 @@ struct ShaderConfig
     bool debug = false;
     CullMode cullMode = CullMode::Back;
     Topology topology = Topology::TriangleList;
+    PolygonMode polygonMode = PolygonMode::Fill;
 
     struct Depth
     {

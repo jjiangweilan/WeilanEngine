@@ -3,6 +3,9 @@
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
+
+VkPolygonMode MapPolygonMode(PolygonMode mode);
+PolygonMode MapVKPolygonMode(VkPolygonMode mode);
 VkPrimitiveTopology MapPrimitiveTopology(Topology topology);
 Topology MapVKPrimitiveTopology(VkPrimitiveTopology topology);
 VkFormat MapFormat(ImageFormat format);

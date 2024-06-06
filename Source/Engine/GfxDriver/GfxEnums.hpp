@@ -159,6 +159,13 @@ enum class Topology
     LineList
 };
 
+enum class PolygonMode
+{
+    Fill = 0,
+    Line = 1,
+    Point = 2,
+};
+
 namespace ImageUsage
 {
 enum Enum : uint32_t

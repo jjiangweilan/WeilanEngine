@@ -2,7 +2,8 @@
 #include "Common/Common.glsl"
 
 #if CONFIG
-name: JoltDebug
+name : JoltDebug
+polygonMode : line
 #endif
 
 #if VERT
@@ -15,7 +16,7 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
-    positionWS = vec3(pconst.model * vec4(position, 1));
+    vec3 positionWS = vec3(pconst.model * vec4(position, 1));
     gl_Position = scene.viewProjection * vec4(positionWS, 1);
     oColor = color;
 }

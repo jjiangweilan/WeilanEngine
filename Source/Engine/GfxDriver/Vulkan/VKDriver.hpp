@@ -143,9 +143,7 @@ public:
         VkDevice handle;
     } device;
 
-    VkPhysicalDeviceFeatures deviceFeatures {
-        .independentBlend = true,
-    };
+    VkPhysicalDeviceFeatures deviceFeatures{.independentBlend = true, .fillModeNonSolid = true};
 
     Queue mainQueue;
     GPU gpu;

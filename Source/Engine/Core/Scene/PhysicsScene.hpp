@@ -192,6 +192,7 @@ public:
     }
 
     void Tick();
+    void DebugDraw();
 
 private:
     std::vector<PhysicsBody*> bodies;
@@ -203,7 +204,7 @@ private:
     {
     public:
         DebugBodyDrawFilter() : drawRequested(32) {}
-        bool ShouldDraw(const JPH::Body& inBody)
+        bool ShouldDraw(const JPH::Body& inBody) const override
         {
             return drawRequested.contains(inBody.GetID());
         }

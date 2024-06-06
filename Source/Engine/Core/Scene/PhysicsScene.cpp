@@ -56,13 +56,21 @@ void PhysicsScene::Tick()
     // Step the world
     physicsSystem.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
 
+    for (auto b : bodies)
+    {
+        b->UpdateGameObject();
+    }
+}
+
+void PhysicsScene::DebugDraw()
+{
     JPH::BodyManager::DrawSettings drawSettings;
+    drawSettings.mDrawShapeWireframe = true;
 
     bodyDrawFilter.drawRequested.clear();
     for (auto b : bodies)
     {
-        b->UpdateGameObject();
-        if (b->debugDrawRequest)
+        if (b->debugDrawRequest || JoltDebugRenderer::GetDrawAll())
         {
             b->debugDrawRequest = false;
             bodyDrawFilter.drawRequested.emplace(b->GetBody()->GetID());

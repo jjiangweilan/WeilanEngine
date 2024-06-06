@@ -31,6 +31,7 @@ const void GameLoop::Tick(
 {
     if (scene == nullptr)
         return;
+
     // update physics
     if (isPlaying)
     {
@@ -41,6 +42,7 @@ const void GameLoop::Tick(
             TickGameObject(go);
         }
     }
+    scene->GetPhysicsScene().DebugDraw();
 
     // render
     auto camera = scene->GetMainCamera();

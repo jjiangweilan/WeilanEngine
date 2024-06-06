@@ -584,4 +584,28 @@ Topology MapVKPrimitiveTopology(VkPrimitiveTopology topology)
     }
     return Topology::TriangleList;
 }
+
+VkPolygonMode MapPolygonMode(PolygonMode mode)
+{
+    switch (mode)
+    {
+        case (PolygonMode::Line): return VK_POLYGON_MODE_LINE;
+        case (PolygonMode::Point): return VK_POLYGON_MODE_POINT;
+        case (PolygonMode::Fill): return VK_POLYGON_MODE_FILL;
+    }
+
+    return VK_POLYGON_MODE_FILL;
+}
+
+PolygonMode MapVKPolygonMode(VkPolygonMode mode)
+{
+    switch (mode)
+    {
+        case (VK_POLYGON_MODE_LINE): return PolygonMode::Line;
+        case (VK_POLYGON_MODE_POINT): return PolygonMode::Point;
+        case (VK_POLYGON_MODE_FILL): return PolygonMode::Fill;
+    }
+
+    return PolygonMode::Fill;
+}
 } // namespace Gfx
