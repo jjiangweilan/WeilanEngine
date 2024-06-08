@@ -317,63 +317,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
                 const auto& managedObjectCounters = ser.GetManagedObjects();
                 this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
 
-                auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
-                {
-                    while (!resolves.empty())
-                    {
-                        auto& toresolve = resolves.back();
-                        toresolve.target = resolved;
-                        if (toresolve.callback)
-                            toresolve.callback(resolved);
-
-                        if (toresolve.managedObjectRefCounter)
-                        {
-                            auto counterIter = this->managedObjectCounters.find(resolved->GetUUID());
-                            if (counterIter != this->managedObjectCounters.end())
-                            {
-                                *toresolve.managedObjectRefCounter = counterIter->second;
-                                if (*toresolve.managedObjectRefCounter)
-                                {
-                                    **toresolve.managedObjectRefCounter += 1;
-                                }
-                            }
-                        }
-
-                        resolves.pop_back();
-                    }
-                };
-                for (auto& iter : resolveMap)
-                {
-                    if (iter.second.empty())
-                        continue;
-                    // resolve external reference
-                    Asset* externalAsset = LoadAssetByID(iter.first);
-                    if (externalAsset)
-                    {
-                        ResolveAll(iter.second, externalAsset);
-                    }
-
-                    // resolve internal reference
-                    // currently I didn't resolve reference to external contained object
-                    // that can be done by cache a list of contained objects
-                    const auto& objs = ser.GetContainedObjects();
-                    auto containedObj = objs.find(iter.first);
-                    if (containedObj != objs.end())
-                    {
-                        auto resolved = containedObj->second;
-                        ResolveAll(iter.second, resolved);
-                    }
-
-                    // add whatever is not resolved to assetDatabase's resolve map
-                    if (!iter.second.empty())
-                    {
-                        auto& vec = referenceResolveMap[iter.first];
-                        for (auto& r : iter.second)
-                        {
-                            vec.emplace_back(r.target, r.targetUUID, r.callback, r.managedObjectRefCounter);
-                        }
-                    }
-                }
+                ResolveSerializerReference(ser, resolveMap);
             }
         }
 
@@ -661,4 +605,65 @@ AssetDatabase*& AssetDatabase::SingletonReference()
 {
     static AssetDatabase* instance;
     return instance;
+}
+
+void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap)
+{
+    auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+    {
+        while (!resolves.empty())
+        {
+            auto& toresolve = resolves.back();
+            toresolve.target = resolved;
+            if (toresolve.callback)
+                toresolve.callback(resolved);
+
+            if (toresolve.managedObjectRefCounter)
+            {
+                auto counterIter = this->managedObjectCounters.find(resolved->GetUUID());
+                if (counterIter != this->managedObjectCounters.end())
+                {
+                    *toresolve.managedObjectRefCounter = counterIter->second;
+                    if (*toresolve.managedObjectRefCounter)
+                    {
+                        **toresolve.managedObjectRefCounter += 1;
+                    }
+                }
+            }
+
+            resolves.pop_back();
+        }
+    };
+    for (auto& iter : resolveMap)
+    {
+        if (iter.second.empty())
+            continue;
+        // resolve external reference
+        Asset* externalAsset = LoadAssetByID(iter.first);
+        if (externalAsset)
+        {
+            ResolveAll(iter.second, externalAsset);
+        }
+
+        // resolve internal reference
+        // currently I didn't resolve reference to external contained object
+        // that can be done by cache a list of contained objects
+        const auto& objs = ser.GetContainedObjects();
+        auto containedObj = objs.find(iter.first);
+        if (containedObj != objs.end())
+        {
+            auto resolved = containedObj->second;
+            ResolveAll(iter.second, resolved);
+        }
+
+        // add whatever is not resolved to assetDatabase's resolve map
+        if (!iter.second.empty())
+        {
+            auto& vec = referenceResolveMap[iter.first];
+            for (auto& r : iter.second)
+            {
+                vec.emplace_back(r.target, r.targetUUID, r.callback, r.managedObjectRefCounter);
+            }
+        }
+    }
 }

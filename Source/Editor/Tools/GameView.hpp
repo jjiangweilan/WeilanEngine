@@ -60,6 +60,9 @@ private:
         glm::ivec2 resolution;
     } d; // data
 
+    struct PlayTheGame;
+    std::unique_ptr<PlayTheGame> playTheGame;
+
     bool firstFrame = true;
     Camera* gameCamera = nullptr;
     Camera* editorCamera = nullptr;

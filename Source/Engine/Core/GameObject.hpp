@@ -186,7 +186,11 @@ private:
     // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     glm::mat4 modelMatrix;
+
+    // enabled is a wanted state, it may not be able to be enabled in some cases (when it's copying to somewere)
+    // actualEnabled is the real state managed by Scene
     bool enabled = false;
+    bool actualEnabled = false;
     bool updateModelMatrix = true;
 
     std::vector<GameObject*> children;

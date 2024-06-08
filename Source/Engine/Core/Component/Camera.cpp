@@ -134,6 +134,11 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
 
     clone->projectionMatrix = projectionMatrix;
     clone->viewMatrix = viewMatrix;
+    clone->frameGraph = frameGraph;
+    clone->near = near;
+    clone->far = far;
+    clone->fov = fov;
+    clone->aspect = aspect;
     return clone;
 }
 

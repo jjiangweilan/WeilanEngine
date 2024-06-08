@@ -44,6 +44,19 @@ public:
         return SingletonReference();
     }
 
+    template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
+    void CopyThroughSerialization(T& origin, T& copy)
+    {
+        JsonSerializer s;
+        origin.Serialize(&s);
+
+        SerializeReferenceResolveMap resolveMap;
+        JsonSerializer de(s.GetBinary(), &resolveMap);
+        copy.Deserialize(&s);
+
+        ResolveSerializerReference(de, resolveMap);
+    }
+
 private:
     static AssetDatabase*& SingletonReference();
     const std::filesystem::path projectRoot;
@@ -84,6 +97,8 @@ private:
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
+
+    void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
 
     // used to set instance
     friend class WeilanEngine;

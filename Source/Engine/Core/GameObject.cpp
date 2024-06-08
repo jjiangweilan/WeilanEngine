@@ -200,18 +200,23 @@ void GameObject::SetScene(Scene* scene)
             if (c->IsEnabled() && enabled)
                 c->EnableImple();
         }
+
+        for (auto child : children)
+        {
+            child->SetScene(scene);
+        }
     }
 }
 
 void GameObject::SetEnable(bool isEnabled)
 {
-    if (enabled == isEnabled)
+    if (enabled == isEnabled || gameScene == nullptr)
         return;
 
     for (auto child : children)
     {
         // child may be nullptr when deserializing
-        if (child)
+        if (child && child->IsEnabled())
             child->SetEnable(isEnabled);
     }
 

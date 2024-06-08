@@ -25,17 +25,6 @@ TEST(EnvironmentBaker, Test0)
     scene.SetMainCamera(cam);
 
     // handle swapchain change
-    scene.RegisterSystemEventCallback(
-        [cam](SDL_Event& event)
-        {
-            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                float width = event.window.data1;
-                float height = event.window.data2;
-                cam->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
-            }
-        }
-    );
 
     // engine->renderPipeline->RegisterSwapchainRecreateCallback(
     //     [&sceneRenderer, &scene]()

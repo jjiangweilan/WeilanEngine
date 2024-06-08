@@ -1,7 +1,7 @@
 #include "Scene.hpp"
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
-Scene::Scene() : Asset(), systemEventCallbacks()
+Scene::Scene() : Asset()
 {
     name = "New GameScene";
 }
@@ -21,21 +21,16 @@ GameObject* Scene::CreateGameObject()
     return refObj;
 }
 
-void Scene::AddGameObject(GameObject* newGameObject)
-{
-    newGameObject->SetScene(this);
-    newGameObject->SetEnable(true);
-    roots.push_back(newGameObject);
-    externalGameObjects.push_back(newGameObject);
-}
-
 GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
 {
     GameObject* temp = newGameObject.get();
     gameObjects.push_back(std::move(newGameObject));
-    
+
     temp->SetScene(this);
-    temp->SetEnable(true);
+    if (temp->IsEnabled())
+    {
+        temp->SetEnable(true);
+    }
     if (temp->GetParent() == nullptr)
     {
         roots.push_back(temp);
@@ -127,12 +122,6 @@ void Scene::DestroyGameObject(GameObject* obj)
         roots.erase(rootIter);
     }
 
-    auto externalIter = std::find(externalGameObjects.begin(), externalGameObjects.end(), obj);
-    if (externalIter != externalGameObjects.end())
-    {
-        externalGameObjects.erase(rootIter);
-    }
-
     auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
     if (iter != gameObjects.end())
         gameObjects.erase(iter);
@@ -214,26 +203,32 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
 void Scene::Serialize(Serializer* s) const
 {
     s->Serialize("gameObjects", gameObjects);
-    s->Serialize("externalGameObjects", externalGameObjects);
     s->Serialize("roots", roots);
     s->Serialize("camera", camera);
+}
+
+std::unique_ptr<Asset> Scene::Clone()
+{
+    std::unique_ptr<Scene> copy = std::make_unique<Scene>();
+
+    for (GameObject* root : roots)
+    {
+        std::unique_ptr<GameObject> go = std::unique_ptr<GameObject>(static_cast<GameObject*>(root->Clone().release()));
+        copy->AddGameObject(std::move(go));
+    }
+
+    return copy;
 }
 
 void Scene::Deserialize(Serializer* s)
 {
     s->Deserialize("gameObjects", gameObjects);
-    s->Deserialize("externalGameObjects", externalGameObjects);
     s->Deserialize("roots", roots);
     s->Deserialize("camera", camera);
 
     for (auto& g : gameObjects)
     {
         g->SetScene(this);
-    }
-
-    for (auto e : externalGameObjects)
-    {
-        e->SetScene(this);
     }
 
     //// find all the root object

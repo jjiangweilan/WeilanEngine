@@ -9,14 +9,14 @@ class PhysicsBodyInspector : public Inspector<PhysicsBody>
 public:
     void DrawInspector(GameEditor& editor) override
     {
-        const char* items[] = {"Non Moving", "Moving"}; // defined in PhysicsLayer.hpp
+        const char* items[] = {"Scene", "Moving"}; // defined in PhysicsLayer.hpp
         int currentItenIndex = static_cast<int>(target->GetLayer());
         if (ImGui::Combo("combo", &currentItenIndex, items, IM_ARRAYSIZE(items)))
         {
             if (currentItenIndex == 0)
-                target->SetLayer(PhysicsLayer::NON_MOVING);
+                target->SetLayer(PhysicsLayer::Scene);
             else if (currentItenIndex == 1)
-                target->SetLayer(PhysicsLayer::MOVING);
+                target->SetLayer(PhysicsLayer::Moving);
         }
 
         const char* shapes[] = {"Box", "Sphere"};

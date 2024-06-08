@@ -87,8 +87,10 @@ class GameObjectInspector : public Inspector<GameObject>
         }
 
         // Components
+        int enableCheckBoxID = 0;
         for (auto& co : target->GetComponents())
         {
+            ImGui::PushID(enableCheckBoxID++);
             auto& c = *co;
             ImGui::Separator();
             bool cEnabled = c.IsEnabled();
@@ -105,6 +107,7 @@ class GameObjectInspector : public Inspector<GameObject>
             auto inspector = InspectorRegistry::GetInspector(c);
             inspector->OnEnable(c);
             inspector->DrawInspector(editor);
+            ImGui::PopID();
         }
     }
 

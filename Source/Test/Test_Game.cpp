@@ -18,19 +18,6 @@ TEST(Gameplay, Test0)
     auto cam = gameObject->AddComponent<Camera>();
     scene.SetMainCamera(cam);
 
-    // handle swapchain change
-    scene.RegisterSystemEventCallback(
-        [cam](SDL_Event& event)
-        {
-            if (event.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                float width = event.window.data1;
-                float height = event.window.data2;
-                cam->SetProjectionMatrix(glm::radians(45.0f), width / (float)height, 0.01f, 1000.f);
-            }
-        }
-    );
-
     // load model
     // auto model2 = engine->ImportModel("Source/Test/Resources/DamagedHelmet.glb");
     // scene.AddGameObject(model2->GetGameObject()[0].get());

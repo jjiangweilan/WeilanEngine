@@ -121,11 +121,12 @@ GameEditor::~GameEditor()
     fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
     engine->DestroyGameLoop(loop);
-    loop = nullptr;
     InspectorRegistry::DestroyAll();
 
-    if (EditorState::activeScene)
+    if (EditorState::activeScene && !loop->IsPlaying())
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
+
+    loop = nullptr;
 
     if (Camera* cam = gameView.GetEditorCamera())
     {

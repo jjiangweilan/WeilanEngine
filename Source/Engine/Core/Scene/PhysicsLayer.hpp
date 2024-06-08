@@ -4,7 +4,7 @@
 
 enum class PhysicsLayer : JPH::ObjectLayer
 {
-    NON_MOVING = 0,
-    MOVING = 1,
+    Scene = 0,
+    Moving = 1,
     NUM_LAYERS = 2
 }; // namespace PhysicsLayer

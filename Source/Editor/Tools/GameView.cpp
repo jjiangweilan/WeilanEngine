@@ -9,10 +9,54 @@
 #include "Physics/JoltDebugRenderer.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
-#include "spdlog/spdlog.h"
 
 namespace Editor
 {
+
+struct GameView::PlayTheGame
+{
+    PlayTheGame() {}
+    std::unique_ptr<Scene> sceneCopy;
+    SRef<Scene> originalScene;
+    bool played = false;
+
+    void Play()
+    {
+        if (!played)
+        {
+            played = true;
+            auto& scene = *EditorState::activeScene;
+
+            originalScene = scene.GetSRef<Scene>();
+            sceneCopy = std::unique_ptr<Scene>(static_cast<Scene*>(originalScene->Clone().release()));
+
+            EditorState::activeScene = sceneCopy.get();
+            EditorState::gameLoop->SetScene(*sceneCopy);
+            EditorState::gameLoop->Play();
+        }
+    }
+
+    void Stop()
+    {
+        if (played)
+        {
+            played = false;
+            // stop execution of the loop
+            EditorState::gameLoop->Stop();
+
+            // resume editor state
+            auto ori = originalScene.Get();
+            if (ori)
+            {
+                EditorState::gameLoop->SetScene(*ori);
+                EditorState::activeScene = ori;
+            }
+
+            // destroy sceneCopy
+            sceneCopy = nullptr;
+        }
+    }
+};
 GameView::GameView() {}
 GameView::~GameView() {}
 
@@ -27,6 +71,7 @@ void GameView::Init()
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
+    playTheGame = std::make_unique<PlayTheGame>();
 
     if (GameEditor::instance->editorConfig.contains("editorCamera"))
     {
@@ -297,13 +342,13 @@ bool GameView::Tick()
         {
             menuSelected = "Auto Resize";
         }
-        if (ImGui::MenuItem("Play"))
+        if (playTheGame->played && ImGui::MenuItem("Stop"))
+        {
+            menuSelected = "Stop";
+        }
+        if (!playTheGame->played && ImGui::MenuItem("Play"))
         {
             menuSelected = "Play";
-        }
-        if (ImGui::MenuItem("Pause"))
-        {
-            menuSelected = "Pause";
         }
         if (ImGui::MenuItem("Overlay"))
         {
@@ -355,12 +400,15 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
-        if (EditorState::activeScene)
-            EditorState::gameLoop->Play();
+        playTheGame->Play();
     }
     else if (strcmp(menuSelected, "Pause") == 0)
     {
         EditorState::gameLoop->Stop();
+    }
+    else if (strcmp(menuSelected, "Stop") == 0)
+    {
+        playTheGame->Stop();
     }
     else if (strcmp(menuSelected, "Overlay") == 0)
     {}
@@ -618,5 +666,4 @@ void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
     glm::vec3 center = gameObject.GetPosition();
     cam.GetGameObject()->SetPosition(center);
 }
-
 } // namespace Editor

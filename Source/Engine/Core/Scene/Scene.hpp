@@ -5,7 +5,6 @@
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/PhysicsScene.hpp"
-#include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
@@ -18,7 +17,6 @@ public:
     Scene();
     ~Scene();
     GameObject* CreateGameObject();
-    void AddGameObject(GameObject* newGameObject);
     GameObject* AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
     void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
@@ -31,6 +29,8 @@ public:
     void RemoveGameObjectFromRoot(GameObject* obj);
     void RemoveGameObject(GameObject* obj);
     void DestroyGameObject(GameObject* obj);
+
+    std::unique_ptr<Asset> Clone() override;
 
     std::vector<GameObject*> GetAllGameObjects();
 
@@ -61,19 +61,6 @@ public:
 
     Gfx::ShaderResource* GetSceneShaderResource();
 
-    void InvokeSystemEventCallbacks(SDL_Event& event)
-    {
-        for (auto& cb : systemEventCallbacks)
-        {
-            cb(event);
-        }
-    }
-
-    void RegisterSystemEventCallback(const std::function<void(SDL_Event& event)>& cb)
-    {
-        systemEventCallbacks.push_back(cb);
-    }
-
     RenderingScene& GetRenderingScene()
     {
         return renderingScene;
@@ -90,9 +77,7 @@ protected:
     PhysicsScene physicsScene;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
-    std::vector<GameObject*> externalGameObjects;
     std::vector<GameObject*> roots;
-    std::vector<std::function<void(SDL_Event& event)>> systemEventCallbacks;
 
     Camera* camera = nullptr;
 

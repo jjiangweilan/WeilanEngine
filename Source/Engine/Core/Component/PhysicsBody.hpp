@@ -69,13 +69,12 @@ public:
 
 private:
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 0.5};
-    std::unique_ptr<JPH::MotionProperties> motionProperty;
+    PhysicsLayer layer = PhysicsLayer::Scene;
+    float gravityFactor = 0.0f;
+    JPH::EMotionType motionType = JPH::EMotionType::Static;
 
     JPH::ShapeRefC shapeRef;
     JPH::Body* body = nullptr;
-    PhysicsLayer layer = PhysicsLayer::NON_MOVING;
-    float gravityFactor = 0.0f;
-    JPH::EMotionType motionType = JPH::EMotionType::Static;
 
     void EnableImple() override;
     void DisableImple() override;

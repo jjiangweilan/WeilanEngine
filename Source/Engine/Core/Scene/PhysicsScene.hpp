@@ -28,10 +28,10 @@ public:
     {
         switch (static_cast<PhysicsLayer>(inObject1))
         {
-            case PhysicsLayer::NON_MOVING:
+            case PhysicsLayer::Scene:
                 return static_cast<PhysicsLayer>(inObject2) ==
-                       PhysicsLayer::MOVING;        // Non moving only collides with moving
-            case PhysicsLayer::MOVING: return true; // Moving collides with everything
+                       PhysicsLayer::Moving;        // Non moving only collides with moving
+            case PhysicsLayer::Moving: return true; // Moving collides with everything
             default: JPH_ASSERT(false); return false;
         }
     }
@@ -44,8 +44,8 @@ public:
 // your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
 namespace BroadPhaseLayers
 {
-static constexpr JPH::BroadPhaseLayer NON_MOVING(0);
-static constexpr JPH::BroadPhaseLayer MOVING(1);
+static constexpr JPH::BroadPhaseLayer Scene(0);
+static constexpr JPH::BroadPhaseLayer Moving(1);
 static constexpr JPH::uint NUM_LAYERS(2);
 }; // namespace BroadPhaseLayers
 
@@ -57,8 +57,8 @@ public:
     BPLayerInterfaceImpl()
     {
         // Create a mapping table from object to broad phase layer
-        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NON_MOVING)] = BroadPhaseLayers::NON_MOVING;
-        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::MOVING)] = BroadPhaseLayers::MOVING;
+        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Scene)] = BroadPhaseLayers::Scene;
+        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Moving)] = BroadPhaseLayers::Moving;
     }
 
     virtual JPH::uint GetNumBroadPhaseLayers() const override
@@ -77,8 +77,8 @@ public:
     {
         switch ((JPH::BroadPhaseLayer::Type)inLayer)
         {
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING: return "NON_MOVING";
-            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::MOVING: return "MOVING";
+            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Moving: return "Moving";
+            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Scene: return "Scene";
             default: JPH_ASSERT(false); return "INVALID";
         }
     }
@@ -96,8 +96,8 @@ public:
     {
         switch (inLayer1)
         {
-            case static_cast<int>(PhysicsLayer::NON_MOVING): return inLayer2 == BroadPhaseLayers::MOVING;
-            case static_cast<int>(PhysicsLayer::MOVING): return true;
+            case static_cast<int>(PhysicsLayer::Scene): return inLayer2 == BroadPhaseLayers::Moving;
+            case static_cast<int>(PhysicsLayer::Moving): return true;
             default: JPH_ASSERT(false); return false;
         }
     }

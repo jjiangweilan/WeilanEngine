@@ -13,10 +13,24 @@ PhysicsBody::PhysicsBody(GameObject* gameObject) : Component(gameObject) {}
 void PhysicsBody::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
+
+    s->Serialize("bodyScale", bodyScale);
+    s->Serialize("layer", static_cast<int>(layer));
+    s->Serialize("gravityFactor", gravityFactor);
+    s->Serialize("motionType", static_cast<int>(motionType));
 }
 void PhysicsBody::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
+
+    s->Deserialize("bodyScale", bodyScale);
+    int layer = 0;
+    s->Deserialize("layer", layer);
+    this->layer = static_cast<PhysicsLayer>(layer);
+    s->Deserialize("gravityFactor", gravityFactor);
+    int motionType = 0;
+    s->Deserialize("motionType", motionType);
+    this->motionType = static_cast<JPH::EMotionType>(motionType);
 }
 
 const std::string& PhysicsBody::GetName()
@@ -28,6 +42,15 @@ const std::string& PhysicsBody::GetName()
 std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
 {
     auto clone = std::make_unique<PhysicsBody>(&owner);
+    clone->enabled = enabled;
+    clone->bodyScale = bodyScale;
+    clone->layer = layer;
+    clone->gravityFactor = gravityFactor;
+    clone->motionType = motionType;
+
+    // we don't know which scene the body will be attached to, so we don't Init here
+    clone->body = nullptr;
+    clone->shapeRef = nullptr;
 
     return clone;
 }
@@ -49,7 +72,6 @@ void PhysicsBody::EnableImple()
 }
 void PhysicsBody::DisableImple()
 {
-
     Scene* scene = GetScene();
     if (scene == nullptr)
         return;
@@ -94,7 +116,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
                     body->GetID(),
                     result.Get(),
                     true,
-                    (static_cast<int>(layer) & static_cast<int>(PhysicsLayer::MOVING)) == 1 ? EActivation::Activate
+                    (static_cast<int>(layer) & static_cast<int>(PhysicsLayer::Moving)) == 1 ? EActivation::Activate
                                                                                             : EActivation::DontActivate
                 );
             }
