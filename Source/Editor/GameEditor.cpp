@@ -325,6 +325,7 @@ void GameEditor::SceneTree(Scene& scene)
                 auto cube = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
                 std::unique_ptr<GameObject> cubeClone(static_cast<GameObject*>(cube->Clone().release()));
                 scene.AddGameObject(std::move(cubeClone));
+                cubeClone->SetEnable(true);
             }
             else if (ImGui::MenuItem("Plane"))
             {
@@ -334,6 +335,7 @@ void GameEditor::SceneTree(Scene& scene)
                 auto plane = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
                 std::unique_ptr<GameObject> planeClone(static_cast<GameObject*>(plane->Clone().release()));
                 scene.AddGameObject(std::move(planeClone));
+                plane->SetEnable(true);
             }
             ImGui::EndMenu();
         }

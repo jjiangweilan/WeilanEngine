@@ -69,6 +69,8 @@ void PhysicsBody::EnableImple()
     auto& physicsScene = scene->GetPhysicsScene();
     physicsScene.AddPhysicsBody(*this);
     physicsScene.GetBodyInterface().ActivateBody(body->GetID());
+
+    TransformChanged();
 }
 void PhysicsBody::DisableImple()
 {
@@ -183,7 +185,7 @@ void PhysicsBody::Init()
 
     body = bodyInterface.CreateBody(bodyCreationSettings);
     bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
-    SetGravityFactor(0);
+    SetGravityFactor(gravityFactor);
 }
 
 void PhysicsBody::SetGravityFactor(float f)
@@ -247,6 +249,24 @@ void PhysicsBody::Awake()
                 {pos.x, pos.y, pos.z},
                 {rot.x, rot.y, rot.z, rot.w},
                 motionType == EMotionType::Static ? EActivation::DontActivate : EActivation::Activate
+            );
+        }
+    }
+}
+
+void PhysicsBody::TransformChanged()
+{
+    if (auto i = GetBodyInterface())
+    {
+        if (body)
+        {
+            auto pos = gameObject->GetPosition();
+            auto rot = gameObject->GetRotation();
+            i->SetPositionAndRotation(
+                body->GetID(),
+                {pos.x, pos.y, pos.z},
+                {rot.x, rot.y, rot.z, rot.w},
+                EActivation::DontActivate
             );
         }
     }

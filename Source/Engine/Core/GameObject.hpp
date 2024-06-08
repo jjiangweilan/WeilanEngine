@@ -2,13 +2,11 @@
 
 #include "Asset.hpp"
 #include "Component/Component.hpp"
-#include "Libs/Ptr.hpp"
+#include "EngineState.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <memory>
-#include <string>
-#include <typeinfo>
 #include <vector>
 
 class Scene;
@@ -73,7 +71,10 @@ public:
     {
         updateModelMatrix = true;
         this->rotation = rotation;
+
+        TransformChanged();
     }
+
     void SetPosition(const glm::vec3& position)
     {
         updateModelMatrix = true;
@@ -84,12 +85,16 @@ public:
         {
             child->Translate(delta);
         }
+
+        TransformChanged();
     };
 
     void SetScale(const glm::vec3& scale)
     {
         updateModelMatrix = true;
         this->scale = scale;
+
+        TransformChanged();
     }
 
     void Awake()
@@ -116,6 +121,8 @@ public:
 
             SetModelMatrix(trs);
         }
+
+        TransformChanged();
     }
     void Translate(const glm::vec3& translate)
     {
@@ -126,6 +133,8 @@ public:
         {
             child->Translate(translate);
         }
+
+        TransformChanged();
     }
 
     glm::vec3 GetPosition() const
@@ -178,6 +187,13 @@ public:
     void RemoveChild(GameObject* child);
     void ResetTransform();
 
+    bool GetWantsTobeEnabledStateAndReset()
+    {
+        bool temp = wantsToBeEnabled;
+        wantsToBeEnabled = false;
+        return temp;
+    }
+
 private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
@@ -187,16 +203,26 @@ private:
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     glm::mat4 modelMatrix;
 
-    // enabled is a wanted state, it may not be able to be enabled in some cases (when it's copying to somewere)
-    // actualEnabled is the real state managed by Scene
+    // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
+    // wantsToBeEnabled will be set to true whth enabled is false in that case
     bool enabled = false;
-    bool actualEnabled = false;
+    bool wantsToBeEnabled = false;
+
     bool updateModelMatrix = true;
 
     std::vector<GameObject*> children;
     std::vector<std::unique_ptr<Component>> components;
     GameObject* parent = nullptr;
     Scene* gameScene = nullptr;
+
+    void TransformChanged()
+    {
+        if (!EngineState::GetSingleton().isPlaying)
+        {
+            for (auto& c : components)
+                c->TransformChanged();
+        }
+    }
 };
 
 template <class T, class... Args>

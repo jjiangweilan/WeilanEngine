@@ -50,10 +50,14 @@ public:
     virtual void OnDrawGizmos() {};
 
 protected:
-    virtual void EnableImple() {};
-    virtual void DisableImple() {};
     bool enabled = false;
     GameObject* gameObject;
+
+    virtual void EnableImple() {};
+    virtual void DisableImple() {};
+
+    // editor only
+    virtual void TransformChanged() {}
 
     friend class GameObject;
 };

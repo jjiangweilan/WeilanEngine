@@ -44,21 +44,19 @@ GameObject::GameObject(const GameObject& other)
     scale = other.scale;
     rotation = other.rotation;
     eulerAngles = other.eulerAngles;
-    gameScene = other.gameScene;
-    enabled = other.enabled;
+    wantsToBeEnabled = other.enabled;
+    gameScene = nullptr;
+    enabled = false;
 
     for (auto& c : other.components)
     {
         components.push_back(c->Clone(*this));
     }
 
-    if (gameScene)
+    for (GameObject* child : other.children)
     {
-        for (GameObject* child : other.children)
-        {
-            GameObject* childClone = gameScene->AddGameObject(std::make_unique<GameObject>(*child));
-            childClone->SetParent(this);
-        }
+        GameObject* childClone = gameScene->AddGameObject(std::make_unique<GameObject>(*child));
+        childClone->SetParent(this);
     }
 }
 

@@ -36,7 +36,7 @@ public:
             auto bodyScale = target->GetBodyScale();
             if (ImGui::InputFloat("radius", &bodyScale[0]))
             {
-                target->SetAsBox(bodyScale);
+                target->SetAsSphere(bodyScale[0]);
             }
         }
 

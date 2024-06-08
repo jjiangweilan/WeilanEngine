@@ -9,7 +9,7 @@ void JoltDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::
     Graphics::DrawLine(
         {inFrom.GetX(), inFrom.GetY(), inFrom.GetZ()},
         {inTo.GetX(), inTo.GetY(), inTo.GetZ()},
-        {inColor.r, inColor.g, inColor.b, inColor.a}
+        {1.0f, 1.0f, 1.0f, 0.8f}
     );
 }
 
@@ -21,7 +21,7 @@ void JoltDebugRenderer::DrawTriangle(
         {inV1.GetX(), inV1.GetY(), inV1.GetZ()},
         {inV2.GetX(), inV2.GetY(), inV2.GetZ()},
         {inV3.GetX(), inV3.GetY(), inV3.GetZ()},
-        {inColor.r, inColor.g, inColor.b, inColor.a}
+        {1.0f, 1.0f, 1.0f, 0.8f}
     );
 }
 

@@ -2,6 +2,7 @@
 
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/EngineState.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
@@ -20,7 +21,7 @@ struct GameView::PlayTheGame
     SRef<Scene> originalScene;
     bool played = false;
 
-    void Play()
+    void Play(GameView* gameView)
     {
         if (!played)
         {
@@ -33,10 +34,13 @@ struct GameView::PlayTheGame
             EditorState::activeScene = sceneCopy.get();
             EditorState::gameLoop->SetScene(*sceneCopy);
             EditorState::gameLoop->Play();
+            gameView->editorCameraGO->SetScene(sceneCopy.get());
+
+            EngineState::GetSingleton().isPlaying = true;
         }
     }
 
-    void Stop()
+    void Stop(GameView* gameView)
     {
         if (played)
         {
@@ -45,7 +49,9 @@ struct GameView::PlayTheGame
             EditorState::gameLoop->Stop();
 
             // resume editor state
+            EngineState::GetSingleton().isPlaying = false;
             auto ori = originalScene.Get();
+            gameView->editorCameraGO->SetScene(ori);
             if (ori)
             {
                 EditorState::gameLoop->SetScene(*ori);
@@ -400,7 +406,7 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Play") == 0)
     {
-        playTheGame->Play();
+        playTheGame->Play(this);
     }
     else if (strcmp(menuSelected, "Pause") == 0)
     {
@@ -408,10 +414,19 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Stop") == 0)
     {
-        playTheGame->Stop();
+        playTheGame->Stop(this);
     }
     else if (strcmp(menuSelected, "Overlay") == 0)
     {}
+    
+    // alway match window size
+    int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+    int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
+    if (firstFrame || width != sceneImage->GetDescription().width || height != sceneImage->GetDescription().height)
+    {
+        firstFrame = false;
+        ChangeGameScreenResolution({width, height});
+    }
 
     if (ImGui::BeginPopup("Change Resolution"))
     {
@@ -446,20 +461,6 @@ bool GameView::Tick()
                 FocusOnObject(*scene->GetMainCamera(), *go);
         }
     }
-
-    // auto resize first frame
-    if (firstFrame)
-    {
-        int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-        int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
-        if (width == 0 || height == 0)
-        {
-            width = 1920;
-            height = 1080;
-        }
-        ChangeGameScreenResolution({width, height});
-    }
-    firstFrame = false;
 
     if (useViewCamera)
         EditorCameraWalkAround(*editorCamera);

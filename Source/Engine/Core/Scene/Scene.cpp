@@ -1,7 +1,7 @@
 #include "Scene.hpp"
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
-Scene::Scene() : Asset()
+Scene::Scene() : Asset(), renderingScene(), physicsScene()
 {
     name = "New GameScene";
 }
@@ -27,13 +27,15 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
     gameObjects.push_back(std::move(newGameObject));
 
     temp->SetScene(this);
-    if (temp->IsEnabled())
-    {
-        temp->SetEnable(true);
-    }
+
     if (temp->GetParent() == nullptr)
     {
         roots.push_back(temp);
+    }
+
+    if (temp->GetWantsTobeEnabledStateAndReset())
+    {
+        temp->SetEnable(true);
     }
 
     return temp;
@@ -94,6 +96,11 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     else
     {
         top->SetParent(gameObject.GetParent());
+    }
+
+    if (top->GetWantsTobeEnabledStateAndReset())
+    {
+        top->SetEnable(true);
     }
 
     return top;

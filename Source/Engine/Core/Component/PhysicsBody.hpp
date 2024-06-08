@@ -79,6 +79,7 @@ private:
     void EnableImple() override;
     void DisableImple() override;
     bool SetShape(JPH::ShapeSettings& shape);
+    void TransformChanged() override;
 
     JPH::BodyInterface* GetBodyInterface();
 
