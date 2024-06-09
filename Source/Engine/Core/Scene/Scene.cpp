@@ -185,25 +185,10 @@ std::vector<Light*> Scene::GetActiveLights()
 
 void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects)
 {
-    for (auto& go : gameObjects)
+    for (auto&& v : gameObjects)
     {
-        go->SetScene(this);
-
-        if (go->GetParent() == nullptr)
-        {
-            MoveGameObjectToRoot(go.get());
-        }
+        AddGameObject(std::move(v));
     }
-
-    for (auto& g : gameObjects)
-        g->SetEnable(true);
-
-    this->gameObjects.insert(
-        this->gameObjects.end(),
-        std::make_move_iterator(gameObjects.begin()),
-        std::make_move_iterator(gameObjects.end())
-    );
-
     gameObjects.clear();
 }
 

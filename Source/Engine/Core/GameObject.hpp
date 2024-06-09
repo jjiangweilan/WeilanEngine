@@ -187,6 +187,11 @@ public:
     void RemoveChild(GameObject* child);
     void ResetTransform();
 
+    void SetWantsToBeEnabled()
+    {
+        wantsToBeEnabled = true;
+    }
+
     bool GetWantsTobeEnabledStateAndReset()
     {
         bool temp = wantsToBeEnabled;

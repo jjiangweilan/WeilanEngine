@@ -218,6 +218,15 @@ void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelec
     }
 }
 
+void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
+{
+    auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
+    auto gameObjects = model->CreateGameObject();
+    auto go = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
+    std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
+    firstModelClone->SetWantsToBeEnabled();
+    scene.AddGameObject(std::move(firstModelClone));
+}
 void GameEditor::SceneTree(Scene& scene)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_MenuBar);
@@ -265,7 +274,10 @@ void GameEditor::SceneTree(Scene& scene)
         {
             if (Model* model = dynamic_cast<Model*>(*(Object**)objpayload->Data))
             {
-                scene.AddGameObjects(model->CreateGameObject());
+                auto gos = model->CreateGameObject();
+                for (auto& go : gos)
+                    go->SetWantsToBeEnabled();
+                scene.AddGameObjects(std::move(gos));
             }
         }
 
@@ -319,23 +331,11 @@ void GameEditor::SceneTree(Scene& scene)
         {
             if (ImGui::MenuItem("Cube"))
             {
-                auto model =
-                    static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Cube.glb"));
-                auto gameObjects = model->CreateGameObject();
-                auto cube = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
-                std::unique_ptr<GameObject> cubeClone(static_cast<GameObject*>(cube->Clone().release()));
-                scene.AddGameObject(std::move(cubeClone));
-                cubeClone->SetEnable(true);
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.glb");
             }
             else if (ImGui::MenuItem("Plane"))
             {
-                auto model =
-                    static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"));
-                auto gameObjects = model->CreateGameObject();
-                auto plane = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
-                std::unique_ptr<GameObject> planeClone(static_cast<GameObject*>(plane->Clone().release()));
-                scene.AddGameObject(std::move(planeClone));
-                plane->SetEnable(true);
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.glb");
             }
             ImGui::EndMenu();
         }

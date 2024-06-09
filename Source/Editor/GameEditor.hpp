@@ -84,6 +84,7 @@ private:
 
     void ConsoleOutputWindow();
 
+    void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void SceneTree(Scene& scene);
     void SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand);
 
