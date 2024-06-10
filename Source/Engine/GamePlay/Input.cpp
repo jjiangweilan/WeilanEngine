@@ -9,18 +9,6 @@ Input& Input::GetSingleton()
     return input;
 }
 
-void Input::GetMovement(float& x, float& y)
-{
-    x = leftJoyAxis.x;
-    y = leftJoyAxis.y;
-}
-
-void Input::GetLookAround(float& x, float& y)
-{
-    x = rightJoyAxis.x;
-    y = rightJoyAxis.y;
-}
-
 void Input::PushEvent(SDL_Event& event)
 {
     if (event.type == SDL_JOYAXISMOTION)
@@ -46,6 +34,20 @@ void Input::PushEvent(SDL_Event& event)
             rightJoyAxis.y = JoyStickRemap(val);
         }
     }
+    else if (event.type == SDL_JOYBUTTONDOWN || event.type == SDL_JOYBUTTONUP)
+    {
+        bool pressType = event.type == SDL_JOYBUTTONDOWN ? true : false;
+        /*
+ps5: 0 x, 1 o, 2 sqaure, 3 triangle, 4 screenshot, 5 ps, 6 menu, 7 left joystick press, 8 right joystick press, 9 L1, 10
+L2, 11 up, 12 down, 13 left, 14 right, 15 central pad, 16 mute
+           */
+        if (event.jbutton.button == 0)
+        {
+            rightPad.down = pressType;
+        }
+    }
+    else if (event.type == SDL_JOYBUTTONUP)
+    {}
 }
 
 float Input::JoyStickRemap(int& val)

@@ -186,7 +186,6 @@ void PhysicsBody::Init()
     body = bodyInterface.CreateBody(bodyCreationSettings);
     bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
     SetGravityFactor(gravityFactor);
-    body->SetUserData(reinterpret_cast<std::intptr_t>(this));
 }
 
 void PhysicsBody::SetGravityFactor(float f)
@@ -273,35 +272,9 @@ void PhysicsBody::TransformChanged()
     }
 }
 
-void PhysicsBody::SetLinearVelocity(const glm::vec3& velocity)
+void PhysicsBody::SetLinearVelocity()
 {
+
     if (auto i = GetBodyInterface())
-    {
-        i->SetLinearVelocity(body->GetID(), {velocity.x, velocity.y, velocity.z});
-    }
-}
-
-void PhysicsBody::AddForce(const glm::vec3& force)
-{
-    body->AddForce({force.x, force.y, force.z});
-}
-
-glm::vec3 PhysicsBody::GetLinearVelocity()
-{
-    auto v = body->GetLinearVelocity();
-    return {v.GetX(), v.GetY(), v.GetZ()};
-}
-
-void PhysicsBody::AddImpulse(const glm::vec3& impulse)
-{
-    body->AddImpulse({impulse.x, impulse.y, impulse.z});
-}
-
-PhysicsScene* PhysicsBody::GetPhysicsScene()
-{
-    if (auto scene = GetScene())
-    {
-        return &scene->GetPhysicsScene();
-    }
-    return nullptr;
+    {}
 }

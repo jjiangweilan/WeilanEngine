@@ -19,6 +19,7 @@
 #include <unordered_set>
 
 class PhysicsBody;
+class PhysicsScene;
 
 /// Class that determines if two object layers can collide
 class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
@@ -103,10 +104,11 @@ public:
     }
 };
 
-// An example contact listener
-class MyContactListener : public JPH::ContactListener
+class PhysicsContactListener : public JPH::ContactListener
 {
 public:
+    PhysicsContactListener(PhysicsScene* scene) : pScene(scene) {}
+
     // See: ContactListener
     virtual JPH::ValidateResult OnContactValidate(
         const JPH::Body& inBody1,
@@ -126,10 +128,7 @@ public:
         const JPH::Body& inBody2,
         const JPH::ContactManifold& inManifold,
         JPH::ContactSettings& ioSettings
-    ) override
-    {
-        spdlog::info("A contact was added");
-    }
+    ) override;
 
     virtual void OnContactPersisted(
         const JPH::Body& inBody1,
@@ -141,10 +140,11 @@ public:
         spdlog::info("A contact was persisted");
     }
 
-    virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
-    {
-        spdlog::info("A contact was removed");
-    }
+    virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
+
+private:
+    PhysicsScene* pScene;
+    std::unordered_map<JPH::BodyID, PhysicsBody*> contactingBodies;
 };
 
 // An example activation listener
@@ -194,6 +194,11 @@ public:
     void Tick();
     void DebugDraw();
 
+    JPH::PhysicsSystem& GetPhysicsSystem()
+    {
+        return physicsSystem;
+    }
+
 private:
     std::vector<PhysicsBody*> bodies;
     JPH::PhysicsSystem physicsSystem;
@@ -218,6 +223,8 @@ private:
     ObjectLayerPairFilterImpl object_vs_object_layer_filter;
     JPH::TempAllocatorImpl temp_allocator;
     JPH::JobSystemThreadPool job_system;
-    MyContactListener contact_listener;
+    PhysicsContactListener contact_listener;
     MyBodyActivationListener body_activation_listener;
+
+    friend class PhysicsContactListener;
 };

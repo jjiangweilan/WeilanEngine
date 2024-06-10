@@ -9,10 +9,11 @@
 // clang-format on
 #include <Jolt/Physics/Body/BodyInterface.h>
 #include <Jolt/Physics/Body/MotionProperties.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
-class RenderingScene;
+class PhysicsScene;
 
 class PhysicsBody : public Component
 {
@@ -23,6 +24,7 @@ public:
     PhysicsBody(GameObject* owner);
     ~PhysicsBody() override;
 
+    PhysicsScene* GetPhysicsScene();
     void SetAsSphere(float radius);
     void SetAsBox(glm::vec3 extent);
     void SetLayer(PhysicsLayer layer);
@@ -48,7 +50,42 @@ public:
         return gravityFactor;
     }
 
+    void RegisterContactAddedEvent(
+        const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
+    )
+    {
+        contactAddedCallbacks.push_back(f);
+    }
+
+    void RegisterContactRemovedEvent(const std::function<void(PhysicsBody*, PhysicsBody*)>& f)
+    {
+        contactRemovedCallbacks.push_back(f);
+    }
+
+    void InvokeContactRemovedEvent(PhysicsBody* other)
+    {
+        for (auto& f : contactRemovedCallbacks)
+        {
+            f(this, other);
+        }
+    }
+
+    void InvokeContactAddedEvent(
+        PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+    )
+    {
+        for (auto& f : contactAddedCallbacks)
+        {
+            f(this, other, manifold, settings);
+        }
+    }
+
     void Awake() override;
+
+    void SetLinearVelocity(const glm::vec3& velocity);
+    glm::vec3 GetLinearVelocity();
+    void AddForce(const glm::vec3& force);
+    void AddImpulse(const glm::vec3& impulse);
 
     void SetGravityFactor(float f);
 
@@ -68,6 +105,9 @@ public:
     }
 
 private:
+    using ContactAddedEventCallbackType =
+        std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
+    using ContactRemovedEventCallbackType = std::function<void(PhysicsBody*, PhysicsBody*)>;
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 0.5};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;
@@ -82,6 +122,9 @@ private:
     void TransformChanged() override;
 
     JPH::BodyInterface* GetBodyInterface();
+
+    std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
+    std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
 
     void Init();
 };

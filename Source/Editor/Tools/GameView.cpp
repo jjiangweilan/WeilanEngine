@@ -35,11 +35,11 @@ struct GameView::PlayTheGame
             gameView->gameCamera = sceneCopy->GetMainCamera();
 
             EditorState::activeScene = sceneCopy.get();
-            EditorState::gameLoop->Play();
             EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
             gameView->editorCameraGO->SetScene(sceneCopy.get());
 
             EngineState::GetSingleton().isPlaying = true;
+            EditorState::gameLoop->Play();
         }
     }
 

@@ -22,6 +22,7 @@ public:
         ImGui::DragFloat("movementSpeed", &target->movementSpeed);
         ImGui::DragFloat("rotateSpeed", &target->rotateSpeed);
         ImGui::DragFloat("cameraOffset", &target->cameraDistance);
+        ImGui::DragFloat("jumpForce", &target->jumpImpulse);
     }
 
 private:

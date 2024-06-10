@@ -330,7 +330,10 @@ std::vector<T*> GameObject::GetComponentsInChildren()
 {
     std::vector<T*> results;
 
-    results.push_back(GetComponent<T>());
+    if (auto comp = GetComponent<T>())
+    {
+        results.push_back(comp);
+    }
 
     for (auto c : children)
     {

@@ -3,7 +3,8 @@
 
 PhysicsScene::PhysicsScene()
     : temp_allocator(10 * 1024 * 1024),
-      job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency())
+      job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency()),
+      contact_listener(this)
 {
 
     // This is the max amount of rigid bodies that you can add to the physics system. If you try to add more you'll
@@ -78,4 +79,30 @@ void PhysicsScene::DebugDraw()
     }
 
     physicsSystem.DrawBodies(drawSettings, &debugRenderer, &bodyDrawFilter);
+}
+
+void PhysicsContactListener::OnContactAdded(
+    const JPH::Body& inBody1,
+    const JPH::Body& inBody2,
+    const JPH::ContactManifold& inManifold,
+    JPH::ContactSettings& ioSettings
+)
+{
+    auto body1 = reinterpret_cast<PhysicsBody*>(inBody1.GetUserData());
+    auto body2 = reinterpret_cast<PhysicsBody*>(inBody2.GetUserData());
+
+    body1->InvokeContactAddedEvent(body2, inManifold, ioSettings);
+    body2->InvokeContactAddedEvent(body1, inManifold, ioSettings);
+
+    contactingBodies[inBody1.GetID()] = body1;
+    contactingBodies[inBody2.GetID()] = body2;
+}
+
+void PhysicsContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair)
+{
+    auto body1 = contactingBodies[inSubShapePair.GetBody1ID()];
+    auto body2 = contactingBodies[inSubShapePair.GetBody2ID()];
+
+    body1->InvokeContactRemovedEvent(body2);
+    body2->InvokeContactRemovedEvent(body1);
 }
