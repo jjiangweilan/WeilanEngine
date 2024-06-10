@@ -7,6 +7,9 @@ class PlayerController : public Component
     DECLARE_OBJECT();
 
 public:
+    float movementSpeed = 1.0f;
+    glm::vec3 cameraOffset = {0, 5, 5};
+
     PlayerController();
     PlayerController(GameObject* gameObject);
     ~PlayerController() override{};
@@ -15,6 +18,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
+    void Tick() override;
 
     void SetCamera(Camera* camera)
     {

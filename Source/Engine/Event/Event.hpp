@@ -1,5 +1,10 @@
 #pragma once
 
+#include "Gameplay/Input.hpp"
+#include <SDL_gamecontroller.h>
+#include <SDL_keyboard.h>
+#include <SDL_mouse.h>
+
 struct WindowSizeChange
 {
     bool state;
@@ -20,6 +25,8 @@ struct SwapchainRecreated
 class Event
 {
 public:
+    void Init();
+    void Deinit();
     void Poll();
     void Reset();
 
@@ -40,6 +47,8 @@ private:
     WindowSizeChange windowSizeChange;
     WindowClose windowClose;
     SwapchainRecreated swapchainRecreated;
+
+    SDL_GameController* gameController;
 
     friend class WeilanEngine;
 };

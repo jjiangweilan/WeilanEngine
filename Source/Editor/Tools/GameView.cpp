@@ -29,11 +29,14 @@ struct GameView::PlayTheGame
             auto& scene = *EditorState::activeScene;
 
             originalScene = scene.GetSRef<Scene>();
-            sceneCopy = std::unique_ptr<Scene>(static_cast<Scene*>(originalScene->Clone().release()));
+            sceneCopy = std::make_unique<Scene>();
+            AssetDatabase::Singleton()->CopyThroughSerialization<JsonSerializer>(scene, *sceneCopy);
+            sceneCopy->SetName("scene copy");
+            gameView->gameCamera = sceneCopy->GetMainCamera();
 
             EditorState::activeScene = sceneCopy.get();
-            EditorState::gameLoop->SetScene(*sceneCopy);
             EditorState::gameLoop->Play();
+            EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
             gameView->editorCameraGO->SetScene(sceneCopy.get());
 
             EngineState::GetSingleton().isPlaying = true;
@@ -52,10 +55,11 @@ struct GameView::PlayTheGame
             EngineState::GetSingleton().isPlaying = false;
             auto ori = originalScene.Get();
             gameView->editorCameraGO->SetScene(ori);
+            gameView->gameCamera = ori->GetMainCamera();
             if (ori)
             {
-                EditorState::gameLoop->SetScene(*ori);
                 EditorState::activeScene = ori;
+                EditorState::gameLoop->SetScene(*ori, *gameView->GetCurrentlyActiveCamera());
             }
 
             // destroy sceneCopy
@@ -78,6 +82,18 @@ void GameView::Init()
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
     playTheGame = std::make_unique<PlayTheGame>();
+
+    // setup camera state
+    gameCamera = EditorState::activeScene->GetMainCamera();
+    editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
+    if (gameCamera)
+    {
+        auto fg = gameCamera->GetFrameGraph();
+        editorCamera->SetFrameGraph(fg);
+        if (!fg->IsCompiled())
+            fg->Compile();
+    }
+    EditorState::gameLoop->SetScene(*EditorState::activeScene, *editorCamera);
 
     if (GameEditor::instance->editorConfig.contains("editorCamera"))
     {
@@ -331,6 +347,7 @@ bool GameView::Tick()
     ImGui::Begin("Game View", &open, ImGuiWindowFlags_MenuBar);
 
     const char* menuSelected = "";
+    Scene* scene = EditorState::activeScene;
     if (ImGui::BeginMenuBar())
     {
         const char* toggleViewCamera = "Toggle View Camera: On";
@@ -339,6 +356,8 @@ bool GameView::Tick()
         if (ImGui::MenuItem(toggleViewCamera))
         {
             useViewCamera = !useViewCamera;
+            auto mainCam = GetCurrentlyActiveCamera();
+            EditorState::gameLoop->SetScene(*EditorState::activeScene, *mainCam);
         }
         if (ImGui::MenuItem("Resolution"))
         {
@@ -365,30 +384,6 @@ bool GameView::Tick()
             JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
         }
         ImGui::EndMenuBar();
-    }
-
-    Scene* scene = EditorState::activeScene;
-    // TODO(bug): can't switch back to game camera
-    if (scene && useViewCamera)
-    {
-        auto gameCamera = scene->GetMainCamera();
-        if (gameCamera)
-        {
-            if (gameCamera != editorCamera)
-            {
-                this->gameCamera = gameCamera;
-                editorCamera->GetGameObject()->SetScene(gameCamera->GetGameObject()->GetScene());
-                editorCamera->SetFrameGraph(gameCamera->GetFrameGraph());
-                auto framegraph = editorCamera->GetFrameGraph();
-                if (framegraph && !framegraph->IsCompiled())
-                    editorCamera->GetFrameGraph()->Compile();
-            }
-            scene->SetMainCamera(editorCamera);
-        }
-    }
-    else if (gameCamera)
-    {
-        scene->SetMainCamera(gameCamera);
     }
 
     if (strcmp(menuSelected, "Change Resolution") == 0)
@@ -418,7 +413,7 @@ bool GameView::Tick()
     }
     else if (strcmp(menuSelected, "Overlay") == 0)
     {}
-    
+
     // alway match window size
     int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
     int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
@@ -457,8 +452,8 @@ bool GameView::Tick()
     {
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
         {
-            if (scene->GetMainCamera())
-                FocusOnObject(*scene->GetMainCamera(), *go);
+            if (auto mainCam = GetCurrentlyActiveCamera())
+                FocusOnObject(*mainCam, *go);
         }
     }
 
@@ -516,60 +511,65 @@ bool GameView::Tick()
         auto windowPos = ImGui::GetWindowPos();
         if (!ImGuizmo::IsUsing())
         {
-            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && ImGui::IsWindowFocused())
+            // pick a GameObject trough ray
+            if (useViewCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() &&
+                ImGui::IsWindowFocused())
             {
                 auto mousePos = ImGui::GetMousePos();
                 glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
 
                 glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
 
-                auto mainCam = scene->GetMainCamera();
-                Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
+                auto mainCam = GetCurrentlyActiveCamera();
+                if (mainCam != nullptr)
+                {
+                    Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
 
-                std::vector<Intersected> intersected;
-                intersected.reserve(32);
-                std::vector<GameObject*> results;
-                Gizmos::PickGizmos(ray, results);
-                if (results.empty())
-                {
-                    PickGameObjectFromScene(ray, screenUV, intersected);
-                }
-                else
-                {
-                    for (auto g : results)
+                    std::vector<Intersected> intersected;
+                    intersected.reserve(32);
+                    std::vector<GameObject*> results;
+                    Gizmos::PickGizmos(ray, results);
+                    if (results.empty())
                     {
-                        intersected.push_back(
-                            {g, glm::length(g->GetPosition() - mainCam->GetGameObject()->GetPosition())}
-                        );
+                        PickGameObjectFromScene(ray, screenUV, intersected);
                     }
-                }
+                    else
+                    {
+                        for (auto g : results)
+                        {
+                            intersected.push_back(
+                                {g, glm::length(g->GetPosition() - mainCam->GetGameObject()->GetPosition())}
+                            );
+                        }
+                    }
 
-                auto iter = std::min_element(
-                    intersected.begin(),
-                    intersected.end(),
-                    [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
-                );
+                    auto iter = std::min_element(
+                        intersected.begin(),
+                        intersected.end(),
+                        [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
+                    );
 
-                GameObject* selected = nullptr;
-                if (iter != intersected.end())
-                {
-                    selected = iter->go;
-                }
+                    GameObject* selected = nullptr;
+                    if (iter != intersected.end())
+                    {
+                        selected = iter->go;
+                    }
 
-                if (selected)
-                {
-                    EditorState::selectedObject = selected->GetSRef();
-                }
-                else
-                {
-                    EditorState::selectedObject = nullptr;
+                    if (selected)
+                    {
+                        EditorState::selectedObject = selected->GetSRef();
+                    }
+                    else
+                    {
+                        EditorState::selectedObject = nullptr;
+                    }
                 }
             }
         }
 
-        if (scene != nullptr)
+        if (useViewCamera && scene != nullptr)
         {
-            auto mainCam = scene->GetMainCamera();
+            auto mainCam = GetCurrentlyActiveCamera();
             if (mainCam)
             {
                 glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
@@ -666,5 +666,15 @@ void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
 {
     glm::vec3 center = gameObject.GetPosition();
     cam.GetGameObject()->SetPosition(center);
+}
+
+Camera* GameView::GetCurrentlyActiveCamera()
+{
+    Camera* mainCam = nullptr;
+    if (useViewCamera)
+        mainCam = editorCamera;
+    else
+        mainCam = EditorState::activeScene->GetMainCamera();
+    return mainCam;
 }
 } // namespace Editor

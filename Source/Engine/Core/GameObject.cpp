@@ -55,8 +55,8 @@ GameObject::GameObject(const GameObject& other)
 
     for (GameObject* child : other.children)
     {
-        GameObject* childClone = gameScene->AddGameObject(std::make_unique<GameObject>(*child));
-        childClone->SetParent(this);
+        owningChildren.push_back(std::make_unique<GameObject>(*child));
+        owningChildren.back()->SetParent(this);
     }
 }
 
@@ -87,7 +87,6 @@ void GameObject::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
     s->Serialize("components", components);
-    s->Serialize("gameScene", gameScene);
     s->Serialize("rotation", rotation);
     s->Serialize("position", position);
     s->Serialize("scale", scale);
@@ -103,6 +102,7 @@ void GameObject::SetModelMatrix(const glm::mat4& model)
     glm::vec3 position;
     glm::decompose(model, scale, rotation, position, skew, perspective);
     eulerAngles = glm::eulerAngles(rotation);
+    updateModelMatrix = true;
 
     // this is needed to propagate translation to children
     SetPosition(position);
@@ -118,8 +118,8 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
     eulerAngles = glm::eulerAngles(rotation);
-    s->Deserialize("gameScene", gameScene);
     s->Deserialize("components", components);
+    // gameScene is set by Scene when it's deserializing
 
     for (auto& c : components)
     {
@@ -201,7 +201,8 @@ void GameObject::SetScene(Scene* scene)
 
         for (auto child : children)
         {
-            child->SetScene(scene);
+            if (child != nullptr)
+                child->SetScene(scene);
         }
     }
 }

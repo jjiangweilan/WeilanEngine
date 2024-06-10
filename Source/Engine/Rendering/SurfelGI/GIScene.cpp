@@ -117,7 +117,7 @@ Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
         [&](Gfx::CommandBuffer& cmd)
         {
             auto graph = bakerCamera->GetFrameGraph();
-            graph->Execute(cmd, *scene);
+            graph->Execute(cmd, *scene, *scene->GetMainCamera());
 
             Gfx::BufferImageCopyRegion region{
                 .srcOffset = 0,

@@ -638,22 +638,20 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
     {
         if (iter.second.empty())
             continue;
-        // resolve external reference
-        Asset* externalAsset = LoadAssetByID(iter.first);
-        if (externalAsset)
-        {
-            ResolveAll(iter.second, externalAsset);
-        }
-
         // resolve internal reference
-        // currently I didn't resolve reference to external contained object
-        // that can be done by cache a list of contained objects
         const auto& objs = ser.GetContainedObjects();
         auto containedObj = objs.find(iter.first);
         if (containedObj != objs.end())
         {
             auto resolved = containedObj->second;
             ResolveAll(iter.second, resolved);
+        }
+
+        // resolve external reference
+        Asset* externalAsset = LoadAssetByID(iter.first);
+        if (externalAsset)
+        {
+            ResolveAll(iter.second, externalAsset);
         }
 
         // add whatever is not resolved to assetDatabase's resolve map

@@ -31,7 +31,6 @@ public:
 
     void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {
-        auto& cmd = *renderingData.cmd;
         drawList->clear();
 
         Scene* scene = renderingData.mainCamera->GetGameObject()->GetScene();

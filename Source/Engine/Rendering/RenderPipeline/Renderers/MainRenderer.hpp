@@ -41,7 +41,7 @@ private:
 
     MainRendererData rendererData;
 
-    void ProcessLights(Scene& gameScene);
+    void ProcessLights(Scene& gameScene, RenderingData& renderingData);
     void CreateCameraImages();
 
     void Setup(Gfx::CommandBuffer& cmd, RenderingData& frameData);

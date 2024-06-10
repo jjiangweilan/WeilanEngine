@@ -7,14 +7,16 @@ namespace Gfx
 class Image;
 }
 class Scene;
+class Camera;
 class GameLoop
 {
 public:
     GameLoop();
     ~GameLoop();
-    void SetScene(Scene& scene)
+    void SetScene(Scene& scene, Camera& camera)
     {
         this->scene = &scene;
+        this->camera = &camera;
     }
 
     void Play();
@@ -38,4 +40,5 @@ private:
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     Scene* scene = nullptr;
+    Camera* camera = nullptr;
 };

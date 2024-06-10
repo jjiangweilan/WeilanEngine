@@ -38,6 +38,11 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
         temp->SetEnable(true);
     }
 
+    for (auto& owningChild : temp->GetOwningChildren())
+    {
+        AddGameObject(std::move(owningChild));
+    }
+
     return temp;
 }
 

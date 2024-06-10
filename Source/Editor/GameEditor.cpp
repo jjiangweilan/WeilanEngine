@@ -86,6 +86,7 @@ GameEditor::GameEditor(const char* path)
         editorConfig = nlohmann::json::object();
     }
 
+    // load previous active scene
     UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
@@ -542,8 +543,6 @@ void GameEditor::Start()
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            if (EditorState::activeScene)
-                loop->SetScene(*EditorState::activeScene);
             loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
 
             cmd->Reset(true);

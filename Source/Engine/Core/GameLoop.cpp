@@ -29,7 +29,7 @@ const void GameLoop::Tick(
     const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
 )
 {
-    if (scene == nullptr)
+    if (scene == nullptr || camera == nullptr)
         return;
 
     // update physics
@@ -45,13 +45,12 @@ const void GameLoop::Tick(
     scene->GetPhysicsScene().DebugDraw();
 
     // render
-    auto camera = scene->GetMainCamera();
     Rendering::FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
 
     if (graph && graph->IsCompiled())
     {
         graph->SetScreenSize(outputImage.GetDescription().width, outputImage.GetDescription().height);
-        graph->Execute(*cmd, *scene);
+        graph->Execute(*cmd, *scene, *camera);
     }
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 

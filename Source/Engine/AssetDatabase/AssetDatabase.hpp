@@ -52,7 +52,7 @@ public:
 
         SerializeReferenceResolveMap resolveMap;
         JsonSerializer de(s.GetBinary(), &resolveMap);
-        copy.Deserialize(&s);
+        copy.Deserialize(&de);
 
         ResolveSerializerReference(de, resolveMap);
     }

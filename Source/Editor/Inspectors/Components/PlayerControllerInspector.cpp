@@ -18,6 +18,9 @@ public:
         {
             target->SetCamera(camera);
         }
+
+        ImGui::DragFloat("movementSpeed", &target->movementSpeed);
+        ImGui::DragFloat3("cameraOffset", &target->cameraOffset[0]);
     }
 
 private:

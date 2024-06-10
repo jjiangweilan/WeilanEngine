@@ -67,10 +67,10 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetName(cname);
         }
 
-        auto pos = target->GetPosition();
+        auto pos = target->GetLocalPosition();
         if (ImGui::DragFloat3("Position", &pos[0]))
         {
-            target->SetPosition(pos);
+            target->SetLocalPosition(pos);
         }
 
         auto rotation = target->GetEuluerAngles();

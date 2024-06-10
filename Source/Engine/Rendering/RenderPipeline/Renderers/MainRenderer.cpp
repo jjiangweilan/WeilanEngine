@@ -107,7 +107,7 @@ void MainRenderer::SetupFrame(Gfx::CommandBuffer& cmd, RenderingData& frameData)
         1.0f / frameData.screenSize.x,
         1.0f / frameData.screenSize.y
     );
-    ProcessLights(*scene);
+    ProcessLights(*scene, frameData);
 
     size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{
@@ -132,7 +132,7 @@ void MainRenderer::CreateCameraImages()
     mainColor = Gfx::RG::ImageIdentifier("_MainDepth");
 }
 
-void MainRenderer::ProcessLights(Scene& gameScene)
+void MainRenderer::ProcessLights(Scene& gameScene, RenderingData& renderingData)
 {
     auto lights = gameScene.GetActiveLights();
 
@@ -171,7 +171,7 @@ void MainRenderer::ProcessLights(Scene& gameScene)
     if (shadowLight)
     {
         sceneInfo.worldToShadow =
-            shadowLight->WorldToShadowMatrix(gameScene.GetMainCamera()->GetGameObject()->GetPosition());
+            shadowLight->WorldToShadowMatrix(renderingData.mainCamera->GetGameObject()->GetPosition());
     }
 }
 } // namespace Rendering

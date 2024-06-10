@@ -69,16 +69,47 @@ public:
 
     void SetRotation(const glm::quat& rotation)
     {
+        if (rotation == this->rotation)
+            return;
+
         updateModelMatrix = true;
         this->rotation = rotation;
 
         TransformChanged();
     }
 
+    void SetLocalPosition(const glm::vec3& localPosition)
+    {
+        glm::vec3 currentLocal = {0, 0, 0};
+        if (parent)
+        {
+            currentLocal = position - parent->GetPosition();
+        }
+        auto delta = localPosition - currentLocal;
+
+        // position didn't change early return
+        if (delta == glm::vec3{0, 0, 0})
+            return;
+
+        updateModelMatrix = true;
+        this->position = localPosition + (parent ? parent->GetPosition() : glm::vec3{ 0,0,0 });
+
+        for (GameObject* child : children)
+        {
+            child->Translate(delta);
+        }
+
+        TransformChanged();
+    }
+
     void SetPosition(const glm::vec3& position)
     {
-        updateModelMatrix = true;
         auto delta = position - this->position;
+        // position didn't change early return
+        if (delta == glm::vec3{0, 0, 0})
+            return;
+
+        updateModelMatrix = true;
         this->position = position;
 
         for (GameObject* child : children)
@@ -91,6 +122,9 @@ public:
 
     void SetScale(const glm::vec3& scale)
     {
+        if (scale == this->scale)
+            return;
+
         updateModelMatrix = true;
         this->scale = scale;
 
@@ -126,6 +160,9 @@ public:
     }
     void Translate(const glm::vec3& translate)
     {
+        if (translate == glm::vec3{0, 0, 0})
+            return;
+
         updateModelMatrix = true;
         this->position += translate;
 
@@ -139,6 +176,14 @@ public:
 
     glm::vec3 GetPosition() const
     {
+        return position;
+    }
+
+    glm::vec3 GetLocalPosition() const
+    {
+        if (parent)
+            return position - parent->GetPosition();
+
         return position;
     }
 
@@ -199,6 +244,11 @@ public:
         return temp;
     }
 
+    std::vector<std::unique_ptr<GameObject>>&& GetOwningChildren()
+    {
+        return std::move(owningChildren);
+    }
+
 private:
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
@@ -216,6 +266,7 @@ private:
     bool updateModelMatrix = true;
 
     std::vector<GameObject*> children;
+    std::vector<std::unique_ptr<GameObject>> owningChildren;
     std::vector<std::unique_ptr<Component>> components;
     GameObject* parent = nullptr;
     Scene* gameScene = nullptr;

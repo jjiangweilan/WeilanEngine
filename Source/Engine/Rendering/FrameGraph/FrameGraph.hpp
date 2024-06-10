@@ -52,7 +52,8 @@ public:
         renderingData.screenSize = {width, height};
     }
 
-    void Execute(Gfx::CommandBuffer& cmd, Scene& scene);
+    // rendering is independent of Scene.GetMainCamera for better flexibility
+    void Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera);
     bool Connect(FGID src, FGID dst);
     Node& AddNode(const NodeBlueprint& bp);
     void DeleteNode(Node* node);

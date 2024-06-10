@@ -21,6 +21,7 @@ WeilanEngine::WeilanEngine(){};
 
 WeilanEngine::~WeilanEngine()
 {
+    event->Deinit();
     gfxDriver->WaitForIdle();
     DeinitJoltPhysics();
     // physics->Destroy();
@@ -56,6 +57,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     // physics = std::make_unique<Physics>();
     // physics->Init();
     event = std::make_unique<Event>();
+    event->Init();
 #if ENGINE_EDITOR
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
@@ -66,6 +68,7 @@ bool WeilanEngine::BeginFrame()
 {
     Time::Tick();
 
+    Input::GetSingleton().Reset();
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
@@ -176,8 +179,7 @@ void WeilanEngine::DeinitJoltPhysics()
 
 void WeilanEngine::InitSDL()
 {
-    if (!SDL_WasInit(SDL_INIT_VIDEO))
-        SDL_InitSubSystem(SDL_INIT_VIDEO);
+    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
 
     SDL_DisplayMode displayMode;
     // MacOS return points not pixels

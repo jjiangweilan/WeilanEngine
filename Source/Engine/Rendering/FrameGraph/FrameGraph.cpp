@@ -230,7 +230,7 @@ void Graph::ProcessLights(Scene& gameScene)
     if (shadowLight)
     {
         sceneInfo.worldToShadow =
-            shadowLight->WorldToShadowMatrix(gameScene.GetMainCamera()->GetGameObject()->GetPosition());
+            shadowLight->WorldToShadowMatrix(renderingData.mainCamera->GetGameObject()->GetPosition());
     }
 }
 static void SortNodesInternal(
@@ -293,12 +293,11 @@ void Graph::SortNodes()
     }
 }
 
-void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
+void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
 {
-    Camera* camera = scene.GetMainCamera();
-    if (!compiled || camera == nullptr)
+    if (!compiled)
         return;
-    renderingData.mainCamera = camera;
+    renderingData.mainCamera = &camera;
     renderingData.sceneInfo = &sceneInfo;
     renderingData.cmd = &cmd;
 
@@ -313,10 +312,10 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
         cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
-    GameObject* camGo = camera->GetGameObject();
+    GameObject* camGo = camera.GetGameObject();
 
-    glm::mat4 viewMatrix = camera->GetViewMatrix();
-    glm::mat4 projectionMatrix = camera->GetProjectionMatrix();
+    glm::mat4 viewMatrix = camera.GetViewMatrix();
+    glm::mat4 projectionMatrix = camera.GetProjectionMatrix();
     glm::mat4 vp = projectionMatrix * viewMatrix;
     glm::vec4 viewPos = glm::vec4(camGo->GetPosition(), 1);
     sceneInfo.projection = projectionMatrix;
@@ -332,16 +331,16 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene)
     sceneInfo.invProjection = glm::inverse(projectionMatrix);
     sceneInfo.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
     sceneInfo.cameraZBufferParams = glm::vec4(
-        camera->GetNear(),
-        camera->GetFar(),
-        (camera->GetNear() - camera->GetFar()) / (camera->GetNear() * camera->GetFar()),
-        1.0f / camera->GetNear()
+        camera.GetNear(),
+        camera.GetFar(),
+        (camera.GetNear() - camera.GetFar()) / (camera.GetNear() * camera.GetFar()),
+        1.0f / camera.GetNear()
     );
     sceneInfo.cameraFrustum = glm::vec4(
-        -camera->GetProjectionRight(),
-        camera->GetProjectionRight(),
-        -camera->GetProjectionTop(),
-        camera->GetProjectionTop()
+        -camera.GetProjectionRight(),
+        camera.GetProjectionRight(),
+        -camera.GetProjectionTop(),
+        camera.GetProjectionTop()
     );
     sceneInfo.screenSize = glm::vec4(
         renderingData.screenSize.x,
