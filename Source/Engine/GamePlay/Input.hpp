@@ -8,12 +8,12 @@ public:
     // left joystick
     void GetMovement(float& x, float& y);
 
+    // right joystick
+    void GetLookAround(float& x, float& y);
+
     void PushEvent(SDL_Event& event);
 
-    void Reset()
-    {
-
-    }
+    void Reset() {}
 
     static Input& GetSingleton();
 

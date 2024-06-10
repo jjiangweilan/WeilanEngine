@@ -17,7 +17,7 @@ add_library(WeilanEngine SHARED)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
-    target_compile_options(WeilanEngine PRIVATE "/Zi")
+    target_compile_options(WeilanEngine PRIVATE "/ZI")
     target_compile_options(WeilanEngine PRIVATE "/Od")
     target_compile_options(WeilanEngine PRIVATE "/Ob0")
 endif()

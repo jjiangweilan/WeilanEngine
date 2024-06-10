@@ -8,7 +8,8 @@ class PlayerController : public Component
 
 public:
     float movementSpeed = 1.0f;
-    glm::vec3 cameraOffset = {0, 5, 5};
+    float rotateSpeed = 0.3f;
+    float cameraDistance = 5.0f;
 
     PlayerController();
     PlayerController(GameObject* gameObject);
@@ -30,6 +31,14 @@ public:
         return target;
     }
 
+    void Awake() override;
+
 private:
     Camera* target = nullptr;
+    void SetCameraSphericalPos(float xDelta, float yDelta);
+
+    void AutoRotate();
+
+    // camera rotation around player
+    float theta, phi;
 };

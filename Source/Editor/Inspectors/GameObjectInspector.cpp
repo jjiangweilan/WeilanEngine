@@ -103,6 +103,11 @@ class GameObjectInspector : public Inspector<GameObject>
             }
             ImGui::SameLine();
             ImGui::Text("%s", c.GetName().c_str());
+            ImGui::SameLine();
+            if (ImGui::Button("remove!"))
+            {
+                target->RemoveComponent(co.get());
+            }
 
             auto inspector = InspectorRegistry::GetInspector(c);
             inspector->OnEnable(c);

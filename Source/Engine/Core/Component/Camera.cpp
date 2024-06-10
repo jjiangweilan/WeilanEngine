@@ -149,7 +149,7 @@ void Camera::SetFrameGraph(Rendering::FrameGraph::Graph* graph)
 
 glm::vec3 Camera::GetForward()
 {
-    return -gameObject->GetForward();
+    return gameObject->GetForward();
 }
 
 void Camera::OnDrawGizmos()

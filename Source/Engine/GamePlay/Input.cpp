@@ -15,6 +15,12 @@ void Input::GetMovement(float& x, float& y)
     y = leftJoyAxis.y;
 }
 
+void Input::GetLookAround(float& x, float& y)
+{
+    x = rightJoyAxis.x;
+    y = rightJoyAxis.y;
+}
+
 void Input::PushEvent(SDL_Event& event)
 {
     if (event.type == SDL_JOYAXISMOTION)

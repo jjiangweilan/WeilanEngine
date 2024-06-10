@@ -20,7 +20,8 @@ public:
         }
 
         ImGui::DragFloat("movementSpeed", &target->movementSpeed);
-        ImGui::DragFloat3("cameraOffset", &target->cameraOffset[0]);
+        ImGui::DragFloat("rotateSpeed", &target->rotateSpeed);
+        ImGui::DragFloat("cameraOffset", &target->cameraDistance);
     }
 
 private:

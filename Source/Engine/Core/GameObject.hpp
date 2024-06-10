@@ -33,6 +33,18 @@ public:
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
 
+    void RemoveComponent(void* comp)
+    {
+        auto iter = std::find_if(components.begin(), components.end(), [comp](auto& p) { return p.get() == comp; });
+        if (iter != components.end())
+        {
+            std::unique_ptr<Component>& comp = *iter;
+            comp->Disable();
+        }
+
+        components.erase(iter);
+    }
+
     template <class T>
     T* GetComponent();
 
@@ -92,7 +104,7 @@ public:
             return;
 
         updateModelMatrix = true;
-        this->position = localPosition + (parent ? parent->GetPosition() : glm::vec3{ 0,0,0 });
+        this->position = localPosition + (parent ? parent->GetPosition() : glm::vec3{0, 0, 0});
 
         for (GameObject* child : children)
         {
@@ -199,7 +211,17 @@ public:
 
     glm::vec3 GetForward() const
     {
-        return glm::mat4_cast(rotation)[2];
+        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[2]));
+    }
+
+    glm::vec3 GetUp() const
+    {
+        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[1]));
+    }
+
+    glm::vec3 GetRight() const
+    {
+        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[0]));
     }
 
     glm::vec3 GetEuluerAngles() const

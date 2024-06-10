@@ -46,6 +46,7 @@ public:
     void Deserialize(Serializer* s) override;
     Scene* GetScene();
 
+    // called when play mode enter
     virtual void Awake() {}
     virtual void OnDrawGizmos() {};
 
