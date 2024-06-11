@@ -5,6 +5,7 @@
 #include "Core/Scene/PhysicsScene.hpp"
 #include "Core/Time.hpp"
 #include "Gameplay/Input.hpp"
+#include "Jolt/Physics/Collision/CollisionCollectorImpl.h"
 #include <spdlog/spdlog.h>
 // clang-format off
 #include <Jolt/Jolt.h>
@@ -12,6 +13,7 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 
 DEFINE_OBJECT(PlayerController, "A14D66B4-47AB-4703-BEAA-06EBD285034F");
 
@@ -80,7 +82,7 @@ void PlayerController::Tick()
         glm::vec3 velocity = forward + right;
 
         // jump
-        if (Input::GetSingleton().Jump() && isOnGround)
+        if (Input::GetSingleton().Jump() && IsOnGround())
         {
             pbody->AddImpulse({0, jumpImpulse, 0});
         }
@@ -168,8 +170,6 @@ void PlayerController::ContactAddedEventCallback(
     PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& setting
 )
 {
-    if (manifold.mSubShapeID1 == self->GetBody()->GetShape()->GetSubShapeIDBitsRecursive())
-        otherBodyID = other;
     bool previousContacting = self->GetPhysicsScene()->GetPhysicsSystem().WereBodiesInContact(
         self->GetBody()->GetID(),
         other->GetBody()->GetID()
@@ -181,7 +181,6 @@ void PlayerController::ContactAddedEventCallback(
     {
         isOnGround = !previousContacting;
     }
-    manifold.mBaseOffset
 }
 
 void PlayerController::ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other)
@@ -191,4 +190,35 @@ void PlayerController::ContactRemovedEventCallback(PhysicsBody* self, PhysicsBod
         other->GetBody()->GetID()
     );
     spdlog::info("removed, {}", previousContacting);
+}
+
+bool PlayerController::IsOnGround()
+{
+    JPH::RShapeCast cast{
+        pbody->GetShapeRef().GetPtr(),
+        JPH::Vec3::sReplicate(1.0f),
+        JPH::RMat44::sTranslation(pbody->GetBody()->GetCenterOfMassPosition()),
+        {0, -0.3f, 0},
+        pbody->GetBody()->GetWorldSpaceBounds()
+    };
+    JPH::ShapeCastSettings settings;
+    JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+
+    pbody->GetPhysicsScene()->GetPhysicsSystem().GetNarrowPhaseQuery().CastShape(
+        cast,
+        settings,
+        JPH::Vec3::sReplicate(0.0f),
+        collector
+    );
+
+    for (auto& hit : collector.mHits)
+    {
+        // weird that the hit will hit itself sometimes
+        if (hit.mBodyID2 != pbody->GetBody()->GetID())
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

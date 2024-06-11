@@ -100,7 +100,7 @@ public:
         auto delta = localPosition - currentLocal;
 
         // position didn't change early return
-        if (delta == glm::vec3{0, 0, 0})
+        if (EqualZero(delta))
             return;
 
         updateModelMatrix = true;
@@ -118,7 +118,7 @@ public:
     {
         auto delta = position - this->position;
         // position didn't change early return
-        if (delta == glm::vec3{0, 0, 0})
+        if (EqualZero(delta))
             return;
 
         updateModelMatrix = true;
@@ -272,6 +272,7 @@ public:
     }
 
 private:
+    const int compareEpsilon = 1e-6;
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
 
@@ -292,6 +293,11 @@ private:
     std::vector<std::unique_ptr<Component>> components;
     GameObject* parent = nullptr;
     Scene* gameScene = nullptr;
+
+    inline bool EqualZero(const glm::vec3 v)
+    {
+        return v.x < compareEpsilon && v.y < compareEpsilon && v.z < compareEpsilon;
+    }
 
     void TransformChanged()
     {

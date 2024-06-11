@@ -104,6 +104,11 @@ public:
         return body;
     }
 
+    JPH::Ref<JPH::Shape> GetShapeRef()
+    {
+        return shapeRef;
+    }
+
 private:
     using ContactAddedEventCallbackType =
         std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
@@ -113,7 +118,7 @@ private:
     float gravityFactor = 0.0f;
     JPH::EMotionType motionType = JPH::EMotionType::Static;
 
-    JPH::ShapeRefC shapeRef;
+    JPH::Ref<JPH::Shape> shapeRef;
     JPH::Body* body = nullptr;
 
     void EnableImple() override;
