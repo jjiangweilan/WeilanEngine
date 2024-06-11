@@ -66,10 +66,6 @@ void PhysicsBody::EnableImple()
         Init();
     }
 
-    auto& physicsScene = scene->GetPhysicsScene();
-    physicsScene.AddPhysicsBody(*this);
-    physicsScene.GetBodyInterface().ActivateBody(body->GetID());
-
     TransformChanged();
 }
 void PhysicsBody::DisableImple()
@@ -187,6 +183,10 @@ void PhysicsBody::Init()
     bodyInterface.AddBody(body->GetID(), EActivation::DontActivate);
     SetGravityFactor(gravityFactor);
     body->SetUserData(reinterpret_cast<std::intptr_t>(this));
+
+    auto& physicsScene = scene->GetPhysicsScene();
+    physicsScene.AddPhysicsBody(*this);
+    physicsScene.GetBodyInterface().ActivateBody(body->GetID());
 }
 
 void PhysicsBody::SetGravityFactor(float f)

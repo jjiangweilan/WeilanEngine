@@ -6,6 +6,12 @@
 #include "Core/Time.hpp"
 #include "Gameplay/Input.hpp"
 #include <spdlog/spdlog.h>
+// clang-format off
+#include <Jolt/Jolt.h>
+// clang-format on
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/Shape/Shape.h>
 
 DEFINE_OBJECT(PlayerController, "A14D66B4-47AB-4703-BEAA-06EBD285034F");
 
@@ -45,7 +51,7 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("rotateSpeed", rotateSpeed);
     s->Deserialize("jumpImpulse", jumpImpulse);
 }
-
+PhysicsBody* otherBodyID{};
 void PlayerController::Tick()
 {
     if (valid)
@@ -162,6 +168,8 @@ void PlayerController::ContactAddedEventCallback(
     PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& setting
 )
 {
+    if (manifold.mSubShapeID1 == self->GetBody()->GetShape()->GetSubShapeIDBitsRecursive())
+        otherBodyID = other;
     bool previousContacting = self->GetPhysicsScene()->GetPhysicsSystem().WereBodiesInContact(
         self->GetBody()->GetID(),
         other->GetBody()->GetID()
@@ -173,7 +181,7 @@ void PlayerController::ContactAddedEventCallback(
     {
         isOnGround = !previousContacting;
     }
-    spdlog::info("added, {}", previousContacting);
+    manifold.mBaseOffset
 }
 
 void PlayerController::ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other)

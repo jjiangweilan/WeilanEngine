@@ -117,7 +117,7 @@ public:
         const JPH::CollideShapeResult& inCollisionResult
     ) override
     {
-        spdlog::info("Contact validate callback");
+        //spdlog::info("Contact validate callback");
 
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
         return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -137,7 +137,7 @@ public:
         JPH::ContactSettings& ioSettings
     ) override
     {
-        spdlog::info("A contact was persisted");
+        //spdlog::info("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
@@ -176,19 +176,16 @@ public:
         return *bodyInterface;
     }
 
-    void AddPhysicsBody(PhysicsBody& body)
-    {
-        bodies.push_back(&body);
-    }
+    void AddPhysicsBody(PhysicsBody& body);
 
-    void RemovePhysicsBody(PhysicsBody& body)
+    void RemovePhysicsBody(PhysicsBody& body);
+    PhysicsBody* GetBodyThroughID(JPH::BodyID id)
     {
-        auto iter = std::find(bodies.begin(), bodies.end(), &body);
+        auto iter = bodies.find(id);
         if (iter != bodies.end())
-        {
-            std::swap(*iter, bodies.back());
-            bodies.pop_back();
-        }
+            return iter->second;
+
+        return nullptr;
     }
 
     void Tick();
@@ -200,9 +197,10 @@ public:
     }
 
 private:
-    std::vector<PhysicsBody*> bodies;
     JPH::PhysicsSystem physicsSystem;
     JPH::BodyInterface* bodyInterface;
+    std::unordered_map<JPH::BodyID, PhysicsBody*> bodies;
+    bool optimizeNeeded = false;
 
     JoltDebugRenderer debugRenderer;
     class DebugBodyDrawFilter : public JPH::BodyDrawFilter

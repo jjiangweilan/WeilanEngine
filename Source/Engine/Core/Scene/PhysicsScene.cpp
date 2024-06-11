@@ -52,14 +52,20 @@ PhysicsScene::~PhysicsScene() {}
 
 void PhysicsScene::Tick()
 {
+    if (optimizeNeeded)
+    {
+        physicsSystem.OptimizeBroadPhase();
+        optimizeNeeded = false;
+    }
+
     const float cDeltaTime = 1.0f / 60.0f;
     const int cCollisionSteps = 1;
     // Step the world
     physicsSystem.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
 
-    for (auto b : bodies)
+    for (auto& b : bodies)
     {
-        b->UpdateGameObject();
+        b.second->UpdateGameObject();
     }
 }
 
@@ -69,12 +75,12 @@ void PhysicsScene::DebugDraw()
     drawSettings.mDrawShapeWireframe = true;
 
     bodyDrawFilter.drawRequested.clear();
-    for (auto b : bodies)
+    for (auto& b : bodies)
     {
-        if (b->debugDrawRequest || JoltDebugRenderer::GetDrawAll())
+        if (b.second->debugDrawRequest || JoltDebugRenderer::GetDrawAll())
         {
-            b->debugDrawRequest = false;
-            bodyDrawFilter.drawRequested.emplace(b->GetBody()->GetID());
+            b.second->debugDrawRequest = false;
+            bodyDrawFilter.drawRequested.emplace(b.second->GetBody()->GetID());
         }
     }
 
@@ -105,4 +111,21 @@ void PhysicsContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubSh
 
     body1->InvokeContactRemovedEvent(body2);
     body2->InvokeContactRemovedEvent(body1);
+}
+
+void PhysicsScene::AddPhysicsBody(PhysicsBody& body)
+{
+    auto jphBody = body.GetBody();
+    assert(jphBody != nullptr);
+
+    bodies[jphBody->GetID()] = &body;
+    optimizeNeeded = true;
+}
+
+void PhysicsScene::RemovePhysicsBody(PhysicsBody& body)
+{
+    auto jphBody = body.GetBody();
+    assert(jphBody != nullptr);
+    bodies.erase(jphBody->GetID());
+    optimizeNeeded = true;
 }
