@@ -52,4 +52,5 @@ private:
     void
     ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
+    bool IsOnGround();
 };
