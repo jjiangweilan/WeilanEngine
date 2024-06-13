@@ -88,6 +88,7 @@ class GameObjectInspector : public Inspector<GameObject>
 
         // Components
         int enableCheckBoxID = 0;
+        Component* removeThis = nullptr;
         for (auto& co : target->GetComponents())
         {
             ImGui::PushID(enableCheckBoxID++);
@@ -106,7 +107,7 @@ class GameObjectInspector : public Inspector<GameObject>
             ImGui::SameLine();
             if (ImGui::Button("remove!"))
             {
-                target->RemoveComponent(co.get());
+                removeThis = co.get();
             }
 
             auto inspector = InspectorRegistry::GetInspector(c);
@@ -114,6 +115,9 @@ class GameObjectInspector : public Inspector<GameObject>
             inspector->DrawInspector(editor);
             ImGui::PopID();
         }
+
+        if (removeThis != nullptr)
+            target->RemoveComponent(removeThis);
     }
 
 private:

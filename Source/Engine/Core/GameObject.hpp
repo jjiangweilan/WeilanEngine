@@ -40,9 +40,8 @@ public:
         {
             std::unique_ptr<Component>& comp = *iter;
             comp->Disable();
+            components.erase(iter);
         }
-
-        components.erase(iter);
     }
 
     template <class T>
@@ -294,9 +293,9 @@ private:
     GameObject* parent = nullptr;
     Scene* gameScene = nullptr;
 
-    inline bool EqualZero(const glm::vec3 v)
+    inline bool EqualZero(const glm::vec3& v)
     {
-        return v.x < compareEpsilon && v.y < compareEpsilon && v.z < compareEpsilon;
+        return glm::abs(v.x) < compareEpsilon && glm::abs(v.y) < compareEpsilon && glm::abs(v.z) < compareEpsilon;
     }
 
     void TransformChanged()

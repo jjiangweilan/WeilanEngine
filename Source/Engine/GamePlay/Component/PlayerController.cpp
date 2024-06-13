@@ -90,14 +90,16 @@ void PlayerController::HandleInput()
 
     forward *= my;
     right *= mx;
-    glm::vec3 velocity = forward + right;
+    glm::vec3 velocity = (forward + right);
 
     // don't lose gravity
-    velocity.y = character->GetLinearVelocity().GetY();
+    auto gravity = GetScene()->GetPhysicsScene().GetPhysicsSystem().GetGravity() * Time::DeltaTime() * 100;
+    velocity += glm::vec3(gravity.GetX(), gravity.GetY(), gravity.GetZ());
+
     // jump
     if (Input::GetSingleton().Jump() && character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
     {
-        velocity.y = 10;
+        velocity.y = 100;
     }
     character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
 
@@ -159,6 +161,12 @@ void PlayerController::EnableImple()
 {
     if (auto scene = GetScene())
     {
+        // create shape
+        auto extent = GetGameObject()->GetScale();
+        JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
+        standingShape = s.Create().Get();
+
+        // create character
         JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
         settings->mMaxSlopeAngle = maxSlopeAngle;
         settings->mMaxStrength = maxStrength;
@@ -181,9 +189,6 @@ void PlayerController::EnableImple()
 
         auto& bSystem = scene->GetPhysicsScene().GetPhysicsSystem();
 
-        auto extent = GetGameObject()->GetScale();
-        JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
-        standingShape = s.Create().Get();
         character->SetShape(
             standingShape,
             1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
@@ -193,6 +198,9 @@ void PlayerController::EnableImple()
             {},
             tempAllocator
         );
+
+        auto pos = gameObject->GetPosition();
+        character->SetPosition({pos.x, pos.y, pos.z});
     }
 }
 
@@ -200,6 +208,8 @@ void PlayerController::DisableImple()
 {
     if (standingShape)
         standingShape->Release();
+
+    character = nullptr;
 }
 
 void PlayerController::UpdateCharacter()
@@ -227,4 +237,8 @@ void PlayerController::UpdateCharacter()
         {},
         tempAllocator
     );
+
+    // update character
+    auto pos = character->GetPosition();
+    gameObject->SetPosition({pos.GetX(), pos.GetY(), pos.GetZ()});
 }

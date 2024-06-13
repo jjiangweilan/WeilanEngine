@@ -59,7 +59,7 @@ private:
 
     bool valid = false;
     JPH::Ref<JPH::CharacterVirtual> character;
-    JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 1024);
+    JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 10 * 1024);
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
     void
