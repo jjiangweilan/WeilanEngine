@@ -272,7 +272,7 @@ public:
     }
 
 private:
-    const int compareEpsilon = 1e-6;
+    const float compareEpsilon = 1e-6f;
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
 

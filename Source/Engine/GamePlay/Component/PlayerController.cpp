@@ -3,10 +3,12 @@
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/PhysicsScene.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
 #include "Gameplay/Input.hpp"
 #include "Jolt/Physics/Collision/CollisionCollectorImpl.h"
 #include <spdlog/spdlog.h>
+
 // clang-format off
 #include <Jolt/Jolt.h>
 // clang-format on
@@ -58,51 +60,58 @@ void PlayerController::Tick()
 {
     if (valid)
     {
-        auto cameraGO = target->GetGameObject();
-        if (cameraGO == GetGameObject())
-            return;
-
-        // set movement
-        float mx, my;
-        Input::GetSingleton().GetMovement(mx, my);
-        mx *= movementSpeed * Time::DeltaTime();
-        my *= movementSpeed * Time::DeltaTime();
-
-        auto forward = cameraGO->GetForward();
-        auto right = cameraGO->GetRight();
-
-        // mute y
-        forward.y = 0;
-        right.y = 0;
-        forward = glm::normalize(forward);
-        right = glm::normalize(right);
-
-        forward *= my;
-        right *= mx;
-        glm::vec3 velocity = forward + right;
-
-        // jump
-        if (Input::GetSingleton().Jump() && IsOnGround())
-        {
-            pbody->AddImpulse({0, jumpImpulse, 0});
-        }
-
-        // don't lose vertical speed
-        auto v = pbody->GetLinearVelocity();
-        velocity.y = v.y;
-        pbody->SetLinearVelocity(velocity);
-
-        // set camera lookat (camera position)
-        auto characterPos = GetGameObject()->GetPosition();
-        float lx, ly;
-        Input::GetSingleton().GetLookAround(lx, ly);
-        SetCameraSphericalPos(-lx, -ly);
-
-        // set camera lookat character
-        glm::vec3 cameraPos = cameraGO->GetPosition();
-        auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
-        cameraGO->SetRotation(lookAtQuat);
+        HandleInput();
+        UpdateCharacter();
     }
+}
+
+void PlayerController::HandleInput()
+{
+    // handle input
+
+    auto cameraGO = target->GetGameObject();
+    if (cameraGO == GetGameObject())
+        return;
+
+    // set movement
+    float mx, my;
+    Input::GetSingleton().GetMovement(mx, my);
+    mx *= movementSpeed * Time::DeltaTime();
+    my *= movementSpeed * Time::DeltaTime();
+
+    auto forward = cameraGO->GetForward();
+    auto right = cameraGO->GetRight();
+
+    // mute y
+    forward.y = 0;
+    right.y = 0;
+    forward = glm::normalize(forward);
+    right = glm::normalize(right);
+
+    forward *= my;
+    right *= mx;
+    glm::vec3 velocity = forward + right;
+
+    // don't lose gravity
+    velocity.y = character->GetLinearVelocity().GetY();
+    // jump
+    if (Input::GetSingleton().Jump() && character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
+    {
+        velocity.y = 10;
+    }
+    character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
+
+    /* camera update */
+    // set camera lookat (camera position)
+    auto characterPos = GetGameObject()->GetPosition();
+    float lx, ly;
+    Input::GetSingleton().GetLookAround(lx, ly);
+    SetCameraSphericalPos(-lx, -ly);
+
+    // set camera lookat character
+    glm::vec3 cameraPos = cameraGO->GetPosition();
+    auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
+    cameraGO->SetRotation(lookAtQuat);
 }
 
 void PlayerController::Awake()
@@ -129,27 +138,7 @@ void PlayerController::Awake()
     auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
     targetGO->SetRotation(lookAtQuat);
 
-    // get PhysicsBody
-    auto bodies = GetGameObject()->GetComponentsInChildren<PhysicsBody>();
-    if (!bodies.empty())
-    {
-        pbody = bodies[0];
-        pbody->SetMotionType(JPH::EMotionType::Dynamic);
-
-        // register contact event
-        pbody->RegisterContactAddedEvent([this](
-                                             PhysicsBody* self,
-                                             PhysicsBody* other,
-                                             const JPH::ContactManifold& manifold,
-                                             JPH::ContactSettings& settings
-                                         ) { ContactAddedEventCallback(self, other, manifold, settings); });
-        pbody->RegisterContactRemovedEvent([this](PhysicsBody* self, PhysicsBody* other)
-                                           { ContactRemovedEventCallback(self, other); });
-
-        valid = true;
-    }
-    else
-        valid = false;
+    valid = true;
 }
 
 void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
@@ -166,59 +155,76 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     target->GetGameObject()->SetPosition(GetGameObject()->GetPosition() + finalSphOffset);
 }
 
-void PlayerController::ContactAddedEventCallback(
-    PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& setting
-)
+void PlayerController::EnableImple()
 {
-    bool previousContacting = self->GetPhysicsScene()->GetPhysicsSystem().WereBodiesInContact(
-        self->GetBody()->GetID(),
-        other->GetBody()->GetID()
-    );
-    auto n = manifold.mWorldSpaceNormal;
-    bool groundTest =
-        glm::dot(glm::vec3(0, -1, 0), glm::vec3{n.GetX(), n.GetY(), n.GetZ()}) >= glm::cos(glm::radians(30.0f));
-    if (groundTest)
+    if (auto scene = GetScene())
     {
-        isOnGround = !previousContacting;
+        JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
+        settings->mMaxSlopeAngle = maxSlopeAngle;
+        settings->mMaxStrength = maxStrength;
+        settings->mShape = standingShape;
+        settings->mBackFaceMode = JPH::EBackFaceMode::IgnoreBackFaces;
+        settings->mCharacterPadding = characterPadding;
+        settings->mPenetrationRecoverySpeed = penetrationRecoverySpeed;
+        settings->mPredictiveContactDistance = predictiveContactDistance;
+        settings->mSupportingVolume = JPH::Plane(
+            JPH::Vec3::sAxisY(),
+            -characterRadiusStanding
+        ); // Accept contacts that touch the lower sphere of the capsule
+        character = new JPH::CharacterVirtual(
+            settings,
+            JPH::RVec3::sZero(),
+            JPH::Quat::sIdentity(),
+            &scene->GetPhysicsScene().GetPhysicsSystem()
+        );
+        character->SetListener(this);
+
+        auto& bSystem = scene->GetPhysicsScene().GetPhysicsSystem();
+
+        auto extent = GetGameObject()->GetScale();
+        JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
+        standingShape = s.Create().Get();
+        character->SetShape(
+            standingShape,
+            1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
+            bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+            bSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+            {},
+            {},
+            tempAllocator
+        );
     }
 }
 
-void PlayerController::ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other)
+void PlayerController::DisableImple()
 {
-    bool previousContacting = self->GetPhysicsScene()->GetPhysicsSystem().WereBodiesInContact(
-        self->GetBody()->GetID(),
-        other->GetBody()->GetID()
-    );
-    spdlog::info("removed, {}", previousContacting);
+    if (standingShape)
+        standingShape->Release();
 }
 
-bool PlayerController::IsOnGround()
+void PlayerController::UpdateCharacter()
 {
-    JPH::RShapeCast cast{
-        pbody->GetShapeRef().GetPtr(),
-        JPH::Vec3::sReplicate(1.0f),
-        JPH::RMat44::sTranslation(pbody->GetBody()->GetCenterOfMassPosition()),
-        {0, -0.3f, 0},
-        pbody->GetBody()->GetWorldSpaceBounds()
-    };
-    JPH::ShapeCastSettings settings;
-    JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+    auto& physicsSystem = GetScene()->GetPhysicsScene().GetPhysicsSystem();
+    // Settings for our update function
+    JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
+    if (!enableStickToFloor)
+        update_settings.mStickToFloorStepDown = JPH::Vec3::sZero();
+    else
+        update_settings.mStickToFloorStepDown = -character->GetUp() * update_settings.mStickToFloorStepDown.Length();
+    if (!enableWalkStairs)
+        update_settings.mWalkStairsStepUp = JPH::Vec3::sZero();
+    else
+        update_settings.mWalkStairsStepUp = character->GetUp() * update_settings.mWalkStairsStepUp.Length();
 
-    pbody->GetPhysicsScene()->GetPhysicsSystem().GetNarrowPhaseQuery().CastShape(
-        cast,
-        settings,
-        JPH::Vec3::sReplicate(0.0f),
-        collector
+    // Update the character position
+    character->ExtendedUpdate(
+        Time::DeltaTime(),
+        -character->GetUp() * physicsSystem.GetGravity().Length(),
+        update_settings,
+        physicsSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        physicsSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        {},
+        {},
+        tempAllocator
     );
-
-    for (auto& hit : collector.mHits)
-    {
-        // weird that the hit will hit itself sometimes
-        if (hit.mBodyID2 != pbody->GetBody()->GetID())
-        {
-            return true;
-        }
-    }
-
-    return false;
 }

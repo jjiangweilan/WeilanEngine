@@ -3,11 +3,12 @@
 // clang-format off
 #include <Jolt/Jolt.h>
 // clang-format on
+#include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 
 class Camera;
 class PhysicsBody;
-class PlayerController : public Component
+class PlayerController : public Component, JPH::CharacterContactListener
 {
     DECLARE_OBJECT();
 
@@ -16,6 +17,18 @@ public:
     float rotateSpeed = 0.3f;
     float cameraDistance = 5.0f;
     float jumpImpulse = 3.0f;
+
+    // character creation setting
+    float maxSlopeAngle = JPH::DegreesToRadians(45.0f);
+    float maxStrength = 100.f;
+    float characterPadding = 0.02f;
+    float penetrationRecoverySpeed = 1.0f;
+    float predictiveContactDistance = 0.1f;
+    float characterRadiusStanding = 0.3f;
+    bool enableWalkStairs = true;
+    bool enableStickToFloor = true;
+
+    JPH::RefConst<JPH::Shape> standingShape;
 
     PlayerController();
     PlayerController(GameObject* gameObject);
@@ -44,13 +57,18 @@ private:
     // camera rotation around player
     float theta, phi;
 
-    PhysicsBody* pbody;
     bool valid = false;
-    int isOnGround = 0;
+    JPH::Ref<JPH::CharacterVirtual> character;
+    JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 1024);
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
     void
     ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
-    bool IsOnGround();
+
+    void EnableImple() override;
+    void DisableImple() override;
+    void HandleInput();
+
+    void UpdateCharacter();
 };

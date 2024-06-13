@@ -48,6 +48,14 @@ L2, 11 up, 12 down, 13 left, 14 right, 15 central pad, 16 mute
     }
     else if (event.type == SDL_JOYBUTTONUP)
     {}
+    else if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+    {
+        bool pressing = event.type == SDL_KEYDOWN ? true : false;
+        if (event.key.keysym.sym == SDL_KeyCode::SDLK_SPACE)
+        {
+            keyboard.space = pressing;
+        }
+    }
 }
 
 float Input::JoyStickRemap(int& val)

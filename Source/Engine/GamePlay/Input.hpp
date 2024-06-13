@@ -22,7 +22,7 @@ public:
     // ps5: is x button down
     inline bool Jump()
     {
-        return rightPad.down;
+        return rightPad.down || keyboard.space;
     }
 
     void PushEvent(SDL_Event& event);
@@ -48,6 +48,12 @@ private:
         bool right;
 
     } dPad, rightPad;
+
+    struct Keyboard
+    {
+        bool w, a, s, d;
+        bool space;
+    } keyboard;
     std::vector<SDL_Event> pendingEvents;
     const int JoyStickDeadZone = 5000;
 
