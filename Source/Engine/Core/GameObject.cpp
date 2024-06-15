@@ -73,6 +73,14 @@ void GameObject::Tick()
     }
 }
 
+void GameObject::PrePhysicsTick()
+{
+    for (auto& comp : components)
+    {
+        comp->PrePhysicsTick();
+    }
+}
+
 std::vector<std::unique_ptr<Component>>& GameObject::GetComponents()
 {
     return components;
@@ -100,11 +108,13 @@ void GameObject::SetModelMatrix(const glm::mat4& model)
     glm::vec3 skew;
     glm::vec4 perspective;
     glm::vec3 position;
+    glm::vec3 scale;
+    glm::quat rotation;
     glm::decompose(model, scale, rotation, position, skew, perspective);
     eulerAngles = glm::eulerAngles(rotation);
-    updateModelMatrix = true;
 
-    // this is needed to propagate translation to children
+    SetRotation(rotation);
+    SetScale(scale);
     SetPosition(position);
 }
 
@@ -120,7 +130,10 @@ void GameObject::Deserialize(Serializer* s)
     eulerAngles = glm::eulerAngles(rotation);
     s->Deserialize("components", components);
     // gameScene is set by Scene when it's deserializing
+}
 
+void GameObject::OnLoadingFinished()
+{
     for (auto& c : components)
     {
         c->gameObject = this;

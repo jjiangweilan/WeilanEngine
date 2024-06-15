@@ -55,6 +55,8 @@ public:
         copy.Deserialize(&de);
 
         ResolveSerializerReference(de, resolveMap);
+
+        copy.OnLoadingFinished();
     }
 
 private:

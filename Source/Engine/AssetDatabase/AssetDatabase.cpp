@@ -158,6 +158,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                 std::unique_ptr<AssetData> ad =
                     std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), pathes[i], projectRoot);
                 ad->SaveToDisk(projectRoot);
+
                 assets.Add(std::move(ad));
             }
         }
@@ -242,6 +243,8 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         }
     }
 
+    for (auto a : results)
+        a->OnLoadingFinished();
     return results;
 }
 
@@ -336,6 +339,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
             referenceResolveMap.erase(iter);
         }
 
+        asset->OnLoadingFinished();
         return asset;
     }
 

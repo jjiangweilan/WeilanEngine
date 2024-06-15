@@ -1,12 +1,17 @@
 #pragma once
 
+#include "Asset/Material.hpp"
 #include "Asset/Shader.hpp"
 
-class EngineInternalShaders
+class EngineInternalResources
 {
 public:
     static void Init();
 
+    static Material* GetDefaultMaterial()
+    {
+        return GetSingleton().defaultMaterial;
+    }
     static Shader* GetLineShader()
     {
         return GetSingleton().lineShader;
@@ -23,9 +28,10 @@ public:
     }
 
 private:
-    EngineInternalShaders();
+    EngineInternalResources();
+    Material* defaultMaterial;
     Shader* lineShader;
     Shader* triangleShader;
     Shader* joltDebugShader;
-    static EngineInternalShaders& GetSingleton();
+    static EngineInternalResources& GetSingleton();
 };

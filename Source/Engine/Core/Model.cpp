@@ -1,7 +1,9 @@
 #include "Model.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Libs/GLB.hpp"
 #include <fstream>
+
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
@@ -290,7 +292,8 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 
         for (int nodeIndex : sceneJson["nodes"])
         {
-            auto gameObjectsCreated = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial, GetDefaultMaterial());
+            auto gameObjectsCreated =
+                CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial, GetDefaultMaterial());
             for (auto& go : gameObjectsCreated)
             {
                 go->SetParent(rootGameObject.get());
@@ -320,12 +323,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 
 Material* Model::GetDefaultMaterial()
 {
-    if (material == nullptr)
-    {
-        material = std::make_unique<Material>(Shader::GetDefault());
-    }
-
-    return material.get();
+    return EngineInternalResources::GetDefaultMaterial();
 }
 
 std::vector<Asset*> Model::GetInternalAssets()

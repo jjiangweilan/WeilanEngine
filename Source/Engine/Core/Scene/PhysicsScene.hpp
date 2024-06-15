@@ -20,6 +20,7 @@
 
 class PhysicsBody;
 class PhysicsScene;
+class Scene;
 
 /// Class that determines if two object layers can collide
 class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
@@ -117,7 +118,7 @@ public:
         const JPH::CollideShapeResult& inCollisionResult
     ) override
     {
-        //spdlog::info("Contact validate callback");
+        // spdlog::info("Contact validate callback");
 
         // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
         return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
@@ -137,7 +138,7 @@ public:
         JPH::ContactSettings& ioSettings
     ) override
     {
-        //spdlog::info("A contact was persisted");
+        // spdlog::info("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
@@ -165,7 +166,10 @@ public:
 class PhysicsScene
 {
 public:
-    PhysicsScene();
+    const float DeltaTime = 1.0f / 55.0f;
+    const int CollisionSteps = 1;
+
+    PhysicsScene(Scene* scene);
     ~PhysicsScene();
 
     PhysicsScene(const PhysicsScene& other) = delete;
@@ -197,10 +201,12 @@ public:
     }
 
 private:
+    Scene* scene;
     JPH::PhysicsSystem physicsSystem;
     JPH::BodyInterface* bodyInterface;
     std::unordered_map<JPH::BodyID, PhysicsBody*> bodies;
     bool optimizeNeeded = false;
+    float physicsUpdateDeltaAccumulation;
 
     JoltDebugRenderer debugRenderer;
     class DebugBodyDrawFilter : public JPH::BodyDrawFilter

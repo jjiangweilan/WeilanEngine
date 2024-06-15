@@ -53,6 +53,7 @@ public:
     void SetScene(Scene* scene);
     Scene* GetScene();
     void Tick();
+    void PrePhysicsTick();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -269,6 +270,8 @@ public:
     {
         return std::move(owningChildren);
     }
+
+    void OnLoadingFinished() override;
 
 private:
     const float compareEpsilon = 1e-6f;

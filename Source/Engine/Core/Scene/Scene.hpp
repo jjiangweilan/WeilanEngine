@@ -24,6 +24,8 @@ public:
     const std::vector<GameObject*>& GetRootObjects();
 
     void Tick();
+    void PrePhysicsTick();
+    void OnLoadingFinished() override;
 
     void MoveGameObjectToRoot(GameObject* obj);
     void RemoveGameObjectFromRoot(GameObject* obj);
@@ -84,4 +86,5 @@ protected:
     Camera* camera = nullptr;
 
     void TickGameObject(GameObject* obj);
+    void PrePhysicsTickGameObject(GameObject* obj);
 };

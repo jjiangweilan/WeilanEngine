@@ -17,7 +17,8 @@ public:
     float rotateSpeed = 0.3f;
     float cameraDistance = 5.0f;
     float jumpImpulse = 3.0f;
-
+    float gravityScale = 10.0f;
+    
     // character creation setting
     float maxSlopeAngle = JPH::DegreesToRadians(45.0f);
     float maxStrength = 100.f;
@@ -38,6 +39,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
+    void PrePhysicsTick() override;
     void Tick() override;
 
     void SetCamera(Camera* camera)

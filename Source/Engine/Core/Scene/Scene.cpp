@@ -1,7 +1,7 @@
 #include "Scene.hpp"
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
-Scene::Scene() : Asset(), renderingScene(), physicsScene()
+Scene::Scene() : Asset(), renderingScene(), physicsScene(this)
 {
     name = "New GameScene";
 }
@@ -56,6 +56,14 @@ void Scene::Tick()
     for (auto obj : roots)
     {
         TickGameObject(obj);
+    }
+}
+
+void Scene::PrePhysicsTick()
+{
+    for (auto obj : roots)
+    {
+        PrePhysicsTickGameObject(obj);
     }
 }
 
@@ -163,6 +171,16 @@ void Scene::TickGameObject(GameObject* obj)
     }
 }
 
+void Scene::PrePhysicsTickGameObject(GameObject* obj)
+{
+    obj->PrePhysicsTick();
+
+    for (auto child : obj->GetChildren())
+    {
+        PrePhysicsTickGameObject(child);
+    }
+}
+
 void GetLights(GameObject* go, std::vector<Light*>& lights)
 {
     for (auto& child : go->GetChildren())
@@ -222,31 +240,17 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("gameObjects", gameObjects);
     s->Deserialize("roots", roots);
     s->Deserialize("camera", camera);
+}
 
+void Scene::OnLoadingFinished()
+{
     for (auto& g : gameObjects)
     {
         g->SetScene(this);
     }
 
-    //// find all the root object
-    // for (auto& obj : gameObjects)
-    //{
-    //     obj->SetGameScene(this);
-    //     if (obj->GetTransform()->GetParent() == nullptr)
-    //     {
-    //         roots.push_back(obj);
-    //     }
-    // }
-
-    // for (auto obj : externalGameObjects)
-    //{
-    //     if (obj != nullptr)
-    //     {
-    //         obj->SetGameScene(this);
-    //         if (obj->GetTransform()->GetParent() == nullptr)
-    //         {
-    //             roots.push_back(obj);
-    //         }
-    //     }
-    // }
+    for (auto go : GetAllGameObjects())
+    {
+        go->OnLoadingFinished();
+    }
 }

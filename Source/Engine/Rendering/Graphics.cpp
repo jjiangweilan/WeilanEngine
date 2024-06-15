@@ -1,7 +1,7 @@
 #include "Graphics.hpp"
 #include "Asset/Material.hpp"
 #include "Core/Graphics/Mesh.hpp"
-#include "EngineInternalShaders.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 void Graphics::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
@@ -103,7 +103,7 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     data.toPos = glm::vec4(drawLine.to, 1.0f);
     data.color = drawLine.color;
 
-    Gfx::ShaderProgram* lineShaderProgram = EngineInternalShaders::GetLineShader()->GetDefaultShaderProgram();
+    Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader()->GetDefaultShaderProgram();
     cmd.SetPushConstant(lineShaderProgram, (void*)&data);
     cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(2, 1, 0, 0);
@@ -122,7 +122,7 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
     data.v2 = glm::vec4(drawTriangle.v2, 1.0f);
     data.color = drawTriangle.color;
 
-    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalShaders::GetLineShader()->GetDefaultShaderProgram();
+    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetLineShader()->GetDefaultShaderProgram();
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
     cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(3, 1, 0, 0);

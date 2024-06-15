@@ -14,6 +14,7 @@ public:
     Component(GameObject* gameObject);
     virtual ~Component();
     virtual void Tick() {};
+    virtual void PrePhysicsTick() {};
 
     virtual const std::string& GetName() = 0;
     virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;

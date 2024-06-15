@@ -1,7 +1,7 @@
 #include "JoltDebugRenderer.hpp"
 #include "Asset/Material.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Core/Graphics/Mesh.hpp"
-#include "Rendering/EngineInternalShaders.hpp"
 #include "Rendering/Graphics.hpp"
 
 void JoltDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
@@ -70,7 +70,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);
-    batch->material = std::make_unique<Material>(EngineInternalShaders::GetJoltDebugShader());
+    batch->material = std::make_unique<Material>(EngineInternalResources::GetJoltDebugShader());
 
     return batch;
 }
@@ -119,7 +119,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);
-    batch->material = std::make_unique<Material>(EngineInternalShaders::GetJoltDebugShader());
+    batch->material = std::make_unique<Material>(EngineInternalResources::GetJoltDebugShader());
 
     return batch;
 }

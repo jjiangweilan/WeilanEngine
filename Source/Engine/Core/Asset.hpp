@@ -69,6 +69,8 @@ public:
         s->Deserialize("name", name);
     }
 
+    virtual void OnLoadingFinished() {}
+
     virtual const char* GetExtension() = 0;
 
     void SetDirty(bool isDirty = true)

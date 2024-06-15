@@ -1,8 +1,10 @@
 #include "PhysicsScene.hpp"
 #include "Core/Component/PhysicsBody.hpp"
+#include "Core/Scene/Scene.hpp"
+#include "Core/Time.hpp"
 
-PhysicsScene::PhysicsScene()
-    : temp_allocator(10 * 1024 * 1024),
+PhysicsScene::PhysicsScene(Scene* scene)
+    : scene(scene), physicsUpdateDeltaAccumulation(0.0f), temp_allocator(10 * 1024 * 1024),
       job_system(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, JPH::thread::hardware_concurrency()),
       contact_listener(this)
 {
@@ -45,7 +47,7 @@ PhysicsScene::PhysicsScene()
 
     bodyInterface = &physicsSystem.GetBodyInterface();
 
-    physicsSystem.SetGravity({0, -0.98, 0});
+    physicsSystem.SetGravity({0, -9.8, 0});
 }
 
 PhysicsScene::~PhysicsScene() {}
@@ -58,14 +60,19 @@ void PhysicsScene::Tick()
         optimizeNeeded = false;
     }
 
-    const float cDeltaTime = 1.0f / 60.0f;
-    const int cCollisionSteps = 1;
-    // Step the world
-    physicsSystem.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
-
-    for (auto& b : bodies)
+    physicsUpdateDeltaAccumulation += Time::DeltaTime();
+    while (physicsUpdateDeltaAccumulation >= DeltaTime)
     {
-        b.second->UpdateGameObject();
+        scene->PrePhysicsTick();
+
+        physicsSystem.Update(DeltaTime, CollisionSteps, &temp_allocator, &job_system);
+        physicsUpdateDeltaAccumulation -= DeltaTime;
+
+        // Step the world
+        for (auto& b : bodies)
+        {
+            b.second->UpdateGameObject();
+        }
     }
 }
 

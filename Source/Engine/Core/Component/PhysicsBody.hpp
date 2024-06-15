@@ -11,9 +11,17 @@
 #include <Jolt/Physics/Body/MotionProperties.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 class PhysicsScene;
+
+enum class PhysicsBodyShapes
+{
+    Box,
+    Sphere,
+    Mesh
+};
 
 class PhysicsBody : public Component
 {
@@ -25,8 +33,11 @@ public:
     ~PhysicsBody() override;
 
     PhysicsScene* GetPhysicsScene();
-    void SetAsSphere(float radius);
-    void SetAsBox(glm::vec3 extent);
+    void SetShape(PhysicsBodyShapes shape);
+    PhysicsBodyShapes GetShape()
+    {
+        return shapeType;
+    }
     void SetLayer(PhysicsLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
 
@@ -116,20 +127,25 @@ private:
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 0.5};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;
-    JPH::EMotionType motionType = JPH::EMotionType::Static;
 
+    JPH::EMotionType motionType = JPH::EMotionType::Static;
     JPH::Ref<JPH::Shape> shapeRef;
     JPH::Body* body = nullptr;
+    PhysicsBodyShapes shapeType = PhysicsBodyShapes::Mesh;
+
+    std::function<bool()> recreateShape = nullptr;
+    std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
+    std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
 
     void EnableImple() override;
     void DisableImple() override;
     bool SetShape(JPH::ShapeSettings& shape);
     void TransformChanged() override;
-
+    void UpdateBodyPositionAndRotation();
     JPH::BodyInterface* GetBodyInterface();
-
-    std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
-    std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
-
     void Init();
+    bool GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& triangles);
+    bool SetAsSphere(float radius);
+    bool SetAsMeshRenderer();
+    bool SetAsBox(glm::vec3 extent);
 };

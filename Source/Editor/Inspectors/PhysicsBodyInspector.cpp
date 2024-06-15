@@ -19,24 +19,21 @@ public:
                 target->SetLayer(PhysicsLayer::Moving);
         }
 
-        const char* shapes[] = {"Box", "Sphere"};
-        int currentShapeIndex = 0;
-        ImGui::Combo("Shape", &currentShapeIndex, shapes, IM_ARRAYSIZE(shapes));
-
-        if (currentShapeIndex == 0)
+        const char* shapes[] = {"Box", "Sphere", "Mesh"};
+        int currentShapeIndex = static_cast<int>(target->GetShape());
+        if (ImGui::Combo("Shape", &currentShapeIndex, shapes, IM_ARRAYSIZE(shapes)))
         {
-            auto bodyScale = target->GetBodyScale();
-            if (ImGui::InputFloat3("extent", &bodyScale[0]))
+            if (currentShapeIndex == 0)
             {
-                target->SetAsBox(bodyScale);
+                target->SetShape(PhysicsBodyShapes::Box);
             }
-        }
-        else if (currentShapeIndex == 1)
-        {
-            auto bodyScale = target->GetBodyScale();
-            if (ImGui::InputFloat("radius", &bodyScale[0]))
+            else if (currentShapeIndex == 1)
             {
-                target->SetAsSphere(bodyScale[0]);
+                target->SetShape(PhysicsBodyShapes::Sphere);
+            }
+            else if (currentShapeIndex == 2)
+            {
+                target->SetShape(PhysicsBodyShapes::Mesh);
             }
         }
 

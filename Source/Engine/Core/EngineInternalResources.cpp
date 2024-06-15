@@ -1,7 +1,7 @@
-#include "EngineInternalShaders.hpp"
+#include "EngineInternalResources.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 
-EngineInternalShaders::EngineInternalShaders()
+EngineInternalResources::EngineInternalResources()
 {
     lineShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/LineShader.shad"));
@@ -9,10 +9,12 @@ EngineInternalShaders::EngineInternalShaders()
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/JoltDebugShader.shad"));
     triangleShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/TriangleShader.shad"));
+    defaultMaterial =
+        static_cast<Material*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/Default.mat"));
 }
 
-EngineInternalShaders& EngineInternalShaders::GetSingleton()
+EngineInternalResources& EngineInternalResources::GetSingleton()
 {
-    static EngineInternalShaders singleton;
+    static EngineInternalResources singleton;
     return singleton;
 }
