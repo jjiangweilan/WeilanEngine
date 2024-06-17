@@ -30,8 +30,16 @@ public:
 private:
     EngineInternalResources();
     Material* defaultMaterial;
+
+    // gizmos
     Shader* lineShader;
     Shader* triangleShader;
+
+    // jolt debug
     Shader* joltDebugShader;
+
+    // light probe fields
+    Shader* lightProbeFieldGBufferShader;
+
     static EngineInternalResources& GetSingleton();
 };
