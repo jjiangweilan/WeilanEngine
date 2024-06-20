@@ -18,10 +18,15 @@ layout(push_constant) in uniform Transform
 
 layout(location = 0) out vec3 o_PositionWS;
 layout(location = 1) out vec3 o_NormalWS;
+layout(location = 2) out vec3 o_TangentWS;
+layout(location = 3) out vec3 o_BitangentWS;
+
 void main()
 {
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
     o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz, 1)).xyz;
+    o_BitangentWS = i_Tangent.w * cross(o_NormalWS, o_TangentWS);
 
     gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
 }
@@ -30,9 +35,11 @@ void main()
 #if FRAG
 layout(location = 0) in vec3 i_PositionWS;
 layout(location = 1) in vec3 i_NormalWS;
+layout(location = 2) in vec3 i_TangentWS;
+layout(location = 3) in vec3 i_BitangentWS;
 
 layout(location = 0) out vec4 o_Albedo;
-layout(location = 2) out vec4 o_Normal;
+layout(location = 1) out vec4 o_Normal;
 
 layout(set = SET_MATERIAL, binding = 0) uniform LFP
 {
@@ -41,7 +48,6 @@ layout(set = SET_MATERIAL, binding = 0) uniform LFP
 layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
 layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;
 #define Roughness matParams.roughness
-#define Metallic matParams.metallic
 #define NearZero 0.000001
 
 void main()
@@ -57,15 +63,6 @@ void main()
         discard;
 #endif
 
-#ifdef _MetallicRoughnessMap
-    vec2 metallicRoughness = vec2(Roughness, Metallic) * texture(MetallicRoughnessMap, i_UV).gb;
-    float metallic = metallicRoughness.y;
-    float roughness = max(metallicRoughness.x, 0.01);
-#else
-    float metallic = Metallic;
-    float roughness = Roughness;
-#endif
-
 #ifdef _NormalMap
     vec3 normal = texture(NormalMap, i_UV).xyz * 2 - 1;
 #else
@@ -74,16 +71,7 @@ void main()
     mat3 TBN = mat3(normalize(i_TangentWS), normalize(i_BitangentWS), normalize(i_NormalWS));
     vec3 n = EncodeGBufferNormal(normalize(TBN * normal));
 
-#ifdef _EmissiveMap
-    vec4 emission = texture(EmissiveMap, i_UV);
-#else
-    vec4 emission = vec4(0);
-#endif
-
-    o_Lighting = vec4(emission.xyz * matParams.emissive.xyz, 1.0f);
     o_Albedo = baseColor;
     o_Normal = vec4(n, 0);
-    o_Property = vec4(metallic, roughness, 1, 0);
-}
 #endif
 }

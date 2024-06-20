@@ -131,6 +131,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         rebuild = iter->second.rebuild;
         if (rebuild)
         {
+            descriptorPool->Deallocate(iter->second.set);
+
             descriptorPool = &shaderProgram->GetDescriptorPool(set);
             finalReturn = descriptorPool->Allocate();
             iter->second.set = finalReturn;
@@ -222,8 +224,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                   BufferUsage::Transfer_Dst,
                                         .size = 1,
                                         .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()
-                                    };
+                                        .debugName = bufferName.c_str()};
                                     defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
@@ -359,8 +360,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_SHADER_READ_BIT,
                                         .imageView = imageView,
-                                        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                    };
+                                        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
                                     writableGPUResources->push_back(gpuResource);
                                 }

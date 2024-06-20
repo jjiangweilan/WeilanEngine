@@ -12,6 +12,12 @@ public:
     {
         return GetSingleton().defaultMaterial;
     }
+
+    static Shader* GetLightProbeFieldGBufferGenerationShader()
+    {
+        return GetSingleton().lightProbeFieldGBufferShader;
+    }
+
     static Shader* GetLineShader()
     {
         return GetSingleton().lineShader;
