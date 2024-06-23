@@ -6,7 +6,7 @@ ShaderPass GBuffer
 #include "Common/DeferredShading.glsl"
 
 #if CONFIG
-name: Game/StandardPBR
+name: Game/SceneLit
 features:
     - [_, _AlphaTest]
     - [_, _BaseColorMap]
@@ -114,4 +114,88 @@ void main()
     o_Property = vec4(metallic, roughness, 1, 0);
 }
 #endif
+}
+
+ShaderPass LightFieldProbeBake
+{
+#version 460
+
+#if CONFIG
+name: LightFieldProbes/LightFieldProbeBakeBake
+#endif
+
+#if VERT
+
+// input
+layout(location = 0) in vec3 i_Position;
+layout(location = 1) in vec3 i_Normal;
+layout(location = 2) in vec4 i_Tangent;
+layout(location = 3) in vec2 i_UV;
+layout(push_constant) in uniform Transform
+{
+    mat4 model;
+} pconst;
+
+// output
+layout(location = 0) out vec3 o_PositionWS;
+layout(location = 1) out vec3 o_NormalWS;
+layout(location = 2) out vec3 o_TangentWS;
+layout(location = 3) out vec3 o_BitangentWS;
+
+layout(set = 1, binding = 0) uniform LFP
+{
+    mat4 viewProjection;
+} lfp;
+
+void main()
+{
+    o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
+    o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz, 1)).xyz;
+    o_BitangentWS = i_Tangent.w * cross(o_NormalWS, o_TangentWS);
+
+    gl_Position = lfp.viewProjection * vec4(o_PositionWS, 1);
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec3 i_PositionWS;
+layout(location = 1) in vec3 i_NormalWS;
+layout(location = 2) in vec3 i_TangentWS;
+layout(location = 3) in vec3 i_BitangentWS;
+
+layout(location = 0) out vec4 o_Albedo;
+layout(location = 1) out vec4 o_Normal;
+
+layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
+layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;
+#define Roughness matParams.roughness
+#define NearZero 0.000001
+
+void main()
+{
+#ifdef _BaseColorMap
+    vec4 baseColor = texture(BaseColorTex, i_UV) * matParams.baseColorFactor;
+#else
+    vec4 baseColor = matParams.baseColorFactor;
+#endif
+
+#ifdef _AlphaTest
+    if (baseColor.a < matParams.alphaCutoff)
+        discard;
+#endif
+
+#ifdef _NormalMap
+    vec3 normal = texture(NormalMap, i_UV).xyz * 2 - 1;
+#else
+    vec3 normal = vec3(0,0,1);
+#endif
+    mat3 TBN = mat3(normalize(i_TangentWS), normalize(i_BitangentWS), normalize(i_NormalWS));
+    vec3 n = EncodeGBufferNormal(normalize(TBN * normal));
+
+    o_Albedo = baseColor;
+    o_Normal = vec4(n, 0);
+#endif
+}
+
 }

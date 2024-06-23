@@ -1,4 +1,5 @@
 #pragma once
+#include "Asset/Material.hpp"
 #include "Core/Math/Geometry.hpp"
 #include "Utils/Structs.hpp"
 #include <glm/glm.hpp>
@@ -45,6 +46,7 @@ class Gizmos
 {
 public:
     static void DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix);
+    static void DrawMesh(Mesh& mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix);
     static void DrawLight(const glm::vec3& position);
     static void DispatchAllDiszmos(Gfx::CommandBuffer& cmd);
 

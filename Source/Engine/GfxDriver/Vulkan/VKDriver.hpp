@@ -90,7 +90,6 @@ public:
     void ClearResources() override;
 
     // RHI implementation
-    void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) override;
     void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) override;
     void UploadImage(
         Gfx::Image& dst, uint8_t* data, size_t size, uint32_t mipLevel, uint32_t arrayLayer, Gfx::ImageAspect aspect
@@ -116,6 +115,8 @@ public:
     void GenerateMipmaps(VKImage& image);
 
     Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) override;
+
+    void FlushPendingCommands() override;
 
 public:
     std::unique_ptr<VKMemAllocator> memAllocator;

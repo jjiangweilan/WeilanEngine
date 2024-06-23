@@ -1,6 +1,7 @@
 #include "../EditorState.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
+#include "Core/Component/LightFieldProbes.hpp"
 #include "Core/Component/LuaScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/PhysicsBody.hpp"
@@ -44,6 +45,8 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<LuaScript>();
             if (ImGui::MenuItem("PlayerController"))
                 target->AddComponent<PlayerController>();
+            if (ImGui::MenuItem("LightFieldProbes"))
+                target->AddComponent<LightFieldProbes>();
 
             ImGui::EndMenu();
         }

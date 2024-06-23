@@ -20,7 +20,7 @@ class GBufferGenerationNode : public Node
 
     void Compile() override
     {
-        drawList = input.drawList->GetValue<DrawList*>();
+        /*drawList = input.drawList->GetValue<DrawList*>();
 
         gbufferMaterial =
             std::make_unique<Material>(EngineInternalResources::GetLightProbeFieldGBufferGenerationShader());
@@ -40,7 +40,7 @@ class GBufferGenerationNode : public Node
         for (int i = 0; i < 6; ++i)
         {
             cubemapRenderPasses[i].Init(albedoCubemap.get(), normalCubemap.get(), depthCubeMap.get(), i);
-        }
+        }*/
     }
 
     void Execute(RenderingContext& context, RenderingData& renderingData) override {}

@@ -35,7 +35,8 @@ class LightingPassNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
@@ -60,7 +61,8 @@ class LightingPassNode : public Node
             .size = sizeof(ShadingProperties),
             .visibleInCPU = false,
             .debugName = "lighting pass buffer",
-            .gpuWrite = false});
+            .gpuWrite = false
+        });
         shaderResource->SetBuffer("ShadingProperties", shadingPropertiesBuffer.get());
     }
 

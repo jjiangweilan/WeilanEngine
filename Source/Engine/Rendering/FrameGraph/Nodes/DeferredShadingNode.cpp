@@ -26,7 +26,8 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment albedo{1};
         Gfx::RG::SubpassAttachment normal{2};
         Gfx::RG::SubpassAttachment property{3};
@@ -39,14 +40,15 @@ class DeferredShadingNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachment{
             0,
             Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store};
+            Gfx::AttachmentStoreOperation::Store
+        };
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
         gbufferPassShader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/GBufferPass.shad");
         lightingPassShader =
-            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/SceneLit.shad");
         lightingPassShaderProgram = lightingPassShader->GetShaderProgram({"G_DEFERRED"});
     }
 

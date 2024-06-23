@@ -1,5 +1,6 @@
 #include "EngineInternalResources.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Model.hpp"
 
 EngineInternalResources::EngineInternalResources()
 {
@@ -8,8 +9,8 @@ EngineInternalResources::EngineInternalResources()
     joltDebugShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/JoltDebugShader.shad"));
     triangleShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/TriangleShader.shad"));
     defaultMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/Default.mat"));
-    lightProbeFieldGBufferShader =
-        static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/LightFieldProbes/GBufferGeneration.shad"));
+
+    models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/sphere.glb")))->GetMeshes()[0].get();
 }
 
 EngineInternalResources& EngineInternalResources::GetSingleton()

@@ -9,7 +9,7 @@
 namespace Gfx
 {
 
-void VKCommandBuffer2::BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues)
+void VKCommandBuffer2::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues)
 {
     assert(clearValues.size() <= 8);
 
@@ -117,7 +117,8 @@ void VKCommandBuffer2::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth};
+        .maxDepth = viewport.maxDepth
+    };
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }

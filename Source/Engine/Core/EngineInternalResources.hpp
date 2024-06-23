@@ -2,20 +2,27 @@
 
 #include "Asset/Material.hpp"
 #include "Asset/Shader.hpp"
+#include "Core/Graphics/Mesh.hpp"
 
 class EngineInternalResources
 {
+
 public:
+    struct Models
+    {
+        Mesh* sphere;
+    };
+
     static void Init();
+
+    static Models& GetModels()
+    {
+        return GetSingleton().models;
+    }
 
     static Material* GetDefaultMaterial()
     {
         return GetSingleton().defaultMaterial;
-    }
-
-    static Shader* GetLightProbeFieldGBufferGenerationShader()
-    {
-        return GetSingleton().lightProbeFieldGBufferShader;
     }
 
     static Shader* GetLineShader()
@@ -34,6 +41,8 @@ public:
     }
 
 private:
+    Models models;
+
     EngineInternalResources();
     Material* defaultMaterial;
 
@@ -43,9 +52,6 @@ private:
 
     // jolt debug
     Shader* joltDebugShader;
-
-    // light probe fields
-    Shader* lightProbeFieldGBufferShader;
 
     static EngineInternalResources& GetSingleton();
 };

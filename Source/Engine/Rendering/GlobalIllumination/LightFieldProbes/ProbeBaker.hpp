@@ -1,4 +1,5 @@
 #include "GfxDriver/GfxDriver.hpp"
+#include "Probe.hpp"
 #include "Rendering/DrawList.hpp"
 namespace Rendering::LFP
 {
@@ -8,120 +9,104 @@ struct ProbeFace
     std::unique_ptr<Gfx::ImageView> albedoView;
     std::unique_ptr<Gfx::ImageView> normalView;
     std::unique_ptr<Gfx::ImageView> depthView;
+    std::unique_ptr<Gfx::Buffer> lfpBuffer;
+    std::unique_ptr<Gfx::ShaderResource> set1Resource;
 
-    void Init(Gfx::Image* albedoCubemap, Gfx::Image* normalCubemap, Gfx::Image* depthCubeMap, uint32_t face)
+    void Init(
+        Gfx::Image* albedoCubemap,
+        Gfx::Image* normalCubemap,
+        Gfx::Image* depthCubeMap,
+        uint32_t face,
+        glm::vec3 probePosition
+    )
     {
         gbufferPass = GetGfxDriver()->CreateRenderPass();
         albedoView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
             *albedoCubemap,
             Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
+            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
+        });
 
         normalView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
             *normalCubemap,
             Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}});
+            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, face, 1}
+        });
 
         depthView = GetGfxDriver()->CreateImageView(Gfx::ImageView::CreateInfo{
             *depthCubeMap,
             Gfx::ImageViewType::Image_2D,
-            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}});
+            Gfx::ImageSubresourceRange{Gfx::ImageAspect::Depth, 0, 1, face, 1}
+        });
 
         Gfx::Attachment albedoAttachment{
             albedoView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear};
+            Gfx::AttachmentLoadOperation::Clear
+        };
         Gfx::Attachment normalAttachment{
             normalView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear};
+            Gfx::AttachmentLoadOperation::Clear
+        };
         Gfx::Attachment depthAttachment{
             depthView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear};
+            Gfx::AttachmentLoadOperation::Clear
+        };
 
         gbufferPass->AddSubpass({albedoAttachment, normalAttachment}, depthAttachment);
+        lfpBuffer = GetGfxDriver()->CreateBuffer(
+            Gfx::Buffer::CreateInfo{Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst, 64, false, "", false}
+        );
+
+        glm::vec3 cubeDir[6] = {
+            glm::vec3(1.0f, 0.0f, 0.0f),
+            glm::vec3(-1.0f, 0.0f, 0.0f),
+            glm::vec3(0.0f, 1.0f, 0.0f),
+            glm::vec3(0.0f, -1.0f, 0.0f),
+            glm::vec3(0.0f, 0.0f, 1.0f),
+            glm::vec3(0.0f, 0.0f, -1.0f)
+        };
+
+        // cubemap face 0 projection matrix
+        glm::mat4 projection = glm::perspectiveLH(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
+        glm::mat4 view = glm::lookAtLH(
+            probePosition,
+            probePosition + cubeDir[face],
+            face != 2 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f)
+        );
+        glm::mat4 vp = projection * view;
+        GetGfxDriver()->UploadBuffer(*lfpBuffer, (uint8_t*)&vp, sizeof(vp));
+        set1Resource = GetGfxDriver()->CreateShaderResource();
+        set1Resource->SetBuffer("LFP", lfpBuffer.get());
     };
 };
+
+/** TODO
+  1. maybe implement a feature that let scene object write it's own "ShaderPass", instead of assuming StandardPBR
+  */
 class ProbeBaker
 {
+public:
+    // the probe to bake to
+    ProbeBaker(Probe& probe, Shader* probeCubemapBaker, Shader* octahedralRemapBaker);
+
+    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
+
+private:
     ProbeFace faces[6];
     std::unique_ptr<Gfx::Image> albedoCubemap;
     std::unique_ptr<Gfx::Image> normalCubemap;
     std::unique_ptr<Gfx::Image> depthCubeMap;
+    std::unique_ptr<Gfx::Buffer> lfpBuffer;
 
     const uint32_t rtWidth = 128;
     const uint32_t rtHeight = 128;
 
-public:
-    ProbeBaker()
-    {
-        for (int face = 0; face < 6; face++)
-        {
-            faces[face].Init(albedoCubemap.get(), normalCubemap.get(), depthCubeMap.get(), face);
-        }
-    }
-    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
-    {
-        std::vector<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
-        for (int face = 0; face < 6; ++face)
-        {
-            // set scissor and viewport
-            Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(rtWidth), static_cast<uint32_t>(rtHeight)}};
-            cmd.SetScissor(0, 1, &scissor);
-            Gfx::Viewport viewport{0, 0, static_cast<float>(rtWidth), static_cast<float>(rtHeight), 0, 1};
-            cmd.SetViewport(viewport);
-
-            // clear albedo to black
-            cmd.BeginRenderPass(*faces[face].gbufferPass, clears);
-
-            if (drawList)
-            {
-                // draw opaque objects
-                for (int i = 0; i < drawList->alphaTestIndex; ++i)
-                {
-                    auto& draw = drawList->at(i);
-                    auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
-                    if (shaderProgram)
-                    {
-                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        cmd.BindResource(2, draw.shaderResource);
-                        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-                        cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
-                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                    }
-                }
-
-                // draw alpha tested objects
-                Shader::EnableFeature("_AlphaTest");
-                for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
-                {
-                    auto& draw = drawList->at(i);
-                    auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
-                    if (shaderProgram)
-                    {
-                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        cmd.BindResource(2, draw.shaderResource);
-                        cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-                        cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
-                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                    }
-                }
-                Shader::DisableFeature("_AlphaTest");
-            }
-            cmd.EndRenderPass();
-        }
-
-        // project cubemap to octaheral map
-        Gfx::ClearValue projectClears[] = {{0, 0, 0, 0}, {1, 0}};
-        projectPass.SetAttachment(0, *probe.albedo);
-        projectPass.SetAttachment(1, *probe.normal);
-        projectPass.SetAttachment(2, *probe.radialDistance);
-        cmd.BeginRenderPass(projectPass, projectClears);
-
-        cmd.EndRenderPass();
-    }
+    std::unique_ptr<Gfx::RenderPass> probeOctahedralPass;
+    Probe* probe;
+    Shader* probeCubemapShader;
+    Shader* octahedralRemapShader;
 };
 } // namespace Rendering::LFP

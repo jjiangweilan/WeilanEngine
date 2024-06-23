@@ -502,7 +502,7 @@ bool VKDriver::BeginFrame()
     return true;
 }
 
-bool VKDriver::EndFrame()
+void VKDriver::FlushPendingCommands()
 {
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
@@ -565,6 +565,12 @@ bool VKDriver::EndFrame()
     submitInfo.signalSemaphoreCount = 2 + extraWindows.size();
     submitInfo.pSignalSemaphores = signalSemaphores;
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+}
+
+bool VKDriver::EndFrame()
+{
+    FlushPendingCommands();
+
     allocator.Reset();
 
     bool swapchainRecreated = Present(
@@ -615,7 +621,8 @@ bool VKDriver::Present(
         1,
         &swapChainHandle,
         &swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -710,8 +717,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
@@ -899,7 +907,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
@@ -1059,31 +1068,6 @@ void VKDriver::FrameEndClear()
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
     internalPendingCommands.clear();
     ClearResources();
-}
-
-void VKDriver::ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f)
-{
-    // vkResetCommandBuffer(immediateCmd, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-    //
-    // VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-    // beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    // vkBeginCommandBuffer(immediateCmd, &beginInfo);
-    // VKCommandBuffer cmd(immediateCmd);
-    // f(cmd);
-    // vkEndCommandBuffer(immediateCmd);
-    //
-    // VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-    // submitInfo.waitSemaphoreCount = 0;
-    // submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
-    // submitInfo.pWaitDstStageMask = VK_NULL_HANDLE;
-    // submitInfo.commandBufferCount = 1;
-    // submitInfo.pCommandBuffers = &immediateCmd;
-    // submitInfo.signalSemaphoreCount = 0;
-    // submitInfo.pSignalSemaphores = VK_NULL_HANDLE;
-    // vkQueueSubmit(mainQueue.handle, 1, &submitInfo, immediateCmdFence);
-    //
-    // vkWaitForFences(device.handle, 1, &immediateCmdFence, true, -1);
-    // vkResetFences(device.handle, 1, &immediateCmdFence);
 }
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)

@@ -113,30 +113,30 @@ Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
 {
     cameraGO->SetModelMatrix(camModel);
 
-    GetGfxDriver()->ExecuteImmediately(
-        [&](Gfx::CommandBuffer& cmd)
-        {
-            auto graph = bakerCamera->GetFrameGraph();
-            graph->Execute(cmd, *scene, *scene->GetMainCamera());
+    //GetGfxDriver()->ExecuteImmediately(
+    //    [&](Gfx::CommandBuffer& cmd)
+    //    {
+    //        auto graph = bakerCamera->GetFrameGraph();
+    //        graph->Execute(cmd, *scene, *scene->GetMainCamera());
 
-            Gfx::BufferImageCopyRegion region{
-                .srcOffset = 0,
-                .layers =
-                    {
-                        .aspectMask = Gfx::ImageAspectFlags::Color,
-                        .mipLevel = surfelBakeNode->mipLevel - 1,
-                        .baseArrayLayer = 0,
-                        .layerCount = 1,
-                    },
-                .offset = {0, 0, 0},
-                .extend = {1, 1, 1},
-            };
-            std::vector<Gfx::BufferImageCopyRegion> copy{region};
-            cmd.CopyImageToBuffer(surfelBakeNode->albedo, albedoBuf, copy);
-            cmd.CopyImageToBuffer(surfelBakeNode->position, positionBuf, copy);
-            cmd.CopyImageToBuffer(surfelBakeNode->normal, normalBuf, copy);
-        }
-    );
+    //        Gfx::BufferImageCopyRegion region{
+    //            .srcOffset = 0,
+    //            .layers =
+    //                {
+    //                    .aspectMask = Gfx::ImageAspectFlags::Color,
+    //                    .mipLevel = surfelBakeNode->mipLevel - 1,
+    //                    .baseArrayLayer = 0,
+    //                    .layerCount = 1,
+    //                },
+    //            .offset = {0, 0, 0},
+    //            .extend = {1, 1, 1},
+    //        };
+    //        std::vector<Gfx::BufferImageCopyRegion> copy{region};
+    //        cmd.CopyImageToBuffer(surfelBakeNode->albedo, albedoBuf, copy);
+    //        cmd.CopyImageToBuffer(surfelBakeNode->position, positionBuf, copy);
+    //        cmd.CopyImageToBuffer(surfelBakeNode->normal, normalBuf, copy);
+    //    }
+    //);
 
     glm::vec4 albedo{};
     glm::vec4 position{};

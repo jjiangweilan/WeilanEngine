@@ -329,7 +329,7 @@ public:
     void DrawIndexed(
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
     ) override;
-    void BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues) override;
+    void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;

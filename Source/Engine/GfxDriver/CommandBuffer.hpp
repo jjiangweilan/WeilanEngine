@@ -77,7 +77,7 @@ public:
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const Gfx::ShaderConfig& config) = 0;
 
-    virtual void BeginRenderPass(Gfx::RenderPass& renderPass, const std::vector<Gfx::ClearValue>& clearValues) = 0;
+    virtual void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void NextRenderPass() = 0;
     virtual void EndRenderPass() = 0;
 

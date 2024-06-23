@@ -525,8 +525,10 @@ void AssetDatabase::LoadEngineInternal()
     );
     std::vector<std::filesystem::path> shaderPathes(importPathes.begin(), shaderIter);
     LoadAssets(shaderPathes);
-    Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/StandardPBR.shad");
+    Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/SceneLit.shad");
     Shader::SetDefault(standardShader);
+    Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");
+    defaultMat->SetShader(standardShader);
 
     std::vector<std::filesystem::path> others(shaderIter, importPathes.end());
     LoadAssets(others);

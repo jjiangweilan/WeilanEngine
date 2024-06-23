@@ -58,7 +58,11 @@ class GizmoDrawMesh : public GizmoBase
 {
 public:
     GizmoDrawMesh(Mesh* mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
-        : mesh(mesh), submeshIndex(submeshIndex), shader(shader), modelMatrix(modelMatrix)
+        : mesh(mesh), submeshIndex(submeshIndex), shader(shader), material(nullptr), modelMatrix(modelMatrix)
+    {}
+
+    GizmoDrawMesh(Mesh* mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
+        : mesh(mesh), submeshIndex(submeshIndex), shader(nullptr), material(nullptr), modelMatrix(modelMatrix)
     {}
 
     void Draw(Gfx::CommandBuffer& cmd) override
@@ -69,8 +73,18 @@ public:
             auto& submesh = submeshes[submeshIndex];
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
             cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
-            cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &modelMatrix);
-            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            if (material != nullptr)
+            {
+                Gfx::ShaderProgram* program = material->GetShaderProgram();
+                cmd.BindResource(2, material->GetShaderResource());
+                cmd.SetPushConstant(program, &modelMatrix);
+                cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
+            }
+            else
+            {
+                cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &modelMatrix);
+                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            }
             cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
         }
     }
@@ -92,6 +106,7 @@ private:
     Mesh* mesh;
     int submeshIndex;
     Shader* shader;
+    Material* material;
     glm::mat4 modelMatrix;
 };
 
@@ -200,6 +215,11 @@ void Gizmos::DrawLight(const glm::vec3& position)
 }
 
 void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
+{
+    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
+}
+
+void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix)
 {
     GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
 }

@@ -105,13 +105,13 @@ public:
     virtual void ForceSyncResources() = 0;
     virtual void WaitForIdle() = 0;
 
+    virtual void FlushPendingCommands() = 0;
     // return true if swapchain is recreated
     virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;
 
     // RHI implementation
-    virtual void ExecuteImmediately(std::function<void(Gfx::CommandBuffer& cmd)>&& f) = 0;
     virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;
     virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
 
