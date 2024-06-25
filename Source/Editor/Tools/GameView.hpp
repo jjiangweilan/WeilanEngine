@@ -1,9 +1,9 @@
 #pragma once
 #include "../Tool.hpp"
-#include "Asset/Shader.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
+#include "Rendering/Shader.hpp"
 #include <list>
 
 namespace Editor

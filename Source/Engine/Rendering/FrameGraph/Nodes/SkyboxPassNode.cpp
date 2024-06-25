@@ -1,11 +1,12 @@
 #include "../NodeBlueprint.hpp"
-#include "Asset/Material.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Material.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Model.hpp"
 #include "Rendering/Graphics.hpp"
+#include "Rendering/Shader.hpp"
 #include <random>
+
 
 namespace Rendering::FrameGraph
 {

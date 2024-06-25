@@ -1,7 +1,8 @@
 #pragma once
 #include "../NodeBlueprint.hpp"
-#include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Rendering/Shader.hpp"
+
 
 namespace Rendering::FrameGraph
 {
@@ -31,7 +32,8 @@ class SSRNode : public Node
             sizeof(SSR),
             false,
             "SSR parameters",
-            false});
+            false
+        });
 
         ssrResource->SetBuffer("SSR", ssrBuffer.get());
     }

@@ -1,5 +1,5 @@
 #include "../EditorState.hpp"
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Inspector.hpp"
 namespace Editor
 {

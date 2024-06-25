@@ -1,4 +1,3 @@
-#include ""
 #include "../../EditorState.hpp"
 #include "../Inspector.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
@@ -19,7 +18,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
         {}
 
         Mesh* sphere = EngineInternalResources::GetModels().sphere;
-        Shader* previewShader = GetLightFieldProbePreviewShader();
+        Shader* previewShader = nullptr;// GetLightFieldProbePreviewShader();
 
         glm::vec3 gridMin, gridMax;
         target->GetGrid(gridMin, gridMax);

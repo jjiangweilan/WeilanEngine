@@ -5,7 +5,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
-#include "VKCommandBuffer2.hpp"
+#include "VKCommandBuffer.hpp"
 #include "VKCommandPool.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
@@ -514,7 +514,7 @@ void VKDriver::FlushPendingCommands()
     );
     firstFrame = false;
 
-    VKCommandBuffer2 cmd2(renderGraph.get());
+    VKCommandBuffer cmd2(renderGraph.get());
     cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
     for (auto& w : extraWindows)
     {
@@ -1108,7 +1108,7 @@ void VKDriver::UploadImage(
 
 void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 {
-    renderGraph->Schedule((VKCommandBuffer2&)cmd);
+    renderGraph->Schedule((VKCommandBuffer&)cmd);
 }
 
 Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id)
@@ -1126,7 +1126,7 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id
 
 std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
 {
-    return std::unique_ptr<CommandBuffer>(new VKCommandBuffer2(renderGraph.get()));
+    return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(renderGraph.get()));
 }
 
 Window* VKDriver::CreateExtraWindow(SDL_Window* window)

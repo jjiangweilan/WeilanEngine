@@ -1,8 +1,8 @@
 #include "../Window.hpp"
-#include "Asset/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Model.hpp"
+#include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/imgui.h"
 class Shader;
 namespace Editor

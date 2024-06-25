@@ -1,5 +1,5 @@
 #pragma once
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Core/GameObject.hpp"
 #include "Graphics/Mesh.hpp"
 #include <glm/glm.hpp>

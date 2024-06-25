@@ -36,7 +36,7 @@ struct Rect2D
 
 struct AABB
 {
-    AABB():min(0), max(0){}
+    AABB() : min(0), max(0) {}
     AABB(const glm::vec3& center, const glm::vec3& size)
     {
         glm::vec3 halfSize = size / 2.0f;

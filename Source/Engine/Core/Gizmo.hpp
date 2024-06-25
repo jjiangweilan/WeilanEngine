@@ -1,7 +1,7 @@
 #pragma once
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Core/Math/Geometry.hpp"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <glm/glm.hpp>
 #include <memory>
 #include <variant>

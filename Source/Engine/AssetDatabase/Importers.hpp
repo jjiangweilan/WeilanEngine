@@ -1,5 +1,5 @@
 #pragma once
-#include "Asset/Shader.hpp"
+#include "Rendering/Shader.hpp"
 #include "Core/Model.hpp"
 
 class Importers

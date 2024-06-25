@@ -1,6 +1,6 @@
 #pragma once
 #include "../NodeBlueprint.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 

@@ -1,8 +1,8 @@
 #include "JoltDebugRenderer.hpp"
-#include "Asset/Material.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "Rendering/Graphics.hpp"
+#include "Rendering/Material.hpp"
 
 void JoltDebugRenderer::DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor)
 {

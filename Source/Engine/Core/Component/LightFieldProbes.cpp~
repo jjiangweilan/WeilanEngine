@@ -10,7 +10,7 @@ void LightFieldProbes::DisableImple() {}
 
 const std::string& LightFieldProbes::GetName()
 {
-    static std::string name = "LightFieldProbes";
+    static std::string name = "LightFieldProbes;";
     return name;
 }
 

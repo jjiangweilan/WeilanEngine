@@ -1,5 +1,5 @@
 #include "../NodeBlueprint.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include <glm/glm.hpp>
 

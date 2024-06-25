@@ -1,5 +1,5 @@
 #include "Graphics.hpp"
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "GfxDriver/CommandBuffer.hpp"

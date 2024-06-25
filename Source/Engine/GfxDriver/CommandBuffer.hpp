@@ -8,7 +8,7 @@
 #include "RenderPass.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderResource.hpp"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include "VertexBufferBinding.hpp"
 #include <memory>
 #include <span>

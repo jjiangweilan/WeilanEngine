@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Component.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
 class Cloud : public Component

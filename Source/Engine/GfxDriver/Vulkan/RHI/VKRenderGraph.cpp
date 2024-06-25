@@ -724,7 +724,7 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 
     return barrierCount;
 }
-void Graph::Schedule(VKCommandBuffer2& cmd)
+void Graph::Schedule(VKCommandBuffer& cmd)
 {
     int cmdIndexOffset = currentSchedulingCmds.size();
     currentSchedulingCmds.insert(currentSchedulingCmds.end(), cmd.GetCmds().begin(), cmd.GetCmds().end());

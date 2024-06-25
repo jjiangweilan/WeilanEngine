@@ -1,7 +1,7 @@
 #include "LuaScript.hpp"
 
-#include "Script/LuaBackend.hpp"
-#include "Script/LuaWraps.hpp"
+#include "Scripting/LuaBackend.hpp"
+#include "Scripting/LuaWraps.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
 

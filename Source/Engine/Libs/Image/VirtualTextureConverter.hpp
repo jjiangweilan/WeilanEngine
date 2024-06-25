@@ -2,7 +2,7 @@
 #include "LinearImage.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include "ThirdParty/stb/stb_image_write.h"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <filesystem>
 #include <format>
 namespace Libs::Image

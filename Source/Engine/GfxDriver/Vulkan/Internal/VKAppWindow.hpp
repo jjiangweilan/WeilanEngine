@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <glm/glm.hpp>

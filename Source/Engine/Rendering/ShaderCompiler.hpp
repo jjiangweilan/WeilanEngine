@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxDriver/CompiledSpv.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include "Utils/EnumStringMapping.hpp"
+#include "Rendering/EnumStringMapping.hpp"
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>

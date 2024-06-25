@@ -8,7 +8,6 @@
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
-#include "Tools/EnvironmentBaker.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>

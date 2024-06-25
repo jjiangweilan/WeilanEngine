@@ -3,7 +3,7 @@
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/VertexBufferBinding.hpp"
 #include "Libs/Ptr.hpp"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <glm/glm.hpp>
 #include <iterator>
 #include <string_view>

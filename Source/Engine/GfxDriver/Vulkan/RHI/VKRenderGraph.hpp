@@ -1,5 +1,5 @@
 #pragma once
-#include "../VKCommandBuffer2.hpp"
+#include "../VKCommandBuffer.hpp"
 #include <variant>
 
 namespace
@@ -48,7 +48,7 @@ class Graph
 public:
     Graph();
     ~Graph();
-    void Schedule(VKCommandBuffer2& cmd);
+    void Schedule(VKCommandBuffer& cmd);
 
     void Execute(VkCommandBuffer cmd);
 

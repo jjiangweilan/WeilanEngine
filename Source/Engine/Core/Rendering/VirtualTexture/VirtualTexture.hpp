@@ -2,7 +2,7 @@
 #include "GfxDriver/Image.hpp"
 #include "Libs/Image/LinearImage.hpp"
 #include "Libs/Ptr.hpp"
-#include "Utils/Structs.hpp"
+#include "Rendering/Structs.hpp"
 #include <cinttypes>
 #include <filesystem>
 

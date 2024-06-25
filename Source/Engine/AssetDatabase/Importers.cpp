@@ -1,5 +1,5 @@
 #include "Importers.hpp"
-#include "Asset/Material.hpp"
+#include "Rendering/Material.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"

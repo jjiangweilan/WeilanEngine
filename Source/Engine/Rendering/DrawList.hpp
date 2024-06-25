@@ -1,7 +1,7 @@
 #pragma once
-#include "Asset/Material.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Material.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Rendering/Shader.hpp"
 
 namespace Rendering
 {

@@ -1,5 +1,5 @@
 #include "Gizmo.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/CommandBuffer.hpp"

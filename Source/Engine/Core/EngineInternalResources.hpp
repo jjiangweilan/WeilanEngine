@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Asset/Material.hpp"
-#include "Asset/Shader.hpp"
+#include "Rendering/Material.hpp"
+#include "Rendering/Shader.hpp"
 #include "Core/Graphics/Mesh.hpp"
 
 class EngineInternalResources
