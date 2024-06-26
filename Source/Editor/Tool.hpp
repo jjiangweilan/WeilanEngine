@@ -1,5 +1,5 @@
 #pragma once
-#include "Rendering/CmdSubmitGroup.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include <functional>
 #include <memory>
 #include <span>
@@ -22,12 +22,12 @@ public:
     virtual bool Tick() = 0;
 
     // used if this tool needs to render something on GPU
-    virtual void Render(Gfx::CommandBuffer& cmd){};
+    virtual void Render(Gfx::CommandBuffer& cmd) {};
 
     // called when the tool window is open
-    virtual void Open(){};
+    virtual void Open() {};
 
     // called when the tool window is closed
-    virtual void Close(){};
+    virtual void Close() {};
 };
 } // namespace Editor

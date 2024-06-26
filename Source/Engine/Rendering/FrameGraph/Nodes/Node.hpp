@@ -13,7 +13,6 @@
 #include <variant>
 #include <vector>
 
-
 class MeshRenderer;
 namespace Rendering::FrameGraph
 {
