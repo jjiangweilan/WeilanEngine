@@ -50,7 +50,7 @@ private:
     void EnableImple() override;
     void DisableImple() override;
 
-    glm::vec3 gridMin;
-    glm::vec3 gridMax;
-    glm::vec3 probeCount;
+    glm::vec3 gridMin = glm::vec3(0, 0, 0);
+    glm::vec3 gridMax = glm::vec3(5, 5, 5);
+    glm::vec3 probeCount = glm::vec3(5, 5, 5);
 };

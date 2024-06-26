@@ -197,9 +197,13 @@ bool Shader::LoadFromFile(const char* path)
             while (index < ssf.size() && quoteCount != 0)
             {
                 if (ssf[index] == '{')
+                {
                     quoteCount += 1;
+                }
                 if (ssf[index] == '}')
+                {
                     quoteCount -= 1;
+                }
                 index++;
             }
             if (ssf[index - 1] != '}')
