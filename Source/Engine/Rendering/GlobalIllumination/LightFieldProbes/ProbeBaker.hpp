@@ -42,17 +42,20 @@ struct ProbeFace
         Gfx::Attachment albedoAttachment{
             albedoView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear
+            Gfx::AttachmentLoadOperation::Clear,
+            Gfx::AttachmentStoreOperation::Store
         };
         Gfx::Attachment normalAttachment{
             normalView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear
+            Gfx::AttachmentLoadOperation::Clear,
+            Gfx::AttachmentStoreOperation::Store
         };
         Gfx::Attachment depthAttachment{
             depthView.get(),
             Gfx::MultiSampling::Sample_Count_1,
-            Gfx::AttachmentLoadOperation::Clear
+            Gfx::AttachmentLoadOperation::Clear,
+            Gfx::AttachmentStoreOperation::Store
         };
 
         gbufferPass->AddSubpass({albedoAttachment, normalAttachment}, depthAttachment);
@@ -91,9 +94,14 @@ class ProbeBaker
 {
 public:
     // the probe to bake to
-    ProbeBaker(Probe& probe, Shader* probeCubemapBaker);
+    ProbeBaker(Probe& probe);
 
     void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
+
+    std::unique_ptr<Gfx::Image>& GetAlbedoCubemap()
+    {
+        return albedoCubemap;
+    }
 
 private:
     ProbeFace faces[6];

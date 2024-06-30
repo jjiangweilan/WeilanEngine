@@ -36,19 +36,38 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
             target->BakeProbeCubemaps();
         }
 
+        static bool showCubemap;
+        if (ImGui::Button("Show cubemap"))
+        {
+            showCubemap = !showCubemap;
+        }
+
         // draw gizmos
         glm::vec3 gridDelta = (gridMax - gridMin) / glm::max(probeCount - glm::vec3(1), glm::vec3(1, 1, 1));
 
-        for (int x = 0; x < probeCount.x; ++x)
+        for (int z = 0; z < probeCount.z; ++z)
         {
             for (int y = 0; y < probeCount.y; ++y)
             {
-                for (int z = 0; z < probeCount.z; ++z)
+                for (int x = 0; x < probeCount.x; ++x)
                 {
                     glm::vec3 pos = target->GetGameObject()->GetPosition() + gridMin + glm::vec3(x, y, z) * gridDelta;
                     auto probe = target->GetProbe({x, y, z});
                     if (probe && probe->IsBaked())
-                        Gizmos::DrawMesh(*sphere, 0, probe->GetPreviewMaterial(), glm::translate(glm::mat4(1.0f), pos));
+                    {
+                        auto mat = probe->GetPreviewMaterial();
+                        if (!showCubemap)
+                        {
+                            mat->EnableFeature("Baked");
+                            mat->DisableFeature("Cubemap");
+                        }
+                        else
+                        {
+                            mat->DisableFeature("Baked");
+                            mat->EnableFeature("Cubemap");
+                        }
+                        Gizmos::DrawMesh(*sphere, 0, mat, glm::translate(glm::mat4(1.0f), pos));
+                    }
                     else
                         Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
                 }

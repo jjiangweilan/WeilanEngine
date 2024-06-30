@@ -3,6 +3,7 @@
 
 #include "Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
+#include "Libs/UUID.hpp"
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <span>
@@ -140,7 +141,7 @@ class ImageView;
 class Image : public SafeReferenceable<Image>
 {
 public:
-    Image(bool isGPUWrite) : isGPUWrite(isGPUWrite) {}
+    Image(bool isGPUWrite) : uuid(), isGPUWrite(isGPUWrite) {}
     virtual ~Image(){};
     virtual void SetName(std::string_view name) = 0;
     virtual const std::string& GetName() = 0;
@@ -156,7 +157,13 @@ public:
     virtual ImageView& GetDefaultImageView() = 0;
     virtual ImageLayout GetImageLayout() = 0;
 
+    virtual const UUID& GetUUID()
+    {
+        return uuid;
+    }
+
 protected:
+    UUID uuid;
     bool isGPUWrite;
 };
 } // namespace Gfx

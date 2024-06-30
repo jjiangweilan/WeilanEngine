@@ -16,6 +16,11 @@
 namespace Gfx
 {
 class VKImageView;
+struct VKIMageSubresourceTrack
+{
+    Gfx::ImageSubresourceRange range;
+    VkImageLayout rangeLayout;
+};
 class VKImage : public Image
 {
 public:
@@ -81,6 +86,7 @@ protected:
     ImageDescription imageDescription;
     std::unique_ptr<VKImageView> imageView;
     std::string name;
+    std::vector<VKIMageSubresourceTrack> subresourceTrack;
     bool isSwapchainProxy = false;
 
     ImageViewType GenerateDefaultImageViewViewType();

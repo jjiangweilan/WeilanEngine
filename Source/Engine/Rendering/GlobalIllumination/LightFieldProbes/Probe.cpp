@@ -1,6 +1,7 @@
 #include "Probe.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "ProbeBaker.hpp"
 #include "Rendering/Material.hpp"
 
 namespace Rendering::LFP
@@ -46,6 +47,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
     );
 }
+Probe::~Probe() {};
 
 static Shader* GetLightFieldProbePreviewShader()
 {
@@ -71,5 +73,15 @@ Material* Probe::GetPreviewMaterial()
     }
 
     return material.get();
+}
+
+void Probe::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
+{
+    if (baker == nullptr)
+    {
+        baker = std::make_unique<ProbeBaker>(*this);
+        GetPreviewMaterial()->SetTexture("cubemapTex", baker->GetAlbedoCubemap().get());
+    }
+    baker->Bake(cmd, drawList);
 }
 } // namespace Rendering::LFP

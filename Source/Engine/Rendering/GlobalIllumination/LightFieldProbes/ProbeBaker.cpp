@@ -1,11 +1,10 @@
 #include "ProbeBaker.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "Editor/EditorTickModule.hpp"
 #include "Editor/MainMenuModule.hpp"
 
 namespace Rendering::LFP
 {
-ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker) : probe(&probe), probeCubemapShader(ProbeCubemapBaker)
+ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
 {
     albedoCubemap = GetGfxDriver()->CreateImage(
         Gfx::ImageDescription{
@@ -19,6 +18,7 @@ ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker) : probe(&probe),
         },
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
     );
+    albedoCubemap->SetName("lightFieldAlbedoCubemap");
 
     normalCubemap = GetGfxDriver()->CreateImage(
         Gfx::ImageDescription{
@@ -32,6 +32,7 @@ ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker) : probe(&probe),
         },
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
     );
+    normalCubemap->SetName("lightFieldNormalCubemap");
 
     depthCubeMap = GetGfxDriver()->CreateImage(
         Gfx::ImageDescription{
@@ -45,6 +46,7 @@ ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker) : probe(&probe),
         },
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::DepthStencilAttachment
     );
+    depthCubeMap->SetName("lightFieldDepthCubemap");
 
     for (int face = 0; face < 6; face++)
     {
@@ -94,6 +96,7 @@ static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from,
         }
     }
 }
+
 void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
 {
     std::vector<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
