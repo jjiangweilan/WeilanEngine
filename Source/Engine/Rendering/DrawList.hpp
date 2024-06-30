@@ -1,7 +1,9 @@
 #pragma once
-#include "Rendering/Material.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Rendering/Material.hpp"
 #include "Rendering/Shader.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 
 namespace Rendering
 {
@@ -28,6 +30,8 @@ public:
     int opaqueIndex;
     int alphaTestIndex;
     int transparentIndex;
+    void Add(std::span<MeshRenderer*> meshRenderers);
     void Add(MeshRenderer& meshRenderer);
+    void Sort(const glm::vec3& cameraPos);
 };
 } // namespace Rendering

@@ -89,23 +89,19 @@ VkDescriptorSet VKDescriptorPool::Allocate()
     return set;
 }
 
-void VKDescriptorPool::Free(VkDescriptorSet set)
-{
-    vkFreeDescriptorSets(context->device, freePool, 1, &set);
-}
-
 VkDescriptorPool VKDescriptorPool::CreateNewPool()
 {
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.flags = 0;
     createInfo.maxSets = createInfo.maxSets == 0 ? 2 : createInfo.maxSets * 2;
-    for (auto& poolSize : poolSizes)
+    std::vector<VkDescriptorPoolSize> poolSizesCopy = poolSizes;
+    for (int i = 0 ; i < poolSizesCopy.size(); ++i)
     {
-        poolSize.descriptorCount *= createInfo.maxSets;
+        poolSizesCopy[i].descriptorCount = poolSizes[i].descriptorCount * createInfo.maxSets;
     }
-    createInfo.poolSizeCount = this->poolSizes.size();
-    createInfo.pPoolSizes = this->poolSizes.data();
+    createInfo.poolSizeCount = poolSizesCopy.size();
+    createInfo.pPoolSizes = poolSizesCopy.data();
 
     // this can happen when we have an empty descriptor set with zero binding
     VkDescriptorPoolSize dummyPoolSize;

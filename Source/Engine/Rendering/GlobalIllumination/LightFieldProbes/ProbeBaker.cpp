@@ -1,12 +1,51 @@
 #include "ProbeBaker.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Editor/EditorTickModule.hpp"
 #include "Editor/MainMenuModule.hpp"
 
 namespace Rendering::LFP
 {
-ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker, Shader* octahedralRemapBaker)
-    : probe(&probe), probeCubemapShader(ProbeCubemapBaker), octahedralRemapShader(octahedralRemapBaker)
+ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker) : probe(&probe), probeCubemapShader(ProbeCubemapBaker)
 {
+    albedoCubemap = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription{
+            rtWidth,
+            rtHeight,
+            1,
+            Gfx::ImageFormat::R8G8B8A8_SRGB,
+            Gfx::MultiSampling::Sample_Count_1,
+            1,
+            true
+        },
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
+    );
+
+    normalCubemap = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription{
+            rtWidth,
+            rtHeight,
+            1,
+            Gfx::ImageFormat::A2B10G10R10_UNorm,
+            Gfx::MultiSampling::Sample_Count_1,
+            1,
+            true
+        },
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
+    );
+
+    depthCubeMap = GetGfxDriver()->CreateImage(
+        Gfx::ImageDescription{
+            rtWidth,
+            rtHeight,
+            1,
+            Gfx::ImageFormat::D32_SFloat,
+            Gfx::MultiSampling::Sample_Count_1,
+            1,
+            true
+        },
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::DepthStencilAttachment
+    );
+
     for (int face = 0; face < 6; face++)
     {
         faces[face].Init(albedoCubemap.get(), normalCubemap.get(), depthCubeMap.get(), face, probe.position);
@@ -25,13 +64,17 @@ ProbeBaker::ProbeBaker(Probe& probe, Shader* ProbeCubemapBaker, Shader* octahedr
         Gfx::AttachmentLoadOperation::Clear
     };
 
-    Gfx::Attachment depthAtta{
+    Gfx::Attachment radialDistance{
         &probe.radialDistance->GetDefaultImageView(),
         Gfx::MultiSampling::Sample_Count_1,
         Gfx::AttachmentLoadOperation::Clear
     };
-
-    probeOctahedralPass->AddSubpass({albedoAtta, normalAtta, depthAtta}, std::nullopt);
+    octahedralRemapShader = GetOctahedralRemapBaker();
+    probeOctahedralPass->AddSubpass({albedoAtta, normalAtta, radialDistance}, std::nullopt);
+    reprojectMaterial.SetShader(octahedralRemapShader);
+    reprojectMaterial.SetTexture("albedoCubemap", albedoCubemap.get());
+    reprojectMaterial.SetTexture("normalCubemap", normalCubemap.get());
+    reprojectMaterial.SetTexture("radialDistanceCubemap", depthCubeMap.get());
 }
 
 static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from, int to)
@@ -79,14 +122,40 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     }
 
     // project cubemap to octaheral map
+    Rect2D scissor = {{0, 0}, {Probe::octahedralMapSize, Probe::octahedralMapSize}};
+    cmd.SetScissor(0, 1, &scissor);
+    Gfx::Viewport viewport{
+        0,
+        0,
+        static_cast<float>(Probe::octahedralMapSize),
+        static_cast<float>(Probe::octahedralMapSize),
+        0,
+        1
+    };
+    cmd.SetViewport(viewport);
     Gfx::ClearValue projectClears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
     cmd.BeginRenderPass(*probeOctahedralPass, projectClears);
+    cmd.BindResource(2, reprojectMaterial.GetShaderResource());
     cmd.BindShaderProgram(
         octahedralRemapShader->GetDefaultShaderProgram(),
         octahedralRemapShader->GetDefaultShaderConfig()
     );
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();
+
+    probe->baked = true;
+}
+
+Shader* ProbeBaker::GetOctahedralRemapBaker()
+{
+    static Shader* octahedralRemapBakerShader = nullptr;
+    if (!octahedralRemapBakerShader)
+    {
+        octahedralRemapBakerShader = (Shader*)AssetDatabase::Singleton()->LoadAsset(
+            "_engine_internal/Shaders/LightFieldProbes/OctahedralRemapBaker.shad"
+        );
+    }
+    return octahedralRemapBakerShader;
 }
 
 REGISTER_MAIN_MENU_ITEM("Editor/ProbeBaker") {}

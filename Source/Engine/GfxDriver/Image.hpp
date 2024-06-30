@@ -17,6 +17,8 @@ namespace Gfx
 inline const uint32_t Remaining_Mip_Levels = (~0U);
 inline const uint32_t Remaining_Array_Layers = (~0U);
 
+// treat this as a 2D data
+// mip level as x, layer as y
 struct ImageSubresourceRange
 {
     ImageAspectFlags aspectMask = ImageAspectFlags::Color;
@@ -30,58 +32,60 @@ struct ImageSubresourceRange
         if (aspectMask != other.aspectMask)
             throw std::logic_error("image aspect mask must match");
 
-        // subtract mip
-        int rBaseMipLevelLeftCount = glm::clamp(other.baseMipLevel - baseMipLevel, 0u, levelCount);
-        int rBaseMipLevelRightCount =
-            glm::clamp(baseMipLevel + levelCount - other.baseMipLevel - other.levelCount, 0u, levelCount);
-
-        int rBaseLayerLeftCount = glm::clamp(other.baseArrayLayer - baseArrayLayer, 0u, layerCount);
-        int rBaseLayerRightCount =
-            glm::clamp(baseArrayLayer + layerCount - other.baseArrayLayer - other.layerCount, 0u, layerCount);
-
         std::vector<ImageSubresourceRange> rtn{};
-        if (rBaseMipLevelLeftCount != 0 && rBaseLayerLeftCount != 0)
+        // bottom area
+        if (other.baseArrayLayer > baseArrayLayer && other.baseMipLevel >= baseMipLevel &&
+            other.baseMipLevel < baseMipLevel + levelCount)
         {
             rtn.push_back(ImageSubresourceRange{
                 aspectMask,
                 baseMipLevel,
-                (uint32_t)rBaseMipLevelLeftCount,
+                levelCount,
                 baseArrayLayer,
-                (uint32_t)rBaseLayerLeftCount
+                other.baseArrayLayer - baseArrayLayer
             });
         }
 
-        if (rBaseMipLevelLeftCount != 0 && rBaseLayerRightCount != 0)
+        // top area
+        if (other.baseArrayLayer + other.layerCount < baseArrayLayer + layerCount &&
+            other.baseMipLevel >= baseMipLevel && other.baseMipLevel < baseMipLevel + levelCount)
         {
             rtn.push_back(ImageSubresourceRange{
                 aspectMask,
                 baseMipLevel,
-                (uint32_t)rBaseMipLevelLeftCount,
+                levelCount,
                 other.baseArrayLayer + other.layerCount,
-                (uint32_t)rBaseLayerRightCount,
+                baseArrayLayer + layerCount - (other.baseArrayLayer + other.layerCount)
             });
         }
 
-        if (rBaseMipLevelRightCount != 0 && rBaseLayerLeftCount != 0)
+        uint32_t top = glm::min(other.baseArrayLayer + other.layerCount, baseArrayLayer + layerCount);
+        uint32_t bottom = glm::max(other.baseArrayLayer, baseArrayLayer);
+        uint32_t height = top - bottom;
+        // left area
         {
-            rtn.push_back(ImageSubresourceRange{
-                aspectMask,
-                other.baseMipLevel + other.levelCount,
-                (uint32_t)rBaseMipLevelRightCount,
-                baseArrayLayer,
-                (uint32_t)rBaseLayerLeftCount,
-            });
+            uint32_t width = other.baseMipLevel - baseMipLevel;
+            if (height > 0 && height <= layerCount && width > 0)
+            {
+                rtn.push_back(ImageSubresourceRange{aspectMask, baseMipLevel, width, bottom, height});
+            }
         }
 
-        if (rBaseMipLevelRightCount != 0 && rBaseLayerRightCount != 0)
+        // right area
         {
-            rtn.push_back(ImageSubresourceRange{
-                aspectMask,
-                other.baseMipLevel + other.levelCount,
-                (uint32_t)rBaseMipLevelRightCount,
-                other.baseArrayLayer + other.layerCount,
-                (uint32_t)rBaseLayerRightCount,
-            });
+            uint32_t width = other.baseMipLevel + other.levelCount - (baseMipLevel + levelCount);
+            if (height > 0 && height <= layerCount && width < 0)
+            {
+                rtn.push_back(
+                    ImageSubresourceRange{aspectMask, other.baseMipLevel + other.levelCount, -width, bottom, height}
+                );
+            }
+        }
+
+        // totally ouside
+        if (rtn.empty() && *this != other)
+        {
+            rtn.push_back(*this);
         }
 
         return rtn;

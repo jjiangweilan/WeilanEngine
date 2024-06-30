@@ -27,6 +27,10 @@ public:
     }
 
     Material* GetPreviewMaterial();
+    bool IsBaked() const
+    {
+        return baked;
+    }
 
 private:
     glm::vec3 position;
@@ -37,7 +41,10 @@ private:
     std::unique_ptr<Gfx::Image> radialDistance;
     std::unique_ptr<Material> material;
 
-    const uint32_t octahedralMapSize = 256;
+    static const uint32_t octahedralMapSize = 256;
+
+    // set by probe baker
+    bool baked = false;
 
     friend class ProbeBaker;
 };

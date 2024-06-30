@@ -130,6 +130,8 @@ public:
 
 private:
     T* object = nullptr;
+    // when the referenced object is alive referenceCount >= 0
+    // when the renfereced object is destroyed referenceCount < 0
     std::shared_ptr<int> referenceCount = nullptr;
 };
 

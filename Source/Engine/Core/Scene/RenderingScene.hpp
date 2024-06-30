@@ -80,7 +80,7 @@ public:
         }
     }
 
-    const std::vector<MeshRenderer*>& GetMeshRenderers()
+    std::span<MeshRenderer*> GetMeshRenderers()
     {
         return meshRenderers;
     }

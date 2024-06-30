@@ -70,11 +70,12 @@ struct ProbeFace
         };
 
         // cubemap face 0 projection matrix
-        glm::mat4 projection = glm::perspectiveLH(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
+        glm::mat4 projection = glm::perspectiveLH_ZO(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
+        projection[1] = -projection[1];
         glm::mat4 view = glm::lookAtLH(
             probePosition,
             probePosition + cubeDir[face],
-            face != 2 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f)
+            (face != 2 && face != 3) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f)
         );
         glm::mat4 vp = projection * view;
         GetGfxDriver()->UploadBuffer(*lfpBuffer, (uint8_t*)&vp, sizeof(vp));
@@ -90,7 +91,7 @@ class ProbeBaker
 {
 public:
     // the probe to bake to
-    ProbeBaker(Probe& probe, Shader* probeCubemapBaker, Shader* octahedralRemapBaker);
+    ProbeBaker(Probe& probe, Shader* probeCubemapBaker);
 
     void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
 
@@ -99,7 +100,7 @@ private:
     std::unique_ptr<Gfx::Image> albedoCubemap;
     std::unique_ptr<Gfx::Image> normalCubemap;
     std::unique_ptr<Gfx::Image> depthCubeMap;
-    std::unique_ptr<Gfx::Buffer> lfpBuffer;
+    Material reprojectMaterial;
 
     const uint32_t rtWidth = 128;
     const uint32_t rtHeight = 128;
@@ -108,5 +109,7 @@ private:
     Probe* probe;
     Shader* probeCubemapShader;
     Shader* octahedralRemapShader;
+
+    Shader* GetOctahedralRemapBaker();
 };
 } // namespace Rendering::LFP

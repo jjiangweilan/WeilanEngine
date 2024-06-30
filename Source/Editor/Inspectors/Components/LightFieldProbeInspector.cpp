@@ -15,9 +15,6 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
 {
     void DrawInspector(GameEditor& editor) override
     {
-        if (ImGui::Button("place probes"))
-        {}
-
         Mesh* sphere = EngineInternalResources::GetModels().sphere;
         Shader* previewShader = GetLightFieldProbePreviewShader();
 
@@ -34,8 +31,13 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
             target->SetProbeCounts(probeCount);
         };
 
-        auto probes = target->GetProbes();
-        glm::vec3 gridDelta = gridMax - gridMin;
+        if (ImGui::Button("bake probes"))
+        {
+            target->BakeProbeCubemaps();
+        }
+
+        // draw gizmos
+        glm::vec3 gridDelta = (gridMax - gridMin) / glm::max(probeCount - glm::vec3(1), glm::vec3(1, 1, 1));
 
         for (int x = 0; x < probeCount.x; ++x)
         {
@@ -44,7 +46,11 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                 for (int z = 0; z < probeCount.z; ++z)
                 {
                     glm::vec3 pos = target->GetGameObject()->GetPosition() + gridMin + glm::vec3(x, y, z) * gridDelta;
-                    Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
+                    auto probe = target->GetProbe({x, y, z});
+                    if (probe && probe->IsBaked())
+                        Gizmos::DrawMesh(*sphere, 0, probe->GetPreviewMaterial(), glm::translate(glm::mat4(1.0f), pos));
+                    else
+                        Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
                 }
             }
         }

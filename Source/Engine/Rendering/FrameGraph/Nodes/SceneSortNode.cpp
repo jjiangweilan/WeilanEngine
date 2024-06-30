@@ -34,15 +34,9 @@ public:
         drawList->clear();
 
         Scene* scene = renderingData.mainCamera->GetGameObject()->GetScene();
-        for (auto r : scene->GetRenderingScene().GetMeshRenderers())
-        {
-            if (r && r->IsEnabled())
-            {
-                drawList->Add(*r);
-            }
-        }
 
-        Sort(*drawList, renderingData);
+        drawList->Add(scene->GetRenderingScene().GetMeshRenderers());
+        drawList->Sort(renderingData.mainCamera->GetGameObject()->GetPosition());
 
         output.drawList->SetValue(drawList.get());
     }
@@ -50,43 +44,6 @@ public:
     bool FrustumCull(MeshRenderer& r)
     {
         return false;
-    }
-
-    void Sort(DrawList& drawList, RenderingData& renderingData)
-    {
-        auto pos = renderingData.mainCamera->GetGameObject()->GetPosition();
-        std::sort(
-            drawList.begin(),
-            drawList.end(),
-            [&pos](const SceneObjectDrawData& left, const SceneObjectDrawData& right) {
-                return glm::distance2(pos, glm::vec3(left.pushConstant[3])) <
-                       glm::distance2(pos, glm::vec3(right.pushConstant[3]));
-            }
-        );
-
-        // partition transparent object to the end
-        auto transparentIter = std::stable_partition(
-            drawList.begin(),
-            drawList.end(),
-            [](const SceneObjectDrawData& val)
-            { return val.shaderConfig->color.blends.empty() ? true : !val.shaderConfig->color.blends[0].blendEnable; }
-        );
-        drawList.transparentIndex = std::distance(drawList.begin(), transparentIter);
-
-        // partition opaque and alpha tested objects
-        auto alphaTestIter = std::stable_partition(
-            drawList.begin(),
-            transparentIter,
-            [](const SceneObjectDrawData& val)
-            {
-                static std::string alphaTest = "_AlphaTest";
-
-                auto& features = val.material->GetCachedShaderProgramFeatureUsed();
-                return std::find(features.begin(), features.end(), alphaTest) == features.end();
-            }
-        );
-        drawList.alphaTestIndex = std::distance(drawList.begin(), alphaTestIter);
-        drawList.opaqueIndex = 0;
     }
 
 private:

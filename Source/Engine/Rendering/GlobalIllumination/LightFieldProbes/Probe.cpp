@@ -3,7 +3,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/Material.hpp"
 
-
 namespace Rendering::LFP
 {
 Probe::Probe(const glm::vec3& pos) : position(pos)
@@ -53,7 +52,9 @@ static Shader* GetLightFieldProbePreviewShader()
     static Shader* s;
     if (s == nullptr)
     {
-        s = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/LightFieldProbePreview.shad");
+        s = (Shader*)AssetDatabase::Singleton()->LoadAsset(
+            "_engine_internal/Shaders/LightFieldProbes/LightFieldProbePreview.shad"
+        );
     }
     return s;
 }
@@ -66,6 +67,7 @@ Material* Probe::GetPreviewMaterial()
         material->SetTexture("albedoTex", albedo.get());
         material->SetTexture("normalTex", normal.get());
         material->SetTexture("radialDistanceTex", radialDistance.get());
+        material->EnableFeature("Baked");
     }
 
     return material.get();
