@@ -97,7 +97,7 @@ private:
     std::vector<VKCmd> previousSchedulingCmds;
     std::vector<VKCmd> currentSchedulingCmds;
     size_t previousActiveSchedulingCmdsSize;
-    std::unordered_map<void*, ResourceUsageTrack> resourceUsageTracks;
+    std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;
 
@@ -126,7 +126,7 @@ private:
     void GoThroughRenderPass(VKRenderPass& renderPass, int& visitIndex, int& barrierCount, int& barrierOffset);
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
-    int MakeBarrierForLastUsage(void* res);
+    int MakeBarrierForLastUsage(void* res, const UUID& resUUID);
 
     void ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex);
     void TryBindShader(VkCommandBuffer cmd);

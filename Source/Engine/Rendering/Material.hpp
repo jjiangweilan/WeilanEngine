@@ -24,7 +24,7 @@ class Material : public Asset
 public:
     Material(ShaderBase* shader);
     Material();
-    Material(const Material& other);
+    Material(const Material& other) = delete;
     ~Material() override;
 
     void SetShader(ShaderBase* shader);
@@ -59,8 +59,6 @@ public:
     void SetTexture(const std::string& param, std::nullptr_t);
     void EnableFeature(const std::string& name);
     void DisableFeature(const std::string& name);
-
-    void UploadDataToGPU();
 
     glm::mat4 GetMatrix(const std::string& param, const std::string& membr);
     Texture* GetTexture(const std::string& param);
@@ -129,7 +127,8 @@ private:
     uint32_t shaderContentHash = -1;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     Gfx::ShaderConfig shaderConfig;
-    Gfx::ShaderProgram* cachedShaderProgram = nullptr;
+    using ShaderPassIndex = int;
+    std::unordered_map<ShaderPassIndex, Gfx::ShaderProgram*> cachedShaderPrograms;
     std::vector<std::string> cachedShaderProgramFeatures;
     uint64_t globalShaderFeaturesHash;
     bool overrideShaderConfig = false;
@@ -142,6 +141,8 @@ private:
 
     std::vector<uint8_t> tempUploadData;
 
+    void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void SetShaderNoProtection(ShaderBase* shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
+    bool uploadNeeded = false;
 };

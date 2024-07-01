@@ -1,12 +1,16 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/DrawList.hpp"
 class Material;
 namespace Rendering::LFP
 {
+class ProbeBaker;
 class Probe
 {
 public:
     Probe(const glm::vec3& pos);
+    Probe(Probe&& pos) = default;
+    ~Probe();
 
     glm::vec3 GetPosition()
     {
@@ -28,6 +32,18 @@ public:
 
     Material* GetPreviewMaterial();
 
+    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
+
+    bool IsBaked() const
+    {
+        return baked;
+    }
+
+    ProbeBaker* GetBaker()
+    {
+        return baker.get();
+    }
+
 private:
     glm::vec3 position;
 
@@ -37,8 +53,13 @@ private:
     std::unique_ptr<Gfx::Image> radialDistance;
     std::unique_ptr<Material> material;
 
-    const uint32_t octahedralMapSize = 256;
+    static const uint32_t octahedralMapSize = 256;
 
-    friend class ProbeBaker;
+    std::unique_ptr<ProbeBaker> baker = nullptr;
+
+    // set by probe baker
+    bool baked = false;
+
+    friend ProbeBaker;
 };
 } // namespace Rendering::LFP

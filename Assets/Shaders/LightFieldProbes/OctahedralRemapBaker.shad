@@ -2,35 +2,28 @@
 
 #if CONFIG
 name: LightFieldProbes/OctahedrawRemapBaker
-features:
-    - [_, Baked]
+debug: true
 #endif
 
-#if VERT
-#include "Common/SceneInfo.glsl"
-layout(location = 0) in vec3 i_Position;
-layout(location = 1) in vec3 i_Normal;
-layout(location = 2) in vec4 i_Tangent;
-layout(location = 3) in vec2 i_UV;
-layout(push_constant) uniform Transform
-{
-    mat4 model;
-} pconst;
-
-layout(location = 0) out vec3 o_PositionWS;
-
-void main()
-{
-    o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
-    gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
-}
-#endif
+#include "Utils/Fullscreen.glsl"
 
 #if FRAG
-layout(location = 0) out vec4 o_Color0;
+#include "Lib/octahedral.glsl"
+layout(location = 0) in vec2 i_uv;
+layout(location = 0) out vec4 o_Color;
+layout(location = 1) out vec4 o_Normal;
+layout(location = 2) out float o_RadialDistance;
+
+layout(set= 2, binding = 0) uniform samplerCube albedoCubemap;
+layout(set= 2, binding = 1) uniform samplerCube normalCubemap;
+layout(set= 2, binding = 2) uniform samplerCube radialDistanceCubemap;
+
 void main()
 {
-    o_Color0 = vec4(1);
+    vec3 sphericalUV = octDecode(i_uv * 2 - 1);
+    o_Color = vec4(texture(albedoCubemap, sphericalUV).xyz, 1);
+    o_Normal = vec4(texture(normalCubemap, sphericalUV).xyz, 1);
+    o_RadialDistance = texture(radialDistanceCubemap, sphericalUV).x;
 }
 #endif
 

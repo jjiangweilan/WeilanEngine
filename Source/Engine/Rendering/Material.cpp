@@ -11,24 +11,24 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
-{
-    for (auto& ubo : other.ubos)
-    {
-        auto& thisUbo = this->ubos[ubo.first];
-        thisUbo.buffer = nullptr;
-        thisUbo.floats = ubo.second.floats;
-        thisUbo.vectors = ubo.second.vectors;
-        thisUbo.matrices = ubo.second.matrices;
-    }
-
-    schedule = std::make_shared<Schedule>();
-
-    if (other.shader)
-        SetShader(other.shader);
-
-    shaderResource = GetGfxDriver()->CreateShaderResource();
-}
+//Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
+//{
+//    for (auto& ubo : other.ubos)
+//    {
+//        auto& thisUbo = this->ubos[ubo.first];
+//        thisUbo.buffer = nullptr;
+//        thisUbo.floats = ubo.second.floats;
+//        thisUbo.vectors = ubo.second.vectors;
+//        thisUbo.matrices = ubo.second.matrices;
+//    }
+//
+//    schedule = std::make_shared<Schedule>();
+//
+//    if (other.shader)
+//        SetShader(other.shader);
+//
+//    shaderResource = GetGfxDriver()->CreateShaderResource();
+//}
 
 Material::Material(ShaderBase* shader) : Material()
 {
@@ -69,6 +69,7 @@ void Material::SetMatrix(const std::string& param, const std::string& member, co
     auto& u = ubos[param];
     u.matrices[member] = value;
     u.dirty = true;
+    uploadNeeded = true;
     SetDirty();
 }
 
@@ -77,6 +78,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
     auto& u = ubos[param];
     u.floats[member] = value;
     u.dirty = true;
+    uploadNeeded = true;
     SetDirty();
 }
 
@@ -85,11 +87,13 @@ void Material::SetVector(const std::string& param, const std::string& member, co
     auto& u = ubos[param];
     u.vectors[member] = value;
     u.dirty = true;
+    uploadNeeded = true;
     SetDirty();
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
 {
+    uploadNeeded = true;
     auto iter = ubos.find(param);
     if (iter != ubos.end())
     {
@@ -104,6 +108,7 @@ glm::mat4 Material::GetMatrix(const std::string& param, const std::string& membe
 
 glm::vec4 Material::GetVector(const std::string& param, const std::string& member)
 {
+    uploadNeeded = true;
     auto iter = ubos.find(param);
     if (iter != ubos.end())
     {
@@ -129,6 +134,7 @@ Texture* Material::GetTexture(const std::string& param)
 
 float Material::GetFloat(const std::string& param, const std::string& member)
 {
+    uploadNeeded = true;
     auto iter = ubos.find(param);
     if (iter != ubos.end())
     {
@@ -146,7 +152,6 @@ void Material::SetShader(ShaderBase* shader)
     if (shader != nullptr) // why null check? I think we don't need it
     {
         SetShaderNoProtection(shader);
-
         SetDirty();
     }
 }
@@ -154,6 +159,7 @@ void Material::SetShader(ShaderBase* shader)
 void Material::SetShaderNoProtection(ShaderBase* shader)
 {
     this->shader = shader;
+    uploadNeeded = true;
     shaderConfig = shader->GetDefaultShaderConfig();
     // if (shaderResource != nullptr)
     // {
@@ -173,16 +179,12 @@ void Material::Serialize(Serializer* s) const
 
 std::unique_ptr<Asset> Material::Clone()
 {
-    return std::unique_ptr<Material>(new Material(*this));
+    return nullptr;
+    // return std::unique_ptr<Material>(new Material(*this));
 }
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
-    // if (GetShaderProgram() != shaderResource->GetShaderProgram())
-    // {
-    //     SetShaderNoProtection(shader);
-    // }
-
     return shaderResource.get();
 }
 
@@ -192,8 +194,8 @@ Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
         return nullptr;
 
     uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
-    if (cachedShaderProgram == nullptr || this->globalShaderFeaturesHash != globalShaderFeaturesHash ||
-        shaderContentHash != shader->GetContentHash())
+    if (cachedShaderPrograms[shaderPassIndex] == nullptr ||
+        this->globalShaderFeaturesHash != globalShaderFeaturesHash || shaderContentHash != shader->GetContentHash())
     {
         shaderContentHash = shader->GetContentHash();
 
@@ -207,18 +209,26 @@ Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
             shader->GetFeaturesID(shaderPassIndex, cachedShaderProgramFeatures)
         );
 
-        if (newProgram != cachedShaderProgram)
+        if (newProgram != cachedShaderPrograms[shaderPassIndex])
         {
-            cachedShaderProgram = newProgram;
+            cachedShaderPrograms[shaderPassIndex] = newProgram;
             for (auto& u : ubos)
             {
                 u.second.buffer = nullptr; // recreation needed
                 u.second.dirty = true;
+                uploadNeeded = true;
             }
         }
     }
 
-    return cachedShaderProgram;
+    Gfx::ShaderProgram* shaderProgram = cachedShaderPrograms[shaderPassIndex];
+
+    if (uploadNeeded)
+    {
+        UploadDataToGPU(shaderProgram);
+    }
+
+    return shaderProgram;
 }
 
 void Material::EnableFeature(const std::string& name)
@@ -226,7 +236,7 @@ void Material::EnableFeature(const std::string& name)
     if (!enabledFeatures.contains(name))
     {
         enabledFeatures.emplace(name);
-        cachedShaderProgram = nullptr;
+        cachedShaderPrograms.clear();
     }
 }
 
@@ -235,7 +245,7 @@ void Material::DisableFeature(const std::string& name)
     if (enabledFeatures.contains(name))
     {
         enabledFeatures.erase(name);
-        cachedShaderProgram = nullptr;
+        cachedShaderPrograms.clear();
     }
 }
 
@@ -269,6 +279,7 @@ void Material::Deserialize(Serializer* s)
     {
         EnableFeature(f);
     }
+    uploadNeeded = true;
 }
 
 void Material::UBO::Serialize(Serializer* ser) const
@@ -286,11 +297,12 @@ void Material::UBO::Deserialize(Serializer* ser)
     dirty = true;
 }
 
-void Material::UploadDataToGPU()
+void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 {
-    auto shaderProgram = GetShaderProgram();
     if (!shaderProgram)
         return;
+
+    uploadNeeded = false;
 
     for (auto& u : ubos)
     {

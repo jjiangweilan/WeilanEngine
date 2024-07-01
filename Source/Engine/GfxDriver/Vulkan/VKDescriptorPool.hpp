@@ -24,21 +24,26 @@ public:
     // vkFence)
     void Deallocate(VkDescriptorSet set)
     {
-        freeSets.push_back(set);
+        currFramefreeSets.push_back(set);
     }
 
-    void Free(VkDescriptorSet set);
+    void AppendAndClearCurrentFrameFreeSets()
+    {
+        freeSets.insert(freeSets.end(), currFramefreeSets.begin(), currFramefreeSets.end());
+        currFramefreeSets.clear();
+    }
 
     ~VKDescriptorPool();
 
 private:
     VkDescriptorPoolCreateInfo createInfo{};
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-    std::vector<VkDescriptorPoolSize> poolSizes;
+    std::vector<VkDescriptorPoolSize> poolSizes = {};
     RefPtr<VKContext> context;
 
     std::vector<VkDescriptorPool> fullPools{};
     std::vector<VkDescriptorSet> freeSets;
+    std::vector<VkDescriptorSet> currFramefreeSets;
     VkDescriptorPool freePool = VK_NULL_HANDLE;
 
     VkDescriptorPool CreateNewPool();
@@ -54,6 +59,14 @@ struct VKDescriptorPoolCache
 {
     VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context) {}
     VKDescriptorPool& RequestDescriptorPool(const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo);
+
+    void AppendAndClearCurrentFrameFreeSets()
+    {
+        for (auto& cache : descriptorLayoutPoolCache)
+        {
+            cache.second.AppendAndClearCurrentFrameFreeSets();
+        }
+    }
 
 private:
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo

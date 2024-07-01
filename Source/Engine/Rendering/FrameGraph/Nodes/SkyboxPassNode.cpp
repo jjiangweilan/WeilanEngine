@@ -1,12 +1,11 @@
 #include "../NodeBlueprint.hpp"
-#include "Rendering/Material.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Model.hpp"
 #include "Rendering/Graphics.hpp"
+#include "Rendering/Material.hpp"
 #include "Rendering/Shader.hpp"
 #include <random>
-
 
 namespace Rendering::FrameGraph
 {
@@ -15,7 +14,6 @@ class SkyboxPassNode : public Node
     DECLARE_FRAME_GRAPH_NODE(SkyboxPassNode)
     {
         SetCustomName("Skybox");
-        shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/ProcedualSkybox.shad");
         skyboxMat = (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/ProcedualSkybox.mat");
 
         AddConfig<ConfigurableType::Bool>("enable", true);
@@ -73,14 +71,14 @@ class SkyboxPassNode : public Node
             }
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
             cmd.BindVertexBuffer(vertexBufferBinding, 0);
-            cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+            auto shader = skyboxMat->GetShaderProgram();
+            cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
             if (skyboxMat)
             {
-                skyboxMat->UploadDataToGPU();
                 cmd.BindResource(2, skyboxMat->GetShaderResource());
             }
             glm::vec4 position(renderingData.mainCamera->GetGameObject()->GetPosition(), 1.0);
-            cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &position);
+            cmd.SetPushConstant(shader, &position);
             cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
 
             cmd.EndRenderPass();
@@ -90,7 +88,6 @@ class SkyboxPassNode : public Node
     }
 
 private:
-    Shader* shader;
     Material* skyboxMat;
 
     std::unique_ptr<Gfx::Buffer> paramsBuffer;

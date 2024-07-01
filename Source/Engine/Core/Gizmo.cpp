@@ -1,8 +1,8 @@
 #include "Gizmo.hpp"
-#include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "Rendering/Shader.hpp"
 #include <glm/glm.hpp>
 
 Shader* GizmoBase::GetBillboardShader()
@@ -62,7 +62,7 @@ public:
     {}
 
     GizmoDrawMesh(Mesh* mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
-        : mesh(mesh), submeshIndex(submeshIndex), shader(nullptr), material(nullptr), modelMatrix(modelMatrix)
+        : mesh(mesh), submeshIndex(submeshIndex), shader(nullptr), material(material), modelMatrix(modelMatrix)
     {}
 
     void Draw(Gfx::CommandBuffer& cmd) override
@@ -219,9 +219,9 @@ void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::m
     GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
 }
 
-void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix)
+void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
 {
-    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
+    GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, material, modelMatrix));
 }
 
 // namespace Gizmos

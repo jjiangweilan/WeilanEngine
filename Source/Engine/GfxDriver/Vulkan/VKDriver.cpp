@@ -512,6 +512,53 @@ void VKDriver::FlushPendingCommands()
         firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
         VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
     );
+
+    // record scheduled commands
+    auto cmd = inflightData[currentInflightIndex].cmd;
+
+    vkResetCommandBuffer(cmd, 0);
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cmd, &beginInfo);
+
+    for (auto& f : internalPendingCommands)
+    {
+        f(cmd);
+    }
+    renderGraph->Execute(cmd);
+
+    vkEndCommandBuffer(cmd);
+
+    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(1);
+    VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(1);
+    VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(1);
+    waitFlags[0] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    waitSemaphores[0] = transferSignalSemaphore;
+    signalSemaphores[0] = dataUploaderWaitSemaphore;
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitFlags;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmd;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+
+    allocator.Reset();
+    internalPendingCommands.clear();
+}
+
+bool VKDriver::EndFrame()
+{
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+
+    dataUploader->UploadAllPending(
+        transferSignalSemaphore,
+        firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+    );
     firstFrame = false;
 
     VKCommandBuffer cmd2(renderGraph.get());
@@ -565,11 +612,6 @@ void VKDriver::FlushPendingCommands()
     submitInfo.signalSemaphoreCount = 2 + extraWindows.size();
     submitInfo.pSignalSemaphores = signalSemaphores;
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
-}
-
-bool VKDriver::EndFrame()
-{
-    FlushPendingCommands();
 
     allocator.Reset();
 
@@ -1068,6 +1110,7 @@ void VKDriver::FrameEndClear()
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
     internalPendingCommands.clear();
     ClearResources();
+    descriptorPoolCache->AppendAndClearCurrentFrameFreeSets();
 }
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)

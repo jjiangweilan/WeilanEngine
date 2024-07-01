@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/SafeReferenceable.hpp"
 #include "GfxEnums.hpp"
+#include "Libs/UUID.hpp"
 #include <string>
 namespace Gfx
 {
@@ -23,7 +24,7 @@ public:
     };
 
 public:
-    Buffer(BufferUsageFlags usages, bool gpuWrite) : bufferUsages(usages), gpuWrite(gpuWrite){};
+    Buffer(BufferUsageFlags usages, bool gpuWrite) : bufferUsages(usages), gpuWrite(gpuWrite), uuid(){};
     virtual ~Buffer(){};
     virtual void* GetCPUVisibleAddress() = 0;
     virtual void SetDebugName(const char* name) = 0;
@@ -37,9 +38,14 @@ public:
     {
         return bufferUsages;
     }
+    const UUID& GetUUID()
+    {
+        return uuid;
+    }
 
 private:
     BufferUsageFlags bufferUsages;
     bool gpuWrite;
+    UUID uuid;
 };
 } // namespace Gfx

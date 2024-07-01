@@ -31,19 +31,22 @@ public:
         return probeCount;
     }
 
-    void BakeProbeCubemaps()
-    {
-        lfp.PlaceProbes(gridMin, gridMax, probeCount);
-        lfp.CaptureProbeGBuffers();
-    }
+    void BakeProbeCubemaps();
 
     std::span<Rendering::LFP::Probe> GetProbes()
     {
         return lfp.GetProbes();
     }
 
+    Rendering::LFP::Probe* GetProbe(const glm::vec3& index)
+    {
+        return lfp.GetProbe(index);
+    }
+
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
 
 private:
     Rendering::LFP::LightFieldProbes lfp;

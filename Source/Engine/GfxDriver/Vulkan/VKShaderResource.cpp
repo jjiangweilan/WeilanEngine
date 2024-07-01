@@ -178,7 +178,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                auto& binding = bindings[ShaderBindingHandle(b->name)];
+                ShaderBindingHandle nameHash(b->name);
+                auto& binding = bindings[nameHash];
 
                 int anyNonNullIndex = 0;
                 for (auto& bindingElement : binding)
@@ -224,7 +225,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                                   BufferUsage::Transfer_Dst,
                                         .size = 1,
                                         .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()};
+                                        .debugName = bufferName.c_str()
+                                    };
                                     defaultBuffer = std::make_unique<VKBuffer>(createInfo);
                                     buffer = defaultBuffer.get();
                                 }
@@ -360,7 +362,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_SHADER_READ_BIT,
                                         .imageView = imageView,
-                                        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                                        .layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                    };
 
                                     writableGPUResources->push_back(gpuResource);
                                 }
