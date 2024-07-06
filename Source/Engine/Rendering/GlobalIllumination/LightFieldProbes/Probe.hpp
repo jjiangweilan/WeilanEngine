@@ -55,7 +55,7 @@ private:
 
     static const uint32_t octahedralMapSize = 256;
 
-    std::unique_ptr<ProbeBaker> baker = nullptr;
+    std::unique_ptr<ProbeBaker> baker;
 
     // set by probe baker
     bool baked = false;

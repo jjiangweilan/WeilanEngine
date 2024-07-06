@@ -16,11 +16,6 @@
 namespace Gfx
 {
 class VKImageView;
-struct VKIMageSubresourceTrack
-{
-    Gfx::ImageSubresourceRange range;
-    VkImageLayout rangeLayout;
-};
 class VKImage : public Image
 {
 public:
@@ -68,6 +63,31 @@ public:
         return isSwapchainProxy;
     }
 
+    void SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
+    {
+        int baseIndex = subresourceRange.baseArrayLayer * arrayLayers;
+        int count = subresourceRange.levelCount * subresourceRange.layerCount;
+
+        for (int i = baseIndex; i < layoutTrack.size() && i < count; ++i)
+        {
+            layoutTrack[i] = layout;
+        }
+    }
+
+    bool QueryLayout(VkImageSubresourceRange subresourceRange, VkImageLayout& layout)
+    {
+        layout = layoutTrack[subresourceRange.baseArrayLayer * arrayLayers + subresourceRange.baseMipLevel];
+        for (int mip = subresourceRange.baseMipLevel; mip < subresourceRange.levelCount; mip++)
+        {
+            for (int level = subresourceRange.baseArrayLayer; level < subresourceRange.layerCount; ++level)
+            {
+                if (layoutTrack[level * arrayLayers + mip] != layout)
+                    return false;
+            }
+        }
+        return true;
+    }
+
 protected:
     VKImage();
     uint32_t arrayLayers = 1;
@@ -86,7 +106,7 @@ protected:
     ImageDescription imageDescription;
     std::unique_ptr<VKImageView> imageView;
     std::string name;
-    std::vector<VKIMageSubresourceTrack> subresourceTrack;
+    std::vector<VkImageLayout> layoutTrack;
     bool isSwapchainProxy = false;
 
     ImageViewType GenerateDefaultImageViewViewType();

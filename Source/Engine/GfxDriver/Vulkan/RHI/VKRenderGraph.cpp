@@ -58,8 +58,7 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc
-            };
+                desc};
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format(
@@ -452,15 +451,13 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -520,6 +517,12 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
                     VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_NONE;
                     VkAccessFlags srcAccess = VK_ACCESS_NONE;
 
+                    VkImageSubresourceRange subresourceRange = Gfx::MapVkImageSubresourceRange(overlapping);
+                    preUsage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    if (!image->QueryLayout(subresourceRange, preUsage.layout)) [[unlikely]]
+                    {
+                        spdlog::error("VKRenderGraph: image layout not properly handled");
+                    }
                     if (HasWriteAccessMask(currentUsage.access) || preUsage.layout != currentUsage.layout)
                     {
                         // write after write or write after read
@@ -558,7 +561,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
                         imageBarrier.newLayout = currentUsage.layout;
                         imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                         imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                        imageBarrier.subresourceRange = Gfx::MapVkImageSubresourceRange(overlapping);
+                        imageBarrier.subresourceRange = subresourceRange;
                         imageBarrier.image = image->GetImage();
 
                         barrier.barrierCount = 1;
@@ -566,6 +569,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
                         barriers.push_back(barrier);
                         barrierCount += 1;
                         imageMemoryBarriers.push_back(imageBarrier);
+                        image->SetLayout(subresourceRange, currentUsage.layout);
                     }
 
                     auto remainings = currentRange.Subtract(preUsage.range);
@@ -591,7 +595,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             Barrier barrier;
             barrier.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
             barrier.dstStageMask = currentUsage.stages;
-
+            auto subresourceRange = Gfx::MapVkImageSubresourceRange(currentUsage.range);
             VkImageMemoryBarrier imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
             imageBarrier.srcAccessMask = VK_ACCESS_NONE;
             imageBarrier.dstAccessMask = currentUsage.access;
@@ -599,7 +603,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             imageBarrier.newLayout = currentUsage.layout;
             imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            imageBarrier.subresourceRange = Gfx::MapVkImageSubresourceRange(currentUsage.range);
+            imageBarrier.subresourceRange = subresourceRange;
             imageBarrier.image = image->GetImage();
 
             barrier.barrierCount = 1;
@@ -607,6 +611,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             barriers.push_back(barrier);
             barrierCount += 1;
             imageMemoryBarriers.push_back(imageBarrier);
+            image->SetLayout(subresourceRange, currentUsage.layout);
         }
     }
     else if (iter->second.type == ResourceType::Buffer)
@@ -878,15 +883,13 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -994,8 +997,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -1007,8 +1009,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst

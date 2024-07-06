@@ -35,6 +35,7 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
     CreateImageView();
 
     SetName("Unnamed");
+    layoutTrack.resize(arrayLayers * imageDescription.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
@@ -50,6 +51,7 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
     CreateImageView();
 
     SetName("Unnamed");
+    layoutTrack.resize(arrayLayers * imageDescription.mipLevels, VK_IMAGE_LAYOUT_UNDEFINED);
 }
 
 VKImage::VKImage(VKImage&& other)
@@ -57,7 +59,7 @@ VKImage::VKImage(VKImage&& other)
       usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
       allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), layout(other.layout),
       stageMask(other.stageMask), accessMask(other.accessMask), imageDescription(other.imageDescription),
-      imageView(std::exchange(other.imageView, VK_NULL_HANDLE))
+      imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), layoutTrack(std::exchange(other.layoutTrack, {}))
 {}
 
 VKImage::~VKImage()
