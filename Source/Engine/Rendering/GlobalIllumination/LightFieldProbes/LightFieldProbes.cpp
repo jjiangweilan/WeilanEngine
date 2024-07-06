@@ -9,9 +9,10 @@ void LightFieldProbes::PlaceProbes(
     const glm::vec3& basePosition, const glm::vec3& gridMin, const glm::vec3& gridMax, const glm::vec3& count
 )
 {
+    this->probeCount = count;
     probes.clear();
 
-    glm::vec3 delta = (gridMax - gridMin) / glm::max(count - glm::vec3(1), glm::vec3(1));
+    glm::vec3 delta = (gridMax - gridMin) / glm::max(count - glm::vec3(1), glm::vec3(1, 1, 1));
 
     for (int32_t z = 0; z < count.z; ++z)
     {
@@ -25,7 +26,7 @@ void LightFieldProbes::PlaceProbes(
         }
     }
 }
-void LightFieldProbes::BakeProbeGBuffers(Scene* scene)
+void LightFieldProbes::BakeProbeGBuffers(Scene* scene, bool debug)
 {
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
     DrawList drawList;
@@ -33,7 +34,7 @@ void LightFieldProbes::BakeProbeGBuffers(Scene* scene)
 
     for (auto& probe : probes)
     {
-        probe.Bake(*cmd, &drawList);
+        probe.Bake(*cmd, &drawList, debug);
     }
 
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);

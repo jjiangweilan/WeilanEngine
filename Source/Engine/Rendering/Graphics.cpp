@@ -1,8 +1,8 @@
 #include "Graphics.hpp"
-#include "Rendering/Material.hpp"
-#include "Core/Graphics/Mesh.hpp"
 #include "Core/EngineInternalResources.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "Rendering/Material.hpp"
 void Graphics::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
     GetSingleton().DrawLineImpl(from, to, color);
@@ -16,6 +16,11 @@ void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Ma
 void Graphics::DrawTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)
 {
     GetSingleton().DrawTriangleImpl(v0, v1, v2, color);
+}
+
+void Graphics::DrawFrustum(const glm::mat4& viewProj)
+{
+    GetSingleton().DrawFrustumImpl(viewProj);
 }
 
 void Graphics::DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
@@ -37,6 +42,43 @@ Graphics& Graphics::GetSingleton()
 void Graphics::DrawLineImpl(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
     drawCmds.push_back(DrawLineCmd{from, to, color});
+}
+
+void Graphics::DrawFrustumImpl(const glm::mat4& viewProj)
+{
+    std::array<glm::vec4, 8> frustumCorners = {
+        glm::vec4(-1, -1, 0, 1),
+        glm::vec4(1, -1, 0, 1),
+        glm::vec4(1, 1, 0, 1),
+        glm::vec4(-1, 1, 0, 1),
+        glm::vec4(-1, -1, 1, 1),
+        glm::vec4(1, -1, 1, 1),
+        glm::vec4(1, 1, 1, 1),
+        glm::vec4(-1, 1, 1, 1)
+    };
+
+    auto invViewProj = glm::inverse(viewProj);
+    for (auto& v : frustumCorners)
+    {
+        v = invViewProj * v;
+        v /= v.w;
+    }
+
+    DrawLineImpl(frustumCorners[0], frustumCorners[1], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[1], frustumCorners[2], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[2], frustumCorners[3], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[3], frustumCorners[0], {1, 1, 1, 1});
+
+    DrawLineImpl(frustumCorners[3], frustumCorners[7], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[0], frustumCorners[4], {1, 1, 1, 1});
+
+    DrawLineImpl(frustumCorners[2], frustumCorners[6], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[1], frustumCorners[5], {1, 1, 1, 1});
+
+    DrawLineImpl(frustumCorners[4], frustumCorners[5], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[5], frustumCorners[6], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[6], frustumCorners[7], {1, 1, 1, 1});
+    DrawLineImpl(frustumCorners[7], frustumCorners[4], {1, 1, 1, 1});
 }
 
 void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)

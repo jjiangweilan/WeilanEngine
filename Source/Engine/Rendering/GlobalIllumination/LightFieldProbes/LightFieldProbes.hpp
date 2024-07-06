@@ -21,7 +21,7 @@ public:
         return nullptr;
     };
 
-    void BakeProbeGBuffers(Scene* scene);
+    void BakeProbeGBuffers(Scene* scene, bool debug = false);
 
     std::span<Probe> GetProbes()
     {
@@ -29,7 +29,7 @@ public:
     }
 
 private:
-    std::vector<Probe> probes;
-    glm::vec3 probeCount;
+    std::vector<Probe> probes = {};
+    glm::vec3 probeCount = {};
 };
 } // namespace Rendering::LFP

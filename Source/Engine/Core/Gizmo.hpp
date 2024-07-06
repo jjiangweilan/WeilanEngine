@@ -1,6 +1,6 @@
 #pragma once
-#include "Rendering/Material.hpp"
 #include "Core/Math/Geometry.hpp"
+#include "Rendering/Material.hpp"
 #include "Rendering/Structs.hpp"
 #include <glm/glm.hpp>
 #include <memory>

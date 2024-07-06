@@ -47,7 +47,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
     );
 }
-Probe::~Probe() {};
+Probe::~Probe(){};
 
 static Shader* GetLightFieldProbePreviewShader()
 {
@@ -75,13 +75,18 @@ Material* Probe::GetPreviewMaterial()
     return material.get();
 }
 
-void Probe::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
+void Probe::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, bool debug)
 {
     if (baker == nullptr)
     {
         baker = std::make_unique<ProbeBaker>(*this);
-        GetPreviewMaterial()->SetTexture("cubemapTex", baker->GetAlbedoCubemap().get());
+        GetPreviewMaterial()->SetTexture("cubemapTex", baker->GetNormalCubemap().get());
     }
     baker->Bake(cmd, drawList);
+
+    if (!debug)
+    {
+        baker = nullptr;
+    }
 }
 } // namespace Rendering::LFP

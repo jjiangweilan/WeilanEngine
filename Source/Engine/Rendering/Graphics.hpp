@@ -19,6 +19,7 @@ public:
     static void DrawTriangle(
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color = {1, 1, 1, 1}
     );
+    static void DrawFrustum(const glm::mat4& viewProj);
 
     static Graphics& GetSingleton();
 
@@ -53,6 +54,10 @@ private:
     std::vector<DrawCmds> drawCmds;
 
     void DrawLineImpl(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color);
+
+    // using DrwaLineImpl
+    void DrawFrustumImpl(const glm::mat4& viewProj);
+
     void DrawTriangleImpl(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color);
     void DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
 

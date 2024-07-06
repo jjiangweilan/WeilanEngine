@@ -31,7 +31,7 @@ public:
         return probeCount;
     }
 
-    void BakeProbeCubemaps();
+    void BakeProbeCubemaps(bool debug);
 
     std::span<Rendering::LFP::Probe> GetProbes()
     {

@@ -48,9 +48,9 @@ void main()
 {
     vec2 uv = octEncode(normalize(i_Normal));
 #if Baked
-    o_Color0 = texture(normalTex, uv * 0.5 + 0.5);
+    o_Color0 = vec4(texture(normalTex, uv * 0.5 + 0.5).xyz, 1.0f);
 #elif Cubemap
-    o_Color0 = texture(cubemapTex, i_Normal);
+    o_Color0 = vec4(texture(cubemapTex, i_Normal).xyz, 1.0);
 #else
     vec3 norm = normalize(i_Normal);
     o_Color0 = vec4(norm, 1);

@@ -34,8 +34,8 @@ void LightFieldProbes::Deserialize(Serializer* s)
     s->Deserialize("gridMax", gridMax);
 }
 
-void LightFieldProbes::BakeProbeCubemaps()
+void LightFieldProbes::BakeProbeCubemaps(bool debug)
 {
     lfp.PlaceProbes(GetGameObject()->GetPosition(), gridMin, gridMax, probeCount);
-    lfp.BakeProbeGBuffers(this->GetScene());
+    lfp.BakeProbeGBuffers(this->GetScene(), debug);
 }

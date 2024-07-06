@@ -11,6 +11,7 @@ struct ProbeFace
     std::unique_ptr<Gfx::ImageView> depthView;
     std::unique_ptr<Gfx::Buffer> lfpBuffer;
     std::unique_ptr<Gfx::ShaderResource> set1Resource;
+    glm::mat4 vp;
 
     void Init(
         Gfx::Image* albedoCubemap,
@@ -73,14 +74,14 @@ struct ProbeFace
         };
 
         // cubemap face 0 projection matrix
-        glm::mat4 projection = glm::perspectiveLH_ZO(glm::radians(90.0f), 1.0f, 0.1f, 1000.0f);
+        glm::mat4 projection = glm::perspectiveLH_ZO(glm::radians(90.0f), 1.0f, 0.01f, 100.0f);
         projection[1] = -projection[1];
         glm::mat4 view = glm::lookAtLH(
             probePosition,
             probePosition + cubeDir[face],
-            (face != 2 && face != 3) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(1.0f, 0.0f, 0.0f)
+            (face != 2 && face != 3) ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(0.0f, 0.0f, 1.0f)
         );
-        glm::mat4 vp = projection * view;
+        vp = projection * view;
         GetGfxDriver()->UploadBuffer(*lfpBuffer, (uint8_t*)&vp, sizeof(vp));
         set1Resource = GetGfxDriver()->CreateShaderResource();
         set1Resource->SetBuffer("LFP", lfpBuffer.get());
@@ -98,9 +99,19 @@ public:
 
     void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
 
+    std::span<ProbeFace> GetFaces()
+    {
+        return faces;
+    }
+
     std::unique_ptr<Gfx::Image>& GetAlbedoCubemap()
     {
         return albedoCubemap;
+    }
+
+    std::unique_ptr<Gfx::Image>& GetNormalCubemap()
+    {
+        return normalCubemap;
     }
 
 private:

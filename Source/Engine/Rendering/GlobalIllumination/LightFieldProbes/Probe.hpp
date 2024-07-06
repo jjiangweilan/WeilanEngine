@@ -32,7 +32,7 @@ public:
 
     Material* GetPreviewMaterial();
 
-    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList);
+    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, bool debug);
 
     bool IsBaked() const
     {

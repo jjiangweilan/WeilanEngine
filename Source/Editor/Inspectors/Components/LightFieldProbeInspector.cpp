@@ -5,6 +5,8 @@
 #include "Core/EngineInternalResources.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Gizmo.hpp"
+#include "Rendering/GlobalIllumination/LightFieldProbes/ProbeBaker.hpp"
+#include "Rendering/Graphics.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -31,15 +33,23 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
             target->SetProbeCounts(probeCount);
         };
 
+        if (ImGui::Checkbox("debug bake", &debug))
+        {}
+
         if (ImGui::Button("bake probes"))
         {
-            target->BakeProbeCubemaps();
+            target->BakeProbeCubemaps(debug);
         }
 
         static bool showCubemap;
         if (ImGui::Button("Show cubemap"))
         {
             showCubemap = !showCubemap;
+        }
+
+        if (ImGui::Button("Show cubemap VP"))
+        {
+            showCubemapFrustum = !showCubemapFrustum;
         }
 
         // draw gizmos
@@ -53,9 +63,21 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                 {
                     glm::vec3 pos = target->GetGameObject()->GetPosition() + gridMin + glm::vec3(x, y, z) * gridDelta;
                     auto probe = target->GetProbe({x, y, z});
-                    if (probe && probe->IsBaked())
+                    auto mat = probe ? probe->GetPreviewMaterial() : nullptr;
+                    if (mat && probe->IsBaked())
                     {
-                        auto mat = probe->GetPreviewMaterial();
+                        if (showCubemapFrustum)
+                        {
+                            auto baker = probe->GetBaker();
+                            if (baker)
+                            {
+                                for (auto& face : baker->GetFaces())
+                                {
+                                    Graphics::DrawFrustum(face.vp);
+                                }
+                            }
+                        }
+
                         if (!showCubemap)
                         {
                             mat->EnableFeature("Baked");
@@ -66,6 +88,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                             mat->DisableFeature("Baked");
                             mat->EnableFeature("Cubemap");
                         }
+
                         Gizmos::DrawMesh(*sphere, 0, mat, glm::translate(glm::mat4(1.0f), pos));
                     }
                     else
@@ -76,6 +99,8 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
     }
 
 private:
+    bool showCubemapFrustum = false;
+    bool debug = false;
     Shader* GetLightFieldProbePreviewShader()
     {
         static Shader* previewShader;

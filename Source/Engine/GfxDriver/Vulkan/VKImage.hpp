@@ -65,23 +65,32 @@ public:
 
     void SetLayout(VkImageSubresourceRange subresourceRange, VkImageLayout layout)
     {
-        int baseIndex = subresourceRange.baseArrayLayer * arrayLayers;
-        int count = subresourceRange.levelCount * subresourceRange.layerCount;
-
-        for (int i = baseIndex; i < layoutTrack.size() && i < count; ++i)
+        for (int mip = subresourceRange.baseMipLevel;
+             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount) && mip < imageDescription.mipLevels;
+             mip++)
         {
-            layoutTrack[i] = layout;
+            for (int level = subresourceRange.baseArrayLayer;
+                 level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount) && level < arrayLayers;
+                 ++level)
+            {
+                layoutTrack[level * imageDescription.mipLevels + mip] = layout;
+            }
         }
     }
 
     bool QueryLayout(VkImageSubresourceRange subresourceRange, VkImageLayout& layout)
     {
-        layout = layoutTrack[subresourceRange.baseArrayLayer * arrayLayers + subresourceRange.baseMipLevel];
-        for (int mip = subresourceRange.baseMipLevel; mip < subresourceRange.levelCount; mip++)
+        layout =
+            layoutTrack[subresourceRange.baseArrayLayer * imageDescription.mipLevels + subresourceRange.baseMipLevel];
+        for (int mip = subresourceRange.baseMipLevel;
+             mip < (subresourceRange.baseMipLevel + subresourceRange.levelCount);
+             mip++)
         {
-            for (int level = subresourceRange.baseArrayLayer; level < subresourceRange.layerCount; ++level)
+            for (int level = subresourceRange.baseArrayLayer;
+                 level < (subresourceRange.baseArrayLayer + subresourceRange.layerCount);
+                 ++level)
             {
-                if (layoutTrack[level * arrayLayers + mip] != layout)
+                if (layoutTrack[level * imageDescription.mipLevels + mip] != layout)
                     return false;
             }
         }
