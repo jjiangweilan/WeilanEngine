@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/DrawList.hpp"
+
 class Material;
 namespace Rendering::LFP
 {
@@ -30,18 +31,12 @@ public:
         return radialDistance.get();
     }
 
-    Material* GetPreviewMaterial();
-
-    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, bool debug);
+    void Relight(Gfx::CommandBuffer& cmd);
+    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, ProbeBaker& baker);
 
     bool IsBaked() const
     {
         return baked;
-    }
-
-    ProbeBaker* GetBaker()
-    {
-        return baker.get();
     }
 
 private:
@@ -51,11 +46,10 @@ private:
     std::unique_ptr<Gfx::Image> albedo;
     std::unique_ptr<Gfx::Image> normal;
     std::unique_ptr<Gfx::Image> radialDistance;
-    std::unique_ptr<Material> material;
 
-    static const uint32_t octahedralMapSize = 256;
+    std::unique_ptr<Gfx::Image> lighted;
 
-    std::unique_ptr<ProbeBaker> baker;
+    static const uint32_t octahedralMapSize = 128;
 
     // set by probe baker
     bool baked = false;

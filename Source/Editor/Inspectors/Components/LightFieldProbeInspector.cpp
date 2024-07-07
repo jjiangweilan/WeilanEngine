@@ -38,7 +38,17 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
 
         if (ImGui::Button("bake probes"))
         {
+            previewMaterials.clear();
             target->BakeProbeCubemaps(debug);
+            for (auto& probe : target->GetProbes())
+            {
+                auto material = std::make_unique<Material>(GetLightFieldProbePreviewShader());
+                material->SetTexture("albedoTex", probe.GetAlbedo());
+                material->SetTexture("normalTex", probe.GetNormal());
+                material->SetTexture("radialDistanceTex", probe.GetRadialDistance());
+                material->EnableFeature("Baked");
+                previewMaterials.push_back(std::move(material));
+            }
         }
 
         static bool showCubemap;
@@ -63,12 +73,12 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                 {
                     glm::vec3 pos = target->GetGameObject()->GetPosition() + gridMin + glm::vec3(x, y, z) * gridDelta;
                     auto probe = target->GetProbe({x, y, z});
-                    auto mat = probe ? probe->GetPreviewMaterial() : nullptr;
-                    if (mat && probe->IsBaked())
+                    auto probeIndex = target->GetProbeIndex({x, y, z});
+                    if (probe && probe->IsBaked())
                     {
                         if (showCubemapFrustum)
                         {
-                            auto baker = probe->GetBaker();
+                            auto baker = target->GetProbeBaker({x, y, z});
                             if (baker)
                             {
                                 for (auto& face : baker->GetFaces())
@@ -78,18 +88,25 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                             }
                         }
 
-                        if (!showCubemap)
+                        if (probeIndex < previewMaterials.size())
                         {
-                            mat->EnableFeature("Baked");
-                            mat->DisableFeature("Cubemap");
+                            auto& mat = previewMaterials[probeIndex];
+                            if (!showCubemap)
+                            {
+                                mat->EnableFeature("Baked");
+                                mat->DisableFeature("Cubemap");
+                            }
+                            else
+                            {
+                                mat->DisableFeature("Baked");
+                                mat->EnableFeature("Cubemap");
+                            }
+                            Gizmos::DrawMesh(*sphere, 0, mat.get(), glm::translate(glm::mat4(1.0f), pos));
                         }
                         else
                         {
-                            mat->DisableFeature("Baked");
-                            mat->EnableFeature("Cubemap");
+                            Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
                         }
-
-                        Gizmos::DrawMesh(*sphere, 0, mat, glm::translate(glm::mat4(1.0f), pos));
                     }
                     else
                         Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
@@ -101,6 +118,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
 private:
     bool showCubemapFrustum = false;
     bool debug = false;
+    std::vector<std::unique_ptr<Material>> previewMaterials;
     Shader* GetLightFieldProbePreviewShader()
     {
         static Shader* previewShader;

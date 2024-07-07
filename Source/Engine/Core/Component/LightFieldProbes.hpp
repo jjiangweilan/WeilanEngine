@@ -38,9 +38,19 @@ public:
         return lfp.GetProbes();
     }
 
+    size_t GetProbeIndex(const glm::vec3& index)
+    {
+        return lfp.GetProbeIndex(index);
+    }
+
     Rendering::LFP::Probe* GetProbe(const glm::vec3& index)
     {
         return lfp.GetProbe(index);
+    }
+
+    Rendering::LFP::ProbeBaker* GetProbeBaker(const glm::vec3& index)
+    {
+        return lfp.GetProbeBaker(index);
     }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;

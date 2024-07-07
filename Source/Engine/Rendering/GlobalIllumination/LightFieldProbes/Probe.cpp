@@ -49,44 +49,8 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
 }
 Probe::~Probe(){};
 
-static Shader* GetLightFieldProbePreviewShader()
+void Probe::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, ProbeBaker& baker)
 {
-    static Shader* s;
-    if (s == nullptr)
-    {
-        s = (Shader*)AssetDatabase::Singleton()->LoadAsset(
-            "_engine_internal/Shaders/LightFieldProbes/LightFieldProbePreview.shad"
-        );
-    }
-    return s;
-}
-
-Material* Probe::GetPreviewMaterial()
-{
-    if (material == nullptr)
-    {
-        material = std::make_unique<Material>(GetLightFieldProbePreviewShader());
-        material->SetTexture("albedoTex", albedo.get());
-        material->SetTexture("normalTex", normal.get());
-        material->SetTexture("radialDistanceTex", radialDistance.get());
-        material->EnableFeature("Baked");
-    }
-
-    return material.get();
-}
-
-void Probe::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, bool debug)
-{
-    if (baker == nullptr)
-    {
-        baker = std::make_unique<ProbeBaker>(*this);
-        GetPreviewMaterial()->SetTexture("cubemapTex", baker->GetNormalCubemap().get());
-    }
-    baker->Bake(cmd, drawList);
-
-    if (!debug)
-    {
-        baker = nullptr;
-    }
+    baker.Bake(cmd, drawList);
 }
 } // namespace Rendering::LFP

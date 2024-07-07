@@ -5,6 +5,10 @@
 
 namespace Rendering::LFP
 {
+LightFieldProbes::LightFieldProbes() {}
+
+LightFieldProbes::~LightFieldProbes() {}
+
 void LightFieldProbes::PlaceProbes(
     const glm::vec3& basePosition, const glm::vec3& gridMin, const glm::vec3& gridMax, const glm::vec3& count
 )
@@ -28,16 +32,27 @@ void LightFieldProbes::PlaceProbes(
 }
 void LightFieldProbes::BakeProbeGBuffers(Scene* scene, bool debug)
 {
+    probeBakers.clear();
+	for (auto& probe : probes)
+	{
+		probeBakers.emplace_back(std::make_unique<ProbeBaker>(probe));
+	}
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
     DrawList drawList;
     drawList.Add(scene->GetRenderingScene().GetMeshRenderers());
 
-    for (auto& probe : probes)
+    for (size_t i = 0; i < probes.size(); ++i)
     {
-        probe.Bake(*cmd, &drawList, debug);
+        probes[i].Bake(*cmd, &drawList, *probeBakers[i]);
     }
 
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
     GetGfxDriver()->FlushPendingCommands();
+
+    if (!debug)
+    {
+        probeBakers.clear();
+        probeBakers = std::vector<std::unique_ptr<ProbeBaker>>();
+    }
 }
 } // namespace Rendering::LFP
