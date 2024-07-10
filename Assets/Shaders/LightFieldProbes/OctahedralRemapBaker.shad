@@ -1,8 +1,7 @@
 #version 460
 
 #if CONFIG
-name: LightFieldProbes/OctahedrawRemapBaker
-debug: true
+name: LightFieldProbe/OctahedrawRemapBaker
 #endif
 
 #include "Utils/Fullscreen.glsl"

@@ -33,10 +33,10 @@ void LightFieldProbes::PlaceProbes(
 void LightFieldProbes::BakeProbeGBuffers(Scene* scene, bool debug)
 {
     probeBakers.clear();
-	for (auto& probe : probes)
-	{
-		probeBakers.emplace_back(std::make_unique<ProbeBaker>(probe));
-	}
+    for (auto& probe : probes)
+    {
+        probeBakers.emplace_back(std::make_unique<ProbeBaker>(probe));
+    }
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
     DrawList drawList;
     drawList.Add(scene->GetRenderingScene().GetMeshRenderers());

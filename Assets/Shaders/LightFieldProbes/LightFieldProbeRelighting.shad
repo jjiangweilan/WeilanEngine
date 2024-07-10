@@ -1,0 +1,19 @@
+#ifndef LightFieldProbe_Relighting_glsl
+#define LightFieldProbe_Relighting_glsl
+
+#if CONFIG
+name: LightFieldProbe/Relighting
+#endif
+
+#if VERT
+
+void main()
+{
+
+}
+#endif
+
+#if FRAG
+#endif
+
+#endif

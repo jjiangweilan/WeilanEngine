@@ -1,7 +1,7 @@
 #version 460
 
 #if CONFIG
-name: LightFieldProbes/LightFieldProbePreview
+name: LightFieldProbe/LightFieldProbePreview
 features:
     - [_, Baked, Cubemap]
 #endif
