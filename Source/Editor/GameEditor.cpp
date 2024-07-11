@@ -8,6 +8,7 @@
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
+#include "ThirdParty/imgui/implot.h"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -114,10 +115,12 @@ GameEditor::GameEditor(const char* path)
     }
 
     cmd = GetGfxDriver()->CreateCommandBuffer();
+    ImPlot::CreateContext();
 };
 
 GameEditor::~GameEditor()
 {
+    ImPlot::DestroyContext();
     fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
     engine->DestroyGameLoop(loop);
@@ -154,6 +157,49 @@ bool IsAncestorOf(GameObject* ancestor, GameObject* child)
     }
 
     return parent == ancestor;
+}
+
+void GameEditor::GameProfiler(Profiler& profiler)
+{
+
+    auto& frameProfiles = profiler.GetFrameProfiles();
+    ImGui::Begin("Profiler Module");
+
+    // Line graph
+    ImGui::Text("Frame Profiles Line Graph:");
+    if (ImPlot::BeginPlot("Frame Profiles", ImVec2(-1, 200)))
+    {
+        if (!frameProfiles.empty())
+        {
+            std::vector<uint64_t> times;
+            for (const auto& frameProfile : frameProfiles)
+            {
+                if (!frameProfile.empty())
+                    times.push_back(frameProfile.front().totalTime * 1e-3);
+            }
+            ImPlot::PlotLine("GameLoop", times.data(), times.size());
+            // ImPlot::PlotHistogram(profile.label.c_str(), &profile.totalTime, 1, 0);
+        }
+
+        ImPlot::EndPlot();
+    }
+
+    // Sample cursor
+    // ImGui::Text("Sample Cursor:");
+    // ImGui::SliderInt("Frame", &currentFrame, 0, MAX_FRAME_TRACKED - 1);
+
+    // Nested profile display
+    ImGui::Separator();
+    //ImGui::Text("Nested Profile for Frame %d:", currentFrame);
+    if (!frameProfiles.empty())
+    {
+        for (const auto& profile : frameProfiles.back())
+        {
+            ImGui::Text("%s: Total Time: %lld microseconds", profile.label.c_str(), profile.totalTime);
+        }
+    }
+
+    ImGui::End();
 }
 
 void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand)
@@ -526,10 +572,14 @@ void GameEditor::MainMenuBar()
     ImGui::EndMainMenuBar();
 }
 
+Profiler profiler;
 void GameEditor::Start()
 {
     while (true)
     {
+        profiler.BeginFrame();
+        profiler.Begin("GameLoop");
+        auto cmd = GetGfxDriver()->CreateCommandBuffer();
         if (engine->BeginFrame())
         {
             if (engine->event->GetWindowClose().state)
@@ -542,15 +592,21 @@ void GameEditor::Start()
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
+            profiler.Begin("Tick");
             loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
+            profiler.End();
 
             cmd->Reset(true);
+            profiler.Begin("Render");
             Render(*cmd, gameOutputImage, gameOutputDepthImage);
+            profiler.End();
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
             engine->EndFrame();
         }
+        profiler.End();
+        profiler.EndFrame();
     }
 }
 
@@ -599,6 +655,7 @@ void GameEditor::GUIPass()
         SceneTree(*EditorState::activeScene);
     }
 
+    GameProfiler(profiler);
     ConsoleOutputWindow();
 }
 

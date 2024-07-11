@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Scene/Scene.hpp"
 #include "FrameGraph/FrameGraphEditor.hpp"
+#include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "Tools/GameView.hpp"
@@ -86,6 +87,7 @@ private:
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void SceneTree(Scene& scene);
     void SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand);
+    void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
 };
