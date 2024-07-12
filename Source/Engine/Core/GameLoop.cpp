@@ -1,5 +1,6 @@
 #include "GameLoop.hpp"
 #include "Libs/Profiler.hpp"
+#include "Profiler/Profiler.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
@@ -33,6 +34,7 @@ const void GameLoop::Tick(
         return;
 
     // update physics
+    ENGINE_BEGIN_PROFILE("Physics Tick")
     if (isPlaying)
     {
         scene->GetPhysicsScene().Tick();
@@ -43,8 +45,10 @@ const void GameLoop::Tick(
         }
     }
     scene->GetPhysicsScene().DebugDraw();
+    ENGINE_END_PROFILE
 
     // render
+    ENGINE_BEGIN_PROFILE("FrameGraph")
     Rendering::FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
 
     if (graph && graph->IsCompiled())
@@ -52,8 +56,14 @@ const void GameLoop::Tick(
         graph->SetScreenSize(outputImage.GetDescription().width, outputImage.GetDescription().height);
         graph->Execute(*cmd, *scene, *camera);
     }
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
+    ENGINE_END_PROFILE
+
+    ENGINE_BEGIN_PROFILE("call GfxDriver-ExecuteCommandBuffer")
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+    ENGINE_END_PROFILE
+
+    ENGINE_BEGIN_PROFILE("GameLoop Tick clean-up")
     cmd->Reset(true);
     Graphics::GetSingleton().ClearDraws();
     if (graph)
@@ -63,6 +73,7 @@ const void GameLoop::Tick(
     }
     else
         return;
+    ENGINE_END_PROFILE
 }
 
 void GameLoop::Play()

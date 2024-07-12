@@ -7,6 +7,7 @@
 #include <spdlog/spdlog.h>
 #include <stack>
 
+#include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
 
 namespace Rendering::FrameGraph
@@ -297,6 +298,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
 {
     if (!compiled)
         return;
+    ENGINE_BEGIN_PROFILE("FrameGraph: Prepare");
     renderingData.mainCamera = &camera;
     renderingData.sceneInfo = &sceneInfo;
     renderingData.cmd = &cmd;
@@ -363,13 +365,16 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
     shaderGlobal.time = Time::TimeSinceLaunch();
     GetGfxDriver()->UploadBuffer(*shaderGlobalBuffer, (uint8_t*)&shaderGlobal, sizeof(ShaderGlobal));
     cmd.SetBuffer("Global", *shaderGlobalBuffer);
+    ENGINE_END_PROFILE
 
     for (auto& n : sortedNodes)
     {
+        ENGINE_BEGIN_PROFILE(fmt::format("FrameGraph: {}", n->GetCustomName()));
         float color[4] = {0.235294f, 0.882353f, 0.941176f, 1.0f};
         cmd.BeginLabel(n->GetCustomName(), color);
         n->Execute(renderingContext, renderingData);
         cmd.EndLabel();
+        ENGINE_END_PROFILE
     }
 }
 

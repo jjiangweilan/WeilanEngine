@@ -9,6 +9,7 @@
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "ThirdParty/imgui/implot.h"
+#include <cmath>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -159,43 +160,88 @@ bool IsAncestorOf(GameObject* ancestor, GameObject* child)
     return parent == ancestor;
 }
 
+static void ProfileTree(const ProfileScope& scope, int id)
+{
+    ImGui::PushID(id);
+    ImGuiTreeNodeFlags flags = scope.children.empty() ? ImGuiTreeNodeFlags_Leaf : 0;
+    if (ImGui::TreeNodeEx("#ProfileTree", flags, "%s - %f", scope.label.c_str(), scope.GetMilliseconds()))
+    {
+        for (auto& child : scope.children)
+        {
+            ProfileTree(child, ++id);
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+}
+
 void GameEditor::GameProfiler(Profiler& profiler)
 {
-
     auto& frameProfiles = profiler.GetFrameProfiles();
     ImGui::Begin("Profiler Module");
 
-    // Line graph
-    ImGui::Text("Frame Profiles Line Graph:");
+    ImGui::Text("Frame Profiler:");
+    ImPlot::SetNextAxisLimits(ImAxis_X1, 0, Profiler::MAX_FRAME_TRACKED);
+    ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, 16);
+
+    static int selectedFrame = 0;
+    static int actuallySelectedFrame = 0;
     if (ImPlot::BeginPlot("Frame Profiles", ImVec2(-1, 200)))
     {
+        ImPlotAxisFlags xAxesFlags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines;
+        ImPlot::SetupAxes(nullptr, nullptr, xAxesFlags, 0);
+        auto selectedPos = ImPlot::GetPlotMousePos();
         if (!frameProfiles.empty())
         {
-            std::vector<uint64_t> times;
-            for (const auto& frameProfile : frameProfiles)
+            std::vector<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
+            int oldestFrameIndex = (profiler.GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
+            if (profiler.GetTrackCycles() == 0) [[unlikely]]
             {
-                if (!frameProfile.empty())
-                    times.push_back(frameProfile.front().totalTime * 1e-3);
+                for (int i = 0; i < oldestFrameIndex; i++)
+                {
+                    auto& rootScopeProfile = frameProfiles[i];
+                    frameTimes[i] = rootScopeProfile.GetMilliseconds();
+                }
             }
-            ImPlot::PlotLine("GameLoop", times.data(), times.size());
-            // ImPlot::PlotHistogram(profile.label.c_str(), &profile.totalTime, 1, 0);
+            else
+            {
+                for (int i = 0; i < Profiler::MAX_FRAME_TRACKED; i++)
+                {
+                    auto& rootScopeProfile = frameProfiles[oldestFrameIndex];
+                    frameTimes[i] = rootScopeProfile.GetMilliseconds();
+                    oldestFrameIndex++;
+                    oldestFrameIndex %= Profiler::MAX_FRAME_TRACKED;
+                }
+            }
+
+            ImPlot::PlotLine("GameLoop", frameTimes.data(), frameTimes.size(), 1, 0);
+            if (profiler.IsPaused())
+                ImPlot::PlotInfLines("selected", &selectedFrame, 1);
+            else
+                ImPlot::PlotInfLines("selected", &selectedPos.x, 1);
+        }
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+        {
+            profiler.Pause();
+            selectedFrame = std::round(selectedPos.x);
+            actuallySelectedFrame = profiler.GetTrackCycles() == 0 ? selectedFrame : (selectedFrame + (profiler.GetLatestFrameIndex() + 1)) % Profiler::MAX_FRAME_TRACKED;
         }
 
         ImPlot::EndPlot();
     }
 
-    // Sample cursor
-    // ImGui::Text("Sample Cursor:");
-    // ImGui::SliderInt("Frame", &currentFrame, 0, MAX_FRAME_TRACKED - 1);
-
-    // Nested profile display
-    ImGui::Separator();
-    //ImGui::Text("Nested Profile for Frame %d:", currentFrame);
-    if (!frameProfiles.empty())
+    if (profiler.IsPaused())
     {
-        for (const auto& profile : frameProfiles.back())
+        if (ImGui::Button("Resume"))
         {
-            ImGui::Text("%s: Total Time: %lld microseconds", profile.label.c_str(), profile.totalTime);
+            profiler.Resume();
+        }
+
+        auto frameProfiles = profiler.GetFrameProfiles();
+        if (actuallySelectedFrame >= 0 && actuallySelectedFrame < frameProfiles.size())
+        {
+            ProfileTree(frameProfiles[actuallySelectedFrame], 0);
         }
     }
 
@@ -572,16 +618,14 @@ void GameEditor::MainMenuBar()
     ImGui::EndMainMenuBar();
 }
 
-Profiler profiler;
 void GameEditor::Start()
 {
     while (true)
     {
-        profiler.BeginFrame();
-        profiler.Begin("GameLoop");
-        auto cmd = GetGfxDriver()->CreateCommandBuffer();
+        ENGINE_BEGIN_FRAME_PROFILE
         if (engine->BeginFrame())
         {
+            auto cmd = GetGfxDriver()->CreateCommandBuffer();
             if (engine->event->GetWindowClose().state)
             {
                 return;
@@ -592,21 +636,20 @@ void GameEditor::Start()
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            profiler.Begin("Tick");
+            ENGINE_BEGIN_PROFILE("Game Tick")
             loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
-            profiler.End();
+            ENGINE_END_PROFILE
 
             cmd->Reset(true);
-            profiler.Begin("Render");
+            ENGINE_BEGIN_PROFILE("Rendering")
             Render(*cmd, gameOutputImage, gameOutputDepthImage);
-            profiler.End();
+            ENGINE_END_PROFILE
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
             engine->EndFrame();
         }
-        profiler.End();
-        profiler.EndFrame();
+        ENGINE_END_FRAME_PROFILE
     }
 }
 
@@ -655,7 +698,7 @@ void GameEditor::GUIPass()
         SceneTree(*EditorState::activeScene);
     }
 
-    GameProfiler(profiler);
+    GameProfiler(Profiler::GetSingleton());
     ConsoleOutputWindow();
 }
 
