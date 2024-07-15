@@ -1,7 +1,7 @@
 #pragma once
 #include "../NodeBlueprint.hpp"
-#include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Rendering/Shader.hpp"
 #include <random>
 
 namespace Rendering::FrameGraph
@@ -15,9 +15,14 @@ class SSAONode : public Node
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/SSAO.shad");
         noiseTex = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/noise.ktx");
 
+        material.SetShader(shader);
         if (aoType == AOType::AlchmeyAO)
         {
-            shaderProgram = shader->GetShaderProgram({"_AlchemyAO"});
+            material.EnableFeature("_AlchemyAO");
+        }
+        else if (aoType == AOType::GTAO)
+        {
+            material.EnableFeature("_GTAO");
         }
 
         input.attachment = AddInputProperty("attachment", PropertyType::Attachment);
@@ -96,14 +101,16 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false});
+                        false
+                    });
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
 
@@ -114,7 +121,8 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
         }
@@ -187,7 +195,8 @@ class SSAONode : public Node
                     *theta,
                     *sampleCount,
                     *radius,
-                    *rangeCheck};
+                    *rangeCheck
+                };
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
@@ -195,10 +204,9 @@ class SSAONode : public Node
                 }
             }
 
-#if ENGINE_DEV_BUILD
-            if (aoType == AOType::AlchmeyAO)
-                shaderProgram = shader->GetShaderProgram({"_AlchemyAO"});
-#endif
+            // #if ENGINE_DEV_BUILD
+            //             GetShaderProgram();
+            // #endif
 
             if (shader != nullptr)
             {
@@ -208,7 +216,8 @@ class SSAONode : public Node
                 cmd.SetTexture("noise", *noiseTex->GetGfxImage());
                 cmd.SetTexture(depthHandle, depth);
                 cmd.SetTexture(normalHandle, normal.id);
-                cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                cmd.BindResource(2, material.GetShaderResource());
+                cmd.BindShaderProgram(material.GetShaderProgram(), material.GetShaderConfig());
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
@@ -218,7 +227,8 @@ class SSAONode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()}};
+                inputAttachment.desc.GetHeight()
+            }};
             if (newParam != blurParams)
             {
                 blurParams = newParam;
@@ -257,8 +267,9 @@ private:
     enum class AOType
     {
         CrysisAO,
-        AlchmeyAO
-    } aoType = AOType::AlchmeyAO;
+        AlchmeyAO,
+        GTAO
+    } aoType = AOType::GTAO;
 
     Shader* shader;
     Gfx::ShaderProgram* shaderProgram;
@@ -282,6 +293,7 @@ private:
     Gfx::ShaderBindingHandle normalHandle = Gfx::ShaderBindingHandle("normal");
     Gfx::ShaderBindingHandle sourceHandle = Gfx::ShaderBindingHandle("source");
     Texture* noiseTex;
+    Material material;
 
     struct GaussianBlur
     {

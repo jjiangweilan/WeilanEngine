@@ -1,5 +1,6 @@
 #include "WeilanEngine.hpp"
 #include "Core/GameLoop.hpp"
+#include "Profiler/Profiler.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -66,6 +67,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
 bool WeilanEngine::BeginFrame()
 {
+    ENGINE_BEGIN_FRAME_PROFILE
     Time::Tick();
 
     Input::GetSingleton().Reset();
@@ -102,6 +104,7 @@ void WeilanEngine::EndFrame()
 #if ENGINE_EDITOR
     assetDatabase->RefreshShader();
 #endif
+    ENGINE_END_FRAME_PROFILE
 }
 
 GameLoop* WeilanEngine::CreateGameLoop()

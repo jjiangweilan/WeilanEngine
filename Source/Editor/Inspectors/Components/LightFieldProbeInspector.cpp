@@ -74,6 +74,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                     glm::vec3 pos = target->GetGameObject()->GetPosition() + gridMin + glm::vec3(x, y, z) * gridDelta;
                     auto probe = target->GetProbe({x, y, z});
                     auto probeIndex = target->GetProbeIndex({x, y, z});
+                    auto modelMatrix = glm::translate(glm::mat4(1.0f), pos) * glm::scale(glm::mat4(1.0f), glm::vec3(0.5f));
                     if (probe && probe->IsBaked())
                     {
                         if (showCubemapFrustum)
@@ -87,7 +88,6 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                                 }
                             }
                         }
-
                         if (probeIndex < previewMaterials.size())
                         {
                             auto& mat = previewMaterials[probeIndex];
@@ -101,15 +101,15 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
                                 mat->DisableFeature("Baked");
                                 mat->EnableFeature("Cubemap");
                             }
-                            Gizmos::DrawMesh(*sphere, 0, mat.get(), glm::translate(glm::mat4(1.0f), pos));
+                            Gizmos::DrawMesh(*sphere, 0, mat.get(), modelMatrix);
                         }
                         else
                         {
-                            Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
+                            Gizmos::DrawMesh(*sphere, 0, previewShader, modelMatrix);
                         }
                     }
                     else
-                        Gizmos::DrawMesh(*sphere, 0, previewShader, glm::translate(glm::mat4(1.0f), pos));
+                        Gizmos::DrawMesh(*sphere, 0, previewShader, modelMatrix);
                 }
             }
         }

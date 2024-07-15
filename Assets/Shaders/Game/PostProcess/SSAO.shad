@@ -4,7 +4,7 @@ name : Game / PostProcess / SSAO
 mask : B
 debug: true
 features :
-    - [ _CrysisAO, _AlchemyAO ]
+    - [ _CrysisAO, _AlchemyAO, _GTAO ]
 #endif
 
 #include "Utils/FullScreen.glsl"
@@ -145,6 +145,10 @@ float GetSSAO()
 
     return 1 - A;
 }
+#endif
+
+#ifdef _GTAO
+#include "SSAO/GTAO.glsl"
 #endif
 
 void main()

@@ -1,6 +1,7 @@
 #include "VKDataUploader.hpp"
 #include "../VKBuffer.hpp"
 #include "../VKDriver.hpp"
+#include "Profiler/Profiler.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx
@@ -96,6 +97,7 @@ void VKDataUploader::UploadImage(
 
 void VKDataUploader::WaitForUploadFinish()
 {
+    ENGINE_SCOPED_PROFILE("VKDataUploader::WaitForUploadFinish");
     vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
 }
 
@@ -103,6 +105,8 @@ void VKDataUploader::UploadAllPending(
     VkSemaphore signalSemaphore, VkSemaphore waitSemaphore, VkPipelineStageFlags waitStages
 )
 {
+    ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
+
     vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
     vkResetFences(driver->device.handle, 1, &fence);
     vkResetCommandBuffer(cmd, 0);

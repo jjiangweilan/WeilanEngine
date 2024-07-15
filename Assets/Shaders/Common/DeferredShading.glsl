@@ -9,4 +9,5 @@ vec3 DecodeGBufferNormal(vec3 normal)
 {
     return normal * 2 - 1;
 }
+
 #endif

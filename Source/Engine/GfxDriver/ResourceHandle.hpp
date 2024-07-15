@@ -10,10 +10,7 @@ class ShaderBindingHandle
 {
 public:
     ShaderBindingHandle() : hash(0) {}
-    ShaderBindingHandle(const std::string_view& name) : hash(XXH3_64bits((void*)name.data(), name.size()))
-    {
-        // spdlog::info("hash {}, result {}, size {}", name, hash, name.size());
-    }
+    ShaderBindingHandle(const std::string_view& name) : hash(XXH3_64bits((void*)name.data(), name.size())) {}
 
     uint64_t operator()() const
     {

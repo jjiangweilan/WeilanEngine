@@ -94,7 +94,6 @@ private:
         VKRenderPass* renderPass;
     } exeState;
 
-    std::vector<VKCmd> previousSchedulingCmds;
     std::vector<VKCmd> currentSchedulingCmds;
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;

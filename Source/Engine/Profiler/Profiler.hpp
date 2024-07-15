@@ -143,6 +143,20 @@ private:
     std::chrono::high_resolution_clock::time_point currentFrameStart;
 };
 
+struct ScopedProfile
+{
+    ScopedProfile(std::string_view label)
+    {
+        Profiler::GetSingleton().Begin(label);
+    }
+    ~ScopedProfile()
+    {
+        Profiler::GetSingleton().End();
+    }
+};
+
+#define ENGINE_SCOPED_PROFILE(label) ScopedProfile _engine_scopedProfile(label);
+
 #define ENGINE_BEGIN_PROFILE(scopeName) Profiler::GetSingleton().Begin(scopeName);
 #define ENGINE_END_PROFILE Profiler::GetSingleton().End();
 

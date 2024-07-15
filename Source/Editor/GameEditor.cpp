@@ -194,7 +194,8 @@ void GameEditor::GameProfiler(Profiler& profiler)
         if (!frameProfiles.empty())
         {
             std::vector<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
-            int oldestFrameIndex = (profiler.GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
+            int oldestFrameIndex =
+                (profiler.GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
             if (profiler.GetTrackCycles() == 0) [[unlikely]]
             {
                 for (int i = 0; i < oldestFrameIndex; i++)
@@ -217,7 +218,7 @@ void GameEditor::GameProfiler(Profiler& profiler)
             ImPlot::PlotLine("GameLoop", frameTimes.data(), frameTimes.size(), 1, 0);
             if (profiler.IsPaused())
                 ImPlot::PlotInfLines("selected", &selectedFrame, 1);
-            else
+            else if (ImGui::IsWindowHovered())
                 ImPlot::PlotInfLines("selected", &selectedPos.x, 1);
         }
 
@@ -225,7 +226,10 @@ void GameEditor::GameProfiler(Profiler& profiler)
         {
             profiler.Pause();
             selectedFrame = std::round(selectedPos.x);
-            actuallySelectedFrame = profiler.GetTrackCycles() == 0 ? selectedFrame : (selectedFrame + (profiler.GetLatestFrameIndex() + 1)) % Profiler::MAX_FRAME_TRACKED;
+            actuallySelectedFrame =
+                profiler.GetTrackCycles() == 0
+                    ? selectedFrame
+                    : (selectedFrame + (profiler.GetLatestFrameIndex() + 1)) % Profiler::MAX_FRAME_TRACKED;
         }
 
         ImPlot::EndPlot();
@@ -622,7 +626,6 @@ void GameEditor::Start()
 {
     while (true)
     {
-        ENGINE_BEGIN_FRAME_PROFILE
         if (engine->BeginFrame())
         {
             auto cmd = GetGfxDriver()->CreateCommandBuffer();
@@ -636,20 +639,15 @@ void GameEditor::Start()
             auto sceneImage = gameView.GetSceneImage();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            ENGINE_BEGIN_PROFILE("Game Tick")
             loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
-            ENGINE_END_PROFILE
 
             cmd->Reset(true);
-            ENGINE_BEGIN_PROFILE("Rendering")
             Render(*cmd, gameOutputImage, gameOutputDepthImage);
-            ENGINE_END_PROFILE
 
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
             engine->EndFrame();
         }
-        ENGINE_END_FRAME_PROFILE
     }
 }
 

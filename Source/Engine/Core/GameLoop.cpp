@@ -30,6 +30,8 @@ const void GameLoop::Tick(
     const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
 )
 {
+    ENGINE_SCOPED_PROFILE("GameLoop - Tick");
+
     if (scene == nullptr || camera == nullptr)
         return;
 

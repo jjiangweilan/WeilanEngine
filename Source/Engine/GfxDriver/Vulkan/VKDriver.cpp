@@ -3,6 +3,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "Profiler/Profiler.hpp"
 #include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
 #include "VKCommandBuffer.hpp"
@@ -475,6 +476,7 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 
 bool VKDriver::BeginFrame()
 {
+    ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
     // acquire next swapchain
     VkResult acquireResult = vkAcquireNextImageKHR(
         device.handle,
@@ -551,6 +553,8 @@ void VKDriver::FlushPendingCommands()
 
 bool VKDriver::EndFrame()
 {
+    ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
+
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
 
@@ -573,6 +577,7 @@ bool VKDriver::EndFrame()
     renderGraph->Schedule(cmd2);
 
     // record scheduled commands
+    ENGINE_BEGIN_PROFILE("VKDriver - Record Commands")
     auto cmd = inflightData[currentInflightIndex].cmd;
 
     vkResetCommandBuffer(cmd, 0);
@@ -587,6 +592,7 @@ bool VKDriver::EndFrame()
     renderGraph->Execute(cmd);
 
     vkEndCommandBuffer(cmd);
+    ENGINE_END_PROFILE
 
     VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
@@ -639,6 +645,7 @@ bool VKDriver::EndFrame()
     }
 
     FrameEndClear();
+
     // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers
     // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
     // uploads it
