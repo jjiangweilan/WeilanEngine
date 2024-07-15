@@ -2,6 +2,7 @@
 #define GTAO_INCLUDED
 
 #include "Common/SceneInfo.glsl"
+#include "Common/DeferredShading.glsl"
 
 layout(set = 0, binding = 3) uniform sampler2D normal_point;
 layout(set = 2, binding = 0) uniform GTAO
@@ -15,15 +16,15 @@ vec3 GetPostionVS(vec3 ndcPos)
     return posVS.xyz / posVS.w;
 }
 
-#define GTAO_SLICE_COUNT 8
+#define GTAO_SLICE_COUNT 32
 #define GTAO_DIRECTION_SAMPLE_COUNT 16
 #define GTAO_PI_HALF 1.5707963267f
 
 float GetSSAO()
 {
     float depthVal = texture(depth_clamp, uv).x;
-    vec3 normalVS = mat3(scene.view) * texture(normal_point, uv).xyz;
     vec3 posVS = GetPostionVS(vec3(uv * 2 - 1, depthVal));
+    vec3 normalVS = NormalReconstruction(posVS);
     vec3 viewVS = normalize(-posVS);
 
     float visibility = 0;
@@ -38,11 +39,11 @@ float GetSSAO()
         vec3 axisV = cross(dirV, viewVS);
         vec3 projNormalV = normalVS - axisV * dot(normalVS, axisV);
 
-        float signN = sign(dot(orthoDirectionV, projNormalV));
-        float cosN = clamp(dot(projNormalV, viewVS), 0.0f, 1.0f);
-        float n = signN * acos(cosN);
-
         const float projNormalLength = length(projNormalV);
+
+        float signN = sign(dot(orthoDirectionV, projNormalV));
+        float cosN = clamp(dot(projNormalV, viewVS) / projNormalLength, 0.0f, 1.0f);
+        float n = signN * acos(cosN);
 
         for (int side = 0; side <= 1; ++side)
         {
@@ -52,7 +53,7 @@ float GetSSAO()
                 float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
                 vec2 sTexCoord = uv + (-1 + 2 * side) * s * gtao.scaling * vec2(omega[0], -omega[1]);
                 float sDepth = texture(depth_clamp, sTexCoord).x;
-                vec3 sPosV = GetPostionVS(vec3(sTexCoord, sDepth));
+                vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
                 vec3 sHorizonV = normalize(sPosV - posVS);
                 cHorizonCos = max(cHorizonCos, dot(sHorizonV, viewVS));
             }

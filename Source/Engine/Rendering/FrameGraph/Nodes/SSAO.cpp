@@ -41,6 +41,7 @@ class SSAONode : public Node
         AddConfig<ConfigurableType::Float>("self bias", 0.001f);
         AddConfig<ConfigurableType::Float>("theta", 1.0f);
         AddConfig<ConfigurableType::Float>("sample count", 8.f);
+        AddConfig<ConfigurableType::Float>("gtao - scaling", 0.1f);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -91,6 +92,7 @@ class SSAONode : public Node
         theta = GetConfigurablePtr<float>("theta");
         beta = GetConfigurablePtr<float>("self bias");
         sampleCount = GetConfigurablePtr<float>("sample count");
+        gtaoScaling = GetConfigurablePtr<float>("gtao - scaling");
 
         switch (aoType)
         {
@@ -168,6 +170,7 @@ class SSAONode : public Node
     {
         auto& cmd = *renderingData.cmd;
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
+
         if (*enable)
         {
             auto depth = input.depth->GetValue<AttachmentProperty>().id;
@@ -202,6 +205,10 @@ class SSAONode : public Node
                     alchmey = newParam;
                     GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&alchmey, sizeof(Alchmey));
                 }
+            }
+            else if (aoType == AOType::GTAO)
+            {
+                material.SetFloat("GTAO", "scaling", *gtaoScaling);
             }
 
             // #if ENGINE_DEV_BUILD
@@ -281,6 +288,7 @@ private:
     float* radius;
     float* rangeCheck;
     float* sampleCount;
+    float* gtaoScaling;
 
     bool* enable;
     int* blurCount;
