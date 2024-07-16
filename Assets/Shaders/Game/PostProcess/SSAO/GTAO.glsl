@@ -16,8 +16,8 @@ vec3 GetPostionVS(vec3 ndcPos)
     return posVS.xyz / posVS.w;
 }
 
-#define GTAO_SLICE_COUNT 32
-#define GTAO_DIRECTION_SAMPLE_COUNT 16
+#define GTAO_SLICE_COUNT 1
+#define GTAO_DIRECTION_SAMPLE_COUNT 1
 #define GTAO_PI_HALF 1.5707963267f
 
 float GetSSAO()
@@ -32,6 +32,7 @@ float GetSSAO()
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
         float phi = float(slice) * 3.1415926 / float(GTAO_SLICE_COUNT);
+
         vec2 omega = vec2(cos(phi), sin(phi));
 
         vec3 dirV = vec3(omega, 0);
@@ -51,15 +52,23 @@ float GetSSAO()
             for (int sampleIndex = 0; sampleIndex < GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
             {
                 float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-                vec2 sTexCoord = uv + (-1 + 2 * side) * s * gtao.scaling * vec2(omega[0], -omega[1]);
+                vec2 scaling = scene.screenSize.zw * gtao.scaling;
+                vec2 sTexCoord = uv + (2 * side - 1) * s * scaling * vec2(omega[0], -omega[1]);
                 float sDepth = texture(depth_clamp, sTexCoord).x;
                 vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
                 vec3 sHorizonV = normalize(sPosV - posVS);
                 cHorizonCos = max(cHorizonCos, dot(sHorizonV, viewVS));
             }
 
-            float hSide = n + clamp((-1 + 2 * side) * acos(cHorizonCos) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
-            visibility = visibility + projNormalLength * (cosN + 2 * hSide * sin(n) - cos(2 * hSide - n)) / 4;
+            if (isnan(cHorizonCos))
+            {
+                visibility += 1;
+            }
+            else
+            {
+                float hSide = n + clamp((2 * side - 1) * acos(cHorizonCos) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
+                visibility += projNormalLength * (cosN + 2 * hSide * sin(n) - cos(2 * hSide - n)) * 0.25;
+            }
         }
     }
 
