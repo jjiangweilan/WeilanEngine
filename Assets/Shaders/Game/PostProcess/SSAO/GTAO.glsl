@@ -8,6 +8,7 @@ layout(set = 0, binding = 3) uniform sampler2D normal_point;
 layout(set = 2, binding = 0) uniform GTAO
 {
     float scaling;
+    float falloff;
 } gtao;
 
 vec3 GetPostionVS(vec3 ndcPos)
@@ -52,7 +53,6 @@ float GetSSAO()
 
     float visibility = 0;
 
-    vec2 cHorizonCos = vec2(-1.0f, -1.0f);
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
         float phi = float(slice) * 3.1415926 / float(GTAO_SLICE_COUNT);
@@ -70,6 +70,7 @@ float GetSSAO()
         float cosN = clamp(dot(projNormalV, viewVS) / projNormalLength, 0.0f, 1.0f);
         float n = signN * acos(cosN);
 
+        vec2 cHorizonCos = vec2(-1.0f, -1.0f);
         for (int side = 0; side <= 1; ++side)
         {
             for (int sampleIndex = 0; sampleIndex < GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
@@ -79,7 +80,16 @@ float GetSSAO()
                 vec2 sTexCoord = uv + (2 * side - 1) * s * scaling * vec2(omega[0], -omega[1]);
                 float sDepth = texture(depth_clamp, sTexCoord).x;
                 vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
-                cHorizonCos[side] = sPosV != posVS ? max(cHorizonCos[side], dot(normalize(sPosV - posVS), viewVS)) : -2;
+
+                if(sPosV != posVS)
+                {
+                    float distSqr = dot(sPosV - posVS, sPosV - posVS);
+                    float distFalloff = clamp(distSqr * gtao.falloff, 0, 1);
+                    float horizonCos = mix(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
+                    cHorizonCos[side] =  max(cHorizonCos[side], horizonCos);
+                }
+                else
+                    cHorizonCos[side] = -2;
             }
 
         }

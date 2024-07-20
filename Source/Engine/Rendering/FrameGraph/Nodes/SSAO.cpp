@@ -42,6 +42,7 @@ class SSAONode : public Node
         AddConfig<ConfigurableType::Float>("theta", 1.0f);
         AddConfig<ConfigurableType::Float>("sample count", 8.f);
         AddConfig<ConfigurableType::Float>("gtao - scaling", 0.1f);
+        AddConfig<ConfigurableType::Float>("gtao - falloff", 0.1f);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -93,6 +94,7 @@ class SSAONode : public Node
         beta = GetConfigurablePtr<float>("self bias");
         sampleCount = GetConfigurablePtr<float>("sample count");
         gtaoScaling = GetConfigurablePtr<float>("gtao - scaling");
+        gtaoFalloff = GetConfigurablePtr<float>("gtao - falloff");
 
         switch (aoType)
         {
@@ -209,6 +211,7 @@ class SSAONode : public Node
             else if (aoType == AOType::GTAO)
             {
                 material.SetFloat("GTAO", "scaling", *gtaoScaling);
+                material.SetFloat("GTAO", "falloff", *gtaoFalloff);
             }
 
             // #if ENGINE_DEV_BUILD
@@ -289,6 +292,7 @@ private:
     float* rangeCheck;
     float* sampleCount;
     float* gtaoScaling;
+    float* gtaoFalloff;
 
     bool* enable;
     int* blurCount;
