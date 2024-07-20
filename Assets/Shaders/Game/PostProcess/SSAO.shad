@@ -1,7 +1,7 @@
 #version 460
 #if CONFIG
 name : Game / PostProcess / SSAO
-mask : B
+// mask : B
 debug: true
 features :
     - [ _CrysisAO, _AlchemyAO, _GTAO ]
