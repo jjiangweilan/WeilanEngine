@@ -7,6 +7,7 @@ ShaderPass GBuffer
 
 #if CONFIG
 name: Game/SceneLit
+debug: true
 features:
     - [_, _AlphaTest]
     - [_, _BaseColorMap]

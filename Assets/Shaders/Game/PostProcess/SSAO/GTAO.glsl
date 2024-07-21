@@ -3,6 +3,7 @@
 
 #include "Common/SceneInfo.glsl"
 #include "Common/DeferredShading.glsl"
+#include "Utils/NormalReconstruction.glsl"
 
 layout(set = 0, binding = 3) uniform sampler2D normal_point;
 layout(set = 2, binding = 0) uniform GTAO
@@ -17,8 +18,8 @@ vec3 GetPostionVS(vec3 ndcPos)
     return posVS.xyz / posVS.w;
 }
 
-#define GTAO_SLICE_COUNT 16
-#define GTAO_DIRECTION_SAMPLE_COUNT 16
+#define GTAO_SLICE_COUNT 8
+#define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI_HALF 1.5707963267f
 
 // float CalculateHorizon(int side, vec3 posVS, vec3 viewVS, vec2 omega)
@@ -44,11 +45,13 @@ vec3 GetPostionVS(vec3 ndcPos)
 //     return cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
 // }
 
-float GetSSAO()
+vec3 GetSSAO()
 {
     float depthVal = texture(depth_clamp, uv).x;
     vec3 posVS = GetPostionVS(vec3(uv * 2 - 1, depthVal));
-    vec3 normalVS = NormalReconstruction(posVS);
+    // vec3 normalVS = NormalReconstructionLow(posVS);
+    vec3 normalVS = NormalReconstructionMedium(depth_clamp, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection);
+    return normalVS;
     vec3 viewVS = normalize(-posVS);
 
     float visibility = 0;
@@ -106,7 +109,7 @@ float GetSSAO()
         }
     }
     visibility /= GTAO_SLICE_COUNT;
-    return visibility;
+    return vec3(visibility);
 }
 
 

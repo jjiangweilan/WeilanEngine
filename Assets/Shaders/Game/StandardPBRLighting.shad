@@ -10,7 +10,6 @@ features:
     - [ _, _AlphaTest ]
 depth:
     testEnable: False
-debug: True
 #endif
 
 #define LOC_ShadowMapCS 5
