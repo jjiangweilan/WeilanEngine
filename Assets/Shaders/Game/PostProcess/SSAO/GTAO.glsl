@@ -45,13 +45,10 @@ vec3 GetPostionVS(vec3 ndcPos)
 //     return cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
 // }
 
-vec3 GetSSAO()
+float GetSSAO()
 {
-    float depthVal = texture(depth_clamp, uv).x;
-    vec3 posVS = GetPostionVS(vec3(uv * 2 - 1, depthVal));
-    // vec3 normalVS = NormalReconstructionLow(posVS);
-    vec3 normalVS = NormalReconstructionMedium(depth_clamp, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection);
-    return normalVS;
+    vec3 posVS;
+    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
     vec3 viewVS = normalize(-posVS);
 
     float visibility = 0;
@@ -81,7 +78,7 @@ vec3 GetSSAO()
                 float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
                 vec2 scaling = scene.screenSize.zw * gtao.scaling;
                 vec2 sTexCoord = uv + (2 * side - 1) * s * scaling * vec2(omega[0], -omega[1]);
-                float sDepth = texture(depth_clamp, sTexCoord).x;
+                float sDepth = texture(depthTex, sTexCoord).x;
                 vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
 
                 if(sPosV != posVS)
@@ -108,8 +105,9 @@ vec3 GetSSAO()
             visibility += 0.25 * projNormalLength * (finalSide.x + finalSide.y);
         }
     }
+
     visibility /= GTAO_SLICE_COUNT;
-    return vec3(visibility);
+    return visibility;
 }
 
 
