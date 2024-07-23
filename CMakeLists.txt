@@ -16,7 +16,7 @@ include(FetchContent)
 if(NOT USE_VULKAN_SDK_TOOLS)
     FetchContent_Declare(SPIRV-Cross
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
-        GIT_TAG vulkan-sdk-1.3.275.0 # match the least sdk
+        GIT_TAG vulkan-sdk-1.3.290.0 # match the least sdk
         UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
@@ -27,7 +27,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
 
     FetchContent_Declare(SPIRV-Headers
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers.git
-        GIT_TAG 8b246ff75c6615ba4532fe4fde20f1be090c3764
+        GIT_TAG 5e3ad389ee56fca27c9705d093ae5387ce404df4
         UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
@@ -37,7 +37,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
 
     FetchContent_Declare(SPIRV-Tools
         GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools.git
-        GIT_TAG 04896c462d9f3f504c99a4698605b6524af813c1
+        GIT_TAG dd4b663e13c07fea4fbb3f70c1c91c86731099f7
         UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
@@ -48,7 +48,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
 
     FetchContent_Declare(glslang
         GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-        GIT_TAG d73712b8f6c9047b09e99614e20d456d5ada2390
+        GIT_TAG 142052fa30f9eca191aa9dcf65359fcaed09eeec
         UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
@@ -62,7 +62,7 @@ if(NOT USE_VULKAN_SDK_TOOLS)
 
     FetchContent_Declare(shaderc
         GIT_REPOSITORY https://github.com/google/shaderc.git
-        GIT_TAG v2024.0
+        GIT_TAG v2024.1
         UPDATE_DISCONNECTED TRUE
         GIT_PROGRESS TRUE
         )
