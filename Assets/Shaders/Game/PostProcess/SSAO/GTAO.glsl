@@ -22,28 +22,31 @@ vec3 GetPostionVS(vec3 ndcPos)
 #define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI_HALF 1.5707963267f
 
-// float CalculateHorizon(int side, vec3 posVS, vec3 viewVS, vec2 omega)
-// {
-//     float cHorizonCos = -1.0f;
-//     for (int sampleIndex = 0; sampleIndex < GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
-//     {
-//         float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-//         vec2 scaling = scene.screenSize.zw * gtao.scaling;
-//         vec2 sTexCoord = uv + side * s * scaling * vec2(omega[0], -omega[1]);
-//         float sDepth = texture(depth_clamp, sTexCoord).x;
-//         vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
-//         vec3 sHorizonV = normalize(sPosV - posVS);
-//         cHorizonCos = max(cHorizonCos, dot(sHorizonV, viewVS));
-//     }
-//
-//     return cHorizonCos
-// }
-//
-// float CalculateSide(int side, float horizon)
-// {
-//     float hSide = n + clamp(side * acos(horizon) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
-//     return cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
-// }
+// side: -1 or 1
+float UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS)
+{
+    float cHorizonCos = -1;
+    for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
+    {
+        float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
+        vec2 scaling = scene.screenSize.zw * gtao.scaling;
+        vec2 sTexCoord = uv + side * s * scaling * vec2(omega[0], -omega[1]);
+        float sDepth = texture(depthTex, sTexCoord).x;
+        vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
+
+        if(sPosV != posVS)
+        {
+            float distSqr = dot(sPosV - posVS, sPosV - posVS);
+            float distFalloff = clamp(distSqr * gtao.falloff, 0, 1);
+            float horizonCos = mix(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
+            cHorizonCos = max(cHorizonCos, horizonCos);
+        }
+        else
+            cHorizonCos = -2;
+    }
+
+    return cHorizonCos;
+}
 
 float GetSSAO()
 {
@@ -71,28 +74,8 @@ float GetSSAO()
         float n = signN * acos(cosN);
 
         vec2 cHorizonCos = vec2(-1.0f, -1.0f);
-        for (int side = 0; side <= 1; ++side)
-        {
-            for (int sampleIndex = 0; sampleIndex < GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
-            {
-                float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-                vec2 scaling = scene.screenSize.zw * gtao.scaling;
-                vec2 sTexCoord = uv + (2 * side - 1) * s * scaling * vec2(omega[0], -omega[1]);
-                float sDepth = texture(depthTex, sTexCoord).x;
-                vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
-
-                if(sPosV != posVS)
-                {
-                    float distSqr = dot(sPosV - posVS, sPosV - posVS);
-                    float distFalloff = clamp(distSqr * gtao.falloff, 0, 1);
-                    float horizonCos = mix(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
-                    cHorizonCos[side] =  max(cHorizonCos[side], horizonCos);
-                }
-                else
-                    cHorizonCos[side] = -2;
-            }
-
-        }
+        cHorizonCos.x = UpdateHorizon(omega, -1, posVS, viewVS);
+        cHorizonCos.y = UpdateHorizon(omega, 1, posVS, viewVS);
 
         if (any(equal(cHorizonCos,vec2(-2))))
         {
