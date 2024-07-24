@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
 
-option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdl tools, useful when we want to build in Debug build type" OFF)
+option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
 
 include(CheckIPOSupported)
 include(FetchContent)
@@ -83,6 +83,7 @@ FetchContent_Declare(SDL2
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     )
+set(SDL_SHARED ON)
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(fmt
