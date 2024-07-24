@@ -20,26 +20,27 @@ void ImageNode::Execute(RenderingContext& renderContext, RenderingData& renderin
 {
     auto& cmd = *renderingData.cmd;
     const auto& screenSize = renderingData.screenSize;
-    if (size->x == 0)
+    auto size = abs(*this->size);
+    if (size.x == 0)
     {
         desc.SetWidth(screenSize.x);
     }
-    else if (size->x < 0)
+    else if (size.x < 1.0f)
     {
-        desc.SetWidth(screenSize.x * -size->x);
+        desc.SetWidth(screenSize.x * size.x);
     }
     else
-        desc.SetWidth(size->x);
-    if (size->y == 0)
+        desc.SetWidth(size.x);
+    if (size.y == 0)
     {
         desc.SetHeight(screenSize.y);
     }
-    else if (size->y < 0)
+    else if (size.y < 1.0f)
     {
-        desc.SetHeight(screenSize.y * -size->y);
+        desc.SetHeight(screenSize.y * size.y);
     }
     else
-        desc.SetHeight(size->y);
+        desc.SetHeight(size.y);
     desc.SetFormat(*format);
     cmd.AllocateAttachment(id, desc);
     output.attachment->SetValue(AttachmentProperty{id, desc});

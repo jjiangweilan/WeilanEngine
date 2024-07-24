@@ -4,7 +4,6 @@
 #include "Rendering/Shader.hpp"
 #include <spdlog/spdlog.h>
 
-
 namespace Rendering::FrameGraph
 {
 class LightingPassNode : public Node
@@ -15,6 +14,7 @@ class LightingPassNode : public Node
         input.albedo = AddInputProperty("albedo", PropertyType::Attachment);
         input.normal = AddInputProperty("normal", PropertyType::Attachment);
         input.mask = AddInputProperty("mask", PropertyType::Attachment);
+        input.ao = AddInputProperty("ao", PropertyType::Attachment);
         input.depth = AddInputProperty("depth", PropertyType::Attachment);
         input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
         input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
@@ -85,6 +85,7 @@ class LightingPassNode : public Node
         AttachmentProperty colorProp = input.color->GetValue<AttachmentProperty>();
         AttachmentProperty albedoProp = input.albedo->GetValue<AttachmentProperty>();
         AttachmentProperty normalProp = input.normal->GetValue<AttachmentProperty>();
+        AttachmentProperty aoProp = input.ao->GetValue<AttachmentProperty>();
         AttachmentProperty maskProp = input.mask->GetValue<AttachmentProperty>();
         AttachmentProperty depthProp = input.depth->GetValue<AttachmentProperty>();
         drawList = input.drawList->GetValue<DrawList*>();
@@ -109,6 +110,7 @@ class LightingPassNode : public Node
         cmd.SetTexture("normalTex", normalProp.id);
         cmd.SetTexture("maskTex", maskProp.id);
         cmd.SetTexture("depthTex", depthProp.id);
+        cmd.SetTexture("aoMap", aoProp.id);
         cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassConfig);
         cmd.BindResource(1, shaderResource.get());
         cmd.Draw(6, 1, 0, 0);
@@ -141,6 +143,7 @@ private:
         PropertyHandle albedo;
         PropertyHandle normal;
         PropertyHandle mask;
+        PropertyHandle ao;
         PropertyHandle depth;
         PropertyHandle shadowMap;
         PropertyHandle drawList;

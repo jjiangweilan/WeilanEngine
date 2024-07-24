@@ -11,7 +11,7 @@ class SSAONode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(SSAONode)
     {
-        SetCustomName("SSAO z channel");
+        SetCustomName("SSAO");
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/SSAO.shad");
         noiseTex = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/noise.ktx");
 

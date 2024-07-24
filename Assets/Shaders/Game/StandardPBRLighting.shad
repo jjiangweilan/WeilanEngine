@@ -41,15 +41,17 @@ layout(set = 0, binding = 6) uniform sampler2D albedoTex;
 layout(set = 0, binding = 7) uniform sampler2D normalTex;
 layout(set = 0, binding = 8) uniform sampler2D maskTex;
 layout(set = 0, binding = 9) uniform sampler2D depthTex;
+layout(set = 0, binding = 10) uniform sampler2D aoMap;
 layout(set = 0, binding = 11) uniform TileComputeParams
 {
     vec4 tileSize;
     float bucketCount;
 };
-layout(std430, set = 0, binding = 10) readonly buffer Tiles
+layout(std430, set = 0, binding = 12) readonly buffer Tiles
 {
     uint buckets[];
 };
+
 layout(set = 1) uniform ShadingProperties
 {
     float shadowConstantBias;
@@ -127,7 +129,7 @@ void main()
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
     float roughness = mask.y;
-    float ao = mask.z;
+    float ao = texture(aoMap, i_UV).x;
     vec3 baseColor = texture(albedoTex, i_UV).xyz;
     float depth = texture(depthTex, i_UV).x;
     vec4 positionWS = scene.invNDCToWorld * vec4(i_UV * 2 - 1, depth, 1.0);

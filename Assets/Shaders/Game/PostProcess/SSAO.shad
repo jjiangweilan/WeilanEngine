@@ -1,8 +1,6 @@
 #version 460
 #if CONFIG
 name : Game / PostProcess / SSAO
-mask : B
-// debug: true
 features :
     - [ _CrysisAO, _AlchemyAO, _GTAO ]
 #endif
@@ -17,7 +15,7 @@ features :
 #include "Utils/NormalReconstruction.glsl"
 
 layout(location = 0) in vec2 uv;
-layout(location = 0) out vec4 oAO;
+layout(location = 0) out float oAO;
 
 layout(set = 0, binding = 1) uniform sampler2D depth_point_clamp;
 layout(set = 0, binding = 2) uniform sampler2D noise_linear;
@@ -149,7 +147,7 @@ float GetSSAO()
 void main()
 {
     float occlusion = GetSSAO();
-    oAO = vec4(0, 0, occlusion, 0);
+    oAO = occlusion;
 }
 
 #endif
