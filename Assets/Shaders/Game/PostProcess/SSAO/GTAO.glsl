@@ -27,13 +27,13 @@ vec3 GetPostionVS(vec3 ndcPos)
 #define GTAO_VISIBILITY_MASK 1
 #if GTAO_VISIBILITY_MASK
 
-#define GTAO_VISIBILITY_MASK_THICKNESS 1f
+#define GTAO_VISIBILITY_MASK_THICKNESS 0.3f
 
 uint UpdateSectors(float minHorizon, float maxHorizon, uint globalOccludedBitfield)
 {
     uint startHorizonInt = uint(minHorizon * GTAO_VISIBILITY_MASK_SECTOR_COUNT);
     uint angleHorizonInt = uint(ceil((maxHorizon-minHorizon) * GTAO_VISIBILITY_MASK_SECTOR_COUNT));
-    uint angleHorizonBitfield = angleHorizonInt > 0 ? (0xFFFFFFFF >> (GTAO_VISIBILITY_MASK_SECTOR_COUNT - angleHorizonInt)) : 0;
+    uint angleHorizonBitfield = angleHorizonInt > 0 ? uint(0xFFFFFFFFu >> (GTAO_VISIBILITY_MASK_SECTOR_COUNT - angleHorizonInt)) : 0;
     uint currentOccludedBitfield = angleHorizonBitfield << startHorizonInt;
     return globalOccludedBitfield | currentOccludedBitfield;
 }
@@ -58,7 +58,7 @@ void UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS, float sign, fl
 
             float samplingDirection = sign;
             // Shift sample from V to normal, clamp in [0..1]
-            frontBackHorizon = clamp(((samplingDirection * frontBackHorizon) - N + GTAO_PI_HALF) / GTAO_PI, 0, 1);
+            frontBackHorizon = clamp(((samplingDirection * -frontBackHorizon) - N + GTAO_PI_HALF) / GTAO_PI, 0, 1);
 
             // Sampling direction inverts min/max angles
             frontBackHorizon = samplingDirection >= 0 ? frontBackHorizon.yx : frontBackHorizon.xy;
