@@ -1,6 +1,7 @@
 #version 460
 #if CONFIG
 name : Game / PostProcess / SSAO
+debug: true
 features :
     - [ _CrysisAO, _AlchemyAO, _GTAO ]
 #endif

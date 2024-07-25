@@ -327,7 +327,7 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
     }
     ed::Resume();
 
-    if (ImGui::IsKeyDown(ImGuiKey_Delete))
+    if (ImGui::IsKeyDown(ImGuiKey_Delete) || (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_X)))
     {
         int count = ed::GetSelectedObjectCount();
         std::vector<ed::LinkId> links(count);
