@@ -46,7 +46,7 @@ class SSAONode : public Node
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
-            Gfx::AttachmentLoadOperation::Load,
+            Gfx::AttachmentLoadOperation::Clear,
             Gfx::AttachmentStoreOperation::Store,
         }};
         mainPass = Gfx::RG::RenderPass(1, 1);
@@ -132,10 +132,10 @@ class SSAONode : public Node
         }
 
         Gfx::ClearValue v;
-        v.color.float32[0] = 0;
-        v.color.float32[1] = 0;
-        v.color.float32[2] = 0;
-        v.color.float32[3] = 0;
+        v.color.float32[0] = 1;
+        v.color.float32[1] = 1;
+        v.color.float32[2] = 1;
+        v.color.float32[3] = 1;
         clears = {v};
 
         if (aoType == AOType::CrysisAO)
@@ -268,6 +268,12 @@ class SSAONode : public Node
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }
+        }
+        else
+        {
+            mainPass.SetAttachment(0, inputAttachment.id);
+            cmd.BeginRenderPass(mainPass, clears);
+            cmd.EndRenderPass();
         }
 
         output.color->SetValue(input.attachment->GetValue<AttachmentProperty>());
