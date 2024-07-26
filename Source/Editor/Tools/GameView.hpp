@@ -54,6 +54,7 @@ private:
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;
     bool useViewCamera = true;
+    float editorCameraSpeed = 5.0f;
 
     struct
     {

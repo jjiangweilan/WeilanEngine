@@ -186,7 +186,7 @@ static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vec
     }
 }
 
-static void EditorCameraWalkAround(Camera& editorCamera)
+static void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
     if (!ImGui::IsWindowHovered())
         return;
@@ -201,7 +201,14 @@ static void EditorCameraWalkAround(Camera& editorCamera)
         glm::vec3 up = glm::normalize(model[1]);
         glm::vec3 forward = glm::normalize(model[2]);
 
-        float speed = 10 * Time::DeltaTime();
+        if (ImGui::IsKeyPressed(ImGuiKey_LeftAlt))
+        {
+            float change = ImGui::GetIO().MouseWheel;
+            editorCameraSpeed += change;
+            if (change != 0)
+                spdlog::info("change editor camera speed to {}", editorCameraSpeed);
+        }
+        float speed = editorCameraSpeed * Time::DeltaTime();
         glm::vec3 dir = glm::vec3(0);
         if (ImGui::IsKeyDown(ImGuiKey_D))
         {
@@ -458,7 +465,7 @@ bool GameView::Tick()
     }
 
     if (useViewCamera)
-        EditorCameraWalkAround(*editorCamera);
+        EditorCameraWalkAround(*editorCamera, editorCameraSpeed);
 
     // create scene color if it's null or if the window size is changed
     const auto contentMax = ImGui::GetWindowContentRegionMax();
