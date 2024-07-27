@@ -67,35 +67,6 @@ void UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS, float sign, fl
         }
     }
 }
-#else
-// side: -1 or 1
-float UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS)
-{
-    float cHorizonCos = -1;
-    for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
-    {
-        float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-        vec2 scaling = scene.screenSize.zw * gtao.scaling;
-        vec2 sTexCoord = uv + side * s * scaling * vec2(omega[0], -omega[1]);
-        float sDepth = texture(depthTex, sTexCoord).x;
-        vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
-
-        if(sPosV != posVS)
-        {
-            float distSqr = dot(sPosV - posVS, sPosV - posVS);
-            float distFalloff = clamp(distSqr * gtao.falloff, 0, 1);
-            float horizonCos = mix(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
-            cHorizonCos = max(cHorizonCos, horizonCos);
-        }
-        else
-            cHorizonCos = -2;
-    }
-
-    return cHorizonCos;
-}
-#endif
-
-#if GTAO_VISIBILITY_MASK
 
 float GetSSAO()
 {
@@ -133,6 +104,32 @@ float GetSSAO()
 }
 
 #else
+// side: -1 or 1
+float UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS)
+{
+    float cHorizonCos = -1;
+    for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
+    {
+        float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
+        vec2 scaling = scene.screenSize.zw * gtao.scaling;
+        vec2 sTexCoord = uv + side * s * scaling * vec2(omega[0], -omega[1]);
+        float sDepth = texture(depthTex, sTexCoord).x;
+        vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
+
+        if(sPosV != posVS)
+        {
+            float distSqr = dot(sPosV - posVS, sPosV - posVS);
+            float distFalloff = clamp(distSqr * gtao.falloff, 0, 1);
+            float horizonCos = mix(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
+            cHorizonCos = max(cHorizonCos, horizonCos);
+        }
+        else
+            cHorizonCos = -2;
+    }
+
+    return cHorizonCos;
+}
+
 float GetSSAO()
 {
     vec3 posVS;
@@ -177,7 +174,6 @@ float GetSSAO()
     visibility /= GTAO_SLICE_COUNT;
     return visibility;
 }
-
 #endif
 
 #endif
