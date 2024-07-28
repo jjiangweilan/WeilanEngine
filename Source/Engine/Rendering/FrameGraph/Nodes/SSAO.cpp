@@ -36,13 +36,14 @@ class SSAONode : public Node
         AddConfig<ConfigurableType::Float>("bias", 0.0f);
         AddConfig<ConfigurableType::Float>("range check", 1.f);
         AddConfig<ConfigurableType::Float>("radius", 0.5f);
-        AddConfig<ConfigurableType::Float>("stength", 1.0f);
+        AddConfig<ConfigurableType::Float>("strength", 1.0f);
         AddConfig<ConfigurableType::Float>("k", 1.0f);
         AddConfig<ConfigurableType::Float>("self bias", 0.001f);
         AddConfig<ConfigurableType::Float>("theta", 1.0f);
         AddConfig<ConfigurableType::Float>("sample count", 8.f);
         AddConfig<ConfigurableType::Float>("gtao - scaling", 0.1f);
         AddConfig<ConfigurableType::Float>("gtao - falloff", 0.1f);
+        AddConfig<ConfigurableType::Vec2>("gtao - debugPoint", glm::vec2{0, 0});
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
@@ -88,7 +89,7 @@ class SSAONode : public Node
         radius = GetConfigurablePtr<float>("radius");
         rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
-        sigma = GetConfigurablePtr<float>("stength");
+        sigma = GetConfigurablePtr<float>("strength");
         k = GetConfigurablePtr<float>("k");
         theta = GetConfigurablePtr<float>("theta");
         beta = GetConfigurablePtr<float>("self bias");
@@ -212,6 +213,10 @@ class SSAONode : public Node
             {
                 material.SetFloat("GTAO", "scaling", *gtaoScaling);
                 material.SetFloat("GTAO", "falloff", *gtaoFalloff);
+                material.SetFloat("GTAO", "bias", *bias);
+                material.SetFloat("GTAO", "strength", *sigma);
+                glm::vec2* data = GetConfigurablePtr<glm::vec2>("gtao - debugPoint");
+                material.SetVector("GTAO", "debugPoint", glm::vec4(*data, 0, 0));
             }
 
             // #if ENGINE_DEV_BUILD
