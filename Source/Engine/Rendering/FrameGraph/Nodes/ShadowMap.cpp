@@ -94,7 +94,7 @@ private:
         input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
 
         AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});
-        AddConfig<ConfigurableType::ObjectPtr>("shadow map shader", nullptr);
+        shadowmapShader = (Shader*)AddConfig<ConfigurableType::ObjectPtr>("shadow map shader", nullptr);
     }
     static char _reg;
 };

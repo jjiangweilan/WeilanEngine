@@ -31,18 +31,19 @@ class SSAONode : public Node
 
         output.color = AddOutputProperty("attachment", PropertyType::Attachment);
 
-        AddConfig<ConfigurableType::Bool>("enable", true);
-        AddConfig<ConfigurableType::Int>("blur count", 1);
-        AddConfig<ConfigurableType::Float>("bias", 0.0f);
-        AddConfig<ConfigurableType::Float>("range check", 1.f);
-        AddConfig<ConfigurableType::Float>("radius", 0.5f);
-        AddConfig<ConfigurableType::Float>("strength", 1.0f);
-        AddConfig<ConfigurableType::Float>("k", 1.0f);
-        AddConfig<ConfigurableType::Float>("self bias", 0.001f);
-        AddConfig<ConfigurableType::Float>("theta", 1.0f);
-        AddConfig<ConfigurableType::Float>("sample count", 8.f);
-        AddConfig<ConfigurableType::Float>("gtao - scaling", 0.1f);
-        AddConfig<ConfigurableType::Float>("gtao - falloff", 0.1f);
+        enable = AddConfig<ConfigurableType::Bool>("enable", true);
+        blurCount = AddConfig<ConfigurableType::Int>("blur count", 1);
+        bias = AddConfig<ConfigurableType::Float>("bias", 0.0f);
+        rangeCheck = AddConfig<ConfigurableType::Float>("range check", 1.f);
+        radius = AddConfig<ConfigurableType::Float>("radius", 0.5f);
+        strength = AddConfig<ConfigurableType::Float>("strength", 1.0f);
+        k = AddConfig<ConfigurableType::Float>("k", 1.0f);
+        theta = AddConfig<ConfigurableType::Float>("self bias", 0.001f);
+        beta = AddConfig<ConfigurableType::Float>("theta", 1.0f);
+        sampleCount = AddConfig<ConfigurableType::Float>("sample count", 8.f);
+        gtaoScaling = AddConfig<ConfigurableType::Float>("gtao - scaling", 0.1f);
+        gtaoFalloff = AddConfig<ConfigurableType::Float>("gtao - falloff", 0.1f);
+
         AddConfig<ConfigurableType::Vec2>("gtao - debugPoint", glm::vec2{0, 0});
 
         Gfx::RG::SubpassAttachment c[] = {{
@@ -83,19 +84,7 @@ class SSAONode : public Node
 
     void Compile() override
     {
-        enable = GetConfigurablePtr<bool>("enable");
-        blurCount = GetConfigurablePtr<int>("blur count");
-        bias = GetConfigurablePtr<float>("bias");
-        radius = GetConfigurablePtr<float>("radius");
-        rangeCheck = GetConfigurablePtr<float>("range check");
         passResource = GetGfxDriver()->CreateShaderResource();
-        sigma = GetConfigurablePtr<float>("strength");
-        k = GetConfigurablePtr<float>("k");
-        theta = GetConfigurablePtr<float>("theta");
-        beta = GetConfigurablePtr<float>("self bias");
-        sampleCount = GetConfigurablePtr<float>("sample count");
-        gtaoScaling = GetConfigurablePtr<float>("gtao - scaling");
-        gtaoFalloff = GetConfigurablePtr<float>("gtao - falloff");
 
         switch (aoType)
         {
@@ -106,16 +95,14 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false
-                    });
+                        false});
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
 
@@ -126,8 +113,7 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false
-                    });
+                        false});
                     break;
                 }
         }
@@ -195,14 +181,13 @@ class SSAONode : public Node
             {
                 Alchmey newParam{
                     {1 / width, 1 / height, width, height},
-                    *sigma,
+                    *strength,
                     *k,
                     *beta,
                     *theta,
                     *sampleCount,
                     *radius,
-                    *rangeCheck
-                };
+                    *rangeCheck};
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
@@ -214,7 +199,7 @@ class SSAONode : public Node
                 material.SetFloat("GTAO", "scaling", *gtaoScaling);
                 material.SetFloat("GTAO", "falloff", *gtaoFalloff);
                 material.SetFloat("GTAO", "bias", *bias);
-                material.SetFloat("GTAO", "strength", *sigma);
+                material.SetFloat("GTAO", "strength", *strength);
                 glm::vec2* data = GetConfigurablePtr<glm::vec2>("gtao - debugPoint");
                 material.SetVector("GTAO", "debugPoint", glm::vec4(*data, 0, 0));
             }
@@ -242,8 +227,7 @@ class SSAONode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()
-            }};
+                inputAttachment.desc.GetHeight()}};
             if (newParam != blurParams)
             {
                 blurParams = newParam;
@@ -295,7 +279,7 @@ private:
     Shader* shader;
     Gfx::ShaderProgram* shaderProgram;
     float* bias;
-    float* sigma;
+    float* strength;
     float* k;
     float* beta;
     float* theta;
