@@ -51,11 +51,12 @@ uint UpdateSectorsVM(float minHorizon, float maxHorizon, uint globalOccludedBitf
     return globalOccludedBitfield | currentOccludedBitfield;
 }
 
-void UpdateHorizonVM(vec2 omega, int side, vec3 posVS, vec3 viewVS, float N, inout uint globalOccludedBitfield)
+void UpdateHorizonVM(vec2 omega, int side, vec3 posVS, vec3 viewVS, float N, float sliceSampleScale, inout uint globalOccludedBitfield)
 {
-    for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
+    int sliceSamples = int(GTAO_DIRECTION_SAMPLE_COUNT * sliceSampleScale);
+    for (uint sampleIndex = 1; sampleIndex <= sliceSamples; ++sampleIndex)
     {
-        float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
+        float s = float(sampleIndex) / sliceSamples;
         vec2 scaling = scene.screenSize.zw * gtao.scaling;
         vec2 offset = side * s * scaling * vec2(omega[0], -omega[1]) / posVS.z;
         offset = sign(offset) * max(scene.screenSize.zw, abs(offset));
@@ -88,17 +89,16 @@ void UpdateHorizonVM(vec2 omega, int side, vec3 posVS, vec3 viewVS, float N, ino
     }
 }
 
-float GetSSAOVM()
+float GetSSAOVM(vec3 posVS, vec3 normalVS, float sliceScale, float sliceSampleScale)
 {
-    vec3 posVS;
-    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
     vec3 viewVS = normalize(-posVS);
 
     float visibility = 0;
 
-    for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
+    int sliceCount = int(GTAO_SLICE_COUNT * sliceScale);
+    for (int slice = 0; slice < sliceCount; ++slice)
     {
-        float phi = GTAO_PI * float(slice) / float(GTAO_SLICE_COUNT);
+        float phi = GTAO_PI * float(slice) / sliceCount;
 
         vec2 omega = vec2(cos(phi), sin(phi));
 
@@ -114,12 +114,12 @@ float GetSSAOVM()
         float n = signN * acos(cosN);
 
         uint globalOccludedBitfield = 0;
-        UpdateHorizonVM(omega, -1, posVS, viewVS, n, globalOccludedBitfield);
-        UpdateHorizonVM(omega, 1, posVS, viewVS, n, globalOccludedBitfield);
+        UpdateHorizonVM(omega, -1, posVS, viewVS, n, sliceSampleScale, globalOccludedBitfield);
+        UpdateHorizonVM(omega, 1, posVS, viewVS, n, sliceSampleScale, globalOccludedBitfield);
         visibility += 1.0 - float(bitCount(globalOccludedBitfield)) / float(GTAO_VISIBILITY_MASK_SECTOR_COUNT);
     }
 
-    visibility /= GTAO_SLICE_COUNT;
+    visibility /= sliceCount;
     return clamp(visibility * gtao.strength, 0, 1);
 }
 
