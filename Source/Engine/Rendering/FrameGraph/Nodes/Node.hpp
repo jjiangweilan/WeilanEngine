@@ -50,10 +50,10 @@ struct Configurable
     Configurable(const char* name, ConfigurableType type, std::any&& defaultVal)
         : name(name), type(type), data(defaultVal)
     {}
-    Configurable(Configurable&& other) = default;
+    Configurable(Configurable&& other) noexcept = default;
     // type checked constructor
     template <ConfigurableType type, class T>
-    static Configurable C(const char* name, const T& val)
+    static std::unique_ptr<Configurable> C(const char* name, const T& val)
     {
         if constexpr (type == ConfigurableType::Bool)
             static_assert(std::is_same_v<T, bool>);
@@ -83,11 +83,11 @@ struct Configurable
 
                 // make sure user can safely cast the data into an Object* object
                 // if we don't cast and val is a nullptr-t, it will throw bad_any_cast
-                return Configurable{name, type, (Object*)nullptr};
+                return std::make_unique<Configurable>(name, type, (Object*)nullptr);
             }
         }
 
-        return Configurable{name, type, val};
+        return std::make_unique<Configurable>(name, type, val);
     }
 
     std::string name;
@@ -305,7 +305,7 @@ public:
         return outputProperties;
     }
 
-    std::span<const Configurable> GetConfiurables()
+    std::span<const std::unique_ptr<Configurable>> GetConfiurables()
     {
         return configs;
     }
@@ -351,12 +351,12 @@ protected:
     {
         for (auto& c : configs)
         {
-            if (strcmp(c.name.c_str(), name) == 0)
+            if (strcmp(c->name.c_str(), name) == 0)
             {
                 if constexpr (std::is_pointer_v<T>)
-                    return dynamic_cast<T>(std::any_cast<Object*>(c.data));
+                    return dynamic_cast<T>(std::any_cast<Object*>(c->data));
                 else
-                    return std::any_cast<T>(c.data);
+                    return std::any_cast<T>(c->data);
             }
         }
 
@@ -369,12 +369,12 @@ protected:
     {
         for (auto& c : configs)
         {
-            if (strcmp(c.name.c_str(), name) == 0)
+            if (strcmp(c->name.c_str(), name) == 0)
             {
                 if constexpr (std::is_pointer_v<T>)
-                    return static_cast<T*>(std::any_cast<Object*>(&c.data));
+                    return static_cast<T*>(std::any_cast<Object*>(&c->data));
                 else
-                    return std::any_cast<T>(&c.data);
+                    return std::any_cast<T>(&c->data);
             }
         }
 
@@ -416,9 +416,9 @@ protected:
         }
 
         if constexpr (std::is_null_pointer_v<T>)
-            return std::any_cast<Object*>(&configs.back().data);
+            return std::any_cast<Object*>(&configs.back()->data);
         else
-            return std::any_cast<T>(&configs.back().data);
+            return std::any_cast<T>(&configs.back()->data);
     }
 
     void ClearConfigs()
@@ -435,7 +435,7 @@ private:
     FGID id = 0;
     std::string name;
     std::string customName;
-    std::vector<Configurable> configs;
+    std::vector<std::unique_ptr<Configurable>> configs;
 };
 } // namespace Rendering::FrameGraph
   //

@@ -159,7 +159,7 @@ class SSAONode : public Node
     {
         auto& cmd = *renderingData.cmd;
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
-
+        auto enablePtr = GetConfigurablePtr<bool>("enable");
         if (*enable)
         {
             auto depth = input.depth->GetValue<AttachmentProperty>().id;

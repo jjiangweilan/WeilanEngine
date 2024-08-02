@@ -188,9 +188,9 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
 
                 for (auto& config : node->GetConfiurables())
                 {
-                    ImGui::Text("%s", config.name.c_str());
+                    ImGui::Text("%s", config->name.c_str());
                     ImGui::PushID(pushID);
-                    DrawConfigurableField(openImageFormatPopup, targetConfig, config);
+                    DrawConfigurableField(openImageFormatPopup, targetConfig, *config);
                     ImGui::PopID();
                     pushID += 1;
                 }
