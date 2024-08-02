@@ -162,6 +162,17 @@ void Graph::Deserialize(Serializer* s)
             break;
         }
     }
+
+    // TODO: we can fix invalid connections with the following code, and it lets compiling FrameGraph through.
+    // In that case, the invalid connections are disconnected, but we havn't yet have input validation check when Executing
+    // the graph, hence causing runtime error. runtime validation check of inputs should be implemented before we
+    // can auto disconnect invalid connections when deserializing
+    // auto connectionCopy = connections;
+    // connections.clear();
+    // for(auto c : connectionCopy)
+    // {
+    //     Connect(c >> 32, c & 0xffffffff);
+    // }
 }
 
 void Graph::ReportValidation()
@@ -411,7 +422,12 @@ bool Graph::Compile()
         auto srcProperty = srcNode->GetProperty(GetSrcPropertyIDFromConnectionID(c));
 
         auto dstNode = GetNode(GetDstNodeIDFromConnect(c));
-        dstNode->GetProperty(GetDstPropertyIDFromConnectionID(c))->LinkFromOutput(*srcProperty);
+        bool validLink = dstNode->GetProperty(GetDstPropertyIDFromConnectionID(c))->LinkFromOutput(*srcProperty);
+        if(!validLink)
+        {
+            compiled = false;
+            return compiled;
+        }
     }
 
     for (auto n : sortedNodes)

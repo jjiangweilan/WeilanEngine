@@ -20,8 +20,8 @@ namespace Rendering::FrameGraph
 // frame graph ID, nodes, properties and links share the same id space
 //(16 bit src unique node, 16 bit src property unique id), (16 bit node unique id), (16 bit property unique id)
 // when it's a link id it uses all the 64 bit, the upper 32 bits and lower 32 bits are the target nodes and their
-// note: the 32 bit all togethe makes a property id for editor
 // properties respectively
+// note: the 32 bit all together makes a property id for editor
 using FGID = uint64_t;
 
 // reverse 999 properties for each node, should be very enough
@@ -50,10 +50,10 @@ struct Configurable
     Configurable(const char* name, ConfigurableType type, std::any&& defaultVal)
         : name(name), type(type), data(defaultVal)
     {}
-    Configurable(Configurable&& other) = default;
+    Configurable(Configurable&& other) noexcept = default;
     // type checked constructor
     template <ConfigurableType type, class T>
-    static Configurable C(const char* name, const T& val)
+    static std::unique_ptr<Configurable> C(const char* name, const T& val)
     {
         if constexpr (type == ConfigurableType::Bool)
             static_assert(std::is_same_v<T, bool>);
@@ -83,11 +83,11 @@ struct Configurable
 
                 // make sure user can safely cast the data into an Object* object
                 // if we don't cast and val is a nullptr-t, it will throw bad_any_cast
-                return Configurable{name, type, (Object*)nullptr};
+                return std::make_unique<Configurable>(name, type, (Object*)nullptr);
             }
         }
 
-        return Configurable{name, type, val};
+        return std::make_unique<Configurable>(name, type, val);
     }
 
     std::string name;
@@ -175,12 +175,14 @@ public:
         return defaultVal;
     }
 
-    void LinkFromOutput(Property& src)
+    bool LinkFromOutput(Property& src)
     {
         if (src.type == type)
         {
             asInput = &src.asOutput;
+            return true;
         }
+        return false;
     }
 
 protected:
@@ -291,7 +293,7 @@ public:
         return id;
     }
     virtual void Compile() {}
-    virtual void Execute(RenderingContext& renderContext, RenderingData& renderingData) {};
+    virtual void Execute(RenderingContext& renderContext, RenderingData& renderingData){};
 
     virtual void OnDestroy() {}
     std::span<Property> GetInput()
@@ -303,7 +305,7 @@ public:
         return outputProperties;
     }
 
-    std::span<const Configurable> GetConfiurables()
+    std::span<const std::unique_ptr<Configurable>> GetConfiurables()
     {
         return configs;
     }
@@ -349,12 +351,12 @@ protected:
     {
         for (auto& c : configs)
         {
-            if (strcmp(c.name.c_str(), name) == 0)
+            if (strcmp(c->name.c_str(), name) == 0)
             {
                 if constexpr (std::is_pointer_v<T>)
-                    return dynamic_cast<T>(std::any_cast<Object*>(c.data));
+                    return dynamic_cast<T>(std::any_cast<Object*>(c->data));
                 else
-                    return std::any_cast<T>(c.data);
+                    return std::any_cast<T>(c->data);
             }
         }
 
@@ -367,12 +369,12 @@ protected:
     {
         for (auto& c : configs)
         {
-            if (strcmp(c.name.c_str(), name) == 0)
+            if (strcmp(c->name.c_str(), name) == 0)
             {
                 if constexpr (std::is_pointer_v<T>)
-                    return static_cast<T*>(std::any_cast<Object*>(&c.data));
+                    return static_cast<T*>(std::any_cast<Object*>(&c->data));
                 else
-                    return std::any_cast<T>(&c.data);
+                    return std::any_cast<T>(&c->data);
             }
         }
 
@@ -402,7 +404,7 @@ protected:
     }
 
     template <ConfigurableType type, class T>
-    void AddConfig(const char* name, const T& defaultVal)
+    auto AddConfig(const char* name, const T& defaultVal)
     {
         if constexpr (std::is_pointer_v<T>)
         {
@@ -412,6 +414,11 @@ protected:
         {
             configs.emplace_back(Configurable::C<type>(name, defaultVal));
         }
+
+        if constexpr (std::is_null_pointer_v<T>)
+            return std::any_cast<Object*>(&configs.back()->data);
+        else
+            return std::any_cast<T>(&configs.back()->data);
     }
 
     void ClearConfigs()
@@ -428,7 +435,7 @@ private:
     FGID id = 0;
     std::string name;
     std::string customName;
-    std::vector<Configurable> configs;
+    std::vector<std::unique_ptr<Configurable>> configs;
 };
 } // namespace Rendering::FrameGraph
   //

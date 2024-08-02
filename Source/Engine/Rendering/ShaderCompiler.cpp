@@ -1,4 +1,5 @@
 #include "ShaderCompiler.hpp"
+#include <future>
 #include <spdlog/spdlog.h>
 shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
     const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t includeDepth
@@ -141,24 +142,41 @@ void ShaderCompiler::CompileShader(
     else
     {
         // we still need to compile unoptimized code for ShaderConfig
-        option.SetOptimizationLevel(shaderc_optimization_level_zero);
-        auto unoptimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
-        if (unoptimizedCompiled.GetNumErrors() > 0)
-        {
-            auto msg = fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
-            throw CompileError(msg);
-        }
-        unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
+        auto option0 = option;
+        auto t0 = std::async(
+            std::launch::async,
+            [&option0, &compiler, buf, bufSize, kind, filepath, &unoptimized, this]()
+            {
+                option0.SetOptimizationLevel(shaderc_optimization_level_zero);
+                auto unoptimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option0);
+                if (unoptimizedCompiled.GetNumErrors() > 0)
+                {
+                    auto msg =
+                        fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
+                    throw CompileError(msg);
+                }
+                unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
+            }
+        );
 
         // compile again for gpu
-        option.SetOptimizationLevel(shaderc_optimization_level_performance);
-        auto optimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
-        if (optimizedCompiled.GetNumErrors() > 0)
-        {
-            auto msg = fmt::format("Shader[{}] failed: {}", name, optimizedCompiled.GetErrorMessage().c_str());
-            throw CompileError(msg);
-        }
-        optimized = std::vector<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
+        auto t1 = std::async(
+            std::launch::async,
+            [&option, &compiler, buf, bufSize, kind, filepath, &optimized, this]()
+            {
+                option.SetOptimizationLevel(shaderc_optimization_level_performance);
+                auto optimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
+                if (optimizedCompiled.GetNumErrors() > 0)
+                {
+                    auto msg = fmt::format("Shader[{}] failed: {}", name, optimizedCompiled.GetErrorMessage().c_str());
+                    throw CompileError(msg);
+                }
+                optimized = std::vector<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
+            }
+        );
+
+        t0.wait();
+        t1.wait();
     }
 }
 

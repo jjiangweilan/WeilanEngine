@@ -555,8 +555,10 @@ bool VKDriver::EndFrame()
 {
     ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
 
+    ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+    ENGINE_END_PROFILE
 
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
@@ -617,10 +619,14 @@ bool VKDriver::EndFrame()
     submitInfo.pCommandBuffers = &cmd;
     submitInfo.signalSemaphoreCount = 2 + extraWindows.size();
     submitInfo.pSignalSemaphores = signalSemaphores;
+
+    ENGINE_BEGIN_PROFILE("VKDriver - submit")
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    ENGINE_END_PROFILE
 
     allocator.Reset();
 
+    ENGINE_BEGIN_PROFILE("VKDriver - present");
     bool swapchainRecreated = Present(
         inflightData[currentInflightIndex].presentSemaphore,
         swapchain.handle,
@@ -643,6 +649,7 @@ bool VKDriver::EndFrame()
             w->presentRequest.requested = false;
         }
     }
+    ENGINE_END_PROFILE
 
     FrameEndClear();
 
@@ -670,8 +677,7 @@ bool VKDriver::Present(
         1,
         &swapChainHandle,
         &swapchainIndex,
-        nullptr
-    };
+        nullptr};
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -766,9 +772,8 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"
-    }; // If you don't get syncrhonization validation work, be sure it's enabled
-       // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
+                                              // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
@@ -956,8 +961,7 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
-    };
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
