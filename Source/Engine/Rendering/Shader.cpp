@@ -22,6 +22,7 @@ void ShaderBase::Reload(Asset&& other)
     ShaderBase* casted = static_cast<ShaderBase*>(&other);
     shaderName = (std::move(casted->shaderName));
     shaderPasses = std::move(casted->shaderPasses);
+    includedFiles = std::move(casted->includedFiles);
     for (auto& s : shaderPasses)
     {
         s->cachedShaderProgram = nullptr;
@@ -172,8 +173,9 @@ bool Shader::LoadFromFile(const char* path)
     // preprocess shader pass
     std::regex shaderPassReg("ShaderPass\\s+(\\w+)");
 
-    contentHash += 1;
-    shaderPasses.clear();
+    std::vector<std::unique_ptr<ShaderPass>> newShaderPasses;
+    IncludedFiles newIncludedFiles;
+
     try
     {
         for (std::sregex_iterator it(ssf.begin(), ssf.end(), shaderPassReg), it_end; it != it_end; ++it)
@@ -215,6 +217,9 @@ bool Shader::LoadFromFile(const char* path)
 
             std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
             compiler.Compile(path, shaderPassBlock);
+            auto includedFiles = compiler.GetIncludedFiles();
+            newIncludedFiles.files.insert(newIncludedFiles.files.end(), includedFiles.begin(), includedFiles.end());
+
             for (auto& iter : compiler.GetCompiledSpvs())
             {
                 shaderPass->shaderPrograms[iter.first] =
@@ -223,15 +228,17 @@ bool Shader::LoadFromFile(const char* path)
 
             shaderPass->name = shaderPassName;
             shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
-            shaderPasses.push_back(std::move(shaderPass));
+            newShaderPasses.push_back(std::move(shaderPass));
         }
 
         // no shader pass use the whole as single pass
-        if (shaderPasses.empty())
+        if (newShaderPasses.empty())
         {
             auto shaderPass = std::make_unique<ShaderPass>();
 
             compiler.Compile(path, ssf);
+            auto includedFiles = compiler.GetIncludedFiles();
+            newIncludedFiles.files.insert(newIncludedFiles.files.end(), includedFiles.begin(), includedFiles.end());
             for (auto& iter : compiler.GetCompiledSpvs())
             {
                 shaderPass->shaderPrograms[iter.first] =
@@ -241,9 +248,20 @@ bool Shader::LoadFromFile(const char* path)
             shaderPass->name = compiler.GetName();
             shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
             shaderPass->cachedShaderProgram = nullptr;
-            shaderPasses.push_back(std::move(shaderPass));
+            newShaderPasses.push_back(std::move(shaderPass));
         }
         // this->name = compiler.GetName();
+
+        shaderPasses = std::move(newShaderPasses);
+        contentHash += 1;
+
+        // update included files
+        includedFiles.files = std::move(newIncludedFiles.files);
+        includedFiles.lastWriteTime.clear();
+        for (auto& f : includedFiles.files)
+        {
+            includedFiles.lastWriteTime.push_back(std::filesystem::last_write_time(f).time_since_epoch().count());
+        }
     }
     catch (const std::exception& e)
     {
@@ -253,6 +271,7 @@ bool Shader::LoadFromFile(const char* path)
 
     return true;
 }
+
 bool ComputeShader::LoadFromFile(const char* path)
 {
     auto shaderPass = std::make_unique<ShaderPass>();
@@ -271,6 +290,7 @@ bool ComputeShader::LoadFromFile(const char* path)
     try
     {
         compiler.CompileComputeShader(path, ss.str());
+        auto includedFiles = compiler.GetIncludedFiles();
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPass->shaderPrograms[iter.first] =
@@ -278,10 +298,21 @@ bool ComputeShader::LoadFromFile(const char* path)
         }
 
         this->name = compiler.GetName();
-        contentHash += 1;
 
         shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPasses.clear();
         shaderPasses.push_back(std::move(shaderPass));
+
+        // update included files
+        this->includedFiles.files.clear();
+        this->includedFiles.files.insert(this->includedFiles.files.end(), includedFiles.begin(), includedFiles.end());
+        this->includedFiles.lastWriteTime.clear();
+        // update included files
+        for (auto& f : this->includedFiles.files)
+        {
+            this->includedFiles.lastWriteTime.push_back(std::filesystem::last_write_time(f).time_since_epoch().count());
+        }
+        contentHash += 1;
     }
     catch (const std::exception& e)
     {
@@ -305,4 +336,15 @@ Shader*& Shader::GetDefaultPrivate()
 {
     static Shader* shader;
     return shader;
+}
+
+bool ShaderBase::NeedReimport()
+{
+    for (int i = 0; i < includedFiles.lastWriteTime.size() && i < includedFiles.files.size(); i++)
+    {
+        if (includedFiles.lastWriteTime[i] <
+            std::filesystem::last_write_time(includedFiles.files[i]).time_since_epoch().count())
+            return true;
+    }
+    return false;
 }

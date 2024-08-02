@@ -39,6 +39,8 @@ public:
         return shaderPasses.size();
     }
 
+    bool NeedReimport() override;
+
     int FindShaderPass(std::string_view name);
 
     inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
@@ -104,6 +106,12 @@ protected:
         std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
     };
     std::vector<std::unique_ptr<ShaderPass>> shaderPasses;
+
+    struct IncludedFiles
+    {
+        std::vector<std::filesystem::path> files;
+        std::vector<size_t> lastWriteTime;
+    } includedFiles;
 };
 
 class Shader : public ShaderBase

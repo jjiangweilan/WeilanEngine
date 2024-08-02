@@ -3,7 +3,8 @@
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
 )
-    : assetDataUUID(), assetPath(assetPath), absolutePath(projectRoot / "Assets" / assetPath), asset(std::move(asset))
+    : assetDataUUID(), assetPath(assetPath), absolutePath(projectRoot / "Assets" / assetPath), asset(std::move(asset)),
+      lastWriteTime(0)
 {
     for (auto obj : this->asset->GetInternalAssets())
     {
@@ -17,7 +18,8 @@ AssetData::AssetData(
     isValid = false;
 }
 
-AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot) : assetDataUUID(assetDataUUID)
+AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot)
+    : assetDataUUID(assetDataUUID), lastWriteTime(0)
 {
     // load all the data until meta binary
     std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
@@ -38,7 +40,6 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         assetPath = dataJson.value("assetPath", "");
 
         absolutePath = projectRoot / std::filesystem::path("Assets") / assetPath;
-
         auto nameToUUIDJson = dataJson["nameToUUID"];
         if (nameToUUIDJson.is_object())
         {
@@ -49,12 +50,13 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         }
 
         isValid = true;
-        return;
-    }
 
-    if (std::filesystem::exists(absolutePath))
-    {
-        lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+        if (std::filesystem::exists(absolutePath))
+        {
+            lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
+        }
+
+        return;
     }
 
     isValid = false;
@@ -63,7 +65,8 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
 
 AssetData::AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag)
     : assetUUID(assetUUID), assetPath("_engine_internal" / internalAssetPath),
-      absolutePath(std::filesystem::absolute(std::filesystem::path("Assets") / internalAssetPath)), internal(true)
+      absolutePath(std::filesystem::absolute(std::filesystem::path("Assets") / internalAssetPath)), internal(true),
+      lastWriteTime(0)
 {
     isValid = true;
 
@@ -160,7 +163,7 @@ bool AssetData::NeedRefresh() const
     if (std::filesystem::exists(absolutePath))
     {
         auto newWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
-        if (newWriteTime > lastWriteTime)
+        if (newWriteTime > lastWriteTime || (asset && asset->NeedReimport()))
             return true;
     }
 

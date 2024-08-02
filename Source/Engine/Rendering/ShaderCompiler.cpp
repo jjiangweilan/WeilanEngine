@@ -175,7 +175,8 @@ void ShaderCompiler::CompileShader(
             }
         );
 
-        t0.wait();
+        // rethrow the message of debug version
+        t0.get();
         t1.wait();
     }
 }

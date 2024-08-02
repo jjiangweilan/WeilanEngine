@@ -84,6 +84,13 @@ public:
         return 0;
     }
 
+    // when dependent files or assets are updated, this can return true to indicate a import is needed
+    // e.g. shader's included files
+    virtual bool NeedReimport()
+    {
+        return false;
+    }
+
 protected:
     std::string name = "";
 

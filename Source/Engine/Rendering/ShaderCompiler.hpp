@@ -94,6 +94,12 @@ public:
         return config;
     }
 
+    // valid after Compile is called
+    const std::set<std::filesystem::path>& GetIncludedFiles() const
+    {
+        return includedTrack;
+    }
+
     void Clear()
     {
         compiledSpvs.clear();
