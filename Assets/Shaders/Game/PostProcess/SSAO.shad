@@ -1,7 +1,6 @@
 #version 460
 #if CONFIG
 name : Game / PostProcess / SSAO
-debug: true
 features :
     - [ _CrysisAO, _AlchemyAO, _GTAO ]
 #endif
@@ -143,12 +142,30 @@ float GetSSAO()
 
 #ifdef _GTAO
 #include "SSAO/GTAO.glsl"
-#endif
+void main()
+{
+    vec3 posVS;
+    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
 
+    float occlusion = GetSSAOVM(posVS, normalVS, 1, 1);
+    oAO = occlusion;
+    // if (posVS.z > gtao.debugPoint.x)
+    // {
+    //     float occlusion = GetSSAOVM(posVS, normalVS, 0.5, 0.5);
+    //     oAO = occlusion;
+    // }
+    // else
+    // {
+    // }
+}
+
+#else
 void main()
 {
     float occlusion = GetSSAO();
     oAO = occlusion;
 }
+
+#endif
 
 #endif
