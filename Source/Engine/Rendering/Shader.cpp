@@ -173,8 +173,8 @@ bool Shader::LoadFromFile(const char* path)
     // preprocess shader pass
     std::regex shaderPassReg("ShaderPass\\s+(\\w+)");
 
-    std::vector<std::unique_ptr<ShaderPass>> newShaderPasses;
-    IncludedFiles newIncludedFiles;
+    std::vector<std::unique_ptr<ShaderPass>> newShaderPasses{};
+    std::set<std::filesystem::path> includedFilesSet{};
 
     try
     {
@@ -217,8 +217,8 @@ bool Shader::LoadFromFile(const char* path)
 
             std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
             compiler.Compile(path, shaderPassBlock);
-            auto includedFiles = compiler.GetIncludedFiles();
-            newIncludedFiles.files.insert(newIncludedFiles.files.end(), includedFiles.begin(), includedFiles.end());
+            auto& includedFiles = compiler.GetIncludedFiles();
+            includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
 
             for (auto& iter : compiler.GetCompiledSpvs())
             {
@@ -237,8 +237,8 @@ bool Shader::LoadFromFile(const char* path)
             auto shaderPass = std::make_unique<ShaderPass>();
 
             compiler.Compile(path, ssf);
-            auto includedFiles = compiler.GetIncludedFiles();
-            newIncludedFiles.files.insert(newIncludedFiles.files.end(), includedFiles.begin(), includedFiles.end());
+            auto& includedFiles = compiler.GetIncludedFiles();
+            includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
             for (auto& iter : compiler.GetCompiledSpvs())
             {
                 shaderPass->shaderPrograms[iter.first] =
@@ -256,7 +256,7 @@ bool Shader::LoadFromFile(const char* path)
         contentHash += 1;
 
         // update included files
-        includedFiles.files = std::move(newIncludedFiles.files);
+        includedFiles.files = std::vector(includedFilesSet.begin(), includedFilesSet.end());
         includedFiles.lastWriteTime.clear();
         for (auto& f : includedFiles.files)
         {
@@ -290,7 +290,7 @@ bool ComputeShader::LoadFromFile(const char* path)
     try
     {
         compiler.CompileComputeShader(path, ss.str());
-        auto includedFiles = compiler.GetIncludedFiles();
+        auto& includedFiles = compiler.GetIncludedFiles();
         for (auto& iter : compiler.GetCompiledSpvs())
         {
             shaderPass->shaderPrograms[iter.first] =
@@ -304,8 +304,7 @@ bool ComputeShader::LoadFromFile(const char* path)
         shaderPasses.push_back(std::move(shaderPass));
 
         // update included files
-        this->includedFiles.files.clear();
-        this->includedFiles.files.insert(this->includedFiles.files.end(), includedFiles.begin(), includedFiles.end());
+        this->includedFiles.files = std::vector(includedFiles.begin(), includedFiles.end());
         this->includedFiles.lastWriteTime.clear();
         // update included files
         for (auto& f : this->includedFiles.files)

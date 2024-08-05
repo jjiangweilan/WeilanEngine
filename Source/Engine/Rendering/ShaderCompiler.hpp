@@ -37,7 +37,7 @@ private:
         };
 
         std::filesystem::path shaderRootPath = "Assets/Shaders/";
-        std::set<std::filesystem::path>* includedFiles;
+        std::set<std::filesystem::path>* includedFiles = nullptr;
 
     public:
         ShaderIncluder(std::set<std::filesystem::path>* includedFileTrack) : includedFiles(includedFileTrack){};
@@ -107,12 +107,12 @@ public:
     }
 
 private:
-    std::unordered_map<uint64_t, Gfx::CompiledSpv> compiledSpvs;
+    std::unordered_map<uint64_t, Gfx::CompiledSpv> compiledSpvs{};
 
-    std::set<std::filesystem::path> includedTrack;
-    std::shared_ptr<Gfx::ShaderConfig> config;
+    std::set<std::filesystem::path> includedTrack{};
+    std::shared_ptr<Gfx::ShaderConfig> config{};
     std::string name;
-    std::unordered_map<std::string, uint64_t> featureToBitMask;
+    std::unordered_map<std::string, uint64_t> featureToBitMask{};
 
     std::stringstream GetYAML(std::stringstream& f);
 
