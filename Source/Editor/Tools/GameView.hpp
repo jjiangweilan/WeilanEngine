@@ -61,6 +61,12 @@ private:
         glm::ivec2 resolution;
     } d; // data
 
+    struct GameObjectConfigs
+    {
+        bool useSnap = false;
+        glm::vec3 snap = glm::vec3(0.25f);
+    } gameObjectConfigs = {};
+
     struct EditorWorldSpaceGrid
     {
         // note: line width is hard coded in shader

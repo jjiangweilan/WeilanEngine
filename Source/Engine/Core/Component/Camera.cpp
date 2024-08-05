@@ -97,8 +97,9 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
     Ray ray;
     ray.origin = GetGameObject()->GetPosition();
     glm::mat4 camModelMatrix = GetGameObject()->GetModelMatrix();
-    glm::vec3 clickInWS = camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
-    ray.direction = clickInWS - ray.origin;
+    glm::vec3 viewSpacePosition = ScreenUVToViewSpace(screenUV);
+    glm::vec3 clickInWS = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
+    ray.direction = glm::normalize(clickInWS - ray.origin);
     return ray;
 }
 

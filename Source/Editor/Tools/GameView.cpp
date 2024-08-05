@@ -582,7 +582,7 @@ bool GameView::Tick()
                     auto iter = std::min_element(
                         intersected.begin(),
                         intersected.end(),
-                        [](const Intersected& l, const Intersected& r) { return l.distance < r.distance; }
+                        [](const Intersected& l, const Intersected& r) { return l.distance > 0 && l.distance < r.distance; }
                     );
 
                     GameObject* selected = nullptr;
@@ -621,7 +621,9 @@ bool GameView::Tick()
                 {
                     auto model = go->GetModelMatrix();
                     ImGui::SetCursorPos(imagePos);
+
                     EditTransform(*mainCam, model, proj, rect);
+
                     if (ImGuizmo::IsUsing())
                         go->SetModelMatrix(model);
                 }
@@ -681,6 +683,8 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj,
         if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
             mCurrentGizmoMode = ImGuizmo::WORLD;
     }
+
+    ImGui::Checkbox("Snap to xy", &gameObjectConfigs.useSnap);
     glm::mat4 view = camera.GetViewMatrix();
     ImGuizmo::Manipulate(
         &view[0][0],
@@ -688,8 +692,8 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj,
         mCurrentGizmoOperation,
         mCurrentGizmoMode,
         &matrix[0][0],
-        NULL,
-        nullptr /* useSnap ? &snap.x : NULL */
+        nullptr,
+        gameObjectConfigs.useSnap ? &gameObjectConfigs.snap[0] : nullptr
     );
 }
 
