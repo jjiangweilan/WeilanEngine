@@ -136,6 +136,7 @@ void GameView::Init()
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
 {
+    distance = -1;
     auto mr = obj->GetComponent<MeshRenderer>();
     if (mr)
     {
@@ -160,15 +161,18 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
                     v2 = model * glm::vec4(positions[indices[k]], 1.0);
 
                     glm::vec2 bary;
-                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, distance))
-                        return true;
+                    float newDistance = -1;
+                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
+                    {
+                        distance = glm::max(distance, newDistance);
+                    }
                 }
             }
         }
     }
 
     // ray is not tested, there is no mesh maybe use a box as proxy?
-    return false;
+    return distance > 0;
 }
 
 static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
@@ -198,6 +202,14 @@ static void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpee
     if (!ImGui::IsWindowHovered())
         return;
 
+    // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with MouseWheel 
+    // so I track the down and release event individually
+    static bool isAltDown = false;
+    if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
+        isAltDown = true;
+    if (ImGui::IsKeyReleased(ImGuiKey_LeftAlt))
+        isAltDown = false;
+
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
@@ -208,7 +220,7 @@ static void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpee
         glm::vec3 up = glm::normalize(model[1]);
         glm::vec3 forward = glm::normalize(model[2]);
 
-        if (ImGui::IsKeyPressed(ImGuiKey_LeftAlt))
+        if (isAltDown)
         {
             float change = ImGui::GetIO().MouseWheel;
             editorCameraSpeed += change;
@@ -347,17 +359,20 @@ void GameView::Render(
         }
 
         // draw grid
-        auto activeCamera = GetCurrentlyActiveCamera();
-        if (activeCamera == editorCamera)
+        if (editorWorldSpaceGrid.show)
         {
-            glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
-            pos.y = 0;
-            Gizmos::DrawMesh(
-                *editorWorldSpaceGrid.plane,
-                0,
-                editorWorldSpaceGrid.gridShader,
-                glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
-            );
+            auto activeCamera = GetCurrentlyActiveCamera();
+            if (activeCamera == editorCamera)
+            {
+                glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
+                pos.y = 0;
+                Gizmos::DrawMesh(
+                    *editorWorldSpaceGrid.plane,
+                    0,
+                    editorWorldSpaceGrid.gridShader,
+                    glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
+                );
+            }
         }
 
         Gizmos::DispatchAllDiszmos(cmd);
@@ -418,6 +433,10 @@ bool GameView::Tick()
         if (ImGui::MenuItem("Physics Debug Draw"))
         {
             JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
+        }
+        if (ImGui::MenuItem("Toggle Grid"))
+        {
+            editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
         }
         ImGui::EndMenuBar();
     }
@@ -582,7 +601,8 @@ bool GameView::Tick()
                     auto iter = std::min_element(
                         intersected.begin(),
                         intersected.end(),
-                        [](const Intersected& l, const Intersected& r) { return l.distance > 0 && l.distance < r.distance; }
+                        [](const Intersected& l, const Intersected& r)
+                        { return l.distance > 0 && l.distance < r.distance; }
                     );
 
                     GameObject* selected = nullptr;

@@ -28,24 +28,8 @@ layout(location = 0) in vec4 worldPos;
 layout(location = 1) in vec2 uv;
 layout(location = 0) out vec4 oColor;
 
-// https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8#1e7c
-float PristineGrid(vec2 uv, vec2 lineWidth)
-{
-    lineWidth = clamp(lineWidth, 0, 1);
-    vec4 uvDDXY = vec4(dFdx(uv), dFdy(uv));
-    vec2 uvDeriv = vec2(length(uvDDXY.xz), length(uvDDXY.yw));
-    bvec2 invertLine = greaterThan(lineWidth, vec2(0.5));
-    vec2 targetWidth = mix(lineWidth, vec2(1.0) - lineWidth, invertLine);
-    vec2 drawWidth = clamp(targetWidth, uvDeriv, vec2(0.5));
-    vec2 lineAA = max(uvDeriv, 0.000001) * 1.5;
-    vec2 gridUV = abs(fract(uv) * 2.0 - 1.0);
-    gridUV = mix(1.0 - gridUV, gridUV, invertLine);
-    vec2 grid2 = smoothstep(drawWidth + lineAA, drawWidth - lineAA, gridUV);
-    grid2 *= clamp(targetWidth / drawWidth, 0, 1);
-    grid2 = mix(grid2, targetWidth, clamp(uvDeriv * 2.0 - 1.0, 0, 1));
-    grid2 = mix(grid2, 1.0 - grid2, invertLine );
-    return mix(grid2.x, 1.0, grid2.y);
-}
+#include "Utils/Grid.glsl"
+
 void main()
 {
     oColor = vec4(1,1,1, PristineGrid(uv, vec2(0.01f)));
