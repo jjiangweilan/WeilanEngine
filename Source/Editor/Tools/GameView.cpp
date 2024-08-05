@@ -125,6 +125,13 @@ void GameView::Init()
     outlineFullScreenPassShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineFullScreenPass.shad"
         ));
+
+    editorWorldSpaceGrid.plane =
+        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"))
+            ->GetMeshes()[0]
+            .get();
+    editorWorldSpaceGrid.gridShader =
+        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
@@ -274,48 +281,56 @@ void GameView::Render(
 {
     if (gameImage && gameDepthImage)
     {
-        // selection outline
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {1.0f, 0}};
         GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
-        if (go)
+        // selection outline src pass
         {
-            auto mrs = go->GetComponentsInChildren<MeshRenderer>();
-            Rendering::FrameGraph::DrawList drawList;
-            for (MeshRenderer* meshRenderer : mrs)
+            if (go)
             {
-                if (meshRenderer)
+                auto mrs = go->GetComponentsInChildren<MeshRenderer>();
+                Rendering::FrameGraph::DrawList drawList;
+                for (MeshRenderer* meshRenderer : mrs)
                 {
-                    drawList.Add(*meshRenderer);
+                    if (meshRenderer)
+                    {
+                        drawList.Add(*meshRenderer);
+                    }
                 }
-            }
 
-            Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
-            cmd.SetScissor(0, 1, &rect);
-            cmd.SetViewport(
-                Gfx::Viewport{0, 0, static_cast<float>(rect.extent.width), static_cast<float>(rect.extent.height), 0, 1}
-            );
-            Gfx::RG::ImageDescription desc{
-                sceneImage->GetDescription().width,
-                sceneImage->GetDescription().height,
-                sceneImage->GetDescription().format
-            };
-            cmd.AllocateAttachment(outlineSrcRT, desc);
-            outlineSrcPass.SetAttachment(0, outlineSrcRT);
-            cmd.BeginRenderPass(outlineSrcPass, clears);
-            cmd.BindShaderProgram(
-                outlineRawColorPassShader->GetDefaultShaderProgram(),
-                outlineRawColorPassShader->GetDefaultShaderConfig()
-            );
-            for (auto& draw : drawList)
-            {
-                cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
-                cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
+                cmd.SetScissor(0, 1, &rect);
+                cmd.SetViewport(Gfx::Viewport{
+                    0,
+                    0,
+                    static_cast<float>(rect.extent.width),
+                    static_cast<float>(rect.extent.height),
+                    0,
+                    1
+                });
+                Gfx::RG::ImageDescription desc{
+                    sceneImage->GetDescription().width,
+                    sceneImage->GetDescription().height,
+                    sceneImage->GetDescription().format
+                };
+                cmd.AllocateAttachment(outlineSrcRT, desc);
+                outlineSrcPass.SetAttachment(0, outlineSrcRT);
+                cmd.BeginRenderPass(outlineSrcPass, clears);
+                cmd.BindShaderProgram(
+                    outlineRawColorPassShader->GetDefaultShaderProgram(),
+                    outlineRawColorPassShader->GetDefaultShaderConfig()
+                );
+                for (auto& draw : drawList)
+                {
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                }
+                cmd.EndRenderPass();
             }
-            cmd.EndRenderPass();
         }
 
+        // draw outline and gizmos
         gameImagePass.SetAttachment(0, *gameImage);
         if (gameDepthImage)
             gameImagePass.SetAttachment(1, *gameDepthImage);
@@ -329,6 +344,20 @@ void GameView::Render(
                 outlineFullScreenPassShader->GetDefaultShaderConfig()
             );
             cmd.Draw(6, 1, 0, 0);
+        }
+
+        // draw grid
+        auto activeCamera = GetCurrentlyActiveCamera();
+        if (activeCamera == editorCamera)
+        {
+            glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
+            pos.y = 0;
+            Gizmos::DrawMesh(
+                *editorWorldSpaceGrid.plane,
+                0,
+                editorWorldSpaceGrid.gridShader,
+                glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
+            );
         }
 
         Gizmos::DispatchAllDiszmos(cmd);

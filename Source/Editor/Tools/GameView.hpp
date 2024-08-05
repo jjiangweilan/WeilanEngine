@@ -61,6 +61,19 @@ private:
         glm::ivec2 resolution;
     } d; // data
 
+    struct EditorWorldSpaceGrid
+    {
+        // note: line width is hard coded in shader
+
+        // expecting 1x1m, origin in the center of the geometry
+        Mesh* plane;
+        Shader* gridShader;
+        glm::vec3 pos; // dynamically centered around editor camera
+        const glm::vec3 scale = glm::vec3(
+            50, 1, 50
+        ); // the plane's mesh center is it's geometry center, so scale 50 to scale the plane by 100
+    } editorWorldSpaceGrid;
+
     struct PlayTheGame;
     std::unique_ptr<PlayTheGame> playTheGame;
 
