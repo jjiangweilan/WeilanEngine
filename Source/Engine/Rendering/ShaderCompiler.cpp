@@ -124,6 +124,8 @@ void ShaderCompiler::CompileShader(
     // We can move the setting from binding name to CONFIG section
     option.SetAutoBindUniforms(true);
     option.SetPreserveBindings(false);
+    option.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
+    // option.SetVulkanRulesRelaxed(true);
 
     shaderc::Compiler compiler;
     if (debug)
@@ -141,43 +143,24 @@ void ShaderCompiler::CompileShader(
     }
     else
     {
-        // we still need to compile unoptimized code for ShaderConfig
-        auto option0 = option;
-        auto t0 = std::async(
-            std::launch::async,
-            [&option0, &compiler, buf, bufSize, kind, filepath, &unoptimized, this]()
-            {
-                option0.SetOptimizationLevel(shaderc_optimization_level_zero);
-                auto unoptimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option0);
-                if (unoptimizedCompiled.GetNumErrors() > 0)
-                {
-                    auto msg =
-                        fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
-                    throw CompileError(msg);
-                }
-                unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
-            }
-        );
+        option.SetOptimizationLevel(shaderc_optimization_level_zero);
+        auto unoptimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
+        if (unoptimizedCompiled.GetNumErrors() > 0)
+        {
+            auto msg = fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
+            throw CompileError(msg);
+        }
+        unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
 
         // compile again for gpu
-        auto t1 = std::async(
-            std::launch::async,
-            [&option, &compiler, buf, bufSize, kind, filepath, &optimized, this]()
-            {
-                option.SetOptimizationLevel(shaderc_optimization_level_performance);
-                auto optimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
-                if (optimizedCompiled.GetNumErrors() > 0)
-                {
-                    auto msg = fmt::format("Shader[{}] failed: {}", name, optimizedCompiled.GetErrorMessage().c_str());
-                    throw CompileError(msg);
-                }
-                optimized = std::vector<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
-            }
-        );
-
-        // rethrow the message of debug version
-        t0.get();
-        t1.wait();
+        option.SetOptimizationLevel(shaderc_optimization_level_performance);
+        auto optimizedCompiled = compiler.CompileGlslToSpv((const char*)buf, bufSize, kind, filepath, option);
+        if (optimizedCompiled.GetNumErrors() > 0)
+        {
+            auto msg = fmt::format("Shader[{}] failed: {}", name, optimizedCompiled.GetErrorMessage().c_str());
+            throw CompileError(msg);
+        }
+        optimized = std::vector<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
     }
 }
 
