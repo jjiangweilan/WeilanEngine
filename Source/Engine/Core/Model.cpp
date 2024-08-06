@@ -55,7 +55,7 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
         {
             auto& p = primitives[i];
             int matIndex = p.value("material", -1);
-            if (matIndex > 0 && matIndex < materials.size())
+            if (matIndex >= 0 && matIndex < materials.size())
             {
                 auto mat = materials[matIndex];
                 if (mat->GetShader() == nullptr)
