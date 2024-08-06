@@ -146,15 +146,9 @@ float GetSSAO()
 void main()
 {
     vec3 posVS;
-    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
+    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, gtao.rtSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
 
-    float scale = 0.5f;
-    bool isNear = subgroupAnd(posVS.z < 4);
-    if (isNear)
-    {
-        scale = 1.0f;
-    }
-    float occlusion = GetSSAOVM(posVS, normalVS, scale, scale);
+    float occlusion = GetSSAOVM(posVS, normalVS, 1.0f, 1.0f);
     oAO = occlusion;
     // if (posVS.z > gtao.debugPoint.x)
     // {

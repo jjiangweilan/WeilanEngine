@@ -1,9 +1,9 @@
 #ifndef GRID_INCLUDED
 #define GRID_INCLUDED
 // https://bgolus.medium.com/the-best-darn-grid-shader-yet-727f9278b9d8#1e7c
-float PristineGrid(vec2 uv, vec2 lineWidth)
+float PristineGrid(vec2 uv, float inLineWidth)
 {
-    lineWidth = clamp(lineWidth, 0, 1);
+    vec2 lineWidth = clamp(vec2(inLineWidth), 0, 1);
     vec4 uvDDXY = vec4(dFdx(uv), dFdy(uv));
     vec2 uvDeriv = vec2(length(uvDDXY.xz), length(uvDDXY.yw));
     bvec2 invertLine = greaterThan(lineWidth, vec2(0.5));
@@ -43,9 +43,9 @@ vec2 GetFirstTwoLargestValue(vec3 val, out ivec2 oIndex)
     return result;
 }
 
-float PristineGrid3D(vec3 pos, vec2 lineWidth)
+float PristineGrid3D(vec3 pos, float inLineWidth)
 {
-    lineWidth = clamp(lineWidth, 0, 1);
+    vec2 lineWidth = clamp(vec2(inLineWidth), 0, 1);
     vec3 posDDX = dFdx(pos);
     vec3 posDDY = dFdy(pos);
 

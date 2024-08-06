@@ -52,7 +52,7 @@ layout(location = 3) out vec4 o_Property;
 void main()
 {
     vec3 scale = vec3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
-    float grid = PristineGrid3D(i_PositionOS * scale, vec2(0.01f));
+    float grid = PristineGrid3D(i_PositionOS * scale, 0.01f);
     vec4 baseColor = vec4(vec3(mix(0.5, 1.0, grid)), 1.0);
 
     vec3 normal = vec3(0,0,1);

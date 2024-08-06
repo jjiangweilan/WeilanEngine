@@ -200,8 +200,14 @@ class SSAONode : public Node
                 material.SetFloat("GTAO", "falloff", *gtaoFalloff);
                 material.SetFloat("GTAO", "bias", *bias);
                 material.SetFloat("GTAO", "strength", *strength);
-                glm::vec2* data = GetConfigurablePtr<glm::vec2>("gtao - debugPoint");
-                material.SetVector("GTAO", "debugPoint", glm::vec4(*data, 0, 0));
+                material.SetVector(
+                    "GTAO",
+                    "rtSize",
+                    {inputAttachment.desc.GetWidth(),
+                     inputAttachment.desc.GetHeight(),
+                     1.0f / inputAttachment.desc.GetWidth(),
+                     1.0f / inputAttachment.desc.GetHeight()}
+                );
             }
 
             // #if ENGINE_DEV_BUILD

@@ -16,6 +16,7 @@ layout(set = 0, binding = 3) uniform sampler2D normal_point;
 layout(set = 2, binding = 0) uniform GTAO
 {
     vec2 debugPoint;
+    vec4 rtSize;
     float strength;
     float scaling;
     float falloff;
@@ -57,9 +58,9 @@ void UpdateHorizonVM(vec2 omega, int side, vec3 posVS, vec3 viewVS, float N, flo
     for (uint sampleIndex = 1; sampleIndex <= sliceSamples; ++sampleIndex)
     {
         float s = float(sampleIndex) / sliceSamples;
-        vec2 scaling = scene.screenSize.zw * gtao.scaling;
+        vec2 scaling = gtao.rtSize.zw * gtao.scaling;
         vec2 offset = side * s * scaling * vec2(omega[0], -omega[1]) / posVS.z;
-        offset = sign(offset) * max(scene.screenSize.zw, abs(offset));
+        offset = sign(offset) * max(gtao.rtSize.zw, abs(offset));
         vec2 sTexCoord = uv + offset;
 
         float sDepth = texture(depthTex, sTexCoord).x;
@@ -131,7 +132,7 @@ float UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS)
     for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
     {
         float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-        vec2 scaling = scene.screenSize.zw * gtao.scaling;
+        vec2 scaling = gtao.rtSize.zw * gtao.scaling;
         vec2 sTexCoord = uv + side * s * scaling * vec2(omega[0], -omega[1]) / posVS.z;
         float sDepth = texture(depthTex, sTexCoord).x;
         vec3 sPosV = GetPostionVS(vec3(sTexCoord * 2 - 1, sDepth));
@@ -153,7 +154,7 @@ float UpdateHorizon(vec2 omega, int side, vec3 posVS, vec3 viewVS)
 float GetSSAO()
 {
     vec3 posVS;
-    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, scene.screenSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
+    vec3 normalVS = NormalReconstructionMedium(depthTex, uv, gtao.rtSize.zw, scene.cameraZBufferParams, scene.invProjection, posVS);
     vec3 viewVS = normalize(-posVS);
 
     float visibility = 0;

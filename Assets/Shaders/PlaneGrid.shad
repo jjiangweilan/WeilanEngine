@@ -32,6 +32,6 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
-    oColor = vec4(1,1,1, PristineGrid(uv, vec2(0.01f)));
+    oColor = vec4(1,1,1, PristineGrid(uv, 0.01f));
 }
 #endif

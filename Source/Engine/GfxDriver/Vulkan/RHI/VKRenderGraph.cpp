@@ -59,8 +59,7 @@ public:
                         (desc.GetRandomWrite() ? Gfx::ImageUsage::Storage : 0)
                 ),
                 0,
-                desc
-            };
+                desc};
 
             auto& image = images[id.GetAsUUID()].image;
             image->SetName(fmt::format(
@@ -455,15 +454,13 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -908,16 +905,14 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set texture");
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+                cmd.setTexture.image->GetSRef()};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
             globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
                 ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+                cmd.setBuffer.buffer->GetSRef()};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -1010,6 +1005,28 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                         PutBarrier(vkcmd, b);
                     }
 
+                    if (!exeState.overrideViewport)
+                    {
+                        VkViewport viewport;
+                        viewport.x = 0.0f;
+                        viewport.y = 0.0f;
+                        viewport.width = (float)extent.width;
+                        viewport.height = (float)extent.height;
+                        viewport.minDepth = 0.0f;
+                        viewport.maxDepth = 1.0f;
+                        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
+                        exeState.overrideViewport = false;
+                    }
+
+                    if (!exeState.overrideScissor)
+                    {
+                        VkRect2D scissor;
+                        scissor.offset = {0, 0};
+                        scissor.extent = {extent.width, extent.height};
+                        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
+                        exeState.overrideScissor = false;
+                    }
+
                     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                     break;
                 }
@@ -1028,8 +1045,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.dstOffsets[1] = {
                         (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
                         (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers dstLayers;
                     dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
@@ -1041,8 +1057,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     blit.srcOffsets[1] = {
                         (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
                         (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
-                        1
-                    };
+                        1};
                     VkImageSubresourceLayers srcLayers = dstLayers;
                     srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
@@ -1114,6 +1129,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::SetViewport:
                 {
+                    exeState.overrideViewport = true;
                     vkCmdSetViewport(vkcmd, 0, 1, &cmd.setViewport.viewport);
                     break;
                 }
@@ -1173,6 +1189,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::SetScissor:
                 {
+                    exeState.overrideScissor = true;
                     vkCmdSetScissor(
                         vkcmd,
                         cmd.setScissor.firstScissor,
@@ -1339,6 +1356,28 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     {
                         PutBarrier(vkcmd, b);
                     }
+
+                    if (!exeState.overrideViewport)
+                    {
+                        VkViewport viewport;
+                        viewport.x = 0.0f;
+                        viewport.y = 0.0f;
+                        viewport.width = (float)extent.width;
+                        viewport.height = (float)extent.height;
+                        viewport.minDepth = 0.0f;
+                        viewport.maxDepth = 1.0f;
+                        vkCmdSetViewport(vkcmd, 0, 1, &viewport);
+                    }
+                    exeState.overrideViewport = false;
+
+                    if (!exeState.overrideScissor)
+                    {
+                        VkRect2D scissor;
+                        scissor.offset = {0, 0};
+                        scissor.extent = {extent.width, extent.height};
+                        vkCmdSetScissor(vkcmd, 0, 1, &scissor);
+                    }
+                    exeState.overrideScissor = false;
 
                     vkCmdBeginRenderPass(vkcmd, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                     break;

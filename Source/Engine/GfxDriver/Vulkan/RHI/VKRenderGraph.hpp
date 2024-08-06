@@ -92,6 +92,8 @@ private:
         VkDescriptorSet bindedDescriptorSets[4];
         int subpassIndex = -1;
         VKRenderPass* renderPass;
+        bool overrideViewport = false;
+        bool overrideScissor = false;
     } exeState;
 
     std::vector<VKCmd> currentSchedulingCmds;
