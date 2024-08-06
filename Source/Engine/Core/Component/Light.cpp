@@ -16,8 +16,8 @@ void Light::SetLightType(LightType type)
 
 glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
 {
-    glm::mat4 proj = glm::orthoRH(-30., 30., -30., 30., -300., 700.);
-    proj[2] *= -1;
+    glm::mat4 proj = glm::orthoLH_ZO(-30., 30., -30., 30., -300., 700.);
+    proj[1] *= -1;
     auto model = gameObject->GetModelMatrix();
     model[3] = glm::vec4(follow, 1.0);
     return proj * glm::inverse(model);
