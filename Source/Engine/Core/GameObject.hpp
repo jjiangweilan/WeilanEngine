@@ -92,12 +92,12 @@ public:
 
     void SetLocalPosition(const glm::vec3& localPosition)
     {
-        glm::vec3 currentLocal = {0, 0, 0};
+        glm::vec3 currentLocal = position;
         if (parent)
         {
             currentLocal = position - parent->GetPosition();
         }
-        auto delta = localPosition - currentLocal;
+        glm::vec3 delta = localPosition - currentLocal;
 
         // position didn't change early return
         if (EqualZero(delta))

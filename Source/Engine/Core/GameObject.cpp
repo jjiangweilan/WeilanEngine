@@ -138,15 +138,6 @@ void GameObject::OnLoadingFinished()
     {
         c->gameObject = this;
     }
-
-    if (enabled)
-    {
-        for (auto& c : components)
-        {
-            if (c->IsEnabled())
-                c->EnableImple();
-        }
-    }
 }
 
 void GameObject::RemoveChild(GameObject* child)
@@ -228,8 +219,10 @@ void GameObject::SetEnable(bool isEnabled)
     for (auto child : children)
     {
         // child may be nullptr when deserializing
-        if (child && child->IsEnabled())
+        if (child)
+        {
             child->SetEnable(isEnabled);
+        }
     }
 
     if (isEnabled)

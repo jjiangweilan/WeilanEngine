@@ -70,7 +70,7 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetName(cname);
         }
 
-        auto pos = target->GetLocalPosition();
+        glm::vec3 pos = target->GetLocalPosition();
         if (ImGui::DragFloat3("Position", &pos[0]))
         {
             target->SetLocalPosition(pos);

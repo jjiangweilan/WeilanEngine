@@ -244,13 +244,13 @@ void Scene::Deserialize(Serializer* s)
 
 void Scene::OnLoadingFinished()
 {
-    for (auto& g : gameObjects)
-    {
-        g->SetScene(this);
-    }
-
     for (auto go : GetAllGameObjects())
     {
         go->OnLoadingFinished();
+    }
+
+    for (auto& g : gameObjects)
+    {
+        g->SetScene(this);
     }
 }
