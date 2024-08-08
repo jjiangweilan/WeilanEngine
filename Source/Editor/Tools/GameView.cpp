@@ -175,35 +175,85 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
     return distance > 0;
 }
 
-static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
+struct PickGameObjectFromScene
 {
-    if (Scene* scene = EditorState::activeScene)
+    // main thread populates pending vectors, while worker threads process the pending. workers takes the target
+    // GameObject using the `consumerIndex`, each process of a GameObject appends an `Intersected` in `results` if it's
+    // intersected with the GameObject. `consumerIndex` is incrementally increased by 1 each time the worker takes a
+    // GameObject to process
+private:
+    std::vector<GameObject*> pending;
+    std::atomic<int> consumerIndex{0};
+
+public:
+    std::vector<Intersected> results;
+
+    void operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
     {
-        auto objs = scene->GetAllGameObjects();
-
-        auto ori = ray.origin;
-        auto dir = ray.direction;
-        for (auto obj : objs)
+        pending = scene.GetAllGameObjects();
+        std::vector<std::thread> threads;
+        std::mutex m;
+        int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
+        for (int i = 0; i < maxThreads; ++i)
         {
-            if (obj == nullptr || !obj->IsEnabled())
-                continue;
+            threads.push_back(std::thread(
+                [this, &m, &intersected, &ray]()
+                {
+                    while (consumerIndex < pending.size())
+                    {
+                        int index = consumerIndex.fetch_add(1);
 
-            float distance = std::numeric_limits<float>::max();
-            if (IsRayObjectIntersect(ori, dir, obj, distance))
-            {
-                intersected.push_back(Intersected{obj, distance});
-            }
+                        GameObject* obj = pending[index];
+                        if (obj == nullptr || !obj->IsEnabled())
+                            continue;
+
+                        auto ori = ray.origin;
+                        auto dir = ray.direction;
+                        float distance = std::numeric_limits<float>::max();
+                        if (IsRayObjectIntersect(ori, dir, obj, distance))
+                        {
+                            std::scoped_lock lock(m);
+                            intersected.push_back(Intersected{obj, distance});
+                        }
+                    };
+                }
+            ));
         }
+
+        for (auto& t : threads)
+            t.join();
     }
-}
+};
+
+// static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
+// {
+//     if (Scene* scene = EditorState::activeScene)
+//     {
+//         auto objs = scene->GetAllGameObjects();
+//
+//         auto ori = ray.origin;
+//         auto dir = ray.direction;
+//         for (auto obj : objs)
+//         {
+//             if (obj == nullptr || !obj->IsEnabled())
+//                 continue;
+//
+//             float distance = std::numeric_limits<float>::max();
+//             if (IsRayObjectIntersect(ori, dir, obj, distance))
+//             {
+//                 intersected.push_back(Intersected{obj, distance});
+//             }
+//         }
+//     }
+// }
 
 static void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
     if (!ImGui::IsWindowHovered())
         return;
 
-    // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with MouseWheel 
-    // so I track the down and release event individually
+    // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
+    // MouseWheel so I track the down and release event individually
     static bool isAltDown = false;
     if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
         isAltDown = true;
@@ -586,7 +636,10 @@ bool GameView::Tick()
                     Gizmos::PickGizmos(ray, results);
                     if (results.empty())
                     {
-                        PickGameObjectFromScene(ray, screenUV, intersected);
+                        if (EditorState::activeScene)
+                        {
+                            PickGameObjectFromScene()(*EditorState::activeScene, ray, screenUV, intersected);
+                        }
                     }
                     else
                     {
