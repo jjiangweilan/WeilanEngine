@@ -136,7 +136,7 @@ void GameView::Init()
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
 {
-    distance = -1;
+    distance = std::numeric_limits<float>::max();
     auto mr = obj->GetComponent<MeshRenderer>();
     if (mr)
     {
@@ -164,14 +164,13 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
                     float newDistance = -1;
                     if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
                     {
-                        distance = glm::max(distance, newDistance);
+                        distance = glm::min(distance, newDistance);
                     }
                 }
             }
         }
     }
 
-    // ray is not tested, there is no mesh maybe use a box as proxy?
     return distance > 0;
 }
 
