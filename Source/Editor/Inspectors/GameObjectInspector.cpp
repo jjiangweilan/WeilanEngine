@@ -125,6 +125,8 @@ class GameObjectInspector : public Inspector<GameObject>
 
 private:
     static char _register;
+    glm::vec3 point, axis;
+    float angle;
 };
 
 char GameObjectInspector::_register = InspectorRegistry::Register<GameObjectInspector, GameObject>();

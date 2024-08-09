@@ -54,6 +54,7 @@ private:
     std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;
     bool useViewCamera = true;
+    bool isAltDown = false;
     float editorCameraSpeed = 5.0f;
 
     struct
@@ -100,9 +101,10 @@ private:
     Shader* outlineFullScreenPassShader;
 
     void CreateRenderData(uint32_t width, uint32_t height);
-    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj);
+    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj);
     void ChangeGameScreenResolution(glm::ivec2 resolution);
     void FocusOnObject(Camera& camera, GameObject& gameObject);
     Camera* GetCurrentlyActiveCamera();
+    void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed);
 };
 } // namespace Editor

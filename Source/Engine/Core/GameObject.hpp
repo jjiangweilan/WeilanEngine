@@ -170,6 +170,14 @@ public:
 
         TransformChanged();
     }
+
+    void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle)
+    {
+        glm::mat4 trs = glm::translate(glm::mat4(1), point) * glm::rotate(glm::mat4(1), angle, axis) *
+                        glm::translate(glm::mat4(1), -point) * GetModelMatrix();
+        SetModelMatrix(trs);
+    }
+
     void Translate(const glm::vec3& translate)
     {
         if (translate == glm::vec3{0, 0, 0})
@@ -231,9 +239,9 @@ public:
 
     void SetEulerAngles(const glm::vec3& eulerAngles)
     {
-        updateModelMatrix = true;
         this->eulerAngles = eulerAngles;
-        rotation = glm::quat(eulerAngles);
+        auto rotation = glm::quat(eulerAngles);
+        SetRotation(rotation);
     }
 
     glm::mat4 GetModelMatrix()

@@ -2,8 +2,6 @@
 
 namespace Editor
 {
-
-void SelectObject(SRef<Object> obj, bool multiSelect) {}
 std::vector<SRef<Object>> EditorState::selectedObjects = {};
 Scene* EditorState::activeScene = nullptr;
 GameLoop* EditorState::gameLoop = nullptr;
@@ -28,20 +26,27 @@ void EditorState::SelectObject(SRef<Object> obj, bool multiSelect)
     if (ptr == nullptr)
         return;
 
-    auto findIter =
-        std::find_if(selectedObjects.begin(), selectedObjects.end(), [ptr](SRef<Object> o) { return o.Get() == ptr; });
-
-    if (findIter == selectedObjects.end())
+    if (!selectedObjects.empty() && typeid(*ptr) != typeid(*selectedObjects[0].Get()))
     {
-        if (multiSelect)
+        return;
+    }
+
+    if (multiSelect)
+    {
+        auto findIter = std::find_if(
+            selectedObjects.begin(),
+            selectedObjects.end(),
+            [ptr](SRef<Object> o) { return o.Get() == ptr; }
+        );
+        if (findIter == selectedObjects.end())
         {
             selectedObjects.push_back(obj);
         }
-        else
-        {
-            selectedObjects.clear();
-            selectedObjects.push_back(obj);
-        }
+    }
+    else
+    {
+        selectedObjects.clear();
+        selectedObjects.push_back(obj);
     }
 }
 

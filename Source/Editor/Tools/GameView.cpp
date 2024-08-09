@@ -246,18 +246,10 @@ public:
 //     }
 // }
 
-static void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
+void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
     if (!ImGui::IsWindowHovered())
         return;
-
-    // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
-    // MouseWheel so I track the down and release event individually
-    static bool isAltDown = false;
-    if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
-        isAltDown = true;
-    if (ImGui::IsKeyReleased(ImGuiKey_LeftAlt))
-        isAltDown = false;
 
     static ImVec2 lastMouseDelta = ImVec2(0, 0);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -442,6 +434,13 @@ bool GameView::Tick()
     bool open = true;
 
     ImGui::Begin("Game View", &open, ImGuiWindowFlags_MenuBar);
+
+    // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
+    // MouseWheel so I track the down and release event individually
+    if (ImGui::IsKeyDown(ImGuiKey_LeftAlt))
+        isAltDown = true;
+    if (ImGui::IsKeyReleased(ImGuiKey_LeftAlt))
+        isAltDown = false;
 
     const char* menuSelected = "";
     Scene* scene = EditorState::activeScene;
@@ -676,7 +675,14 @@ bool GameView::Tick()
                         }
                         else
                         {
-                            EditorState::DeselectObject(picked);
+                            if (isAltDown)
+                            {
+                                EditorState::DeselectObject(picked);
+                            }
+                            else
+                            {
+                                EditorState::SelectObject(picked->GetSRef(), false);
+                            }
                         }
                     }
                     else
@@ -703,13 +709,62 @@ bool GameView::Tick()
                 GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
                 if (go)
                 {
+                    auto selectedObjects = EditorState::GetSelectedObjects();
                     auto model = go->GetModelMatrix();
+
+                    glm::vec3 avgPos = glm::vec3(0);
+
+                    for (auto& s : selectedObjects)
+                    {
+                        auto go = static_cast<GameObject*>(s.Get());
+                        avgPos += go->GetPosition();
+                    }
+                    avgPos /= selectedObjects.size();
+                    model[3] = glm::vec4(avgPos, 1.0f);
+
                     ImGui::SetCursorPos(imagePos);
 
-                    EditTransform(*mainCam, model, proj);
+                    glm::mat4 deltaMatrix;
+                    EditTransform(*mainCam, model, deltaMatrix, proj);
+
+                    // directly multiplying deltaMatrix resulting in exponentially scaling the object
+                    glm::vec3 scale = glm::vec3(
+                        length(glm::vec3(deltaMatrix[0])),
+                        length(glm::vec3(deltaMatrix[1])),
+                        length(glm::vec3(deltaMatrix[2]))
+                    );
+                    deltaMatrix[0] /= scale.x;
+                    deltaMatrix[1] /= scale.y;
+                    deltaMatrix[2] /= scale.z;
 
                     if (ImGuizmo::IsUsing())
-                        go->SetModelMatrix(model);
+                    {
+
+                        for (auto& s : selectedObjects)
+                        {
+                            auto go = static_cast<GameObject*>(s.Get());
+
+                            // handle translation and rotation
+                            glm::mat4 model = go->GetModelMatrix();
+                            model = deltaMatrix * model;
+
+                            // handle scale
+                            glm::mat4 scaleMatrix = glm::mat4(
+                                glm::vec4(scale.x, 0.0, 0.0f, 0.0f),
+                                glm::vec4(0.0f, scale.y, 0.0f, 0.0f),
+                                glm::vec4(0.0f, 0.0f, scale.z, 0.0f),
+                                glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+                            );
+                            glm::scale(model, glm::vec3(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z));
+                            model[3] -= glm::vec4(avgPos, 0.0f);
+                            model[3][3] = 0.0f;
+                            model = scaleMatrix * model;
+                            model[3] += glm::vec4(avgPos, 0.0f);
+                            model[3][3] = 1.0f;
+
+                            go->SetModelMatrix(model);
+                        }
+                    }
                 }
 
                 // Camera Gizmo
@@ -735,7 +790,7 @@ bool GameView::Tick()
     return open;
 }
 
-void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj)
+void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj)
 {
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
@@ -776,7 +831,7 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj)
         mCurrentGizmoOperation,
         mCurrentGizmoMode,
         &matrix[0][0],
-        nullptr,
+        &deltaMatrix[0][0],
         gameObjectConfigs.useSnap ? &gameObjectConfigs.snap[0] : nullptr
     );
 }
