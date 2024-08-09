@@ -26,7 +26,7 @@ void EditorState::SelectObject(SRef<Object> obj, bool multiSelect)
     if (ptr == nullptr)
         return;
 
-    if (!selectedObjects.empty() && typeid(*ptr) != typeid(*selectedObjects[0].Get()))
+    if (multiSelect && !selectedObjects.empty() && typeid(*ptr) != typeid(*selectedObjects[0].Get()))
     {
         return;
     }
