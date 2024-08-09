@@ -755,7 +755,6 @@ bool GameView::Tick()
                                 glm::vec4(0.0f, 0.0f, scale.z, 0.0f),
                                 glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
                             );
-                            glm::scale(model, glm::vec3(1.0f / scale.x, 1.0f / scale.y, 1.0f / scale.z));
                             model[3] -= glm::vec4(avgPos, 0.0f);
                             model[3][3] = 0.0f;
                             model = scaleMatrix * model;
