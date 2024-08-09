@@ -122,7 +122,7 @@ void FrameGraphEditor::DrawConfigurableField(
         if (ImGui::Button(name))
         {
             if (v != nullptr)
-                EditorState::selectedObject = v->GetSRef();
+                EditorState::SelectObject(v->GetSRef());
         }
 
         if (ImGui::BeginDragDropTarget())

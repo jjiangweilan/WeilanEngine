@@ -343,52 +343,49 @@ void GameView::Render(
     if (gameImage && gameDepthImage)
     {
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {1.0f, 0}};
-        GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+        auto selectedObjects = EditorState::GetSelectedObjects();
+        bool hasGameObjectSelected = false;
         // selection outline src pass
         {
-            if (go)
+
+            Gfx::RG::ImageDescription desc{
+                sceneImage->GetDescription().width,
+                sceneImage->GetDescription().height,
+                sceneImage->GetDescription().format
+            };
+            cmd.AllocateAttachment(outlineSrcRT, desc);
+            outlineSrcPass.SetAttachment(0, outlineSrcRT);
+            cmd.BeginRenderPass(outlineSrcPass, clears);
+            for (auto& selected : selectedObjects)
             {
-                auto mrs = go->GetComponentsInChildren<MeshRenderer>();
-                Rendering::FrameGraph::DrawList drawList;
-                for (MeshRenderer* meshRenderer : mrs)
+                GameObject* go = dynamic_cast<GameObject*>(selected.Get());
+                if (go)
                 {
-                    if (meshRenderer)
+                    hasGameObjectSelected = true;
+                    auto mrs = go->GetComponentsInChildren<MeshRenderer>();
+                    Rendering::FrameGraph::DrawList drawList;
+                    for (MeshRenderer* meshRenderer : mrs)
                     {
-                        drawList.Add(*meshRenderer);
+                        if (meshRenderer)
+                        {
+                            drawList.Add(*meshRenderer);
+                        }
+                    }
+
+                    cmd.BindShaderProgram(
+                        outlineRawColorPassShader->GetDefaultShaderProgram(),
+                        outlineRawColorPassShader->GetDefaultShaderConfig()
+                    );
+                    for (auto& draw : drawList)
+                    {
+                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                        cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                     }
                 }
-
-                Rect2D rect{{0, 0}, {sceneImage->GetDescription().width, sceneImage->GetDescription().height}};
-                cmd.SetScissor(0, 1, &rect);
-                cmd.SetViewport(Gfx::Viewport{
-                    0,
-                    0,
-                    static_cast<float>(rect.extent.width),
-                    static_cast<float>(rect.extent.height),
-                    0,
-                    1
-                });
-                Gfx::RG::ImageDescription desc{
-                    sceneImage->GetDescription().width,
-                    sceneImage->GetDescription().height,
-                    sceneImage->GetDescription().format
-                };
-                cmd.AllocateAttachment(outlineSrcRT, desc);
-                outlineSrcPass.SetAttachment(0, outlineSrcRT);
-                cmd.BeginRenderPass(outlineSrcPass, clears);
-                cmd.BindShaderProgram(
-                    outlineRawColorPassShader->GetDefaultShaderProgram(),
-                    outlineRawColorPassShader->GetDefaultShaderConfig()
-                );
-                for (auto& draw : drawList)
-                {
-                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
-                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                }
-                cmd.EndRenderPass();
             }
+            cmd.EndRenderPass();
         }
 
         // draw outline and gizmos
@@ -397,7 +394,7 @@ void GameView::Render(
             gameImagePass.SetAttachment(1, *gameDepthImage);
         cmd.BeginRenderPass(gameImagePass, clears);
 
-        if (go)
+        if (hasGameObjectSelected)
         {
             cmd.SetTexture("mainTex", outlineSrcRT);
             cmd.BindShaderProgram(
@@ -545,16 +542,16 @@ bool GameView::Tick()
     {
         if (Scene* scene = EditorState::activeScene)
         {
-            if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+            if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
             {
-                EditorState::selectedObject = scene->CopyGameObject(*selected)->GetSRef();
+                EditorState::SelectObject(scene->CopyGameObject(*selected)->GetSRef());
             }
         }
     }
 
     if (ImGui::IsKeyReleased(ImGuiKey_F))
     {
-        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get()))
+        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
         {
             if (auto mainCam = GetCurrentlyActiveCamera())
                 FocusOnObject(*mainCam, *go);
@@ -657,19 +654,34 @@ bool GameView::Tick()
                         { return l.distance > 0 && l.distance < r.distance; }
                     );
 
-                    GameObject* selected = nullptr;
+                    GameObject* picked = nullptr;
                     if (iter != intersected.end())
                     {
-                        selected = iter->go;
+                        picked = iter->go;
                     }
 
-                    if (selected)
+                    if (picked)
                     {
-                        EditorState::selectedObject = selected->GetSRef();
+                        // if picked is already selected, deselect it, otherwise select it
+                        auto selectedObjects = EditorState::GetSelectedObjects();
+                        auto findIter = std::find_if(
+                            selectedObjects.begin(),
+                            selectedObjects.end(),
+                            [picked](SRef<Object> o) { return o.Get() == picked; }
+                        );
+                        if (findIter == selectedObjects.end())
+                        {
+                            bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
+                            EditorState::SelectObject(picked->GetSRef(), multiSelect);
+                        }
+                        else
+                        {
+                            EditorState::DeselectObject(picked);
+                        }
                     }
                     else
                     {
-                        EditorState::selectedObject = nullptr;
+                        EditorState::SelectObject(nullptr);
                     }
                 }
             }
@@ -688,13 +700,13 @@ bool GameView::Tick()
                 glm::mat4 proj = mainCam->GetProjectionMatrix();
                 proj[1] *= -1;
 
-                GameObject* go = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+                GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
                 if (go)
                 {
                     auto model = go->GetModelMatrix();
                     ImGui::SetCursorPos(imagePos);
 
-                    EditTransform(*mainCam, model, proj, rect);
+                    EditTransform(*mainCam, model, proj);
 
                     if (ImGuizmo::IsUsing())
                         go->SetModelMatrix(model);
@@ -723,7 +735,7 @@ bool GameView::Tick()
     return open;
 }
 
-void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj, const glm::vec4& rect)
+void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& proj)
 {
     static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);

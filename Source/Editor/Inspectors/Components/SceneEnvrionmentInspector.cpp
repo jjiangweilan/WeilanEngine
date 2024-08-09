@@ -21,7 +21,7 @@ public:
             // ImGui::Image(&diffuseCube->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
             if (ImGui::Button("editor renderer doesn't support rendering cubemap yet, click me to see the texture##Diffuse"))
             {
-                EditorState::selectedObject = diffuseCube->GetSRef();
+                EditorState::SelectObject(diffuseCube->GetSRef());
             }
         }
         else
@@ -48,7 +48,7 @@ public:
         {
             if (ImGui::Button("editor renderer doesn't support rendering cubemap yet, click me to see the texture##Specular"))
             {
-                EditorState::selectedObject = specularCube->GetSRef();
+                EditorState::SelectObject(specularCube->GetSRef());
             }
         }
         else

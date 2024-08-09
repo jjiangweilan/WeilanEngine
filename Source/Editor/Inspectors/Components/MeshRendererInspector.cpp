@@ -60,7 +60,7 @@ public:
         }
         else if (bp)
         {
-            EditorState::selectedObject = mesh->GetSRef();
+            EditorState::SelectObject(mesh->GetSRef());
         }
         // show materials
         ImGui::Text("Materials: ");
@@ -76,7 +76,7 @@ public:
 
             if (ImGui::Button(buttonID.c_str()))
             {
-                EditorState::selectedObject = mats[i]->GetSRef();
+                EditorState::SelectObject(mats[i]->GetSRef());
             };
 
             if (ImGui::BeginDragDropTarget())

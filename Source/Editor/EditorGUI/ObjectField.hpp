@@ -15,7 +15,7 @@ public:
     {
         if (ImGui::Button(name.data()))
         {
-            EditorState::selectedObject = curr ? curr->GetSRef() : nullptr;
+            EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }
 
         if (ImGui::BeginDragDropTarget())

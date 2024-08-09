@@ -268,7 +268,7 @@ void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelec
         // select game object
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
-            EditorState::selectedObject = go->GetSRef();
+            EditorState::SelectObject(go->GetSRef());
         }
 
         // open context tree
@@ -321,8 +321,8 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     auto go = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
-    Material* mats[] = {
-        (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")};
+    Material* mats[] = {(Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")
+    };
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
@@ -385,7 +385,7 @@ void GameEditor::SceneTree(Scene& scene)
 
     static GameObject* currentSelected = nullptr;
     bool autoExpand = false;
-    GameObject* selected = dynamic_cast<GameObject*>(EditorState::selectedObject.Get());
+    GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
     if (currentSelected != selected)
         autoExpand = true;
     currentSelected = selected;
@@ -722,7 +722,7 @@ void GameEditor::SurfelGIBakerWindow()
         }
         if (ImGui::Button(templateShaderName))
         {
-            EditorState::selectedObject = c.templateShader->GetSRef();
+            EditorState::SelectObject(c.templateShader->GetSRef());
         }
         if (ImGui::BeginDragDropTarget())
         {
@@ -796,15 +796,16 @@ void GameEditor::InspectorWindow()
         if (ImGui::Checkbox("Lock window", &lockWindow))
         {
             if (lockWindow)
-                primarySelected = EditorState::selectedObject.Get();
+                primarySelected = EditorState::GetMainSelectedObject();
             else
-                EditorState::selectedObject = primarySelected->GetSRef();
+                EditorState::SelectObject(primarySelected->GetSRef());
         }
 
-        if (EditorState::selectedObject)
+        auto selectedObject = EditorState::GetMainSelectedObject();
+        if (selectedObject)
         {
             if (!lockWindow)
-                primarySelected = EditorState::selectedObject.Get();
+                primarySelected = selectedObject;
 
             if (primarySelected)
             {
@@ -827,15 +828,15 @@ void GameEditor::InspectorWindow()
         {
             ImGui::Begin("Secondary Inspector", &lockWindow, ImGuiWindowFlags_MenuBar);
 
-            if (EditorState::selectedObject)
+            auto selectedObject = EditorState::GetMainSelectedObject();
+            if (selectedObject)
             {
                 bool noInspector = secondaryInspector == nullptr;
-                bool chageInspector =
-                    !noInspector && secondaryInspector->GetTarget() != EditorState::selectedObject.Get();
+                bool chageInspector = !noInspector && secondaryInspector->GetTarget() != selectedObject;
                 if (noInspector || chageInspector)
                 {
-                    secondaryInspector = InspectorRegistry::GetInspector(*EditorState::selectedObject);
-                    secondaryInspector->OnEnable(*EditorState::selectedObject);
+                    secondaryInspector = InspectorRegistry::GetInspector(*selectedObject);
+                    secondaryInspector->OnEnable(*selectedObject);
                 }
 
                 if (secondaryInspector)
@@ -847,7 +848,7 @@ void GameEditor::InspectorWindow()
             // recover selected object
             if (lockWindow == false)
             {
-                EditorState::selectedObject = primarySelected->GetSRef();
+                EditorState::SelectObject(primarySelected->GetSRef());
             }
         }
     }
@@ -907,7 +908,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                     );
                     if (asset)
                     {
-                        EditorState::selectedObject = asset->GetSRef();
+                        EditorState::SelectObject(asset->GetSRef());
                     }
                 }
 
@@ -965,7 +966,7 @@ void GameEditor::AssetWindow()
                         Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
                         if (asset)
                         {
-                            EditorState::selectedObject = asset->GetSRef();
+                            EditorState::SelectObject(asset->GetSRef());
                         }
                     }
 
@@ -1231,7 +1232,4 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
 }
 
 GameEditor* GameEditor::instance = nullptr;
-SRef<Object> EditorState::selectedObject = nullptr;
-Scene* EditorState::activeScene = nullptr;
-GameLoop* EditorState::gameLoop = nullptr;
 } // namespace Editor
