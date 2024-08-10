@@ -123,7 +123,7 @@ void ShaderCompiler::CompileShader(
     // replaced causing failure to generate correct ShaderInfo.
     // We can move the setting from binding name to CONFIG section
     option.SetAutoBindUniforms(true);
-    option.SetPreserveBindings(false);
+    option.SetPreserveBindings(true);
     option.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
     // option.SetVulkanRulesRelaxed(true);
 
