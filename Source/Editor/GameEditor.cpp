@@ -252,12 +252,18 @@ void GameEditor::GameProfiler(Profiler& profiler)
     ImGui::End();
 }
 
-void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelected, bool autoExpand)
+void GameEditor::SceneTree(
+    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<SRef<Object>>& selects, bool autoExpand
+)
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-    if (go == currentSelected)
+
+    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](SRef<Object>& o) { return o.Get() == go; });
+    if (selectsIter != selects.end())
+    {
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
+    }
 
     if (autoExpand && currentSelected != nullptr && IsAncestorOf(go, currentSelected))
         ImGui::SetNextItemOpen(true);
@@ -268,7 +274,17 @@ void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelec
         // select game object
         if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
-            EditorState::SelectObject(go->GetSRef());
+            bool deselect = ImGui::IsKeyDown(ImGuiKey_LeftAlt);
+
+            if (deselect)
+            {
+                EditorState::DeselectObject(go);
+            }
+            else
+            {
+                bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
+                EditorState::SelectObject(go->GetSRef(), multiSelect);
+            }
         }
 
         // open context tree
@@ -308,7 +324,7 @@ void GameEditor::SceneTree(GameObject* go, int imguiID, GameObject* currentSelec
     {
         for (auto child : go->GetChildren())
         {
-            SceneTree(child, ++imguiID, currentSelected, autoExpand);
+            SceneTree(child, ++imguiID, currentSelected, selects, autoExpand);
         }
         ImGui::TreePop();
     }
@@ -390,9 +406,10 @@ void GameEditor::SceneTree(Scene& scene)
         autoExpand = true;
     currentSelected = selected;
     size_t imguiTreeId = 0;
+    auto selects = EditorState::GetSelectedObjects();
     for (auto root : scene.GetRootObjects())
     {
-        SceneTree(root, ++imguiTreeId, currentSelected, autoExpand);
+        SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand);
     }
 
     bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
@@ -411,9 +428,28 @@ void GameEditor::SceneTree(Scene& scene)
     {
         if (ImGui::Button("Delete"))
         {
-            EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
-            ImGui::CloseCurrentPopup();
-            sceneTreeContextObject = nullptr;
+            auto selects = EditorState::GetSelectedObjects();
+            if (std::find_if(
+                    selects.begin(),
+                    selects.end(),
+                    [this](SRef<Object>& o) { return o.Get() == sceneTreeContextObject; }
+                ) != selects.end())
+            {
+                for (auto& s : selects)
+                {
+                    GameObject* ptr = static_cast<GameObject*>(s.Get());
+                    if (ptr)
+                        EditorState::activeScene->DestroyGameObject(ptr);
+                }
+                ImGui::CloseCurrentPopup();
+                sceneTreeContextObject = nullptr;
+            }
+            else
+            {
+                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
+                ImGui::CloseCurrentPopup();
+                sceneTreeContextObject = nullptr;
+            }
         }
         ImGui::EndPopup();
     }
