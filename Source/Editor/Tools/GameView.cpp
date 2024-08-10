@@ -10,6 +10,7 @@
 #include "Physics/JoltDebugRenderer.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace Editor
 {
@@ -743,10 +744,7 @@ bool GameView::Tick()
                         for (auto& s : selectedObjects)
                         {
                             auto go = static_cast<GameObject*>(s.Get());
-
-                            // handle translation and rotation
                             glm::mat4 model = go->GetModelMatrix();
-                            model = deltaMatrix * model;
 
                             // handle scale
                             glm::mat4 scaleMatrix = glm::mat4(
@@ -755,11 +753,22 @@ bool GameView::Tick()
                                 glm::vec4(0.0f, 0.0f, scale.z, 0.0f),
                                 glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
                             );
+
+                            // get rotation
+                            glm::mat4 rot = glm::mat3(model);
+                            rot[0] = glm::vec4(glm::normalize(glm::vec3(rot[0])), 1.0f);
+                            rot[1] = glm::vec4(glm::normalize(glm::vec3(rot[1])), 1.0f);
+                            rot[2] = glm::vec4(glm::normalize(glm::vec3(rot[2])), 1.0f);
+                            glm::mat4 invRot = glm::inverse(rot);
+
                             model[3] -= glm::vec4(avgPos, 0.0f);
                             model[3][3] = 0.0f;
-                            model = scaleMatrix * model;
+                            model = rot * scaleMatrix * invRot * model;
                             model[3] += glm::vec4(avgPos, 0.0f);
                             model[3][3] = 1.0f;
+
+                            // handle translation and rotation
+                            model = deltaMatrix * model;
 
                             go->SetModelMatrix(model);
                         }
