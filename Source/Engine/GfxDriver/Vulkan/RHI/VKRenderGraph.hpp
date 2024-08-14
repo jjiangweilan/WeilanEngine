@@ -106,6 +106,7 @@ private:
     std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
     std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
     std::vector<VkMemoryBarrier> memoryBarriers;
+    std::vector<std::shared_ptr<AsyncReadbackHandle>> asyncReadbacks;
 
     std::unordered_map<ShaderProgram*, VKShaderResource> globalResources;
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ShaderBinding>> globalResourcePool;

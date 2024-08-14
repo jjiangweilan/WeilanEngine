@@ -199,7 +199,20 @@ void VKShaderProgram::CreateShaderPipeline(
     // generate bindings
     for (auto& iter : shaderInfo.bindings)
     {
+        auto& bindings = descriptorSetBindings[iter.second.setNum];
         ShaderInfo::Binding& binding = iter.second;
+
+        auto bindingIter = std::find_if(
+            bindings.begin(),
+            bindings.end(),
+            [&binding](VkDescriptorSetLayoutBinding& b) { return b.binding == binding.bindingNum; }
+        );
+
+        if (bindingIter != bindings.end())
+        {
+            continue;
+        }
+
         VkDescriptorSetLayoutBinding b{};
         b.stageFlags = ShaderInfo::Utils::MapShaderStage(binding.stages);
         b.binding = binding.bindingNum;
@@ -226,7 +239,8 @@ void VKShaderProgram::CreateShaderPipeline(
         }
         else
             b.pImmutableSamplers = VK_NULL_HANDLE;
-        descriptorSetBindings[iter.second.setNum].push_back(b);
+
+        bindings.push_back(b);
     }
 
     for (auto& set : descriptorSetBindings)

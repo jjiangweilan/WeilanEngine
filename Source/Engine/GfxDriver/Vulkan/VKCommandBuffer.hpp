@@ -4,6 +4,7 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Libs/LinearAllocator.hpp"
 #include "VKRenderPass.hpp"
+#include <list>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -243,6 +244,18 @@ struct VKAllocateAttachmentCmd
     RG::ImageDescription desc;
 };
 
+struct VKAsyncReadback
+{
+    Gfx::Buffer* buffer;
+    void* dst;
+    size_t size;
+    size_t offset;
+
+    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to VKRenderGraph
+    // later
+    std::shared_ptr<AsyncReadbackHandle>* handle;
+};
+
 enum class VKCmdType
 {
     None,
@@ -274,7 +287,9 @@ enum class VKCmdType
     BeginLabel,
     EndLabel,
     InsertLabel,
+    AsyncReadback
 };
+
 struct VKCmd
 {
     VKCmdType type;
@@ -292,6 +307,7 @@ struct VKCmd
         VKBindIndexBufferCmd bindIndexBuffer;
 
         VKSetLineWidthCmd setLineWidth;
+        VKAsyncReadback asyncReadback;
         VKSetViewportCmd setViewport;
         VKCopyImageToBufferCmd copyImageToBuffer;
         VKSetPushConstantCmd setPushConstant;
@@ -370,8 +386,12 @@ public:
 
     void PresentImage(VKImage* image);
 
+    std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, void* dst, size_t size, size_t offset = 0)
+        override;
+
     void Reset(bool releaseResource) override
     {
+        readbacks.clear();
         cmds.clear();
         tmpMemory.Reset();
     }
@@ -385,5 +405,6 @@ private:
     std::vector<VKCmd> cmds;
     LinearAllocator<1024> tmpMemory;
     VK::RenderGraph::Graph* graph;
+    std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 };
 } // namespace Gfx

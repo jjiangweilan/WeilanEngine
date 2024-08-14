@@ -399,4 +399,23 @@ void VKCommandBuffer::SetLineWidth(float lineWidth)
 
     cmds.push_back(cmd);
 }
+
+std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(
+    Gfx::Buffer& buffer, void* dst, size_t size, size_t offset
+)
+{
+    VKCmd cmd{VKCmdType::AsyncReadback};
+
+    std::shared_ptr<AsyncReadbackHandle> handle = std::make_shared<AsyncReadbackHandle>();
+    cmd.asyncReadback.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.asyncReadback.dst = dst;
+    cmd.asyncReadback.size = size;
+    cmd.asyncReadback.offset = offset;
+    readbacks.push_back(handle);
+    cmd.asyncReadback.handle = &readbacks.back();
+
+    cmds.push_back(cmd);
+    return handle;
+}
+
 } // namespace Gfx
