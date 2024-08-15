@@ -43,7 +43,6 @@ target_include_directories( WeilanEngine
     "Engine/"
 
     SYSTEM
-    ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
     )
 
@@ -69,6 +68,7 @@ target_link_libraries( WeilanEngine
     shaderc_shared
     Jolt
     nlohmann_json::nlohmann_json
+    GPUOpen::VulkanMemoryAllocator
     ${Vulkan_LIBRARIES}
     )
 
@@ -95,7 +95,6 @@ target_include_directories( WeilanEngineEditor
     SYSTEM
     # "${CMAKE_BINARY_DIR}/bin"
     # "${CMAKE_BINARY_DIR}/include"
-    ${vma_SOURCE_DIR}/include
     ${Vulkan_INCLUDE_DIRS}
     )
 
