@@ -85,16 +85,22 @@ void GameView::Init()
     playTheGame = std::make_unique<PlayTheGame>();
 
     // setup camera state
-    gameCamera = EditorState::activeScene->GetMainCamera();
-    editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
-    if (gameCamera)
+    if (EditorState::activeScene)
     {
-        auto fg = gameCamera->GetFrameGraph();
-        editorCamera->SetFrameGraph(fg);
-        if (!fg->IsCompiled())
-            fg->Compile();
+        gameCamera = EditorState::activeScene->GetMainCamera();
+        editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
+        if (gameCamera)
+        {
+            auto fg = gameCamera->GetFrameGraph();
+            if (fg)
+            {
+                editorCamera->SetFrameGraph(fg);
+                if (!fg->IsCompiled())
+                    fg->Compile();
+            }
+        }
+        EditorState::gameLoop->SetScene(*EditorState::activeScene, *editorCamera);
     }
-    EditorState::gameLoop->SetScene(*EditorState::activeScene, *editorCamera);
 
     if (GameEditor::instance->editorConfig.contains("editorCamera"))
     {
@@ -490,8 +496,15 @@ bool GameView::Tick()
     if (strcmp(menuSelected, "Change Resolution") == 0)
     {
         ImGui::OpenPopup("Change Resolution");
-        auto width = sceneImage->GetDescription().width;
-        auto height = sceneImage->GetDescription().height;
+        uint32_t width = 1920;
+        uint32_t height = 1080;
+
+        if (sceneImage)
+        {
+            width = sceneImage->GetDescription().width;
+            height = sceneImage->GetDescription().height;
+        }
+
         d.resolution = {width, height};
     }
     else if (strcmp(menuSelected, "Auto Resize") == 0)
@@ -518,10 +531,13 @@ bool GameView::Tick()
     // alway match window size
     int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
     int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
-    if (firstFrame || width != sceneImage->GetDescription().width || height != sceneImage->GetDescription().height)
+    if (sceneImage)
     {
-        firstFrame = false;
-        ChangeGameScreenResolution({width, height});
+        if (firstFrame || width != sceneImage->GetDescription().width || height != sceneImage->GetDescription().height)
+        {
+            firstFrame = false;
+            ChangeGameScreenResolution({width, height});
+        }
     }
 
     if (ImGui::BeginPopup("Change Resolution"))
@@ -846,7 +862,8 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& delta
 
 void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 {
-    CreateRenderData(resolution.x, resolution.y);
+    if (resolution.x > 0 && resolution.y > 0)
+        CreateRenderData(resolution.x, resolution.y);
 }
 
 void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
