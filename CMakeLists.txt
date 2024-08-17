@@ -6,7 +6,7 @@ project(WeilanEngine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin" )
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" )
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
 
@@ -134,13 +134,11 @@ FetchContent_MakeAvailable(glm)
 
 FetchContent_Declare(vma
     GIT_REPOSITORY "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git"
-    GIT_TAG "0aa3989b8f382f185fdf646cc83a1d16fa31d6ab"
+    GIT_TAG "v3.1.0"
     UPDATE_DISCONNECTED TRUE
     )
-FetchContent_GetProperties(vma)
-if(NOT vma_POPULATED)
-    FetchContent_Populate(vma)
-endif()
+set(VMA_ENABLE_INSTALL OFF)
+FetchContent_MakeAvailable(vma)
 
 FetchContent_Declare(ktx_software
     GIT_REPOSITORY "https://github.com/KhronosGroup/KTX-Software.git"
@@ -178,7 +176,7 @@ set(USE_FMADD ON)
 # set(BUILD_SHARED_LIBS ON)
 set(INTERPROCEDURAL_OPTIMIZATION=${IS_IPO_SUPPORTED})
 if(NOT JoltPhysics_POPULATED)
-  FetchContent_Populate(JoltPhysics)
+    FetchContent_MakeAvailable(JoltPhysics)
 
   set(PHYSICS_REPO_ROOT ${joltphysics_SOURCE_DIR})
   include(${joltphysics_SOURCE_DIR}/Jolt/Jolt.cmake)
