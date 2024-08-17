@@ -1,3 +1,4 @@
+#version 460
 #if CONFIG
 name: "RadianceCascade"
 #endif
@@ -13,13 +14,18 @@ layout(set = 2) uniform sampler2D normal;
 layout(set = 2) uniform sampler2D depth;
 layout(set = 2) uniform Param
 {
-    float cascadeLevel;
+    uint cascadeLevel;
     vec2 gridSize;
 };
 
 void main()
 {
-    color0 = texture(color, uv);
+    // calculate ray index
+    int size = 2i << cascadeLevel;
+    ivec2 i2 = mod(gl_FragCoord.xy, (2i >> cascadeLevel));
+    int rayIndex = i2.x + i2.y * size;
+
+    color0 = vec4(rayIndex / float(size));
 }
 
 #endif
