@@ -6,7 +6,7 @@
 #include "Utils/NormalReconstruction.glsl"
 
 #define GTAO_SLICE_COUNT 8
-#define GTAO_DIRECTION_SAMPLE_COUNT 8
+#define GTAO_DIRECTION_SAMPLE_COUNT 4
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f

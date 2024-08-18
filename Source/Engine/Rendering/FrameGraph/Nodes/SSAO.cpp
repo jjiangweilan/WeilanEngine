@@ -76,9 +76,6 @@ class SSAONode : public Node
         blur.paramsBuffer = GetGfxDriver()->CreateBuffer(
             Gfx::Buffer::CreateInfo{Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(GaussianBlur)}
         );
-        blur.config = blur.hShader->GetDefaultShaderConfig();
-        blur.config.color.blends.push_back(Gfx::ColorBlendAttachmentState{});
-        blur.config.color.blends[0].colorWriteMask = Gfx::ColorComponentBit::Component_B_Bit;
         blur.tmpRT = Gfx::RG::ImageIdentifier("SSAO-blur-tmp");
     }
 
@@ -95,14 +92,16 @@ class SSAONode : public Node
                         sizeof(RandomSamples),
                         false,
                         "SSAO Buffer",
-                        false});
+                        false
+                    });
 
                     ssaoParamBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
                         Gfx::BufferUsage::Uniform | Gfx::BufferUsage::Transfer_Dst,
                         sizeof(CrysisAO),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
 
@@ -113,7 +112,8 @@ class SSAONode : public Node
                         sizeof(Alchmey),
                         false,
                         "SSAO param Buffer",
-                        false});
+                        false
+                    });
                     break;
                 }
         }
@@ -159,7 +159,6 @@ class SSAONode : public Node
     {
         auto& cmd = *renderingData.cmd;
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
-        auto enablePtr = GetConfigurablePtr<bool>("enable");
         if (*enable)
         {
             auto depth = input.depth->GetValue<AttachmentProperty>().id;
@@ -187,7 +186,8 @@ class SSAONode : public Node
                     *theta,
                     *sampleCount,
                     *radius,
-                    *rangeCheck};
+                    *rangeCheck
+                };
                 if (alchmey != newParam)
                 {
                     alchmey = newParam;
@@ -233,7 +233,8 @@ class SSAONode : public Node
                 1.0f / inputAttachment.desc.GetWidth(),
                 1.0f / inputAttachment.desc.GetHeight(),
                 inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()}};
+                inputAttachment.desc.GetHeight()
+            }};
             if (newParam != blurParams)
             {
                 blurParams = newParam;
@@ -252,14 +253,14 @@ class SSAONode : public Node
                 blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
                 blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
 #endif
-                cmd.BindShaderProgram(blur.hShader, blur.config);
+                cmd.BindShaderProgram(blur.hShader, blur.hShader->GetDefaultShaderConfig());
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
 
                 blur.vPass.SetAttachment(0, inputAttachment.id);
                 cmd.BeginRenderPass(blur.vPass, clears);
                 cmd.SetTexture(sourceHandle, blur.tmpRT);
-                cmd.BindShaderProgram(blur.vShader, blur.config);
+                cmd.BindShaderProgram(blur.vShader, blur.hShader->GetDefaultShaderConfig());
                 cmd.Draw(6, 1, 0, 0);
                 cmd.EndRenderPass();
             }

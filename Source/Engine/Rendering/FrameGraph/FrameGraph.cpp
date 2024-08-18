@@ -164,10 +164,9 @@ void Graph::Deserialize(Serializer* s)
     }
 
     // TODO: we can fix invalid connections with the following code, and it lets compiling FrameGraph through.
-    // In that case, the invalid connections are disconnected, but we havn't yet have input validation check when Executing
-    // the graph, hence causing runtime error. runtime validation check of inputs should be implemented before we
-    // can auto disconnect invalid connections when deserializing
-    // auto connectionCopy = connections;
+    // In that case, the invalid connections are disconnected, but we havn't yet have input validation check when
+    // Executing the graph, hence causing runtime error. runtime validation check of inputs should be implemented before
+    // we can auto disconnect invalid connections when deserializing auto connectionCopy = connections;
     // connections.clear();
     // for(auto c : connectionCopy)
     // {
@@ -202,11 +201,10 @@ void Graph::ReportValidation()
         spdlog::info("{}, {}", iter.first, iter.second);
     }
 }
-void Graph::ProcessLights(Scene& gameScene)
+void Graph::ProcessLights(Scene& gameScene, Light*& mainLight)
 {
     auto lights = gameScene.GetActiveLights();
 
-    Light* shadowLight = nullptr;
     for (int i = 0; i < lights.size(); ++i)
     {
         sceneInfo.lights[i].ambientScale = lights[i]->GetAmbientScale();
@@ -218,12 +216,13 @@ void Graph::ProcessLights(Scene& gameScene)
         {
             case LightType::Directional:
                 {
+                    mainLight = lights[i];
                     glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
                     sceneInfo.lights[i].position = {pos, 0};
 
-                    if (shadowLight == nullptr || shadowLight->GetIntensity() < lights[i]->GetIntensity())
+                    if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
                     {
-                        shadowLight = lights[i];
+                        mainLight = lights[i];
                     }
                     break;
                 }
@@ -239,11 +238,6 @@ void Graph::ProcessLights(Scene& gameScene)
     }
 
     sceneInfo.lightCount = lights.size();
-    if (shadowLight)
-    {
-        sceneInfo.worldToShadow =
-            shadowLight->WorldToShadowMatrix(renderingData.mainCamera->GetGameObject()->GetPosition());
-    }
 }
 static void SortNodesInternal(
     FGID visit,
@@ -361,7 +355,24 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
         1.0f / renderingData.screenSize.x,
         1.0f / renderingData.screenSize.y
     );
-    ProcessLights(scene);
+    Light* mainLight = nullptr;
+    ProcessLights(scene, mainLight);
+    if (mainLight)
+    {
+        renderingData.updateMainLightShadow = mainLight->ShouldRenderShadowMap();
+
+        sceneInfo.worldToShadow =
+            mainLight->WorldToShadowMatrix(renderingData.mainCamera->GetGameObject()->GetPosition());
+
+        if (mainLight->IsShadowCacheEnabled())
+        {
+            sceneInfo.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
+        }
+        else
+        {
+            sceneInfo.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
+        }
+    }
 
     size_t copySize = sceneInfoBuffer->GetSize();
     Gfx::BufferCopyRegion regions[] = {{
@@ -423,7 +434,7 @@ bool Graph::Compile()
 
         auto dstNode = GetNode(GetDstNodeIDFromConnect(c));
         bool validLink = dstNode->GetProperty(GetDstPropertyIDFromConnectionID(c))->LinkFromOutput(*srcProperty);
-        if(!validLink)
+        if (!validLink)
         {
             compiled = false;
             return compiled;

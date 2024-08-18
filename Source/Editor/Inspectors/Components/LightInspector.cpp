@@ -49,6 +49,31 @@ public:
                 light->SetPointLightQuadratic(v1);
             }
         }
+
+        ImGui::Text("Shadow Cache");
+        ImGui::SameLine();
+        ImGui::Separator();
+        if (!light->IsShadowCacheEnabled())
+        {
+            if (ImGui::Button("Enable Shadow Cache"))
+            {
+                light->EnableShadowCache();
+            }
+        }
+        else
+        {
+            if (ImGui::Button("Disable Shadow Cache"))
+            {
+                light->DisableShadowCache();
+            }
+        }
+
+        int targetFrames = light->GetShadowCacheTargetFrames();
+        if (ImGui::InputInt("target frames", &targetFrames))
+        {
+            light->SetShadowUpdateFrames(targetFrames);
+        }
+        ImGui::Separator();
     }
 
 private:

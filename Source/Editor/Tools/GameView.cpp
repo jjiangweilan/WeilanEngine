@@ -139,6 +139,8 @@ void GameView::Init()
             .get();
     editorWorldSpaceGrid.gridShader =
         static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
+
+    ChangeGameScreenResolution({256, 256});
 }
 
 static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)

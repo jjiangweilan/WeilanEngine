@@ -1,9 +1,10 @@
 #pragma once
-#include "Rendering/Shader.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "NodeBlueprint.hpp"
 #include "Nodes/Node.hpp"
+#include "Rendering/Shader.hpp"
+
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/imguinode/imgui_node_editor.h"
 #endif
@@ -198,7 +199,7 @@ private:
         return false; // not implemented
     }
 
-    void ProcessLights(Scene& gameScene);
+    void ProcessLights(Scene& gameScene, Light*& mainLight);
     void RequireRecompile()
     {
         compiled = false;

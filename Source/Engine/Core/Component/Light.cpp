@@ -16,11 +16,20 @@ void Light::SetLightType(LightType type)
 
 glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
 {
-    glm::mat4 proj = glm::orthoLH_ZO(-30., 30., -30., 30., -300., 700.);
-    proj[1] *= -1;
-    auto model = gameObject->GetModelMatrix();
-    model[3] = glm::vec4(follow, 1.0);
-    return proj * glm::inverse(model);
+    if (shadowCache.isEnabled && !(shadowCache.frames == 0))
+    {
+        return shadowCache.cachedWorldToShadow;
+    }
+    else
+    {
+        glm::mat4 proj = glm::orthoLH_ZO(-30., 30., -30., 30., -300., 700.);
+        proj[1] *= -1;
+        auto model = gameObject->GetModelMatrix();
+        model[3] = glm::vec4(follow, 1.0);
+        shadowCache.cachedWorldToShadow = proj * glm::inverse(model);
+        shadowCache.cachedLightDirection = GetLightDirection();
+        return shadowCache.cachedWorldToShadow;
+    }
 }
 
 void Light::Serialize(Serializer* s) const
@@ -68,4 +77,11 @@ std::unique_ptr<Component> Light::Clone(GameObject& owner)
 void Light::OnDrawGizmos()
 {
     Gizmos::DrawLight(gameObject->GetPosition());
+}
+
+glm::vec3 Light::GetLightDirection()
+{
+    auto model = GetGameObject()->GetModelMatrix();
+    glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
+    return pos;
 }

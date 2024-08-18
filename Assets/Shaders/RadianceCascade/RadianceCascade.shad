@@ -1,4 +1,5 @@
 #version 460
+
 #if CONFIG
 name: "RadianceCascade"
 #endif
@@ -21,11 +22,11 @@ layout(set = 2) uniform Param
 void main()
 {
     // calculate ray index
-    int size = 2i << cascadeLevel;
-    ivec2 i2 = mod(gl_FragCoord.xy, (2i >> cascadeLevel));
-    int rayIndex = i2.x + i2.y * size;
+    // int size = 2i << cascadeLevel;
+    // ivec2 i2 = mod(gl_FragCoord.xy, (2i >> cascadeLevel));
+    // int rayIndex = i2.x + i2.y * size;
 
-    color0 = vec4(rayIndex / float(size));
+    color0 = vec4(0.0); // vec4(rayIndex / float(size));
 }
 
 #endif

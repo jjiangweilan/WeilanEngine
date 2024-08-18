@@ -83,8 +83,57 @@ public:
         return pointLightTerm2;
     }
 
+    glm::vec3 GetLightDirection();
+
+    glm::vec3 GetCachedLightDirection()
+    {
+        return shadowCache.cachedLightDirection;
+    }
+
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
+
+    void EnableShadowCache()
+    {
+        shadowCache.isEnabled = true;
+        shadowCache.cachedLightDirection = GetLightDirection();
+        shadowCache.frames = 0;
+        shadowCache.targetFrames = 8;
+    }
+
+    void DisableShadowCache()
+    {
+        shadowCache.isEnabled = false;
+        shadowCache.frames = 0;
+    }
+
+    bool IsShadowCacheEnabled()
+    {
+        return shadowCache.isEnabled;
+    }
+
+    bool ShouldRenderShadowMap()
+    {
+        return !shadowCache.isEnabled || shadowCache.frames == 0;
+    }
+
+    void SetShadowUpdateFrames(int frames)
+    {
+        shadowCache.targetFrames = frames;
+    }
+
+    int GetShadowCacheTargetFrames()
+    {
+        return shadowCache.targetFrames;
+    }
+
+    void Tick() override
+    {
+        if (shadowCache.isEnabled)
+        {
+            shadowCache.frames = (shadowCache.frames + 1) % shadowCache.targetFrames;
+        }
+    }
 
 private:
     LightType lightType = LightType::Directional;
@@ -94,6 +143,16 @@ private:
     float intensity = 1.0f;
     float pointLightTerm1 = 0.7f;
     float pointLightTerm2 = 1.8f;
+
+    struct
+    {
+        bool isEnabled = false;
+        int frames = 0;
+        int targetFrames = 0;
+        glm::vec3 cachedLightDirection;
+        glm::mat4 cachedWorldToShadow = glm::mat4(1.0f);
+
+    } shadowCache;
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

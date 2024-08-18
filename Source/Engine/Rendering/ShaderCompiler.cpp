@@ -125,7 +125,7 @@ void ShaderCompiler::CompileShader(
     option.SetAutoBindUniforms(true);
     option.SetPreserveBindings(false);
     option.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
-    option.SetVulkanRulesRelaxed(true);
+    // option.SetVulkanRulesRelaxed(true);
 
     shaderc::Compiler compiler;
     if (debug)

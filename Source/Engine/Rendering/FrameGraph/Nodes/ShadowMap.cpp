@@ -36,7 +36,17 @@ public:
         auto& cmd = *renderingData.cmd;
         drawList = input.drawList->GetValue<DrawList*>();
 
-        if (shadowmapShader)
+        if (shadowMap == nullptr || (shadowMap->GetDescription().width != shadowMapSize.x ||
+                                     shadowMap->GetDescription().height != shadowMapSize.y))
+        {
+            Gfx::ImageDescription desc(shadowMapSize.x, shadowMapSize.y, Gfx::ImageFormat::D32_SFloat);
+            shadowMap =
+                GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture);
+            shadowMapId = *shadowMap;
+            cmd.SetTexture("shadowMap", shadowMapId);
+        }
+
+        if (shadowmapShader && renderingData.updateMainLightShadow)
         {
             cmd.SetViewport(
                 {.x = 0, .y = 0, .width = shadowMapSize.x, .height = shadowMapSize.y, .minDepth = 0, .maxDepth = 1}
@@ -46,7 +56,6 @@ public:
             shadowDescription.SetWidth(shadowMapSize.x);
             shadowDescription.SetHeight(shadowMapSize.y);
             shadowDescription.SetFormat(Gfx::ImageFormat::D32_SFloat);
-            cmd.AllocateAttachment(shadowMapId, shadowDescription);
             shadowPass.SetAttachment(0, shadowMapId);
             cmd.BeginRenderPass(shadowPass, shadowMapClears);
             auto program = shadowmapShader->GetShaderProgram(0);
@@ -61,8 +70,6 @@ public:
             }
 
             cmd.EndRenderPass();
-
-            cmd.SetTexture("shadowMap", shadowMapId);
         }
 
         output.shadowMap->SetValue(AttachmentProperty{shadowMapId, shadowDescription});
@@ -72,6 +79,7 @@ private:
     Gfx::RG::RenderPass shadowPass = Gfx::RG::RenderPass(1, 1);
     Gfx::RG::ImageIdentifier shadowMapId;
     Gfx::RG::ImageDescription shadowDescription;
+    std::unique_ptr<Gfx::Image> shadowMap;
 
     std::vector<Gfx::ClearValue> shadowMapClears;
     Shader* shadowmapShader;

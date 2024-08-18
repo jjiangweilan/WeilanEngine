@@ -37,11 +37,13 @@ struct SceneInfo
     glm::vec4 cameraZBufferParams;
     glm::vec4 cameraFrustum;
     glm::vec4 screenSize;
+    glm::vec4 cachedMainLightDirection;
     LightInfo lights[MAX_LIGHT_COUNT];
 };
 
 struct RenderingData
 {
+    bool updateMainLightShadow = false;
     glm::ivec2 screenSize;
     Camera* mainCamera;
     Terrain* terrain;

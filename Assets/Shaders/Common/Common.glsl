@@ -18,7 +18,6 @@ layout( push_constant ) uniform Transform
 #include "Common/SceneInfo.glsl"
 
 #define shadowMapSampler shadowMapSampler_sampler_linear
-#define shadowMap shadowMap_sampler_linear
 
 layout(set = SET_GLOBAL, binding = 1) uniform texture2D shadowMap;
 #ifdef G_VSM
@@ -28,24 +27,26 @@ layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_cla
 #endif
 layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;
+layout(set = SET_GLOBAL, binding = 20) uniform sampler s_point_clamp;
 
 #ifdef G_PCF
+
 float PcfShadow(vec2 shadowCoord, float objShadowDepth)
 {
     float shadow = 0;
 
     float x,y;
 
-    float halfFilterSize = 3;
+    float halfFilterSize = 1; // 2 * halfFilterSize + 1
     for (y = -halfFilterSize; y <= halfFilterSize; y += 1)
         for (x = -halfFilterSize; x <= halfFilterSize; x += 1)
         {
-            vec2 uv = shadowCoord + 0.8 * vec2(x, y) * scene.shadowMapSize.zw;
+            vec2 uv = shadowCoord + vec2(x, y) * scene.shadowMapSize.zw;
             vec3 uvd = vec3(uv, objShadowDepth);
-            shadow += texture(sampler2DShadow(shadowMap, shadowMapSampler_clamp), uvd).x;
+            shadow += textureLod(sampler2DShadow(shadowMap, shadowMapSampler_clamp), uvd, 0.0f).x;
         }
 
-    return shadow / 49.0f;
+    return shadow / 9;
 }
 #endif
 

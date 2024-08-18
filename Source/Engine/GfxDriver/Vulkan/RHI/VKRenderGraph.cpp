@@ -190,7 +190,7 @@ public:
         UUID readyToRemove[8];
         for (auto& iter : images)
         {
-            if (iter.second.frameCountFromLastRequest > 8 && removeCount < 8)
+            if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
             {
                 readyToRemove[removeCount++] = iter.first;
                 RemoveImageRelatedInfo(iter.second.image.get());
@@ -207,6 +207,7 @@ public:
     }
 
 private:
+    int maxResourceUnusedFrames = 120;
     struct AllocatedImage
     {
         std::unique_ptr<VKImage> image;
@@ -243,7 +244,7 @@ private:
         const UUID* readyToRemove[8];
         for (auto& iter : resources)
         {
-            if (iter.second.frameCountFromLastRequest > 8 && removeCount < 8)
+            if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
             {
                 readyToRemove[removeCount++] = &iter.first;
             }
@@ -988,7 +989,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::AsyncReadback:
                 {
-                    vkCmdSetEvent(vkcmd, cmd.asyncReadback.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
+                    // vkCmdSetEvent(vkcmd, cmd.asyncReadback.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
                     break;
                 }
             case VKCmdType::BeginRenderPass:

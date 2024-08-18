@@ -8,8 +8,7 @@
 name: Game / StandardPBRLighting
 features:
     - [ _, _AlphaTest ]
-depth:
-    testEnable: False
+debug: true
 #endif
 
 #define LOC_ShadowMapCS 5
@@ -123,6 +122,35 @@ float PointLightAttenuation(float distance, float t1, float t2)
         return 0;
 }
 
+#define OCCLUDER_SEARCH_ITS 100
+vec3 ParallaxShadowReprojection(vec3 P1, vec3 L1, vec3 L0)
+{ 
+    float k = 1.0 + length(L1 - L0); 
+    vec3 D = k * L1 - L0; 
+ 
+    vec3 S = P1; 
+    vec3 dS = D * 0.25; 
+    float sum = 0, cnt = 0; 
+    for (int i = 0; i < 8; ++i) 
+    { 
+        vec4 Sp = scene.worldToShadow * vec4(S, 1);
+        Sp = Sp / Sp.w;
+        vec2 shadowUV = Sp.xy * 0.5 + 0.5;
+        float occDepth = textureLod(sampler2D(shadowMap, s_point_clamp), shadowUV, 0).r; 
+        if (occDepth < Sp.z) 
+        { 
+            sum += (Sp.z - occDepth) * 1000.0f;  // shadow map is a depth texture from 0 to 1, we scale it with length of near and far plane
+            cnt += 1; 
+        } 
+        S += dS; 
+    } 
+ 
+    float d0 = cnt > 0 ? sum * (1 / cnt) : 0; 
+    vec3 P0 = P1 + d0 * D; 
+
+    return P0;
+} 
+
 void main()
 {
     vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
@@ -159,7 +187,14 @@ void main()
         {
             const float shadowBias = prop.shadowConstantBias;
             const float shadowNormalBias = prop.shadowNormalBias;
-            vec4 shadowCS = scene.worldToShadow * vec4(positionWS.xyz + shadowNormalBias * n, 1.0);
+
+            vec3 shadowWorldPos = positionWS.xyz;
+            if (scene.cachedMainLightDirection.a == 1.0f)
+            {
+                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, scene.cachedMainLightDirection.xyz);
+            }
+
+            vec4 shadowCS = scene.worldToShadow * vec4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0);
             shadowCS = shadowCS / shadowCS.w;
             vec2 shadowUV = shadowCS.xy * 0.5 + 0.5;
             float objShadowDepth = shadowCS.z - shadowBias;
