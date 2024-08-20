@@ -208,7 +208,6 @@ private:
     bool optimizeNeeded = false;
     float physicsUpdateDeltaAccumulation;
 
-    JoltDebugRenderer debugRenderer;
     class DebugBodyDrawFilter : public JPH::BodyDrawFilter
     {
     public:

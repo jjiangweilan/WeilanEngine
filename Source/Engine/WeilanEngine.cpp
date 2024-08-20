@@ -172,6 +172,8 @@ void WeilanEngine::InitJoltPhysics()
 
 void WeilanEngine::DeinitJoltPhysics()
 {
+    JoltDebugRenderer::GetDebugRenderer() = nullptr;
+
     // Unregisters all types with the factory and cleans up the default material
     JPH::UnregisterTypes();
 

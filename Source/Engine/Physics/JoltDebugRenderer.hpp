@@ -48,6 +48,8 @@ public:
         float inHeight = 0.5f
     ) override;
 
+    static std::unique_ptr<JoltDebugRenderer>& GetDebugRenderer();
+
 private:
     class BatchImpl : public JPH::RefTargetVirtual
     {
