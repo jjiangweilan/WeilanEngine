@@ -677,7 +677,8 @@ bool VKDriver::Present(
         1,
         &swapChainHandle,
         &swapchainIndex,
-        nullptr};
+        nullptr
+    };
 
     VkResult result = vkQueuePresentKHR(mainQueue.handle, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
@@ -772,8 +773,9 @@ void VKDriver::CreateInstance()
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
     std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
-        "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
-                                              // and overrided in vkconfig app in VulkanSDK
+        "VK_LAYER_KHRONOS_synchronization2"
+    }; // If you don't get syncrhonization validation work, be sure it's enabled
+       // and overrided in vkconfig app in VulkanSDK
     bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
@@ -961,7 +963,8 @@ void VKDriver::CreateDevice()
     const int requestsCount = 1;
     const int mainQueueIndex = 0;
     QueueRequest queueRequests[requestsCount] = {
-        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}};
+        {VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_COMPUTE_BIT, true, 1}
+    };
 
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];

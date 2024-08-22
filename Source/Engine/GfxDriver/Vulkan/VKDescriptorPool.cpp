@@ -22,7 +22,14 @@ VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLay
     }
 
     // FIXME: throwing robin_hood::map overflow
-    context->objManager->CreateDescriptorSetLayout(layoutCreateInfo, layout);
+    try
+    {
+        context->objManager->CreateDescriptorSetLayout(layoutCreateInfo, layout);
+    }
+    catch (std::exception e)
+    {
+        SPDLOG_ERROR(e.what());
+    }
 }
 
 VKDescriptorPool::~VKDescriptorPool()
@@ -97,7 +104,7 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
     createInfo.flags = 0;
     createInfo.maxSets = createInfo.maxSets == 0 ? 2 : createInfo.maxSets * 2;
     std::vector<VkDescriptorPoolSize> poolSizesCopy = poolSizes;
-    for (int i = 0 ; i < poolSizesCopy.size(); ++i)
+    for (int i = 0; i < poolSizesCopy.size(); ++i)
     {
         poolSizesCopy[i].descriptorCount = poolSizes[i].descriptorCount * createInfo.maxSets;
     }

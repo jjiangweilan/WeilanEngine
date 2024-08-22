@@ -453,6 +453,13 @@ uint64_t ShaderCompiler::GenerateFeatureCombination(
     return featureCombination;
 }
 
+struct CompileResult
+{
+    uint64_t featureCombination = 0;
+    Gfx::CompiledSpv compiledSpv = {};
+    std::set<std::filesystem::path> includedTracks = {};
+};
+
 void ShaderCompiler::CompileComputeShader(const char* filepath, const std::string& buf)
 {
     std::stringstream f;
@@ -497,26 +504,39 @@ void ShaderCompiler::CompileComputeShader(const char* filepath, const std::strin
         featureCombs.push_back({});
     }
 
+    std::vector<std::future<CompileResult>> futures;
     for (auto& c : featureCombs)
     {
-        uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
+        futures.push_back(std::async(
+            std::launch::async,
+            [this, filepath, &buf, bufSize, c]()
+            {
+                CompileResult r;
+                r.featureCombination = GenerateFeatureCombination(c, featureToBitMask);
 
-        Gfx::CompiledSpv compiledSpv;
+                CompileShader(
+                    "COMP",
+                    shaderc_compute_shader,
+                    config->debug,
+                    filepath,
+                    buf.c_str(),
+                    bufSize,
+                    r.includedTracks,
+                    c,
+                    r.compiledSpv.compSpv,
+                    r.compiledSpv.compSpv_noOp
+                );
 
-        CompileShader(
-            "COMP",
-            shaderc_compute_shader,
-            config->debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c,
-            compiledSpv.compSpv,
-            compiledSpv.compSpv_noOp
-        );
+                return r;
+            }
+        ));
+    }
 
-        compiledSpvs[featureCombination] = std::move(compiledSpv);
+    for (auto& f : futures)
+    {
+        auto r = f.get();
+        includedTrack.insert(r.includedTracks.begin(), r.includedTracks.end());
+        compiledSpvs[r.featureCombination] = std::move(r.compiledSpv);
     }
 }
 
@@ -564,38 +584,52 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
         featureCombs.push_back({});
     }
 
+    std::vector<std::future<CompileResult>> futures;
+
     for (auto& c : featureCombs)
     {
-        uint64_t featureCombination = GenerateFeatureCombination(c, featureToBitMask);
+        futures.push_back(std::async(
+            std::launch::async,
+            [this, filepath, &buf, bufSize, c]()
+            {
+                CompileResult r;
+                r.featureCombination = GenerateFeatureCombination(c, featureToBitMask);
 
-        Gfx::CompiledSpv compiledSpv;
+                CompileShader(
+                    "VERT",
+                    shaderc_vertex_shader,
+                    config->debug,
+                    filepath,
+                    buf.c_str(),
+                    bufSize,
+                    includedTrack,
+                    c,
+                    r.compiledSpv.vertSpv,
+                    r.compiledSpv.vertSpv_noOp
+                );
 
-        CompileShader(
-            "VERT",
-            shaderc_vertex_shader,
-            config->debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c,
-            compiledSpv.vertSpv,
-            compiledSpv.vertSpv_noOp
-        );
+                CompileShader(
+                    "FRAG",
+                    shaderc_fragment_shader,
+                    config->debug,
+                    filepath,
+                    buf.c_str(),
+                    bufSize,
+                    includedTrack,
+                    c,
+                    r.compiledSpv.fragSpv,
+                    r.compiledSpv.fragSpv_noOp
+                );
 
-        CompileShader(
-            "FRAG",
-            shaderc_fragment_shader,
-            config->debug,
-            filepath,
-            buf.c_str(),
-            bufSize,
-            includedTrack,
-            c,
-            compiledSpv.fragSpv,
-            compiledSpv.fragSpv_noOp
-        );
+                return r;
+            }
+        ));
+    }
 
-        compiledSpvs[featureCombination] = std::move(compiledSpv);
+    for (auto& f : futures)
+    {
+        auto r = f.get();
+        includedTrack.insert(r.includedTracks.begin(), r.includedTracks.end());
+        compiledSpvs[r.featureCombination] = std::move(r.compiledSpv);
     }
 }

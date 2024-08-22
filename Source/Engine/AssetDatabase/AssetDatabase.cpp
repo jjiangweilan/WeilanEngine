@@ -112,7 +112,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
             {
                 asyncImport[i].stateTrack = 3;
                 asyncImport[i].import = std::async(
-                    std::launch::deferred,
+                    std::launch::async,
                     [asyncImport = &asyncImport[i]]()
                     { asyncImport->newAsset->LoadFromFile(asyncImport->absoluteAssetPath.string().c_str()); }
                 );
@@ -129,7 +129,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                     asyncImport[i].resolveMap = std::make_unique<SerializeReferenceResolveMap>();
                     asyncImport[i].ser = std::make_unique<JsonSerializer>(binary, asyncImport[i].resolveMap.get());
                     asyncImport[i].import = std::async(
-                        std::launch::deferred,
+                        std::launch::async,
                         [asyncImport = &asyncImport[i]]()
                         { asyncImport->newAsset->Deserialize(asyncImport->ser.get()); }
                     );

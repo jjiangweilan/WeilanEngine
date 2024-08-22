@@ -245,6 +245,16 @@ void VKShaderProgram::CreateShaderPipeline(
 
     for (auto& set : descriptorSetBindings)
     {
+        std::sort(
+            set.second.begin(),
+            set.second.end(),
+            [](VkDescriptorSetLayoutBinding& left, VkDescriptorSetLayoutBinding& right)
+            { return left.binding < right.binding; }
+        );
+    }
+
+    for (auto& set : descriptorSetBindings)
+    {
         for (auto& binding : set.second)
         {
             if (binding.pImmutableSamplers != VK_NULL_HANDLE)
