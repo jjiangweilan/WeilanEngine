@@ -189,8 +189,8 @@ struct Subpass
 class RenderPass
 {
 public:
-    RenderPass() {}
-    RenderPass(int subpassCount, int attachmentCount)
+    RenderPass() : uuid(), name(std::to_string(GetDefaultNameId()++)) {}
+    RenderPass(int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
     {
         attachments.resize(attachmentCount);
         subpasses.resize(subpassCount);
@@ -265,6 +265,7 @@ public:
         SubpassAttachment colors[] = {{0, loadOp, storeOp}};
         SubpassAttachment depth = {1, depthLoadOp, depthStoreOp};
         rp.SetSubpass(0, colors, depth);
+        rp.SetName(name);
         return rp;
     }
 
@@ -297,5 +298,11 @@ private:
     std::vector<Subpass> subpasses;
 
     UUID uuid;
+
+    int& GetDefaultNameId()
+    {
+        static int id = 0;
+        return id;
+    };
 };
 } // namespace Gfx::RG

@@ -138,6 +138,22 @@ void FrameGraphEditor::DrawConfigurableField(
         }
     }
 }
+void FrameGraphEditor::ShowOutputImages()
+{
+    const char* outputImageName = "null";
+    if (fg::Node* outputImageNode = graph->GetOutputImageNode())
+    {
+        outputImageName = outputImageNode->GetCustomName().c_str();
+    }
+    ImGui::Text("Output Image: %s", outputImageName);
+
+    const char* outputDepthImageName = "null";
+    if (fg::Node* outputDepthImageNode = graph->GetOutputImageNode())
+    {
+        outputImageName = outputDepthImageNode->GetCustomName().c_str();
+    }
+    ImGui::Text("Output Image: %s", outputDepthImageName);
+}
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::FrameGraph::Graph& graph_)
 {
     this->graph = &graph_;
@@ -341,15 +357,10 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
     ed::End();
     ed::SetCurrentEditor(nullptr);
 
-    // the graph editor blocks button interaction so we can't overlay the button on top of the graph
+    // the graph editor blocks button interaction so we can't overlayon on top of the graph
     ImGui::SetCursorPos(overlayCursor);
 
-    const char* outputImageName = "null";
-    if (fg::Node* outputImageNode = graph->GetOutputImageNode())
-    {
-        outputImageName = outputImageNode->GetCustomName().c_str();
-    }
-    ImGui::Text("Output Image: %s", outputImageName);
+    ShowOutputImages();
 }
 
 void FrameGraphEditor::DrawFloatProp(Rendering::FrameGraph::Property& p) {}

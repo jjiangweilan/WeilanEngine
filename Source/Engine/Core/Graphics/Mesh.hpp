@@ -126,6 +126,18 @@ public:
     void SetVertexAttribute(const VertexAttribute& vertAttributes);
     void SetPositions(const std::vector<glm::vec3>& positions);
     void Apply();
+    const VertexAttribute& GetVertexAttribute() const {return attributes;}
+    bool HasAttribute(std::string_view name) const
+    {
+        for (auto& attr : attributes.GetDescription())
+        {
+            if (attr.name == name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     const std::vector<uint32_t>& GetIndices() const;
     const std::vector<glm::vec3>& GetPositions() const;

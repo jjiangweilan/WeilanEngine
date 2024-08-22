@@ -94,7 +94,7 @@ private:
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
     VkDescriptorSet descriptorSet;
 
-    // descriptor pool takea pointer to these value so these can't be temp values
+    // descriptor pool take a pointer to these value so these can't be temp values
     DescriptorSetBindings descriptorSetBindings;
     std::vector<VkSampler> immutableSamplerHandles;
 

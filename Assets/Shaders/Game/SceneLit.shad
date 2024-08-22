@@ -13,26 +13,53 @@ features:
     - [_, _NormalMap]
     - [_, _EmissiveMap]
     - [_, _MetallicRoughnessMap]
+    - [_, _Vertex_Normal]
+    - [_, _Vertex_Tangent]
+    - [_, _Vertex_UV0]
 #endif
 
 #if VERT
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
+#ifdef _Vertex_Tangent
 layout(location = 2) in vec4 i_Tangent;
+#endif
+#ifdef _Vertex_UV0
 layout(location = 3) in vec2 i_UV;
+#endif
 
 layout(location = 0) out vec3 o_PositionWS;
 layout(location = 1) out vec3 o_NormalWS;
 layout(location = 2) out vec3 o_TangentWS;
 layout(location = 3) out vec3 o_BitangentWS;
 layout(location = 4) out vec2 o_UV;
+
+vec4 GetVertexTangent()
+{
+#ifdef _Vertex_Tangent
+    return i_Tangent;
+#else
+    return vec4(1,0,0,0);
+#endif
+}
+
+vec2 GetVertexUV0()
+{
+#ifdef _Vertex_UV0
+    return i_UV;
+#else
+    return vec2(0);
+#endif
+}
+
 void main()
 {
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
     o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
-    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(i_Tangent.xyz, 1)).xyz;
-    o_BitangentWS = i_Tangent.w * cross(o_NormalWS, o_TangentWS);
-    o_UV = i_UV;
+    vec4 tangent = GetVertexTangent();
+    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(tangent.xyz, 1)).xyz;
+    o_BitangentWS = tangent.w * cross(o_NormalWS, o_TangentWS);
+    o_UV = GetVertexUV0();
 
     gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
 }

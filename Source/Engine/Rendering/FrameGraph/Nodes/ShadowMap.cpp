@@ -29,6 +29,7 @@ public:
             {},
             Gfx::RG::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
         );
+        shadowPass.SetName("ShadowMap pass");
     }
 
     void Execute(RenderingContext& renderContext, RenderingData& renderingData) override

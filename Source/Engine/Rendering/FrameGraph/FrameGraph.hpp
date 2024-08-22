@@ -74,6 +74,11 @@ public:
         return outputImageNode;
     }
 
+    Node* GetOutputDepthImageNode()
+    {
+        return outputDepthImageNode;
+    }
+
     std::span<std::unique_ptr<Node>> GetNodes()
     {
         return nodes;

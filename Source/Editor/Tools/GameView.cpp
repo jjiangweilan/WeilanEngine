@@ -97,6 +97,11 @@ void GameView::Init()
                 editorCamera->SetFrameGraph(fg);
                 if (!fg->IsCompiled())
                     fg->Compile();
+
+                if (fg->IsCompiled())
+                {
+                    spdlog::info("FrameGraph initial compiling failed");
+                }
             }
         }
         EditorState::gameLoop->SetScene(*EditorState::activeScene, *editorCamera);

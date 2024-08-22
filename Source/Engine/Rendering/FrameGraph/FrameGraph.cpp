@@ -5,6 +5,7 @@
 #include "Core/Time.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
+#include "GfxDriver/Image.hpp"
 #include <stack>
 
 #include "Profiler/Profiler.hpp"
@@ -517,7 +518,11 @@ const Gfx::RG::ImageIdentifier* Graph::GetOutputDepthImage()
 
     if (ImageNode* outputImageNode = dynamic_cast<ImageNode*>(this->outputDepthImageNode))
     {
-        return &outputImageNode->GetImage();
+        Gfx::Image* outputImage = GetGfxDriver()->GetImageFromRenderGraph(outputImageNode->GetImage());
+        if (outputImage && Gfx::IsDepthStencilFormat(outputImage->GetDescription().format))
+        {
+            return &outputImageNode->GetImage();
+        }
     }
 
     return nullptr;

@@ -21,6 +21,7 @@ VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLay
         poolSizes.push_back({iter.first, iter.second});
     }
 
+    // FIXME: throwing robin_hood::map overflow
     context->objManager->CreateDescriptorSetLayout(layoutCreateInfo, layout);
 }
 

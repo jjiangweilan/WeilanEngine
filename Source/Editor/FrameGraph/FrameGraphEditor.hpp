@@ -13,6 +13,7 @@ struct FrameGraphNode
 class FrameGraphEditor
 {
 public:
+    void ShowOutputImages();
     void Draw(ax::NodeEditor::EditorContext* context, Rendering::FrameGraph::Graph& graph);
 
 private:

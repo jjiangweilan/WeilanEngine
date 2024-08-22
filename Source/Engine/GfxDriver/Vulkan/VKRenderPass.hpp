@@ -50,7 +50,7 @@ protected:
     std::vector<VkFramebuffer> frameBuffers;
     VKSwapChainImage* swapChainProxy = nullptr;
     UUID swapChainProxyUUIDCopy;
-    Extent2D extent;
+    Extent2D extent = {0,0};
     std::vector<Subpass> subpasses;
 };
 } // namespace Gfx

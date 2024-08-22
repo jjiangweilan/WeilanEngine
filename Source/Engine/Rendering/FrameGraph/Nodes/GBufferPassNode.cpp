@@ -27,6 +27,7 @@ class GBufferPassNode : public Node
         AddConfig<ConfigurableType::ObjectPtr>("cloud noise material", nullptr);
 
         gbufferPass = Gfx::RG::RenderPass(1, 5);
+        gbufferPass.SetName("GBuffer Pass");
         Gfx::RG::SubpassAttachment lighting{
             0,
             Gfx::AttachmentLoadOperation::Clear,

@@ -176,97 +176,99 @@ bool Shader::LoadFromFile(const char* path)
     std::vector<std::unique_ptr<ShaderPass>> newShaderPasses{};
     std::set<std::filesystem::path> includedFilesSet{};
 
-    try
+
+    for (std::sregex_iterator it(ssf.begin(), ssf.end(), shaderPassReg), it_end; it != it_end; ++it)
     {
-        for (std::sregex_iterator it(ssf.begin(), ssf.end(), shaderPassReg), it_end; it != it_end; ++it)
+        std::string shaderPassName = it->str(1);
+        int nameStart = it->position(1);
+        int nameLength = it->length(1);
+
+        int index = nameStart + nameLength;
+        // find first '{'
+        while (ssf[index] != '{' && index < ssf.size())
         {
-            std::string shaderPassName = it->str(1);
-            int nameStart = it->position(1);
-            int nameLength = it->length(1);
+            index++;
+        }
 
-            int index = nameStart + nameLength;
-            // find first '{'
-            while (ssf[index] != '{' && index < ssf.size())
+        if (ssf[index] != '{')
+            throw std::runtime_error("failed to found valid shader pass block");
+        int quoteCount = 1;
+        int shaderPassBlockStart = index + 1;
+        index += 1;
+        while (index < ssf.size() && quoteCount != 0)
+        {
+            if (ssf[index] == '{')
             {
-                index++;
+                quoteCount += 1;
             }
-
-            if (ssf[index] != '{')
-                throw std::runtime_error("failed to found valid shader pass block");
-            int quoteCount = 1;
-            int shaderPassBlockStart = index + 1;
-            index += 1;
-            while (index < ssf.size() && quoteCount != 0)
+            if (ssf[index] == '}')
             {
-                if (ssf[index] == '{')
-                {
-                    quoteCount += 1;
-                }
-                if (ssf[index] == '}')
-                {
-                    quoteCount -= 1;
-                }
-                index++;
+                quoteCount -= 1;
             }
-            if (ssf[index - 1] != '}')
-                throw std::runtime_error("failed to found valid shader pass block");
-            int shaderPassBlockEnd = index - 1;
+            index++;
+        }
+        if (ssf[index - 1] != '}')
+            throw std::runtime_error("failed to found valid shader pass block");
+        int shaderPassBlockEnd = index - 1;
 
-            // compile shader pass block
-            auto shaderPass = std::make_unique<ShaderPass>();
+        // compile shader pass block
+        auto shaderPass = std::make_unique<ShaderPass>();
 
-            std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
+        std::string shaderPassBlock = ssf.substr(shaderPassBlockStart, shaderPassBlockEnd - shaderPassBlockStart);
+        try
+        {
             compiler.Compile(path, shaderPassBlock);
-            auto& includedFiles = compiler.GetIncludedFiles();
-            includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
-
-            for (auto& iter : compiler.GetCompiledSpvs())
-            {
-                shaderPass->shaderPrograms[iter.first] =
-                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
-            }
-
-            shaderPass->name = shaderPassName;
-            shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
-            newShaderPasses.push_back(std::move(shaderPass));
         }
-
-        // no shader pass use the whole as single pass
-        if (newShaderPasses.empty())
+        catch (std::exception e)
         {
-            auto shaderPass = std::make_unique<ShaderPass>();
-
-            compiler.Compile(path, ssf);
-            auto& includedFiles = compiler.GetIncludedFiles();
-            includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
-            for (auto& iter : compiler.GetCompiledSpvs())
-            {
-                shaderPass->shaderPrograms[iter.first] =
-                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
-            }
-
-            shaderPass->name = compiler.GetName();
-            shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
-            shaderPass->cachedShaderProgram = nullptr;
-            newShaderPasses.push_back(std::move(shaderPass));
+            SPDLOG_ERROR("{}, {}", e.what(), path);
+            return false;
         }
-        // this->name = compiler.GetName();
 
-        shaderPasses = std::move(newShaderPasses);
-        contentHash += 1;
+        auto& includedFiles = compiler.GetIncludedFiles();
+        includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
 
-        // update included files
-        includedFiles.files = std::vector(includedFilesSet.begin(), includedFilesSet.end());
-        includedFiles.lastWriteTime.clear();
-        for (auto& f : includedFiles.files)
+        for (auto& iter : compiler.GetCompiledSpvs())
         {
-            includedFiles.lastWriteTime.push_back(std::filesystem::last_write_time(f).time_since_epoch().count());
+            shaderPass->shaderPrograms[iter.first] =
+                GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
         }
+
+        shaderPass->name = shaderPassName;
+        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        newShaderPasses.push_back(std::move(shaderPass));
     }
-    catch (const std::exception& e)
+
+    // no shader pass use the whole as single pass
+    if (newShaderPasses.empty())
     {
-        SPDLOG_ERROR("{}", e.what());
-        return false;
+        auto shaderPass = std::make_unique<ShaderPass>();
+
+        compiler.Compile(path, ssf);
+        auto& includedFiles = compiler.GetIncludedFiles();
+        includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
+        for (auto& iter : compiler.GetCompiledSpvs())
+        {
+            shaderPass->shaderPrograms[iter.first] =
+                GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+        }
+
+        shaderPass->name = compiler.GetName();
+        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPass->cachedShaderProgram = nullptr;
+        newShaderPasses.push_back(std::move(shaderPass));
+    }
+    // this->name = compiler.GetName();
+
+    shaderPasses = std::move(newShaderPasses);
+    contentHash += 1;
+
+    // update included files
+    includedFiles.files = std::vector(includedFilesSet.begin(), includedFilesSet.end());
+    includedFiles.lastWriteTime.clear();
+    for (auto& f : includedFiles.files)
+    {
+        includedFiles.lastWriteTime.push_back(std::filesystem::last_write_time(f).time_since_epoch().count());
     }
 
     return true;
@@ -315,7 +317,7 @@ bool ComputeShader::LoadFromFile(const char* path)
     }
     catch (const std::exception& e)
     {
-        SPDLOG_ERROR("{}", e.what());
+        SPDLOG_ERROR("{} {}", e.what(), path);
         return false;
     }
 

@@ -62,6 +62,10 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
                 {
                     mat->SetShader(Shader::GetDefault());
                 }
+                if(meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TANGENT"))
+                    mat->EnableFeature("_Vertex_Tangent");
+                if(meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TEXCOORD_0"))
+                    mat->EnableFeature("_Vertex_UV0");
                 mats.push_back(mat);
             }
             else
