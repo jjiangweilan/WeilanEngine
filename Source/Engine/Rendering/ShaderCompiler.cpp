@@ -607,7 +607,7 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
                     filepath,
                     buf.c_str(),
                     bufSize,
-                    includedTrack,
+                    r.includedTracks,
                     c,
                     r.compiledSpv.vertSpv,
                     r.compiledSpv.vertSpv_noOp
@@ -620,7 +620,7 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
                     filepath,
                     buf.c_str(),
                     bufSize,
-                    includedTrack,
+                    r.includedTracks,
                     c,
                     r.compiledSpv.fragSpv,
                     r.compiledSpv.fragSpv_noOp
