@@ -3,7 +3,7 @@
 #if CONFIG
 name: LightFieldProbe/LightFieldProbePreview
 features:
-    - [Baked, Cubemap]
+    - [_, Baked, Cubemap]
 #endif
 
 #if VERT
