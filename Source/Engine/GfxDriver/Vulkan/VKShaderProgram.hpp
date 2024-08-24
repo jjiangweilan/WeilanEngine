@@ -72,7 +72,12 @@ public:
     size_t GetLayoutHash(uint32_t set);
 
 private:
-    typedef std::unordered_map<SetNum, std::vector<VkDescriptorSetLayoutBinding>> DescriptorSetBindings;
+    struct DescriptorSetLayoutBindingWrap
+    {
+        std::vector<VkDescriptorSetLayoutBinding> binding;
+        std::vector<std::vector<VkSampler>> samplers;
+    };
+    typedef std::unordered_map<SetNum, DescriptorSetLayoutBindingWrap> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
     struct PipelineCache
     {
@@ -97,7 +102,6 @@ private:
 
     // descriptor pool take a pointer to these value so these can't be temp values
     DescriptorSetBindings descriptorSetBindings;
-    std::vector<VkSampler> immutableSamplerHandles;
 
     void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);

@@ -198,16 +198,16 @@ void VKShaderProgram::CreateShaderPipeline(
     // generate bindings
     for (auto& iter : shaderInfo.bindings)
     {
-        auto& bindings = descriptorSetBindings[iter.second.setNum];
+        auto& descriptorSetWrap = descriptorSetBindings[iter.second.setNum];
         ShaderInfo::Binding& binding = iter.second;
 
         auto bindingIter = std::find_if(
-            bindings.begin(),
-            bindings.end(),
+            descriptorSetWrap.binding.begin(),
+            descriptorSetWrap.binding.end(),
             [&binding](VkDescriptorSetLayoutBinding& b) { return b.binding == binding.bindingNum; }
         );
 
-        if (bindingIter != bindings.end())
+        if (bindingIter != descriptorSetWrap.binding.end())
         {
             continue;
         }
@@ -231,22 +231,21 @@ void VKShaderProgram::CreateShaderPipeline(
             );
             VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
 
-            std::vector<VkSampler> samplerHandles(b.descriptorCount, sampler);
-            uint32_t index = immutableSamplerHandles.size();
-            immutableSamplerHandles.insert(immutableSamplerHandles.end(), samplerHandles.begin(), samplerHandles.end());
-            b.pImmutableSamplers = reinterpret_cast<VkSampler*>(index + 1);
+            descriptorSetWrap.samplers.push_back(std::vector<VkSampler>(b.descriptorCount, sampler));
         }
         else
-            b.pImmutableSamplers = VK_NULL_HANDLE;
+        {
+            descriptorSetWrap.samplers.push_back(std::vector<VkSampler>());
+        }
 
-        bindings.push_back(b);
+        descriptorSetWrap.binding.push_back(b);
     }
 
     for (auto& set : descriptorSetBindings)
     {
         std::sort(
-            set.second.begin(),
-            set.second.end(),
+            set.second.binding.begin(),
+            set.second.binding.end(),
             [](VkDescriptorSetLayoutBinding& left, VkDescriptorSetLayoutBinding& right)
             { return left.binding < right.binding; }
         );
@@ -254,21 +253,13 @@ void VKShaderProgram::CreateShaderPipeline(
 
     for (auto& set : descriptorSetBindings)
     {
-        for (auto& binding : set.second)
+        for (int i = 0; i < set.second.binding.size(); i++)
         {
-            if (binding.pImmutableSamplers != VK_NULL_HANDLE)
-            {
-                uint32_t immutableSamplerIndex = reinterpret_cast<uint32_t>(binding.pImmutableSamplers) - 1;
-                binding.pImmutableSamplers = &immutableSamplerHandles[immutableSamplerIndex];
-            }
+            if (set.second.binding[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+                set.second.binding[i].pImmutableSamplers = set.second.samplers[i].data();
+            else
+                set.second.binding[i].pImmutableSamplers = nullptr;
         }
-
-        // std::sort(
-        //     set.second.begin(),
-        //     set.second.end(),
-        //     [](const VkDescriptorSetLayoutBinding& l, const VkDescriptorSetLayoutBinding& r)
-        //     { return l.binding < r.binding; }
-        //);
     }
 
     GeneratePipelineLayoutAndGetDescriptorPool(descriptorSetBindings);
@@ -343,8 +334,8 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         {
             descriptorSetLayoutCreateInfo.flags = 0;
         }
-        descriptorSetLayoutCreateInfo.bindingCount = combined[i].size();
-        descriptorSetLayoutCreateInfo.pBindings = combined[i].data();
+        descriptorSetLayoutCreateInfo.bindingCount = combined[i].binding.size();
+        descriptorSetLayoutCreateInfo.pBindings = combined[i].binding.data();
 
         if ((descriptorSetLayoutCreateInfo.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
         {
@@ -442,8 +433,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 
     VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {
         vertGPInfos.pipelineShaderStageCreateInfo,
-        fragGPInfos.pipelineShaderStageCreateInfo
-    };
+        fragGPInfos.pipelineShaderStageCreateInfo};
     createInfo.pStages = shaderStageCreateInfos;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};
