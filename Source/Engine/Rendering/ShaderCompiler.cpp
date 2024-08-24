@@ -534,6 +534,11 @@ void ShaderCompiler::CompileComputeShader(const char* filepath, const std::strin
 
     for (auto& f : futures)
     {
+        f.wait();
+    }
+
+    for (auto& f : futures)
+    {
         auto r = f.get();
         includedTrack.insert(r.includedTracks.begin(), r.includedTracks.end());
         compiledSpvs[r.featureCombination] = std::move(r.compiledSpv);
@@ -624,6 +629,11 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
                 return r;
             }
         ));
+    }
+
+    for (auto& f : futures)
+    {
+        f.wait();
     }
 
     for (auto& f : futures)
