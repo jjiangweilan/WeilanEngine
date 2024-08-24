@@ -9,7 +9,9 @@ namespace ed = ax::NodeEditor;
 namespace fg = Rendering::FrameGraph;
 
 void FrameGraphEditor::DrawConfigurableField(
-    bool& openImageFormatPopup, const Rendering::FrameGraph::Configurable*& targetConfig, const Rendering::FrameGraph::Configurable& config
+    bool& openImageFormatPopup,
+    const Rendering::FrameGraph::Configurable*& targetConfig,
+    const Rendering::FrameGraph::Configurable& config
 )
 {
     if (config.type == fg::ConfigurableType::Bool)
@@ -148,11 +150,11 @@ void FrameGraphEditor::ShowOutputImages()
     ImGui::Text("Output Image: %s", outputImageName);
 
     const char* outputDepthImageName = "null";
-    if (fg::Node* outputDepthImageNode = graph->GetOutputImageNode())
+    if (fg::Node* outputDepthImageNode = graph->GetOutputDepthImageNode())
     {
-        outputImageName = outputDepthImageNode->GetCustomName().c_str();
+        outputDepthImageName = outputDepthImageNode->GetCustomName().c_str();
     }
-    ImGui::Text("Output Image: %s", outputDepthImageName);
+    ImGui::Text("Output Depth Image: %s", outputDepthImageName);
 }
 void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::FrameGraph::Graph& graph_)
 {
