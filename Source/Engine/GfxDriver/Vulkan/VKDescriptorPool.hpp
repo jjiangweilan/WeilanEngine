@@ -3,7 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {
 class VKContext;
@@ -49,11 +49,6 @@ private:
     VkDescriptorPool CreateNewPool();
 };
 
-struct VkDescriptorSetLayoutCreateInfoHash
-{
-    std::size_t operator()(const VkDescriptorSetLayoutCreateInfo& c) const;
-};
-
 // TODO: is this bad? too many pools are created
 struct VKDescriptorPoolCache
 {
@@ -70,8 +65,7 @@ struct VKDescriptorPoolCache
 
 private:
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
-    std::unordered_map<VkDescriptorSetLayoutCreateInfo, VKDescriptorPool, VkDescriptorSetLayoutCreateInfoHash>
-        descriptorLayoutPoolCache;
+    std::unordered_map<vk::DescriptorSetLayoutCreateInfo, VKDescriptorPool> descriptorLayoutPoolCache;
     RefPtr<VKContext> context;
 
 private:

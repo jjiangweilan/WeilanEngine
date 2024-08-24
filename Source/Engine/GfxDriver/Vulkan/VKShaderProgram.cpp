@@ -10,15 +10,13 @@
 #include "VKShaderProgram.hpp"
 #include <assert.h>
 #include <spdlog/spdlog.h>
-
+#include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
 {
-    uint32_t hash = XXH32(&createInfo, sizeof(VkSamplerCreateInfo), 0);
-
-    auto iter = samplers.find(hash);
+    auto iter = samplers.find(createInfo);
     if (iter != samplers.end())
     {
         return iter->second;
@@ -26,7 +24,7 @@ VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
 
     VkSampler sampler;
     VKContext::Instance()->objManager->CreateSampler(createInfo, sampler);
-    samplers[hash] = sampler;
+    samplers[createInfo] = sampler;
     return sampler;
 }
 
@@ -40,7 +38,8 @@ void SamplerCachePool::DestroyPool()
     samplers.clear();
 }
 
-std::unordered_map<uint32_t, VkSampler> SamplerCachePool::samplers = std::unordered_map<uint32_t, VkSampler>();
+std::unordered_map<vk::SamplerCreateInfo, VkSampler> SamplerCachePool::samplers =
+    std::unordered_map<vk::SamplerCreateInfo, VkSampler>();
 
 VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
     const std::string& lowerBindingName, bool enableCompare
@@ -233,7 +232,7 @@ void VKShaderProgram::CreateShaderPipeline(
             VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
 
             std::vector<VkSampler> samplerHandles(b.descriptorCount, sampler);
-            int index = immutableSamplerHandles.size();
+            uint32_t index = immutableSamplerHandles.size();
             immutableSamplerHandles.insert(immutableSamplerHandles.end(), samplerHandles.begin(), samplerHandles.end());
             b.pImmutableSamplers = reinterpret_cast<VkSampler*>(index + 1);
         }
@@ -259,8 +258,8 @@ void VKShaderProgram::CreateShaderPipeline(
         {
             if (binding.pImmutableSamplers != VK_NULL_HANDLE)
             {
-                binding.pImmutableSamplers =
-                    &immutableSamplerHandles[reinterpret_cast<uint64_t>(binding.pImmutableSamplers) - 1];
+                uint32_t immutableSamplerIndex = reinterpret_cast<uint32_t>(binding.pImmutableSamplers) - 1;
+                binding.pImmutableSamplers = &immutableSamplerHandles[immutableSamplerIndex];
             }
         }
 
@@ -349,7 +348,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
 
         if ((descriptorSetLayoutCreateInfo.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
         {
-            layoutHash.push_back(VkDescriptorSetLayoutCreateInfoHash{}(descriptorSetLayoutCreateInfo));
+            layoutHash.push_back(std::hash<vk::DescriptorSetLayoutCreateInfo>{}(descriptorSetLayoutCreateInfo));
         }
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);

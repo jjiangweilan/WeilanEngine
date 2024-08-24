@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {
 class VKShaderModule;
@@ -27,7 +28,7 @@ public:
     );
 
 private:
-    static std::unordered_map<uint32_t, VkSampler> samplers;
+    static std::unordered_map<vk::SamplerCreateInfo, VkSampler> samplers;
 };
 
 class VKShaderProgram : public ShaderProgram

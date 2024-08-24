@@ -142,27 +142,4 @@ VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(
         return pair.first->second;
     }
 }
-
-std::size_t VkDescriptorSetLayoutCreateInfoHash::operator()(const VkDescriptorSetLayoutCreateInfo& c) const
-{
-    using std::size_t;
-    size_t rlt = c.bindingCount | c.flags << 15;
-    for (uint32_t i = 0; i < c.bindingCount; i++)
-    {
-        auto& b = c.pBindings[i];
-        size_t bHash = b.stageFlags << 30 | b.descriptorCount << 24 |
-                       XXH64(&b.descriptorType, sizeof(VkDescriptorType), 100) | b.binding;
-        if (b.descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-        {
-            for (size_t j = 0; j < c.bindingCount; j++)
-            {
-                bHash |= reinterpret_cast<std::uintptr_t>(b.pImmutableSamplers + j);
-            }
-        }
-
-        rlt ^= bHash;
-    }
-
-    return rlt;
-}
 } // namespace Gfx
