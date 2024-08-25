@@ -69,6 +69,7 @@ public:
     // compile compute shader
     void CompileComputeShader(const char* path, const std::string& buf);
 
+    void FeaturesToBitmask(std::vector<std::vector<std::string>>& features);
     const std::vector<uint32_t>& GetVertexSPV()
     {
         return compiledSpvs[0].vertSpv;
@@ -107,6 +108,16 @@ public:
     }
 
 private:
+    enum class BitmaskStage
+    {
+        Vert,
+        Frag
+    };
+    struct FeatureBitmask
+    {
+        uint64_t bitmask;
+        BitmaskStage stage;
+    };
     std::unordered_map<uint64_t, Gfx::CompiledSpv> compiledSpvs{};
 
     std::set<std::filesystem::path> includedTrack{};
@@ -127,6 +138,7 @@ private:
         int bufSize,
         std::set<std::filesystem::path>& includedTrack,
         const std::vector<std::string>& features,
+        const std::vector<std::string>& stagefeatures,
         std::vector<uint32_t>& unoptimized,
         std::vector<uint32_t>& optimized
     );
@@ -134,5 +146,6 @@ private:
     uint64_t GenerateFeatureCombination(
         const std::vector<std::string>& combs, const std::unordered_map<std::string, uint64_t>& featureToBitIndex
     );
+    static std::vector<std::vector<std::string>> ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName);
     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 };

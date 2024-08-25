@@ -7,12 +7,13 @@ ShaderPass GBuffer
 
 #if CONFIG
 name: Game/SceneLit
-features:
+fragFeatures:
     - [_AlphaTest]
     - [_BaseColorMap]
     - [_NormalMap]
     - [_EmissiveMap]
     - [_MetallicRoughnessMap]
+vertFeatures:
     - [_Vertex_Normal]
     - [_Vertex_Tangent]
     - [_Vertex_UV0]

@@ -68,6 +68,8 @@ struct ShaderConfig
     } color;
 
     std::vector<std::vector<std::string>> features;
+    std::vector<std::vector<std::string>> vertFeatures;
+    std::vector<std::vector<std::string>> fragFeatures;
 
     std::unordered_map<std::string, size_t> shaderInfoInputBaseTypeSizeOverride;
 
