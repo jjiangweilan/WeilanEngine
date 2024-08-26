@@ -2,8 +2,10 @@
 #include "Core/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Libs/Ptr.hpp"
+#include "ShaderFeatureBitmask.hpp"
 #include <set>
 #include <string>
+
 namespace Gfx
 {
 class ShaderProgram;
@@ -100,10 +102,10 @@ protected:
     struct ShaderPass
     {
         std::string name;
-        std::unordered_map<std::string, uint64_t> featureToBitMask;
+        std::unordered_map<std::string, ShaderFeatureBitmask> featureToBitMask;
         Gfx::ShaderProgram* cachedShaderProgram = nullptr;
         uint64_t globalShaderFeaturesHash;
-        std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
+        std::unordered_map<ShaderFeatureBitmask, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
     };
     std::vector<std::unique_ptr<ShaderPass>> shaderPasses;
 

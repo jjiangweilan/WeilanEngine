@@ -58,7 +58,7 @@ private:
     };
 
 public:
-    const std::unordered_map<std::string, uint64_t>& GetFeatureToBitMask()
+    const std::unordered_map<std::string, ShaderFeatureBitmask>& GetFeatureToBitMask()
     {
         return featureToBitMask;
     }
@@ -123,6 +123,7 @@ private:
     std::set<std::filesystem::path> includedTrack{};
     std::shared_ptr<Gfx::ShaderConfig> config{};
     std::string name;
+    // all feature bitmasks are stored in this variable including shader's global bitmask, per stage bitmasks
     std::unordered_map<std::string, uint64_t> featureToBitMask{};
 
     std::stringstream GetYAML(std::stringstream& f);
