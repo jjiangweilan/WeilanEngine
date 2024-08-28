@@ -114,7 +114,8 @@ void ShaderCompiler::CompileShader(
     option.AddMacroDefinition(shaderStage, "1");
     for (auto& f : features)
     {
-        option.AddMacroDefinition(f, "1");
+        if (f != "_")
+            option.AddMacroDefinition(f, "1");
     }
     auto includer = std::make_unique<ShaderIncluder>(&includedTrack);
     option.SetIncluder(std::move(includer));
@@ -123,9 +124,9 @@ void ShaderCompiler::CompileShader(
     // replaced causing failure to generate correct ShaderInfo.
     // We can move the setting from binding name to CONFIG section
     option.SetAutoBindUniforms(true);
-    option.SetPreserveBindings(false);
+    option.SetPreserveBindings(true);
     option.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_1);
-    // option.SetVulkanRulesRelaxed(true);
+    option.SetVulkanRulesRelaxed(true);
 
     shaderc::Compiler compiler;
     if (debug)

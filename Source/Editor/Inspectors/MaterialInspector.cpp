@@ -1,6 +1,7 @@
 #include "../EditorState.hpp"
-#include "Rendering/Material.hpp"
 #include "Inspector.hpp"
+#include "Rendering/Material.hpp"
+
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
@@ -16,6 +17,13 @@ public:
         {
             target->SetName(cname);
         }
+
+        ImGui::Text("Enabled Features");
+        for (auto& feature : target->GetEnabledFeatures())
+        {
+            ImGui::Text("%s", feature.c_str());
+        }
+        ImGui::Separator();
 
         auto shader = target->GetShader();
 

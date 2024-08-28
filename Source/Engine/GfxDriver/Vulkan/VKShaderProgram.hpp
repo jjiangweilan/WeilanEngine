@@ -87,21 +87,21 @@ private:
         ShaderConfig config;
     };
 
-    std::string name;
-    ShaderInfo::ShaderInfo shaderInfo;
-    VKObjectManager* objManager;
-    std::unique_ptr<VKShaderModule> vertShaderModule;
-    std::unique_ptr<VKShaderModule> fragShaderModule;
-    std::unique_ptr<VKShaderModule> computeShaderModule;
+    std::string name = "";
+    ShaderInfo::ShaderInfo shaderInfo = {};
+    VKObjectManager* objManager = nullptr;
+    std::unique_ptr<VKShaderModule> vertShaderModule = nullptr;
+    std::unique_ptr<VKShaderModule> fragShaderModule = nullptr;
+    std::unique_ptr<VKShaderModule> computeShaderModule = nullptr;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    std::vector<PipelineCache> caches;
-    std::vector<VkSampler> immutableSamplers;
-    std::vector<size_t> layoutHash;
-    std::vector<RefPtr<VKDescriptorPool>> descriptorPools;
+    std::vector<PipelineCache> caches = {};
+    std::vector<VkSampler> immutableSamplers = {};
+    std::vector<size_t> layoutHash = {};
+    std::vector<RefPtr<VKDescriptorPool>> descriptorPools = {};
     VkDescriptorSet descriptorSet;
 
     // descriptor pool take a pointer to these value so these can't be temp values
-    DescriptorSetBindings descriptorSetBindings;
+    DescriptorSetBindings descriptorSetBindings = {};
 
     void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);

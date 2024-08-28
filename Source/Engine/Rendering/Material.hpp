@@ -90,6 +90,11 @@ public:
         return cachedShaderProgramFeatures;
     }
 
+    const std::unordered_set<std::string>& GetEnabledFeatures() const
+    {
+        return enabledFeatures;
+    }
+
 private:
     struct UBO
     {
