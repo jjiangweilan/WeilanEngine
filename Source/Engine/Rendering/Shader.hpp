@@ -29,13 +29,13 @@ public:
 
     Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature)
     {
-        uint64_t id = GetFeaturesID(enabledFeature);
+        ShaderFeatureBitmask id = GetFeaturesID(enabledFeature);
 
         return GetShaderProgram(0, id);
     }
     Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass, const std::vector<std::string>& enabledFeature);
-    Gfx::ShaderProgram* GetShaderProgram(size_t enabledFeatureHash);
-    Gfx::ShaderProgram* GetShaderProgram(int shaderPass, size_t enabledFeatureHash);
+    Gfx::ShaderProgram* GetShaderProgram(const ShaderFeatureBitmask& enabledFeatureHash);
+    Gfx::ShaderProgram* GetShaderProgram(int shaderPass, const ShaderFeatureBitmask& enabledFeatureHash);
     int GetPassCount() const
     {
         return shaderPasses.size();
@@ -58,11 +58,11 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     uint32_t GetContentHash() override;
-    uint64_t GetFeaturesID(const std::vector<std::string>& enabledFeature)
+    ShaderFeatureBitmask GetFeaturesID(const std::vector<std::string>& enabledFeature)
     {
-        return GetFeaturesID(0, enabledFeature);
+        return GetShaderFeatureBitmask(0, enabledFeature);
     }
-    uint64_t GetFeaturesID(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
+    ShaderFeatureBitmask GetShaderFeatureBitmask(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
 
     static const std::set<std::string>& GetEnabledFeatures()
     {

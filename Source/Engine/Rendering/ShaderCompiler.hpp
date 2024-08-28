@@ -2,6 +2,7 @@
 #include "GfxDriver/CompiledSpv.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Rendering/EnumStringMapping.hpp"
+#include "ShaderFeatureBitmask.hpp"
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
@@ -69,7 +70,6 @@ public:
     // compile compute shader
     void CompileComputeShader(const char* path, const std::string& buf);
 
-    void FeaturesToBitmask(std::vector<std::vector<std::string>>& features);
     const std::vector<uint32_t>& GetVertexSPV()
     {
         return compiledSpvs[0].vertSpv;
@@ -80,7 +80,7 @@ public:
         return compiledSpvs[0].fragSpv;
     }
 
-    std::unordered_map<uint64_t, Gfx::CompiledSpv>& GetCompiledSpvs()
+    std::unordered_map<ShaderFeatureBitmask, Gfx::CompiledSpv>& GetCompiledSpvs()
     {
         return compiledSpvs;
     }
@@ -108,23 +108,19 @@ public:
     }
 
 private:
-    enum class BitmaskStage
+    enum class ShaderFeatureBitmaskStage
     {
+        ShaderGlobal,
         Vert,
         Frag
     };
-    struct FeatureBitmask
-    {
-        uint64_t bitmask;
-        BitmaskStage stage;
-    };
-    std::unordered_map<uint64_t, Gfx::CompiledSpv> compiledSpvs{};
+    std::unordered_map<ShaderFeatureBitmask, Gfx::CompiledSpv> compiledSpvs{};
 
     std::set<std::filesystem::path> includedTrack{};
     std::shared_ptr<Gfx::ShaderConfig> config{};
     std::string name;
     // all feature bitmasks are stored in this variable including shader's global bitmask, per stage bitmasks
-    std::unordered_map<std::string, uint64_t> featureToBitMask{};
+    std::unordered_map<std::string, ShaderFeatureBitmask> featureToBitMask{};
 
     std::stringstream GetYAML(std::stringstream& f);
 
@@ -144,9 +140,11 @@ private:
         std::vector<uint32_t>& optimized
     );
     std::vector<std::vector<std::string>> FeatureToCombinations(const std::vector<std::vector<std::string>>&);
-    uint64_t GenerateFeatureCombination(
-        const std::vector<std::string>& combs, const std::unordered_map<std::string, uint64_t>& featureToBitIndex
+    ShaderFeatureBitmask GenerateFeatureCombination(
+        const std::vector<std::string>& combs,
+        const std::unordered_map<std::string, ShaderFeatureBitmask>& featureToBitIndex
     );
+    void FeaturesToBitmask(std::vector<std::vector<std::string>>& features, ShaderFeatureBitmaskStage shaderStage);
     static std::vector<std::vector<std::string>> ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName);
     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 };

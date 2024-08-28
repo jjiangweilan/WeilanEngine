@@ -429,15 +429,16 @@ yamlEnd:
     return yamlConfig;
 }
 
-uint64_t ShaderCompiler::GenerateFeatureCombination(
-    const std::vector<std::string>& combs, const std::unordered_map<std::string, uint64_t>& featureToBitIndex
+ShaderFeatureBitmask ShaderCompiler::GenerateFeatureCombination(
+    const std::vector<std::string>& combs,
+    const std::unordered_map<std::string, ShaderFeatureBitmask>& featureToBitIndex
 )
 {
-    uint64_t featureCombination = 0;
+    ShaderFeatureBitmask featureCombination;
     for (auto& c : combs)
     {
-        uint64_t bitMask = featureToBitIndex.at(c);
-        featureCombination |= bitMask;
+        ShaderFeatureBitmask bitMask = featureToBitIndex.at(c);
+        featureCombination = featureCombination | bitMask;
     }
 
     return featureCombination;
@@ -445,31 +446,48 @@ uint64_t ShaderCompiler::GenerateFeatureCombination(
 
 struct CompileResult
 {
-    uint64_t featureCombination = 0;
+    ShaderFeatureBitmask featureCombination;
     Gfx::CompiledSpv compiledSpv = {};
     std::set<std::filesystem::path> includedTracks = {};
 };
 
-void ShaderCompiler::FeaturesToBitmask(std::vector<std::vector<std::string>>& features)
+void ShaderCompiler::FeaturesToBitmask(
+    std::vector<std::vector<std::string>>& features, ShaderFeatureBitmaskStage shaderStage
+)
 {
-    int bitIndex = 0;
+    int globalBitIndex = 0;
+    int vertBitIndex = 0;
+    int fragBitIndex = 0;
     for (auto& fs : features)
     {
         for (int i = 0; i < fs.size(); ++i)
         {
             if (i == 0)
             {
-                featureToBitMask[fs[i]] = 0;
+                featureToBitMask[fs[i]] = ShaderFeatureBitmask();
             }
             else
             {
-                featureToBitMask[fs[i]] = 1u << bitIndex;
-                bitIndex += 1;
+                switch (shaderStage)
+                {
+                    case ShaderFeatureBitmaskStage::ShaderGlobal:
+                        featureToBitMask[fs[i]].shaderFeature = 1u << globalBitIndex;
+                        globalBitIndex += 1;
+                        break;
+                    case ShaderFeatureBitmaskStage::Vert:
+                        featureToBitMask[fs[i]].vertFeature = 1u << vertBitIndex;
+                        vertBitIndex += 1;
+                        break;
+                    case ShaderFeatureBitmaskStage::Frag:
+                        featureToBitMask[fs[i]].fragFeature = 1u << fragBitIndex;
+                        fragBitIndex += 1;
+                        break;
+                }
             }
         }
     }
 
-    if (bitIndex > 63)
+    if (globalBitIndex > 63 || vertBitIndex > 63 || fragBitIndex > 63)
     {
         throw CompileError("shader can't support more than 64 features");
     }
@@ -491,12 +509,12 @@ void ShaderCompiler::CompileComputeShader(const char* filepath, const std::strin
     auto fragFeatureCombs = FeatureToCombinations(config->fragFeatures);
 
     featureToBitMask.clear();
-    FeaturesToBitmask(config->features);
-    FeaturesToBitmask(config->vertFeatures);
-    FeaturesToBitmask(config->fragFeatures);
+    FeaturesToBitmask(config->features, ShaderFeatureBitmaskStage::ShaderGlobal);
+    FeaturesToBitmask(config->vertFeatures, ShaderFeatureBitmaskStage::Vert);
+    FeaturesToBitmask(config->fragFeatures, ShaderFeatureBitmaskStage::Frag);
 
     includedTrack.clear();
-    std::vector<std::future<CompileResult>> futures;
+    std::vector<std::future<CompileResult>> futures{};
     for (auto& c : featureCombs)
     {
         futures.push_back(std::async(
@@ -555,22 +573,25 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
     auto fragFeatureCombs = FeatureToCombinations(config->fragFeatures);
 
     featureToBitMask.clear();
-    FeaturesToBitmask(config->features);
-    FeaturesToBitmask(config->vertFeatures);
-    FeaturesToBitmask(config->fragFeatures);
+    FeaturesToBitmask(config->features, ShaderFeatureBitmaskStage::ShaderGlobal);
+    FeaturesToBitmask(config->vertFeatures, ShaderFeatureBitmaskStage::Vert);
+    FeaturesToBitmask(config->fragFeatures, ShaderFeatureBitmaskStage::Frag);
 
-    std::vector<std::future<CompileResult>> futures;
+    std::vector<CompileResult> finalCompiledResult{};
+    auto vertAndFragCombs = MakeCombination(vertFeatureCombs, fragFeatureCombs);
     for (auto& c : featureCombs)
     {
-        futures.push_back(std::async(
-            std::launch::async,
-            [this, filepath, &buf, bufSize, c, &vertFeatureCombs, &fragFeatureCombs]()
-            {
-                CompileResult r;
-                r.featureCombination = GenerateFeatureCombination(c, featureToBitMask);
+        std::vector<std::shared_future<CompileResult>> vertCompileResults;
+        std::vector<std::shared_future<CompileResult>> fragCompileResults;
 
-                for (auto& vc : vertFeatureCombs)
+        for (auto& vc : vertFeatureCombs)
+        {
+            auto f = std::async(
+                std::launch::async,
+                [this, filepath, &buf, bufSize, c, vc]()
                 {
+                    CompileResult r;
+                    r.featureCombination = GenerateFeatureCombination(vc, featureToBitMask);
                     CompileShader(
                         "VERT",
                         shaderc_vertex_shader,
@@ -585,38 +606,67 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
                         r.compiledSpv.vertSpv_noOp
                     );
 
-                    for (auto& fc : fragFeatureCombs)
-                    {
-                        CompileShader(
-                            "FRAG",
-                            shaderc_fragment_shader,
-                            config->debug,
-                            filepath,
-                            buf.c_str(),
-                            bufSize,
-                            r.includedTracks,
-                            c,
-                            fc,
-                            r.compiledSpv.fragSpv,
-                            r.compiledSpv.fragSpv_noOp
-                        );
-                    }
+                    return r;
                 }
+            );
 
-                return r;
+            vertCompileResults.push_back(std::move(f));
+        }
+
+        for (auto& fc : fragFeatureCombs)
+        {
+            auto f = std::async(
+                std::launch::async,
+                [this, filepath, &buf, bufSize, c, fc]()
+                {
+                    CompileResult r;
+                    r.featureCombination = GenerateFeatureCombination(fc, featureToBitMask);
+
+                    CompileShader(
+                        "FRAG",
+                        shaderc_fragment_shader,
+                        config->debug,
+                        filepath,
+                        buf.c_str(),
+                        bufSize,
+                        r.includedTracks,
+                        c,
+                        fc,
+                        r.compiledSpv.fragSpv,
+                        r.compiledSpv.fragSpv_noOp
+                    );
+
+                    return r;
+                }
+            );
+
+            fragCompileResults.push_back(std::move(f));
+        }
+
+        for (auto& vr : vertCompileResults)
+        {
+            auto v = vr.get();
+            for (auto& fr : fragCompileResults)
+            {
+                auto f = fr.get();
+
+                CompileResult combined;
+                combined.featureCombination =
+                    GenerateFeatureCombination(c, featureToBitMask) | v.featureCombination | f.featureCombination;
+                combined.includedTracks.insert(f.includedTracks.begin(), f.includedTracks.end());
+                combined.includedTracks.insert(v.includedTracks.begin(), v.includedTracks.end());
+                combined.compiledSpv.vertSpv = v.compiledSpv.vertSpv;
+                combined.compiledSpv.vertSpv_noOp = v.compiledSpv.vertSpv_noOp;
+                combined.compiledSpv.fragSpv = f.compiledSpv.fragSpv;
+                combined.compiledSpv.fragSpv_noOp = f.compiledSpv.fragSpv_noOp;
+                finalCompiledResult.push_back(combined);
             }
-        ));
-    }
-
-    for (auto& f : futures)
-    {
-        f.wait();
+        }
     }
 
     includedTrack.clear();
-    for (auto& f : futures)
+    for (auto& r : finalCompiledResult)
     {
-        auto r = f.get();
         includedTrack.insert(r.includedTracks.begin(), r.includedTracks.end());
         compiledSpvs[r.featureCombination] = std::move(r.compiledSpv);
     }
