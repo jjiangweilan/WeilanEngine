@@ -4,7 +4,6 @@
 #include "Libs/GLB.hpp"
 #include <fstream>
 
-
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
 static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
@@ -33,14 +32,42 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     // name
     gameObject->SetName(nodeJson.value("name", "New GameObject"));
 
-    // TRS
-    std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
-    std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
-    std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
+    if (nodeJson.contains("matrix"))
+    {
+        std::array<float, 16> matrix =
+            nodeJson.value("matrix", std::array<float, 16>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
 
-    gameObject->SetPosition({position[0], position[1], position[2]});
-    gameObject->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
-    gameObject->SetScale({scale[0], scale[1], scale[2]});
+        glm::mat4 m = {
+            matrix[0],
+            matrix[1],
+            matrix[2],
+            matrix[3],
+            matrix[4],
+            matrix[5],
+            matrix[6],
+            matrix[7],
+            matrix[8],
+            matrix[9],
+            matrix[10],
+            matrix[11],
+            matrix[12],
+            matrix[13],
+            matrix[14],
+            matrix[15],
+        };
+        gameObject->SetModelMatrix(m);
+    }
+    else
+    {
+        // TRS
+        std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
+        std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
+        std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
+
+        gameObject->SetPosition({position[0], position[1], position[2]});
+        gameObject->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
+        gameObject->SetScale({scale[0], scale[1], scale[2]});
+    }
 
     // mesh renderer
     if (nodeJson.contains("mesh"))
@@ -62,9 +89,9 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
                 {
                     mat->SetShader(Shader::GetDefault());
                 }
-                if(meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TANGENT"))
+                if (meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TANGENT"))
                     mat->EnableFeature("_Vertex_Tangent");
-                if(meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TEXCOORD_0"))
+                if (meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TEXCOORD_0"))
                     mat->EnableFeature("_Vertex_UV0");
                 mats.push_back(mat);
             }
