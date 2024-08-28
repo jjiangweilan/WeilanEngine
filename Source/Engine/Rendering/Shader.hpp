@@ -2,8 +2,10 @@
 #include "Core/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Libs/Ptr.hpp"
+#include "ShaderFeatureBitmask.hpp"
 #include <set>
 #include <string>
+
 namespace Gfx
 {
 class ShaderProgram;
@@ -27,13 +29,13 @@ public:
 
     Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature)
     {
-        uint64_t id = GetFeaturesID(enabledFeature);
+        ShaderFeatureBitmask id = GetFeaturesID(enabledFeature);
 
         return GetShaderProgram(0, id);
     }
     Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass, const std::vector<std::string>& enabledFeature);
-    Gfx::ShaderProgram* GetShaderProgram(size_t enabledFeatureHash);
-    Gfx::ShaderProgram* GetShaderProgram(int shaderPass, size_t enabledFeatureHash);
+    Gfx::ShaderProgram* GetShaderProgram(const ShaderFeatureBitmask& enabledFeatureHash);
+    Gfx::ShaderProgram* GetShaderProgram(int shaderPass, const ShaderFeatureBitmask& enabledFeatureHash);
     int GetPassCount() const
     {
         return shaderPasses.size();
@@ -56,11 +58,11 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     uint32_t GetContentHash() override;
-    uint64_t GetFeaturesID(const std::vector<std::string>& enabledFeature)
+    ShaderFeatureBitmask GetFeaturesID(const std::vector<std::string>& enabledFeature)
     {
-        return GetFeaturesID(0, enabledFeature);
+        return GetShaderFeatureBitmask(0, enabledFeature);
     }
-    uint64_t GetFeaturesID(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
+    ShaderFeatureBitmask GetShaderFeatureBitmask(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
 
     static const std::set<std::string>& GetEnabledFeatures()
     {
@@ -100,10 +102,10 @@ protected:
     struct ShaderPass
     {
         std::string name;
-        std::unordered_map<std::string, uint64_t> featureToBitMask;
+        std::unordered_map<std::string, ShaderFeatureBitmask> featureToBitMask;
         Gfx::ShaderProgram* cachedShaderProgram = nullptr;
         uint64_t globalShaderFeaturesHash;
-        std::unordered_map<uint64_t, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
+        std::unordered_map<ShaderFeatureBitmask, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
     };
     std::vector<std::unique_ptr<ShaderPass>> shaderPasses;
 

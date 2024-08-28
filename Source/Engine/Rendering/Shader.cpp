@@ -78,18 +78,20 @@ int ShaderBase::FindShaderPass(std::string_view name)
     return -1;
 }
 
-Gfx::ShaderProgram* ShaderBase::GetShaderProgram(size_t enabledFeatureHash)
+Gfx::ShaderProgram* ShaderBase::GetShaderProgram(const ShaderFeatureBitmask& enabledFeatureHash)
 {
     return GetShaderProgram(0, enabledFeatureHash);
 }
 
-Gfx::ShaderProgram* ShaderBase::GetShaderProgram(int shaderPassIndex, size_t enabledFeatureHash)
+Gfx::ShaderProgram* ShaderBase::GetShaderProgram(
+    int shaderPassIndex, const ShaderFeatureBitmask& enabledShaderFeatureBismask
+)
 {
     assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
 
     for (auto& s : shaderPasses[shaderPassIndex]->shaderPrograms)
     {
-        if ((enabledFeatureHash & s.first) == enabledFeatureHash)
+        if ((enabledShaderFeatureBismask & s.first) == enabledShaderFeatureBismask)
         {
             return s.second.get();
         }
@@ -98,14 +100,16 @@ Gfx::ShaderProgram* ShaderBase::GetShaderProgram(int shaderPassIndex, size_t ena
     return nullptr;
 }
 
-uint64_t ShaderBase::GetFeaturesID(int shaderPassIndex, const std::vector<std::string>& enabledFeature)
+ShaderFeatureBitmask ShaderBase::GetShaderFeatureBitmask(
+    int shaderPassIndex, const std::vector<std::string>& enabledFeature
+)
 {
     assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
 
-    uint64_t id = 0;
+    ShaderFeatureBitmask id = 0;
     for (auto& f : enabledFeature)
     {
-        id |= shaderPasses[shaderPassIndex]->featureToBitMask[f];
+        id = id | shaderPasses[shaderPassIndex]->featureToBitMask[f];
     }
 
     return id;
@@ -176,7 +180,6 @@ bool Shader::LoadFromFile(const char* path)
     std::vector<std::unique_ptr<ShaderPass>> newShaderPasses{};
     std::set<std::filesystem::path> includedFilesSet{};
 
-
     for (std::sregex_iterator it(ssf.begin(), ssf.end(), shaderPassReg), it_end; it != it_end; ++it)
     {
         std::string shaderPassName = it->str(1);
@@ -228,10 +231,45 @@ bool Shader::LoadFromFile(const char* path)
         auto& includedFiles = compiler.GetIncludedFiles();
         includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
 
+        try
+        {
+            if (shaderPassName == "GBuffer")
+            {
+                ShaderFeatureBitmask aa;
+                aa.shaderFeature = 0;
+                aa.vertFeature = 2;
+                aa.fragFeature = 27;
+                shaderPass->shaderPrograms[aa] =
+                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), compiler.GetCompiledSpvs()[aa]);
+        
+                aa.shaderFeature = 0;
+                aa.vertFeature = 3;
+                aa.fragFeature = 31;
+                shaderPass->shaderPrograms[aa] =
+                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), compiler.GetCompiledSpvs()[aa]);
+            }
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+        }
+
         for (auto& iter : compiler.GetCompiledSpvs())
         {
-            shaderPass->shaderPrograms[iter.first] =
-                GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+            try
+            {
+                spdlog::info("{}, {}, {}",
+                    iter.first.shaderFeature,
+                    iter.first.vertFeature,
+                    iter.first.fragFeature
+                );
+                shaderPass->shaderPrograms[iter.first] =
+                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+            }
+            catch (std::exception e)
+            {
+                SPDLOG_ERROR(e.what());
+            }
         }
 
         shaderPass->name = shaderPassName;

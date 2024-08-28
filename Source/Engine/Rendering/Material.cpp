@@ -11,24 +11,24 @@ Material::Material() : shader(nullptr), shaderResource(nullptr)
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-//Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
+// Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
 //{
-//    for (auto& ubo : other.ubos)
-//    {
-//        auto& thisUbo = this->ubos[ubo.first];
-//        thisUbo.buffer = nullptr;
-//        thisUbo.floats = ubo.second.floats;
-//        thisUbo.vectors = ubo.second.vectors;
-//        thisUbo.matrices = ubo.second.matrices;
-//    }
+//     for (auto& ubo : other.ubos)
+//     {
+//         auto& thisUbo = this->ubos[ubo.first];
+//         thisUbo.buffer = nullptr;
+//         thisUbo.floats = ubo.second.floats;
+//         thisUbo.vectors = ubo.second.vectors;
+//         thisUbo.matrices = ubo.second.matrices;
+//     }
 //
-//    schedule = std::make_shared<Schedule>();
+//     schedule = std::make_shared<Schedule>();
 //
-//    if (other.shader)
-//        SetShader(other.shader);
+//     if (other.shader)
+//         SetShader(other.shader);
 //
-//    shaderResource = GetGfxDriver()->CreateShaderResource();
-//}
+//     shaderResource = GetGfxDriver()->CreateShaderResource();
+// }
 
 Material::Material(ShaderBase* shader) : Material()
 {
@@ -206,7 +206,7 @@ Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
             .insert(cachedShaderProgramFeatures.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
         auto newProgram = shader->GetShaderProgram(
             shaderPassIndex,
-            shader->GetFeaturesID(shaderPassIndex, cachedShaderProgramFeatures)
+            shader->GetShaderFeatureBitmask(shaderPassIndex, cachedShaderProgramFeatures)
         );
 
         if (newProgram != cachedShaderPrograms[shaderPassIndex])
