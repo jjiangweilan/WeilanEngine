@@ -243,16 +243,6 @@ void VKShaderProgram::CreateShaderPipeline(
 
     for (auto& set : descriptorSetBindings)
     {
-        std::sort(
-            set.second.binding.begin(),
-            set.second.binding.end(),
-            [](VkDescriptorSetLayoutBinding& left, VkDescriptorSetLayoutBinding& right)
-            { return left.binding < right.binding; }
-        );
-    }
-
-    for (auto& set : descriptorSetBindings)
-    {
         for (int i = 0; i < set.second.binding.size(); i++)
         {
             if (set.second.binding[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
@@ -433,7 +423,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 
     VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {
         vertGPInfos.pipelineShaderStageCreateInfo,
-        fragGPInfos.pipelineShaderStageCreateInfo};
+        fragGPInfos.pipelineShaderStageCreateInfo
+    };
     createInfo.pStages = shaderStageCreateInfos;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};
