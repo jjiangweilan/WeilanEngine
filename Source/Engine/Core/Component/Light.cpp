@@ -24,7 +24,7 @@ glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
     {
         glm::mat4 proj = glm::orthoLH_ZO(-30., 30., -30., 30., -300., 700.);
         proj[1] *= -1;
-        auto model = gameObject->GetModelMatrix();
+        auto model = gameObject->GetWorldMatrix();
         model[3] = glm::vec4(follow, 1.0);
         shadowCache.cachedWorldToShadow = proj * glm::inverse(model);
         shadowCache.cachedLightDirection = GetLightDirection();
@@ -81,7 +81,7 @@ void Light::OnDrawGizmos()
 
 glm::vec3 Light::GetLightDirection()
 {
-    auto model = GetGameObject()->GetModelMatrix();
+    auto model = GetGameObject()->GetWorldMatrix();
     glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
     return pos;
 }

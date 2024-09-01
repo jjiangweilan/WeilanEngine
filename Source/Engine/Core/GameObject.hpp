@@ -79,66 +79,46 @@ public:
     }
     void SetParent(GameObject* parent);
 
-    void SetRotation(const glm::quat& rotation)
+    void SetLocalRotation(const glm::quat& rotation)
     {
         if (rotation == this->rotation)
             return;
 
-        auto oldModelMatrix = GetModelMatrix();
-        updateModelMatrix = true;
         this->rotation = rotation;
-        modelMatrix = GetModelMatrix();
-        auto invOldModel = glm::inverse(oldModelMatrix);
-        for (GameObject* child : children)
-        {
-            // child->ApplyModelMatrix(modelMatrix * invOldModel);
-        }
+        updateLocalMatrix = true;
 
         TransformChanged();
+    }
+
+    void SetRotation(const glm::quat& rotation)
+    {
+        glm::quat rot = rotation;
+
+        if (parent != nullptr)
+        {
+            glm::quat p = parent->GetRotation();
+            p.x = -p.x;
+            p.y = -p.y;
+            p.z = -p.z;
+            rot = rotation * p;
+        }
+
+        SetLocalRotation(rot);
     }
 
     void SetLocalPosition(const glm::vec3& localPosition)
     {
-        glm::vec3 currentLocal = position;
-        if (parent)
+        if (position == localPosition)
         {
-            currentLocal = position - parent->GetPosition();
-        }
-        glm::vec3 delta = localPosition - currentLocal;
-
-        // position didn't change early return
-        if (EqualZero(delta))
             return;
-
-        updateModelMatrix = true;
-        this->position = localPosition + (parent ? parent->GetPosition() : glm::vec3{0, 0, 0});
-
-        for (GameObject* child : children)
-        {
-            child->Translate(delta);
         }
+        this->position = localPosition;
+        this->updateLocalMatrix = true;
 
         TransformChanged();
     }
 
-    void SetPosition(const glm::vec3& position)
-    {
-        auto delta = position - this->position;
-        // position didn't change early return
-        if (EqualZero(delta))
-            return;
-
-        updateModelMatrix = true;
-        this->position = position;
-
-        for (GameObject* child : children)
-        {
-            child->Translate(delta);
-        }
-
-        TransformChanged();
-    };
-
+    void SetPosition(const glm::vec3& position);
     void SetScale(const glm::vec3& scale);
 
     void Awake()
@@ -151,7 +131,7 @@ public:
 
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
     {
-        updateModelMatrix = true;
+        updateLocalMatrix = true;
         if (coord == RotationCoordinate::Self)
         {
             rotation = glm::rotate(rotation, angle, axis);
@@ -161,9 +141,9 @@ public:
         else if (coord == RotationCoordinate::World)
         {
             // rotate around world
-            glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetModelMatrix();
+            glm::mat4 trs = glm::rotate(glm::mat4(1), angle, axis) * GetWorldMatrix();
 
-            SetModelMatrix(trs);
+            SetWorldMatrix(trs);
         }
 
         TransformChanged();
@@ -172,8 +152,8 @@ public:
     void RotateAround(const glm::vec3& point, const glm::vec3& axis, float angle)
     {
         glm::mat4 trs = glm::translate(glm::mat4(1), point) * glm::rotate(glm::mat4(1), angle, axis) *
-                        glm::translate(glm::mat4(1), -point) * GetModelMatrix();
-        SetModelMatrix(trs);
+                        glm::translate(glm::mat4(1), -point) * GetWorldMatrix();
+        SetWorldMatrix(trs);
     }
 
     void Translate(const glm::vec3& translate)
@@ -181,7 +161,7 @@ public:
         if (translate == glm::vec3{0, 0, 0})
             return;
 
-        updateModelMatrix = true;
+        updateLocalMatrix = true;
         this->position += translate;
 
         for (GameObject* child : children)
@@ -194,40 +174,35 @@ public:
 
     glm::vec3 GetPosition() const
     {
+        if (parent)
+            return position + parent->GetPosition();
+
         return position;
     }
 
     glm::vec3 GetLocalPosition() const
     {
-        if (parent)
-            return position - parent->GetPosition();
-
         return position;
     }
 
     glm::vec3 GetScale() const
     {
         return scale;
-    };
-
-    glm::quat GetRotation() const
-    {
-        return rotation;
-    };
+    }
 
     glm::vec3 GetForward() const
     {
-        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[2]));
+        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2]));
     }
 
     glm::vec3 GetUp() const
     {
-        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[1]));
+        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1]));
     }
 
     glm::vec3 GetRight() const
     {
-        return glm::normalize(glm::vec3(glm::mat4_cast(rotation)[0]));
+        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0]));
     }
 
     glm::vec3 GetEuluerAngles() const
@@ -242,19 +217,11 @@ public:
         SetRotation(rotation);
     }
 
-    glm::mat4 GetModelMatrix()
-    {
-        if (updateModelMatrix)
-        {
-            modelMatrix =
-                glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
-            updateModelMatrix = false;
-        }
+    glm::mat4 GetWorldMatrix() const;
 
-        return modelMatrix;
-    }
-    void SetModelMatrix(const glm::mat4& model);
-    void ApplyModelMatrix(const glm::mat4& model);
+    glm::quat GetRotation() const;
+
+    void SetWorldMatrix(const glm::mat4& model);
 
     // this function should be used internally by Scene
     // it doesn't set the child's parent
@@ -282,20 +249,20 @@ public:
 
 private:
     const float compareEpsilon = 1e-6f;
+
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
-
     glm::quat rotation = glm::quat(1, 0, 0, 0);
     // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
-    glm::mat4 modelMatrix;
+    mutable glm::mat4 localMatrix;
 
     // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
     // wantsToBeEnabled will be set to true whth enabled is false in that case
     bool enabled = false;
     bool wantsToBeEnabled = false;
 
-    bool updateModelMatrix = true;
+    mutable bool updateLocalMatrix = true;
 
     std::vector<GameObject*> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;

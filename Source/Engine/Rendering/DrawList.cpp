@@ -43,7 +43,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                 drawData.shaderResource = material->GetShaderResource();
                 drawData.shader = (Shader*)shader;
                 drawData.shaderConfig = &material->GetShaderConfig();
-                auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
+                auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                 drawData.pushConstant = modelMatrix;
                 drawData.indexCount = indexCount;
                 drawData.material = material;
@@ -66,7 +66,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                 if (material != nullptr && shader != nullptr)
                 {
                     // material->SetMatrix("Transform", "model",
-                    // meshRenderer->GetGameObject()->GetTransform()->GetModelMatrix());
+                    // meshRenderer->GetGameObject()->GetTransform()->GetWorldMatrix());
                     uint32_t indexCount = submesh.GetIndexCount();
 
                     SceneObjectDrawData drawData;
@@ -81,7 +81,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                     drawData.shaderResource = material->GetShaderResource();
                     drawData.shader = (Shader*)shader;
                     drawData.shaderConfig = &material->GetShaderConfig();
-                    auto modelMatrix = meshRenderer.GetGameObject()->GetModelMatrix();
+                    auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                     drawData.pushConstant = modelMatrix;
                     drawData.indexCount = indexCount;
 

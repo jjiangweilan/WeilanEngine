@@ -103,14 +103,24 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("enabled", enabled);
 }
 
-void GameObject::SetModelMatrix(const glm::mat4& model)
+void GameObject::SetWorldMatrix(const glm::mat4& matrix)
 {
-    glm::vec3 position;
-    glm::vec3 scale;
-    glm::quat rotation;
-    Math::DecomposeMatrix(model, position, scale, rotation);
-    eulerAngles = glm::eulerAngles(rotation);
+    glm::vec3 position{};
+    glm::vec3 scale{};
+    glm::quat rotation{};
 
+    if (parent != nullptr)
+    {
+        glm::mat4 parentWorldMatrix = parent->GetWorldMatrix();
+        glm::mat4 mm = matrix * glm::inverse(parentWorldMatrix);
+        Math::DecomposeMatrix(mm, position, scale, rotation);
+    }
+    else
+    {
+        Math::DecomposeMatrix(matrix, position, scale, rotation);
+    }
+
+    eulerAngles = glm::eulerAngles(rotation);
     SetRotation(rotation);
     SetScale(scale);
     SetPosition(position);
@@ -247,30 +257,53 @@ void GameObject::SetEnable(bool isEnabled)
 
 void GameObject::SetScale(const glm::vec3& s)
 {
-    if (s == this->scale)
-        return;
-
-    glm::vec3 scale = s;
-    for (int i = 0; i < 3; ++i)
-        if (glm::abs(scale[i]) < 1e-4)
-        {
-            float s = glm::sign(scale[i]);
-            scale[i] = (s >= 0 ? 1.0 : -1.0) * 1e-4;
-        }
-
-    glm::mat4 oldModelMatrix = GetModelMatrix();
-    updateModelMatrix = true;
-    this->scale = scale;
-    glm::mat4 modelMatrix = GetModelMatrix();
-    auto invOldModel = glm::inverse(oldModelMatrix);
-    for (GameObject* child : children)
+    if (this->scale != s)
     {
-        child->ApplyModelMatrix(modelMatrix * invOldModel);
+        this->scale = s;
+        updateLocalMatrix = true;
+        TransformChanged();
     }
-    TransformChanged();
 }
 
-void GameObject::ApplyModelMatrix(const glm::mat4& model)
+glm::mat4 GameObject::GetWorldMatrix() const
 {
-    SetModelMatrix(model * GetModelMatrix());
+    if (updateLocalMatrix)
+    {
+        localMatrix = glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+        updateLocalMatrix = false;
+    }
+
+    auto finalMatrix = localMatrix;
+    if (parent != nullptr)
+    {
+        finalMatrix = localMatrix * parent->GetWorldMatrix();
+    }
+
+    return finalMatrix;
 }
+
+glm::quat GameObject::GetRotation() const
+{
+    glm::quat r = rotation;
+    if (parent != nullptr)
+    {
+        r = r * parent->GetRotation();
+    }
+    return r;
+}
+
+void GameObject::SetPosition(const glm::vec3& position)
+{
+    glm::vec3 pos = position;
+    if (parent != nullptr)
+    {
+        pos = position - parent->GetPosition();
+    }
+
+    if (pos != this->position)
+    {
+        this->position = pos;
+        this->updateLocalMatrix = true;
+        TransformChanged();
+    }
+};

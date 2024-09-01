@@ -211,7 +211,7 @@ void Graph::ProcessLights(Scene& gameScene, Light*& mainLight)
         sceneInfo.lights[i].ambientScale = lights[i]->GetAmbientScale();
         sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
-        auto model = lights[i]->GetGameObject()->GetModelMatrix();
+        auto model = lights[i]->GetGameObject()->GetWorldMatrix();
         glm::vec4 position{};
         switch (lights[i]->GetLightType())
         {

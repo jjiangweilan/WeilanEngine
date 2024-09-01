@@ -111,7 +111,7 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
 
 Surfel GISceneBaker::CaptureSurfel(const glm::mat4& camModel, float halfBoxSize)
 {
-    cameraGO->SetModelMatrix(camModel);
+    cameraGO->SetWorldMatrix(camModel);
 
     //GetGfxDriver()->ExecuteImmediately(
     //    [&](Gfx::CommandBuffer& cmd)

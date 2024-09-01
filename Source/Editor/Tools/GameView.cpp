@@ -153,7 +153,7 @@ static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, 
     auto mr = obj->GetComponent<MeshRenderer>();
     if (mr)
     {
-        auto model = obj->GetModelMatrix();
+        auto model = obj->GetWorldMatrix();
         auto mesh = mr->GetMesh();
         if (mesh)
         {
@@ -269,7 +269,7 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
     {
         auto go = editorCamera.GetGameObject();
         auto pos = go->GetPosition();
-        glm::mat4 model = go->GetModelMatrix();
+        glm::mat4 model = go->GetWorldMatrix();
         glm::vec3 right = glm::normalize(model[0]);
         glm::vec3 up = glm::normalize(model[1]);
         glm::vec3 forward = glm::normalize(model[2]);
@@ -321,7 +321,7 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         auto lookAtDelta = leftRight * right + upDown * up;
         auto final = glm::lookAt(eye, eye - (forward + lookAtDelta), glm::vec3(0, 1, 0));
         final = glm::inverse(final);
-        go->SetModelMatrix(final);
+        go->SetWorldMatrix(final);
     }
     else
     {
@@ -733,7 +733,7 @@ bool GameView::Tick()
                 if (go)
                 {
                     auto selectedObjects = EditorState::GetSelectedObjects();
-                    auto model = go->GetModelMatrix();
+                    auto model = go->GetWorldMatrix();
 
                     glm::vec3 avgPos = glm::vec3(0);
 
@@ -766,7 +766,7 @@ bool GameView::Tick()
                         for (auto& s : selectedObjects)
                         {
                             auto go = static_cast<GameObject*>(s.Get());
-                            glm::mat4 model = go->GetModelMatrix();
+                            glm::mat4 model = go->GetWorldMatrix();
 
                             // handle scale
                             glm::mat4 scaleMatrix = glm::mat4(
@@ -792,7 +792,7 @@ bool GameView::Tick()
                             // handle translation and rotation
                             model = deltaMatrix * model;
 
-                            go->SetModelMatrix(model);
+                            go->SetWorldMatrix(model);
                         }
                     }
                 }
@@ -811,7 +811,7 @@ bool GameView::Tick()
                     ImVec2(100, -100),
                     0x10101010
                 );
-                mainCam->GetGameObject()->SetModelMatrix(glm::inverse(view));
+                mainCam->GetGameObject()->SetWorldMatrix(glm::inverse(view));
             }
         }
     }

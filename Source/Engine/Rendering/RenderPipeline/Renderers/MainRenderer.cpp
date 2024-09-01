@@ -142,7 +142,7 @@ void MainRenderer::ProcessLights(Scene& gameScene, RenderingData& renderingData)
         sceneInfo.lights[i].ambientScale = lights[i]->GetAmbientScale();
         sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
-        auto model = lights[i]->GetGameObject()->GetModelMatrix();
+        auto model = lights[i]->GetGameObject()->GetWorldMatrix();
         switch (lights[i]->GetLightType())
         {
             case LightType::Directional:

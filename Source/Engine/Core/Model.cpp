@@ -55,7 +55,7 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
             matrix[14],
             matrix[15],
         };
-        gameObject->SetModelMatrix(m);
+        gameObject->SetWorldMatrix(m);
     }
     else
     {

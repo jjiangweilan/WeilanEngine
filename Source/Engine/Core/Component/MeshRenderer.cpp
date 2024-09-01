@@ -100,7 +100,7 @@ void MeshRenderer::DisableImple()
 
 AABB MeshRenderer::GetAABB()
 {
-    auto model = GetGameObject()->GetModelMatrix();
+    auto model = GetGameObject()->GetWorldMatrix();
     AABB aabb = mesh->GetAABB();
     aabb.Transform(glm::mat3(model), model[3]);
 

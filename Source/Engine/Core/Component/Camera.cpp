@@ -46,7 +46,7 @@ float Camera::GetFar()
 
 glm::mat4 Camera::GetViewMatrix() const
 {
-    auto view = glm::inverse(gameObject->GetModelMatrix());
+    auto view = glm::inverse(gameObject->GetWorldMatrix());
     return view;
 }
 
@@ -88,7 +88,7 @@ glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 
 glm::vec3 Camera::ScreenUVToWorldPos(glm::vec2 screenUV)
 {
-    glm::mat4 camModelMatrix = GetGameObject()->GetModelMatrix();
+    glm::mat4 camModelMatrix = GetGameObject()->GetWorldMatrix();
     return camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
 }
 
@@ -96,7 +96,7 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
 {
     Ray ray;
     ray.origin = GetGameObject()->GetPosition();
-    glm::mat4 camModelMatrix = GetGameObject()->GetModelMatrix();
+    glm::mat4 camModelMatrix = GetGameObject()->GetWorldMatrix();
     glm::vec3 viewSpacePosition = ScreenUVToViewSpace(screenUV);
     glm::vec3 clickInWS = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
     ray.direction = glm::normalize(clickInWS - ray.origin);
