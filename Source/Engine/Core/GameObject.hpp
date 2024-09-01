@@ -84,8 +84,15 @@ public:
         if (rotation == this->rotation)
             return;
 
+        auto oldModelMatrix = GetModelMatrix();
         updateModelMatrix = true;
         this->rotation = rotation;
+        modelMatrix = GetModelMatrix();
+        auto invOldModel = glm::inverse(oldModelMatrix);
+        for (GameObject* child : children)
+        {
+            // child->ApplyModelMatrix(modelMatrix * invOldModel);
+        }
 
         TransformChanged();
     }
@@ -132,16 +139,7 @@ public:
         TransformChanged();
     };
 
-    void SetScale(const glm::vec3& scale)
-    {
-        if (scale == this->scale)
-            return;
-
-        updateModelMatrix = true;
-        this->scale = scale;
-
-        TransformChanged();
-    }
+    void SetScale(const glm::vec3& scale);
 
     void Awake()
     {
@@ -256,6 +254,7 @@ public:
         return modelMatrix;
     }
     void SetModelMatrix(const glm::mat4& model);
+    void ApplyModelMatrix(const glm::mat4& model);
 
     // this function should be used internally by Scene
     // it doesn't set the child's parent

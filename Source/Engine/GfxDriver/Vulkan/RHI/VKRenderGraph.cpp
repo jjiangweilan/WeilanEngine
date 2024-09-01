@@ -1477,18 +1477,30 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
         auto sourceSet = exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader);
         if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
         {
-            exeState.bindedDescriptorSets[index] = sourceSet;
             vkCmdBindDescriptorSets(
                 cmd,
                 bindPoint,
                 exeState.lastBindedShader->GetVKPipelineLayout(),
                 index,
                 1,
-                &exeState.bindedDescriptorSets[index],
+                &sourceSet,
                 0,
                 VK_NULL_HANDLE
             );
+
+            exeState.bindedDescriptorSets[index] = sourceSet;
             exeState.setResources[index].needUpdate = false;
+
+            // if a lower order set is being changed there is high chance that lower order set is being disturbed so we need to bind them again
+            for (int i = index + 1; i < 4; ++i)
+            {
+                exeState.bindedDescriptorSets[i] = VK_NULL_HANDLE;
+                exeState.setResources[i].needUpdate = true;
+            }
+        }
+        else
+        {
+            int i = 0;
         }
     }
 }

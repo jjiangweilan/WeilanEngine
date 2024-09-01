@@ -10,7 +10,6 @@
 #include "Physics/JoltDebugRenderer.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
-#include <glm/gtx/matrix_decompose.hpp>
 
 namespace Editor
 {

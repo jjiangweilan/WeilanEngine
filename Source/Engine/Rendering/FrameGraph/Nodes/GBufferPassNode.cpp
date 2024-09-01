@@ -5,7 +5,6 @@
 #include "Rendering/Shader.hpp"
 #include <spdlog/spdlog.h>
 
-
 namespace Rendering::FrameGraph
 {
 class GBufferPassNode : public Node

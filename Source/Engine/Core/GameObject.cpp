@@ -1,7 +1,7 @@
 #include "GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Libs/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
-
 DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "gobj");
 
 GameObject::GameObject() : gameScene(nullptr)
@@ -105,12 +105,10 @@ void GameObject::Serialize(Serializer* s) const
 
 void GameObject::SetModelMatrix(const glm::mat4& model)
 {
-    glm::vec3 skew;
-    glm::vec4 perspective;
     glm::vec3 position;
     glm::vec3 scale;
     glm::quat rotation;
-    glm::decompose(model, scale, rotation, position, skew, perspective);
+    Math::DecomposeMatrix(model, position, scale, rotation);
     eulerAngles = glm::eulerAngles(rotation);
 
     SetRotation(rotation);
@@ -245,4 +243,34 @@ void GameObject::SetEnable(bool isEnabled)
     }
 
     enabled = isEnabled;
+}
+
+void GameObject::SetScale(const glm::vec3& s)
+{
+    if (s == this->scale)
+        return;
+
+    glm::vec3 scale = s;
+    for (int i = 0; i < 3; ++i)
+        if (glm::abs(scale[i]) < 1e-4)
+        {
+            float s = glm::sign(scale[i]);
+            scale[i] = (s >= 0 ? 1.0 : -1.0) * 1e-4;
+        }
+
+    glm::mat4 oldModelMatrix = GetModelMatrix();
+    updateModelMatrix = true;
+    this->scale = scale;
+    glm::mat4 modelMatrix = GetModelMatrix();
+    auto invOldModel = glm::inverse(oldModelMatrix);
+    for (GameObject* child : children)
+    {
+        child->ApplyModelMatrix(modelMatrix * invOldModel);
+    }
+    TransformChanged();
+}
+
+void GameObject::ApplyModelMatrix(const glm::mat4& model)
+{
+    SetModelMatrix(model * GetModelMatrix());
 }

@@ -643,24 +643,31 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
             fragCompileResults.push_back(std::move(f));
         }
 
-        for (auto& vr : vertCompileResults)
+        try
         {
-            auto v = vr.get();
-            for (auto& fr : fragCompileResults)
+            for (auto& vr : vertCompileResults)
             {
-                auto f = fr.get();
+                auto v = vr.get();
+                for (auto& fr : fragCompileResults)
+                {
+                    auto f = fr.get();
 
-                CompileResult combined;
-                combined.featureCombination =
-                    GenerateFeatureCombination(c, featureToBitMask) | v.featureCombination | f.featureCombination;
-                combined.includedTracks.insert(f.includedTracks.begin(), f.includedTracks.end());
-                combined.includedTracks.insert(v.includedTracks.begin(), v.includedTracks.end());
-                combined.compiledSpv.vertSpv = v.compiledSpv.vertSpv;
-                combined.compiledSpv.vertSpv_noOp = v.compiledSpv.vertSpv_noOp;
-                combined.compiledSpv.fragSpv = f.compiledSpv.fragSpv;
-                combined.compiledSpv.fragSpv_noOp = f.compiledSpv.fragSpv_noOp;
-                finalCompiledResult.push_back(combined);
+                    CompileResult combined;
+                    combined.featureCombination =
+                        GenerateFeatureCombination(c, featureToBitMask) | v.featureCombination | f.featureCombination;
+                    combined.includedTracks.insert(f.includedTracks.begin(), f.includedTracks.end());
+                    combined.includedTracks.insert(v.includedTracks.begin(), v.includedTracks.end());
+                    combined.compiledSpv.vertSpv = v.compiledSpv.vertSpv;
+                    combined.compiledSpv.vertSpv_noOp = v.compiledSpv.vertSpv_noOp;
+                    combined.compiledSpv.fragSpv = f.compiledSpv.fragSpv;
+                    combined.compiledSpv.fragSpv_noOp = f.compiledSpv.fragSpv_noOp;
+                    finalCompiledResult.push_back(combined);
+                }
             }
+        }
+        catch (std::exception e)
+        {
+            spdlog::error(e.what());
         }
     }
 
