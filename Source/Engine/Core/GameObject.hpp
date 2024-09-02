@@ -79,45 +79,9 @@ public:
     }
     void SetParent(GameObject* parent);
 
-    void SetLocalRotation(const glm::quat& rotation)
-    {
-        if (rotation == this->rotation)
-            return;
-
-        this->rotation = rotation;
-        updateLocalMatrix = true;
-
-        TransformChanged();
-    }
-
-    void SetRotation(const glm::quat& rotation)
-    {
-        glm::quat rot = rotation;
-
-        if (parent != nullptr)
-        {
-            glm::quat p = parent->GetRotation();
-            p.x = -p.x;
-            p.y = -p.y;
-            p.z = -p.z;
-            rot = rotation * p;
-        }
-
-        SetLocalRotation(rot);
-    }
-
-    void SetLocalPosition(const glm::vec3& localPosition)
-    {
-        if (position == localPosition)
-        {
-            return;
-        }
-        this->position = localPosition;
-        this->updateLocalMatrix = true;
-
-        TransformChanged();
-    }
-
+    void SetLocalRotation(const glm::quat& rotation);
+    void SetRotation(const glm::quat& rotation);
+    void SetLocalPosition(const glm::vec3& localPosition);
     void SetPosition(const glm::vec3& position);
     void SetScale(const glm::vec3& scale);
 
@@ -212,9 +176,12 @@ public:
 
     void SetEulerAngles(const glm::vec3& eulerAngles)
     {
+        if (this->eulerAngles == eulerAngles)
+            return;
+
         this->eulerAngles = eulerAngles;
         auto rotation = glm::quat(eulerAngles);
-        SetRotation(rotation);
+        SetLocalRotation(rotation);
     }
 
     glm::mat4 GetWorldMatrix() const;

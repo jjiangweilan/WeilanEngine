@@ -109,19 +109,9 @@ void GameObject::SetWorldMatrix(const glm::mat4& matrix)
     glm::vec3 scale{};
     glm::quat rotation{};
 
-    if (parent != nullptr)
-    {
-        glm::mat4 parentWorldMatrix = parent->GetWorldMatrix();
-        glm::mat4 mm = matrix * glm::inverse(parentWorldMatrix);
-        Math::DecomposeMatrix(mm, position, scale, rotation);
-    }
-    else
-    {
-        Math::DecomposeMatrix(matrix, position, scale, rotation);
-    }
+    Math::DecomposeMatrix(matrix, position, scale, rotation);
 
-    eulerAngles = glm::eulerAngles(rotation);
-    SetRotation(rotation);
+    SetEulerAngles(glm::eulerAngles(rotation));
     SetScale(scale);
     SetPosition(position);
 }
@@ -174,21 +164,29 @@ void GameObject::SetParent(GameObject* parent)
             scene->MoveGameObjectToRoot(this);
         this->parent->RemoveChild(this);
         this->parent = nullptr;
+
+        return;
     }
-    else if (this->parent == nullptr)
+
+    if (this->parent == nullptr)
     {
         Scene* scene = GetScene();
         if (scene)
             scene->RemoveGameObjectFromRoot(this);
-        this->parent = parent;
-        parent->children.push_back(this);
     }
     else
     {
         this->parent->RemoveChild(this);
-        this->parent = parent;
-        parent->children.push_back(this);
     }
+
+    // fix local transforms
+    if (parent != nullptr)
+    {
+        SetLocalPosition(GetPosition() - parent->GetPosition());
+    }
+
+    this->parent = parent;
+    parent->children.push_back(this);
 }
 
 void GameObject::SetScene(Scene* scene)
@@ -269,14 +267,15 @@ glm::mat4 GameObject::GetWorldMatrix() const
 {
     if (updateLocalMatrix)
     {
-        localMatrix = glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
+        localMatrix =
+            glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
         updateLocalMatrix = false;
     }
 
     auto finalMatrix = localMatrix;
     if (parent != nullptr)
     {
-        finalMatrix = localMatrix * parent->GetWorldMatrix();
+        finalMatrix = parent->GetWorldMatrix() * localMatrix;
     }
 
     return finalMatrix;
@@ -307,3 +306,42 @@ void GameObject::SetPosition(const glm::vec3& position)
         TransformChanged();
     }
 };
+
+void GameObject::SetLocalRotation(const glm::quat& rotation)
+{
+    if (rotation == this->rotation)
+        return;
+
+    this->rotation = rotation;
+    updateLocalMatrix = true;
+
+    TransformChanged();
+}
+
+void GameObject::SetRotation(const glm::quat& rotation)
+{
+    glm::quat rot = rotation;
+
+    if (parent != nullptr)
+    {
+        glm::quat p = parent->GetRotation();
+        p.x = -p.x;
+        p.y = -p.y;
+        p.z = -p.z;
+        rot = p * rotation;
+    }
+
+    SetLocalRotation(rot);
+}
+
+void GameObject::SetLocalPosition(const glm::vec3& localPosition)
+{
+    if (position == localPosition)
+    {
+        return;
+    }
+    this->position = localPosition;
+    this->updateLocalMatrix = true;
+
+    TransformChanged();
+}
