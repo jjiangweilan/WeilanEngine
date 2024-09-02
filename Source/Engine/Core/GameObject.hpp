@@ -83,6 +83,7 @@ public:
     void SetRotation(const glm::quat& rotation);
     void SetLocalPosition(const glm::vec3& localPosition);
     void SetPosition(const glm::vec3& position);
+    void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
 
     void Awake()
@@ -138,10 +139,7 @@ public:
 
     glm::vec3 GetPosition() const
     {
-        if (parent)
-            return position + parent->GetPosition();
-
-        return position;
+        return GetWorldMatrix()[3];
     }
 
     glm::vec3 GetLocalPosition() const

@@ -90,9 +90,9 @@ private:
     std::string name = "";
     ShaderInfo::ShaderInfo shaderInfo = {};
     VKObjectManager* objManager = nullptr;
-    std::unique_ptr<VKShaderModule> vertShaderModule = nullptr;
-    std::unique_ptr<VKShaderModule> fragShaderModule = nullptr;
-    std::unique_ptr<VKShaderModule> computeShaderModule = nullptr;
+    std::unique_ptr<VKShaderModule> vertShaderModule;
+    std::unique_ptr<VKShaderModule> fragShaderModule;
+    std::unique_ptr<VKShaderModule> computeShaderModule;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::vector<PipelineCache> caches = {};
     std::vector<VkSampler> immutableSamplers = {};

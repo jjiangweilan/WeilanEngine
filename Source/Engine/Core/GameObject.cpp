@@ -163,9 +163,6 @@ void GameObject::SetParent(GameObject* parent)
         if (scene)
             scene->MoveGameObjectToRoot(this);
         this->parent->RemoveChild(this);
-        this->parent = nullptr;
-
-        return;
     }
 
     if (this->parent == nullptr)
@@ -180,13 +177,24 @@ void GameObject::SetParent(GameObject* parent)
     }
 
     // fix local transforms
+    glm::mat4 parentWorld = glm::mat4(1);
     if (parent != nullptr)
     {
-        SetLocalPosition(GetPosition() - parent->GetPosition());
+        parentWorld = parent->GetWorldMatrix();
     }
+    glm::mat4 currentWorld = GetWorldMatrix();
+    glm::mat4 local = glm::inverse(parentWorld) * currentWorld;
+
+    glm::vec3 position, scale;
+    glm::quat rotation;
+    Math::DecomposeMatrix(local, position, scale, rotation);
+    SetLocalPosition(position);
+    SetLocalRotation(rotation);
+    SetLocalScale(scale);
 
     this->parent = parent;
-    parent->children.push_back(this);
+    if (parent)
+        parent->children.push_back(this);
 }
 
 void GameObject::SetScene(Scene* scene)
@@ -255,12 +263,7 @@ void GameObject::SetEnable(bool isEnabled)
 
 void GameObject::SetScale(const glm::vec3& s)
 {
-    if (this->scale != s)
-    {
-        this->scale = s;
-        updateLocalMatrix = true;
-        TransformChanged();
-    }
+    SetLocalScale(s);
 }
 
 glm::mat4 GameObject::GetWorldMatrix() const
@@ -344,4 +347,14 @@ void GameObject::SetLocalPosition(const glm::vec3& localPosition)
     this->updateLocalMatrix = true;
 
     TransformChanged();
+}
+
+void GameObject::SetLocalScale(const glm::vec3& scale)
+{
+    if (this->scale != scale)
+    {
+        this->scale = scale;
+        updateLocalMatrix = true;
+        TransformChanged();
+    }
 }

@@ -665,7 +665,7 @@ void ShaderCompiler::Compile(const char* filepath, const std::string& buf)
                 }
             }
         }
-        catch (std::exception e)
+        catch (const std::exception& e)
         {
             spdlog::error(e.what());
         }

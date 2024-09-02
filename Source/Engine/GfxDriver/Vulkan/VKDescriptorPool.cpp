@@ -127,12 +127,10 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
     return newPool;
 }
 
-static std::mutex m;
 VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(
     const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo
 )
 {
-    std::lock_guard lock(m);
     auto it = descriptorLayoutPoolCache.find(createInfo);
     if (it != descriptorLayoutPoolCache.end())
     {

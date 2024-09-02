@@ -2,6 +2,7 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Libs/GLB.hpp"
+#include "Libs/Math.hpp"
 #include <fstream>
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
@@ -55,7 +56,13 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
             matrix[14],
             matrix[15],
         };
-        gameObject->SetWorldMatrix(m);
+
+        glm::vec3 position, scale;
+        glm::quat rotation;
+        Math::DecomposeMatrix(m, position, scale, rotation);
+        gameObject->SetLocalPosition(position);
+        gameObject->SetLocalRotation(rotation);
+        gameObject->SetLocalScale(scale);
     }
     else
     {
@@ -64,9 +71,9 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
         std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
         std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
 
-        gameObject->SetPosition({position[0], position[1], position[2]});
-        gameObject->SetRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
-        gameObject->SetScale({scale[0], scale[1], scale[2]});
+        gameObject->SetLocalPosition({position[0], position[1], position[2]});
+        gameObject->SetLocalRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
+        gameObject->SetLocalScale({scale[0], scale[1], scale[2]});
     }
 
     // mesh renderer
