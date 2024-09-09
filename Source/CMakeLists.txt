@@ -54,7 +54,6 @@ if(USE_VULKAN_SDK_TOOLS)
 endif()
 
 target_link_libraries( WeilanEngine
-    # assimp
     PUBLIC
     ryml::ryml
     SDL2::SDL2
@@ -69,6 +68,7 @@ target_link_libraries( WeilanEngine
     Jolt
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
+    assimp
     ${Vulkan_LIBRARIES}
     )
 

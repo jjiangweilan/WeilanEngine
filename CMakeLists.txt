@@ -152,6 +152,21 @@ FetchContent_MakeAvailable(ktx_software)
 
 
 FetchContent_Declare(
+        assimp
+        GIT_REPOSITORY "https://github.com/assimp/assimp.git"
+        GIT_TAG "v5.4.3"
+        UPDATE_DISCONNECTED TRUE
+        SOURCE_SUBDIR "assimp"
+)
+if(NOT assimp_POPULATED)
+    FetchContent_MakeAvailable(assimp)
+    set(ASSIMP_BUILD_TESTS OFF)
+    set(ASSIMP_INSTALL OFF)
+    set(ASSIMP_BUILD_ASSIMP_VIEW OFF)
+    add_subdirectory(${assimp_SOURCE_DIR})
+endif()
+
+FetchContent_Declare(
         JoltPhysics
         GIT_REPOSITORY "https://github.com/jrouwe/JoltPhysics"
         GIT_TAG "v4.0.2"
