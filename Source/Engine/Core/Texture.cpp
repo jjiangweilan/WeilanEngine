@@ -10,7 +10,7 @@
 #include <spdlog/spdlog.h>
 
 
-DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg");
+DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg,png");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
