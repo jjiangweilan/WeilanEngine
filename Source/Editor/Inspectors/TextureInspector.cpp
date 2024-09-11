@@ -60,6 +60,10 @@ public:
         }
 
         ImGui::Image(imageViewInUse, {size.x, size.y});
+        ImGui::Separator();
+        float mb =target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
+        ImGui::Text("size: %d x %d", width, height);
+        ImGui::Text("disk size: %f Mb", mb);
     }
 
 private:

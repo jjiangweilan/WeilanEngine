@@ -1,5 +1,6 @@
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
+#include "Libs/Utils.hpp"
 #include "Object.hpp"
 #include <functional>
 #include <memory>
@@ -71,7 +72,7 @@ public:
 
     virtual void OnLoadingFinished() {}
 
-    virtual const char* GetExtension() = 0;
+    virtual const std::string& GetExtension() = 0;
 
     void SetDirty(bool isDirty = true)
     {
@@ -94,6 +95,16 @@ public:
 protected:
     std::string name = "";
 
+    static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
+    {
+        auto tokens = Utils::SplitString(exts, ',');
+        for (auto& t : tokens)
+        {
+            t = "." + t;
+        }
+        return tokens;
+    }
+
 private:
     bool isDirty = false;
 };
@@ -107,7 +118,7 @@ public:
     static std::unique_ptr<Asset> CreateAssetByExtension(const Extension& id);
     template <class T>
     static std::unique_ptr<T> CreateAsset(const ObjectTypeID& id);
-    static char RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
+    static char RegisterAsset(const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator);
     static char RegisterExternalAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
     static bool IsExtensionAnAsset(const std::string& ext);
 
@@ -122,8 +133,8 @@ concept IsAsset = requires { std::derived_from<T, Asset>; };
 #define DECLARE_ASSET()                                                                                                \
     DECLARE_OBJECT()                                                                                                   \
 public:                                                                                                                \
-    const char* GetExtension() override;                                                                               \
-    static const char* StaticGetExtension();                                                                           \
+    const std::string& GetExtension() override;                                                                        \
+    static const std::vector<std::string>& StaticGetExtensions();                                                      \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
@@ -131,8 +142,8 @@ private:                                                                        
 #define DECLARE_EXTERNAL_ASSET()                                                                                       \
     DECLARE_OBJECT()                                                                                                   \
 public:                                                                                                                \
-    const char* GetExtension() override;                                                                               \
-    static const char* StaticGetExtension();                                                                           \
+    const std::string& GetExtension() override;                                                                        \
+    static const std::vector<std::string>& StaticGetExtensions();                                                      \
     bool IsExternalAsset() override                                                                                    \
     {                                                                                                                  \
         return true;                                                                                                   \
@@ -145,14 +156,15 @@ private:                                                                        
     DEFINE_OBJECT(Type, ObjectID)                                                                                      \
     char Type::_register = AssetRegistry::RegisterAsset(                                                               \
         Type::StaticGetObjectTypeID(),                                                                                 \
-        StaticGetExtension(),                                                                                          \
+        StaticGetExtensions(),                                                                                         \
         []() { return std::unique_ptr<Asset>(new Type()); }                                                            \
     );                                                                                                                 \
-    const char* Type::GetExtension()                                                                                   \
+    const std::string& Type::GetExtension()                                                                            \
     {                                                                                                                  \
-        return StaticGetExtension();                                                                                   \
+        return StaticGetExtensions()[0];                                                                               \
     }                                                                                                                  \
-    const char* Type::StaticGetExtension()                                                                             \
+    const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
     {                                                                                                                  \
-        return "." Extension;                                                                                          \
+        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                               \
+        return extensions;                                                                                             \
     }

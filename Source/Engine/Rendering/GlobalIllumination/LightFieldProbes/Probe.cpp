@@ -39,7 +39,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
             octahedralMapSize,
             octahedralMapSize,
             1,
-            Gfx::ImageFormat::R32_Float,
+            Gfx::ImageFormat::R32_SFloat,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             false

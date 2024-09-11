@@ -1,9 +1,14 @@
 #include "Asset.hpp"
-char AssetRegistry::RegisterAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator)
+char AssetRegistry::RegisterAsset(
+    const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
+)
 {
     ObjectRegistry::RegisterObject(assetID, creator);
     GetAssetTypeRegistery()->emplace(assetID, creator);
-    GetAssetExtensionRegistry()->emplace(std::string(ext), creator);
+    for (auto& e : exts)
+    {
+        GetAssetExtensionRegistry()->emplace(e, creator);
+    }
     return '0';
 }
 

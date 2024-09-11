@@ -66,7 +66,7 @@ public:
         for (int i = 1; i < mipCount; ++i)
         {
             float mipScale = (1 << i);
-            hizDescs[i].SetFormat(Gfx::ImageFormat::R32_Float);
+            hizDescs[i].SetFormat(Gfx::ImageFormat::R32_SFloat);
             hizDescs[i].SetWidth(glm::ceil(srcDepth.desc.GetWidth() / mipScale));
             hizDescs[i].SetHeight(glm::ceil(srcDepth.desc.GetHeight() / mipScale));
             hizDescs[i].SetRandomWrite(true);
