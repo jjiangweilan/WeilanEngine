@@ -39,7 +39,7 @@ vec4 GetVertexTangent()
 #ifdef _Vertex_Tangent
     return i_Tangent;
 #else
-    return vec4(1,0,0,0);
+    return vec4(0,0,1,1); 
 #endif
 }
 
