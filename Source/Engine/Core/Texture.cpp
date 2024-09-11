@@ -40,6 +40,14 @@ Texture::Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, co
     }
 }
 
+Texture::~Texture()
+{
+    if (desc.keepData && desc.data != nullptr)
+    {
+        stbi_image_free(desc.data);
+    }
+}
+
 void Texture::CreateGfxImage(TextureDescription& texDesc)
 {
     image = Gfx::GfxDriver::Instance()->CreateImage(
@@ -224,10 +232,19 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
         desiredChannels = 4;
 
-    stbi_uc* loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
-
     bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
+
     bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+    stbi_uc* loaded = nullptr;
+    if (isHDR)
+    {
+        loaded = (stbi_uc*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+    }
+    else
+    {
+        loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+    }
+
 
     TextureDescription texDesc{};
     texDesc.img.width = width;
@@ -248,7 +265,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
         else
             format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     }
-    if (desiredChannels == 3)
+    else if (desiredChannels == 3)
     {
         if(isHDR)
             format = Gfx::ImageFormat::R32G32B32_SFloat;
@@ -257,7 +274,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
         else
             format = Gfx::ImageFormat::R8G8B8_SRGB;
     }
-    if (desiredChannels == 2)
+    else if (desiredChannels == 2)
     {
         if (isHDR)
             format = Gfx::ImageFormat::R32G32_SFloat;
@@ -266,7 +283,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
         else
             format = Gfx::ImageFormat::R8G8_SRGB;
     }
-    if (desiredChannels == 1)
+    else if (desiredChannels == 1)
     {
         if (isHDR)
             format = Gfx::ImageFormat::R32_SFloat;

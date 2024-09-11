@@ -37,13 +37,7 @@ public:
     Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, const UUID& uuid = UUID{});
     Texture(TextureDescription texDesc, const UUID& uuid = UUID{});
     Texture(KtxTexture texDesc, const UUID& uuid = UUID{});
-    ~Texture() override
-    {
-        if (desc.keepData && desc.data != nullptr)
-        {
-            delete desc.data;
-        }
-    }
+    ~Texture() override;
     Gfx::Image* GetGfxImage()
     {
         return image.get();
