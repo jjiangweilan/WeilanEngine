@@ -10,7 +10,8 @@
 #include <spdlog/spdlog.h>
 
 
-DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg,png");
+// extensions comes from supported format in stb_image.h and ktx 
+DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
 
 Texture::Texture(const char* path, const UUID& uuid)
 {
@@ -227,10 +228,6 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
 
     bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
     bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
-    if (is16Bit && isHDR)
-    {
-        SPDLOG_ERROR("16 bits and hdr texture Not Implemented");
-    }
 
     TextureDescription texDesc{};
     texDesc.img.width = width;
@@ -241,22 +238,45 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     texDesc.img.isCubemap = false;
     texDesc.data = loaded;
 
+    Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     if (desiredChannels == 4)
     {
-        texDesc.img.format = Gfx::ImageFormat::R8G8B8A8_SRGB;
+        if (isHDR)
+            format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+        else if (is16Bit)
+            format = Gfx::ImageFormat::R16G16B16A16_SFloat;
+        else
+            format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     }
     if (desiredChannels == 3)
     {
-        texDesc.img.format = Gfx::ImageFormat::R8G8B8_SRGB;
+        if(isHDR)
+            format = Gfx::ImageFormat::R32G32B32_SFloat;
+        else if (is16Bit)
+            format = Gfx::ImageFormat::R16G16B16_SFloat;
+        else
+            format = Gfx::ImageFormat::R8G8B8_SRGB;
     }
     if (desiredChannels == 2)
     {
-        texDesc.img.format = Gfx::ImageFormat::R8G8_SRGB;
+        if (isHDR)
+            format = Gfx::ImageFormat::R32G32_SFloat;
+        else if (is16Bit)
+            format = Gfx::ImageFormat::R16G16_SFloat;
+        else
+            format = Gfx::ImageFormat::R8G8_SRGB;
     }
     if (desiredChannels == 1)
     {
-        texDesc.img.format = Gfx::ImageFormat::R8_SRGB;
+        if (isHDR)
+            format = Gfx::ImageFormat::R32_SFloat;
+        else if (is16Bit)
+            format = Gfx::ImageFormat::R16_SFloat;
+        else
+            format = Gfx::ImageFormat::R8_SRGB;
     }
+
+    texDesc.img.format = format;
     desc = texDesc;
 
     CreateGfxImage(desc);
@@ -281,9 +301,17 @@ bool Texture::LoadFromFile(const char* path)
             {
                 LoadKtxTexture((uint8_t*)s.data(), s.size());
             }
-            else if (ext == ".jpg" || ext == ".png")
+            else
             {
-                LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size());
+                auto& exts = Texture::StaticGetExtensions();
+                for(auto& e : exts)
+                {
+                    if (e != ".ktx" && e == ext)
+                    {
+                        LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size());
+                        break;
+                    }
+                }
             }
         }
         else
