@@ -178,7 +178,6 @@ struct Binding
         actualName = other.actualName;
         resourceHandle = other.resourceHandle;
         count = other.count;
-        type = other.type;
         switch (other.type)
         {
             case BindingType::UBO:
@@ -200,16 +199,20 @@ struct Binding
                     break;
                 }
             case BindingType::SSBO:
-                if (type != BindingType::SSBO)
                 {
-                    new (&binding.ssbo) SSBO();
+                    if (type != BindingType::SSBO)
+                    {
+                        binding.~BindingUnion();
+                        new (&binding.ssbo) SSBO();
+                    }
+                    binding.ssbo = other.binding.ssbo;
+                    break;
                 }
-                binding.ssbo = other.binding.ssbo;
-                break;
             case BindingType::Texture:
                 {
                     if (type != BindingType::Texture)
                     {
+                        binding.~BindingUnion();
                         new (&binding.texture) Texture();
                     }
                     binding.texture = other.binding.texture;
@@ -219,6 +222,7 @@ struct Binding
                 {
                     if (type != BindingType::SeparateImage)
                     {
+                        binding.~BindingUnion();
                         new (&binding.separateImage) SeparateImage();
                     }
                     binding.separateImage = other.binding.separateImage;
@@ -228,12 +232,14 @@ struct Binding
                 {
                     if (type != BindingType::SeparateSampler)
                     {
+                        binding.~BindingUnion();
                         new (&binding.separateSampler) SeparateSampler();
                     }
                     binding.separateSampler = other.binding.separateSampler;
                     break;
                 }
         }
+        type = other.type;
         return *this;
     }
 
