@@ -349,7 +349,11 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     texDesc.img.format = format;
     desc = texDesc;
 
-    ConvertRawImageToKtx(desc);
+    image = GetGfxDriver()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst);
+    GetGfxDriver()->UploadImage(*image, desc.data, desc.img.GetByteSize());
+    GetGfxDriver()->GenerateMipmaps(*image);
+
+    // ConvertRawImageToKtx(desc);
 }
 
 bool Texture::LoadFromFile(const char* path)

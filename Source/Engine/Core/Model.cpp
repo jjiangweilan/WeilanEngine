@@ -96,10 +96,6 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
                 {
                     mat->SetShader(Shader::GetDefault());
                 }
-                if (meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TANGENT"))
-                    mat->EnableFeature("_Vertex_Tangent");
-                if (meshes[meshIndex]->GetSubmeshes()[i].HasAttribute("TEXCOORD_0"))
-                    mat->EnableFeature("_Vertex_UV0");
                 mats.push_back(mat);
             }
             else
@@ -310,6 +306,28 @@ bool Model::LoadFromFile(const char* cpath)
 
         toOurMaterial[i] = mat.get();
         materials.push_back(std::move(mat));
+    }
+
+    if (jsonData.contains("meshes"))
+    {
+        for (auto& mesh : jsonData["meshes"])
+        {
+            for(auto& primitive : mesh["primitives"])
+            {
+                auto& attr = primitive["attributes"];
+                int matIndex = primitive.value("material", -1);
+                if (matIndex != -1)
+                {
+                    if (attr.contains("TANGENT"))
+                    {
+                        materials[matIndex]->EnableFeature("_Vertex_Tangent");
+                    }
+                    if (attr.contains("TEXCOORD_0"))
+                        materials[matIndex]->EnableFeature("_Vertex_UV0");
+                }
+            }
+
+        }
     }
 
     return true;
