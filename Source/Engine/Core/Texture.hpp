@@ -60,7 +60,9 @@ private:
     TextureDescription desc;
     std::unique_ptr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);
+    void LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels);
     void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);
+    void ConvertRawImageToKtx(TextureDescription& desc);
     void CreateGfxImage(TextureDescription& texDesc);
 };
 

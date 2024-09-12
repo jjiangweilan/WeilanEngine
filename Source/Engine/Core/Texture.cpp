@@ -6,11 +6,11 @@
 #include <sstream>
 #define STB_IMAGE_IMPLEMENTATION
 #include "ThirdParty/stb/stb_image.h"
+#include <ktx.h>
 #include <ktxvulkan.h>
 #include <spdlog/spdlog.h>
 
-
-// extensions comes from supported format in stb_image.h and ktx 
+// extensions comes from supported format in stb_image.h and ktx
 DEFINE_ASSET(Texture, "01FD72D3-B18A-4182-95F1-81ECD3E5E6A8", "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm");
 
 Texture::Texture(const char* path, const UUID& uuid)
@@ -56,16 +56,10 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     );
     image->SetName(GetName());
 
-    uint32_t byteSize = Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
-    // Gfx::Buffer::CreateInfo bufCreateInfo;
-    // bufCreateInfo.size = byteSize;
-    // bufCreateInfo.usages = Gfx::BufferUsage::Transfer_Src;
-    // bufCreateInfo.debugName = "mesh staging buffer";
-    // bufCreateInfo.visibleInCPU = true;
-    // std::unique_ptr<Gfx::Buffer> stagingBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-    // memcpy(stagingBuffer->GetCPUVisibleAddress(), texDesc.data, byteSize);
+    size_t byteSize = Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+    uint8_t* data = texDesc.data;
 
-    GetGfxDriver()->UploadImage(*image, texDesc.data, byteSize);
+    GetGfxDriver()->UploadImage(*image, data, byteSize);
     GetGfxDriver()->GenerateMipmaps(*image);
 
     // mip map generation
@@ -100,129 +94,189 @@ void Texture::Reload(Asset&& loaded)
     Asset::Reload(std::move(loaded));
 }
 
+void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
+{
+    if (ktxTexture2_NeedsTranscoding(texture))
+    {
+        enum class CompressionMode
+        {
+            UASTC,
+            ETC1S
+        } compressionMode;
+        if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_ETC1S)
+            compressionMode = CompressionMode::ETC1S;
+        else if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_UASTC)
+                compressionMode = CompressionMode::UASTC;
+        else
+        {
+            throw std::runtime_error("Texture-failed to create ktx texture");
+        }
+
+        ktx_texture_transcode_fmt_e tf;
+        auto& gpuFeatures = GetGfxDriver()->GetGPUFeatures();
+        switch (compressionMode)
+        {
+            case CompressionMode::ETC1S:
+                {
+                    if (gpuFeatures.textureCompressionETC2)
+                        tf = KTX_TTF_ETC2_RGBA;
+                    else if (gpuFeatures.textureCompressionBC)
+                        tf = KTX_TTF_BC3_RGBA;
+                    else
+                    {
+                        std::string message = "Vulkan implementation does not support any available transcode target.";
+                        throw std::runtime_error(message);
+                    }
+                    break;
+                }
+            case CompressionMode::UASTC:
+                {
+                    if (gpuFeatures.textureCompressionASTC4x4)
+                        tf = KTX_TTF_ASTC_4x4_RGBA;
+                    else if (gpuFeatures.textureCompressionBC)
+                        tf = KTX_TTF_BC7_RGBA;
+                    else
+                    {
+                        std::string message = "Vulkan implementation does not support any available transcode target.";
+                        throw std::runtime_error(message);
+                    }
+                    break;
+                }
+        }
+
+        if (ktxTexture2_TranscodeBasis((ktxTexture2*)texture, tf, 0) != 0)
+        {
+            throw std::runtime_error("failed to transcode ktx texture");
+        }
+    }
+
+    desc.img.isCubemap = texture->isCubemap;
+    desc.img.width = texture->baseWidth;
+    desc.img.height = texture->baseHeight;
+    desc.img.mipLevels = gpuMipLevels;
+    desc.img.format = Gfx::MapVKFormat(ktxTexture2_GetVkFormat(texture));
+    desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    desc.data = nullptr;
+
+    image = Gfx::GfxDriver::Instance()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
+
+    ktx_uint8_t* data = ktxTexture_GetData(ktxTexture(texture));
+    size_t byteSize = ktxTexture_GetDataSize(ktxTexture(texture));
+    if (texture->numDimensions == 1)
+    {
+        throw std::runtime_error("Texture-numDimensions not implemented");
+    }
+    else if (texture->numDimensions == 2)
+    {
+        for (uint32_t level = 0; level < texture->numLevels; ++level)
+        {
+            for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
+            {
+                for (uint32_t face = 0; face < texture->numFaces; ++face)
+                {
+                    ktx_size_t offset = 0;
+                    if (ktxTexture_GetImageOffset(ktxTexture(texture), level, layer, face, &offset) != KTX_SUCCESS)
+                        throw std::runtime_error("Texture-failed to get image offset");
+                    ktx_size_t byteSize = ktxTexture_GetImageSize(ktxTexture(texture), level);
+
+                    GetGfxDriver()->UploadImage(*image, data + offset, byteSize, level, layer + face);
+                }
+            }
+        }
+    }
+    else
+    {
+        std::runtime_error("Texture-numDimensions not implemented");
+    }
+
+}
+
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
 {
     if (IsKTX1File(imageData) || IsKTX2File(imageData))
     {
-        ktxTexture* texture;
-        if (ktxTexture_CreateFromMemory(
-                (uint8_t*)imageData,
-                imageByteSize,
-                KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-                &texture
-            ) != KTX_SUCCESS)
+        ktxTexture2* texture;
+        KTX_error_code e = ktxTexture2_CreateFromMemory(
+            (uint8_t*)imageData,
+            imageByteSize,
+            KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
+            &texture
+        );
+        if (e != KTX_SUCCESS)
         {
             throw std::runtime_error("Texture-Failed to create texture from memory");
         }
 
-        if (ktxTexture_NeedsTranscoding(texture))
-        {
-            char* writerScParams;
-            uint32_t valueLen;
-            enum class CompressionMode
-            {
-                UASTC,
-                ETC1S
-            } compressionMode;
-            if (KTX_SUCCESS == ktxHashList_FindValue(
-                                   &texture->kvDataHead,
-                                   KTX_WRITER_SCPARAMS_KEY,
-                                   &valueLen,
-                                   (void**)&writerScParams
-                               ))
-            {
-                if (std::strstr(writerScParams, "--uastc"))
-                    compressionMode = CompressionMode::UASTC;
-                else
-                    compressionMode = CompressionMode::ETC1S;
-            }
-            else
-            {
-                throw std::runtime_error("Texture-failed to create ktx texture");
-            }
-
-            ktx_texture_transcode_fmt_e tf;
-            auto& gpuFeatures = GetGfxDriver()->GetGPUFeatures();
-            switch (compressionMode)
-            {
-                case CompressionMode::ETC1S:
-                    {
-                        if (gpuFeatures.textureCompressionETC2)
-                            tf = KTX_TTF_ETC2_RGBA;
-                        else if (gpuFeatures.textureCompressionBC)
-                            tf = KTX_TTF_BC3_RGBA;
-                        else
-                        {
-                            std::string message =
-                                "Vulkan implementation does not support any available transcode target.";
-                            throw std::runtime_error(message);
-                        }
-                        break;
-                    }
-                case CompressionMode::UASTC:
-                    {
-                        if (gpuFeatures.textureCompressionASTC4x4)
-                            tf = KTX_TTF_ASTC_4x4_RGBA;
-                        else if (gpuFeatures.textureCompressionBC)
-                            tf = KTX_TTF_BC7_RGBA;
-                        else
-                        {
-                            std::string message =
-                                "Vulkan implementation does not support any available transcode target.";
-                            throw std::runtime_error(message);
-                        }
-                        break;
-                    }
-            }
-
-            if (ktxTexture2_TranscodeBasis((ktxTexture2*)texture, tf, 0) != 0)
-            {
-                throw std::runtime_error("failed to transcode ktx texture");
-            }
-        }
-
-        desc.img.isCubemap = texture->isCubemap;
-        desc.img.width = texture->baseWidth;
-        desc.img.height = texture->baseHeight;
-        desc.img.mipLevels = texture->numLevels;
-        desc.img.format = Gfx::MapVKFormat(ktxTexture_GetVkFormat(texture));
-        desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
-        desc.data = nullptr;
-
-        image =
-            Gfx::GfxDriver::Instance()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
-
-        ktx_uint8_t* data = ktxTexture_GetData(texture);
-        size_t byteSize = ktxTexture_GetDataSize(texture);
-        if (texture->numDimensions == 1)
-        {
-            throw std::runtime_error("Texture-numDimensions not implemented");
-        }
-        else if (texture->numDimensions == 2)
-        {
-            for (uint32_t level = 0; level < texture->numLevels; ++level)
-            {
-                for (uint32_t layer = 0; layer < texture->numLayers; ++layer)
-                {
-                    for (uint32_t face = 0; face < texture->numFaces; ++face)
-                    {
-                        ktx_size_t offset = 0;
-                        if (ktxTexture_GetImageOffset(texture, level, layer, face, &offset) != KTX_SUCCESS)
-                            throw std::runtime_error("Texture-failed to get image offset");
-                        ktx_size_t byteSize = ktxTexture_GetImageSize(texture, level);
-
-                        GetGfxDriver()->UploadImage(*image, data + offset, byteSize, level, layer + face);
-                    }
-                }
-            }
-        }
-        else
-        {
-            std::runtime_error("Texture-numDimensions not implemented");
-        }
-
-        ktxTexture_Destroy(texture); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
+        LoadKtxTexture(texture, texture->numLevels);
+        ktxTexture_Destroy(ktxTexture(texture)); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
     }
+}
+
+// TODO: this is a transmission step, the generation of ktx texture should be a importing step
+void Texture::ConvertRawImageToKtx(TextureDescription& desc)
+{
+    ktxTexture2* texture;
+    ktxTextureCreateInfo createInfo;
+    KTX_error_code result;
+    ktx_uint32_t level, layer, faceSlice;
+    uint8_t* src;
+    ktx_size_t srcSize;
+    ktxBasisParams params = {0};
+    params.structSize = sizeof(params);
+
+    createInfo.glInternalformat = 0; // Ignored as we'll create a KTX2 texture.
+    createInfo.vkFormat = Gfx::MapFormat(desc.img.format);
+    createInfo.baseWidth = desc.img.width;
+    createInfo.baseHeight = desc.img.height;
+    createInfo.baseDepth = desc.img.depth;
+    createInfo.numDimensions = 2;
+    // Note: it is not necessary to provide a full mipmap pyramid.
+    createInfo.numLevels = 1;
+    createInfo.numFaces = desc.img.isCubemap ? 6 : 1;
+    createInfo.isArray = KTX_FALSE;
+    createInfo.generateMipmaps = KTX_FALSE;
+    createInfo.numLayers = 1;
+
+    result = ktxTexture2_Create(&createInfo, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture);
+    if (result != KTX_SUCCESS)
+    {
+        spdlog::error("failed to create ktx texture");
+        return;
+    }
+
+    src = desc.data;
+    srcSize = desc.img.GetByteSize();
+    level = 0;
+    layer = 0;
+    faceSlice = 0;
+    result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, faceSlice, src, srcSize);
+    if (result != KTX_SUCCESS)
+    {
+        spdlog::error("failed to create ktx texture");
+        return;
+    }
+    // Repeat for the other 15 slices of the base level and all other levels
+    // up to createInfo.numLevels.
+
+    // For BasisLZ/ETC1S
+    params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+    // For UASTC
+    params.uastc = KTX_TRUE;
+    // Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
+    result = ktxTexture2_CompressBasisEx(texture, &params);
+    if (result != KTX_SUCCESS)
+    {
+        spdlog::error("failed to create ktx texture");
+        return;
+    }
+    char writer[100];
+    snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", 0);
+    ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)strlen(writer) + 1, writer);
+
+    LoadKtxTexture(texture, desc.img.mipLevels);
+    GetGfxDriver()->GenerateMipmaps(*image);
+
+    ktxTexture_Destroy(ktxTexture(texture));
 }
 
 void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
@@ -233,8 +287,8 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
         desiredChannels = 4;
 
     bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
-
     bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+
     stbi_uc* loaded = nullptr;
     if (isHDR)
     {
@@ -244,7 +298,6 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     {
         loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
     }
-
 
     TextureDescription texDesc{};
     texDesc.img.width = width;
@@ -267,7 +320,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     }
     else if (desiredChannels == 3)
     {
-        if(isHDR)
+        if (isHDR)
             format = Gfx::ImageFormat::R32G32B32_SFloat;
         else if (is16Bit)
             format = Gfx::ImageFormat::R16G16B16_SFloat;
@@ -296,11 +349,12 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     texDesc.img.format = format;
     desc = texDesc;
 
-    CreateGfxImage(desc);
+    ConvertRawImageToKtx(desc);
 }
 
 bool Texture::LoadFromFile(const char* path)
 {
+    sourceAssetFile = path;
     std::filesystem::path fpath(path);
 
     if (fpath.has_extension())
@@ -321,7 +375,7 @@ bool Texture::LoadFromFile(const char* path)
             else
             {
                 auto& exts = Texture::StaticGetExtensions();
-                for(auto& e : exts)
+                for (auto& e : exts)
                 {
                     if (e != ".ktx" && e == ext)
                     {

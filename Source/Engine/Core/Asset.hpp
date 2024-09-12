@@ -2,6 +2,7 @@
 #include "Libs/Serialization/Serializer.hpp"
 #include "Libs/Utils.hpp"
 #include "Object.hpp"
+#include <filesystem>
 #include <functional>
 #include <memory>
 #pragma once
@@ -94,6 +95,7 @@ public:
 
 protected:
     std::string name = "";
+    std::filesystem::path sourceAssetFile = "";
 
     static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
     {
