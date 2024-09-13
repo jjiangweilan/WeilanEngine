@@ -1,6 +1,7 @@
 #include "Texture.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
+#include "Libs/Image/MipmapGenerator.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -44,7 +45,7 @@ Texture::~Texture()
 {
     if (desc.keepData && desc.data != nullptr)
     {
-        stbi_image_free(desc.data);
+        delete[] desc.data;
     }
 }
 
@@ -106,7 +107,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
         if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_ETC1S)
             compressionMode = CompressionMode::ETC1S;
         else if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_UASTC)
-                compressionMode = CompressionMode::UASTC;
+            compressionMode = CompressionMode::UASTC;
         else
         {
             throw std::runtime_error("Texture-failed to create ktx texture");
@@ -188,7 +189,6 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     {
         std::runtime_error("Texture-numDimensions not implemented");
     }
-
 }
 
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
@@ -303,10 +303,50 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     texDesc.img.width = width;
     texDesc.img.height = height;
     texDesc.img.depth = 1;
-    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::max(width, height))) + 1;
+    texDesc.img.mipLevels = glm::floor(glm::log2((float)glm::min(width, height))) + 1;
     texDesc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
     texDesc.img.isCubemap = false;
-    texDesc.data = loaded;
+
+    size_t mippedDataByteSize = 0;
+    size_t elementSize = 0;
+    if (isHDR)
+    {
+        float* data;
+        elementSize = sizeof(float);
+        Libs::Image::GenerateBoxFilteredMipmap<float>(
+            (float*)loaded,
+            width,
+            height,
+            (int)texDesc.img.mipLevels,
+            desiredChannels,
+            data,
+            mippedDataByteSize
+        );
+        texDesc.data = (uint8_t*)data;
+        stbi_image_free(loaded);
+    }
+    else if (is16Bit)
+    {
+        throw std::exception("Not implemented");
+    }
+    else
+    {
+        uint8_t* data;
+        size_t s = texDesc.img.GetByteSize();
+        
+        elementSize = sizeof(uint8_t);
+        Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
+            (uint8_t*)loaded,
+            width,
+            height,
+            (int)texDesc.img.mipLevels,
+            desiredChannels,
+            data,
+            mippedDataByteSize
+        );
+        texDesc.data = (uint8_t*)data;
+        stbi_image_free(loaded);
+    }
 
     Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_SRGB;
     if (desiredChannels == 4)
@@ -349,8 +389,27 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     texDesc.img.format = format;
     desc = texDesc;
 
-    image = GetGfxDriver()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst);
-    GetGfxDriver()->UploadImage(*image, desc.data, desc.img.GetByteSize());
+    image = GetGfxDriver()->CreateImage(
+        desc.img,
+        Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst
+    );
+
+    int preLevelWidth = width;
+    int preLevelHeight = height;
+    int curLevelOffset = 0;
+    for (uint32_t level = 0; level < desc.img.mipLevels; ++level)
+    {
+        float scale = std::pow(0.5f, level);
+        int lw = preLevelWidth * scale;
+        int lh = preLevelHeight * scale;
+        size_t byteSize = lw * lh * desiredChannels * elementSize;
+
+        GetGfxDriver()->UploadImage(*image, desc.data + curLevelOffset, byteSize, level, 0);
+
+        curLevelOffset += byteSize;
+        preLevelWidth = lw;
+        preLevelHeight = lh;
+    }
     GetGfxDriver()->GenerateMipmaps(*image);
 
     // ConvertRawImageToKtx(desc);
