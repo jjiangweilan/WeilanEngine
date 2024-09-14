@@ -152,6 +152,8 @@ public:
         SetViewport(viewport);
     }
 
+    void CopyDataToImage(uint8_t* data, Gfx::Image& dst, int width, int height, int mipLevels, int layers);
+
     // note: currently to correctly setup global binding, this function should be called before BindShaderProgram
     void SetTexture(ShaderBindingHandle name, RG::ImageIdentifier id)
     {

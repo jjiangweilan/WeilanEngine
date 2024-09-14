@@ -1168,6 +1168,33 @@ void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
     renderGraph->Schedule((VKCommandBuffer&)cmd);
 }
 
+void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
+{
+    VK::RenderGraph::Graph rg;
+    renderGraph->Schedule((VKCommandBuffer&)cmd);
+
+    VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
+    VkFence fence;
+    vkCreateFence(device.handle, &fenceCreateInfo, nullptr, &fence);
+
+    VkCommandBufferAllocateInfo cmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    cmdAllocateInfo.commandPool = mainCmdPool;
+    cmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdAllocateInfo.commandBufferCount = 1;
+    VkCommandBuffer vkcmd;
+    vkAllocateCommandBuffers(device.handle, &cmdAllocateInfo, &vkcmd);
+    renderGraph->Execute(vkcmd);
+
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &vkcmd;
+
+    ENGINE_BEGIN_PROFILE("VKDriver - submit")
+    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);
+
+    vkWaitForFences(device.handle, 1, &fence, VK_TRUE, -1);
+}
+
 Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id)
 {
     if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Image)

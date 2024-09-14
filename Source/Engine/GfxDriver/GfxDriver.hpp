@@ -111,7 +111,7 @@ public:
 
     virtual void ClearResources() = 0;
 
-    // RHI implementation
+    virtual void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) = 0;
     virtual void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) = 0;
     virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
 
@@ -130,6 +130,10 @@ public:
 
     virtual Window* CreateExtraWindow(SDL_Window* window) = 0;
     virtual void DestroyExtraWindow(Window* window) = 0;
+
+    std::unique_ptr<Buffer> CreateBuffer(
+        size_t size, BufferUsageFlags usages, bool visibleInCPU = false, bool gpuWrite = false, const char* debugName = ""
+    );
 
 private:
     static GfxDriver*& InstanceInternal();

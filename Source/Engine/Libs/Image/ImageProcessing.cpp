@@ -4,33 +4,47 @@
 
 namespace Libs::Image
 {
-void GenerateIiradianceCubemap(float* source, int width, int height, int channels, float*& output)
+void GenerateIrradianceCubemap(float* source, int width, int height, int channels, float*& output)
 {
-    TextureDescription desc;
-    desc.data = (uint8_t*)source;
-    desc.keepData = false;
-    desc.img.width = width;
-    desc.img.height = height;
-    desc.img.isCubemap = true;
-    desc.img.mipLevels = 1;
-    desc.img.format = Gfx::ImageFormat::R32G32B32A32_SFloat;
-    desc.img.depth = 1;
-    desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
+    Gfx::ImageDescription imgDesc{};
+    imgDesc.width = width;
+    imgDesc.height = height;
+    imgDesc.isCubemap = true;
+    imgDesc.mipLevels = 1;
+    imgDesc.format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+    imgDesc.depth = 1;
+    imgDesc.multiSampling = Gfx::MultiSampling::Sample_Count_1;
 
-    Texture t(desc);
+    std::unique_ptr<Gfx::Image> sourceCuebmap = GetGfxDriver()->CreateImage(
+        imgDesc,
+        Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage
+    );
+
+    imgDesc.width = 512;
+    imgDesc.height = 512;
+    std::unique_ptr<Gfx::Image> dstCuebmap =
+        GetGfxDriver()->CreateImage(imgDesc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage);
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    cmd->SetTexture("_Source", *t.GetGfxImage());
+    cmd->CopyDataToImage((uint8_t*)source, *dstCuebmap, width, height, 1, 1);
+    cmd->SetTexture("_Src", *sourceCuebmap);
+    cmd->SetTexture("_Dst", *dstCuebmap);
 
-    std::unique_ptr<Gfx::Buffer> buf = GetGfxDriver()->CreateBuffer();
     ComputeShader compute;
 
-    cmd->SetBuffer("_Params", *buf);
     cmd->BindShaderProgram(compute.GetDefaultShaderProgram(), compute.GetDefaultShaderConfig());
-    cmd->Dispatch(16,16,1);
-    cmd->AsyncReadback();
+    cmd->Dispatch(16, 16, 1);
 
-    GetGfxDriver()->ExecuteCommandBufferImmediately();
+    auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
+    // copy processed image to cpu
+    Gfx::BufferImageCopyRegion regions[] = {{
+        .srcOffset = 0,
+            .layers = {Gfx::ImageAspect::Color, 0, 0, 6},
+            .offset = {0, 0, 0},
+            .extend = {512, 512, 1}
+    }};
+    cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);
 
+    GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
 }
-}
+} // namespace Libs::Image

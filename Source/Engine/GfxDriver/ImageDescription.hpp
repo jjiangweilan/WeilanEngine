@@ -42,6 +42,7 @@ struct ImageDescription
     {
         return isCubemap ? 6 : 1;
     }
+
     uint32_t GetByteSize() const
     {
         return width * height * MapImageFormatToByteSize(format) * (isCubemap ? 6 : 1);
