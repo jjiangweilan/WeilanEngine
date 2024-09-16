@@ -1171,7 +1171,7 @@ void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
 {
     VK::RenderGraph::Graph rg;
-    renderGraph->Schedule((VKCommandBuffer&)cmd);
+    rg.Schedule((VKCommandBuffer&)cmd);
 
     VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     VkFence fence;
@@ -1183,7 +1183,12 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     cmdAllocateInfo.commandBufferCount = 1;
     VkCommandBuffer vkcmd;
     vkAllocateCommandBuffers(device.handle, &cmdAllocateInfo, &vkcmd);
-    renderGraph->Execute(vkcmd);
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(vkcmd, &beginInfo);
+    rg.Execute(vkcmd);
+    vkEndCommandBuffer(vkcmd);
 
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.commandBufferCount = 1;
@@ -1193,6 +1198,9 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);
 
     vkWaitForFences(device.handle, 1, &fence, VK_TRUE, -1);
+
+    vkDestroyFence(device.handle, fence, VK_NULL_HANDLE);
+    vkFreeCommandBuffers(device.handle, mainCmdPool, 1, &vkcmd);
 }
 
 Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id)

@@ -132,6 +132,10 @@ void VKCommandBuffer::CopyImageToBuffer(
     cmd.copyImageToBuffer.dst = static_cast<VKBuffer*>(dst.Get());
     for (int i = 0; i < regions.size() && i < 8; ++i)
         cmd.copyImageToBuffer.regions[i] = regions[i];
+
+    cmd.copyImageToBuffer.regionsCount = regions.size();
+
+    cmds.push_back(cmd);
 };
 
 void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data)
@@ -309,7 +313,7 @@ void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buff
 
     cmd.setBuffer.buffer = static_cast<VKBuffer*>(&buffer);
     cmd.setBuffer.handle = handle;
-    cmd.setTexture.index = index;
+    cmd.setBuffer.index = index;
 
     cmds.push_back(cmd);
 }

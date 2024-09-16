@@ -59,6 +59,11 @@ public:
         copy.OnLoadingFinished();
     }
 
+    const std::filesystem::path& GetProjectRoot() const
+    {
+        return projectRoot;
+    }
+
 private:
     static AssetDatabase*& SingletonReference();
     const std::filesystem::path projectRoot;

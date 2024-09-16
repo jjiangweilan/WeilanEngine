@@ -64,6 +64,11 @@ public:
         float mb =target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
         ImGui::Text("size: %d x %d", width, height);
         ImGui::Text("disk size: %f Mb", mb);
+
+        if(ImGui::Button("Bake to cubemap"))
+        {
+            target->SaveAsCubemap("gogo");
+        }
     }
 
 private:

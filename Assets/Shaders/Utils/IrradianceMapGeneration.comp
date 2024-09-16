@@ -1,0 +1,66 @@
+#version 460
+
+#if CONFIG
+name : IrradianceMapGeneration
+debug : true
+#endif
+
+#if COMP
+
+#define DST_SIZE 1024
+
+layout(set = 0, binding = 0) uniform sampler2D _Src;
+layout(set = 0, binding = 1, rgba32f) writeonly uniform imageCube _Dst;
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+vec3 GetDirFromCubeUV(vec2 uv, int faceIndex) {
+    uv = 2.0 * uv - 1.0; // Normalize UV to range [-1, 1]
+
+    if (faceIndex == 0) return vec3(1.0, -uv.y, -uv.x); // +X
+    if (faceIndex == 1) return vec3(-1.0, -uv.y, uv.x); // -X
+    if (faceIndex == 2) return vec3(uv.x, 1.0, uv.y); // +Y
+    if (faceIndex == 3) return vec3(uv.x, -1.0, -uv.y); // -Y
+    if (faceIndex == 4) return vec3(uv.x, -uv.y, 1.0); // +Z
+    if (faceIndex == 5) return vec3(-uv.x, -uv.y, -1.0); // -Z
+
+    return vec3(0.0);
+}
+
+#define PI2 6.28318530718
+#define PI 3.14159265359
+void main()
+{
+    vec2 uv = (gl_GlobalInvocationID.xy + vec2(0.5)) / vec2(DST_SIZE);
+    vec3 normal = GetDirFromCubeUV(uv, int(gl_WorkGroupID.z));
+
+    normal = normalize(normal);
+    vec3 tangent = normal != vec3(0.0f, 1.0f, 0.0f) ? cross(normal, vec3(0.0f, 1.0f, 0.0)) : cross(normal, vec3(0.0f, 0.0f, 1.0f));
+    vec3 binormal = cross(tangent, normal);
+
+    float phiSampleDelta = 1.0f / 256.0f;
+    float thetaSampleDelta = 1.0f / 128.0f;
+    vec3 radiance = vec3(0);
+    uint numSamples = 0;
+    for (float p = 0.0; p < 1.0f; p += phiSampleDelta) {
+        for (float t = 0.0; t < 1.0f; t += thetaSampleDelta) {
+            float phi = p * 2.0f * PI;
+            float theta = t * 0.5 * PI;
+
+            vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            vec3 sampleVec = tangentSample.x * tangent + tangentSample.y * binormal + tangentSample.z * normal;
+            sampleVec = normalize(sampleVec);
+
+            // equirectangular conversion
+            float samplePhi = atan(sampleVec.z, sampleVec.x);
+            float sampleTheta = acos(sampleVec.y);
+            vec2 srcUV = vec2(samplePhi / PI2, sampleTheta / PI);
+
+            radiance += textureLod(_Src, srcUV, 0.0).xyz * cos(theta);
+            numSamples++;
+        }
+    }
+
+    imageStore(_Dst, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), vec4(radiance / numSamples, 1.0f));
+}
+#endif

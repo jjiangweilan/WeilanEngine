@@ -1,6 +1,7 @@
 // Reference: https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
 #version 460
 #define G_PCF
+#extension GL_KHR_shader_subgroup_arithmetic : enable
 #include "Common/Common.glsl"
 #include "Common/DeferredShading.glsl"
 
@@ -39,7 +40,8 @@ layout(location = 0) in vec2 i_UV;
 layout(set = 0, binding = 6) uniform sampler2D albedoTex;
 layout(set = 0, binding = 7) uniform sampler2D normalTex;
 layout(set = 0, binding = 8) uniform sampler2D maskTex;
-layout(set = 0, binding = 9) uniform sampler2D depthTex;
+layout(set = 0, binding = 9) uniform sampler2D depthTex_point;
+#define depthTex depthTex_point
 layout(set = 0, binding = 10) uniform sampler2D aoMap;
 layout(set = 0, binding = 11) uniform TileComputeParams
 {
@@ -91,8 +93,7 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
     float dotNL = max(dot(n, l), NearZero);
     float dotVH = max(dot(v, h), NearZero);
     float r2 = roughness * roughness;
-    r2 *= r2;
-    // ndf
+
     float D = r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
 
     // geometry

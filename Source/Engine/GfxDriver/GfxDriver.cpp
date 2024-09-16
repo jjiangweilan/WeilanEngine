@@ -31,4 +31,11 @@ GfxDriver*& GfxDriver::InstanceInternal()
     static GfxDriver* gfxDriver;
     return gfxDriver;
 }
+
+std::unique_ptr<Buffer> GfxDriver::CreateBuffer(
+    size_t size, BufferUsageFlags usages, bool visibleInCPU, bool gpuWrite, const char* debugName
+)
+{
+    return CreateBuffer(Gfx::Buffer::CreateInfo{usages, size, visibleInCPU, debugName, gpuWrite});
+}
 } // namespace Gfx

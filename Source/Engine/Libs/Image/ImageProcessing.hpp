@@ -56,5 +56,5 @@ void GenerateBoxFilteredMipmap(T* source, int width, int height, int levels, int
 }
 
 // expecting source to be a cubemap with x,-x,y,-y,z,-z
-void GenerateIrradianceCubemap(float* source, int width, int height, int channels, float*& output);
+void GenerateIrradianceCubemap(float* source, int width, int height, float*& output);
 } // namespace Libs::Image

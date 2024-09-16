@@ -56,6 +56,8 @@ public:
     // return false if loading failed
     bool LoadFromFile(const char* path) override;
 
+    void SaveAsCubemap(const char* filename);
+
 private:
     TextureDescription desc;
     std::unique_ptr<Gfx::Image> image;

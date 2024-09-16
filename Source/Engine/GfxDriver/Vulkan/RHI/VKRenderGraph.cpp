@@ -844,6 +844,40 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             cmd.blit.barrierOffset = barrierOffset;
             cmd.blit.barrierCount = barrierCount;
         }
+        else if (cmd.type == VKCmdType::CopyImageToBuffer)
+        {
+            ENGINE_SCOPED_PROFILE("VKRenderGraph: copy image to buffer");
+            size_t barrierOffset = barriers.size();
+            size_t barrierCount = 0;
+            if (TrackResource(cmd.copyImageToBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                barrierCount +=
+                    MakeBarrierForLastUsage(cmd.copyBufferToImage.src, cmd.copyBufferToImage.src->GetUUID());
+
+            for (int i = 0; i < cmd.copyImageToBuffer.regionsCount; ++i)
+            {
+                auto& subresource = cmd.copyImageToBuffer.regions[i].layers;
+                Gfx::ImageSubresourceRange range{
+                    .aspectMask = subresource.aspectMask,
+                    .baseMipLevel = subresource.mipLevel,
+                    .levelCount = 1,
+                    .baseArrayLayer = subresource.baseArrayLayer,
+                    .layerCount = subresource.layerCount,
+                };
+
+                if (TrackResource(
+                        cmd.copyImageToBuffer.src,
+                        range,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_READ_BIT
+                    ))
+                    barrierCount +=
+                        MakeBarrierForLastUsage(cmd.copyImageToBuffer.src, cmd.copyImageToBuffer.src->GetUUID());
+            }
+
+            cmd.copyImageToBuffer.barrierOffset = barrierOffset;
+            cmd.copyImageToBuffer.barrierCount = barrierCount;
+        }
         else if (cmd.type == VKCmdType::CopyBufferToImage)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: copy buffer to image");
@@ -1154,8 +1188,9 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 {
                     std::vector<VkBufferImageCopy> vkRegions;
 
-                    for (auto& r : cmd.copyImageToBuffer.regions)
+                    for (int i = 0; i < cmd.copyImageToBuffer.regionsCount; ++i)
                     {
+                        auto& r = cmd.copyImageToBuffer.regions[i];
                         VkBufferImageCopy region;
                         region.bufferOffset = r.srcOffset;
                         region.bufferRowLength = 0;
