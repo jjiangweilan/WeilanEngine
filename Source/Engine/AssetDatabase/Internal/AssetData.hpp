@@ -70,6 +70,11 @@ public:
 
     void SaveToDisk(const std::filesystem::path& projectRoot);
 
+    bool ReimportNeeded()
+    {
+        return false;
+    }
+
 private:
     // scaii code stands for Wei Lan Engine AssetFile
     static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
