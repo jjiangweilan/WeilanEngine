@@ -7,12 +7,13 @@
 class ImportDatabase
 {
 public:
+    std::vector<uint8_t> ReadFile(const std::string& filename);
 
-    uint8_t* ReadFile(const std::filesystem::path& path);
+    static ImportDatabase& Singleton();
 
-    static ImportDatabase* Singleton()
+    std::filesystem::path GetImportAssetPath(const std::string& filename)
     {
-        return nullptr;
+        return filename;
     }
 };
 
@@ -28,8 +29,18 @@ public:
     virtual bool ImportNeeded() = 0;
     virtual void Import() = 0;
     virtual void Load() = 0;
-    virtual void GetReferenceResolveData(Serializer*& serializer, SerializeReferenceResolveMap*& resolveMap) = 0;
+
+    // no need to override if this data import doesn't need reference resolving
+    virtual void GetReferenceResolveData(Serializer*& serializer, SerializeReferenceResolveMap*& resolveMap)
+    {
+        serializer = nullptr;
+        resolveMap = nullptr;
+    }
     virtual std::unique_ptr<Asset> RetrieveAsset() = 0;
+    virtual nlohmann::json GetMeta()
+    {
+        return meta;
+    }
 
 protected:
     std::filesystem::path absoluteAssetPath{};
@@ -43,7 +54,10 @@ struct AssetLoaderRegistry
 public:
     using Extension = std::string;
     using Creator = std::function<std::unique_ptr<AssetLoader>()>;
-    static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id);
+    static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id)
+    {
+        return nullptr;
+    }
     static char RegisterAssetLoader(const std::vector<std::string>& exts, const Creator& creator);
 
 private:

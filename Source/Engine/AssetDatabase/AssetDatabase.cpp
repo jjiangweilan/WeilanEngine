@@ -2,10 +2,12 @@
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
+#include "Importers/TextureLoader.hpp"
 #include "Libs/Profiler.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
+
 
 AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     : projectRoot(projectRoot), assetDirectory(projectRoot / "Assets"),
@@ -43,6 +45,12 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     }
 
     LoadEngineInternal();
+
+    TextureLoader tloader;
+    nlohmann::json m = nlohmann::json::object_t{};
+    tloader.Setup("C:/Users/weilan/Desktop/WeilanGame/Assets/ouchy_pier_2k.hdr", m);
+    tloader.Import();
+    spdlog::info(tloader.GetMeta().dump(1));
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)

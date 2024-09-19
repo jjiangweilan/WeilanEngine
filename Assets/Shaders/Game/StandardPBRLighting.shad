@@ -154,7 +154,7 @@ vec3 ParallaxShadowReprojection(vec3 P1, vec3 L1, vec3 L0)
 
 void main()
 {
-    vec3 n = DecodeGBufferNormal(texture(normalTex, i_UV).xyz);
+    vec3 n = normalize(DecodeGBufferNormal(texture(normalTex, i_UV).xyz));
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
     float roughness = mask.y;

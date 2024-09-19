@@ -5,7 +5,9 @@ namespace Libs::Image
 {
 
 template <class T>
-void GenerateBoxFilteredMipmap(T* source, int width, int height, int levels, int channels, T*& output, size_t& outputByteSize)
+void GenerateBoxFilteredMipmap(
+    uint8_t* source, int width, int height, int levels, int channels, uint8_t*& output, size_t& outputByteSize
+)
 {
     outputByteSize = 0;
     for (int i = 0; i < levels; i++)
@@ -17,10 +19,11 @@ void GenerateBoxFilteredMipmap(T* source, int width, int height, int levels, int
         outputByteSize += lw * lh;
     }
     outputByteSize = outputByteSize * channels * sizeof(T);
-    output = (T*)new uint8_t[outputByteSize];
+    output = (uint8_t*)(T*)new uint8_t[outputByteSize];
+    T* data = (T*)output;
 
     size_t firstLevelByteSize = width * height * sizeof(T) * channels;
-    memcpy(output, source, firstLevelByteSize);
+    memcpy(data, source, firstLevelByteSize);
 
     int preLevelWidth = width;
     int preLevelHeight = height;
@@ -40,11 +43,19 @@ void GenerateBoxFilteredMipmap(T* source, int width, int height, int levels, int
             {
                 for (int c = 0; c < channels; ++c)
                 {
-                    T val0 = output[preLevelOffset + std::min(2 *  k,       preLevelHeight - 1) * preLevelWidth * channels + std::min(2 *  j, preLevelWidth - 1)      * channels + c];
-                    T val1 = output[preLevelOffset + std::min(2 * (k + 1),  preLevelHeight - 1) * preLevelWidth * channels + std::min(2 *  j, preLevelWidth - 1)      * channels + c];
-                    T val2 = output[preLevelOffset + std::min(2 *  k,       preLevelHeight - 1) * preLevelWidth * channels + std::min(2 * (j + 1), preLevelWidth - 1) * channels + c];
-                    T val3 = output[preLevelOffset + std::min(2 * (k + 1),  preLevelHeight - 1) * preLevelWidth * channels + std::min(2 * (j + 1), preLevelWidth - 1) * channels + c];
-                    output[curLevelOffset + k * lw * channels + j * channels + c] = (val0 + val1 + val2 + val3) / 4;
+                    T val0 = data
+                        [preLevelOffset + std::min(2 * k, preLevelHeight - 1) * preLevelWidth * channels +
+                         std::min(2 * j, preLevelWidth - 1) * channels + c];
+                    T val1 = data
+                        [preLevelOffset + std::min(2 * (k + 1), preLevelHeight - 1) * preLevelWidth * channels +
+                         std::min(2 * j, preLevelWidth - 1) * channels + c];
+                    T val2 = data
+                        [preLevelOffset + std::min(2 * k, preLevelHeight - 1) * preLevelWidth * channels +
+                         std::min(2 * (j + 1), preLevelWidth - 1) * channels + c];
+                    T val3 = data
+                        [preLevelOffset + std::min(2 * (k + 1), preLevelHeight - 1) * preLevelWidth * channels +
+                         std::min(2 * (j + 1), preLevelWidth - 1) * channels + c];
+                    data[curLevelOffset + k * lw * channels + j * channels + c] = (val0 + val1 + val2 + val3) / 4;
                 }
             }
         }

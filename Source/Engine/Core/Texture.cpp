@@ -311,10 +311,10 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     size_t elementSize = 0;
     if (isHDR)
     {
-        float* data;
+        uint8_t* data;
         elementSize = sizeof(float);
         Libs::Image::GenerateBoxFilteredMipmap<float>(
-            (float*)loaded,
+            loaded,
             width,
             height,
             (int)texDesc.img.mipLevels,
@@ -322,7 +322,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
             data,
             mippedDataByteSize
         );
-        texDesc.data = (uint8_t*)data;
+        texDesc.data = data;
         stbi_image_free(loaded);
     }
     else if (is16Bit)

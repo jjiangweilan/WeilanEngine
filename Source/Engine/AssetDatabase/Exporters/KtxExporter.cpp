@@ -1,8 +1,8 @@
 #include "KtxExporter.hpp"
 #include <GfxDriver/Vulkan/Internal/VKEnumMapper.hpp>
-#include <spdlog/spdlog.h>
 #include <glm/glm.hpp>
 #include <ktx.h>
+#include <spdlog/spdlog.h>
 
 namespace Exporters
 {
@@ -56,14 +56,7 @@ void KtxExporter::Export(
             for (int level = 0; level < createInfo.numLevels; ++level)
             {
                 size_t mipSize = lw * lh * formatByteSize;
-                result = ktxTexture_SetImageFromMemory(
-                    ktxTexture(texture),
-                    level,
-                    layer,
-                    face,
-                    src + offset,
-                    mipSize
-                );
+                result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, face, src + offset, mipSize);
                 if (result != KTX_SUCCESS)
                 {
                     spdlog::error(ktxErrorString(result));
@@ -75,15 +68,15 @@ void KtxExporter::Export(
             }
         }
     }
-    
+
     if (enableCompression)
     {
-        //ktxBasisParams params = {0};
-        //params.structSize = sizeof(params);
+        // ktxBasisParams params = {0};
+        // params.structSize = sizeof(params);
         //// For BasisLZ/ETC1S
-        //params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
+        // params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
         //// For UASTC
-        //params.uastc = KTX_TRUE;
+        // params.uastc = KTX_TRUE;
         //// Set other BasisLZ/ETC1S or UASTC params to change default quality settings.
         result = ktxTexture2_CompressBasis(texture, 200);
         if (result != KTX_SUCCESS)
