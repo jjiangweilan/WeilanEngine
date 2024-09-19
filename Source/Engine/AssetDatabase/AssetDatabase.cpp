@@ -1,5 +1,5 @@
 #include "AssetDatabase.hpp"
-#include "AssetDatabase/Importers/AssetImporter.hpp"
+#include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
@@ -679,63 +679,93 @@ Asset* AssetDatabase::LoadAsset2(std::filesystem::path path)
     auto assetData = assets.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;
 
-    std::filesystem::path ext = absoluteAssetPath.extension();
-    auto importer = AssetImporterRegistry::CreateAssetImporterByExtension(ext.string());
-    if (assetData && !assetData->ImportNeeded())
+    nlohmann::json assetMeta = nlohmann::json::object_t{};
+    // this asset is already imported once, we can read its meta
+    if (assetData)
     {
+        assetMeta = assetData->GetMeta();
+
         // override the asset path because this asset may be an internal asset
         absoluteAssetPath = assetData->GetAssetAbsolutePath();
-        auto a = assetData->GetAsset();
-        if (a)
-            return a;
     }
-
     if (!std::filesystem::exists(absoluteAssetPath))
         return nullptr;
+
+    std::filesystem::path ext = absoluteAssetPath.extension();
+    std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+    loader->Setup(absoluteAssetPath, assetMeta);
+
+    bool importNeeded = loader->ImportNeeded();
+    if (importNeeded)
+    {
+        loader->Import();
+    }
+
+    Asset* asset = assetData ? assetData->GetAsset() : nullptr;
+    bool loadNeeded = importNeeded ? importNeeded : asset == nullptr;
+    if (loadNeeded)
+    {
+        loader->Load();
+    }
+
+    // no import and load process taken, this asset is ready to be used
+    if (!importNeeded && !loadNeeded)
+    {
+        return asset;
+    }
+
+    std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
+
+    if (assetData)
+    {
+        // this needs to be done after importing becuase if not we don't have internal game object's name to
+        // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+        // happen before reference resolve so that it has the correct UUID
+        assetData->SetAsset(std::move(newAsset));
+    }
+    // a new asset needs to be recored/imported in assetDatabase
+    else
+    {
+        std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+        ad->SaveToDisk(projectRoot);
+        assets.Add(std::move(ad));
+    }
+
+    // newly imported or loaded, resolve references
+    Serializer* serializer;
+    SerializeReferenceResolveMap* localResolveMap;
+    loader->GetReferenceResolveData(serializer, localResolveMap);
 
     // this asset is going to be loaded from disk, start the profiler
     // SCOPED_PROFILER(path.string());
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
 
-    if (importer != nullptr)
+    if (serializer && localResolveMap)
     {
-        Asset* asset = newAsset.get();
+        const auto& managedObjectCounters = serializer->GetManagedObjects();
+        this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
 
-        if (importer->ImportNeeded())
-            importer->Import();
-
-        importer->Load(assetMeta);
-
-        Serializer* serializer;
-        SerializeReferenceResolveMap* resolveMap;
-        importer->GetReferenceResolveData(&serializer, &resolveMap);
-        if (serializer && resolveMap)
-        {
-            const auto& managedObjectCounters = ser.GetManagedObjects();
-            this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
-
-            ResolveSerializerReference(ser, resolveMap);
-        }
-
-        // see if there is any reference need to be resolved to this object
-        auto iter = referenceResolveMap.find(asset->GetUUID());
-        if (iter != referenceResolveMap.end())
-        {
-            for (auto& resolve : iter->second)
-            {
-                resolve.target = asset;
-                if (resolve.callback)
-                {
-                    resolve.callback(asset);
-                }
-            }
-            referenceResolveMap.erase(iter);
-        }
-
-        asset->OnLoadingFinished();
-        return asset;
+        ResolveSerializerReference(*serializer, *localResolveMap);
     }
+
+    // see if there is any reference need to be resolved to this object
+    auto iter = referenceResolveMap.find(asset->GetUUID());
+    if (iter != referenceResolveMap.end())
+    {
+        for (auto& resolve : iter->second)
+        {
+            resolve.target = asset;
+            if (resolve.callback)
+            {
+                resolve.callback(asset);
+            }
+        }
+        referenceResolveMap.erase(iter);
+    }
+
+    asset->OnLoadingFinished();
+    return asset;
 
     return nullptr;
 }
