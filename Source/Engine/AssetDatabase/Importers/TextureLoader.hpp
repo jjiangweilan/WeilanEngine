@@ -4,6 +4,8 @@
 // converting image files to ktx file
 class TextureLoader : public AssetLoader
 {
+    DECLARE_ASSET_LOADER()
+
 public:
     bool ImportNeeded() override;
     void Import() override;

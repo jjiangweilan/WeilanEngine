@@ -45,12 +45,6 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
     }
 
     LoadEngineInternal();
-
-    TextureLoader tloader;
-    nlohmann::json m = nlohmann::json::object_t{};
-    tloader.Setup("C:/Users/weilan/Desktop/WeilanGame/Assets/ouchy_pier_2k.hdr", m);
-    tloader.Import();
-    spdlog::info(tloader.GetMeta().dump(1));
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -687,7 +681,7 @@ Asset* AssetDatabase::LoadAsset2(std::filesystem::path path)
     auto assetData = assets.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;
 
-    nlohmann::json assetMeta = nlohmann::json::object_t{};
+    nlohmann::json assetMeta = nlohmann::json::object();
     // this asset is already imported once, we can read its meta
     if (assetData)
     {
@@ -723,7 +717,7 @@ Asset* AssetDatabase::LoadAsset2(std::filesystem::path path)
     }
 
     std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
-
+    asset = newAsset.get();
     if (assetData)
     {
         // this needs to be done after importing becuase if not we don't have internal game object's name to
@@ -735,9 +729,11 @@ Asset* AssetDatabase::LoadAsset2(std::filesystem::path path)
     else
     {
         std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+        assetData = ad.get();
         ad->SaveToDisk(projectRoot);
         assets.Add(std::move(ad));
     }
+    assetData->SetMeta(loader->GetMeta());
 
     // newly imported or loaded, resolve references
     Serializer* serializer;

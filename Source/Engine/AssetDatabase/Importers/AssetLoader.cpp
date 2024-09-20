@@ -23,3 +23,30 @@ std::vector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
     }
     return {};
 }
+
+std::unique_ptr<AssetLoader> AssetLoaderRegistry::CreateAssetLoaderByExtension(const Extension& id)
+{
+    auto iter = GetAssetLoaderExtensionRegistry()->find(id);
+    if (iter != GetAssetLoaderExtensionRegistry()->end())
+    {
+        return iter->second();
+    }
+
+    return nullptr;
+}
+char AssetLoaderRegistry::RegisterAssetLoader(const std::vector<std::string>& exts, const Creator& creator)
+{
+    for (auto& e : exts)
+    {
+        GetAssetLoaderExtensionRegistry()->emplace(e, creator);
+    }
+    return '0';
+}
+
+std::unordered_map<AssetLoaderRegistry::Extension, std::function<std::unique_ptr<AssetLoader>()>>* AssetLoaderRegistry::
+    GetAssetLoaderExtensionRegistry()
+{
+    static std::unordered_map<Extension, AssetLoaderRegistry::Creator> registeredAssetLoader =
+        std::unordered_map<Extension, AssetLoaderRegistry::Creator>();
+    return &registeredAssetLoader;
+}

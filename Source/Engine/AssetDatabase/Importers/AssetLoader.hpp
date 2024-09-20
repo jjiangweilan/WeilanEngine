@@ -46,6 +46,16 @@ protected:
     std::filesystem::path absoluteAssetPath{};
     nlohmann::json meta;
 
+    static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
+    {
+        auto tokens = Utils::SplitString(exts, ',');
+        for (auto& t : tokens)
+        {
+            t = "." + t;
+        }
+        return tokens;
+    }
+
 private:
 };
 
@@ -54,20 +64,28 @@ struct AssetLoaderRegistry
 public:
     using Extension = std::string;
     using Creator = std::function<std::unique_ptr<AssetLoader>()>;
-    static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id)
-    {
-        return nullptr;
-    }
+    static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id);
     static char RegisterAssetLoader(const std::vector<std::string>& exts, const Creator& creator);
 
 private:
     static std::unordered_map<Extension, std::function<std::unique_ptr<AssetLoader>()>>*
-    GetAssetImporterExtensionRegistry();
+    GetAssetLoaderExtensionRegistry();
 };
 
-#define DECLARE_ASSET_IMPORTER()                                                                                       \
+#define DECLARE_ASSET_LOADER()                                                                                         \
 public:                                                                                                                \
-    static const std::vector<std::string>& GetExtensions();                                                            \
+    static const std::vector<std::string>& StaticGetExtensions();                                                      \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
+
+#define DEFINE_ASSET_LOADER(Type, Extension)                                                                           \
+    char Type::_register = AssetLoaderRegistry::RegisterAssetLoader(                                                   \
+        StaticGetExtensions(),                                                                                         \
+        []() { return std::unique_ptr<AssetLoader>(new Type()); }                                                      \
+    );                                                                                                                 \
+    const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
+    {                                                                                                                  \
+        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                               \
+        return extensions;                                                                                             \
+    }

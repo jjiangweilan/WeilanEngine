@@ -10,15 +10,18 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
+DEFINE_ASSET_LOADER(TextureLoader, "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
+
 bool TextureLoader::ImportNeeded()
 {
-    size_t oldLastWriteTime = meta["lastImportedWriteTime"];
+    size_t oldLastWriteTime = meta.value("lastImportedWriteTime", 0ll);
     size_t lastWriteTime = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
     return lastWriteTime > oldLastWriteTime;
 }
 
 void TextureLoader::Import()
 {
+    std::string uuid = meta.value("uuid", UUID().ToString());
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
     bool generateMipmap = option.value("generateMipmap", false);
 
@@ -113,13 +116,13 @@ void TextureLoader::Import()
                 format = Gfx::ImageFormat::R8_SRGB;
         }
 
-        UUID importUUID;
-        auto importedAssetPath = ImportDatabase::Singleton().GetImportAssetPath(importUUID.ToString());
+        auto importedAssetPath = ImportDatabase::Singleton().GetImportAssetPath(uuid);
         Exporters::KtxExporter::
             Export(importedAssetPath.string().c_str(), loaded, width, height, 1, 2, 1, mipLevels, false, false, format);
 
         meta["lastImportedWriteTime"] = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
         meta["improtedKtxFile"] = importedAssetPath.string();
+        meta["uuid"] = uuid;
     }
 }
 
@@ -145,76 +148,5 @@ void TextureLoader::Load()
     uint8_t* sourceBinary = sourceBinaryVec.data();
     size_t binarySize = sourceBinaryVec.size();
 
-    if (IsKTX2File(sourceBinary))
-    {
-        ktxTexture2* texture;
-        KTX_error_code e =
-            ktxTexture2_CreateFromMemory(sourceBinary, binarySize, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture);
-        if (e != KTX_SUCCESS)
-        {
-            throw std::runtime_error("Texture-Failed to create texture from memory");
-        }
-
-        if (ktxTexture2_NeedsTranscoding(texture))
-        {
-            enum class CompressionMode
-            {
-                UASTC,
-                ETC1S
-            } compressionMode;
-            if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_ETC1S)
-                compressionMode = CompressionMode::ETC1S;
-            else if (KHR_DFDVAL(texture->pDfd + 1, MODEL) == KHR_DF_MODEL_UASTC)
-                compressionMode = CompressionMode::UASTC;
-            else
-            {
-                throw std::runtime_error("Texture-failed to create ktx texture");
-            }
-
-            ktx_texture_transcode_fmt_e tf;
-            auto& gpuFeatures = GetGfxDriver()->GetGPUFeatures();
-            switch (compressionMode)
-            {
-                case CompressionMode::ETC1S:
-                    {
-                        if (gpuFeatures.textureCompressionETC2)
-                            tf = KTX_TTF_ETC2_RGBA;
-                        else if (gpuFeatures.textureCompressionBC)
-                            tf = KTX_TTF_BC3_RGBA;
-                        else
-                        {
-                            std::string message =
-                                "Vulkan implementation does not support any available transcode target.";
-                            throw std::runtime_error(message);
-                        }
-                        break;
-                    }
-                case CompressionMode::UASTC:
-                    {
-                        if (gpuFeatures.textureCompressionASTC4x4)
-                            tf = KTX_TTF_ASTC_4x4_RGBA;
-                        else if (gpuFeatures.textureCompressionBC)
-                            tf = KTX_TTF_BC7_RGBA;
-                        else
-                        {
-                            std::string message =
-                                "Vulkan implementation does not support any available transcode target.";
-                            throw std::runtime_error(message);
-                        }
-                        break;
-                    }
-            }
-
-            if (ktxTexture2_TranscodeBasis((ktxTexture2*)texture, tf, 0) != 0)
-            {
-                throw std::runtime_error("failed to transcode ktx texture");
-            }
-        }
-
-        ktx_uint8_t* data = ktxTexture_GetData(ktxTexture(texture));
-        size_t byteSize = ktxTexture_GetDataSize(ktxTexture(texture));
-        this->texture = std::make_unique<Texture>(KtxTexture{data, byteSize});
-
-        ktxTexture_Destroy(ktxTexture(texture)); // https://github.khronos.org/KTX-Software/libktx/index.html#readktx
-    }
+    this->texture = std::make_unique<Texture>(KtxTexture{sourceBinary, binarySize});
 }

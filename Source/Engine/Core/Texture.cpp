@@ -193,7 +193,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
 
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
 {
-    if (IsKTX1File(imageData) || IsKTX2File(imageData))
+    if (IsKTX2File(imageData))
     {
         ktxTexture2* texture;
         KTX_error_code e = ktxTexture2_CreateFromMemory(

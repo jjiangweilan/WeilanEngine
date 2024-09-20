@@ -23,7 +23,7 @@ public:
     Asset() = default;
     Asset(const Asset& other) = default;
     Asset(Asset&& other) = default;
-    virtual ~Asset(){};
+    virtual ~Asset() {};
 
     virtual void Reload(Asset&& asset)
     {
@@ -120,7 +120,9 @@ public:
     static std::unique_ptr<Asset> CreateAssetByExtension(const Extension& id);
     template <class T>
     static std::unique_ptr<T> CreateAsset(const ObjectTypeID& id);
-    static char RegisterAsset(const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator);
+    static char RegisterAsset(
+        const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
+    );
     static char RegisterExternalAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
     static bool IsExtensionAnAsset(const std::string& ext);
 

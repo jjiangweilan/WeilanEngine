@@ -75,6 +75,11 @@ public:
         return false;
     }
 
+    void SetMeta(const nlohmann::json& meta)
+    {
+        this->meta = meta;
+    }
+
     nlohmann::json GetMeta()
     {
         return meta;
@@ -101,7 +106,7 @@ private:
     std::filesystem::path assetPath;
     std::filesystem::path absolutePath;
 
-    nlohmann::json meta;
+    nlohmann::json meta = nlohmann::json::object();
 
     bool isValid = false;
 
