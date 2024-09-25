@@ -2,6 +2,7 @@
 #include "../Inspector.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "EditorGUI/ObjectField.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 
 namespace Editor
@@ -13,6 +14,17 @@ public:
     {
         Inspector<Camera>::DrawInspector(editor);
 
+        ImGui::NewLine();
+        ImGui::Text("Environment");
+        ImGui::Separator();
+        Texture* skybox = target->GetSkybox().Get();
+        if (GUI::ObjectField("Diffuse Environment Map", skybox))
+        {
+            if (skybox)
+                target->SetSkybox(skybox);
+        }
+
+        ImGui::NewLine();
         if (ImGui::Button("Set as main camera"))
         {
             if (EditorState::activeScene)
@@ -39,7 +51,8 @@ public:
             auto payload = ImGui::AcceptDragDropPayload("object");
             if (payload && payload->IsDelivery())
             {
-                if (Rendering::FrameGraph::Graph* fg = dynamic_cast<Rendering::FrameGraph::Graph*>(*(Object**)payload->Data))
+                if (Rendering::FrameGraph::Graph* fg =
+                        dynamic_cast<Rendering::FrameGraph::Graph*>(*(Object**)payload->Data))
                 {
                     target->SetFrameGraph(fg);
                 }

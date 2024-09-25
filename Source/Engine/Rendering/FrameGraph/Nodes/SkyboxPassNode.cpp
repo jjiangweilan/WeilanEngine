@@ -72,6 +72,16 @@ class SkyboxPassNode : public Node
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
             cmd.BindVertexBuffer(vertexBufferBinding, 0);
             auto shader = skyboxMat->GetShaderProgram();
+            Texture* skybox = renderingData.mainCamera->GetSkybox().Get();
+            if (skybox)
+            {
+                skyboxMat->SetTexture("skybox", skybox);
+                skyboxMat->SetFloat("Params", "useCubemap", 1.0);
+            }
+            else
+            {
+                skyboxMat->SetFloat("params", "useCubemap", 0.0f);
+            }
             cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
             if (skyboxMat)
             {

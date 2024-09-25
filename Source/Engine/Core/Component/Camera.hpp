@@ -15,7 +15,7 @@ class Camera : public Component
 public:
     Camera();
     Camera(GameObject* gameObject);
-    ~Camera() override{};
+    ~Camera() override {};
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     glm::mat4 GetViewMatrix() const;
     const glm::mat4& GetProjectionMatrix() const;
@@ -25,6 +25,12 @@ public:
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
     void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
     void SetProjectionMatrix(const glm::mat4& proj);
+
+    void SetSkybox(Texture* cubemap);
+    const SRef<Texture>& GetSkybox()
+    {
+        return skybox;
+    }
 
     void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
     Rendering::FrameGraph::Graph* GetFrameGraph() const
@@ -47,6 +53,7 @@ public:
     void OnDrawGizmos() override;
 
 private:
+    SRef<Texture> skybox = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     Rendering::FrameGraph::Graph* frameGraph = nullptr;

@@ -455,6 +455,12 @@ bool GameView::Tick()
     if (ImGui::IsKeyReleased(ImGuiKey_LeftAlt))
         isAltDown = false;
 
+    // sync camera settigns
+    if (gameCamera && editorCamera)
+    {
+        editorCamera->SetSkybox(gameCamera->GetSkybox().Get());
+    }
+
     const char* menuSelected = "";
     Scene* scene = EditorState::activeScene;
     if (ImGui::BeginMenuBar())

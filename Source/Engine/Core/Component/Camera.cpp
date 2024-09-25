@@ -50,6 +50,14 @@ glm::mat4 Camera::GetViewMatrix() const
     return view;
 }
 
+void Camera::SetSkybox(Texture* cubemap)
+{
+    if (cubemap)
+        skybox = cubemap->GetSRef<Texture>();
+    else
+        skybox = nullptr;
+}
+
 void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
 {
     // float tangent = glm::tan(fovy / 2);
