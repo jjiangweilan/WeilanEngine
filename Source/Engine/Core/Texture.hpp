@@ -31,7 +31,7 @@ class Texture : public Asset
     DECLARE_ASSET();
 
 public:
-    Texture(){};
+    Texture() {};
     // load a texture from file
     Texture(const char* path, const UUID& uuid = UUID{});
     Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, const UUID& uuid = UUID{});
@@ -55,6 +55,8 @@ public:
 
     // return false if loading failed
     bool LoadFromFile(const char* path) override;
+
+    void SaveAsCubemap(const char* filename);
 
 private:
     TextureDescription desc;

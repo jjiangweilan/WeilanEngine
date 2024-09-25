@@ -39,11 +39,11 @@ void main()
 
 #if FRAG
 layout(location = 0) out vec4 fColor;
-layout(set=0, binding=0) uniform sampler2D sTexture;
+layout(set=0, binding=0) uniform sampler2D sTexture_clamp_point;
 layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 void main()
 {
-    fColor = In.Color * texture(sTexture, In.UV.st);
+    fColor = In.Color * texture(sTexture_clamp_point, In.UV.st);
 }
 #endif
 )";
@@ -63,7 +63,7 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
     compiler.Compile("", imguiShader);
 
     auto config = compiler.GetConfig();
-    
+
     shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, compiler.GetCompiledSpvs().at(0));
 
     this->fontImage = fontImage;

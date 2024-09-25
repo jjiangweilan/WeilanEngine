@@ -1,7 +1,7 @@
 #include "Texture.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
-#include "Libs/Image/MipmapGenerator.hpp"
+#include "Libs/Image/ImageProcessing.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -91,6 +91,7 @@ Texture::Texture(KtxTexture texDesc, const UUID& uuid)
 void Texture::Reload(Asset&& loaded)
 {
     Texture* newTex = static_cast<Texture*>(&loaded);
+    desc = newTex->desc;
     image = std::move(newTex->image);
     Asset::Reload(std::move(loaded));
 }
@@ -193,7 +194,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
 
 void Texture::LoadKtxTexture(uint8_t* imageData, size_t imageByteSize)
 {
-    if (IsKTX1File(imageData) || IsKTX2File(imageData))
+    if (IsKTX2File(imageData))
     {
         ktxTexture2* texture;
         KTX_error_code e = ktxTexture2_CreateFromMemory(
@@ -221,8 +222,6 @@ void Texture::ConvertRawImageToKtx(TextureDescription& desc)
     ktx_uint32_t level, layer, faceSlice;
     uint8_t* src;
     ktx_size_t srcSize;
-    ktxBasisParams params = {0};
-    params.structSize = sizeof(params);
 
     createInfo.glInternalformat = 0; // Ignored as we'll create a KTX2 texture.
     createInfo.vkFormat = Gfx::MapFormat(desc.img.format);
@@ -258,6 +257,8 @@ void Texture::ConvertRawImageToKtx(TextureDescription& desc)
     // Repeat for the other 15 slices of the base level and all other levels
     // up to createInfo.numLevels.
 
+    ktxBasisParams params = {0};
+    params.structSize = sizeof(params);
     // For BasisLZ/ETC1S
     params.compressionLevel = KTX_ETC1S_DEFAULT_COMPRESSION_LEVEL;
     // For UASTC
@@ -311,18 +312,11 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     size_t elementSize = 0;
     if (isHDR)
     {
-        float* data;
+        uint8_t* data;
         elementSize = sizeof(float);
-        Libs::Image::GenerateBoxFilteredMipmap<float>(
-            (float*)loaded,
-            width,
-            height,
-            (int)texDesc.img.mipLevels,
-            desiredChannels,
-            data,
-            mippedDataByteSize
-        );
-        texDesc.data = (uint8_t*)data;
+        Libs::Image::GenerateBoxFilteredMipmap<
+            float>(loaded, width, height, 1, (int)texDesc.img.mipLevels, desiredChannels, data, mippedDataByteSize);
+        texDesc.data = data;
         stbi_image_free(loaded);
     }
     else if (is16Bit)
@@ -333,12 +327,13 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     {
         uint8_t* data;
         size_t s = texDesc.img.GetByteSize();
-        
+
         elementSize = sizeof(uint8_t);
         Libs::Image::GenerateBoxFilteredMipmap<uint8_t>(
             (uint8_t*)loaded,
             width,
             height,
+            1,
             (int)texDesc.img.mipLevels,
             desiredChannels,
             data,
@@ -413,6 +408,66 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize)
     GetGfxDriver()->GenerateMipmaps(*image);
 
     // ConvertRawImageToKtx(desc);
+}
+
+void Texture::SaveAsCubemap(const char* filename)
+{
+    auto fpath = sourceAssetFile;
+
+    if (fpath.has_extension())
+    {
+        std::fstream f;
+        f.open(fpath, std::ios::binary | std::ios_base::in);
+        if (f.good() && f.is_open())
+        {
+            std::stringstream ss;
+            ss << f.rdbuf();
+            std::string s = ss.str();
+
+            auto ext = fpath.extension();
+            if (ext == ".ktx")
+            {
+                spdlog::error("not implemented");
+                return;
+            }
+            else
+            {
+                auto& exts = Texture::StaticGetExtensions();
+                for (auto& e : exts)
+                {
+                    if (e != ".ktx" && e == ext)
+                    {
+                        uint8_t* data = (uint8_t*)s.data();
+                        size_t byteSize = s.size();
+
+                        int width, height, channels, desiredChannels;
+                        stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
+                        if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
+                            desiredChannels = 4;
+
+                        bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+
+                        stbi_uc* loaded = nullptr;
+                        if (isHDR)
+                        {
+                            loaded = (stbi_uc*)stbi_loadf_from_memory(
+                                data,
+                                (int)byteSize,
+                                &width,
+                                &height,
+                                &channels,
+                                desiredChannels
+                            );
+
+                            uint8_t* d;
+                            Libs::Image::GenerateIrradianceCubemap((float*)loaded, width, height, 1024, d);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool Texture::LoadFromFile(const char* path)

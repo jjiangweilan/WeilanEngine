@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
 #include "Inspector.hpp"
 namespace Editor
@@ -11,6 +12,7 @@ public:
         Inspector<Texture>::OnEnable(obj);
 
         layer = 0;
+        mip = 0;
         if (!target->GetDescription().img.isCubemap)
         {
             imageViewInUse = &target->GetGfxImage()->GetDefaultImageView();
@@ -44,26 +46,49 @@ public:
         auto contentHeight = contentMax.y - contentMin.y;
         auto size = ResizeKeepRatio(width, height, contentWidth, contentHeight);
 
-        int layer_i = layer;
-        if (ImGui::InputInt("layer", &layer_i))
+        if (reimport)
         {
-            if (layer_i >= 0 && layer_i != layer && layer_i < target->GetDescription().img.GetLayer())
-            {
-                layer = layer_i;
-                imageView = GetGfxDriver()->CreateImageView(
-                    {.image = *target->GetGfxImage(),
-                     .imageViewType = Gfx::ImageViewType::Image_2D,
-                     .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, layer, 1}}
-                );
-                imageViewInUse = imageView.get();
-            }
+            AssetDatabase::Singleton()->LoadAssetByID(target->GetUUID(), true);
         }
 
-        ImGui::Image(imageViewInUse, {size.x, size.y});
+        ImGui::NewLine();
+        ImGui::Text("Preview");
         ImGui::Separator();
-        float mb =target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
+        UpdateImageView();
+        glm::vec2 displaySize = size;
+        displaySize.x = glm::min(ImGui::GetContentRegionMax().x, displaySize.x);
+        ImGui::Image(imageViewInUse, {displaySize.x, displaySize.y * width / height});
+        ImGui::Separator();
+        float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
         ImGui::Text("size: %d x %d", width, height);
-        ImGui::Text("disk size: %f Mb", mb);
+        ImGui::Text("memory size (without mip): %f Mb", mb);
+        ImGui::Text("format %s", Gfx::MapImageFormatToString(target->GetDescription().img.format));
+
+        // show and update meta
+        ImGui::NewLine();
+        auto meta = AssetDatabase::Singleton()->GetAssetMeta(*target);
+        auto options = meta.value("importOption", nlohmann::json::object());
+        bool generateMipmap = options.value("generateMipmap", false);
+        bool converToCubemap = options.value("converToCubemap", false);
+
+        ImGui::Text("Import Options");
+        ImGui::Separator();
+        bool metaChanged = false;
+        metaChanged |= ImGui::Checkbox("generateMipmap", &generateMipmap);
+        metaChanged |= ImGui::Checkbox("converToCubemap", &converToCubemap);
+        if (metaChanged)
+        {
+            meta["importOption"]["generateMipmap"] = generateMipmap;
+            meta["importOption"]["converToCubemap"] = converToCubemap;
+        }
+        if (metaChanged)
+            AssetDatabase::Singleton()->SetAssetMeta(*target, meta);
+
+        // import button
+        if (ImGui::Button("Reimport"))
+        {
+            reimport = true;
+        }
     }
 
 private:
@@ -71,6 +96,8 @@ private:
     Gfx::ImageView* imageViewInUse;
     std::unique_ptr<Gfx::ImageView> imageView;
     uint32_t layer = 0;
+    uint32_t mip = 0;
+    bool reimport = false;
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {
@@ -93,6 +120,30 @@ private:
         }
 
         return {imageWidth, imageHeight};
+    }
+
+    void UpdateImageView()
+    {
+        int layer_i = layer;
+        int mip_i = mip;
+        bool changeImageView = ImGui::InputInt("mip", &mip_i);
+        changeImageView = ImGui::InputInt("layer", &layer_i) || changeImageView;
+        if (reimport || changeImageView)
+        {
+            if (reimport || ((layer_i >= 0 && layer_i != layer && layer_i < target->GetDescription().img.GetLayer()) ||
+                             (mip_i >= 0 && mip_i != mip && mip_i < target->GetDescription().img.mipLevels)))
+            {
+                reimport = false;
+                layer = layer_i;
+                mip = mip_i;
+                imageView = GetGfxDriver()->CreateImageView(
+                    {.image = *target->GetGfxImage(),
+                     .imageViewType = Gfx::ImageViewType::Image_2D,
+                     .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, layer, 1}}
+                );
+                imageViewInUse = imageView.get();
+            }
+        }
     }
 };
 

@@ -86,6 +86,7 @@ public:
     ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
+    void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) override;
 
     void ClearResources() override;
 

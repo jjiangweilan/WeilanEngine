@@ -1,4 +1,5 @@
 #pragma once
+#include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Asset.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
@@ -10,8 +11,11 @@ public:
     void SaveDirtyAssets();
 
     // path: relative path as projectRoot/Assets/{path}
-    Asset* LoadAsset(std::filesystem::path path);
-    Asset* LoadAssetByID(const UUID& uuid);
+    //Asset* LoadAsset(std::filesystem::path path);
+    //Asset* LoadAssetByID(const UUID& uuid);
+
+    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
+    Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
 
     std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
 
@@ -59,11 +63,38 @@ public:
         copy.OnLoadingFinished();
     }
 
+    const std::filesystem::path& GetProjectRoot() const
+    {
+        return projectRoot;
+    }
+
+    nlohmann::json GetAssetMeta(Asset& asset)
+    {
+        AssetData* data = assets.GetAssetData(asset.GetUUID());
+        if (data)
+        {
+            return data->GetMeta();
+        }
+
+        return nlohmann::json::object();
+    }
+
+    void SetAssetMeta(Asset& asset, const nlohmann::json& meta)
+    {
+        AssetData* data = assets.GetAssetData((asset.GetUUID()));
+
+        if (data)
+        {
+            data->SetMeta(meta);
+        }
+    }
+
 private:
     static AssetDatabase*& SingletonReference();
     const std::filesystem::path projectRoot;
     const std::filesystem::path assetDirectory;
     const std::filesystem::path assetDatabaseDirectory;
+    ImportDatabase importDatabase;
 
     class Assets
     {

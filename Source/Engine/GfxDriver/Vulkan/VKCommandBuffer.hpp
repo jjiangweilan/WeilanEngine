@@ -126,6 +126,7 @@ struct VKCopyImageToBufferCmd
     VKImage* src;
     VKBuffer* dst;
     BufferImageCopyRegion regions[8];
+    int regionsCount;
 
     // used in VKRenderGraph
     int barrierOffset;

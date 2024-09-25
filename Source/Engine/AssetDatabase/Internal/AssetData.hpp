@@ -70,6 +70,22 @@ public:
 
     void SaveToDisk(const std::filesystem::path& projectRoot);
 
+    bool ReimportNeeded()
+    {
+        return false;
+    }
+
+    void SetMeta(const nlohmann::json& meta)
+    {
+        dirty = true;
+        this->meta = meta;
+    }
+
+    nlohmann::json GetMeta()
+    {
+        return meta;
+    }
+
 private:
     // scaii code stands for Wei Lan Engine AssetFile
     static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;
@@ -90,6 +106,8 @@ private:
     // if it's an engine internal file it be _engine_internal/xxx
     std::filesystem::path assetPath;
     std::filesystem::path absolutePath;
+
+    nlohmann::json meta = nlohmann::json::object();
 
     bool isValid = false;
 

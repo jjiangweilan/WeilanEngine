@@ -9,10 +9,10 @@ namespace Exporters
 class KtxExporter : Exporter
 {
 public:
+    // [layer [face [mip]]]
     static void Export(
         const char* path,
         uint8_t* src,
-        size_t srcSize,
         uint32_t width,
         uint32_t height,
         uint32_t depth,
@@ -21,7 +21,8 @@ public:
         uint32_t mipLevel,
         bool isArray,
         bool isCubemap,
-        Gfx::ImageFormat format
+        Gfx::ImageFormat format,
+        bool enableCompression = false
     );
 };
 } // namespace Exporters
