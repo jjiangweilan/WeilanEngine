@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Asset.hpp"
 #include "Core/Object.hpp"
 #include "EditorState.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -13,7 +14,20 @@ public:
     template <std::derived_from<Object> T>
     static bool ObjectField(std::string_view name, T*& curr)
     {
-        if (ImGui::Button(name.data()))
+        ImGui::PushID(0);
+        ImGui::Text("%s: ", name.data());
+        ImGui::SameLine();
+        std::string buttonName = "null";
+        Asset* asset = dynamic_cast<Asset*>(curr);
+        if (asset)
+        {
+            buttonName = asset->GetName();
+        }
+        else if (curr != nullptr)
+        {
+            buttonName = curr->GetUUID().ToString().c_str();
+        }
+        if (ImGui::Button(curr == nullptr ? "null" : buttonName.c_str()))
         {
             EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }
@@ -31,6 +45,8 @@ public:
             }
             ImGui::EndDragDropTarget();
         }
+
+        ImGui::PopID();
 
         return false;
     }

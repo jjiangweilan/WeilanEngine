@@ -39,7 +39,7 @@ Material::Material(ShaderBase* shader) : Material()
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-Material::~Material(){};
+Material::~Material() {};
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
@@ -76,10 +76,14 @@ void Material::SetMatrix(const std::string& param, const std::string& member, co
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
 {
     auto& u = ubos[param];
-    u.floats[member] = value;
-    u.dirty = true;
-    uploadNeeded = true;
-    SetDirty();
+    auto iter = u.floats.find(param);
+    if (iter == u.floats.end() || iter->second != value)
+    {
+        u.floats[member] = value;
+        u.dirty = true;
+        uploadNeeded = true;
+        SetDirty();
+    }
 }
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)

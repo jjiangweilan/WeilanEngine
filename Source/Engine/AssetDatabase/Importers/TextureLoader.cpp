@@ -216,4 +216,5 @@ void TextureLoader::Load()
     size_t binarySize = sourceBinaryVec.size();
 
     this->texture = std::make_unique<Texture>(KtxTexture{sourceBinary, binarySize});
+    this->texture->SetName(absoluteAssetPath.filename().string());
 }

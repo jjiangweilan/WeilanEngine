@@ -5,6 +5,7 @@
 #include "EditorState.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
+#include "Platform/FileExplore.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
@@ -650,6 +651,19 @@ void GameEditor::MainMenuBar()
         if (ImGui::MenuItem("Surfel GI Baker"))
             surfelGIBaker = !surfelGIBaker;
 
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Project"))
+    {
+        if (ImGui::MenuItem("Open Project Folder"))
+        {
+            Platform::FileExplore::OpenFolder(AssetDatabase::Singleton()->GetProjectRoot());
+        }
+        if (ImGui::MenuItem("Open Engine Root Path"))
+        {
+            Platform::FileExplore::OpenFolder(".");
+        }
         ImGui::EndMenu();
     }
 
