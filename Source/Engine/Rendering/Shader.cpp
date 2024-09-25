@@ -166,7 +166,7 @@ bool Shader::LoadFromFile(const char* path)
     if (name.empty())
     {
         std::filesystem::path apath(path);
-        this->name = apath.string();
+        this->name = apath.filename().string();
     }
     ShaderCompiler compiler;
     std::fstream f(path);

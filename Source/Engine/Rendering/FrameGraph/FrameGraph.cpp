@@ -3,9 +3,9 @@
 #include "Core/GameObject.hpp"
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
+#include "GfxDriver/Image.hpp"
 #include "Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
-#include "GfxDriver/Image.hpp"
 #include <stack>
 
 #include "Profiler/Profiler.hpp"
@@ -212,7 +212,6 @@ void Graph::ProcessLights(Scene& gameScene, Light*& mainLight)
         sceneInfo.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
         sceneInfo.lights[i].intensity = lights[i]->GetIntensity();
         auto model = lights[i]->GetGameObject()->GetWorldMatrix();
-        glm::vec4 position{};
         switch (lights[i]->GetLightType())
         {
             case LightType::Directional:
@@ -311,9 +310,9 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
 
     auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
 
-    auto diffuseCube = sceneEnvironment ? sceneEnvironment->GetDiffuseCube() : nullptr;
     auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
     cmd.SetBuffer("SceneInfo", *sceneInfoBuffer);
+    auto diffuseCube = camera.GetSkybox();
     if (diffuseCube)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)

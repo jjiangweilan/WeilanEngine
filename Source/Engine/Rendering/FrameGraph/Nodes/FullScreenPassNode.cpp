@@ -21,6 +21,7 @@ public:
     {
         shader = GetConfigurableVal<Shader*>("shader");
         passResource = GetGfxDriver()->CreateShaderResource();
+        SetCustomName(shader->GetName().c_str());
 
         ClearConfigs();
         AddConfig<ConfigurableType::ObjectPtr>("shader", shader);
