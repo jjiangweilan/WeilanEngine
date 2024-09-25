@@ -18,11 +18,7 @@ const float edgesWeights[edgeIteration] = {1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 4.
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 oColor;
 
-layout(set = 1, binding = 0) uniform sampler2D source;
-layout(set = 1, binding = 1) uniform FXAA
-{
-    float val;
-} fxaa;
+layout(set = 0, binding = 0) uniform sampler2D source;
 
 float FxaaLuma(vec4 rgb) 
 {

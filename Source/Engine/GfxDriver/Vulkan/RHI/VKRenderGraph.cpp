@@ -456,7 +456,7 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
+                cmd.setTexture.image != nullptr ? cmd.setTexture.image->GetSRef() : nullptr
             };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
