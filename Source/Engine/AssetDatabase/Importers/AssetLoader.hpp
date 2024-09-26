@@ -7,7 +7,10 @@
 class ImportDatabase
 {
 public:
-    ImportDatabase(const std::filesystem::path& importDatabaseRoot) : importDatabaseRoot(importDatabaseRoot) {}
+    void Init(const std::filesystem::path& importDatabaseRoot)
+    {
+        this->importDatabaseRoot = importDatabaseRoot;
+    }
     std::vector<uint8_t> ReadFile(const std::string& filename);
 
     std::filesystem::path GetImportAssetPath(const std::string& filename);
