@@ -53,8 +53,9 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     InitJoltPhysics();
-    assetDatabase = std::make_unique<AssetDatabase>(projectPath);
+    assetDatabase = std::make_unique<AssetDatabase>();
     AssetDatabase::SingletonReference() = assetDatabase.get();
+    assetDatabase->Init(projectPath);
     // physics = std::make_unique<Physics>();
     // physics->Init();
     event = std::make_unique<Event>();

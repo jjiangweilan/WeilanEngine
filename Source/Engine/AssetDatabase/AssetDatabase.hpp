@@ -6,8 +6,9 @@
 class AssetDatabase
 {
 public:
-    AssetDatabase(const std::filesystem::path& projectRoot);
+    AssetDatabase() {};
 
+    void Init(const std::filesystem::path& projectRoot);
     void SaveDirtyAssets();
 
     // path: relative path as projectRoot/Assets/{path}
@@ -91,9 +92,9 @@ public:
 
 private:
     static AssetDatabase*& SingletonReference();
-    const std::filesystem::path projectRoot;
-    const std::filesystem::path assetDirectory;
-    const std::filesystem::path assetDatabaseDirectory;
+    std::filesystem::path projectRoot;
+    std::filesystem::path assetDirectory;
+    std::filesystem::path assetDatabaseDirectory;
     ImportDatabase importDatabase;
 
     class Assets

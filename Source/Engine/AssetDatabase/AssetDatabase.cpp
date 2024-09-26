@@ -8,10 +8,13 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 
-AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
-    : projectRoot(projectRoot), assetDirectory(projectRoot / "Assets"),
-      assetDatabaseDirectory(projectRoot / "AssetDatabase"), importDatabase(projectRoot / "ImportDatabase")
+void AssetDatabase::Init(const std::filesystem::path& projectRoot)
 {
+    this->projectRoot = projectRoot;
+    this->assetDirectory = projectRoot / "Assets";
+    this->assetDatabaseDirectory = projectRoot / "AssetDatabase";
+    this->importDatabase.Init(projectRoot / "ImportDatabase");
+
     if (!std::filesystem::exists(assetDirectory))
     {
         std::filesystem::create_directory(assetDirectory);
@@ -53,6 +56,8 @@ AssetDatabase::AssetDatabase(const std::filesystem::path& projectRoot)
 
 void AssetDatabase::SaveAsset(Asset& asset)
 {
+    if (asset.IsExternalAsset())
+        return;
     // this method only saves asset that is already imported
     AssetData* assetData = assets.GetAssetData(asset.GetUUID());
 

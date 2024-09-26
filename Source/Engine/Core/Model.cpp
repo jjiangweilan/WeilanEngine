@@ -19,12 +19,8 @@ static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
-    nlohmann::json& j,
-    int nodeIndex,
-    std::unordered_map<int, Mesh*>& meshes,
-    std::unordered_map<int, Material*>& materials,
-    Material* defaultMaterial
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
+    nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, Material* defaultMaterial
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
@@ -89,9 +85,10 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
         {
             auto& p = primitives[i];
             int matIndex = p.value("material", -1);
-            if (matIndex >= 0 && matIndex < materials.size())
+            auto matIter = toOurMaterials.find(matIndex);
+            if (matIter != toOurMaterials.end())
             {
-                auto mat = materials[matIndex];
+                auto mat = toOurMaterials[matIndex];
                 if (mat->GetShader() == nullptr)
                 {
                     mat->SetShader(Shader::GetDefault());
@@ -100,7 +97,27 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
             }
             else
             {
-                mats.push_back(defaultMaterial);
+                // in case no material is provided in model file
+                auto newMat = std::make_unique<Material>();
+                Material* mat = newMat.get();
+                mat->SetShader(Shader::GetDefault());
+                if (p["attributes"].contains("TANGENT"))
+                {
+                    mat->EnableFeature("_Vertex_Tangent");
+                }
+                if (p["attributes"].contains("TEXCOORD_0"))
+                {
+                    mat->EnableFeature("_Vertex_UV0");
+                }
+                mat->SetVector("PBR", "baseColorFactor", {0.5, 0.5, 0.5, 0.5});
+                mat->SetVector("PBR", "emissive", {0, 0, 0, 0});
+                mat->SetFloat("PBR", "roughness", 0.4);
+                mat->SetFloat("PBR", "metallic", 0.2);
+                mat->SetFloat("PBR", "alphaCutoff", 0.0f);
+
+                toOurMaterials[matIndex] = mat;
+                this->materials.push_back(std::move(newMat));
+                mats.push_back(mat);
             }
         }
         meshRenderer->SetMaterials(mats);
@@ -113,7 +130,7 @@ static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
     {
         for (int i : nodeJson["children"])
         {
-            auto children = CreateGameObjectFromNode(j, i, meshes, materials, defaultMaterial);
+            auto children = CreateGameObjectFromNode(j, i, meshes, defaultMaterial);
             for (auto& c : children)
             {
                 c->SetParent(temp);
@@ -199,7 +216,7 @@ bool Model::LoadFromFile(const char* cpath)
 
     // extract materials
     materials.clear();
-    toOurMaterial.clear();
+    toOurMaterials.clear();
     int materialSize = jsonData["materials"].size();
     nlohmann::json& texJson = jsonData["textures"];
     for (int i = 0; i < materialSize; ++i)
@@ -304,7 +321,7 @@ bool Model::LoadFromFile(const char* cpath)
             mat->EnableFeature("_MetallicRoughnessMap");
         }
 
-        toOurMaterial[i] = mat.get();
+        toOurMaterials[i] = mat.get();
         materials.push_back(std::move(mat));
     }
 
@@ -312,7 +329,7 @@ bool Model::LoadFromFile(const char* cpath)
     {
         for (auto& mesh : jsonData["meshes"])
         {
-            for(auto& primitive : mesh["primitives"])
+            for (auto& primitive : mesh["primitives"])
             {
                 auto& attr = primitive["attributes"];
                 int matIndex = primitive.value("material", -1);
@@ -326,7 +343,6 @@ bool Model::LoadFromFile(const char* cpath)
                         materials[matIndex]->EnableFeature("_Vertex_UV0");
                 }
             }
-
         }
     }
 
@@ -348,8 +364,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 
         for (int nodeIndex : sceneJson["nodes"])
         {
-            auto gameObjectsCreated =
-                CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, toOurMaterial, GetDefaultMaterial());
+            auto gameObjectsCreated = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, GetDefaultMaterial());
             for (auto& go : gameObjectsCreated)
             {
                 go->SetParent(rootGameObject.get());

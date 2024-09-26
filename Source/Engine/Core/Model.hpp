@@ -1,7 +1,7 @@
 #pragma once
-#include "Rendering/Material.hpp"
 #include "Core/GameObject.hpp"
 #include "Graphics/Mesh.hpp"
+#include "Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <span>
 #include <string>
@@ -66,8 +66,12 @@ private:
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;
-    std::unordered_map<int, Material*> toOurMaterial;
+    std::unordered_map<int, Material*> toOurMaterials;
 
     // per model default material
     std::unique_ptr<Material> material = nullptr;
+
+    std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
+        nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, Material* defaultMaterial
+    );
 };
