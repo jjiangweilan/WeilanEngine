@@ -3,7 +3,6 @@ char AssetRegistry::RegisterAsset(
     const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
 )
 {
-    ObjectRegistry::RegisterObject(assetID, creator);
     GetAssetTypeRegistery()->emplace(assetID, creator);
     for (auto& e : exts)
     {

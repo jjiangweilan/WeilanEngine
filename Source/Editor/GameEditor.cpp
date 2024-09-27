@@ -469,6 +469,10 @@ void GameEditor::SceneTree(Scene& scene)
             {
                 AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.glb");
             }
+            else if (ImGui::MenuItem("Sphere"))
+            {
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.glb");
+            }
             else if (ImGui::MenuItem("Plane"))
             {
                 AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.glb");

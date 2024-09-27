@@ -47,7 +47,7 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<PlayerController>();
             if (ImGui::MenuItem("LightFieldProbes"))
                 target->AddComponent<LightFieldProbes>();
-
+            auto c = ObjectRegistry::GetComponentTypeNames();
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();
