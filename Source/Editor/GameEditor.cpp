@@ -751,6 +751,7 @@ void GameEditor::GUIPass()
 
     GameProfiler(Profiler::GetSingleton());
     ConsoleOutputWindow();
+    AssetDatabaseViewer();
 }
 
 void GameEditor::SurfelGIBakerWindow()
@@ -1279,6 +1280,25 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
             activeWindows.push_back(std::move(w));
         }
     }
+}
+
+void GameEditor::AssetDatabaseViewer()
+{
+    ImGui::Begin("AssetDatabase");
+    auto& data = AssetDatabase::Singleton()->GetAssetData();
+
+    for (auto& d : data)
+    {
+        nlohmann::json info = d->DumpInfo();
+        {
+            std::string assetPath = info["assetPath"];
+            if (ImGui::TreeNode(assetPath.c_str()))
+            {
+                ImGui::TreePop();
+            }
+        }
+    }
+    ImGui::End();
 }
 
 GameEditor* GameEditor::instance = nullptr;

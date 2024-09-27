@@ -12,8 +12,8 @@ public:
     void SaveDirtyAssets();
 
     // path: relative path as projectRoot/Assets/{path}
-    //Asset* LoadAsset(std::filesystem::path path);
-    //Asset* LoadAssetByID(const UUID& uuid);
+    // Asset* LoadAsset(std::filesystem::path path);
+    // Asset* LoadAssetByID(const UUID& uuid);
 
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
@@ -88,6 +88,10 @@ public:
         {
             data->SetMeta(meta);
         }
+    }
+    const std::vector<std::unique_ptr<AssetData>>& GetAssetData()
+    {
+        return assets.data;
     }
 
 private:

@@ -161,18 +161,7 @@ void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
     std::ofstream f(path, std::ios::trunc);
     if (f.is_open() && f.good())
     {
-        nlohmann::json j = {};
-        j["assetUUID"] = assetUUID.ToString();
-        j["assetTypeID"] = assetTypeID.ToString();
-        auto assetPathStr = assetPath.string();
-        std::replace(assetPathStr.begin(), assetPathStr.end(), '\\', '/');
-        j["assetPath"] = assetPathStr;
-        j["meta"] = meta;
-
-        for (auto& obj : nameToUUID)
-        {
-            j["nameToUUID"][obj.first] = obj.second.ToString();
-        }
+        nlohmann::json j = DumpInfo();
 
         f << j.dump();
         isValid = true;
@@ -216,4 +205,22 @@ bool AssetData::ChangeAssetPath(const std::filesystem::path& path, const std::fi
     absolutePath = newAbsolutePath;
     UpdateLastWriteTime();
     SaveToDisk(projectRoot);
+}
+
+nlohmann::json AssetData::DumpInfo() const
+{
+    nlohmann::json j = {};
+    j["assetUUID"] = assetUUID.ToString();
+    j["assetTypeID"] = assetTypeID.ToString();
+    auto assetPathStr = assetPath.string();
+    std::replace(assetPathStr.begin(), assetPathStr.end(), '\\', '/');
+    j["assetPath"] = assetPathStr;
+    j["meta"] = meta;
+
+    for (auto& obj : nameToUUID)
+    {
+        j["nameToUUID"][obj.first] = obj.second.ToString();
+    }
+
+    return j;
 }

@@ -68,6 +68,8 @@ public:
         return dirty;
     }
 
+    nlohmann::json DumpInfo() const;
+
     void SaveToDisk(const std::filesystem::path& projectRoot);
 
     bool ReimportNeeded()

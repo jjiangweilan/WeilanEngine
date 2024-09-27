@@ -83,6 +83,7 @@ private:
     void SurfelGIBakerWindow();
 
     void ConsoleOutputWindow();
+    void AssetDatabaseViewer();
 
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void SceneTree(Scene& scene);
