@@ -644,12 +644,20 @@ void GameEditor::MainMenuBar()
 
     if (ImGui::BeginMenu("Window"))
     {
-        if (ImGui::MenuItem("Assets"))
-            assetWindow = !assetWindow;
-        if (ImGui::MenuItem("Inspector", "Ctrl + I"))
-            inspectorWindow = !inspectorWindow;
-        if (ImGui::MenuItem("Surfel GI Baker"))
-            surfelGIBaker = !surfelGIBaker;
+        std::tuple<const char*, const char*, bool&> windowToggles[] = {
+            {"Assets", nullptr, assetWindow},
+            {"Inspector", "Ctrl+I", inspectorWindow},
+            {"Surfel GI Baker", nullptr, surfelGIBaker},
+            {"AssetDatabase", nullptr, assetDatabaseWindow}
+
+        };
+        for (auto& w : windowToggles)
+        {
+            if (ImGui::MenuItem(std::get<0>(w), std::get<1>(w)))
+            {
+                std::get<2>(w) = !std::get<2>(w);
+            }
+        }
 
         ImGui::EndMenu();
     }
@@ -1284,21 +1292,24 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
 
 void GameEditor::AssetDatabaseViewer()
 {
-    ImGui::Begin("AssetDatabase");
-    auto& data = AssetDatabase::Singleton()->GetAssetData();
-
-    for (auto& d : data)
+    if (assetDatabaseWindow)
     {
-        nlohmann::json info = d->DumpInfo();
+        ImGui::Begin("AssetDatabase", &assetDatabaseWindow);
+        auto& data = AssetDatabase::Singleton()->GetAssetData();
+
+        for (auto& d : data)
         {
-            std::string assetPath = info["assetPath"];
-            if (ImGui::TreeNode(assetPath.c_str()))
+            nlohmann::json info = d->DumpInfo();
             {
-                ImGui::TreePop();
+                std::string assetPath = info["assetPath"];
+                if (ImGui::TreeNode(assetPath.c_str()))
+                {
+                    ImGui::TreePop();
+                }
             }
         }
+        ImGui::End();
     }
-    ImGui::End();
 }
 
 GameEditor* GameEditor::instance = nullptr;

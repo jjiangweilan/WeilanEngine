@@ -56,6 +56,7 @@ private:
     bool openSceneWindow = false;
     bool createSceneWindow = false;
     bool surfelGIBaker = false;
+    bool assetDatabaseWindow = false;
 
     InspectorBase* primaryInspector = nullptr;
     InspectorBase* secondaryInspector = nullptr;
