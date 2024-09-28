@@ -72,7 +72,7 @@ class SkyboxPassNode : public Node
             cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
             cmd.BindVertexBuffer(vertexBufferBinding, 0);
             auto shader = skyboxMat->GetShaderProgram();
-            Texture* skybox = renderingData.mainCamera->GetSkybox().Get();
+            Texture* skybox = renderingData.mainCamera->GetSpecularEnv().Get();
             if (skybox)
             {
                 skyboxMat->SetTexture("skybox", skybox);

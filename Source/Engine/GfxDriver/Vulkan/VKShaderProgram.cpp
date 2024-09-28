@@ -469,7 +469,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
     pipelineRasterizationStateCreateInfo.polygonMode = MapPolygonMode(config.polygonMode);
     pipelineRasterizationStateCreateInfo.cullMode = MapCullMode(config.cullMode);
-    pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     pipelineRasterizationStateCreateInfo.depthBiasEnable = false;
     pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0;
     pipelineRasterizationStateCreateInfo.depthBiasClamp = false;

@@ -195,7 +195,7 @@ bool Model::LoadFromFile(const char* cpath)
         std::string mimeType = jsonData["images"][i]["mimeType"];
         nlohmann::json& bufferViewJson = jsonData["bufferViews"][bufferViewIndex];
         int byteLength = bufferViewJson["byteLength"];
-        int byteOffset = bufferViewJson["byteOffset"];
+        int byteOffset = bufferViewJson.value("byteOffset", 0);
 
         std::unique_ptr<Texture> tex = nullptr;
         if (mimeType == "image/jpeg" || mimeType == "image/png")

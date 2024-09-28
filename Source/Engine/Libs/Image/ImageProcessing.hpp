@@ -1,5 +1,7 @@
 #pragma once
+#include "glm/ext/scalar_constants.hpp"
 #include <cmath>
+#include <glm/glm.hpp>
 
 namespace Libs::Image
 {
@@ -89,6 +91,36 @@ void GenerateBoxFilteredMipmap(
     }
 }
 
-// expecting source to be a cubemap with x,-x,y,-y,z,-z
 void GenerateIrradianceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output);
+void GenerateReflectanceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output);
+
+glm::vec3 GetDirFromCubeUV(glm::vec2 uv, int faceIndex);
+glm::vec2 DirToEquirectangularUV(glm::vec3 dir);
+
+template <class T>
+void ConverToCubemap(T* source, int width, int height, int outputSize, int channels, uint8_t*& output)
+{
+    output = new uint8_t[channels * outputSize * outputSize * sizeof(T) * 6];
+    T* out = (T*)(output);
+
+    for (int layer = 0; layer < 6; ++layer)
+    {
+        int layerOffset = outputSize * outputSize * layer * channels;
+        for (int y = 0; y < outputSize; ++y)
+        {
+            for (int x = 0; x < outputSize; ++x)
+            {
+                glm::vec3 dir =
+                    glm::normalize(GetDirFromCubeUV({(x + 0.5) / outputSize, (y + 0.5) / outputSize}, layer));
+                glm::vec2 uv = DirToEquirectangularUV(dir);
+                glm::ivec2 pcoord = uv * glm::vec2(width, height);
+                for (int c = 0; c < channels; ++c)
+                {
+                    out[layerOffset + (x + y * outputSize) * channels + c] =
+                        source[(pcoord.x + pcoord.y * width) * channels + c];
+                }
+            }
+        }
+    }
+}
 } // namespace Libs::Image

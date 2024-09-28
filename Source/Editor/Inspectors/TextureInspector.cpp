@@ -69,17 +69,20 @@ public:
         auto meta = AssetDatabase::Singleton()->GetAssetMeta(*target);
         auto options = meta.value("importOption", nlohmann::json::object());
         bool generateMipmap = options.value("generateMipmap", false);
-        bool converToCubemap = options.value("converToCubemap", false);
+        bool convertToIrradianceCubemap = options.value("convertToIrradianceCubemap", false);
+        bool converToCubemap = options.value("convertToCubemap", false);
 
         ImGui::Text("Import Options");
         ImGui::Separator();
         bool metaChanged = false;
         metaChanged |= ImGui::Checkbox("generateMipmap", &generateMipmap);
-        metaChanged |= ImGui::Checkbox("converToCubemap", &converToCubemap);
+        metaChanged |= ImGui::Checkbox("convertToCubemap", &converToCubemap);
+        metaChanged |= ImGui::Checkbox("convertToIrradianceCubemap", &convertToIrradianceCubemap);
         if (metaChanged)
         {
             meta["importOption"]["generateMipmap"] = generateMipmap;
-            meta["importOption"]["converToCubemap"] = converToCubemap;
+            meta["importOption"]["convertToCubemap"] = converToCubemap;
+            meta["importOption"]["convertToIrradianceCubemap"] = convertToIrradianceCubemap;
         }
         if (metaChanged)
             AssetDatabase::Singleton()->SetAssetMeta(*target, meta);

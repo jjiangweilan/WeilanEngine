@@ -1,0 +1,162 @@
+#version 460
+
+#if CONFIG
+name : IBLBRDF
+features :
+    - [ LIGHT_IBL, BRDF_IBL ]
+#endif
+
+#if COMP
+
+layout(push_constant) uniform Params
+{
+    vec4 texelSize;
+    float cubemapMip;
+};
+
+layout(set = 0, binding = 0) uniform samplerCube _EnvMap;
+#ifdef LIGHT_IBL
+layout(set = 0, binding = 1, rgba32f) writeonly uniform imageCube _LightCubemap;
+#endif
+
+#ifdef BRDF_IBL
+layout(set = 0, binding = 1, rg32f) writeonly uniform image2D _Dst;
+#endif
+
+vec3 GetDirFromCubeUV(vec2 uv, int faceIndex) {
+    uv = 2.0 * uv - 1.0; // Normalize UV to range [-1, 1]
+
+    if (faceIndex == 0) return vec3(1.0, -uv.y, -uv.x); // +X
+    if (faceIndex == 1) return vec3(-1.0, -uv.y, uv.x); // -X
+    if (faceIndex == 2) return vec3(uv.x, 1.0, uv.y); // +Y
+    if (faceIndex == 3) return vec3(uv.x, -1.0, -uv.y); // -Y
+    if (faceIndex == 4) return vec3(uv.x, -uv.y, 1.0); // +Z
+    if (faceIndex == 5) return vec3(-uv.x, -uv.y, -1.0); // -Z
+
+    return vec3(0.0);
+}
+
+float RadicalInverse_VdC(uint bits)
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10;
+}
+// ----------------------------------------------------------------------------
+vec2 Hammersley(uint i, uint N)
+{
+    return vec2(float(i) / float(N), RadicalInverse_VdC(i));
+}
+
+#define PI 3.14159265359
+vec3 ImportanceSampleGGX(vec2 Xi, float roughness, vec3 N)
+{
+    float a = roughness * roughness;
+    float Phi = 2 * PI * Xi.x;
+    float CosTheta = sqrt((1 - Xi.y) / (1 + (a * a - 1) * Xi.y));
+    float SinTheta = sqrt(1 - CosTheta * CosTheta);
+    vec3 H;
+    H.x = SinTheta * cos(Phi);
+    H.y = SinTheta * sin(Phi);
+    H.z = CosTheta;
+    vec3 UpVector = abs(N.z) < 0.999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+    vec3 TangentX = normalize(cross(UpVector, N));
+    vec3 TangentY = cross(N, TangentX);
+    // Tangent to world space
+    return TangentX * H.x + TangentY * H.y + N * H.z;
+}
+
+vec3 PrefilterEnvMap(float roughness, vec3 R)
+{
+    vec3 N = R;
+    vec3 V = R;
+    vec3 PrefilteredColor = vec3(0);
+    const uint numSamples = 1024;
+    float TotalWeight = 0.0f;
+    for (uint i = 0; i < numSamples; i++)
+    {
+        vec2 Xi = Hammersley(i, numSamples);
+        vec3 H = ImportanceSampleGGX(Xi, roughness, N);
+        vec3 L = 2 * dot(V, H) * H - V;
+        float NoL = clamp(dot(N, L), 0, 1);
+        if (NoL > 0)
+        {
+            PrefilteredColor += textureLod(_EnvMap, L, 0).rgb * NoL;
+            TotalWeight += NoL;
+        }
+    }
+    return PrefilteredColor / TotalWeight;
+}
+
+float pow2(float v)
+{
+    return v * v;
+}
+
+vec2 IntegrateBRDF(float roughness, float NoV)
+{
+    vec3 V;
+    V.x = sqrt(1.0f - NoV * NoV); // sin
+    V.y = 0;
+    V.z = NoV; // cos
+    float A = 0;
+    float B = 0;
+    const uint NumSamples = 1024;
+    vec3 N = V;
+    for (uint i = 0; i < NumSamples; i++)
+    {
+        vec2 Xi = Hammersley(i, NumSamples);
+        vec3 H = ImportanceSampleGGX(Xi, roughness, N);
+        vec3 L = 2 * dot(V, H) * H - V;
+        float NoL = clamp(L.z, 0, 1);
+        float NoH = clamp(H.z, 0, 1);
+        float VoH = clamp(dot(V, H), 0, 1);
+        if (NoL > 0)
+        {
+            float k = pow2(roughness + 1) / 8;
+            float Gv = NoV / (NoV * (1 - k) + k);
+            float Gl = NoL / (NoL * (1 - k) + k);
+            float G = Gv * Gl;
+
+            float G_Vis = G * VoH / (NoH * NoV);
+            float Fc = pow(1 - VoH, 5);
+            A += (1 - Fc) * G_Vis;
+            B += Fc * G_Vis;
+        }
+    }
+    return vec2(A, B) / NumSamples;
+}
+
+#if BRDF_IBL
+layout(local_size_x = 8, local_size_y = 8) in;
+#endif
+
+void main()
+{
+    if (gl_GlobalInvocationID.x >= texelSize.z || gl_GlobalInvocationID.y >= texelSize.w)
+    {
+        return;
+    }
+    vec2 uv = (gl_GlobalInvocationID.xy + vec2(0.5)) * texelSize.xy;
+
+    #if LIGHT_IBL
+    vec3 normal = normalize(GetDirFromCubeUV(uv, int(gl_WorkGroupID.z)));
+    float roughness[] = {
+            0.001,
+            0.2,
+            0.5,
+            0.8,
+            1
+        };
+    vec3 val = PrefilterEnvMap(roughness[int(cubemapMip)], normal);
+    imageStore(_LightCubemap, ivec3(uv, gl_WorkGroupID.z), vec4(val, 1.0));
+    #endif
+
+    #if BRDF_IBL
+    imageStore(_Dst, ivec2(gl_GlobalInvocationID.xy), vec4(IntegrateBRDF(uv.x, uv.y), 0, 0));
+    #endif
+}
+#endif

@@ -17,11 +17,18 @@ public:
         ImGui::NewLine();
         ImGui::Text("Environment");
         ImGui::Separator();
-        Texture* skybox = target->GetSkybox().Get();
+        Texture* skybox = target->GetDiffuseEnv().Get();
+        Texture* specularEnv = target->GetSpecularEnv().Get();
         if (GUI::ObjectField("Diffuse Environment Map", skybox))
         {
             if (skybox)
-                target->SetSkybox(skybox);
+                target->SetDiffuseEnv(skybox);
+        }
+
+        if (GUI::ObjectField("Specular Environment Map", specularEnv))
+        {
+            if (specularEnv)
+                target->SetSpecularEnv(specularEnv);
         }
 
         ImGui::NewLine();

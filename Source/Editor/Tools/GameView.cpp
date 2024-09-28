@@ -272,7 +272,7 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         glm::mat4 model = go->GetWorldMatrix();
         glm::vec3 right = glm::normalize(model[0]);
         glm::vec3 up = glm::normalize(model[1]);
-        glm::vec3 forward = glm::normalize(model[2]);
+        glm::vec3 forward = -glm::normalize(model[2]);
 
         if (isAltDown)
         {
@@ -319,7 +319,7 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
 
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right + upDown * up;
-        auto final = glm::lookAt(eye, eye - (forward + lookAtDelta), glm::vec3(0, 1, 0));
+        auto final = glm::lookAt(eye, eye + (forward + lookAtDelta), glm::vec3(0, 1, 0));
         final = glm::inverse(final);
         go->SetWorldMatrix(final);
     }
@@ -458,7 +458,8 @@ bool GameView::Tick()
     // sync camera settigns
     if (gameCamera && editorCamera)
     {
-        editorCamera->SetSkybox(gameCamera->GetSkybox().Get());
+        editorCamera->SetDiffuseEnv(gameCamera->GetDiffuseEnv().Get());
+        editorCamera->SetSpecularEnv(gameCamera->GetSpecularEnv().Get());
     }
 
     const char* menuSelected = "";
@@ -817,7 +818,9 @@ bool GameView::Tick()
                     ImVec2(100, -100),
                     0x10101010
                 );
-                mainCam->GetGameObject()->SetWorldMatrix(glm::inverse(view));
+                auto world = glm::inverse(view);
+                world[2] = -world[2];
+                // mainCam->GetGameObject()->SetWorldMatrix(world);
             }
         }
     }

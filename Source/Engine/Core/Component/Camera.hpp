@@ -26,10 +26,16 @@ public:
     void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
     void SetProjectionMatrix(const glm::mat4& proj);
 
-    void SetSkybox(Texture* cubemap);
-    const SRef<Texture>& GetSkybox()
+    void SetDiffuseEnv(Texture* cubemap);
+    void SetSpecularEnv(Texture* cubemap);
+    const SRef<Texture>& GetDiffuseEnv()
     {
-        return skybox;
+        return diffuseEnv;
+    }
+
+    const SRef<Texture>& GetSpecularEnv()
+    {
+        return specularEnv;
     }
 
     void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
@@ -53,7 +59,8 @@ public:
     void OnDrawGizmos() override;
 
 private:
-    SRef<Texture> skybox = nullptr;
+    SRef<Texture> diffuseEnv = nullptr;
+    SRef<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
     Rendering::FrameGraph::Graph* frameGraph = nullptr;

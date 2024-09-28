@@ -22,6 +22,7 @@ void main()
         { 1,-1,0.5,1}
     };
 
+
     gl_Position = c_Positions[gl_VertexIndex];
     o_uv = gl_Position.xy * 0.5f + 0.5f;
 }

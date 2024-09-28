@@ -34,7 +34,10 @@ void TextureLoader::Import()
     std::string importFileUUID = meta.value("importFileUUID", UUID().ToString());
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
     bool generateMipmap = option.value("generateMipmap", false);
-    bool converToCubemap = option.value("converToCubemap", false);
+    bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
+    bool converToCubemap = option.value("convertToCubemap", false);
+    if (converToIrradianceCubemap)
+        converToCubemap = false;
     auto importedAssetPath = importDatabase->GetImportAssetPath(importFileUUID).replace_extension(".ktx");
 
     std::fstream f;
@@ -50,7 +53,8 @@ void TextureLoader::Import()
             uint8_t* data = (uint8_t*)s.data();
             size_t byteSize = s.size();
             int width, height, channels, desiredChannels;
-            int layers = converToCubemap ? 6 : 1;
+            bool isCubemap = (converToIrradianceCubemap | converToCubemap);
+            int layers = isCubemap ? 6 : 1;
             stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
             if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
                 desiredChannels = 4;
@@ -70,11 +74,22 @@ void TextureLoader::Import()
                 loaded = stbi_load_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
             }
 
-            if (converToCubemap)
+            if (converToIrradianceCubemap)
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
                 Libs::Image::GenerateIrradianceCubemap((float*)loaded, width, height, cubemapSize, output);
+                delete[] loaded;
+                loaded = output;
+                width = cubemapSize;
+                height = cubemapSize;
+            }
+
+            if (converToCubemap)
+            {
+                uint8_t* output;
+                int cubemapSize = 1024;
+                Libs::Image::ConverToCubemap((float*)loaded, width, height, cubemapSize, desiredChannels, output);
                 delete[] loaded;
                 loaded = output;
                 width = cubemapSize;
@@ -169,10 +184,10 @@ void TextureLoader::Import()
                 height,
                 1,
                 2,
-                converToCubemap ? 1 : layers,
+                isCubemap ? 1 : layers,
                 mipLevels,
                 false,
-                converToCubemap,
+                isCubemap,
                 format
             );
 

@@ -12,7 +12,7 @@ stencil:
         reference: 1
 blend:
     - srcAlpha oneMinusSrcAlpha
-cull: front
+cull: none
 #endif
 
 #if VERT
@@ -22,13 +22,13 @@ void main()
 {
     vec4 c_Positions[6] = 
     {
-        {-1, 1,0.5,1},
-        { 1, 1,0.5,1},
-        {-1,-1,0.5,1},
+        { -1, -1, 0.5, 1 },
+        { -1, 1, 0.5, 1 },
+        { 1, 1, 0.5, 1 },
 
-        {1,  1,0.5,1},
-        { 1,-1,0.5,1},
-        {-1,-1,0.5,1}
+        { -1, -1, 0.5, 1 },
+        { 1, 1, 0.5, 1 },
+        { 1, -1, 0.5, 1 }
     };
 
     gl_Position = c_Positions[gl_VertexIndex];

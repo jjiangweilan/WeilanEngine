@@ -308,11 +308,11 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
     renderingData.sceneInfo = &sceneInfo;
     renderingData.cmd = &cmd;
 
-    auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
+    // auto sceneEnvironment = scene.GetRenderingScene().GetSceneEnvironment();
 
-    auto specularCube = sceneEnvironment ? sceneEnvironment->GetSpecularCube() : nullptr;
     cmd.SetBuffer("SceneInfo", *sceneInfoBuffer);
-    auto diffuseCube = camera.GetSkybox();
+    auto diffuseCube = camera.GetDiffuseEnv();
+    auto specularCube = camera.GetSpecularEnv();
     if (diffuseCube)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)

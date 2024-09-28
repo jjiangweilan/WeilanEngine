@@ -21,13 +21,13 @@ void main()
 {
     vec4 c_Positions[6] =
         {
-        { -1, 1, 0.5, 1 },
-        { -1, -1, 0.5, 1 },
-        { 1, 1, 0.5, 1 },
+        { 1, 1, 0, 1 },
+        { -1, -1, 0, 1 },
+        { -1, 1, 0, 1 },
 
-        { -1, -1, 0.5, 1 },
-        { 1, -1, 0.5, 1 },
-        { 1, 1, 0.5, 1 }
+        { 1, -1, 0, 1 },
+        { -1, -1, 0, 1 },
+        { 1, 1, 0, 1 }
         };
 
     gl_Position = c_Positions[gl_VertexIndex];
@@ -80,12 +80,15 @@ vec2 SphericalToUV(vec3 v)
     return uv;
 }
 
-float Fresnel(float metallic, float dotVH)
+vec3 Fresnel(vec3 albedo, float metallic, float dotVH)
 {
-    return metallic + (1 - metallic) * pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    vec3 F0 = vec3(0.04); 
+    F0      = mix(F0, albedo, metallic);
+    float attenuation = pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    return F0 + (1 - F0) * attenuation;
 }
 
-float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
+vec3 SpecularBRDF(vec3 albedo, vec3 l, vec3 v, vec3 n, float metallic, float roughness, out vec3 F)
 {
     vec3 h = normalize(l + v);
     float dotNH = max(dot(n, h), NearZero);
@@ -103,9 +106,9 @@ float SpecularBRDF(vec3 l, vec3 v, vec3 n, float metallic, float roughness)
     float G = Gv * Gl;
 
     // fresnel
-    float F = Fresnel(metallic, dotVH);
+    F = Fresnel(albedo, metallic, dotVH);
 
-    float brdf = (G * F * D) / (4 * dotNL * dotNV);
+    vec3 brdf = (G * D) / (4 * dotNL * dotNV) * F;
     return brdf;
 }
 
@@ -158,7 +161,6 @@ void main()
     vec4 mask = texture(maskTex, i_UV);
     float metallic = mask.x;
     float roughness = mask.y;
-    float ao = texture(aoMap, i_UV).x;
     vec3 baseColor = texture(albedoTex, i_UV).xyz;
     float depth = texture(depthTex, i_UV).x;
     vec4 positionWS = scene.invNDCToWorld * vec4(i_UV * 2 - 1, depth, 1.0);
@@ -172,12 +174,15 @@ void main()
         vec3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
         float dotNL = max(dot(n, l), NearZero);
-        float brdf = SpecularBRDF(l, v, n, metallic, roughness);
+        vec3 F;
+        vec3 brdf = SpecularBRDF(baseColor, l, v, n, metallic, roughness, F);
+        vec3 kd = 1 - F;
+        kd *= 1 - metallic;
 
         vec3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
         float attenuation = lightPos.a == 0 ? 1 : PointLightAttenuation(distance(lightPos.xyz, positionWS.xyz), scene.lights[i].pointLightTerm1, scene.lights[i].pointLightTerm2);
 
-        vec3 lighting = light * (ao * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
+        vec3 lighting = light * (kd * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
         // possible solution https://bruop.github.io/ibl/
         // const float DIELECTRIC_SPECULAR = 0.04;
         // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)
@@ -208,6 +213,7 @@ void main()
     }
 
     // diffuse cube light
+    float ao = texture(aoMap, i_UV).x;
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
     vec3 ambient = ao * baseColor * diffuseCubeColor / M_PI * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
 

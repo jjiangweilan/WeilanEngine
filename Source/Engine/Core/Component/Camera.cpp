@@ -46,16 +46,26 @@ float Camera::GetFar()
 
 glm::mat4 Camera::GetViewMatrix() const
 {
-    auto view = glm::inverse(gameObject->GetWorldMatrix());
+    auto view = gameObject->GetWorldMatrix();
+    view[2] = -view[2];
+    view = glm::inverse(view);
     return view;
 }
 
-void Camera::SetSkybox(Texture* cubemap)
+void Camera::SetDiffuseEnv(Texture* cubemap)
 {
     if (cubemap)
-        skybox = cubemap->GetSRef<Texture>();
+        diffuseEnv = cubemap->GetSRef<Texture>();
     else
-        skybox = nullptr;
+        diffuseEnv = nullptr;
+}
+
+void Camera::SetSpecularEnv(Texture* cubemap)
+{
+    if (cubemap)
+        specularEnv = cubemap->GetSRef<Texture>();
+    else
+        specularEnv = nullptr;
 }
 
 void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
@@ -63,16 +73,15 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
     // float tangent = glm::tan(fovy / 2);
     // float t = n * tangent;
     // float r = t * aspect;
-    //
+
     // glm::mat4 proj(0.0f);
     // proj[0][0] = n / r;
     // proj[1][1] = -n / t;
     // proj[2][2] = f / (f - n);
-    // proj[2][3] = 1;
-    // proj[3][2] = -f * n / (f - n);
+    // proj[2][3] = -1;
+    // proj[3][2] = f * n / (f - n);
     projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, n, f);
     projectionMatrix[1] = -projectionMatrix[1];
-
     this->aspect = aspect;
     fov = fovy;
     near = n;
@@ -90,7 +99,7 @@ glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 {
     return glm::vec3(
         (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), -GetProjectionTop()},
-        GetNear()
+        -GetNear()
     );
 }
 
