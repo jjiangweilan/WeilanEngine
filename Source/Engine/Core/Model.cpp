@@ -185,10 +185,58 @@ bool Model::LoadFromFile(const char* cpath)
         i += 1;
     }
 
+    int materialSize = jsonData["materials"].size();
+    nlohmann::json& texJson = jsonData["textures"];
+    int textureSize = jsonData["images"].size();
+    std::vector<Gfx::ImageFormat> textureFormats(textureSize, Gfx::ImageFormat::Invalid);
+    for (int i = 0; i < materialSize; ++i)
+    {
+        nlohmann::json& matJson = jsonData["materials"][i];
+        if (matJson["pbrMetallicRoughness"].contains("baseColorTexture"))
+        {
+            int baseColorSamplerIndex = matJson["pbrMetallicRoughness"]["baseColorTexture"].value("index", -1);
+            if (baseColorSamplerIndex != -1)
+            {
+                int baseColorImageIndex = GetImageIndex(texJson[baseColorSamplerIndex]);
+                textureFormats[baseColorImageIndex] = Gfx::ImageFormat::R8G8B8A8_SRGB;
+            }
+        }
+
+        if (matJson["pbrMetallicRoughness"].contains("metallicRoughnessTexture"))
+        {
+            int metallicRougnessSamplerIndex =
+                matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
+            if (metallicRougnessSamplerIndex != -1)
+            {
+                int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
+                textureFormats[metallicRoughnessImageIndex] = Gfx::ImageFormat::R8G8B8A8_UNorm;
+            }
+        }
+
+        if (matJson.contains("normalTexture"))
+        {
+            int normalTextureSamplerIndex = matJson["normalTexture"].value("index", -1);
+            if (normalTextureSamplerIndex != -1)
+            {
+                int normalTextureImageIndex = GetImageIndex(texJson[normalTextureSamplerIndex]);
+                textureFormats[normalTextureImageIndex] = Gfx::ImageFormat::R8G8B8A8_UNorm;
+            }
+        }
+
+        if (matJson.contains("emissiveTexture"))
+        {
+            int textureSamplerIndex = matJson["emissiveTexture"].value("index", -1);
+            if (textureSamplerIndex != -1)
+            {
+                int emissiveTextureImageIndex = GetImageIndex(texJson[textureSamplerIndex]);
+                textureFormats[emissiveTextureImageIndex] = Gfx::ImageFormat::R8G8B8A8_UNorm;
+            }
+        }
+    }
+
     // extract textures
     std::unordered_map<int, Texture*> toOurTexture;
     textures.clear();
-    int textureSize = jsonData["images"].size();
     for (int i = 0; i < textureSize; ++i)
     {
         int bufferViewIndex = jsonData["images"][i]["bufferView"];
@@ -200,11 +248,23 @@ bool Model::LoadFromFile(const char* cpath)
         std::unique_ptr<Texture> tex = nullptr;
         if (mimeType == "image/jpeg" || mimeType == "image/png")
         {
-            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::StbSupported, UUID{});
+            tex = std::make_unique<Texture>(
+                binaryData + byteOffset,
+                byteLength,
+                ImageDataType::StbSupported,
+                textureFormats[i],
+                UUID{}
+            );
         }
         else if (mimeType == "image/ktx2")
         {
-            tex = std::make_unique<Texture>(binaryData + byteOffset, byteLength, ImageDataType::Ktx, UUID{});
+            tex = std::make_unique<Texture>(
+                binaryData + byteOffset,
+                byteLength,
+                ImageDataType::Ktx,
+                textureFormats[i],
+                UUID{}
+            );
         }
         else
             throw std::runtime_error("unsupported mime type");
@@ -217,8 +277,6 @@ bool Model::LoadFromFile(const char* cpath)
     // extract materials
     materials.clear();
     toOurMaterials.clear();
-    int materialSize = jsonData["materials"].size();
-    nlohmann::json& texJson = jsonData["textures"];
     for (int i = 0; i < materialSize; ++i)
     {
         std::unique_ptr<Material> mat = std::make_unique<Material>();
@@ -242,6 +300,19 @@ bool Model::LoadFromFile(const char* cpath)
                 mat->SetTexture("baseColorTex", toOurTexture[baseColorImageIndex]);
             }
             mat->EnableFeature("_BaseColorMap");
+        }
+
+        // metallicRoughnessMap
+        if (matJson["pbrMetallicRoughness"].contains("metallicRoughnessTexture"))
+        {
+            int metallicRougnessSamplerIndex =
+                matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
+            if (metallicRougnessSamplerIndex != -1)
+            {
+                int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
+                mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
+            }
+            mat->EnableFeature("_MetallicRoughnessMap");
         }
 
         // normal map
@@ -307,19 +378,6 @@ bool Model::LoadFromFile(const char* cpath)
         mat->SetVector("PBR", "emissive", glm::vec4(emissive[0], emissive[1], emissive[2], 1.0f));
         mat->SetFloat("PBR", "roughness", pbrMetallicRoughness.value("roughnessFactor", 1.0f));
         mat->SetFloat("PBR", "metallic", pbrMetallicRoughness.value("metallicFactor", 1.0f));
-
-        // metallicRoughnessMap
-        if (matJson["pbrMetallicRoughness"].contains("metallicRoughnessTexture"))
-        {
-            int metallicRougnessSamplerIndex =
-                matJson["pbrMetallicRoughness"]["metallicRoughnessTexture"].value("index", -1);
-            if (metallicRougnessSamplerIndex != -1)
-            {
-                int metallicRoughnessImageIndex = GetImageIndex(texJson[metallicRougnessSamplerIndex]);
-                mat->SetTexture("metallicRoughnessMap", toOurTexture[metallicRoughnessImageIndex]);
-            }
-            mat->EnableFeature("_MetallicRoughnessMap");
-        }
 
         toOurMaterials[i] = mat.get();
         materials.push_back(std::move(mat));

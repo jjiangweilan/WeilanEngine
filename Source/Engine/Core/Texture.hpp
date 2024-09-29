@@ -31,10 +31,16 @@ class Texture : public Asset
     DECLARE_ASSET();
 
 public:
-    Texture() {};
+    Texture(){};
     // load a texture from file
     Texture(const char* path, const UUID& uuid = UUID{});
-    Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, const UUID& uuid = UUID{});
+    Texture(
+        uint8_t* data,
+        size_t byteSize,
+        ImageDataType imageDataType,
+        Gfx::ImageFormat format = Gfx::ImageFormat::Invalid,
+        const UUID& uuid = UUID{}
+    );
     Texture(TextureDescription texDesc, const UUID& uuid = UUID{});
     Texture(KtxTexture texDesc, const UUID& uuid = UUID{});
     ~Texture() override;
@@ -63,7 +69,7 @@ private:
     std::unique_ptr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);
     void LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels);
-    void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);
+    void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::ImageFormat format);
     void ConvertRawImageToKtx(TextureDescription& desc);
     void CreateGfxImage(TextureDescription& texDesc);
 };

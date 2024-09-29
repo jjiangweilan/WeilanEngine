@@ -73,7 +73,7 @@ void main()
     }
     else
     {
-        oColor = vec4(texture(skybox, dir).xyz, 1.0);
+        oColor = vec4(pow(texture(skybox, dir).xyz, vec3(0.45)), 1.0);
     }
 }
 #endif
