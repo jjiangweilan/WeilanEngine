@@ -9,6 +9,7 @@
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_hash.hpp>
 
 #include <cinttypes>
 #include <string>
@@ -123,7 +124,7 @@ protected:
     ImageSubresourceRange GenerateDefaultSubresourceRange();
     void MakeVkObjects();
     void CreateImageView();
-    std::unordered_map<size_t, std::unique_ptr<VKImageView>> imageViews;
+    std::unordered_map<vk::ImageViewCreateInfo, std::unique_ptr<VKImageView>> imageViews;
 
     friend class VKDriver;
 };

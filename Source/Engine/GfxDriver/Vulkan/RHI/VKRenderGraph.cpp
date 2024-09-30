@@ -1187,7 +1187,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     {
                         auto& r = cmd.copyImageToBuffer.regions[i];
                         VkBufferImageCopy region;
-                        region.bufferOffset = r.srcOffset;
+                        region.bufferOffset = r.bufferOffset;
                         region.bufferRowLength = 0;
                         region.bufferImageHeight = 0;
                         region.imageSubresource.aspectMask = MapImageAspect(r.layers.aspectMask);

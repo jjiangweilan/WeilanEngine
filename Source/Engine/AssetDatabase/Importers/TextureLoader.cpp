@@ -35,9 +35,14 @@ void TextureLoader::Import()
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
     bool generateMipmap = option.value("generateMipmap", false);
     bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
-    bool converToCubemap = option.value("convertToCubemap", false);
-    if (converToIrradianceCubemap)
-        converToCubemap = false;
+    bool convertToReflectanceCubemap = option.value("convertToReflectanceCubemap", false);
+    bool convertToCubemap = option.value("convertToCubemap", false);
+    if (convertToCubemap)
+    {
+        converToIrradianceCubemap = false;
+        convertToReflectanceCubemap = false;
+    }
+
     auto importedAssetPath = importDatabase->GetImportAssetPath(importFileUUID).replace_extension(".ktx");
 
     std::fstream f;
@@ -53,7 +58,7 @@ void TextureLoader::Import()
             uint8_t* data = (uint8_t*)s.data();
             size_t byteSize = s.size();
             int width, height, channels, desiredChannels;
-            bool isCubemap = (converToIrradianceCubemap | converToCubemap);
+            bool isCubemap = (convertToReflectanceCubemap || converToIrradianceCubemap || convertToCubemap);
             int layers = isCubemap ? 6 : 1;
             stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
             if (desiredChannels == 3) // 3 channel srgb texture is not supported on PC
@@ -85,11 +90,22 @@ void TextureLoader::Import()
                 height = cubemapSize;
             }
 
-            if (converToCubemap)
+            if (convertToCubemap)
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
                 Libs::Image::ConverToCubemap((float*)loaded, width, height, cubemapSize, desiredChannels, output);
+                delete[] loaded;
+                loaded = output;
+                width = cubemapSize;
+                height = cubemapSize;
+            }
+
+            if (convertToReflectanceCubemap)
+            {
+                uint8_t* output;
+                int cubemapSize = 1024;
+                Libs::Image::GenerateReflectanceCubemap((float*)loaded, width, height, cubemapSize, output);
                 delete[] loaded;
                 loaded = output;
                 width = cubemapSize;

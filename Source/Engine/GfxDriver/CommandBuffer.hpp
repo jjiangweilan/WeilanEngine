@@ -30,7 +30,7 @@ struct BufferCopyRegion
 
 struct BufferImageCopyRegion
 {
-    uint64_t srcOffset;
+    uint64_t bufferOffset;
     Gfx::ImageSubresourceLayers layers;
     Offset3D offset;
     Extent3D extend;

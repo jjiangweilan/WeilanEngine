@@ -18,23 +18,17 @@ struct ImageDescription
     )
         : width(width), height(height), depth(depth), format(format), multiSampling(multiSampling),
           mipLevels(mipLevels), isCubemap(isCubemap)
-    {
-        CalcByteSize();
-    }
+    {}
 
     ImageDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format)
         : width(width), height(height), depth(1.0f), format(format), multiSampling(MultiSampling::Sample_Count_1),
           mipLevels(1), isCubemap(false)
-    {
-        CalcByteSize();
-    }
+    {}
 
     ImageDescription(uint32_t width, uint32_t height, uint32_t depth, Gfx::ImageFormat format)
         : width(width), height(height), depth(depth), format(format), multiSampling(MultiSampling::Sample_Count_1),
           mipLevels(1), isCubemap(false)
-    {
-        CalcByteSize();
-    }
+    {}
 
     uint32_t width = 0;
     uint32_t height = 0;
@@ -49,13 +43,13 @@ struct ImageDescription
         return isCubemap ? 6 : 1;
     }
 
-    uint32_t GetByteSize() const
+    size_t GetByteSize() const
     {
-        return byteSize;
+        return CalcByteSize();
     }
 
 private:
-    void CalcByteSize()
+    size_t CalcByteSize() const
     {
         size_t pixels = 0;
         float scale = 1.0f;
@@ -67,8 +61,7 @@ private:
             pixels += lw * lh;
             scale *= 0.5;
         }
-        byteSize = pixels * GetLayer() * MapImageFormatToByteSize(format);
+        return pixels * GetLayer() * MapImageFormatToByteSize(format);
     }
-    size_t byteSize = 0;
 };
 } // namespace Gfx

@@ -71,6 +71,7 @@ public:
         bool generateMipmap = options.value("generateMipmap", false);
         bool convertToIrradianceCubemap = options.value("convertToIrradianceCubemap", false);
         bool converToCubemap = options.value("convertToCubemap", false);
+        bool convertToReflectanceCubemap = options.value("convertToReflectanceCubemap", false);
 
         ImGui::Text("Import Options");
         ImGui::Separator();
@@ -78,11 +79,13 @@ public:
         metaChanged |= ImGui::Checkbox("generateMipmap", &generateMipmap);
         metaChanged |= ImGui::Checkbox("convertToCubemap", &converToCubemap);
         metaChanged |= ImGui::Checkbox("convertToIrradianceCubemap", &convertToIrradianceCubemap);
+        metaChanged |= ImGui::Checkbox("convertToReflectanceCubemap", &convertToReflectanceCubemap);
         if (metaChanged)
         {
             meta["importOption"]["generateMipmap"] = generateMipmap;
             meta["importOption"]["convertToCubemap"] = converToCubemap;
             meta["importOption"]["convertToIrradianceCubemap"] = convertToIrradianceCubemap;
+            meta["importOption"]["convertToReflectanceCubemap"] = convertToReflectanceCubemap;
         }
         if (metaChanged)
             AssetDatabase::Singleton()->SetAssetMeta(*target, meta);

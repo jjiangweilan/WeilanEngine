@@ -234,16 +234,26 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     range.levelCount = option.levelCount;
     range.baseArrayLayer = option.baseArrayLayer;
     range.layerCount = option.layerCount;
-    imageView = std::unique_ptr<VKImageView>(new VKImageView({
+
+    ImageView::CreateInfo imageViewCreateInfo{
         .image = *this,
         .imageViewType = GenerateDefaultImageViewViewType(),
         .subresourceRange = range,
-    }));
+    };
 
-    auto temp = imageView.get();
-    imageViews[imageView->GetHash()] = std::move(imageView);
-
-    return *temp;
+    auto vkImageViewCreateInfo = MapImageViewCreateInfo(this, imageViewCreateInfo);
+    auto imageViewIter = imageViews.find(vkImageViewCreateInfo);
+    if (imageViewIter != imageViews.end())
+    {
+        return *imageViewIter->second;
+    }
+    else
+    {
+        imageView = std::unique_ptr<VKImageView>(new VKImageView(imageViewCreateInfo));
+        auto temp = imageView.get();
+        imageViews[vkImageViewCreateInfo] = std::move(imageView);
+        return *temp;
+    }
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

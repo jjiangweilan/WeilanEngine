@@ -5,6 +5,7 @@
 
 namespace Gfx
 {
+VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateInfo createInfo);
 class VKImageView : public ImageView
 {
 public:

@@ -16,11 +16,11 @@ class Buffer : public SafeReferenceable<Buffer>
 public:
     struct CreateInfo
     {
-        BufferUsageFlags usages;
-        size_t size;
-        bool visibleInCPU;
-        const char* debugName;
-        bool gpuWrite;
+        BufferUsageFlags usages = BufferUsage::None;
+        size_t size = 0;
+        bool visibleInCPU = false;
+        const char* debugName = nullptr;
+        bool gpuWrite = false;
     };
 
 public:

@@ -18,10 +18,7 @@ VkImageViewType MapImageViewType(ImageViewType type)
         case ImageViewType::Cube_Array: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     }
 }
-
-VKImageView::VKImageView(const CreateInfo& createInfo)
-    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange),
-      imageViewType(createInfo.imageViewType)
+VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateInfo createInfo)
 {
     VkImageViewCreateInfo imageViewCreateInfo;
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -47,6 +44,15 @@ VKImageView::VKImageView(const CreateInfo& createInfo)
 
     imageViewCreateInfo.subresourceRange = subresourceRange;
 
+    return imageViewCreateInfo;
+}
+
+VKImageView::VKImageView(const CreateInfo& createInfo)
+    : image(static_cast<VKImage*>(&createInfo.image)), subresourceRange(createInfo.subresourceRange),
+      imageViewType(createInfo.imageViewType)
+{
+
+    auto imageViewCreateInfo = MapImageViewCreateInfo(image, createInfo);
     VKContext::Instance()->objManager->CreateImageView(imageViewCreateInfo, handle);
 
     auto c = vk::ImageViewCreateInfo(imageViewCreateInfo);

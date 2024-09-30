@@ -60,7 +60,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
     // copy processed image to cpu
     Gfx::BufferImageCopyRegion regions[] = {
-        {.srcOffset = 0,
+        {.bufferOffset = 0,
          .layers = {Gfx::ImageAspect::Color, 0, 0, 6},
          .offset = {0, 0, 0},
          .extend = {irradianceMapSize, irradianceMapSize, 1}}
@@ -94,11 +94,12 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         GetGfxDriver()->CreateBuffer(srcImage->GetDescription().GetByteSize(), Gfx::BufferUsage::Transfer_Src, true);
     memcpy(sourceBuf->GetCPUVisibleAddress(), source, width * height * 4 * sizeof(float));
 
-    const uint32_t irradianceMapSize = static_cast<uint32_t>(outputSize);
-    imgDesc.width = irradianceMapSize;
-    imgDesc.height = irradianceMapSize;
+    const uint32_t cubemapSize = static_cast<uint32_t>(outputSize);
+    const uint32_t mipLevels = 5;
+    imgDesc.width = cubemapSize;
+    imgDesc.height = cubemapSize;
     imgDesc.isCubemap = true;
-    imgDesc.mipLevels = 5; // 5 roughness levels
+    imgDesc.mipLevels = mipLevels; // 5 roughness levels
     std::unique_ptr<Gfx::Image> dstCuebmap = GetGfxDriver()->CreateImage(
         imgDesc,
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage | Gfx::ImageUsage::TransferSrc
@@ -115,40 +116,50 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
          {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1}}
     };
     cmd->CopyBufferToImage(sourceBuf, srcImage, srcCopy);
+
     cmd->SetTexture("_Src", *srcImage);
-    cmd->SetTexture("_Dst", *dstCuebmap);
-    struct PushConstant
-    {
-        glm::vec4 texelSize;
-        float mip;
-    } pc;
 
-    for (int i = 0; i < 5; ++i)
+    for (int mip = 0; mip < mipLevels; ++mip)
     {
-        pc.texelSize = {1.0f / irradianceMapSize, 1.0f / irradianceMapSize, irradianceMapSize, irradianceMapSize};
-        pc.mip = i;
+        cmd->SetTexture("_Dst", *dstCuebmap, Gfx::ImageViewOption{mip, 1, 0, 6});
+        struct PushConstant
+        {
+            glm::vec4 texelSize;
+            float mip;
+        } pc;
 
-        glm::vec4 texelSize =
-            {1.0f / irradianceMapSize, 1.0f / irradianceMapSize, irradianceMapSize, irradianceMapSize};
+        int mipCubemapSize = cubemapSize * glm::pow(0.5, mip);
+        pc.texelSize = {1.0f / mipCubemapSize, 1.0f / mipCubemapSize, mipCubemapSize, mipCubemapSize};
+        pc.mip = mip;
+
         auto shaderProgram = compute->GetShaderProgram({"BRDF_IBL"});
         cmd->SetPushConstant(shaderProgram, &pc);
         cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-        cmd->Dispatch(irradianceMapSize / 8, irradianceMapSize / 8, 6);
+        cmd->Dispatch(glm::ceil(mipCubemapSize / 8.0f), glm::ceil(mipCubemapSize / 8), 6);
     }
 
     auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
     // copy processed image to cpu
-    Gfx::BufferImageCopyRegion regions[] = {
-        {.srcOffset = 0,
-         .layers = {Gfx::ImageAspect::Color, 0, 0, 6},
-         .offset = {0, 0, 0},
-         .extend = {irradianceMapSize, irradianceMapSize, 1}}
-    };
-    cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);
+    size_t mipWidth = width;
+    size_t mipHeight = height;
+    for (uint32_t mip = 0; mip < mipLevels; ++mip)
+    {
+        size_t byteOffset = mipWidth * mipHeight * 6 * Gfx::MapImageFormatToByteSize(imgDesc.format);
+        Gfx::BufferImageCopyRegion regions[] = {
+            {.bufferOffset = byteOffset,
+             .layers = {Gfx::ImageAspect::Color, mip, 0, 6},
+             .offset = {0, 0, 0},
+             .extend = {cubemapSize, cubemapSize, 1}}
+        };
+
+        mipWidth *= 0.5;
+        mipHeight *= 0.5;
+        cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);
+    }
 
     GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
 
-    size_t readbackSize = irradianceMapSize * irradianceMapSize * 4 * 6 * sizeof(float);
+    size_t readbackSize = cubemapSize * cubemapSize * 4 * 6 * sizeof(float);
     output = new uint8_t[readbackSize];
     memcpy(output, readbackBuf->GetCPUVisibleAddress(), readbackSize);
 }
