@@ -249,7 +249,7 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     }
     else
     {
-        imageView = std::unique_ptr<VKImageView>(new VKImageView(imageViewCreateInfo));
+        auto imageView = std::unique_ptr<VKImageView>(new VKImageView(imageViewCreateInfo));
         auto temp = imageView.get();
         imageViews[vkImageViewCreateInfo] = std::move(imageView);
         return *temp;
