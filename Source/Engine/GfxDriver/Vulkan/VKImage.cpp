@@ -19,7 +19,7 @@ static bool IsGPUWrite(ImageUsageFlags usageFlags)
            ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
-VKImage::VKImage() : Image(false), imageView(nullptr){};
+VKImage::VKImage() : Image(false), imageView(nullptr) {};
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription),
       imageView(nullptr)
@@ -225,6 +225,25 @@ VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& 
     range.baseArrayLayer = r.baseArrayLayer;
     range.layerCount = r.layerCount;
     return range;
+}
+
+ImageView& VKImage::GetImageView(const ImageViewOption& option)
+{
+    ImageSubresourceRange range = GenerateDefaultSubresourceRange();
+    range.baseMipLevel = option.baseMipLevel;
+    range.levelCount = option.levelCount;
+    range.baseArrayLayer = option.baseArrayLayer;
+    range.layerCount = option.layerCount;
+    imageView = std::unique_ptr<VKImageView>(new VKImageView({
+        .image = *this,
+        .imageViewType = GenerateDefaultImageViewViewType(),
+        .subresourceRange = range,
+    }));
+
+    auto temp = imageView.get();
+    imageViews[imageView->GetHash()] = std::move(imageView);
+
+    return *temp;
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

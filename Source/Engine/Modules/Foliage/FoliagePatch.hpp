@@ -8,7 +8,7 @@ struct FoliagePatch : public Component
 public:
     FoliagePatch() : Component(nullptr) {}
     FoliagePatch(GameObject* gameObject) : Component(gameObject) {};
-    ~FoliagePatch();
+    ~FoliagePatch(){};
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
 

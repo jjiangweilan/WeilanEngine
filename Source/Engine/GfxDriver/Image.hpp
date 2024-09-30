@@ -4,6 +4,7 @@
 #include "Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
 #include "Libs/UUID.hpp"
+#include "ThirdParty/xxHash/xxhash.h"
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <span>
@@ -137,12 +138,20 @@ struct ImageSubresourceLayers
     uint32_t layerCount = Remaining_Array_Layers;
 };
 
+struct ImageViewOption
+{
+    int baseMipLevel;
+    int levelCount;
+    int baseArrayLayer;
+    int layerCount;
+};
+
 class ImageView;
 class Image : public SafeReferenceable<Image>
 {
 public:
     Image(bool isGPUWrite) : uuid(), isGPUWrite(isGPUWrite) {}
-    virtual ~Image(){};
+    virtual ~Image() {};
     virtual void SetName(std::string_view name) = 0;
     virtual const std::string& GetName() = 0;
     virtual const ImageDescription& GetDescription() = 0;
@@ -155,6 +164,7 @@ public:
 
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
+    virtual ImageView& GetImageView(const ImageViewOption& option) = 0;
     virtual ImageLayout GetImageLayout() = 0;
 
     virtual const UUID& GetUUID()
@@ -167,3 +177,13 @@ protected:
     bool isGPUWrite;
 };
 } // namespace Gfx
+  //
+
+template <>
+struct std::hash<Gfx::ImageSubresourceRange>
+{
+    std::size_t operator()(Gfx::ImageSubresourceRange const& s) const noexcept
+    {
+        return XXH3_64bits(&s, sizeof(Gfx::ImageSubresourceRange));
+    }
+};

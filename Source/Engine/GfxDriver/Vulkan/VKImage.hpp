@@ -25,6 +25,7 @@ public:
     VKImage(VKImage&& other);
     ~VKImage() override;
     ImageView& GetDefaultImageView() override;
+    ImageView& GetImageView(const ImageViewOption& option) override;
     virtual VkImageView GetDefaultVkImageView();
     virtual VkImage GetImage()
     {
@@ -122,6 +123,7 @@ protected:
     ImageSubresourceRange GenerateDefaultSubresourceRange();
     void MakeVkObjects();
     void CreateImageView();
+    std::unordered_map<size_t, std::unique_ptr<VKImageView>> imageViews;
 
     friend class VKDriver;
 };

@@ -78,7 +78,7 @@ public:
 class CommandBuffer
 {
 public:
-    virtual ~CommandBuffer(){};
+    virtual ~CommandBuffer() {};
 
     virtual void BeginLabel(std::string_view label, float color[4]) = 0;
     virtual void EndLabel() = 0;
@@ -132,8 +132,18 @@ public:
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
 
-    virtual void SetTexture(ShaderBindingHandle name, int index, RG::ImageIdentifier id) = 0;
-    virtual void SetTexture(ShaderBindingHandle name, int index, Gfx::Image& image) = 0;
+    virtual void SetTexture(
+        ShaderBindingHandle name,
+        int index,
+        RG::ImageIdentifier id,
+        std::optional<ImageViewOption> imageViewOption = std::nullopt
+    ) = 0;
+    virtual void SetTexture(
+        ShaderBindingHandle name,
+        int index,
+        Gfx::Image& image,
+        std::optional<ImageViewOption> imageViewOption = std::nullopt
+    ) = 0;
     virtual void SetBuffer(ShaderBindingHandle name, int index, Gfx::Buffer& buffer) = 0;
 
     virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(
@@ -153,14 +163,18 @@ public:
     }
 
     // note: currently to correctly setup global binding, this function should be called before BindShaderProgram
-    void SetTexture(ShaderBindingHandle name, RG::ImageIdentifier id)
+    void SetTexture(
+        ShaderBindingHandle name, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
+    )
     {
-        SetTexture(name, 0, id);
+        SetTexture(name, 0, id, imageViewOption);
     }
 
-    void SetTexture(ShaderBindingHandle name, Gfx::Image& image)
+    void SetTexture(
+        ShaderBindingHandle name, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption = std::nullopt
+    )
     {
-        SetTexture(name, 0, image);
+        SetTexture(name, 0, image, imageViewOption);
     }
 
     void SetBuffer(ShaderBindingHandle name, Gfx::Buffer& buffer)
@@ -168,14 +182,18 @@ public:
         SetBuffer(name, 0, buffer);
     }
 
-    void SetTexture(std::string_view name, Gfx::Image& image)
+    void SetTexture(
+        std::string_view name, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption = std::nullopt
+    )
     {
-        SetTexture(ShaderBindingHandle(name), 0, image);
+        SetTexture(ShaderBindingHandle(name), 0, image, imageViewOption);
     }
 
-    void SetTexture(std::string_view name, RG::ImageIdentifier id)
+    void SetTexture(
+        std::string_view name, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
+    )
     {
-        SetTexture(ShaderBindingHandle(name), 0, id);
+        SetTexture(ShaderBindingHandle(name), 0, id, imageViewOption);
     }
 
     void SetBuffer(std::string_view name, Gfx::Buffer& buffer)

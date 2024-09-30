@@ -270,7 +270,9 @@ void VKCommandBuffer::PresentImage(VKImage* image)
     cmds.push_back(cmd);
 }
 
-void VKCommandBuffer::SetTexture(ShaderBindingHandle handle, int index, RG::ImageIdentifier id)
+void VKCommandBuffer::SetTexture(
+    ShaderBindingHandle handle, int index, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
+)
 {
     if (id.GetType() == RG::ImageIdentifier::Type::Image)
     {
@@ -279,6 +281,7 @@ void VKCommandBuffer::SetTexture(ShaderBindingHandle handle, int index, RG::Imag
         cmd.setTexture.handle = handle;
         cmd.setTexture.image = id.GetAsImage();
         cmd.setTexture.index = index;
+        cmd.setTexture.imageViewOption = imageViewOption;
 
         cmds.push_back(cmd);
     }
@@ -291,18 +294,22 @@ void VKCommandBuffer::SetTexture(ShaderBindingHandle handle, int index, RG::Imag
         cmd.setTexture.handle = handle;
         cmd.setTexture.image = image;
         cmd.setTexture.index = index;
+        cmd.setTexture.imageViewOption = imageViewOption;
 
         cmds.push_back(cmd);
     }
 }
 
-void VKCommandBuffer::SetTexture(ShaderBindingHandle handle, int index, Gfx::Image& image)
+void VKCommandBuffer::SetTexture(
+    ShaderBindingHandle handle, int index, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption
+)
 {
     VKCmd cmd{VKCmdType::SetTexture};
 
     cmd.setTexture.handle = handle;
     cmd.setTexture.image = &image;
     cmd.setTexture.index = index;
+    cmd.setTexture.imageViewOption = imageViewOption;
 
     cmds.push_back(cmd);
 }

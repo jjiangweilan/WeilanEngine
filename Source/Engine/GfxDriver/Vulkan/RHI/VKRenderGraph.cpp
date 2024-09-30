@@ -456,15 +456,14 @@ void Graph::GoThroughRenderPass(
         {
             globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
                 ResourceType::Image,
-                cmd.setTexture.image != nullptr ? cmd.setTexture.image->GetSRef() : nullptr
+                cmd.setTexture.image != nullptr ? cmd.setTexture.image->GetSRef() : nullptr,
+                cmd.setTexture.imageViewOption
             };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
-            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
-                ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] =
+                {ResourceType::Buffer, cmd.setBuffer.buffer->GetSRef(), std::nullopt};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -945,18 +944,14 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         else if (cmd.type == VKCmdType::SetTexture)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set texture");
-            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
-                ResourceType::Image,
-                cmd.setTexture.image->GetSRef()
-            };
+            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] =
+                {ResourceType::Image, cmd.setTexture.image->GetSRef(), cmd.setTexture.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
-            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] = {
-                ResourceType::Buffer,
-                cmd.setBuffer.buffer->GetSRef()
-            };
+            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] =
+                {ResourceType::Buffer, cmd.setBuffer.buffer->GetSRef(), std::nullopt};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -1526,7 +1521,8 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
             exeState.bindedDescriptorSets[index] = sourceSet;
             exeState.setResources[index].needUpdate = false;
 
-            // if a lower order set is being changed there is high chance that lower order set is being disturbed so we need to bind them again
+            // if a lower order set is being changed there is high chance that lower order set is being disturbed so we
+            // need to bind them again
             for (int i = index + 1; i < 4; ++i)
             {
                 exeState.bindedDescriptorSets[i] = VK_NULL_HANDLE;
@@ -1629,7 +1625,15 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
                             else if (isImageType)
                             {
                                 auto& res = std::get<SRef<Image>>(element.res);
-                                resource.SetImage(binding->resourceHandle, elementIndex, res.Get());
+                                if (element.imageViewOption.has_value())
+                                {
+                                    auto& imageView = res->GetImageView(*element.imageViewOption);
+                                    resource.SetImage(binding->resourceHandle, elementIndex, &imageView);
+                                }
+                                else
+                                {
+                                    resource.SetImage(binding->resourceHandle, elementIndex, res.Get());
+                                }
                             }
                         }
                     }

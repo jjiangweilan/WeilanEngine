@@ -43,9 +43,15 @@ public:
         return imageViewType;
     }
 
+    size_t GetHash() const
+    {
+        return hash;
+    }
+
 protected:
     VKImageView() = default;
 
+    size_t hash;
     VKImage* image;
     VkImageView handle = VK_NULL_HANDLE;
     ImageSubresourceRange subresourceRange;

@@ -106,6 +106,7 @@ struct VKSetTextureCmd
 {
     ShaderBindingHandle handle;
     Gfx::Image* image;
+    std::optional<ImageViewOption> imageViewOption;
     int index;
 };
 
@@ -337,7 +338,7 @@ class VKCommandBuffer : public CommandBuffer
 public:
     VKCommandBuffer(VK::RenderGraph::Graph* graph) : graph(graph) {}
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
-    ~VKCommandBuffer(){};
+    ~VKCommandBuffer() {};
 
     void BeginLabel(std::string_view label, float color[4]) override;
     void EndLabel() override;
@@ -377,8 +378,12 @@ public:
     void End() override {}
 
     void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp) override;
-    void SetTexture(ShaderBindingHandle handle, int index, RG::ImageIdentifier id) override;
-    void SetTexture(ShaderBindingHandle handle, int index, Gfx::Image& image) override;
+    void SetTexture(
+        ShaderBindingHandle handle, int index, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
+    ) override;
+    void SetTexture(
+        ShaderBindingHandle handle, int index, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption
+    ) override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
 
     void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) override;

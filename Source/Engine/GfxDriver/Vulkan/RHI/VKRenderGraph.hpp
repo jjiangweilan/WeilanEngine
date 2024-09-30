@@ -62,6 +62,7 @@ private:
     {
         ResourceType type;
         std::variant<SRef<Image>, SRef<Buffer>> res;
+        std::optional<ImageViewOption> imageViewOption = std::nullopt;
         bool IsNull()
         {
             bool isNull = false;

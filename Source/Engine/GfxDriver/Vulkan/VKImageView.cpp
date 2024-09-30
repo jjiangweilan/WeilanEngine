@@ -1,6 +1,7 @@
 #include "VKImageView.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "VKContext.hpp"
+#include "vulkan/vulkan_hash.hpp"
 
 namespace Gfx
 {
@@ -33,7 +34,8 @@ VKImageView::VKImageView(const CreateInfo& createInfo)
         VK_COMPONENT_SWIZZLE_IDENTITY,
         VK_COMPONENT_SWIZZLE_IDENTITY,
         VK_COMPONENT_SWIZZLE_IDENTITY,
-        VK_COMPONENT_SWIZZLE_IDENTITY};
+        VK_COMPONENT_SWIZZLE_IDENTITY
+    };
 
     VkImageSubresourceRange subresourceRange{
         .aspectMask = MapImageAspect(createInfo.subresourceRange.aspectMask),
@@ -46,11 +48,14 @@ VKImageView::VKImageView(const CreateInfo& createInfo)
     imageViewCreateInfo.subresourceRange = subresourceRange;
 
     VKContext::Instance()->objManager->CreateImageView(imageViewCreateInfo, handle);
+
+    auto c = vk::ImageViewCreateInfo(imageViewCreateInfo);
+    hash = std::hash<vk::ImageViewCreateInfo>()(c);
 }
 
 VKImageView::VKImageView(VKImageView&& other)
-    : image(std::exchange(other.image, nullptr)), handle(std::exchange(other.handle, VK_NULL_HANDLE)),
-      subresourceRange(other.subresourceRange), imageViewType(other.imageViewType){};
+    : hash(other.hash), image(std::exchange(other.image, nullptr)), handle(std::exchange(other.handle, VK_NULL_HANDLE)),
+      subresourceRange(other.subresourceRange), imageViewType(other.imageViewType) {};
 
 VkImageSubresourceRange VKImageView::GetVkSubresourceRange()
 {
