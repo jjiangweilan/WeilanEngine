@@ -44,9 +44,9 @@ public:
     {
         SetBuffer(ShaderBindingHandle(name), buffer);
     }
-    void SetImage(std::string_view name, Gfx::Image* buffer)
+    void SetImage(std::string_view name, Gfx::Image* image)
     {
-        SetImage(ShaderBindingHandle(name), buffer);
+        SetImage(ShaderBindingHandle(name), image);
     }
     void SetImage(std::string_view name, Gfx::ImageView* imageView)
     {

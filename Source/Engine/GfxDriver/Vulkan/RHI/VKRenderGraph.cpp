@@ -1529,10 +1529,6 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
                 exeState.setResources[i].needUpdate = true;
             }
         }
-        else
-        {
-            int i = 0;
-        }
     }
 }
 
@@ -1593,6 +1589,7 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
     {
         recordState.bindedProgram = cmd.bindShaderProgram.program;
         recordState.bindProgramIndex = visitIndex;
+
         auto& resource = globalResources[cmd.bindShaderProgram.program];
         auto& bindingMap = cmd.bindShaderProgram.program->GetShaderInfo().descriptorSetBindingMap;
         auto iter = bindingMap.find(0);

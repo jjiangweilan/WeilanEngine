@@ -5,7 +5,9 @@
  "name": "new material",
  "shader": "e4a2bc99-b3fc-5297-8832-fbca9a35fef7",
  "textureValues": {
-  "size": 0
+  "0_key": "skybox",
+  "0_value": "0ba1a3ed-03f6-4a53-83c3-0fb7bc1be3d1",
+  "size": 1
  },
  "ubos": {
   "0_key": "Params",
@@ -13,7 +15,9 @@
    "floats": {
     "0_key": "horizonToSkyMix",
     "0_value": 3.369999885559082,
-    "size": 1
+    "1_key": "useCubemap",
+    "1_value": 1.0,
+    "size": 2
    },
    "matrices": {
     "size": 0
@@ -36,7 +40,21 @@
     "size": 2
    }
   },
-  "size": 1
+  "1_key": "params",
+  "1_value": {
+   "floats": {
+    "0_key": "useCubemap",
+    "0_value": 0.0,
+    "size": 1
+   },
+   "matrices": {
+    "size": 0
+   },
+   "vectors": {
+    "size": 0
+   }
+  },
+  "size": 2
  },
  "uuid": "a9cdce1b-754b-52b8-b4d9-49e3efac83bf"
 }

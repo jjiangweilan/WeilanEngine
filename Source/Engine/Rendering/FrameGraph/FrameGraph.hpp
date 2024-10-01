@@ -21,15 +21,7 @@ class Graph : public Asset
     DECLARE_ASSET();
 
 public:
-    Graph()
-    {
-        SetName("New Frame Graph");
-#if ENGINE_EDITOR
-        ax::NodeEditor::Config config;
-        config.SettingsFile = "Frame Graph Editor.json";
-        graphContext = ax::NodeEditor::CreateEditor(&config);
-#endif
-    };
+    Graph();
     ~Graph()
     {
         for (auto& n : nodes)
@@ -194,6 +186,7 @@ private:
     Node* outputDepthImageNode = nullptr;
     RenderingData renderingData;
     RenderingContext renderingContext;
+    Texture* brdfPreintegral;
 
     std::unique_ptr<Gfx::Buffer> sceneInfoBuffer;
     std::unique_ptr<Gfx::Buffer> shaderGlobalBuffer;

@@ -47,15 +47,15 @@ void KtxExporter::Export(
 
     size_t offset = 0;
     const size_t formatByteSize = Gfx::MapImageFormatToByteSize(format);
-    for (int layer = 0; layer < createInfo.numLayers; ++layer)
+    int lw = width;
+    int lh = height;
+    for (int level = 0; level < createInfo.numLevels; ++level)
     {
-        for (int face = 0; face < createInfo.numFaces; ++face)
+        size_t mipSize = lw * lh * formatByteSize;
+        for (int layer = 0; layer < createInfo.numLayers; ++layer)
         {
-            int lw = width;
-            int lh = height;
-            for (int level = 0; level < createInfo.numLevels; ++level)
+            for (int face = 0; face < createInfo.numFaces; ++face)
             {
-                size_t mipSize = lw * lh * formatByteSize;
                 result = ktxTexture_SetImageFromMemory(ktxTexture(texture), level, layer, face, src + offset, mipSize);
                 if (result != KTX_SUCCESS)
                 {
@@ -63,11 +63,12 @@ void KtxExporter::Export(
                     return;
                 }
 
-                lw *= 0.5;
-                lh *= 0.5;
                 offset += mipSize;
             }
         }
+
+        lw *= 0.5;
+        lh *= 0.5;
     }
 
     if (enableCompression)

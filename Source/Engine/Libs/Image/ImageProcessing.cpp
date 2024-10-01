@@ -1,6 +1,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/Material.hpp"
 #include "Rendering/Shader.hpp"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "AssetDatabase/AssetDatabase.hpp"
@@ -74,7 +75,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     memcpy(output, readbackBuf->GetCPUVisibleAddress(), readbackSize);
 }
 
-void GenerateReflectanceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output)
+void GenerateReflectanceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output, int& mipLevels)
 {
     Gfx::ImageDescription imgDesc{};
     imgDesc.width = width;
@@ -95,7 +96,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     memcpy(sourceBuf->GetCPUVisibleAddress(), source, width * height * 4 * sizeof(float));
 
     const uint32_t cubemapSize = static_cast<uint32_t>(outputSize);
-    const uint32_t mipLevels = 5;
+    mipLevels = 5;
     imgDesc.width = cubemapSize;
     imgDesc.height = cubemapSize;
     imgDesc.isCubemap = true;
@@ -117,11 +118,15 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     };
     cmd->CopyBufferToImage(sourceBuf, srcImage, srcCopy);
 
-    cmd->SetTexture("_Src", *srcImage);
+    cmd->SetTexture("_EnvMap", *srcImage);
 
+    std::vector<std::unique_ptr<Material>> mats;
     for (int mip = 0; mip < mipLevels; ++mip)
     {
-        cmd->SetTexture("_LightCubemap", *dstCuebmap, Gfx::ImageViewOption{mip, 1, 0, 6});
+        mats.push_back(std::make_unique<Material>(compute));
+        Material* mat = mats.back().get();
+
+        mat->SetTexture("_LightCubemap", dstCuebmap.get(), Gfx::ImageViewOption{mip, 1, 0, 6});
         struct PushConstant
         {
             glm::vec4 texelSize;
@@ -132,7 +137,8 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         pc.texelSize = {1.0f / mipCubemapSize, 1.0f / mipCubemapSize, mipCubemapSize, mipCubemapSize};
         pc.mip = mip;
 
-        auto shaderProgram = compute->GetShaderProgram({"BRDF_IBL"});
+        auto shaderProgram = compute->GetShaderProgram({"LIGHT_IBL"});
+        cmd->BindResource(2, mat->GetShaderResource());
         cmd->SetPushConstant(shaderProgram, &pc);
         cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
         cmd->Dispatch(glm::ceil(mipCubemapSize / 8.0f), glm::ceil(mipCubemapSize / 8), 6);
@@ -160,7 +166,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
 
     GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
 
-    size_t readbackSize = cubemapSize * cubemapSize * 4 * 6 * sizeof(float);
+    size_t readbackSize = imgDesc.GetByteSize();
     output = new uint8_t[readbackSize];
     memcpy(output, readbackBuf->GetCPUVisibleAddress(), readbackSize);
 }

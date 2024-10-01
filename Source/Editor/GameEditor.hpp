@@ -57,6 +57,7 @@ private:
     bool createSceneWindow = false;
     bool surfelGIBaker = false;
     bool assetDatabaseWindow = false;
+    bool pbrBaker = false;
 
     InspectorBase* primaryInspector = nullptr;
     InspectorBase* secondaryInspector = nullptr;
@@ -94,5 +95,8 @@ private:
     void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
+
+    // other tools
+    void GeneratePBRResponseTexture();
 };
 } // namespace Editor

@@ -19,7 +19,7 @@ static bool IsGPUWrite(ImageUsageFlags usageFlags)
            ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
-VKImage::VKImage() : Image(false), imageView(nullptr) {};
+VKImage::VKImage() : Image(false), imageView(nullptr){};
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription),
       imageView(nullptr)

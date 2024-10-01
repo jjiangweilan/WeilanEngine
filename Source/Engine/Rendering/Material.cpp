@@ -39,7 +39,7 @@ Material::Material(ShaderBase* shader) : Material()
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-Material::~Material() {};
+Material::~Material(){};
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
@@ -49,18 +49,36 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
     SetDirty();
 }
 
-void Material::SetTexture(const std::string& param, Texture* texture)
+void Material::SetTexture(
+    const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
+)
 {
     textureValues[param] = texture;
     if (shaderResource != nullptr)
-        shaderResource->SetImage(param, texture->GetGfxImage());
+    {
+        if (imageViewOption.has_value())
+        {
+            shaderResource->SetImage(param, &texture->GetGfxImage()->GetImageView(*imageViewOption));
+        }
+        else
+        {
+            shaderResource->SetImage(param, texture->GetGfxImage());
+        }
+    }
     SetDirty();
 }
 
-void Material::SetTexture(const std::string& param, Gfx::Image* image)
+void Material::SetTexture(
+    const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption
+)
 {
     if (shaderResource != nullptr)
-        shaderResource->SetImage(param, image);
+    {
+        if (imageViewOption.has_value())
+            shaderResource->SetImage(param, &image->GetImageView(*imageViewOption));
+        else
+            shaderResource->SetImage(param, image);
+    }
     SetDirty();
 }
 

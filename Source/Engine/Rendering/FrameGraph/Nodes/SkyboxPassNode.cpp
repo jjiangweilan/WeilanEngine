@@ -14,7 +14,10 @@ class SkyboxPassNode : public Node
     DECLARE_FRAME_GRAPH_NODE(SkyboxPassNode)
     {
         SetCustomName("Skybox");
-        skyboxMat = (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/ProcedualSkybox.mat");
+        skyboxMat = std::make_unique<Material>((Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/ProcedualSkybox.shad"));
+        skyboxMat->SetFloat("Params", "horizonToSkyMix", 3.37);
+        skyboxMat->SetVector("Params", "sky_color", glm::vec4{0.14, 0.07, 0.569, 0});
+        skyboxMat->SetVector("Params", "horizon_color", glm::vec4{0.0399, 0.41, 0.37, 0});
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
@@ -98,7 +101,7 @@ class SkyboxPassNode : public Node
     }
 
 private:
-    Material* skyboxMat;
+    std::unique_ptr<Material> skyboxMat;
 
     std::unique_ptr<Gfx::Buffer> paramsBuffer;
 

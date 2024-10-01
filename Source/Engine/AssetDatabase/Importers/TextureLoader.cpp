@@ -43,6 +43,11 @@ void TextureLoader::Import()
         convertToReflectanceCubemap = false;
     }
 
+    if (convertToReflectanceCubemap)
+    {
+        generateMipmap = false;
+    }
+
     auto importedAssetPath = importDatabase->GetImportAssetPath(importFileUUID).replace_extension(".ktx");
 
     std::fstream f;
@@ -105,7 +110,7 @@ void TextureLoader::Import()
             {
                 uint8_t* output;
                 int cubemapSize = 1024;
-                Libs::Image::GenerateReflectanceCubemap((float*)loaded, width, height, cubemapSize, output);
+                Libs::Image::GenerateReflectanceCubemap((float*)loaded, width, height, cubemapSize, output, mipLevels);
                 delete[] loaded;
                 loaded = output;
                 width = cubemapSize;

@@ -4,6 +4,7 @@
 name : IBLBRDF
 features :
     - [ LIGHT_IBL, BRDF_IBL ]
+debug : true
 #endif
 
 #if COMP
@@ -14,14 +15,16 @@ layout(push_constant) uniform Params
     float cubemapMip;
 };
 
-layout(set = 0, binding = 0) uniform samplerCube _EnvMap;
+layout(set = 0, binding = 0) uniform sampler2D _EnvMap;
 #ifdef LIGHT_IBL
-layout(set = 0, binding = 1, rgba32f) writeonly uniform imageCube _LightCubemap;
+layout(set = 2, binding = 1, rgba32f) writeonly uniform imageCube _LightCubemap;
 #endif
 
 #ifdef BRDF_IBL
 layout(set = 0, binding = 1, rg32f) writeonly uniform image2D _Dst;
 #endif
+
+layout(local_size_x = 8, local_size_y = 8) in;
 
 vec3 GetDirFromCubeUV(vec2 uv, int faceIndex) {
     uv = 2.0 * uv - 1.0; // Normalize UV to range [-1, 1]
@@ -52,6 +55,7 @@ vec2 Hammersley(uint i, uint N)
 }
 
 #define PI 3.14159265359
+#define PI2 6.28318530718
 vec3 ImportanceSampleGGX(vec2 Xi, float roughness, vec3 N)
 {
     float a = roughness * roughness;
@@ -66,7 +70,7 @@ vec3 ImportanceSampleGGX(vec2 Xi, float roughness, vec3 N)
     vec3 TangentX = normalize(cross(UpVector, N));
     vec3 TangentY = cross(N, TangentX);
     // Tangent to world space
-    return TangentX * H.x + TangentY * H.y + N * H.z;
+    return normalize(TangentX * H.x + TangentY * H.y + N * H.z);
 }
 
 vec3 PrefilterEnvMap(float roughness, vec3 R)
@@ -74,7 +78,7 @@ vec3 PrefilterEnvMap(float roughness, vec3 R)
     vec3 N = R;
     vec3 V = R;
     vec3 PrefilteredColor = vec3(0);
-    const uint numSamples = 1024;
+    const uint numSamples = 8196;
     float TotalWeight = 0.0f;
     for (uint i = 0; i < numSamples; i++)
     {
@@ -84,7 +88,13 @@ vec3 PrefilterEnvMap(float roughness, vec3 R)
         float NoL = clamp(dot(N, L), 0, 1);
         if (NoL > 0)
         {
-            PrefilteredColor += textureLod(_EnvMap, L, 0).rgb * NoL;
+            // equirectangular conversion
+            L = normalize(L);
+            float samplePhi = atan(L.z, L.x) + PI;
+            float sampleTheta = acos(L.y);
+            vec2 srcUV = vec2(samplePhi / PI2, sampleTheta / PI);
+
+            PrefilteredColor += textureLod(_EnvMap, srcUV, 0).rgb * NoL;
             TotalWeight += NoL;
         }
     }
@@ -96,42 +106,43 @@ float pow2(float v)
     return v * v;
 }
 
-vec2 IntegrateBRDF(float roughness, float NoV)
-{
+float GDFG(float NoV, float NoL, float a) {
+    float a2 = a * a;
+    float GGXL = NoV * sqrt((-NoL * a2 + NoL) * NoL + a2);
+    float GGXV = NoL * sqrt((-NoV * a2 + NoV) * NoV + a2);
+    return (2 * NoL) / (GGXV + GGXL);
+}
+
+vec2 IntegrateBRDF(float NoV, float a) {
     vec3 V;
-    V.x = sqrt(1.0f - NoV * NoV); // sin
-    V.y = 0;
-    V.z = NoV; // cos
-    float A = 0;
-    float B = 0;
-    const uint NumSamples = 1024;
-    vec3 N = V;
-    for (uint i = 0; i < NumSamples; i++)
-    {
-        vec2 Xi = Hammersley(i, NumSamples);
-        vec3 H = ImportanceSampleGGX(Xi, roughness, N);
-        vec3 L = 2 * dot(V, H) * H - V;
+    V.x = sqrt(1.0f - NoV*NoV);
+    V.y = 0.0f;
+    V.z = NoV;
+
+    vec2 r = vec2(0.0f);
+    const vec3 N = vec3(0,0,1);
+    const int sampleCount = 1024;
+    for (uint i = 0; i < sampleCount; i++) {
+        vec2 Xi = Hammersley(i, sampleCount);
+        vec3 H = ImportanceSampleGGX(Xi, a, N);
+        vec3 L = 2.0f * dot(V, H) * H - V;
+
+        float VoH = clamp(dot(V, H), 0, 1);
         float NoL = clamp(L.z, 0, 1);
         float NoH = clamp(H.z, 0, 1);
-        float VoH = clamp(dot(V, H), 0, 1);
-        if (NoL > 0)
-        {
-            float k = pow2(roughness + 1) / 8;
-            float Gv = NoV / (NoV * (1 - k) + k);
-            float Gl = NoL / (NoL * (1 - k) + k);
-            float G = Gv * Gl;
 
-            float G_Vis = G * VoH / (NoH * NoV);
-            float Fc = pow(1 - VoH, 5);
-            A += (1 - Fc) * G_Vis;
-            B += Fc * G_Vis;
+        if (NoL > 0.0f) {
+            float G = GDFG(NoV, NoL, a);
+            float Gv = G * VoH / NoH;
+            float Fc = pow(1 - VoH, 5.0f);
+            r.x += Gv * (1 - Fc);
+            r.y += Gv * Fc;
         }
     }
-    return vec2(A, B) / NumSamples;
+    return r * (1.0f / sampleCount);
 }
 
 #if BRDF_IBL
-layout(local_size_x = 8, local_size_y = 8) in;
 #endif
 
 void main()
@@ -152,7 +163,7 @@ void main()
             1
         };
     vec3 val = PrefilterEnvMap(roughness[int(cubemapMip)], normal);
-    imageStore(_LightCubemap, ivec3(uv, gl_WorkGroupID.z), vec4(val, 1.0));
+    imageStore(_LightCubemap, ivec3(gl_GlobalInvocationID.xy, gl_WorkGroupID.z), vec4(val, 1.0));
     #endif
 
     #if BRDF_IBL

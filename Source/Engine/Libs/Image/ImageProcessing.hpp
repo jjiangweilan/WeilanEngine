@@ -33,23 +33,30 @@ void GenerateBoxFilteredMipmap(
     T* data = (T*)output;
 
     int layerOffset = 0;
-    for (int layer = 0; layer < layers; ++layer)
+    size_t firstLevelLayerSize = width * height * channels* sizeof(T);
+    for (int layer = 0; layer < layers; layer++)
     {
-        int preLevelWidth = width;
-        int preLevelHeight = height;
-        int preLevelOffset = 0;
-        int curLevelOffset = 0;
-        layerOffset = layer * perLayerElementCount;
+        memcpy(output + layerOffset, source + layer * firstLevelLayerSize , firstLevelLayerSize);
+        layerOffset += firstLevelLayerSize;
+    }
 
-        size_t firstLevelByteSize = width * height * sizeof(T) * channels;
-        memcpy(data + layerOffset, source + layer * firstLevelByteSize, firstLevelByteSize);
+    int preLevelWidth = width;
+    int preLevelHeight = height;
+    int preLevelOffset = 0;
+    int curLevelOffset = 0;
+    for (int i = 1; i < levels; i++)
+    {
+        int lw = preLevelWidth * 0.5f;
+        int lh = preLevelHeight * 0.5f;
+        int preLayerSize = preLevelWidth * preLevelHeight * channels;
+        int curLayerSize = lw * lh * channels;
 
-        for (int i = 1; i < levels; i++)
+        curLevelOffset = preLevelOffset + preLayerSize * layers;
+
+        int preLevelLayerOffset = 0;
+        int curLevelLayerOffset = 0;
+        for (int layer = 0; layer < layers; ++layer)
         {
-            int lw = preLevelWidth * 0.5f;
-            int lh = preLevelHeight * 0.5f;
-            curLevelOffset = preLevelOffset + preLevelWidth * preLevelHeight * channels;
-
             // 2x2 box filter
             for (int k = 0; k < lh; k++)
             {
@@ -61,38 +68,43 @@ void GenerateBoxFilteredMipmap(
                         int y = std::min(2 * k, preLevelHeight - 1);
                         int samples = 1;
 
-                        T sum = data[layerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c];
+                        T sum = data[preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c];
                         if (y + 1 < preLevelHeight)
                         {
-                            sum += data[layerOffset + preLevelOffset + ((y + 1) * preLevelWidth + x) * channels + c];
+                            sum += data
+                                [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + x) * channels + c];
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth)
                         {
-                            sum += data[layerOffset + preLevelOffset + (y * preLevelWidth + (x + 1)) * channels + c];
+                            sum += data
+                                [preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + (x + 1)) * channels + c];
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth && y + 1 < preLevelHeight)
                         {
-                            sum +=
-                                data[layerOffset + preLevelOffset + ((y + 1) * preLevelWidth + (x + 1)) * channels + c];
+                            sum += data
+                                [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + (x + 1)) * channels +
+                                 c];
                             samples += 1;
                         }
 
-                        data[layerOffset + curLevelOffset + (k * lw + j) * channels + c] = sum / samples;
+                        data[curLevelLayerOffset + curLevelOffset + (k * lw + j) * channels + c] = sum / samples;
                     }
                 }
             }
 
-            preLevelOffset = curLevelOffset;
-            preLevelWidth = lw;
-            preLevelHeight = lh;
+            preLevelLayerOffset += preLayerSize;
+            curLevelLayerOffset += curLayerSize;
         }
+        preLevelOffset = curLevelOffset;
+        preLevelWidth = lw;
+        preLevelHeight = lh;
     }
 }
 
 void GenerateIrradianceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output);
-void GenerateReflectanceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output);
+void GenerateReflectanceCubemap(float* source, int width, int height, int outputSize, uint8_t*& output, int& mipLevels);
 
 glm::vec3 GetDirFromCubeUV(glm::vec2 uv, int faceIndex);
 glm::vec2 DirToEquirectangularUV(glm::vec3 dir);

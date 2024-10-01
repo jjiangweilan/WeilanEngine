@@ -27,6 +27,8 @@ layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_cla
 #endif
 layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;
+#define specularBRDFIntegrationMap specularBRDFIntegrationMap_clamp
+layout(set = SET_GLOBAL, binding = 19) uniform sampler2D specularBRDFIntegrationMap;
 layout(set = SET_GLOBAL, binding = 20) uniform sampler s_point_clamp;
 
 #ifdef G_PCF

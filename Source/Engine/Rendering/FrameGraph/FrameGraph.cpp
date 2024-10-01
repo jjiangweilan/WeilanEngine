@@ -1,4 +1,5 @@
 #include "FrameGraph.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Texture.hpp"
@@ -14,6 +15,19 @@
 namespace Rendering::FrameGraph
 {
 DEFINE_ASSET(Graph, "C18AC918-98D0-41BF-920D-DE0FD7C06029", "fgraph");
+
+Graph::Graph()
+{
+
+    SetName("New Frame Graph");
+#if ENGINE_EDITOR
+    ax::NodeEditor::Config config;
+    config.SettingsFile = "Frame Graph Editor.json";
+    graphContext = ax::NodeEditor::CreateEditor(&config);
+#endif
+
+    brdfPreintegral = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/BRDFPreintegral.ktx");
+}
 
 Node& Graph::AddNode(const NodeBlueprint& bp)
 {
@@ -317,6 +331,9 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
         cmd.SetTexture("diffuseCube", *diffuseCube->GetGfxImage());
     if (specularCube)
         cmd.SetTexture("specularCube", *specularCube->GetGfxImage());
+
+    if (brdfPreintegral)
+        cmd.SetTexture("specularBRDFIntegrationMap", *brdfPreintegral->GetGfxImage());
 
     renderingData.terrain = scene.GetRenderingScene().GetTerrain();
     GameObject* camGo = camera.GetGameObject();

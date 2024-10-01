@@ -54,8 +54,12 @@ public:
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
-    void SetTexture(const std::string& param, Gfx::Image* image);
-    void SetTexture(const std::string& param, Texture* texture);
+    void SetTexture(
+        const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
+    );
+    void SetTexture(
+        const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
+    );
     void SetTexture(const std::string& param, std::nullptr_t);
     void EnableFeature(const std::string& name);
     void DisableFeature(const std::string& name);
