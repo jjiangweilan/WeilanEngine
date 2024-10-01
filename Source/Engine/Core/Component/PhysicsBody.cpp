@@ -194,13 +194,13 @@ void PhysicsBody::Init()
     {
         case PhysicsBodyShapes::Box: SetAsBox(gameObject->GetScale()); break;
         case PhysicsBodyShapes::Mesh:
-        {
-            if (!SetAsMeshRenderer())
             {
-                SetAsBox(scale);
+                if (!SetAsMeshRenderer())
+                {
+                    SetAsBox(scale);
+                }
+                break;
             }
-            break;
-        }
         case PhysicsBodyShapes::Sphere: SetAsSphere(gameObject->GetScale().x); break;
     }
 }
@@ -385,6 +385,7 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
 void PhysicsBody::SetShape(PhysicsBodyShapes shape)
 {
     auto scale = gameObject->GetScale();
+    this->shapeType = shape;
     switch (shape)
     {
         case PhysicsBodyShapes::Box: SetAsBox(scale); break;
