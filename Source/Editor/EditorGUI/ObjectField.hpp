@@ -35,6 +35,10 @@ public:
         if (ImGui::BeginDragDropTarget())
         {
             auto payload = ImGui::AcceptDragDropPayload("object");
+            if (payload == nullptr)
+            {
+                payload = ImGui::AcceptDragDropPayload("game object");
+            }
             if (payload && payload->IsDelivery())
             {
                 if (T* c = dynamic_cast<T*>(*(Object**)payload->Data))
