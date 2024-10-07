@@ -126,6 +126,8 @@ void Camera::Serialize(Serializer* s) const
     s->Serialize("projectionMatrix", projectionMatrix);
     s->Serialize("viewMatrix", viewMatrix);
     s->Serialize("frameGraph", frameGraph);
+    s->Serialize("diffuseEnv", diffuseEnv.Get());
+    s->Serialize("specularEnv", specularEnv.Get());
 }
 void Camera::Deserialize(Serializer* s)
 {
@@ -133,6 +135,29 @@ void Camera::Deserialize(Serializer* s)
     s->Deserialize("projectionMatrix", projectionMatrix);
     s->Deserialize("viewMatrix", viewMatrix);
     s->Deserialize("frameGraph", frameGraph);
+    s->Deserialize(
+        "diffuseEnv",
+        nullptr,
+        [this](void* data)
+        {
+            if (Texture* tex = (Texture*)data)
+            {
+                diffuseEnv = tex->GetSRef<Texture>();
+            }
+        }
+    );
+
+    s->Deserialize(
+        "specularEnv",
+        nullptr,
+        [this](void* data)
+        {
+            if (Texture* tex = (Texture*)data)
+            {
+                specularEnv = tex->GetSRef<Texture>();
+            }
+        }
+    );
 }
 
 void Camera::SetProjectionMatrix(const glm::mat4& proj)

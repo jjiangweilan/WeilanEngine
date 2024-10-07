@@ -60,6 +60,7 @@ public:
     void SetTexture(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
     );
+    void SetBuffer(const std::string& param, Gfx::Buffer* buffer);
     void SetTexture(const std::string& param, std::nullptr_t);
     void EnableFeature(const std::string& name);
     void DisableFeature(const std::string& name);
@@ -144,6 +145,7 @@ private:
 
     std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, Texture*> textureValues;
+    std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;
     std::unique_ptr<Gfx::Buffer> buffer;
     std::shared_ptr<Schedule> schedule;

@@ -11,6 +11,10 @@ depth:
 #endif
 
 #if VERT
+    layout(push_constant) uniform Transform
+    {
+        mat4 model;
+    } pconst;
     layout(location = 0) in vec3 i_Position;
     layout(location = 1) in vec3 i_Normal;
     layout(location = 2) in vec4 i_Color_16;

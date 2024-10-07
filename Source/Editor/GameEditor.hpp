@@ -95,8 +95,5 @@ private:
     void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
-
-    // other tools
-    void GeneratePBRResponseTexture();
 };
 } // namespace Editor

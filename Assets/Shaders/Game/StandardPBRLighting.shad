@@ -263,14 +263,14 @@ void main()
     }
 
     // specular cube light
-    float dotNV = dot(v, n);
+    float dotNV = clamp(dot(v, n), 0, 1);
     vec3 f0 = baseColor * metallic;
     float lod             = GetMipLevelFromRoughness(roughness);
     vec3 refVec = reflect(-v, n);
     vec3 prefilteredColor = textureLod(specularCube, refVec, lod).xyz;
     vec2 envBRDF          = texture(specularBRDFIntegrationMap, vec2(dotNV, roughness)).xy;
-    vec3 energyCompensation = 1.0 + f0 * (1.0 / envBRDF.x - 1.0);
-    vec3 indirectSpecular = prefilteredColor * (f0 * envBRDF.x + envBRDF.y) * energyCompensation;
+    // vec3 energyCompensation = 1.0 + f0 * (1.0 / envBRDF.x - 1.0);
+    vec3 indirectSpecular = prefilteredColor * (f0 * envBRDF.x + envBRDF.y);// * energyCompensation;
 
     // diffuse cube light
     float ao = texture(aoMap, i_UV).x;

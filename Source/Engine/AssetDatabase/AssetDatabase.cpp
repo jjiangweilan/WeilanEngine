@@ -185,7 +185,8 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                 while (!resolves.empty())
                 {
                     auto& toresolve = resolves.back();
-                    toresolve.target = resolved;
+                    if (toresolve.target != nullptr)
+                        *toresolve.target = resolved;
                     if (toresolve.callback)
                         toresolve.callback(resolved);
 
@@ -245,7 +246,8 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         {
             for (auto& resolve : iter->second)
             {
-                resolve.target = results[i];
+                if (resolve.target != nullptr)
+                    *resolve.target = results[i];
                 if (resolve.callback)
                 {
                     resolve.callback(results[i]);
@@ -260,137 +262,137 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
     return results;
 }
 
-//Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
+// Asset* AssetDatabase::LoadAsset(std::filesystem::path path)
 //{
-//    // find the asset if it's already imported
-//    auto assetData = assets.GetAssetData(path);
-//    auto absoluteAssetPath = assetDirectory / path;
-//    if (assetData)
-//    {
-//        // override the asset path because this asset may be an internal asset
-//        absoluteAssetPath = assetData->GetAssetAbsolutePath();
-//        auto a = assetData->GetAsset();
-//        if (a)
-//            return a;
-//    }
+//     // find the asset if it's already imported
+//     auto assetData = assets.GetAssetData(path);
+//     auto absoluteAssetPath = assetDirectory / path;
+//     if (assetData)
+//     {
+//         // override the asset path because this asset may be an internal asset
+//         absoluteAssetPath = assetData->GetAssetAbsolutePath();
+//         auto a = assetData->GetAsset();
+//         if (a)
+//             return a;
+//     }
 //
-//    if (!std::filesystem::exists(absoluteAssetPath))
-//        return nullptr;
+//     if (!std::filesystem::exists(absoluteAssetPath))
+//         return nullptr;
 //
-//    // this asset is going to be loaded from disk, start the profiler
-//    // SCOPED_PROFILER(path.string());
+//     // this asset is going to be loaded from disk, start the profiler
+//     // SCOPED_PROFILER(path.string());
 //
-//    // see if the asset is an external asset(ktx, glb...), if so, start importing it
-//    std::filesystem::path ext = absoluteAssetPath.extension();
-//    auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
+//     // see if the asset is an external asset(ktx, glb...), if so, start importing it
+//     std::filesystem::path ext = absoluteAssetPath.extension();
+//     auto newAsset = AssetRegistry::CreateAssetByExtension(ext.string());
 //
-//    if (newAsset != nullptr)
-//    {
-//        Asset* asset = newAsset.get();
+//     if (newAsset != nullptr)
+//     {
+//         Asset* asset = newAsset.get();
 //
-//        if (newAsset->IsExternalAsset())
-//        {
-//            newAsset->LoadFromFile(absoluteAssetPath.string().c_str());
-//            if (assetData)
-//            {
-//                assetData->SetAsset(std::move(newAsset));
-//            }
-//            else
-//            {
-//                std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-//                ad->SaveToDisk(projectRoot);
-//                assets.Add(std::move(ad));
-//            }
-//        }
-//        else
-//        {
-//            std::ifstream f(absoluteAssetPath, std::ios::binary);
-//            if (f.is_open() && f.good())
-//            {
-//                size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
-//                std::vector<uint8_t> binary(fileSize);
-//                f.read((char*)binary.data(), fileSize);
-//                SerializeReferenceResolveMap resolveMap;
-//                JsonSerializer ser(binary, &resolveMap);
-//                newAsset->Deserialize(&ser);
+//         if (newAsset->IsExternalAsset())
+//         {
+//             newAsset->LoadFromFile(absoluteAssetPath.string().c_str());
+//             if (assetData)
+//             {
+//                 assetData->SetAsset(std::move(newAsset));
+//             }
+//             else
+//             {
+//                 std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+//                 ad->SaveToDisk(projectRoot);
+//                 assets.Add(std::move(ad));
+//             }
+//         }
+//         else
+//         {
+//             std::ifstream f(absoluteAssetPath, std::ios::binary);
+//             if (f.is_open() && f.good())
+//             {
+//                 size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
+//                 std::vector<uint8_t> binary(fileSize);
+//                 f.read((char*)binary.data(), fileSize);
+//                 SerializeReferenceResolveMap resolveMap;
+//                 JsonSerializer ser(binary, &resolveMap);
+//                 newAsset->Deserialize(&ser);
 //
-//                if (assetData)
-//                {
-//                    // this needs to be done after importing becuase if not we don't have internal game object's name to
-//                    // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
-//                    // happen before reference resolve so that it has the correct UUID
-//                    assetData->SetAsset(std::move(newAsset));
-//                }
-//                // a new asset needs to be recored/imported in assetDatabase
-//                else
-//                {
-//                    std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
-//                    ad->SaveToDisk(projectRoot);
-//                    assets.Add(std::move(ad));
-//                }
+//                 if (assetData)
+//                 {
+//                     // this needs to be done after importing becuase if not we don't have internal game object's name
+//                     to
+//                     // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+//                     // happen before reference resolve so that it has the correct UUID
+//                     assetData->SetAsset(std::move(newAsset));
+//                 }
+//                 // a new asset needs to be recored/imported in assetDatabase
+//                 else
+//                 {
+//                     std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path,
+//                     projectRoot); ad->SaveToDisk(projectRoot); assets.Add(std::move(ad));
+//                 }
 //
-//                const auto& managedObjectCounters = ser.GetManagedObjects();
-//                this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
+//                 const auto& managedObjectCounters = ser.GetManagedObjects();
+//                 this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
 //
-//                ResolveSerializerReference(ser, resolveMap);
-//            }
-//        }
+//                 ResolveSerializerReference(ser, resolveMap);
+//             }
+//         }
 //
-//        // see if there is any reference need to be resolved to this object
-//        auto iter = referenceResolveMap.find(asset->GetUUID());
-//        if (iter != referenceResolveMap.end())
-//        {
-//            for (auto& resolve : iter->second)
-//            {
-//                resolve.target = asset;
-//                if (resolve.callback)
-//                {
-//                    resolve.callback(asset);
-//                }
-//            }
-//            referenceResolveMap.erase(iter);
-//        }
+//         // see if there is any reference need to be resolved to this object
+//         auto iter = referenceResolveMap.find(asset->GetUUID());
+//         if (iter != referenceResolveMap.end())
+//         {
+//             for (auto& resolve : iter->second)
+//             {
+//                 resolve.target = asset;
+//                 if (resolve.callback)
+//                 {
+//                     resolve.callback(asset);
+//                 }
+//             }
+//             referenceResolveMap.erase(iter);
+//         }
 //
-//        asset->OnLoadingFinished();
-//        return asset;
-//    }
+//         asset->OnLoadingFinished();
+//         return asset;
+//     }
 //
-//    return nullptr;
-//}
+//     return nullptr;
+// }
 //
-//Asset* AssetDatabase::LoadAssetByID(const UUID& uuid)
+// Asset* AssetDatabase::LoadAssetByID(const UUID& uuid)
 //{
-//    auto assetData = assets.GetAssetData(uuid);
-//    if (assetData)
-//    {
-//        auto asset = assetData->GetAsset();
-//        if (!asset)
-//        {
-//            asset = LoadAsset(assetData->GetAssetPath());
-//        }
+//     auto assetData = assets.GetAssetData(uuid);
+//     if (assetData)
+//     {
+//         auto asset = assetData->GetAsset();
+//         if (!asset)
+//         {
+//             asset = LoadAsset(assetData->GetAssetPath());
+//         }
 //
-//        if (asset)
-//        {
-//            if (asset->GetUUID() == uuid)
-//            {
-//                return asset;
-//            }
-//            else
-//            {
-//                auto internalAssets = asset->GetInternalAssets();
-//                auto iter = std::find_if(
-//                    internalAssets.begin(),
-//                    internalAssets.end(),
-//                    [&uuid](Asset* a) { return a->GetUUID() == uuid; }
-//                );
-//                if (iter != internalAssets.end())
-//                    return *iter;
-//            }
-//        }
-//    }
+//         if (asset)
+//         {
+//             if (asset->GetUUID() == uuid)
+//             {
+//                 return asset;
+//             }
+//             else
+//             {
+//                 auto internalAssets = asset->GetInternalAssets();
+//                 auto iter = std::find_if(
+//                     internalAssets.begin(),
+//                     internalAssets.end(),
+//                     [&uuid](Asset* a) { return a->GetUUID() == uuid; }
+//                 );
+//                 if (iter != internalAssets.end())
+//                     return *iter;
+//             }
+//         }
+//     }
 //
-//    return nullptr;
-//}
+//     return nullptr;
+// }
 
 Asset* AssetDatabase::LoadAssetByID(const UUID& uuid, bool forceReimport)
 {
@@ -569,11 +571,11 @@ void AssetDatabase::LoadEngineInternal()
         [](std::filesystem::path& path) { return path.extension() == ".shad"; }
     );
     std::vector<std::filesystem::path> shaderPathes(importPathes.begin(), shaderIter);
-    for (auto& p : shaderPathes)
-    {
-        LoadAsset(p);
-    }
-    // LoadAssets(shaderPathes);
+    // for (auto& p : shaderPathes)
+    // {
+    //     LoadAsset(p);
+    // }
+    LoadAssets(shaderPathes);
     Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/SceneLit.shad");
     Shader::SetDefault(standardShader);
     Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");
@@ -674,7 +676,8 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
         while (!resolves.empty())
         {
             auto& toresolve = resolves.back();
-            toresolve.target = resolved;
+            if (toresolve.target != nullptr)
+                *toresolve.target = resolved;
             if (toresolve.callback)
                 toresolve.callback(resolved);
 
@@ -819,7 +822,8 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     {
         for (auto& resolve : iter->second)
         {
-            resolve.target = asset;
+            if (resolve.target != nullptr)
+                *resolve.target = asset;
             if (resolve.callback)
             {
                 resolve.callback(asset);

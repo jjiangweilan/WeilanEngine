@@ -9,6 +9,10 @@ ShaderPass GBuffer
 name: Editor/PrimitiveShape
 #endif
 
+layout(push_constant) uniform Transform
+{
+    mat4 model;
+} pconst;
 #if VERT
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;

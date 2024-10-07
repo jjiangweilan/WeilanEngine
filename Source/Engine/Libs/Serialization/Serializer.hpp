@@ -45,14 +45,14 @@ struct HasUUIDContained<T<U>> : std::true_type
 struct SerializeReferenceResolve
 {
     SerializeReferenceResolve(
-        void*& target,
+        void** target,
         const UUID& targetUUID,
         const ReferenceResolveCallback& callback,
         int** managedObjectRefCounter = nullptr
     )
         : target(target), targetUUID(targetUUID), callback(callback),
           managedObjectRefCounter(managedObjectRefCounter){};
-    void*& target;
+    void** target = nullptr;
     UUID targetUUID;
     ReferenceResolveCallback callback;
     int** managedObjectRefCounter;
@@ -117,6 +117,7 @@ public:
     void Deserialize(std::string_view name, T*& val);
     template <HasUUID T>
     void Deserialize(std::string_view name, T*& val, const ReferenceResolveCallback& callback);
+    void Deserialize(std::string_view name, std::nullptr_t, const ReferenceResolveCallback& callback);
 
     template <HasUUID T>
     void Serialize(std::string_view name, Ref<T> val);
@@ -426,7 +427,7 @@ void Serializer::Deserialize(std::string_view name, T*& val)
     val = nullptr;
     if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
-        (*resolveCallbacks)[uuid].emplace_back((void*&)val, uuid, nullptr);
+        (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, nullptr);
     }
 }
 
@@ -438,7 +439,7 @@ void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceReso
     val = nullptr;
     if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
-        (*resolveCallbacks)[uuid].emplace_back((void*&)val, uuid, callback);
+        (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, callback);
     }
 }
 

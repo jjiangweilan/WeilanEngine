@@ -55,7 +55,6 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("rotateSpeed", rotateSpeed);
     s->Deserialize("jumpImpulse", jumpImpulse);
 }
-PhysicsBody* otherBodyID{};
 
 void PlayerController::PrePhysicsTick()
 {
@@ -101,7 +100,7 @@ void PlayerController::HandleInput()
 
     if (mx != 0 || my != 0)
     {
-        auto forward = cameraGO->GetForward();
+        auto forward = -cameraGO->GetForward();
         auto right = cameraGO->GetRight();
 
         // mute y
@@ -256,7 +255,7 @@ void PlayerController::Tick()
         // set camera lookat character
         auto cameraGO = target->GetGameObject();
         glm::vec3 cameraPos = cameraGO->GetPosition();
-        auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
-        cameraGO->SetRotation(lookAtQuat);
+        auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
+        cameraGO->SetLocalRotation(lookAtQuat);
     }
 }

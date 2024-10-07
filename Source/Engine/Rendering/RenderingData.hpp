@@ -47,6 +47,7 @@ struct RenderingData
     glm::ivec2 screenSize;
     Camera* mainCamera;
     Terrain* terrain;
+    RenderingScene* renderingScene;
     SceneInfo* sceneInfo;
     DrawList* drawList;
     Gfx::CommandBuffer* cmd;

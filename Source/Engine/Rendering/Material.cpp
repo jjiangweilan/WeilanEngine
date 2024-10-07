@@ -39,7 +39,7 @@ Material::Material(ShaderBase* shader) : Material()
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
-Material::~Material(){};
+Material::~Material() {};
 
 void Material::SetTexture(const std::string& param, std::nullptr_t)
 {
@@ -47,6 +47,15 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
     if (shaderResource != nullptr)
         shaderResource->Remove(param);
     SetDirty();
+}
+
+void Material::SetBuffer(const std::string& param, Gfx::Buffer* buffer)
+{
+    bufferValues[param] = buffer;
+    if (shaderResource != nullptr)
+    {
+        shaderResource->SetBuffer(param, buffer);
+    }
 }
 
 void Material::SetTexture(

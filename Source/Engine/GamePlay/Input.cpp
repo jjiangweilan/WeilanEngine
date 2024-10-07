@@ -55,6 +55,22 @@ L2, 11 up, 12 down, 13 left, 14 right, 15 central pad, 16 mute
         {
             keyboard.space = pressing;
         }
+        else if (event.key.keysym.scancode == SDL_SCANCODE_A)
+        {
+            leftJoyAxis.x = pressing ? -1 : 0;
+        }
+        else if (event.key.keysym.scancode == SDL_SCANCODE_D)
+        {
+            leftJoyAxis.x = pressing ? 1 : 0;
+        }
+        else if (event.key.keysym.scancode == SDL_SCANCODE_W)
+        {
+            leftJoyAxis.y = pressing ? -1 : 0;
+        }
+        else if (event.key.keysym.scancode == SDL_SCANCODE_S)
+        {
+            leftJoyAxis.y = pressing ? 1 : 0;
+        }
     }
 }
 

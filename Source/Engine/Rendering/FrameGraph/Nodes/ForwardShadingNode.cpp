@@ -1,6 +1,8 @@
 #include "../NodeBlueprint.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
+#include "Core/Scene/RenderingScene.hpp"
+#include "Rendering/Renderers/GrassSurfaceRenderer.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/Shader.hpp"
 #include <spdlog/spdlog.h>
@@ -39,6 +41,11 @@ class ForwardShadingNode : public Node
     {
         auto& cmd = *renderingData.cmd;
 
+        for (auto grassSurface : renderingData.renderingScene->GetGrassSurface())
+        {
+            grassSurfaceRenderer.DispatchCompute(*grassSurface, cmd);
+        }
+
         auto desc = input.color->GetValue<AttachmentProperty>().desc;
 
         uint32_t width = desc.GetWidth();
@@ -54,6 +61,11 @@ class ForwardShadingNode : public Node
         mainPass.SetAttachment(0, input.color->GetValue<AttachmentProperty>().id);
         mainPass.SetAttachment(1, input.depth->GetValue<AttachmentProperty>().id);
         cmd.BeginRenderPass(mainPass, clearValues);
+
+        for (auto grassSurface : renderingData.renderingScene->GetGrassSurface())
+        {
+            grassSurfaceRenderer.Draw(*grassSurface, cmd);
+        }
 
         RenderingUtils::DrawGraphics(cmd);
         // draw scene objects
@@ -74,6 +86,8 @@ class ForwardShadingNode : public Node
     }
 
 private:
+    GrassSurfaceRenderer grassSurfaceRenderer;
+
     Gfx::RG::RenderPass fogGenerationPass = Gfx::RG::RenderPass::SingleColor();
     Shader* volumetricFogShader;
     Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::Default(

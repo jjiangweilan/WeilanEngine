@@ -444,7 +444,8 @@ void Graph::GoThroughRenderPass(
         {
             ScheduleBindShaderProgram(cmd, visitIndex);
         }
-        else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed)
+        else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed ||
+                 cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
             FlushAllBindedSetUpdate(shaderImageSampleIgnoreList, barrierCount);
         }
@@ -1013,6 +1014,32 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                         cmd.draw.instanceCount,
                         cmd.draw.firstVertex,
                         cmd.draw.firstInstance
+                    );
+                    break;
+                }
+            case VKCmdType::DrawIndirect:
+                {
+                    TryBindShader(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    vkCmdDrawIndirect(
+                        vkcmd,
+                        static_cast<VKBuffer*>(cmd.drawIndirect.buffer)->GetHandle(),
+                        cmd.drawIndirect.offset,
+                        cmd.drawIndirect.drawCount,
+                        cmd.drawIndirect.stride
+                    );
+                    break;
+                }
+            case VKCmdType::DrawIndexedIndirect:
+                {
+                    TryBindShader(vkcmd);
+                    UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    vkCmdDrawIndexedIndirect(
+                        vkcmd,
+                        static_cast<VKBuffer*>(cmd.drawIndexedIndirect.buffer)->GetHandle(),
+                        cmd.drawIndexedIndirect.offset,
+                        cmd.drawIndexedIndirect.drawCount,
+                        cmd.drawIndexedIndirect.stride
                     );
                     break;
                 }

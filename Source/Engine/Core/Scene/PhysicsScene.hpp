@@ -154,12 +154,12 @@ class MyBodyActivationListener : public JPH::BodyActivationListener
 public:
     virtual void OnBodyActivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
-        spdlog::info("A body got activated");
+        // spdlog::info("A body got activated");
     }
 
     virtual void OnBodyDeactivated(const JPH::BodyID& inBodyID, JPH::uint64 inBodyUserData) override
     {
-        spdlog::info("A body went to sleep");
+        // spdlog::info("A body went to sleep");
     }
 };
 

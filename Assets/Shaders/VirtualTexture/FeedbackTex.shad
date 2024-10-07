@@ -7,6 +7,10 @@ name: VirtualTexture/FeedbackTex
 #endif
 
 #if VERT
+    layout(push_constant) uniform Transform
+    {
+        mat4 model;
+    } pconst;
     layout(location = 0) in vec3 i_Position;
     layout(location = 2) in vec2 i_VtCoord;
 

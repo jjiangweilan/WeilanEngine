@@ -9,11 +9,6 @@
 #define SET_OBJECT 3
 #define M_PI 3.1415926535897932384626433832795
 
-layout( push_constant ) uniform Transform
-{
-    mat4 model;
-} pconst;
-
 #define SCENE_INFO_BINDING 0
 #include "Common/SceneInfo.glsl"
 

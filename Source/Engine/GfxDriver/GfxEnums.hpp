@@ -122,8 +122,12 @@ enum class ImageFormat
     BC3_SRGB_Block,
     B10G11R11_UFloat_Pack32,
     A2B10G10R10_UNorm,
+    R8_UNorm,
     Invalid
 };
+
+ImageFormat GetImageFormat(int channelBits, int channels, bool linear);
+
 ImageFormat MapStringToImageFormat(std::string_view name);
 const char* MapImageFormatToString(ImageFormat format);
 

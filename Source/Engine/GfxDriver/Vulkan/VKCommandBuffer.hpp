@@ -26,11 +26,22 @@ struct VKDrawIndexedCmd
     uint32_t firstIndex;
     uint32_t vertexOffset;
     uint32_t firstInstance;
+};
 
-    void operator()(VkCommandBuffer cmd)
-    {
-        vkCmdDrawIndexed(cmd, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-    }
+struct VKDrawIndirectCmd
+{
+    Gfx::Buffer* buffer;
+    size_t offset;
+    uint32_t drawCount;
+    uint32_t stride;
+};
+
+struct VKDrawIndexedIndirectCmd
+{
+    Gfx::Buffer* buffer;
+    size_t offset;
+    uint32_t drawCount;
+    uint32_t stride;
 };
 
 struct VKDrawCmd
@@ -39,11 +50,6 @@ struct VKDrawCmd
     uint32_t instanceCount;
     uint32_t firstVertex;
     uint32_t firstInstance;
-
-    void operator()(VkCommandBuffer cmd)
-    {
-        vkCmdDraw(cmd, vertexCount, instanceCount, firstVertex, firstInstance);
-    }
 };
 
 struct VKBeginRenderPassCmd
@@ -262,6 +268,8 @@ enum class VKCmdType
 {
     None,
     DrawIndexed,
+    DrawIndexedIndirect,
+    DrawIndirect,
     Draw,
     BeginRenderPass,
     RGBeginRenderPass,
@@ -298,6 +306,8 @@ struct VKCmd
     union
     {
         VKDrawIndexedCmd drawIndexed;
+        VKDrawIndirectCmd drawIndirect;
+        VKDrawIndexedIndirectCmd drawIndexedIndirect;
         VKDrawCmd draw;
         VKBeginRenderPassCmd beginRenderPass;
         VKRGBeginRenderPassCmd rgBeginRenderPass;
@@ -347,6 +357,8 @@ public:
     void DrawIndexed(
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
     ) override;
+    void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
+    void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
     void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;
 

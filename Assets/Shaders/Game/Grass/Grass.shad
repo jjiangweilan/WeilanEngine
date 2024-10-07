@@ -1,0 +1,65 @@
+#version 460
+
+#if CONFIG
+name : Game / Grass
+cull : none
+#endif
+
+#include "Common/Common.glsl"
+#include "Common/DeferredShading.glsl"
+#if VERT
+
+#include "Lib/Util.glsl"
+
+layout(push_constant) uniform PushConstant
+{
+    vec4 positionWS;
+};
+layout(location = 0) in vec3 i_Position;
+layout(location = 1) in vec3 i_Normal;
+
+layout(location = 0) out vec3 o_Normal;
+
+float random(in vec2 _st) {
+    return fract(sin(dot(_st.xy,
+                vec2(12.9898, 78.233))) *
+            43758.5453123);
+}
+
+void main()
+{
+    vec3 pos = i_Position;
+
+    const float PI = 3.14159265359;
+    const float grassInterval = 1 / 16.0f;
+    uint y = gl_InstanceID / 50;
+    uint x = gl_InstanceID - y * 50;
+    vec2 localPos = vec2(x, y);
+    float rval = random(localPos);
+    localPos *= grassInterval;
+    mat2 rot = Rotate2D(rval * 2 * PI + gl_InstanceID);
+    pos.xz = rot * pos.xz;
+    pos.xz += localPos;
+
+    gl_Position = scene.viewProjection * vec4(pos + positionWS.xyz, 1);
+    o_Normal = i_Normal;
+    o_Normal.xz = transpose(inverse(rot)) * o_Normal.xz;
+}
+#endif
+
+#if FRAG
+layout(location = 0) in vec3 i_Normal;
+
+layout(location = 0) out vec4 o_Lighting;
+layout(location = 1) out vec4 o_Albedo;
+void main()
+{
+    vec3 n = normalize(i_Normal);
+    vec3 color = vec3(0.1, 0.7, 0.05);
+    if (scene.lightCount.x > 0)
+    {
+        color *= abs(mix(0.6, .8, dot(n, scene.lights[0].position.xyz)));
+    }
+    o_Lighting = vec4(color, 1.0);
+}
+#endif

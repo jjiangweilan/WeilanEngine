@@ -1,0 +1,39 @@
+#version 460
+
+#if CONFIG
+name : Game / GrassDispatcher
+#endif
+
+#if COMP
+
+struct GrassDispatcherArgs
+{
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+};
+
+layout(local_size_x = 256) in;
+layout(set = 2, binding = 0) writeonly buffer GrassDispatchArgsBuf
+{
+    GrassDispatcherArgs args;
+};
+
+void main()
+{
+    if (gl_GlobalInvocationID.x == 0)
+    {
+        args.indexCount = 17 * 3;
+        args.instanceCount = 10;
+        args.firstIndex = 0;
+        args.vertexOffset = 0;
+        args.firstInstance = 0;
+    }
+
+    barrier();
+
+    atomicAdd(args.instanceCount, 1);
+}
+#endif

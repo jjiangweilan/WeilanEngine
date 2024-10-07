@@ -19,6 +19,10 @@ vertFeatures:
 #endif
 
 #if VERT
+layout(push_constant) uniform Transform
+{
+    mat4 model;
+} pconst;
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
 #ifdef _Vertex_Tangent
@@ -151,17 +155,18 @@ ShaderPass LightFieldProbeBake
 name: Game/SceneLit/LightFieldProbeBake
 #endif
 
+
 #if VERT
+layout(push_constant) uniform Transform
+{
+    mat4 model;
+} pconst;
 
 // input
 layout(location = 0) in vec3 i_Position;
 layout(location = 1) in vec3 i_Normal;
 layout(location = 2) in vec4 i_Tangent;
 layout(location = 3) in vec2 i_UV;
-layout(push_constant) uniform Transform
-{
-    mat4 model;
-} pconst;
 
 // output
 layout(location = 0) out vec3 o_PositionWS;

@@ -14,6 +14,10 @@ struct v2f {
     vec2 uv;
 };
 
+layout(push_constant) uniform Transform
+{
+    mat4 model;
+} pconst;
 #if VERT
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;

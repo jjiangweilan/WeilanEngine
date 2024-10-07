@@ -36,6 +36,7 @@ void TextureLoader::Import()
     bool generateMipmap = option.value("generateMipmap", false);
     bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
     bool convertToReflectanceCubemap = option.value("convertToReflectanceCubemap", false);
+    bool linearFormat = option.value("linearFormat", false);
     bool convertToCubemap = option.value("convertToCubemap", false);
     if (convertToCubemap)
     {
@@ -157,43 +158,10 @@ void TextureLoader::Import()
                 }
             }
 
-            Gfx::ImageFormat format = Gfx::ImageFormat::R8G8B8A8_SRGB;
-            if (desiredChannels == 4)
-            {
-                if (isHDR)
-                    format = Gfx::ImageFormat::R32G32B32A32_SFloat;
-                else if (is16Bit)
-                    format = Gfx::ImageFormat::R16G16B16A16_SFloat;
-                else
-                    format = Gfx::ImageFormat::R8G8B8A8_SRGB;
-            }
-            else if (desiredChannels == 3)
-            {
-                if (isHDR)
-                    format = Gfx::ImageFormat::R32G32B32_SFloat;
-                else if (is16Bit)
-                    format = Gfx::ImageFormat::R16G16B16_SFloat;
-                else
-                    format = Gfx::ImageFormat::R8G8B8_SRGB;
-            }
-            else if (desiredChannels == 2)
-            {
-                if (isHDR)
-                    format = Gfx::ImageFormat::R32G32_SFloat;
-                else if (is16Bit)
-                    format = Gfx::ImageFormat::R16G16_SFloat;
-                else
-                    format = Gfx::ImageFormat::R8G8_SRGB;
-            }
-            else if (desiredChannels == 1)
-            {
-                if (isHDR)
-                    format = Gfx::ImageFormat::R32_SFloat;
-                else if (is16Bit)
-                    format = Gfx::ImageFormat::R16_SFloat;
-                else
-                    format = Gfx::ImageFormat::R8_SRGB;
-            }
+            auto filename = absoluteAssetPath.filename().string();
+            int bits = 8;
+
+            Gfx::ImageFormat format = Gfx::GetImageFormat(bits, desiredChannels, linearFormat);
 
             //
             // note: this "converToCube ? 1 : layers" prevents creating array of cubeMaps, but ktx separate the

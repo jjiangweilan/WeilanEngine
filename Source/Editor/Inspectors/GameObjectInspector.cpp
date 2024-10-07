@@ -1,5 +1,6 @@
 #include "../EditorState.hpp"
 #include "Core/Component/Camera.hpp"
+#include "Core/Component/GrassSurface.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/LightFieldProbes.hpp"
 #include "Core/Component/LuaScript.hpp"
@@ -47,7 +48,8 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<PlayerController>();
             if (ImGui::MenuItem("LightFieldProbes"))
                 target->AddComponent<LightFieldProbes>();
-            auto c = ObjectRegistry::GetComponentTypeNames();
+            if (ImGui::MenuItem("GrassSurface"))
+                target->AddComponent<GrassSurface>();
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();

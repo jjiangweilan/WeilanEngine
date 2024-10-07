@@ -319,6 +319,7 @@ void Graph::Execute(Gfx::CommandBuffer& cmd, Scene& scene, Camera& camera)
         return;
     ENGINE_BEGIN_PROFILE("FrameGraph: Prepare");
     renderingData.mainCamera = &camera;
+    renderingData.renderingScene = &scene.GetRenderingScene();
     renderingData.sceneInfo = &sceneInfo;
     renderingData.cmd = &cmd;
 

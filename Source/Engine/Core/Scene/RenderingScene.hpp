@@ -8,11 +8,12 @@
 class MeshRenderer;
 class SceneEnvironment;
 class Terrain;
+class GrassSurface;
 class Cloud;
 class RenderingScene
 {
 public:
-    RenderingScene(){};
+    RenderingScene() {};
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
@@ -60,6 +61,21 @@ public:
         clouds.push_back(&renderingObject);
     }
 
+    void AddGrassSurface(GrassSurface& grassSurface)
+    {
+        grassSurfaces.push_back(&grassSurface);
+    }
+
+    void RemoveGrassSurface(GrassSurface& grassSurface)
+    {
+        auto iter = std::find(grassSurfaces.begin(), grassSurfaces.end(), &grassSurface);
+        if (iter != grassSurfaces.end())
+        {
+            std::swap(*iter, grassSurfaces.back());
+            grassSurfaces.pop_back();
+        }
+    }
+
     void RemoveRenderer(MeshRenderer& renderingObject)
     {
         auto iter = std::find(meshRenderers.begin(), meshRenderers.end(), &renderingObject);
@@ -80,6 +96,11 @@ public:
         }
     }
 
+    std::span<GrassSurface*> GetGrassSurface()
+    {
+        return grassSurfaces;
+    }
+
     std::span<MeshRenderer*> GetMeshRenderers()
     {
         return meshRenderers;
@@ -97,6 +118,7 @@ public:
 
 private:
     std::vector<MeshRenderer*> meshRenderers;
+    std::vector<GrassSurface*> grassSurfaces;
     std::vector<Cloud*> clouds;
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;

@@ -32,6 +32,31 @@ void VKCommandBuffer::EndRenderPass()
     cmds.push_back(cmd);
 }
 
+void VKCommandBuffer::DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
+{
+    VKCmd cmd{VKCmdType::DrawIndirect};
+
+    cmd.drawIndirect.buffer = buffer;
+    cmd.drawIndirect.offset = offset;
+    cmd.drawIndirect.drawCount = drawCount;
+    cmd.drawIndirect.stride = stride;
+
+    cmds.push_back(cmd);
+}
+
+void VKCommandBuffer::DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
+{
+
+    VKCmd cmd{VKCmdType::DrawIndexedIndirect};
+
+    cmd.drawIndirect.buffer = buffer;
+    cmd.drawIndirect.offset = offset;
+    cmd.drawIndirect.drawCount = drawCount;
+    cmd.drawIndirect.stride = stride;
+
+    cmds.push_back(cmd);
+}
+
 void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
     VKCmd cmd{VKCmdType::Draw};

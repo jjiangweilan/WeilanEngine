@@ -113,6 +113,8 @@ ImageFormat MapStringToImageFormat(std::string_view name)
         return ImageFormat::R16G16B16_SInt;
     else if (name == "R16G16B16_SFloat")
         return ImageFormat::R16G16B16_SFloat;
+    else if (name == "R8_UNorm")
+        return ImageFormat::R8_UNorm;
 
     return ImageFormat::Invalid;
 }
@@ -207,6 +209,8 @@ const char* MapImageFormatToString(ImageFormat format)
         return "R16G16B16_SInt";
     else if (format == ImageFormat::R16G16B16_SFloat)
         return "R16G16B16_SFloat";
+    else if (format == ImageFormat::R8_UNorm)
+        return "R8_UNorm";
 
     return "Invalid";
 }
@@ -227,6 +231,7 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
         case ImageFormat::B8G8R8A8_UNorm:
         case ImageFormat::B8G8R8A8_SRGB: return 4;
         case ImageFormat::R8G8B8A8_SRGB: return 4;
+        case ImageFormat::R8_UNorm: return 1;
         case ImageFormat::R8G8B8_SRGB: return 3;
         case ImageFormat::R8G8_SRGB: return 2;
         case ImageFormat::R8_SRGB: return 1;
@@ -295,6 +300,53 @@ bool IsDepthStencilFormat(ImageFormat format)
 bool IsColoFormat(ImageFormat format)
 {
     return !IsDepthStencilFormat(format);
+}
+
+ImageFormat GetImageFormat(int channelBits, int channels, bool linear)
+{
+    ImageFormat format = Gfx::ImageFormat::Invalid;
+    if (channels == 4)
+    {
+        if (channelBits == 32 && linear)
+            format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+        else if (channelBits == 16 && linear)
+            format = Gfx::ImageFormat::R16G16B16A16_SFloat;
+        else if (channelBits == 8 && !linear)
+            format = Gfx::ImageFormat::R8G8B8A8_SRGB;
+    }
+    else if (channels == 3)
+    {
+        if (channelBits == 32 && linear)
+            format = Gfx::ImageFormat::R32G32B32_SFloat;
+        else if (channelBits == 16 && linear)
+            format = Gfx::ImageFormat::R16G16B16_SFloat;
+        else if (channelBits == 8 && !linear)
+            format = Gfx::ImageFormat::R8G8B8_SRGB;
+        else if (channelBits == 8 && linear)
+            format = Gfx::ImageFormat::R8G8B8A8_UNorm;
+    }
+    else if (channels == 2)
+    {
+        if (channelBits == 32 && linear)
+            format = Gfx::ImageFormat::R32G32_SFloat;
+        else if (channelBits == 16 && linear)
+            format = Gfx::ImageFormat::R16G16_SFloat;
+        else if (channelBits == 8 && !linear)
+            format = Gfx::ImageFormat::R8G8_SRGB;
+    }
+    else if (channels == 1)
+    {
+        if (channelBits == 32 && linear)
+            format = Gfx::ImageFormat::R32_SFloat;
+        else if (channelBits == 16 && linear)
+            format = Gfx::ImageFormat::R16_SFloat;
+        else if (channelBits == 8 && !linear)
+            format = Gfx::ImageFormat::R8_SRGB;
+        else if (channelBits == 8 && linear)
+            format = Gfx::ImageFormat::R8_UNorm;
+    }
+
+    return format;
 }
 
 } // namespace Gfx

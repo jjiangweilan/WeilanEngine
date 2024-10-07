@@ -85,7 +85,8 @@ void GameLoop::Play()
 
     isPlaying = true;
 
-    for (auto go : scene->GetAllGameObjects())
+    auto gos = scene->GetAllGameObjects();
+    for (auto go : gos)
     {
         go->Awake();
     }

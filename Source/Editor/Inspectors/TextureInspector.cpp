@@ -37,6 +37,7 @@ public:
         {
             target->SetName(cname);
         }
+        ImGui::Text("%s", target->GetUUID().ToString().c_str());
 
         auto width = target->GetDescription().img.width;
         auto height = target->GetDescription().img.height;
@@ -68,6 +69,7 @@ public:
         ImGui::NewLine();
         auto meta = AssetDatabase::Singleton()->GetAssetMeta(*target);
         auto options = meta.value("importOption", nlohmann::json::object());
+        bool linearFormat = options.value("linearFormat", false);
         bool generateMipmap = options.value("generateMipmap", false);
         bool convertToIrradianceCubemap = options.value("convertToIrradianceCubemap", false);
         bool converToCubemap = options.value("convertToCubemap", false);
@@ -76,6 +78,7 @@ public:
         ImGui::Text("Import Options");
         ImGui::Separator();
         bool metaChanged = false;
+        metaChanged |= ImGui::Checkbox("linearFormat", &linearFormat);
         metaChanged |= ImGui::Checkbox("generateMipmap", &generateMipmap);
         metaChanged |= ImGui::Checkbox("convertToCubemap", &converToCubemap);
         metaChanged |= ImGui::Checkbox("convertToIrradianceCubemap", &convertToIrradianceCubemap);
@@ -86,6 +89,7 @@ public:
             meta["importOption"]["convertToCubemap"] = converToCubemap;
             meta["importOption"]["convertToIrradianceCubemap"] = convertToIrradianceCubemap;
             meta["importOption"]["convertToReflectanceCubemap"] = convertToReflectanceCubemap;
+            meta["importOption"]["linearFormat"] = linearFormat;
         }
         if (metaChanged)
             AssetDatabase::Singleton()->SetAssetMeta(*target, meta);

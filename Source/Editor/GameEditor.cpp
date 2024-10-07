@@ -8,6 +8,7 @@
 #include "Inspectors/Inspector.hpp"
 #include "Platform/FileExplore.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
+#include "Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "ThirdParty/imgui/implot.h"
@@ -773,7 +774,9 @@ void GameEditor::GUIPass()
 
         if (ImGui::Button("Bake"))
         {
-            GeneratePBRResponseTexture();
+            Rendering::GenerateBRDFResponseTexture(
+                (AssetDatabase::Singleton()->GetProjectRoot() / "Assets/PBRResponse.ktx").string().c_str()
+            );
         }
 
         ImGui::End();
@@ -1306,65 +1309,6 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
             activeWindows.push_back(std::move(w));
         }
     }
-}
-
-void GameEditor::GeneratePBRResponseTexture()
-{
-    Gfx::ImageDescription imgDesc{};
-    imgDesc.width = 512;
-    imgDesc.height = 512;
-    imgDesc.depth = 1;
-    imgDesc.isCubemap = false;
-    imgDesc.mipLevels = 1;
-    imgDesc.format = Gfx::ImageFormat::R32G32_SFloat;
-    imgDesc.depth = 1;
-    imgDesc.multiSampling = Gfx::MultiSampling::Sample_Count_1;
-
-    std::unique_ptr<Gfx::Image> dst = GetGfxDriver()->CreateImage(
-        imgDesc,
-        Gfx::ImageUsage::TransferDst | Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage
-    );
-
-    std::unique_ptr<Gfx::CommandBuffer> cmd = GetGfxDriver()->CreateCommandBuffer();
-
-    ComputeShader* compute =
-        (ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
-    Gfx::ShaderProgram* program = compute->GetShaderProgram({"BRDF_IBL"});
-
-    glm::vec4 texelSize = {1.0f / imgDesc.width, 1.0f / imgDesc.height, imgDesc.width, imgDesc.height};
-    cmd->SetPushConstant(program, &texelSize);
-    cmd->SetTexture("_Dst", *dst);
-    cmd->BindShaderProgram(program, program->GetDefaultShaderConfig());
-    cmd->Dispatch(glm::ceil(imgDesc.width / 8), glm::ceil(imgDesc.height / 8), 1);
-
-    Gfx::BufferImageCopyRegion regions[] = {
-        {.bufferOffset = 0,
-         .layers = {Gfx::ImageAspect::Color, 0, 0, 1},
-         .offset = {0, 0, 0},
-         .extend = {static_cast<uint32_t>(imgDesc.width), static_cast<uint32_t>(imgDesc.height), 1}}
-    };
-    auto readbackBuf = GetGfxDriver()->CreateBuffer(imgDesc.GetByteSize(), Gfx::BufferUsage::Transfer_Dst, true);
-    cmd->CopyImageToBuffer(dst, readbackBuf, regions);
-
-    GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
-
-    uint8_t* output = new uint8_t[imgDesc.GetByteSize()];
-    memcpy(output, readbackBuf->GetCPUVisibleAddress(), imgDesc.GetByteSize());
-    Exporters::KtxExporter::Export(
-        (AssetDatabase::Singleton()->GetProjectRoot() / "Assets/PBRResponse.ktx").string().c_str(),
-        output,
-        imgDesc.width,
-        imgDesc.height,
-        1,
-        2,
-        1,
-        1,
-        false,
-        false,
-        imgDesc.format,
-        false
-    );
-    delete[] output;
 }
 
 void GameEditor::AssetDatabaseViewer()
