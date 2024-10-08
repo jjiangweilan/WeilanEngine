@@ -97,7 +97,7 @@ void GameView::Init()
                 if (!fg->IsCompiled())
                     fg->Compile();
 
-                if (fg->IsCompiled())
+                if (!fg->IsCompiled())
                 {
                     spdlog::info("FrameGraph initial compiling failed");
                 }
