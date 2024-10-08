@@ -1,5 +1,6 @@
 #include "../../EditorState.hpp"
 #include "../Inspector.hpp"
+#include "Rendering/Graphics.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "EditorGUI/ObjectField.hpp"
@@ -72,6 +73,8 @@ public:
         {
             target->SetFrameGraph(nullptr);
         }
+
+        Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix());
     }
 
 private:
