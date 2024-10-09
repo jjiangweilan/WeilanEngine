@@ -7,20 +7,12 @@
 
 DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
 
-static std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
-    nlohmann::json& j,
-    int nodeIndex,
-    std::unordered_map<int, Mesh*>& meshes,
-    std::unordered_map<int, Material*>& materials,
-    Material* defaultMaterial
-);
-
 static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
-    nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, Material* defaultMaterial
+    nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, GameObject* parent, Material* defaultMaterial
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
@@ -125,16 +117,14 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
 
     std::vector<std::unique_ptr<GameObject>> rlt;
     auto temp = gameObject.get();
+    if (parent)
+        temp->SetParent(parent);
     rlt.push_back(std::move(gameObject));
     if (nodeJson.contains("children"))
     {
         for (int i : nodeJson["children"])
         {
-            auto children = CreateGameObjectFromNode(j, i, meshes, defaultMaterial);
-            for (auto& c : children)
-            {
-                c->SetParent(temp);
-            }
+            auto children = CreateGameObjectFromNode(j, i, meshes, temp, defaultMaterial);
             rlt.insert(rlt.end(), std::make_move_iterator(children.begin()), std::make_move_iterator(children.end()));
         }
     }
@@ -422,11 +412,8 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 
         for (int nodeIndex : sceneJson["nodes"])
         {
-            auto gameObjectsCreated = CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, GetDefaultMaterial());
-            for (auto& go : gameObjectsCreated)
-            {
-                go->SetParent(rootGameObject.get());
-            }
+            auto gameObjectsCreated =
+                CreateGameObjectFromNode(jsonData, nodeIndex, toOurMesh, rootGameObject.get(), GetDefaultMaterial());
 
             gameObjects.insert(
                 gameObjects.end(),

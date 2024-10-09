@@ -72,6 +72,6 @@ private:
     std::unique_ptr<Material> material = nullptr;
 
     std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
-        nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, Material* defaultMaterial
+        nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, GameObject* parent, Material* defaultMaterial
     );
 };
