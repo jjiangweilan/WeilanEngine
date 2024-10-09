@@ -86,6 +86,11 @@ void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
     fov = fovy;
     near = n;
     far = f;
+
+    float right = GetProjectionRight() * 1000;
+    float top = GetProjectionTop() * 1000;
+    projectionMatrix = glm::orthoLH_ZO(-right, right, -top, top, n, f);
+    projectionMatrix[1] *= -1;
 }
 
 const glm::mat4& Camera::GetProjectionMatrix() const

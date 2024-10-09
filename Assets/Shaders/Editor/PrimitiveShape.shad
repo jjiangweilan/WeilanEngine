@@ -34,7 +34,12 @@ void main()
     o_UV = i_UV;
     o_PositionOS = i_Position;
 
-    gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
+    // o_PositionWS = ivec3(o_PositionWS.xyz / vec3(0.05)) * vec3(0.05);
+
+    vec4 pos = scene.viewProjection * vec4(o_PositionWS, 1);
+    vec2 pixelSize = vec2(2) / (ivec2(scene.screenSize.xy * vec2(0.1)));
+    pos.xy = ivec2(pos.xy / pixelSize) * pixelSize + 0.5 * pixelSize;
+    gl_Position = pos;
 }
 #endif
 
