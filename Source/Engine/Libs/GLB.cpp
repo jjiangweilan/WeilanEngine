@@ -208,7 +208,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     // indexBuffer
     indices.resize(indexCount);
     if (indexBufferType == Gfx::IndexBufferType::UInt32)
-        memcpy(indices.data(), binaryData + indexBufferOffset, indexBufferSize);
+        memcpy(indices.data(), binaryData + indexBufferOffset,sizeof(uint32_t) * indexCount);
     else
     {
         for (int i = 0; i < indexCount; ++i)
