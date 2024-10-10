@@ -72,6 +72,8 @@ void TextureLoader::Import()
             // image information
             bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
             bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
+            if (isHDR || is16Bit)
+                linearFormat = true;
             int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 
             uint8_t* loaded = nullptr;
@@ -160,6 +162,10 @@ void TextureLoader::Import()
 
             auto filename = absoluteAssetPath.filename().string();
             int bits = 8;
+            if (isHDR)
+                bits = 32;
+            if (is16Bit)
+                bits = 16;
 
             Gfx::ImageFormat format = Gfx::GetImageFormat(bits, desiredChannels, linearFormat);
 
