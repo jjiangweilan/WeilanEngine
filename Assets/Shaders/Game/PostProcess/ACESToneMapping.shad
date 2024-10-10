@@ -1,0 +1,31 @@
+#version 460
+
+#if CONFIG
+name : Game / PostProcess / ACESToneMapping
+#endif
+
+#include "Utils/FullScreen.glsl"
+
+#if FRAG
+
+layout(location = 0) in vec2 uv;
+layout(location = 0) out vec4 oColor;
+
+layout(set = 0) uniform sampler2D source;
+
+vec3 ACESFilm(vec3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0, 1);
+}
+
+void main()
+{
+    oColor = vec4(ACESFilm(texture(source, uv).xyz), 1.0);
+}
+
+#endif
