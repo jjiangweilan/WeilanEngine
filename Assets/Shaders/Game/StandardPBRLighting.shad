@@ -151,6 +151,16 @@ float PointLightAttenuation(float distance, float t1, float t2)
         return 0;
 }
 
+// Real Shading in Unreal Engine 4
+float PointLightInverseSquareFalloff(float distance, float lightRadius)
+{
+    float dis_light = distance / lightRadius;
+    dis_light *= dis_light;
+    dis_light *= dis_light;
+    const float artisticControll = 1.0f;
+    return pow2(clamp(1 - dis_light, 0, 1)) / (distance * distance + artisticControll);
+}
+
 #define OCCLUDER_SEARCH_ITS 100
 vec3 ParallaxShadowReprojection(vec3 P1, vec3 L1, vec3 L0)
 { 
@@ -230,7 +240,8 @@ void main()
         kd *= 1 - metallic;
 
         vec3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
-        float attenuation = lightPos.a == 0 ? 1 : PointLightAttenuation(distance(lightPos.xyz, positionWS.xyz), scene.lights[i].pointLightTerm1, scene.lights[i].pointLightTerm2);
+        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  scene.lights[i].pointLightTerm2);
+// scene.lights[i].pointLightTerm1,;
 
         vec3 lighting = light * (kd * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
         // possible solution https://bruop.github.io/ibl/

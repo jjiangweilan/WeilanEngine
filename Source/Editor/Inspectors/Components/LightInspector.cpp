@@ -37,16 +37,10 @@ public:
 
         if (light->GetLightType() == LightType::Point)
         {
-            float v0 = light->GetPointLightLinear();
-            if (ImGui::DragFloat("point light intensity 1", &v0))
+            float v1 = light->GetPointLightDistance();
+            if (ImGui::DragFloat("point light distance", &v1))
             {
-                light->SetPointLightLinear(v0);
-            }
-
-            float v1 = light->GetPointLightQuadratic();
-            if (ImGui::DragFloat("point light intensity 2", &v1))
-            {
-                light->SetPointLightQuadratic(v1);
+                light->SetPointLightDistance(v1);
             }
         }
 

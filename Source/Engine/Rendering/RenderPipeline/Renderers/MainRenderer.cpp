@@ -161,7 +161,7 @@ void MainRenderer::ProcessLights(Scene& gameScene, RenderingData& renderingData)
                     glm::vec3 pos = model[3];
                     sceneInfo.lights[i].position = {pos, 1};
                     sceneInfo.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
-                    sceneInfo.lights[i].pointLightTerm2 = lights[i]->GetPointLightQuadratic();
+                    sceneInfo.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
                     break;
                 }
         }

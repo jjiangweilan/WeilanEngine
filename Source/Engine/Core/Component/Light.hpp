@@ -68,7 +68,7 @@ public:
         this->pointLightTerm1 = t;
     }
 
-    void SetPointLightQuadratic(float t)
+    void SetPointLightDistance(float t)
     {
         this->pointLightTerm2 = t;
     }
@@ -78,7 +78,7 @@ public:
         return pointLightTerm1;
     }
 
-    float GetPointLightQuadratic()
+    float GetPointLightDistance()
     {
         return pointLightTerm2;
     }
