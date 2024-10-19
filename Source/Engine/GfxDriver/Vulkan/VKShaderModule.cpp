@@ -103,20 +103,14 @@ VkFormat MapFormat(const std::string& str, const std::string& name)
 
 VKShaderModule::VKShaderModule(
     const std::string& name,
-    const unsigned char* unoptimizedCode,
-    uint32_t unoptimizedCodeByteSize,
-    const unsigned char* code,
-    uint32_t codeByteSize,
+    std::vector<uint32_t>& spv,
+    nlohmann::json& reflection,
     bool vertInterleaved,
     const ShaderConfig& config
 )
     : vertInterleaved(vertInterleaved), gpuProperties(GetGPU()->physicalDeviceProperties)
 {
-    spirv_cross::CompilerReflection compilerReflection(
-        (const uint32_t*)unoptimizedCode,
-        unoptimizedCodeByteSize / sizeof(uint32_t)
-    );
-    nlohmann::json jsonInfo = nlohmann::json::parse(compilerReflection.compile());
+    nlohmann::json& jsonInfo = reflection;
 
     // Create shader modules
     if (jsonInfo["entryPoints"].size() > 1)
@@ -128,8 +122,8 @@ VKShaderModule::VKShaderModule(
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.flags = 0;
-    createInfo.codeSize = codeByteSize;
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
+    createInfo.codeSize = spv.size() * sizeof(uint32_t);
+    createInfo.pCode = reinterpret_cast<const uint32_t*>(spv.data());
     VKContext::Instance()->objManager->CreateShaderModule(createInfo, shaderModule);
 
     jsonInfo["spvPath"] = name;

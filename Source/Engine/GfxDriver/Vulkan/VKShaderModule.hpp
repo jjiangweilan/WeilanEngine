@@ -33,10 +33,8 @@ public:
     // should be the engine standard)
     VKShaderModule(
         const std::string& name,
-        const unsigned char* unoptimizedCode,
-        uint32_t unoptimizedCodeByteSize,
-        const unsigned char* code,
-        uint32_t codeByteSize,
+        std::vector<uint32_t>& spv,
+        nlohmann::json& reflection,
         bool vertInterleaved,
         const ShaderConfig& config
     );

@@ -39,7 +39,7 @@ public:
         std::shared_ptr<const ShaderConfig> config,
         VKContext* context,
         const std::string& name,
-        CompiledSpv& compiledSpv
+        ShaderProgramCreateInfo& createInfo
     );
 
     VKShaderProgram(const VKShaderProgram& other) = delete;

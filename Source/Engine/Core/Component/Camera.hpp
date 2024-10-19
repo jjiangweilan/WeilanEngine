@@ -8,6 +8,7 @@ namespace Rendering::FrameGraph
 {
 class Graph;
 }
+
 class Camera : public Component
 {
     DECLARE_OBJECT();

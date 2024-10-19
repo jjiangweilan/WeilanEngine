@@ -109,7 +109,7 @@ ShaderFeatureBitmask ShaderBase::GetShaderFeatureBitmask(
     ShaderFeatureBitmask id = 0;
     for (auto& f : enabledFeature)
     {
-        id = id | shaderPasses[shaderPassIndex]->featureToBitMask[f];
+        id = id | shaderPasses[shaderPassIndex]->featureToBitmask[f];
     }
 
     return id;
@@ -235,8 +235,8 @@ bool Shader::LoadFromFile(const char* path)
         {
             try
             {
-                shaderPass->shaderPrograms[iter.first] =
-                    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+                // shaderPass->shaderPrograms[iter.first] =
+                //     GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
             }
             catch (std::exception e)
             {
@@ -245,7 +245,7 @@ bool Shader::LoadFromFile(const char* path)
         }
 
         shaderPass->name = shaderPassName;
-        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPass->featureToBitmask = compiler.GetFeatureToBitMask();
         newShaderPasses.push_back(std::move(shaderPass));
     }
 
@@ -259,12 +259,12 @@ bool Shader::LoadFromFile(const char* path)
         includedFilesSet.insert(includedFiles.begin(), includedFiles.end());
         for (auto& iter : compiler.GetCompiledSpvs())
         {
-            shaderPass->shaderPrograms[iter.first] =
-                GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+            //shaderPass->shaderPrograms[iter.first] =
+            //    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
         }
 
         shaderPass->name = compiler.GetName();
-        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPass->featureToBitmask = compiler.GetFeatureToBitMask();
         shaderPass->cachedShaderProgram = nullptr;
         newShaderPasses.push_back(std::move(shaderPass));
     }
@@ -305,13 +305,13 @@ bool ComputeShader::LoadFromFile(const char* path)
         auto& includedFiles = compiler.GetIncludedFiles();
         for (auto& iter : compiler.GetCompiledSpvs())
         {
-            shaderPass->shaderPrograms[iter.first] =
-                GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
+            //shaderPass->shaderPrograms[iter.first] =
+            //    GetGfxDriver()->CreateShaderProgram(compiler.GetName(), compiler.GetConfig(), iter.second);
         }
 
         this->name = compiler.GetName();
 
-        shaderPass->featureToBitMask = compiler.GetFeatureToBitMask();
+        shaderPass->featureToBitmask = compiler.GetFeatureToBitMask();
         shaderPasses.clear();
         shaderPasses.push_back(std::move(shaderPass));
 

@@ -201,11 +201,11 @@ void VKDriver::ForceSyncResources()
 }
 
 std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
-    const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
+    const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
 )
 {
     std::scoped_lock lock(driverMutex);
-    return std::make_unique<VKShaderProgram>(config, context.get(), name, compiledSpv);
+    return std::make_unique<VKShaderProgram>(config, context.get(), name, createInfo);
 }
 
 UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)

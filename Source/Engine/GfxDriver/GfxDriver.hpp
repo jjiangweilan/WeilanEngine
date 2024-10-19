@@ -86,7 +86,7 @@ public:
     virtual UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
     virtual UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
     virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
     ) = 0;
 
     virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;

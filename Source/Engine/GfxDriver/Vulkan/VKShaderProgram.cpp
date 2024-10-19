@@ -119,22 +119,18 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
 }
 
 VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config, VKContext* context, const std::string& name, CompiledSpv& compiledSpv
+    std::shared_ptr<const ShaderConfig> config,
+    VKContext* context,
+    const std::string& name,
+    ShaderProgramCreateInfo& createInfo
 )
-    : ShaderProgram(compiledSpv.compSpv.size() != 0), name(name), objManager(context->objManager)
+    : ShaderProgram(createInfo.compSpv.size() != 0), name(name), objManager(context->objManager)
 {
     // compile as a compute shader
-    if (compiledSpv.compSpv.size() != 0)
+    if (createInfo.compSpv.size() != 0)
     {
-        computeShaderModule = std::make_unique<VKShaderModule>(
-            name,
-            (const unsigned char*)compiledSpv.compSpv_noOp.data(),
-            compiledSpv.compSpv_noOp.size() * sizeof(uint32_t),
-            (const unsigned char*)compiledSpv.compSpv.data(),
-            compiledSpv.compSpv.size() * sizeof(uint32_t),
-            false,
-            *config
-        );
+        computeShaderModule =
+            std::make_unique<VKShaderModule>(name, createInfo.compSpv, createInfo.compReflection, false, *config);
 
         ShaderInfo::Utils::Merge(shaderInfo, computeShaderModule->GetShaderInfo());
         CreateShaderPipeline(config, computeShaderModule.get());
@@ -147,22 +143,13 @@ VKShaderProgram::VKShaderProgram(
 
         vertShaderModule = MakeUnique<VKShaderModule>(
             name,
-            (const unsigned char*)compiledSpv.vertSpv_noOp.data(),
-            compiledSpv.vertSpv_noOp.size() * sizeof(uint32_t),
-            (const unsigned char*)compiledSpv.vertSpv.data(),
-            compiledSpv.vertSpv.size() * sizeof(uint32_t),
+            createInfo.vertSpv,
+            createInfo.vertReflection,
             vertInterleaved,
             *config
         ); // the  namespace is necessary to pass MSVC compilation
-        fragShaderModule = MakeUnique<VKShaderModule>(
-            name,
-            (const unsigned char*)compiledSpv.fragSpv_noOp.data(),
-            compiledSpv.fragSpv_noOp.size() * sizeof(uint32_t),
-            (const unsigned char*)compiledSpv.fragSpv.data(),
-            compiledSpv.fragSpv.size() * sizeof(uint32_t),
-            vertInterleaved,
-            *config
-        );
+        fragShaderModule =
+            MakeUnique<VKShaderModule>(name, createInfo.fragSpv, createInfo.fragReflection, vertInterleaved, *config);
 
         // combine ShaderStageInfo into ShaderInfo
         ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());

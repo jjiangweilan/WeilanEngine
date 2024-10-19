@@ -82,7 +82,7 @@ public:
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, CompiledSpv& compiledSpv
+        const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
     ) override;
     UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;

@@ -2,6 +2,7 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "spdlog/spdlog.h"
+#include <spirv_cross/spirv_reflect.hpp>
 
 namespace Editor
 {
@@ -64,7 +65,26 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
 
     auto config = compiler.GetConfig();
 
-    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, compiler.GetCompiledSpvs().at(0));
+
+    auto& compieldSpv = compiler.GetCompiledSpvs().at(0);
+
+    spirv_cross::CompilerReflection vertCompilerReflection(
+        (const uint32_t*)compieldSpv.vertSpv_noOp.data(),
+        compieldSpv.vertSpv_noOp.size()
+    );
+
+    Gfx::ShaderProgramCreateInfo createInfo;
+    createInfo.vertSpv = compieldSpv.vertSpv;
+    createInfo.vertReflection = nlohmann::json::parse(vertCompilerReflection.compile());
+
+    spirv_cross::CompilerReflection fragCompilerReflection(
+        (const uint32_t*)compieldSpv.fragSpv_noOp.data(),
+        compieldSpv.fragSpv_noOp.size()
+    );
+    createInfo.fragSpv = compieldSpv.fragSpv;
+    createInfo.fragReflection = nlohmann::json::parse(fragCompilerReflection.compile());
+
+    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, createInfo);
 
     this->fontImage = fontImage;
     this->finalImage = finalImage;

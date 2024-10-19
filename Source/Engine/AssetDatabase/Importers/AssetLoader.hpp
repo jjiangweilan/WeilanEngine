@@ -46,7 +46,10 @@ public:
     }
 
 protected:
+    // asset to import
     std::filesystem::path absoluteAssetPath{};
+
+    // meta in the AssetDatabase
     nlohmann::json meta;
     ImportDatabase* importDatabase;
 

@@ -11,11 +11,21 @@ namespace Gfx
 class ShaderProgram;
 class ShaderLoader;
 } // namespace Gfx
+  //
+
+struct ShaderPass
+{
+    std::string name;
+    std::unordered_map<std::string, ShaderFeatureBitmask> featureToBitmask;
+    Gfx::ShaderProgram* cachedShaderProgram = nullptr;
+    uint64_t globalShaderFeaturesHash;
+    std::unordered_map<ShaderFeatureBitmask, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
+};
 
 class ShaderBase : public Asset
 {
 public:
-    ShaderBase(){};
+    ShaderBase() {};
     ShaderBase(
         const std::string& name,
         std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram,
@@ -81,6 +91,11 @@ public:
         return GetGlobalShaderFeature().DisableFeature(name);
     }
 
+    void SetShaderPasses(std::vector<std::unique_ptr<ShaderPass>>&& passes)
+    {
+        shaderPasses = std::move(passes);
+    }
+
 protected:
     struct GlobalShaderFeature
     {
@@ -99,14 +114,6 @@ protected:
     std::string shaderName;
     uint32_t contentHash = 0;
 
-    struct ShaderPass
-    {
-        std::string name;
-        std::unordered_map<std::string, ShaderFeatureBitmask> featureToBitMask;
-        Gfx::ShaderProgram* cachedShaderProgram = nullptr;
-        uint64_t globalShaderFeaturesHash;
-        std::unordered_map<ShaderFeatureBitmask, std::unique_ptr<Gfx::ShaderProgram>> shaderPrograms;
-    };
     std::vector<std::unique_ptr<ShaderPass>> shaderPasses;
 
     struct IncludedFiles
@@ -121,13 +128,13 @@ class Shader : public ShaderBase
     DECLARE_ASSET();
 
 public:
-    Shader(){};
+    Shader() {};
     Shader(
         const std::string& name,
         std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram,
         const UUID& uuid = UUID::GetEmptyUUID()
     )
-        : ShaderBase(name, std::move(shaderProgram), uuid){};
+        : ShaderBase(name, std::move(shaderProgram), uuid) {};
     Shader(const char* path)
     {
         LoadFromFile(path);
@@ -145,13 +152,13 @@ class ComputeShader : public ShaderBase
     DECLARE_ASSET();
 
 public:
-    ComputeShader(){};
+    ComputeShader() {};
     ComputeShader(
         const std::string& name,
         std::unique_ptr<Gfx::ShaderProgram>&& shaderProgram,
         const UUID& uuid = UUID::GetEmptyUUID()
     )
-        : ShaderBase(name, std::move(shaderProgram), uuid){};
+        : ShaderBase(name, std::move(shaderProgram), uuid) {};
     ComputeShader(const char* path)
     {
         LoadFromFile(path);

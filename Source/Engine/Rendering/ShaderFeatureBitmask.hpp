@@ -7,6 +7,7 @@ struct ShaderFeatureBitmask
 {
     ShaderFeatureBitmask(uint64_t i) : shaderFeature(i), vertFeature(0), fragFeature(0) {}
     ShaderFeatureBitmask() : shaderFeature(0), vertFeature(0), fragFeature(0) {}
+
     uint64_t shaderFeature;
     uint64_t vertFeature;
     uint64_t fragFeature;

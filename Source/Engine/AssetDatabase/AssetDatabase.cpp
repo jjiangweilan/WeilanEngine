@@ -571,11 +571,11 @@ void AssetDatabase::LoadEngineInternal()
         [](std::filesystem::path& path) { return path.extension() == ".shad"; }
     );
     std::vector<std::filesystem::path> shaderPathes(importPathes.begin(), shaderIter);
-    // for (auto& p : shaderPathes)
-    // {
-    //     LoadAsset(p);
-    // }
-    LoadAssets(shaderPathes);
+    for (auto& p : shaderPathes)
+    {
+        LoadAsset(p);
+    }
+    // LoadAssets(shaderPathes);
     Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/SceneLit.shad");
     Shader::SetDefault(standardShader);
     Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");

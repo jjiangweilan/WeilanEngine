@@ -3,7 +3,7 @@
 #include "Rendering/Shader.hpp"
 
 
-DEFINE_ASSET_LOADER(LegacyLoader, "shad,comp,glb")
+DEFINE_ASSET_LOADER(LegacyLoader, "glb")
 
 void LegacyLoader::Load()
 {
