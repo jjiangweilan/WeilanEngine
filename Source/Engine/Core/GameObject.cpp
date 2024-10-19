@@ -105,15 +105,19 @@ void GameObject::Serialize(Serializer* s) const
 
 void GameObject::SetWorldMatrix(const glm::mat4& matrix)
 {
+    auto localMatrix = matrix;
+    if (parent)
+        localMatrix = glm::inverse(parent->GetWorldMatrix()) * matrix;
+
     glm::vec3 position{};
     glm::vec3 scale{};
     glm::quat rotation{};
 
-    Math::DecomposeMatrix(matrix, position, scale, rotation);
+    Math::DecomposeMatrix(localMatrix, position, scale, rotation);
 
     SetEulerAngles(glm::eulerAngles(rotation));
     SetScale(scale);
-    SetPosition(position);
+    SetLocalPosition(position);
 }
 
 void GameObject::Deserialize(Serializer* s)

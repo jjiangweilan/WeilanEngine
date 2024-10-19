@@ -757,44 +757,13 @@ bool GameView::Tick()
                     glm::mat4 deltaMatrix;
                     EditTransform(*mainCam, model, deltaMatrix, proj);
 
-                    // directly multiplying deltaMatrix resulting in exponentially scaling the object
-                    glm::vec3 scale = glm::vec3(
-                        length(glm::vec3(deltaMatrix[0])),
-                        length(glm::vec3(deltaMatrix[1])),
-                        length(glm::vec3(deltaMatrix[2]))
-                    );
-                    deltaMatrix[0] /= scale.x;
-                    deltaMatrix[1] /= scale.y;
-                    deltaMatrix[2] /= scale.z;
 
                     if (ImGuizmo::IsUsing())
                     {
-
                         for (auto& s : selectedObjects)
                         {
                             auto go = static_cast<GameObject*>(s.Get());
                             glm::mat4 model = go->GetWorldMatrix();
-
-                            // handle scale
-                            glm::mat4 scaleMatrix = glm::mat4(
-                                glm::vec4(scale.x, 0.0, 0.0f, 0.0f),
-                                glm::vec4(0.0f, scale.y, 0.0f, 0.0f),
-                                glm::vec4(0.0f, 0.0f, scale.z, 0.0f),
-                                glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
-                            );
-
-                            // get rotation
-                            glm::mat4 rot = glm::mat3(model);
-                            rot[0] = glm::vec4(glm::normalize(glm::vec3(rot[0])), 1.0f);
-                            rot[1] = glm::vec4(glm::normalize(glm::vec3(rot[1])), 1.0f);
-                            rot[2] = glm::vec4(glm::normalize(glm::vec3(rot[2])), 1.0f);
-                            glm::mat4 invRot = glm::inverse(rot);
-
-                            model[3] -= glm::vec4(avgPos, 0.0f);
-                            model[3][3] = 0.0f;
-                            model = rot * scaleMatrix * invRot * model;
-                            model[3] += glm::vec4(avgPos, 0.0f);
-                            model[3][3] = 1.0f;
 
                             // handle translation and rotation
                             model = deltaMatrix * model;
