@@ -2,7 +2,6 @@
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
-#include "Importers/TextureLoader.hpp"
 #include "Libs/Profiler.hpp"
 #include <future>
 #include <iostream>
@@ -621,17 +620,19 @@ void AssetDatabase::RefreshShader()
         requestShaderRefresh = false;
         for (auto& d : assets.data)
         {
-            if (requestShaderRefreshAll || d->NeedRefresh())
+            auto asset = d->GetAsset();
+            if (ShaderBase* s = dynamic_cast<ShaderBase*>(asset))
             {
-                auto asset = d->GetAsset();
-                if (ShaderBase* s = dynamic_cast<ShaderBase*>(asset))
+                auto loader = AssetLoaderRegistry::CreateAssetLoaderByType(typeid(*s));
+                loader->Setup(importDatabase, d->GetAssetAbsolutePath(), d->meta);
+                if (requestShaderRefreshAll || loader->ImportNeeded())
                 {
                     try
                     {
-                        if (s->LoadFromFile(d->GetAssetAbsolutePath().string().c_str()))
-                        {
-                            SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
-                        }
+                        loader->Import();
+                        SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
+                        loader->Load();
+                        s->Reload(std::move(*loader->RetrieveAsset()));
                         d->UpdateAssetUUIDs();
                         d->UpdateLastWriteTime();
                     }

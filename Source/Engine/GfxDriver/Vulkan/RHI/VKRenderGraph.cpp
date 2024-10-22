@@ -851,7 +851,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             size_t barrierCount = 0;
             if (TrackResource(cmd.copyImageToBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
                 barrierCount +=
-                    MakeBarrierForLastUsage(cmd.copyBufferToImage.src, cmd.copyBufferToImage.src->GetUUID());
+                    MakeBarrierForLastUsage(cmd.copyImageToBuffer.dst, cmd.copyImageToBuffer.dst->GetUUID());
 
             for (int i = 0; i < cmd.copyImageToBuffer.regionsCount; ++i)
             {

@@ -40,6 +40,7 @@ public:
         resolveMap = nullptr;
     }
     virtual std::unique_ptr<Asset> RetrieveAsset() = 0;
+    virtual std::vector<std::type_info>> GetImportTypes() = 0;
     virtual nlohmann::json GetMeta()
     {
         return meta;
