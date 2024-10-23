@@ -286,7 +286,7 @@ void main()
     // diffuse cube light
     float ao = texture(aoMap, i_UV).x;
     vec3 diffuseCubeColor = texture(diffuseCube, n).xyz;
-    vec3 ambient =  ao * baseColor * diffuseCubeColor / M_PI * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
+    vec3 ambient = (vec3(1) - f0) * ao * baseColor * diffuseCubeColor * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
 
     o_Color = vec4(color + ambient + indirectSpecular, 1);
     // uvec2 viewCoord = uvec2(gl_FragCoord.x, scene.screenSize.y - gl_FragCoord.y);
