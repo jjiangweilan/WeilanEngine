@@ -14,6 +14,8 @@ public:
         return std::move(asset);
     }
 
+    static const std::vector<std::type_index>& GetImportTypes();
+
 private:
     std::unique_ptr<Asset> asset;
 };

@@ -12,6 +12,12 @@
 
 DEFINE_ASSET_LOADER(TextureLoader, "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
 
+const std::vector<std::type_index>& TextureLoader::GetImportTypes()
+{
+    static std::vector<std::type_index> types = {typeid(Texture)};
+    return types;
+}
+
 bool TextureLoader::ImportNeeded()
 {
     size_t oldLastWriteTime = meta.value("lastImportedWriteTime", 0ll);

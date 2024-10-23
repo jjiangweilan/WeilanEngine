@@ -19,6 +19,7 @@ public:
     {
         return std::move(texture);
     }
+    static const std::vector<std::type_index>& GetImportTypes();
 
 private:
     void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);

@@ -7,18 +7,29 @@
 
 DEFINE_ASSET_LOADER(ShaderLoader, "shad,comp")
 
+const std::vector<std::type_index>& ShaderLoader::GetImportTypes()
+{
+    static std::vector<std::type_index> types = {typeid(Shader), typeid(ComputeShader)};
+    return types;
+}
+
 bool ShaderLoader::ImportNeeded()
 {
+    if (!meta.contains("shaderFileLastWriteTime"))
+        return true;
+
+    if (meta["shaderFileLastWriteTime"] <
+        std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count())
+        return true;
+
     if (!meta.contains("includedFiles"))
         return true;
 
     nlohmann::json includedFiles = meta.value("includedFiles", nlohmann::json::array_t());
-    if (includedFiles.empty())
-        return true;
 
     for (int i = 0; i < includedFiles.size(); i++)
     {
-        if (includedFiles[i]["lastWriteTime"] <
+        if (!std::filesystem::exists(includedFiles[i]["path"]) || includedFiles[i]["lastWriteTime"] <
             std::filesystem::last_write_time(includedFiles[i]["path"]).time_since_epoch().count())
             return true;
     }
@@ -159,7 +170,7 @@ void ShaderLoader::Import()
         passCompiledData.shaderConfig = compiler.GetConfig()->ToJson();
         compiledData.push_back(passCompiledData);
     }
-
+    meta["shaderFileLastWriteTime"] = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
     meta["includedFiles"] = nlohmann::json::array_t();
     for (auto includedFile : includedFilesSet)
     {

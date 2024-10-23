@@ -3,6 +3,7 @@
 #include "Libs/Serialization/Serializer.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
+#include <typeindex>
 
 class ImportDatabase
 {
@@ -40,7 +41,6 @@ public:
         resolveMap = nullptr;
     }
     virtual std::unique_ptr<Asset> RetrieveAsset() = 0;
-    virtual std::vector<std::type_info>> GetImportTypes() = 0;
     virtual nlohmann::json GetMeta()
     {
         return meta;
@@ -73,11 +73,17 @@ public:
     using Extension = std::string;
     using Creator = std::function<std::unique_ptr<AssetLoader>()>;
     static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id);
-    static char RegisterAssetLoader(const std::vector<std::string>& exts, const Creator& creator);
+    static std::unique_ptr<AssetLoader> CreateAssetLoaderByType(const std::type_info& type);
+    static char RegisterAssetLoader(
+        const std::vector<std::string>& exts, const Creator& creator, const std::vector<std::type_index>& types
+    );
 
 private:
     static std::unordered_map<Extension, std::function<std::unique_ptr<AssetLoader>()>>*
     GetAssetLoaderExtensionRegistry();
+
+    static std::unordered_map<std::type_index, std::function<std::unique_ptr<AssetLoader>()>>*
+    GetAssetLoaderTypeRegistry();
 };
 
 #define DECLARE_ASSET_LOADER()                                                                                         \
@@ -90,7 +96,8 @@ private:                                                                        
 #define DEFINE_ASSET_LOADER(Type, Extension)                                                                           \
     char Type::_register = AssetLoaderRegistry::RegisterAssetLoader(                                                   \
         StaticGetExtensions(),                                                                                         \
-        []() { return std::unique_ptr<AssetLoader>(new Type()); }                                                      \
+        []() { return std::unique_ptr<AssetLoader>(new Type()); },                                                     \
+        Type::GetImportTypes()                                                                                         \
     );                                                                                                                 \
     const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
     {                                                                                                                  \
