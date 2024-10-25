@@ -82,7 +82,7 @@ bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageC
     {
         extent = {width, height};
     }
-    imageUsageFlags = surface.surfaceCapabilities.supportedUsageFlags;
+    imageUsageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     surfaceTransform = surface.surfaceCapabilities.currentTransform;
     presentMode = VK_PRESENT_MODE_FIFO_KHR;
     numberOfImages = swapchainImageCount;

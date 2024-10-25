@@ -45,7 +45,7 @@ layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 void main()
 {
     vec4 col = In.Color;
-    fColor = vec4(pow(col.xyz, vec3(2.2222)), col.a) * texture(sTexture_clamp_point, In.UV.st);
+    fColor = vec4(pow(col.xyz, vec3(2.2)), col.a) * texture(sTexture_clamp_point, In.UV.st);
 }
 #endif
 )";
