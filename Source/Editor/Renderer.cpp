@@ -44,7 +44,8 @@ layout(set=0, binding=0) uniform sampler2D sTexture_clamp_point;
 layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
 void main()
 {
-    fColor = In.Color * texture(sTexture_clamp_point, In.UV.st);
+    vec4 col = In.Color;
+    fColor = vec4(pow(col.xyz, vec3(2.2222)), col.a) * texture(sTexture_clamp_point, In.UV.st);
 }
 #endif
 )";

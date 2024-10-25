@@ -56,7 +56,7 @@ bool Swapchain::CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageC
     bool foundSurfaceFormat = false;
     for (const VkSurfaceFormatKHR& surfaceFormat : surfaceFormats)
     {
-        if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+        if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             surfaceFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             this->surfaceFormat = surfaceFormat;
