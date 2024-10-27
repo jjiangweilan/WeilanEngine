@@ -116,7 +116,7 @@ void GameObject::SetWorldMatrix(const glm::mat4& matrix)
     Math::DecomposeMatrix(localMatrix, position, scale, rotation);
 
     SetEulerAngles(glm::eulerAngles(rotation));
-    SetScale(scale);
+    SetLocalScale(scale);
     SetLocalPosition(position);
 }
 

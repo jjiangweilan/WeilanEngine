@@ -49,18 +49,18 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
         glm::quat rotation;
         Math::DecomposeMatrix(m, position, scale, rotation);
         gameObject->SetLocalPosition(position);
-        gameObject->SetLocalRotation(rotation);
+        gameObject->SetEulerAngles(glm::eulerAngles(rotation));
         gameObject->SetLocalScale(scale);
     }
     else
     {
         // TRS
         std::array<float, 3> position = nodeJson.value("translation", std::array<float, 3>{0, 0, 0});
-        std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{1, 0, 0, 0});
+        std::array<float, 4> rotation = nodeJson.value("rotation", std::array<float, 4>{0, 0, 0, 1});
         std::array<float, 3> scale = nodeJson.value("scale", std::array<float, 3>{1, 1, 1});
 
         gameObject->SetLocalPosition({position[0], position[1], position[2]});
-        gameObject->SetLocalRotation({rotation[0], rotation[1], rotation[2], rotation[3]});
+        gameObject->SetEulerAngles(glm::eulerAngles(glm::quat{rotation[3], rotation[0], rotation[1], rotation[2]}));
         gameObject->SetLocalScale({scale[0], scale[1], scale[2]});
     }
 

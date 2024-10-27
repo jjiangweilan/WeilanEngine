@@ -150,6 +150,10 @@ public:
             }
 
             ImGui::Spacing();
+            ImGui::Text("ShaderConfig");
+            ImGui::Text("cullMode: %i", (int)target->GetShaderConfig().cullMode);
+
+            ImGui::Spacing();
             ImGui::Text("Textures");
             ImGui::Separator();
             for (auto& texBinding : textureBindings)

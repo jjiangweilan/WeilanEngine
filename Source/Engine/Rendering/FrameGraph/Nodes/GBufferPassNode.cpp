@@ -96,7 +96,7 @@ class GBufferPassNode : public Node
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
                     cmd.BindResource(2, draw.shaderResource);
-                    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
@@ -113,7 +113,7 @@ class GBufferPassNode : public Node
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                     cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
                     cmd.BindResource(2, draw.shaderResource);
-                    cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
+                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
