@@ -5,7 +5,7 @@
 #include <fstream>
 #include <typeindex>
 
-DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,gobj,fgraph")
+DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,proto,fgraph")
 
 class Material;
 const std::vector<std::type_index>& InternalAssetLoader::GetImportTypes()

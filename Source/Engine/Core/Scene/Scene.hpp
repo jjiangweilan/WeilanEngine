@@ -31,6 +31,7 @@ public:
     void RemoveGameObjectFromRoot(GameObject* obj);
     void RemoveGameObject(GameObject* obj);
     void DestroyGameObject(GameObject* obj);
+    std::unique_ptr<GameObject> RetrieveGameObject(GameObject* obj);
 
     [[deprecated("we can't actually clone a scene, the internal reference is hard to resolve. Use "
                  "AssetDatabse::CopyThroughSerialization instead")]]

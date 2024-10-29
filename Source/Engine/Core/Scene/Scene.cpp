@@ -254,3 +254,20 @@ void Scene::OnLoadingFinished()
         g->SetScene(this);
     }
 }
+
+std::unique_ptr<GameObject> Scene::RetrieveGameObject(GameObject* obj)
+{
+    std::unique_ptr<GameObject> target = nullptr;
+    for (auto& g : gameObjects)
+    {
+        if (g.get() == obj)
+        {
+            std::swap(g, gameObjects.back());
+            target = std::move(gameObjects.back());
+            gameObjects.pop_back();
+            break;
+        }
+    }
+
+    return target;
+}

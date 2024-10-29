@@ -7,6 +7,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "Platform/FileExplore.hpp"
+#include "PrototypeUtils.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -936,12 +937,42 @@ void GameEditor::InspectorWindow()
 
 void GameEditor::AssetShowDir(const std::filesystem::path& path)
 {
+    GameObject* makePrototype = nullptr;
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
         {
+            if (ImGui::BeginDragDropTarget())
+            {
+                auto payload = ImGui::AcceptDragDropPayload("game object");
+                if (payload && payload->IsDelivery())
+                {
+                    if (GameObject* c = dynamic_cast<GameObject*>(*(Object**)payload->Data))
+                    {
+                        makePrototype = c;
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
+
             auto dir = std::filesystem::relative(entry.path(), path);
             bool treeOpen = ImGui::TreeNode(dir.string().c_str());
+            if (ImGui::BeginPopupContextItem())
+            {
+                if (ImGui::MenuItem("Create Folder"))
+                {
+                    int i = -1;
+                    std::string fileName;
+                    do
+                    {
+                        i++;
+                        fileName = fmt::format("{}/{} {}", entry.path().string(), "New Folder", i);
+                    }
+                    while (std::filesystem::exists(fileName));
+                    std::filesystem::create_directory(fileName);
+                }
+                ImGui::EndPopup();
+            }
             if (treeOpen)
             {
                 AssetShowDir(entry.path());
@@ -1010,6 +1041,24 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
         if (ImGui::Selectable("Confirm"))
         {
             AssetDatabase::Singleton()->ChangeAssetPath(changeFileNameTarget, fn);
+        }
+        if (ImGui::Selectable("Chancel"))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+    if (makePrototype)
+    {
+        ImGui::OpenPopup("Make Prototype");
+    }
+    if (ImGui::BeginPopupModal("Make Prototype"))
+    {
+        std::string info = fmt::format("Make Prototype: {}", makePrototype->GetName());
+        ImGui::InputText("Path: ", fn, 1024);
+        if (ImGui::Selectable("Confirm"))
+        {
+            PrototypeUtils::MakePrototype(makePrototype, std::filesystem::path(fn));
         }
         if (ImGui::Selectable("Chancel"))
         {
