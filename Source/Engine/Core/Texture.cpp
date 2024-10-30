@@ -321,7 +321,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::Image
     }
     else if (is16Bit)
     {
-        throw std::exception("Not implemented");
+        throw std::runtime_error("Not implemented");
     }
     else
     {

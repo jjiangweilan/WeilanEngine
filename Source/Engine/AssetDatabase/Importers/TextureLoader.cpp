@@ -147,7 +147,7 @@ void TextureLoader::Import()
                 }
                 else if (is16Bit)
                 {
-                    throw std::exception("Not implemented");
+                    throw std::runtime_error("Not Implemented");
                 }
                 else
                 {
