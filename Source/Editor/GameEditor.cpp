@@ -3,6 +3,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
+#include "DragDropIDs.hpp"
 #include "EditorState.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
@@ -722,6 +723,9 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
+    endEvents.TickBegin();
+    endPopup.TickBegin();
+
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();
@@ -782,6 +786,9 @@ void GameEditor::GUIPass()
 
         ImGui::End();
     }
+
+    endPopup.TickEnd();
+    endEvents.TickEnd();
 }
 
 void GameEditor::SurfelGIBakerWindow()
@@ -957,6 +964,33 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
 
             auto dir = std::filesystem::relative(entry.path(), path);
             bool treeOpen = ImGui::TreeNode(dir.string().c_str());
+            if (ImGui::BeginDragDropSource())
+            {
+                std::string path = entry.path().string();
+                ImGui::SetDragDropPayload(DragDropIDs::assetPath, path.c_str(), path.size());
+                auto relative = std::filesystem::relative(engine->GetProjectPath() / "Assets", entry.path());
+                ImGui::Text("%s", relative.string().c_str());
+
+                ImGui::EndDragDropSource();
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
+                if (payload && payload->IsDelivery())
+                {
+                    std::string pathStr((char*)payload->Data, payload->DataSize);
+                    endEvents.Register(
+                        [pathStr, entry]()
+                        {
+                            std::filesystem::path oldPath(pathStr);
+                            auto newPath = entry.path() / oldPath.filename();
+                            std::filesystem::rename(oldPath, newPath);
+                        }
+                    );
+                }
+                ImGui::EndDragDropTarget();
+            }
             if (ImGui::BeginPopupContextItem())
             {
                 if (ImGui::MenuItem("Create Folder"))
@@ -970,6 +1004,21 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                     }
                     while (std::filesystem::exists(fileName));
                     std::filesystem::create_directory(fileName);
+                }
+
+                if (ImGui::MenuItem("Delete Folder"))
+                {
+                    if (!std::filesystem::is_empty(entry.path()))
+                    {
+                        endPopup.Show(
+                            "Folder is not empty, delete all?",
+                            [entry]() { std::filesystem::remove_all(entry.path()); }
+                        );
+                    }
+                    else
+                    {
+                        endEvents.Register([entry]() { std::filesystem::remove(entry.path()); });
+                    }
                 }
                 ImGui::EndPopup();
             }

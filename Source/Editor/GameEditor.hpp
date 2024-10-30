@@ -95,5 +95,74 @@ private:
     void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
+
+    // event handling
+    class EndEvents
+    {
+    public:
+        void TickBegin()
+        {
+            fs.clear();
+        }
+
+        void Register(const std::function<void()>& f)
+        {
+            fs.push_back(f);
+        }
+
+        void TickEnd()
+        {
+            for (auto& f : fs)
+            {
+                f();
+            }
+        }
+
+    private:
+        std::vector<std::function<void()>> fs;
+    } endEvents;
+
+    class EndPopup
+    {
+        std::string text;
+        std::function<void()> f;
+        bool show;
+
+    public:
+        void TickBegin()
+        {
+            show = false;
+        }
+
+        void Show(const std::string& text, const std::function<void()>& confirm)
+        {
+            this->text = text;
+            show = true;
+            f = confirm;
+        }
+
+        void TickEnd()
+        {
+            if (show)
+            {
+                ImGui::OpenPopup("Tick End Popup");
+            }
+
+            if (ImGui::BeginPopupModal("Tick End Popup"))
+            {
+                ImGui::Text("%s", text.c_str());
+
+                if (ImGui::Selectable("Confirm"))
+                {
+                    f();
+                }
+                if (ImGui::Selectable("Chancel"))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+        }
+    } endPopup;
 };
 } // namespace Editor
