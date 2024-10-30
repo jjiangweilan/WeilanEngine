@@ -1,6 +1,5 @@
 #include "FileExplore.hpp"
 
-#if WIN32
 
 void Platform::FileExplore::OpenFolder(const std::filesystem::path& path)
 {
@@ -10,4 +9,3 @@ void Platform::FileExplore::OpenFolder(const std::filesystem::path& path)
         std::system(cmd.c_str());
     }
 }
-#endif

@@ -390,6 +390,17 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 }
                                 break;
                             }
+                        case Gfx::ShaderInfo::ShaderDataType::Int:
+                            {
+                                auto iter = u.second.floats.find(m.first);
+                                if (iter != u.second.floats.end())
+                                {
+                                    size_t offset = m.second.offset;
+                                    assert(offset + sizeof(float) <= bufSize);
+                                    *((int32_t*)(tempUploadData.data() + offset)) = (int32_t)iter->second;
+                                }
+                                break;
+                            }
                         case Gfx::ShaderInfo::ShaderDataType::Vec4:
                         case Gfx::ShaderInfo::ShaderDataType::Vec3:
                             {

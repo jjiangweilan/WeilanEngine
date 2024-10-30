@@ -17,6 +17,7 @@ enum class ShaderDataType
 {
     Float,
     UInt,
+    Int,
     Half,
     Vec4,
     Vec3,

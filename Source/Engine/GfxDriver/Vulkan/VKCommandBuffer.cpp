@@ -140,8 +140,7 @@ void VKCommandBuffer::SetViewport(const Viewport& viewport)
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth
-    };
+        .maxDepth = viewport.maxDepth};
     cmd.setViewport.viewport = v;
     cmds.push_back(cmd);
 }
@@ -358,6 +357,14 @@ void VKCommandBuffer::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescr
 void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues)
 {
     VKCmd cmd{VKCmdType::RGBeginRenderPass};
+
+    if (validationCheck)
+    {
+        if (renderPass.GetAttachments().size() != clearValues.size())
+        {
+            throw std::runtime_error("");
+        }
+    }
 
     cmd.rgBeginRenderPass.renderPass = &renderPass;
     int copySize = clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue);

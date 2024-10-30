@@ -347,7 +347,6 @@ void GameView::Render(
 {
     if (gameImage && gameDepthImage)
     {
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {1.0f, 0}};
         auto selectedObjects = EditorState::GetSelectedObjects();
         bool hasGameObjectSelected = false;
         // selection outline src pass
@@ -360,7 +359,8 @@ void GameView::Render(
             };
             cmd.AllocateAttachment(outlineSrcRT, desc);
             outlineSrcPass.SetAttachment(0, outlineSrcRT);
-            cmd.BeginRenderPass(outlineSrcPass, clears);
+            Gfx::ClearValue outlineSrcPassClears[] = {{0, 0, 0, 0}};
+            cmd.BeginRenderPass(outlineSrcPass, outlineSrcPassClears);
             for (auto& selected : selectedObjects)
             {
                 GameObject* go = dynamic_cast<GameObject*>(selected.Get());
@@ -397,7 +397,8 @@ void GameView::Render(
         gameImagePass.SetAttachment(0, *gameImage);
         if (gameDepthImage)
             gameImagePass.SetAttachment(1, *gameDepthImage);
-        cmd.BeginRenderPass(gameImagePass, clears);
+        Gfx::ClearValue gameImagePassClears[] = {{0, 0, 0, 0}, {1, 0}};
+        cmd.BeginRenderPass(gameImagePass, gameImagePassClears);
 
         if (hasGameObjectSelected)
         {

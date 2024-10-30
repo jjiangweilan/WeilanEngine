@@ -420,6 +420,7 @@ public:
     }
 
 private:
+    bool validationCheck = true;
     std::vector<VKCmd> cmds;
     LinearAllocator<1024> tmpMemory;
     VK::RenderGraph::Graph* graph;

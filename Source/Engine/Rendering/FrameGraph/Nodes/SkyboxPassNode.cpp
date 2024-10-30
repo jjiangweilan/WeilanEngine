@@ -63,7 +63,7 @@ class SkyboxPassNode : public Node
         auto inputDepth = input.depth->GetValue<AttachmentProperty>();
         if (*config.enable)
         {
-            Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+            Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0,0}};
             skyboxPass.SetAttachment(0, inputAttachment.id);
             skyboxPass.SetAttachment(1, inputDepth.id);
             cmd.BeginRenderPass(skyboxPass, clears);
