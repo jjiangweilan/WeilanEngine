@@ -29,11 +29,6 @@ public:
     void RefreshShader();
     bool ChangeAssetPath(const std::filesystem::path& src, const std::filesystem::path& dst);
 
-    const std::filesystem::path& GetAssetDirectory()
-    {
-        return assetDirectory;
-    }
-
     const std::filesystem::path& GetAssetDirectory() const
     {
         return assetDirectory;
@@ -93,6 +88,10 @@ public:
     {
         return assets.data;
     }
+
+    // file system
+    void CreateFolderAtPath(const std::filesystem::path& path);
+    void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
 
 private:
     static AssetDatabase*& SingletonReference();

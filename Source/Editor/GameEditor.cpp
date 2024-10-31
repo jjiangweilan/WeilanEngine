@@ -32,18 +32,17 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     auto& io = ImGui::GetIO();
     ImFontConfig config;
     ImFont* font = nullptr;
-    // if (customFont)
-    // {
-    //     static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
-    //     font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-    //         (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
-    //             .string()
-    //             .c_str(),
-    //         14,
-    //         &config,
-    //         icon_ranges
-    //     );
-    // }
+    {
+        static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
+        font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
+            (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
+                .string()
+                .c_str(),
+            14,
+            &config,
+            icon_ranges
+        );
+    }
     io.FontDefault = font;
     int width, height, bytePerPixel;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
@@ -342,8 +341,8 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     auto go = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
-    Material* mats[] = {(Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")
-    };
+    Material* mats[] = {
+        (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")};
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
@@ -985,7 +984,10 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                         {
                             std::filesystem::path oldPath(pathStr);
                             auto newPath = entry.path() / oldPath.filename();
-                            std::filesystem::rename(oldPath, newPath);
+                            AssetDatabase::Singleton()->Rename(
+                                std::filesystem::relative(oldPath, AssetDatabase::Singleton()->GetAssetDirectory()),
+                                std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
+                            );
                         }
                     );
                 }
@@ -995,15 +997,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             {
                 if (ImGui::MenuItem("Create Folder"))
                 {
-                    int i = -1;
-                    std::string fileName;
-                    do
-                    {
-                        i++;
-                        fileName = fmt::format("{}/{} {}", entry.path().string(), "New Folder", i);
-                    }
-                    while (std::filesystem::exists(fileName));
-                    std::filesystem::create_directory(fileName);
+                    AssetDatabase::Singleton()->CreateFolderAtPath(entry.path());
                 }
 
                 if (ImGui::MenuItem("Delete Folder"))
@@ -1048,18 +1042,25 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                 }
                 ImGui::EndPopup();
             }
+
             if (open)
             {
                 if (ImGui::BeginDragDropSource())
                 {
+                    // drag drop as object
                     Asset* asset = engine->assetDatabase->LoadAsset(
                         std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
                     );
                     ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
-
                     ImGui::Text("%s", pathStr.c_str());
 
+                    // drag drop as file
+                    std::string path = entry.path().string();
+                    ImGui::SetDragDropPayload(DragDropIDs::assetPath, path.c_str(), path.size());
+                    auto relative = std::filesystem::relative(engine->GetProjectPath() / "Assets", entry.path());
+
                     ImGui::EndDragDropSource();
+
                 }
                 else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
