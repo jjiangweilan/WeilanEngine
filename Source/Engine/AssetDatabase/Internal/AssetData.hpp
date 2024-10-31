@@ -42,10 +42,10 @@ public:
     bool NeedRefresh() const;
     void UpdateLastWriteTime();
 
-    void SetAssetPath(const std::filesystem::path& path)
+    void SetAssetPath(const std::filesystem::path& path, const std::filesystem::path& assetsDirectory)
     {
         assetPath = path;
-        absolutePath = std::filesystem::absolute(path);
+        absolutePath = assetsDirectory / path;
     }
 
     const std::filesystem::path& GetAssetPath()

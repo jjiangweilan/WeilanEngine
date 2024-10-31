@@ -4,6 +4,7 @@
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include "ThirdParty/imgui/imgui_internal.h"
 #include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
 #include "Window.hpp"
@@ -67,6 +68,8 @@ private:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::list<std::unique_ptr<Window>> activeWindows;
 
+    int currentDragDropAssetFileDepth = 0;
+
     void EnableMultiViewport();
 
     void OpenSceneWindow();
@@ -80,7 +83,7 @@ private:
     );
 
     void AssetWindow();
-    void AssetShowDir(const std::filesystem::path& path);
+    void AssetShowDir(const std::filesystem::path& path, int depth);
     void InspectorWindow();
     void SurfelGIBakerWindow();
 
@@ -95,6 +98,7 @@ private:
     void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
+    void ImGuiDropAssetFile(const std::filesystem::path& filePath, ImRect rect = {{0, 0}, {0, 0}});
 
     // event handling
     class EndEvents

@@ -12,7 +12,6 @@
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
-#include "ThirdParty/imgui/imgui_internal.h"
 #include "ThirdParty/imgui/implot.h"
 #include <cmath>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -341,8 +340,8 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     auto go = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
-    Material* mats[] = {
-        (Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")};
+    Material* mats[] = {(Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")
+    };
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
@@ -941,7 +940,7 @@ void GameEditor::InspectorWindow()
     }
 }
 
-void GameEditor::AssetShowDir(const std::filesystem::path& path)
+void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 {
     GameObject* makePrototype = nullptr;
     for (auto entry : std::filesystem::directory_iterator(path))
@@ -969,30 +968,13 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
                 ImGui::SetDragDropPayload(DragDropIDs::assetPath, path.c_str(), path.size());
                 auto relative = std::filesystem::relative(engine->GetProjectPath() / "Assets", entry.path());
                 ImGui::Text("%s", relative.string().c_str());
+                currentDragDropAssetFileDepth = depth;
 
                 ImGui::EndDragDropSource();
             }
 
-            if (ImGui::BeginDragDropTarget())
-            {
-                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
-                if (payload && payload->IsDelivery())
-                {
-                    std::string pathStr((char*)payload->Data, payload->DataSize);
-                    endEvents.Register(
-                        [pathStr, entry]()
-                        {
-                            std::filesystem::path oldPath(pathStr);
-                            auto newPath = entry.path() / oldPath.filename();
-                            AssetDatabase::Singleton()->Rename(
-                                std::filesystem::relative(oldPath, AssetDatabase::Singleton()->GetAssetDirectory()),
-                                std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
-                            );
-                        }
-                    );
-                }
-                ImGui::EndDragDropTarget();
-            }
+            ImGuiDropAssetFile(entry.path());
+
             if (ImGui::BeginPopupContextItem())
             {
                 if (ImGui::MenuItem("Create Folder"))
@@ -1018,10 +1000,18 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             }
             if (treeOpen)
             {
-                AssetShowDir(entry.path());
+                AssetShowDir(entry.path(), depth + 1);
                 ImGui::TreePop();
             }
         }
+    }
+
+    if (depth == 0 && currentDragDropAssetFileDepth != 0)
+    {
+        auto windowPos = ImGui::GetWindowPos();
+        auto currentCursor = ImGui::GetCursorPos() + windowPos - ImVec2{ImGui::GetScrollX(), ImGui::GetScrollY()};
+        auto contextRegionMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
+        ImGuiDropAssetFile(AssetDatabase::Singleton()->GetAssetDirectory(), {currentCursor, contextRegionMax});
     }
 
     bool changeFileName = false;
@@ -1047,20 +1037,21 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path)
             {
                 if (ImGui::BeginDragDropSource())
                 {
-                    // drag drop as object
+                    // drag as object
                     Asset* asset = engine->assetDatabase->LoadAsset(
                         std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
                     );
                     ImGui::SetDragDropPayload("object", &asset, sizeof(void*));
                     ImGui::Text("%s", pathStr.c_str());
 
-                    // drag drop as file
+                    // drag as file
                     std::string path = entry.path().string();
                     ImGui::SetDragDropPayload(DragDropIDs::assetPath, path.c_str(), path.size());
                     auto relative = std::filesystem::relative(engine->GetProjectPath() / "Assets", entry.path());
 
-                    ImGui::EndDragDropSource();
+                    currentDragDropAssetFileDepth = depth;
 
+                    ImGui::EndDragDropSource();
                 }
                 else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
@@ -1123,6 +1114,7 @@ void GameEditor::AssetWindow()
     if (assetWindow)
     {
         ImGui::Begin("Assets", &assetWindow);
+
         if (ImGui::TreeNode("_engine_internal_asset"))
         {
             auto& internalAssets = engine->assetDatabase->GetInternalAssets();
@@ -1163,7 +1155,8 @@ void GameEditor::AssetWindow()
             ImGui::TreePop();
         }
         ImGui::Separator();
-        AssetShowDir(engine->GetProjectPath() / "Assets");
+        AssetShowDir(engine->GetProjectPath() / "Assets", 0);
+
         ImGui::End();
     }
 }
@@ -1433,4 +1426,40 @@ void GameEditor::AssetDatabaseViewer()
 }
 
 GameEditor* GameEditor::instance = nullptr;
+
+void GameEditor::ImGuiDropAssetFile(const std::filesystem::path& newDirectory, ImRect rect)
+{
+
+    bool begin = false;
+    if (rect.Min.x == 0 && rect.Min.y == 0 && rect.Max.x == 0 && rect.Max.y == 0)
+    {
+        begin = ImGui::BeginDragDropTarget();
+    }
+    else
+    {
+
+        begin = ImGui::BeginDragDropTargetCustom(rect, 999);
+    }
+
+    if (begin)
+    {
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
+        if (payload && payload->IsDelivery())
+        {
+            std::string pathStr((char*)payload->Data, payload->DataSize);
+            endEvents.Register(
+                [pathStr, newDirectory]()
+                {
+                    std::filesystem::path oldPath(pathStr);
+                    auto newPath = newDirectory / oldPath.filename();
+                    AssetDatabase::Singleton()->Rename(
+                        std::filesystem::relative(oldPath, AssetDatabase::Singleton()->GetAssetDirectory()),
+                        std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
+                    );
+                }
+            );
+        }
+        ImGui::EndDragDropTarget();
+    }
+}
 } // namespace Editor

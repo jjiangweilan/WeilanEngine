@@ -750,6 +750,8 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 
     std::filesystem::path ext = absoluteAssetPath.extension();
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+    if (loader == nullptr)
+        return nullptr;
     loader->Setup(importDatabase, absoluteAssetPath, assetMeta);
 
     bool importNeeded = forceReimport || loader->ImportNeeded();
@@ -852,6 +854,9 @@ void AssetDatabase::CreateFolderAtPath(const std::filesystem::path& path)
 
 void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath)
 {
+    if (oldPath == newPath)
+        return;
+
     auto fullNewPath = GetAssetDirectory() / newPath;
     auto fullOldPath = GetAssetDirectory() / oldPath;
     if (!std::filesystem::exists(fullNewPath.parent_path()) || !std::filesystem::exists(fullOldPath))
@@ -859,19 +864,12 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
         return;
     }
 
-    struct MoveAssetFile
-    {
-        std::filesystem::path oldPath;
-        std::filesystem::path newPath;
-        AssetData* assetData;
-    };
-
     // collect all data before we actually move any file
-    std::vector<MoveAssetFile> moveAssetFiles;
+    std::vector<AssetData*> moveAssetFiles;
 
     if (std::filesystem::is_directory(fullOldPath))
     {
-        for (auto entry : std::filesystem::recursive_directory_iterator(oldPath))
+        for (auto entry : std::filesystem::recursive_directory_iterator(fullOldPath))
         {
             if (entry.is_regular_file())
             {
@@ -879,11 +877,7 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
                 AssetData* assetData = assets.GetAssetData(relativeAssetPath);
                 if (assetData != nullptr)
                 {
-                    MoveAssetFile f;
-                    f.oldPath = GetAssetDirectory() / relativeAssetPath;
-                    f.newPath = GetAssetDirectory() / newPath;
-                    f.assetData = assetData;
-                    moveAssetFiles.push_back(f);
+                    moveAssetFiles.push_back(assetData);
                 }
             }
         }
@@ -893,27 +887,27 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
         AssetData* assetData = assets.GetAssetData(oldPath); // at this point old path must be a relative path in Assets directory
         if (assetData != nullptr)
         {
-            MoveAssetFile f;
-            f.oldPath = fullOldPath;
-            f.newPath = fullNewPath;
-            f.assetData = assetData;
-            moveAssetFiles.push_back(f);
+            moveAssetFiles.push_back(assetData);
         }
     }
     else
         return; // anything else return
 
     std::error_code renameErrorCode;
-    std::filesystem::rename(oldPath, newPath, renameErrorCode);
+    std::filesystem::rename(fullOldPath, fullNewPath, renameErrorCode);
 
     // move failed
     if (renameErrorCode)
         return;
 
     // change assetData information
-    for (auto& m : moveAssetFiles)
+    for (auto& d : moveAssetFiles)
     {
-        m.assetData->SetAssetPath(m.newPath);
+        d->SetAssetPath(newPath, GetAssetDirectory());
+        assets.byPath.erase(oldPath);
+        assets.byPath[newPath] = d;
+
+        d->SaveToDisk(GetProjectRoot());
 
         // TODO: meta
     }

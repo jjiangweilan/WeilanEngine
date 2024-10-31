@@ -154,9 +154,6 @@ void AssetData::UpdateAssetUUIDs()
 
 void AssetData::SaveToDisk(const std::filesystem::path& projectRoot)
 {
-    assetUUID = this->asset->GetUUID();
-    assetTypeID = this->asset->GetObjectTypeID();
-
     std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
     std::ofstream f(path, std::ios::trunc);
     if (f.is_open() && f.good())
