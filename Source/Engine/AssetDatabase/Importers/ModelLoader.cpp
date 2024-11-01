@@ -1,15 +1,15 @@
-#include "LegacyLoader.hpp"
+#include "ModelLoader.hpp"
 #include "Core/Model.hpp"
 
-DEFINE_ASSET_LOADER(LegacyLoader, "glb")
+DEFINE_ASSET_LOADER(ModelLoader, "glb")
 
-const std::vector<std::type_index>& LegacyLoader::GetImportTypes()
+const std::vector<std::type_index>& ModelLoader::GetImportTypes()
 {
     static std::vector<std::type_index> types = {typeid(Model)};
     return types;
 }
 
-void LegacyLoader::Load()
+void ModelLoader::Load()
 {
     auto ext = absoluteAssetPath.extension();
     asset = std::make_unique<Model>();

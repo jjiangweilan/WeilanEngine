@@ -11,7 +11,7 @@ public:
     {
         return false;
     };
-    void Import() override {}
+    std::vector<std::filesystem::path> Import() override {return {};}
 
     void Load() override;
     void GetReferenceResolveData(Serializer*& serializer, SerializeReferenceResolveMap*& resolveMap) override;

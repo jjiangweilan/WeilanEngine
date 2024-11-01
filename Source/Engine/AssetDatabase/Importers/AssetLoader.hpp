@@ -32,7 +32,9 @@ public:
     }
 
     virtual bool ImportNeeded() = 0;
-    virtual void Import() = 0;
+
+    // imported file path
+    virtual std::vector<std::filesystem::path> Import() = 0;
     virtual void Load() = 0;
 
     // no need to override if this data import doesn't need reference resolving

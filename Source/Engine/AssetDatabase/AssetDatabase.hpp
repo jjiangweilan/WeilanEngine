@@ -92,6 +92,7 @@ public:
     // file system
     void CreateFolderAtPath(const std::filesystem::path& path);
     void Rename(const std::filesystem::path& oldPath, const std::filesystem::path& newPath);
+    void Remove(const std::filesystem::path& path);
 
 private:
     static AssetDatabase*& SingletonReference();
@@ -136,6 +137,7 @@ private:
     void LoadEngineInternal();
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
+    void SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported);
 
     // used to set instance
     friend class WeilanEngine;

@@ -1,6 +1,7 @@
 #include "GameEditor.hpp"
 #include "AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Core/Asset.hpp"
+#include "FileIcons.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
 #include "DragDropIDs.hpp"
@@ -19,8 +20,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
-#include <codecvt>
-#include <locale>
 
 namespace Editor
 {
@@ -945,15 +944,6 @@ void GameEditor::InspectorWindow()
     }
 }
 
-// enter utf code picked from here: https://www.nerdfonts.com/cheat-sheet
-std::string Utf16ToUtf8(char16_t utf16_codepoint)
-{
-    // Convert UTF-16 to UTF-32 (widening)
-    std::u16string utf16_str(1, utf16_codepoint);
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert_utf16_to_utf8;
-    return convert_utf16_to_utf8.to_bytes(utf16_str);
-}
-
 void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 {
     GameObject* makePrototype = nullptr;
@@ -975,7 +965,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
             }
 
             auto dir = std::filesystem::relative(entry.path(), path);
-            bool treeOpen = ImGui::TreeNode(fmt::format("{} {}", Utf16ToUtf8(0xe735), dir.string()).c_str());
+            bool treeOpen = ImGui::TreeNode(dir.string().c_str());
             if (ImGui::BeginDragDropSource())
             {
                 
@@ -1036,7 +1026,8 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
         if (entry.is_regular_file())
         {
             std::string pathStr = entry.path().filename().string();
-            bool open = ImGui::TreeNodeEx(pathStr.c_str(), ImGuiTreeNodeFlags_Leaf);
+            auto treeTitle = fmt::format("{} {}", FileIcons::GetIcon(entry.path().extension()), pathStr);
+            bool open = ImGui::TreeNodeEx(treeTitle.c_str(), ImGuiTreeNodeFlags_Leaf);
             if (ImGui::BeginPopupContextItem("asset window context menu"))
             {
                 if (ImGui::Selectable("Change File Name"))

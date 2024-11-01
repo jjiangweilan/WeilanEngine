@@ -35,7 +35,7 @@ bool TextureLoader::ImportNeeded()
     return reimport;
 }
 
-void TextureLoader::Import()
+std::vector<std::filesystem::path> TextureLoader::Import()
 {
     std::string importFileUUID = meta.value("importFileUUID", UUID().ToString());
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
@@ -207,6 +207,8 @@ void TextureLoader::Import()
     meta["lastImportedWriteTime"] = std::filesystem::last_write_time(absoluteAssetPath).time_since_epoch().count();
     meta["importedKtxFile"] = importedAssetPath.string();
     meta["importFileUUID"] = importFileUUID;
+
+    return {importedAssetPath};
 }
 
 bool TextureLoader::IsKTX2File(ktx_uint8_t* imageData)

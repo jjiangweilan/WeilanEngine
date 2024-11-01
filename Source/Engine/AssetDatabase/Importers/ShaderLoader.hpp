@@ -7,7 +7,7 @@ class ShaderLoader : public AssetLoader
 
 public:
     bool ImportNeeded() override;
-    void Import() override;
+    std::vector<std::filesystem::path> Import() override;
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override
     {

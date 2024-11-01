@@ -89,6 +89,16 @@ public:
         this->meta = meta;
     }
 
+    void SetImportedAssetPaths(const std::vector<std::filesystem::path>& paths)
+    {
+        importedAssetFilePaths = paths;
+    }
+
+    std::vector<std::filesystem::path> GetImportedAssetPaths()
+    {
+        return importedAssetFilePaths;
+    }
+
     nlohmann::json GetMeta()
     {
         return meta;
@@ -114,6 +124,8 @@ private:
     // if it's an engine internal file it be _engine_internal/xxx
     std::filesystem::path assetPath;
     std::filesystem::path absolutePath;
+
+    std::vector<std::filesystem::path> importedAssetFilePaths;
 
     nlohmann::json meta = nlohmann::json::object();
 

@@ -1,6 +1,6 @@
 #include "AssetLoader.hpp"
 
-class LegacyLoader : public AssetLoader
+class ModelLoader : public AssetLoader
 {
     DECLARE_ASSET_LOADER()
 
@@ -9,7 +9,7 @@ public:
     {
         return false;
     }
-    void Import() override {}
+    std::vector<std::filesystem::path> Import() override {return {};}
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override
     {

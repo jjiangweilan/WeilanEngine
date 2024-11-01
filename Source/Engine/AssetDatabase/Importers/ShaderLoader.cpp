@@ -29,14 +29,15 @@ bool ShaderLoader::ImportNeeded()
 
     for (int i = 0; i < includedFiles.size(); i++)
     {
-        if (!std::filesystem::exists(includedFiles[i]["path"]) || includedFiles[i]["lastWriteTime"] <
-            std::filesystem::last_write_time(includedFiles[i]["path"]).time_since_epoch().count())
+        if (!std::filesystem::exists(includedFiles[i]["path"]) ||
+            includedFiles[i]["lastWriteTime"] <
+                std::filesystem::last_write_time(includedFiles[i]["path"]).time_since_epoch().count())
             return true;
     }
 
     return false;
 }
-void ShaderLoader::Import()
+std::vector<std::filesystem::path> ShaderLoader::Import()
 {
     struct PassCompiledData
     {
@@ -249,10 +250,14 @@ void ShaderLoader::Import()
     auto importName = fmt::format("{}_{}", "shader", compiledSpvGUID);
     meta["importedBinaryFileName"] = importName;
 
-    auto importAssetPath = importDatabase->GetImportAssetPath(importName);
+    std::vector<std::filesystem::path> importedAssetPaths;
+    auto importedAssetPath = importDatabase->GetImportAssetPath(importName);
+    importedAssetPaths.push_back(importedAssetPath);
     std::fstream output;
-    output.open(importAssetPath, std::ios_base::out | std::ios_base::binary);
+    output.open(importedAssetPath, std::ios_base::out | std::ios_base::binary);
     output.write((char*)binaryData.data(), binaryData.size());
+    return importedAssetPaths;
+    
 }
 void ShaderLoader::Load()
 {

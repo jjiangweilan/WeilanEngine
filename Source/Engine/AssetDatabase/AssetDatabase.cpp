@@ -629,7 +629,7 @@ void AssetDatabase::RefreshShader()
                 {
                     try
                     {
-                        loader->Import();
+                        SyncImportedAssetFiles(d.get(), loader->Import());
                         SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
                         loader->Load();
                         s->Reload(std::move(*loader->RetrieveAsset()));
@@ -646,6 +646,12 @@ void AssetDatabase::RefreshShader()
 
         requestShaderRefreshAll = false;
     }
+}
+
+void AssetDatabase::SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported)
+{
+    auto copyNewImported = newImported;
+    auto importedAssetPaths = assetData->GetImportedAssetPaths();
 }
 
 bool AssetDatabase::ChangeAssetPath(const std::filesystem::path& src, const std::filesystem::path& dst)
@@ -755,9 +761,15 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     loader->Setup(importDatabase, absoluteAssetPath, assetMeta);
 
     bool importNeeded = forceReimport || loader->ImportNeeded();
+    std::vector<std::filesystem::path> importedAssetFilePaths;
     if (importNeeded)
     {
-        loader->Import();
+        importedAssetFilePaths = loader->Import();
+
+        if (assetData != nullptr)
+        {
+            SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+        }
     }
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
@@ -799,6 +811,8 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         assetData->SetMeta(loader->GetMeta());
         ad->SaveToDisk(projectRoot);
         assets.Add(std::move(ad));
+
+        SyncImportedAssetFiles(assetData, importedAssetFilePaths);
     }
 
     // newly imported or loaded, resolve references
@@ -884,7 +898,8 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
     }
     else if (std::filesystem::is_regular_file(fullOldPath))
     {
-        AssetData* assetData = assets.GetAssetData(oldPath); // at this point old path must be a relative path in Assets directory
+        AssetData* assetData =
+            assets.GetAssetData(oldPath); // at this point old path must be a relative path in Assets directory
         if (assetData != nullptr)
         {
             moveAssetFiles.push_back(assetData);
@@ -912,3 +927,5 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
         // TODO: meta
     }
 }
+
+void AssetDatabase::Remove(const std::filesystem::path& path) {}
