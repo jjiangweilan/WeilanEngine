@@ -185,25 +185,6 @@ void AssetData::UpdateLastWriteTime()
     lastWriteTime = std::filesystem::last_write_time(absolutePath).time_since_epoch().count();
 }
 
-bool AssetData::ChangeAssetPath(const std::filesystem::path& path, const std::filesystem::path& projectRoot)
-{
-    auto newAbsolutePath = projectRoot / "Assets" / path;
-
-    try
-    {
-        std::filesystem::rename(absolutePath, newAbsolutePath);
-    }
-    catch (...)
-    {
-        return false;
-    }
-
-    assetPath = path;
-    absolutePath = newAbsolutePath;
-    UpdateLastWriteTime();
-    SaveToDisk(projectRoot);
-}
-
 nlohmann::json AssetData::DumpInfo() const
 {
     nlohmann::json j = {};

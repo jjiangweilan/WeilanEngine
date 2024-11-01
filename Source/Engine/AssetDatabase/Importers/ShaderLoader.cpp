@@ -116,7 +116,7 @@ std::vector<std::filesystem::path> ShaderLoader::Import()
         catch (std::exception e)
         {
             SPDLOG_ERROR("{}, {}", e.what(), absoluteAssetPath.string());
-            return;
+            return {};
         }
 
         auto& includedFiles = compiler.GetIncludedFiles();
@@ -152,7 +152,7 @@ std::vector<std::filesystem::path> ShaderLoader::Import()
         catch (std::exception e)
         {
             SPDLOG_ERROR("{}, {}", e.what(), absoluteAssetPath.string());
-            return;
+            return {};
         }
         auto& includedFiles = compiler.GetIncludedFiles();
         includedFilesSet.insert(includedFiles.begin(), includedFiles.end());

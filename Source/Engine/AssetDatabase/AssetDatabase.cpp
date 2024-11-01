@@ -650,24 +650,28 @@ void AssetDatabase::RefreshShader()
 
 void AssetDatabase::SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported)
 {
-    auto copyNewImported = newImported;
     auto importedAssetPaths = assetData->GetImportedAssetPaths();
-}
+    assetData->SetImportedAssetPaths(newImported);
 
-bool AssetDatabase::ChangeAssetPath(const std::filesystem::path& src, const std::filesystem::path& dst)
-{
-    AssetData* data = assets.GetAssetData(src);
-    if (data)
+    std::vector<std::filesystem::path> toRemove;
+    for (auto& oldp : importedAssetPaths)
     {
-        if (data->ChangeAssetPath(dst, projectRoot))
+        auto findResult = std::find(newImported.begin(), newImported.end(), oldp);
+        if (findResult == newImported.end())
         {
-            assets.byPath.erase(src);
-            assets.byPath[dst] = data;
-            return true;
+            toRemove.push_back(*findResult);
         }
-        return false;
     }
-    return false;
+
+    for (auto r : toRemove)
+    {
+        std::error_code e;
+        std::filesystem::remove(r, e);
+        if (e.value() != 0)
+        {
+            spdlog::error("failed to remove {}", e.message());
+        }
+    }
 }
 
 AssetDatabase*& AssetDatabase::SingletonReference()
@@ -928,4 +932,31 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
     }
 }
 
-void AssetDatabase::Remove(const std::filesystem::path& path) {}
+void AssetDatabase::Remove(const std::filesystem::path& path) {
+    auto fullPath = GetAssetDirectory() / path;
+
+    if (!std::filesystem::exists(fullPath))
+        return;
+
+    if (std::filesystem::is_directory(fullPath))
+    {
+        for(auto entry : std::filesystem::recursive_directory_iterator(fullPath))
+        {
+            if (entry.is_regular_file())
+            {
+                auto entryPath = entry.path();
+                auto assetPath = std::filesystem::relative(entryPath, GetAssetDirectory());
+
+                auto assetData = assets.GetAssetData(assetPath);
+
+                if (assetData)
+                {
+                    // set assetData's imported file to nothing (effectly remove all imported assets)
+                    SyncImportedAssetFiles(assetData, {});
+                }
+            }
+        }
+    }
+
+    std::filesystem::remove_all(fullPath);
+}

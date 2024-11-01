@@ -1,11 +1,11 @@
 #include "GameEditor.hpp"
 #include "AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Core/Asset.hpp"
-#include "FileIcons.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Time.hpp"
 #include "DragDropIDs.hpp"
 #include "EditorState.hpp"
+#include "FileIcons.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
 #include "Platform/FileExplore.hpp"
@@ -373,11 +373,7 @@ void GameEditor::SceneTree(Scene& scene)
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
 
-    if (ImGui::BeginDragDropTargetCustom(
-            {windowPos,
-             windowMax},
-            999
-        ))
+    if (ImGui::BeginDragDropTargetCustom({windowPos, windowMax}, 999))
     {
         const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("game object");
         if (payload && payload->IsDelivery())
@@ -968,7 +964,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
             bool treeOpen = ImGui::TreeNode(dir.string().c_str());
             if (ImGui::BeginDragDropSource())
             {
-                
+
                 std::string path = entry.path().string();
                 ImGui::SetDragDropPayload(DragDropIDs::assetPath, path.c_str(), path.size());
                 auto relative = std::filesystem::relative(engine->GetProjectPath() / "Assets", entry.path());
@@ -1030,11 +1026,21 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
             bool open = ImGui::TreeNodeEx(treeTitle.c_str(), ImGuiTreeNodeFlags_Leaf);
             if (ImGui::BeginPopupContextItem("asset window context menu"))
             {
-                if (ImGui::Selectable("Change File Name"))
+                if (ImGui::MenuItem("Change File Name"))
                 {
                     changeFileName = true;
                     changeFileNameTarget =
                         std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                }
+
+                if (ImGui::MenuItem("Delete"))
+                {
+                    endEvents.Register(
+                        [entry]()
+                        {
+                            AssetDatabase::Singleton()->Remove(std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory()));
+                        }
+                    );
                 }
                 ImGui::EndPopup();
             }
@@ -1087,7 +1093,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 
         if (ImGui::Selectable("Confirm"))
         {
-            AssetDatabase::Singleton()->ChangeAssetPath(changeFileNameTarget, fn);
+            AssetDatabase::Singleton()->Rename(changeFileNameTarget, fn);
         }
         if (ImGui::Selectable("Chancel"))
         {

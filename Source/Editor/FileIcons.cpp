@@ -24,6 +24,12 @@ std::string FileIcons::GetIcon(const std::filesystem::path& ext)
     {
         std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
 
+        if (loader == nullptr)
+        {
+            toIcon[ext.string()] = "";
+            return "";
+        }
+
         auto iter = toIconType.find(typeid(*loader));
         if (iter != toIconType.end())
         {
