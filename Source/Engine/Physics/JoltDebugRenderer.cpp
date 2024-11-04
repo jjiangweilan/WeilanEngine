@@ -33,7 +33,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
     std::vector<glm::vec3> positions;
     std::vector<uint32_t> indices;
-    VertexAttribute attributes;
+    VertexAttributes attributes;
     std::vector<uint8_t> attributeData;
     attributes.AddAttribute("normal", 3 * sizeof(float));
     attributes.AddAttribute("color", 4 * sizeof(float));
@@ -84,7 +84,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
     std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
     std::vector<glm::vec3> positions;
     std::vector<uint32_t> indices;
-    VertexAttribute attributes;
+    VertexAttributes attributes;
     std::vector<uint8_t> attributeData;
     attributes.AddAttribute("normal", 3 * sizeof(float));
     attributes.AddAttribute("color", 4 * sizeof(float));

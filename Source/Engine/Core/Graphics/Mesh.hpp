@@ -18,7 +18,7 @@ struct VertexBinding
     std::string name;
 };
 
-class VertexAttribute
+class VertexAttributes
 {
 public:
     struct Attribute
@@ -27,7 +27,7 @@ public:
         int size;
     };
 
-    VertexAttribute& AddAttribute(const char* name, int size)
+    VertexAttributes& AddAttribute(const char* name, int size)
     {
         attributes.push_back(Attribute{name, size});
         return *this;
@@ -122,11 +122,11 @@ public:
     void SetIndices(std::vector<uint32_t>&& indices);
     void SetIndices(const std::vector<uint32_t>& indices);
     void SetPositions(std::vector<glm::vec3>&& positions);
-    void SetVertexAttribute(VertexAttribute&& vertAttributes);
-    void SetVertexAttribute(const VertexAttribute& vertAttributes);
+    void SetVertexAttribute(VertexAttributes&& vertAttributes);
+    void SetVertexAttribute(const VertexAttributes& vertAttributes);
     void SetPositions(const std::vector<glm::vec3>& positions);
     void Apply();
-    const VertexAttribute& GetVertexAttribute() const {return attributes;}
+    const VertexAttributes& GetVertexAttribute() const {return attributes;}
     bool HasAttribute(std::string_view name) const
     {
         for (auto& attr : attributes.GetDescription())
@@ -141,12 +141,12 @@ public:
 
     const std::vector<uint32_t>& GetIndices() const;
     const std::vector<glm::vec3>& GetPositions() const;
-    const VertexAttribute& GetAttribute() const;
+    const VertexAttributes& GetAttribute() const;
 
 private:
     std::vector<uint32_t> indices;
     std::vector<glm::vec3> positions; // binding 0,
-    VertexAttribute attributes;       // binding 1, interleaved
+    VertexAttributes attributes;       // binding 1, interleaved
 
     // v0.1 API
 public:

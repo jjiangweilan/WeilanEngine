@@ -218,7 +218,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     }
 
     // get position data and aabb
-    VertexAttribute attribute;
+    VertexAttributes attribute;
     std::vector<uint8_t> attributeData(attributesSize);
     size_t attributeOffset = 0;
     size_t attributeStride = 0;

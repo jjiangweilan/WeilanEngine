@@ -88,12 +88,12 @@ void Submesh::SetPositions(const std::vector<glm::vec3>& positions)
     this->positions = positions;
 }
 
-void Submesh::SetVertexAttribute(VertexAttribute&& vertAttributes)
+void Submesh::SetVertexAttribute(VertexAttributes&& vertAttributes)
 {
     this->attributes = std::move(vertAttributes);
 }
 
-void Submesh::SetVertexAttribute(const VertexAttribute& vertAttributes)
+void Submesh::SetVertexAttribute(const VertexAttributes& vertAttributes)
 {
     this->attributes = vertAttributes;
 }
@@ -199,7 +199,7 @@ const std::vector<glm::vec3>& Submesh::GetPositions() const
     return positions;
 }
 
-const VertexAttribute& Submesh::GetAttribute() const
+const VertexAttributes& Submesh::GetAttribute() const
 {
     return attributes;
 }
