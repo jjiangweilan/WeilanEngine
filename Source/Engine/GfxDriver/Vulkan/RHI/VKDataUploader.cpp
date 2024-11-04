@@ -76,6 +76,14 @@ void VKDataUploader::UploadImage(
     {
         UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
+
+        // offset may change, recalculate alignment
+        align = byteSize - (offset % byteSize);
+        if (size + align > stagingBufferSize)
+        {
+            SPDLOG_ERROR("failed to upload buffer: buffer size is larger than 48 MB");
+            return;
+        }
     }
 
     memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + offset + align, data, size);
