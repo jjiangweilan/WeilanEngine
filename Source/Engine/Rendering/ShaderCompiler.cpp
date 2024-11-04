@@ -362,6 +362,25 @@ Gfx::ShaderConfig ShaderCompiler::MapShaderConfig(ryml::Tree& tree, std::string&
         std::string val;
         auto stencil = root["stencil"];
         stencil.get_if("testEnable", &config.stencil.testEnable);
+
+        if (!stencil.has_child("front") && !stencil.has_child("back"))
+        {
+            stencil.get_if("failOp", &val, std::string("keep"));
+            config.stencil.front.failOp = config.stencil.back.failOp = Utils::MapStencilOp(val);
+            stencil.get_if("passOp", &val, std::string("keep"));
+            config.stencil.front.passOp = config.stencil.back.passOp = Utils::MapStencilOp(val);
+            stencil.get_if("depthFailOp", &val, std::string("keep"));
+            config.stencil.front.depthFailOp = config.stencil.back.depthFailOp = Utils::MapStencilOp(val);
+            stencil.get_if("compareOp", &val, std::string("never"));
+            config.stencil.front.compareOp = config.stencil.back.compareOp = Utils::MapCompareOp(val);
+            stencil.get_if("compareMask", &config.stencil.front.compareMask);
+            stencil.get_if("writeMask", &config.stencil.front.writeMask);
+            stencil.get_if("reference", &config.stencil.front.reference);
+            config.stencil.back.compareMask = config.stencil.front.compareMask;
+            config.stencil.back.writeMask = config.stencil.front.writeMask;
+            config.stencil.back.reference = config.stencil.front.reference;
+        }
+
         if (stencil.has_child("front"))
         {
             auto front = stencil["front"];

@@ -6,10 +6,9 @@ name: Internal/OutlineRawColorPass
 interleaved: False
 stencil:
     testEnable : True
-    front:
-        passOp: replace
-        compareOp: always
-        reference: 1
+    passOp: replace
+    compareOp: always
+    reference: 1
 depth:
     testEnable: False
 #endif

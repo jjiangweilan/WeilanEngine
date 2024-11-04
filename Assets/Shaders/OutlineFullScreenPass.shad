@@ -6,10 +6,9 @@ depth:
     testEnable: False
 stencil:
     testEnable: True
-    back:
-        passOp: keep
-        compareOp: notEqual
-        reference: 1
+    passOp: keep
+    compareOp: notEqual
+    reference: 1
 blend:
     - srcAlpha oneMinusSrcAlpha
 cull: none
