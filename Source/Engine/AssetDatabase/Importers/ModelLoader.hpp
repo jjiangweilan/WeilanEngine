@@ -7,9 +7,10 @@ class ModelLoader : public AssetLoader
 public:
     bool ImportNeeded() override
     {
-        return false;
+        return true;
     }
     std::vector<std::filesystem::path> Import() override {return {};}
+
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override
     {

@@ -1,5 +1,5 @@
 #include "AssetData.hpp"
-
+#include <spdlog/spdlog.h>
 AssetData::AssetData(
     std::unique_ptr<Asset>&& asset, const std::filesystem::path& assetPath, const std::filesystem::path& projectRoot
 )
@@ -27,7 +27,17 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
     if (!assetDataUUID.IsEmpty())
     {
         std::ifstream f(path);
-        auto dataJson = nlohmann::json::parse(f);
+        nlohmann::json dataJson;
+        try
+        {
+            dataJson = nlohmann::json::parse(f);
+        }
+        catch (...)
+        {
+            spdlog::error("failed to load AssetData at {}", path.string());
+            isValid = false;
+            return;
+        }
 
         if (dataJson.empty())
         {
