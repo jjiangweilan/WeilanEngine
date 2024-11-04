@@ -81,6 +81,7 @@ private:
         const Gfx::RG::ImageIdentifier* gameImage,
         const Gfx::RG::ImageIdentifier* gameDepthImage
     );
+    void SaveProject();
 
     void AssetWindow();
     void AssetShowDir(const std::filesystem::path& path, int depth);

@@ -125,6 +125,8 @@ GameEditor::GameEditor(const char* path)
 
 GameEditor::~GameEditor()
 {
+    SaveProject();
+
     ImPlot::DestroyContext();
     fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
@@ -756,9 +758,7 @@ void GameEditor::GUIPass()
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_S))
     {
-        engine->assetDatabase->SaveDirtyAssets();
-        if (EditorState::activeScene)
-            engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+        SaveProject();
         SPDLOG_INFO("project saved");
     }
 
@@ -943,6 +943,8 @@ void GameEditor::InspectorWindow()
 void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 {
     GameObject* makePrototype = nullptr;
+    bool changeFileName = false;
+    static std::filesystem::path changeFileNameTarget;
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
@@ -997,6 +999,13 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                         endEvents.Register([entry]() { std::filesystem::remove(entry.path()); });
                     }
                 }
+
+                if (ImGui::MenuItem("Change File Name"))
+                {
+                    changeFileName = true;
+                    changeFileNameTarget =
+                        std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory());
+                }
                 ImGui::EndPopup();
             }
             if (treeOpen)
@@ -1015,8 +1024,6 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
         ImGuiDropAssetFile(AssetDatabase::Singleton()->GetAssetDirectory(), {currentCursor, contextRegionMax});
     }
 
-    bool changeFileName = false;
-    static std::filesystem::path changeFileNameTarget;
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_regular_file())
@@ -1038,7 +1045,9 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                     endEvents.Register(
                         [entry]()
                         {
-                            AssetDatabase::Singleton()->Remove(std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory()));
+                            AssetDatabase::Singleton()->Remove(
+                                std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
+                            );
                         }
                     );
                 }
@@ -1473,5 +1482,12 @@ void GameEditor::ImGuiDropAssetFile(const std::filesystem::path& newDirectory, I
         }
         ImGui::EndDragDropTarget();
     }
+}
+
+void GameEditor::SaveProject()
+{
+    engine->assetDatabase->SaveDirtyAssets();
+    if (EditorState::activeScene)
+        engine->assetDatabase->SaveAsset(*EditorState::activeScene);
 }
 } // namespace Editor
