@@ -2,7 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
 #include <assimp/Importer.hpp>
-#include <assimp/pbrmaterial.h>
+#include <assimp/GltfMaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf")
@@ -133,7 +133,6 @@ struct ImporterImple
 
             std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices);
 
-            uint32_t strideOffset = 0;
             uint8_t* data = attributeData.data();
             if (mesh->HasNormals())
             {
