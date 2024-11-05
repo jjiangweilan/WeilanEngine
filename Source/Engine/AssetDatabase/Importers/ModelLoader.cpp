@@ -1,19 +1,24 @@
 #include "ModelLoader.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
-DEFINE_ASSET_LOADER(ModelLoader, "glb")
+DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf")
 
 struct ImporterImple
 {
     std::vector<std::unique_ptr<Submesh>> submeshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
+    ModelNode rootNode;
+
+    std::filesystem::path absoluteAssetPath;
 
     void Load(const std::filesystem::path& path)
     {
+        this->absoluteAssetPath = path;
         Assimp::Importer importer;
         scene = importer.ReadFile(path.string().c_str(), aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
 
@@ -25,6 +30,27 @@ struct ImporterImple
 
         ProcessMesh();
         ProcessMaterial();
+        rootNode = ProcessNode(scene->mRootNode);
+    }
+
+    ModelNode ProcessNode(aiNode* node) {
+        ModelNode modelNode;
+        modelNode.name = node->mName.C_Str();
+        for(int m = 0; m < node->mNumMeshes; ++m)
+        {
+            modelNode.meshes.push_back(node->mMeshes[m]);
+        }
+
+        aiMatrix4x4 m = node->mTransformation.Transpose(); // assimp is row major, we are column major
+        modelNode.transform = 
+        {
+            m.a1, m.a2, m.a3, m.a4,
+            m.b1, m.b2, m.b3, m.b4,
+            m.c1, m.c2, m.c3, m.c4,
+            m.d1, m.d2, m.d3, m.d4,
+        };
+
+        return modelNode;
     }
 
     void ProcessMesh()
@@ -162,6 +188,28 @@ struct ImporterImple
         }
     }
 
+    void ExtractTexture(
+        std::unique_ptr<Material>& mat,
+        aiMaterial*& material,
+        aiTextureType type,
+        const char* bindingName,
+        const char* keyword
+    )
+    {
+        if (material->GetTextureCount(type) > 0)
+        {
+            aiString texName;
+            material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
+            Texture* tex = dynamic_cast<Texture*>(
+                AssetDatabase::Singleton()->LoadAsset(absoluteAssetPath.parent_path() / texName.C_Str())
+            );
+            if (tex)
+            {
+                mat->SetTexture(bindingName, tex);
+                mat->EnableFeature(keyword);
+            }
+        }
+    }
     void ProcessMaterial()
     {
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
@@ -174,16 +222,19 @@ struct ImporterImple
             float roughness = 0.4f;
             float metallic = 0.2f;
             float alphaCutoff = 0.5f;
+            aiString alphaMode;
+            bool twoSided;
             material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor);
             material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive);
             material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
             material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
             material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff);
-            aiTexture *diffuseTex, metallicRoughnessTex, normalTex, emissiveTex;
-            material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTex);
-            material->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), normalTex);
-            material->Get(AI_MATKEY_TEXTURE(aiTextureType_METALNESS, 0), metallicRoughnessTex);
-            material->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), emissiveTex);
+            material->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
+            material->Get(AI_MATKEY_TWOSIDED, twoSided);
+            ExtractTexture(mat, material, aiTextureType_DIFFUSE, "baseColorTex", "_BaseColorMap");
+            ExtractTexture(mat, material, aiTextureType_NORMALS, "normalMap", "_BaseColorMap");
+            ExtractTexture(mat, material, aiTextureType_METALNESS, "metallicRoughnessMap", "_MetallicRoughnessMap");
+            ExtractTexture(mat, material, aiTextureType_EMISSIVE, "emissivemap", "_EmissiveMap");
 
             mat->SetVector(
                 "PBR",
@@ -194,6 +245,42 @@ struct ImporterImple
             mat->SetFloat("PBR", "roughness", roughness);
             mat->SetFloat("PBR", "metallic", metallic);
             mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
+
+            auto shaderConfig = mat->GetShaderConfig();
+            shaderConfig.cullMode = twoSided ? Gfx::CullMode::None : Gfx::CullMode::Back;
+            std::string alphaModel = alphaMode.C_Str();
+            shaderConfig.depth.testEnable = true;
+            if (shaderConfig.color.blends.empty())
+            {
+                shaderConfig.color.blends.push_back({});
+            }
+            if (alphaModel == "MASK")
+            {
+                mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
+                mat->EnableFeature("_AlphaTest");
+                auto& blend = shaderConfig.color.blends[0];
+                blend.blendEnable = false;
+            }
+            else if (alphaModel == "BLEND")
+            {
+                auto& blend = shaderConfig.color.blends[0];
+                blend.blendEnable = true;
+                blend.srcColorBlendFactor = Gfx::BlendFactor::Src_Alpha;
+                blend.dstColorBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
+                blend.colorBlendOp = Gfx::BlendOp::Add;
+                blend.srcAlphaBlendFactor = Gfx::BlendFactor::Src_Alpha;
+                blend.dstAlphaBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
+                blend.alphaBlendOp = Gfx::BlendOp::Add;
+                shaderConfig.depth.testEnable = false;
+            }
+            else
+            {
+                mat->SetFloat("PBR", "alphaCutoff", 0.0f);
+                auto& blend = shaderConfig.color.blends[0];
+                blend.blendEnable = false;
+            }
+            mat->SetShaderConfig(shaderConfig);
+
             materials.push_back(std::move(mat));
         }
     }
@@ -210,6 +297,14 @@ const std::vector<std::type_index>& ModelLoader::GetImportTypes()
 
 void ModelLoader::Load()
 {
-    asset = std::make_unique<Model>();
-    asset->LoadFromFile(absoluteAssetPath.string().c_str());
+    if (absoluteAssetPath.extension() == ".glb")
+    {
+        asset = std::make_unique<Model>();
+        asset->LoadFromFile(absoluteAssetPath.string().c_str());
+    }
+    else
+    {
+        ImporterImple e;
+        e.Load(absoluteAssetPath);
+    }
 }

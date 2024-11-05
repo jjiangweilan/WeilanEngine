@@ -7,6 +7,14 @@
 #include <string>
 #include <string_view>
 
+struct ModelNode
+{
+    std::string name;
+    std::vector<int> meshes;
+    std::vector<ModelNode> children;
+    glm::mat4 transform;
+};
+
 class Model : public Asset
 {
     DECLARE_EXTERNAL_ASSET();
@@ -59,10 +67,33 @@ public:
 
     Material* GetDefaultMaterial();
 
+    void SetSubmeshes(std::vector<std::unique_ptr<Submesh>>&& submeshes)
+    {
+        this->submeshes = std::move(submeshes);
+    }
+
+    void SetTextures(std::vector<std::unique_ptr<Texture>>&& textures)
+    {
+        this->textures = std::move(textures);
+    }
+
+    void SetMaterials(std::vector<std::unique_ptr<Material>>&& materials)
+    {
+        this->materials = std::move(materials);
+    }
+
+    void SetModelNode(ModelNode root)
+    {
+        this->rootNode = root;
+    }
+
 private:
+    std::vector<std::unique_ptr<Submesh>> submeshes;
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
+
+    ModelNode rootNode;
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;
