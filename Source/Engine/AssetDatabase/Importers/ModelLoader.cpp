@@ -1,6 +1,7 @@
 #include "ModelLoader.hpp"
 #include "Core/Model.hpp"
 #include <assimp/Importer.hpp>
+#include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 DEFINE_ASSET_LOADER(ModelLoader, "glb")
@@ -14,7 +15,7 @@ struct ImporterImple
     void Load(const std::filesystem::path& path)
     {
         Assimp::Importer importer;
-        auto scene = importer.ReadFile(path.string().c_str(), aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
+        scene = importer.ReadFile(path.string().c_str(), aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
 
         if (scene == nullptr)
         {
@@ -22,10 +23,15 @@ struct ImporterImple
             return;
         }
 
+        ProcessMesh();
+        ProcessMaterial();
+    }
+
+    void ProcessMesh()
+    {
         for (int meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
         {
             aiMesh* mesh = scene->mMeshes[meshIndex];
-            aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
             std::vector<glm::vec3> positions(mesh->mNumVertices);
             for (int i = 0; i < mesh->mNumVertices; ++i)
@@ -139,8 +145,9 @@ struct ImporterImple
                     {
                         for (int uvi = 0; uvi < mesh->mNumUVComponents[i]; uvi++)
                         {
-                            *reinterpret_cast<float*>(data + attributeStrideSize * i + texCoordStrideOffsets[i] + uvi * 4) =
-                                mesh->mTextureCoords[i][vi].x;
+                            *reinterpret_cast<float*>(
+                                data + attributeStrideSize * i + texCoordStrideOffsets[i] + uvi * 4
+                            ) = mesh->mTextureCoords[i][vi].x;
                         }
                     }
                 }
@@ -151,8 +158,48 @@ struct ImporterImple
             std::unique_ptr<Submesh> submesh = std::make_unique<Submesh>();
             submesh->SetPositions(std::move(positions));
             submesh->SetVertexAttribute(std::move(attributes));
+            submeshes.push_back(std::move(submesh));
         }
     }
+
+    void ProcessMaterial()
+    {
+        for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
+        {
+            std::unique_ptr<Material> mat = std::make_unique<Material>();
+            auto material = scene->mMaterials[materialIndex];
+
+            aiColor4D baseColorFactor = {0.5, 0.5, 0.5, 0.5};
+            aiColor4D emissive = {0, 0, 0, 0};
+            float roughness = 0.4f;
+            float metallic = 0.2f;
+            float alphaCutoff = 0.5f;
+            material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor);
+            material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive);
+            material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+            material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
+            material->Get(AI_MATKEY_GLTF_ALPHACUTOFF, alphaCutoff);
+            aiTexture *diffuseTex, metallicRoughnessTex, normalTex, emissiveTex;
+            material->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTex);
+            material->Get(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), normalTex);
+            material->Get(AI_MATKEY_TEXTURE(aiTextureType_METALNESS, 0), metallicRoughnessTex);
+            material->Get(AI_MATKEY_TEXTURE(aiTextureType_EMISSIVE, 0), emissiveTex);
+
+            mat->SetVector(
+                "PBR",
+                "baseColorFactor",
+                {baseColorFactor.r, baseColorFactor.g, baseColorFactor.b, baseColorFactor.a}
+            );
+            mat->SetVector("PBR", "emissive", {emissive.r, emissive.g, emissive.b, emissive.a});
+            mat->SetFloat("PBR", "roughness", roughness);
+            mat->SetFloat("PBR", "metallic", metallic);
+            mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
+            materials.push_back(std::move(mat));
+        }
+    }
+
+private:
+    const aiScene* scene;
 };
 
 const std::vector<std::type_index>& ModelLoader::GetImportTypes()
@@ -163,7 +210,6 @@ const std::vector<std::type_index>& ModelLoader::GetImportTypes()
 
 void ModelLoader::Load()
 {
-    auto ext = absoluteAssetPath.extension();
     asset = std::make_unique<Model>();
     asset->LoadFromFile(absoluteAssetPath.string().c_str());
 }

@@ -323,20 +323,23 @@ bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
     return false;
 }
 
-void VKDriver::GenerateMipmaps(VKImage& image)
+void VKDriver::GenerateMipmaps(SRef<VKImage> image)
 {
     std::scoped_lock lock(driverMutex);
     internalPendingCommands.push_back(
-        [&](VkCommandBuffer cmd)
+        [imageRef=image](VkCommandBuffer cmd)
         {
+            auto image = imageRef.Get();
+            if (image == nullptr)
+                return;
             VkImageSubresourceRange range;
             range.baseArrayLayer = 0;
-            range.layerCount = image.GetDescription().GetLayer();
+            range.layerCount = image->GetDescription().GetLayer();
             range.levelCount = 1;
             range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            for (uint32_t layer = 0; layer < image.GetDescription().GetLayer(); ++layer)
+            for (uint32_t layer = 0; layer < image->GetDescription().GetLayer(); ++layer)
             {
-                for (uint32_t mip = 1; mip < image.GetDescription().mipLevels; ++mip)
+                for (uint32_t mip = 1; mip < image->GetDescription().mipLevels; ++mip)
                 {
                     range.baseMipLevel = mip - 1;
                     VkImageMemoryBarrier vkBarrier[2];
@@ -348,7 +351,7 @@ void VKDriver::GenerateMipmaps(VKImage& image)
                     vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
                     vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                     vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[0].image = image.GetImage();
+                    vkBarrier[0].image = image->GetImage();
                     vkBarrier[0].subresourceRange = range;
 
                     range.baseMipLevel = mip;
@@ -360,7 +363,7 @@ void VKDriver::GenerateMipmaps(VKImage& image)
                     vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
                     vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                     vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                    vkBarrier[1].image = image.GetImage();
+                    vkBarrier[1].image = image->GetImage();
                     vkBarrier[1].subresourceRange = range;
 
                     if (mip == 1)
@@ -382,8 +385,8 @@ void VKDriver::GenerateMipmaps(VKImage& image)
                     );
 
                     float scale = glm::pow(0.5f, mip - 1);
-                    int32_t width = image.GetDescription().width * scale;
-                    int32_t height = image.GetDescription().height * scale;
+                    int32_t width = image->GetDescription().width * scale;
+                    int32_t height = image->GetDescription().height * scale;
                     VkImageBlit blit;
                     blit.srcSubresource = {
                         .aspectMask = range.aspectMask,
@@ -404,9 +407,9 @@ void VKDriver::GenerateMipmaps(VKImage& image)
 
                     vkCmdBlitImage(
                         cmd,
-                        image.GetImage(),
+                        image->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        image.GetImage(),
+                        image->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         1,
                         &blit,
@@ -424,9 +427,9 @@ void VKDriver::GenerateMipmaps(VKImage& image)
             vkBarrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             vkBarrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[0].image = image.GetImage();
+            vkBarrier[0].image = image->GetImage();
             range.baseMipLevel = 0;
-            range.levelCount = image.GetDescription().mipLevels - 1;
+            range.levelCount = image->GetDescription().mipLevels - 1;
             vkBarrier[0].subresourceRange = range;
 
             vkBarrier[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -437,8 +440,8 @@ void VKDriver::GenerateMipmaps(VKImage& image)
             vkBarrier[1].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             vkBarrier[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             vkBarrier[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            vkBarrier[1].image = image.GetImage();
-            range.baseMipLevel = image.GetDescription().mipLevels - 1;
+            vkBarrier[1].image = image->GetImage();
+            range.baseMipLevel = image->GetDescription().mipLevels - 1;
             range.levelCount = 1;
             vkBarrier[1].subresourceRange = range;
             vkCmdPipelineBarrier(

@@ -108,12 +108,12 @@ public:
 
     void GenerateMipmaps(Gfx::Image& image) override
     {
-        GenerateMipmaps(static_cast<VKImage&>(image));
+        GenerateMipmaps(static_cast<VKImage&>(image).GetSRef<VKImage>());
     }
     bool BeginFrame() override;
     bool EndFrame() override;
 
-    void GenerateMipmaps(VKImage& image);
+    void GenerateMipmaps(SRef<VKImage> image);
 
     Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) override;
 
