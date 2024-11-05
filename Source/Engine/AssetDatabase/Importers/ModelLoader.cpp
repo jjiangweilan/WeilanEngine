@@ -223,7 +223,7 @@ struct ImporterImple
             float alphaCutoff = 0.5f;
             aiString alphaMode;
             bool twoSided;
-            material->Get(AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR, baseColorFactor);
+            material->Get(AI_MATKEY_BASE_COLOR, baseColorFactor);
             material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive);
             material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
             material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
