@@ -67,25 +67,12 @@ public:
 
     Material* GetDefaultMaterial();
 
-    void SetSubmeshes(std::vector<std::unique_ptr<Submesh>>&& submeshes)
-    {
-        this->submeshes = std::move(submeshes);
-    }
-
-    void SetTextures(std::vector<std::unique_ptr<Texture>>&& textures)
-    {
-        this->textures = std::move(textures);
-    }
-
-    void SetMaterials(std::vector<std::unique_ptr<Material>>&& materials)
-    {
-        this->materials = std::move(materials);
-    }
-
-    void SetModelNode(ModelNode root)
-    {
-        this->rootNode = root;
-    }
+    void SetModel(
+        ModelNode root,
+        std::vector<std::unique_ptr<Submesh>>&& submeshes,
+        std::vector<std::unique_ptr<Texture>>&& textures,
+        std::vector<std::unique_ptr<Material>>&& materials
+    );
 
 private:
     std::vector<std::unique_ptr<Submesh>> submeshes;
@@ -93,7 +80,7 @@ private:
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
 
-    ModelNode rootNode;
+    std::vector<std::unique_ptr<GameObject>> gameObjects;// first one is the root
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;
@@ -103,6 +90,12 @@ private:
     std::unique_ptr<Material> material = nullptr;
 
     std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
-        nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, GameObject* parent, Material* defaultMaterial
+        nlohmann::json& j,
+        int nodeIndex,
+        std::unordered_map<int, Mesh*>& meshes,
+        GameObject* parent,
+        Material* defaultMaterial
     );
+
+    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& node);
 };

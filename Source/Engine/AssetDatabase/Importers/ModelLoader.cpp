@@ -305,5 +305,13 @@ void ModelLoader::Load()
     {
         ImporterImple e;
         e.Load(absoluteAssetPath);
+
+        auto model = std::make_unique<Model>();
+        model->SetSubmeshes(std::move(e.submeshes));
+        model->SetTextures(std::move(e.textures));
+        model->SetMaterials(std::move(e.materials));
+        model->SetModelNode(std::move(e.rootNode));
+
+        asset = std::move(model);
     }
 }

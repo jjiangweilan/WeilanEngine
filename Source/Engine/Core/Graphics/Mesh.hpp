@@ -27,6 +27,12 @@ public:
         int size;
     };
 
+    bool HasAttribute(std::string_view name)
+    {
+        auto iter = std::find_if(attributes.begin(), attributes.end(), [name](Attribute& v) { return v.name == name; });
+        return iter != attributes.end();
+    }
+
     VertexAttributes& AddAttribute(const char* name, int size)
     {
         attributes.push_back(Attribute{name, size});
@@ -126,7 +132,10 @@ public:
     void SetVertexAttribute(const VertexAttributes& vertAttributes);
     void SetPositions(const std::vector<glm::vec3>& positions);
     void Apply();
-    const VertexAttributes& GetVertexAttribute() const {return attributes;}
+    const VertexAttributes& GetVertexAttribute() const
+    {
+        return attributes;
+    }
     bool HasAttribute(std::string_view name) const
     {
         for (auto& attr : attributes.GetDescription())
@@ -146,7 +155,7 @@ public:
 private:
     std::vector<uint32_t> indices;
     std::vector<glm::vec3> positions; // binding 0,
-    VertexAttributes attributes;       // binding 1, interleaved
+    VertexAttributes attributes;      // binding 1, interleaved
 
     // v0.1 API
 public:

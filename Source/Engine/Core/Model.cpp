@@ -12,7 +12,11 @@ static std::size_t WriteAccessorDataToBuffer(
 );
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
-    nlohmann::json& j, int nodeIndex, std::unordered_map<int, Mesh*>& meshes, GameObject* parent, Material* defaultMaterial
+    nlohmann::json& j,
+    int nodeIndex,
+    std::unordered_map<int, Mesh*>& meshes,
+    GameObject* parent,
+    Material* defaultMaterial
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
@@ -397,8 +401,51 @@ bool Model::LoadFromFile(const char* cpath)
     return true;
 }
 
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node)
+{
+    std::unique_ptr<GameObject> go = std::make_unique<GameObject>();
+
+    std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+    std::vector<Material*> mats;
+    std::vector<Submesh*> submeshes;
+    if (!node.meshes.empty())
+    {
+        auto meshRenderer = go->AddComponent<MeshRenderer>();
+        for (int i = 0; i < node.meshes.size(); ++i)
+        {
+            mats.push_back(this->materials[node.meshes[i]].get());
+            submeshes.push_back(this->submeshes[node.meshes[i]].get());
+        }
+
+        meshRenderer->SetMaterials(mats);
+        meshRenderer->SetMesh(mesh.get());
+    }
+}
+
+void Model::SetModel(
+    ModelNode root,
+    std::vector<std::unique_ptr<Submesh>>&& submeshes,
+    std::vector<std::unique_ptr<Texture>>&& textures,
+    std::vector<std::unique_ptr<Material>>&& materials
+)
+{
+    this->submeshes = std::move(submeshes);
+    this->textures = std::move(textures);
+    this->materials = std::move(materials);
+
+    gameObjects = CreateGameObject(root);
+}
+
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
+    if (!submeshes.empty())
+    {
+        std::unique_ptr<GameObject> root = std::unique_ptr<GameObject>((GameObject*)gameObjects[0]->Clone().release());
+        std::vector<std::unique_ptr<GameObject>> gos;
+        gos.push_back(std::move(root));
+        return gos;
+    }
+
     // create game objects that are presented in glb file
     nlohmann::json& scenesJson = jsonData["scenes"];
     std::vector<GameObject*> rootGameObjects;
