@@ -389,10 +389,13 @@ void GameEditor::SceneTree(Scene& scene)
             }
         }
 
-        const ImGuiPayload* objpayload = ImGui::AcceptDragDropPayload("object");
+        const ImGuiPayload* objpayload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
         if (objpayload && objpayload->IsDelivery())
         {
-            if (Model* model = dynamic_cast<Model*>(*(Object**)objpayload->Data))
+            std::string filePath((char*)objpayload->Data, objpayload->DataSize);
+            auto assetPath =
+                std::filesystem::relative(filePath, AssetDatabase::Singleton()->GetAssetDirectory());
+            if (Model* model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(assetPath)))
             {
                 auto gos = model->CreateGameObject();
                 for (auto& go : gos)

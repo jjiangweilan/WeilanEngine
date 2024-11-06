@@ -116,7 +116,7 @@ public:
 private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
-    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt16;
+    Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt32;
     std::vector<VertexBinding> bindings;
     std::vector<Gfx::VertexBufferBinding> gfxBindings;
     AABB aabb;

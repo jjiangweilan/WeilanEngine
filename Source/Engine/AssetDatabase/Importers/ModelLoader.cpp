@@ -1,15 +1,15 @@
 #include "ModelLoader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
-#include <assimp/Importer.hpp>
 #include <assimp/GltfMaterial.h>
+#include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf")
 
 struct ImporterImple
 {
-    std::vector<std::unique_ptr<Submesh>> submeshes;
+    std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
     ModelNode rootNode;
@@ -20,7 +20,7 @@ struct ImporterImple
     {
         this->absoluteAssetPath = path;
         Assimp::Importer importer;
-        scene = importer.ReadFile(path.string().c_str(), aiProcess_JoinIdenticalVertices | aiProcess_Triangulate);
+        scene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs);
 
         if (scene == nullptr)
         {
@@ -33,21 +33,33 @@ struct ImporterImple
         rootNode = ProcessNode(scene->mRootNode);
     }
 
-    ModelNode ProcessNode(aiNode* node) {
+    ModelNode ProcessNode(aiNode* node)
+    {
         ModelNode modelNode;
         modelNode.name = node->mName.C_Str();
-        for(int m = 0; m < node->mNumMeshes; ++m)
+        for (int m = 0; m < node->mNumMeshes; ++m)
         {
             modelNode.meshes.push_back(node->mMeshes[m]);
         }
 
         aiMatrix4x4 m = node->mTransformation.Transpose(); // assimp is row major, we are column major
-        modelNode.transform = 
-        {
-            m.a1, m.a2, m.a3, m.a4,
-            m.b1, m.b2, m.b3, m.b4,
-            m.c1, m.c2, m.c3, m.c4,
-            m.d1, m.d2, m.d3, m.d4,
+        modelNode.transform = {
+            m.a1,
+            m.a2,
+            m.a3,
+            m.a4,
+            m.b1,
+            m.b2,
+            m.b3,
+            m.b4,
+            m.c1,
+            m.c2,
+            m.c3,
+            m.c4,
+            m.d1,
+            m.d2,
+            m.d3,
+            m.d4,
         };
 
         return modelNode;
@@ -139,11 +151,11 @@ struct ImporterImple
                 for (int i = 0; i < mesh->mNumVertices; ++i)
                 {
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + normalStrideOffset) =
-                        mesh->mNormals[0].x;
+                        mesh->mNormals[i].x;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + normalStrideOffset + 4) =
-                        mesh->mNormals[1].y;
+                        mesh->mNormals[i].y;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + normalStrideOffset + 8) =
-                        mesh->mNormals[2].z;
+                        mesh->mNormals[i].z;
                 }
             }
 
@@ -152,13 +164,13 @@ struct ImporterImple
                 for (int i = 0; i < mesh->mNumVertices; ++i)
                 {
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset) =
-                        mesh->mTangents[0].x;
+                        mesh->mTangents[i].x;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 4) =
-                        mesh->mTangents[1].y;
+                        mesh->mTangents[i].y;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 8) =
-                        mesh->mTangents[2].z;
+                        mesh->mTangents[i].z;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 12) =
-                        mesh->mTangents[3].z;
+                        mesh->mTangents[i].z;
                 }
             }
 
@@ -171,19 +183,53 @@ struct ImporterImple
                         for (int uvi = 0; uvi < mesh->mNumUVComponents[i]; uvi++)
                         {
                             *reinterpret_cast<float*>(
-                                data + attributeStrideSize * i + texCoordStrideOffsets[i] + uvi * 4
-                            ) = mesh->mTextureCoords[i][vi].x;
+                                data + attributeStrideSize * vi + texCoordStrideOffsets[i] + uvi * 4
+                            ) = mesh->mTextureCoords[i][vi][uvi];
                         }
+                    }
+                }
+            }
+
+            for (int i = 0; i < AI_MAX_NUMBER_OF_COLOR_SETS; ++i)
+            {
+                if (mesh->HasVertexColors(i))
+                {
+                    for (int i = 0; i < mesh->mNumVertices; ++i)
+                    {
+                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i]) =
+                            mesh->mColors[i]->r;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 4) =
+                            mesh->mColors[i]->g;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 8) =
+                            mesh->mColors[i]->b;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 12) =
+                            mesh->mColors[i]->a;
                     }
                 }
             }
 
             attributes.SetData(std::move(attributeData));
 
-            std::unique_ptr<Submesh> submesh = std::make_unique<Submesh>();
-            submesh->SetPositions(std::move(positions));
-            submesh->SetVertexAttribute(std::move(attributes));
+            std::vector<uint32_t> indices;
+            for (int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
+            {
+                for (int i = 0; i < mesh->mFaces[faceIndex].mNumIndices; ++i)
+                {
+                    indices.push_back(mesh->mFaces[faceIndex].mIndices[i]);
+                }
+            }
+
+            Submesh submesh;
+            std::unique_ptr<Mesh> myMesh = std::make_unique<Mesh>();
+            submesh.SetPositions(std::move(positions));
+            submesh.SetVertexAttribute(std::move(attributes));
+            submesh.SetIndices(std::move(indices));
+            submesh.Apply();
+            std::vector<Submesh> submeshes;
             submeshes.push_back(std::move(submesh));
+            myMesh->SetSubmeshes(std::move(submeshes));
+            myMesh->SetName(mesh->mName.C_Str());
+            this->meshes.push_back(std::move(myMesh));
         }
     }
 
@@ -199,9 +245,10 @@ struct ImporterImple
         {
             aiString texName;
             material->Get(AI_MATKEY_TEXTURE(type, 0), texName);
-            Texture* tex = dynamic_cast<Texture*>(
-                AssetDatabase::Singleton()->LoadAsset(absoluteAssetPath.parent_path() / texName.C_Str())
-            );
+            Texture* tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(std::filesystem::relative(
+                absoluteAssetPath.parent_path() / texName.C_Str(),
+                AssetDatabase::Singleton()->GetAssetDirectory()
+            )));
             if (tex)
             {
                 mat->SetTexture(bindingName, tex);
@@ -209,11 +256,13 @@ struct ImporterImple
             }
         }
     }
+
     void ProcessMaterial()
     {
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {
             std::unique_ptr<Material> mat = std::make_unique<Material>();
+            mat->SetShader(Shader::GetDefault());
             auto material = scene->mMaterials[materialIndex];
 
             aiColor4D baseColorFactor = {0.5, 0.5, 0.5, 0.5};
@@ -231,9 +280,9 @@ struct ImporterImple
             material->Get(AI_MATKEY_GLTF_ALPHAMODE, alphaMode);
             material->Get(AI_MATKEY_TWOSIDED, twoSided);
             ExtractTexture(mat, material, aiTextureType_DIFFUSE, "baseColorTex", "_BaseColorMap");
-            ExtractTexture(mat, material, aiTextureType_NORMALS, "normalMap", "_BaseColorMap");
+            ExtractTexture(mat, material, aiTextureType_NORMALS, "normalMap", "_NormalMap");
             ExtractTexture(mat, material, aiTextureType_METALNESS, "metallicRoughnessMap", "_MetallicRoughnessMap");
-            ExtractTexture(mat, material, aiTextureType_EMISSIVE, "emissivemap", "_EmissiveMap");
+            ExtractTexture(mat, material, aiTextureType_EMISSIVE, "emissiveMap", "_EmissiveMap");
 
             mat->SetVector(
                 "PBR",
@@ -279,7 +328,7 @@ struct ImporterImple
                 blend.blendEnable = false;
             }
             mat->SetShaderConfig(shaderConfig);
-
+            mat->SetName(material->GetName().C_Str());
             materials.push_back(std::move(mat));
         }
     }
@@ -307,10 +356,7 @@ void ModelLoader::Load()
         e.Load(absoluteAssetPath);
 
         auto model = std::make_unique<Model>();
-        model->SetSubmeshes(std::move(e.submeshes));
-        model->SetTextures(std::move(e.textures));
-        model->SetMaterials(std::move(e.materials));
-        model->SetModelNode(std::move(e.rootNode));
+        model->SetModel(std::move(e.rootNode), std::move(e.meshes), std::move(e.textures), std::move(e.materials));
 
         asset = std::move(model);
     }

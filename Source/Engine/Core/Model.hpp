@@ -69,18 +69,18 @@ public:
 
     void SetModel(
         ModelNode root,
-        std::vector<std::unique_ptr<Submesh>>&& submeshes,
+        std::vector<std::unique_ptr<Mesh>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
         std::vector<std::unique_ptr<Material>>&& materials
     );
 
 private:
-    std::vector<std::unique_ptr<Submesh>> submeshes;
+    bool assimpLoaded = false;
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
 
-    std::vector<std::unique_ptr<GameObject>> gameObjects;// first one is the root
+    std::vector<std::unique_ptr<GameObject>> gameObjects;// the first one is the root
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;

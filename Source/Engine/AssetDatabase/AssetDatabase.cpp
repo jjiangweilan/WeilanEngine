@@ -742,6 +742,10 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
+    // use path relative to AssetDirectory
+    if (path.is_absolute())
+        return nullptr;
+
     // find the asset if it's already imported
     auto assetData = assets.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;

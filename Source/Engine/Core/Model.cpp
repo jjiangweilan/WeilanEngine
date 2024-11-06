@@ -405,42 +405,77 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
 {
     std::unique_ptr<GameObject> go = std::make_unique<GameObject>();
 
-    std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-    std::vector<Material*> mats;
-    std::vector<Submesh*> submeshes;
+    glm::vec3 position;
+    glm::vec3 scale;
+    glm::quat rotation;
+    Math::DecomposeMatrix(node.transform, position, scale, rotation);
+    go->SetPosition(position);
+    go->SetScale(scale);
+    go->SetRotation(rotation);
+
     if (!node.meshes.empty())
     {
-        auto meshRenderer = go->AddComponent<MeshRenderer>();
+        std::vector<Material*> mats;
+
         for (int i = 0; i < node.meshes.size(); ++i)
         {
-            mats.push_back(this->materials[node.meshes[i]].get());
-            submeshes.push_back(this->submeshes[node.meshes[i]].get());
-        }
+            auto meshRenderer = go->AddComponent<MeshRenderer>();
+            auto mat = this->materials[node.meshes[i]].get();
+            auto submesh = this->meshes[node.meshes[i]]->GetSubmesh(0);
 
-        meshRenderer->SetMaterials(mats);
-        meshRenderer->SetMesh(mesh.get());
+            if (submesh->HasAttribute("tangent"))
+            {
+                mat->EnableFeature("_Vertex_Tangent");
+            }
+            if (submesh->HasAttribute("texCoords_0"))
+            {
+                mat->EnableFeature("_Vertex_UV0");
+            }
+
+            mats.push_back(mat);
+            meshRenderer->SetMaterials(mats);
+            meshRenderer->SetMesh(this->meshes[node.meshes[i]].get());
+        }
     }
+
+    std::vector<std::unique_ptr<GameObject>> gos;
+    auto parent = go.get();
+    gos.push_back(std::move(go));
+
+    for (auto& n : node.children)
+    {
+        auto childGos = CreateGameObject(n);
+        for (auto& c : childGos)
+        {
+            c->SetParent(parent);
+        }
+        gos.insert(gos.end(), std::make_move_iterator(childGos.begin()), std::make_move_iterator(childGos.end()));
+    }
+
+    return gos;
 }
 
 void Model::SetModel(
     ModelNode root,
-    std::vector<std::unique_ptr<Submesh>>&& submeshes,
+    std::vector<std::unique_ptr<Mesh>>&& meshes,
     std::vector<std::unique_ptr<Texture>>&& textures,
     std::vector<std::unique_ptr<Material>>&& materials
 )
 {
-    this->submeshes = std::move(submeshes);
+    assimpLoaded = true;
+    this->meshes = std::move(meshes);
     this->textures = std::move(textures);
     this->materials = std::move(materials);
 
     gameObjects = CreateGameObject(root);
-}
+} 
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
-    if (!submeshes.empty())
+    if (assimpLoaded)
     {
-        std::unique_ptr<GameObject> root = std::unique_ptr<GameObject>((GameObject*)gameObjects[0]->Clone().release());
+        auto clone = this->gameObjects[0]->Clone();
+        std::unique_ptr<GameObject> root = std::unique_ptr<GameObject>((GameObject*)clone.release());
         std::vector<std::unique_ptr<GameObject>> gos;
         gos.push_back(std::move(root));
         return gos;

@@ -5,7 +5,8 @@
 #include "Core/Scene/Scene.hpp"
 #include "EditorGUI/ObjectField.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
-
+#include "DragDropIDs.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 namespace Editor
 {
 class CameraInspector : public Inspector<Camera>
@@ -56,11 +57,13 @@ public:
 
         if (ImGui::BeginDragDropTarget())
         {
-            auto payload = ImGui::AcceptDragDropPayload("object");
+            auto payload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
             if (payload && payload->IsDelivery())
             {
-                if (Rendering::FrameGraph::Graph* fg =
-                        dynamic_cast<Rendering::FrameGraph::Graph*>(*(Object**)payload->Data))
+                std::string pathStr((char*)payload->Data, payload->DataSize);
+                Rendering::FrameGraph::Graph* fg =
+                    dynamic_cast<Rendering::FrameGraph::Graph*>(AssetDatabase::Singleton()->LoadAsset(pathStr));
+                if (fg)
                 {
                     target->SetFrameGraph(fg);
                 }
