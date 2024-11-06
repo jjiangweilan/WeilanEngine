@@ -9,8 +9,13 @@
 
 struct ModelNode
 {
+    struct MeshInfo
+    {
+        unsigned int index;
+        unsigned int materialIndex;
+    };
     std::string name;
-    std::vector<int> meshes;
+    std::vector<MeshInfo> meshes;
     std::vector<ModelNode> children;
     glm::mat4 transform;
 };

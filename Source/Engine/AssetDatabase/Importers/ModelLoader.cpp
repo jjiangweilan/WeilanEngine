@@ -39,7 +39,7 @@ struct ImporterImple
         modelNode.name = node->mName.C_Str();
         for (int m = 0; m < node->mNumMeshes; ++m)
         {
-            modelNode.meshes.push_back(node->mMeshes[m]);
+            modelNode.meshes.push_back({node->mMeshes[m], scene->mMeshes[node->mMeshes[m]]->mMaterialIndex});
         }
 
         aiMatrix4x4 m = node->mTransformation.Transpose(); // assimp is row major, we are column major

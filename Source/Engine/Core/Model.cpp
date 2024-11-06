@@ -420,8 +420,8 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
         for (int i = 0; i < node.meshes.size(); ++i)
         {
             auto meshRenderer = go->AddComponent<MeshRenderer>();
-            auto mat = this->materials[node.meshes[i]].get();
-            auto submesh = this->meshes[node.meshes[i]]->GetSubmesh(0);
+            auto mat = this->materials[node.meshes[i].materialIndex].get();
+            auto submesh = this->meshes[node.meshes[i].index]->GetSubmesh(0);
 
             if (submesh->HasAttribute("tangent"))
             {
@@ -434,7 +434,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
 
             mats.push_back(mat);
             meshRenderer->SetMaterials(mats);
-            meshRenderer->SetMesh(this->meshes[node.meshes[i]].get());
+            meshRenderer->SetMesh(this->meshes[node.meshes[i].index].get());
         }
     }
 
