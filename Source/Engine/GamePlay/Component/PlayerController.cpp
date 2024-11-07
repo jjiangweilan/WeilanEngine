@@ -130,7 +130,7 @@ void PlayerController::Awake()
     if (auto scene = GetScene())
     {
         // create shape
-        auto extent = GetGameObject()->GetScale();
+        auto extent = GetGameObject()->GetLocalScale();
         JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
         standingShape = s.Create().Get();
 

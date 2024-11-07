@@ -147,7 +147,7 @@ public:
         return position;
     }
 
-    glm::vec3 GetScale() const
+    glm::vec3 GetLocalScale() const
     {
         return scale;
     }

@@ -4,6 +4,8 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 #include "Rendering/Shader.hpp"
+#include "ThirdParty/imgui/ImGuizmo.h"
+#include "ThirdParty/imgui/imgui.h"
 #include <list>
 
 namespace Editor
@@ -99,6 +101,9 @@ private:
     );
     Shader* outlineRawColorPassShader;
     Shader* outlineFullScreenPassShader;
+
+    ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
+    ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj);

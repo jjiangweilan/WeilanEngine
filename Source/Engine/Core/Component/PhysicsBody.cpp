@@ -183,7 +183,7 @@ PhysicsBody::~PhysicsBody()
 
 void PhysicsBody::Init()
 {
-    auto scale = gameObject->GetScale();
+    auto scale = gameObject->GetLocalScale();
     bodyScale = glm::vec4(scale, 1.0);
     Scene* scene = GetScene();
     if (scene == nullptr)
@@ -192,7 +192,7 @@ void PhysicsBody::Init()
     // create from a mesh renderer if we can
     switch (shapeType)
     {
-        case PhysicsBodyShapes::Box: SetAsBox(gameObject->GetScale()); break;
+        case PhysicsBodyShapes::Box: SetAsBox(gameObject->GetLocalScale()); break;
         case PhysicsBodyShapes::Mesh:
             {
                 if (!SetAsMeshRenderer())
@@ -201,7 +201,7 @@ void PhysicsBody::Init()
                 }
                 break;
             }
-        case PhysicsBodyShapes::Sphere: SetAsSphere(gameObject->GetScale().x); break;
+        case PhysicsBodyShapes::Sphere: SetAsSphere(gameObject->GetLocalScale().x); break;
     }
 }
 
@@ -354,7 +354,7 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
     bool createFromMeshRenderer = false;
     auto meshRenderer = gameObject->GetComponent<MeshRenderer>();
     auto mesh = meshRenderer ? meshRenderer->GetMesh() : nullptr;
-    auto scale = GetGameObject()->GetScale();
+    auto scale = GetGameObject()->GetLocalScale();
     if (mesh)
     {
         auto& submeshes = mesh->GetSubmeshes();
@@ -384,7 +384,7 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
 
 void PhysicsBody::SetShape(PhysicsBodyShapes shape)
 {
-    auto scale = gameObject->GetScale();
+    auto scale = gameObject->GetLocalScale();
     this->shapeType = shape;
     switch (shape)
     {

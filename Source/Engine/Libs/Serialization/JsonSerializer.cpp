@@ -146,10 +146,10 @@ void JsonSerializer::Deserialize(std::string_view name, glm::quat& v)
 
     if (jq.is_array() && jq.size() >= 4)
     {
-        v.w = jq[0];
-        v.x = jq[1];
-        v.y = jq[2];
-        v.z = jq[3];
+        v.w = jq[0].is_null() ? 0.0f : (float)jq[0];
+        v.x = jq[1].is_null() ? 0.0f : (float)jq[1];
+        v.y = jq[2].is_null() ? 0.0f : (float)jq[2];
+        v.z = jq[3].is_null() ? 0.0f : (float)jq[3];
     }
 }
 

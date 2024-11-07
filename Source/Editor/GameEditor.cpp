@@ -143,7 +143,7 @@ GameEditor::~GameEditor()
         nlohmann::json camJson = {};
         auto pos = cam->GetGameObject()->GetPosition();
         auto rot = cam->GetGameObject()->GetRotation();
-        auto scale = cam->GetGameObject()->GetScale();
+        auto scale = cam->GetGameObject()->GetLocalScale();
         camJson["position"] = {pos.x, pos.y, pos.z};
         camJson["rotation"] = {rot.w, rot.x, rot.y, rot.z};
         camJson["scale"] = {scale.x, scale.y, scale.z};

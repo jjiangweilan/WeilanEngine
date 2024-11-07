@@ -7,9 +7,8 @@
 #include "Core/Time.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
+#include "Libs/Math.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
-#include "ThirdParty/imgui/ImGuizmo.h"
-#include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
@@ -741,7 +740,7 @@ bool GameView::Tick()
                 if (go)
                 {
                     auto selectedObjects = EditorState::GetSelectedObjects();
-                    auto model = go->GetWorldMatrix();
+                    auto baseModel = go->GetWorldMatrix();
 
                     glm::vec3 avgPos = glm::vec3(0);
 
@@ -751,25 +750,41 @@ bool GameView::Tick()
                         avgPos += go->GetPosition();
                     }
                     avgPos /= selectedObjects.size();
-                    model[3] = glm::vec4(avgPos, 1.0f);
+                    baseModel[3] = glm::vec4(avgPos, 1.0f);
 
                     ImGui::SetCursorPos(imagePos);
 
                     glm::mat4 deltaMatrix;
-                    EditTransform(*mainCam, model, deltaMatrix, proj);
+                    EditTransform(*mainCam, baseModel, deltaMatrix, proj);
 
+                    glm::vec3 deltaPosition;
+                    glm::vec3 deltaScale;
+                    glm::quat deltaRotation;
+                    Math::DecomposeMatrix(deltaMatrix, deltaPosition, deltaScale, deltaRotation);
+
+                    // calculate scale factor here
+                    baseModel[0] = glm::normalize(baseModel[0]);
+                    baseModel[1] = glm::normalize(baseModel[1]);
+                    baseModel[2] = glm::normalize(baseModel[2]);
+                    auto baseModelInv = glm::inverse(baseModel);
+
+                    auto deltaTR = glm::translate(glm::mat4(1), deltaPosition) * glm::mat4_cast(deltaRotation);
+                    auto deltaS = glm::scale(glm::mat4(1), deltaScale);
 
                     if (ImGuizmo::IsUsing())
                     {
                         for (auto& s : selectedObjects)
                         {
                             auto go = static_cast<GameObject*>(s.Get());
-                            glm::mat4 model = go->GetWorldMatrix();
+                            glm::mat4 worldMatrix = go->GetWorldMatrix();
 
                             // handle translation and rotation
-                            model = deltaMatrix * model;
+                            auto afterTR = deltaTR * worldMatrix;
+                            go->SetWorldMatrix(afterTR);
 
-                            go->SetWorldMatrix(model);
+                            // handle scale
+                            auto afterS = baseModel * deltaS * baseModelInv * go->GetWorldMatrix();
+                            go->SetWorldMatrix(afterS);
                         }
                     }
                 }
@@ -788,8 +803,8 @@ bool GameView::Tick()
                     ImVec2(100, -100),
                     0x10101010
                 );
-                auto world = glm::inverse(view);
-                world[2] = -world[2];
+                // auto world = glm::inverse(view);
+                // world[2] = -world[2];
                 // mainCam->GetGameObject()->SetWorldMatrix(world);
             }
         }
@@ -801,35 +816,37 @@ bool GameView::Tick()
 
 void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj)
 {
-    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
-    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
 
     if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
         if (ImGui::IsKeyPressed(ImGuiKey_W))
-            mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+            currentGizmoOperation = ImGuizmo::TRANSLATE;
         if (ImGui::IsKeyPressed(ImGuiKey_E))
-            mCurrentGizmoOperation = ImGuizmo::ROTATE;
+            currentGizmoOperation = ImGuizmo::ROTATE;
         if (ImGui::IsKeyPressed(ImGuiKey_R)) // r Key
-            mCurrentGizmoOperation = ImGuizmo::SCALE;
+            currentGizmoOperation = ImGuizmo::SCALE;
     }
 
-    if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
-        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    if (ImGui::RadioButton("Translate", currentGizmoOperation == ImGuizmo::TRANSLATE))
+        currentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGui::SameLine();
-    if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
-        mCurrentGizmoOperation = ImGuizmo::ROTATE;
+    if (ImGui::RadioButton("Rotate", currentGizmoOperation == ImGuizmo::ROTATE))
+        currentGizmoOperation = ImGuizmo::ROTATE;
     ImGui::SameLine();
-    if (ImGui::RadioButton("Scale", mCurrentGizmoOperation == ImGuizmo::SCALE))
-        mCurrentGizmoOperation = ImGuizmo::SCALE;
+    if (ImGui::RadioButton("Scale", currentGizmoOperation == ImGuizmo::SCALE))
+        currentGizmoOperation = ImGuizmo::SCALE;
 
-    if (mCurrentGizmoOperation != ImGuizmo::SCALE)
+    if (currentGizmoOperation != ImGuizmo::SCALE)
     {
-        if (ImGui::RadioButton("Local", mCurrentGizmoMode == ImGuizmo::LOCAL))
-            mCurrentGizmoMode = ImGuizmo::LOCAL;
+        if (ImGui::RadioButton("Local", currentGizmoMode == ImGuizmo::LOCAL))
+            currentGizmoMode = ImGuizmo::LOCAL;
         ImGui::SameLine();
-        if (ImGui::RadioButton("World", mCurrentGizmoMode == ImGuizmo::WORLD))
-            mCurrentGizmoMode = ImGuizmo::WORLD;
+        if (ImGui::RadioButton("World", currentGizmoMode == ImGuizmo::WORLD))
+            currentGizmoMode = ImGuizmo::WORLD;
+    }
+    else
+    {
+        currentGizmoMode = ImGuizmo::LOCAL;
     }
 
     ImGui::Checkbox("Snap to xy", &gameObjectConfigs.useSnap);
@@ -837,8 +854,8 @@ void GameView::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& delta
     ImGuizmo::Manipulate(
         &view[0][0],
         &proj[0][0],
-        mCurrentGizmoOperation,
-        mCurrentGizmoMode,
+        currentGizmoOperation,
+        currentGizmoMode,
         &matrix[0][0],
         &deltaMatrix[0][0],
         gameObjectConfigs.useSnap ? &gameObjectConfigs.snap[0] : nullptr

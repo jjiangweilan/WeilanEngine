@@ -2,6 +2,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Libs/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
+#include <spdlog/spdlog.h>
 DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "proto");
 
 GameObject::GameObject() : gameScene(nullptr)

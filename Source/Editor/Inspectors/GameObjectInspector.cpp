@@ -85,7 +85,7 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetEulerAngles(glm::radians(degree));
         }
 
-        auto scale = target->GetScale();
+        auto scale = target->GetLocalScale();
         if (ImGui::DragFloat3("scale", &scale[0]))
         {
             target->SetScale(scale);
