@@ -193,9 +193,9 @@ void JsonSerializer::Deserialize(std::string_view name, glm::vec3& v)
 
     if (jq.is_array() && jq.size() >= 3)
     {
-        v.x = jq[0];
-        v.y = jq[1];
-        v.z = jq[2];
+        v.x = jq[0].is_number() ? (float)jq[0] : 0.0f;
+        v.y = jq[1].is_number() ? (float)jq[1] : 0.0f;
+        v.z = jq[2].is_number() ? (float)jq[2] : 0.0f;
     }
 }
 

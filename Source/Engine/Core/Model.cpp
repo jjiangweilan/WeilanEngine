@@ -416,26 +416,29 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     if (!node.meshes.empty())
     {
         std::vector<Material*> mats;
+        std::vector<Mesh*> meshes;
 
+        auto meshRenderer = go->AddComponent<MeshRenderer>();
         for (int i = 0; i < node.meshes.size(); ++i)
         {
-            auto meshRenderer = go->AddComponent<MeshRenderer>();
             auto mat = this->materials[node.meshes[i].materialIndex].get();
-            auto submesh = this->meshes[node.meshes[i].index]->GetSubmesh(0);
+            auto mesh = this->meshes[node.meshes[i].index].get();
 
-            if (submesh->HasAttribute("tangent"))
+            if (mesh->GetSubmeshes()[0].HasAttribute("tangent"))
             {
                 mat->EnableFeature("_Vertex_Tangent");
             }
-            if (submesh->HasAttribute("texCoords_0"))
+            if (mesh->GetSubmeshes()[0].HasAttribute("texCoords_0"))
             {
                 mat->EnableFeature("_Vertex_UV0");
             }
 
             mats.push_back(mat);
-            meshRenderer->SetMaterials(mats);
-            meshRenderer->SetMesh(this->meshes[node.meshes[i].index].get());
+            meshes.push_back(mesh);
         }
+
+        meshRenderer->SetMaterials(mats);
+        meshRenderer->SetMeshes(meshes);
     }
 
     std::vector<std::unique_ptr<GameObject>> gos;
@@ -468,7 +471,7 @@ void Model::SetModel(
     this->materials = std::move(materials);
 
     gameObjects = CreateGameObject(root);
-} 
+}
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {

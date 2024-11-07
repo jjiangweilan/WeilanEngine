@@ -264,6 +264,7 @@ struct ImporterImple
             std::unique_ptr<Material> mat = std::make_unique<Material>();
             mat->SetShader(Shader::GetDefault());
             auto material = scene->mMaterials[materialIndex];
+            mat->SetName(material->GetName().C_Str());
 
             aiColor4D baseColorFactor = {0.5, 0.5, 0.5, 0.5};
             aiColor4D emissive = {0, 0, 0, 0};

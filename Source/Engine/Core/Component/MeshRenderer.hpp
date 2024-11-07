@@ -15,7 +15,7 @@ public:
     MeshRenderer();
     MeshRenderer(GameObject* owner, Mesh* mesh, Material* material);
     MeshRenderer(GameObject* owner);
-    ~MeshRenderer() override{};
+    ~MeshRenderer() override {};
 
     // multi pass MeshRenderer draw the mesh multiple times using the materials
     // in pipeline it does:
@@ -52,9 +52,11 @@ public:
         return materials.size();
     }
 
+    void SetMeshes(std::span<Mesh*> meshes);
     void SetMesh(Mesh* mesh);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
+    std::span<Mesh*> GetMeshes();
     AABB GetAABB();
     const std::vector<Material*>& GetMaterials();
 
@@ -64,12 +66,14 @@ public:
     const std::string& GetName() override;
 
 private:
-    Mesh* mesh = nullptr;
+    std::vector<Mesh*> meshes;
     std::vector<Material*> materials = {};
     bool multipass = false;
+    AABB aabb;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
+    void UpdateAABB();
 
     void EnableImple() override;
     void DisableImple() override;
