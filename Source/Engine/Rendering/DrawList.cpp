@@ -20,18 +20,18 @@ void DrawList::Add(MeshRenderer& meshRenderer)
 
     if (!meshRenderer.IsMultipassEnabled())
     {
-        for (int i = 0, mi = 0; i < meshes.size() || mi < materials.size(); ++i)
+        for (int i = 0, mi = 0; i < meshes.size() && mi < materials.size(); ++i)
         {
             auto mesh = i < meshes.size() ? meshes[i] : nullptr;
 
             if (mesh != nullptr)
             {
-                auto material = mi < materials.size() ? materials[mi] : nullptr;
-                mi++;
-                auto shader = material ? material->GetShader() : nullptr;
-                if (material != nullptr && shader != nullptr)
+                for (auto& submesh : mesh->GetSubmeshes())
                 {
-                    for (auto& submesh : mesh->GetSubmeshes())
+                    auto material = mi < materials.size() ? materials[mi] : nullptr;
+                    mi++;
+                    auto shader = material ? material->GetShader() : nullptr;
+                    if (material != nullptr && shader != nullptr)
                     {
                         uint32_t indexCount = submesh.GetIndexCount();
 
