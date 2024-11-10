@@ -1,7 +1,7 @@
 #include "../Inspector.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
-#include "EditorGUI/ObjectField.hpp"
+#include "EditorGUI.hpp"
 #include "GamePlay/Component/PlayerController.hpp"
 
 namespace Editor

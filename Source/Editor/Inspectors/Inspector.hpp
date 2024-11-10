@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Component/Component.hpp"
 #include "Core/Object.hpp"
+#include "EditorGUI.hpp"
 #include "InspectorRegistry.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <concepts>
@@ -16,7 +17,7 @@ class GameEditor;
 class InspectorBase
 {
 public:
-    virtual ~InspectorBase(){};
+    virtual ~InspectorBase() {};
     virtual void DrawInspector(GameEditor& editor) = 0;
     virtual void OnEnable(Object& obj) = 0;
     virtual Object* GetTarget() = 0;
@@ -35,15 +36,13 @@ public:
         // default inspector
         ImGui::Button(((Object*)target)->GetUUID().ToString().c_str());
 
-        if (ImGui::BeginDragDropSource())
-        { 
-            ImGui::SetDragDropPayload("object", &target, sizeof(void*));
-            if constexpr (HasGetName<T>)
-                ImGui::Text("%s", target->GetName().c_str());
-            else
-                ImGui::Text("%s", target->GetUUID().ToString().c_str());
-            ImGui::EndDragDropSource();
-        }
+        const char* name = nullptr;
+        if constexpr (HasGetName<T>)
+            name = target->GetName().c_str();
+        else
+            name = target->GetUUID().ToString().c_str();
+
+        GUI::DragDropSource(name, target);
 
         if (Asset* asset = dynamic_cast<Asset*>(target))
         {

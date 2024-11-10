@@ -42,22 +42,14 @@ public:
         ImGui::SameLine();
 
         bool bp = ImGui::Button(meshGUIID.c_str());
-        if (ImGui::BeginDragDropTarget())
+        Object* meshPayload = nullptr;
+        if (GUI::DragDropTarget(typeid(Mesh), meshPayload))
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-            if (payload && payload->IsDelivery())
-            {
-                Object& obj = **(Object**)payload->Data;
-                if (typeid(obj) == typeid(Mesh))
-                {
-                    Mesh* mesh = static_cast<Mesh*>(&obj);
-
-                    meshRenderer->SetMesh(mesh);
-                    mesh = meshRenderer->GetMesh();
-                }
-            }
-            ImGui::EndDragDropTarget();
+            Mesh* mesh = static_cast<Mesh*>(meshPayload);
+            meshRenderer->SetMesh(mesh);
+            mesh = meshRenderer->GetMesh();
         }
+
         else if (bp)
         {
             EditorState::SelectObject(mesh->GetSRef());
@@ -79,19 +71,12 @@ public:
                 EditorState::SelectObject(mats[i]->GetSRef());
             };
 
-            if (ImGui::BeginDragDropTarget())
+            Object* materialPayload;
+            if (GUI::DragDropTarget(typeid(Material), materialPayload))
             {
-                const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-                if (payload && payload->IsDelivery())
-                {
-                    Object& obj = **(Object**)payload->Data;
-                    if (typeid(obj) == typeid(Material))
-                    {
-                        mats[i] = static_cast<Material*>(&obj);
-                        meshRenderer->SetMaterials(mats);
-                    }
-                }
-                ImGui::EndDragDropTarget();
+
+                mats[i] = (Material*)materialPayload;
+                meshRenderer->SetMaterials(mats);
             }
         }
     }

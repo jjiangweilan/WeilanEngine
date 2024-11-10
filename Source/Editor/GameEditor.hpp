@@ -99,7 +99,6 @@ private:
     void GameProfiler(Profiler& profiler);
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
-    void ImGuiDropAssetFile(const std::filesystem::path& filePath, ImRect rect = {{0, 0}, {0, 0}});
 
     // event handling
     class EndEvents

@@ -41,11 +41,8 @@ public:
 
         auto width = target->GetDescription().img.width;
         auto height = target->GetDescription().img.height;
-        auto contentMax = ImGui::GetWindowContentRegionMax();
-        auto contentMin = ImGui::GetWindowContentRegionMin();
-        auto contentWidth = contentMax.x - contentMin.y;
-        auto contentHeight = contentMax.y - contentMin.y;
-        auto size = ResizeKeepRatio(width, height, contentWidth, contentHeight);
+        auto contentWidth = height > ImGui::GetWindowWidth() ? ImGui::GetWindowWidth() : width;
+        auto size = ResizeKeepRatio(width, height, contentWidth, height) * imageScale;
 
         if (reimport)
         {
@@ -56,10 +53,9 @@ public:
         ImGui::Text("Preview");
         ImGui::Separator();
         UpdateImageView();
-        glm::vec2 displaySize = size;
-        displaySize.x = glm::min(ImGui::GetContentRegionMax().x, displaySize.x);
-        ImGui::Image(imageViewInUse, {displaySize.x, displaySize.y * width / height});
+        ImGui::Image(imageViewInUse, {size.x, size.y});
         ImGui::Separator();
+        ImGui::DragFloat("Image Scale", &imageScale, 0.01, 0.01, 1.0);
         float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
         ImGui::Text("size: %d x %d", width, height);
         ImGui::Text("memory size (without mip): %f Mb", mb);
@@ -108,6 +104,7 @@ private:
     uint32_t layer = 0;
     uint32_t mip = 0;
     bool reimport = false;
+    float imageScale = 1.0f;
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {

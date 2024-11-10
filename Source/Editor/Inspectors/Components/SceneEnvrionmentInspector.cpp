@@ -19,7 +19,9 @@ public:
         {
             // auto size = ResizeKeepRatio(diffuseCube);
             // ImGui::Image(&diffuseCube->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
-            if (ImGui::Button("editor renderer doesn't support rendering cubemap yet, click me to see the texture##Diffuse"))
+            if (ImGui::Button(
+                    "editor renderer doesn't support rendering cubemap yet, click me to see the texture##Diffuse"
+                ))
             {
                 EditorState::SelectObject(diffuseCube->GetSRef());
             }
@@ -27,26 +29,19 @@ public:
         else
             ImGui::Button("empty");
 
-        if (ImGui::BeginDragDropTarget())
+        Object* texturePayload;
+        if (GUI::DragDropTarget(typeid(Texture), texturePayload))
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-            if (payload && payload->IsDelivery())
-            {
-                Object& obj = **(Object**)payload->Data;
-                if (typeid(obj) == typeid(Texture))
-                {
-                    Texture* tex = static_cast<Texture*>(&obj);
-
-                    target->SetDiffuseCube(tex);
-                }
-            }
-            ImGui::EndDragDropTarget();
+            Texture* tex = static_cast<Texture*>(texturePayload);
+            target->SetDiffuseCube(tex);
         }
 
         ImGui::Text("SpecularCube");
         if (specularCube)
         {
-            if (ImGui::Button("editor renderer doesn't support rendering cubemap yet, click me to see the texture##Specular"))
+            if (ImGui::Button(
+                    "editor renderer doesn't support rendering cubemap yet, click me to see the texture##Specular"
+                ))
             {
                 EditorState::SelectObject(specularCube->GetSRef());
             }
@@ -54,20 +49,10 @@ public:
         else
             ImGui::Button("empty");
 
-        if (ImGui::BeginDragDropTarget())
+        if (GUI::DragDropTarget(typeid(Texture), texturePayload))
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("object");
-            if (payload && payload->IsDelivery())
-            {
-                Object& obj = **(Object**)payload->Data;
-                if (typeid(obj) == typeid(Texture))
-                {
-                    Texture* tex = static_cast<Texture*>(&obj);
-
-                    target->SetSpecularCube(tex);
-                }
-            }
-            ImGui::EndDragDropTarget();
+            Texture* tex = static_cast<Texture*>(texturePayload);
+            target->SetSpecularCube(tex);
         }
     }
 

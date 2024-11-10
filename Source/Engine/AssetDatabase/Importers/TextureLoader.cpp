@@ -39,7 +39,7 @@ std::vector<std::filesystem::path> TextureLoader::Import()
 {
     std::string importFileUUID = meta.value("importFileUUID", UUID().ToString());
     nlohmann::json option = meta.value("importOption", nlohmann::json::object_t{});
-    bool generateMipmap = option.value("generateMipmap", false);
+    bool generateMipmap = option.value("generateMipmap", true);
     bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
     bool convertToReflectanceCubemap = option.value("convertToReflectanceCubemap", false);
     bool linearFormat = option.value("linearFormat", false);

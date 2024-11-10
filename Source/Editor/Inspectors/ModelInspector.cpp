@@ -1,5 +1,6 @@
 #include "../EditorState.hpp"
 #include "Core/Model.hpp"
+#include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "Inspector.hpp"
 #include "ThirdParty/imgui/imgui_internal.h"
@@ -21,13 +22,7 @@ public:
         {
             ImGui::Button(mesh->GetName().c_str());
 
-            if (ImGui::BeginDragDropSource())
-            {
-                Mesh* meshPtr = mesh.get();
-                ImGui::SetDragDropPayload("object", &meshPtr, sizeof(void*));
-                ImGui::Text("%s", mesh->GetName().c_str());
-                ImGui::EndDragDropSource();
-            }
+            GUI::DragDropSource(mesh->GetName().c_str(), mesh.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
@@ -46,13 +41,7 @@ public:
             Material* mat = material.get();
             ImGui::Button(mat->GetName().c_str());
 
-            if (ImGui::BeginDragDropSource())
-            {
-                Material* matPtr = material.get();
-                ImGui::SetDragDropPayload("object", &matPtr, sizeof(void*));
-                ImGui::Text("%s", material->GetName().c_str());
-                ImGui::EndDragDropSource();
-            }
+            GUI::DragDropSource(material->GetName().c_str(), material.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
@@ -83,13 +72,7 @@ public:
             ImGui::SameLine();
             ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
 
-            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
-            {
-                Texture* texPtr = texture.get();
-                ImGui::SetDragDropPayload("object", &texPtr, sizeof(void*));
-                ImGui::Text("%s", texture->GetName().c_str());
-                ImGui::EndDragDropSource();
-            }
+            GUI::DragDropSource(texture->GetName().c_str(), texture.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {

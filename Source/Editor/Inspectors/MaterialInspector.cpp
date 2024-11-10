@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "EditorGUI.hpp"
 #include "Inspector.hpp"
 #include "Rendering/Material.hpp"
 
@@ -34,18 +35,13 @@ public:
 
         bool buttonPressed = ImGui::Button(fmt::format("{}##shader", shaderGUIID).c_str());
 
-        if (ImGui::BeginDragDropTarget())
+        Object* shaderPayload;
+        if (GUI::DragDropTarget(shaderPayload))
         {
-            auto payload = ImGui::AcceptDragDropPayload("object");
-            if (payload && payload->IsDelivery())
+            if (ShaderBase* sourceShader = dynamic_cast<ShaderBase*>(shaderPayload))
             {
-                Object& obj = **(Object**)payload->Data;
-                if (ShaderBase* sourceShader = dynamic_cast<ShaderBase*>(&obj))
-                {
-                    target->SetShader(sourceShader);
-                }
+                target->SetShader(sourceShader);
             }
-            ImGui::EndDragDropTarget();
         }
         else if (buttonPressed)
         {
@@ -176,18 +172,11 @@ public:
                 else
                     ImGui::Button(texBinding.name.c_str());
 
-                if (ImGui::BeginDragDropTarget())
+                Object* texturePayload;
+                if (GUI::DragDropTarget(typeid(Texture), texturePayload))
                 {
-                    auto payload = ImGui::AcceptDragDropPayload("object");
-                    if (payload && payload->IsDelivery())
-                    {
-                        Object* obj = *(Object**)payload->Data;
-                        if (Texture* dropTex = dynamic_cast<Texture*>(obj))
-                        {
-                            target->SetTexture(texBinding.name, dropTex);
-                        }
-                    }
-                    ImGui::EndDragDropTarget();
+                    Texture* texture = (Texture*)texturePayload;
+                    target->SetTexture(texBinding.name, texture);
                 }
             }
         }

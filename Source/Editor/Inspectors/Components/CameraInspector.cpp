@@ -1,12 +1,12 @@
 #include "../../EditorState.hpp"
 #include "../Inspector.hpp"
-#include "Rendering/Graphics.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "EditorGUI/ObjectField.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "DragDropIDs.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
+#include "EditorGUI.hpp"
+#include "Rendering/FrameGraph/FrameGraph.hpp"
+#include "Rendering/Graphics.hpp"
 namespace Editor
 {
 class CameraInspector : public Inspector<Camera>
@@ -55,21 +55,10 @@ public:
             EditorState::SelectObject(frameGraph->GetSRef());
         }
 
-        if (ImGui::BeginDragDropTarget())
+        Object* frameGraphPayload;
+        if (GUI::DragDropTarget(typeid(Rendering::FrameGraph::Graph), frameGraphPayload))
         {
-            auto payload = ImGui::AcceptDragDropPayload(DragDropIDs::assetPath);
-            if (payload && payload->IsDelivery())
-            {
-                std::string pathStr((char*)payload->Data, payload->DataSize);
-                auto path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(pathStr);
-                Rendering::FrameGraph::Graph* fg =
-                    dynamic_cast<Rendering::FrameGraph::Graph*>(AssetDatabase::Singleton()->LoadAsset(path));
-                if (fg)
-                {
-                    target->SetFrameGraph(fg);
-                }
-            }
-            ImGui::EndDragDropTarget();
+            target->SetFrameGraph((Rendering::FrameGraph::Graph*)frameGraphPayload);
         }
 
         ImGui::SameLine();

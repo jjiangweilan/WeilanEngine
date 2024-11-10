@@ -1,4 +1,5 @@
 #include "FrameGraphEditor.hpp"
+#include "EditorGUI.hpp"
 #include "EditorState.hpp"
 #include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
@@ -127,16 +128,11 @@ void FrameGraphEditor::DrawConfigurableField(
                 EditorState::SelectObject(v->GetSRef());
         }
 
-        if (ImGui::BeginDragDropTarget())
+        Object* data;
+        if (GUI::DragDropTarget(data))
         {
-            auto payload = ImGui::AcceptDragDropPayload("object");
-            if (payload && payload->IsDelivery())
-            {
-                config.data = *(Object**)payload->Data;
-
-                graph->SetDirty();
-            }
-            ImGui::EndDragDropTarget();
+            config.data = data;
+            graph->SetDirty();
         }
     }
 }
