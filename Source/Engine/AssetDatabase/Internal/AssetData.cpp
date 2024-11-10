@@ -6,6 +6,9 @@ AssetData::AssetData(
     : assetDataUUID(), assetPath(assetPath), absolutePath(projectRoot / "Assets" / assetPath), asset(std::move(asset)),
       lastWriteTime(0)
 {
+
+    assetUUID = this->asset->GetUUID();
+
     for (auto obj : this->asset->GetInternalAssets())
     {
         nameToUUID[obj->GetName()] = obj->GetUUID().ToString();

@@ -424,6 +424,13 @@ void GameEditor::SceneTree(Scene& scene)
 
     if (ImGui::BeginPopup(gameObjectContextMenu))
     {
+        if (ImGui::Button("Create As Prototype"))
+        {
+            std::unique_ptr<GameObject> go = std::make_unique<GameObject>(*sceneTreeContextObject);
+            GameObject* prototype = (GameObject*)AssetDatabase::Singleton()->SaveAsset(std::move(go), go->GetName());
+            sceneTreeContextObject->SetPrototype(prototype);
+        }
+
         if (ImGui::Button("Delete"))
         {
             auto selects = EditorState::GetSelectedObjects();
@@ -943,7 +950,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 
             const std::filesystem::path& path = entry.path();
             auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
-            bool treeOpen = ImGui::TreeNode(path.filename().string().c_str());
+            bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
             if (GUI::DragDropSource(relative))
             {
                 currentDragDropAssetFileDepth = depth;
@@ -958,7 +965,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                         std::filesystem::path oldPath(pathStr);
                         auto newPath = newDirectory / oldPath.filename();
                         AssetDatabase::Singleton()->Rename(
-                            std::filesystem::relative(oldPath, AssetDatabase::Singleton()->GetAssetDirectory()),
+                            oldPath,
                             std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
                         );
                     }
@@ -978,12 +985,12 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                     {
                         endPopup.Show(
                             "Folder is not empty, delete all?",
-                            [entry]() { std::filesystem::remove_all(entry.path()); }
+                            [entry]() { AssetDatabase::Singleton()->Remove(AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())); }
                         );
                     }
                     else
                     {
-                        endEvents.Register([entry]() { std::filesystem::remove(entry.path()); });
+                        endEvents.Register([entry]() { AssetDatabase::Singleton()->Remove(AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())); });
                     }
                 }
 
@@ -1057,7 +1064,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 
             if (open)
             {
-                std::string path = entry.path().string();
+                std::filesystem::path path = entry.path().string();
                 path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
                 GUI::DragDropSource(path, [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); });
 

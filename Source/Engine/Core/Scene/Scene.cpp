@@ -77,7 +77,8 @@ static void GetAllGameObjects(GameObject* current, std::vector<GameObject*>& obj
     objs.push_back(current);
     for (auto& child : current->GetChildren())
     {
-        GetAllGameObjects(child, objs);
+        if (child)
+            GetAllGameObjects(child, objs);
     }
 }
 

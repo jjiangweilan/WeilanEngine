@@ -445,6 +445,14 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 
     path.replace_extension(a->GetExtension());
     auto fullPath = assetDirectory / path;
+    int index = 1;
+    std::filesystem::path filename = path.filename();
+    while(std::filesystem::exists(fullPath))
+    {
+        auto newFilename = fmt::format("{} {}", filename.string(), index);
+        fullPath = fullPath.parent_path() / newFilename;
+        index++;
+    }
     // only internal asset can be created
     if (!a->IsExternalAsset())
     {
@@ -957,6 +965,8 @@ void AssetDatabase::Remove(const std::filesystem::path& path) {
                 {
                     // set assetData's imported file to nothing (effectly remove all imported assets)
                     SyncImportedAssetFiles(assetData, {});
+
+                    std::filesystem::remove(assetData->GetAssetDataUUID().ToString());
                 }
             }
         }

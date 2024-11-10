@@ -1,9 +1,10 @@
 #include "GameObject.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Libs/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
-DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "prefab");
+DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "proto");
 
 GameObject::GameObject() : gameScene(nullptr)
 {
@@ -38,7 +39,7 @@ std::unique_ptr<Asset> GameObject::Clone()
     return clone;
 }
 
-GameObject::GameObject(const GameObject& other)
+void GameObject::Copy(const GameObject& other)
 {
     SetName(other.GetName());
     position = other.position;
@@ -59,6 +60,11 @@ GameObject::GameObject(const GameObject& other)
         owningChildren.push_back(std::make_unique<GameObject>(*child));
         owningChildren.back()->SetParent(this);
     }
+}
+
+GameObject::GameObject(const GameObject& other)
+{
+    Copy(other);
 }
 
 GameObject::~GameObject()
@@ -102,6 +108,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("newParent", parent);
     s->Serialize("children", children);
     s->Serialize("enabled", enabled);
+    s->Serialize("prototype", prototype);
 }
 
 void GameObject::SetWorldMatrix(const glm::mat4& matrix)
@@ -132,6 +139,7 @@ void GameObject::Deserialize(Serializer* s)
     s->Deserialize("rotation", rotation);
     eulerAngles = glm::eulerAngles(rotation);
     s->Deserialize("components", components);
+    s->Deserialize("prototype", prototype);
     // gameScene is set by Scene when it's deserializing
 }
 
@@ -366,4 +374,40 @@ void GameObject::SetLocalScale(const glm::vec3& scale)
     this->scale = scale;
     updateLocalMatrix = true;
     TransformChanged();
+}
+
+void GameObject::ResetAsPrototype()
+{
+    // sanity check, there shouldn't have any owningChildren
+    if (!owningChildren.empty())
+        return;
+
+    if (prototype == nullptr)
+        return;
+
+    Scene* scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    for (auto child : children)
+    {
+        scene->DestroyGameObject(child);
+    }
+    children.clear();
+
+    SetEnable(false);
+    components.clear();
+
+    for (auto& c : prototype->components)
+    {
+        components.push_back(c->Clone(*this));
+    }
+
+    for (GameObject* child : prototype->children)
+    {
+        scene->AddGameObject(std::make_unique<GameObject>(*child));
+        child->SetParent(this);
+    }
+
+    SetEnable(true);
 }

@@ -32,6 +32,11 @@ public:
         return assetUUID;
     }
 
+    const UUID& GetAssetDataUUID() const
+    {
+        return assetDataUUID;
+    }
+
     // used to check if construction of AssetData is valid
     bool IsValid() const
     {

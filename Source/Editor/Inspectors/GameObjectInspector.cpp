@@ -54,6 +54,8 @@ class GameObjectInspector : public Inspector<GameObject>
         }
         ImGui::EndMenuBar();
 
+        ImGui::Text("%s", target->GetUUID().ToString().c_str());
+
         // object information
         ImGui::Separator();
         auto& name = target->GetName();
@@ -72,6 +74,19 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetName(cname);
         }
 
+        ImGui::Separator();
+        auto prototype = target->GetPrototype();
+        if (prototype)
+        {
+            ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
+            ImGui::Text("Prototype: %s", prototype->GetName().c_str());
+            if (ImGui::Button("Reset As Prototype"))
+            {
+                target->ResetAsPrototype();
+            }
+        }
+
+        ImGui::Separator();
         glm::vec3 pos = target->GetLocalPosition();
         if (ImGui::DragFloat3("Position", &pos[0]))
         {

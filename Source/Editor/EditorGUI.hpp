@@ -33,6 +33,7 @@ public:
     template <std::derived_from<Object> T>
     static bool ObjectField(std::string_view name, T*& curr)
     {
+        bool newValue = false;
         ImGui::PushID(0);
         ImGui::Text("%s: ", name.data());
         ImGui::SameLine();
@@ -51,27 +52,16 @@ public:
             EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }
 
-        if (ImGui::BeginDragDropTarget())
+        Object* target = nullptr;
+        if(DragDropTarget(typeid(T), target))
         {
-            auto payload = ImGui::AcceptDragDropPayload("object");
-            if (payload == nullptr)
-            {
-                payload = ImGui::AcceptDragDropPayload("game object");
-            }
-            if (payload && payload->IsDelivery())
-            {
-                if (T* c = dynamic_cast<T*>(*(Object**)payload->Data))
-                {
-                    curr = c;
-                    return true;
-                }
-            }
-            ImGui::EndDragDropTarget();
+            curr = (T*)target;
+            newValue = true;
         }
 
         ImGui::PopID();
 
-        return false;
+        return newValue;
     }
 
     static bool DragDropSource(const char* text, std::function<void(Object*& obj)> onDrag)
@@ -94,19 +84,20 @@ public:
         return isValid;
     }
 
-    static bool DragDropSource(const std::string& path)
+    static bool DragDropSource(const std::filesystem::path& path)
     {
-        if (path.size() > 1024)
+        std::string asString = path.string();
+        if (asString.size() > 1024)
             return false;
 
         bool isValid = false;
         if (ImGui::BeginDragDropSource())
         {
             DragDrop d;
-            strcpy(d.pathString, path.data());
+            strcpy(d.pathString, asString.data());
             d.tags = DragDropTag::Path;
             ImGui::SetDragDropPayload(PayloadType, &d, sizeof(DragDrop));
-            ImGui::Text("%s", path.data());
+            ImGui::Text("%s", asString.data());
             isValid = true;
             ImGui::EndDragDropSource();
         }

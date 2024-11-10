@@ -217,7 +217,23 @@ public:
 
     void OnLoadingFinished() override;
 
+    GameObject* GetPrototype()
+    {
+        return prototype;
+    }
+
+    void SetPrototype(GameObject* prototype)
+    {
+        this->prototype = prototype;
+        if (prototype != nullptr)
+            ResetAsPrototype();
+    }
+
+    void ResetAsPrototype();
+
 private:
+    GameObject* prototype = nullptr;
+
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
@@ -229,7 +245,6 @@ private:
     // wantsToBeEnabled will be set to true whth enabled is false in that case
     bool enabled = false;
     bool wantsToBeEnabled = false;
-
     mutable bool updateLocalMatrix = true;
 
     std::vector<GameObject*> children;
@@ -253,6 +268,8 @@ private:
     }
 
     inline static const float compareEpsilon = 1e-6f;
+
+    void Copy(const GameObject& other);
 };
 
 template <class T, class... Args>
