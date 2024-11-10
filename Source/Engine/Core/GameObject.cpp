@@ -405,9 +405,15 @@ void GameObject::ResetAsPrototype()
 
     for (GameObject* child : prototype->children)
     {
-        scene->AddGameObject(std::make_unique<GameObject>(*child));
-        child->SetParent(this);
+        std::unique_ptr<GameObject> newChild = std::make_unique<GameObject>(*child);
+        GameObject* tmp = newChild.get();
+        scene->AddGameObject(std::move(newChild));
+        tmp->SetParent(this);
     }
 
-    SetEnable(true);
+    if (wantsToBeEnabled)
+    {
+        SetEnable(true);
+        wantsToBeEnabled = false;
+    }
 }
