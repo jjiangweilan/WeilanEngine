@@ -21,6 +21,7 @@ AssetData::AssetData(
 AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& projectRoot)
     : assetDataUUID(assetDataUUID), lastWriteTime(0)
 {
+
     // load all the data until meta binary
     std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
 

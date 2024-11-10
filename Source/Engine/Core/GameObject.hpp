@@ -152,6 +152,11 @@ public:
         return scale;
     }
 
+    glm::quat GetLocalRotation() const
+    {
+        return rotation;
+    }
+
     glm::vec3 GetForward() const
     {
         return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2]));

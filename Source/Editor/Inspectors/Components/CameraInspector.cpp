@@ -61,8 +61,9 @@ public:
             if (payload && payload->IsDelivery())
             {
                 std::string pathStr((char*)payload->Data, payload->DataSize);
+                auto path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(pathStr);
                 Rendering::FrameGraph::Graph* fg =
-                    dynamic_cast<Rendering::FrameGraph::Graph*>(AssetDatabase::Singleton()->LoadAsset(pathStr));
+                    dynamic_cast<Rendering::FrameGraph::Graph*>(AssetDatabase::Singleton()->LoadAsset(path));
                 if (fg)
                 {
                     target->SetFrameGraph(fg);

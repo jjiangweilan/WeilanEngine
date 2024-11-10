@@ -20,6 +20,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PRIVATE "/ZI")
     target_compile_options(WeilanEngine PRIVATE "/Od")
     target_compile_options(WeilanEngine PRIVATE "/Ob0")
+    target_compile_options(WeilanEngineEditor PRIVATE "/ZI")
 endif()
 
 set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)

@@ -56,8 +56,6 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     assetDatabase = std::make_unique<AssetDatabase>();
     AssetDatabase::SingletonReference() = assetDatabase.get();
     assetDatabase->Init(projectPath);
-    // physics = std::make_unique<Physics>();
-    // physics->Init();
     event = std::make_unique<Event>();
     event->Init();
 #if ENGINE_EDITOR

@@ -38,6 +38,11 @@ public:
         return internalAssets;
     }
 
+    std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath)
+    {
+        return std::filesystem::relative(absolutePath, assetDirectory);
+    }
+
     static AssetDatabase* Singleton()
     {
         return SingletonReference();

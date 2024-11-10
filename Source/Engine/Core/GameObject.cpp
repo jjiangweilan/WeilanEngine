@@ -3,7 +3,7 @@
 #include "Libs/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
 #include <spdlog/spdlog.h>
-DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "proto");
+DEFINE_ASSET(GameObject, "F04CAB0A-DCF0-4ECF-A690-13FBD63A1AC7", "prefab");
 
 GameObject::GameObject() : gameScene(nullptr)
 {
@@ -99,7 +99,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("rotation", rotation);
     s->Serialize("position", position);
     s->Serialize("scale", scale);
-    s->Serialize("parent", parent);
+    s->Serialize("newParent", parent);
     s->Serialize("children", children);
     s->Serialize("enabled", enabled);
 }
@@ -126,7 +126,7 @@ void GameObject::Deserialize(Serializer* s)
     Asset::Deserialize(s);
     s->Deserialize("enabled", enabled);
     s->Deserialize("children", children);
-    s->Deserialize("parent", parent);
+    s->Deserialize("newParent", parent);
     s->Deserialize("scale", scale);
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
@@ -157,12 +157,12 @@ void GameObject::RemoveChild(GameObject* child)
     }
 }
 
-void GameObject::SetParent(GameObject* parent)
+void GameObject::SetParent(GameObject* newParent)
 {
-    if (this->parent == parent)
+    if (this->parent == newParent)
         return;
 
-    if (parent == nullptr)
+    if (newParent == nullptr)
     {
         Scene* scene = GetScene();
         if (scene)
@@ -183,23 +183,25 @@ void GameObject::SetParent(GameObject* parent)
 
     // fix local transforms
     glm::mat4 parentWorld = glm::mat4(1);
-    if (parent != nullptr)
+    if (newParent != nullptr)
     {
-        parentWorld = parent->GetWorldMatrix();
+        parentWorld = newParent->GetWorldMatrix();
     }
     glm::mat4 currentWorld = GetWorldMatrix();
+
     glm::mat4 local = glm::inverse(parentWorld) * currentWorld;
 
-    glm::vec3 position, scale;
-    glm::quat rotation;
-    Math::DecomposeMatrix(local, position, scale, rotation);
-    SetLocalPosition(position);
-    SetLocalRotation(rotation);
-    SetLocalScale(scale);
+    glm::vec3 newPosition, newScale;
+    glm::quat newRotation;
+    Math::DecomposeMatrix(local, newPosition, newScale, newRotation);
 
-    this->parent = parent;
-    if (parent)
-        parent->children.push_back(this);
+    this->parent = newParent;
+    if (newParent)
+        newParent->children.push_back(this);
+
+    SetLocalPosition(newPosition);
+    SetEulerAngles(glm::eulerAngles(newRotation));
+    SetLocalScale(newScale);
 }
 
 void GameObject::SetScene(Scene* scene)
@@ -356,10 +358,12 @@ void GameObject::SetLocalPosition(const glm::vec3& localPosition)
 
 void GameObject::SetLocalScale(const glm::vec3& scale)
 {
-    if (this->scale != scale)
+    if (this->scale == scale)
     {
-        this->scale = scale;
-        updateLocalMatrix = true;
-        TransformChanged();
+        return;
     }
+
+    this->scale = scale;
+    updateLocalMatrix = true;
+    TransformChanged();
 }
