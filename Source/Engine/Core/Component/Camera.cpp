@@ -175,6 +175,7 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
 {
     std::unique_ptr<Camera> clone = std::make_unique<Camera>(&owner);
 
+    clone->enabled = enabled;
     clone->projectionMatrix = projectionMatrix;
     clone->viewMatrix = viewMatrix;
     clone->frameGraph = frameGraph;
@@ -182,6 +183,8 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->far = far;
     clone->fov = fov;
     clone->aspect = aspect;
+    clone->diffuseEnv = diffuseEnv;
+    clone->specularEnv = specularEnv;
     return clone;
 }
 

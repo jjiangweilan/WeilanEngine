@@ -105,7 +105,7 @@ void GameObject::Serialize(Serializer* s) const
     s->Serialize("rotation", rotation);
     s->Serialize("position", position);
     s->Serialize("scale", scale);
-    s->Serialize("newParent", parent);
+    s->Serialize("parent", parent);
     s->Serialize("children", children);
     s->Serialize("enabled", enabled);
     s->Serialize("prototype", prototype);
@@ -133,7 +133,7 @@ void GameObject::Deserialize(Serializer* s)
     Asset::Deserialize(s);
     s->Deserialize("enabled", enabled);
     s->Deserialize("children", children);
-    s->Deserialize("newParent", parent);
+    s->Deserialize("parent", parent);
     s->Deserialize("scale", scale);
     s->Deserialize("position", position);
     s->Deserialize("rotation", rotation);
@@ -413,7 +413,13 @@ void GameObject::ResetAsPrototype()
 
     if (wantsToBeEnabled)
     {
-        SetEnable(true);
+        for(auto& c : components)
+        {
+            if (c->IsEnabled())
+            {
+                c->EnableImple();
+            }
+        }
         wantsToBeEnabled = false;
     }
 }

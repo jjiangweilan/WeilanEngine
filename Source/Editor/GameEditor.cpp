@@ -359,22 +359,8 @@ void GameEditor::SceneTree(Scene& scene)
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
 
-    {
-        Object* go;
-        if (GUI::DragDropTarget(typeid(GameObject), go, {windowPos, windowMax}))
-        {
-            GameObject* obj = (GameObject*)go;
-            if (obj != nullptr)
-            {
-                // pass null to set this transform to root
-                obj->SetParent(nullptr);
-                obj->SetEnable(true);
-            }
-        }
-    }
-
     Object* gameObjectPayload;
-    std::string filePath;
+    std::filesystem::path filePath;
     if (GUI::DragDropTarget(typeid(GameObject), gameObjectPayload, {windowPos, windowMax}))
     {
         GameObject* gameObject = (GameObject*)gameObjectPayload;
@@ -385,10 +371,9 @@ void GameEditor::SceneTree(Scene& scene)
             gameObject->SetEnable(true);
         }
     }
-    else if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
+    if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
     {
-        auto assetPath = std::filesystem::relative(filePath, AssetDatabase::Singleton()->GetAssetDirectory());
-        if (Model* model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(assetPath)))
+        if (Model* model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(filePath)))
         {
             auto gos = model->CreateGameObject();
             for (auto& go : gos)
@@ -956,7 +941,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                 currentDragDropAssetFileDepth = depth;
             }
 
-            std::string pathStr;
+            std::filesystem::path pathStr;
             if (GUI::DragDropTarget(pathStr))
             {
                 endEvents.Register(
@@ -1015,7 +1000,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
         auto windowPos = ImGui::GetWindowPos();
         auto currentCursor = ImGui::GetCursorPos() + windowPos - ImVec2{ImGui::GetScrollX(), ImGui::GetScrollY()};
         auto contextRegionMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
-        std::string pathStr;
+        std::filesystem::path pathStr;
         if (GUI::DragDropTarget(pathStr, {currentCursor, contextRegionMax}))
         {
             endEvents.Register(

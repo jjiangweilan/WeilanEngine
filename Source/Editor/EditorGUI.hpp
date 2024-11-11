@@ -53,7 +53,7 @@ public:
         }
 
         Object* target = nullptr;
-        if(DragDropTarget(typeid(T), target))
+        if (DragDropTarget(typeid(T), target))
         {
             curr = (T*)target;
             newValue = true;
@@ -151,7 +151,7 @@ public:
         return isValid;
     }
 
-    static bool DragDropTarget(std::string& path, ImRect rect = {{0, 0}, {0, 0}})
+    static bool DragDropTarget(std::filesystem::path& path, ImRect rect = {{0, 0}, {0, 0}})
     {
         bool isValid = false;
         path = "";
@@ -169,15 +169,19 @@ public:
 
         if (begin)
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(PayloadType);
-            if (payload && payload->IsDelivery())
+            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+            if (payload && payload->IsDataType(PayloadType))
             {
                 DragDrop* dragDrop = (DragDrop*)payload->Data;
 
                 if (HasFlag(dragDrop->tags, DragDropTag::Path))
                 {
-                    path = (char*)dragDrop->pathString;
-                    isValid = true;
+                    ImGui::AcceptDragDropPayload(PayloadType);
+                    if (payload->IsDelivery())
+                    {
+                        path = (char*)dragDrop->pathString;
+                        isValid = true;
+                    }
                 }
             }
 
@@ -205,14 +209,18 @@ public:
 
         if (begin)
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(PayloadType);
-            if (payload && payload->IsDelivery())
+            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+            if (payload && payload->IsDataType(PayloadType))
             {
                 DragDrop* dragDrop = (DragDrop*)payload->Data;
                 if (HasFlag(dragDrop->tags, DragDropTag::Object))
                 {
-                    obj = (Object*)dragDrop->objectPayload;
-                    isValid = true;
+                    ImGui::AcceptDragDropPayload(PayloadType);
+                    if (payload->IsDelivery())
+                    {
+                        obj = (Object*)dragDrop->objectPayload;
+                        isValid = true;
+                    }
                 }
             }
 
@@ -240,15 +248,18 @@ public:
 
         if (begin)
         {
-            const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(PayloadType);
-            if (payload && payload->IsDelivery())
+            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+            if (payload && payload->IsDataType(PayloadType))
             {
                 DragDrop* dragDrop = (DragDrop*)payload->Data;
-                if (HasFlag(dragDrop->tags,DragDropTag::Object) && *dragDrop->type == type)
+                if (HasFlag(dragDrop->tags, DragDropTag::Object) && *dragDrop->type == type)
                 {
-
-                    obj = (Object*)dragDrop->objectPayload;
-                    isValid = true;
+                    ImGui::AcceptDragDropPayload(PayloadType);
+                    if (payload->IsDelivery())
+                    {
+                        obj = (Object*)dragDrop->objectPayload;
+                        isValid = true;
+                    }
                 }
             }
 
