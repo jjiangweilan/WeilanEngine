@@ -1,5 +1,6 @@
 #include "../EditorState.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Core/Texture.hpp"
 #include "Inspector.hpp"
 namespace Editor

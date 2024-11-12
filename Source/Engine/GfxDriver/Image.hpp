@@ -144,6 +144,7 @@ struct ImageViewOption
     int levelCount;
     int baseArrayLayer;
     int layerCount;
+    bool operator==(const ImageViewOption& other) const = default;
 };
 
 class ImageView;

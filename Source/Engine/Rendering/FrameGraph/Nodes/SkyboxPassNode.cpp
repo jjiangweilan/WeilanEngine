@@ -4,6 +4,7 @@
 #include "Core/Model.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Rendering/Material.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/Shader.hpp"
 #include <random>
 

@@ -1,8 +1,8 @@
-#pragma once
 #include "../NodeBlueprint.hpp"
 #include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 
 namespace Rendering::FrameGraph
 {

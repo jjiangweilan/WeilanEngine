@@ -6,6 +6,7 @@
 #include "Core/Time.hpp"
 #include "GfxDriver/Image.hpp"
 #include "Nodes/ImageNode.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
 #include <stack>
 

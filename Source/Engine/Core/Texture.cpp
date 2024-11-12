@@ -1,4 +1,5 @@
 #include "Texture.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Image/ImageProcessing.hpp"

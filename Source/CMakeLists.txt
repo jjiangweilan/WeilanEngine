@@ -8,7 +8,7 @@ endif()
 option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
-option(DEV_BUILD "use internal asset inside the source tree instead of installed location" ON)
+option(DEV_BUILD "Define ENGINE_DEV_BUILD" ON)
 
 # link WeilanEngine to editor
 add_executable(WeilanEngineEditor

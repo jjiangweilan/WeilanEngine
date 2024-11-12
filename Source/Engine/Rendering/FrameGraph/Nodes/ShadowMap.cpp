@@ -1,6 +1,6 @@
-#pragma once
 #include "../NodeBlueprint.hpp"
 #include "GfxDriver/Image.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/Shader.hpp"
 
 namespace Rendering::FrameGraph

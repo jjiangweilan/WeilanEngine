@@ -1,4 +1,5 @@
 #include "GIScene.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "spdlog/spdlog.h"
 
 namespace SurfelGI

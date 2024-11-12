@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
 #include "Rendering/Shader.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Rendering::FrameGraph

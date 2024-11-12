@@ -4,6 +4,7 @@
 #include "Rendering/DrawList.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Shader.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
 
 

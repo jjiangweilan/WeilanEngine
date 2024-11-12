@@ -757,7 +757,6 @@ void GameEditor::GUIPass()
     GameProfiler(Profiler::GetSingleton());
     ConsoleOutputWindow();
     AssetDatabaseViewer();
- 
 
     if (pbrBaker)
     {
@@ -1464,13 +1463,30 @@ void GameEditor::SaveProject()
 void GameEditor::EngineResourceDebug()
 {
     ImGui::Begin("Engine Resource Debug");
-    auto allObjects = DebugClass_Object::GetAllEngineObjects();
+    auto allObjects = Object::GetAllEngineObjects();
     ImGui::BeginGroup();
-    for (auto obj : allObjects)
+    if (ImGui::BeginTable("Table", 2))
     {
-        auto asAsset = dynamic_cast<Asset*>(obj);
-        std::string name = asAsset ? asAsset->GetName() : obj->GetUUID().ToString();
-        ImGui::Text("%s, %s", name.c_str(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()).c_str());
+        ImGui::TableSetupColumn("name");
+        ImGui::TableSetupColumn("type");
+
+        for (auto& obj : allObjects)
+        {
+            ImGui::TableNextRow();
+
+            ImGui::TableSetColumnIndex(0);
+            auto asAsset = dynamic_cast<Asset*>(obj.second);
+            std::string name = asAsset ? asAsset->GetName() : obj.first.ToString();
+            ImGui::Text("%s", name.c_str());
+
+            ImGui::TableSetColumnIndex(1);
+
+            const std::string& type = ObjectRegistry::GetTypeName(obj.second->GetObjectTypeID());
+            ImGui::Text("%s", type.c_str());
+
+        }
+
+        ImGui::EndTable();
     }
     ImGui::EndGroup();
     ImGui::End();

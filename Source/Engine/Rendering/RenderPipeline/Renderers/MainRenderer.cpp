@@ -4,6 +4,7 @@
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/RenderingUtils.hpp"
 
 namespace Rendering

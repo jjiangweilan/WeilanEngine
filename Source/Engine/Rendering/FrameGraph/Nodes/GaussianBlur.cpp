@@ -1,6 +1,7 @@
 #include "../NodeBlueprint.hpp"
 #include "Rendering/Shader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <random>
 
 namespace Rendering::FrameGraph

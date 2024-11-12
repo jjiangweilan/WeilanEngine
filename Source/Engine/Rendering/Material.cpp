@@ -62,7 +62,26 @@ void Material::SetTexture(
     const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
 )
 {
+    auto iter = textureValues.find(param);
+    bool same = false;
+    if (iter != textureValues.end())
+    {
+        same = iter->second == texture;
+    }
+    if (same)
+    {
+        auto optionIter = textureImageViewOptions.find(param);
+        if (optionIter != textureImageViewOptions.end())
+        {
+            same = imageViewOption == optionIter->second;
+        }
+    }
+    if (same)
+        return;
+
     textureValues[param] = texture;
+    textureImageViewOptions[param] = imageViewOption;
+
     if (shaderResource != nullptr)
     {
         if (imageViewOption.has_value())

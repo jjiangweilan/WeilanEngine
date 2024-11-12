@@ -1,13 +1,20 @@
 #include "Object.hpp"
 
-std::list<Object*>& Object::GetAllEngineObjects() {
-    static std::list<Object*> allEngineObjects = std::list<Object*>();
+Object::EngineObjectMap& Object::GetAllEngineObjects()
+{
+    static EngineObjectMap allEngineObjects = EngineObjectMap();
     return allEngineObjects;
 }
 
 Object::Object()
 {
-    GetAllEngineObjects().push_back(this);
+#if ENGINE_DEV_BUILD
+    if (GetAllEngineObjects().find(uuid) != GetAllEngineObjects().end())
+    {
+        spdlog::error("making object with duplicated UUID");
+    }
+#endif
+    selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
 }
 
 Object::~Object()

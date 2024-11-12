@@ -1,6 +1,6 @@
 #include "../NodeBlueprint.hpp"
 #include "Rendering/Shader.hpp"
-
+#include "GfxDriver/GfxDriver.hpp"
 namespace Rendering::FrameGraph
 {
 class FullScreenPassNode : public Node

@@ -2,6 +2,7 @@
 
 #include "Core/Asset.hpp"
 #include "Core/Texture.hpp"
+#include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Shader.hpp"
@@ -54,6 +55,8 @@ public:
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
+
+    [[deprecated("Use Texture version instead")]]
     void SetTexture(
         const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
     );
@@ -145,6 +148,7 @@ private:
 
     std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, Texture*> textureValues;
+    std::unordered_map<std::string, std::optional<Gfx::ImageViewOption>> textureImageViewOptions;
     std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;
     std::unique_ptr<Gfx::Buffer> buffer;

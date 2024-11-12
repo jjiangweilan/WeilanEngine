@@ -1,7 +1,7 @@
-#pragma once
 #include "../NodeBlueprint.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Rendering/Shader.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 
 
 namespace Rendering::FrameGraph

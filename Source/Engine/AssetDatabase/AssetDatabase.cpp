@@ -3,6 +3,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>

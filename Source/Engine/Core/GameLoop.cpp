@@ -4,6 +4,7 @@
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
 

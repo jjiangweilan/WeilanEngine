@@ -2,7 +2,7 @@
 
 #include "Libs/UUID.hpp"
 #include "SafeReferenceable.hpp"
-#include <list>
+#include <spdlog/spdlog.h>
 #include <unordered_map>
 
 class Component;
@@ -10,6 +10,8 @@ class Component;
 class Object : public SafeReferenceable<Object>
 {
 public:
+    using EngineObjectMap = std::unordered_map<UUID, Object*>;
+
     Object();
     Object(Object&& other) : uuid(std::exchange(other.uuid, UUID::GetEmptyUUID())) {}
     Object(const Object& other) : uuid() {};
@@ -21,28 +23,25 @@ public:
     }
     void SetUUID(const UUID& uuid)
     {
+#if ENGINE_DEV_BUILD
+        if (GetAllEngineObjects().find(uuid) != GetAllEngineObjects().end())
+        {
+            spdlog::error("making object with duplicated UUID");
+        }
+#endif
+        selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
         this->uuid = uuid;
     }
 
     virtual const UUID& GetObjectTypeID() = 0;
 
+    static EngineObjectMap& GetAllEngineObjects();
+
 protected:
     UUID uuid;
 
 private:
-    std::list<Object*>::const_iterator selfIterator;
-    static std::list<Object*>& GetAllEngineObjects();
-
-    friend class DebugClass_Object;
-};
-
-class DebugClass_Object
-{
-public:
-    static const std::list<Object*>& GetAllEngineObjects()
-    {
-        return Object::GetAllEngineObjects();
-    }
+    EngineObjectMap::const_iterator selfIterator;
 };
 
 using ObjectTypeID = UUID;
