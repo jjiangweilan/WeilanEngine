@@ -750,6 +750,13 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
+    /* Debug Comment */
+    // std::filesystem::path debugPath = "";
+    // if (path == debugPath)
+    // {
+    //     spdlog::info("{}", debugPath.string());
+    // }
+
     // use path relative to AssetDirectory
     if (path.is_absolute())
         return nullptr;

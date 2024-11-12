@@ -5,6 +5,7 @@
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Image/ImageProcessing.hpp"
+#include "Libs/Utils.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include <fstream>
 #include <ktx.h>
@@ -78,8 +79,25 @@ std::vector<std::filesystem::path> TextureLoader::Import()
             // image information
             bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
             bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
-            if (isHDR || is16Bit)
-                linearFormat = true;
+
+            auto IsLinearFormat = [this](bool is16Bit, bool isHDR)
+            {
+                bool linearFormat = false;
+                auto lowerCasePathStr = Utils::strTolower(absoluteAssetPath.filename().string());
+
+                bool srgFormat = Utils::strContians(lowerCasePathStr, "srgb") ||
+                                 Utils::strContians(lowerCasePathStr, "diffuse") ||
+                                 Utils::strContians(lowerCasePathStr, "albedo");
+                if (!srgFormat && (isHDR || is16Bit))
+                    linearFormat = true;
+                else
+                    linearFormat = srgFormat;
+
+                return linearFormat;
+            };
+
+            bool linearFormat = IsLinearFormat(is16Bit, isHDR);
+
             int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 
             uint8_t* loaded = nullptr;

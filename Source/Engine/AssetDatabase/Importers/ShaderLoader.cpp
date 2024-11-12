@@ -342,6 +342,7 @@ void ShaderLoader::Load()
     }
 
     shader->SetShaderPasses(std::move(passes));
+    shader->SetName(absoluteAssetPath.filename().string());
     asset = std::move(shader);
     //
     // shader->LoadFromFile(absoluteAssetPath.string().c_str());

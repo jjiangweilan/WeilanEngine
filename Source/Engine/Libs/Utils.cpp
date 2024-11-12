@@ -35,4 +35,10 @@ std::vector<std::string> SplitString(const std::string& s, char delimiter)
     }
     return tokens;
 }
+
+bool strContians(const std::string& s, const std::string& element)
+{
+    auto iter = s.find(element);
+    return iter != s.npos;
+}
 } // namespace Utils
