@@ -1,5 +1,20 @@
 #include "Object.hpp"
 
+std::list<Object*>& Object::GetAllEngineObjects() {
+    static std::list<Object*> allEngineObjects = std::list<Object*>();
+    return allEngineObjects;
+}
+
+Object::Object()
+{
+    GetAllEngineObjects().push_back(this);
+}
+
+Object::~Object()
+{
+    GetAllEngineObjects().erase(selfIterator);
+}
+
 std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistry()
 {
     static std::unique_ptr<std::unordered_map<ObjectTypeID, ObjectRegistry::Creator>> registeredObject =
@@ -19,6 +34,12 @@ std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* Objec
     static std::unique_ptr<std::unordered_map<std::string, ObjectRegistry::Creator>> registeredObject =
         std::make_unique<std::unordered_map<std::string, ObjectRegistry::Creator>>();
     return registeredObject.get();
+}
+
+std::unordered_map<ObjectTypeID, std::string>* ObjectRegistry::GetObjectTypeToTypeNameMap()
+{
+    static std::unordered_map<ObjectTypeID, std::string> registry;
+    return &registry;
 }
 
 std::unique_ptr<Object> ObjectRegistry::CreateObject(const ObjectTypeID& id)

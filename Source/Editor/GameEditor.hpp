@@ -97,6 +97,7 @@ private:
         GameObject* go, int imguiID, GameObject* currentSelected, std::vector<SRef<Object>>& selects, bool autoExpand
     );
     void GameProfiler(Profiler& profiler);
+    void EngineResourceDebug();
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
 

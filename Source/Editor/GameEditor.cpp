@@ -720,6 +720,8 @@ void GameEditor::GUIPass()
     InspectorWindow();
     SurfelGIBakerWindow();
 
+    EngineResourceDebug();
+
     std::vector<std::unique_ptr<Window>*> toClose;
     for (auto& w : activeWindows)
     {
@@ -755,6 +757,7 @@ void GameEditor::GUIPass()
     GameProfiler(Profiler::GetSingleton());
     ConsoleOutputWindow();
     AssetDatabaseViewer();
+ 
 
     if (pbrBaker)
     {
@@ -970,12 +973,24 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                     {
                         endPopup.Show(
                             "Folder is not empty, delete all?",
-                            [entry]() { AssetDatabase::Singleton()->Remove(AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())); }
+                            [entry]()
+                            {
+                                AssetDatabase::Singleton()->Remove(
+                                    AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                );
+                            }
                         );
                     }
                     else
                     {
-                        endEvents.Register([entry]() { AssetDatabase::Singleton()->Remove(AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())); });
+                        endEvents.Register(
+                            [entry]()
+                            {
+                                AssetDatabase::Singleton()->Remove(
+                                    AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                                );
+                            }
+                        );
                     }
                 }
 
@@ -1444,5 +1459,20 @@ void GameEditor::SaveProject()
     engine->assetDatabase->SaveDirtyAssets();
     if (EditorState::activeScene)
         engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+}
+
+void GameEditor::EngineResourceDebug()
+{
+    ImGui::Begin("Engine Resource Debug");
+    auto allObjects = DebugClass_Object::GetAllEngineObjects();
+    ImGui::BeginGroup();
+    for (auto obj : allObjects)
+    {
+        auto asAsset = dynamic_cast<Asset*>(obj);
+        std::string name = asAsset ? asAsset->GetName() : obj->GetUUID().ToString();
+        ImGui::Text("%s, %s", name.c_str(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()).c_str());
+    }
+    ImGui::EndGroup();
+    ImGui::End();
 }
 } // namespace Editor

@@ -2,16 +2,18 @@
 
 #include "Libs/UUID.hpp"
 #include "SafeReferenceable.hpp"
+#include <list>
 #include <unordered_map>
 
 class Component;
+
 class Object : public SafeReferenceable<Object>
 {
 public:
-    Object() = default;
+    Object();
     Object(Object&& other) : uuid(std::exchange(other.uuid, UUID::GetEmptyUUID())) {}
     Object(const Object& other) : uuid() {};
-    virtual ~Object() {};
+    virtual ~Object();
 
     const UUID& GetUUID() const
     {
@@ -26,6 +28,21 @@ public:
 
 protected:
     UUID uuid;
+
+private:
+    std::list<Object*>::const_iterator selfIterator;
+    static std::list<Object*>& GetAllEngineObjects();
+
+    friend class DebugClass_Object;
+};
+
+class DebugClass_Object
+{
+public:
+    static const std::list<Object*>& GetAllEngineObjects()
+    {
+        return Object::GetAllEngineObjects();
+    }
 };
 
 using ObjectTypeID = UUID;
@@ -39,10 +56,11 @@ public:
     template <class T>
     static std::unique_ptr<T> CreateObject(std::string_view id);
     template <class T>
-    static char RegisterObject(const ObjectTypeID& ObjectID, std::string_view typeName, const Creator& creator)
+    static char RegisterObject(const ObjectTypeID& objectID, std::string_view typeName, const Creator& creator)
     {
-        GetObjectTypeRegistry()->emplace(ObjectID, creator);
+        GetObjectTypeRegistry()->emplace(objectID, creator);
         GetObjectTypeRegistryByName()->emplace(typeName, creator);
+        GetObjectTypeToTypeNameMap()->emplace(objectID, typeName);
 
         if (std::derived_from<T, Component>)
         {
@@ -55,10 +73,21 @@ public:
     {
         return GetComponentTypeNamesRegistry();
     }
+    static const std::string& GetTypeName(const ObjectTypeID& id)
+    {
+        auto iter = GetObjectTypeToTypeNameMap()->find(id);
+        if (iter == GetObjectTypeToTypeNameMap()->end())
+        {
+            static std::string invalid = "Invalid Type";
+            return invalid;
+        }
+        return iter->second;
+    }
 
 private:
     static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistry();
     static std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistryByName();
+    static std::unordered_map<ObjectTypeID, std::string>* GetObjectTypeToTypeNameMap();
     static std::vector<std::string>& GetComponentTypeNamesRegistry();
 };
 
