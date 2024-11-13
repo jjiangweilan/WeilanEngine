@@ -1,5 +1,6 @@
 #pragma once
-#include <vector>
+#include "Libs/LinearAllocator.hpp"
+#include <list>
 #include <vulkan/vulkan.h>
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore
@@ -44,17 +45,26 @@ public:
     }
 
 private:
-    std::vector<VkImageView> pendingImageViews;
-    std::vector<VkRenderPass> pendingRenderPasses;
-    std::vector<VkFramebuffer> pendingFramebuffers;
-    std::vector<VkShaderModule> pendingShaderModules;
-    std::vector<VkPipeline> pendingPipelines;
-    std::vector<VkDescriptorSetLayout> pendingDescriptorSetLayouts;
-    std::vector<VkPipelineLayout> pendingPipelineLayout;
-    std::vector<VkDescriptorPool> pendingDescriptorPools;
-    std::vector<VkSemaphore> pendingSemaphores;
-    std::vector<VkSampler> pendingSamplers;
-    std::vector<VkCommandPool> pendingCommandPools;
+    struct Info
+    {
+        void* ptr;
+        int frameCount;
+    };
+
+    std::list<Info> pendingImageViews;
+    std::list<Info> pendingRenderPasses;
+    std::list<Info> pendingFramebuffers;
+    std::list<Info> pendingShaderModules;
+    std::list<Info> pendingPipelines;
+    std::list<Info> pendingDescriptorSetLayouts;
+    std::list<Info> pendingPipelineLayout;
+    std::list<Info> pendingDescriptorPools;
+    std::list<Info> pendingSemaphores;
+    std::list<Info> pendingSamplers;
+    std::list<Info> pendingCommandPools;
     VkDevice device;
+
+    template <class T, class F>
+    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f);
 };
 } // namespace Gfx

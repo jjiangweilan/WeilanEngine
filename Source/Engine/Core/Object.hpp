@@ -23,20 +23,28 @@ public:
     }
     void SetUUID(const UUID& uuid)
     {
+        if (this->uuid == uuid)
+            return;
+
 #if ENGINE_DEV_BUILD
         if (GetAllEngineObjects().find(uuid) != GetAllEngineObjects().end())
         {
             spdlog::error("making object with duplicated UUID");
         }
+        else
 #endif
-        GetAllEngineObjects().erase(selfIterator);
-        selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
-        this->uuid = uuid;
+        {
+            GetAllEngineObjects().erase(selfIterator);
+            selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
+            this->uuid = uuid;
+        }
     }
 
     virtual const UUID& GetObjectTypeID() = 0;
 
     static EngineObjectMap& GetAllEngineObjects();
+    template <class T>
+    static std::vector<T*> GetObjectsOfType();
 
 protected:
     UUID uuid;
@@ -125,3 +133,18 @@ private:                                                                        
     {                                                                                                                  \
         return Type::StaticGetObjectTypeID();                                                                          \
     }
+
+template <class T>
+std::vector<T*> Object::GetObjectsOfType()
+{
+    std::vector<T*> result;
+    auto& objs = GetAllEngineObjects();
+    for(auto obj : objs)
+    {
+        auto cast = dynamic_cast<T*>(obj.second);
+        if (cast)
+            result.push_back(cast);
+    }
+
+    return result;
+}

@@ -24,7 +24,7 @@ void VKObjectManager::CreateImageView(VkImageViewCreateInfo& createInfo, VkImage
 
 void VKObjectManager::DestroyImageView(VkImageView image)
 {
-    pendingImageViews.push_back(image);
+    pendingImageViews.push_back({image, -1});
 }
 
 void VKObjectManager::CreateRenderPass(VkRenderPassCreateInfo& createInfo, VkRenderPass& renderPass)
@@ -34,7 +34,7 @@ void VKObjectManager::CreateRenderPass(VkRenderPassCreateInfo& createInfo, VkRen
 
 void VKObjectManager::DestroyRenderPass(VkRenderPass renderPass)
 {
-    pendingRenderPasses.push_back(renderPass);
+    pendingRenderPasses.push_back({renderPass, -1});
 }
 
 void VKObjectManager::CreateFramebuffer(VkFramebufferCreateInfo& createInfo, VkFramebuffer& frameBuffer)
@@ -44,7 +44,7 @@ void VKObjectManager::CreateFramebuffer(VkFramebufferCreateInfo& createInfo, VkF
 
 void VKObjectManager::DestroyFramebuffer(VkFramebuffer frameBuffer)
 {
-    pendingFramebuffers.push_back(frameBuffer);
+    pendingFramebuffers.push_back({frameBuffer, -1});
 }
 
 void VKObjectManager::CreateShaderModule(VkShaderModuleCreateInfo& createInfo, VkShaderModule& module)
@@ -54,7 +54,7 @@ void VKObjectManager::CreateShaderModule(VkShaderModuleCreateInfo& createInfo, V
 
 void VKObjectManager::DestroyShaderModule(VkShaderModule module)
 {
-    pendingShaderModules.push_back(module);
+    pendingShaderModules.push_back({module, -1});
 }
 
 void VKObjectManager::CreateGraphicsPipeline(VkGraphicsPipelineCreateInfo& createInfo, VkPipeline& pipeline)
@@ -69,7 +69,7 @@ void VKObjectManager::CreateComputePipeline(VkComputePipelineCreateInfo& createI
 
 void VKObjectManager::DestroyPipeline(VkPipeline pipeline)
 {
-    pendingPipelines.push_back(pipeline);
+    pendingPipelines.push_back({pipeline, -1});
 }
 
 void VKObjectManager::CreateDescriptorSetLayout(
@@ -81,7 +81,7 @@ void VKObjectManager::CreateDescriptorSetLayout(
 
 void VKObjectManager::DestroyDescriptorSetLayout(VkDescriptorSetLayout layout)
 {
-    pendingDescriptorSetLayouts.push_back(layout);
+    pendingDescriptorSetLayouts.push_back({layout, -1});
 }
 
 void VKObjectManager::CreatePipelineLayout(VkPipelineLayoutCreateInfo& createInfo, VkPipelineLayout& layout)
@@ -91,7 +91,7 @@ void VKObjectManager::CreatePipelineLayout(VkPipelineLayoutCreateInfo& createInf
 
 void VKObjectManager::DestroyPipelineLayout(VkPipelineLayout layout)
 {
-    pendingPipelineLayout.push_back(layout);
+    pendingPipelineLayout.push_back({layout, -1});
 }
 
 void VKObjectManager::CreateDescriptorPool(VkDescriptorPoolCreateInfo& createInfo, VkDescriptorPool& pool)
@@ -101,7 +101,7 @@ void VKObjectManager::CreateDescriptorPool(VkDescriptorPoolCreateInfo& createInf
 
 void VKObjectManager::DestroyDescriptorPool(VkDescriptorPool pool)
 {
-    pendingDescriptorPools.push_back(pool);
+    pendingDescriptorPools.push_back({pool, -1});
 }
 
 void VKObjectManager::CreateSemaphore(VkSemaphoreCreateInfo& createInfo, VkSemaphore& semaphore)
@@ -111,7 +111,7 @@ void VKObjectManager::CreateSemaphore(VkSemaphoreCreateInfo& createInfo, VkSemap
 
 void VKObjectManager::DestroySemaphore(VkSemaphore semaphore)
 {
-    pendingSemaphores.push_back(semaphore);
+    pendingSemaphores.push_back({semaphore, -1});
 }
 
 void VKObjectManager::CreateSampler(VkSamplerCreateInfo& createInfo, VkSampler& sampler)
@@ -120,51 +120,39 @@ void VKObjectManager::CreateSampler(VkSamplerCreateInfo& createInfo, VkSampler& 
 }
 void VKObjectManager::DestroySampler(VkSampler sampler)
 {
-    pendingSamplers.push_back(sampler);
+    pendingSamplers.push_back({sampler, -1});
 }
 
 void VKObjectManager::DestroyCommandPool(VkCommandPool pool) {}
 
+template <class T, class F>
+void VKObjectManager::DestroyPendingResourcesOfType(std::list<Info>& resources, F f)
+{
+    for (auto curr = resources.begin(); curr != resources.end();)
+    {
+        if (curr->frameCount++ > 5)
+        {
+            f(device, static_cast<T>(curr->ptr), VK_NULL_HANDLE);
+            auto tmp = curr;
+            curr++;
+            resources.erase(tmp);
+        }
+        else
+            curr++;
+    }
+}
+
 void VKObjectManager::DestroyPendingResources()
 {
-    for (auto v : pendingImageViews)
-        vkDestroyImageView(device, v, VK_NULL_HANDLE);
-    pendingImageViews.clear();
-
-    for (auto v : pendingRenderPasses)
-        vkDestroyRenderPass(device, v, VK_NULL_HANDLE);
-    pendingRenderPasses.clear();
-
-    for (auto v : pendingFramebuffers)
-        vkDestroyFramebuffer(device, v, VK_NULL_HANDLE);
-    pendingFramebuffers.clear();
-
-    for (auto v : pendingShaderModules)
-        vkDestroyShaderModule(device, v, VK_NULL_HANDLE);
-    pendingShaderModules.clear();
-
-    for (auto v : pendingPipelines)
-        vkDestroyPipeline(device, v, VK_NULL_HANDLE);
-    pendingPipelines.clear();
-
-    for (auto v : pendingDescriptorSetLayouts)
-        vkDestroyDescriptorSetLayout(device, v, VK_NULL_HANDLE);
-    pendingDescriptorSetLayouts.clear();
-
-    for (auto v : pendingPipelineLayout)
-        vkDestroyPipelineLayout(device, v, VK_NULL_HANDLE);
-    pendingPipelineLayout.clear();
-
-    for (auto v : pendingDescriptorPools)
-        vkDestroyDescriptorPool(device, v, VK_NULL_HANDLE);
-    pendingDescriptorPools.clear();
-
-    for (auto v : pendingSemaphores)
-        vkDestroySemaphore(device, v, VK_NULL_HANDLE);
-    pendingSemaphores.clear();
-
-    for (auto v : pendingSamplers)
-        vkDestroySampler(device, v, VK_NULL_HANDLE);
-    pendingSamplers.clear();
+    DestroyPendingResourcesOfType<VkImageView>(pendingImageViews, vkDestroyImageView);
+    DestroyPendingResourcesOfType<VkRenderPass>(pendingRenderPasses, vkDestroyRenderPass);
+    DestroyPendingResourcesOfType<VkFramebuffer>(pendingFramebuffers, vkDestroyFramebuffer);
+    DestroyPendingResourcesOfType<VkShaderModule>(pendingShaderModules, vkDestroyShaderModule);
+    DestroyPendingResourcesOfType<VkPipeline>(pendingPipelines, vkDestroyPipeline);
+    DestroyPendingResourcesOfType<VkDescriptorSetLayout>(pendingDescriptorSetLayouts, vkDestroyDescriptorSetLayout);
+    DestroyPendingResourcesOfType<VkPipelineLayout>(pendingPipelineLayout, vkDestroyPipelineLayout);
+    DestroyPendingResourcesOfType<VkDescriptorPool>(pendingDescriptorPools, vkDestroyDescriptorPool);
+    DestroyPendingResourcesOfType<VkSemaphore>(pendingSemaphores, vkDestroySemaphore);
+    DestroyPendingResourcesOfType<VkSampler>(pendingSemaphores, vkDestroySampler);
 }
 } // namespace Gfx

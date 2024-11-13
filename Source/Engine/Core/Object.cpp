@@ -13,8 +13,11 @@ Object::Object()
     {
         spdlog::error("making object with duplicated UUID");
     }
+    else
 #endif
-    selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
+    {
+        selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
+    }
 }
 
 Object::~Object()

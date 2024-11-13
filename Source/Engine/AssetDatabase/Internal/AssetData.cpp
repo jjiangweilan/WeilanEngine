@@ -127,7 +127,9 @@ Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset)
     if (this->asset != nullptr)
         this->asset->Reload(std::move(*asset));
     else
+    {
         this->asset = std::move(asset);
+    }
 
     UpdateAssetUUIDs();
 

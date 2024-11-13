@@ -6,6 +6,7 @@
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Image/ImageProcessing.hpp"
 #include "Libs/Utils.hpp"
+#include "Rendering/Material.hpp"
 #include "ThirdParty/stb/stb_image.h"
 #include <fstream>
 #include <ktx.h>
@@ -253,4 +254,13 @@ void TextureLoader::Load()
 
     this->texture = std::make_unique<Texture>(KtxTexture{sourceBinary, binarySize});
     this->texture->SetName(absoluteAssetPath.filename().string());
+}
+
+void TextureLoader::HandleReload(Asset* loaded)
+{
+    Texture* tex = dynamic_cast<Texture*>(loaded);
+    if (tex)
+    {
+        Material::RebuildAllMaterials();
+    }
 }

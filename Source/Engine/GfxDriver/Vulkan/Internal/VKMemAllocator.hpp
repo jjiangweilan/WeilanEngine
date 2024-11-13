@@ -65,7 +65,16 @@ public:
     VkBuffer GetStageBuffer(uint32_t size, VmaAllocation& allocation, VmaAllocationInfo& allocationInfo);
 
 private:
-    std::vector<std::pair<VkBuffer, VmaAllocation>> pendingBuffers;
-    std::vector<std::pair<VkImage, VmaAllocation>> pendingImages;
+    struct Info
+    {
+        void* ptr;
+        VmaAllocation allocation;
+        int frameCount;
+    };
+
+    std::list<Info> pendingBuffers;
+    std::list<Info> pendingImages;
+    template <class T, class F>
+    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f);
 };
 } // namespace Gfx

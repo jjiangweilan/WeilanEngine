@@ -91,27 +91,32 @@ VkBuffer VKMemAllocator::GetStageBuffer(uint32_t size, VmaAllocation& allocation
 
 void VKMemAllocator::DestroyBuffer(VkBuffer buffer, VmaAllocation allocation)
 {
-    pendingBuffers.push_back({buffer, allocation});
+    pendingBuffers.push_back({buffer, allocation, -1});
 }
 
 void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
 {
-    pendingImages.push_back({image, allocation});
+    pendingImages.push_back({image, allocation, -1});
+}
+
+template <class T, class F>
+void VKMemAllocator::DestroyPendingResourcesOfType(std::list<Info>& resources, F f)
+{
+    for (auto curr = resources.begin(); curr != resources.end();)
+    {
+        if (curr->frameCount++ > 5)
+        {
+            f(allocator_vma, (T)curr->ptr, curr->allocation);
+            auto tmp = curr;
+            curr++;
+            resources.erase(tmp);
+        }
+    }
 }
 
 void VKMemAllocator::DestroyPendingResources()
 {
-
-    for (auto& b : pendingBuffers)
-    {
-        vmaDestroyBuffer(allocator_vma, b.first, b.second);
-    }
-    for (auto& b : pendingImages)
-    {
-        vmaDestroyImage(allocator_vma, b.first, b.second);
-    }
-
-    pendingBuffers.clear();
-    pendingImages.clear();
+    DestroyPendingResourcesOfType<VkBuffer>(pendingBuffers, vmaDestroyBuffer);
+    DestroyPendingResourcesOfType<VkImage>(pendingImages, vmaDestroyImage);
 }
 } // namespace Gfx

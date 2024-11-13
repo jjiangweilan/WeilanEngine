@@ -96,6 +96,29 @@ void Material::SetTexture(
     SetDirty();
 }
 
+void Material::RebuildAllMaterials()
+{
+    auto materials = Object::GetObjectsOfType<Material>();
+    for (Material* mat : materials)
+    {
+        if (mat->shaderResource)
+        {
+            mat->shaderResource->Clear();
+
+            for (auto& kv : mat->textureValues)
+            {
+                mat->SetTexture(kv.first, kv.second);
+                break;
+            }
+
+            for (auto& ubo : mat->ubos)
+            {
+                ubo.second.dirty = true;
+            }
+        }
+    }
+}
+
 void Material::SetTexture(
     const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption
 )

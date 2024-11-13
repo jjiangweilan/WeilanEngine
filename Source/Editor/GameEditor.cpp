@@ -1465,50 +1465,122 @@ void GameEditor::EngineResourceDebug()
     ImGui::Begin("Engine Resource Debug");
     using Info = std::tuple<UUID, Object*, const std::string*>;
     std::vector<Info> allObjects;
+    auto objs = Object::GetAllEngineObjects();
+    for (auto& o : objs)
     {
-        auto objs = Object::GetAllEngineObjects();
-        for (auto& o : objs)
-        {
-            allObjects.push_back({o.first, o.second, &ObjectRegistry::GetTypeName(o.second->GetObjectTypeID())});
-        }
+        allObjects.push_back({o.first, o.second, &ObjectRegistry::GetTypeName(o.second->GetObjectTypeID())});
     }
+
     std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r) { return *std::get<2>(l) < *std::get<2>(r); });
-    ImGui::BeginGroup();
-    if (ImGui::BeginTable("Table", 4))
+    if (ImGui::TreeNode("engine objects"))
     {
-        ImGui::TableSetupColumn("name");
-        ImGui::TableSetupColumn("type");
-        ImGui::TableSetupColumn("UUID");
-        ImGui::TableSetupColumn("asset path");
-
-        for (auto& obj : allObjects)
+        if (ImGui::BeginTable("EngineObject Table", 4))
         {
-            ImGui::TableNextRow();
+            ImGui::TableSetupColumn("name");
+            ImGui::TableSetupColumn("type");
+            ImGui::TableSetupColumn("UUID");
+            ImGui::TableSetupColumn("asset path");
 
-            ImGui::TableSetColumnIndex(0);
-            auto asAsset = dynamic_cast<Asset*>(std::get<1>(obj));
-            std::string uuid = std::get<0>(obj).ToString();
-            const std::string& name = asAsset ? asAsset->GetName() : uuid;
-            ImGui::Text("%s", name.c_str());
-
-            ImGui::TableSetColumnIndex(1);
-
-            const std::string& type = *std::get<2>(obj);
-            ImGui::Text("%s", type.c_str());
-
-            ImGui::TableSetColumnIndex(2);
-            ImGui::Text("%s", uuid.c_str());
-
-            ImGui::TableSetColumnIndex(3);
-            if (asAsset)
+            for (auto& obj : allObjects)
             {
-                ImGui::Text("%s", AssetDatabase::Singleton()->GetAssetPath(asAsset->GetUUID()).string().c_str());
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                auto asAsset = dynamic_cast<Asset*>(std::get<1>(obj));
+                std::string uuid = std::get<0>(obj).ToString();
+                const std::string& name = asAsset ? asAsset->GetName() : uuid;
+                ImGui::Text("%s", name.c_str());
+
+                ImGui::TableSetColumnIndex(1);
+
+                const std::string& type = *std::get<2>(obj);
+                ImGui::Text("%s", type.c_str());
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%s", uuid.c_str());
+
+                ImGui::TableSetColumnIndex(3);
+                if (asAsset)
+                {
+                    ImGui::Text("%s", AssetDatabase::Singleton()->GetAssetPath(asAsset->GetUUID()).string().c_str());
+                }
             }
+
+            ImGui::EndTable();
+        }
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNode("Asset Data"))
+    {
+        using AssetDataInfo = std::tuple<AssetData*, UUID, std::filesystem::path, std::string>;
+        std::vector<AssetDataInfo> assetDatas;
+        for (auto& data : AssetDatabase::Singleton()->GetAssetData())
+        {
+            assetDatas
+                .emplace_back(data.get(), data->GetAssetUUID(), data->GetAssetPath(), data->GetAssetUUID().ToString());
         }
 
-        ImGui::EndTable();
+        std::sort(
+            assetDatas.begin(),
+            assetDatas.end(),
+            [](AssetDataInfo& l, AssetDataInfo& r) { return std::get<3>(l) < std::get<3>(r); }
+        );
+
+        if (ImGui::BeginTable("AssetData Table", 5))
+        {
+            ImGui::TableSetupColumn("uuid");
+            ImGui::TableSetupColumn("filename");
+            ImGui::TableSetupColumn("loaded");
+            ImGui::TableSetupColumn("asset path");
+            ImGui::TableSetupColumn("delete");
+
+            int uid = 0;
+            for (auto& ad : assetDatas)
+            {
+                ImGui::PushID(uid++);
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", std::get<3>(ad).c_str());
+
+                // filename
+                ImGui::TableSetColumnIndex(1);
+                std::filesystem::path& path = std::get<2>(ad);
+                ImGui::Text("%s", path.filename().string().c_str());
+
+                // loaded
+                ImGui::TableSetColumnIndex(2);
+                auto objIter = objs.find(std::get<1>(ad));
+                bool loaded = objIter != objs.end();
+                ImGui::PushStyleColor(
+                    ImGuiCol_Text,
+                    loaded ? ImVec4{0, 1, 0, 1}
+                                                                                     : ImVec4{1, 0, 0, 1}
+                );
+                ImGui::Text("%s", loaded ? "true" : "false");
+                ImGui::PopStyleColor();
+
+                // asset path
+                ImGui::TableSetColumnIndex(3);
+                ImGui::PushStyleColor(
+                    ImGuiCol_Text,
+                    std::filesystem::exists(std::get<0>(ad)->GetAssetAbsolutePath()) ? ImVec4{0, 1, 0, 1}
+                                                                                     : ImVec4{1, 0, 0, 1}
+                );
+                ImGui::Text("%s", path.string().c_str());
+                ImGui::PopStyleColor();
+
+                ImGui::TableSetColumnIndex(4);
+                if (ImGui::Button("Delete"))
+                {
+                    AssetDatabase::Singleton()->RemoveAssetData(std::get<0>(ad));
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
     }
-    ImGui::EndGroup();
     ImGui::End();
 }
 } // namespace Editor

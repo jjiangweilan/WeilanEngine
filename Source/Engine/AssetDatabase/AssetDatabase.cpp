@@ -798,6 +798,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     }
 
     Asset* asset = assetData ? assetData->GetAsset() : nullptr;
+    bool alreadyLoaded = asset != nullptr;
     bool loadNeeded = importNeeded ? importNeeded : asset == nullptr;
     if (loadNeeded)
     {
@@ -827,6 +828,12 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         assetData->SetMeta(loader->GetMeta());
         asset = assetData->SetAsset(std::move(newAsset));
         assetData->SaveToDisk(projectRoot);
+
+        // this asset has a aseet data and is already loaded, it's a reload!
+        if (alreadyLoaded)
+        {
+
+        }
     }
     // a new asset needs to be recored/imported in assetDatabase
     else
@@ -983,4 +990,42 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
     }
 
     std::filesystem::remove_all(fullPath);
+}
+
+void AssetDatabase::RemoveAssetData(AssetData* assetData)
+{
+    std::error_code e;
+    std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString(), e);
+
+    if (e.value() == 0)
+    {
+        auto iter = std::find_if(
+            assets.data.begin(),
+            assets.data.end(),
+            [assetData](const std::unique_ptr<AssetData>& dd) { return dd.get() == assetData; }
+        );
+
+        if (iter != assets.data.end())
+        {
+            assets.data.erase(iter);
+        }
+
+        for (auto& p : assets.byPath)
+        {
+            if (p.second == assetData)
+            {
+                assets.byPath.erase(p.first);
+                break;
+            }
+        }
+
+        for (auto& p : assets.byUUID)
+        {
+            if (p.second == assetData)
+            {
+                assets.byUUID.erase(p.first);
+                break;
+            }
+        }
+    }
 }

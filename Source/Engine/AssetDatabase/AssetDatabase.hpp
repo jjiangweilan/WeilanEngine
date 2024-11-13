@@ -33,8 +33,12 @@ public:
         if (assetData)
             return assetData->GetAssetPath();
 
-        return "";
+        static std::filesystem::path empty = "";
+        return empty;
     }
+
+    // remove assetdata in filesystem
+    void RemoveAssetData(AssetData* ad);
 
     const std::filesystem::path& GetAssetDirectory() const
     {
@@ -74,6 +78,11 @@ public:
     const std::filesystem::path& GetProjectRoot() const
     {
         return projectRoot;
+    }
+
+    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const
+    {
+        return assetDatabaseDirectory;
     }
 
     nlohmann::json GetAssetMeta(Asset& asset)

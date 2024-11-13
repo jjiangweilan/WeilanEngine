@@ -103,6 +103,9 @@ public:
         return enabledFeatures;
     }
 
+    // a dirty implementation to use when a texture is reimported in editor
+    static void RebuildAllMaterials();
+
 private:
     struct UBO
     {

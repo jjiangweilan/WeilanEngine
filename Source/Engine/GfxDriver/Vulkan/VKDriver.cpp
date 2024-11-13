@@ -1126,8 +1126,8 @@ void VKDriver::FrameEndClear()
     }
     currentInflightIndex = (currentInflightIndex + 1) % inflightData.size();
     internalPendingCommands.clear();
-    ClearResources();
     descriptorPoolCache->AppendAndClearCurrentFrameFreeSets();
+    ClearResources();
 }
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)

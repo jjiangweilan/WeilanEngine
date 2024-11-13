@@ -49,6 +49,9 @@ public:
         return meta;
     }
 
+    // reload is called after RetrieveAsset so the loaded object is passed from outside
+    virtual void HandleReload(Asset* loaded){}
+
 protected:
     // asset to import
     std::filesystem::path absoluteAssetPath{};

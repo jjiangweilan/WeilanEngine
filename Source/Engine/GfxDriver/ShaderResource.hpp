@@ -35,6 +35,7 @@ public:
     virtual void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) = 0;
+    virtual void Clear() = 0;
 
     void Remove(std::string_view name)
     {
@@ -52,6 +53,7 @@ public:
     {
         SetImage(ShaderBindingHandle(name), imageView);
     }
+
 
     virtual ~ShaderResource(){};
 

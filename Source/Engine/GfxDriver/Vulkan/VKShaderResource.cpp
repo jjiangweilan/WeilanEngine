@@ -24,6 +24,7 @@ static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderInfo::ShaderStageFl
 
     return pipelineStages;
 }
+
 DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 {
     switch (frequency)
@@ -34,6 +35,15 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
         case ShaderResourceFrequency::Object: return Object_Descriptor_Set;
         default: return Material_Descriptor_Set;
     }
+}
+
+void VKShaderResource::Clear() {
+    bindings.clear();
+    for (auto& d : sets)
+    {
+        descriptorPool->Deallocate(d.second.set);
+    }
+    sets.clear();
 }
 
 VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), sets(0) {}

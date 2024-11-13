@@ -53,20 +53,17 @@ class VKShaderResource : public ShaderResource
 public:
     VKShaderResource();
     VKShaderResource(const VKShaderResource& other) = delete;
+    ~VKShaderResource() override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer) override;
 
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
     void Remove(ShaderBindingHandle handle) override;
+    void Clear() override;
 
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
     const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
-
-    // ---------------------------- Old API ----------------------------------
-public:
-    ~VKShaderResource() override;
-
 protected:
     enum class ShaderBindingType
     {
@@ -102,15 +99,6 @@ protected:
         ShaderBindingType type = ShaderBindingType::None;
     };
 
-    // first key: binding name
-    // second key: array index
-    std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ResourceRef>> bindings;
-    VkPipelineLayout layout = VK_NULL_HANDLE;
-
-    VKSharedResource* sharedResource;
-
-    VKDescriptorPool* descriptorPool = nullptr;
-
     struct SetInfo
     {
         uint32_t creationSetIndex;
@@ -118,8 +106,14 @@ protected:
         bool rebuild = false;
         std::vector<VKWritableGPUResource> writableGPUResources;
     };
-    std::unordered_map<VKShaderProgram*, SetInfo> sets;
 
+    // first key: binding name
+    // second key: array index
+    std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ResourceRef>> bindings;
+    VkPipelineLayout layout = VK_NULL_HANDLE;
+    VKSharedResource* sharedResource;
+    VKDescriptorPool* descriptorPool = nullptr;
+    std::unordered_map<VKShaderProgram*, SetInfo> sets;
     std::unique_ptr<VKBuffer> defaultBuffer;
 
     void RebuildAll();

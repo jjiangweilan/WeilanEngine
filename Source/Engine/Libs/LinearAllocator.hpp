@@ -27,6 +27,16 @@ public:
         }
     }
 
+    void* GetChuckData(int chunkIndex)
+    {
+        if (chunkIndex > 0 && chunkIndex < chunks.size())
+        {
+            return chunks[chunkIndex];
+        }
+
+        return nullptr;
+    }
+
     template <class T>
     T* Allocate(size_t count = 1)
     {

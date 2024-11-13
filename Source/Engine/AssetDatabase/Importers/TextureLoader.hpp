@@ -19,6 +19,8 @@ public:
     {
         return std::move(texture);
     }
+
+    void HandleReload(Asset* loaded) override;
     static const std::vector<std::type_index>& GetImportTypes();
 
 private:
