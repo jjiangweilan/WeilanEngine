@@ -1,5 +1,6 @@
 #pragma once
 #include "../ImageView.hpp"
+#include "VKDebugUtils.hpp"
 #include "VKImage.hpp"
 #include <vulkan/vulkan.h>
 
@@ -13,6 +14,11 @@ public:
     VKImageView(const VKImageView& imageView) = delete;
     VKImageView(VKImageView&& other);
     ~VKImageView() override;
+
+    void SetName(std::string_view name) override
+    {
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)handle, name.data());
+    }
 
     // causion!!! this is used to work around the design of VKSwapchainImage and VKSwapchainImageProxy
     // don't use this API for other purpose

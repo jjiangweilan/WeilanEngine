@@ -11,7 +11,7 @@ class AssetDatabase;
 class Asset : public Object, public Serializable
 {
 public:
-    void SetName(std::string_view name)
+    virtual void SetName(std::string_view name)
     {
         this->name = name;
         SetDirty();

@@ -3,7 +3,7 @@
 #include "Libs/Ptr.hpp"
 #include <functional>
 #include <utility>
-#include <vector>
+#include <list>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
 
@@ -51,7 +51,7 @@ public:
     void DestroyBuffer(VkBuffer buffer, VmaAllocation allocation);
     void DestoryImage(VkImage image, VmaAllocation allocation);
 
-    void DestroyPendingResources();
+    void DestroyPendingResources(bool destroyAll = false);
 
     inline VmaAllocator GetHandle()
     {
@@ -75,6 +75,6 @@ private:
     std::list<Info> pendingBuffers;
     std::list<Info> pendingImages;
     template <class T, class F>
-    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f);
+    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f, bool destroyAll);
 };
 } // namespace Gfx

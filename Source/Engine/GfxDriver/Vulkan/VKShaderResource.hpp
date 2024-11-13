@@ -51,6 +51,8 @@ class VKShaderResource : public ShaderResource
 {
     // ---------------------------- New API ----------------------------------
 public:
+    void SetName(std::string_view name) override;
+    
     VKShaderResource();
     VKShaderResource(const VKShaderResource& other) = delete;
     ~VKShaderResource() override;
@@ -115,7 +117,10 @@ protected:
     VKDescriptorPool* descriptorPool = nullptr;
     std::unordered_map<VKShaderProgram*, SetInfo> sets;
     std::unique_ptr<VKBuffer> defaultBuffer;
+    std::string name;
 
     void RebuildAll();
+
+    void SetNameInternal(std::string_view name, VKShaderProgram* shader, VkDescriptorSet set, int setIndex);
 };
 } // namespace Gfx

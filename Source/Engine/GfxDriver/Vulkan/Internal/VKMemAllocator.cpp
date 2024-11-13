@@ -26,7 +26,7 @@ VKMemAllocator::VKMemAllocator(
 
 VKMemAllocator::~VKMemAllocator()
 {
-    DestroyPendingResources();
+    DestroyPendingResources(true);
     vmaDestroyAllocator(allocator_vma);
 }
 
@@ -100,23 +100,25 @@ void VKMemAllocator::DestoryImage(VkImage image, VmaAllocation allocation)
 }
 
 template <class T, class F>
-void VKMemAllocator::DestroyPendingResourcesOfType(std::list<Info>& resources, F f)
+void VKMemAllocator::DestroyPendingResourcesOfType(std::list<Info>& resources, F f, bool destroyAll)
 {
     for (auto curr = resources.begin(); curr != resources.end();)
     {
-        if (curr->frameCount++ > 5)
+        if (curr->frameCount++ > 5 || destroyAll)
         {
             f(allocator_vma, (T)curr->ptr, curr->allocation);
             auto tmp = curr;
             curr++;
             resources.erase(tmp);
         }
+        else
+            curr++;
     }
 }
 
-void VKMemAllocator::DestroyPendingResources()
+void VKMemAllocator::DestroyPendingResources(bool destroyAll)
 {
-    DestroyPendingResourcesOfType<VkBuffer>(pendingBuffers, vmaDestroyBuffer);
-    DestroyPendingResourcesOfType<VkImage>(pendingImages, vmaDestroyImage);
+    DestroyPendingResourcesOfType<VkBuffer>(pendingBuffers, vmaDestroyBuffer, destroyAll);
+    DestroyPendingResourcesOfType<VkImage>(pendingImages, vmaDestroyImage, destroyAll);
 }
 } // namespace Gfx

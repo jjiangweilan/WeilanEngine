@@ -110,9 +110,9 @@ void Material::RebuildAllMaterials()
                 mat->SetTexture(kv.first, kv.second);
                 break;
             }
-
             for (auto& ubo : mat->ubos)
             {
+                mat->shaderResource->SetBuffer(ubo.first, ubo.second.buffer.get());
                 ubo.second.dirty = true;
             }
         }

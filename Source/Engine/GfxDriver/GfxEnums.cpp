@@ -313,6 +313,8 @@ ImageFormat GetImageFormat(int channelBits, int channels, bool linear)
             format = Gfx::ImageFormat::R16G16B16A16_SFloat;
         else if (channelBits == 8 && !linear)
             format = Gfx::ImageFormat::R8G8B8A8_SRGB;
+        else if (channelBits == 8 && linear)
+            format = Gfx::ImageFormat::R8G8B8A8_UNorm;
     }
     else if (channels == 3)
     {

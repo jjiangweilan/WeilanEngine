@@ -19,7 +19,7 @@ static bool IsGPUWrite(ImageUsageFlags usageFlags)
            ((usageFlags & ImageUsage::ColorAttachment) | (usageFlags & ImageUsage::DepthStencilAttachment));
 }
 
-VKImage::VKImage() : Image(false), imageView(nullptr){};
+VKImage::VKImage() : Image(false), imageView(nullptr) {};
 VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags)
     : Image(::Gfx::IsGPUWrite(usageFlags)), usageFlags(MapImageUsage(usageFlags)), imageDescription(imageDescription),
       imageView(nullptr)
@@ -64,6 +64,7 @@ VKImage::VKImage(VKImage&& other)
 
 VKImage::~VKImage()
 {
+    imageView = nullptr;
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
 }
@@ -104,6 +105,7 @@ void VKImage::CreateImageView()
         .imageViewType = GenerateDefaultImageViewViewType(),
         .subresourceRange = GenerateDefaultSubresourceRange(),
     }));
+    imageView->SetName("Default ImageView");
 }
 
 ImageSubresourceRange VKImage::GetSubresourceRange()
@@ -156,6 +158,7 @@ void VKImage::SetName(std::string_view name)
     this->name = name;
 
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_IMAGE, (uint64_t)image_vk, this->name.c_str());
+    imageView->SetName(fmt::format("{}-Default ImageView", name));
 }
 
 // TODO: this needs improvement. Cube and some others are not handled
@@ -250,6 +253,15 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
     else
     {
         auto imageView = std::unique_ptr<VKImageView>(new VKImageView(imageViewCreateInfo));
+        imageView->SetName(fmt::format(
+            "{}-mip {}-levelCount {}-baseArrayLayer {}-layerCount {}-aspectMask {}",
+            GetName(),
+            range.baseMipLevel,
+            range.levelCount,
+            range.baseArrayLayer,
+            range.layerCount,
+            (int)range.aspectMask
+        ));
         auto temp = imageView.get();
         imageViews[vkImageViewCreateInfo] = std::move(imageView);
         return *temp;

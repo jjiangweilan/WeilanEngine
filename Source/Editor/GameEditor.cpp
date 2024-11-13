@@ -1580,6 +1580,8 @@ void GameEditor::EngineResourceDebug()
             }
             ImGui::EndTable();
         }
+    
+        ImGui::TreePop();
     }
     ImGui::End();
 }

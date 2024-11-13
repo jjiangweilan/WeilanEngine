@@ -131,7 +131,7 @@ VKDriver::~VKDriver()
 
     descriptorPoolCache = nullptr;
     dataUploader = nullptr;
-    objectManager->DestroyPendingResources();
+    objectManager->DestroyPendingResources(true);
 
     swapchain.swapchainImage = nullptr;
 

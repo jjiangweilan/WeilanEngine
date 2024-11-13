@@ -832,7 +832,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         // this asset has a aseet data and is already loaded, it's a reload!
         if (alreadyLoaded)
         {
-
+            loader->HandleReload(asset);
         }
     }
     // a new asset needs to be recored/imported in assetDatabase

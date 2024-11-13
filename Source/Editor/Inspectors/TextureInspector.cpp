@@ -95,6 +95,7 @@ public:
         if (ImGui::Button("Reimport"))
         {
             reimport = true;
+            imageView = nullptr;
         }
     }
 
@@ -149,6 +150,7 @@ private:
                      .imageViewType = Gfx::ImageViewType::Image_2D,
                      .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, layer, 1}}
                 );
+                imageView->SetName("imageDisplay-TextureInspector");
                 imageViewInUse = imageView.get();
             }
         }

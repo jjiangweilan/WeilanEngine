@@ -37,7 +37,7 @@ public:
 
     void DestroyCommandPool(VkCommandPool pool);
 
-    void DestroyPendingResources();
+    void DestroyPendingResources(bool destroyAll = false);
 
     VkDevice GetDevice()
     {
@@ -65,6 +65,6 @@ private:
     VkDevice device;
 
     template <class T, class F>
-    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f);
+    void DestroyPendingResourcesOfType(std::list<Info>& resources, F f, bool destoryAll);
 };
 } // namespace Gfx

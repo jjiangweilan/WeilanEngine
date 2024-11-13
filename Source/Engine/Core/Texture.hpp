@@ -44,6 +44,12 @@ public:
     Texture(TextureDescription texDesc, const UUID& uuid = UUID{});
     Texture(KtxTexture texDesc, const UUID& uuid = UUID{});
     ~Texture() override;
+
+    void SetName(std::string_view name) override
+    {
+        Asset::SetName(name);
+        image->SetName(name);
+    }
     Gfx::Image* GetGfxImage()
     {
         return image.get();

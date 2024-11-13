@@ -14,6 +14,7 @@ public:
         ImageSubresourceRange subresourceRange;
     };
 
+    virtual void SetName(std::string_view name) = 0;
     virtual ~ImageView(){};
     virtual Image& GetImage() = 0;
     virtual const ImageSubresourceRange& GetSubresourceRange() = 0;

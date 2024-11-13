@@ -17,6 +17,8 @@ class Image;
 class ShaderResource
 {
 public:
+    virtual void SetName(std::string_view name) = 0;
+
     void SetBuffer(ShaderBindingHandle handle, Gfx::Buffer* buffer)
     {
         SetBuffer(handle, 0, buffer);

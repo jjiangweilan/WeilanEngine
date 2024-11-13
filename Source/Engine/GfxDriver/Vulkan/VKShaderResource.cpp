@@ -37,7 +37,8 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
     }
 }
 
-void VKShaderResource::Clear() {
+void VKShaderResource::Clear()
+{
     bindings.clear();
     for (auto& d : sets)
     {
@@ -157,11 +158,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         SPDLOG_INFO("VKShaderResource: rebuild descriptor set");
         writableGPUResources->clear();
         auto& shaderInfo = shaderProgram->GetShaderInfo();
-        VKDebugUtils::SetDebugName(
-            VK_OBJECT_TYPE_DESCRIPTOR_SET,
-            (uint64_t)finalReturn,
-            (shaderProgram->GetName() + std::to_string(set)).c_str()
-        );
+        SetNameInternal(name, shaderProgram, finalReturn, set);
 
         // create resources and write it to descriptor set
         VkWriteDescriptorSet writes[32];
@@ -405,6 +402,26 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
     }
 
     return iter->second.set;
+}
+
+void VKShaderResource::SetName(std::string_view name)
+{
+    this->name = name;
+    for (auto& s : sets)
+    {
+        SetNameInternal(name, s.first, s.second.set, s.second.creationSetIndex);
+    }
+}
+
+void VKShaderResource::SetNameInternal(
+    std::string_view name, VKShaderProgram* shader, VkDescriptorSet set, int setIndex
+)
+{
+    VKDebugUtils::SetDebugName(
+        VK_OBJECT_TYPE_DESCRIPTOR_SET,
+        (uint64_t)set,
+        fmt::format("{}-shader {}-setIndex {}", name, shader->GetName(), setIndex).c_str()
+    );
 }
 
 const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(

@@ -126,11 +126,11 @@ void VKObjectManager::DestroySampler(VkSampler sampler)
 void VKObjectManager::DestroyCommandPool(VkCommandPool pool) {}
 
 template <class T, class F>
-void VKObjectManager::DestroyPendingResourcesOfType(std::list<Info>& resources, F f)
+void VKObjectManager::DestroyPendingResourcesOfType(std::list<Info>& resources, F f, bool destoryAll)
 {
     for (auto curr = resources.begin(); curr != resources.end();)
     {
-        if (curr->frameCount++ > 5)
+        if (curr->frameCount++ > 5 || destoryAll)
         {
             f(device, static_cast<T>(curr->ptr), VK_NULL_HANDLE);
             auto tmp = curr;
@@ -142,17 +142,17 @@ void VKObjectManager::DestroyPendingResourcesOfType(std::list<Info>& resources, 
     }
 }
 
-void VKObjectManager::DestroyPendingResources()
+void VKObjectManager::DestroyPendingResources(bool destroyAll)
 {
-    DestroyPendingResourcesOfType<VkImageView>(pendingImageViews, vkDestroyImageView);
-    DestroyPendingResourcesOfType<VkRenderPass>(pendingRenderPasses, vkDestroyRenderPass);
-    DestroyPendingResourcesOfType<VkFramebuffer>(pendingFramebuffers, vkDestroyFramebuffer);
-    DestroyPendingResourcesOfType<VkShaderModule>(pendingShaderModules, vkDestroyShaderModule);
-    DestroyPendingResourcesOfType<VkPipeline>(pendingPipelines, vkDestroyPipeline);
-    DestroyPendingResourcesOfType<VkDescriptorSetLayout>(pendingDescriptorSetLayouts, vkDestroyDescriptorSetLayout);
-    DestroyPendingResourcesOfType<VkPipelineLayout>(pendingPipelineLayout, vkDestroyPipelineLayout);
-    DestroyPendingResourcesOfType<VkDescriptorPool>(pendingDescriptorPools, vkDestroyDescriptorPool);
-    DestroyPendingResourcesOfType<VkSemaphore>(pendingSemaphores, vkDestroySemaphore);
-    DestroyPendingResourcesOfType<VkSampler>(pendingSemaphores, vkDestroySampler);
+    DestroyPendingResourcesOfType<VkImageView>(pendingImageViews, vkDestroyImageView, destroyAll);
+    DestroyPendingResourcesOfType<VkRenderPass>(pendingRenderPasses, vkDestroyRenderPass, destroyAll);
+    DestroyPendingResourcesOfType<VkFramebuffer>(pendingFramebuffers, vkDestroyFramebuffer, destroyAll);
+    DestroyPendingResourcesOfType<VkShaderModule>(pendingShaderModules, vkDestroyShaderModule, destroyAll);
+    DestroyPendingResourcesOfType<VkPipeline>(pendingPipelines, vkDestroyPipeline, destroyAll);
+    DestroyPendingResourcesOfType<VkDescriptorSetLayout>(pendingDescriptorSetLayouts, vkDestroyDescriptorSetLayout, destroyAll);
+    DestroyPendingResourcesOfType<VkPipelineLayout>(pendingPipelineLayout, vkDestroyPipelineLayout, destroyAll);
+    DestroyPendingResourcesOfType<VkDescriptorPool>(pendingDescriptorPools, vkDestroyDescriptorPool, destroyAll);
+    DestroyPendingResourcesOfType<VkSemaphore>(pendingSemaphores, vkDestroySemaphore, destroyAll);
+    DestroyPendingResourcesOfType<VkSampler>(pendingSemaphores, vkDestroySampler, destroyAll);
 }
 } // namespace Gfx
