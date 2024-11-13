@@ -29,6 +29,7 @@ public:
             spdlog::error("making object with duplicated UUID");
         }
 #endif
+        GetAllEngineObjects().erase(selfIterator);
         selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
         this->uuid = uuid;
     }

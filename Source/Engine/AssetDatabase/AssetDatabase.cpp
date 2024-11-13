@@ -1,9 +1,10 @@
 #include "AssetDatabase.hpp"
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
-#include "GfxDriver/GfxDriver.hpp"
+#include "Libs/Utils.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -448,7 +449,7 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
     auto fullPath = assetDirectory / path;
     int index = 1;
     std::filesystem::path filename = path.filename();
-    while(std::filesystem::exists(fullPath))
+    while (std::filesystem::exists(fullPath))
     {
         auto newFilename = fmt::format("{} {}", filename.string(), index);
         fullPath = fullPath.parent_path() / newFilename;
@@ -752,11 +753,11 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
     /* Debug Comment */
-    // std::filesystem::path debugPath = "";
-    // if (path == debugPath)
-    // {
-    //     spdlog::info("{}", debugPath.string());
-    // }
+    std::filesystem::path debugPath = "envMap.ktx";
+    if (Utils::strContians(path.string(), debugPath.string()))
+    {
+        spdlog::info("{}", debugPath.string());
+    }
 
     // use path relative to AssetDirectory
     if (path.is_absolute())
@@ -952,7 +953,8 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
     }
 }
 
-void AssetDatabase::Remove(const std::filesystem::path& path) {
+void AssetDatabase::Remove(const std::filesystem::path& path)
+{
     auto fullPath = GetAssetDirectory() / path;
 
     if (!std::filesystem::exists(fullPath))
@@ -960,7 +962,7 @@ void AssetDatabase::Remove(const std::filesystem::path& path) {
 
     if (std::filesystem::is_directory(fullPath))
     {
-        for(auto entry : std::filesystem::recursive_directory_iterator(fullPath))
+        for (auto entry : std::filesystem::recursive_directory_iterator(fullPath))
         {
             if (entry.is_regular_file())
             {

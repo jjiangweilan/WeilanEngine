@@ -1463,27 +1463,47 @@ void GameEditor::SaveProject()
 void GameEditor::EngineResourceDebug()
 {
     ImGui::Begin("Engine Resource Debug");
-    auto allObjects = Object::GetAllEngineObjects();
+    using Info = std::tuple<UUID, Object*, const std::string*>;
+    std::vector<Info> allObjects;
+    {
+        auto objs = Object::GetAllEngineObjects();
+        for (auto& o : objs)
+        {
+            allObjects.push_back({o.first, o.second, &ObjectRegistry::GetTypeName(o.second->GetObjectTypeID())});
+        }
+    }
+    std::sort(allObjects.begin(), allObjects.end(), [](Info& l, Info& r) { return *std::get<2>(l) < *std::get<2>(r); });
     ImGui::BeginGroup();
-    if (ImGui::BeginTable("Table", 2))
+    if (ImGui::BeginTable("Table", 4))
     {
         ImGui::TableSetupColumn("name");
         ImGui::TableSetupColumn("type");
+        ImGui::TableSetupColumn("UUID");
+        ImGui::TableSetupColumn("asset path");
 
         for (auto& obj : allObjects)
         {
             ImGui::TableNextRow();
 
             ImGui::TableSetColumnIndex(0);
-            auto asAsset = dynamic_cast<Asset*>(obj.second);
-            std::string name = asAsset ? asAsset->GetName() : obj.first.ToString();
+            auto asAsset = dynamic_cast<Asset*>(std::get<1>(obj));
+            std::string uuid = std::get<0>(obj).ToString();
+            const std::string& name = asAsset ? asAsset->GetName() : uuid;
             ImGui::Text("%s", name.c_str());
 
             ImGui::TableSetColumnIndex(1);
 
-            const std::string& type = ObjectRegistry::GetTypeName(obj.second->GetObjectTypeID());
+            const std::string& type = *std::get<2>(obj);
             ImGui::Text("%s", type.c_str());
 
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%s", uuid.c_str());
+
+            ImGui::TableSetColumnIndex(3);
+            if (asAsset)
+            {
+                ImGui::Text("%s", AssetDatabase::Singleton()->GetAssetPath(asAsset->GetUUID()).string().c_str());
+            }
         }
 
         ImGui::EndTable();

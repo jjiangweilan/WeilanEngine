@@ -27,6 +27,14 @@ public:
 
     void RequestShaderRefresh(bool all = false);
     void RefreshShader();
+    const std::filesystem::path& GetAssetPath(const UUID& uuid)
+    {
+        auto assetData = assets.GetAssetData(uuid);
+        if (assetData)
+            return assetData->GetAssetPath();
+
+        return "";
+    }
 
     const std::filesystem::path& GetAssetDirectory() const
     {
