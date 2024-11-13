@@ -1,10 +1,11 @@
 #pragma once
 #include "GfxEnums.hpp"
 #include "Image.hpp"
+#include "Core/Object.hpp"
 
 namespace Gfx
 {
-class ImageView : public SafeReferenceable<ImageView>
+class ImageView : public Object
 {
 public:
     struct CreateInfo

@@ -27,7 +27,7 @@ public:
 
     virtual void Reload(Asset&& asset)
     {
-        uuid = std::move(asset.uuid);
+        // uuid = std::move(asset.uuid); reload should change uuid, it's managed by AssetData
         name = std::move(asset.name);
     }
 

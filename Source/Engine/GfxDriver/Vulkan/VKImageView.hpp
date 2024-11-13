@@ -9,6 +9,7 @@ namespace Gfx
 VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateInfo createInfo);
 class VKImageView : public ImageView
 {
+    DECLARE_OBJECT();
 public:
     VKImageView(const CreateInfo& createInfo);
     VKImageView(const VKImageView& imageView) = delete;

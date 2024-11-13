@@ -86,7 +86,7 @@ void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Imag
         if (image == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle][index] = {image->GetDefaultImageView().GetSRef(), ShaderBindingType::ImageView};
+            bindings[handle][index] = {image->GetDefaultImageView().GetSRef<ImageView>(), ShaderBindingType::ImageView};
         RebuildAll();
     }
 }
@@ -99,7 +99,7 @@ void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Imag
         if (imageView == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle][index] = {imageView->GetSRef(), ShaderBindingType::ImageView};
+            bindings[handle][index] = {imageView->GetSRef<ImageView>(), ShaderBindingType::ImageView};
         RebuildAll();
     }
 }

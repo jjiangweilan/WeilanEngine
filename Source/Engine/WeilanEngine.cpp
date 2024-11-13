@@ -1,4 +1,5 @@
 #include "WeilanEngine.hpp"
+#include "Core/DelayDestroy.hpp"
 #include "Core/GameLoop.hpp"
 #include "Profiler/Profiler.hpp"
 #if ENGINE_EDITOR
@@ -18,12 +19,13 @@
 //
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
-WeilanEngine::WeilanEngine(){};
+WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
     event->Deinit();
     gfxDriver->WaitForIdle();
+    DelayDestroy::Singleton()->Flush();
     DeinitJoltPhysics();
     // physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
@@ -103,6 +105,8 @@ void WeilanEngine::EndFrame()
 #if ENGINE_EDITOR
     assetDatabase->RefreshShader();
 #endif
+
+    DelayDestroy::Singleton()->Flush();
     ENGINE_END_FRAME_PROFILE
 }
 

@@ -44,7 +44,7 @@ std::vector<std::filesystem::path> TextureLoader::Import()
     bool generateMipmap = option.value("generateMipmap", true);
     bool converToIrradianceCubemap = option.value("convertToIrradianceCubemap", false);
     bool convertToReflectanceCubemap = option.value("convertToReflectanceCubemap", false);
-    bool linearFormat = option.value("linearFormat", false);
+    bool linearFormat = option.value("linearFormat", true);
     bool convertToCubemap = option.value("convertToCubemap", false);
     if (convertToCubemap)
     {
@@ -97,7 +97,8 @@ std::vector<std::filesystem::path> TextureLoader::Import()
                 return linearFormat;
             };
 
-            bool linearFormat = IsLinearFormat(is16Bit, isHDR);
+            // if linearFormat is not default value then use it
+            linearFormat = linearFormat == false ? linearFormat : IsLinearFormat(is16Bit, isHDR);
 
             int mipLevels = generateMipmap ? glm::floor(glm::log2((float)glm::min(width, height))) + 1 : 1;
 

@@ -105,10 +105,12 @@ void Material::RebuildAllMaterials()
         {
             mat->shaderResource->Clear();
 
-            for (auto& kv : mat->textureValues)
+            // copy to skip reset test
+            auto copy = mat->textureValues;
+            mat->textureValues.clear();
+            for (auto& kv : copy)
             {
                 mat->SetTexture(kv.first, kv.second);
-                break;
             }
             for (auto& ubo : mat->ubos)
             {

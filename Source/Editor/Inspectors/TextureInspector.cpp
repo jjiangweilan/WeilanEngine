@@ -1,7 +1,8 @@
 #include "../EditorState.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "GfxDriver/GfxDriver.hpp"
+#include "Core/DelayDestroy.hpp"
 #include "Core/Texture.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Inspector.hpp"
 namespace Editor
 {
@@ -20,6 +21,10 @@ public:
         }
         else
         {
+            if (imageView != nullptr)
+            {
+                DelayDestroy::Singleton()->Destory(std::move(imageView));
+            }
             imageView = GetGfxDriver()->CreateImageView(
                 {.image = *target->GetGfxImage(),
                  .imageViewType = Gfx::ImageViewType::Image_2D,
@@ -95,7 +100,11 @@ public:
         if (ImGui::Button("Reimport"))
         {
             reimport = true;
-            imageView = nullptr;
+            if (imageView)
+            {
+                DelayDestroy::Singleton()->Destory(std::move(imageView));
+                imageView = nullptr;
+            }
         }
     }
 
@@ -145,6 +154,10 @@ private:
                 reimport = false;
                 layer = layer_i;
                 mip = mip_i;
+                if (imageView != nullptr)
+                {
+                    DelayDestroy::Singleton()->Destory(std::move(imageView));
+                }
                 imageView = GetGfxDriver()->CreateImageView(
                     {.image = *target->GetGfxImage(),
                      .imageViewType = Gfx::ImageViewType::Image_2D,

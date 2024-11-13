@@ -7,6 +7,7 @@ namespace Gfx
 {
 VKSwapChainImage::~VKSwapChainImage()
 {
+    imageView = nullptr;
     image_vk = VK_NULL_HANDLE; // avoid swaph chain image being deleted by VKImage
 }
 

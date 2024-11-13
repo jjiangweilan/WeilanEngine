@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/DelayDestroy.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ImageView.hpp"
@@ -73,7 +74,12 @@ public:
         const std::vector<ResourceDescription>& resourceDescs,
         const std::vector<Subpass>& subpasses
     );
-    ~RenderPass() {}
+    ~RenderPass() {
+        for(auto& v : imageViews)
+        {
+            DelayDestroy::Singleton()->Destory(std::move(v));
+        }
+    }
     // Set resource that is needed by this node.framgraph
     void SetResourceRef(ResourceHandle handle, ResourceRef* resource)
     {

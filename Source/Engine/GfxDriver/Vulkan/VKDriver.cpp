@@ -131,8 +131,6 @@ VKDriver::~VKDriver()
 
     descriptorPoolCache = nullptr;
     dataUploader = nullptr;
-    objectManager->DestroyPendingResources(true);
-
     swapchain.swapchainImage = nullptr;
 
     // destroy inflight data
@@ -150,8 +148,8 @@ VKDriver::~VKDriver()
     SamplerCachePool::DestroyPool();
 
     vkDestroySwapchainKHR(device.handle, swapchain.handle, VK_NULL_HANDLE);
-    memAllocator = nullptr;
     objectManager = nullptr;
+    memAllocator = nullptr;
     vkDestroySurfaceKHR(instance.handle, surface.handle, VK_NULL_HANDLE);
 
     vkDestroyDevice(device.handle, nullptr);

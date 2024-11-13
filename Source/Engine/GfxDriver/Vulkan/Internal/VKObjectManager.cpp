@@ -14,7 +14,7 @@ VKObjectManager::VKObjectManager(VkDevice device) : device(device) {}
 
 VKObjectManager::~VKObjectManager()
 {
-    DestroyPendingResources();
+    DestroyPendingResources(true);
 }
 
 void VKObjectManager::CreateImageView(VkImageViewCreateInfo& createInfo, VkImageView& imageView)
@@ -153,6 +153,6 @@ void VKObjectManager::DestroyPendingResources(bool destroyAll)
     DestroyPendingResourcesOfType<VkPipelineLayout>(pendingPipelineLayout, vkDestroyPipelineLayout, destroyAll);
     DestroyPendingResourcesOfType<VkDescriptorPool>(pendingDescriptorPools, vkDestroyDescriptorPool, destroyAll);
     DestroyPendingResourcesOfType<VkSemaphore>(pendingSemaphores, vkDestroySemaphore, destroyAll);
-    DestroyPendingResourcesOfType<VkSampler>(pendingSemaphores, vkDestroySampler, destroyAll);
+    DestroyPendingResourcesOfType<VkSampler>(pendingSamplers, vkDestroySampler, destroyAll);
 }
 } // namespace Gfx
