@@ -11,7 +11,7 @@ AssetData::AssetData(
 
     for (auto obj : this->asset->GetInternalAssets())
     {
-        nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
+        nameToUUID[GetNameToUUIDKey(obj)] = obj->GetUUID().ToString();
     }
 
     if (std::filesystem::exists(absolutePath))
@@ -144,14 +144,15 @@ void AssetData::UpdateAssetUUIDs()
     {
         for (auto obj : asset->GetInternalAssets())
         {
-            auto iter = nameToUUID.find(obj->GetName());
+            auto key = GetNameToUUIDKey(obj);
+            auto iter = nameToUUID.find(key);
             if (iter != nameToUUID.end())
             {
                 obj->SetUUID(iter->second);
             }
             else
             {
-                nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
+                nameToUUID[key] = obj->GetUUID().ToString();
                 dirty = true;
             }
         }
@@ -161,8 +162,9 @@ void AssetData::UpdateAssetUUIDs()
         for (auto obj : asset->GetInternalAssets())
         {
             UUID concatUUID(fmt::format("{}-{}", assetUUID.ToString(), obj->GetName()), UUID::FromStrTag{});
+            auto key = GetNameToUUIDKey(obj);
             obj->SetUUID(concatUUID);
-            nameToUUID[obj->GetName()] = obj->GetUUID().ToString();
+            nameToUUID[key] = obj->GetUUID().ToString();
             dirty = true;
         }
     }
@@ -217,4 +219,9 @@ nlohmann::json AssetData::DumpInfo() const
     }
 
     return j;
+}
+
+std::string AssetData::GetNameToUUIDKey(Asset* obj)
+{
+    return fmt::format("{}-{}",obj->GetName(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()));
 }

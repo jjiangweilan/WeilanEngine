@@ -137,6 +137,7 @@ private:
     std::unique_ptr<Asset> asset;
 
     std::unordered_map<std::string, UUID> nameToUUID;
+    std::string GetNameToUUIDKey(Asset* obj);
 
     bool dirty = false;
     bool internal = false;
