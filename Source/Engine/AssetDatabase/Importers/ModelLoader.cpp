@@ -1,6 +1,7 @@
 #include "ModelLoader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
+#include "Rendering/SkeletonAnimation.hpp"
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -331,6 +332,62 @@ struct ImporterImple
             mat->SetShaderConfig(shaderConfig);
             mat->SetName(material->GetName().C_Str());
             materials.push_back(std::move(mat));
+        }
+    }
+
+    void ProcessAnimation()
+    {
+        if (scene->mNumAnimations == 0)
+            return;
+        auto animation = std::make_unique<SkeletonAnimation>();
+        for (size_t i = 0; i < scene->mNumAnimations; i++)
+        {
+            auto animation = scene->mAnimations[i];
+            std::vector<SkeletonAnimation::Channel> channels;
+            for (size_t ni = 0; ni < animation->mNumChannels; ni++)
+            {
+                auto node = scene->mRootNode->FindNode(animation->mChannels[ni]->mNodeName);
+                auto nodeToBoneIter = m_boneStructureHelper.find(node);
+                if (nodeToBoneIter == m_boneStructureHelper.end())
+                {
+                    std::cout << "skip:" << animation->mChannels[ni]->mNodeName.C_Str() << std::endl;
+                    continue;
+                }
+
+                SkeletonAnimation::Channel channel;
+                channel.boneId = nodeToBoneIter->second.bone->m_boneId;
+
+                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumPositionKeys; ri++)
+                {
+                    auto& v = animation->mChannels[ni]->mPositionKeys[ri];
+                    float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
+                    float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
+                    float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
+                    channel.positions.emplace_back(v.mTime, glm::vec3(x, y, z));
+                }
+                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumRotationKeys; ri++)
+                {
+                    auto& v = animation->mChannels[ni]->mRotationKeys[ri];
+                    float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
+                    float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
+                    float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
+                    float w = v.mValue.w; // v.mValue.w > 0.99999 ? 1 : v.mValue.w;
+                    channel.rotations.emplace_back(v.mTime, glm::quat(w, x, y, z));
+                }
+                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumScalingKeys; ri++)
+                {
+                    auto& v = animation->mChannels[ni]->mScalingKeys[ri];
+                    float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
+                    float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
+                    float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
+                    channel.scalings.emplace_back(v.mTime, glm::vec3(x, y, z));
+                }
+                channels.emplace_back(channel);
+            }
+            m_animation->m_animations.emplace(
+                animation->mName.C_Str(),
+                SkeletonAnimation::Animation(animation->mTicksPerSecond, std::move(channels), animation->mDuration)
+            );
         }
     }
 
