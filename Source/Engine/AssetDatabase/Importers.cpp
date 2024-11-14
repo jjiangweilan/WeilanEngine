@@ -165,7 +165,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
     for (int i = 0; i < scenesJson.size(); ++i)
     {
         nlohmann::json& sceneJson = scenesJson[i];
-        std::unique_ptr<GameObject> rootGameObject = MakeUnique<GameObject>();
+        std::unique_ptr<GameObject> rootGameObject = std::make_unique<GameObject>();
         SetAssetNameAndUUID(rootGameObject.get(), jsonData, "scenes", i);
         rootGameObject->SetName(std::string(sceneJson["name"]));
 
@@ -322,7 +322,7 @@ std::unique_ptr<GameObject> CreateGameObjectFromNode(
 )
 {
     nlohmann::json& nodeJson = j["nodes"][nodeIndex];
-    auto gameObject = MakeUnique<GameObject>();
+    auto gameObject = std::make_unique<GameObject>();
 
     // name
     gameObject->SetName(nodeJson.value("name", "A GameObject"));

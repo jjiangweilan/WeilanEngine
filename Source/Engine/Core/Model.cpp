@@ -491,7 +491,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
     for (int i = 0; i < scenesJson.size(); ++i)
     {
         nlohmann::json& sceneJson = scenesJson[i];
-        std::unique_ptr<GameObject> rootGameObject = MakeUnique<GameObject>();
+        std::unique_ptr<GameObject> rootGameObject = std::make_unique<GameObject>();
         Utils::GLB::SetAssetName(rootGameObject.get(), jsonData, "scenes", i);
         rootGameObject->SetName(std::string(sceneJson.value("name", "root")));
 
@@ -511,7 +511,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
         gameObjects.push_back(std::move(rootGameObject));
     }
 
-    std::unique_ptr<GameObject> root = MakeUnique<GameObject>();
+    std::unique_ptr<GameObject> root = std::make_unique<GameObject>();
     for (auto r : rootGameObjects)
     {
         r->SetParent(root.get());
