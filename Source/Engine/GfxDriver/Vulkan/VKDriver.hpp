@@ -69,14 +69,14 @@ public:
         return sharedResource;
     }
 
-    virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
-    virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
-    UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
+    virtual std::unique_ptr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
+    virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
+    std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
     std::unique_ptr<ShaderResource> CreateShaderResource() override;
     std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
-    UniPtr<RenderPass> CreateRenderPass() override;
-    UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
-    UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
+    std::unique_ptr<RenderPass> CreateRenderPass() override;
+    std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
+    std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
     Window* CreateExtraWindow(SDL_Window* window) override;
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
@@ -84,7 +84,7 @@ public:
     std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
     ) override;
-    UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
+    std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
     void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) override;
 

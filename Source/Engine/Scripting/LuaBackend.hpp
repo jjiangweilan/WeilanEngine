@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "LuaWraps.hpp"
 #include "ThirdParty/lua/lua.hpp"
 #include <filesystem>
@@ -32,7 +32,7 @@ private:
     lua_State* state = nullptr;
     LuaWraps wraps;
 
-    static UniPtr<LuaBackend> instance;
+    static std::unique_ptr<LuaBackend> instance;
 
     void LoadLuaInFolderIter(const std::filesystem::path& folder);
 };

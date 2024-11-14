@@ -1,6 +1,6 @@
 #pragma once
 #include "../FrameBuffer.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include <vulkan/vulkan.h>
 namespace Gfx
 {

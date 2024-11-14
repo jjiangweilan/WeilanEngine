@@ -10,10 +10,10 @@ RefPtr<LuaBackend> LuaBackend::Instance()
 {
     if (instance == nullptr)
     {
-        instance = UniPtr(new LuaBackend());
+        instance = std::unique_ptr<LuaBackend>(new LuaBackend());
     }
 
-    return instance.Get();
+    return instance.get();
 }
 
 void LuaBackend::LoadFile(const std::filesystem::path& path)
@@ -58,4 +58,4 @@ void LuaBackend::LoadLuaInFolderIter(const std::filesystem::path& entry)
     }
 }
 
-UniPtr<LuaBackend> LuaBackend::instance = nullptr;
+std::unique_ptr<LuaBackend> LuaBackend::instance = nullptr;

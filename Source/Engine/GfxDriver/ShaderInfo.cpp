@@ -130,7 +130,7 @@ void Process(
         {
             Member member;
             member.name = memJson.at("name");
-            member.data = MakeUnique<StructuredData>();
+            member.data = std::make_unique<StructuredData>();
             Process(*member.data, memJson.at("type"), root, member.name, config);
 
             if (memJson.contains("array"))

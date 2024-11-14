@@ -3,7 +3,7 @@
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKSharedResource.hpp"
 namespace Gfx

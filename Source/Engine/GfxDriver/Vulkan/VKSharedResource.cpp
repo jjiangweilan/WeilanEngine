@@ -38,7 +38,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     desc.mipLevels = 1;
     desc.isCubemap = false;
     desc.multiSampling = MultiSampling::Sample_Count_1;
-    defaultTexture = MakeUnique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
+    defaultTexture = std::make_unique<VKImage>(desc, ImageUsage::Texture | ImageUsage::TransferDst);
     defaultTexture->SetName("Default Texture");
     uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
     defaultTexture->SetData(pxls, 0, 0);
@@ -80,7 +80,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     // uint8_t pxls[16] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
     // desc.data = (unsigned char*)pxls;
     descCube.multiSampling = MultiSampling::Sample_Count_1;
-    defaultCubemap = MakeUnique<VKImage>(descCube, ImageUsage::Texture | ImageUsage::TransferDst);
+    defaultCubemap = std::make_unique<VKImage>(descCube, ImageUsage::Texture | ImageUsage::TransferDst);
     defaultCubemap->SetName("Default Cubemap");
     defaultCubemap->SetData(pxls, 0, 0);
     defaultCubemap->SetData(pxls, 0, 1);

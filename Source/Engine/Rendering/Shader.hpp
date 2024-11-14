@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Asset.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "ShaderFeatureBitmask.hpp"
 #include <set>
 #include <string>

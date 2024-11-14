@@ -141,7 +141,7 @@ VKShaderProgram::VKShaderProgram(
         if (config != nullptr)
             vertInterleaved = config->vertexInterleaved;
 
-        vertShaderModule = MakeUnique<VKShaderModule>(
+        vertShaderModule = std::make_unique<VKShaderModule>(
             name,
             createInfo.vertSpv,
             createInfo.vertReflection,
@@ -149,7 +149,7 @@ VKShaderProgram::VKShaderProgram(
             *config
         ); // the  namespace is necessary to pass MSVC compilation
         fragShaderModule =
-            MakeUnique<VKShaderModule>(name, createInfo.fragSpv, createInfo.fragReflection, vertInterleaved, *config);
+            std::make_unique<VKShaderModule>(name, createInfo.fragSpv, createInfo.fragReflection, vertInterleaved, *config);
 
         // combine ShaderStageInfo into ShaderInfo
         ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());

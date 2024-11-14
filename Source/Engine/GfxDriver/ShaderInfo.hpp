@@ -9,7 +9,7 @@
 
 #include "DescriptorSetSlot.hpp"
 #include "GfxDriver/ResourceHandle.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 
 namespace Gfx::ShaderInfo
 {
@@ -39,13 +39,13 @@ struct Member
     {}
 
     Member(const Member& other)
-        : name(other.name), data(MakeUnique<StructuredData>(*other.data)), offset(other.offset),
+        : name(other.name), data(std::make_unique<StructuredData>(*other.data)), offset(other.offset),
           dimension(other.dimension){};
 
     Member& operator=(const Member& other)
     {
         name = other.name;
-        data = MakeUnique<StructuredData>(*other.data);
+        data = std::make_unique<StructuredData>(*other.data);
         offset = other.offset;
         dimension = other.dimension;
 
@@ -60,7 +60,7 @@ struct Member
     }
 
     std::string name = "";
-    UniPtr<StructuredData> data = nullptr;
+    std::unique_ptr<StructuredData> data = nullptr;
     uint32_t offset = 0;
     std::vector<uint8_t> dimension{};
 };

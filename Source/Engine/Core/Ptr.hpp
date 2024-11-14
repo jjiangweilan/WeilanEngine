@@ -1,14 +1,32 @@
 #pragma once
 
+#include "Core/Object.hpp"
 #include <cassert>
 #include <cinttypes>
 #include <cstddef>
 #include <memory>
 #include <utility>
 
+class ObjectLifetimeManager
+{
+public:
+    static ObjectLifetimeManager* Singleton();
+    void ScheduleDeletion(Object* object) { pending.push_back(object); }
+    void Flush()
+    {
+        for (auto o : pending)
+        {
+            delete o;
+        }
+    };
+
+private:
+    std::vector<Object*> pending;
+};
+
 // managed pointer without multi-threading support
 template <class T>
-class UniPtr
+class ObjPtr
 {
 public:
     operator std::unique_ptr<T>()
@@ -18,19 +36,19 @@ public:
         return p;
     }
     using Type = T;
-    UniPtr() = default;
-    explicit UniPtr(T* ptr);
-    UniPtr(std::nullptr_t);
+    ObjPtr() = default;
+    explicit ObjPtr(T* ptr);
+    ObjPtr(std::nullptr_t);
     template <class U>
-    UniPtr(UniPtr<U>&& other);
-    UniPtr(UniPtr<T>&& other);
-    UniPtr(const UniPtr<T>& other) = delete;
+    ObjPtr(ObjPtr<U>&& other);
+    ObjPtr(ObjPtr<T>&& other);
+    ObjPtr(const ObjPtr<T>& other) = delete;
     template <class U>
-    UniPtr<T>& operator=(UniPtr<U>&& other);
-    UniPtr<T>& operator=(UniPtr<T>&& other);
-    UniPtr<T>& operator=(std::nullptr_t);
+    ObjPtr<T>& operator=(ObjPtr<U>&& other);
+    ObjPtr<T>& operator=(ObjPtr<T>&& other);
+    ObjPtr<T>& operator=(std::nullptr_t);
 
-    ~UniPtr();
+    ~ObjPtr();
 
     T* Get() const { return ptr; }
     inline void Release() { ptr = nullptr; }
@@ -54,7 +72,7 @@ public:
     using Type = T;
     RefPtr() = default;
     RefPtr(const std::unique_ptr<T>& ptr);
-    RefPtr(const UniPtr<T>& uniPtr);
+    RefPtr(const ObjPtr<T>& uniPtr);
     RefPtr(const RefPtr<T>& other);
     RefPtr(T* purePtr);
     ~RefPtr();
@@ -80,23 +98,23 @@ private:
 };
 
 template <class T>
-UniPtr<T>::UniPtr(T* ptr) : ptr(ptr)
+ObjPtr<T>::ObjPtr(T* ptr) : ptr(ptr)
 {}
 
 template <class T>
-UniPtr<T>::UniPtr(std::nullptr_t) : ptr(nullptr)
+ObjPtr<T>::ObjPtr(std::nullptr_t) : ptr(nullptr)
 {}
 
 template <class T>
 template <class U>
-UniPtr<T>::UniPtr(UniPtr<U>&& other) : ptr(std::exchange(other.ptr, nullptr))
+ObjPtr<T>::ObjPtr(ObjPtr<U>&& other) : ptr(std::exchange(other.ptr, nullptr))
 {}
 template <class T>
-UniPtr<T>::UniPtr(UniPtr<T>&& other) : ptr(std::exchange(other.ptr, nullptr))
+ObjPtr<T>::ObjPtr(ObjPtr<T>&& other) : ptr(std::exchange(other.ptr, nullptr))
 {}
 
 template <class T>
-UniPtr<T>& UniPtr<T>::operator=(std::nullptr_t)
+ObjPtr<T>& ObjPtr<T>::operator=(std::nullptr_t)
 {
     if (ptr != nullptr)
     {
@@ -109,7 +127,7 @@ UniPtr<T>& UniPtr<T>::operator=(std::nullptr_t)
 
 template <class T>
 template <class U>
-UniPtr<T>& UniPtr<T>::operator=(UniPtr<U>&& other)
+ObjPtr<T>& ObjPtr<T>::operator=(ObjPtr<U>&& other)
 {
     if (ptr != nullptr)
         delete ptr;
@@ -118,7 +136,7 @@ UniPtr<T>& UniPtr<T>::operator=(UniPtr<U>&& other)
 }
 
 template <class T>
-UniPtr<T>& UniPtr<T>::operator=(UniPtr<T>&& other)
+ObjPtr<T>& ObjPtr<T>::operator=(ObjPtr<T>&& other)
 {
     if (ptr != nullptr)
         delete ptr;
@@ -127,23 +145,23 @@ UniPtr<T>& UniPtr<T>::operator=(UniPtr<T>&& other)
 }
 
 template <class T>
-UniPtr<T>::~UniPtr()
+ObjPtr<T>::~ObjPtr()
 {
     if (ptr != nullptr)
     {
-        delete ptr;
+        ObjectLifetimeManager::Singleton()->ScheduleDeletion(ptr);
         ptr = nullptr;
     }
 }
 
 template <class T, class... Args>
-UniPtr<T> MakeUnique(Args&&... args)
+ObjPtr<T> MakeUnique(Args&&... args)
 {
-    return UniPtr<T>(new T(std::forward<Args>(args)...));
+    return ObjPtr<T>(new T(std::forward<Args>(args)...));
 }
 
 template <class T>
-RefPtr<T>::RefPtr(const UniPtr<T>& uniPtr) : ptr(uniPtr.ptr)
+RefPtr<T>::RefPtr(const ObjPtr<T>& uniPtr) : ptr(uniPtr.ptr)
 {}
 
 template <class T>
@@ -193,8 +211,6 @@ bool RefPtr<T>::operator!=(std::nullptr_t) const
 template <class T>
 RefPtr<T>::RefPtr(const std::unique_ptr<T>& ptr) : ptr(ptr.get())
 {}
-
-
 
 template <class T>
 bool RefPtr<T>::operator==(RefPtr<T> other) const

@@ -2,7 +2,7 @@
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "Rendering/Structs.hpp"
 #include <optional>
 #include <vector>

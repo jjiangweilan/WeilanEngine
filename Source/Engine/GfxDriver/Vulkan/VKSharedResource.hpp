@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
@@ -36,9 +36,9 @@ public:
 
 private:
     VKDriver* driver;
-    // UniPtr<VKStorageBuffer> defaultStorageBuffer;
+    // std::unique_ptr<VKStorageBuffer> defaultStorageBuffer;
     VkSampler defaultSampler;
-    UniPtr<VKImage> defaultTexture;
+    std::unique_ptr<VKImage> defaultTexture;
     std::unique_ptr<VKImage> defaultTexture3D;
     std::unique_ptr<VKImage> defaultStorage2DImage;
     std::unique_ptr<VKImage> defaultCubemap;

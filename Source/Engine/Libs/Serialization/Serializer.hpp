@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/ManagedObject.hpp"
 #include "Core/Object.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "Libs/UUID.hpp"
 #include "Serializable.hpp"
 #include <concepts>

@@ -1,6 +1,6 @@
 #pragma once
 #include "Libs/Constants.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "LinearImage.hpp"
 #include <algorithm>
 #include <cmath>

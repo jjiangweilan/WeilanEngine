@@ -5,7 +5,7 @@
 #include "Internal/VKDevice.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>

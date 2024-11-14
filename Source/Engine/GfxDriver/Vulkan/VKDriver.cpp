@@ -42,14 +42,6 @@
 
 namespace Gfx
 {
-// I can't use the MakeUnique function in Ptr.hpp in this translation unit on Window machine. Not sure why.
-// This is a temporary workaround
-template <class T, class... Args>
-UniPtr<T> MakeUnique1(Args&&... args)
-{
-    return UniPtr<T>(new T(std::forward<Args>(args)...));
-}
-
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
     window = createInfo.window;
@@ -206,40 +198,40 @@ std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
     return std::make_unique<VKShaderProgram>(config, context.get(), name, createInfo);
 }
 
-UniPtr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
+std::unique_ptr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKSemaphore>(createInfo.signaled);
+    return std::make_unique<VKSemaphore>(createInfo.signaled);
 }
 
-UniPtr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
+std::unique_ptr<Fence> VKDriver::CreateFence(const Fence::CreateInfo& createInfo)
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKFence>(createInfo);
+    return std::make_unique<VKFence>(createInfo);
 }
 
-UniPtr<Buffer> VKDriver::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
+std::unique_ptr<Buffer> VKDriver::CreateBuffer(const Gfx::Buffer::CreateInfo& createInfo)
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKBuffer>(createInfo);
+    return std::make_unique<VKBuffer>(createInfo);
 }
 
-UniPtr<RenderPass> VKDriver::CreateRenderPass()
+std::unique_ptr<RenderPass> VKDriver::CreateRenderPass()
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKRenderPass>();
+    return std::make_unique<VKRenderPass>();
 }
 
-UniPtr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
+std::unique_ptr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKFrameBuffer>(renderPass);
+    return std::make_unique<VKFrameBuffer>(renderPass);
 }
 
-UniPtr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUsageFlags usages)
+std::unique_ptr<Image> VKDriver::CreateImage(const ImageDescription& description, ImageUsageFlags usages)
 {
     std::scoped_lock lock(driverMutex);
-    return MakeUnique1<VKImage>(description, usages);
+    return std::make_unique<VKImage>(description, usages);
 }
 
 void VKDriver::QueueSubmit(
@@ -289,9 +281,9 @@ void VKDriver::QueueSubmit(
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);
 }
 
-UniPtr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::CreateInfo& createInfo)
+std::unique_ptr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::CreateInfo& createInfo)
 {
-    return MakeUnique1<VKCommandPool>(createInfo);
+    return std::make_unique<VKCommandPool>(createInfo);
 }
 
 void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, uint64_t timeout)

@@ -1,5 +1,5 @@
 #include "VKShaderModule.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "VKContext.hpp"
 #include <spdlog/spdlog.h>
 #include <spirv_cross/spirv_reflect.hpp>

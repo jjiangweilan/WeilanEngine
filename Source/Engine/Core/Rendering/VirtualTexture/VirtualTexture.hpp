@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxDriver/Image.hpp"
 #include "Libs/Image/LinearImage.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "Rendering/Structs.hpp"
 #include <cinttypes>
 #include <filesystem>

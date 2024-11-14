@@ -61,9 +61,9 @@ private:
     Camera* bakerCamera;
     Scene* scene;
     Rendering::FrameGraph::SurfelBakeFGNode* surfelBakeNode;
-    UniPtr<Gfx::Buffer> albedoBuf;
-    UniPtr<Gfx::Buffer> positionBuf;
-    UniPtr<Gfx::Buffer> normalBuf;
+    std::unique_ptr<Gfx::Buffer> albedoBuf;
+    std::unique_ptr<Gfx::Buffer> positionBuf;
+    std::unique_ptr<Gfx::Buffer> normalBuf;
 
     Surfel CaptureSurfel(const glm::mat4& camModel, float halfBoxSize);
 };

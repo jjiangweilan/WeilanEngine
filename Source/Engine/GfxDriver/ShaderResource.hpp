@@ -3,7 +3,7 @@
 #include "Buffer.hpp"
 #include "GfxDriver/ImageView.hpp"
 #include "GfxEnums.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "ResourceHandle.hpp"
 #include "StorageBuffer.hpp"
 #include <string>

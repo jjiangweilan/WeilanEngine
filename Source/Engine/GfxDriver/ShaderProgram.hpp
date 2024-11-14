@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "ShaderConfig.hpp"
 #include "ShaderInfo.hpp"
 #include <string>

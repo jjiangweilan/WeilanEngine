@@ -9,7 +9,7 @@
 #include "Image.hpp"
 #include "ImageView.hpp"
 #include "Libs/EnumFlags.hpp"
-#include "Libs/Ptr.hpp"
+#include "Core/Ptr.hpp"
 #include "Semaphore.hpp"
 #include "Window.hpp"
 
@@ -78,19 +78,19 @@ public:
 
     // return true if swapchain recreated
     virtual bool EndFrame() = 0;
-    virtual UniPtr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
-    virtual UniPtr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ShaderResource> CreateShaderResource() = 0;
-    virtual UniPtr<RenderPass> CreateRenderPass() = 0;
-    virtual UniPtr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
-    virtual UniPtr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
+    virtual std::unique_ptr<RenderPass> CreateRenderPass() = 0;
+    virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
+    virtual std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
     virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(
         const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
     ) = 0;
 
-    virtual UniPtr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
-    virtual UniPtr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;
 
     virtual std::unique_ptr<CommandBuffer> CreateCommandBuffer() = 0;
 
