@@ -83,16 +83,16 @@ std::vector<std::filesystem::path> TextureLoader::Import()
 
             auto IsLinearFormat = [this](bool is16Bit, bool isHDR)
             {
-                bool linearFormat = false;
+                if (is16Bit || isHDR)
+                    return true;
+
+                bool linearFormat = true;
                 auto lowerCasePathStr = Utils::strTolower(absoluteAssetPath.filename().string());
 
                 bool srgFormat = Utils::strContians(lowerCasePathStr, "srgb") ||
                                  Utils::strContians(lowerCasePathStr, "diffuse") ||
                                  Utils::strContians(lowerCasePathStr, "albedo");
-                if (!srgFormat && (isHDR || is16Bit))
-                    linearFormat = true;
-                else
-                    linearFormat = srgFormat;
+                linearFormat = !srgFormat;
 
                 return linearFormat;
             };

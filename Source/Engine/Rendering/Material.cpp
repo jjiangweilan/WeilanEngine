@@ -110,7 +110,8 @@ void Material::RebuildAllMaterials()
             mat->textureValues.clear();
             for (auto& kv : copy)
             {
-                mat->SetTexture(kv.first, kv.second);
+                if (kv.second != nullptr)
+                    mat->SetTexture(kv.first, kv.second);
             }
             for (auto& ubo : mat->ubos)
             {
