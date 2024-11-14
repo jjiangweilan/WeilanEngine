@@ -8,6 +8,13 @@ namespace Editor
 class MaterialInspector : public Inspector<Material>
 {
 public:
+
+    void OnEnable(Object& obj) override
+    {
+        Inspector<Material>::OnEnable(obj);
+
+        featureToEnable[0] = '\0';
+    }
     void DrawInspector(GameEditor& editor) override
     {
         // object information
@@ -19,6 +26,18 @@ public:
             target->SetName(cname);
         }
 
+        ImGui::InputText("Feature", featureToEnable, 256);
+        if (ImGui::Button("Enable"))
+        {
+            target->EnableFeature(featureToEnable);
+            featureToEnable[0] = '\0';
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Disable"))
+        {
+            target->DisableFeature(featureToEnable);
+            featureToEnable[0] = '\0';
+        }
         ImGui::Text("Enabled Features");
         for (auto& feature : target->GetEnabledFeatures())
         {
@@ -184,6 +203,7 @@ public:
 
 private:
     static const char _register;
+    char featureToEnable[256];
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {

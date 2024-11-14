@@ -53,7 +53,12 @@ public:
             {
                 auto copy = material->Clone();
                 auto& db = editor.GetEngine()->assetDatabase;
-                db->SaveAsset(std::move(copy), material->GetName());
+                std::filesystem::path savePath = material->GetName();
+                if (!savePath.has_extension() || savePath.extension() != ".mat")
+                {
+                    savePath = savePath.filename().replace_extension(".mat");
+                }
+                db->SaveAsset(std::move(copy), savePath);
             }
 
             ImGui::PopID();
