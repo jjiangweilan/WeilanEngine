@@ -155,7 +155,7 @@ ObjPtr<T>::~ObjPtr()
 }
 
 template <class T, class... Args>
-ObjPtr<T> MakeUnique(Args&&... args)
+ObjPtr<T> MakeObj(Args&&... args)
 {
     return ObjPtr<T>(new T(std::forward<Args>(args)...));
 }
