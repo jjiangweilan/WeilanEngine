@@ -1,3 +1,4 @@
+#include "Libs/EnumFlags.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
 #include "Libs/Utils.hpp"
@@ -8,6 +9,13 @@
 #pragma once
 
 class AssetDatabase;
+enum class AssetStateFlags
+{
+    Save = 1,
+    DontSave = 1 << 2,
+};
+ENUM_FLAGS(AssetStateFlags, int);
+
 class Asset : public Object, public Serializable
 {
 public:
@@ -16,10 +24,7 @@ public:
         this->name = name;
         SetDirty();
     }
-    const std::string& GetName() const
-    {
-        return name;
-    }
+    const std::string& GetName() const { return name; }
     Asset() = default;
     Asset(const Asset& other) = default;
     Asset(Asset&& other) = default;
@@ -33,31 +38,16 @@ public:
 
     // asset format that is not serializable and deserializable.
     // AssetDatabase will use LoadFromFile if this function returns true when importing asset
-    virtual bool IsExternalAsset()
-    {
-        return false;
-    }
+    virtual bool IsExternalAsset() { return false; }
 
     // return false if loading failed
-    virtual bool LoadFromFile(const char* path)
-    {
-        return false;
-    }
+    virtual bool LoadFromFile(const char* path) { return false; }
 
-    virtual std::vector<Asset*> GetInternalAssets()
-    {
-        return std::vector<Asset*>{};
-    }
+    virtual std::vector<Asset*> GetInternalAssets() { return std::vector<Asset*>{}; }
 
-    bool IsDirty()
-    {
-        return isDirty;
-    }
+    bool IsDirty() { return HasFlag(stateFlags, AssetStateFlags::DontSave) ? false : isDirty; }
 
-    virtual std::unique_ptr<Asset> Clone()
-    {
-        return nullptr;
-    }
+    virtual std::unique_ptr<Asset> Clone() { return nullptr; }
 
     void Serialize(Serializer* s) const override
     {
@@ -75,23 +65,14 @@ public:
 
     virtual const std::string& GetExtension() = 0;
 
-    void SetDirty(bool isDirty = true)
-    {
-        this->isDirty = isDirty;
-    }
+    void SetDirty(bool isDirty = true) { this->isDirty = isDirty; }
 
     // used to identify if the asset contains the same content
-    virtual uint32_t GetContentHash()
-    {
-        return 0;
-    }
+    virtual uint32_t GetContentHash() { return 0; }
 
     // when dependent files or assets are updated, this can return true to indicate a import is needed
     // e.g. shader's included files
-    virtual bool NeedReimport()
-    {
-        return false;
-    }
+    virtual bool NeedReimport() { return false; }
 
 protected:
     std::string name = "";
@@ -109,6 +90,7 @@ protected:
 
 private:
     bool isDirty = false;
+    AssetStateFlags stateFlags;
 };
 
 struct AssetRegistry

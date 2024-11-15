@@ -20,12 +20,12 @@ SkeletonAnimation::Channel::Channel(const Channel& other)
 
 SkeletonAnimation::SkeletonAnimation() : currentAnimation(nullptr), currentStartFrame(0), currentEndFrame(-1) {}
 
-void SkeletonAnimation::UpdateBonesTransform(std::vector<std::unique_ptr<SkeletonBone>>& bones)
+const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
 {
     if (currentAnimation == nullptr)
-        return;
-    auto& animation = *currentAnimation;
+        return finalTransformMatrices;
 
+    auto& animation = *currentAnimation;
     size_t index;
     float a;
     float frame =
@@ -33,7 +33,7 @@ void SkeletonAnimation::UpdateBonesTransform(std::vector<std::unique_ptr<Skeleto
 
     for (auto& channel : animation.channels)
     {
-        auto& bone = bones[channel.boneId];
+        auto& bone = gameObjectBoneRepresentation.at(channel.boneId);
         // position
         index = 0;
         if (frame > channel.positions.front().time)
@@ -45,13 +45,13 @@ void SkeletonAnimation::UpdateBonesTransform(std::vector<std::unique_ptr<Skeleto
                 auto p1 = channel.positions[index - 1];
                 auto p2 = channel.positions[index];
                 float a = (frame - p1.time) / (p2.time - p1.time);
-                bone->translation = (1 - a) * p1.val + a * p2.val;
+                bone->SetLocalPosition((1 - a) * p1.val + a * p2.val);
             }
             else
-                bone->translation = channel.positions.back().val;
+                bone->SetLocalPosition(channel.positions.back().val);
         }
         else
-            bone->translation = channel.positions.front().val;
+            bone->SetLocalPosition(channel.positions.front().val);
 
         index = 0;
         if (frame > channel.rotations.front().time)
@@ -63,13 +63,13 @@ void SkeletonAnimation::UpdateBonesTransform(std::vector<std::unique_ptr<Skeleto
                 auto r1 = channel.rotations[index - 1];
                 auto r2 = channel.rotations[index];
                 a = (frame - r1.time) / (r2.time - r1.time);
-                bone->rotation = glm::slerp(r1.val, r2.val, a); // slerp to ensure shortest path is taken
+                bone->SetLocalRotation(glm::slerp(r1.val, r2.val, a)); // slerp to ensure shortest path is taken
             }
             else
-                bone->rotation = channel.rotations.back().val;
+                bone->SetLocalRotation(channel.rotations.back().val);
         }
         else
-            bone->rotation = channel.rotations.front().val;
+            bone->SetLocalRotation(channel.rotations.front().val);
 
         index = 0;
         if (frame > channel.scalings.front().time)
@@ -81,16 +81,24 @@ void SkeletonAnimation::UpdateBonesTransform(std::vector<std::unique_ptr<Skeleto
                 auto s1 = channel.scalings[index - 1];
                 auto s2 = channel.scalings[index];
                 a = (frame - s1.time) / (s2.time - s1.time);
-                bone->scaling = (1 - a) * s1.val + a * s2.val;
+                bone->SetLocalScale((1 - a) * s1.val + a * s2.val);
             }
             else
-                bone->scaling = channel.scalings.back().val;
+                bone->SetLocalScale(channel.scalings.back().val);
         }
         else
-            bone->scaling = channel.scalings.front().val;
+            bone->SetLocalScale(channel.scalings.front().val);
+    }
+    timePassed += Time::DeltaTime();
+
+    // update final transform matrices
+    for (int boneIndex = 0; boneIndex < gameObjectBoneRepresentation.size(); boneIndex++)
+    {
+        finalTransformMatrices[boneIndex] =
+            gameObjectBoneRepresentation[boneIndex]->GetWorldMatrix() * this->bones->at(boneIndex).offsetMatrix;
     }
 
-    timePassed += Time::DeltaTime();
+    return finalTransformMatrices;
 }
 
 bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const int& startFrame, const int& endFrame)
@@ -98,7 +106,7 @@ bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const in
     auto iter = animations.find(animationName);
     if (iter != animations.end())
     {
-        currentAnimation = &iter->second;
+        currentAnimation = iter->second.get();
         timePassed = 0;
         currentStartFrame = startFrame;
         if (endFrame <= 0)
@@ -118,65 +126,18 @@ bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const in
     return true;
 }
 
-void SkeletonAnimation::UpdateBonesRoot(std::vector<SkeletonBone*>& roots)
+std::unique_ptr<GameObject> SkeletonAnimation::InitializeAndGetBoneTree()
 {
-    for (auto root : roots)
+    currentAnimation = nullptr;
+    gameObjectBoneRepresentation.resize(bones->size());
+    finalTransformMatrices.resize(bones->size());
+    timePassed = 0;
+    currentStartFrame = 0;
+    currentEndFrame = -1;
+
+    for(auto& b : *bones)
     {
-        UpdateBonesRootHelper(root, glm::mat4(1.0));
+        auto go = new GameObject();
+        go->SetName(b.GetName());
     }
-}
-
-void SkeletonAnimation::UpdateBonesRootHelper(SkeletonBone* bone, glm::mat4 parentMatrix)
-{
-    auto transform = glm::translate(glm::mat4(1.0), bone->translation) * glm::toMat4(bone->rotation) *
-                     glm::scale(glm::mat4(1.0), bone->scaling);
-
-    bone->finalTransformMatrix =
-        glm::inverse(bone->offsetMatrix) * glm::inverse(bone->transformMatrix) * transform * bone->offsetMatrix;
-    if (bone->parent != nullptr)
-    {
-        bone->finalTransformMatrix = parentMatrix * bone->finalTransformMatrix;
-    }
-
-    for (auto& child : bone->children)
-    {
-        UpdateBonesRootHelper(child.get(), bone->finalTransformMatrix);
-    }
-}
-Skeleton::Skeleton() : animation(nullptr), rootBones() {}
-Skeleton::Skeleton(Skeleton&& other)
-{
-    animation = std::move(other.animation);
-    rootBones = std::move(other.rootBones);
-    bones = std::move(other.bones);
-}
-
-Skeleton::Skeleton(const Skeleton& other)
-{
-    animation = std::make_unique<SkeletonAnimation>(*other.animation);
-    rootBones = other.rootBones;
-    bones = other.bones;
-}
-Skeleton& Skeleton::operator=(const Skeleton& other)
-{
-    animation = other.animation;
-    rootBones = other.rootBones;
-    bones = other.bones;
-    return *this;
-}
-
-std::vector<Bone*>& Skeleton::GetRootBones() const
-{
-    return rootBones;
-}
-SkeletonAnimation* Skeleton::GetAnimation() const
-{
-    return animation.get();
-}
-
-void Skeleton::UpdateBoneTransformMatrix() {}
-
-std::vector<std::shared_ptr<Bone>>& Skeleton::GetBones() const
-{
-    return bones;
 }

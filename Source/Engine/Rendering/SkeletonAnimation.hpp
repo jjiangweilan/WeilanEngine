@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/GameObject.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
@@ -8,17 +9,15 @@
 
 class SkeletonBone
 {
-    std::vector<std::unique_ptr<SkeletonBone>> children;
+    std::vector<SkeletonBone*> children;
     SkeletonBone* parent;
     std::string name;
-    glm::mat4 offsetMatrix;
 
     glm::vec3 translation = glm::vec3(0.0);
     glm::vec3 scaling = glm::vec3(1.0, 1.0, 1.0);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
-    glm::mat4 finalTransformMatrix;
-    glm::mat4 transformMatrix;
-    size_t boneId;
+    glm::mat4 offsetMatrix;
+    int boneId;
 
 public:
     const std::vector<std::shared_ptr<SkeletonBone>> GetChildren() const;
@@ -58,6 +57,7 @@ public:
         glm::vec3 val;
         ScalingKeyFrame(const double& time, const glm::vec3& val) : time(time), val(val) {}
     };
+
     struct Channel
     {
         size_t boneId;
@@ -68,6 +68,7 @@ public:
         Channel(Channel&& other);
         Channel(const Channel& other);
     };
+
     struct Animation
     {
         float tickPerSecond;
@@ -79,35 +80,20 @@ public:
 
     SkeletonAnimation();
     bool PlayAnimation(const std::string& animationName, const int& startFrame, const int& endFrame);
-    void UpdateBonesTransform(std::vector<std::unique_ptr<SkeletonBone>>& bones);
-    void UpdateBonesRoot(std::vector<SkeletonBone*>& bones);
+
+    // returns final transform matrices of each bone
+    const std::vector<glm::mat4>& TickAnimation();
+    std::unique_ptr<GameObject> InitializeAndGetBoneTree();
 
 private:
-    void UpdateBonesRootHelper(SkeletonBone* bones, glm::mat4 parentMatrix);
-    std::unordered_map<std::string, Animation> animations;
-    Animation* currentAnimation;
+    std::unordered_map<std::string, std::shared_ptr<const Animation>> animations;
+    std::shared_ptr<const std::vector<SkeletonBone>> bones;
+
+    const Animation* currentAnimation;
+    std::vector<GameObject*> gameObjectBoneRepresentation;
+    std::vector<glm::mat4> finalTransformMatrices;
     double timePassed = 0;
     int currentStartFrame;
     int currentEndFrame;
-    friend class ModelImporter;
-};
-
-class Skeleton
-{
-    std::unique_ptr<SkeletonAnimation> animation;
-    mutable std::vector<std::unique_ptr<SkeletonBone>> bones;
-    mutable std::vector<SkeletonBone*> rootBones;
-
-public:
-    Skeleton();
-    Skeleton(Skeleton&& other);
-    Skeleton(const Skeleton& other);
-    Skeleton& operator=(const Skeleton& other);
-
-    std::vector<SkeletonBone*>& GetRootBones() const;
-    SkeletonAnimation* GetAnimation() const;
-    std::vector<std::unique_ptr<SkeletonBone>>& GetBones() const;
-    void UpdateBoneTransformMatrix();
-
     friend class ModelImporter;
 };

@@ -144,3 +144,26 @@ AABB MeshRenderer::GetAABB()
     aabb.Transform(glm::mat3(model), model[3]);
     return aabb;
 }
+
+void MeshRenderer::Tick() {
+    if(animation.HasAnimation())
+    {
+    }
+}
+
+void MeshRenderer::BindSkeletonAnimation(SkeletonAnimation anim)
+{
+    auto go = GetGameObject();
+    auto scene = go->GetScene();
+
+    if (scene == nullptr)
+        return;
+
+    this->animation.binding = anim;
+    SkeletonAnimation& animation = this->animation.binding;
+
+    auto rootBone = scene->AddGameObject(animation.CreateBoneTree());
+    rootBone->SetParent(go);
+
+    this->animation.rootBone = rootBone;
+}

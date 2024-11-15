@@ -4,6 +4,7 @@
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/Material.hpp"
+#include "Rendering/SkeletonAnimation.hpp"
 #include "Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
@@ -24,20 +25,11 @@ public:
     // 2. bindg material 1
     //   draw mesh -- all submeshes
     // ...
-    void EnableMultipass()
-    {
-        multipass = true;
-    }
+    void EnableMultipass() { multipass = true; }
 
-    void DisableMultipass()
-    {
-        multipass = false;
-    }
+    void DisableMultipass() { multipass = false; }
 
-    bool IsMultipassEnabled()
-    {
-        return multipass;
-    }
+    bool IsMultipassEnabled() { return multipass; }
 
     void SetMaterialSize(int size)
     {
@@ -47,13 +39,12 @@ public:
         }
     }
 
-    int GetMaterialSize()
-    {
-        return materials.size();
-    }
+    int GetMaterialSize() { return materials.size(); }
 
+    void Tick() override;
     void SetMeshes(std::span<Mesh*> meshes);
     void SetMesh(Mesh* mesh);
+    void BindSkeletonAnimation(SkeletonAnimation animation);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
     std::span<Mesh*> GetMeshes();
@@ -66,6 +57,12 @@ public:
     const std::string& GetName() override;
 
 private:
+    struct
+    {
+        bool HasAnimation() { return rootBone != nullptr; }
+        SkeletonAnimation binding;
+        GameObject* rootBone = nullptr;
+    } animation;
     std::vector<Mesh*> meshes;
     std::vector<Material*> materials = {};
     bool multipass = false;
