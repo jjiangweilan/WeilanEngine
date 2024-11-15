@@ -22,7 +22,7 @@ class SkeletonBone
 public:
     const std::vector<std::shared_ptr<SkeletonBone>> GetChildren() const;
     SkeletonBone* GetParent() const;
-    const std::string& GetName() const;
+    const std::string& GetName() const {return name;};
     const glm::mat4& GetOffsetMatrix() const;
     const size_t& GetBoneId() const;
     const glm::mat4 GetTransformMatrix() const;

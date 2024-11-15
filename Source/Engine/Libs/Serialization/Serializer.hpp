@@ -51,7 +51,7 @@ struct SerializeReferenceResolve
         int** managedObjectRefCounter = nullptr
     )
         : target(target), targetUUID(targetUUID), callback(callback),
-          managedObjectRefCounter(managedObjectRefCounter){};
+          managedObjectRefCounter(managedObjectRefCounter) {};
     void** target = nullptr;
     UUID targetUUID;
     ReferenceResolveCallback callback;
@@ -67,7 +67,7 @@ public:
     Serializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : resolveCallbacks(resolve) {}
 
     // used for serialization
-    Serializer(){};
+    Serializer() {};
 
     virtual ~Serializer() {}
 
@@ -92,7 +92,7 @@ public:
     );
 
     template <class T>
-    void Serialize(std::string_view name, const std::vector<T>& val);
+    void Serialize(std::string_view name, const std::vector<T>& val, std::function<bool(const T&)> = nullptr);
     template <class T>
     void Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback = nullptr);
 
@@ -177,15 +177,9 @@ public:
     virtual bool IsNull() = 0;
 
     virtual std::vector<uint8_t> GetBinary() = 0;
-    const std::unordered_map<UUID, Object*>& GetContainedObjects()
-    {
-        return objects;
-    }
+    const std::unordered_map<UUID, Object*>& GetContainedObjects() { return objects; }
 
-    const std::unordered_map<UUID, int*>& GetManagedObjects()
-    {
-        return managedObjects;
-    }
+    const std::unordered_map<UUID, int*>& GetManagedObjects() { return managedObjects; }
 
 protected:
     SerializeReferenceResolveMap* resolveCallbacks;
@@ -246,16 +240,22 @@ void Serializer::Deserialize(
 }
 
 template <class T>
-void Serializer::Serialize(std::string_view name, const std::vector<T>& val)
+void Serializer::Serialize(std::string_view name, const std::vector<T>& val, std::function<bool(const T&)> shouldSerialize)
 {
-    uint32_t size = val.size();
-    std::string sizepath = fmt::format("{}/size", name);
-    Serialize(sizepath, size);
+    int serializeCount = 0;
     for (int i = 0; i < val.size(); ++i)
     {
-        std::string s = fmt::format("{}/data/{}", name, i);
-        Serialize(s, val[i]);
+        bool serializeThis = shouldSerialize ? shouldSerialize(val[i]) : true;
+        if (serializeThis)
+        {
+            std::string s = fmt::format("{}/data/{}", name, serializeCount);
+            Serialize(s, val[i]);
+            serializeCount += 1;
+        }
     }
+
+    std::string sizepath = fmt::format("{}/size", name);
+    Serialize(sizepath, serializeCount);
 }
 
 template <class T>

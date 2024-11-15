@@ -162,8 +162,8 @@ void MeshRenderer::BindSkeletonAnimation(SkeletonAnimation anim)
     this->animation.binding = anim;
     SkeletonAnimation& animation = this->animation.binding;
 
-    auto rootBone = scene->AddGameObject(animation.CreateBoneTree());
-    rootBone->SetParent(go);
+    // auto rootBone = scene->AddGameObject(animation.CreateBoneTree());
+    // rootBone->SetParent(go);
 
-    this->animation.rootBone = rootBone;
+    // this->animation.rootBone = rootBone;
 }

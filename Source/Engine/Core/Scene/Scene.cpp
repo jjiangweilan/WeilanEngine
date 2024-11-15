@@ -218,7 +218,7 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
 
 void Scene::Serialize(Serializer* s) const
 {
-    s->Serialize("gameObjects", gameObjects);
+    s->Serialize<std::unique_ptr<GameObject>>("gameObjects", gameObjects, [](const std::unique_ptr<GameObject>& go) { return true; });
     s->Serialize("roots", roots);
     s->Serialize("camera", camera);
 }

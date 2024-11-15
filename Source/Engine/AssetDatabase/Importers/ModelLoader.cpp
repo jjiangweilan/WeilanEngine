@@ -347,15 +347,15 @@ struct ImporterImple
             for (size_t ni = 0; ni < animation->mNumChannels; ni++)
             {
                 auto node = scene->mRootNode->FindNode(animation->mChannels[ni]->mNodeName);
-                auto nodeToBoneIter = m_boneStructureHelper.find(node);
-                if (nodeToBoneIter == m_boneStructureHelper.end())
-                {
-                    std::cout << "skip:" << animation->mChannels[ni]->mNodeName.C_Str() << std::endl;
-                    continue;
-                }
+                // auto nodeToBoneIter = m_boneStructureHelper.find(node);
+                // if (nodeToBoneIter == m_boneStructureHelper.end())
+                // {
+                //     std::cout << "skip:" << animation->mChannels[ni]->mNodeName.C_Str() << std::endl;
+                //     continue;
+                // }
 
                 SkeletonAnimation::Channel channel;
-                channel.boneId = nodeToBoneIter->second.bone->m_boneId;
+                // channel.boneId = nodeToBoneIter->second.bone->m_boneId;
 
                 for (size_t ri = 0; ri < animation->mChannels[ni]->mNumPositionKeys; ri++)
                 {
@@ -384,10 +384,10 @@ struct ImporterImple
                 }
                 channels.emplace_back(channel);
             }
-            m_animation->m_animations.emplace(
-                animation->mName.C_Str(),
-                SkeletonAnimation::Animation(animation->mTicksPerSecond, std::move(channels), animation->mDuration)
-            );
+            // animation->animations.emplace(
+            //     animation->mName.C_Str(),
+            //     SkeletonAnimation::Animation(animation->mTicksPerSecond, std::move(channels), animation->mDuration)
+            // );
         }
     }
 

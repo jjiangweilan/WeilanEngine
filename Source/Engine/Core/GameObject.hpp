@@ -66,6 +66,16 @@ public:
     template <class T>
     std::vector<T*> GetComponentsInChildren();
 
+    bool IsPrototype() const
+    {
+        if (auto parent = GetParent())
+        {
+            return parent->IsPrototype() && isPrototype;
+        }
+
+        return isPrototype;
+    }
+
     bool IsEnabled()
     {
         return enabled;
@@ -73,7 +83,7 @@ public:
 
     void SetEnable(bool isEnabled);
 
-    GameObject* GetParent()
+    GameObject* GetParent() const
     {
         return parent;
     }
@@ -234,6 +244,8 @@ public:
 private:
     GameObject* prototype = nullptr;
 
+    // a prototype GameObject stores all it's children
+    bool isPrototype;
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);
