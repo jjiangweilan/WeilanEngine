@@ -153,14 +153,23 @@ void MeshRenderer::Tick() {
 
 void MeshRenderer::BindSkeletonAnimation(SkeletonAnimation anim)
 {
+    if (meshes.empty())
+    {
+        spdlog::warn("bind a mesh before binding an animation");
+        return;
+    }
+
+    auto mesh = meshes[0];
     auto go = GetGameObject();
     auto scene = go->GetScene();
 
-    if (scene == nullptr)
+    if (scene == nullptr || mesh == nullptr || !mesh->HasSkeleton())
         return;
 
     this->animation.binding = anim;
     SkeletonAnimation& animation = this->animation.binding;
+
+    auto rootBone = mesh->GetSkeleton();
 
     // auto rootBone = scene->AddGameObject(animation.CreateBoneTree());
     // rootBone->SetParent(go);

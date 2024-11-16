@@ -8,7 +8,7 @@
 #include <assimp/scene.h>
 DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf,fbx")
 
-struct ImporterImple
+struct ModelImporterImple
 {
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
@@ -16,6 +16,31 @@ struct ImporterImple
     ModelNode rootNode;
 
     std::filesystem::path absoluteAssetPath;
+
+    glm::mat4 aiMatrixToGlm(aiMatrix4x4 m)
+    {
+        m = m.Transpose();
+        glm::mat4 glmM = {
+            m.a1,
+            m.a2,
+            m.a3,
+            m.a4,
+            m.b1,
+            m.b2,
+            m.b3,
+            m.b4,
+            m.c1,
+            m.c2,
+            m.c3,
+            m.c4,
+            m.d1,
+            m.d2,
+            m.d3,
+            m.d4,
+        };
+
+        return glmM;
+    }
 
     void Load(const std::filesystem::path& path)
     {
@@ -43,25 +68,12 @@ struct ImporterImple
             modelNode.meshes.push_back({node->mMeshes[m], scene->mMeshes[node->mMeshes[m]]->mMaterialIndex});
         }
 
-        aiMatrix4x4 m = node->mTransformation.Transpose(); // assimp is row major, we are column major
-        modelNode.transform = {
-            m.a1,
-            m.a2,
-            m.a3,
-            m.a4,
-            m.b1,
-            m.b2,
-            m.b3,
-            m.b4,
-            m.c1,
-            m.c2,
-            m.c3,
-            m.c4,
-            m.d1,
-            m.d2,
-            m.d3,
-            m.d4,
-        };
+        modelNode.transform = aiMatrixToGlm(node->mTransformation);
+
+        for (int i = 0; i < node->mNumChildren; ++i)
+        {
+            modelNode.children.push_back(ProcessNode(node->mChildren[i]));
+        }
 
         return modelNode;
     }
@@ -71,6 +83,12 @@ struct ImporterImple
         for (int meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
         {
             aiMesh* mesh = scene->mMeshes[meshIndex];
+
+            std::unique_ptr<SkeletonBone> rootBone = std::make_unique<SkeletonBone>();
+            for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
+            {
+                mesh->mVertices[mesh->mBones[boneIndex]->mWeights[0].mVertexId];
+            }
 
             std::vector<glm::vec3> positions(mesh->mNumVertices);
             for (int i = 0; i < mesh->mNumVertices; ++i)
@@ -89,6 +107,7 @@ struct ImporterImple
             uint32_t tangentStrideOffset = 0;
             uint32_t texCoordStrideOffsets[8];
             uint32_t vertexColorStrideOffsets[8];
+            uint32_t skeletonOffset = 0;
             if (mesh->HasNormals())
             {
                 attributeStrideSize += normalSize ? normalSize : 0;
@@ -142,6 +161,14 @@ struct ImporterImple
                     attributeStrideSize += vertexColorSize;
                     attributes.AddAttribute(vertexColorNames[i], vertexColorSize);
                 }
+            }
+
+            const uint32_t skeletonSize = 16; // packed id + weight
+            if (mesh->HasBones())
+            {
+                skeletonOffset = attributeStrideSize;
+                attributeStrideSize += skeletonSize;
+                attributes.AddAttribute("skeleton", skeletonSize);
             }
 
             std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices);
@@ -209,6 +236,27 @@ struct ImporterImple
                 }
             }
 
+            Skeleton skeleton;
+            std::vector<int> vertexBoneIndexOffset(mesh->mNumVertices, 0);
+            for (int boneId = 0; boneId < mesh->mNumBones; ++boneId)
+            {
+                for (int w = 0; w < mesh->mBones[boneId]->mNumWeights; w++)
+                {
+                    auto& weight = mesh->mBones[boneId]->mWeights[w];
+                    skeleton.push_back(
+                        {std::string(mesh->mBones[boneId]->mName.C_Str()),
+                         aiMatrixToGlm(mesh->mBones[boneId]->mOffsetMatrix)}
+                    );
+                    int vertexId = weight.mVertexId;
+                    int index = vertexBoneIndexOffset[vertexId]++;
+                    if (index < 4)
+                    {
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vertexId + skeletonOffset * index) =
+                            boneId * 10 + weight.mWeight;
+                    }
+                }
+            }
+
             attributes.SetData(std::move(attributeData));
 
             std::vector<uint32_t> indices;
@@ -230,6 +278,7 @@ struct ImporterImple
             submeshes.push_back(std::move(submesh));
             myMesh->SetSubmeshes(std::move(submeshes));
             myMesh->SetName(mesh->mName.C_Str());
+            myMesh->SetSkeleton(skeleton);
             this->meshes.push_back(std::move(myMesh));
         }
     }
@@ -339,7 +388,8 @@ struct ImporterImple
     {
         if (scene->mNumAnimations == 0)
             return;
-        auto animation = std::make_unique<SkeletonAnimation>();
+
+        auto skeletonAnimation = std::make_unique<SkeletonAnimation>();
         for (size_t i = 0; i < scene->mNumAnimations; i++)
         {
             auto animation = scene->mAnimations[i];
@@ -347,15 +397,11 @@ struct ImporterImple
             for (size_t ni = 0; ni < animation->mNumChannels; ni++)
             {
                 auto node = scene->mRootNode->FindNode(animation->mChannels[ni]->mNodeName);
-                // auto nodeToBoneIter = m_boneStructureHelper.find(node);
-                // if (nodeToBoneIter == m_boneStructureHelper.end())
-                // {
-                //     std::cout << "skip:" << animation->mChannels[ni]->mNodeName.C_Str() << std::endl;
-                //     continue;
-                // }
+                if (node == nullptr)
+                    continue;
 
                 SkeletonAnimation::Channel channel;
-                // channel.boneId = nodeToBoneIter->second.bone->m_boneId;
+                channel.boneName = channel.boneName;
 
                 for (size_t ri = 0; ri < animation->mChannels[ni]->mNumPositionKeys; ri++)
                 {
@@ -384,10 +430,15 @@ struct ImporterImple
                 }
                 channels.emplace_back(channel);
             }
-            // animation->animations.emplace(
-            //     animation->mName.C_Str(),
-            //     SkeletonAnimation::Animation(animation->mTicksPerSecond, std::move(channels), animation->mDuration)
-            // );
+
+            skeletonAnimation->animations.emplace(
+                animation->mName.C_Str(),
+                std::make_shared<SkeletonAnimation>(
+                    animation->mTicksPerSecond,
+                    std::move(channels),
+                    animation->mDuration
+                )
+            );
         }
     }
 
@@ -410,7 +461,7 @@ void ModelLoader::Load()
     }
     else
     {
-        ImporterImple e;
+        ModelImporterImple e;
         e.Load(absoluteAssetPath);
 
         auto model = std::make_unique<Model>();

@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <span>
 #include <string>
-#include <string_view>
 
 struct ModelNode
 {

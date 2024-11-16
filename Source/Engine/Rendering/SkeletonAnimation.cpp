@@ -1,18 +1,17 @@
 #include "SkeletonAnimation.hpp"
+#include "Core/GameObject.hpp"
 #include "Core/Time.hpp"
 #include "glm/gtx/quaternion.hpp"
 
-SkeletonAnimation::Channel::Channel() : boneId(0), positions(), rotations(), scalings() {}
+SkeletonAnimation::Channel::Channel() : positions(), rotations(), scalings() {}
 SkeletonAnimation::Channel::Channel(Channel&& other)
 {
-    boneId = other.boneId;
     positions = std::move(other.positions);
     rotations = std::move(other.rotations);
     scalings = std::move(other.scalings);
 }
 SkeletonAnimation::Channel::Channel(const Channel& other)
 {
-    boneId = other.boneId;
     positions = other.positions;
     rotations = other.rotations;
     scalings = other.scalings;
@@ -33,7 +32,7 @@ const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
 
     for (auto& channel : animation.channels)
     {
-        auto& bone = gameObjectBoneRepresentation.at(channel.boneId);
+        auto& bone = bones.at(channel.runtimeBoneId).first;
         // position
         index = 0;
         if (frame > channel.positions.front().time)
@@ -92,10 +91,10 @@ const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
     timePassed += Time::DeltaTime();
 
     // update final transform matrices
-    for (int boneIndex = 0; boneIndex < gameObjectBoneRepresentation.size(); boneIndex++)
+    for (int boneIndex = 0; boneIndex < bones.size(); boneIndex++)
     {
         finalTransformMatrices[boneIndex] =
-            gameObjectBoneRepresentation[boneIndex]->GetWorldMatrix() * this->bones->at(boneIndex).offsetMatrix;
+            bones[boneIndex].first->GetWorldMatrix() * this->bones[boneIndex].second->offsetMatrix;
     }
 
     return finalTransformMatrices;
@@ -126,18 +125,18 @@ bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const in
     return true;
 }
 
-std::unique_ptr<GameObject> SkeletonAnimation::InitializeAndGetBoneTree()
+bool SkeletonAnimation::Initialize(std::vector<std::pair<GameObject*, SkeletonBone*>> bones)
 {
+    this->bones = bones;
     currentAnimation = nullptr;
-    gameObjectBoneRepresentation.resize(bones->size());
-    finalTransformMatrices.resize(bones->size());
     timePassed = 0;
     currentStartFrame = 0;
     currentEndFrame = -1;
 
-    for(auto& b : *bones)
-    {
-        auto go = new GameObject();
-        go->SetName(b.GetName());
-    }
+    return true;
+}
+
+void SkeletonAnimation::Deinit()
+{
+    bones.clear();
 }

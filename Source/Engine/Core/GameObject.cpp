@@ -167,8 +167,10 @@ void GameObject::RemoveChild(GameObject* child)
 
 void GameObject::SetParent(GameObject* newParent)
 {
-    if (this->parent == newParent)
+    if (this->parent == newParent || HasFlag(flags, GameObjectFlag::DontChangeHierarchy))
+    {
         return;
+    }
 
     if (newParent == nullptr)
     {
@@ -413,7 +415,7 @@ void GameObject::ResetAsPrototype()
 
     if (wantsToBeEnabled)
     {
-        for(auto& c : components)
+        for (auto& c : components)
         {
             if (c->IsEnabled())
             {

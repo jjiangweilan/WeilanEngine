@@ -16,6 +16,7 @@ fragFeatures:
 vertFeatures:
     - [_, _Vertex_Tangent]
     - [_, _Vertex_UV0]
+    - [_, _Vertex_Skeleton]
 #endif
 
 #if VERT
@@ -30,6 +31,9 @@ layout(location = 2) in vec4 i_Tangent;
 #endif
 #ifdef _Vertex_UV0
 layout(location = 3) in vec2 i_UV;
+#endif
+#ifdef _Vertex_Skeleton
+layout(location = 4) in vec4 i_Bone; // id = integer part * 10, weight = x.decimal part
 #endif
 
 layout(location = 0) out vec3 o_PositionWS;

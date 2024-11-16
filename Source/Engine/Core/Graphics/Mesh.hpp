@@ -1,8 +1,9 @@
 #pragma once
 #include "Core/Asset.hpp"
+#include "Core/Ptr.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/VertexBufferBinding.hpp"
-#include "Core/Ptr.hpp"
+#include "Rendering/SkeletonAnimation.hpp"
 #include "Rendering/Structs.hpp"
 #include <glm/glm.hpp>
 #include <iterator>
@@ -18,6 +19,7 @@ struct VertexBinding
     std::string name;
 };
 
+using Skeleton = std::vector<SkeletonBone>;
 class VertexAttributes
 {
 public:
@@ -39,30 +41,15 @@ public:
         return *this;
     }
 
-    size_t GetSize() const
-    {
-        return data.size();
-    }
+    size_t GetSize() const { return data.size(); }
 
-    const std::vector<uint8_t> GetData()
-    {
-        return data;
-    }
+    const std::vector<uint8_t> GetData() { return data; }
 
-    void SetData(const std::vector<uint8_t>& data)
-    {
-        this->data = data;
-    }
+    void SetData(const std::vector<uint8_t>& data) { this->data = data; }
 
-    void SetData(std::vector<uint8_t>&& data)
-    {
-        this->data = std::move(data);
-    }
+    void SetData(std::vector<uint8_t>&& data) { this->data = std::move(data); }
 
-    const std::vector<Attribute>& GetDescription() const
-    {
-        return attributes;
-    }
+    const std::vector<Attribute>& GetDescription() const { return attributes; }
 
 private:
     std::vector<Attribute> attributes;
@@ -80,38 +67,20 @@ public:
     Submesh& operator=(Submesh&& other) = default;
     ~Submesh();
 
-    inline int GetIndexCount() const
-    {
-        return indexCount;
-    }
+    inline int GetIndexCount() const { return indexCount; }
 
-    Gfx::IndexBufferType GetIndexBufferType() const
-    {
-        return indexBufferType;
-    }
+    Gfx::IndexBufferType GetIndexBufferType() const { return indexBufferType; }
 
     const AABB& GetAABB() const;
     void SetAABB(const AABB& aabb);
 
-    Gfx::Buffer* GetIndexBuffer() const
-    {
-        return gfxIndexBuffer.get();
-    }
+    Gfx::Buffer* GetIndexBuffer() const { return gfxIndexBuffer.get(); }
 
-    Gfx::Buffer* GetVertexBuffer() const
-    {
-        return gfxVertexBuffer.get();
-    }
+    Gfx::Buffer* GetVertexBuffer() const { return gfxVertexBuffer.get(); }
 
-    std::span<const VertexBinding> GetBindings() const
-    {
-        return bindings;
-    }
+    std::span<const VertexBinding> GetBindings() const { return bindings; }
 
-    std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const
-    {
-        return gfxBindings;
-    }
+    std::span<const Gfx::VertexBufferBinding> GetGfxVertexBufferBindings() const { return gfxBindings; }
 
 private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
@@ -132,10 +101,7 @@ public:
     void SetVertexAttribute(const VertexAttributes& vertAttributes);
     void SetPositions(const std::vector<glm::vec3>& positions);
     void Apply();
-    const VertexAttributes& GetVertexAttribute() const
-    {
-        return attributes;
-    }
+    const VertexAttributes& GetVertexAttribute() const { return attributes; }
     bool HasAttribute(std::string_view name) const
     {
         for (auto& attr : attributes.GetDescription())
@@ -168,15 +134,9 @@ public:
         std::string_view name = ""
     );
 
-    uint8_t* GetIndexBufferData() const
-    {
-        return indexBuffer.get();
-    }
+    uint8_t* GetIndexBufferData() const { return indexBuffer.get(); }
 
-    uint8_t* GetVertexBufferData() const
-    {
-        return vertexBuffer.get();
-    }
+    uint8_t* GetVertexBufferData() const { return vertexBuffer.get(); }
 
 private:
     std::unique_ptr<unsigned char> vertexBuffer = nullptr;
@@ -192,19 +152,13 @@ public:
     Mesh(Mesh&& other) = default;
     ~Mesh();
 
-    bool IsExternalAsset() override
-    {
-        return true;
-    }
+    bool IsExternalAsset() override { return true; }
 
     const AABB& GetAABB() const;
 
     bool LoadFromFile(const char* path) override;
 
-    const std::vector<Submesh>& GetSubmeshes()
-    {
-        return submeshes;
-    };
+    const std::vector<Submesh>& GetSubmeshes() { return submeshes; };
 
     Submesh* GetSubmesh(int index)
     {
@@ -238,7 +192,12 @@ public:
         aabb = {min, max};
     }
 
+    void SetSkeleton(Skeleton skeleton) { this->skeleton = skeleton; }
+    const Skeleton& GetSkeleton() { return skeleton; }
+    bool HasSkeleton() const { return !skeleton.empty(); }
+
 private:
     std::vector<Submesh> submeshes;
+    Skeleton skeleton;
     AABB aabb;
 };

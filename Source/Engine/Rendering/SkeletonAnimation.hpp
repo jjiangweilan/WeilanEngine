@@ -1,5 +1,4 @@
 #pragma once
-#include "Core/GameObject.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
@@ -7,33 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-class SkeletonBone
+class GameObject;
+struct SkeletonBone
 {
-    std::vector<SkeletonBone*> children;
-    SkeletonBone* parent;
     std::string name;
-
-    glm::vec3 translation = glm::vec3(0.0);
-    glm::vec3 scaling = glm::vec3(1.0, 1.0, 1.0);
-    glm::quat rotation = glm::quat(1, 0, 0, 0);
     glm::mat4 offsetMatrix;
-    int boneId;
-
-public:
-    const std::vector<std::shared_ptr<SkeletonBone>> GetChildren() const;
-    SkeletonBone* GetParent() const;
-    const std::string& GetName() const {return name;};
-    const glm::mat4& GetOffsetMatrix() const;
-    const size_t& GetBoneId() const;
-    const glm::mat4 GetTransformMatrix() const;
-
-    SkeletonBone();
-    SkeletonBone(SkeletonBone&& other);
-    SkeletonBone(const SkeletonBone& other);
-    SkeletonBone& operator=(const SkeletonBone& bone);
-
-    friend class ModelImporter;
-    friend class SkeletonAnimation;
 };
 
 class SkeletonAnimation
@@ -60,7 +37,8 @@ public:
 
     struct Channel
     {
-        size_t boneId;
+        int runtimeBoneId = 0;
+        std::string boneName;
         std::vector<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
         std::vector<RotationKeyFrame> rotations;
         std::vector<ScalingKeyFrame> scalings;
@@ -83,17 +61,20 @@ public:
 
     // returns final transform matrices of each bone
     const std::vector<glm::mat4>& TickAnimation();
-    std::unique_ptr<GameObject> InitializeAndGetBoneTree();
+
+    // let boneObjects only lives in runtime
+    bool Initialize(std::vector<std::pair<GameObject*, SkeletonBone*>> bones);
+    void Deinit();
 
 private:
     std::unordered_map<std::string, std::shared_ptr<const Animation>> animations;
-    std::shared_ptr<const std::vector<SkeletonBone>> bones;
 
     const Animation* currentAnimation;
-    std::vector<GameObject*> gameObjectBoneRepresentation;
+    std::vector<std::pair<GameObject*, SkeletonBone*>> bones;
     std::vector<glm::mat4> finalTransformMatrices;
     double timePassed = 0;
     int currentStartFrame;
     int currentEndFrame;
-    friend class ModelImporter;
+
+    friend struct ModelImporterImple;
 };

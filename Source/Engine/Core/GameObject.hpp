@@ -18,6 +18,13 @@ enum class RotationCoordinate
     World,
 };
 
+enum class GameObjectFlag : uint32_t
+{
+    None = 0,
+    DontChangeHierarchy
+};
+ENUM_FLAGS(GameObjectFlag, uint32_t);
+
 class GameObject : public Asset
 {
     DECLARE_ASSET();
@@ -44,6 +51,9 @@ public:
         }
     }
 
+    void SetFlags(GameObjectFlag f) { this->flags = f; }
+    GameObjectFlag GetFlags() { return flags; }
+
     template <class T>
     T* GetComponent();
 
@@ -58,10 +68,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<GameObject*>& GetChildren()
-    {
-        return children;
-    }
+    const std::vector<GameObject*>& GetChildren() { return children; }
 
     template <class T>
     std::vector<T*> GetComponentsInChildren();
@@ -76,17 +83,11 @@ public:
         return isPrototype;
     }
 
-    bool IsEnabled()
-    {
-        return enabled;
-    }
+    bool IsEnabled() { return enabled; }
 
     void SetEnable(bool isEnabled);
 
-    GameObject* GetParent() const
-    {
-        return parent;
-    }
+    GameObject* GetParent() const { return parent; }
     void SetParent(GameObject* parent);
 
     void SetLocalRotation(const glm::quat& rotation);
@@ -147,45 +148,21 @@ public:
         TransformChanged();
     }
 
-    glm::vec3 GetPosition() const
-    {
-        return GetWorldMatrix()[3];
-    }
+    glm::vec3 GetPosition() const { return GetWorldMatrix()[3]; }
 
-    glm::vec3 GetLocalPosition() const
-    {
-        return position;
-    }
+    glm::vec3 GetLocalPosition() const { return position; }
 
-    glm::vec3 GetLocalScale() const
-    {
-        return scale;
-    }
+    glm::vec3 GetLocalScale() const { return scale; }
 
-    glm::quat GetLocalRotation() const
-    {
-        return rotation;
-    }
+    glm::quat GetLocalRotation() const { return rotation; }
 
-    glm::vec3 GetForward() const
-    {
-        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2]));
-    }
+    glm::vec3 GetForward() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[2])); }
 
-    glm::vec3 GetUp() const
-    {
-        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1]));
-    }
+    glm::vec3 GetUp() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[1])); }
 
-    glm::vec3 GetRight() const
-    {
-        return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0]));
-    }
+    glm::vec3 GetRight() const { return glm::normalize(glm::vec3(glm::mat4_cast(GetRotation())[0])); }
 
-    glm::vec3 GetEuluerAngles() const
-    {
-        return eulerAngles;
-    }
+    glm::vec3 GetEuluerAngles() const { return eulerAngles; }
 
     void SetEulerAngles(const glm::vec3& eulerAngles)
     {
@@ -208,10 +185,7 @@ public:
     void RemoveChild(GameObject* child);
     void ResetTransform();
 
-    void SetWantsToBeEnabled()
-    {
-        wantsToBeEnabled = true;
-    }
+    void SetWantsToBeEnabled() { wantsToBeEnabled = true; }
 
     bool GetWantsTobeEnabledStateAndReset()
     {
@@ -220,17 +194,11 @@ public:
         return temp;
     }
 
-    std::vector<std::unique_ptr<GameObject>>&& GetOwningChildren()
-    {
-        return std::move(owningChildren);
-    }
+    std::vector<std::unique_ptr<GameObject>>&& GetOwningChildren() { return std::move(owningChildren); }
 
     void OnLoadingFinished() override;
 
-    GameObject* GetPrototype()
-    {
-        return prototype;
-    }
+    GameObject* GetPrototype() { return prototype; }
 
     void SetPrototype(GameObject* prototype)
     {
@@ -243,6 +211,7 @@ public:
 
 private:
     GameObject* prototype = nullptr;
+    GameObjectFlag flags = GameObjectFlag::None;
 
     // a prototype GameObject stores all it's children
     bool isPrototype;
