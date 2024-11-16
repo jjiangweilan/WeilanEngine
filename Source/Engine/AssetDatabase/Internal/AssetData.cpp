@@ -205,7 +205,7 @@ void AssetData::UpdateLastWriteTime()
 
 nlohmann::json AssetData::DumpInfo() const
 {
-    nlohmann::json j = {};
+    nlohmann::json j = nlohmann::json::object();
     j["assetUUID"] = assetUUID.ToString();
     j["assetTypeID"] = assetTypeID.ToString();
     auto assetPathStr = assetPath.string();

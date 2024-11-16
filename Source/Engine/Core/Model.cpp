@@ -521,7 +521,7 @@ Material* Model::GetDefaultMaterial()
 
 std::vector<Asset*> Model::GetInternalAssets()
 {
-    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size());
+    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size() + animations.size());
 
     int i = 0;
     for (auto& obj : meshes)

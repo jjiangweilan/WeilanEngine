@@ -392,9 +392,9 @@ private:
         if (scene->mNumAnimations == 0)
             return;
 
-        auto myAnimation = std::make_unique<Animation>();
         for (size_t i = 0; i < scene->mNumAnimations; i++)
         {
+            auto myAnimation = std::make_unique<Animation>();
             auto clip = scene->mAnimations[i];
             std::vector<Animation::Channel> channels;
             for (size_t ni = 0; ni < clip->mNumChannels; ni++)
@@ -431,17 +431,14 @@ private:
                     float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
                     channel.scalings.emplace_back(v.mTime, glm::vec3(x, y, z));
                 }
-                channels.emplace_back(channel);
+                channels.push_back(channel);
             }
 
-            myAnimation->clips.emplace(
+            myAnimation->clips[clip->mName.C_Str()] = std::make_unique<Animation::AnimationClip>(
                 clip->mName.C_Str(),
-                std::make_shared<Animation::AnimationClip>(
-                    clip->mName.C_Str(),
-                    clip->mTicksPerSecond,
-                    clip->mDuration,
-                    std::move(channels)
-                )
+                clip->mTicksPerSecond,
+                clip->mDuration,
+                channels
             );
 
             myAnimation->SetName(scene->mAnimations[i]->mName.C_Str());

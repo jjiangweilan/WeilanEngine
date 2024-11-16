@@ -14,7 +14,7 @@ public:
         ImGui::Text("Clips");
         ImGui::Indent();
         auto& clips = target->GetAnimationClips();
-        for (auto clip : clips)
+        for (auto& clip : clips)
         {
             ImGui::Text("%s", clip.second->name.c_str());
         }

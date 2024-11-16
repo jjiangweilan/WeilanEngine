@@ -24,9 +24,7 @@ void InternalAssetLoader::Load()
         std::ifstream f(absoluteAssetPath, std::ios::binary);
         if (f.is_open() && f.good())
         {
-            size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
-            std::vector<uint8_t> binary(fileSize);
-            f.read((char*)binary.data(), fileSize);
+            std::vector<uint8_t> binary(std::istreambuf_iterator<char>(f), {});
             ser = JsonSerializer(binary, &resolveMap);
             asset->Deserialize(&ser);
         }

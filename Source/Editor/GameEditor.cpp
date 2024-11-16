@@ -1553,11 +1553,7 @@ void GameEditor::EngineResourceDebug()
                 ImGui::TableSetColumnIndex(2);
                 auto objIter = objs.find(std::get<1>(ad));
                 bool loaded = objIter != objs.end();
-                ImGui::PushStyleColor(
-                    ImGuiCol_Text,
-                    loaded ? ImVec4{0, 1, 0, 1}
-                                                                                     : ImVec4{1, 0, 0, 1}
-                );
+                ImGui::PushStyleColor(ImGuiCol_Text, loaded ? ImVec4{0, 1, 0, 1} : ImVec4{1, 0, 0, 1});
                 ImGui::Text("%s", loaded ? "true" : "false");
                 ImGui::PopStyleColor();
 
@@ -1565,8 +1561,9 @@ void GameEditor::EngineResourceDebug()
                 ImGui::TableSetColumnIndex(3);
                 ImGui::PushStyleColor(
                     ImGuiCol_Text,
-                    std::filesystem::exists(std::get<0>(ad)->GetAssetAbsolutePath()) ? ImVec4{0, 1, 0, 1}
-                                                                                     : ImVec4{1, 0, 0, 1}
+                    (std::filesystem::exists(std::get<0>(ad)->GetAssetAbsolutePath()) || !std::get<0>(ad)->IsValid())
+                        ? ImVec4{0, 1, 0, 1}
+                        : ImVec4{1, 0, 0, 1}
                 );
                 ImGui::Text("%s", path.string().c_str());
                 ImGui::PopStyleColor();
@@ -1580,7 +1577,7 @@ void GameEditor::EngineResourceDebug()
             }
             ImGui::EndTable();
         }
-    
+
         ImGui::TreePop();
     }
     ImGui::End();

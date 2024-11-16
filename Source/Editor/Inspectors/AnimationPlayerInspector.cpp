@@ -11,7 +11,6 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         Animation* anim = target->GetAnimation();
-        auto clip = target->GetActiveClip();
 
         std::string animationFieldText = anim ? anim->GetName() : "Animation(none)";
         if (GUI::ObjectField(animationFieldText, anim))
@@ -24,16 +23,25 @@ public:
         {
             ImGui::Indent();
             auto& clips = anim->GetAnimationClips();
-            for (auto clip : clips)
+            int id = 0;
+            for (auto& clip : clips)
             {
-                if(ImGui::Button("Activate"))
+                ImGui::PushID(id++);
+                if (ImGui::Button("Activate"))
                 {
-                    target->PlayAnimation(clip.second->name, 0, -1);
+                    target->SetClip(clip.second->name, 0, -1);
                 }
                 ImGui::SameLine();
                 ImGui::Text("%s", clip.second->name.c_str());
+                ImGui::PopID();
             }
             ImGui::Unindent();
+
+            if (ImGui::Button("Play"))
+                target->Play();
+
+            if (ImGui::Button("Stop"))
+                target->Stop();
         }
     }
 

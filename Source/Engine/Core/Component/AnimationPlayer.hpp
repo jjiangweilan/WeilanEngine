@@ -13,10 +13,10 @@ public:
     void Serialize(Serializer* s) const override {};
     void Deserialize(Serializer* s) override {};
     const std::string& GetName() override;
+    void Tick() override;
 
 public:
-    bool Initialize(GameObject* root);
-    bool SetClip(const std::string& animationName, GameObject* root, int startFrame, int endFrame);
+    bool SetClip(const std::string& animationName, int startFrame, int endFrame);
     void Play();
     void Stop();
     void SetAnimation(Animation* animation) { this->animation = animation; }
@@ -27,10 +27,12 @@ public:
 
 private:
     bool isPlaying = false;
-    Animation* animation;
+    Animation* animation = nullptr;
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;
     double timePassed = 0;
     int currentStartFrame = 0;
     int currentEndFrame = -1;
+
+    bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
 };
