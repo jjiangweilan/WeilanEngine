@@ -1,30 +1,24 @@
-#include "SkeletonAnimation.hpp"
+#include "AnimationPlayer.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Time.hpp"
-#include "glm/gtx/quaternion.hpp"
 
-SkeletonAnimation::Channel::Channel() : positions(), rotations(), scalings() {}
-SkeletonAnimation::Channel::Channel(Channel&& other)
+DEFINE_OBJECT(AnimationPlayer, "F1093426-DC3A-45F6-9C3B-B7CFA098285A");
+
+AnimationPlayer::AnimationPlayer() : Component(nullptr) {};
+AnimationPlayer::AnimationPlayer(GameObject* gameObject) : Component(gameObject) {};
+
+const std::string& AnimationPlayer::GetName()
 {
-    positions = std::move(other.positions);
-    rotations = std::move(other.rotations);
-    scalings = std::move(other.scalings);
-}
-SkeletonAnimation::Channel::Channel(const Channel& other)
-{
-    positions = other.positions;
-    rotations = other.rotations;
-    scalings = other.scalings;
+    static std::string name = "AnimationPlayer";
+    return name;
 }
 
-SkeletonAnimation::SkeletonAnimation() : currentAnimation(nullptr), currentStartFrame(0), currentEndFrame(-1) {}
-
-const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
+void AnimationPlayer::TickAnimation()
 {
-    if (currentAnimation == nullptr)
-        return finalTransformMatrices;
+    if (animatedObjects.empty() || currentClip == nullptr)
+        return;
 
-    auto& animation = *currentAnimation;
+    auto& animation = *currentClip;
     size_t index;
     float a;
     float frame =
@@ -32,7 +26,7 @@ const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
 
     for (auto& channel : animation.channels)
     {
-        auto& bone = bones.at(channel.runtimeBoneId).first;
+        auto& bone = animatedObjects.at(channel.runtimeBoneId);
         // position
         index = 0;
         if (frame > channel.positions.front().time)
@@ -89,28 +83,19 @@ const std::vector<glm::mat4>& SkeletonAnimation::TickAnimation()
             bone->SetLocalScale(channel.scalings.front().val);
     }
     timePassed += Time::DeltaTime();
-
-    // update final transform matrices
-    for (int boneIndex = 0; boneIndex < bones.size(); boneIndex++)
-    {
-        finalTransformMatrices[boneIndex] =
-            bones[boneIndex].first->GetWorldMatrix() * this->bones[boneIndex].second->offsetMatrix;
-    }
-
-    return finalTransformMatrices;
 }
 
-bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const int& startFrame, const int& endFrame)
+bool AnimationPlayer::PlayAnimation(const std::string& animationName, int startFrame, int endFrame)
 {
-    auto iter = animations.find(animationName);
-    if (iter != animations.end())
+    auto iter = animation->GetAnimationClips().find(animationName);
+    if (iter != animation->GetAnimationClips().end())
     {
-        currentAnimation = iter->second.get();
+        currentClip = iter->second.get();
         timePassed = 0;
         currentStartFrame = startFrame;
         if (endFrame <= 0)
         {
-            currentEndFrame = currentAnimation->duration - endFrame;
+            currentEndFrame = currentClip->duration - endFrame;
         }
         else
         {
@@ -119,16 +104,16 @@ bool SkeletonAnimation::PlayAnimation(const std::string& animationName, const in
     }
     else
     {
-        currentAnimation = nullptr;
+        currentClip = nullptr;
         return false;
     }
     return true;
 }
 
-bool SkeletonAnimation::Initialize(std::vector<std::pair<GameObject*, SkeletonBone*>> bones)
+bool AnimationPlayer::Initialize(std::vector<GameObject*> animatedObjects)
 {
-    this->bones = bones;
-    currentAnimation = nullptr;
+    this->animatedObjects = animatedObjects;
+    currentClip = nullptr;
     timePassed = 0;
     currentStartFrame = 0;
     currentEndFrame = -1;
@@ -136,7 +121,7 @@ bool SkeletonAnimation::Initialize(std::vector<std::pair<GameObject*, SkeletonBo
     return true;
 }
 
-void SkeletonAnimation::Deinit()
+void AnimationPlayer::Stop()
 {
-    bones.clear();
+    currentClip = nullptr;
 }

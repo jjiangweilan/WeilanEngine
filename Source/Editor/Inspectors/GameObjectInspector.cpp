@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/GrassSurface.hpp"
 #include "Core/Component/Light.hpp"
@@ -50,6 +51,8 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<LightFieldProbes>();
             if (ImGui::MenuItem("GrassSurface"))
                 target->AddComponent<GrassSurface>();
+            if (ImGui::MenuItem("AnimationPlayer"))
+                target->AddComponent<AnimationPlayer>();
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();

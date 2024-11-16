@@ -4,7 +4,7 @@
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/SkeletonAnimation.hpp"
+#include "Rendering/Animation.hpp"
 #include "Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
@@ -44,7 +44,7 @@ public:
     void Tick() override;
     void SetMeshes(std::span<Mesh*> meshes);
     void SetMesh(Mesh* mesh);
-    void BindSkeletonAnimation(SkeletonAnimation animation);
+    void BindSkeletonAnimation(Animation animation);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
     std::span<Mesh*> GetMeshes();
@@ -60,7 +60,7 @@ private:
     struct
     {
         bool HasAnimation() { return rootBone != nullptr; }
-        SkeletonAnimation binding;
+        Animation binding;
         GameObject* rootBone = nullptr;
     } animation;
     std::vector<Mesh*> meshes;

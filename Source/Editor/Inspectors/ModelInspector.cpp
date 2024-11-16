@@ -85,6 +85,20 @@ public:
             }
         }
         ImGui::Unindent();
+
+        ImGui::Text("Animations");
+        ImGui::Indent();
+        for (auto& animation : target->GetAnimations())
+        {
+            Animation* anim = animation.get();
+
+            if(ImGui::Button(anim->GetName().c_str()))
+            {
+                EditorState::SelectObject(anim->GetSRef());
+            }
+            GUI::DragDropSource(anim->GetName().c_str(), anim);
+        }
+        ImGui::Unindent();
     }
 
 private:

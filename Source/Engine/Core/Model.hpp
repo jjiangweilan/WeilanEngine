@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/GameObject.hpp"
 #include "Graphics/Mesh.hpp"
+#include "Rendering/Animation.hpp"
 #include "Rendering/Material.hpp"
 #include <glm/glm.hpp>
 #include <span>
@@ -56,18 +57,10 @@ public:
     // the first one is the root object
     std::vector<std::unique_ptr<GameObject>> CreateGameObject();
 
-    std::span<std::unique_ptr<Mesh>> GetMeshes()
-    {
-        return meshes;
-    }
-    std::span<std::unique_ptr<Texture>> GetTextures()
-    {
-        return textures;
-    }
-    std::span<std::unique_ptr<Material>> GetMaterials()
-    {
-        return materials;
-    }
+    std::span<std::unique_ptr<Mesh>> GetMeshes() { return meshes; }
+    std::span<std::unique_ptr<Texture>> GetTextures() { return textures; }
+    std::span<std::unique_ptr<Material>> GetMaterials() { return materials; }
+    std::span<std::unique_ptr<Animation>> GetAnimations() { return animations; }
 
     Material* GetDefaultMaterial();
 
@@ -75,7 +68,8 @@ public:
         ModelNode root,
         std::vector<std::unique_ptr<Mesh>>&& meshes,
         std::vector<std::unique_ptr<Texture>>&& textures,
-        std::vector<std::unique_ptr<Material>>&& materials
+        std::vector<std::unique_ptr<Material>>&& materials,
+        std::vector<std::unique_ptr<Animation>>&& animations
     );
 
 private:
@@ -83,8 +77,9 @@ private:
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
+    std::vector<std::unique_ptr<Animation>> animations;
 
-    std::vector<std::unique_ptr<GameObject>> gameObjects;// the first one is the root
+    std::vector<std::unique_ptr<GameObject>> gameObjects; // the first one is the root
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;

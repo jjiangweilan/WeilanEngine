@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Asset.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
@@ -7,15 +8,14 @@
 #include <vector>
 
 class GameObject;
-struct SkeletonBone
-{
-    std::string name;
-    glm::mat4 offsetMatrix;
-};
 
-class SkeletonAnimation
+class Animation : public Asset
 {
+    DECLARE_ASSET();
+
 public:
+    Animation();
+
     struct PositionKeyFrame
     {
         double time;
@@ -38,7 +38,7 @@ public:
     struct Channel
     {
         int runtimeBoneId = 0;
-        std::string boneName;
+        std::string nodeName;                    // name of the GameObject or Bone in a Mesh in the engine sense
         std::vector<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
         std::vector<RotationKeyFrame> rotations;
         std::vector<ScalingKeyFrame> scalings;
@@ -47,34 +47,19 @@ public:
         Channel(const Channel& other);
     };
 
-    struct Animation
+    struct AnimationClip
     {
+        std::string name;
         float tickPerSecond;
         float duration;
         std::vector<Channel> channels;
-        Animation(const float& tickPerSecond, std::vector<Channel>&& channels, const float& duration)
-            : tickPerSecond(tickPerSecond), duration(duration), channels(std::move(channels)) {};
     };
 
-    SkeletonAnimation();
-    bool PlayAnimation(const std::string& animationName, const int& startFrame, const int& endFrame);
+    using AnimationClips = std::unordered_map<std::string, std::shared_ptr<const AnimationClip>>;
 
-    // returns final transform matrices of each bone
-    const std::vector<glm::mat4>& TickAnimation();
-
-    // let boneObjects only lives in runtime
-    bool Initialize(std::vector<std::pair<GameObject*, SkeletonBone*>> bones);
-    void Deinit();
+    const AnimationClips& GetAnimationClips() { return clips; }
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<const Animation>> animations;
-
-    const Animation* currentAnimation;
-    std::vector<std::pair<GameObject*, SkeletonBone*>> bones;
-    std::vector<glm::mat4> finalTransformMatrices;
-    double timePassed = 0;
-    int currentStartFrame;
-    int currentEndFrame;
-
+    AnimationClips clips;
     friend struct ModelImporterImple;
 };

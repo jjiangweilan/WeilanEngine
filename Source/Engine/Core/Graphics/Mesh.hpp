@@ -1,16 +1,20 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "Core/Ptr.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/VertexBufferBinding.hpp"
-#include "Rendering/SkeletonAnimation.hpp"
 #include "Rendering/Structs.hpp"
 #include <glm/glm.hpp>
-#include <iterator>
+
 #include <string_view>
 #include <vector>
 
 // interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
+
+struct SkeletonBone
+{
+    std::string name;
+    glm::mat4 offsetMatrix;
+};
 
 struct VertexBinding
 {

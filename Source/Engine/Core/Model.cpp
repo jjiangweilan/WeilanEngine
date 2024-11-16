@@ -462,13 +462,15 @@ void Model::SetModel(
     ModelNode root,
     std::vector<std::unique_ptr<Mesh>>&& meshes,
     std::vector<std::unique_ptr<Texture>>&& textures,
-    std::vector<std::unique_ptr<Material>>&& materials
+    std::vector<std::unique_ptr<Material>>&& materials,
+    std::vector<std::unique_ptr<Animation>>&& animations
 )
 {
     assimpLoaded = true;
     this->meshes = std::move(meshes);
     this->textures = std::move(textures);
     this->materials = std::move(materials);
+    this->animations = std::move(animations);
 
     gameObjects = CreateGameObject(root);
 }
@@ -543,6 +545,11 @@ std::vector<Asset*> Model::GetInternalAssets()
     }
 
     for (auto& obj : materials)
+    {
+        assets[i++] = obj.get();
+    }
+
+    for (auto& obj : animations)
     {
         assets[i++] = obj.get();
     }

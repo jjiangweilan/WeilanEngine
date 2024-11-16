@@ -1,7 +1,7 @@
 #include "ModelLoader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
-#include "Rendering/SkeletonAnimation.hpp"
+#include "Rendering/Animation.hpp"
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -13,6 +13,7 @@ struct ModelImporterImple
     std::vector<std::unique_ptr<Mesh>> meshes;
     std::vector<std::unique_ptr<Texture>> textures;
     std::vector<std::unique_ptr<Material>> materials;
+    std::vector<std::unique_ptr<Animation>> animations;
     ModelNode rootNode;
 
     std::filesystem::path absoluteAssetPath;
@@ -56,6 +57,7 @@ struct ModelImporterImple
 
         ProcessMesh();
         ProcessMaterial();
+        ProcessAnimation();
         rootNode = ProcessNode(scene->mRootNode);
     }
 
@@ -83,12 +85,6 @@ struct ModelImporterImple
         for (int meshIndex = 0; meshIndex < scene->mNumMeshes; meshIndex++)
         {
             aiMesh* mesh = scene->mMeshes[meshIndex];
-
-            std::unique_ptr<SkeletonBone> rootBone = std::make_unique<SkeletonBone>();
-            for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
-            {
-                mesh->mVertices[mesh->mBones[boneIndex]->mWeights[0].mVertexId];
-            }
 
             std::vector<glm::vec3> positions(mesh->mNumVertices);
             for (int i = 0; i < mesh->mNumVertices; ++i)
@@ -389,40 +385,40 @@ struct ModelImporterImple
         if (scene->mNumAnimations == 0)
             return;
 
-        auto skeletonAnimation = std::make_unique<SkeletonAnimation>();
+        auto myAnimation = std::make_unique<Animation>();
         for (size_t i = 0; i < scene->mNumAnimations; i++)
         {
-            auto animation = scene->mAnimations[i];
-            std::vector<SkeletonAnimation::Channel> channels;
-            for (size_t ni = 0; ni < animation->mNumChannels; ni++)
+            auto clip = scene->mAnimations[i];
+            std::vector<Animation::Channel> channels;
+            for (size_t ni = 0; ni < clip->mNumChannels; ni++)
             {
-                auto node = scene->mRootNode->FindNode(animation->mChannels[ni]->mNodeName);
+                auto node = scene->mRootNode->FindNode(clip->mChannels[ni]->mNodeName);
                 if (node == nullptr)
                     continue;
 
-                SkeletonAnimation::Channel channel;
-                channel.boneName = channel.boneName;
+                Animation::Channel channel;
+                channel.nodeName = clip->mChannels[ni]->mNodeName.C_Str();
 
-                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumPositionKeys; ri++)
+                for (size_t ri = 0; ri < clip->mChannels[ni]->mNumPositionKeys; ri++)
                 {
-                    auto& v = animation->mChannels[ni]->mPositionKeys[ri];
+                    auto& v = clip->mChannels[ni]->mPositionKeys[ri];
                     float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
                     float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
                     float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
                     channel.positions.emplace_back(v.mTime, glm::vec3(x, y, z));
                 }
-                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumRotationKeys; ri++)
+                for (size_t ri = 0; ri < clip->mChannels[ni]->mNumRotationKeys; ri++)
                 {
-                    auto& v = animation->mChannels[ni]->mRotationKeys[ri];
+                    auto& v = clip->mChannels[ni]->mRotationKeys[ri];
                     float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
                     float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
                     float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
                     float w = v.mValue.w; // v.mValue.w > 0.99999 ? 1 : v.mValue.w;
                     channel.rotations.emplace_back(v.mTime, glm::quat(w, x, y, z));
                 }
-                for (size_t ri = 0; ri < animation->mChannels[ni]->mNumScalingKeys; ri++)
+                for (size_t ri = 0; ri < clip->mChannels[ni]->mNumScalingKeys; ri++)
                 {
-                    auto& v = animation->mChannels[ni]->mScalingKeys[ri];
+                    auto& v = clip->mChannels[ni]->mScalingKeys[ri];
                     float x = v.mValue.x; // v.mValue.x > 0.99999 ? 1 : v.mValue.x;
                     float y = v.mValue.y; // v.mValue.y > 0.99999 ? 1 : v.mValue.y;
                     float z = v.mValue.z; // v.mValue.z > 0.99999 ? 1 : v.mValue.z;
@@ -431,14 +427,18 @@ struct ModelImporterImple
                 channels.emplace_back(channel);
             }
 
-            skeletonAnimation->animations.emplace(
-                animation->mName.C_Str(),
-                std::make_shared<SkeletonAnimation>(
-                    animation->mTicksPerSecond,
-                    std::move(channels),
-                    animation->mDuration
+            myAnimation->clips.emplace(
+                clip->mName.C_Str(),
+                std::make_shared<Animation::AnimationClip>(
+                    clip->mName.C_Str(),
+                    clip->mTicksPerSecond,
+                    clip->mDuration,
+                    std::move(channels)
                 )
             );
+
+            myAnimation->SetName(scene->mAnimations[i]->mName.C_Str());
+            animations.push_back(std::move(myAnimation));
         }
     }
 
@@ -465,7 +465,13 @@ void ModelLoader::Load()
         e.Load(absoluteAssetPath);
 
         auto model = std::make_unique<Model>();
-        model->SetModel(std::move(e.rootNode), std::move(e.meshes), std::move(e.textures), std::move(e.materials));
+        model->SetModel(
+            std::move(e.rootNode),
+            std::move(e.meshes),
+            std::move(e.textures),
+            std::move(e.materials),
+            std::move(e.animations)
+        );
 
         asset = std::move(model);
     }
