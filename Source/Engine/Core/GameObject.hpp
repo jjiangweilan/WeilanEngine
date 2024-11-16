@@ -39,6 +39,8 @@ public:
     std::unique_ptr<Asset> Clone() override;
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
+    
+    GameObject* Find(std::string_view name);
 
     void RemoveComponent(void* comp)
     {
@@ -233,6 +235,8 @@ private:
     std::vector<std::unique_ptr<Component>> components;
     GameObject* parent = nullptr;
     Scene* gameScene = nullptr;
+
+    GameObject* FindInternal(GameObject* go, std::string_view name);
 
     inline bool EqualZero(const glm::vec3& v)
     {

@@ -412,6 +412,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     go->SetPosition(position);
     go->SetScale(scale);
     go->SetRotation(rotation);
+    go->SetName(node.name);
 
     if (!node.meshes.empty())
     {
@@ -419,19 +420,11 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
         std::vector<Mesh*> meshes;
 
         auto meshRenderer = go->AddComponent<MeshRenderer>();
+
         for (int i = 0; i < node.meshes.size(); ++i)
         {
             auto mat = this->materials[node.meshes[i].materialIndex].get();
             auto mesh = this->meshes[node.meshes[i].index].get();
-
-            if (mesh->GetSubmeshes()[0].HasAttribute("tangent"))
-            {
-                mat->EnableFeature("_Vertex_Tangent");
-            }
-            if (mesh->GetSubmeshes()[0].HasAttribute("texCoords_0"))
-            {
-                mat->EnableFeature("_Vertex_UV0");
-            }
 
             mats.push_back(mat);
             meshes.push_back(mesh);
@@ -471,19 +464,16 @@ void Model::SetModel(
     this->textures = std::move(textures);
     this->materials = std::move(materials);
     this->animations = std::move(animations);
+    this->rootNode = root;
 
-    gameObjects = CreateGameObject(root);
+    SetMaterialKeywords(rootNode);
 }
 
 std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
     if (assimpLoaded)
     {
-        auto clone = this->gameObjects[0]->Clone();
-        std::unique_ptr<GameObject> root = std::unique_ptr<GameObject>((GameObject*)clone.release());
-        std::vector<std::unique_ptr<GameObject>> gos;
-        gos.push_back(std::move(root));
-        return gos;
+        return CreateGameObject(rootNode);
     }
 
     // create game objects that are presented in glb file
@@ -555,4 +545,30 @@ std::vector<Asset*> Model::GetInternalAssets()
     }
 
     return assets;
+}
+
+void Model::SetMaterialKeywords(ModelNode& node)
+{
+    if (!node.meshes.empty())
+    {
+        for (int i = 0; i < node.meshes.size(); ++i)
+        {
+            auto mat = this->materials[node.meshes[i].materialIndex].get();
+            auto mesh = this->meshes[node.meshes[i].index].get();
+
+            if (mesh->GetSubmeshes()[0].HasAttribute("tangent"))
+            {
+                mat->EnableFeature("_Vertex_Tangent");
+            }
+            if (mesh->GetSubmeshes()[0].HasAttribute("texCoords_0"))
+            {
+                mat->EnableFeature("_Vertex_UV0");
+            }
+        }
+    }
+
+    for (auto& n : node.children)
+    {
+        SetMaterialKeywords(n);
+    }
 }

@@ -37,7 +37,7 @@ public:
 
     struct Channel
     {
-        int runtimeBoneId = 0;
+        int runtimeNodeId;
         std::string nodeName;                    // name of the GameObject or Bone in a Mesh in the engine sense
         std::vector<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
         std::vector<RotationKeyFrame> rotations;

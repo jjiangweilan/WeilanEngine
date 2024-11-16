@@ -57,7 +57,7 @@ struct ModelImporterImple
 
         ProcessMesh();
         ProcessMaterial();
-        // ProcessAnimation();
+        ProcessAnimation();
         rootNode = ProcessNode(scene->mRootNode);
     }
 
@@ -107,7 +107,7 @@ private:
             uint32_t skeletonOffset = 0;
             if (mesh->HasNormals())
             {
-                attributeStrideSize += normalSize ? normalSize : 0;
+                attributeStrideSize += normalSize;
                 attributes.AddAttribute("normal", normalSize);
             }
 
@@ -188,14 +188,20 @@ private:
             {
                 for (int i = 0; i < mesh->mNumVertices; ++i)
                 {
+                    auto tangent = mesh->mTangents[i];
+                    auto bitangent = mesh->mBitangents[i];
+                    auto normal = mesh->mNormals[i];
+                    glm::vec3 glmTangent = {tangent.x, tangent.y, tangent.z};
+                    glm::vec3 glmBitangent = {bitangent.x, bitangent.y, bitangent.z};
+                    glm::vec3 glmNormal = {normal.x, normal.y, normal.z};
+                    float w = glm::sign(dot(glm::cross(glmTangent, glmBitangent), glmNormal));
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset) =
                         mesh->mTangents[i].x;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 4) =
                         mesh->mTangents[i].y;
                     *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 8) =
                         mesh->mTangents[i].z;
-                    *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 12) =
-                        mesh->mTangents[i].z;
+                    *reinterpret_cast<float*>(data + attributeStrideSize * i + tangentStrideOffset + 12) = w;
                 }
             }
 

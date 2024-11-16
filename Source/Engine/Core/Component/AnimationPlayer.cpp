@@ -15,7 +15,7 @@ const std::string& AnimationPlayer::GetName()
 
 void AnimationPlayer::TickAnimation()
 {
-    if (animatedObjects.empty() || currentClip == nullptr)
+    if (animatedObjects.empty() || currentClip == nullptr || !isPlaying)
         return;
 
     auto& animation = *currentClip;
@@ -26,7 +26,7 @@ void AnimationPlayer::TickAnimation()
 
     for (auto& channel : animation.channels)
     {
-        auto& bone = animatedObjects.at(channel.runtimeBoneId);
+        auto& bone = animatedObjects.at(channel.runtimeNodeId);
         // position
         index = 0;
         if (frame > channel.positions.front().time)
@@ -85,8 +85,9 @@ void AnimationPlayer::TickAnimation()
     timePassed += Time::DeltaTime();
 }
 
-bool AnimationPlayer::PlayAnimation(const std::string& animationName, int startFrame, int endFrame)
+bool AnimationPlayer::SetClip(const std::string& animationName, GameObject* root, int startFrame, int endFrame)
 {
+    isPlaying = false;
     auto iter = animation->GetAnimationClips().find(animationName);
     if (iter != animation->GetAnimationClips().end())
     {
@@ -107,12 +108,7 @@ bool AnimationPlayer::PlayAnimation(const std::string& animationName, int startF
         currentClip = nullptr;
         return false;
     }
-    return true;
-}
 
-bool AnimationPlayer::Initialize(std::vector<GameObject*> animatedObjects)
-{
-    this->animatedObjects = animatedObjects;
     currentClip = nullptr;
     timePassed = 0;
     currentStartFrame = 0;
@@ -123,5 +119,10 @@ bool AnimationPlayer::Initialize(std::vector<GameObject*> animatedObjects)
 
 void AnimationPlayer::Stop()
 {
-    currentClip = nullptr;
+    isPlaying = true;
+}
+
+void AnimationPlayer::Play()
+{
+    isPlaying = false;
 }

@@ -425,3 +425,23 @@ void GameObject::ResetAsPrototype()
         wantsToBeEnabled = false;
     }
 }
+
+GameObject* GameObject::Find(std::string_view name)
+{
+    return FindInternal(this, name);
+}
+
+GameObject* GameObject::FindInternal(GameObject* go, std::string_view name)
+{
+    if (go->name == name)
+    {
+        return go;
+    }
+
+    for (auto c : children)
+    {
+        return FindInternal(go, name);
+    }
+
+    return nullptr;
+}

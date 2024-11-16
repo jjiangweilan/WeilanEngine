@@ -15,16 +15,18 @@ public:
     const std::string& GetName() override;
 
 public:
-    bool Initialize(std::vector<GameObject*> animatedObjects);
+    bool Initialize(GameObject* root);
+    bool SetClip(const std::string& animationName, GameObject* root, int startFrame, int endFrame);
+    void Play();
     void Stop();
     void SetAnimation(Animation* animation) { this->animation = animation; }
     Animation* GetAnimation() { return animation; }
     const Animation::AnimationClip* GetActiveClip() { return currentClip; }
-    bool PlayAnimation(const std::string& animationName, int startFrame, int endFrame);
 
     void TickAnimation();
 
 private:
+    bool isPlaying = false;
     Animation* animation;
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;

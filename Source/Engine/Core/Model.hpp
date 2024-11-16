@@ -79,6 +79,7 @@ private:
     std::vector<std::unique_ptr<Material>> materials;
     std::vector<std::unique_ptr<Animation>> animations;
 
+    ModelNode rootNode;
     std::vector<std::unique_ptr<GameObject>> gameObjects; // the first one is the root
 
     nlohmann::json jsonData;
@@ -96,5 +97,7 @@ private:
         Material* defaultMaterial
     );
 
-    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& node);
+    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n);
+    void SetMaterialKeywords(ModelNode& node);
+
 };
