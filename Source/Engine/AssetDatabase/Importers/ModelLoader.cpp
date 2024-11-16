@@ -57,10 +57,11 @@ struct ModelImporterImple
 
         ProcessMesh();
         ProcessMaterial();
-        ProcessAnimation();
+        // ProcessAnimation();
         rootNode = ProcessNode(scene->mRootNode);
     }
 
+private:
     ModelNode ProcessNode(aiNode* node)
     {
         ModelNode modelNode;

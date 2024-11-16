@@ -79,6 +79,13 @@ void Material::SetTexture(
     if (same)
         return;
 
+    SetTextureInternal(param, texture, imageViewOption);
+}
+
+void Material::SetTextureInternal(
+    const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
+)
+{
     textureValues[param] = texture;
     textureImageViewOptions[param] = imageViewOption;
 
@@ -342,7 +349,7 @@ void Material::Deserialize(Serializer* s)
                 {
                     if (kv.second == tex)
                     {
-                        SetTexture(kv.first, tex);
+                        SetTextureInternal(kv.first, tex, std::nullopt);
                         break;
                     }
                 }

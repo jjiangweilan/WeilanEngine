@@ -162,5 +162,8 @@ private:
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
     void SetShaderNoProtection(ShaderBase* shader);
     Gfx::ShaderResource* ValidateGetShaderResource();
+    void SetTextureInternal(
+        const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
+    );
     bool uploadNeeded = false;
 };

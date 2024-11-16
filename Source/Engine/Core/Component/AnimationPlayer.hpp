@@ -4,8 +4,8 @@
 
 class AnimationPlayer : public Component
 {
-public:
     DECLARE_OBJECT();
+public:
 
     AnimationPlayer();
     AnimationPlayer(GameObject* gameObject);
