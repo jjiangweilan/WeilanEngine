@@ -17,10 +17,7 @@ public:
     Object(const Object& other) : uuid() {};
     virtual ~Object();
 
-    const UUID& GetUUID() const
-    {
-        return uuid;
-    }
+    const UUID& GetUUID() const { return uuid; }
     void SetUUID(const UUID& uuid)
     {
         if (this->uuid == uuid)
@@ -77,10 +74,7 @@ public:
         return '0';
     }
 
-    static const std::vector<std::string>& GetComponentTypeNames()
-    {
-        return GetComponentTypeNamesRegistry();
-    }
+    static const std::vector<std::string>& GetComponentTypeNames() { return GetComponentTypeNamesRegistry(); }
     static const std::string& GetTypeName(const ObjectTypeID& id)
     {
         auto iter = GetObjectTypeToTypeNameMap()->find(id);
@@ -139,7 +133,7 @@ std::vector<T*> Object::GetObjectsOfType()
 {
     std::vector<T*> result;
     auto& objs = GetAllEngineObjects();
-    for(auto obj : objs)
+    for (auto obj : objs)
     {
         auto cast = dynamic_cast<T*>(obj.second);
         if (cast)

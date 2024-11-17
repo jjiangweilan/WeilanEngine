@@ -97,7 +97,7 @@ private:
         Material* defaultMaterial
     );
 
-    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n);
+    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n, GameObject* parent);
     void SetMaterialKeywords(ModelNode& node);
 
 };

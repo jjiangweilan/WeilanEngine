@@ -169,7 +169,7 @@ private:
                 attributes.AddAttribute("skeleton", skeletonSize);
             }
 
-            std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices);
+            std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices, 0);
 
             uint8_t* data = attributeData.data();
             if (mesh->HasNormals())
@@ -242,21 +242,21 @@ private:
 
             Skeleton skeleton;
             std::vector<int> vertexBoneIndexOffset(mesh->mNumVertices, 0);
-            for (int boneId = 0; boneId < mesh->mNumBones; ++boneId)
+            for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
             {
-                for (int w = 0; w < mesh->mBones[boneId]->mNumWeights; w++)
+                skeleton.push_back(
+                    {std::string(mesh->mBones[boneIndex]->mName.C_Str()),
+                     aiMatrixToGlm(mesh->mBones[boneIndex]->mOffsetMatrix)}
+                );
+                for (int w = 0; w < mesh->mBones[boneIndex]->mNumWeights; w++)
                 {
-                    auto& weight = mesh->mBones[boneId]->mWeights[w];
-                    skeleton.push_back(
-                        {std::string(mesh->mBones[boneId]->mName.C_Str()),
-                         aiMatrixToGlm(mesh->mBones[boneId]->mOffsetMatrix)}
-                    );
+                    auto& weight = mesh->mBones[boneIndex]->mWeights[w];
                     int vertexId = weight.mVertexId;
                     int index = vertexBoneIndexOffset[vertexId]++;
                     if (index < 4)
                     {
-                        *reinterpret_cast<float*>(data + attributeStrideSize * vertexId + skeletonOffset * index) =
-                            boneId * 10 + weight.mWeight;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vertexId + skeletonOffset + 4 * index) =
+                            boneIndex * 10 + weight.mWeight;
                     }
                 }
             }
@@ -447,8 +447,12 @@ private:
                 animationName = "animation_" + std::to_string(i);
             }
 
-            myAnimation->clips[animationName] =
-                std::make_unique<Animation::AnimationClip>(animationName, clip->mTicksPerSecond, clip->mDuration, channels);
+            myAnimation->clips[animationName] = std::make_unique<Animation::AnimationClip>(
+                animationName,
+                clip->mTicksPerSecond,
+                clip->mDuration,
+                channels
+            );
         }
         myAnimation->SetName("AnimationCollection");
         animations.push_back(std::move(myAnimation));

@@ -75,6 +75,7 @@ void MeshRenderer::Serialize(Serializer* s) const
     s->Serialize("materials", materials);
     s->Serialize("aabbMin", aabb.min);
     s->Serialize("aabbMax", aabb.max);
+    s->Serialize("wantsToEnableSkinning", wantsToEnableSkinning);
 }
 
 void MeshRenderer::Deserialize(Serializer* s)
@@ -84,6 +85,7 @@ void MeshRenderer::Deserialize(Serializer* s)
     s->Deserialize("materials", materials);
     s->Deserialize("aabbMin", aabb.min);
     s->Deserialize("aabbMax", aabb.max);
+    s->Deserialize("wantsToEnableSkinning", wantsToEnableSkinning);
 }
 
 std::unique_ptr<Component> MeshRenderer::Clone(GameObject& owner)
@@ -131,6 +133,11 @@ void MeshRenderer::RemoveFromRenderingScene()
 void MeshRenderer::EnableImple()
 {
     AddToRenderingScene();
+
+    if (wantsToEnableSkinning)
+    {
+        EnableSkinning();
+    }
 }
 void MeshRenderer::DisableImple()
 {
@@ -145,21 +152,88 @@ AABB MeshRenderer::GetAABB()
     return aabb;
 }
 
-void MeshRenderer::Tick() {
-    if(animation.HasAnimation())
+void MeshRenderer::Tick()
+{
+    if (skinning.enabled)
     {
+        Skinning::GPUBoneTransforms boneTransforms;
+        boneTransforms.boneSize = skinning.bones.size();
+
+        for (int boneIndex = 0; boneIndex < skinning.bones.size(); ++boneIndex)
+        {
+            boneTransforms.boneTrnasforms[boneIndex] =
+                skinning.bones[boneIndex]->GetWorldMatrix() * skinning.offsetMatrix[boneIndex];
+        }
+        GetGfxDriver()
+            ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
     }
 }
 
-void MeshRenderer::BindSkeletonAnimation(Animation anim)
+void MeshRenderer::EnableSkinning()
 {
-    if(!meshes.empty())
+    if (!meshes.empty() && !materials.empty() && !skinning.enabled)
     {
         auto mesh = meshes[0];
-        if(mesh->HasSkeleton())
+        if (mesh->HasSkeleton())
         {
             auto go = GetGameObject();
             auto skeleton = mesh->GetSkeleton();
+            materials[0]->EnableFeature("_Vertex_Skeleton");
+            skinning.materialUsed = materials[0];
+            skinning.bones.clear();
+            skinning.offsetMatrix.clear();
+            for (auto& bone : skeleton)
+            {
+                GameObject* boneGO = nullptr;
+                if (auto parent = go->GetParent())
+                    boneGO = parent->Find(bone.name);
+                else
+                    boneGO = go->Find(bone.name);
+
+                if (boneGO == nullptr)
+                {
+                    spdlog::warn("bone not found {}, skining is not enabled", bone.name);
+                    skinning.bones.clear();
+                    skinning.offsetMatrix.clear();
+                    return;
+                }
+                skinning.bones.push_back(boneGO);
+                skinning.offsetMatrix.push_back(bone.offsetMatrix);
+            }
+
+            // cpu is ready, let's prepare gpu resources
+            skinning.bonesBuffer = GetGfxDriver()->CreateBuffer(
+                sizeof(Skinning::GPUBoneTransforms),
+                Gfx::BufferUsage::Uniform,
+                false,
+                false,
+                "skinning buffer"
+            );
+            skinning.enabled = true;
+            wantsToEnableSkinning = true;
+
+            gpuResource = GetGfxDriver()->CreateShaderResource();
+            gpuResource->SetBuffer("BoneTransform", skinning.bonesBuffer.get());
+            return;
         }
     }
+}
+void MeshRenderer::DisableSkinning()
+{
+    // clear all gpu resources
+    if (skinning.enabled)
+    {
+        wantsToEnableSkinning = false;
+        skinning.enabled = false;
+        skinning.bonesBuffer = nullptr;
+        skinning.bones.clear();
+        skinning.offsetMatrix.clear();
+        skinning.materialUsed->DisableFeature("_Vertex_Skeleton");
+        skinning.materialUsed = nullptr;
+        gpuResource = nullptr; // currently only used for skinning, so let's destroy this too
+    }
+}
+bool MeshRenderer::IsSkinningEnabled()
+{
+    return skinning.enabled;
 }

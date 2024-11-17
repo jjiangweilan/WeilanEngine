@@ -63,6 +63,7 @@ public:
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
+    void RebuildAll() override;
 
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
     const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
@@ -103,6 +104,7 @@ protected:
 
     struct SetInfo
     {
+        VKShaderProgram* program;
         uint32_t creationSetIndex;
         VkDescriptorSet set = VK_NULL_HANDLE;
         bool rebuild = false;
@@ -115,11 +117,9 @@ protected:
     VkPipelineLayout layout = VK_NULL_HANDLE;
     VKSharedResource* sharedResource;
     VKDescriptorPool* descriptorPool = nullptr;
-    std::unordered_map<VKShaderProgram*, SetInfo> sets;
+    std::unordered_map<UUID, SetInfo> sets;
     std::unique_ptr<VKBuffer> defaultBuffer;
     std::string name;
-
-    void RebuildAll();
 
     void SetNameInternal(std::string_view name, VKShaderProgram* shader, VkDescriptorSet set, int setIndex);
 };

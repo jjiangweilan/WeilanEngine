@@ -18,7 +18,10 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
     if (HasFlag(usageIn, BufferUsage::Storage_Texel))
         usage |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     if (HasFlag(usageIn, BufferUsage::Uniform))
+    {
         usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    }
     if (HasFlag(usageIn, BufferUsage::Storage))
         usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (HasFlag(usageIn, BufferUsage::Index))

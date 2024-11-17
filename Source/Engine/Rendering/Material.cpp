@@ -294,6 +294,7 @@ Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
 
         if (newProgram != cachedShaderPrograms[shaderPassIndex])
         {
+            shaderResource->RebuildAll();
             cachedShaderPrograms[shaderPassIndex] = newProgram;
             for (auto& u : ubos)
             {

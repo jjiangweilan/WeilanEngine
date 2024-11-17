@@ -17,6 +17,18 @@ public:
         if (mesh)
             meshGUIID = mesh->GetName();
 
+        bool skinning = meshRenderer->IsSkinningEnabled();
+        ImGui::Text("Skinned: %s", skinning ? "Enabled" : "Disabled");
+        if (ImGui::Button("Enable Skinning"))
+        {
+            meshRenderer->EnableSkinning();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Disable Skinning"))
+        {
+            meshRenderer->DisableSkinning();
+        }
+
         bool multipass = meshRenderer->IsMultipassEnabled();
         if (ImGui::Checkbox("Multipass", &multipass))
         {

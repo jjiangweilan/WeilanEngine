@@ -401,7 +401,7 @@ bool Model::LoadFromFile(const char* cpath)
     return true;
 }
 
-std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node)
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node, GameObject* parent)
 {
     std::unique_ptr<GameObject> go = std::make_unique<GameObject>();
 
@@ -413,6 +413,8 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     go->SetScale(scale);
     go->SetRotation(rotation);
     go->SetName(node.name);
+    if (parent)
+        go->SetParent(parent);
 
     if (!node.meshes.empty())
     {
@@ -435,16 +437,12 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     }
 
     std::vector<std::unique_ptr<GameObject>> gos;
-    auto parent = go.get();
+    auto goTmp = go.get();
     gos.push_back(std::move(go));
 
     for (auto& n : node.children)
     {
-        auto childGos = CreateGameObject(n);
-        for (auto& c : childGos)
-        {
-            c->SetParent(parent);
-        }
+        auto childGos = CreateGameObject(n, goTmp);
         gos.insert(gos.end(), std::make_move_iterator(childGos.begin()), std::make_move_iterator(childGos.end()));
     }
 
@@ -473,7 +471,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
     if (assimpLoaded)
     {
-        return CreateGameObject(rootNode);
+        return CreateGameObject(rootNode, nullptr);
     }
 
     // create game objects that are presented in glb file

@@ -15,7 +15,8 @@ struct SceneObjectDrawData
     Shader* shader = nullptr;
     const Gfx::ShaderConfig* shaderConfig = nullptr;
     Material* material = nullptr;
-    Gfx::ShaderResource* shaderResource = nullptr;
+    Gfx::ShaderResource* materialResource = nullptr;
+    Gfx::ShaderResource* objectResource = nullptr;
     Gfx::Buffer* indexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType;
     std::vector<Gfx::VertexBufferBinding> vertexBufferBinding;

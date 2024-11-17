@@ -59,10 +59,7 @@ VKShaderResource::~VKShaderResource()
 
 void VKShaderResource::RebuildAll()
 {
-    for (auto& d : sets)
-    {
-        d.second.rebuild = true;
-    }
+    sets.clear();
 }
 
 void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer)
@@ -117,7 +114,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
-    auto iter = sets.find(shaderProgram);
+    auto iter = sets.find(shaderProgram->GetUUID());
 
     VkDescriptorSet finalReturn = VK_NULL_HANDLE;
     bool rebuild = false;
@@ -129,8 +126,8 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         VkDescriptorSet descriptorSet = descriptorPool->Allocate();
         finalReturn = descriptorSet;
         rebuild = true;
-        sets[shaderProgram] = {set, descriptorSet, false};
-        writableGPUResources = &sets[shaderProgram].writableGPUResources;
+        sets[shaderProgram->GetUUID()] = {shaderProgram, set, descriptorSet, false};
+        writableGPUResources = &sets[shaderProgram->GetUUID()].writableGPUResources;
     }
     else
     {
@@ -409,7 +406,7 @@ void VKShaderResource::SetName(std::string_view name)
     this->name = name;
     for (auto& s : sets)
     {
-        SetNameInternal(name, s.first, s.second.set, s.second.creationSetIndex);
+        SetNameInternal(name, s.second.program, s.second.set, s.second.creationSetIndex);
     }
 }
 
@@ -428,11 +425,11 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
     uint32_t set, VKShaderProgram* shaderProgram
 )
 {
-    auto iter = sets.find(shaderProgram);
+    auto iter = sets.find(shaderProgram->GetUUID());
     if (iter == sets.end() || iter->second.rebuild)
     {
         GetDescriptorSet(set, shaderProgram);
-        iter = sets.find(shaderProgram);
+        iter = sets.find(shaderProgram->GetUUID());
     }
     if (iter != sets.end() && iter->second.creationSetIndex == set)
     {

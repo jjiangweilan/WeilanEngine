@@ -43,8 +43,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         }
                         drawData.indexBuffer = submesh.GetIndexBuffer();
                         drawData.indexBufferType = submesh.GetIndexBufferType();
-
-                        drawData.shaderResource = material->GetShaderResource();
+                        drawData.materialResource = material->GetShaderResource();
+                        drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = (Shader*)shader;
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
@@ -84,8 +84,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         }
                         drawData.indexBuffer = submesh.GetIndexBuffer();
                         drawData.indexBufferType = submesh.GetIndexBufferType();
-
-                        drawData.shaderResource = material->GetShaderResource();
+                        drawData.materialResource = material->GetShaderResource();
+                        drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = (Shader*)shader;
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();

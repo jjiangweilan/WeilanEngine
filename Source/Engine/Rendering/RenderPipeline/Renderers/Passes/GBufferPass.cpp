@@ -63,7 +63,11 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData,
             {
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(2, draw.shaderResource);
+                cmd.BindResource(2, draw.materialResource);
+                if (draw.objectResource)
+                {
+                    cmd.BindResource(3, draw.objectResource);
+                }
                 cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
@@ -79,7 +83,11 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData,
             {
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.BindResource(2, draw.shaderResource);
+                cmd.BindResource(2, draw.materialResource);
+                if (draw.objectResource)
+                {
+                    cmd.BindResource(3, draw.objectResource);
+                }
                 cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
                 cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);

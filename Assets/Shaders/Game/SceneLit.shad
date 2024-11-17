@@ -7,6 +7,7 @@ ShaderPass GBuffer
 
 #if CONFIG
 name: Game/SceneLit
+debug: true
 fragFeatures:
     - [_, _AlphaTest]
     - [_, _BaseColorMap]
@@ -18,6 +19,22 @@ vertFeatures:
     - [_, _Vertex_UV0]
     - [_, _Vertex_Skeleton]
 #endif
+
+layout(set = SET_MATERIAL, binding = 0) uniform PBR
+{
+    vec4 baseColorFactor;
+    vec4 emissive;
+    float roughness;
+    float metallic;
+    float alphaCutoff;
+} matParams;
+
+#define MAX_BONE_SIZE 64
+layout(set = SET_OBJECT, binding = 0) uniform BoneTransform
+{
+    int boneSize;
+    mat4 bones[MAX_BONE_SIZE];
+};
 
 #if VERT
 layout(push_constant) uniform Transform
@@ -62,12 +79,29 @@ vec2 GetVertexUV0()
 
 void main()
 {
+#ifdef _Vertex_Skeleton
+
+    mat4 boneMatrix = mat4(0);
+    for(int i = 0; i < 4; ++i)
+    {
+        float boneWeight = i_Bone[i];
+        if (boneWeight != 0)
+        {
+            int boneIndex = int(boneWeight * 0.1);
+            float weight = boneWeight - boneIndex * 10;
+            boneMatrix += bones[boneIndex] * weight;
+        }
+    }
+    o_PositionWS = (boneMatrix * vec4(i_Position, 1)).xyz;
+#else
     o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
+#endif
     o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
     vec4 tangent = GetVertexTangent();
     o_TangentWS = (inverse(transpose(pconst.model)) * vec4(tangent.xyz, 1)).xyz;
     o_BitangentWS = tangent.w * cross(o_NormalWS, o_TangentWS);
     o_UV = GetVertexUV0();
+
 
     gl_Position = scene.viewProjection * vec4(o_PositionWS, 1);
 }
@@ -89,15 +123,6 @@ layout(location = 3) out vec4 o_Property;
 #define NormalMap normalMap_sampler_linear
 #define EmissiveMap emissiveMap_sampler_linear
 #define MetallicRoughnessMap metallicRoughnessMap_sampler_linear
-
-layout(set = SET_MATERIAL, binding = 0) uniform PBR
-{
-    vec4 baseColorFactor;
-    vec4 emissive;
-    float roughness;
-    float metallic;
-    float alphaCutoff;
-} matParams;
 
 layout(set = SET_MATERIAL, binding = 1) uniform sampler2D BaseColorTex;
 layout(set = SET_MATERIAL, binding = 2) uniform sampler2D NormalMap;

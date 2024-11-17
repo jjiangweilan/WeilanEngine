@@ -1,5 +1,6 @@
 #include "ShaderProgram.hpp"
 
+
 namespace Gfx
 {
 // bool StencilOpState::operator==(const StencilOpState& other) const noexcept

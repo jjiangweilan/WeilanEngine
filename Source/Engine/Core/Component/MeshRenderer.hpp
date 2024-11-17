@@ -3,8 +3,8 @@
 #include "Component.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
-#include "Rendering/Material.hpp"
 #include "Rendering/Animation.hpp"
+#include "Rendering/Material.hpp"
 #include "Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
@@ -44,12 +44,15 @@ public:
     void Tick() override;
     void SetMeshes(std::span<Mesh*> meshes);
     void SetMesh(Mesh* mesh);
-    void BindSkeletonAnimation(Animation animation);
     void SetMaterials(std::span<Material*> materials);
     Mesh* GetMesh();
     std::span<Mesh*> GetMeshes();
     AABB GetAABB();
+    void EnableSkinning();
+    void DisableSkinning();
+    bool IsSkinningEnabled();
     const std::vector<Material*>& GetMaterials();
+    Gfx::ShaderResource* GetObjectResource() { return gpuResource.get(); }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -57,16 +60,29 @@ public:
     const std::string& GetName() override;
 
 private:
-    struct
-    {
-        bool HasAnimation() { return rootBone != nullptr; }
-        Animation binding;
-        GameObject* rootBone = nullptr;
-    } animation;
+    /***** Serialized Data ******/
     std::vector<Mesh*> meshes;
     std::vector<Material*> materials = {};
     bool multipass = false;
     AABB aabb;
+    bool wantsToEnableSkinning;
+
+    /**** Runtime Data *******/
+    std::unique_ptr<Gfx::ShaderResource> gpuResource;
+    struct Skinning
+    {
+        static const int MaxBoneSize = 64;
+        struct GPUBoneTransforms
+        {
+            int boneSize;
+            glm::mat4 boneTrnasforms[MaxBoneSize];
+        };
+        bool enabled = false;
+        std::vector<GameObject*> bones;
+        std::vector<glm::mat4> offsetMatrix; // copy from mesh
+        std::unique_ptr<Gfx::Buffer> bonesBuffer;
+        Material* materialUsed = nullptr;
+    } skinning;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
