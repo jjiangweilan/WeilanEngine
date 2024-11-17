@@ -428,19 +428,17 @@ void GameObject::ResetAsPrototype()
 
 GameObject* GameObject::Find(std::string_view name)
 {
-    return FindInternal(this, name);
-}
-
-GameObject* GameObject::FindInternal(GameObject* go, std::string_view name)
-{
-    if (go->name == name)
+    if (this->name == name)
     {
-        return go;
+        return this;
     }
 
     for (auto c : children)
     {
-        return FindInternal(go, name);
+        if (auto found = c->Find(name))
+        {
+            return found;
+        }
     }
 
     return nullptr;

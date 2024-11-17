@@ -29,7 +29,7 @@ public:
                 ImGui::PushID(id++);
                 if (ImGui::Button("Activate"))
                 {
-                    target->SetClip(clip.second->name, 0, -1);
+                    target->SetClip(clip.second->name);
                 }
                 ImGui::SameLine();
                 ImGui::Text("%s", clip.second->name.c_str());

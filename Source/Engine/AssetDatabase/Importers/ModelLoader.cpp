@@ -47,7 +47,7 @@ struct ModelImporterImple
     {
         this->absoluteAssetPath = path;
         Assimp::Importer importer;
-        scene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs);
+        scene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 
         if (scene == nullptr)
         {

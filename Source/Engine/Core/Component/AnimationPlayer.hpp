@@ -5,18 +5,23 @@
 class AnimationPlayer : public Component
 {
     DECLARE_OBJECT();
-public:
 
+public:
     AnimationPlayer();
     AnimationPlayer(GameObject* gameObject);
-    std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }
+    AnimationPlayer(const AnimationPlayer& other) : Component(other) { Copy(other); }
+    std::unique_ptr<Component> Clone(GameObject& owner) override
+    {
+        auto copy = std::make_unique<AnimationPlayer>(*this);
+        return copy;
+    }
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
     void Tick() override;
 
 public:
-    bool SetClip(const std::string& animationName, int startFrame, int endFrame);
+    bool SetClip(const std::string& animationName);
     void Play();
     void Stop();
     void SetAnimation(Animation* animation) { this->animation = animation; }
@@ -34,8 +39,7 @@ private:
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;
     double timePassed = 0;
-    int currentStartFrame = 0;
-    int currentEndFrame = -1;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
+    void Copy(const AnimationPlayer& other) { animation = other.animation; }
 };

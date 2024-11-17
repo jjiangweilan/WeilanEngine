@@ -27,6 +27,13 @@ public:
             ImGui::Unindent();
             c++;
         }
+
+        if (target->HasSkeleton())
+        {
+            if (ImGui::Button("Generate Skeleton"))
+            {
+            }
+        }
     }
 
 private:

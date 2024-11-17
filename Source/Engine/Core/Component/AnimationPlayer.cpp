@@ -22,7 +22,6 @@ void AnimationPlayer::TickAnimation()
     size_t index;
     float a;
     float currentTime = timePassed * animation.tickPerSecond;
-    // std::fmod(, currentEndFrame - currentStartFrame) + currentStartFrame;
 
     for (int channelIndex = 0; channelIndex < animation.channels.size(); ++channelIndex)
     {
@@ -86,7 +85,7 @@ void AnimationPlayer::TickAnimation()
     timePassed += Time::DeltaTime();
 }
 
-bool AnimationPlayer::SetClip(const std::string& animationName, int startFrame, int endFrame)
+bool AnimationPlayer::SetClip(const std::string& animationName)
 {
     isPlaying = false;
     auto iter = animation->GetAnimationClips().find(animationName);
@@ -101,15 +100,6 @@ bool AnimationPlayer::SetClip(const std::string& animationName, int startFrame, 
         }
 
         timePassed = 0;
-        currentStartFrame = startFrame;
-        if (endFrame <= 0)
-        {
-            currentEndFrame = currentClip->duration - endFrame;
-        }
-        else
-        {
-            currentEndFrame = endFrame;
-        }
     }
     else
     {
@@ -118,8 +108,6 @@ bool AnimationPlayer::SetClip(const std::string& animationName, int startFrame, 
     }
 
     timePassed = 0;
-    currentStartFrame = 0;
-    currentEndFrame = -1;
 
     return true;
 }
