@@ -68,24 +68,27 @@ void GenerateBoxFilteredMipmap(
                         int y = std::min(2 * k, preLevelHeight - 1);
                         int samples = 1;
 
-                        T sum = data[preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c];
+                        double sum = data[preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + x) * channels + c];
                         if (y + 1 < preLevelHeight)
                         {
-                            sum += data
+                            double top = data
                                 [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + x) * channels + c];
+                            sum += top;
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth)
                         {
-                            sum += data
+                            double right = data
                                 [preLevelLayerOffset + preLevelOffset + (y * preLevelWidth + (x + 1)) * channels + c];
+                            sum += right;
                             samples += 1;
                         }
                         if (x + 1 < preLevelWidth && y + 1 < preLevelHeight)
                         {
-                            sum += data
+                            double diag = data
                                 [preLevelLayerOffset + preLevelOffset + ((y + 1) * preLevelWidth + (x + 1)) * channels +
                                  c];
+                            sum += diag;
                             samples += 1;
                         }
 

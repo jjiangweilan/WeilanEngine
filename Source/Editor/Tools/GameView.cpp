@@ -637,12 +637,13 @@ bool GameView::Tick()
 
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
+        bool isGameViewHovered = ImGui::IsItemHovered();
 
         auto windowPos = ImGui::GetWindowPos();
         if (!ImGuizmo::IsUsing())
         {
             // pick a GameObject trough ray
-            if (useViewCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() &&
+            if (useViewCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && isGameViewHovered &&
                 ImGui::IsWindowFocused())
             {
                 auto mousePos = ImGui::GetMousePos();

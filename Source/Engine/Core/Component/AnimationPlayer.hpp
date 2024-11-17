@@ -10,8 +10,8 @@ public:
     AnimationPlayer();
     AnimationPlayer(GameObject* gameObject);
     std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }
-    void Serialize(Serializer* s) const override {};
-    void Deserialize(Serializer* s) override {};
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
     void Tick() override;
 
@@ -26,8 +26,11 @@ public:
     void TickAnimation();
 
 private:
-    bool isPlaying = false;
+    // ***** Serialized ****** //
     Animation* animation = nullptr;
+
+    // ***** Runtime ******//
+    bool isPlaying = false;
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;
     double timePassed = 0;

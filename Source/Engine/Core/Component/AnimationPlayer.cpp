@@ -22,7 +22,7 @@ void AnimationPlayer::TickAnimation()
     size_t index;
     float a;
     float currentTime = timePassed * animation.tickPerSecond;
-        // std::fmod(, currentEndFrame - currentStartFrame) + currentStartFrame;
+    // std::fmod(, currentEndFrame - currentStartFrame) + currentStartFrame;
 
     for (int channelIndex = 0; channelIndex < animation.channels.size(); ++channelIndex)
     {
@@ -144,15 +144,26 @@ bool AnimationPlayer::SetupAnimatedObjects(const Animation::AnimationClip& clipU
 
 void AnimationPlayer::Stop()
 {
-    isPlaying = true;
+    isPlaying = false;
 }
 
 void AnimationPlayer::Play()
 {
-    isPlaying = false;
+    isPlaying = true;
 }
 
 void AnimationPlayer::Tick()
 {
     TickAnimation();
+}
+
+void AnimationPlayer::Serialize(Serializer* s) const
+{
+    Component::Serialize(s);
+    s->Serialize("animation", animation);
+}
+void AnimationPlayer::Deserialize(Serializer* s)
+{
+    Component::Deserialize(s);
+    s->Deserialize("animation", animation);
 }
