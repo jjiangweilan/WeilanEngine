@@ -335,6 +335,10 @@ void GameObject::SetLocalRotation(const glm::quat& rotation)
     this->rotation = rotation;
     updateLocalMatrix = true;
 
+#if ENGINE_EDITOR
+    this->eulerAngles = glm::eulerAngles(rotation);
+#endif
+
     TransformChanged();
 }
 

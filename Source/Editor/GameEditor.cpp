@@ -686,6 +686,7 @@ void GameEditor::Start()
             auto cmd = GetGfxDriver()->CreateCommandBuffer();
             if (engine->event->GetWindowClose().state)
             {
+                gameView.Deinit(); // stop playing the game
                 return;
             }
 

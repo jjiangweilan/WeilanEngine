@@ -32,7 +32,11 @@ public:
                     target->SetClip(clip.second->name);
                 }
                 ImGui::SameLine();
+                bool active = target->GetActiveClip() == clip.second.get();
+
+                ImGui::PushStyleColor(ImGuiCol_Text, active ? ImVec4{0, 1, 0, 1} : ImVec4{1, 0, 0, 1});
                 ImGui::Text("%s", clip.second->name.c_str());
+                ImGui::PopStyleColor();
                 ImGui::PopID();
             }
             ImGui::Unindent();

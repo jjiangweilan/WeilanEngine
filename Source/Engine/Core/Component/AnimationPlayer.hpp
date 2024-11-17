@@ -26,7 +26,7 @@ public:
     void Stop();
     void SetAnimation(Animation* animation) { this->animation = animation; }
     Animation* GetAnimation() { return animation; }
-    const Animation::AnimationClip* GetActiveClip() { return currentClip; }
+    const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
 
     void TickAnimation();
 
@@ -38,7 +38,7 @@ private:
     bool isPlaying = false;
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;
-    double timePassed = 0;
+    float timePassed = 0;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }

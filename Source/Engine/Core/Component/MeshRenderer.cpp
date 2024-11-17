@@ -153,5 +153,13 @@ void MeshRenderer::Tick() {
 
 void MeshRenderer::BindSkeletonAnimation(Animation anim)
 {
-
+    if(!meshes.empty())
+    {
+        auto mesh = meshes[0];
+        if(mesh->HasSkeleton())
+        {
+            auto go = GetGameObject();
+            auto skeleton = mesh->GetSkeleton();
+        }
+    }
 }

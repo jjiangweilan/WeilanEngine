@@ -138,6 +138,7 @@ void AnimationPlayer::Stop()
 void AnimationPlayer::Play()
 {
     isPlaying = true;
+    timePassed = 0;
 }
 
 void AnimationPlayer::Tick()

@@ -23,6 +23,7 @@ public:
     }
 
     void Init();
+    void Deinit();
 
     bool Tick() override;
 

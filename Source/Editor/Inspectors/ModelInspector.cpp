@@ -92,7 +92,12 @@ public:
         {
             Animation* anim = animation.get();
 
-            if(ImGui::Button(anim->GetName().c_str()))
+            const char* animName = "NoName Animation";
+            if (!anim->GetName().empty())
+            {
+                animName = anim->GetName().c_str();
+            }
+            if(ImGui::Button(animName))
             {
                 EditorState::SelectObject(anim->GetSRef());
             }

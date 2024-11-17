@@ -47,7 +47,8 @@ struct ModelImporterImple
     {
         this->absoluteAssetPath = path;
         Assimp::Importer importer;
-        scene = importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+        scene =
+            importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 
         if (scene == nullptr)
         {
@@ -392,9 +393,9 @@ private:
         if (scene->mNumAnimations == 0)
             return;
 
+        auto myAnimation = std::make_unique<Animation>();
         for (size_t i = 0; i < scene->mNumAnimations; i++)
         {
-            auto myAnimation = std::make_unique<Animation>();
             auto clip = scene->mAnimations[i];
             std::vector<Animation::Channel> channels;
             for (size_t ni = 0; ni < clip->mNumChannels; ni++)
@@ -434,16 +435,23 @@ private:
                 channels.push_back(channel);
             }
 
-            myAnimation->clips[clip->mName.C_Str()] = std::make_unique<Animation::AnimationClip>(
-                clip->mName.C_Str(),
-                clip->mTicksPerSecond,
-                clip->mDuration,
-                channels
-            );
+            std::string clipName = clip->mName.C_Str();
+            if (clipName.empty())
+            {
+                clipName = fmt::format("clip_{}", i);
+            }
 
-            myAnimation->SetName(scene->mAnimations[i]->mName.C_Str());
-            animations.push_back(std::move(myAnimation));
+            std::string animationName = clip->mName.C_Str();
+            if (animationName.empty())
+            {
+                animationName = "animation_" + std::to_string(i);
+            }
+
+            myAnimation->clips[animationName] =
+                std::make_unique<Animation::AnimationClip>(animationName, clip->mTicksPerSecond, clip->mDuration, channels);
         }
+        myAnimation->SetName("AnimationCollection");
+        animations.push_back(std::move(myAnimation));
     }
 
 private:

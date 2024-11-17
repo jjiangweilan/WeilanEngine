@@ -67,14 +67,19 @@ struct GameView::PlayTheGame
     }
 };
 GameView::GameView() {}
-GameView::~GameView() {}
+GameView::~GameView()
+{
+}
 
 struct Intersected
 {
     GameObject* go;
     float distance;
 };
-
+void GameView::Deinit()
+{
+    playTheGame->Stop(this);
+}
 void GameView::Init()
 {
     editorCameraGO = std::make_unique<GameObject>();
