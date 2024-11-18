@@ -177,6 +177,7 @@ public:
     }
 
     glm::mat4 GetWorldMatrix() const;
+    const glm::mat4& GetLocalMatrix() const;
 
     glm::quat GetRotation() const;
 

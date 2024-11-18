@@ -283,7 +283,7 @@ void GameObject::SetScale(const glm::vec3& s)
     SetLocalScale(s);
 }
 
-glm::mat4 GameObject::GetWorldMatrix() const
+const glm::mat4& GameObject::GetLocalMatrix() const
 {
     if (updateLocalMatrix)
     {
@@ -291,6 +291,13 @@ glm::mat4 GameObject::GetWorldMatrix() const
             glm::translate(glm::mat4(1), position) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1), scale);
         updateLocalMatrix = false;
     }
+
+    return localMatrix;
+}
+
+glm::mat4 GameObject::GetWorldMatrix() const
+{
+    auto& localMatrix = GetLocalMatrix();
 
     auto finalMatrix = localMatrix;
     if (parent != nullptr)
