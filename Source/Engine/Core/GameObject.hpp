@@ -90,7 +90,7 @@ public:
     void SetEnable(bool isEnabled);
 
     GameObject* GetParent() const { return parent; }
-    void SetParent(GameObject* parent);
+    void SetParent(GameObject* parent, bool keepWorldSpacePostion = true);
 
     void SetLocalRotation(const glm::quat& rotation);
     void SetRotation(const glm::quat& rotation);

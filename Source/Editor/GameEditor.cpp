@@ -327,7 +327,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
     auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
     auto gameObjects = model->CreateGameObject();
-    auto go = gameObjects[0]->GetChildren()[0]->GetChildren()[0];
+    auto go = gameObjects[0].get();
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
     Material* mats[] = {(Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")

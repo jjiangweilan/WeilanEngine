@@ -82,7 +82,10 @@ void AnimationPlayer::TickAnimation()
         else
             bone->SetLocalScale(channel.scalings.front().val);
     }
-    timePassed += Time::DeltaTime();
+
+    timePassed += Time::DeltaTime() * speed;
+    if (timePassed > durationInSeconds)
+        timePassed = 0;
 }
 
 bool AnimationPlayer::SetClip(const std::string& animationName)
@@ -100,6 +103,7 @@ bool AnimationPlayer::SetClip(const std::string& animationName)
         }
 
         timePassed = 0;
+        durationInSeconds = currentClip->duration / currentClip->tickPerSecond;
     }
     else
     {
@@ -133,6 +137,7 @@ bool AnimationPlayer::SetupAnimatedObjects(const Animation::AnimationClip& clipU
 void AnimationPlayer::Stop()
 {
     isPlaying = false;
+    timePassed = 0;
 }
 
 void AnimationPlayer::Play()
@@ -150,9 +155,11 @@ void AnimationPlayer::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     s->Serialize("animation", animation);
+    s->Serialize("speed", speed);
 }
 void AnimationPlayer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
     s->Deserialize("animation", animation);
+    s->Deserialize("speed", speed);
 }

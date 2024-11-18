@@ -293,7 +293,7 @@ private:
         }
     }
 
-    void ExtractTexture(
+    bool ExtractTexture(
         std::unique_ptr<Material>& mat,
         aiMaterial*& material,
         aiTextureType type,
@@ -313,8 +313,11 @@ private:
             {
                 mat->SetTexture(bindingName, tex);
                 mat->EnableFeature(keyword);
+                return true;
             }
         }
+
+        return false;
     }
 
     void ProcessMaterial()
@@ -343,7 +346,10 @@ private:
             ExtractTexture(mat, material, aiTextureType_DIFFUSE, "baseColorTex", "_BaseColorMap");
             ExtractTexture(mat, material, aiTextureType_NORMALS, "normalMap", "_NormalMap");
             ExtractTexture(mat, material, aiTextureType_METALNESS, "metallicRoughnessMap", "_MetallicRoughnessMap");
-            ExtractTexture(mat, material, aiTextureType_EMISSIVE, "emissiveMap", "_EmissiveMap");
+            if (ExtractTexture(mat, material, aiTextureType_EMISSIVE, "emissiveMap", "_EmissiveMap"))
+            {
+                emissive = {1, 1, 1, 1};
+            }
 
             mat->SetVector(
                 "PBR",

@@ -165,7 +165,7 @@ void GameObject::RemoveChild(GameObject* child)
     }
 }
 
-void GameObject::SetParent(GameObject* newParent)
+void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
 {
     if (this->parent == newParent || HasFlag(flags, GameObjectFlag::DontChangeHierarchy))
     {
@@ -192,26 +192,28 @@ void GameObject::SetParent(GameObject* newParent)
     }
 
     // fix local transforms
-    glm::mat4 parentWorld = glm::mat4(1);
-    if (newParent != nullptr)
+    if (keepWorldSpacePostion)
     {
-        parentWorld = newParent->GetWorldMatrix();
+        glm::mat4 parentWorld = glm::mat4(1);
+        if (newParent != nullptr)
+        {
+            parentWorld = newParent->GetWorldMatrix();
+        }
+        glm::mat4 currentWorld = GetWorldMatrix();
+
+        glm::mat4 local = glm::inverse(parentWorld) * currentWorld;
+
+        glm::vec3 newPosition, newScale;
+        glm::quat newRotation;
+        Math::DecomposeMatrix(local, newPosition, newScale, newRotation);
+        SetLocalPosition(newPosition);
+        SetEulerAngles(glm::eulerAngles(newRotation));
+        SetLocalScale(newScale);
     }
-    glm::mat4 currentWorld = GetWorldMatrix();
-
-    glm::mat4 local = glm::inverse(parentWorld) * currentWorld;
-
-    glm::vec3 newPosition, newScale;
-    glm::quat newRotation;
-    Math::DecomposeMatrix(local, newPosition, newScale, newRotation);
 
     this->parent = newParent;
     if (newParent)
         newParent->children.push_back(this);
-
-    SetLocalPosition(newPosition);
-    SetEulerAngles(glm::eulerAngles(newRotation));
-    SetLocalScale(newScale);
 }
 
 void GameObject::SetScene(Scene* scene)

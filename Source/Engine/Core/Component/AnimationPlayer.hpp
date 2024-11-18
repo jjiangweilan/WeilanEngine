@@ -20,6 +20,9 @@ public:
     const std::string& GetName() override;
     void Tick() override;
 
+    void SetSpeed(float speed) { this->speed = speed; }
+    float GetSpeed() const { return speed; }
+
 public:
     bool SetClip(const std::string& animationName);
     void Play();
@@ -33,12 +36,14 @@ public:
 private:
     // ***** Serialized ****** //
     Animation* animation = nullptr;
+    float speed = 1.0f;
 
     // ***** Runtime ******//
     bool isPlaying = false;
     const Animation::AnimationClip* currentClip = nullptr;
     std::vector<GameObject*> animatedObjects;
     float timePassed = 0;
+    float durationInSeconds = 0;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }

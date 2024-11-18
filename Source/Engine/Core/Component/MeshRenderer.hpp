@@ -71,15 +71,15 @@ private:
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
     struct Skinning
     {
-        static const int MaxBoneSize = 64;
+        static const int MaxBoneSize = 256;
         struct GPUBoneTransforms
         {
             glm::mat4 boneTrnasforms[MaxBoneSize];
         };
         bool enabled = false;
-        std::vector<GameObject*> bones;
-        std::vector<glm::mat4> offsetMatrix; // copy from mesh
-        std::unique_ptr<Gfx::Buffer> bonesBuffer;
+        std::vector<GameObject*> bones = {};
+        std::vector<glm::mat4> tposeMatrix = {}; // copy from mesh
+        std::unique_ptr<Gfx::Buffer> bonesBuffer = nullptr;
     } skinning;
 
     void AddToRenderingScene();

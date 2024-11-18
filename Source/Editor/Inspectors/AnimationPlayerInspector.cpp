@@ -19,6 +19,12 @@ public:
             target->SetAnimation(anim);
         }
 
+        float speed = target->GetSpeed();
+        if (ImGui::SliderFloat("speed", &speed, 0, 4))
+        {
+            target->SetSpeed(speed);
+        }
+
         if (anim)
         {
             ImGui::Indent();

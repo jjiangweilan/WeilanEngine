@@ -1,4 +1,5 @@
 #include "Model.hpp"
+#include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Libs/GLB.hpp"
@@ -409,13 +410,12 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     glm::vec3 scale;
     glm::quat rotation;
     Math::DecomposeMatrix(node.transform, position, scale, rotation);
-    go->SetLocalPosition(position);
-    go->SetLocalScale(scale);
-    go->SetLocalRotation(rotation);
     go->SetName(node.name);
     if (parent)
         go->SetParent(parent);
-
+    go->SetLocalPosition(position);
+    go->SetLocalScale(scale);
+    go->SetLocalRotation(rotation);
     if (!node.meshes.empty())
     {
         std::vector<Material*> mats;
@@ -471,7 +471,16 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
     if (assimpLoaded)
     {
-        return CreateGameObject(rootNode, nullptr);
+        auto gos = CreateGameObject(rootNode, nullptr);
+        if (!gos.empty())
+        {
+            for (auto& anim : animations)
+            {
+                auto animationPlayer = gos[0]->AddComponent<AnimationPlayer>();
+                animationPlayer->SetAnimation(anim.get());
+            }
+        }
+        return gos;
     }
 
     // create game objects that are presented in glb file

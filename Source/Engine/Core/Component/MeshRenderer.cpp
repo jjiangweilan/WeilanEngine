@@ -158,13 +158,14 @@ void MeshRenderer::UpdateSkinning()
 {
     if (skinning.enabled)
     {
+
         Skinning::GPUBoneTransforms boneTransforms;
-        for (int boneIndex = 0; boneIndex < skinning.bones.size(); ++boneIndex)
+        int maxBoneCount = skinning.bones.size();
+        for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)
         {
-            boneTransforms.boneTrnasforms[boneIndex] = glm::inverse(skinning.offsetMatrix[boneIndex]) *
-                                                       skinning.bones[boneIndex]->GetWorldMatrix() *
-                                                       skinning.offsetMatrix[boneIndex];
+            boneTransforms.boneTrnasforms[bi] = skinning.bones[bi]->GetWorldMatrix() * skinning.tposeMatrix[bi];
         }
+
         GetGfxDriver()
             ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
     }
@@ -179,8 +180,15 @@ void MeshRenderer::ValidateSkinning()
         {
             auto go = GetGameObject();
             auto skeleton = mesh->GetSkeleton();
+
+            if (skeleton.size() > Skinning::MaxBoneSize)
+            {
+                spdlog::error("Exceeding maximum bone size");
+                return;
+            }
+
             skinning.bones.clear();
-            skinning.offsetMatrix.clear();
+            skinning.tposeMatrix.clear();
             for (auto& bone : skeleton)
             {
                 GameObject* boneGO = nullptr;
@@ -192,12 +200,11 @@ void MeshRenderer::ValidateSkinning()
                 if (boneGO == nullptr)
                 {
                     spdlog::warn("bone not found {}, skining is not enabled", bone.name);
-                    skinning.bones.clear();
-                    skinning.offsetMatrix.clear();
+                    DisableSkinning();
                     return;
                 }
                 skinning.bones.push_back(boneGO);
-                skinning.offsetMatrix.push_back(bone.offsetMatrix);
+                skinning.tposeMatrix.push_back(bone.offsetMatrix);
             }
 
             // cpu is ready, let's prepare gpu resources
@@ -227,7 +234,7 @@ void MeshRenderer::DisableSkinning()
         skinning.enabled = false;
         skinning.bonesBuffer = nullptr;
         skinning.bones.clear();
-        skinning.offsetMatrix.clear();
+        skinning.tposeMatrix.clear();
         gpuResource = nullptr; // currently only used for skinning, so let's destroy this too
     }
 }
