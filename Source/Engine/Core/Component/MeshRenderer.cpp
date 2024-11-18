@@ -55,11 +55,13 @@ void MeshRenderer::SetMaterials(std::span<Material*> materials)
 
 Mesh* MeshRenderer::GetMesh()
 {
+    ValidateSkinning();
     return meshes.empty() ? nullptr : meshes[0];
 }
 
 std::span<Mesh*> MeshRenderer::GetMeshes()
 {
+    ValidateSkinning();
     return meshes;
 }
 
@@ -133,11 +135,6 @@ void MeshRenderer::RemoveFromRenderingScene()
 void MeshRenderer::EnableImple()
 {
     AddToRenderingScene();
-
-    if (wantsToEnableSkinning)
-    {
-        EnableSkinning();
-    }
 }
 void MeshRenderer::DisableImple()
 {
@@ -154,22 +151,25 @@ AABB MeshRenderer::GetAABB()
 
 void MeshRenderer::Tick()
 {
+    UpdateSkinning();
+}
+
+void MeshRenderer::UpdateSkinning()
+{
     if (skinning.enabled)
     {
         Skinning::GPUBoneTransforms boneTransforms;
-        boneTransforms.boneSize = skinning.bones.size();
-
         for (int boneIndex = 0; boneIndex < skinning.bones.size(); ++boneIndex)
         {
             boneTransforms.boneTrnasforms[boneIndex] =
-                skinning.bones[boneIndex]->GetWorldMatrix() * skinning.offsetMatrix[boneIndex];
+                glm::inverse(skinning.offsetMatrix[boneIndex]) * skinning.bones[boneIndex]->GetWorldMatrix() * skinning.offsetMatrix[boneIndex];
         }
         GetGfxDriver()
             ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
     }
 }
 
-void MeshRenderer::EnableSkinning()
+void MeshRenderer::ValidateSkinning()
 {
     if (!meshes.empty() && !materials.empty() && !skinning.enabled)
     {
@@ -178,8 +178,6 @@ void MeshRenderer::EnableSkinning()
         {
             auto go = GetGameObject();
             auto skeleton = mesh->GetSkeleton();
-            materials[0]->EnableFeature("_Vertex_Skeleton");
-            skinning.materialUsed = materials[0];
             skinning.bones.clear();
             skinning.offsetMatrix.clear();
             for (auto& bone : skeleton)
@@ -214,6 +212,7 @@ void MeshRenderer::EnableSkinning()
 
             gpuResource = GetGfxDriver()->CreateShaderResource();
             gpuResource->SetBuffer("BoneTransform", skinning.bonesBuffer.get());
+            UpdateSkinning();
             return;
         }
     }
@@ -228,8 +227,6 @@ void MeshRenderer::DisableSkinning()
         skinning.bonesBuffer = nullptr;
         skinning.bones.clear();
         skinning.offsetMatrix.clear();
-        skinning.materialUsed->DisableFeature("_Vertex_Skeleton");
-        skinning.materialUsed = nullptr;
         gpuResource = nullptr; // currently only used for skinning, so let's destroy this too
     }
 }

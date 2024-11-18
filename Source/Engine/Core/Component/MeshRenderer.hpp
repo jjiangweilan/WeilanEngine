@@ -48,7 +48,7 @@ public:
     Mesh* GetMesh();
     std::span<Mesh*> GetMeshes();
     AABB GetAABB();
-    void EnableSkinning();
+    void ValidateSkinning();
     void DisableSkinning();
     bool IsSkinningEnabled();
     const std::vector<Material*>& GetMaterials();
@@ -65,7 +65,7 @@ private:
     std::vector<Material*> materials = {};
     bool multipass = false;
     AABB aabb;
-    bool wantsToEnableSkinning;
+    bool wantsToEnableSkinning = false;
 
     /**** Runtime Data *******/
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
@@ -74,19 +74,18 @@ private:
         static const int MaxBoneSize = 64;
         struct GPUBoneTransforms
         {
-            int boneSize;
             glm::mat4 boneTrnasforms[MaxBoneSize];
         };
         bool enabled = false;
         std::vector<GameObject*> bones;
         std::vector<glm::mat4> offsetMatrix; // copy from mesh
         std::unique_ptr<Gfx::Buffer> bonesBuffer;
-        Material* materialUsed = nullptr;
     } skinning;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
     void UpdateAABB();
+    void UpdateSkinning();
 
     void EnableImple() override;
     void DisableImple() override;

@@ -409,9 +409,9 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
     glm::vec3 scale;
     glm::quat rotation;
     Math::DecomposeMatrix(node.transform, position, scale, rotation);
-    go->SetPosition(position);
-    go->SetScale(scale);
-    go->SetRotation(rotation);
+    go->SetLocalPosition(position);
+    go->SetLocalScale(scale);
+    go->SetLocalRotation(rotation);
     go->SetName(node.name);
     if (parent)
         go->SetParent(parent);

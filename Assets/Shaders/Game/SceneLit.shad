@@ -29,12 +29,13 @@ layout(set = SET_MATERIAL, binding = 0) uniform PBR
     float alphaCutoff;
 } matParams;
 
+#ifdef _Vertex_Skeleton
 #define MAX_BONE_SIZE 64
 layout(set = SET_OBJECT, binding = 0) uniform BoneTransform
 {
-    int boneSize;
     mat4 bones[MAX_BONE_SIZE];
 };
+#endif
 
 #if VERT
 layout(push_constant) uniform Transform
@@ -92,14 +93,20 @@ void main()
             boneMatrix += bones[boneIndex] * weight;
         }
     }
-    o_PositionWS = (boneMatrix * vec4(i_Position, 1)).xyz;
+    vec3 vertexPos = (boneMatrix * vec4(i_Position, 1)).xyz;
+    mat3 inverseTransposeBoneMatrix = inverse(transpose(mat3(boneMatrix)));
+    vec3 normal = inverseTransposeBoneMatrix  * i_Normal;
+    vec3 tangent =  inverseTransposeBoneMatrix * GetVertexTangent().xyz;
 #else
-    o_PositionWS = vec3(pconst.model * vec4(i_Position, 1));
+    vec3 vertexPos = i_Position;
+    vec3 normal = i_Normal;
+    vec3 tangent = GetVertexTangent().xyz;
 #endif
-    o_NormalWS = (inverse(transpose(pconst.model)) * vec4(i_Normal, 1)).xyz;
-    vec4 tangent = GetVertexTangent();
-    o_TangentWS = (inverse(transpose(pconst.model)) * vec4(tangent.xyz, 1)).xyz;
-    o_BitangentWS = tangent.w * cross(o_NormalWS, o_TangentWS);
+    o_PositionWS = vec3(pconst.model * vec4(vertexPos, 1));
+    mat3 invTspModel = inverse(transpose(mat3(pconst.model)));
+    o_NormalWS = (invTspModel * normal).xyz;
+    o_TangentWS = (invTspModel * tangent).xyz;
+    o_BitangentWS = GetVertexTangent().w * cross(o_NormalWS, o_TangentWS);
     o_UV = GetVertexUV0();
 
 

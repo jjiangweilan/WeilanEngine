@@ -21,7 +21,7 @@ public:
         ImGui::Text("Skinned: %s", skinning ? "Enabled" : "Disabled");
         if (ImGui::Button("Enable Skinning"))
         {
-            meshRenderer->EnableSkinning();
+            meshRenderer->ValidateSkinning();
         }
         ImGui::SameLine();
         if (ImGui::Button("Disable Skinning"))
