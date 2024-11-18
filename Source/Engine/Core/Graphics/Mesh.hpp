@@ -201,7 +201,7 @@ public:
     bool HasSkeleton() const { return !skeleton.empty(); }
 
 private:
-    std::vector<Submesh> submeshes;
-    Skeleton skeleton;
-    AABB aabb;
+    std::vector<Submesh> submeshes = {};
+    Skeleton skeleton = {};
+    AABB aabb = {{0, 0, 0}, {0, 0, 0}};
 };

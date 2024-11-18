@@ -8,13 +8,39 @@ namespace Editor
 class MaterialInspector : public Inspector<Material>
 {
 public:
-
     void OnEnable(Object& obj) override
     {
         Inspector<Material>::OnEnable(obj);
 
         featureToEnable[0] = '\0';
     }
+
+    void ShowFeatures(const std::vector<std::vector<std::string>>& features)
+    {
+        for (auto& fs : features)
+        {
+            for (auto& f : fs)
+            {
+                if (f != ShaderBase::DefaultGlobalFeatureWord)
+                {
+                    bool enabled = target->IsFeatureEnabled(f);
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Button,
+                        enabled ? ImVec4(0.2, 0.7, 0.2, 1) : ImVec4(0.7, 0.2, 0.2, 1)
+                    );
+                    if (ImGui::Button(f.c_str()))
+                    {
+                        if (enabled)
+                            target->DisableFeature(f);
+                        else
+                            target->EnableFeature(f);
+                    }
+                    ImGui::PopStyleColor();
+                }
+            }
+        }
+    }
+
     void DrawInspector(GameEditor& editor) override
     {
         // object information
@@ -24,6 +50,12 @@ public:
         if (ImGui::InputText("Name", cname, 1024))
         {
             target->SetName(cname);
+        }
+
+        if (auto shader = target->GetShader())
+        {
+            ShowFeatures(shader->GetDefaultShaderConfig().vertFeatures);
+            ShowFeatures(shader->GetDefaultShaderConfig().fragFeatures);
         }
 
         ImGui::InputText("Feature", featureToEnable, 256);
@@ -46,7 +78,6 @@ public:
         ImGui::Separator();
 
         auto shader = target->GetShader();
-
         std::string shaderGUIID = "empty";
 
         if (shader != nullptr)

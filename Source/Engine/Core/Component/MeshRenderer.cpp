@@ -161,8 +161,9 @@ void MeshRenderer::UpdateSkinning()
         Skinning::GPUBoneTransforms boneTransforms;
         for (int boneIndex = 0; boneIndex < skinning.bones.size(); ++boneIndex)
         {
-            boneTransforms.boneTrnasforms[boneIndex] =
-                glm::inverse(skinning.offsetMatrix[boneIndex]) * skinning.bones[boneIndex]->GetWorldMatrix() * skinning.offsetMatrix[boneIndex];
+            boneTransforms.boneTrnasforms[boneIndex] = glm::inverse(skinning.offsetMatrix[boneIndex]) *
+                                                       skinning.bones[boneIndex]->GetWorldMatrix() *
+                                                       skinning.offsetMatrix[boneIndex];
         }
         GetGfxDriver()
             ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
@@ -174,7 +175,7 @@ void MeshRenderer::ValidateSkinning()
     if (!meshes.empty() && !materials.empty() && !skinning.enabled)
     {
         auto mesh = meshes[0];
-        if (mesh->HasSkeleton())
+        if (mesh != nullptr && mesh->HasSkeleton())
         {
             auto go = GetGameObject();
             auto skeleton = mesh->GetSkeleton();

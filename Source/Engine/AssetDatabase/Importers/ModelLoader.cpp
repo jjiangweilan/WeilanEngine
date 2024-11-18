@@ -47,6 +47,7 @@ struct ModelImporterImple
     {
         this->absoluteAssetPath = path;
         Assimp::Importer importer;
+        // importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene =
             importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 
@@ -59,6 +60,7 @@ struct ModelImporterImple
         ProcessMesh();
         ProcessMaterial();
         ProcessAnimation();
+
         rootNode = ProcessNode(scene->mRootNode);
     }
 
@@ -230,16 +232,16 @@ private:
             {
                 if (mesh->HasVertexColors(i))
                 {
-                    for (int i = 0; i < mesh->mNumVertices; ++i)
+                    for (int vi = 0; vi < mesh->mNumVertices; ++vi)
                     {
-                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i]) =
-                            mesh->mColors[i]->r;
-                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 4) =
-                            mesh->mColors[i]->g;
-                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 8) =
-                            mesh->mColors[i]->b;
-                        *reinterpret_cast<float*>(data + attributeStrideSize * i + vertexColorStrideOffsets[i] + 12) =
-                            mesh->mColors[i]->a;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + vertexColorStrideOffsets[i]) =
+                            mesh->mColors[i][vi].r;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + vertexColorStrideOffsets[i] + 4) =
+                            mesh->mColors[i][vi].g;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + vertexColorStrideOffsets[i] + 8) =
+                            mesh->mColors[i][vi].b;
+                        *reinterpret_cast<float*>(data + attributeStrideSize * vi + vertexColorStrideOffsets[i] + 12) =
+                            mesh->mColors[i][vi].a;
                     }
                 }
             }
@@ -474,25 +476,17 @@ const std::vector<std::type_index>& ModelLoader::GetImportTypes()
 
 void ModelLoader::Load()
 {
-    if (absoluteAssetPath.extension() == ".glb")
-    {
-        asset = std::make_unique<Model>();
-        asset->LoadFromFile(absoluteAssetPath.string().c_str());
-    }
-    else
-    {
-        ModelImporterImple e;
-        e.Load(absoluteAssetPath);
+    ModelImporterImple e;
+    e.Load(absoluteAssetPath);
 
-        auto model = std::make_unique<Model>();
-        model->SetModel(
-            std::move(e.rootNode),
-            std::move(e.meshes),
-            std::move(e.textures),
-            std::move(e.materials),
-            std::move(e.animations)
-        );
+    auto model = std::make_unique<Model>();
+    model->SetModel(
+        std::move(e.rootNode),
+        std::move(e.meshes),
+        std::move(e.textures),
+        std::move(e.materials),
+        std::move(e.animations)
+    );
 
-        asset = std::move(model);
-    }
+    asset = std::move(model);
 }

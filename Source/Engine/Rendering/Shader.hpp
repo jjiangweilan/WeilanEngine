@@ -1,7 +1,7 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "GfxDriver/ShaderProgram.hpp"
 #include "Core/Ptr.hpp"
+#include "GfxDriver/ShaderProgram.hpp"
 #include "ShaderFeatureBitmask.hpp"
 #include <set>
 #include <string>
@@ -34,6 +34,7 @@ public:
     void Reload(Asset&& loaded) override;
     ~ShaderBase() override {}
 
+    inline static const std::string DefaultGlobalFeatureWord = "_";
     // get a shader program with enabled global shader features
     Gfx::ShaderProgram* GetDefaultShaderProgram();
 
@@ -46,10 +47,7 @@ public:
     Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass, const std::vector<std::string>& enabledFeature);
     Gfx::ShaderProgram* GetShaderProgram(const ShaderFeatureBitmask& enabledFeatureHash);
     Gfx::ShaderProgram* GetShaderProgram(int shaderPass, const ShaderFeatureBitmask& enabledFeatureHash);
-    int GetPassCount() const
-    {
-        return shaderPasses.size();
-    }
+    int GetPassCount() const { return shaderPasses.size(); }
 
     bool NeedReimport() override;
 
@@ -60,10 +58,7 @@ public:
         return shaderPasses[0]->shaderPrograms[0]->GetDefaultShaderConfig();
     }
 
-    bool IsExternalAsset() override
-    {
-        return true;
-    }
+    bool IsExternalAsset() override { return true; }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -74,27 +69,12 @@ public:
     }
     ShaderFeatureBitmask GetShaderFeatureBitmask(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
 
-    static const std::set<std::string>& GetEnabledFeatures()
-    {
-        return GetGlobalShaderFeature().GetEnabledFeatures();
-    }
-    static uint64_t GetEnabledFeaturesHash()
-    {
-        return GetGlobalShaderFeature().GetEnabledFeaturesHash();
-    }
-    static void EnableFeature(const char* name)
-    {
-        return GetGlobalShaderFeature().EnableFeature(name);
-    }
-    static void DisableFeature(const char* name)
-    {
-        return GetGlobalShaderFeature().DisableFeature(name);
-    }
+    static const std::set<std::string>& GetEnabledFeatures() { return GetGlobalShaderFeature().GetEnabledFeatures(); }
+    static uint64_t GetEnabledFeaturesHash() { return GetGlobalShaderFeature().GetEnabledFeaturesHash(); }
+    static void EnableFeature(const char* name) { return GetGlobalShaderFeature().EnableFeature(name); }
+    static void DisableFeature(const char* name) { return GetGlobalShaderFeature().DisableFeature(name); }
 
-    void SetShaderPasses(std::vector<std::unique_ptr<ShaderPass>>&& passes)
-    {
-        shaderPasses = std::move(passes);
-    }
+    void SetShaderPasses(std::vector<std::unique_ptr<ShaderPass>>&& passes) { shaderPasses = std::move(passes); }
 
 protected:
     struct GlobalShaderFeature
@@ -135,10 +115,7 @@ public:
         const UUID& uuid = UUID::GetEmptyUUID()
     )
         : ShaderBase(name, std::move(shaderProgram), uuid) {};
-    Shader(const char* path)
-    {
-        LoadFromFile(path);
-    };
+    Shader(const char* path) { LoadFromFile(path); };
     bool LoadFromFile(const char* path) override;
     static void SetDefault(Shader* defaultShader);
     static Shader* GetDefault();
@@ -159,9 +136,6 @@ public:
         const UUID& uuid = UUID::GetEmptyUUID()
     )
         : ShaderBase(name, std::move(shaderProgram), uuid) {};
-    ComputeShader(const char* path)
-    {
-        LoadFromFile(path);
-    };
+    ComputeShader(const char* path) { LoadFromFile(path); };
     bool LoadFromFile(const char* path) override;
 };

@@ -29,10 +29,7 @@ public:
     ~Material() override;
 
     void SetShader(ShaderBase* shader);
-    ShaderBase* GetShader()
-    {
-        return shader;
-    }
+    ShaderBase* GetShader() { return shader; }
 
     Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass)
     {
@@ -45,10 +42,7 @@ public:
     }
     Gfx::ShaderProgram* GetShaderProgram(int shaderPassIndex = 0);
 
-    Gfx::ShaderResource* GetShaderResource()
-    {
-        return ValidateGetShaderResource();
-    }
+    Gfx::ShaderResource* GetShaderResource() { return ValidateGetShaderResource(); }
 
     std::unique_ptr<Asset> Clone() override;
 
@@ -93,14 +87,12 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const
-    {
-        return cachedShaderProgramFeatures;
-    }
+    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const { return cachedShaderProgramFeatures; }
 
-    const std::unordered_set<std::string>& GetEnabledFeatures() const
+    const std::unordered_set<std::string>& GetEnabledFeatures() const { return enabledFeatures; }
+    bool IsFeatureEnabled(const std::string& feature) const
     {
-        return enabledFeatures;
+        return enabledFeatures.find(feature) != enabledFeatures.end();
     }
 
     // a dirty implementation to use when a texture is reimported in editor
