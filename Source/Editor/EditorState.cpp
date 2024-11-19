@@ -23,8 +23,11 @@ void EditorState::DeselectObject(Object* obj)
 void EditorState::SelectObject(SRef<Object> obj, bool multiSelect)
 {
     Object* ptr = obj.Get();
-    if (ptr == nullptr)
+    if (obj == nullptr)
+    {
+        selectedObjects.clear();
         return;
+    }
 
     if (multiSelect && !selectedObjects.empty() && typeid(*ptr) != typeid(*selectedObjects[0].Get()))
     {

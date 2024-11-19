@@ -20,17 +20,25 @@ public:
     const std::string& GetName() override;
     void Tick() override;
 
-    void SetSpeed(float speed) { this->speed = speed; }
-    float GetSpeed() const { return speed; }
-
 public:
+    void SetSpeed(float speed) { this->speed = speed; }
+    void SetBlendClipFactor(float blendClipFactor) { this->blendClipFactor = blendClipFactor; }
+    bool SetBlendClip(const std::string& animationName);
     bool SetClip(const std::string& animationName);
-    void Play();
-    void Stop();
+    void SetRootMotionEnabled(bool enabled) { this->rootMotion = enabled; }
+    bool SetRoot(std::string_view rootName);
+
+    const std::string& GetRootName() { return rootName; }
+    bool IsRootMotionEnabled() { return rootMotion; }
+    float GetSpeed() const { return speed; }
+    float GetBlendClipFactor() const { return blendClipFactor; }
     void SetAnimation(Animation* animation) { this->animation = animation; }
     Animation* GetAnimation() { return animation; }
     const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
+    const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
 
+    void Play();
+    void Stop();
     void TickAnimation();
 
 private:
@@ -41,10 +49,25 @@ private:
     // ***** Runtime ******//
     bool isPlaying = false;
     const Animation::AnimationClip* currentClip = nullptr;
-    std::vector<GameObject*> animatedObjects;
+    const Animation::AnimationClip* blendClip = nullptr;
+    struct AnimatedGameObject
+    {
+        GameObject* go = nullptr;
+        glm::vec3 position = {0, 0, 0};
+        glm::vec3 scale{1, 1, 1};
+        glm::quat rotation{1, 0, 0, 0};
+    };
+    std::vector<AnimatedGameObject> animatedObjects;
     float timePassed = 0;
     float durationInSeconds = 0;
+    float blendClipFactor = 1.0f;
+    bool rootMotion = false;
+    int animatedRootGOIndex;
+    std::string rootName;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }
+    void UpdateAnimatedGameObject(const Animation::AnimationClip& mainClip, float currentTime, float blend);
+    bool SetClipInternal(const std::string& animationName, const Animation::AnimationClip*& clipToSet);
+    bool IsBlendClipMatchWithMainClip();
 };

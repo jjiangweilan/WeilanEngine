@@ -39,6 +39,8 @@ struct GameView::PlayTheGame
 
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
+
+            EditorState::SelectObject(nullptr);
         }
     }
 
@@ -67,9 +69,7 @@ struct GameView::PlayTheGame
     }
 };
 GameView::GameView() {}
-GameView::~GameView()
-{
-}
+GameView::~GameView() {}
 
 struct Intersected
 {
@@ -572,7 +572,7 @@ bool GameView::Tick()
         ImGui::EndPopup();
     }
 
-    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C))
+    if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C) && ImGui::IsWindowFocused())
     {
         if (Scene* scene = EditorState::activeScene)
         {

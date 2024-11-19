@@ -74,12 +74,14 @@ private:
         static const int MaxBoneSize = 256;
         struct GPUBoneTransforms
         {
-            glm::mat4 boneTrnasforms[MaxBoneSize];
+            std::array<glm::mat4, MaxBoneSize> boneTrnasforms;
         };
         bool enabled = false;
         std::vector<GameObject*> bones = {};
         std::vector<glm::mat4> tposeMatrix = {}; // copy from mesh
         std::unique_ptr<Gfx::Buffer> bonesBuffer = nullptr;
+
+        glm::vec3 rootMotionDelta;
     } skinning;
 
     void AddToRenderingScene();
