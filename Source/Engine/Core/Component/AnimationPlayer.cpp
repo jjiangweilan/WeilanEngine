@@ -13,10 +13,18 @@ const std::string& AnimationPlayer::GetName()
     return name;
 }
 
-void AnimationPlayer::UpdateAnimatedGameObject(const Animation::AnimationClip& mainClip, float currentTime, float blend)
+void AnimationPlayer::UpdateAnimatedGameObject(
+    const Animation::AnimationClip& mainClip,
+    float& timePassed,
+    float& durationInSeconds,
+    float tickPerSecond,
+    float blend
+)
 {
     size_t index;
     float a;
+
+    float currentTime = timePassed * tickPerSecond;
     for (int channelIndex = 0; channelIndex < mainClip.channels.size(); ++channelIndex)
     {
         auto& channel = mainClip.channels[channelIndex];
@@ -82,6 +90,10 @@ void AnimationPlayer::UpdateAnimatedGameObject(const Animation::AnimationClip& m
         }
         bone.scale = glm::mix(bone.scale, newScale, blend);
     }
+
+    timePassed += Time::DeltaTime() * speed;
+    if (timePassed > durationInSeconds)
+        timePassed = 0;
 }
 
 void AnimationPlayer::TickAnimation()
@@ -90,13 +102,18 @@ void AnimationPlayer::TickAnimation()
         return;
 
     auto& mainClip = *currentClip;
-    float currentTime = timePassed * mainClip.tickPerSecond;
 
-    UpdateAnimatedGameObject(mainClip, currentTime, 1.0f);
+    UpdateAnimatedGameObject(mainClip, mainClipTimePassed, mainClipDurationInSeconds, blendClip->tickPerSecond, 1.0f);
 
     if (blendClip)
     {
-        UpdateAnimatedGameObject(*blendClip, currentTime, blendClipFactor);
+        UpdateAnimatedGameObject(
+            *blendClip,
+            blendClipTimePassed,
+            blendClipDurationInSeconds,
+            blendClip->tickPerSecond,
+            blendClipFactor
+        );
     }
 
     for (auto& a : animatedObjects)
@@ -105,17 +122,13 @@ void AnimationPlayer::TickAnimation()
         a.go->SetLocalScale(a.scale);
         a.go->SetLocalRotation(a.rotation);
     }
-
-    timePassed += Time::DeltaTime() * speed;
-    if (timePassed > durationInSeconds)
-        timePassed = 0;
 }
 
 bool AnimationPlayer::SetClip(const std::string& animationName)
 {
     isPlaying = false;
 
-    bool success = SetClipInternal(animationName, currentClip);
+    bool success = SetClipInternal(animationName, currentClip, mainClipTimePassed, mainClipDurationInSeconds);
 
     if (success)
     {
@@ -155,13 +168,13 @@ bool AnimationPlayer::SetupAnimatedObjects(const Animation::AnimationClip& clipU
 void AnimationPlayer::Stop()
 {
     isPlaying = false;
-    timePassed = 0;
+    mainClipTimePassed = 0;
 }
 
 void AnimationPlayer::Play()
 {
     isPlaying = true;
-    timePassed = 0;
+    mainClipTimePassed = 0;
 }
 
 void AnimationPlayer::Tick()
@@ -184,7 +197,7 @@ void AnimationPlayer::Deserialize(Serializer* s)
 
 bool AnimationPlayer::SetBlendClip(const std::string& animationName)
 {
-    bool success = SetClipInternal(animationName, blendClip);
+    bool success = SetClipInternal(animationName, blendClip, blendClipTimePassed, blendClipDurationInSeconds);
 
     if (success)
     {
@@ -198,7 +211,12 @@ bool AnimationPlayer::SetBlendClip(const std::string& animationName)
     return success;
 }
 
-bool AnimationPlayer::SetClipInternal(const std::string& animationName, const Animation::AnimationClip*& clipToSet)
+bool AnimationPlayer::SetClipInternal(
+    const std::string& animationName,
+    const Animation::AnimationClip*& clipToSet,
+    float& timePassed,
+    float& durationInSeconds
+)
 {
     isPlaying = false;
     auto iter = animation->GetAnimationClips().find(animationName);
@@ -215,7 +233,7 @@ bool AnimationPlayer::SetClipInternal(const std::string& animationName, const An
         return false;
     }
 
-    timePassed = 0;
+    mainClipTimePassed = 0;
 
     return true;
 }

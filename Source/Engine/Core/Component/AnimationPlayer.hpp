@@ -58,8 +58,10 @@ private:
         glm::quat rotation{1, 0, 0, 0};
     };
     std::vector<AnimatedGameObject> animatedObjects;
-    float timePassed = 0;
-    float durationInSeconds = 0;
+    float mainClipTimePassed = 0;
+    float mainClipDurationInSeconds = 0;
+    float blendClipTimePassed = 0;
+    float blendClipDurationInSeconds = 0;
     float blendClipFactor = 1.0f;
     bool rootMotion = false;
     int animatedRootGOIndex;
@@ -67,7 +69,18 @@ private:
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }
-    void UpdateAnimatedGameObject(const Animation::AnimationClip& mainClip, float currentTime, float blend);
-    bool SetClipInternal(const std::string& animationName, const Animation::AnimationClip*& clipToSet);
+    void UpdateAnimatedGameObject(
+        const Animation::AnimationClip& mainClip,
+        float& timePassed,
+        float& durationInSeconds,
+        float tickPerSecond,
+        float blend
+    );
+    bool SetClipInternal(
+        const std::string& animationName,
+        const Animation::AnimationClip*& clipToSet,
+        float& timePassed,
+        float& durationInSeconds
+    );
     bool IsBlendClipMatchWithMainClip();
 };
