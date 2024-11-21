@@ -132,11 +132,11 @@ void MeshRenderer::RemoveFromRenderingScene()
     }
 }
 
-void MeshRenderer::EnableImple()
+void MeshRenderer::OnEnable()
 {
     AddToRenderingScene();
 }
-void MeshRenderer::DisableImple()
+void MeshRenderer::OnDisable()
 {
     RemoveFromRenderingScene();
 }
@@ -220,7 +220,16 @@ void MeshRenderer::ValidateSkinning()
 
             gpuResource = GetGfxDriver()->CreateShaderResource();
             gpuResource->SetBuffer("BoneTransform", skinning.bonesBuffer.get());
-            UpdateSkinning();
+
+            Skinning::GPUBoneTransforms boneTransforms;
+            int maxBoneCount = skinning.bones.size();
+            for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)
+            {
+                boneTransforms.boneTrnasforms[bi] = glm::mat4(1.0f);
+            }
+
+            GetGfxDriver()
+                ->UploadBuffer(*skinning.bonesBuffer, (uint8_t*)&boneTransforms, sizeof(Skinning::GPUBoneTransforms));
             return;
         }
     }

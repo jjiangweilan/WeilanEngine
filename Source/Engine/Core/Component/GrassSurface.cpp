@@ -25,13 +25,13 @@ const std::string& GrassSurface::GetName()
     return name;
 }
 
-void GrassSurface::Awake() {}
+void GrassSurface::OnStart() {}
 
-void GrassSurface::EnableImple()
+void GrassSurface::OnEnable()
 {
     GetScene()->GetRenderingScene().AddGrassSurface(*this);
 }
-void GrassSurface::DisableImple()
+void GrassSurface::OnDisable()
 {
     GetScene()->GetRenderingScene().RemoveGrassSurface(*this);
 }

@@ -103,7 +103,7 @@ void AnimationPlayer::TickAnimation()
 
     auto& mainClip = *currentClip;
 
-    UpdateAnimatedGameObject(mainClip, mainClipTimePassed, mainClipDurationInSeconds, blendClip->tickPerSecond, 1.0f);
+    UpdateAnimatedGameObject(mainClip, mainClipTimePassed, mainClipDurationInSeconds, mainClip.tickPerSecond, 1.0f);
 
     if (blendClip)
     {
@@ -127,6 +127,7 @@ void AnimationPlayer::TickAnimation()
 bool AnimationPlayer::SetClip(const std::string& animationName)
 {
     isPlaying = false;
+    this->initialActiveClip = animationName;
 
     bool success = SetClipInternal(animationName, currentClip, mainClipTimePassed, mainClipDurationInSeconds);
 
@@ -187,12 +188,16 @@ void AnimationPlayer::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("animation", animation);
     s->Serialize("speed", speed);
+    s->Serialize("rootName", rootName);
+    s->Serialize("activeClip", initialActiveClip);
 }
 void AnimationPlayer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
     s->Deserialize("animation", animation);
     s->Deserialize("speed", speed);
+    s->Deserialize("rootName", rootName);
+    s->Deserialize("activeClip", initialActiveClip);
 }
 
 bool AnimationPlayer::SetBlendClip(const std::string& animationName)
@@ -261,18 +266,37 @@ bool AnimationPlayer::IsBlendClipMatchWithMainClip()
     return false;
 }
 
-bool AnimationPlayer::SetRoot(std::string_view rootName)
+void AnimationPlayer::EnableRootMotion()
 {
-    this->rootName = rootName;
     auto iter = std::find_if(
         animatedObjects.begin(),
         animatedObjects.end(),
-        [rootName](AnimatedGameObject& go) { return go.go->GetName().compare(rootName) == 0; }
+        [this](AnimatedGameObject& go) { return go.go->GetName().compare(rootName) == 0; }
     );
     if (iter == animatedObjects.end())
     {
-        return false;
+        spdlog::error("root motion set failed");
+        return;
     }
+    spdlog::info("root motion set success");
     animatedRootGOIndex = iter - animatedObjects.begin();
-    return true;
+    return;
+}
+
+void AnimationPlayer::SetRoot(std::string_view rootName)
+{
+    this->rootName = rootName;
+}
+
+void AnimationPlayer::OnStart()
+{
+    if (!initialActiveClip.empty())
+    {
+        SetClip(initialActiveClip);
+    }
+
+    if (!rootName.empty())
+    {
+        EnableRootMotion();
+    }
 }

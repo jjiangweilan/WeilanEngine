@@ -17,10 +17,10 @@ public:
     Material drawMat;
     std::unique_ptr<Gfx::Buffer> grassDispatcherIndirectDrawBuffer;
 
-    void Awake() override;
+    void OnStart() override;
 
 private:
     void Init();
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 };

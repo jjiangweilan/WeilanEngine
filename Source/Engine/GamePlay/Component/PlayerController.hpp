@@ -52,7 +52,6 @@ public:
         return target;
     }
 
-    void Awake() override;
 
 private:
     Camera* target = nullptr;
@@ -68,9 +67,13 @@ private:
     ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnStart() override;
+    void OnEnable() override;
+    void OnDisable() override;
+    void OnDrawGizmos() override;
     void HandleInput();
 
+    void CreateCharacterPhysicsShape();
+    void DestroyCharacterPhysicsShape();
     void UpdateCharacter();
 };

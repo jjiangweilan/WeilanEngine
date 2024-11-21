@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Asset.hpp"
+#include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
 #include "EditorState.hpp"
 #include "Libs/EnumFlags.hpp"
@@ -57,6 +58,12 @@ public:
         {
             curr = (T*)target;
             newValue = true;
+        }
+        else if (DragDropTarget(typeid(GameObject), target))
+        {
+            GameObject* go = (GameObject*)target;
+            curr = go->GetComponent<T>();
+            newValue = curr != nullptr;
         }
 
         ImGui::PopID();

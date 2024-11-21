@@ -10,7 +10,7 @@ const std::string& SceneEnvironment::GetName()
     return name;
 }
 
-void SceneEnvironment::EnableImple()
+void SceneEnvironment::OnEnable()
 {
     auto scene = GetScene();
 
@@ -20,7 +20,7 @@ void SceneEnvironment::EnableImple()
         renderingScene.SetSceneEnvironment(*this);
     }
 }
-void SceneEnvironment::DisableImple()
+void SceneEnvironment::OnDisable()
 {
     auto scene = GetScene();
 

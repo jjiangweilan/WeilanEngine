@@ -411,9 +411,7 @@ void GameEditor::SceneTree(Scene& scene)
     {
         if (ImGui::Button("Create As Prototype"))
         {
-            std::unique_ptr<GameObject> go = std::make_unique<GameObject>(*sceneTreeContextObject);
-            GameObject* prototype = (GameObject*)AssetDatabase::Singleton()->SaveAsset(std::move(go), go->GetName());
-            sceneTreeContextObject->SetPrototype(prototype);
+            PrototypeUtils::MakePrototype(sceneTreeContextObject, sceneTreeContextObject->GetName());
         }
 
         if (ImGui::Button("Delete"))

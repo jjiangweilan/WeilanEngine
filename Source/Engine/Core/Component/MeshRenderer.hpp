@@ -89,6 +89,6 @@ private:
     void UpdateAABB();
     void UpdateSkinning();
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 };

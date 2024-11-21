@@ -23,7 +23,7 @@ std::unique_ptr<Component> Terrain::Clone(GameObject& owner)
     return std::make_unique<Terrain>(&owner);
 }
 
-void Terrain::EnableImple()
+void Terrain::OnEnable()
 {
     if (auto scene = GetScene())
     {
@@ -31,7 +31,7 @@ void Terrain::EnableImple()
     }
 }
 
-void Terrain::DisableImple()
+void Terrain::OnDisable()
 {
     if (auto scene = GetScene())
     {

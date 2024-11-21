@@ -35,8 +35,8 @@ public:
         return specularCube;
     }
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 
 private:
     Texture* diffuseCube = nullptr;

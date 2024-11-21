@@ -89,7 +89,7 @@ void GameLoop::Play()
     auto gos = scene->GetAllGameObjects();
     for (auto go : gos)
     {
-        go->Awake();
+        go->OnStart();
     }
 }
 

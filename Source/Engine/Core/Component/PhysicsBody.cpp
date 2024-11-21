@@ -60,7 +60,7 @@ std::unique_ptr<Component> PhysicsBody::Clone(GameObject& owner)
     return clone;
 }
 
-void PhysicsBody::EnableImple()
+void PhysicsBody::OnEnable()
 {
     Scene* scene = GetScene();
     if (scene == nullptr)
@@ -73,7 +73,7 @@ void PhysicsBody::EnableImple()
 
     TransformChanged();
 }
-void PhysicsBody::DisableImple()
+void PhysicsBody::OnDisable()
 {
     Scene* scene = GetScene();
     if (scene == nullptr)
@@ -269,7 +269,7 @@ void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
     }
 }
 
-void PhysicsBody::Awake() {}
+void PhysicsBody::OnStart() {}
 
 void PhysicsBody::TransformChanged()
 {

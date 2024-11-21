@@ -68,11 +68,11 @@ void Cloud::RemoveFromRenderingScene()
     }
 }
 
-void Cloud::EnableImple()
+void Cloud::OnEnable()
 {
     AddToRenderingScene();
 }
-void Cloud::DisableImple()
+void Cloud::OnDisable()
 {
     RemoveFromRenderingScene();
 }

@@ -14,7 +14,7 @@ public:
         Inspector<PlayerController>::DrawInspector(editor);
 
         Camera* camera = target->GetCamera();
-        if (GUI::ObjectField(fmt::format("{}", camera ? camera->GetGameObject()->GetName().c_str() : "null"), camera))
+        if (GUI::ObjectField("camera", camera))
         {
             target->SetCamera(camera);
         }

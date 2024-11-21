@@ -31,6 +31,6 @@ private:
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 };

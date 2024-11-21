@@ -60,8 +60,8 @@ public:
 
 private:
     Rendering::LFP::LightFieldProbes lfp;
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 
     glm::vec3 gridMin = glm::vec3(0, 0, 0);
     glm::vec3 gridMax = glm::vec3(5, 5, 5);

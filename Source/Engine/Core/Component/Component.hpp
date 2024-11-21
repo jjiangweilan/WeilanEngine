@@ -30,7 +30,7 @@ public:
         if (enabled == false)
         {
             enabled = true;
-            EnableImple();
+            OnEnable();
         }
     };
 
@@ -39,7 +39,7 @@ public:
         if (enabled == true)
         {
             enabled = false;
-            DisableImple();
+            OnDisable();
         }
     }
 
@@ -48,15 +48,15 @@ public:
     Scene* GetScene();
 
     // called when play mode enter
-    virtual void Awake() {}
+    virtual void OnStart() {}
     virtual void OnDrawGizmos() {};
 
 protected:
     bool enabled = false;
     GameObject* gameObject;
 
-    virtual void EnableImple() {};
-    virtual void DisableImple() {};
+    virtual void OnEnable() {};
+    virtual void OnDisable() {};
 
     // editor only
     virtual void TransformChanged() {}

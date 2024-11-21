@@ -5,8 +5,8 @@ DEFINE_OBJECT(LightFieldProbes, "EA1F3D6D-9016-4BD0-8062-BA88D022BB50");
 LightFieldProbes::LightFieldProbes() : Component(nullptr) {}
 LightFieldProbes::LightFieldProbes(GameObject* gameObject) : Component(gameObject){};
 
-void LightFieldProbes::EnableImple() {}
-void LightFieldProbes::DisableImple() {}
+void LightFieldProbes::OnEnable() {}
+void LightFieldProbes::OnDisable() {}
 
 const std::string& LightFieldProbes::GetName()
 {

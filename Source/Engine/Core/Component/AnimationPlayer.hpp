@@ -15,6 +15,7 @@ public:
         auto copy = std::make_unique<AnimationPlayer>(*this);
         return copy;
     }
+    void OnStart() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
@@ -26,7 +27,7 @@ public:
     bool SetBlendClip(const std::string& animationName);
     bool SetClip(const std::string& animationName);
     void SetRootMotionEnabled(bool enabled) { this->rootMotion = enabled; }
-    bool SetRoot(std::string_view rootName);
+    void SetRoot(std::string_view rootName);
 
     const std::string& GetRootName() { return rootName; }
     bool IsRootMotionEnabled() { return rootMotion; }
@@ -66,6 +67,7 @@ private:
     bool rootMotion = false;
     int animatedRootGOIndex;
     std::string rootName;
+    std::string initialActiveClip;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }
@@ -83,4 +85,5 @@ private:
         float& durationInSeconds
     );
     bool IsBlendClipMatchWithMainClip();
+    void EnableRootMotion();
 };

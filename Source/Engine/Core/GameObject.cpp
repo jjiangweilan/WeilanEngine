@@ -225,7 +225,7 @@ void GameObject::SetScene(Scene* scene)
             for (auto& c : components)
             {
                 if (c->IsEnabled())
-                    c->DisableImple();
+                    c->OnDisable();
             }
         }
 
@@ -233,7 +233,7 @@ void GameObject::SetScene(Scene* scene)
         for (auto& c : components)
         {
             if (c->IsEnabled() && enabled)
-                c->EnableImple();
+                c->OnEnable();
         }
 
         for (auto child : children)
@@ -264,7 +264,7 @@ void GameObject::SetEnable(bool isEnabled)
         {
             if (c->IsEnabled())
             {
-                c->EnableImple();
+                c->OnEnable();
             }
         }
     }
@@ -273,7 +273,7 @@ void GameObject::SetEnable(bool isEnabled)
         for (auto& c : components)
         {
             if (c->IsEnabled())
-                c->DisableImple();
+                c->OnDisable();
         }
     }
 
@@ -432,7 +432,7 @@ void GameObject::ResetAsPrototype()
         {
             if (c->IsEnabled())
             {
-                c->EnableImple();
+                c->OnEnable();
             }
         }
         wantsToBeEnabled = false;

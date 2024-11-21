@@ -99,11 +99,11 @@ public:
     void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
 
-    void Awake()
+    void OnStart()
     {
         for (auto& c : components)
         {
-            c->Awake();
+            c->OnStart();
         }
     }
 

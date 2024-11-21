@@ -14,6 +14,7 @@
 // clang-format on
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/ShapeCast.h>
 
@@ -113,65 +114,18 @@ void PlayerController::HandleInput()
     character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
 }
 
-void PlayerController::Awake()
+void PlayerController::OnStart()
 {
     valid = false;
     if (target == nullptr)
     {
         return;
     }
-
     auto targetGO = target->GetGameObject();
     if (targetGO == GetGameObject())
     {
         return;
     }
-
-    if (auto scene = GetScene())
-    {
-        // create shape
-        auto extent = GetGameObject()->GetLocalScale();
-        JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
-        standingShape = s.Create().Get();
-
-        // create character
-        JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
-        settings->mMaxSlopeAngle = maxSlopeAngle;
-        settings->mMaxStrength = maxStrength;
-        settings->mShape = standingShape;
-        settings->mBackFaceMode = JPH::EBackFaceMode::IgnoreBackFaces;
-        settings->mCharacterPadding = characterPadding;
-        settings->mPenetrationRecoverySpeed = penetrationRecoverySpeed;
-        settings->mPredictiveContactDistance = predictiveContactDistance;
-        settings->mSupportingVolume = JPH::Plane(
-            JPH::Vec3::sAxisY(),
-            -characterRadiusStanding
-        ); // Accept contacts that touch the lower sphere of the capsule
-        character = new JPH::CharacterVirtual(
-            settings,
-            JPH::RVec3::sZero(),
-            JPH::Quat::sIdentity(),
-            &scene->GetPhysicsScene().GetPhysicsSystem()
-        );
-        character->SetListener(this);
-
-        auto& bSystem = scene->GetPhysicsScene().GetPhysicsSystem();
-
-        character->SetShape(
-            standingShape,
-            1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
-            bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
-            bSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
-            {},
-            {},
-            tempAllocator
-        );
-
-        auto pos = gameObject->GetPosition();
-        character->SetPosition({pos.x, pos.y, pos.z});
-    }
-    else
-        return;
 
     // set camera's initial position
     SetCameraSphericalPos(0, 0);
@@ -199,14 +153,14 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     target->GetGameObject()->SetPosition(GetGameObject()->GetPosition() + finalSphOffset);
 }
 
-void PlayerController::EnableImple() {}
-
-void PlayerController::DisableImple()
+void PlayerController::OnEnable()
 {
-    if (standingShape)
-        standingShape->Release();
+    CreateCharacterPhysicsShape();
+}
 
-    character = nullptr;
+void PlayerController::OnDisable()
+{
+    DestroyCharacterPhysicsShape();
 }
 
 void PlayerController::UpdateCharacter()
@@ -258,4 +212,65 @@ void PlayerController::Tick()
         auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
         cameraGO->SetLocalRotation(lookAtQuat);
     }
+}
+
+void PlayerController::CreateCharacterPhysicsShape()
+{
+    auto scene = GetScene();
+    if (scene == nullptr)
+    {
+        spdlog::error("failed to CreateCharacterPhysicsShape, because scene is null");
+        return;
+    }
+
+    // create shape
+    auto extent = GetGameObject()->GetLocalScale();
+    JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
+    standingShape = s.Create().Get();
+
+    // create character
+    JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
+    settings->mMaxSlopeAngle = maxSlopeAngle;
+    settings->mMaxStrength = maxStrength;
+    settings->mShape = standingShape;
+    settings->mBackFaceMode = JPH::EBackFaceMode::IgnoreBackFaces;
+    settings->mCharacterPadding = characterPadding;
+    settings->mPenetrationRecoverySpeed = penetrationRecoverySpeed;
+    settings->mPredictiveContactDistance = predictiveContactDistance;
+    settings->mSupportingVolume = JPH::Plane(
+        JPH::Vec3::sAxisY(),
+        -characterRadiusStanding
+    ); // Accept contacts that touch the lower sphere of the capsule
+    character = new JPH::CharacterVirtual(
+        settings,
+        JPH::RVec3::sZero(),
+        JPH::Quat::sIdentity(),
+        &scene->GetPhysicsScene().GetPhysicsSystem()
+    );
+    character->SetListener(this);
+
+    auto& bSystem = scene->GetPhysicsScene().GetPhysicsSystem();
+
+    character->SetShape(
+        standingShape,
+        1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
+        bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        bSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
+        {},
+        {},
+        tempAllocator
+    );
+
+    auto pos = gameObject->GetPosition();
+    character->SetPosition({pos.x, pos.y, pos.z});
+}
+
+void PlayerController::OnDrawGizmos() {}
+
+void PlayerController::DestroyCharacterPhysicsShape()
+{
+    if (standingShape)
+        standingShape->Release();
+
+    character = nullptr;
 }

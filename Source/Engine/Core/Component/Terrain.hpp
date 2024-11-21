@@ -13,6 +13,6 @@ public:
     const std::string& GetName() override;
     std::unique_ptr<Component> Clone(GameObject& owner) override;
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
 };

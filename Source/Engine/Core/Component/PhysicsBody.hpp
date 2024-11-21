@@ -91,7 +91,7 @@ public:
         }
     }
 
-    void Awake() override;
+    void OnStart() override;
 
     void SetLinearVelocity(const glm::vec3& velocity);
     glm::vec3 GetLinearVelocity();
@@ -137,8 +137,8 @@ private:
     std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
     std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
 
-    void EnableImple() override;
-    void DisableImple() override;
+    void OnEnable() override;
+    void OnDisable() override;
     bool SetShape(JPH::ShapeSettings& shape);
     void TransformChanged() override;
     void UpdateBodyPositionAndRotation();
