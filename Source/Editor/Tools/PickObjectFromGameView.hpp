@@ -7,8 +7,8 @@
 
 enum class PickObjectLayer : int
 {
-    GameObject,
-    Gizmos
+    GameObject = 1,
+    Gizmos = 1 << 1
 };
 ENUM_FLAGS(PickObjectLayer, int);
 
@@ -23,7 +23,8 @@ struct PickGameObjectFromScene
     struct PickCandidate
     {
         PickObjectLayer layer;
-        std::function<void(const Ray& ray)> intersectionTest;
+        std::function<void(const Ray& ray, const std::function<void(GameObject*, float)>& intersectedPushback)>
+            intersectionTest;
     };
 
     // main thread populates pending vectors, while worker threads process the pending. workers takes the target
@@ -31,39 +32,34 @@ struct PickGameObjectFromScene
     // intersected with the GameObject. `consumerIndex` is incrementally increased by 1 each time the worker takes a
     // GameObject to process
 private:
-    std::vector<GameObject*> pending;
+    std::vector<PickCandidate> pending;
     std::atomic<int> consumerIndex{0};
-
-public:
+    std::mutex mutexLock;
     std::vector<Intersected> results;
 
-    void operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
+public:
+    std::vector<Intersected> operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV)
     {
-        pending = scene.GetAllGameObjects();
+        results.clear();
+        pending.clear();
+
+        pending = GetCandidateFromScene(scene);
+
         std::vector<std::thread> threads;
-        std::mutex mutexLock;
         int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
         for (int i = 0; i < maxThreads; ++i)
         {
             threads.push_back(std::thread(
-                [this, &mutexLock, &intersected, &ray]()
+                [this, &ray]()
                 {
                     while (consumerIndex < pending.size())
                     {
                         int index = consumerIndex.fetch_add(1);
 
-                        GameObject* obj = pending[index];
-                        if (obj == nullptr || !obj->IsEnabled())
-                            continue;
-
-                        auto ori = ray.origin;
-                        auto dir = ray.direction;
-                        float distance = std::numeric_limits<float>::max();
-                        if (IsRayObjectIntersect(ori, dir, obj, distance))
-                        {
-                            std::scoped_lock lock(mutexLock);
-                            intersected.push_back(Intersected{obj, distance});
-                        }
+                        pending[index].intersectionTest(
+                            ray,
+                            [this](GameObject* go, float distance) { this->PushbackIntersected(go, distance); }
+                        );
                     };
                 }
             ));
@@ -71,9 +67,44 @@ public:
 
         for (auto& t : threads)
             t.join();
+
+        return results;
     }
 
-    bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
+    void PushbackIntersected(GameObject* obj, float distance)
+    {
+        std::scoped_lock lock(mutexLock);
+        results.push_back(Intersected{obj, distance});
+    }
+
+    static std::vector<PickCandidate> GetCandidateFromScene(Scene& scene)
+    {
+        std::vector<PickCandidate> pending;
+        auto gameObjects = scene.GetAllGameObjects();
+        for (auto obj : gameObjects)
+        {
+            if (obj != nullptr && obj->IsEnabled())
+            {
+                pending.push_back(PickCandidate{
+                    PickObjectLayer::GameObject,
+                    [obj](const Ray& ray, const std::function<void(GameObject*, float)>& intersectedPushback)
+                    {
+                        auto ori = ray.origin;
+                        auto dir = ray.direction;
+                        float distance = std::numeric_limits<float>::max();
+
+                        if (IsRayObjectIntersect(ori, dir, obj, distance))
+                        {
+                            intersectedPushback(obj, distance);
+                        }
+                    }
+                });
+            }
+        }
+        return pending;
+    }
+
+    static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
     {
         distance = std::numeric_limits<float>::max();
         auto mr = obj->GetComponent<MeshRenderer>();

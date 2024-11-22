@@ -555,7 +555,8 @@ bool GameView::Tick()
                     {
                         if (EditorState::activeScene)
                         {
-                            PickGameObjectFromScene()(*EditorState::activeScene, ray, screenUV, intersected);
+                            auto sceneIntersected = PickGameObjectFromScene()(*EditorState::activeScene, ray, screenUV);
+                            intersected.insert(intersected.end(), sceneIntersected.begin(), sceneIntersected.end());
                         }
                     }
                     else
