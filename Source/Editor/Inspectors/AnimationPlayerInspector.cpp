@@ -27,7 +27,7 @@ public:
         }
 
         const std::string& rootMotion = target->GetRootName();
-        strcpy_s(rootNameBuffer, 256, rootMotion.data());
+        memcpy(rootNameBuffer, rootMotion.data(), rootMotion.size() < 256 ? rootMotion.size() : 256);
         if (ImGui::InputText("Root Motion", rootNameBuffer, 256))
         {
             target->SetRoot(rootNameBuffer);

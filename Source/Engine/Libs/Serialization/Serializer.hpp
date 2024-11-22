@@ -429,16 +429,7 @@ void Serializer::Deserialize(std::string_view name, T*& val)
     val = nullptr;
     if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
-        // try resolving this reference immediately
-        Object* loaded = Object::GetObject(uuid);
-        if (loaded)
-        {
-            val = static_cast<T*>(loaded);
-        }
-        else
-        {
-            (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, nullptr);
-        }
+        (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, nullptr);
     }
 }
 
@@ -450,20 +441,7 @@ void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceReso
     val = nullptr;
     if (resolveCallbacks && uuid != UUID::GetEmptyUUID())
     {
-        // try resolving this reference immediately
-        Object* loaded = Object::GetObject(uuid);
-        if (loaded)
-        {
-            val = static_cast<T*>(loaded);
-            if (callback)
-            {
-                callback(val);
-            }
-        }
-        else
-        {
-            (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, callback);
-        }
+        (*resolveCallbacks)[uuid].emplace_back((void**)&val, uuid, callback);
     }
 }
 
