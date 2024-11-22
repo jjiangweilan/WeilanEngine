@@ -40,6 +40,7 @@ public:
     virtual const UUID& GetObjectTypeID() = 0;
 
     static EngineObjectMap& GetAllEngineObjects();
+    static Object* GetObject(const UUID& uuid);
     template <class T>
     static std::vector<T*> GetObjectsOfType();
 

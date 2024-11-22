@@ -251,3 +251,6 @@ bool MeshRenderer::IsSkinningEnabled()
 {
     return skinning.enabled;
 }
+
+void MeshRenderer::OnDrawGizmos() {
+}

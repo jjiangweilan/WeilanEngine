@@ -9,6 +9,7 @@
 #include "GameEditor.hpp"
 #include "Libs/Math.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
+#include "Tools/PickObjectFromGameView.hpp"
 
 namespace Editor
 {
@@ -71,11 +72,6 @@ struct GameView::PlayTheGame
 GameView::GameView() {}
 GameView::~GameView() {}
 
-struct Intersected
-{
-    GameObject* go;
-    float distance;
-};
 void GameView::Deinit()
 {
     playTheGame->Stop(this);
@@ -151,117 +147,6 @@ void GameView::Init()
     ChangeGameScreenResolution({256, 256});
 }
 
-static bool IsRayObjectIntersect(glm::vec3 ori, glm::vec3 dir, GameObject* obj, float& distance)
-{
-    distance = std::numeric_limits<float>::max();
-    auto mr = obj->GetComponent<MeshRenderer>();
-    if (mr)
-    {
-        auto model = obj->GetWorldMatrix();
-        auto mesh = mr->GetMesh();
-        if (mesh)
-        {
-            for (const Submesh& submesh : mesh->GetSubmeshes())
-            {
-                auto& indices = submesh.GetIndices();
-                auto& positions = submesh.GetPositions();
-
-                // I just assume binding zero is a vec3 position, this is not robust
-                for (int i = 0; i < submesh.GetIndexCount(); i += 3)
-                {
-                    int j = i + 1;
-                    int k = i + 2;
-
-                    glm::vec3 v0, v1, v2;
-                    v0 = model * glm::vec4(positions[indices[i]], 1.0);
-                    v1 = model * glm::vec4(positions[indices[j]], 1.0);
-                    v2 = model * glm::vec4(positions[indices[k]], 1.0);
-
-                    glm::vec2 bary;
-                    float newDistance = -1;
-                    if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
-                    {
-                        distance = glm::min(distance, newDistance);
-                    }
-                }
-            }
-        }
-    }
-
-    return distance > 0;
-}
-
-struct PickGameObjectFromScene
-{
-    // main thread populates pending vectors, while worker threads process the pending. workers takes the target
-    // GameObject using the `consumerIndex`, each process of a GameObject appends an `Intersected` in `results` if it's
-    // intersected with the GameObject. `consumerIndex` is incrementally increased by 1 each time the worker takes a
-    // GameObject to process
-private:
-    std::vector<GameObject*> pending;
-    std::atomic<int> consumerIndex{0};
-
-public:
-    std::vector<Intersected> results;
-
-    void operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
-    {
-        pending = scene.GetAllGameObjects();
-        std::vector<std::thread> threads;
-        std::mutex m;
-        int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
-        for (int i = 0; i < maxThreads; ++i)
-        {
-            threads.push_back(std::thread(
-                [this, &m, &intersected, &ray]()
-                {
-                    while (consumerIndex < pending.size())
-                    {
-                        int index = consumerIndex.fetch_add(1);
-
-                        GameObject* obj = pending[index];
-                        if (obj == nullptr || !obj->IsEnabled())
-                            continue;
-
-                        auto ori = ray.origin;
-                        auto dir = ray.direction;
-                        float distance = std::numeric_limits<float>::max();
-                        if (IsRayObjectIntersect(ori, dir, obj, distance))
-                        {
-                            std::scoped_lock lock(m);
-                            intersected.push_back(Intersected{obj, distance});
-                        }
-                    };
-                }
-            ));
-        }
-
-        for (auto& t : threads)
-            t.join();
-    }
-};
-
-// static void PickGameObjectFromScene(const Ray& ray, glm::vec2 screenUV, std::vector<Intersected>& intersected)
-// {
-//     if (Scene* scene = EditorState::activeScene)
-//     {
-//         auto objs = scene->GetAllGameObjects();
-//
-//         auto ori = ray.origin;
-//         auto dir = ray.direction;
-//         for (auto obj : objs)
-//         {
-//             if (obj == nullptr || !obj->IsEnabled())
-//                 continue;
-//
-//             float distance = std::numeric_limits<float>::max();
-//             if (IsRayObjectIntersect(ori, dir, obj, distance))
-//             {
-//                 intersected.push_back(Intersected{obj, distance});
-//             }
-//         }
-//     }
-// }
 
 void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
@@ -659,6 +544,7 @@ bool GameView::Tick()
                 auto mainCam = GetCurrentlyActiveCamera();
                 if (mainCam != nullptr)
                 {
+                    using Intersected = PickGameObjectFromScene::Intersected;
                     Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
 
                     std::vector<Intersected> intersected;

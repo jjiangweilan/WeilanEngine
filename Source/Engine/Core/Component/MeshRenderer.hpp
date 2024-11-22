@@ -54,6 +54,7 @@ public:
     const std::vector<Material*>& GetMaterials();
     Gfx::ShaderResource* GetObjectResource() { return gpuResource.get(); }
 
+    void OnDrawGizmos() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     std::unique_ptr<Component> Clone(GameObject& owner) override;

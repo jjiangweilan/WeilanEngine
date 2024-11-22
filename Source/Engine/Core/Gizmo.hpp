@@ -42,6 +42,7 @@ private:
     static GameObject*& GetActiveCarrier();
 };
 
+// a selectable GUI overlay/3D object in scene for editor
 class Gizmos
 {
 public:

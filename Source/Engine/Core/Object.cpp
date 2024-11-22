@@ -6,6 +6,17 @@ Object::EngineObjectMap& Object::GetAllEngineObjects()
     return allEngineObjects;
 }
 
+Object* Object::GetObject(const UUID& uuid)
+{
+    auto& objects = GetAllEngineObjects();
+    auto iter = objects.find(uuid);
+    if (iter != objects.end())
+    {
+        return iter->second;
+    }
+    return nullptr;
+}
+
 Object::Object()
 {
 #if ENGINE_DEV_BUILD
