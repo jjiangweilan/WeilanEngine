@@ -58,10 +58,12 @@ private:
     float characterCapsuleShapeHalfHeight = 1.75;
     float characterCapsuleShapeRadius = 0.8;
     Camera* target = nullptr;
-    AnimationPlayer* rootMotionAnimationPlayer;
+    AnimationPlayer* rootMotionAnimationPlayer = nullptr;
+
+    /**** Runtime Data ****/
+    glm::vec3 velocity{};
     // camera rotation around player
     float theta, phi;
-
     bool valid = false;
     JPH::Ref<JPH::CharacterVirtual> character;
     JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 10 * 1024);

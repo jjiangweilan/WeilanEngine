@@ -166,7 +166,7 @@ public:
 class PhysicsScene
 {
 public:
-    const float DeltaTime = 1.0f / 55.0f;
+    static constexpr float DeltaTime = 1.0f / 55.0f;
     const int CollisionSteps = 1;
 
     PhysicsScene(Scene* scene);

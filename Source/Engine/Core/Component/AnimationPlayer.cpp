@@ -45,15 +45,26 @@ void AnimationPlayer::UpdateAnimatedGameObject(
                 newPosition = (1 - a) * p1.val + a * p2.val;
             }
             else
+            {
                 newPosition = channel.positions.back().val;
+            }
         }
         if (rootMotion && channelIndex == animatedRootGOIndex)
         {
-            glm::vec3 tmp = newPosition;
-            tmp.x = 0;
-            tmp.z = 0;
-            rootMotionDelta = newPosition - tmp;
-            newPosition = tmp;
+            // we use the last rootMotionDelta to estimate the delta between the last pos to the first pos
+            if (index != 0)
+            {
+                rootMotionDelta = newPosition - rootMotionPreviousPosition;
+                rootMotionPreviousPosition = newPosition;
+                newPosition.x = 0;
+                newPosition.z = 0;
+            }
+            else
+            {
+                rootMotionPreviousPosition = newPosition;
+                newPosition.x = 0;
+                newPosition.z = 0;
+            }
         }
         bone.position = glm::mix(bone.position, newPosition, blend);
 

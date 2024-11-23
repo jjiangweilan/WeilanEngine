@@ -48,6 +48,7 @@ void PlayerController::Serialize(Serializer* s) const
     s->Serialize("jumpImpulse", jumpImpulse);
     s->Serialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
+    s->Serialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
 }
 void PlayerController::Deserialize(Serializer* s)
 {
@@ -59,6 +60,7 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("jumpImpulse", jumpImpulse);
     s->Deserialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
+    s->Deserialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
 }
 
 void PlayerController::PrePhysicsTick()
@@ -84,7 +86,7 @@ void PlayerController::HandleInput()
     bool movingTowardsGround = (currentVerticalVelocity - groundVelocity.GetY()) < 0.1f;
 
     // don't lose gravity and vertical velocity
-    glm::vec3 velocity{};
+    velocity = glm::vec3{0, 0, 0};
     velocity.y = currentVerticalVelocity;
     auto gravity = GetScene()->GetPhysicsScene().GetPhysicsSystem().GetGravity() * Time::DeltaTime() * gravityScale;
     velocity += glm::vec3(gravity.GetX(), gravity.GetY(), gravity.GetZ());
@@ -112,14 +114,14 @@ void PlayerController::HandleInput()
         forward.y = 0;
         right.y = 0;
         glm::vec3 dir = glm::normalize(my * forward + mx * right);
-        if (rootMotionAnimationPlayer)
-        {
-            velocity += dir * glm::length(rootMotionAnimationPlayer->GetRootMotionDelta()) * Time::DeltaTime();
-        }
-        else
-        {
-            velocity += dir * movementSpeed * Time::DeltaTime();
-        }
+        // if (rootMotionAnimationPlayer)
+        // {
+        //     velocity += dir * glm::length(rootMotionAnimationPlayer->GetRootMotionDelta() / Time::DeltaTime()) ;
+        // }
+        // else
+        // {
+        velocity += dir * movementSpeed * PhysicsScene::DeltaTime;
+        // }
     }
 
     character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
@@ -230,6 +232,15 @@ void PlayerController::Tick()
         glm::vec3 cameraPos = cameraGO->GetPosition();
         auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
         cameraGO->SetLocalRotation(lookAtQuat);
+
+        /****** select animation ******/
+        if (rootMotionAnimationPlayer)
+        {
+            float speed = glm::length(velocity);
+            float blendFactor = glm::smoothstep(0.f, 1.0f, speed);
+            rootMotionAnimationPlayer->SetBlendClipFactor(blendFactor);
+
+        }
     }
 }
 

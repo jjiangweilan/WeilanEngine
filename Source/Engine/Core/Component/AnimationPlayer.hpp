@@ -66,9 +66,10 @@ private:
     float blendClipFactor = 1.0f;
     bool rootMotion = false;
     int animatedRootGOIndex;
-    std::string rootName;
-    std::string initialActiveClip;
-    glm::vec3 rootMotionDelta;
+    std::string rootName = "";
+    std::string initialActiveClip = "";
+    glm::vec3 rootMotionPreviousPosition = glm::vec3(0);
+    glm::vec3 rootMotionDelta = glm::vec3(0);
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }

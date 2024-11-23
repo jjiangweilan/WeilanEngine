@@ -9,6 +9,11 @@ namespace Editor
 class AnimationPlayerInspector : public Inspector<AnimationPlayer>
 {
 public:
+    void OnEnable(Object& obj) override {
+        Inspector<AnimationPlayer>::OnEnable(obj);
+
+        rootNameBuffer[0] = '\0';
+    }
     void DrawInspector(GameEditor& editor) override
     {
         Inspector<AnimationPlayer>::DrawInspector(editor);
@@ -28,7 +33,7 @@ public:
         }
 
         const std::string& rootMotion = target->GetRootName();
-        memcpy(rootNameBuffer, rootMotion.data(), rootMotion.size() < 256 ? rootMotion.size() : 256);
+        memcpy(rootNameBuffer, rootMotion.data(), rootMotion.size() + 1 < 256 ? rootMotion.size() + 1 : 256);
         if (ImGui::InputText("Root Motion", rootNameBuffer, 256))
         {
             target->SetRoot(rootNameBuffer);
