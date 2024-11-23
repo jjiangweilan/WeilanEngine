@@ -32,12 +32,18 @@ public:
         bool radiusOrHeightChanged = false;
         radiusOrHeightChanged |= ImGui::DragFloat("height", &height);
         radiusOrHeightChanged |= ImGui::DragFloat("radius", &radius);
-        if(radiusOrHeightChanged)
+        if (radiusOrHeightChanged)
         {
             target->SetCharacterCapsuleShape(height, radius);
         }
 
-        Graphics::DrawCapsule(height, radius, go->GetPosition(), go->GetRotation(), go->GetScale());
+        Graphics::DrawCapsule(
+            height,
+            radius,
+            go->GetPosition() + glm::vec3{0, height + radius, 0},
+            go->GetRotation(),
+            go->GetScale()
+        );
     }
 
 private:

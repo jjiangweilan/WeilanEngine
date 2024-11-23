@@ -141,7 +141,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
 
             // wasting space, maybe split class to static(Collider) and dynamic(RigidBody)? or a body creation is needed
             // if set this to false
-            bodyCreationSettings.mAllowDynamicOrKinematic = true;
+            bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
 
             auto& physicsWorld = GetScene()->GetPhysicsScene();
             auto& bodyInterface = physicsWorld.GetBodyInterface();

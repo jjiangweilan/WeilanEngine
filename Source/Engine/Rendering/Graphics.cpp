@@ -21,10 +21,10 @@ void Graphics::DrawTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm:
 }
 
 void Graphics::DrawCapsule(
-    float height, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
+    float halfHeight, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
 )
 {
-    GetSingleton().drawCmds.push_back(DrawCapsuleCmd{height, radius, pos, rotation, scale});
+    GetSingleton().drawCmds.push_back(DrawCapsuleCmd{halfHeight, radius, pos, rotation, scale});
 }
 
 void Graphics::DrawFrustum(const glm::mat4& viewProj)
@@ -153,7 +153,7 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     auto program = mat->GetShader()->GetShaderProgram(ShaderFeatureBitmask{});
 
     glm::mat4 cylinderMatrix = glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
-                               glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.height, draw.radius));
+                               glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.halfHeight, draw.radius));
 
     cmd.BindResource(2, mat->GetShaderResource());
     auto config = std::make_shared<Gfx::ShaderConfig>(*mat->GetShaderConfig());
@@ -166,7 +166,7 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     cmd.BindShaderProgram(program, config);
     cmd.DrawIndexed(cylinder->GetIndexCount(), 1, 0, 0, 0);
 
-    float yOffset = draw.height;
+    float yOffset = draw.halfHeight;
     glm::mat4 halfSphereMatrix0 =
         glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));

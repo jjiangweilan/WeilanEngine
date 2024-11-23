@@ -29,8 +29,8 @@ public:
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
 
-    void SetCharacterCapsuleShape(float height, float radius);
-    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHeight * 2; }
+    void SetCharacterCapsuleShape(float halfHeight, float radius);
+    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHalfHeight; }
     float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
     JPH::RefConst<JPH::Shape> standingShape;
 
@@ -49,7 +49,7 @@ public:
     Camera* GetCamera() { return target; }
 
 private:
-    float characterCapsuleShapeHeight = 1.75;
+    float characterCapsuleShapeHalfHeight = 1.75;
     float characterCapsuleShapeRadius = 0.8;
     Camera* target = nullptr;
     // camera rotation around player

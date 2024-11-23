@@ -6,7 +6,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
 #include "Gameplay/Input.hpp"
-#include "Jolt/Physics/Collision/CollisionCollectorImpl.h"
 #include <spdlog/spdlog.h>
 
 // clang-format off
@@ -46,7 +45,7 @@ void PlayerController::Serialize(Serializer* s) const
     s->Serialize("cameraDistance", cameraDistance);
     s->Serialize("rotateSpeed", rotateSpeed);
     s->Serialize("jumpImpulse", jumpImpulse);
-    s->Serialize("characterCapsuleShapeHeight", characterCapsuleShapeHeight);
+    s->Serialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
 }
 void PlayerController::Deserialize(Serializer* s)
@@ -57,7 +56,7 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("cameraDistance", cameraDistance);
     s->Deserialize("rotateSpeed", rotateSpeed);
     s->Deserialize("jumpImpulse", jumpImpulse);
-    s->Deserialize("characterCapsuleShapeHeight", characterCapsuleShapeHeight);
+    s->Deserialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
 }
 
@@ -164,13 +163,9 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     target->GetGameObject()->SetPosition(GetGameObject()->GetPosition() + finalSphOffset);
 }
 
-void PlayerController::OnEnable()
-{
-}
+void PlayerController::OnEnable() {}
 
-void PlayerController::OnDisable()
-{
-}
+void PlayerController::OnDisable() {}
 
 void PlayerController::UpdateCharacter()
 {
@@ -206,7 +201,7 @@ void PlayerController::Tick()
     if (character)
     {
         auto pos = character->GetPosition();
-        gameObject->SetPosition({pos.GetX(), pos.GetY(), pos.GetZ()});
+        gameObject->SetPosition({pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()});
 
         /* camera update */
         // set camera lookat (camera position)
@@ -232,7 +227,6 @@ void PlayerController::CreateCharacterPhysicsShape()
         return;
     }
 
-
     // create character
     JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
     settings->mMaxSlopeAngle = maxSlopeAngle;
@@ -253,7 +247,7 @@ void PlayerController::CreateCharacterPhysicsShape()
         &scene->GetPhysicsScene().GetPhysicsSystem()
     );
     character->SetListener(this);
-    
+
     // create shape
     SetCharacterCapsuleShapeInternal();
 
@@ -263,13 +257,13 @@ void PlayerController::CreateCharacterPhysicsShape()
 
 void PlayerController::SetCharacterCapsuleShape(float height, float radius)
 {
-    characterCapsuleShapeHeight = height / 2.0f;
+    characterCapsuleShapeHalfHeight = height;
     characterCapsuleShapeRadius = radius;
 }
 
 void PlayerController::SetCharacterCapsuleShapeInternal()
 {
-    JPH::CapsuleShapeSettings ss(characterCapsuleShapeHeight, characterCapsuleShapeRadius);
+    JPH::CapsuleShapeSettings ss(characterCapsuleShapeHalfHeight, characterCapsuleShapeRadius);
     standingShape = ss.Create().Get();
 
     auto& bSystem = GetScene()->GetPhysicsScene().GetPhysicsSystem();

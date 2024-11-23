@@ -56,7 +56,7 @@ private:
 
     struct DrawCapsuleCmd
     {
-        float height;
+        float halfHeight;
         float radius;
         glm::vec3 pos;
         glm::quat rotation;
