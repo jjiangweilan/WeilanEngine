@@ -37,7 +37,7 @@ public:
     Animation* GetAnimation() { return animation; }
     const Animation::AnimationClip* GetActiveClip() const { return currentClip; }
     const Animation::AnimationClip* GetBlendClip() const { return blendClip; }
-
+    const glm::vec3& GetRootMotionDelta() const { return rootMotionDelta; }
     void Play();
     void Stop();
     void TickAnimation();
@@ -68,6 +68,7 @@ private:
     int animatedRootGOIndex;
     std::string rootName;
     std::string initialActiveClip;
+    glm::vec3 rootMotionDelta;
 
     bool SetupAnimatedObjects(const Animation::AnimationClip& clipUsed, GameObject* target);
     void Copy(const AnimationPlayer& other) { animation = other.animation; }

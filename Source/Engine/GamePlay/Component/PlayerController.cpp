@@ -1,4 +1,5 @@
 #include "PlayerController.hpp"
+#include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/GameObject.hpp"
@@ -111,7 +112,14 @@ void PlayerController::HandleInput()
         forward.y = 0;
         right.y = 0;
         glm::vec3 dir = glm::normalize(my * forward + mx * right);
-        velocity += dir * movementSpeed * Time::DeltaTime();
+        if (rootMotionAnimationPlayer)
+        {
+            velocity += dir * glm::length(rootMotionAnimationPlayer->GetRootMotionDelta()) * Time::DeltaTime();
+        }
+        else
+        {
+            velocity += dir * movementSpeed * Time::DeltaTime();
+        }
     }
 
     character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
@@ -195,13 +203,20 @@ void PlayerController::UpdateCharacter()
     );
 }
 
+void PlayerController::SetRootMotionAnimationPlayer(AnimationPlayer* animationPlayer)
+{
+    this->rootMotionAnimationPlayer = animationPlayer;
+}
+
 void PlayerController::Tick()
 {
     // update character
     if (character)
     {
         auto pos = character->GetPosition();
-        gameObject->SetPosition({pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()});
+        gameObject->SetPosition(
+            {pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()}
+        );
 
         /* camera update */
         // set camera lookat (camera position)

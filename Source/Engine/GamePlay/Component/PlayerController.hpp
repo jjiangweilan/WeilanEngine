@@ -6,6 +6,7 @@
 #include <Jolt/Physics/Character/CharacterVirtual.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 
+class AnimationPlayer;
 class Camera;
 class PhysicsBody;
 class PlayerController : public Component, JPH::CharacterContactListener
@@ -44,6 +45,11 @@ public:
     const std::string& GetName() override;
     void PrePhysicsTick() override;
     void Tick() override;
+    void SetRootMotionAnimationPlayer(AnimationPlayer* animationPlayer);
+    AnimationPlayer* GetRootMotionAnimationPlayer() const
+    {
+        return rootMotionAnimationPlayer;
+    }
 
     void SetCamera(Camera* camera) { this->target = camera; }
     Camera* GetCamera() { return target; }
@@ -52,6 +58,7 @@ private:
     float characterCapsuleShapeHalfHeight = 1.75;
     float characterCapsuleShapeRadius = 0.8;
     Camera* target = nullptr;
+    AnimationPlayer* rootMotionAnimationPlayer;
     // camera rotation around player
     float theta, phi;
 

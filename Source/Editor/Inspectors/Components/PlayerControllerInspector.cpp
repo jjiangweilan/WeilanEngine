@@ -1,4 +1,5 @@
 #include "../Inspector.hpp"
+#include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
 #include "EditorGUI.hpp"
@@ -20,6 +21,11 @@ public:
             target->SetCamera(camera);
         }
 
+        AnimationPlayer* animationPlayer = target->GetRootMotionAnimationPlayer();
+        if(GUI::ObjectField("root motion animation player", animationPlayer))
+        {
+            target->SetRootMotionAnimationPlayer(animationPlayer);
+        }
         ImGui::DragFloat("movementSpeed", &target->movementSpeed);
         ImGui::DragFloat("rotateSpeed", &target->rotateSpeed);
         ImGui::DragFloat("cameraOffset", &target->cameraDistance);

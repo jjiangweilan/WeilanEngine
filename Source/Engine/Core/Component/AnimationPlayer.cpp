@@ -47,10 +47,13 @@ void AnimationPlayer::UpdateAnimatedGameObject(
             else
                 newPosition = channel.positions.back().val;
         }
-        if (rootMotion && channelIndex != animatedRootGOIndex)
+        if (rootMotion && channelIndex == animatedRootGOIndex)
         {
-            newPosition.x = 0;
-            newPosition.z = 0;
+            glm::vec3 tmp = newPosition;
+            tmp.x = 0;
+            tmp.z = 0;
+            rootMotionDelta = newPosition - tmp;
+            newPosition = tmp;
         }
         bone.position = glm::mix(bone.position, newPosition, blend);
 

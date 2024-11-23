@@ -11,6 +11,7 @@ class AnimationPlayerInspector : public Inspector<AnimationPlayer>
 public:
     void DrawInspector(GameEditor& editor) override
     {
+        Inspector<AnimationPlayer>::DrawInspector(editor);
         Animation* anim = target->GetAnimation();
 
         std::string animationFieldText = anim ? anim->GetName() : "Animation(none)";
