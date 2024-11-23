@@ -348,9 +348,9 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
     return pipelineLayout;
 }
 
-const ShaderConfig& VKShaderProgram::GetDefaultShaderConfig()
+std::shared_ptr<const ShaderConfig> VKShaderProgram::GetDefaultShaderConfig()
 {
-    return *defaultShaderConfig;
+    return defaultShaderConfig;
 }
 
 VkPipeline VKShaderProgram::RequestComputePipeline(const ShaderConfig& config)

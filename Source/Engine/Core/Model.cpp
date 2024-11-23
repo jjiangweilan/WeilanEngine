@@ -6,7 +6,7 @@
 #include "Libs/Math.hpp"
 #include <fstream>
 
-DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb");
+DEFINE_ASSET(Model, "F675BB06-829E-43B4-BF53-F9518C7A94DB", "glb,fbx");
 
 static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
@@ -334,7 +334,7 @@ bool Model::LoadFromFile(const char* cpath)
             mat->EnableFeature("_EmissiveMap");
         }
 
-        auto shaderConfig = mat->GetShaderConfig();
+        auto shaderConfig = *mat->GetShaderConfig();
         shaderConfig.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
         std::array<float, 3> emissive = {0, 0, 0};
         std::string alphaModel = matJson.value("alphaMode", "OPAQUE");

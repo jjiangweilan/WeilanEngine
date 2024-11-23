@@ -57,6 +57,7 @@ protected:
 
     virtual void OnEnable() {};
     virtual void OnDisable() {};
+    virtual void OnDestroy() {};
 
     // editor only
     virtual void TransformChanged() {}

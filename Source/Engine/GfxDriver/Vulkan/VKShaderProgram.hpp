@@ -57,7 +57,7 @@ public:
     VkPipeline RequestComputePipeline(const ShaderConfig& config);
     VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
 
-    const ShaderConfig& GetDefaultShaderConfig() override;
+    std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
     const ShaderInfo::ShaderInfo& GetShaderInfo() override
     {

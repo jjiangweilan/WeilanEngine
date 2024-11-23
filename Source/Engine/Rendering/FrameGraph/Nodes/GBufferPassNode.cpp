@@ -100,7 +100,7 @@ class GBufferPassNode : public Node
                     {
                         cmd.BindResource(3, draw.objectResource);
                     }
-                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+                    cmd.BindShaderProgram(shaderProgram, draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
@@ -121,7 +121,7 @@ class GBufferPassNode : public Node
                     {
                         cmd.BindResource(3, draw.objectResource);
                     }
-                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+                    cmd.BindShaderProgram(shaderProgram, draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }

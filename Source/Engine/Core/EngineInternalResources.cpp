@@ -9,8 +9,9 @@ EngineInternalResources::EngineInternalResources()
     joltDebugShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/JoltDebugShader.shad"));
     triangleShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/TriangleShader.shad"));
     defaultMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/Default.mat"));
-
     models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Sphere.glb")))->GetMeshes()[0].get();
+    models.capsuleMesh =
+        (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Capsule.fbx")))->GetMeshes()[0].get();
 }
 
 EngineInternalResources& EngineInternalResources::GetSingleton()

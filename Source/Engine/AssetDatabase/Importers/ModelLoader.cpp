@@ -361,7 +361,7 @@ private:
             mat->SetFloat("PBR", "metallic", metallic);
             mat->SetFloat("PBR", "alphaCutoff", alphaCutoff);
 
-            auto shaderConfig = mat->GetShaderConfig();
+            auto shaderConfig = *mat->GetShaderConfig();
             shaderConfig.cullMode = twoSided ? Gfx::CullMode::None : Gfx::CullMode::Back;
             std::string alphaModel = alphaMode.C_Str();
             shaderConfig.depth.testEnable = true;

@@ -53,7 +53,7 @@ public:
 
     int FindShaderPass(std::string_view name);
 
-    inline const Gfx::ShaderConfig& GetDefaultShaderConfig()
+    inline std::shared_ptr<const Gfx::ShaderConfig> GetDefaultShaderConfig()
     {
         return shaderPasses[0]->shaderPrograms[0]->GetDefaultShaderConfig();
     }

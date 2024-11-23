@@ -243,7 +243,7 @@ void Material::SetShaderNoProtection(ShaderBase* shader)
 {
     this->shader = shader;
     uploadNeeded = true;
-    shaderConfig = shader->GetDefaultShaderConfig();
+    shaderConfig = std::make_shared<Gfx::ShaderConfig>(*shader->GetDefaultShaderConfig());
     // if (shaderResource != nullptr)
     // {
     //     GetGfxDriver()->WaitForIdle();

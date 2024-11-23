@@ -13,7 +13,7 @@ struct SceneObjectDrawData
     SceneObjectDrawData(SceneObjectDrawData&& other) = default;
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
     Shader* shader = nullptr;
-    const Gfx::ShaderConfig* shaderConfig = nullptr;
+    std::shared_ptr<const Gfx::ShaderConfig> shaderConfig = nullptr;
     Material* material = nullptr;
     Gfx::ShaderResource* materialResource = nullptr;
     Gfx::ShaderResource* objectResource = nullptr;

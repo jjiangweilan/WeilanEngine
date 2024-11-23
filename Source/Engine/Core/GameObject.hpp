@@ -39,7 +39,7 @@ public:
     std::unique_ptr<Asset> Clone() override;
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
-    
+
     GameObject* Find(std::string_view name);
 
     void RemoveComponent(void* comp)
@@ -153,6 +153,12 @@ public:
     glm::vec3 GetPosition() const { return GetWorldMatrix()[3]; }
 
     glm::vec3 GetLocalPosition() const { return position; }
+
+    glm::vec3 GetScale() const
+    {
+        auto m = GetWorldMatrix();
+        return {glm::length(glm::vec3(m[0])), glm::length(glm::vec3(m[1])), glm::length(glm::vec3(m[2]))};
+    }
 
     glm::vec3 GetLocalScale() const { return scale; }
 

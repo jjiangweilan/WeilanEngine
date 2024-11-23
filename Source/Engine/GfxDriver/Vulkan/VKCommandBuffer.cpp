@@ -2,6 +2,7 @@
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
+#include "GfxDriver/Vulkan/VKRenderPass.hpp"
 #include "RHI/VKRenderGraph.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
@@ -13,74 +14,72 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx
 {
     assert(clearValues.size() <= 8);
 
-    VKCmd cmd{VKCmdType::BeginRenderPass};
+    VKBeginRenderPassCmd cmd{};
 
-    cmd.type = VKCmdType::BeginRenderPass;
-    cmd.beginRenderPass.renderPass = static_cast<VKRenderPass*>(&renderPass);
+    cmd.renderPass = static_cast<VKRenderPass*>(&renderPass);
     for (int i = 0; i < clearValues.size() && i < 8; ++i)
     {
-        memcpy(cmd.beginRenderPass.clearValues, clearValues.data(), clearValues.size() * sizeof(Gfx::ClearValue));
+        memcpy(cmd.clearValues, clearValues.data(), clearValues.size() * sizeof(Gfx::ClearValue));
     }
-    cmd.beginRenderPass.clearValueCount = clearValues.size();
+    cmd.clearValueCount = clearValues.size();
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::BeginRenderPass, cmd});
 }
 
 void VKCommandBuffer::EndRenderPass()
 {
-    VKCmd cmd{VKCmdType::EndRenderPass};
-    cmds.push_back(cmd);
+    VKEndRenderPassCmd cmd{};
+    cmds.push_back(VKCmd{VKCmdType::EndRenderPass, cmd});
 }
 
 void VKCommandBuffer::DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
 {
-    VKCmd cmd{VKCmdType::DrawIndirect};
+    VKDrawIndirectCmd cmd{};
 
-    cmd.drawIndirect.buffer = buffer;
-    cmd.drawIndirect.offset = offset;
-    cmd.drawIndirect.drawCount = drawCount;
-    cmd.drawIndirect.stride = stride;
+    cmd.buffer = buffer;
+    cmd.offset = offset;
+    cmd.drawCount = drawCount;
+    cmd.stride = stride;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd {VKCmdType::DrawIndirect, cmd});
 }
 
 void VKCommandBuffer::DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
 {
+    VKDrawIndexedIndirectCmd cmd{};
 
-    VKCmd cmd{VKCmdType::DrawIndexedIndirect};
+    cmd.buffer = buffer;
+    cmd.offset = offset;
+    cmd.drawCount = drawCount;
+    cmd.stride = stride;
 
-    cmd.drawIndirect.buffer = buffer;
-    cmd.drawIndirect.offset = offset;
-    cmd.drawIndirect.drawCount = drawCount;
-    cmd.drawIndirect.stride = stride;
-
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::DrawIndexedIndirect, cmd});
 }
 
 void VKCommandBuffer::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
-    VKCmd cmd{VKCmdType::Draw};
+    VKDrawCmd cmd{};
 
-    cmd.draw.vertexCount = vertexCount;
-    cmd.draw.instanceCount = instanceCount;
-    cmd.draw.firstVertex = firstVertex;
-    cmd.draw.firstInstance = firstInstance;
+    cmd.vertexCount = vertexCount;
+    cmd.instanceCount = instanceCount;
+    cmd.firstVertex = firstVertex;
+    cmd.firstInstance = firstInstance;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::Draw, cmd});
 }
 
 void VKCommandBuffer::DrawIndexed(
     uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
 )
 {
-    VKCmd cmd{VKCmdType::DrawIndexed};
-    cmd.drawIndexed.indexCount = indexCount;
-    cmd.drawIndexed.instanceCount = instanceCount;
-    cmd.drawIndexed.firstIndex = firstIndex;
-    cmd.drawIndexed.vertexOffset = vertexOffset;
-    cmd.drawIndexed.firstInstance = firstInstance;
+    VKDrawIndexedCmd cmd{};
+    cmd.indexCount = indexCount;
+    cmd.instanceCount = instanceCount;
+    cmd.firstIndex = firstIndex;
+    cmd.vertexOffset = vertexOffset;
+    cmd.firstInstance = firstInstance;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::DrawIndexed, cmd});
 }
 
 void VKCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resource)
@@ -88,20 +87,21 @@ void VKCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resource)
     if (set > 4)
         return;
 
-    VKCmd cmd{VKCmdType::BindResource};
-    cmd.bindResource.set = set;
-    cmd.bindResource.resource = static_cast<VKShaderResource*>(resource);
+    VKBindResourceCmd cmd{};
+    cmd.set = set;
+    cmd.resource = static_cast<VKShaderResource*>(resource);
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::BindResource, cmd});
 }
 
-void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const ShaderConfig& config)
+void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, std::shared_ptr<const ShaderConfig> config)
 {
-    VKCmd cmd{VKCmdType::BindShaderProgram};
-    cmd.bindShaderProgram.program = (VKShaderProgram*)bProgram.Get();
-    cmd.bindShaderProgram.config = &config;
+    VKBindShaderProgramCmd cmd{};
 
-    cmds.push_back(cmd);
+    cmd.program = (VKShaderProgram*)bProgram.Get();
+    cmd.config = config;
+
+    cmds.push_back(VKCmd{VKCmdType::BindShaderProgram, cmd});
 }
 
 void VKCommandBuffer::BindVertexBuffer(
@@ -110,39 +110,40 @@ void VKCommandBuffer::BindVertexBuffer(
 {
     assert(vertexBufferBindings.size() <= 8);
 
-    VKCmd cmd{VKCmdType::BindVertexBuffer};
+    VKBindVertexBufferCmd cmd{};
     for (int i = 0; i < vertexBufferBindings.size() && i < 8; ++i)
-        cmd.bindVertexBuffer.vertexBufferBindings[i] = vertexBufferBindings[i];
-    cmd.bindVertexBuffer.firstBindingIndex = firstBindingIndex;
-    cmd.bindVertexBuffer.vertexBufferBindingCount = vertexBufferBindings.size();
+        cmd.vertexBufferBindings[i] = vertexBufferBindings[i];
+    cmd.firstBindingIndex = firstBindingIndex;
+    cmd.vertexBufferBindingCount = vertexBufferBindings.size();
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd {VKCmdType::BindVertexBuffer, cmd});
 }
 
 void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType)
 {
-    VKCmd cmd{VKCmdType::BindIndexBuffer};
+    VKBindIndexBufferCmd cmd{};
 
-    cmd.bindIndexBuffer.buffer = static_cast<VKBuffer*>(buffer.Get());
-    cmd.bindIndexBuffer.offset = offset;
-    cmd.bindIndexBuffer.indexType =
+    cmd.buffer = static_cast<VKBuffer*>(buffer.Get());
+    cmd.offset = offset;
+    cmd.indexType =
         indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::BindIndexBuffer, cmd});
 }
 
 void VKCommandBuffer::SetViewport(const Viewport& viewport)
 {
-    VKCmd cmd{VKCmdType::SetViewport};
+    VKSetViewportCmd cmd{};
     VkViewport v{
         .x = viewport.x,
         .y = viewport.y,
         .width = viewport.width,
         .height = viewport.height,
         .minDepth = viewport.minDepth,
-        .maxDepth = viewport.maxDepth};
-    cmd.setViewport.viewport = v;
-    cmds.push_back(cmd);
+        .maxDepth = viewport.maxDepth
+    };
+    cmd.viewport = v;
+    cmds.push_back(VKCmd{VKCmdType::SetViewport, cmd});
 }
 
 void VKCommandBuffer::CopyImageToBuffer(
@@ -150,84 +151,87 @@ void VKCommandBuffer::CopyImageToBuffer(
 )
 {
     assert(regions.size() < 8);
-    VKCmd cmd{VKCmdType::CopyImageToBuffer};
+    VKCopyImageToBufferCmd cmd{};
 
-    cmd.copyImageToBuffer.src = static_cast<VKImage*>(src.Get());
-    cmd.copyImageToBuffer.dst = static_cast<VKBuffer*>(dst.Get());
+    cmd.src = static_cast<VKImage*>(src.Get());
+    cmd.dst = static_cast<VKBuffer*>(dst.Get());
     for (int i = 0; i < regions.size() && i < 8; ++i)
-        cmd.copyImageToBuffer.regions[i] = regions[i];
+        cmd.regions[i] = regions[i];
 
-    cmd.copyImageToBuffer.regionsCount = regions.size();
+    cmd.regionsCount = regions.size();
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd {VKCmdType::CopyImageToBuffer, cmd});
 };
 
 void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data)
 {
-    VKCmd cmd{VKCmdType::SetPushConstant};
-    cmd.setPushConstant.shaderProgram = static_cast<VKShaderProgram*>(shaderProgram.Get());
+    VKSetPushConstantCmd cmd{};
+    cmd.shaderProgram = static_cast<VKShaderProgram*>(shaderProgram.Get());
 
     uint32_t totalSize = 0;
-    cmd.setPushConstant.stages = 0;
+    cmd.stages = 0;
     for (auto& ps : shaderProgram->GetShaderInfo().pushConstants)
     {
         auto& pushConstant = ps.second;
-        cmd.setPushConstant.stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
+        cmd.stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
         totalSize += pushConstant.data.size;
     }
-    cmd.setPushConstant.dataSize = totalSize;
-    memcpy(cmd.setPushConstant.data, data, totalSize < 128 ? totalSize : 128);
-    cmds.push_back(cmd);
+    cmd.dataSize = totalSize;
+    memcpy(cmd.data, data, totalSize < 128 ? totalSize : 128);
+    cmds.push_back(VKCmd {VKCmdType::SetPushConstant, cmd});
 };
 void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect)
 {
     assert(scissorCount <= 8);
-    VKCmd cmd{VKCmdType::SetScissor};
-    cmd.setScissor.firstScissor = firstScissor;
-    cmd.setScissor.scissorCount = scissorCount;
+
+    VKSetScissorCmd cmd{};
+    cmd.firstScissor = firstScissor;
+    cmd.scissorCount = scissorCount;
 
     for (int i = 0; i < scissorCount; ++i)
     {
-        cmd.setScissor.rects[i].offset.x = rect->offset.x;
-        cmd.setScissor.rects[i].offset.y = rect->offset.y;
-        cmd.setScissor.rects[i].extent.width = rect->extent.width;
-        cmd.setScissor.rects[i].extent.height = rect->extent.height;
+        cmd.rects[i].offset.x = rect->offset.x;
+        cmd.rects[i].offset.y = rect->offset.y;
+        cmd.rects[i].extent.width = rect->extent.width;
+        cmd.rects[i].extent.height = rect->extent.height;
     }
 
-    memcpy(cmd.setScissor.rects, rect, scissorCount);
-    cmds.push_back(cmd);
+    memcpy(cmd.rects, rect, scissorCount);
+    cmds.push_back(VKCmd{VKCmdType::SetScissor, cmd});
 };
 void VKCommandBuffer::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
-    VKCmd cmd{VKCmdType::Dispatch};
-    cmd.dispatch.groupCountX = groupCountX;
-    cmd.dispatch.groupCountY = groupCountY;
-    cmd.dispatch.groupCountZ = groupCountZ;
+    VKDispatchCmd cmd{};
+    cmd.groupCountX = groupCountX;
+    cmd.groupCountY = groupCountY;
+    cmd.groupCountZ = groupCountZ;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::Dispatch, cmd});
 };
-void VKCommandBuffer::DispatchIndir(Buffer* buffer, size_t bufferOffset)
+void VKCommandBuffer::DispatchIndirect(Buffer* buffer, size_t bufferOffset)
 {
-    VKCmd cmd{VKCmdType::DispatchIndir};
-    cmd.dispatchIndir.buffer = static_cast<VKBuffer*>(buffer);
-    cmd.dispatchIndir.bufferOffset = bufferOffset;
+    VKDispatchIndirectCmd cmd{};
+    cmd.buffer = static_cast<VKBuffer*>(buffer);
+    cmd.bufferOffset = bufferOffset;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::DispatchIndirect, cmd});
 };
 void VKCommandBuffer::NextRenderPass()
 {
-    VKCmd cmd{VKCmdType::NextRenderPass};
-    cmds.push_back(cmd);
+    VKNextRenderPassCmd cmd{};
+
+    cmds.push_back(VKCmd{VKCmdType::NextRenderPass, cmd});
 };
 void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings)
 {
     assert(bindings.size() <= 8);
-    VKCmd cmd{VKCmdType::PushDescriptorSet};
-    cmd.pushDescriptor.shader = static_cast<VKShaderProgram*>(&shader);
-    cmd.pushDescriptor.set = set;
-    cmd.pushDescriptor.bindingCount = bindings.size() <= 8 ? bindings.size() : 8;
-    memcpy(cmd.pushDescriptor.bindings, bindings.data(), cmd.pushDescriptor.bindingCount * sizeof(DescriptorBinding));
-    cmds.push_back(cmd);
+    VKPushDescriptorCmd cmd{};
+    cmd.shader = static_cast<VKShaderProgram*>(&shader);
+    cmd.set = set;
+    cmd.bindingCount = bindings.size() <= 8 ? bindings.size() : 8;
+    memcpy(cmd.bindings, bindings.data(), cmd.bindingCount * sizeof(DescriptorBinding));
+
+    cmds.push_back({VKCmd{VKCmdType::PushDescriptorSet, cmd}});
 };
 
 void VKCommandBuffer::CopyBuffer(
@@ -235,25 +239,25 @@ void VKCommandBuffer::CopyBuffer(
 )
 {
     assert(copyRegions.size() <= 8);
-    VKCmd cmd{VKCmdType::CopyBuffer};
-    cmd.copyBuffer.src = static_cast<VKBuffer*>(bSrc.Get());
-    cmd.copyBuffer.dst = static_cast<VKBuffer*>(bDst.Get());
-    cmd.copyBuffer.copyRegionCount = copyRegions.size();
+    VKCopyBufferCmd cmd{};
+    cmd.src = static_cast<VKBuffer*>(bSrc.Get());
+    cmd.dst = static_cast<VKBuffer*>(bDst.Get());
+    cmd.copyRegionCount = copyRegions.size();
     for (int i = 0; i < copyRegions.size(); ++i)
     {
         auto& c = copyRegions[i];
-        cmd.copyBuffer.copyRegions[i] = {c.srcOffset, c.dstOffset, c.size};
+        cmd.copyRegions[i] = {c.srcOffset, c.dstOffset, c.size};
     }
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::CopyBuffer, cmd});
 };
 void VKCommandBuffer::CopyBufferToImage(
     RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
 )
 {
     assert(regions.size() < 8);
-    VKCmd cmd{VKCmdType::CopyBufferToImage};
-    cmd.copyBufferToImage.src = static_cast<VKBuffer*>(src.Get());
-    cmd.copyBufferToImage.dst = static_cast<VKImage*>(dst.Get());
+    VKCopyBufferToImageCmd cmd{};
+    cmd.src = static_cast<VKBuffer*>(src.Get());
+    cmd.dst = static_cast<VKImage*>(dst.Get());
 
     int i = 0;
     for (auto& r : regions)
@@ -269,29 +273,29 @@ void VKCommandBuffer::CopyBufferToImage(
         region.imageOffset = VkOffset3D{r.offset.x, r.offset.y, r.offset.z};
         region.imageExtent = VkExtent3D{r.extend.width, r.extend.height, r.extend.depth};
 
-        cmd.copyBufferToImage.regions[i] = region;
+        cmd.regions[i] = region;
         i += 1;
     }
-    cmd.copyBufferToImage.regionCount = regions.size();
+    cmd.regionCount = regions.size();
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::CopyBufferToImage, cmd});
 };
 
 void VKCommandBuffer::Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp)
 {
-    VKCmd cmd{VKCmdType::Blit};
-    cmd.blit.from = static_cast<VKImage*>(from.Get());
-    cmd.blit.to = static_cast<VKImage*>(to.Get());
-    cmd.blit.blitOp = blitOp;
+    VKBlitCmd cmd{};
+    cmd.from = static_cast<VKImage*>(from.Get());
+    cmd.to = static_cast<VKImage*>(to.Get());
+    cmd.blitOp = blitOp;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::Blit, cmd});
 }
 
 void VKCommandBuffer::PresentImage(VKImage* image)
 {
-    VKCmd cmd{VKCmdType::Present};
-    cmd.present.image = image;
-    cmds.push_back(cmd);
+    VKPresentCmd cmd{};
+    cmd.image = image;
+    cmds.push_back({VKCmdType::Present, cmd});
 }
 
 void VKCommandBuffer::SetTexture(
@@ -300,27 +304,27 @@ void VKCommandBuffer::SetTexture(
 {
     if (id.GetType() == RG::ImageIdentifier::Type::Image)
     {
-        VKCmd cmd{VKCmdType::SetTexture};
+        VKSetTextureCmd cmd{};
 
-        cmd.setTexture.handle = handle;
-        cmd.setTexture.image = id.GetAsImage();
-        cmd.setTexture.index = index;
-        cmd.setTexture.imageViewOption = imageViewOption;
+        cmd.handle = handle;
+        cmd.image = id.GetAsImage();
+        cmd.index = index;
+        cmd.imageViewOption = imageViewOption;
 
-        cmds.push_back(cmd);
+        cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
     }
     else if (id.GetType() == RG::ImageIdentifier::Type::Handle)
     {
         auto image = graph->GetImage(id.GetAsUUID());
 
-        VKCmd cmd{VKCmdType::SetTexture};
+        VKSetTextureCmd cmd{};
 
-        cmd.setTexture.handle = handle;
-        cmd.setTexture.image = image;
-        cmd.setTexture.index = index;
-        cmd.setTexture.imageViewOption = imageViewOption;
+        cmd.handle = handle;
+        cmd.image = image;
+        cmd.index = index;
+        cmd.imageViewOption = imageViewOption;
 
-        cmds.push_back(cmd);
+        cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
     }
 }
 
@@ -328,25 +332,25 @@ void VKCommandBuffer::SetTexture(
     ShaderBindingHandle handle, int index, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption
 )
 {
-    VKCmd cmd{VKCmdType::SetTexture};
+    VKSetTextureCmd cmd{};
 
-    cmd.setTexture.handle = handle;
-    cmd.setTexture.image = &image;
-    cmd.setTexture.index = index;
-    cmd.setTexture.imageViewOption = imageViewOption;
+    cmd.handle = handle;
+    cmd.image = &image;
+    cmd.index = index;
+    cmd.imageViewOption = imageViewOption;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
 }
 
 void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer)
 {
-    VKCmd cmd{VKCmdType::SetBuffer};
+    VKSetBufferCmd cmd{};
 
-    cmd.setBuffer.buffer = static_cast<VKBuffer*>(&buffer);
-    cmd.setBuffer.handle = handle;
-    cmd.setBuffer.index = index;
+    cmd.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.handle = handle;
+    cmd.index = index;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::SetBuffer, cmd});
 }
 
 void VKCommandBuffer::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc)
@@ -356,7 +360,7 @@ void VKCommandBuffer::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescr
 
 void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues)
 {
-    VKCmd cmd{VKCmdType::RGBeginRenderPass};
+    VKRGBeginRenderPassCmd cmd{};
 
     if (validationCheck)
     {
@@ -366,17 +370,17 @@ void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<Clea
         }
     }
 
-    cmd.rgBeginRenderPass.renderPass = &renderPass;
+    cmd.renderPass = &renderPass;
     int copySize = clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue);
-    memcpy(cmd.rgBeginRenderPass.clearValues, clearValues.data(), copySize);
-    cmd.rgBeginRenderPass.clearValueCount = clearValues.size() <= 8 ? clearValues.size() : 8;
+    memcpy(cmd.clearValues, clearValues.data(), copySize);
+    cmd.clearValueCount = clearValues.size() <= 8 ? clearValues.size() : 8;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::RGBeginRenderPass, cmd});
 }
 
 void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp)
 {
-    VKCmd cmd{VKCmdType::Blit};
+    VKBlitCmd cmd{};
 
     VKImage* from = nullptr;
     VKImage* to = nullptr;
@@ -398,23 +402,23 @@ void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bli
         to = graph->GetImage(dst.GetAsUUID());
     }
 
-    cmd.blit.from = static_cast<VKImage*>(from);
-    cmd.blit.to = static_cast<VKImage*>(to);
-    cmd.blit.blitOp = blitOp;
+    cmd.from = static_cast<VKImage*>(from);
+    cmd.to = static_cast<VKImage*>(to);
+    cmd.blitOp = blitOp;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::Blit, cmd});
 }
 
 void VKCommandBuffer::BeginLabel(std::string_view label, float color[4])
 {
-    VKCmd cmd{VKCmdType::BeginLabel};
+    VKBeginLabelCmd cmd{};
 
     char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
     strcpy(tmp, (char*)label.data());
-    cmd.beginLabel.label = tmp;
-    memcpy(cmd.beginLabel.color, color, sizeof(float) * 4);
+    cmd.label = tmp;
+    memcpy(cmd.color, color, sizeof(float) * 4);
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::BeginLabel, cmd});
 }
 void VKCommandBuffer::EndLabel()
 {
@@ -424,40 +428,40 @@ void VKCommandBuffer::EndLabel()
 }
 void VKCommandBuffer::InsertLabel(std::string_view label, float color[4])
 {
-    VKCmd cmd{VKCmdType::InsertLabel};
+    VKInsertLabelCmd cmd{};
 
     char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
     strcpy(tmp, (char*)label.data());
-    cmd.insertLabel.label = tmp;
-    memcpy(cmd.insertLabel.color, color, sizeof(float) * 4);
+    cmd.label = tmp;
+    memcpy(cmd.color, color, sizeof(float) * 4);
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::InsertLabel, cmd});
 }
 
 void VKCommandBuffer::SetLineWidth(float lineWidth)
 {
-    VKCmd cmd{VKCmdType::SetLineWidth};
+    VKSetLineWidthCmd cmd{};
 
-    cmd.setLineWidth.lineWidth = lineWidth;
+    cmd.lineWidth = lineWidth;
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::SetLineWidth, cmd});
 }
 
 std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(
     Gfx::Buffer& buffer, void* dst, size_t size, size_t offset
 )
 {
-    VKCmd cmd{VKCmdType::AsyncReadback};
+    VKAsyncReadbackCmd cmd{};
 
     std::shared_ptr<AsyncReadbackHandle> handle = std::make_shared<AsyncReadbackHandle>();
-    cmd.asyncReadback.buffer = static_cast<VKBuffer*>(&buffer);
-    cmd.asyncReadback.dst = dst;
-    cmd.asyncReadback.size = size;
-    cmd.asyncReadback.offset = offset;
+    cmd.buffer = static_cast<VKBuffer*>(&buffer);
+    cmd.dst = dst;
+    cmd.size = size;
+    cmd.offset = offset;
     readbacks.push_back(handle);
-    cmd.asyncReadback.handle = &readbacks.back();
+    cmd.handle = &readbacks.back();
 
-    cmds.push_back(cmd);
+    cmds.push_back(VKCmd{VKCmdType::AsyncReadback, cmd});
     return handle;
 }
 

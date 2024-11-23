@@ -89,7 +89,7 @@ private:
 
         VKShaderProgram* lastBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;     // shader that is actually binded
-        const ShaderConfig* shaderConfig;
+        std::shared_ptr<const ShaderConfig> shaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         int subpassIndex = -1;
         VKRenderPass* renderPass;

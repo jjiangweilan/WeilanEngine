@@ -18,7 +18,7 @@ public:
     float cameraDistance = 5.0f;
     float jumpImpulse = 3.0f;
     float gravityScale = 10.0f;
-    
+
     // character creation setting
     float maxSlopeAngle = JPH::DegreesToRadians(45.0f);
     float maxStrength = 100.f;
@@ -29,11 +29,14 @@ public:
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
 
+    void SetCharacterCapsuleShape(float height, float radius);
+    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHeight * 2; }
+    float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
     JPH::RefConst<JPH::Shape> standingShape;
 
     PlayerController();
     PlayerController(GameObject* gameObject);
-    ~PlayerController() override{};
+    ~PlayerController() override {};
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     void Serialize(Serializer* s) const override;
@@ -42,18 +45,12 @@ public:
     void PrePhysicsTick() override;
     void Tick() override;
 
-    void SetCamera(Camera* camera)
-    {
-        this->target = camera;
-    }
-
-    Camera* GetCamera()
-    {
-        return target;
-    }
-
+    void SetCamera(Camera* camera) { this->target = camera; }
+    Camera* GetCamera() { return target; }
 
 private:
+    float characterCapsuleShapeHeight = 1.75;
+    float characterCapsuleShapeRadius = 0.8;
     Camera* target = nullptr;
     // camera rotation around player
     float theta, phi;
@@ -68,12 +65,14 @@ private:
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
 
     void OnStart() override;
+    void OnDestroy() override;
     void OnEnable() override;
     void OnDisable() override;
     void OnDrawGizmos() override;
     void HandleInput();
 
     void CreateCharacterPhysicsShape();
+    void SetCharacterCapsuleShapeInternal();
     void DestroyCharacterPhysicsShape();
     void UpdateCharacter();
 };

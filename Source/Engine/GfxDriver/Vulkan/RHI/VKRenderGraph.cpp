@@ -437,8 +437,8 @@ void Graph::GoThroughRenderPass(
             break;
         else if (cmd.type == VKCmdType::BindResource)
         {
-            recordState.bindSetCmdIndex[cmd.bindResource.set] = visitIndex;
-            recordState.bindedSetUpdateNeeded[cmd.bindResource.set] = true;
+            recordState.bindSetCmdIndex[std::get<VKBindResourceCmd>(cmd.args).set] = visitIndex;
+            recordState.bindedSetUpdateNeeded[std::get<VKBindResourceCmd>(cmd.args).set] = true;
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
@@ -455,16 +455,18 @@ void Graph::GoThroughRenderPass(
         }
         else if (cmd.type == VKCmdType::SetTexture)
         {
-            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] = {
-                ResourceType::Image,
-                cmd.setTexture.image != nullptr ? cmd.setTexture.image->GetSRef() : nullptr,
-                cmd.setTexture.imageViewOption
+            auto& args = std::get<VKSetTextureCmd>(cmd.args);
+            globalResourcePool[args.handle][args.index] =
+                {
+                ResourceType::Image, args.image != nullptr ? args.image->GetSRef() : nullptr,
+                args.imageViewOption
             };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
-            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] =
-                {ResourceType::Buffer, cmd.setBuffer.buffer->GetSRef(), std::nullopt};
+            auto& args = std::get<VKSetBufferCmd>(cmd.args);
+            globalResourcePool[args.handle][args.index] =
+                {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -712,9 +714,10 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
     ENGINE_SCOPED_PROFILE("VKRenderGraph - TrackResourceForPushDescriptorSet");
     int imageIndex = 0;
     int barrierCount = 0;
-    for (int bindingIndex = 0; bindingIndex < cmd.pushDescriptor.bindingCount; ++bindingIndex)
+    auto& pushDescriptorCmd = std::get<VKPushDescriptorCmd>(cmd.args);
+    for (int bindingIndex = 0; bindingIndex < pushDescriptorCmd.bindingCount; ++bindingIndex)
     {
-        auto& b = cmd.pushDescriptor.bindings[bindingIndex];
+        auto& b = pushDescriptorCmd.bindings[bindingIndex];
         if (b.imageView != nullptr)
         {
             for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
@@ -757,32 +760,34 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         auto& cmd = currentSchedulingCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
         {
+            auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
             GoThroughRenderPass(
-                *cmd.beginRenderPass.renderPass,
-                visitIndex,
-                cmd.beginRenderPass.barrierCount,
-                cmd.beginRenderPass.barrierOffset
+                *args.renderPass,
+                visitIndex, args.barrierCount, args.barrierOffset
             );
         }
         else if (cmd.type == VKCmdType::AsyncReadback)
         {
-            asyncReadbacks.push_back(std::move(*cmd.asyncReadback.handle));
+            auto& args = std::get<VKAsyncReadbackCmd>(cmd.args);
+            asyncReadbacks.push_back(std::move(*args.handle));
         }
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
-            auto renderPass = resourceAllocator->Request(*cmd.rgBeginRenderPass.renderPass);
+            auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
+            auto renderPass = resourceAllocator->Request(*args.renderPass);
             GoThroughRenderPass(
                 *renderPass,
                 visitIndex,
-                cmd.rgBeginRenderPass.barrierCount,
-                cmd.rgBeginRenderPass.barrierOffset
+                args.barrierCount,
+                args.barrierOffset
             );
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: bind resource");
-            recordState.bindSetCmdIndex[cmd.bindResource.set] = visitIndex;
-            recordState.bindedSetUpdateNeeded[cmd.bindResource.set] = true;
+            auto& args = std::get<VKBindResourceCmd>(cmd.args);
+            recordState.bindSetCmdIndex[args.set] = visitIndex;
+            recordState.bindedSetUpdateNeeded[args.set] = true;
         }
         else if (cmd.type == VKCmdType::BindShaderProgram)
         {
@@ -793,69 +798,71 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             ENGINE_SCOPED_PROFILE("VKRenderGraph: copy buffer");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            if (TrackResource(cmd.copyBuffer.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
-                barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.src, cmd.copyBuffer.src->GetUUID());
+            auto& args = std::get<VKCopyBufferCmd>(cmd.args);
+            if (TrackResource(args.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+                barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
 
-            if (TrackResource(cmd.copyBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                barrierCount += MakeBarrierForLastUsage(cmd.copyBuffer.dst, cmd.copyBuffer.dst->GetUUID());
+            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
 
-            cmd.copyBuffer.barrierOffset = barrierOffset;
-            cmd.copyBuffer.barrierCount = barrierCount;
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
         }
         else if (cmd.type == VKCmdType::Blit)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: blit");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
+            auto& args = std::get<VKBlitCmd>(cmd.args);
             Gfx::ImageSubresourceRange srcRange{
-                .aspectMask = Gfx::MapVKImageAspect(cmd.blit.to->GetDefaultSubresourceRange().aspectMask),
-                .baseMipLevel = cmd.blit.blitOp.srcMip.value_or(0),
+                .aspectMask = Gfx::MapVKImageAspect(args.to->GetDefaultSubresourceRange().aspectMask),
+                .baseMipLevel = args.blitOp.srcMip.value_or(0),
                 .levelCount = 1,
                 .baseArrayLayer = 0,
-                .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
+                .layerCount = args.to->GetDefaultSubresourceRange().layerCount,
             };
 
             if (TrackResource(
-                    cmd.blit.from,
+                    args.from,
                     srcRange,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_ACCESS_TRANSFER_READ_BIT
                 ))
-                barrierCount += MakeBarrierForLastUsage(cmd.blit.from, cmd.blit.from->GetUUID());
+                barrierCount += MakeBarrierForLastUsage(args.from, args.from->GetUUID());
 
             Gfx::ImageSubresourceRange dstRange{
-                .aspectMask = Gfx::MapVKImageAspect(cmd.blit.to->GetDefaultSubresourceRange().aspectMask),
-                .baseMipLevel = cmd.blit.blitOp.dstMip.value_or(0),
+                .aspectMask = Gfx::MapVKImageAspect(args.to->GetDefaultSubresourceRange().aspectMask),
+                .baseMipLevel = args.blitOp.dstMip.value_or(0),
                 .levelCount = 1,
                 .baseArrayLayer = 0,
-                .layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount,
+                .layerCount = args.to->GetDefaultSubresourceRange().layerCount,
             };
 
             if (TrackResource(
-                    cmd.blit.to,
+                    args.to,
                     dstRange,
                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
                     VK_ACCESS_TRANSFER_WRITE_BIT
                 ))
-                barrierCount += MakeBarrierForLastUsage(cmd.blit.to, cmd.blit.to->GetUUID());
+                barrierCount += MakeBarrierForLastUsage(args.to, args.to->GetUUID());
 
-            cmd.blit.barrierOffset = barrierOffset;
-            cmd.blit.barrierCount = barrierCount;
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
         }
         else if (cmd.type == VKCmdType::CopyImageToBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: copy image to buffer");
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            if (TrackResource(cmd.copyImageToBuffer.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
-                barrierCount +=
-                    MakeBarrierForLastUsage(cmd.copyImageToBuffer.dst, cmd.copyImageToBuffer.dst->GetUUID());
+            auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
+            if (TrackResource(args.dst, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT))
+                barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
 
-            for (int i = 0; i < cmd.copyImageToBuffer.regionsCount; ++i)
+            for (int i = 0; i < args.regionsCount; ++i)
             {
-                auto& subresource = cmd.copyImageToBuffer.regions[i].layers;
+                auto& subresource = args.regions[i].layers;
                 Gfx::ImageSubresourceRange range{
                     .aspectMask = subresource.aspectMask,
                     .baseMipLevel = subresource.mipLevel,
@@ -865,31 +872,31 @@ void Graph::Schedule(VKCommandBuffer& cmd)
                 };
 
                 if (TrackResource(
-                        cmd.copyImageToBuffer.src,
+                        args.src,
                         range,
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_READ_BIT
                     ))
-                    barrierCount +=
-                        MakeBarrierForLastUsage(cmd.copyImageToBuffer.src, cmd.copyImageToBuffer.src->GetUUID());
+                    barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
             }
 
-            cmd.copyImageToBuffer.barrierOffset = barrierOffset;
-            cmd.copyImageToBuffer.barrierCount = barrierCount;
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
         }
         else if (cmd.type == VKCmdType::CopyBufferToImage)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: copy buffer to image");
+            auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
-            if (TrackResource(cmd.copyBufferToImage.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
+            if (TrackResource(args.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
                 barrierCount +=
-                    MakeBarrierForLastUsage(cmd.copyBufferToImage.src, cmd.copyBufferToImage.src->GetUUID());
+                    MakeBarrierForLastUsage(args.src, args.src->GetUUID());
 
-            for (int i = 0; i < cmd.copyBufferToImage.regionCount; ++i)
+            for (int i = 0; i < args.regionCount; ++i)
             {
-                auto& subresource = cmd.copyBufferToImage.regions[i].imageSubresource;
+                auto& subresource = args.regions[i].imageSubresource;
                 Gfx::ImageSubresourceRange range{
                     .aspectMask = Gfx::MapVKImageAspect(subresource.aspectMask),
                     .baseMipLevel = subresource.mipLevel,
@@ -899,18 +906,18 @@ void Graph::Schedule(VKCommandBuffer& cmd)
                 };
 
                 if (TrackResource(
-                        cmd.copyBufferToImage.dst,
+                        args.dst,
                         range,
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_WRITE_BIT
                     ))
                     barrierCount +=
-                        MakeBarrierForLastUsage(cmd.copyBufferToImage.dst, cmd.copyBufferToImage.dst->GetUUID());
+                        MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
             }
 
-            cmd.copyBufferToImage.barrierOffset = barrierOffset;
-            cmd.copyBufferToImage.barrierCount = barrierCount;
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
         {
@@ -920,6 +927,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         else if (cmd.type == VKCmdType::Present)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: present");
+            auto& args = std::get<VKPresentCmd>(cmd.args);
             Gfx::ImageSubresourceRange range{
                 .aspectMask = ImageAspectFlags::Color,
                 .baseMipLevel = 0,
@@ -930,29 +938,30 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             if (TrackResource(
-                    cmd.present.image,
+                    args.image,
                     range,
                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                     VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                     VK_ACCESS_NONE
                 ))
             {
-                barrierCount += MakeBarrierForLastUsage(cmd.present.image, cmd.present.image->GetUUID());
+                barrierCount += MakeBarrierForLastUsage(args.image, args.image->GetUUID());
             }
-            cmd.present.barrierOffset = barrierOffset;
-            cmd.present.barrierCount = barrierCount;
+            args.barrierOffset = barrierOffset;
+            args.barrierCount = barrierCount;
         }
         else if (cmd.type == VKCmdType::SetTexture)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set texture");
-            globalResourcePool[cmd.setTexture.handle][cmd.setTexture.index] =
-                {ResourceType::Image, cmd.setTexture.image->GetSRef(), cmd.setTexture.imageViewOption};
+            auto& args = std::get<VKSetTextureCmd>(cmd.args);
+            globalResourcePool[args.handle][args.index] =
+                {ResourceType::Image, args.image->GetSRef(), args.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
-            globalResourcePool[cmd.setBuffer.handle][cmd.setTexture.index] =
-                {ResourceType::Buffer, cmd.setBuffer.buffer->GetSRef(), std::nullopt};
+            auto& args = std::get<VKSetBufferCmd>(cmd.args);
+            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -962,17 +971,19 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatch");
             std::vector<VKImage*> list;
-            cmd.dispatch.barrierOffset = barriers.size();
-            cmd.dispatch.barrierCount = 0;
-            FlushAllBindedSetUpdate(list, cmd.dispatch.barrierCount);
+            auto& args = std::get<VKDispatchCmd>(cmd.args);
+            args.barrierOffset = barriers.size();
+            args.barrierCount = 0;
+            FlushAllBindedSetUpdate(list, args.barrierCount);
         }
-        else if (cmd.type == VKCmdType::DispatchIndir)
+        else if (cmd.type == VKCmdType::DispatchIndirect)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatchIndir");
+            auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
             std::vector<VKImage*> list;
-            cmd.dispatchIndir.barrierOffset = barriers.size();
-            cmd.dispatchIndir.barrierCount = 0;
-            FlushAllBindedSetUpdate(list, cmd.dispatchIndir.barrierCount);
+            args.barrierOffset = barriers.size();
+            args.barrierCount = 0;
+            FlushAllBindedSetUpdate(list, args.barrierCount);
         }
     }
 }
@@ -987,59 +998,64 @@ void Graph::Execute(VkCommandBuffer vkcmd)
         {
             case VKCmdType::SetLineWidth:
                 {
-                    vkCmdSetLineWidth(vkcmd, cmd.setLineWidth.lineWidth);
+                    auto& args = std::get<VKSetLineWidthCmd>(cmd.args);
+                    vkCmdSetLineWidth(vkcmd, args.lineWidth);
                     break;
                 }
             case VKCmdType::DrawIndexed:
                 {
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
+                    auto& args = std::get<VKDrawIndexedCmd>(cmd.args);
                     vkCmdDrawIndexed(
                         vkcmd,
-                        cmd.drawIndexed.indexCount,
-                        cmd.drawIndexed.instanceCount,
-                        cmd.draw.firstVertex,
-                        cmd.drawIndexed.vertexOffset,
-                        cmd.drawIndexed.firstInstance
+                        args.indexCount,
+                        args.instanceCount,
+                        args.firstIndex,
+                        args.vertexOffset,
+                        args.firstInstance
                     );
                     break;
                 }
             case VKCmdType::Draw:
                 {
+                    auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDraw(
                         vkcmd,
-                        cmd.draw.vertexCount,
-                        cmd.draw.instanceCount,
-                        cmd.draw.firstVertex,
-                        cmd.draw.firstInstance
+                        args.vertexCount,
+                        args.instanceCount,
+                        args.firstVertex,
+                        args.firstInstance
                     );
                     break;
                 }
             case VKCmdType::DrawIndirect:
                 {
+                    auto& args = std::get<VKDrawIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndirect(
                         vkcmd,
-                        static_cast<VKBuffer*>(cmd.drawIndirect.buffer)->GetHandle(),
-                        cmd.drawIndirect.offset,
-                        cmd.drawIndirect.drawCount,
-                        cmd.drawIndirect.stride
+                        static_cast<VKBuffer*>(args.buffer)->GetHandle(),
+                        args.offset,
+                        args.drawCount,
+                        args.stride
                     );
                     break;
                 }
             case VKCmdType::DrawIndexedIndirect:
                 {
+                    auto& args = std::get<VKDrawIndexedIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDrawIndexedIndirect(
                         vkcmd,
-                        static_cast<VKBuffer*>(cmd.drawIndexedIndirect.buffer)->GetHandle(),
-                        cmd.drawIndexedIndirect.offset,
-                        cmd.drawIndexedIndirect.drawCount,
-                        cmd.drawIndexedIndirect.stride
+                        static_cast<VKBuffer*>(args.buffer)->GetHandle(),
+                        args.offset,
+                        args.drawCount,
+                        args.stride
                     );
                     break;
                 }
@@ -1050,7 +1066,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::BeginRenderPass:
                 {
-                    Gfx::VKRenderPass* renderPass = cmd.beginRenderPass.renderPass;
+                    auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
+                    Gfx::VKRenderPass* renderPass = args.renderPass;
                     VkRenderPass vkRenderPass = renderPass->GetHandle();
                     exeState.renderPass = renderPass;
                     exeState.subpassIndex = 0;
@@ -1066,11 +1083,11 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     renderPassBeginInfo.renderPass = vkRenderPass;
                     renderPassBeginInfo.framebuffer = vkFramebuffer;
                     renderPassBeginInfo.renderArea = {{0, 0}, {extent.width, extent.height}};
-                    renderPassBeginInfo.clearValueCount = cmd.beginRenderPass.clearValueCount;
-                    renderPassBeginInfo.pClearValues = cmd.beginRenderPass.clearValues;
+                    renderPassBeginInfo.clearValueCount = args.clearValueCount;
+                    renderPassBeginInfo.pClearValues = args.clearValues;
 
-                    auto barrierOffset = cmd.beginRenderPass.barrierOffset;
-                    auto barrierCount = cmd.beginRenderPass.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
@@ -1109,35 +1126,36 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::Blit:
                 {
-                    uint32_t srcMip = cmd.blit.blitOp.srcMip.value_or(0);
-                    uint32_t dstMip = cmd.blit.blitOp.dstMip.value_or(0);
+                    auto& args = std::get<VKBlitCmd>(cmd.args);
+                    uint32_t srcMip = args.blitOp.srcMip.value_or(0);
+                    uint32_t dstMip = args.blitOp.dstMip.value_or(0);
                     VkImageBlit blit;
                     blit.dstOffsets[0] = {0, 0, 0};
                     blit.dstOffsets[1] = {
-                        (int32_t)(cmd.blit.to->GetDescription().width / glm::pow(2, dstMip)),
-                        (int32_t)(cmd.blit.to->GetDescription().height / glm::pow(2, dstMip)),
+                        (int32_t)(args.to->GetDescription().width / glm::pow(2, dstMip)),
+                        (int32_t)(args.to->GetDescription().height / glm::pow(2, dstMip)),
                         1
                     };
                     VkImageSubresourceLayers dstLayers;
-                    dstLayers.aspectMask = cmd.blit.to->GetDefaultSubresourceRange().aspectMask;
+                    dstLayers.aspectMask = args.to->GetDefaultSubresourceRange().aspectMask;
                     dstLayers.baseArrayLayer = 0;
-                    dstLayers.layerCount = cmd.blit.to->GetDefaultSubresourceRange().layerCount;
+                    dstLayers.layerCount = args.to->GetDefaultSubresourceRange().layerCount;
                     dstLayers.mipLevel = dstMip;
                     blit.dstSubresource = dstLayers;
 
                     blit.srcOffsets[0] = {0, 0, 0};
                     blit.srcOffsets[1] = {
-                        (int32_t)(cmd.blit.from->GetDescription().width / glm::pow(2, srcMip)),
-                        (int32_t)(cmd.blit.from->GetDescription().height / glm::pow(2, srcMip)),
+                        (int32_t)(args.from->GetDescription().width / glm::pow(2, srcMip)),
+                        (int32_t)(args.from->GetDescription().height / glm::pow(2, srcMip)),
                         1
                     };
                     VkImageSubresourceLayers srcLayers = dstLayers;
-                    srcLayers.mipLevel = cmd.blit.blitOp.srcMip.value_or(0);
+                    srcLayers.mipLevel = args.blitOp.srcMip.value_or(0);
                     blit.srcSubresource = srcLayers; // basically copy the resources from dst
                                                      // without much configuration
 
-                    auto barrierOffset = cmd.blit.barrierOffset;
-                    auto barrierCount = cmd.blit.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
@@ -1145,9 +1163,9 @@ void Graph::Execute(VkCommandBuffer vkcmd)
 
                     vkCmdBlitImage(
                         vkcmd,
-                        cmd.blit.from->GetImage(),
+                        args.from->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                        cmd.blit.to->GetImage(),
+                        args.to->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         1,
                         &blit,
@@ -1157,28 +1175,30 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::BindResource:
                 {
-                    if (cmd.bindResource.set > 4)
+                    auto& args = std::get<VKBindResourceCmd>(cmd.args);
+                    if (args.set > 4)
                         return;
 
-                    exeState.setResources[cmd.bindResource.set].resource = (VKShaderResource*)cmd.bindResource.resource;
-                    exeState.setResources[cmd.bindResource.set].needUpdate = true;
+                    exeState.setResources[args.set].resource = (VKShaderResource*)args.resource;
+                    exeState.setResources[args.set].needUpdate = true;
                     break;
                 }
             case VKCmdType::BindVertexBuffer:
                 {
+                    auto& args = std::get<VKBindVertexBufferCmd>(cmd.args);
                     VkBuffer vkBuffers[8];
                     uint64_t vkOffsets[8];
-                    for (uint32_t i = 0; i < cmd.bindVertexBuffer.vertexBufferBindingCount; ++i)
+                    for (uint32_t i = 0; i < args.vertexBufferBindingCount; ++i)
                     {
-                        VKBuffer* vkbuf = static_cast<VKBuffer*>(cmd.bindVertexBuffer.vertexBufferBindings[i].buffer);
+                        VKBuffer* vkbuf = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer);
                         vkBuffers[i] = vkbuf->GetHandle();
-                        vkOffsets[i] = cmd.bindVertexBuffer.vertexBufferBindings[i].offset;
+                        vkOffsets[i] = args.vertexBufferBindings[i].offset;
                     }
 
                     vkCmdBindVertexBuffers(
                         vkcmd,
-                        cmd.bindVertexBuffer.firstBindingIndex,
-                        cmd.bindVertexBuffer.vertexBufferBindingCount,
+                        args.firstBindingIndex,
+                        args.vertexBufferBindingCount,
                         vkBuffers,
                         vkOffsets
                     );
@@ -1186,33 +1206,37 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::BindShaderProgram:
                 {
-                    exeState.lastBindedShader = cmd.bindShaderProgram.program;
-                    exeState.shaderConfig = cmd.bindShaderProgram.config;
+                    auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
+                    exeState.lastBindedShader = args.program;
+                    exeState.shaderConfig = args.config;
                     exeState.setResources[0].needUpdate = true;
-                    exeState.setResources[0].resource = &globalResources[cmd.bindShaderProgram.program];
+                    exeState.setResources[0].resource = &globalResources[args.program];
                     break;
                 }
             case VKCmdType::BindIndexBuffer:
                 {
-                    VKBuffer* buffer = cmd.bindIndexBuffer.buffer;
+                    auto& args = std::get<VKBindIndexBufferCmd>(cmd.args);
+                    VKBuffer* buffer = args.buffer;
 
                     VkBuffer indexBuf = buffer->GetHandle();
-                    vkCmdBindIndexBuffer(vkcmd, indexBuf, cmd.bindIndexBuffer.offset, cmd.bindIndexBuffer.indexType);
+                    vkCmdBindIndexBuffer(vkcmd, indexBuf, args.offset, args.indexType);
                     break;
                 }
             case VKCmdType::SetViewport:
                 {
+                    auto& args = std::get<VKSetViewportCmd>(cmd.args);
                     exeState.overrideViewport = true;
-                    vkCmdSetViewport(vkcmd, 0, 1, &cmd.setViewport.viewport);
+                    vkCmdSetViewport(vkcmd, 0, 1, &args.viewport);
                     break;
                 }
             case VKCmdType::CopyImageToBuffer:
                 {
                     std::vector<VkBufferImageCopy> vkRegions;
+                    auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
 
-                    for (int i = 0; i < cmd.copyImageToBuffer.regionsCount; ++i)
+                    for (int i = 0; i < args.regionsCount; ++i)
                     {
-                        auto& r = cmd.copyImageToBuffer.regions[i];
+                        auto& r = args.regions[i];
                         VkBufferImageCopy region;
                         region.bufferOffset = r.bufferOffset;
                         region.bufferRowLength = 0;
@@ -1227,11 +1251,11 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                         vkRegions.push_back(region);
                     }
 
-                    VKImage* srcImage = cmd.copyImageToBuffer.src;
-                    VKBuffer* dstBuffer = cmd.copyImageToBuffer.dst;
+                    VKImage* srcImage = args.src;
+                    VKBuffer* dstBuffer = args.dst;
 
-                    auto barrierOffset = cmd.copyImageToBuffer.barrierOffset;
-                    auto barrierCount = cmd.copyImageToBuffer.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
@@ -1249,55 +1273,59 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::SetPushConstant:
                 {
-                    VKShaderProgram* shaderProgram = cmd.setPushConstant.shaderProgram;
+                    auto& args = std::get<VKSetPushConstantCmd>(cmd.args);
+                    VKShaderProgram* shaderProgram = args.shaderProgram;
 
                     vkCmdPushConstants(
                         vkcmd,
                         shaderProgram->GetVKPipelineLayout(),
-                        cmd.setPushConstant.stages,
+                        args.stages,
                         0,
-                        cmd.setPushConstant.dataSize,
-                        cmd.setPushConstant.data
+                        args.dataSize,
+                        args.data
                     );
                     break;
                 }
             case VKCmdType::SetScissor:
                 {
+                    auto& args = std::get<VKSetScissorCmd>(cmd.args);
                     exeState.overrideScissor = true;
                     vkCmdSetScissor(
                         vkcmd,
-                        cmd.setScissor.firstScissor,
-                        cmd.setScissor.scissorCount,
-                        cmd.setScissor.rects
+                        args.firstScissor,
+                        args.scissorCount,
+                        args.rects
                     );
                     break;
                 }
             case VKCmdType::Dispatch:
                 {
+                    auto& args = std::get<VKDispatchCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
 
-                    auto barrierOffset = cmd.dispatch.barrierOffset;
-                    auto barrierCount = cmd.dispatch.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
                     }
-                    vkCmdDispatch(vkcmd, cmd.dispatch.groupCountX, cmd.dispatch.groupCountY, cmd.dispatch.groupCountZ);
+                    vkCmdDispatch(vkcmd, args.groupCountX, args.groupCountY, args.groupCountZ);
                     break;
                 }
-            case VKCmdType::DispatchIndir:
+            case VKCmdType::DispatchIndirect:
                 {
+                    auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_COMPUTE);
 
-                    auto barrierOffset = cmd.dispatchIndir.barrierOffset;
-                    auto barrierCount = cmd.dispatchIndir.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
                     }
-                    vkCmdDispatchIndirect(vkcmd, cmd.dispatchIndir.buffer->GetHandle(), cmd.dispatchIndir.bufferOffset);
+                    vkCmdDispatchIndirect(vkcmd, args.buffer->GetHandle(), args.bufferOffset);
                     break;
                 }
             case VKCmdType::NextRenderPass:
@@ -1308,14 +1336,15 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::PushDescriptorSet:
                 {
+                    auto& args = std::get<VKPushDescriptorCmd>(cmd.args);
                     VkWriteDescriptorSet writeSets[8];
                     VkDescriptorImageInfo imageInfos[16];
 
                     int i = 0;
                     int imageIndex = 0;
-                    for (int bindingIndex = 0; bindingIndex < cmd.pushDescriptor.bindingCount; ++bindingIndex)
+                    for (int bindingIndex = 0; bindingIndex < args.bindingCount; ++bindingIndex)
                     {
-                        auto& b = cmd.pushDescriptor.bindings[bindingIndex];
+                        auto& b = args.bindings[bindingIndex];
                         if (b.imageView != nullptr)
                         {
                             for (int imageJedex = 0; imageJedex < b.descriptorCount; imageJedex += 1, imageIndex += 1)
@@ -1346,9 +1375,9 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     VKExtensionFunc::vkCmdPushDescriptorSetKHR(
                         vkcmd,
                         VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        cmd.pushDescriptor.shader->GetVKPipelineLayout(),
-                        cmd.pushDescriptor.set,
-                        cmd.pushDescriptor.bindingCount,
+                        args.shader->GetVKPipelineLayout(),
+                        args.set,
+                        args.bindingCount,
                         writeSets
                     );
 
@@ -1356,8 +1385,9 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case VKCmdType::CopyBuffer:
                 {
-                    auto barrierOffset = cmd.copyBuffer.barrierOffset;
-                    auto barrierCount = cmd.copyBuffer.barrierCount;
+                    auto& args = std::get<VKCopyBufferCmd>(cmd.args);
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
@@ -1365,17 +1395,18 @@ void Graph::Execute(VkCommandBuffer vkcmd)
 
                     vkCmdCopyBuffer(
                         vkcmd,
-                        cmd.copyBuffer.src->GetHandle(),
-                        cmd.copyBuffer.dst->GetHandle(),
-                        cmd.copyBuffer.copyRegionCount,
-                        cmd.copyBuffer.copyRegions
+                        args.src->GetHandle(),
+                        args.dst->GetHandle(),
+                        args.copyRegionCount,
+                        args.copyRegions
                     );
                     break;
                 }
             case VKCmdType::CopyBufferToImage:
                 {
-                    auto barrierOffset = cmd.copyBufferToImage.barrierOffset;
-                    auto barrierCount = cmd.copyBufferToImage.barrierCount;
+                    auto& args = std::get<VKCopyBufferToImageCmd>(cmd.args);
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
 
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
@@ -1383,18 +1414,19 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     }
                     vkCmdCopyBufferToImage(
                         vkcmd,
-                        cmd.copyBufferToImage.src->GetHandle(),
-                        cmd.copyBufferToImage.dst->GetImage(),
+                        args.src->GetHandle(),
+                        args.dst->GetImage(),
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        cmd.copyBufferToImage.regionCount,
-                        cmd.copyBufferToImage.regions
+                        args.regionCount,
+                        args.regions
                     );
                     break;
                 }
             case VKCmdType::Present:
                 {
-                    auto barrierOffset = cmd.present.barrierOffset;
-                    auto barrierCount = cmd.present.barrierCount;
+                    auto& args = std::get<VKPresentCmd>(cmd.args);
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
 
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
@@ -1405,7 +1437,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
 
             case VKCmdType::RGBeginRenderPass:
                 {
-                    Gfx::VKRenderPass* renderPass = resourceAllocator->Request(*cmd.rgBeginRenderPass.renderPass);
+                    auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
+                    Gfx::VKRenderPass* renderPass = resourceAllocator->Request(*args.renderPass);
                     VkRenderPass vkRenderPass = renderPass->GetHandle();
                     exeState.renderPass = renderPass;
                     exeState.subpassIndex = 0;
@@ -1421,11 +1454,11 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     renderPassBeginInfo.renderPass = vkRenderPass;
                     renderPassBeginInfo.framebuffer = vkFramebuffer;
                     renderPassBeginInfo.renderArea = {{0, 0}, {extent.width, extent.height}};
-                    renderPassBeginInfo.clearValueCount = cmd.rgBeginRenderPass.clearValueCount;
-                    renderPassBeginInfo.pClearValues = cmd.rgBeginRenderPass.clearValues;
+                    renderPassBeginInfo.clearValueCount = args.clearValueCount;
+                    renderPassBeginInfo.pClearValues = args.clearValues;
 
-                    auto barrierOffset = cmd.rgBeginRenderPass.barrierOffset;
-                    auto barrierCount = cmd.rgBeginRenderPass.barrierCount;
+                    auto barrierOffset = args.barrierOffset;
+                    auto barrierCount = args.barrierCount;
                     for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
                     {
                         PutBarrier(vkcmd, b);
@@ -1458,7 +1491,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case Gfx::VKCmdType::BeginLabel:
                 {
-                    VKDebugUtils::CmdBeginLabel(vkcmd, cmd.beginLabel.label, cmd.beginLabel.color);
+                    auto& args = std::get<VKBeginLabelCmd>(cmd.args);
+                    VKDebugUtils::CmdBeginLabel(vkcmd, args.label, args.color);
                     break;
                 }
             case Gfx::VKCmdType::EndLabel:
@@ -1468,7 +1502,8 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 }
             case Gfx::VKCmdType::InsertLabel:
                 {
-                    VKDebugUtils::CmdInsertLabel(vkcmd, cmd.insertLabel.label, cmd.insertLabel.color);
+                    auto& args = std::get<VKInsertLabelCmd>(cmd.args);
+                    VKDebugUtils::CmdInsertLabel(vkcmd, args.label, args.color);
                     break;
                 }
             case VKCmdType::None: break;
@@ -1612,13 +1647,14 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
 void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 {
     ENGINE_SCOPED_PROFILE("ScheduleBindShaderProgram");
-    if (cmd.bindShaderProgram.program != recordState.bindedProgram)
+    auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
+    if (args.program != recordState.bindedProgram)
     {
-        recordState.bindedProgram = cmd.bindShaderProgram.program;
+        recordState.bindedProgram = args.program;
         recordState.bindProgramIndex = visitIndex;
 
-        auto& resource = globalResources[cmd.bindShaderProgram.program];
-        auto& bindingMap = cmd.bindShaderProgram.program->GetShaderInfo().descriptorSetBindingMap;
+        auto& resource = globalResources[args.program];
+        auto& bindingMap = args.program->GetShaderInfo().descriptorSetBindingMap;
         auto iter = bindingMap.find(0);
         if (iter != bindingMap.end())
         {
@@ -1687,8 +1723,10 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
             recordState.bindedSetUpdateNeeded[i] = false;
             auto bindSetCmdIndex = recordState.bindSetCmdIndex[i];
             auto bindProgramIndex = recordState.bindProgramIndex;
-            auto program = currentSchedulingCmds[bindProgramIndex].bindShaderProgram.program;
-            auto* bindSetCmd = i == 0 ? nullptr : &currentSchedulingCmds[bindSetCmdIndex].bindResource;
+            auto& bindProgramArgs = std::get<VKBindShaderProgramCmd>(currentSchedulingCmds[bindProgramIndex].args);
+            auto program = bindProgramArgs.program;
+            VKBindResourceCmd* bindSetCmd =
+                i == 0 ? nullptr : &std::get<VKBindResourceCmd>(currentSchedulingCmds[bindSetCmdIndex].args);
             uint32_t updateSet = i == 0 ? 0 : bindSetCmd->set;
             VKShaderResource* resource = i == 0 ? &globalResources[program] : bindSetCmd->resource;
             auto& writableResources = resource->GetWritableResources(updateSet, program);

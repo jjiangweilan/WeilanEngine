@@ -70,7 +70,7 @@ public:
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    const Gfx::ShaderConfig& GetShaderConfig()
+    std::shared_ptr<const Gfx::ShaderConfig> GetShaderConfig()
     {
         if (overrideShaderConfig || shader == nullptr)
             return shaderConfig;
@@ -81,7 +81,7 @@ public:
     void SetShaderConfig(const Gfx::ShaderConfig& shaderConfig)
     {
         overrideShaderConfig = true;
-        this->shaderConfig = shaderConfig;
+        this->shaderConfig = std::make_shared<Gfx::ShaderConfig>(shaderConfig);
     }
 
     void Serialize(Serializer* s) const override;
@@ -134,7 +134,7 @@ private:
     ShaderBase* shader = nullptr;
     uint32_t shaderContentHash = -1;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
-    Gfx::ShaderConfig shaderConfig;
+    std::shared_ptr<Gfx::ShaderConfig> shaderConfig;
     using ShaderPassIndex = int;
     std::unordered_map<ShaderPassIndex, Gfx::ShaderProgram*> cachedShaderPrograms;
     std::vector<std::string> cachedShaderProgramFeatures;

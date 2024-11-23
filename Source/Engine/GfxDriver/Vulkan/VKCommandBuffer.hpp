@@ -91,7 +91,7 @@ struct VKBindResourceCmd
 struct VKBindShaderProgramCmd
 {
     VKShaderProgram* program;
-    const ShaderConfig* config;
+    std::shared_ptr<const ShaderConfig> config;
 };
 
 struct VKBindVertexBufferCmd
@@ -240,7 +240,7 @@ struct VKBeginLabelCmd
 struct VKEndLabelCmd
 {};
 
-struct VKInsetLabelCmd
+struct VKInsertLabelCmd
 {
     char* label;
     float color[4];
@@ -252,7 +252,7 @@ struct VKAllocateAttachmentCmd
     RG::ImageDescription desc;
 };
 
-struct VKAsyncReadback
+struct VKAsyncReadbackCmd
 {
     Gfx::Buffer* buffer;
     void* dst;
@@ -263,6 +263,9 @@ struct VKAsyncReadback
     // later
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
+
+struct VKNoneCmd
+{};
 
 enum class VKCmdType
 {
@@ -284,7 +287,7 @@ enum class VKCmdType
     SetPushConstant,
     SetScissor,
     Dispatch,
-    DispatchIndir,
+    DispatchIndirect,
     NextRenderPass,
     PushDescriptorSet,
     CopyBuffer,
@@ -303,44 +306,78 @@ enum class VKCmdType
 struct VKCmd
 {
     VKCmdType type;
-    union
-    {
-        VKDrawIndexedCmd drawIndexed;
-        VKDrawIndirectCmd drawIndirect;
-        VKDrawIndexedIndirectCmd drawIndexedIndirect;
-        VKDrawCmd draw;
-        VKBeginRenderPassCmd beginRenderPass;
-        VKRGBeginRenderPassCmd rgBeginRenderPass;
-        VKEndRenderPassCmd endRenderPass;
-        VKBlitCmd blit;
-        VKBindResourceCmd bindResource;
-        VKBindShaderProgramCmd bindShaderProgram;
-        VKBindVertexBufferCmd bindVertexBuffer;
-        VKBindIndexBufferCmd bindIndexBuffer;
-
-        VKSetLineWidthCmd setLineWidth;
-        VKAsyncReadback asyncReadback;
-        VKSetViewportCmd setViewport;
-        VKCopyImageToBufferCmd copyImageToBuffer;
-        VKSetPushConstantCmd setPushConstant;
-        VKSetScissorCmd setScissor;
-        VKDispatchCmd dispatch;
-        VKDispatchIndirectCmd dispatchIndir;
-        VKNextRenderPassCmd nextRenderPass;
-        VKPushDescriptorCmd pushDescriptor;
-        VKCopyBufferCmd copyBuffer;
-        VKCopyBufferToImageCmd copyBufferToImage;
-
-        VKSetTextureCmd setTexture;
-        VKSetBufferCmd setBuffer;
-        VKPresentCmd present;
-
-        VKBeginLabelCmd beginLabel;
-        VKEndLabelCmd endLabel;
-        VKInsetLabelCmd insertLabel;
-
-        VKAllocateAttachmentCmd allocateAttachment;
-    };
+    std::variant<
+        VKNoneCmd,
+        VKDrawIndexedCmd,
+        VKDrawIndexedIndirectCmd,
+        VKDrawIndirectCmd,
+        VKDrawCmd,
+        VKBeginRenderPassCmd,
+        VKRGBeginRenderPassCmd,
+        VKEndRenderPassCmd,
+        VKBlitCmd,
+        VKBindResourceCmd,
+        VKBindVertexBufferCmd,
+        VKBindShaderProgramCmd,
+        VKBindIndexBufferCmd,
+        VKSetViewportCmd,
+        VKCopyImageToBufferCmd,
+        VKSetPushConstantCmd,
+        VKSetScissorCmd,
+        VKDispatchCmd,
+        VKDispatchIndirectCmd,
+        VKNextRenderPassCmd,
+        VKPushDescriptorCmd,
+        VKCopyBufferCmd,
+        VKCopyBufferToImageCmd,
+        VKSetBufferCmd,
+        VKSetTextureCmd,
+        VKAllocateAttachmentCmd,
+        VKPresentCmd,
+        VKSetLineWidthCmd,
+        VKBeginLabelCmd,
+        VKEndLabelCmd,
+        VKInsertLabelCmd,
+        VKAsyncReadbackCmd>
+        args;
+    // union
+    // {
+    //     VKDrawIndexedCmd drawIndexed;
+    //     VKDrawIndirectCmd drawIndirect;
+    //     VKDrawIndexedIndirectCmd drawIndexedIndirect;
+    //     VKDrawCmd draw;
+    //     VKBeginRenderPassCmd beginRenderPass;
+    //     VKRGBeginRenderPassCmd rgBeginRenderPass;
+    //     VKEndRenderPassCmd endRenderPass;
+    //     VKBlitCmd blit;
+    //     VKBindResourceCmd bindResource;
+    //     VKBindShaderProgramCmd bindShaderProgram;
+    //     VKBindVertexBufferCmd bindVertexBuffer;
+    //     VKBindIndexBufferCmd bindIndexBuffer;
+    //
+    //     VKSetLineWidthCmd setLineWidth;
+    //     VKAsyncReadback asyncReadback;
+    //     VKSetViewportCmd setViewport;
+    //     VKCopyImageToBufferCmd copyImageToBuffer;
+    //     VKSetPushConstantCmd setPushConstant;
+    //     VKSetScissorCmd setScissor;
+    //     VKDispatchCmd dispatch;
+    //     VKDispatchIndirectCmd dispatchIndir;
+    //     VKNextRenderPassCmd nextRenderPass;
+    //     VKPushDescriptorCmd pushDescriptor;
+    //     VKCopyBufferCmd copyBuffer;
+    //     VKCopyBufferToImageCmd copyBufferToImage;
+    //
+    //     VKSetTextureCmd setTexture;
+    //     VKSetBufferCmd setBuffer;
+    //     VKPresentCmd present;
+    //
+    //     VKBeginLabelCmd beginLabel;
+    //     VKEndLabelCmd endLabel;
+    //     VKInsetLabelCmd insertLabel;
+    //
+    //     VKAllocateAttachmentCmd allocateAttachment;
+    // };
 };
 
 class VKCommandBuffer : public CommandBuffer
@@ -369,7 +406,7 @@ public:
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
     void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex)
         override;
-    void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const ShaderConfig& config) override;
+    void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, std::shared_ptr<const ShaderConfig> config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
 
     void SetViewport(const Viewport& viewport) override;
@@ -378,7 +415,7 @@ public:
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndir(Buffer* buffer, size_t bufferOffset) override;
+    void DispatchIndirect(Buffer* buffer, size_t bufferOffset) override;
     void NextRenderPass() override;
     void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) override;
 
@@ -414,10 +451,7 @@ public:
         tmpMemory.Reset();
     }
 
-    std::span<VKCmd> GetCmds()
-    {
-        return cmds;
-    }
+    std::span<VKCmd> GetCmds() { return cmds; }
 
 private:
     bool validationCheck = true;

@@ -46,7 +46,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = (Shader*)shader;
-                        drawData.shaderConfig = &material->GetShaderConfig();
+                        drawData.shaderConfig = material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.pushConstant = modelMatrix;
                         drawData.indexCount = indexCount;
@@ -87,7 +87,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = (Shader*)shader;
-                        drawData.shaderConfig = &material->GetShaderConfig();
+                        drawData.shaderConfig = material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.pushConstant = modelMatrix;
                         drawData.indexCount = indexCount;

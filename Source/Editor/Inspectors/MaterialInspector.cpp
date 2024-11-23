@@ -54,8 +54,8 @@ public:
 
         if (auto shader = target->GetShader())
         {
-            ShowFeatures(shader->GetDefaultShaderConfig().vertFeatures);
-            ShowFeatures(shader->GetDefaultShaderConfig().fragFeatures);
+            ShowFeatures(shader->GetDefaultShaderConfig()->vertFeatures);
+            ShowFeatures(shader->GetDefaultShaderConfig()->fragFeatures);
         }
 
         ImGui::InputText("Feature", featureToEnable, 256);
@@ -197,7 +197,7 @@ public:
 
             ImGui::Spacing();
             ImGui::Text("ShaderConfig");
-            ImGui::Text("cullMode: %i", (int)target->GetShaderConfig().cullMode);
+            ImGui::Text("cullMode: %i", (int)target->GetShaderConfig()->cullMode);
 
             ImGui::Spacing();
             ImGui::Text("Textures");

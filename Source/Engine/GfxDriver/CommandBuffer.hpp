@@ -89,7 +89,7 @@ public:
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
-    virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const Gfx::ShaderConfig& config) = 0;
+    virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, std::shared_ptr<const ShaderConfig> config) = 0;
 
     virtual void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void NextRenderPass() = 0;
@@ -109,7 +109,7 @@ public:
     virtual void SetViewport(const Viewport& viewport) = 0;
     virtual void SetLineWidth(float lineWidth) = 0;
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    virtual void DispatchIndir(Buffer* buffer, size_t bufferOffset) = 0;
+    virtual void DispatchIndirect(Buffer* buffer, size_t bufferOffset) = 0;
     virtual void CopyBuffer(
         RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
     ) = 0;

@@ -5,46 +5,29 @@
 #include "Rendering/Material.hpp"
 void Graphics::DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
 {
-    GetSingleton().DrawLineImpl(from, to, color);
+    GetSingleton().drawCmds.push_back(DrawLineCmd{from, to, color});
 }
 
 void Graphics::DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
 {
-    GetSingleton().DrawMeshImpl(mesh, submeshIndex, model, material);
+    GetSingleton().drawCmds.push_back(
+        DrawMeshCmd{mesh.GetSRef<Mesh>(), material.GetSRef<Material>(), model, submeshIndex}
+    );
 }
 
 void Graphics::DrawTriangle(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)
 {
-    GetSingleton().DrawTriangleImpl(v0, v1, v2, color);
+    GetSingleton().drawCmds.push_back(DrawTriangleCmd{v0, v1, v2, color});
+}
+
+void Graphics::DrawCapsule(
+    float height, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
+)
+{
+    GetSingleton().drawCmds.push_back(DrawCapsuleCmd{height, radius, pos, rotation, scale});
 }
 
 void Graphics::DrawFrustum(const glm::mat4& viewProj)
-{
-    GetSingleton().DrawFrustumImpl(viewProj);
-}
-
-void Graphics::DrawMeshImpl(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material)
-{
-    drawCmds.push_back(DrawMeshCmd{mesh.GetSRef<Mesh>(), material.GetSRef<Material>(), model, submeshIndex});
-}
-
-void Graphics::DrawTriangleImpl(const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color)
-{
-    drawCmds.push_back(DrawTriangleCmd{v0, v1, v2, color});
-}
-
-Graphics& Graphics::GetSingleton()
-{
-    static Graphics graphics;
-    return graphics;
-}
-
-void Graphics::DrawLineImpl(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color)
-{
-    drawCmds.push_back(DrawLineCmd{from, to, color});
-}
-
-void Graphics::DrawFrustumImpl(const glm::mat4& viewProj)
 {
     std::array<glm::vec4, 8> frustumCorners = {
         glm::vec4(-1, -1, 0, 1),
@@ -64,21 +47,28 @@ void Graphics::DrawFrustumImpl(const glm::mat4& viewProj)
         v /= v.w;
     }
 
-    DrawLineImpl(frustumCorners[0], frustumCorners[1], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[1], frustumCorners[2], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[2], frustumCorners[3], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[3], frustumCorners[0], {1, 1, 1, 1});
+    auto& s = GetSingleton();
+    s.DrawLine(frustumCorners[0], frustumCorners[1], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[1], frustumCorners[2], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[2], frustumCorners[3], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[3], frustumCorners[0], {1, 1, 1, 1});
 
-    DrawLineImpl(frustumCorners[3], frustumCorners[7], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[0], frustumCorners[4], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[3], frustumCorners[7], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[0], frustumCorners[4], {1, 1, 1, 1});
 
-    DrawLineImpl(frustumCorners[2], frustumCorners[6], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[1], frustumCorners[5], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[2], frustumCorners[6], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[1], frustumCorners[5], {1, 1, 1, 1});
 
-    DrawLineImpl(frustumCorners[4], frustumCorners[5], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[5], frustumCorners[6], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[6], frustumCorners[7], {1, 1, 1, 1});
-    DrawLineImpl(frustumCorners[7], frustumCorners[4], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[4], frustumCorners[5], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[5], frustumCorners[6], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[6], frustumCorners[7], {1, 1, 1, 1});
+    s.DrawLine(frustumCorners[7], frustumCorners[4], {1, 1, 1, 1});
+}
+
+Graphics& Graphics::GetSingleton()
+{
+    static Graphics graphics;
+    return graphics;
 }
 
 void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
@@ -100,6 +90,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 else if constexpr (std::is_same_v<T, DrawTriangleCmd>)
                 {
                     DrawTriangleCommand(cmd, draw);
+                }
+                else if constexpr (std::is_same_v<T, DrawCapsuleCmd>)
+                {
+                    DrawCapsuleCommand(cmd, draw);
                 }
             },
             drawCmd
@@ -151,7 +145,24 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     cmd.Draw(2, 1, 0, 0);
 }
 
-void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& drawTriangle)
+void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
+{
+    Submesh* mesh = EngineInternalResources::GetCapsuleMesh();
+    Material* mat = EngineInternalResources::GetDefaultMaterial();
+    auto program = mat->GetShader()->GetShaderProgram(ShaderFeatureBitmask{});
+
+    glm::mat4 localMatrix =
+        glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) * glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.height, draw.radius));
+
+    cmd.BindIndexBuffer(mesh->GetIndexBuffer(), 0, mesh->GetIndexBufferType());
+    cmd.BindVertexBuffer(mesh->GetGfxVertexBufferBindings(), 0);
+    cmd.SetPushConstant(program, &localMatrix);
+    cmd.BindResource(2, mat->GetShaderResource());
+    cmd.BindShaderProgram(program, mat->GetShaderConfig());
+    cmd.DrawIndexed(mesh->GetIndexCount(), 1, 0, 0, 0);
+}
+
+void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& draw)
 {
     struct
     {
@@ -159,10 +170,10 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
         glm::vec4 color;
     } data;
 
-    data.v0 = glm::vec4(drawTriangle.v0, 1.0f);
-    data.v1 = glm::vec4(drawTriangle.v1, 1.0f);
-    data.v2 = glm::vec4(drawTriangle.v2, 1.0f);
-    data.color = drawTriangle.color;
+    data.v0 = glm::vec4(draw.v0, 1.0f);
+    data.v1 = glm::vec4(draw.v1, 1.0f);
+    data.v2 = glm::vec4(draw.v2, 1.0f);
+    data.color = draw.color;
 
     Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetLineShader()->GetDefaultShaderProgram();
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);

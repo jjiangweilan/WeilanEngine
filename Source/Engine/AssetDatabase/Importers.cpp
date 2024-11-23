@@ -94,7 +94,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
             mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
-        auto config = mat->GetShaderConfig();
+        auto config = *mat->GetShaderConfig();
         config.cullMode = matJson.value("doubleSided", false) ? Gfx::CullMode::None : Gfx::CullMode::Back;
         mat->SetShaderConfig(config);
 

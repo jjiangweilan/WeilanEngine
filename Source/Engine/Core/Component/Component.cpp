@@ -3,7 +3,10 @@
 
 Component::Component(GameObject* gameObject) : gameObject(gameObject) {}
 
-Component::~Component() {}
+Component::~Component()
+{
+    OnDestroy();
+}
 
 GameObject* Component::GetGameObject()
 {

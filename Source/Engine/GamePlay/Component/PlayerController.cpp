@@ -136,7 +136,14 @@ void PlayerController::OnStart()
     auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
     targetGO->SetRotation(lookAtQuat);
 
+    CreateCharacterPhysicsShape();
+
     valid = true;
+}
+
+void PlayerController::OnDestroy()
+{
+    DestroyCharacterPhysicsShape();
 }
 
 void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
@@ -155,12 +162,10 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
 
 void PlayerController::OnEnable()
 {
-    CreateCharacterPhysicsShape();
 }
 
 void PlayerController::OnDisable()
 {
-    DestroyCharacterPhysicsShape();
 }
 
 void PlayerController::UpdateCharacter()
@@ -224,9 +229,7 @@ void PlayerController::CreateCharacterPhysicsShape()
     }
 
     // create shape
-    auto extent = GetGameObject()->GetLocalScale();
-    JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
-    standingShape = s.Create().Get();
+    SetCharacterCapsuleShapeInternal();
 
     // create character
     JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
@@ -249,8 +252,22 @@ void PlayerController::CreateCharacterPhysicsShape()
     );
     character->SetListener(this);
 
-    auto& bSystem = scene->GetPhysicsScene().GetPhysicsSystem();
+    auto pos = gameObject->GetPosition();
+    character->SetPosition({pos.x, pos.y, pos.z});
+}
 
+void PlayerController::SetCharacterCapsuleShape(float height, float radius)
+{
+    characterCapsuleShapeHeight = height / 2.0f;
+    characterCapsuleShapeRadius = radius;
+}
+
+void PlayerController::SetCharacterCapsuleShapeInternal()
+{
+    JPH::CapsuleShapeSettings ss(characterCapsuleShapeHeight, characterCapsuleShapeRadius);
+    standingShape = ss.Create().Get();
+
+    auto& bSystem = GetScene()->GetPhysicsScene().GetPhysicsSystem();
     character->SetShape(
         standingShape,
         1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
@@ -260,9 +277,6 @@ void PlayerController::CreateCharacterPhysicsShape()
         {},
         tempAllocator
     );
-
-    auto pos = gameObject->GetPosition();
-    character->SetPosition({pos.x, pos.y, pos.z});
 }
 
 void PlayerController::OnDrawGizmos() {}
