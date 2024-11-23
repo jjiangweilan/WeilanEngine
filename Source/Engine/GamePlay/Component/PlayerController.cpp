@@ -46,6 +46,8 @@ void PlayerController::Serialize(Serializer* s) const
     s->Serialize("cameraDistance", cameraDistance);
     s->Serialize("rotateSpeed", rotateSpeed);
     s->Serialize("jumpImpulse", jumpImpulse);
+    s->Serialize("characterCapsuleShapeHeight", characterCapsuleShapeHeight);
+    s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
 }
 void PlayerController::Deserialize(Serializer* s)
 {
@@ -55,6 +57,8 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("cameraDistance", cameraDistance);
     s->Deserialize("rotateSpeed", rotateSpeed);
     s->Deserialize("jumpImpulse", jumpImpulse);
+    s->Deserialize("characterCapsuleShapeHeight", characterCapsuleShapeHeight);
+    s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
 }
 
 void PlayerController::PrePhysicsTick()

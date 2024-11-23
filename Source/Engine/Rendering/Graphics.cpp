@@ -166,14 +166,14 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     cmd.BindShaderProgram(program, config);
     cmd.DrawIndexed(cylinder->GetIndexCount(), 1, 0, 0, 0);
 
-    float yOffset = draw.height / 2;
+    float yOffset = draw.height;
     glm::mat4 halfSphereMatrix0 =
         glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 
     glm::mat4 halfSphereMatrix1 =
         glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) *
-        glm::mat4_cast(glm::quat(glm::vec3(180, 0, 0))) *
+        glm::mat4_cast(glm::quat(glm::vec3(glm::radians(180.f), 0, 0))) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 
     cmd.BindIndexBuffer(halfSphere->GetIndexBuffer(), 0, halfSphere->GetIndexBufferType());
