@@ -147,21 +147,43 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
 
 void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
 {
-    Submesh* mesh = EngineInternalResources::GetCapsuleMesh();
+    Submesh* halfSphere = EngineInternalResources::GetHalfSphereMesh();
+    Submesh* cylinder = EngineInternalResources::GetCylinderMesh();
     Material* mat = EngineInternalResources::GetDefaultMaterial();
     auto program = mat->GetShader()->GetShaderProgram(ShaderFeatureBitmask{});
 
-    glm::mat4 localMatrix =
-        glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) * glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.height, draw.radius));
+    glm::mat4 cylinderMatrix = glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
+                               glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.height, draw.radius));
 
-    cmd.BindIndexBuffer(mesh->GetIndexBuffer(), 0, mesh->GetIndexBufferType());
-    cmd.BindVertexBuffer(mesh->GetGfxVertexBufferBindings(), 0);
-    cmd.SetPushConstant(program, &localMatrix);
     cmd.BindResource(2, mat->GetShaderResource());
     auto config = std::make_shared<Gfx::ShaderConfig>(*mat->GetShaderConfig());
     config->polygonMode = Gfx::PolygonMode::Line;
+
+    // top half sphere
+    cmd.BindIndexBuffer(cylinder->GetIndexBuffer(), 0, cylinder->GetIndexBufferType());
+    cmd.BindVertexBuffer(cylinder->GetGfxVertexBufferBindings(), 0);
+    cmd.SetPushConstant(program, &cylinderMatrix);
     cmd.BindShaderProgram(program, config);
-    cmd.DrawIndexed(mesh->GetIndexCount(), 1, 0, 0, 0);
+    cmd.DrawIndexed(cylinder->GetIndexCount(), 1, 0, 0, 0);
+
+    float yOffset = draw.height / 2;
+    glm::mat4 halfSphereMatrix0 =
+        glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
+        glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
+
+    glm::mat4 halfSphereMatrix1 =
+        glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) *
+        glm::mat4_cast(glm::quat(glm::vec3(180, 0, 0))) *
+        glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
+
+    cmd.BindIndexBuffer(halfSphere->GetIndexBuffer(), 0, halfSphere->GetIndexBufferType());
+    cmd.BindVertexBuffer(halfSphere->GetGfxVertexBufferBindings(), 0);
+
+    cmd.SetPushConstant(program, &halfSphereMatrix0);
+    cmd.DrawIndexed(halfSphere->GetIndexCount(), 1, 0, 0, 0);
+
+    cmd.SetPushConstant(program, &halfSphereMatrix1);
+    cmd.DrawIndexed(halfSphere->GetIndexCount(), 1, 0, 0, 0);
 }
 
 void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& draw)

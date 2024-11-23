@@ -228,8 +228,6 @@ void PlayerController::CreateCharacterPhysicsShape()
         return;
     }
 
-    // create shape
-    SetCharacterCapsuleShapeInternal();
 
     // create character
     JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
@@ -251,6 +249,9 @@ void PlayerController::CreateCharacterPhysicsShape()
         &scene->GetPhysicsScene().GetPhysicsSystem()
     );
     character->SetListener(this);
+    
+    // create shape
+    SetCharacterCapsuleShapeInternal();
 
     auto pos = gameObject->GetPosition();
     character->SetPosition({pos.x, pos.y, pos.z});

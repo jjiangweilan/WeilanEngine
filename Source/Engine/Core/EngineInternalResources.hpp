@@ -11,12 +11,16 @@ public:
     struct Models
     {
         Mesh* sphere;
-        Mesh* capsuleMesh;
+        Mesh* capsule;
+        Mesh* halfSphere;
+        Mesh* cylinder;
     };
 
     static void Init();
 
-    static Submesh* GetCapsuleMesh() { return GetSingleton().models.capsuleMesh->GetSubmesh(0); }
+    static Submesh* GetCapsuleMesh() { return GetSingleton().models.capsule->GetSubmesh(0); }
+    static Submesh* GetHalfSphereMesh() { return GetSingleton().models.halfSphere->GetSubmesh(0); }
+    static Submesh* GetCylinderMesh() { return GetSingleton().models.cylinder->GetSubmesh(0); }
     static Models& GetModels() { return GetSingleton().models; }
     static Material* GetDefaultMaterial() { return GetSingleton().defaultMaterial; }
     static Shader* GetLineShader() { return GetSingleton().lineShader; }
