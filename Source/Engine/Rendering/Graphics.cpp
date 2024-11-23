@@ -158,7 +158,9 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     cmd.BindVertexBuffer(mesh->GetGfxVertexBufferBindings(), 0);
     cmd.SetPushConstant(program, &localMatrix);
     cmd.BindResource(2, mat->GetShaderResource());
-    cmd.BindShaderProgram(program, mat->GetShaderConfig());
+    auto config = std::make_shared<Gfx::ShaderConfig>(*mat->GetShaderConfig());
+    config->polygonMode = Gfx::PolygonMode::Line;
+    cmd.BindShaderProgram(program, config);
     cmd.DrawIndexed(mesh->GetIndexCount(), 1, 0, 0, 0);
 }
 
