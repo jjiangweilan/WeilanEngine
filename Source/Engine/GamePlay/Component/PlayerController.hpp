@@ -14,11 +14,12 @@ class PlayerController : public Component, JPH::CharacterContactListener
     DECLARE_OBJECT();
 
 public:
-    float movementSpeed = 1.0f;
+    float movementSpeed = 300.f;
     float rotateSpeed = 0.3f;
-    float cameraDistance = 5.0f;
     float jumpImpulse = 3.0f;
     float gravityScale = 10.0f;
+
+    float blendFactorScale = 1.3f;
 
     // character creation setting
     float maxSlopeAngle = JPH::DegreesToRadians(45.0f);
@@ -29,10 +30,13 @@ public:
     float characterRadiusStanding = 0.3f;
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
+    float playerRotationSpeed = 30.0f;
 
-    void SetCharacterCapsuleShape(float halfHeight, float radius);
-    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHalfHeight; }
-    float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
+    /******** Camera *********/
+    float cameraTheta = -0.81;
+    float cameraPhi = 0;
+    float cameraDistance = 7.0f;
+
     JPH::RefConst<JPH::Shape> standingShape;
 
     PlayerController();
@@ -45,11 +49,13 @@ public:
     const std::string& GetName() override;
     void PrePhysicsTick() override;
     void Tick() override;
+
+    /***** In-Game Control ******/
     void SetRootMotionAnimationPlayer(AnimationPlayer* animationPlayer);
-    AnimationPlayer* GetRootMotionAnimationPlayer() const
-    {
-        return rootMotionAnimationPlayer;
-    }
+    AnimationPlayer* GetRootMotionAnimationPlayer() const { return rootMotionAnimationPlayer; }
+    void SetCharacterCapsuleShape(float halfHeight, float radius);
+    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHalfHeight; }
+    float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
 
     void SetCamera(Camera* camera) { this->target = camera; }
     Camera* GetCamera() { return target; }
@@ -62,13 +68,15 @@ private:
 
     /**** Runtime Data ****/
     glm::vec3 velocity{};
+    float playerTheta = 0;
+    float playerPhi = 0;
     // camera rotation around player
-    float theta, phi;
     bool valid = false;
     JPH::Ref<JPH::CharacterVirtual> character;
     JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 10 * 1024);
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
+    void UpdatePlayerLookAt(float xDelta);
     void
     ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
@@ -84,4 +92,5 @@ private:
     void SetCharacterCapsuleShapeInternal();
     void DestroyCharacterPhysicsShape();
     void UpdateCharacter();
+    glm::vec3 CalculateSphericalPosition(float xDelta, float yDelta, float& phi, float& theta);
 };

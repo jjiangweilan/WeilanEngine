@@ -179,7 +179,12 @@ public:
 
         this->eulerAngles = eulerAngles;
         auto rotation = glm::quat(eulerAngles);
-        SetLocalRotation(rotation);
+
+        // set local rotation
+        this->rotation = rotation;
+        updateLocalMatrix = true;
+
+        TransformChanged();
     }
 
     glm::mat4 GetWorldMatrix() const;

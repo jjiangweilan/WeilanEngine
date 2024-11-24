@@ -8,6 +8,9 @@
 #include "Core/Time.hpp"
 #include "Gameplay/Input.hpp"
 #include <spdlog/spdlog.h>
+#if ENGINE_EDITOR
+#include "Editor/HudDebug.hpp"
+#endif
 
 // clang-format off
 #include <Jolt/Jolt.h>
@@ -67,7 +70,6 @@ void PlayerController::PrePhysicsTick()
 {
     if (valid)
     {
-        HandleInput();
         UpdateCharacter();
     }
 }
@@ -120,7 +122,7 @@ void PlayerController::HandleInput()
         // }
         // else
         // {
-        velocity += dir * movementSpeed * PhysicsScene::DeltaTime;
+        velocity += dir * movementSpeed * Time::DeltaTime();
         // }
     }
 
@@ -159,16 +161,22 @@ void PlayerController::OnDestroy()
     DestroyCharacterPhysicsShape();
 }
 
-void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
+glm::vec3 PlayerController::CalculateSphericalPosition(float xDelta, float yDelta, float& phi, float& theta)
 {
-    float rotSpeed = Time::DeltaTime() * rotateSpeed;
-    phi += xDelta * rotSpeed;
-    theta += yDelta * rotSpeed;
+    phi += xDelta;
+    theta += yDelta;
     glm::vec3 sphPos = {0, 0, 0};
     float cosTheta = glm::cos(theta);
     sphPos.x = glm::cos(phi) * cosTheta;
     sphPos.z = glm::sin(phi) * cosTheta;
-    sphPos.y = sin(theta);
+    sphPos.y = -sin(theta);
+
+    return sphPos;
+}
+
+void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
+{
+    glm::vec3 sphPos = CalculateSphericalPosition(0, 0, cameraPhi, cameraTheta);
     glm::vec3 finalSphOffset = sphPos * cameraDistance;
     target->GetGameObject()->SetPosition(GetGameObject()->GetPosition() + finalSphOffset);
 }
@@ -213,8 +221,10 @@ void PlayerController::SetRootMotionAnimationPlayer(AnimationPlayer* animationPl
 void PlayerController::Tick()
 {
     // update character
-    if (character)
+    if (valid && character)
     {
+        HandleInput();
+
         auto pos = character->GetPosition();
         gameObject->SetPosition(
             {pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()}
@@ -225,7 +235,10 @@ void PlayerController::Tick()
         auto characterPos = GetGameObject()->GetPosition();
         float lx, ly;
         Input::GetSingleton().GetLookAround(lx, ly);
+
         SetCameraSphericalPos(-lx, -ly);
+
+        UpdatePlayerLookAt(-lx);
 
         // set camera lookat character
         auto cameraGO = target->GetGameObject();
@@ -233,13 +246,30 @@ void PlayerController::Tick()
         auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
         cameraGO->SetLocalRotation(lookAtQuat);
 
-        /****** select animation ******/
+        /****** update animation ******/
         if (rootMotionAnimationPlayer)
         {
             float speed = glm::length(velocity);
-            float blendFactor = glm::smoothstep(0.f, 1.0f, speed);
+            float blendFactor = glm::smoothstep(0.f, blendFactorScale, speed);
             rootMotionAnimationPlayer->SetBlendClipFactor(blendFactor);
+        }
+    }
+}
 
+void PlayerController::UpdatePlayerLookAt(float xDelta)
+{
+    if (rootMotionAnimationPlayer)
+    {
+        glm::vec3 rot =
+            CalculateSphericalPosition(xDelta * Time::DeltaTime() * playerRotationSpeed, 0, playerPhi, playerTheta);
+        auto v = velocity;
+        v.y = 0;
+        float speed = glm::length(v);
+        bool hasVelocity = speed != 0;
+        if (hasVelocity)
+        {
+            auto lookAtRot = glm::quatLookAt(v / speed, {0, 1, 0});
+            rootMotionAnimationPlayer->GetGameObject()->SetRotation(lookAtRot);
         }
     }
 }

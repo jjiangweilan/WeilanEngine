@@ -5,6 +5,7 @@
 #include "Core/EngineState.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Time.hpp"
+#include "Editor/HudDebug.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
 #include "Libs/Math.hpp"
@@ -146,7 +147,6 @@ void GameView::Init()
 
     ChangeGameScreenResolution({256, 256});
 }
-
 
 void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed)
 {
@@ -616,6 +616,7 @@ bool GameView::Tick()
             }
         }
 
+        ImGui::SetCursorPos(imagePos);
         if (useViewCamera && scene != nullptr)
         {
             auto mainCam = GetCurrentlyActiveCamera();
@@ -645,7 +646,6 @@ bool GameView::Tick()
                     avgPos /= selectedObjects.size();
                     baseModel[3] = glm::vec4(avgPos, 1.0f);
 
-                    ImGui::SetCursorPos(imagePos);
 
                     glm::mat4 deltaMatrix;
                     EditTransform(*mainCam, baseModel, deltaMatrix, proj);
@@ -700,6 +700,12 @@ bool GameView::Tick()
                 // world[2] = -world[2];
                 // mainCam->GetGameObject()->SetWorldMatrix(world);
             }
+        }
+
+        auto logs = HudDebug::Singleton().FlushLogs();
+        for(auto log : logs)
+        {
+            ImGui::Text("%s", log.data());
         }
     }
 
