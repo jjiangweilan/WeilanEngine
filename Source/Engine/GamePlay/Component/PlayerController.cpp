@@ -52,6 +52,7 @@ void PlayerController::Serialize(Serializer* s) const
     s->Serialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Serialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
+    s->Serialize("armatureRoot", armatureRoot);
 }
 void PlayerController::Deserialize(Serializer* s)
 {
@@ -64,6 +65,7 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Deserialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
+    s->Deserialize("armatureRoot", armatureRoot);
 }
 
 void PlayerController::PrePhysicsTick()
@@ -178,7 +180,10 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
 {
     glm::vec3 sphPos = CalculateSphericalPosition(0, 0, cameraPhi, cameraTheta);
     glm::vec3 finalSphOffset = sphPos * cameraDistance;
-    target->GetGameObject()->SetPosition(GetGameObject()->GetPosition() + finalSphOffset);
+    auto playerPos = GetGameObject()->GetPosition();
+
+    playerPos.y = 0;
+    target->GetGameObject()->SetPosition(playerPos + finalSphOffset);
 }
 
 void PlayerController::OnEnable() {}
@@ -225,40 +230,44 @@ void PlayerController::Tick()
     {
         HandleInput();
 
+        // update player and camera position
         auto pos = character->GetPosition();
-        gameObject->SetPosition(
+        GetGameObject()->SetPosition(
             {pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()}
         );
+
+        float lx, ly;
+        Input::GetSingleton().GetLookAround(lx, ly);
 
         /* camera update */
         // set camera lookat (camera position)
         auto characterPos = GetGameObject()->GetPosition();
-        float lx, ly;
-        Input::GetSingleton().GetLookAround(lx, ly);
-
-        SetCameraSphericalPos(-lx, -ly);
-
-        UpdatePlayerLookAt(-lx);
-
+        characterPos.y = playerHorizonPos;
         // set camera lookat character
+        SetCameraSphericalPos(-lx, -ly);
         auto cameraGO = target->GetGameObject();
         glm::vec3 cameraPos = cameraGO->GetPosition();
         auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
         cameraGO->SetLocalRotation(lookAtQuat);
 
+        UpdatePlayerLookAt(-lx);
+
+
         /****** update animation ******/
         if (rootMotionAnimationPlayer)
         {
             float speed = glm::length(velocity);
-            float blendFactor = glm::smoothstep(0.f, blendFactorScale, speed);
-            rootMotionAnimationPlayer->SetBlendClipFactor(blendFactor);
+            float blendFactor = glm::mix(-blendFactorScale, blendFactorScale, speed);
+            animationBlendFactor += blendFactor;
+            animationBlendFactor = glm::clamp(animationBlendFactor, 0.f, 1.f);
+            rootMotionAnimationPlayer->SetBlendClipFactor(animationBlendFactor);
         }
     }
 }
 
 void PlayerController::UpdatePlayerLookAt(float xDelta)
 {
-    if (rootMotionAnimationPlayer)
+    if (armatureRoot)
     {
         glm::vec3 rot =
             CalculateSphericalPosition(xDelta * Time::DeltaTime() * playerRotationSpeed, 0, playerPhi, playerTheta);
@@ -268,8 +277,8 @@ void PlayerController::UpdatePlayerLookAt(float xDelta)
         bool hasVelocity = speed != 0;
         if (hasVelocity)
         {
-            auto lookAtRot = glm::quatLookAt(v / speed, {0, 1, 0});
-            rootMotionAnimationPlayer->GetGameObject()->SetRotation(lookAtRot);
+            auto lookAtRot = glm::quatLookAt(-v / speed, {0, 1, 0});
+            armatureRoot->SetRotation(lookAtRot);
         }
     }
 }

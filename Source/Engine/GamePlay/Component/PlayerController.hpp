@@ -14,7 +14,7 @@ class PlayerController : public Component, JPH::CharacterContactListener
     DECLARE_OBJECT();
 
 public:
-    float movementSpeed = 300.f;
+    float movementSpeed = 1400.f;
     float rotateSpeed = 0.3f;
     float jumpImpulse = 3.0f;
     float gravityScale = 10.0f;
@@ -31,11 +31,15 @@ public:
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
     float playerRotationSpeed = 30.0f;
+    float playerHorizonPos = 0.0f;
+    // Usages:
+    // 1. rotate by PlayerController to make the player facing to moving direction
+    GameObject* armatureRoot = nullptr;
 
     /******** Camera *********/
     float cameraTheta = -0.81;
     float cameraPhi = 0;
-    float cameraDistance = 7.0f;
+    float cameraDistance = 7.28f;
 
     JPH::RefConst<JPH::Shape> standingShape;
 
@@ -74,6 +78,7 @@ private:
     bool valid = false;
     JPH::Ref<JPH::CharacterVirtual> character;
     JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 10 * 1024);
+    float animationBlendFactor = 0.0f;
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
     void UpdatePlayerLookAt(float xDelta);

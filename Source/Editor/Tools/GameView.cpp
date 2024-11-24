@@ -4,6 +4,7 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineState.hpp"
 #include "Core/Gizmo.hpp"
+#include "Core/SystemInfo.hpp"
 #include "Core/Time.hpp"
 #include "Editor/HudDebug.hpp"
 #include "EditorState.hpp"
@@ -227,6 +228,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
+    SystemInfo::Singleton().SetScreenSize(width, height);
     editorCamera->SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
 }
 
@@ -646,7 +648,6 @@ bool GameView::Tick()
                     avgPos /= selectedObjects.size();
                     baseModel[3] = glm::vec4(avgPos, 1.0f);
 
-
                     glm::mat4 deltaMatrix;
                     EditTransform(*mainCam, baseModel, deltaMatrix, proj);
 
@@ -703,7 +704,7 @@ bool GameView::Tick()
         }
 
         auto logs = HudDebug::Singleton().FlushLogs();
-        for(auto log : logs)
+        for (auto log : logs)
         {
             ImGui::Text("%s", log.data());
         }

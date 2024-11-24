@@ -60,7 +60,7 @@ public:
 
     std::vector<uint8_t> GetBinary() override
     {
-        std::string b = j.dump(1);
+        std::string b = j.dump();
         std::vector<uint8_t> a(b.begin(), b.end());
         return a;
     }

@@ -29,21 +29,12 @@ public:
 
     void SetDiffuseEnv(Texture* cubemap);
     void SetSpecularEnv(Texture* cubemap);
-    const SRef<Texture>& GetDiffuseEnv()
-    {
-        return diffuseEnv;
-    }
+    const SRef<Texture>& GetDiffuseEnv() { return diffuseEnv; }
 
-    const SRef<Texture>& GetSpecularEnv()
-    {
-        return specularEnv;
-    }
+    const SRef<Texture>& GetSpecularEnv() { return specularEnv; }
 
     void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
-    Rendering::FrameGraph::Graph* GetFrameGraph() const
-    {
-        return frameGraph;
-    }
+    Rendering::FrameGraph::Graph* GetFrameGraph() const { return frameGraph; }
 
     static RefPtr<Camera> mainCamera;
 
@@ -53,6 +44,7 @@ public:
     float GetFar();
 
     void DrawGizmos();
+    void Tick() override;
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

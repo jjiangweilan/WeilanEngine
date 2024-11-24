@@ -1,5 +1,6 @@
 #include "Camera.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/SystemInfo.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp" // serializaiton
 #include <glm/gtc/matrix_transform.hpp>
@@ -201,4 +202,11 @@ glm::vec3 Camera::GetForward()
 void Camera::OnDrawGizmos()
 {
     // gizmos.Add<GizmoCamera>();
+}
+
+void Camera::Tick()
+{
+    float width, height;
+    SystemInfo::Singleton().GetScreenSize(width, height);
+    SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
 }
