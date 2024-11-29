@@ -213,6 +213,20 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         final = glm::inverse(final);
         go->SetWorldMatrix(final);
     }
+    else if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    {
+        auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle, 0);
+        glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
+        mouseDelta.y = -mouseDelta.y;
+        lastMouseDelta = mouseLastClickDelta;
+        auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
+        auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
+
+        auto go = editorCamera.GetGameObject();
+        auto pos = go->GetPosition();
+        pos += go->GetUp() * upDown + leftRight * go->GetRight();
+        go->SetPosition(pos);
+    }
     else
     {
         lastMouseDelta = ImVec2(0, 0);
@@ -821,12 +835,9 @@ void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
         glm::abs(minAABBV.x),
         glm::max(glm::abs(minAABBV.y), glm::max(glm::abs(maxAABBV.x), glm::abs(maxAABBV.y)))
     );
-    float closeZ = glm::min(glm::abs(minAABBV.z), glm::abs(maxAABBV.z));
 
     float fov = cam.GetFoV();
     float distance = maxSide / fov;
-    if (closeZ > distance)
-        distance = closeZ;
 
     glm::vec3 forward = cam.GetForward();
     cam.GetGameObject()->SetPosition(center + forward * distance);

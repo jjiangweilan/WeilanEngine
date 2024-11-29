@@ -182,7 +182,7 @@ public:
         glm::vec3 max =
             {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
 
-        for (auto& submesh : submeshes)
+        for (auto& submesh : this->submeshes)
         {
             auto& aabb = submesh.GetAABB();
             min.x = glm::min(min.x, aabb.min.x);
