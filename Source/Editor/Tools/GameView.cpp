@@ -217,6 +217,9 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
     {
         lastMouseDelta = ImVec2(0, 0);
     }
+
+    glm::vec3 pos = editorCamera.GetGameObject()->GetPosition();
+    HudDebug::Singleton().Print(fmt::format("{}, {}, {}", pos.x, pos.y, pos.z));
 }
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)
@@ -771,7 +774,62 @@ void GameView::ChangeGameScreenResolution(glm::ivec2 resolution)
 void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
 {
     glm::vec3 center = gameObject.GetPosition();
-    cam.GetGameObject()->SetPosition(center);
+    auto meshRenderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+    auto viewMatrix = cam.GetViewMatrix();
+    glm::vec3 minAABBV =
+        {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    glm::vec3 maxAABBV =
+        {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
+
+    for (auto m : meshRenderers)
+    {
+        auto aabb = m->GetAABB();
+        auto centerV = viewMatrix * glm::vec4(m->GetGameObject()->GetPosition(), 1.0);
+        auto minv = viewMatrix * glm::vec4(aabb.min, 1.0f);
+        auto maxv = viewMatrix * glm::vec4(aabb.max, 1.0f);
+
+        // move to camera center
+        minv.x -= centerV.x;
+        minv.y -= centerV.y;
+        maxv.x -= centerV.x;
+        maxv.y -= centerV.y;
+
+        glm::vec3 v000 = {minv.x, minv.y, minv.z};
+        glm::vec3 v100 = {maxv.x, minv.y, minv.z};
+        glm::vec3 v010 = {minv.x, maxv.y, minv.z};
+        glm::vec3 v001 = {minv.x, minv.y, maxv.z};
+
+        glm::vec3 v110 = {maxv.x, maxv.y, minv.z};
+        glm::vec3 v011 = {minv.x, maxv.y, maxv.z};
+        glm::vec3 v101 = {maxv.x, minv.y, maxv.z};
+        glm::vec3 v111 = {maxv.x, maxv.y, maxv.z};
+
+        glm::vec3 minAABBV0 = glm::min(
+            v000,
+            glm::min(v100, glm::min(v010, glm::min(v001, glm::min(v110, glm::min(v011, glm::min(v101, v111))))))
+        );
+        glm::vec3 maxAABBV0 = glm::max(
+            v000,
+            glm::max(v100, glm::max(v010, glm::max(v001, glm::max(v110, glm::max(v011, glm::max(v101, v111))))))
+        );
+
+        minAABBV = glm::min(minAABBV, minAABBV0);
+        maxAABBV = glm::max(maxAABBV, maxAABBV0);
+    }
+
+    float maxSide = glm::max(
+        glm::abs(minAABBV.x),
+        glm::max(glm::abs(minAABBV.y), glm::max(glm::abs(maxAABBV.x), glm::abs(maxAABBV.y)))
+    );
+    float closeZ = glm::min(glm::abs(minAABBV.z), glm::abs(maxAABBV.z));
+
+    float fov = cam.GetFoV();
+    float distance = maxSide / fov;
+    if (closeZ > distance)
+        distance = closeZ;
+
+    glm::vec3 forward = cam.GetForward();
+    cam.GetGameObject()->SetPosition(center + forward * distance);
 }
 
 Camera* GameView::GetCurrentlyActiveCamera()

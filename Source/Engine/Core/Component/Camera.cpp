@@ -204,6 +204,11 @@ void Camera::OnDrawGizmos()
     // gizmos.Add<GizmoCamera>();
 }
 
+float Camera::GetFoV()
+{
+    return glm::atan(GetProjectionTop() / GetNear());
+}
+
 void Camera::Tick()
 {
     float width, height;

@@ -60,6 +60,18 @@ private:
     bool isAltDown = false;
     float editorCameraSpeed = 5.0f;
 
+    struct EditorCameraLookAtController
+    {
+        enum class Mode
+        {
+            LookAt,
+            FlyAround
+        };
+
+        glm::vec3 lookAtCenter;
+        glm::vec3 lookAtOffset;
+    };
+
     struct
     {
         glm::ivec2 resolution;

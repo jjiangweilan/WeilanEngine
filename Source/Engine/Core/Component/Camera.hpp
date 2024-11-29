@@ -38,6 +38,8 @@ public:
 
     static RefPtr<Camera> mainCamera;
 
+    // get camera fov half angle
+    float GetFoV();
     float GetProjectionRight();
     float GetProjectionTop();
     float GetNear();

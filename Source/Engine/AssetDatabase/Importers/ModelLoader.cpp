@@ -49,7 +49,7 @@ struct ModelImporterImple
         Assimp::Importer importer;
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene =
-            importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+            importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenBoundingBoxes);
 
         if (scene == nullptr)
         {
@@ -283,6 +283,10 @@ private:
             submesh.SetPositions(std::move(positions));
             submesh.SetVertexAttribute(std::move(attributes));
             submesh.SetIndices(std::move(indices));
+            submesh.SetAABB(
+                {{mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z},
+                 {mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z}}
+            );
             submesh.Apply();
             std::vector<Submesh> submeshes;
             submeshes.push_back(std::move(submesh));

@@ -83,7 +83,7 @@ void MeshRenderer::Serialize(Serializer* s) const
 void MeshRenderer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize("meshes", meshes);
+    s->Deserialize("meshes", meshes, [this](void* res) { UpdateAABB(); });
     s->Deserialize("materials", materials);
     s->Deserialize("aabbMin", aabb.min);
     s->Deserialize("aabbMax", aabb.max);
