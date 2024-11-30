@@ -151,11 +151,12 @@ private:
             {
                 ImGui::Text("%s", text.c_str());
 
-                if (ImGui::Selectable("Confirm"))
+                if (ImGui::Button("Yes"))
                 {
                     f();
                 }
-                if (ImGui::Selectable("Chancel"))
+                ImGui::SameLine();
+                if (ImGui::Button("No"))
                 {
                     if (cancel != nullptr)
                         cancel();
