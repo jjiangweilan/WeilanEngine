@@ -20,6 +20,7 @@ public:
     void Deserialize(Serializer* s) override;
     const std::string& GetName() override;
     void Tick() override;
+    void OnLoaded() override;
 
 public:
     void SetSpeed(float speed) { this->speed = speed; }
@@ -68,6 +69,7 @@ private:
     int animatedRootGOIndex;
     std::string rootName = "";
     std::string initialActiveClip = "";
+    std::string initialBlendClip = "";
     glm::vec3 rootMotionPreviousPosition = glm::vec3(0);
     glm::vec3 rootMotionDelta = glm::vec3(0);
 

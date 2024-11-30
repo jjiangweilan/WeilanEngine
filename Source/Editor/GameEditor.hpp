@@ -24,10 +24,7 @@ public:
     ~GameEditor();
 
     void Start();
-    WeilanEngine* GetEngine()
-    {
-        return engine.get();
-    }
+    WeilanEngine* GetEngine() { return engine.get(); }
 
     std::unique_ptr<Gfx::Image> fontImage;
     nlohmann::json editorConfig;
@@ -105,15 +102,9 @@ private:
     class EndEvents
     {
     public:
-        void TickBegin()
-        {
-            fs.clear();
-        }
+        void TickBegin() { fs.clear(); }
 
-        void Register(const std::function<void()>& f)
-        {
-            fs.push_back(f);
-        }
+        void Register(const std::function<void()>& f) { fs.push_back(f); }
 
         void TickEnd()
         {
@@ -131,19 +122,22 @@ private:
     {
         std::string text;
         std::function<void()> f;
+        std::function<void()> cancel;
         bool show;
+        bool open = false;
 
     public:
-        void TickBegin()
-        {
-            show = false;
-        }
+        void TickBegin() { show = false; }
 
-        void Show(const std::string& text, const std::function<void()>& confirm)
+        void Show(
+            const std::string& text, const std::function<void()>& confirm, const std::function<void()>& cancel = nullptr
+        )
         {
             this->text = text;
+            this->cancel = cancel;
             show = true;
             f = confirm;
+            open = true;
         }
 
         void TickEnd()
@@ -153,7 +147,7 @@ private:
                 ImGui::OpenPopup("Tick End Popup");
             }
 
-            if (ImGui::BeginPopupModal("Tick End Popup"))
+            if (ImGui::BeginPopupModal("Tick End Popup", &open))
             {
                 ImGui::Text("%s", text.c_str());
 
@@ -163,7 +157,10 @@ private:
                 }
                 if (ImGui::Selectable("Chancel"))
                 {
-                    ImGui::CloseCurrentPopup();
+                    if (cancel != nullptr)
+                        cancel();
+                    else
+                        ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
             }

@@ -210,7 +210,7 @@ public:
 
     std::vector<std::unique_ptr<GameObject>>&& GetOwningChildren() { return std::move(owningChildren); }
 
-    void OnLoadingFinished() override;
+    void OnLoaded() override;
 
     GameObject* GetPrototype() { return prototype; }
 
@@ -228,10 +228,10 @@ private:
     GameObjectFlag flags = GameObjectFlag::None;
 
     // a prototype GameObject stores all it's children
-    bool isPrototype;
-    glm::vec3 position = glm::vec3(0);
-    glm::vec3 scale = glm::vec3(1, 1, 1);
-    glm::quat rotation = glm::quat(1, 0, 0, 0);
+    [[Serialized]] bool isPrototype;
+    [[Serialized]] glm::vec3 position = glm::vec3(0);
+    [[Serialized]] glm::vec3 scale = glm::vec3(1, 1, 1);
+    [[Serialized]] glm::quat rotation = glm::quat(1, 0, 0, 0);
     // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     mutable glm::mat4 localMatrix;
@@ -267,6 +267,8 @@ private:
     inline static const float compareEpsilon = 1e-6f;
 
     void Copy(const GameObject& other);
+
+    friend void RegisterSerializedObjects();
 };
 
 template <class T, class... Args>

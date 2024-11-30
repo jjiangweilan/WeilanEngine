@@ -25,11 +25,10 @@ public:
 
     void Tick();
     void PrePhysicsTick();
-    void OnLoadingFinished() override;
+    void OnLoaded() override;
 
     void MoveGameObjectToRoot(GameObject* obj);
     void RemoveGameObjectFromRoot(GameObject* obj);
-    void RemoveGameObject(GameObject* obj);
     void DestroyGameObject(GameObject* obj);
     std::unique_ptr<GameObject> RetrieveGameObject(GameObject* obj);
 
@@ -59,21 +58,39 @@ public:
         }
         return camera;
     }
-    void SetMainCamera(Camera* camera)
-    {
-        this->camera = camera;
-    }
+    void SetMainCamera(Camera* camera) { this->camera = camera; }
 
     Gfx::ShaderResource* GetSceneShaderResource();
 
-    RenderingScene& GetRenderingScene()
-    {
-        return renderingScene;
-    }
+    RenderingScene& GetRenderingScene() { return renderingScene; }
+    PhysicsScene& GetPhysicsScene() { return physicsScene; }
 
-    PhysicsScene& GetPhysicsScene()
+    std::vector<std::unique_ptr<GameObject>>& GetGameObjects() { return gameObjects; }
+
+    void FixUndestroiedGameObjectNotInSceneTree()
     {
-        return physicsScene;
+        auto gos = GetAllGameObjects();
+
+        bool nextErase = true;
+        while (nextErase)
+        {
+            auto& gs = GetGameObjects();
+            for (int i = 0; i < gs.size(); ++i)
+            {
+                auto& g = gs[i];
+                auto iter = std::find(gos.begin(), gos.end(), g.get());
+                if (iter == gos.end())
+                {
+                    nextErase = true;
+                    gs.erase(gs.begin() + i);
+                    break;
+                }
+                else
+                {
+                    nextErase = false;
+                }
+            }
+        }
     }
 
 protected:
@@ -88,4 +105,5 @@ protected:
 
     void TickGameObject(GameObject* obj);
     void PrePhysicsTickGameObject(GameObject* obj);
+    void DestroyGameObjectNestedCall(GameObject* obj);
 };

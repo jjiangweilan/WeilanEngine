@@ -91,6 +91,7 @@ public:
     inline T& operator*() const { return *ptr; }
 
 private:
+    UUID uuid;
     T* ptr = nullptr;
 
     template <class U>

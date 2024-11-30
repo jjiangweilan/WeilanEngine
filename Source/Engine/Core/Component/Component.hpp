@@ -20,10 +20,7 @@ public:
     virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
     GameObject* GetGameObject();
 
-    bool IsEnabled()
-    {
-        return enabled;
-    }
+    bool IsEnabled() { return enabled; }
 
     void Enable()
     {
@@ -49,7 +46,8 @@ public:
 
     // called when play mode enter
     virtual void OnStart() {}
-    virtual void OnDrawGizmos() {};
+    virtual void OnDrawGizmos() {}
+    virtual void OnLoaded() {}
 
 protected:
     bool enabled = false;
@@ -64,3 +62,21 @@ protected:
 
     friend class GameObject;
 };
+
+/**
+class ExampleComponent : public Component
+{
+    DECLARE_OBJECT();
+
+public:
+    ExampleComponent();
+    ExampleComponent(GameObject* gameObject);
+    ~ExampleComponent();
+
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
+    const std::string& GetName() override;
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
+    void OnLoaded() override;
+};
+*/

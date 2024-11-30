@@ -61,7 +61,7 @@ public:
         s->Deserialize("name", name);
     }
 
-    virtual void OnLoadingFinished() {}
+    virtual void OnLoaded() {}
 
     virtual const std::string& GetExtension() = 0;
 

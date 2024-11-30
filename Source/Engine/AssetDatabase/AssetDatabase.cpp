@@ -259,7 +259,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
     }
 
     for (auto a : results)
-        a->OnLoadingFinished();
+        a->OnLoaded();
     return results;
 }
 
@@ -354,7 +354,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 //             referenceResolveMap.erase(iter);
 //         }
 //
-//         asset->OnLoadingFinished();
+//         asset->OnLoaded();
 //         return asset;
 //     }
 //
@@ -881,7 +881,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         referenceResolveMap.erase(iter);
     }
 
-    asset->OnLoadingFinished();
+    asset->OnLoaded();
     return asset;
 }
 
@@ -1027,5 +1027,24 @@ void AssetDatabase::RemoveAssetData(AssetData* assetData)
                 break;
             }
         }
+    }
+}
+
+void AssetDatabase::UnloadAsset(Asset& asset)
+{
+    const UUID& uuid = asset.GetUUID();
+    auto byUUIDIter = assets.byUUID.find(uuid);
+    auto assetPath = GetAssetPath(uuid);
+
+    if (byUUIDIter != assets.byUUID.end())
+    {
+        AssetData* ptr = byUUIDIter->second;
+        ptr->asset = nullptr;
+        assets.byUUID.erase(uuid);
+    }
+
+    if (!assetPath.empty())
+    {
+        assets.byPath.erase(assetPath);
     }
 }

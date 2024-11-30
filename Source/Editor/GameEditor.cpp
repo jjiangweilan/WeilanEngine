@@ -126,7 +126,7 @@ GameEditor::GameEditor(const char* path)
 
 GameEditor::~GameEditor()
 {
-    SaveProject();
+    // SaveProject();
 
     ImPlot::DestroyContext();
     fontImage = nullptr;
@@ -677,15 +677,27 @@ void GameEditor::MainMenuBar()
 
 void GameEditor::Start()
 {
-    while (true)
+    static bool keepLooping = true;
+    while (keepLooping)
     {
         if (engine->BeginFrame())
         {
+            endEvents.TickBegin();
+            endPopup.TickBegin();
+
             auto cmd = GetGfxDriver()->CreateCommandBuffer();
             if (engine->event->GetWindowClose().state)
             {
                 gameView.Deinit(); // stop playing the game
-                return;
+                endPopup.Show(
+                    "Save Project?",
+                    [this]()
+                    {
+                        SaveProject();
+                        keepLooping = false;
+                    },
+                    []() { keepLooping = false; }
+                );
             }
 
             GUIPass();
@@ -694,6 +706,9 @@ void GameEditor::Start()
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
             loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
+
+            endPopup.TickEnd();
+            endEvents.TickEnd();
 
             cmd->Reset(true);
             Render(*cmd, gameOutputImage, gameOutputDepthImage);
@@ -707,9 +722,6 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
-    endEvents.TickBegin();
-    endPopup.TickBegin();
-
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();
@@ -770,9 +782,6 @@ void GameEditor::GUIPass()
 
         ImGui::End();
     }
-
-    endPopup.TickEnd();
-    endEvents.TickEnd();
 }
 
 void GameEditor::SurfelGIBakerWindow()
@@ -1433,6 +1442,7 @@ void GameEditor::AssetDatabaseViewer()
     if (assetDatabaseWindow)
     {
         ImGui::Begin("AssetDatabase", &assetDatabaseWindow);
+
         auto& data = AssetDatabase::Singleton()->GetAssetData();
 
         for (auto& d : data)

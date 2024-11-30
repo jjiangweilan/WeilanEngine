@@ -52,6 +52,9 @@ struct SerializeReferenceResolve
     )
         : target(target), targetUUID(targetUUID), callback(callback),
           managedObjectRefCounter(managedObjectRefCounter) {};
+    // add holder's UUID here so that we can check if the holder is still alive when we resolve target
+    // note: holding a directly pointer doesn't work for moved object even if holder's UUID is checked.
+    // maybe consider using pointer to member?
     void** target = nullptr;
     UUID targetUUID;
     ReferenceResolveCallback callback;
@@ -70,19 +73,6 @@ public:
     Serializer() {};
 
     virtual ~Serializer() {}
-
-    // template <class T>
-    // void Serialize(std::string_view name, const T& val)
-    // {
-    //     Serialize(name, (unsigned char*)&val, sizeof(T));
-    // }
-    //
-    // template <class T>
-    // void Deserialize(std::string_view name, T& val)
-    // {
-    //     Deserialize(name, (unsigned char*)&val, sizeof(T));
-    // }
-    //
 
     template <class T, class U>
     void Serialize(std::string_view, const std::unordered_map<T, U>& val);

@@ -143,11 +143,16 @@ void GameObject::Deserialize(Serializer* s)
     // gameScene is set by Scene when it's deserializing
 }
 
-void GameObject::OnLoadingFinished()
+void GameObject::OnLoaded()
 {
     for (auto& c : components)
     {
         c->gameObject = this;
+    }
+
+    for (auto& c : components)
+    {
+        c->OnLoaded();
     }
 }
 

@@ -13,6 +13,7 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
 class PhysicsScene;
 
@@ -20,7 +21,8 @@ enum class PhysicsBodyShapes
 {
     Box,
     Sphere,
-    Mesh
+    Mesh,
+    Capsule
 };
 
 class PhysicsBody : public Component
@@ -40,6 +42,18 @@ public:
     }
     void SetLayer(PhysicsLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
+
+    void SetCapsuleShape(float halfHeight, float radius)
+    {
+        bodyScale.x = halfHeight;
+        bodyScale.y = radius;
+    }
+
+    void GetCapsuleShape(float& halfHeight, float& radius)
+    {
+        halfHeight = bodyScale.x;
+        radius = bodyScale.y;
+    }
 
     JPH::EMotionType GetMotionType() const
     {
@@ -146,6 +160,7 @@ private:
     void Init();
     bool GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& triangles);
     bool SetAsSphere(float radius);
+    bool SetAsCapsule();
     bool SetAsMeshRenderer();
     bool SetAsBox(glm::vec3 extent);
 };

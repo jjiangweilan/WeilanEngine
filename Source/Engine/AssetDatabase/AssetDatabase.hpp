@@ -20,6 +20,7 @@ public:
 
     std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
 
+    void UnloadAsset(Asset& asset);
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
     void SaveAsset(Asset& asset);
 
@@ -72,7 +73,7 @@ public:
 
         ResolveSerializerReference(de, resolveMap);
 
-        copy.OnLoadingFinished();
+        copy.OnLoaded();
     }
 
     const std::filesystem::path& GetProjectRoot() const

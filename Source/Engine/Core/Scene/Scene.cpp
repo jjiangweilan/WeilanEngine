@@ -127,7 +127,7 @@ void Scene::DestroyGameObject(GameObject* obj)
 
     for (auto child : obj->GetChildren())
     {
-        DestroyGameObject(child);
+        DestroyGameObjectNestedCall(child);
     }
 
     obj->SetEnable(false);
@@ -142,6 +142,23 @@ void Scene::DestroyGameObject(GameObject* obj)
     {
         roots.erase(rootIter);
     }
+
+    auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
+    if (iter != gameObjects.end())
+        gameObjects.erase(iter);
+}
+
+void Scene::DestroyGameObjectNestedCall(GameObject* obj)
+{
+    if (obj == nullptr)
+        return;
+
+    for (auto child : obj->GetChildren())
+    {
+        DestroyGameObjectNestedCall(child);
+    }
+
+    obj->SetEnable(false);
 
     auto iter = std::find_if(gameObjects.begin(), gameObjects.end(), [obj](auto& o) { return o.get() == obj; });
     if (iter != gameObjects.end())
@@ -243,11 +260,11 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("camera", camera);
 }
 
-void Scene::OnLoadingFinished()
+void Scene::OnLoaded()
 {
     for (auto go : GetAllGameObjects())
     {
-        go->OnLoadingFinished();
+        go->OnLoaded();
     }
 
     for (auto& g : gameObjects)

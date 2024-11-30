@@ -204,6 +204,7 @@ void AnimationPlayer::Serialize(Serializer* s) const
     s->Serialize("speed", speed);
     s->Serialize("rootName", rootName);
     s->Serialize("activeClip", initialActiveClip);
+    s->Serialize("blendClip", initialBlendClip);
 }
 void AnimationPlayer::Deserialize(Serializer* s)
 {
@@ -212,12 +213,22 @@ void AnimationPlayer::Deserialize(Serializer* s)
     s->Deserialize("speed", speed);
     s->Deserialize("rootName", rootName);
     s->Deserialize("activeClip", initialActiveClip);
+    s->Deserialize("blendClip", initialBlendClip);
+}
+
+void AnimationPlayer::OnLoaded()
+{
+    if (!initialActiveClip.empty())
+        SetClip(initialActiveClip);
+
+    if (!initialBlendClip.empty())
+        SetBlendClip(initialBlendClip);
 }
 
 bool AnimationPlayer::SetBlendClip(const std::string& animationName)
 {
     bool success = SetClipInternal(animationName, blendClip, blendClipTimePassed, blendClipDurationInSeconds);
-
+    initialBlendClip = animationName;
     if (success)
     {
         success = IsBlendClipMatchWithMainClip();
@@ -309,8 +320,18 @@ void AnimationPlayer::OnStart()
         SetClip(initialActiveClip);
     }
 
+    if (!initialBlendClip.empty())
+    {
+        SetBlendClip(initialBlendClip);
+    }
+
     if (!rootName.empty())
     {
         EnableRootMotion();
+    }
+
+    if (!initialActiveClip.empty())
+    {
+        Play();
     }
 }

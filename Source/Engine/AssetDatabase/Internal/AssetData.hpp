@@ -27,21 +27,12 @@ public:
     AssetData(const UUID& assetUUID, const std::filesystem::path& internalAssetPath, InternalAssetDataTag);
     ~AssetData();
 
-    const UUID& GetAssetUUID() const
-    {
-        return assetUUID;
-    }
+    const UUID& GetAssetUUID() const { return assetUUID; }
 
-    const UUID& GetAssetDataUUID() const
-    {
-        return assetDataUUID;
-    }
+    const UUID& GetAssetDataUUID() const { return assetDataUUID; }
 
     // used to check if construction of AssetData is valid
-    bool IsValid() const
-    {
-        return isValid;
-    }
+    bool IsValid() const { return isValid; }
 
     // if the file on disk's write time is newer than the one recorded
     bool NeedRefresh() const;
@@ -53,38 +44,24 @@ public:
         absolutePath = assetsDirectory / path;
     }
 
-    const std::filesystem::path& GetAssetPath()
-    {
-        return assetPath;
-    };
+    const std::filesystem::path& GetAssetPath() { return assetPath; };
 
-    const std::filesystem::path& GetAssetAbsolutePath()
-    {
-        return absolutePath;
-    }
+    const std::filesystem::path& GetAssetAbsolutePath() { return absolutePath; }
 
     void UpdateAssetUUIDs();
     Asset* SetAsset(std::unique_ptr<Asset>&& asset);
     Asset* GetAsset();
+    void UnloadAsset() { asset = nullptr; }
 
-    std::unordered_map<std::string, UUID>& GetInternalObjectAssetNameToUUID()
-    {
-        return nameToUUID;
-    }
+    std::unordered_map<std::string, UUID>& GetInternalObjectAssetNameToUUID() { return nameToUUID; }
 
-    bool IsDirty()
-    {
-        return dirty;
-    }
+    bool IsDirty() { return dirty; }
 
     nlohmann::json DumpInfo() const;
 
     void SaveToDisk(const std::filesystem::path& projectRoot);
 
-    bool ReimportNeeded()
-    {
-        return false;
-    }
+    bool ReimportNeeded() { return false; }
 
     void SetMeta(const nlohmann::json& meta)
     {
@@ -92,20 +69,11 @@ public:
         this->meta = meta;
     }
 
-    void SetImportedAssetPaths(const std::vector<std::filesystem::path>& paths)
-    {
-        importedAssetFilePaths = paths;
-    }
+    void SetImportedAssetPaths(const std::vector<std::filesystem::path>& paths) { importedAssetFilePaths = paths; }
 
-    std::vector<std::filesystem::path> GetImportedAssetPaths()
-    {
-        return importedAssetFilePaths;
-    }
+    std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
-    nlohmann::json GetMeta()
-    {
-        return meta;
-    }
+    nlohmann::json GetMeta() { return meta; }
 
 private:
     // scaii code stands for Wei Lan Engine AssetFile

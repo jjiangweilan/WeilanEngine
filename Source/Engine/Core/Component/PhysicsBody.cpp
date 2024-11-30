@@ -260,6 +260,19 @@ bool PhysicsBody::SetAsBox(glm::vec3 extent)
     return recreateShape();
 }
 
+bool PhysicsBody::SetAsCapsule()
+{
+    recreateShape = [this]()
+    {
+        JPH::CapsuleShapeSettings s(bodyScale.x, bodyScale.y);
+        SetShape(s);
+        UpdateBodyPositionAndRotation();
+        return true;
+    };
+
+    return recreateShape();
+}
+
 void PhysicsBody::SetMotionType(JPH::EMotionType motionType)
 {
     this->motionType = motionType;
@@ -391,5 +404,6 @@ void PhysicsBody::SetShape(PhysicsBodyShapes shape)
         case PhysicsBodyShapes::Box: SetAsBox(scale); break;
         case PhysicsBodyShapes::Sphere: SetAsSphere(scale.x); break;
         case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
+        case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
     }
 }
