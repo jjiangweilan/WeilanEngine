@@ -19,21 +19,50 @@ public:
                 target->SetLayer(PhysicsLayer::Moving);
         }
 
-        const char* shapes[] = {"Box", "Sphere", "Mesh"};
+        const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule"};
         int currentShapeIndex = static_cast<int>(target->GetShape());
+        glm::vec4 bodyScale = target->GetBodyScale();
         if (ImGui::Combo("Shape", &currentShapeIndex, shapes, IM_ARRAYSIZE(shapes)))
         {
             if (currentShapeIndex == 0)
-            {
                 target->SetShape(PhysicsBodyShapes::Box);
-            }
             else if (currentShapeIndex == 1)
-            {
                 target->SetShape(PhysicsBodyShapes::Sphere);
-            }
             else if (currentShapeIndex == 2)
-            {
                 target->SetShape(PhysicsBodyShapes::Mesh);
+            else if (currentShapeIndex == 3)
+                target->SetShape(PhysicsBodyShapes::Capsule);
+        }
+
+        auto bodyOffset = target->GetBodyOffset();
+        if (ImGui::DragFloat3("Body Offset", &bodyOffset[0]))
+        {
+            target->SetBodyOffset(bodyOffset);
+        }
+
+        // scale
+        if (currentShapeIndex == 0)
+        {
+            if (ImGui::DragFloat3("Box Scale", &bodyScale[0]))
+                target->SetBodyScale(bodyScale);
+        }
+        else if (currentShapeIndex == 1)
+        {
+            if (ImGui::DragFloat("Sphere Scale", &bodyScale[0]))
+            {
+                target->SetBodyScale(bodyScale);
+            }
+        }
+        else if (currentShapeIndex == 3)
+        {
+            if (ImGui::DragFloat("Capsule Height", &bodyScale[0]))
+            {
+                target->SetBodyScale(bodyScale);
+            }
+
+            if (ImGui::DragFloat("Capsule Radius", &bodyScale[1]))
+            {
+                target->SetBodyScale(bodyScale);
             }
         }
 

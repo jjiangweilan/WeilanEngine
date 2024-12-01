@@ -16,6 +16,7 @@ void PhysicsBody::Serialize(Serializer* s) const
     Component::Serialize(s);
 
     s->Serialize("bodyScale", bodyScale);
+    s->Serialize("bodyOffset", bodyOffset);
     s->Serialize("layer", static_cast<int>(layer));
     s->Serialize("gravityFactor", gravityFactor);
     s->Serialize("motionType", static_cast<int>(motionType));
@@ -26,6 +27,7 @@ void PhysicsBody::Deserialize(Serializer* s)
     Component::Deserialize(s);
 
     s->Deserialize("bodyScale", bodyScale);
+    s->Deserialize("bodyOffset", bodyOffset);
     int layer = 0;
     s->Deserialize("layer", layer);
     this->layer = static_cast<PhysicsLayer>(layer);
@@ -71,7 +73,7 @@ void PhysicsBody::OnEnable()
         Init();
     }
 
-    TransformChanged();
+    // TransformChanged();
 }
 void PhysicsBody::OnDisable()
 {
@@ -133,14 +135,12 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
             glm::quat rot = gameObject->GetRotation();
             BodyCreationSettings bodyCreationSettings(
                 shapeRef,
-                RVec3{position.x, position.y, position.z},
+                RVec3{position.x + bodyOffset.x, position.y + bodyOffset.y, position.z + bodyOffset.z},
                 Quat{rot.x, rot.y, rot.z, rot.w},
                 motionType,
                 static_cast<ObjectLayer>(layer)
             );
 
-            // wasting space, maybe split class to static(Collider) and dynamic(RigidBody)? or a body creation is needed
-            // if set this to false
             bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
 
             auto& physicsWorld = GetScene()->GetPhysicsScene();
@@ -183,8 +183,6 @@ PhysicsBody::~PhysicsBody()
 
 void PhysicsBody::Init()
 {
-    auto scale = gameObject->GetLocalScale();
-    bodyScale = glm::vec4(scale, 1.0);
     Scene* scene = GetScene();
     if (scene == nullptr)
         return;
@@ -192,16 +190,17 @@ void PhysicsBody::Init()
     // create from a mesh renderer if we can
     switch (shapeType)
     {
-        case PhysicsBodyShapes::Box: SetAsBox(gameObject->GetLocalScale()); break;
+        case PhysicsBodyShapes::Box: SetAsBox(); break;
         case PhysicsBodyShapes::Mesh:
             {
                 if (!SetAsMeshRenderer())
                 {
-                    SetAsBox(scale);
+                    SetAsBox();
                 }
                 break;
             }
-        case PhysicsBodyShapes::Sphere: SetAsSphere(gameObject->GetLocalScale().x); break;
+        case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
+        case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
     }
 }
 
@@ -219,22 +218,22 @@ void PhysicsBody::UpdateGameObject()
     if (body)
     {
         auto newPos = body->GetPosition();
-        gameObject->SetPosition({newPos.GetX(), newPos.GetY(), newPos.GetZ()});
+        gameObject->SetPosition({newPos.GetX() - bodyOffset.x, newPos.GetY() - bodyOffset.y, newPos.GetZ() - bodyOffset.z});
 
         auto newRot = body->GetRotation();
         gameObject->SetRotation({newRot.GetW(), newRot.GetX(), newRot.GetY(), newRot.GetZ()});
     }
 }
 
-bool PhysicsBody::SetAsSphere(float radius)
+bool PhysicsBody::SetAsSphere()
 {
-    if (radius <= 0)
+    if (bodyScale.x <= 0)
         return false;
 
-    recreateShape = [this, radius]()
+    recreateShape = [this]()
     {
-        JPH::SphereShapeSettings s(radius);
-        this->bodyScale.x = radius;
+        float sphereSize = gameObject->GetScale().x * bodyScale.x;
+        JPH::SphereShapeSettings s(sphereSize);
         SetShape(s);
         UpdateBodyPositionAndRotation();
         return true;
@@ -243,15 +242,15 @@ bool PhysicsBody::SetAsSphere(float radius)
     return recreateShape();
 }
 
-bool PhysicsBody::SetAsBox(glm::vec3 extent)
+bool PhysicsBody::SetAsBox()
 {
-    if (glm::any(glm::lessThanEqual(extent, glm::vec3(0))))
+    if (glm::any(glm::lessThanEqual(glm::vec3(bodyScale), glm::vec3(0))))
         return false;
 
-    recreateShape = [this, extent]()
+    recreateShape = [this]()
     {
-        JPH::BoxShapeSettings s({extent.x, extent.y, extent.z});
-        bodyScale = glm::vec4(extent, bodyScale.w);
+        glm::vec3 boxSize = glm::vec3(bodyScale) * gameObject->GetScale();
+        JPH::BoxShapeSettings s({boxSize.x, boxSize.y, boxSize.z});
         SetShape(s);
         UpdateBodyPositionAndRotation();
         return true;
@@ -264,7 +263,8 @@ bool PhysicsBody::SetAsCapsule()
 {
     recreateShape = [this]()
     {
-        JPH::CapsuleShapeSettings s(bodyScale.x, bodyScale.y);
+        auto scale = gameObject->GetScale();
+        JPH::CapsuleShapeSettings s(bodyScale.x * scale.x, bodyScale.y * scale.y);
         SetShape(s);
         UpdateBodyPositionAndRotation();
         return true;
@@ -287,7 +287,9 @@ void PhysicsBody::OnStart() {}
 void PhysicsBody::TransformChanged()
 {
     if (recreateShape)
+    {
         recreateShape();
+    }
 }
 
 void PhysicsBody::SetLinearVelocity(const glm::vec3& velocity)
@@ -333,7 +335,7 @@ void PhysicsBody::UpdateBodyPositionAndRotation()
             auto rot = gameObject->GetRotation();
             i->SetPositionAndRotation(
                 body->GetID(),
-                {pos.x, pos.y, pos.z},
+                {pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z},
                 {rot.x, rot.y, rot.z, rot.w},
                 EActivation::DontActivate
             );
@@ -397,12 +399,11 @@ bool PhysicsBody::GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& t
 
 void PhysicsBody::SetShape(PhysicsBodyShapes shape)
 {
-    auto scale = gameObject->GetLocalScale();
     this->shapeType = shape;
     switch (shape)
     {
-        case PhysicsBodyShapes::Box: SetAsBox(scale); break;
-        case PhysicsBodyShapes::Sphere: SetAsSphere(scale.x); break;
+        case PhysicsBodyShapes::Box: SetAsBox(); break;
+        case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
         case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
         case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
     }

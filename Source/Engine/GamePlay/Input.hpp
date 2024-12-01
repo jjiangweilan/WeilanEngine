@@ -20,13 +20,11 @@ public:
     }
 
     // ps5: is x button down
-    inline bool Jump()
-    {
-        return rightPad.down || keyboard.space;
-    }
+    inline bool Jump() { return rightPad.down || keyboard.space; }
 
     void PushEvent(SDL_Event& event);
 
+    void SetGameplayInput(bool enabled) { this->gameplayInput = enabled; }
     void Reset() {}
 
     static Input& GetSingleton();
@@ -56,6 +54,7 @@ private:
     } keyboard;
     std::vector<SDL_Event> pendingEvents;
     const int JoyStickDeadZone = 5000;
+    bool gameplayInput = false;
 
     float JoyStickRemap(int& val);
 

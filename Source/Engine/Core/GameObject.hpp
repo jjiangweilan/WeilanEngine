@@ -262,6 +262,11 @@ private:
             for (auto& c : components)
                 c->TransformChanged();
         }
+
+        for (auto child : children)
+        {
+            child->TransformChanged();
+        }
     }
 
     inline static const float compareEpsilon = 1e-6f;

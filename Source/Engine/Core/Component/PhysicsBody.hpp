@@ -11,9 +11,9 @@
 #include <Jolt/Physics/Body/MotionProperties.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 
 class PhysicsScene;
 
@@ -36,10 +36,7 @@ public:
 
     PhysicsScene* GetPhysicsScene();
     void SetShape(PhysicsBodyShapes shape);
-    PhysicsBodyShapes GetShape()
-    {
-        return shapeType;
-    }
+    PhysicsBodyShapes GetShape() { return shapeType; }
     void SetLayer(PhysicsLayer layer);
     void SetMotionType(JPH::EMotionType motionType);
 
@@ -55,25 +52,28 @@ public:
         radius = bodyScale.y;
     }
 
-    JPH::EMotionType GetMotionType() const
+    JPH::EMotionType GetMotionType() const { return motionType; }
+
+    glm::vec4 GetBodyScale() const { return bodyScale; }
+
+    void SetBodyOffset(const glm::vec4& offset)
     {
-        return motionType;
+        this->bodyOffset = offset;
+        if (recreateShape)
+            recreateShape();
     }
 
-    glm::vec4 GetBodyScale() const
+    const glm::vec4& GetBodyOffset() const { return bodyOffset; }
+    void SetBodyScale(const glm::vec4& scale)
     {
-        return bodyScale;
+        this->bodyScale = scale;
+        if (recreateShape)
+            recreateShape();
     }
 
-    PhysicsLayer GetLayer() const
-    {
-        return layer;
-    }
+    PhysicsLayer GetLayer() const { return layer; }
 
-    float GetGravityFactory() const
-    {
-        return gravityFactor;
-    }
+    float GetGravityFactory() const { return gravityFactor; }
 
     void RegisterContactAddedEvent(
         const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
@@ -124,21 +124,16 @@ public:
     // set this to true, the physics scene will try to draw this physics body in this frame
     bool debugDrawRequest = false;
 
-    JPH::Body* GetBody()
-    {
-        return body;
-    }
+    JPH::Body* GetBody() { return body; }
 
-    JPH::Ref<JPH::Shape> GetShapeRef()
-    {
-        return shapeRef;
-    }
+    JPH::Ref<JPH::Shape> GetShapeRef() { return shapeRef; }
 
 private:
     using ContactAddedEventCallbackType =
         std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
     using ContactRemovedEventCallbackType = std::function<void(PhysicsBody*, PhysicsBody*)>;
-    glm::vec4 bodyScale = {0.5, 0.5, 0.5, 0.5};
+    glm::vec4 bodyScale = {1.0, 1.0, 1.0, 1.0};
+    glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;
 
@@ -159,8 +154,8 @@ private:
     JPH::BodyInterface* GetBodyInterface();
     void Init();
     bool GenerateTrianglesFromMeshRenderer(JPH::Array<JPH::Triangle>& triangles);
-    bool SetAsSphere(float radius);
+    bool SetAsSphere();
     bool SetAsCapsule();
     bool SetAsMeshRenderer();
-    bool SetAsBox(glm::vec3 extent);
+    bool SetAsBox();
 };

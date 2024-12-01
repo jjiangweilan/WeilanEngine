@@ -97,12 +97,13 @@ void main()
     mat3 inverseTransposeBoneMatrix = inverse(transpose(mat3(boneMatrix)));
     vec3 normal = inverseTransposeBoneMatrix  * i_Normal;
     vec3 tangent =  inverseTransposeBoneMatrix * GetVertexTangent().xyz;
+    o_PositionWS = vertexPos;
 #else
     vec3 vertexPos = i_Position;
     vec3 normal = i_Normal;
     vec3 tangent = GetVertexTangent().xyz;
-#endif
     o_PositionWS = vec3(pconst.model * vec4(vertexPos, 1));
+#endif
     mat3 invTspModel = inverse(transpose(mat3(pconst.model)));
     o_NormalWS = (invTspModel * normal).xyz;
     o_TangentWS = (invTspModel * tangent).xyz;

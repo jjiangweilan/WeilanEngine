@@ -6,6 +6,7 @@
 #include <list>
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_hash.hpp>
 
 namespace Gfx
 {

@@ -383,6 +383,8 @@ bool GameView::Tick()
             useViewCamera = !useViewCamera;
             auto mainCam = GetCurrentlyActiveCamera();
             EditorState::gameLoop->SetScene(*EditorState::activeScene, *mainCam);
+
+            Input::GetSingleton().SetGameplayInput(!useViewCamera);
         }
         if (ImGui::MenuItem("Resolution"))
         {
