@@ -2,7 +2,7 @@
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
 
-uint32_t ObjectTracker::Track(Object* object)
+void ObjectTracker::Track(Object* object)
 {
 #if ENGINE_DEV_BUILD
     if (uuidToSlotIndex.find(object->GetUUID()) != uuidToSlotIndex.end())
@@ -11,13 +11,17 @@ uint32_t ObjectTracker::Track(Object* object)
     }
     else
 #endif
-    {}
+    {
+        uint32_t slotIndex = AllocateSlot();
+        slots[slotIndex].object = object;
+        ASSERT(slots[slotIndex].referenceCount == 0);
+    }
 }
 
 uint32_t ObjectTracker::AllocateSlot()
 {
     uint32_t slotIndex = -1;
-    if (freeSlotIndex.empty())
+    if (freeSlotIndices.empty())
     {
         if (nextFreeSlot >= slots.size())
         {
@@ -30,8 +34,8 @@ uint32_t ObjectTracker::AllocateSlot()
     }
     else
     {
-        slotIndex = freeSlotIndex.back();
-        freeSlotIndex.pop_back();
+        slotIndex = freeSlotIndices.back();
+        freeSlotIndices.pop_back();
     }
 
     return slotIndex;
@@ -40,9 +44,11 @@ uint32_t ObjectTracker::AllocateSlot()
 void ObjectTracker::Detrack(Object* object)
 {
     auto uuidToSlotIndexIter = uuidToSlotIndex.find(object->GetUUID());
-    if (uuidToSlotIndexIter != uuidToSlotIndex.end())
-    {
-        uint32_t slotIndex = uuidToSlotIndexIter->second;
-        ASSERT(slotIndex >= 0 && slotIndex < slots.size());
-    }
+    ASSERT(uuidToSlotIndexIter != uuidToSlotIndex.end());
+
+    uint32_t slotIndex = uuidToSlotIndexIter->second;
+    ASSERT(slotIndex >= 0 && slotIndex < slots.size());
+
+    slots[slotIndex].object = nullptr;
+    PushbackToFreeSlotIndicesIfNotReferenced(slotIndex);
 }

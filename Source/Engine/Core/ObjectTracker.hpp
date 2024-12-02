@@ -10,10 +10,12 @@ public:
     ObjectTracker()
     {
         slots.reserve(1024);
-        freeSlotIndex.reserve(1024);
+        freeSlotIndices.reserve(1024);
     }
 
-    uint32_t Track(Object* object);
+    void AddRef(const UUID& uuid);
+    void RemoveRef(const UUID& uuid);
+    void Track(Object* object);
     void Detrack(Object* object);
 
 private:
@@ -24,9 +26,10 @@ private:
     };
 
     std::vector<Slot> slots;
-    std::vector<uint32_t> freeSlotIndex;
+    std::vector<uint32_t> freeSlotIndices;
     std::unordered_map<UUID, uint32_t> uuidToSlotIndex;
     uint32_t nextFreeSlot = 0;
 
     uint32_t AllocateSlot();
+    void PushbackToFreeSlotIndicesIfNotReferenced(uint32_t slotIndex);
 };
