@@ -1,5 +1,5 @@
 #include "GfxEnums.hpp"
-
+#include "Libs/Assert.hpp"
 namespace Gfx
 {
 bool HasWriteAccessMask(AccessMaskFlags flags)
@@ -267,7 +267,7 @@ uint32_t MapImageFormatToByteSize(ImageFormat format)
             return 5; // 5 ? from vulkan docs: VK_FORMAT_D32_SFLOAT_S8_UINT specifies a two-component format that has 32
             // signed float bits in the depth component and 8 unsigned integer bits in the stencil component.
             // There are optionally 24 bits that are unused.
-        default: assert(0 && "Not implemented");
+        default: ASSERT(0 && "Not implemented");
     }
 
     return 64;

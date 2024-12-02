@@ -3,6 +3,7 @@
 #include "VKInstance.hpp"
 #include "VKPhysicalDevice.hpp"
 #include "VKSurface.hpp"
+#include "Libs/Assert.hpp"
 
 #include <format>
 #include <spdlog/spdlog.h>
@@ -13,7 +14,7 @@ namespace Gfx
 VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queueRequests, int requestsCount)
     : gpu(VKPhysicalDevice::SelectGPUAndQueryDataForSurface(*instance, *surface))
 {
-    assert(requestsCount < 16);
+    ASSERT(requestsCount < 16);
     uint32_t queueFamilyIndices[16];
     float queuePriorities[16][16];
     auto& queueFamilyProperties = gpu.GetQueueFamilyProperties();
@@ -123,7 +124,7 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
         }
         vkGetDeviceQueue(deviceHandle, queueFamilyIndices[i], queueIndex, &queue);
 
-        assert(queue != VK_NULL_HANDLE);
+        ASSERT(queue != VK_NULL_HANDLE);
         VKCommandQueue q;
         q.handle = queue;
         q.queueIndex = queueIndex;

@@ -84,7 +84,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     rhiCmdAllocateInfo.commandPool = mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     rhiCmdAllocateInfo.commandBufferCount = driverConfig.swapchainImageCount + 1;
-    assert(driverConfig.swapchainImageCount + 1 <= 8);
+    ASSERT(driverConfig.swapchainImageCount + 1 <= 8);
     VkCommandBuffer cmds[8];
     vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
 
@@ -1062,7 +1062,7 @@ void VKDriver::CreateDevice()
     // make sure each queue is unique
     vkGetDeviceQueue(device.handle, queueFamilyIndices[mainQueueIndex], queueIndex, &queue);
 
-    assert(queue != VK_NULL_HANDLE);
+    ASSERT(queue != VK_NULL_HANDLE);
     mainQueue.handle = queue;
     mainQueue.queueIndex = queueIndex;
     mainQueue.queueFamilyIndex = queueFamilyIndices[mainQueueIndex];

@@ -2,6 +2,7 @@
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
+#include "Libs/Assert.hpp"
 
 PhysicsScene::PhysicsScene(Scene* scene)
     : scene(scene), physicsUpdateDeltaAccumulation(0.0f), temp_allocator(10 * 1024 * 1024),
@@ -132,7 +133,7 @@ void PhysicsContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubSh
 void PhysicsScene::AddPhysicsBody(PhysicsBody& body)
 {
     auto jphBody = body.GetBody();
-    assert(jphBody != nullptr);
+    ASSERT(jphBody != nullptr);
 
     bodies[jphBody->GetID()] = &body;
     optimizeNeeded = true;
@@ -141,7 +142,7 @@ void PhysicsScene::AddPhysicsBody(PhysicsBody& body)
 void PhysicsScene::RemovePhysicsBody(PhysicsBody& body)
 {
     auto jphBody = body.GetBody();
-    assert(jphBody != nullptr);
+    ASSERT(jphBody != nullptr);
     bodies.erase(jphBody->GetID());
     optimizeNeeded = true;
 }

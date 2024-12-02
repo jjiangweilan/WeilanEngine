@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/Object.hpp"
-#include <cassert>
+#include "Libs/Assert.hpp"
 #include <cinttypes>
 #include <cstddef>
 #include <memory>

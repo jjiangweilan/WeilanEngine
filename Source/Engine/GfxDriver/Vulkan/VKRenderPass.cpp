@@ -111,14 +111,14 @@ void VKRenderPass::CreateRenderPass()
             attachmentCount += 1;
         }
     }
-    assert(attachmentCount <= 64);
+    ASSERT(attachmentCount <= 64);
 
     createInfo.attachmentCount = attachmentCount;
     createInfo.pAttachments = attachmentDescriptions;
 
     VkSubpassDescription subpassDescriptions[64];
     VkAttachmentReference attachmentReference[128];
-    assert(subpasses.size() <= 64);
+    ASSERT(subpasses.size() <= 64);
 
     uint32_t subpassDescIndex = 0;
     uint32_t attachmentDescIndex = 0;

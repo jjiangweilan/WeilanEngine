@@ -12,7 +12,7 @@ namespace Gfx
 
 void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues)
 {
-    assert(clearValues.size() <= 8);
+    ASSERT(clearValues.size() <= 8);
 
     VKBeginRenderPassCmd cmd{};
 
@@ -108,7 +108,7 @@ void VKCommandBuffer::BindVertexBuffer(
     std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
 )
 {
-    assert(vertexBufferBindings.size() <= 8);
+    ASSERT(vertexBufferBindings.size() <= 8);
 
     VKBindVertexBufferCmd cmd{};
     for (int i = 0; i < vertexBufferBindings.size() && i < 8; ++i)
@@ -150,7 +150,7 @@ void VKCommandBuffer::CopyImageToBuffer(
     RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
 )
 {
-    assert(regions.size() < 8);
+    ASSERT(regions.size() < 8);
     VKCopyImageToBufferCmd cmd{};
 
     cmd.src = static_cast<VKImage*>(src.Get());
@@ -182,7 +182,7 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, 
 };
 void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect)
 {
-    assert(scissorCount <= 8);
+    ASSERT(scissorCount <= 8);
 
     VKSetScissorCmd cmd{};
     cmd.firstScissor = firstScissor;
@@ -224,7 +224,7 @@ void VKCommandBuffer::NextRenderPass()
 };
 void VKCommandBuffer::PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings)
 {
-    assert(bindings.size() <= 8);
+    ASSERT(bindings.size() <= 8);
     VKPushDescriptorCmd cmd{};
     cmd.shader = static_cast<VKShaderProgram*>(&shader);
     cmd.set = set;
@@ -238,7 +238,7 @@ void VKCommandBuffer::CopyBuffer(
     RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
 )
 {
-    assert(copyRegions.size() <= 8);
+    ASSERT(copyRegions.size() <= 8);
     VKCopyBufferCmd cmd{};
     cmd.src = static_cast<VKBuffer*>(bSrc.Get());
     cmd.dst = static_cast<VKBuffer*>(bDst.Get());
@@ -254,7 +254,7 @@ void VKCommandBuffer::CopyBufferToImage(
     RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
 )
 {
-    assert(regions.size() < 8);
+    ASSERT(regions.size() < 8);
     VKCopyBufferToImageCmd cmd{};
     cmd.src = static_cast<VKBuffer*>(src.Get());
     cmd.dst = static_cast<VKImage*>(dst.Get());

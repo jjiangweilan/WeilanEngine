@@ -97,7 +97,7 @@ VkFormat MapFormat(const std::string& str, const std::string& name)
         return VK_FORMAT_R32_SFLOAT;
     }
 
-    assert(0 && "Failed to map format");
+    ASSERT(0 && "Failed to map format");
     return (VkFormat)0;
 }
 
@@ -157,7 +157,7 @@ ShaderModuleGraphicsPipelineCreateInfos VKShaderModule::GenerateShaderModulePipe
 
     if (stage == VK_SHADER_STAGE_VERTEX_BIT)
     {
-        assert(
+        ASSERT(
             shaderInfo.inputs.size() < gpuProperties.limits.maxVertexInputBindings &&
             "input attributes exceed binding limits"
         );

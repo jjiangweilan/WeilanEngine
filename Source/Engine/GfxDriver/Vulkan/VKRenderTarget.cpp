@@ -4,7 +4,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKUtils.hpp"
 #include "VKContext.hpp"
-#include <cassert>
+#include "Libs/Assert.hpp"
 namespace Gfx
 {
 struct RenderTargetCreateHelper
@@ -75,7 +75,7 @@ private:
         attachmentDescriptions = std::vector<VkAttachmentDescription>(attachmentCount);
         colorAttachmentReferences = std::vector<VkAttachmentReference>(colorAttachmentCount);
 
-        assert(colorAttachmentCount == renderPassConfig.colors.size() && "color attachment size has to be same size");
+        ASSERT(colorAttachmentCount == renderPassConfig.colors.size() && "color attachment size has to be same size");
 
         // iterate over color attachments
         for (int i = 0; i < colorAttachmentCount; ++i)
@@ -241,7 +241,7 @@ void VKRenderTarget::SetRenderTargetDescription(const RenderTargetDescription& r
 
 VkFramebuffer VKRenderTarget::GetVkFrameBuffer()
 {
-    assert(framebuffer_vk != VK_NULL_HANDLE &&
+    ASSERT(framebuffer_vk != VK_NULL_HANDLE &&
            "frame buffer is not created yet. Maybe you should request a render pass first");
     return framebuffer_vk;
 }

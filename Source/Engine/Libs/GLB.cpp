@@ -39,8 +39,8 @@ void GLB::GetGLBData(
     version = header[1];
     length = header[2];
 
-    assert(magic == 0x46546C67);
-    assert(version == 2);
+    ASSERT(magic == 0x46546C67);
+    ASSERT(version == 2);
 
     fullData.resize(length / sizeof(uint32_t));
     gltf.seekg(std::ios_base::beg);
@@ -49,7 +49,7 @@ void GLB::GetGLBData(
     // load json
     uint32_t jsonChunkLength = fullData[3];
     uint32_t jsonChunkType = fullData[4];
-    assert(jsonChunkType == 0x4E4F534A);
+    ASSERT(jsonChunkType == 0x4E4F534A);
     char* jsonChunkData = (char*)(fullData.data() + 5);
 
     // remove chunk padding
@@ -64,11 +64,11 @@ void GLB::GetGLBData(
 
     uint32_t bufOffset = 5 + jsonChunkLength / sizeof(uint32_t);
     uint32_t bufChunkType = fullData[bufOffset + 1];
-    assert(bufChunkType == 0x004E4942);
+    ASSERT(bufChunkType == 0x004E4942);
     binaryData = (unsigned char*)(fullData.data() + bufOffset + 2);
 
     jsonData = nlohmann::json::parse(jsonChunkData);
-    assert(
+    ASSERT(
         jsonData["buffer"].contains("uri") == false &&
         "we only process valid .glb files, which shouldn't have a defined uri according to specs"
     );

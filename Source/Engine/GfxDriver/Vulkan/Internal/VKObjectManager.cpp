@@ -1,9 +1,10 @@
 #include "VKObjectManager.hpp"
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 
 #define VK_CHECK(x)                                                                                                    \
     auto result = x;                                                                                                   \
-    assert(result == VK_SUCCESS); // if (x != VK_SUCCESS) { SPDLOG_WARN("%s is not succeed", #x); }
+    ASSERT(result == VK_SUCCESS); // if (x != VK_SUCCESS) { SPDLOG_WARN("%s is not succeed", #x); }
 
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore

@@ -34,7 +34,7 @@ Texture::Type MapStringToTextureType(const std::string& typeStr)
     else if (typeStr == "sampler3D")
         return Texture::Type::Tex3D;
 
-    assert(false && "non handled Texture::Type");
+    ASSERT(false && "non handled Texture::Type");
     return Texture::Type::Tex2D;
 }
 
@@ -63,7 +63,7 @@ ShaderDataType MapShaderDataType(const std::string& typeStr)
     else if (typeStr[0] == '_')
         return ShaderDataType::Structure;
 
-    assert(0 && "Shader Data Type map failed");
+    ASSERT(0 && "Shader Data Type map failed");
     return ShaderDataType::Vec4;
 }
 
@@ -254,7 +254,7 @@ ShaderStage::Flag MapStage(const std::string& str)
     else if (str == "comp")
         return ShaderStage::Comp;
 
-    assert(0 && "Map stage failed");
+    ASSERT(0 && "Map stage failed");
     return ShaderStage::Vert;
 }
 
@@ -278,7 +278,7 @@ SamplerFilterMode MapStringToSamplerFilterMode(std::string_view str)
 void Process(ShaderStageInfo& out, nlohmann::json& sr, const ShaderConfig& config)
 {
     out.name = sr.at("spvPath");
-    assert(sr["entryPoints"].size() == 1);
+    ASSERT(sr["entryPoints"].size() == 1);
     out.stage = MapStage(sr["entryPoints"][0]["mode"]);
     if (sr.contains("inputs"))
         Process(out.inputs, sr["inputs"], sr, config);
@@ -374,7 +374,7 @@ void Process(
                             lname.find("shadow") != bindingType.npos ? true : false;
                         break;
                     }
-                default: assert(0 && "Not implemented");
+                default: ASSERT(0 && "Not implemented");
             }
             b.count = bindingJson.value("array", std::vector<int>{1})[0];
             b.actualName = name;
@@ -413,7 +413,7 @@ void Merge(ShaderInfo& to, const ShaderStageInfo& from)
         case ShaderStage::Vert: to.vertName = from.name; break;
         case ShaderStage::Frag: to.fragName = from.name; break;
         case ShaderStage::Comp: to.compName = from.name; break;
-        default: assert(0 && "Shader Stage not handled");
+        default: ASSERT(0 && "Shader Stage not handled");
     }
     for (auto& binding : from.bindings)
     {

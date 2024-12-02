@@ -27,8 +27,8 @@ public:
     {
         this->extentX = extentX;
         this->extentY = extentY;
-        assert(extentX % 2 == 0);
-        assert(extentY % 2 == 0);
+        ASSERT(extentX % 2 == 0);
+        ASSERT(extentY % 2 == 0);
         int level = 0;
         int nodeCount = 0;
         maxLevel = extentX < extentY ? std::log2(extentX) : std::log2(extentY);

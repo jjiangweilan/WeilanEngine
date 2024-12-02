@@ -427,7 +427,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.floats.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(float) <= bufSize);
+                                    ASSERT(offset + sizeof(float) <= bufSize);
                                     *((float*)(tempUploadData.data() + offset)) = iter->second;
                                 }
                                 break;
@@ -438,7 +438,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.floats.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(float) <= bufSize);
+                                    ASSERT(offset + sizeof(float) <= bufSize);
                                     *((uint32_t*)(tempUploadData.data() + offset)) = (uint32_t)iter->second;
                                 }
                                 break;
@@ -449,7 +449,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.floats.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(float) <= bufSize);
+                                    ASSERT(offset + sizeof(float) <= bufSize);
                                     *((int32_t*)(tempUploadData.data() + offset)) = (int32_t)iter->second;
                                 }
                                 break;
@@ -461,7 +461,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.vectors.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(glm::vec4) <= bufSize);
+                                    ASSERT(offset + sizeof(glm::vec4) <= bufSize);
                                     *((glm::vec4*)(tempUploadData.data() + offset)) = iter->second;
                                 }
                                 break;
@@ -472,7 +472,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.vectors.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(glm::vec2) <= bufSize);
+                                    ASSERT(offset + sizeof(glm::vec2) <= bufSize);
                                     *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(iter->second);
                                 }
                                 break;
@@ -483,7 +483,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                                 if (iter != u.second.matrices.end())
                                 {
                                     size_t offset = m.second.offset;
-                                    assert(offset + sizeof(glm::mat4) <= bufSize);
+                                    ASSERT(offset + sizeof(glm::mat4) <= bufSize);
                                     *((glm::mat4*)(tempUploadData.data() + offset)) = iter->second;
                                 }
                                 break;

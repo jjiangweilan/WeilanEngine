@@ -1,11 +1,11 @@
 #include "VKMemAllocator.hpp"
 #include "../VKBuffer.hpp"
 #include "../VKImage.hpp"
-#include <cassert>
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 #define VK_CHECK(x)                                                                                                    \
     auto rlt_VK_CHECK = x;                                                                                             \
-    assert(rlt_VK_CHECK == VK_SUCCESS);
+    ASSERT(rlt_VK_CHECK == VK_SUCCESS);
 
 namespace Gfx
 {

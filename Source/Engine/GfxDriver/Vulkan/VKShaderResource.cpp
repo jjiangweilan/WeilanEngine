@@ -167,7 +167,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         auto iter = shaderInfo.descriptorSetBindingMap.find(set);
         if (iter != shaderInfo.descriptorSetBindingMap.end())
         {
-            assert(iter->second.size() < 64);
+            ASSERT(iter->second.size() < 64);
 
             for (auto b : iter->second)
             {
@@ -302,7 +302,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                     }
                                     else
                                     {
-                                        assert(false && "a storage image has to be set before use");
+                                        ASSERT(false && "a storage image has to be set before use");
                                         // imageInfo.imageView =
                                         // sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
                                     }
@@ -386,7 +386,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 imageInfo.imageView = VK_NULL_HANDLE;
                                 break;
                             }
-                        default: assert(0 && "Not implemented"); break;
+                        default: ASSERT(0 && "Not implemented"); break;
                     }
                 }
 

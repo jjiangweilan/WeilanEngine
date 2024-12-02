@@ -238,7 +238,7 @@ public:
             }
             else
             {
-                assert("Not implemented");
+                ASSERT("Not implemented");
             }
         }
 

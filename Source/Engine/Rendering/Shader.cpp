@@ -87,7 +87,7 @@ Gfx::ShaderProgram* ShaderBase::GetShaderProgram(
     int shaderPassIndex, const ShaderFeatureBitmask& enabledShaderFeatureBismask
 )
 {
-    assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
+    ASSERT(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
 
     for (auto& s : shaderPasses[shaderPassIndex]->shaderPrograms)
     {
@@ -104,7 +104,7 @@ ShaderFeatureBitmask ShaderBase::GetShaderFeatureBitmask(
     int shaderPassIndex, const std::vector<std::string>& enabledFeature
 )
 {
-    assert(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
+    ASSERT(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
 
     ShaderFeatureBitmask id = 0;
     for (auto& f : enabledFeature)
@@ -139,7 +139,7 @@ void ShaderBase::GlobalShaderFeature::Rehash()
 
 Gfx::ShaderProgram* ShaderBase::GetDefaultShaderProgram()
 {
-    assert(shaderPasses.size() != 0);
+    ASSERT(shaderPasses.size() != 0);
     auto& shaderPass = shaderPasses[0];
 
     uint64_t globalShaderFeaturesHash = ShaderBase::GetEnabledFeaturesHash();

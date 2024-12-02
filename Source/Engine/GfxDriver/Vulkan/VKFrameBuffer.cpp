@@ -46,7 +46,7 @@ void VKFrameBuffer::CreateFrameBuffer()
     createInfo.flags = 0;
     // createInfo.renderPass = baseRenderPass->GetHandle();
 
-    assert(attachments.size() <= 32);
+    ASSERT(attachments.size() <= 32);
     VkImageView imageViews[32] = {};
     uint32_t i = 0;
     for (auto a : attachments)

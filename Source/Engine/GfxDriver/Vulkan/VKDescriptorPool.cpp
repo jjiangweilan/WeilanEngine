@@ -91,7 +91,7 @@ VkDescriptorSet VKDescriptorPool::Allocate()
         if (result != VK_SUCCESS)
         {
             SPDLOG_ERROR("Descriptor pool allocation failed");
-            assert(0);
+            ASSERT(0);
         }
     }
 

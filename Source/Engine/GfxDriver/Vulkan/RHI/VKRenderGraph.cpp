@@ -479,7 +479,7 @@ void Graph::GoThroughRenderPass(
 int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
 {
     auto iter = resourceUsageTracks.find(uuid);
-    assert(iter != resourceUsageTracks.end());
+    ASSERT(iter != resourceUsageTracks.end());
 
     int barrierCount = 0;
     auto& currentFrameUsages = iter->second.currentFrameUsages;

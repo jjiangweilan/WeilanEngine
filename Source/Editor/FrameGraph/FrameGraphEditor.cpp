@@ -259,7 +259,7 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
 
         if (ImGui::BeginPopup("Image Format"))
         {
-            assert(targetConfig != nullptr);
+            ASSERT(targetConfig != nullptr);
             Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(targetConfig->data);
 
             for (int i = 0; i <= static_cast<int>(Gfx::ImageFormat::Invalid); ++i)

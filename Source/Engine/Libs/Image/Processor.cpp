@@ -38,7 +38,7 @@ std::unique_ptr<LinearImage> Processor::RowDownSample(RefPtr<LinearImage> sImage
             for (uint32_t n = 0; n < channel; ++n)
             {
                 tData[pixelIndex * channel + n] /= totalWeight;
-                assert(!isnan(tData[pixelIndex * channel + n]));
+                ASSERT(!isnan(tData[pixelIndex * channel + n]));
             }
         }
     }

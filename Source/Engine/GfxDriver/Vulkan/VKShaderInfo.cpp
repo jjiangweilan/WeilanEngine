@@ -11,7 +11,7 @@ VkDescriptorType MapBindingType(BindingType type)
         case BindingType::SeparateImage: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         case BindingType::SeparateSampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
         case BindingType::StorageImage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        default: assert(0 && "Map BindingType failed");
+        default: ASSERT(0 && "Map BindingType failed");
     }
 
     SPDLOG_CRITICAL("failed to map binding type");

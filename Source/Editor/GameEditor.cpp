@@ -27,7 +27,7 @@ namespace Editor
 
 static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
 {
-    assert(customFont == nullptr && "customFont not implemented");
+    ASSERT(customFont == nullptr && "customFont not implemented");
 
     unsigned char* fontData;
     auto& io = ImGui::GetIO();

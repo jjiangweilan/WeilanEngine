@@ -1,4 +1,5 @@
 #include "VKEnumMapper.hpp"
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx
@@ -53,7 +54,7 @@ VkFormat MapFormat(ImageFormat format)
         case ImageFormat::B10G11R11_UFloat_Pack32: return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
         case ImageFormat::A2B10G10R10_UNorm: return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
         case ImageFormat::R8_UNorm: return VK_FORMAT_R8_UNORM;
-        default: assert(0 && "Format map failed");
+        default: ASSERT(0 && "Format map failed");
     }
 
     SPDLOG_WARN("VKEnum map failed");
@@ -110,7 +111,7 @@ ImageFormat MapVKFormat(VkFormat format)
         case VK_FORMAT_B10G11R11_UFLOAT_PACK32: return ImageFormat::B10G11R11_UFloat_Pack32;
         case VK_FORMAT_A2B10G10R10_UNORM_PACK32: return ImageFormat::A2B10G10R10_UNorm;
         case VK_FORMAT_R8_UNORM: return ImageFormat::R8_UNorm;
-        default: assert(0 && "VK format map failed");
+        default: ASSERT(0 && "VK format map failed");
     }
 
     return ImageFormat::R16G16B16A16_SFloat;

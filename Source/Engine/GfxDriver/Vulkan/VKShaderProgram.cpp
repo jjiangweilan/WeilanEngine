@@ -8,7 +8,7 @@
 #include "VKDescriptorPool.hpp"
 #include "VKShaderModule.hpp"
 #include "VKShaderProgram.hpp"
-#include <assert.h>
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
@@ -335,7 +335,7 @@ void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBi
         ranges[i].stageFlags = ShaderInfo::Utils::MapShaderStage(iter->second.stages);
         offset += iter->second.data.size;
         i += 1;
-        assert(i < 32);
+        ASSERT(i < 32);
     }
     pipelineLayoutCreateInfo.pushConstantRangeCount = i;
     pipelineLayoutCreateInfo.pPushConstantRanges = ranges;

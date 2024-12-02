@@ -1,5 +1,5 @@
 #include "UUID.hpp"
-#include <cassert>
+#include "Assert.hpp"
 #include <random>
 UUID::UUID()
 {
