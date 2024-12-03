@@ -2,6 +2,8 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
+#include "Libs/Assert.hpp"
+
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material() : shader(nullptr), shaderResource(nullptr)

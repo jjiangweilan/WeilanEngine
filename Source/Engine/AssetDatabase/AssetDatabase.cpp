@@ -178,8 +178,14 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 
         if (asyncImport[i].stateTrack == 4)
         {
+            auto& referencedObjects = asyncImport[i].ser->GetReferencedObjects();
             const auto& managedObjectCounters = asyncImport[i].ser->GetManagedObjects();
             this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
+
+            for (auto& uuid : referencedObjects)
+            {
+                LoadAssetByID(uuid);
+            }
 
             auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
             {
@@ -207,6 +213,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                     resolves.pop_back();
                 }
             };
+
             for (auto& iter : *asyncImport[i].resolveMap)
             {
                 if (iter.second.empty())
@@ -863,6 +870,14 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
 
         ResolveSerializerReference(*serializer, *localResolveMap);
+    }
+
+    if (serializer)
+    {
+        for (auto& uuid : serializer->GetReferencedObjects())
+        {
+            LoadAssetByID(uuid);
+        }
     }
 
     // see if there is any reference need to be resolved to this object

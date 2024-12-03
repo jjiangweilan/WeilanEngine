@@ -6,6 +6,8 @@
 #include "VKDriver.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
+#include "Libs/Assert.hpp"
+
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 

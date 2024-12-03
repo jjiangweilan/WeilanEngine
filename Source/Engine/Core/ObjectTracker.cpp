@@ -2,9 +2,20 @@
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
 
+ObjectTracker& ObjectTracker::Singleton()
+{
+    static ObjectTracker singleton;
+    return singleton;
+}
+
 void ObjectTracker::AddObject(Object* object)
 {
-    uint32_t slotIndex = GetOrAllocateSlot(object->GetUUID());
+    const UUID& uuid = object->GetUUID();
+    if (uuid.IsEmpty())
+        return;
+
+    uint32_t slotIndex = GetOrAllocateSlot(uuid);
+
     ASSERT(slots[slotIndex].object == nullptr);
     ASSERT(slots[slotIndex].referenceCount == 0);
 
@@ -13,14 +24,21 @@ void ObjectTracker::AddObject(Object* object)
 
 void ObjectTracker::RemoveObject(Object* object)
 {
+    if (object->GetUUID().IsEmpty())
+        return;
+
     auto uuidToSlotIndexIter = uuidToSlotIndex.find(object->GetUUID());
     ASSERT(uuidToSlotIndexIter != uuidToSlotIndex.end());
 
     uint32_t slotIndex = uuidToSlotIndexIter->second;
-    ASSERT(slotIndex >= 0 && slotIndex < slots.size());
 
-    slots[slotIndex].object = nullptr;
-    ReleaseSlotIfNotReferenced(slotIndex);
+    if (slotIndex != NullHandle)
+    {
+        ASSERT(slotIndex >= 0 && slotIndex < slots.size());
+        uuidToSlotIndex.erase(object->GetUUID());
+        slots[slotIndex].object = nullptr;
+        ReleaseSlotIfNotReferenced(slotIndex);
+    }
 }
 
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
@@ -50,6 +68,22 @@ void ObjectTracker::Detrack(ObjectTrackHandle handle)
     }
 }
 
+void ObjectTracker::Detrack(const UUID& uuid)
+{
+    auto iter = uuidToSlotIndex.find(uuid);
+
+    if (iter != uuidToSlotIndex.end())
+    {
+        auto slotIndex = iter->second;
+        if (slotIndex != 0)
+        {
+            ASSERT(slots[slotIndex].referenceCount != 0);
+            slots[slotIndex].referenceCount -= 1;
+            ReleaseSlotIfNotReferenced(slotIndex);
+        }
+    }
+}
+
 void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
 {
     if (slots[slotIndex].referenceCount == 0)
@@ -75,14 +109,8 @@ uint32_t ObjectTracker::AllocateSlot()
     uint32_t slotIndex = -1;
     if (freeSlotIndices.empty())
     {
-        if (nextFreeSlot >= slots.size())
-        {
-            slots.reserve(slots.size() * 2);
-        }
-
-        slotIndex = nextFreeSlot;
-        nextFreeSlot++;
-        return slotIndex;
+        slots.push_back({nullptr, 0});
+        slotIndex = slots.size() - 1;
     }
     else
     {

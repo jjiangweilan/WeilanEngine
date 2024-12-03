@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/ObjectTracker.hpp"
 #include "Libs/UUID.hpp"
 #include "SafeReferenceable.hpp"
 #include <spdlog/spdlog.h>
@@ -12,10 +13,17 @@ class Object : public SafeReferenceable<Object>
 public:
     using EngineObjectMap = std::unordered_map<UUID, Object*>;
 
-    Object();
-    Object(Object&& other) : uuid(std::exchange(other.uuid, UUID::GetEmptyUUID())) {}
-    Object(const Object& other) : uuid() {};
-    virtual ~Object();
+    Object() { ObjectTracker::Singleton().AddObject(this); }
+
+    Object(Object&& other) : uuid()
+    {
+        ObjectTracker::Singleton().RemoveObject(&other);
+        uuid = std::exchange(other.uuid, UUID::GetEmptyUUID());
+        ObjectTracker::Singleton().AddObject(this);
+    }
+
+    Object(const Object& other) : uuid() { ObjectTracker::Singleton().AddObject(this); };
+    virtual ~Object() { ObjectTracker::Singleton().RemoveObject(this); }
 
     const UUID& GetUUID() const { return uuid; }
     void SetUUID(const UUID& uuid)
@@ -23,32 +31,20 @@ public:
         if (this->uuid == uuid)
             return;
 
-#if ENGINE_DEV_BUILD
-        if (GetAllEngineObjects().find(uuid) != GetAllEngineObjects().end())
-        {
-            spdlog::error("making object with duplicated UUID");
-        }
-        else
-#endif
-        {
-            GetAllEngineObjects().erase(selfIterator);
-            selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
-            this->uuid = uuid;
-        }
+        ObjectTracker::Singleton().RemoveObject(this);
+
+        this->uuid = uuid;
+        ObjectTracker::Singleton().AddObject(this);
     }
 
     virtual const UUID& GetObjectTypeID() = 0;
 
-    static EngineObjectMap& GetAllEngineObjects();
-    static Object* GetObject(const UUID& uuid);
+    static EngineObjectMap GetAllEngineObjects();
     template <class T>
     static std::vector<T*> GetObjectsOfType();
 
 protected:
     UUID uuid;
-
-private:
-    EngineObjectMap::const_iterator selfIterator;
 };
 
 using ObjectTypeID = UUID;
@@ -133,7 +129,7 @@ template <class T>
 std::vector<T*> Object::GetObjectsOfType()
 {
     std::vector<T*> result;
-    auto& objs = GetAllEngineObjects();
+    auto objs = GetAllEngineObjects();
     for (auto obj : objs)
     {
         auto cast = dynamic_cast<T*>(obj.second);

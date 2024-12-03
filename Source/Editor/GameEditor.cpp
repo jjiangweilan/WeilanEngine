@@ -13,6 +13,7 @@
 #include "PrototypeUtils.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
+#include "Libs/Assert.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/implot.h"
 #include <cmath>

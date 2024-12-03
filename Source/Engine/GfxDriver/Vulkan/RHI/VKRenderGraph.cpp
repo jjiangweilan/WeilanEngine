@@ -5,6 +5,7 @@
 #include "../VKShaderProgram.hpp"
 #include "../VKShaderResource.hpp"
 #include "../VKUtils.hpp"
+#include "Libs/Assert.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Profiler/Profiler.hpp"
 

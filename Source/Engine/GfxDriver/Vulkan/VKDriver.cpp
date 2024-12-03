@@ -18,6 +18,7 @@
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
+#include "Libs/Assert.hpp"
 #include <SDL_vulkan.h>
 
 #include <algorithm>

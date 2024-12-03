@@ -16,22 +16,22 @@ public:
         freeSlotIndices.reserve(1024);
 
         slots.push_back({nullptr, 1}); // the first slot is used for nullptr
+        uuidToSlotIndex[UUID::GetEmptyUUID()] = 0;
     }
 
-    inline static ObjectTracker& Singleton()
-    {
-        static ObjectTracker singleton;
-        return singleton;
-    }
+    static ObjectTracker& Singleton();
 
     inline Object* GetObject(ObjectTrackHandle handle) { return slots.at(handle).object; }
 
     ObjectTrackHandle Track(const UUID& uuid);
     ObjectTrackHandle Track(ObjectTrackHandle handle);
     void Detrack(ObjectTrackHandle handle);
+    void Detrack(const UUID& uuid);
 
     void AddObject(Object* object);
     void RemoveObject(Object* object);
+
+    const std::unordered_map<UUID, ObjectTrackHandle>& GetUUIDToSlotIndex() { return uuidToSlotIndex; }
 
 private:
     struct Slot
@@ -43,7 +43,6 @@ private:
     std::vector<Slot> slots;
     std::vector<uint32_t> freeSlotIndices;
     std::unordered_map<UUID, uint32_t> uuidToSlotIndex;
-    uint32_t nextFreeSlot = 0;
 
     uint32_t GetOrAllocateSlot(const UUID& uuid);
     uint32_t AllocateSlot();

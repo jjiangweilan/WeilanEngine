@@ -1,6 +1,8 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
 #include "RenderPass.hpp"
+#include "Libs/Assert.hpp"
+
 #include <list>
 #include <memory>
 #include <nlohmann/json.hpp>

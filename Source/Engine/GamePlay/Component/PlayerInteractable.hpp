@@ -10,17 +10,17 @@
  *    player can move this object when interaction button is pressed
  *  3. Stand On to Break
  */
-class PlayerInteractable : public Component
-{
-    DECLARE_OBJECT();
-
-public:
-    PlayerInteractable();
-    PlayerInteractable(GameObject* gameObject);
-    ~PlayerInteractable();
-
-    std::unique_ptr<Component> Clone(GameObject& owner) override;
-    const std::string& GetName() override;
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
-};
+// class PlayerInteractable : public Component
+// {
+//     DECLARE_OBJECT();
+//
+// public:
+//     PlayerInteractable();
+//     PlayerInteractable(GameObject* gameObject);
+//     ~PlayerInteractable();
+//
+//     std::unique_ptr<Component> Clone(GameObject& owner) override;
+//     const std::string& GetName() override;
+//     void Serialize(Serializer* s) const override;
+//     void Deserialize(Serializer* s) override;
+// };

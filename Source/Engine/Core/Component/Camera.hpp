@@ -2,6 +2,7 @@
 
 #include "Component.hpp"
 #include "Core/Math/Geometry.hpp"
+#include "Core/Ptr.hpp"
 #include <glm/glm.hpp>
 
 namespace Rendering::FrameGraph
@@ -58,7 +59,7 @@ private:
     SRef<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    Rendering::FrameGraph::Graph* frameGraph = nullptr;
+    ObjPtr<Rendering::FrameGraph::Graph> frameGraph = nullptr;
     float near;
     float far;
     float fov;

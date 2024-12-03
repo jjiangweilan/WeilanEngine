@@ -1,5 +1,7 @@
 #include "ShaderInfo.hpp"
 #include "Libs/Utils.hpp"
+#include "Libs/Assert.hpp"
+
 #include <algorithm>
 #include <regex>
 #include <spdlog/spdlog.h>

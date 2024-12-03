@@ -1,3 +1,3 @@
-#pragma once
-
-void RegisterSerializedObjects();
+//#pragma once
+//
+//void RegisterSerializedObjects();

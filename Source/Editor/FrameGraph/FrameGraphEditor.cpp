@@ -1,6 +1,8 @@
 #include "FrameGraphEditor.hpp"
 #include "EditorGUI.hpp"
 #include "EditorState.hpp"
+#include "Libs/Assert.hpp"
+
 #include "Rendering/FrameGraph/Nodes/ImageNode.hpp"
 #include <spdlog/spdlog.h>
 

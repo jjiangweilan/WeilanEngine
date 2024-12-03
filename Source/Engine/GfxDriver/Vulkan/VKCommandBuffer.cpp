@@ -4,6 +4,7 @@
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "GfxDriver/Vulkan/VKRenderPass.hpp"
 #include "RHI/VKRenderGraph.hpp"
+#include "Libs/Assert.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
 

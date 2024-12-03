@@ -23,6 +23,8 @@ public:
             ObjectTracker::Singleton().Detrack(handle);
 
         handle = ObjectTracker::Singleton().Track(other.handle);
+
+        return *this;
     }
 
     ObjPtr<T>& operator=(const UUID& uuid)
@@ -31,6 +33,8 @@ public:
             ObjectTracker::Singleton().Detrack(handle);
 
         handle = ObjectTracker::Singleton().Track(uuid);
+
+        return *this;
     }
 
     ObjPtr<T>& operator=(Object* object)
@@ -39,6 +43,8 @@ public:
             ObjectTracker::Singleton().Detrack(handle);
 
         handle = ObjectTracker::Singleton().Track(object->GetUUID());
+
+        return *this;
     }
 
     ObjPtr<T>& operator=(std::nullptr_t)
@@ -47,17 +53,21 @@ public:
             ObjectTracker::Singleton().Detrack(handle);
 
         handle = ObjectTracker::NullHandle;
+
+        return *this;
     }
 
+    inline operator T*() const { return Get(); }
     inline bool operator==(std::nullptr_t) const { return handle == ObjectTracker::NullHandle; }
     inline bool operator!=(std::nullptr_t) const { return handle != ObjectTracker::NullHandle; }
     inline bool operator==(ObjPtr<T> other) const { return handle == other.handle; }
     inline bool operator!=(ObjPtr<T> other) const { return handle != other.handle; }
 
-    inline T* operator->() const { return ObjectTracker::Singleton().GetObject(handle); }
-    inline T& operator*() const { return *ObjectTracker::Singleton().GetObject(handle); }
+    inline T* operator->() const {return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
+    inline T& operator*() const { return *(T*)(ObjectTracker::Singleton().GetObject(handle)); }
 
-    T* Get() const { return ObjectTracker::Singleton().GetObject(handle); }
+    T* Get() const { return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
+
 private:
     ObjectTrackHandle handle;
 };

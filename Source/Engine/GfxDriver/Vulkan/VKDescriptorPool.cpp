@@ -2,6 +2,7 @@
 #include "Internal/VKObjectManager.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include "VKContext.hpp"
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 
 namespace Gfx

@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ShaderCompiler.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");

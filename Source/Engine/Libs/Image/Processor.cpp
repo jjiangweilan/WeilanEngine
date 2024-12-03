@@ -1,4 +1,5 @@
 #include "Processor.hpp"
+#include "Libs/Assert.hpp"
 #include <iostream>
 namespace Libs::Image
 {

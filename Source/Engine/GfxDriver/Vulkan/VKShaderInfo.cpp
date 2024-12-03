@@ -1,4 +1,5 @@
 #include "VKShaderInfo.hpp"
+#include "Libs/Assert.hpp"
 namespace Gfx::ShaderInfo::Utils
 {
 VkDescriptorType MapBindingType(BindingType type)

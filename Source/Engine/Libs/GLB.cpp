@@ -1,4 +1,6 @@
 #include "GLB.hpp"
+#include "Libs/Assert.hpp"
+
 #include <fstream>
 
 namespace Utils

@@ -1,39 +1,19 @@
 #include "Object.hpp"
 
-Object::EngineObjectMap& Object::GetAllEngineObjects()
+Object::EngineObjectMap Object::GetAllEngineObjects()
 {
-    static EngineObjectMap allEngineObjects = EngineObjectMap();
-    return allEngineObjects;
-}
+    Object::EngineObjectMap map;
 
-Object* Object::GetObject(const UUID& uuid)
-{
-    auto& objects = GetAllEngineObjects();
-    auto iter = objects.find(uuid);
-    if (iter != objects.end())
+    for(auto& v : ObjectTracker::Singleton().GetUUIDToSlotIndex())
     {
-        return iter->second;
+        auto obj = ObjectTracker::Singleton().GetObject(v.second);
+        if (obj != nullptr)
+        {
+            map[v.first] = obj;
+        }
     }
-    return nullptr;
-}
 
-Object::Object()
-{
-#if ENGINE_DEV_BUILD
-    if (GetAllEngineObjects().find(uuid) != GetAllEngineObjects().end())
-    {
-        spdlog::error("making object with duplicated UUID");
-    }
-    else
-#endif
-    {
-        selfIterator = GetAllEngineObjects().emplace(uuid, this).first;
-    }
-}
-
-Object::~Object()
-{
-    GetAllEngineObjects().erase(selfIterator);
+    return map;
 }
 
 std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistry()

@@ -1,6 +1,7 @@
 #include "VKShaderModule.hpp"
 #include "Core/Ptr.hpp"
 #include "VKContext.hpp"
+#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 #include <spirv_cross/spirv_reflect.hpp>
 
