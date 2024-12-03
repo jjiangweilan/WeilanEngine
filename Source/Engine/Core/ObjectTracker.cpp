@@ -2,20 +2,72 @@
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
 
-void ObjectTracker::Track(Object* object)
+void ObjectTracker::AddObject(Object* object)
 {
-#if ENGINE_DEV_BUILD
-    if (uuidToSlotIndex.find(object->GetUUID()) != uuidToSlotIndex.end())
+    uint32_t slotIndex = GetOrAllocateSlot(object->GetUUID());
+    ASSERT(slots[slotIndex].object == nullptr);
+    ASSERT(slots[slotIndex].referenceCount == 0);
+
+    slots[slotIndex].object = object;
+}
+
+void ObjectTracker::RemoveObject(Object* object)
+{
+    auto uuidToSlotIndexIter = uuidToSlotIndex.find(object->GetUUID());
+    ASSERT(uuidToSlotIndexIter != uuidToSlotIndex.end());
+
+    uint32_t slotIndex = uuidToSlotIndexIter->second;
+    ASSERT(slotIndex >= 0 && slotIndex < slots.size());
+
+    slots[slotIndex].object = nullptr;
+    ReleaseSlotIfNotReferenced(slotIndex);
+}
+
+ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
+{
+    uint32_t slotIndex = handle;
+    slots[slotIndex].referenceCount += 1;
+
+    return slotIndex;
+}
+
+ObjectTrackHandle ObjectTracker::Track(const UUID& uuid)
+{
+    uint32_t slotIndex = GetOrAllocateSlot(uuid);
+    slots[slotIndex].referenceCount += 1;
+
+    return slotIndex;
+}
+
+void ObjectTracker::Detrack(ObjectTrackHandle handle)
+{
+    if (handle != NullHandle)
     {
-        spdlog::error("making object with duplicated UUID");
+        uint32_t slotIndex = handle;
+        ASSERT(slots[slotIndex].referenceCount != 0);
+        slots[slotIndex].referenceCount -= 1;
+        ReleaseSlotIfNotReferenced(slotIndex);
     }
-    else
-#endif
+}
+
+void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
+{
+    if (slots[slotIndex].referenceCount == 0)
     {
-        uint32_t slotIndex = AllocateSlot();
-        slots[slotIndex].object = object;
-        ASSERT(slots[slotIndex].referenceCount == 0);
+        freeSlotIndices.push_back(slotIndex);
     }
+}
+
+uint32_t ObjectTracker::GetOrAllocateSlot(const UUID& uuid)
+{
+    auto iter = uuidToSlotIndex.find(uuid);
+
+    if (iter != uuidToSlotIndex.end())
+        return iter->second;
+
+    uint32_t newSlot = AllocateSlot();
+    uuidToSlotIndex[uuid] = newSlot;
+    return newSlot;
 }
 
 uint32_t ObjectTracker::AllocateSlot()
@@ -39,16 +91,4 @@ uint32_t ObjectTracker::AllocateSlot()
     }
 
     return slotIndex;
-}
-
-void ObjectTracker::Detrack(Object* object)
-{
-    auto uuidToSlotIndexIter = uuidToSlotIndex.find(object->GetUUID());
-    ASSERT(uuidToSlotIndexIter != uuidToSlotIndex.end());
-
-    uint32_t slotIndex = uuidToSlotIndexIter->second;
-    ASSERT(slotIndex >= 0 && slotIndex < slots.size());
-
-    slots[slotIndex].object = nullptr;
-    PushbackToFreeSlotIndicesIfNotReferenced(slotIndex);
 }

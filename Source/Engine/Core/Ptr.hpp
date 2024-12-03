@@ -1,68 +1,65 @@
 #pragma once
-
 #include "Core/Object.hpp"
-#include "Libs/Assert.hpp"
-#include <cinttypes>
+#include "Core/ObjectTracker.hpp"
+#include "Libs/UUID.hpp"
 #include <cstddef>
 #include <memory>
-#include <utility>
+#include <variant>
 
-class ObjectLifetimeManager
-{
-public:
-    static ObjectLifetimeManager* Singleton();
-    void ScheduleDeletion(Object* object) { pending.push_back(object); }
-    void Flush()
-    {
-        for (auto o : pending)
-        {
-            delete o;
-        }
-    };
-
-private:
-    std::vector<Object*> pending;
-};
-
-// managed pointer without multi-threading support
 template <class T>
 class ObjPtr
 {
 public:
-    operator std::unique_ptr<T>()
+    ObjPtr() : handle(ObjectTracker::NullHandle) {}
+    ObjPtr(Object* object) { handle = ObjectTracker::Singleton().Track(object->GetUUID()); };
+    ObjPtr(const UUID& uuid) { handle = ObjectTracker::Singleton().Track(uuid); }
+    ObjPtr(std::nullptr_t) { handle = ObjectTracker::NullHandle; }
+    ObjPtr(const ObjPtr<T>& other) { handle = ObjectTracker::Singleton().Track(other.handle); }
+    ~ObjPtr() { ObjectTracker::Singleton().Detrack(handle); }
+
+    ObjPtr<T>& operator=(const ObjPtr<T>& other)
     {
-        std::unique_ptr<T> p(ptr);
-        ptr = nullptr;
-        return p;
+        if (handle != ObjectTracker::NullHandle)
+            ObjectTracker::Singleton().Detrack(handle);
+
+        handle = ObjectTracker::Singleton().Track(other.handle);
     }
-    using Type = T;
-    ObjPtr() = default;
-    explicit ObjPtr(T* ptr);
-    ObjPtr(std::nullptr_t);
-    template <class U>
-    ObjPtr(ObjPtr<U>&& other);
-    ObjPtr(ObjPtr<T>&& other);
-    ObjPtr(const ObjPtr<T>& other) = delete;
-    template <class U>
-    ObjPtr<T>& operator=(ObjPtr<U>&& other);
-    ObjPtr<T>& operator=(ObjPtr<T>&& other);
-    ObjPtr<T>& operator=(std::nullptr_t);
 
-    ~ObjPtr();
+    ObjPtr<T>& operator=(const UUID& uuid)
+    {
+        if (handle != ObjectTracker::NullHandle)
+            ObjectTracker::Singleton().Detrack(handle);
 
-    T* Get() const { return ptr; }
-    inline void Release() { ptr = nullptr; }
-    bool operator!=(std::nullptr_t) const { return ptr != nullptr; }
-    bool operator==(std::nullptr_t) const { return ptr == nullptr; }
-    T* operator->() const { return ptr; }
-    T& operator*() const { return *ptr; }
+        handle = ObjectTracker::Singleton().Track(uuid);
+    }
 
+    ObjPtr<T>& operator=(Object* object)
+    {
+        if (handle != ObjectTracker::NullHandle)
+            ObjectTracker::Singleton().Detrack(handle);
+
+        handle = ObjectTracker::Singleton().Track(object->GetUUID());
+    }
+
+    ObjPtr<T>& operator=(std::nullptr_t)
+    {
+        if (handle != ObjectTracker::NullHandle)
+            ObjectTracker::Singleton().Detrack(handle);
+
+        handle = ObjectTracker::NullHandle;
+    }
+
+    inline bool operator==(std::nullptr_t) const { return handle == ObjectTracker::NullHandle; }
+    inline bool operator!=(std::nullptr_t) const { return handle != ObjectTracker::NullHandle; }
+    inline bool operator==(ObjPtr<T> other) const { return handle == other.handle; }
+    inline bool operator!=(ObjPtr<T> other) const { return handle != other.handle; }
+
+    inline T* operator->() const { return ObjectTracker::Singleton().GetObject(handle); }
+    inline T& operator*() const { return *ObjectTracker::Singleton().GetObject(handle); }
+
+    T* Get() const { return ObjectTracker::Singleton().GetObject(handle); }
 private:
-    T* ptr = nullptr;
-    template <class U>
-    friend class RefPtr;
-    template <class U>
-    friend class UniPtr;
+    ObjectTrackHandle handle;
 };
 
 template <class T>
@@ -72,7 +69,6 @@ public:
     using Type = T;
     RefPtr() = default;
     RefPtr(const std::unique_ptr<T>& ptr);
-    RefPtr(const ObjPtr<T>& uniPtr);
     RefPtr(const RefPtr<T>& other);
     RefPtr(T* purePtr);
     ~RefPtr();
@@ -91,79 +87,11 @@ public:
     inline T& operator*() const { return *ptr; }
 
 private:
-    UUID uuid;
     T* ptr = nullptr;
 
     template <class U>
     friend class RefPtr;
 };
-
-template <class T>
-ObjPtr<T>::ObjPtr(T* ptr) : ptr(ptr)
-{}
-
-template <class T>
-ObjPtr<T>::ObjPtr(std::nullptr_t) : ptr(nullptr)
-{}
-
-template <class T>
-template <class U>
-ObjPtr<T>::ObjPtr(ObjPtr<U>&& other) : ptr(std::exchange(other.ptr, nullptr))
-{}
-template <class T>
-ObjPtr<T>::ObjPtr(ObjPtr<T>&& other) : ptr(std::exchange(other.ptr, nullptr))
-{}
-
-template <class T>
-ObjPtr<T>& ObjPtr<T>::operator=(std::nullptr_t)
-{
-    if (ptr != nullptr)
-    {
-        delete ptr;
-        ptr = nullptr;
-    }
-
-    return *this;
-}
-
-template <class T>
-template <class U>
-ObjPtr<T>& ObjPtr<T>::operator=(ObjPtr<U>&& other)
-{
-    if (ptr != nullptr)
-        delete ptr;
-    ptr = std::exchange(other.ptr, nullptr);
-    return *this;
-}
-
-template <class T>
-ObjPtr<T>& ObjPtr<T>::operator=(ObjPtr<T>&& other)
-{
-    if (ptr != nullptr)
-        delete ptr;
-    ptr = std::exchange(other.ptr, nullptr);
-    return *this;
-}
-
-template <class T>
-ObjPtr<T>::~ObjPtr()
-{
-    if (ptr != nullptr)
-    {
-        ObjectLifetimeManager::Singleton()->ScheduleDeletion(ptr);
-        ptr = nullptr;
-    }
-}
-
-template <class T, class... Args>
-ObjPtr<T> MakeObj(Args&&... args)
-{
-    return ObjPtr<T>(new T(std::forward<Args>(args)...));
-}
-
-template <class T>
-RefPtr<T>::RefPtr(const ObjPtr<T>& uniPtr) : ptr(uniPtr.ptr)
-{}
 
 template <class T>
 RefPtr<T>& RefPtr<T>::operator=(std::nullptr_t)
