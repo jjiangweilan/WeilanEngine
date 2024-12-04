@@ -20,7 +20,7 @@ public:
         Animation* anim = target->GetAnimation();
 
         std::string animationFieldText = anim ? anim->GetName() : "Animation(none)";
-        if (GUI::ObjectField(animationFieldText, anim))
+        if (GUI::ObjectField("Animation", anim))
         {
             target->Stop();
             target->SetAnimation(anim);

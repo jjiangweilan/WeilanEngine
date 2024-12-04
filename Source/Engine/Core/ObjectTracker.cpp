@@ -85,7 +85,7 @@ void ObjectTracker::Detrack(const UUID& uuid)
 
 void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
 {
-    if (slots[slotIndex].referenceCount == 0)
+    if (slots[slotIndex].referenceCount == 0 && slots[slotIndex].object == nullptr)
     {
         freeSlotIndices.push_back(slotIndex);
     }

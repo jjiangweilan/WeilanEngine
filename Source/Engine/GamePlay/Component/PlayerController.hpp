@@ -67,8 +67,8 @@ public:
 private:
     float characterCapsuleShapeHalfHeight = 1.75;
     float characterCapsuleShapeRadius = 0.8;
-    Camera* target = nullptr;
-    AnimationPlayer* rootMotionAnimationPlayer = nullptr;
+    ObjPtr<Camera> target = nullptr;
+    ObjPtr<AnimationPlayer> rootMotionAnimationPlayer = nullptr;
 
     /**** Runtime Data ****/
     glm::vec3 velocity{};

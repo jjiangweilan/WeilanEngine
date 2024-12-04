@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.hpp"
+#include "Core/Ptr.hpp"
 #include "Rendering/Animation.hpp"
 
 class AnimationPlayer : public Component
@@ -45,7 +46,7 @@ public:
 
 private:
     // ***** Serialized ****** //
-    Animation* animation = nullptr;
+    ObjPtr<Animation> animation = nullptr;
     float speed = 1.0f;
 
     // ***** Runtime ******//

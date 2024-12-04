@@ -4,7 +4,6 @@
 #include "Libs/UUID.hpp"
 #include <cstddef>
 #include <memory>
-#include <variant>
 
 template <class T>
 class ObjPtr
@@ -37,7 +36,7 @@ public:
         return *this;
     }
 
-    ObjPtr<T>& operator=(Object* object)
+    ObjPtr<T>& operator=(T* object)
     {
         if (handle != ObjectTracker::NullHandle)
             ObjectTracker::Singleton().Detrack(handle);
