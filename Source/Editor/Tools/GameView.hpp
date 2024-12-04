@@ -101,8 +101,8 @@ private:
     std::unique_ptr<PlayTheGame> playTheGame;
 
     bool firstFrame = true;
-    Camera* gameCamera = nullptr;
-    Camera* editorCamera = nullptr;
+    ObjPtr<Camera> gameCamera = nullptr;
+    ObjPtr<Camera> editorCamera = nullptr;
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
     Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::Default(
