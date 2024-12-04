@@ -8,7 +8,7 @@
 #include <unordered_map>
 class GameObject;
 class Scene;
-class Component : public Object, public Serializable
+class Component : public Object
 {
 public:
     Component(GameObject* gameObject);

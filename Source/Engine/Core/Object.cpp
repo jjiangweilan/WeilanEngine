@@ -1,5 +1,5 @@
 #include "Object.hpp"
-
+#include "Libs/Serialization/Serializer.hpp"
 Object::EngineObjectMap Object::GetAllEngineObjects()
 {
     Object::EngineObjectMap map;
@@ -58,4 +58,17 @@ std::vector<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
 {
     static std::vector<std::string> s{};
     return s;
+}
+
+void Object::Serialize(Serializer* s) const
+{
+    Object::Serialize(s);
+    s->Serialize("uuid", uuid);
+}
+
+void Object::Deserialize(Serializer* s)
+{
+    ObjectTracker::Singleton().RemoveObject(this);
+    s->Deserialize("uuid", uuid);
+    ObjectTracker::Singleton().AddObject(this);
 }

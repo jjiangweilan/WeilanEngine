@@ -2,13 +2,14 @@
 
 #include "Core/ObjectTracker.hpp"
 #include "Libs/UUID.hpp"
+#include "Libs/Serialization/Serializable.hpp"
 #include "SafeReferenceable.hpp"
 #include <spdlog/spdlog.h>
 #include <unordered_map>
 
 class Component;
 
-class Object : public SafeReferenceable<Object>
+class Object : public Serializable, public SafeReferenceable<Object>
 {
 public:
     using EngineObjectMap = std::unordered_map<UUID, Object*>;
@@ -44,6 +45,9 @@ public:
     static std::vector<T*> GetObjectsOfType();
 
 protected:
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
+
     UUID uuid;
 };
 

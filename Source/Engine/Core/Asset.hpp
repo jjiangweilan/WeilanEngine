@@ -16,7 +16,7 @@ enum class AssetStateFlags
 };
 ENUM_FLAGS(AssetStateFlags, int);
 
-class Asset : public Object, public Serializable
+class Asset : public Object
 {
 public:
     virtual void SetName(std::string_view name)
@@ -51,13 +51,13 @@ public:
 
     void Serialize(Serializer* s) const override
     {
-        s->Serialize("uuid", uuid);
+        Object::Serialize(s);
         s->Serialize("name", name);
     }
 
     void Deserialize(Serializer* s) override
     {
-        s->Deserialize("uuid", uuid);
+        Object::Deserialize(s);
         s->Deserialize("name", name);
     }
 

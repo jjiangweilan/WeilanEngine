@@ -22,14 +22,14 @@ Scene* Component::GetScene()
 
 void Component::Serialize(Serializer* s) const
 {
-    s->Serialize("uuid", uuid);
+    Object::Serialize(s);
     s->Serialize("gameObject", gameObject);
     s->Serialize("enabled", enabled);
 }
 
 void Component::Deserialize(Serializer* s)
 {
-    s->Deserialize("uuid", uuid);
+    Object::Deserialize(s);
     s->Deserialize("gameObject", gameObject);
     s->Deserialize("enabled", enabled);
 }

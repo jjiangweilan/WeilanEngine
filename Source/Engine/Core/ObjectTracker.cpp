@@ -17,7 +17,6 @@ void ObjectTracker::AddObject(Object* object)
     uint32_t slotIndex = GetOrAllocateSlot(uuid);
 
     ASSERT(slots[slotIndex].object == nullptr);
-    ASSERT(slots[slotIndex].referenceCount == 0);
 
     slots[slotIndex].object = object;
 }
