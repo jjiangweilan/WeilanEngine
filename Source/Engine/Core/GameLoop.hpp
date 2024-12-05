@@ -39,6 +39,6 @@ private:
 
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
-    Scene* scene = nullptr;
-    Camera* camera = nullptr;
+    ObjPtr<Scene> scene = nullptr;
+    ObjPtr<Camera> camera = nullptr;
 };

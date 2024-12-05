@@ -19,8 +19,8 @@ namespace Editor
 struct GameView::PlayTheGame
 {
     PlayTheGame() {}
-    std::unique_ptr<Scene> sceneCopy;
-    SRef<Scene> originalScene;
+    ObjPtr<Scene> sceneCopy;
+    std::filesystem::path originalScenePath;
     bool played = false;
 
     void Play(GameView* gameView)
@@ -30,20 +30,32 @@ struct GameView::PlayTheGame
             played = true;
             auto& scene = *EditorState::activeScene;
 
-            originalScene = scene.GetSRef<Scene>();
-            sceneCopy = std::make_unique<Scene>();
-            AssetDatabase::Singleton()->CopyThroughSerialization<JsonSerializer>(scene, *sceneCopy);
+            originalScenePath = AssetDatabase::Singleton()->GetAssetPath(scene.GetUUID());
+            AssetDatabase::Singleton()->UnloadAsset(scene);
+            sceneCopy = AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             sceneCopy->SetName("scene copy");
+            sceneCopy->SetFlags(AssetStateFlags::DontSave);
             gameView->gameCamera = sceneCopy->GetMainCamera();
-
-            EditorState::activeScene = sceneCopy.get();
+            EditorState::activeScene = sceneCopy;
             EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
-            gameView->editorCameraGO->SetScene(sceneCopy.get());
-
+            gameView->editorCameraGO->SetScene(sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
 
-            EditorState::SelectObject(nullptr);
+            // originalScene = scene.GetSRef<Scene>();
+            // sceneCopy = std::make_unique<Scene>();
+            // AssetDatabase::Singleton()->CopyThroughSerialization<JsonSerializer>(scene, *sceneCopy);
+            // sceneCopy->SetName("scene copy");
+            // gameView->gameCamera = sceneCopy->GetMainCamera();
+            //
+            // EditorState::activeScene = sceneCopy.get();
+            // EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
+            // gameView->editorCameraGO->SetScene(sceneCopy.get());
+            //
+            // EngineState::GetSingleton().isPlaying = true;
+            // EditorState::gameLoop->Play();
+            //
+            // EditorState::SelectObject(nullptr);
         }
     }
 
@@ -57,13 +69,18 @@ struct GameView::PlayTheGame
 
             // resume editor state
             EngineState::GetSingleton().isPlaying = false;
-            auto ori = originalScene.Get();
-            gameView->editorCameraGO->SetScene(ori);
-            gameView->gameCamera = ori->GetMainCamera();
+            AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
+            auto originalScene = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
+            auto ori = originalScene;
             if (ori)
             {
-                EditorState::activeScene = ori;
-                EditorState::gameLoop->SetScene(*ori, *gameView->GetCurrentlyActiveCamera());
+                gameView->editorCameraGO->SetScene(ori);
+                gameView->gameCamera = ori->GetMainCamera();
+                if (ori)
+                {
+                    EditorState::activeScene = ori;
+                    EditorState::gameLoop->SetScene(*ori, *gameView->GetCurrentlyActiveCamera());
+                }
             }
 
             // destroy sceneCopy
@@ -848,10 +865,11 @@ void GameView::FocusOnObject(Camera& cam, GameObject& gameObject)
 Camera* GameView::GetCurrentlyActiveCamera()
 {
     Camera* mainCam = nullptr;
+    auto scene = EditorState::activeScene;
     if (useViewCamera)
         mainCam = editorCamera;
     else
-        mainCam = EditorState::activeScene->GetMainCamera();
+        mainCam = scene->GetMainCamera();
     return mainCam;
 }
 } // namespace Editor

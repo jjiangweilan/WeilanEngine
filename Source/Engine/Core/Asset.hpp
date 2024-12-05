@@ -11,8 +11,8 @@
 class AssetDatabase;
 enum class AssetStateFlags
 {
-    Save = 1,
-    DontSave = 1 << 2,
+    None = 0,
+    DontSave = 1,
 };
 ENUM_FLAGS(AssetStateFlags, int);
 
@@ -48,6 +48,8 @@ public:
     bool IsDirty() { return HasFlag(stateFlags, AssetStateFlags::DontSave) ? false : isDirty; }
 
     virtual std::unique_ptr<Asset> Clone() { return nullptr; }
+
+    void SetFlags(AssetStateFlags flags) { this->stateFlags = flags; }
 
     void Serialize(Serializer* s) const override
     {
@@ -90,7 +92,7 @@ protected:
 
 private:
     bool isDirty = false;
-    AssetStateFlags stateFlags;
+    AssetStateFlags stateFlags = AssetStateFlags::None;
 };
 
 struct AssetRegistry

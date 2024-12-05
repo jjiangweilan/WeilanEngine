@@ -57,8 +57,8 @@ public:
     }
 
     inline operator T*() const { return Get(); }
-    inline bool operator==(std::nullptr_t) const { return handle == ObjectTracker::NullHandle; }
-    inline bool operator!=(std::nullptr_t) const { return handle != ObjectTracker::NullHandle; }
+    inline bool operator==(std::nullptr_t) const { return Get() == nullptr; }
+    inline bool operator!=(std::nullptr_t) const { return Get() != nullptr; }
     inline bool operator==(ObjPtr<T> other) const { return handle == other.handle; }
     inline bool operator!=(ObjPtr<T> other) const { return handle != other.handle; }
 
