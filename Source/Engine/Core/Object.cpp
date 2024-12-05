@@ -62,7 +62,6 @@ std::vector<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
 
 void Object::Serialize(Serializer* s) const
 {
-    Object::Serialize(s);
     s->Serialize("uuid", uuid);
 }
 
