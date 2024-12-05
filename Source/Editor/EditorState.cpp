@@ -3,7 +3,7 @@
 namespace Editor
 {
 std::vector<SRef<Object>> EditorState::selectedObjects = {};
-Scene* EditorState::activeScene = nullptr;
+ObjPtr<Scene> EditorState::activeScene = nullptr;
 GameLoop* EditorState::gameLoop = nullptr;
 
 void EditorState::DeselectObject(Object* obj)

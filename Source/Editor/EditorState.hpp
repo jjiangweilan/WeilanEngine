@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Object.hpp"
+#include "Core/Ptr.hpp"
 #include <span>
 class Object;
 class Scene;
@@ -14,7 +15,7 @@ public:
     static void DeselectObject(Object* obj);
     static std::vector<SRef<Object>> GetSelectedObjects();
 
-    static Scene* activeScene;
+    static ObjPtr<Scene> activeScene;
     static GameLoop* gameLoop;
 
 private:

@@ -33,6 +33,7 @@ const void GameLoop::Tick(
 {
     ENGINE_SCOPED_PROFILE("GameLoop - Tick");
 
+    Scene* scene = this->scene;
     if (scene == nullptr || camera == nullptr)
         return;
 
