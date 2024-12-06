@@ -41,6 +41,12 @@ public:
         if (handle != ObjectTracker::NullHandle)
             ObjectTracker::Singleton().Detrack(handle);
 
+        if (object == nullptr)
+        {
+            handle = ObjectTracker::NullHandle;
+            return *this;
+        }
+
         handle = ObjectTracker::Singleton().Track(object->GetUUID());
 
         return *this;

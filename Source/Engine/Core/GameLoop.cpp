@@ -58,6 +58,8 @@ const void GameLoop::Tick(
     if (graph && graph->IsCompiled())
     {
         graph->SetScreenSize(outputImage.GetDescription().width, outputImage.GetDescription().height);
+
+        scene->GetRenderingScene().Tick();
         graph->Execute(*cmd, *scene, *camera);
     }
 

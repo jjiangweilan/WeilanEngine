@@ -34,7 +34,7 @@ public:
     float playerHorizonPos = 0.0f;
     // Usages:
     // 1. rotate by PlayerController to make the player facing to moving direction
-    GameObject* armatureRoot = nullptr;
+    GameObject* rotationRoot = nullptr;
 
     /******** Camera *********/
     float cameraTheta = -0.81;

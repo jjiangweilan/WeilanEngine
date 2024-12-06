@@ -20,7 +20,7 @@ public:
         {
             target->SetCamera(camera);
         }
-        GUI::ObjectField("root armature", target->armatureRoot);
+        GUI::ObjectField("rotation root", target->rotationRoot);
 
         AnimationPlayer* animationPlayer = target->GetRootMotionAnimationPlayer();
         if (GUI::ObjectField("root motion animation player", animationPlayer))

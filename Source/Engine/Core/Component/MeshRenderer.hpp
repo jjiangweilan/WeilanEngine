@@ -60,6 +60,8 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
 
+    // called by RenderingScene
+    void UpdateSkinning();
 private:
     /***** Serialized Data ******/
     std::vector<Mesh*> meshes;
@@ -88,7 +90,6 @@ private:
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
     void UpdateAABB();
-    void UpdateSkinning();
 
     void OnEnable() override;
     void OnDisable() override;

@@ -116,6 +116,8 @@ public:
         return sceneEnvironment;
     }
 
+    void Tick();
+
 private:
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;

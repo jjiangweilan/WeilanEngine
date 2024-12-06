@@ -1049,17 +1049,10 @@ void AssetDatabase::UnloadAsset(Asset& asset)
 {
     const UUID& uuid = asset.GetUUID();
     auto byUUIDIter = assets.byUUID.find(uuid);
-    auto assetPath = GetAssetPath(uuid);
 
     if (byUUIDIter != assets.byUUID.end())
     {
         AssetData* ptr = byUUIDIter->second;
         ptr->asset = nullptr;
-        assets.byUUID.erase(uuid);
-    }
-
-    if (!assetPath.empty())
-    {
-        assets.byPath.erase(assetPath);
     }
 }

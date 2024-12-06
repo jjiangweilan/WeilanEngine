@@ -52,7 +52,7 @@ void PlayerController::Serialize(Serializer* s) const
     s->Serialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Serialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
-    s->Serialize("armatureRoot", armatureRoot);
+    s->Serialize("rotationRoot", rotationRoot);
 }
 void PlayerController::Deserialize(Serializer* s)
 {
@@ -65,7 +65,7 @@ void PlayerController::Deserialize(Serializer* s)
     s->Deserialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Deserialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
-    s->Deserialize("armatureRoot", armatureRoot);
+    s->Deserialize("rotationRoot", rotationRoot);
 }
 
 void PlayerController::PrePhysicsTick()
@@ -267,7 +267,7 @@ void PlayerController::Tick()
 
 void PlayerController::UpdatePlayerLookAt(float xDelta)
 {
-    if (armatureRoot)
+    if (rotationRoot)
     {
         glm::vec3 rot =
             CalculateSphericalPosition(xDelta * Time::DeltaTime() * playerRotationSpeed, 0, playerPhi, playerTheta);
@@ -278,7 +278,7 @@ void PlayerController::UpdatePlayerLookAt(float xDelta)
         if (hasVelocity)
         {
             auto lookAtRot = glm::quatLookAt(-v / speed, {0, 1, 0});
-            armatureRoot->SetRotation(lookAtRot);
+            rotationRoot->SetRotation(lookAtRot);
         }
     }
 }

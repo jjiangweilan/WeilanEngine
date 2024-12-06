@@ -149,10 +149,7 @@ AABB MeshRenderer::GetAABB()
     return aabb;
 }
 
-void MeshRenderer::Tick()
-{
-    UpdateSkinning();
-}
+void MeshRenderer::Tick() {}
 
 void MeshRenderer::UpdateSkinning()
 {
@@ -252,5 +249,4 @@ bool MeshRenderer::IsSkinningEnabled()
     return skinning.enabled;
 }
 
-void MeshRenderer::OnDrawGizmos() {
-}
+void MeshRenderer::OnDrawGizmos() {}

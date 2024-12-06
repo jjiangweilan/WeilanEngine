@@ -97,7 +97,8 @@ GameEditor::GameEditor(const char* path)
     UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
-        EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
+        auto scene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
+        EditorState::activeScene = scene;
     }
 
     auto& io = ImGui::GetIO();
