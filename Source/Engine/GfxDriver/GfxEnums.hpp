@@ -147,12 +147,14 @@ enum class AttachmentLoadOperation
     Load,
     Clear,
     DontCare,
+    MAX_COUNT
 };
 
 enum class AttachmentStoreOperation
 {
     Store,
     DontCare,
+    MAX_COUNT
 };
 
 enum class CullMode
@@ -160,7 +162,8 @@ enum class CullMode
     None,
     Front,
     Back,
-    Both
+    Both,
+    MAX_COUNT
 };
 
 enum class Topology
@@ -168,7 +171,8 @@ enum class Topology
     TriangleList,
     TriangleStrip,
     LineStrip,
-    LineList
+    LineList,
+    MAX_COUNT
 };
 
 enum class PolygonMode
@@ -176,6 +180,7 @@ enum class PolygonMode
     Fill = 0,
     Line = 1,
     Point = 2,
+    MAX_COUNT
 };
 
 namespace ImageUsage

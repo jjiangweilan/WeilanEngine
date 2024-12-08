@@ -13,13 +13,13 @@ class SSRNode : public Node
         AddConfig<ConfigurableType::Float>("iteration", 32.0f);
         AddConfig<ConfigurableType::Float>("thickness", 0.5f);
 
-        input.target = AddInputProperty("target", PropertyType::Attachment);
-        input.source = AddInputProperty("source color", PropertyType::Attachment);
-        input.normal = AddInputProperty("normal", PropertyType::Attachment);
-        input.mask = AddInputProperty("mask", PropertyType::Attachment);
-        input.hiz = AddInputProperty("hiz", PropertyType::GraphFlow);
+        input.target = AddInputProperty("target", PropertyType::Attachment, 1);
+        input.source = AddInputProperty("source color", PropertyType::Attachment, 2);
+        input.normal = AddInputProperty("normal", PropertyType::Attachment, 3);
+        input.mask = AddInputProperty("mask", PropertyType::Attachment, 4);
+        input.hiz = AddInputProperty("hiz", PropertyType::GraphFlow, 5);
 
-        output.color = AddOutputProperty("output", PropertyType::Attachment);
+        output.color = AddOutputProperty("output", PropertyType::Attachment, 6);
 
         ssrPass = Gfx::RG::RenderPass::SingleColor("ssr pass");
 

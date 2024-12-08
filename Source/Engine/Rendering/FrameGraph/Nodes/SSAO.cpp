@@ -25,11 +25,11 @@ class SSAONode : public Node
             material.EnableFeature("_GTAO");
         }
 
-        input.attachment = AddInputProperty("attachment", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.normal = AddInputProperty("normal", PropertyType::Attachment);
+        input.attachment = AddInputProperty("attachment", PropertyType::Attachment, 1);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment, 2);
+        input.normal = AddInputProperty("normal", PropertyType::Attachment, 3);
 
-        output.color = AddOutputProperty("attachment", PropertyType::Attachment);
+        output.color = AddOutputProperty("attachment", PropertyType::Attachment, 4);
 
         enable = AddConfig<ConfigurableType::Bool>("enable", true);
         blurCount = AddConfig<ConfigurableType::Int>("blur count", 1);

@@ -11,21 +11,21 @@ class LightingPassNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(LightingPassNode)
     {
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.albedo = AddInputProperty("albedo", PropertyType::Attachment);
-        input.normal = AddInputProperty("normal", PropertyType::Attachment);
-        input.mask = AddInputProperty("mask", PropertyType::Attachment);
-        input.ao = AddInputProperty("ao", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
+        input.color = AddInputProperty("color", PropertyType::Attachment, 1);
+        input.albedo = AddInputProperty("albedo", PropertyType::Attachment, 2);
+        input.normal = AddInputProperty("normal", PropertyType::Attachment, 3);
+        input.mask = AddInputProperty("mask", PropertyType::Attachment, 4);
+        input.ao = AddInputProperty("ao", PropertyType::Attachment, 5);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment, 6);
+        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment, 7);
+        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer, 8);
 
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
-        output.normal = AddOutputProperty("normal", PropertyType::Attachment);
-        output.mask = AddOutputProperty("mask", PropertyType::Attachment);
-        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 9);
+        output.normal = AddOutputProperty("normal", PropertyType::Attachment, 10);
+        output.mask = AddOutputProperty("mask", PropertyType::Attachment, 11);
+        output.depth = AddOutputProperty("depth", PropertyType::Attachment, 12);
 
-        input.tileBuffer = AddInputProperty("tile buffer", PropertyType::GfxBuffer);
+        input.tileBuffer = AddInputProperty("tile buffer", PropertyType::GfxBuffer, 13);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);

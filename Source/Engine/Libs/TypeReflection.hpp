@@ -1,21 +1,24 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
 #include <functional>
+#include <string>
 #include <typeinfo>
+#include <unordered_map>
 
-template<class T>
+template <class T>
 class TypeReflection
 {
 public:
-    template<class MemType>
+    template <class MemType>
     static void RegisterMemberVariable(const std::string& name, MemType T::* memPtr)
     {
-        Singleton().variables[name] = { &typeid(MemType), [memPtr](T& obj, void* val) { *((MemType*)val) = obj.*memPtr; } };
+        Singleton().variables[name] = {
+            &typeid(MemType),
+            [memPtr](T& obj, void* val) { *((MemType*)val) = obj.*memPtr; }
+        };
     }
 
-    template<class MemType>
+    template <class MemType>
     static bool Get(T& obj, const std::string& name, MemType& val)
     {
         auto iter = Singleton().variables.find(name);
@@ -40,14 +43,19 @@ public:
         return true;
     }
 
-    template<class MemType>
+    static const std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*)>>>&
+    GetAllFields()
+    {
+        return Singleton().variables;
+    }
+
+    template <class MemType>
     bool Get(const std::string& name, MemType& val)
     {
         return TypeReflection<T>::Get(*static_cast<T*>(this), name, val);
     }
 
 private:
-
     static TypeReflection<T>& Singleton()
     {
         static TypeReflection<T> instance;
@@ -57,5 +65,5 @@ private:
     std::unordered_map<std::string, std::pair<const std::type_info*, std::function<void(T&, void*)>>> variables;
 };
 
-#define REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Type, memName) \
+#define REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Type, memName)                                                        \
     TypeReflection<Type>::RegisterMemberVariable(#memName, &Type::memName)

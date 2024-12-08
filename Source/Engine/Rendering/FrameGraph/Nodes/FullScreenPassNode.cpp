@@ -95,9 +95,9 @@ private:
         AddConfig<ConfigurableType::ObjectPtr>("shader", nullptr);
         AddConfig<ConfigurableType::Vec2Int>("size", glm::ivec2{512.0f, 512.0f});
 
-        input.source = AddInputProperty("source", PropertyType::Attachment);
-        input.targetColor = AddInputProperty("target color", PropertyType::Attachment);
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
+        input.source = AddInputProperty("source", PropertyType::Attachment, 1);
+        input.targetColor = AddInputProperty("target color", PropertyType::Attachment, 2);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 3);
     }
     static char _reg;
 }; // namespace Rendering::FrameGraph

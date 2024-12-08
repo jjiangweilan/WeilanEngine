@@ -87,9 +87,9 @@ struct ImageDescription
 private:
     struct InternalData
     {
-        uint32_t width;
-        uint32_t height;
-        Gfx::ImageFormat format;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        Gfx::ImageFormat format = Gfx::ImageFormat::Invalid;
         bool randomWrite = false;
         bool operator==(const InternalData& other) const = default;
     } data;

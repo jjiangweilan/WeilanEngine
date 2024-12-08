@@ -276,6 +276,30 @@ public:
         return isValid;
     }
 
+    static bool EnumDropDown(
+        const char* fieldName, int& val, int totalEnums, std::function<std::string(int)> mapToString
+    )
+    {
+        int current = val;
+        bool selected = false;
+        if (ImGui::BeginCombo(fieldName, mapToString(val).c_str()))
+        {
+            for (int i = 0; i < totalEnums; i++)
+            {
+                std::string name = mapToString(i);
+                if (ImGui::Selectable(name.c_str(), i == current))
+                {
+                    val = i;
+                    selected = true;
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        return selected;
+    }
+
 private:
     static const char* PayloadType;
 };

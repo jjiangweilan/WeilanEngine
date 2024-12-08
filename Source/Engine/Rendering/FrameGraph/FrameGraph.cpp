@@ -203,12 +203,12 @@ void Graph::ReportValidation()
         counts[n->GetID()] += 1;
         for (auto& p : n->GetInput())
         {
-            counts[p.GetID()] += 1;
+            counts[p.second.GetID()] += 1;
         }
 
         for (auto& p : n->GetOutput())
         {
-            counts[p.GetID()] += 1;
+            counts[p.second.GetID()] += 1;
         }
     }
 

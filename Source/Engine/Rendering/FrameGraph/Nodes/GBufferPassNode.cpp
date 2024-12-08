@@ -11,15 +11,15 @@ class GBufferPassNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(GBufferPassNode)
     {
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
+        input.color = AddInputProperty("color", PropertyType::Attachment, 1);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment, 2);
+        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer, 3);
 
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
-        output.albedo = AddOutputProperty("albedo", PropertyType::Attachment);
-        output.normal = AddOutputProperty("normal", PropertyType::Attachment);
-        output.mask = AddOutputProperty("mask", PropertyType::Attachment);
-        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 4);
+        output.albedo = AddOutputProperty("albedo", PropertyType::Attachment, 5);
+        output.normal = AddOutputProperty("normal", PropertyType::Attachment, 6);
+        output.mask = AddOutputProperty("mask", PropertyType::Attachment, 7);
+        output.depth = AddOutputProperty("depth", PropertyType::Attachment, 8);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);
@@ -40,10 +40,7 @@ class GBufferPassNode : public Node
         gbufferPass.SetSubpass(0, subpassAttachments, depth);
     }
 
-    void Compile() override
-    {
-        clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values");
-    }
+    void Compile() override { clearValuesVal = GetConfigurablePtr<glm::vec4>("clear values"); }
 
     void Execute(RenderingContext& renderContext, RenderingData& renderingData) override
     {

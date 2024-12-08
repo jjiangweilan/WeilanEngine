@@ -598,6 +598,7 @@ void AssetDatabase::LoadEngineInternal()
     defaultMat->SetShader(standardShader);
 
     std::vector<std::filesystem::path> others(shaderIter, importPathes.end());
+
     for (auto& p : others)
     {
         LoadAsset(p);
@@ -759,6 +760,8 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
+    SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
+
     /* Debug Comment */
     // std::filesystem::path debugPath = "AnimatedCube.gltf";
     // if (Utils::strContians(path.string(), debugPath.string()))

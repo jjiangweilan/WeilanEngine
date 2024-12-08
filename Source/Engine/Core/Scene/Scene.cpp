@@ -201,6 +201,8 @@ void Scene::PrePhysicsTickGameObject(GameObject* obj)
 
 void GetLights(GameObject* go, std::vector<Light*>& lights)
 {
+    if (go == nullptr)
+        return;
     for (auto& child : go->GetChildren())
     {
         GetLights(child, lights);

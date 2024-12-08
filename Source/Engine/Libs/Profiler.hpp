@@ -15,7 +15,7 @@ public:
         float pass =
             std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - begin)
                 .count() *
-            1e-6;
+            1e-3;
 
         if (!message.empty())
         {
@@ -28,7 +28,7 @@ private:
     std::chrono::high_resolution_clock::time_point begin;
 };
 
-#ifdef NDEBUG
+#ifndef ENGINE_DEV_BUILD
 #define SCOPED_PROFILER(message)
 #else
 #define SCOPED_PROFILER(message) ScopedProfiler scoped_profiler_macro(message);

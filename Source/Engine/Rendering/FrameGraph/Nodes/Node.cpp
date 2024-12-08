@@ -149,13 +149,11 @@ void Node::Deserialize(Serializer* s)
     // fix property id
     for (auto& p : inputProperties)
     {
-        p.id += GetID();
-        inputPropertyIDs[p.GetName()] = p.id;
+        p.second.id += GetID();
     }
     for (auto& p : outputProperties)
     {
-        p.id += GetID();
-        outputPropertyIDs[p.GetName()] = p.id;
+        p.second.id += GetID();
     }
 
     s->Deserialize("name", name);

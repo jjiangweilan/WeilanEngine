@@ -58,7 +58,7 @@ void GameObject::Copy(const GameObject& other)
     for (GameObject* child : other.children)
     {
         owningChildren.push_back(std::make_unique<GameObject>(*child));
-        owningChildren.back()->SetParent(this);
+        owningChildren.back()->SetParent(this, false);
     }
 }
 

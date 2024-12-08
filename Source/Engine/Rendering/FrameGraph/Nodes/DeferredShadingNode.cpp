@@ -8,15 +8,15 @@ class DeferredShadingNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(DeferredShadingNode)
     {
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
+        input.color = AddInputProperty("color", PropertyType::Attachment, 1);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment, 2);
+        input.shadowMap = AddInputProperty("shadow map", PropertyType::Attachment, 3);
+        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer, 4);
 
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
-        output.normal = AddOutputProperty("normal", PropertyType::Attachment);
-        output.mask = AddOutputProperty("mask", PropertyType::Attachment);
-        output.depth = AddOutputProperty("depth", PropertyType::Attachment);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 5);
+        output.normal = AddOutputProperty("normal", PropertyType::Attachment, 6);
+        output.mask = AddOutputProperty("mask", PropertyType::Attachment, 7);
+        output.depth = AddOutputProperty("depth", PropertyType::Attachment, 8);
 
         AddConfig<ConfigurableType::Vec4>("clear values", glm::vec4{52 / 255.0f, 177 / 255.0f, 235 / 255.0f, 1});
         AddConfig<ConfigurableType::ObjectPtr>("skybox", nullptr);

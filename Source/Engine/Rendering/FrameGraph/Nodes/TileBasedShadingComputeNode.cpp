@@ -10,7 +10,7 @@ class TileBasedShadingComputeNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(TileBasedShadingComputeNode)
     {
-        output.tiles = AddOutputProperty("tiles", PropertyType::GfxBuffer);
+        output.tiles = AddOutputProperty("tiles", PropertyType::GfxBuffer, 1);
         tileBasedShadingCompute = (ComputeShader*)AssetDatabase::Singleton()->LoadAsset(
             "_engine_internal/Shaders/Game/TileBasedShading/TileCompute.comp"
         );

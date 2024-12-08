@@ -56,7 +56,7 @@ private:
     } output;
     void DefineNode()
     {
-        output.drawList = AddOutputProperty("draw list", PropertyType::DrawListPointer);
+        output.drawList = AddOutputProperty("draw list", PropertyType::DrawListPointer, 1);
         output.drawList->SetValue(drawList.get());
         drawList = std::make_unique<DrawList>();
     }

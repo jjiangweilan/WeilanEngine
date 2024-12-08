@@ -19,9 +19,9 @@ class GaussianBlurNode : public Node
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
-        input.target = AddInputProperty("target", PropertyType::Attachment);
-        input.source = AddInputProperty("source", PropertyType::Attachment);
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
+        input.target = AddInputProperty("target", PropertyType::Attachment, 1);
+        input.source = AddInputProperty("source", PropertyType::Attachment, 2);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 3);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,

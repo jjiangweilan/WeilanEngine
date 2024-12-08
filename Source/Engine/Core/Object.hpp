@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Core/ObjectTracker.hpp"
-#include "Libs/UUID.hpp"
 #include "Libs/Serialization/Serializable.hpp"
+#include "Libs/UUID.hpp"
 #include "SafeReferenceable.hpp"
 #include <spdlog/spdlog.h>
 #include <unordered_map>
@@ -49,6 +49,8 @@ protected:
     void Deserialize(Serializer* s) override;
 
     UUID uuid;
+
+    friend class ObjectReflection;
 };
 
 using ObjectTypeID = UUID;
@@ -106,6 +108,8 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 }
 
 #define DECLARE_OBJECT()                                                                                               \
+    friend class ObjectReflection;                                                                                     \
+                                                                                                                       \
 public:                                                                                                                \
     static const ObjectTypeID& StaticGetObjectTypeID();                                                                \
     const ObjectTypeID& GetObjectTypeID() override;                                                                    \

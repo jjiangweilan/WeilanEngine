@@ -11,6 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -130,6 +131,9 @@ public:
 
     virtual void Serialize(std::string_view name, const std::string& val) = 0;
     virtual void Deserialize(std::string_view name, std::string& val) = 0;
+
+    virtual void Serialize(std::string_view name, const nlohmann::json& json) = 0;
+    virtual void Deserialize(std::string_view name, nlohmann::json& json) = 0;
 
     virtual void Serialize(std::string_view name, const bool val) = 0;
     virtual void Deserialize(std::string_view name, bool& val) = 0;

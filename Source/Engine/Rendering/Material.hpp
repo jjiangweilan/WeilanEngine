@@ -84,6 +84,8 @@ public:
         this->shaderConfig = std::make_shared<Gfx::ShaderConfig>(shaderConfig);
     }
 
+
+    void OnLoaded() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
@@ -131,7 +133,7 @@ private:
         std::vector<ScheduledUpdate> updates;
     };
 
-    ShaderBase* shader = nullptr;
+    ObjPtr<ShaderBase> shader = nullptr;
     uint32_t shaderContentHash = -1;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
     std::shared_ptr<Gfx::ShaderConfig> shaderConfig;

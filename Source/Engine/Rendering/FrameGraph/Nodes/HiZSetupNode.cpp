@@ -10,8 +10,8 @@ class HiZSetupNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(HiZSetupNode)
     {
-        input.depth = AddInputProperty("source depth", PropertyType::Attachment);
-        AddOutputProperty("HiZ *", PropertyType::GraphFlow);
+        input.depth = AddInputProperty("source depth", PropertyType::Attachment, 1);
+        AddOutputProperty("HiZ *", PropertyType::GraphFlow, 2);
 
         hizDescs.resize(MAX_MIP);
         hizIds.resize(MAX_MIP);

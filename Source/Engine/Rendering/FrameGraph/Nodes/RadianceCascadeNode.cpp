@@ -9,9 +9,9 @@ class RadianceCascadeNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(RadianceCascadeNode)
     {
-        input.colorMap = AddInputProperty("colorMap", PropertyType::Attachment);
-        input.normalMap = AddInputProperty("normalMap", PropertyType::Attachment);
-        input.depthMap = AddInputProperty("depthMap", PropertyType::Attachment);
+        input.colorMap = AddInputProperty("colorMap", PropertyType::Attachment, 1);
+        input.normalMap = AddInputProperty("normalMap", PropertyType::Attachment, 2);
+        input.depthMap = AddInputProperty("depthMap", PropertyType::Attachment, 3);
     }
 
     const Gfx::RG::ImageIdentifier& GetImage();

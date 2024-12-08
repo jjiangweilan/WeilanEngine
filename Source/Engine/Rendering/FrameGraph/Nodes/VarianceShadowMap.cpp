@@ -253,8 +253,8 @@ private:
 
     void DefineNode()
     {
-        AddOutputProperty("shadow map", PropertyType::Attachment);
-        AddInputProperty("draw list", PropertyType::DrawListPointer);
+        AddOutputProperty("shadow map", PropertyType::Attachment, 1);
+        AddInputProperty("draw list", PropertyType::DrawListPointer, 2);
 
         AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});
         AddConfig<ConfigurableType::ObjectPtr>("shadow map shader", nullptr);

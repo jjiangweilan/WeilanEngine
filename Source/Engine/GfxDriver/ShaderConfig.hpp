@@ -36,12 +36,6 @@ struct ColorBlendAttachmentState
 
 struct ShaderConfig
 {
-    bool vertexInterleaved = false;
-    bool debug = false;
-    CullMode cullMode = CullMode::Back;
-    Topology topology = Topology::TriangleList;
-    PolygonMode polygonMode = PolygonMode::Fill;
-
     struct Depth
     {
         bool operator==(const Depth& other) const = default;
@@ -51,7 +45,7 @@ struct ShaderConfig
         bool boundTestEnable = false;
         float minBounds = 0;
         float maxBounds = 1;
-    } depth;
+    };
 
     struct Stencil
     {
@@ -59,19 +53,27 @@ struct ShaderConfig
         bool testEnable = false;
         StencilOpState front;
         StencilOpState back;
-    } stencil;
+    };
 
     struct Color
     {
         bool operator==(const Color& other) const = default;
         std::vector<ColorBlendAttachmentState> blends;
         float blendConstants[4] = {1, 1, 1, 1};
-    } color;
+    };
+
+    bool vertexInterleaved = false;
+    bool debug = false;
+    CullMode cullMode = CullMode::Back;
+    Topology topology = Topology::TriangleList;
+    PolygonMode polygonMode = PolygonMode::Fill;
+    Depth depth;
+    Stencil stencil;
+    Color color;
 
     std::vector<std::vector<std::string>> features;
     std::vector<std::vector<std::string>> vertFeatures;
     std::vector<std::vector<std::string>> fragFeatures;
-
     std::unordered_map<std::string, size_t> shaderInfoInputBaseTypeSizeOverride;
 
     bool operator==(const ShaderConfig& other) const noexcept = default;
@@ -261,4 +263,5 @@ struct ShaderConfig
         return j;
     }
 };
+
 } // namespace Gfx

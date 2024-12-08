@@ -27,9 +27,9 @@ private:
         ax::NodeEditor::PinId OutputId;
     };
 
-    void DrawProperty(Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
-    void DrawFloatProp(Rendering::FrameGraph::Property& p);
-    void DrawImageProp(Rendering::FrameGraph::Property& p);
+    void DrawProperty(const Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind);
+    void DrawFloatProp(const Rendering::FrameGraph::Property& p);
+    void DrawImageProp(const Rendering::FrameGraph::Property& p);
 
     void DrawFloatConfig();
     void DrawVectorConfig();

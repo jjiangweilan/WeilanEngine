@@ -260,6 +260,7 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("textureValues", textureValues);
     std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
+    s->Serialize("shaderConfig", shaderConfig && overrideShaderConfig ? shaderConfig->ToJson() : nlohmann::json());
 }
 
 std::unique_ptr<Asset> Material::Clone()
@@ -338,7 +339,7 @@ void Material::DisableFeature(const std::string& name)
 void Material::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
-    s->Deserialize("shader", shader, [this](void* res) { this->SetShaderNoProtection(this->shader); });
+    s->Deserialize("shader", shader);
     s->Deserialize("ubos", ubos);
     s->Deserialize(
         "textureValues",
@@ -365,7 +366,38 @@ void Material::Deserialize(Serializer* s)
     {
         EnableFeature(f);
     }
+    nlohmann::json shaderConfigJson;
+    s->Deserialize("shaderConfig", shaderConfigJson);
+    if (shaderConfigJson != nullptr)
+    {
+        shaderConfig = std::make_shared<Gfx::ShaderConfig>(Gfx::ShaderConfig::FromJson(shaderConfigJson));
+    }
+}
+
+void Material::OnLoaded()
+{
     uploadNeeded = true;
+
+    bool hasConfig = shaderConfig != nullptr;
+    using namespace Gfx;
+
+    CullMode cullMode = CullMode::Back;
+    Topology topology = Topology::TriangleList;
+
+    if (hasConfig)
+    {
+        cullMode = shaderConfig->cullMode;
+        topology = shaderConfig->topology;
+    }
+
+    this->SetShader(this->shader);
+
+    if (hasConfig)
+    {
+        overrideShaderConfig = true;
+        shaderConfig->cullMode = cullMode;
+        shaderConfig->topology = topology;
+    }
 }
 
 void Material::UBO::Serialize(Serializer* ser) const

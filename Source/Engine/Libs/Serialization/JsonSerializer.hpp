@@ -30,6 +30,9 @@ public:
     void Serialize(std::string_view name, const int32_t& v) override;
     void Deserialize(std::string_view name, int32_t& v) override;
 
+    void Serialize(std::string_view name, const nlohmann::json& json) override;
+    void Deserialize(std::string_view name, nlohmann::json& json) override;
+
     void Serialize(std::string_view name, const float& v) override;
     void Deserialize(std::string_view name, float& v) override;
 

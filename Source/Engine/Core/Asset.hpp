@@ -93,6 +93,8 @@ protected:
 private:
     bool isDirty = false;
     AssetStateFlags stateFlags = AssetStateFlags::None;
+
+    friend class ObjectReflection;
 };
 
 struct AssetRegistry

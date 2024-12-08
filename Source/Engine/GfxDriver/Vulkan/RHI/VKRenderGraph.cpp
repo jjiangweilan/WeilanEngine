@@ -1538,7 +1538,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint 
 
 void Graph::TryBindShader(VkCommandBuffer cmd)
 {
-    if (exeState.bindedShader != exeState.lastBindedShader && exeState.lastBindedShader != nullptr)
+    if ((exeState.bindedShader != exeState.lastBindedShader || exeState.shaderConfig != exeState.lastShaderConfig) && exeState.lastBindedShader != nullptr)
     {
 
         if (exeState.lastBindedShader->IsCompute())
@@ -1560,6 +1560,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
         }
 
         exeState.bindedShader = exeState.lastBindedShader;
+        exeState.shaderConfig = exeState.lastShaderConfig;
     }
 }
 
@@ -1649,8 +1650,9 @@ void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 {
     ENGINE_SCOPED_PROFILE("ScheduleBindShaderProgram");
     auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
-    if (args.program != recordState.bindedProgram)
+    if (args.program != recordState.bindedProgram || *args.config != recordState.config)
     {
+        recordState.config = *args.config;
         recordState.bindedProgram = args.program;
         recordState.bindProgramIndex = visitIndex;
 
@@ -1730,6 +1732,8 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
                 i == 0 ? nullptr : &std::get<VKBindResourceCmd>(currentSchedulingCmds[bindSetCmdIndex].args);
             uint32_t updateSet = i == 0 ? 0 : bindSetCmd->set;
             VKShaderResource* resource = i == 0 ? &globalResources[program] : bindSetCmd->resource;
+            if (resource == nullptr)
+                continue;
             auto& writableResources = resource->GetWritableResources(updateSet, program);
             for (auto& w : writableResources)
             {

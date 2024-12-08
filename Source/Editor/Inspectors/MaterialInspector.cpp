@@ -1,6 +1,8 @@
 #include "../EditorState.hpp"
 #include "EditorGUI.hpp"
+#include "GfxDriver/GfxEnums.hpp"
 #include "Inspector.hpp"
+#include "Rendering/EnumStringMapping.hpp"
 #include "Rendering/Material.hpp"
 
 namespace Editor
@@ -13,6 +15,16 @@ public:
         Inspector<Material>::OnEnable(obj);
 
         featureToEnable[0] = '\0';
+
+        for (auto& obj : Object::GetAllEngineObjects())
+        {
+            if (obj.second->GetObjectTypeID() == Shader::StaticGetObjectTypeID())
+            {
+                shaders.push_back(static_cast<Shader*>(obj.second));
+            }
+        }
+
+        std::sort(shaders.begin(), shaders.end(), [](Shader* f, Shader* s) { return s->GetName() < s->GetName(); });
     }
 
     void ShowFeatures(const std::vector<std::vector<std::string>>& features)
@@ -58,47 +70,27 @@ public:
             ShowFeatures(shader->GetDefaultShaderConfig()->fragFeatures);
         }
 
-        ImGui::InputText("Feature", featureToEnable, 256);
-        if (ImGui::Button("Enable"))
-        {
-            target->EnableFeature(featureToEnable);
-            featureToEnable[0] = '\0';
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Disable"))
-        {
-            target->DisableFeature(featureToEnable);
-            featureToEnable[0] = '\0';
-        }
-        ImGui::Text("Enabled Features");
-        for (auto& feature : target->GetEnabledFeatures())
-        {
-            ImGui::Text("%s", feature.c_str());
-        }
-        ImGui::Separator();
-
         auto shader = target->GetShader();
         std::string shaderGUIID = "empty";
 
+        int selectedIndex = 0;
         if (shader != nullptr)
-            shaderGUIID = shader->GetName();
-
-        bool buttonPressed = ImGui::Button(fmt::format("{}##shader", shaderGUIID).c_str());
-
-        Object* shaderPayload;
-        if (GUI::DragDropTarget(shaderPayload))
         {
-            if (ShaderBase* sourceShader = dynamic_cast<ShaderBase*>(shaderPayload))
+            for (auto s : shaders)
             {
-                target->SetShader(sourceShader);
+                if (shader == s)
+                    break;
+                selectedIndex++;
             }
         }
-        else if (buttonPressed)
+        if (GUI::EnumDropDown(
+                "shader",
+                selectedIndex,
+                shaders.size(),
+                [this](int i) { return shaders[i]->GetName().c_str(); }
+            ))
         {
-            if (shader != nullptr)
-            {
-                EditorState::SelectObject(shader->GetSRef());
-            }
+            target->SetShader(dynamic_cast<Shader*>(shaders[selectedIndex]));
         }
 
         if (shader)
@@ -197,7 +189,19 @@ public:
 
             ImGui::Spacing();
             ImGui::Text("ShaderConfig");
-            ImGui::Text("cullMode: %i", (int)target->GetShaderConfig()->cullMode);
+            auto config = *target->GetShaderConfig();
+            int cullMode = static_cast<int>(config.cullMode);
+
+            if (GUI::EnumDropDown(
+                    "CullMode",
+                    cullMode,
+                    static_cast<int>(Gfx::CullMode::MAX_COUNT),
+                    [](int index) { return Utils::MapStrCullMode(static_cast<Gfx::CullMode>(index)); }
+                ))
+            {
+                config.cullMode = static_cast<Gfx::CullMode>(cullMode);
+                target->SetShaderConfig(config);
+            }
 
             ImGui::Spacing();
             ImGui::Text("Textures");
@@ -235,6 +239,7 @@ public:
 private:
     static const char _register;
     char featureToEnable[256];
+    std::vector<Shader*> shaders;
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {

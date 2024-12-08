@@ -3,6 +3,7 @@
 Object::EngineObjectMap Object::GetAllEngineObjects()
 {
     Object::EngineObjectMap map;
+    spdlog::info("calling GetAllEngineObjects()");
 
     for(auto& v : ObjectTracker::Singleton().GetUUIDToSlotIndex())
     {

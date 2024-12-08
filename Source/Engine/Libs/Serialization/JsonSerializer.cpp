@@ -234,6 +234,16 @@ void JsonSerializer::Serialize(std::string_view name, nullptr_t)
     j[TO_JSON_PTR(name)] = nullptr;
 }
 
+void JsonSerializer::Serialize(std::string_view name, const nlohmann::json& json)
+{
+    j[TO_JSON_PTR(name)] = json;
+}
+
+void JsonSerializer::Deserialize(std::string_view name, nlohmann::json& json)
+{
+    json = j.value(TO_JSON_PTR(name), nlohmann::json());
+}
+
 bool JsonSerializer::IsNull(std::string_view name)
 {
     return j[TO_JSON_PTR(name)].is_null();

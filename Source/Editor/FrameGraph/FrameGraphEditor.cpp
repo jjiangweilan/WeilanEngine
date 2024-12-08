@@ -212,13 +212,15 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
                 }
                 ImGui::PopItemWidth();
                 ImGui::Unindent(50);
-                for (fg::Property& input : node->GetInput())
+                for (auto& inputPair : node->GetInput())
                 {
+                    const fg::Property& input = inputPair.second;
                     DrawProperty(input, ed::PinKind::Input);
                 }
                 ImGui::Spacing();
-                for (fg::Property& input : node->GetOutput())
+                for (auto& outputPair : node->GetOutput())
                 {
+                    const fg::Property& input = outputPair.second;
                     DrawProperty(input, ed::PinKind::Output);
                 }
                 ed::EndNode();
@@ -363,14 +365,11 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
     ShowOutputImages();
 }
 
-void FrameGraphEditor::DrawFloatProp(Rendering::FrameGraph::Property& p) {}
+void FrameGraphEditor::DrawFloatProp(const Rendering::FrameGraph::Property& p) {}
 
-void FrameGraphEditor::DrawImageProp(Rendering::FrameGraph::Property& p)
-{
-    // ImGui::Text("%s", p.GetName().c_str());
-}
+void FrameGraphEditor::DrawImageProp(const Rendering::FrameGraph::Property& p) {}
 
-void FrameGraphEditor::DrawProperty(Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
+void FrameGraphEditor::DrawProperty(const Rendering::FrameGraph::Property& p, ax::NodeEditor::PinKind kind)
 {
     if (kind == ed::PinKind::Output)
         ImGui::Indent(330);

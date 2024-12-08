@@ -93,6 +93,7 @@ void PhysicsScene::DebugDraw()
     }
 
     physicsSystem.DrawBodies(drawSettings, JoltDebugRenderer::GetDebugRenderer().get(), &bodyDrawFilter);
+    physicsSystem.DrawConstraints(JoltDebugRenderer::GetDebugRenderer().get());
 }
 
 void PhysicsContactListener::OnContactAdded(

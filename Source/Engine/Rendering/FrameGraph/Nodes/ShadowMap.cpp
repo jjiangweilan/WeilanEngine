@@ -99,8 +99,8 @@ private:
     } output;
     void DefineNode()
     {
-        output.shadowMap = AddOutputProperty("shadow map", PropertyType::Attachment);
-        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer);
+        output.shadowMap = AddOutputProperty("shadow map", PropertyType::Attachment, 1);
+        input.drawList = AddInputProperty("draw list", PropertyType::DrawListPointer, 2);
 
         AddConfig<ConfigurableType::Vec2>("shadow map size", glm::vec2{1024, 1024});
         shadowmapShader = (Shader*)AddConfig<ConfigurableType::ObjectPtr>("shadow map shader", nullptr);

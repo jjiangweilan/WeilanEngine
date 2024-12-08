@@ -74,6 +74,7 @@ private:
     struct RecordState
     {
         VKShaderProgram* bindedProgram = nullptr;
+        ShaderConfig config;
         int bindProgramIndex;
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
@@ -90,6 +91,7 @@ private:
         VKShaderProgram* lastBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;     // shader that is actually binded
         std::shared_ptr<const ShaderConfig> shaderConfig;
+        std::shared_ptr<const ShaderConfig> lastShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         int subpassIndex = -1;
         VKRenderPass* renderPass;

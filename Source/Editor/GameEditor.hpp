@@ -56,6 +56,7 @@ private:
     bool surfelGIBaker = false;
     bool assetDatabaseWindow = false;
     bool pbrBaker = false;
+    bool debugEngineResources = false;
 
     InspectorBase* primaryInspector = nullptr;
     InspectorBase* secondaryInspector = nullptr;

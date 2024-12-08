@@ -228,10 +228,10 @@ private:
     GameObjectFlag flags = GameObjectFlag::None;
 
     // a prototype GameObject stores all it's children
-    [[Serialized]] bool isPrototype;
-    [[Serialized]] glm::vec3 position = glm::vec3(0);
-    [[Serialized]] glm::vec3 scale = glm::vec3(1, 1, 1);
-    [[Serialized]] glm::quat rotation = glm::quat(1, 0, 0, 0);
+    bool isPrototype;
+    glm::vec3 position = glm::vec3(0);
+    glm::vec3 scale = glm::vec3(1, 1, 1);
+    glm::quat rotation = glm::quat(1, 0, 0, 0);
     // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     mutable glm::mat4 localMatrix;
@@ -310,6 +310,8 @@ std::vector<T*> GameObject::GetComponentsInChildren()
 
     for (auto c : children)
     {
+        if (c == nullptr)
+            continue;
         std::vector<T*> cs = c->GetComponentsInChildren<T>();
         results.insert(results.end(), cs.begin(), cs.end());
     }

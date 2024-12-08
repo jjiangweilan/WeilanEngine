@@ -28,11 +28,11 @@ private:
     Gfx::ShaderProgram* program;
     void DefineNode()
     {
-        AddInputProperty("color", PropertyType::RenderGraphLink);
-        AddInputProperty("depth", PropertyType::RenderGraphLink);
+        AddInputProperty("color", PropertyType::RenderGraphLink, 1);
+        AddInputProperty("depth", PropertyType::RenderGraphLink, 2);
 
-        AddOutputProperty("color", PropertyType::RenderGraphLink);
-        AddOutputProperty("depth", PropertyType::RenderGraphLink);
+        AddOutputProperty("color", PropertyType::RenderGraphLink, 3);
+        AddOutputProperty("depth", PropertyType::RenderGraphLink, 4);
         AddConfig<ConfigurableType::ObjectPtr>("GI Scene", nullptr);
         AddConfig<ConfigurableType::Bool>("Debug", false);
         AddConfig<ConfigurableType::ObjectPtr>("Surfel Cube Shader", nullptr);

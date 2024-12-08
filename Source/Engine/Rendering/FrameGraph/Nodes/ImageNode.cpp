@@ -48,7 +48,7 @@ void ImageNode::Execute(RenderingContext& renderContext, RenderingData& renderin
 
 void ImageNode::DefineNode()
 {
-    output.attachment = AddOutputProperty("image", PropertyType::Attachment);
+    output.attachment = AddOutputProperty("image", PropertyType::Attachment, 1);
 
     AddConfig<ConfigurableType::Vec2>("size", glm::vec2{512.0f, 512.0f});
     AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);

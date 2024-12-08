@@ -9,9 +9,9 @@ class TonemappingNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(TonemappingNode)
     {
-        input.source = AddInputProperty("source", PropertyType::Attachment);
-        input.targetColor = AddInputProperty("target color", PropertyType::Attachment);
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
+        input.source = AddInputProperty("source", PropertyType::Attachment, 1);
+        input.targetColor = AddInputProperty("target color", PropertyType::Attachment, 2);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 3);
 
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/ACESToneMapping.shad");
     }

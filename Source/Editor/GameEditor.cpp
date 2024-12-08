@@ -9,11 +9,11 @@
 #include "FileIcons.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Inspectors/Inspector.hpp"
+#include "Libs/Assert.hpp"
 #include "Platform/FileExplore.hpp"
 #include "PrototypeUtils.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
-#include "Libs/Assert.hpp"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/implot.h"
 #include <cmath>
@@ -361,18 +361,7 @@ void GameEditor::SceneTree(Scene& scene)
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
 
-    Object* gameObjectPayload;
     std::filesystem::path filePath;
-    if (GUI::DragDropTarget(typeid(GameObject), gameObjectPayload, {windowPos, windowMax}))
-    {
-        GameObject* gameObject = (GameObject*)gameObjectPayload;
-        if (gameObject != nullptr)
-        {
-            // pass null to set this transform to root
-            gameObject->SetParent(nullptr);
-            gameObject->SetEnable(true);
-        }
-    }
     if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
     {
         if (Model* model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(filePath)))
@@ -414,6 +403,12 @@ void GameEditor::SceneTree(Scene& scene)
         if (ImGui::Button("Create As Prototype"))
         {
             PrototypeUtils::MakePrototype(sceneTreeContextObject, sceneTreeContextObject->GetName());
+        }
+
+        if (ImGui::Button("Create GameOject"))
+        {
+            auto go = scene.CreateGameObject();
+            go->SetParent(sceneTreeContextObject);
         }
 
         if (ImGui::Button("Delete"))
@@ -642,7 +637,8 @@ void GameEditor::MainMenuBar()
             {"Inspector", "Ctrl+I", inspectorWindow},
             {"Surfel GI Baker", nullptr, surfelGIBaker},
             {"AssetDatabase", nullptr, assetDatabaseWindow},
-            {"PBR Baker", nullptr, pbrBaker}
+            {"PBR Baker", nullptr, pbrBaker},
+            {"Debug Engine Resources", nullptr, debugEngineResources}
 
         };
         for (auto& w : windowToggles)
@@ -932,22 +928,17 @@ void GameEditor::InspectorWindow()
 
 void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 {
-    GameObject* makePrototype = nullptr;
     bool changeFileName = false;
     static std::filesystem::path changeFileNameTarget;
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
         {
-            Object* gameObject;
-            if (GUI::DragDropTarget(typeid(GameObject), gameObject))
-            {
-                makePrototype = (GameObject*)gameObject;
-            }
 
             const std::filesystem::path& path = entry.path();
             auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
             bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
+
             if (GUI::DragDropSource(relative))
             {
                 currentDragDropAssetFileDepth = depth;
@@ -968,6 +959,10 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                     }
                 );
             }
+
+            Object* gameObject;
+            if (GUI::DragDropTarget(typeid(GameObject), gameObject))
+            {}
 
             if (ImGui::BeginPopupContextItem())
             {
@@ -1106,24 +1101,6 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
         if (ImGui::Selectable("Confirm"))
         {
             AssetDatabase::Singleton()->Rename(changeFileNameTarget, fn);
-        }
-        if (ImGui::Selectable("Chancel"))
-        {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::EndPopup();
-    }
-    if (makePrototype)
-    {
-        ImGui::OpenPopup("Make Prototype");
-    }
-    if (ImGui::BeginPopupModal("Make Prototype"))
-    {
-        std::string info = fmt::format("Make Prototype: {}", makePrototype->GetName());
-        ImGui::InputText("Path: ", fn, 1024);
-        if (ImGui::Selectable("Confirm"))
-        {
-            PrototypeUtils::MakePrototype(makePrototype, std::filesystem::path(fn));
         }
         if (ImGui::Selectable("Chancel"))
         {
@@ -1473,7 +1450,10 @@ void GameEditor::SaveProject()
 
 void GameEditor::EngineResourceDebug()
 {
-    ImGui::Begin("Engine Resource Debug");
+    if (!debugEngineResources)
+        return;
+
+    ImGui::Begin("Engine Resource Debug", &debugEngineResources);
     using Info = std::tuple<UUID, Object*, const std::string*>;
     std::vector<Info> allObjects;
     auto objs = Object::GetAllEngineObjects();

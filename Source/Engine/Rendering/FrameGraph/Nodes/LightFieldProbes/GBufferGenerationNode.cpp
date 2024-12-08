@@ -9,8 +9,8 @@ class GBufferGenerationNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(GBufferGenerationNode)
     {
-        input.drawList = AddInputProperty("drawList", PropertyType::DrawListPointer);
-        input.target = AddInputProperty("target", PropertyType::Attachment);
+        input.drawList = AddInputProperty("drawList", PropertyType::DrawListPointer, 1);
+        input.target = AddInputProperty("target", PropertyType::Attachment, 2);
 
         Gfx::RG::SubpassAttachment albedo{0};
         Gfx::RG::SubpassAttachment normal{1};

@@ -6,10 +6,10 @@ class CopyNode : public Node
 {
     DECLARE_FRAME_GRAPH_NODE(CopyNode)
     {
-        input.target = AddInputProperty("target", PropertyType::Attachment);
-        input.source = AddInputProperty("source", PropertyType::Attachment);
+        input.target = AddInputProperty("target", PropertyType::Attachment, 1);
+        input.source = AddInputProperty("source", PropertyType::Attachment, 2);
 
-        output.target = AddOutputProperty("target", PropertyType::Attachment);
+        output.target = AddOutputProperty("target", PropertyType::Attachment, 3);
 
         SetCustomName("Copy");
     }

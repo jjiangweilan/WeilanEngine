@@ -2,6 +2,7 @@
 #include "../../DrawList.hpp"
 #include "../../RenderingData.hpp"
 #include "GfxDriver/GfxEnums.hpp"
+#include "Libs/Assert.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "Libs/Serialization/Serializer.hpp"
 #include "Rendering/Material.hpp"
@@ -121,39 +122,22 @@ enum class PropertyType
 class Property
 {
 public:
+    Property(){};
     Property(Node* parent, const char* name, PropertyType type, FGID id, bool isInput)
         : parent(parent), name(name), type(type), id(id), isInput(isInput)
     {}
 
-    PropertyType GetType() const
-    {
-        return type;
-    }
+    PropertyType GetType() const { return type; }
 
-    const std::string& GetName() const
-    {
-        return name;
-    }
+    const std::string& GetName() const { return name; }
 
-    FGID GetID()
-    {
-        return id;
-    }
+    FGID GetID() const { return id; }
 
-    Node* GetParent()
-    {
-        return parent;
-    }
+    Node* GetParent() { return parent; }
 
-    bool IsOuput()
-    {
-        return !isInput;
-    }
+    bool IsOuput() { return !isInput; }
 
-    bool IsInput()
-    {
-        return isInput;
-    }
+    bool IsInput() { return isInput; }
 
     template <class T>
     void SetValue(const T& val)
@@ -186,11 +170,11 @@ public:
     }
 
 protected:
-    Node* parent;
-    std::string name;
-    PropertyType type;
-    FGID id;
-    bool isInput;
+    Node* parent = nullptr;
+    std::string name = "";
+    PropertyType type = PropertyType::Attachment;
+    FGID id = 0;
+    bool isInput = false;
 
     std::variant<DrawList*, AttachmentProperty, Gfx::Buffer*> asOutput;
     std::variant<DrawList*, AttachmentProperty, Gfx::Buffer*>* asInput = nullptr;
@@ -264,83 +248,58 @@ private:
 struct PropertyHandle
 {
     PropertyHandle() : properties(nullptr), index(-1) {}
-    PropertyHandle(std::vector<Property>* properties, size_t index) : properties(properties), index(index) {}
+    PropertyHandle(std::unordered_map<uint16_t, Property>* properties, size_t index)
+        : properties(properties), index(index)
+    {}
 
-    Property& operator*()
-    {
-        return properties->at(index);
-    }
+    Property& operator*() { return properties->at(index); }
 
-    Property* operator->()
-    {
-        return &properties->at(index);
-    }
+    Property* operator->() { return &properties->at(index); }
 
 private:
-    std::vector<Property>* properties;
+    std::unordered_map<uint16_t, Property>* properties;
     size_t index;
 };
 
-class Node : public Object, public Serializable
+class Node : public Object
 {
 public:
-    Node(){};
+    Node() {};
     Node(const char* name, FGID id) : id(id), name(name), customName(name) {}
     Node(Node&& other) = default;
 
-    FGID GetID()
-    {
-        return id;
-    }
+    FGID GetID() { return id; }
     virtual void Compile() {}
-    virtual void Execute(RenderingContext& renderContext, RenderingData& renderingData){};
+    virtual void Execute(RenderingContext& renderContext, RenderingData& renderingData) {};
 
     virtual void OnDestroy() {}
-    std::span<Property> GetInput()
-    {
-        return inputProperties;
-    }
-    std::span<Property> GetOutput()
-    {
-        return outputProperties;
-    }
+    const std::unordered_map<uint16_t, Property>& GetInput() { return inputProperties; }
+    const std::unordered_map<uint16_t, Property>& GetOutput() { return outputProperties; }
 
-    std::span<const std::unique_ptr<Configurable>> GetConfiurables()
-    {
-        return configs;
-    }
+    std::span<const std::unique_ptr<Configurable>> GetConfiurables() { return configs; }
 
     Property* GetProperty(FGID id)
     {
         for (auto& p : inputProperties)
         {
-            if (p.GetID() == id)
-                return &p;
+            if (p.second.GetID() == id)
+                return &p.second;
         }
 
         for (auto& p : outputProperties)
         {
-            if (p.GetID() == id)
-                return &p;
+            if (p.second.GetID() == id)
+                return &p.second;
         }
 
         return nullptr;
     }
 
-    void SetCustomName(const char* name)
-    {
-        customName = name;
-    }
+    void SetCustomName(const char* name) { customName = name; }
 
-    const std::string& GetCustomName()
-    {
-        return customName;
-    }
+    const std::string& GetCustomName() { return customName; }
 
-    const std::string GetName() const
-    {
-        return name;
-    }
+    const std::string GetName() const { return name; }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -381,26 +340,22 @@ protected:
         return nullptr;
     }
 
-    PropertyHandle AddInputProperty(const char* name, PropertyType type)
+    PropertyHandle AddInputProperty(const char* name, PropertyType type, uint16_t propertyID)
     {
-        FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
-        inputProperties.emplace_back(this, name, type, id,
-                                     true); // plus one to avoid the same id as node itself
+        ASSERT(propertyID != 0); // zero is not allowed that makes the property id the same as the node
+        FGID id = GetID() + propertyID;
+        inputProperties[propertyID] = Property{this, name, type, id, true};
 
-        inputPropertyIDs[name] = id;
-
-        return {&inputProperties, inputProperties.size() - 1};
+        return {&inputProperties, propertyID};
     }
 
-    PropertyHandle AddOutputProperty(const char* name, PropertyType type)
+    PropertyHandle AddOutputProperty(const char* name, PropertyType type, uint16_t propertyID)
     {
-        FGID id = GetID() + (inputProperties.size() + outputProperties.size() + 1);
-        outputProperties.emplace_back(this, name, type, id,
-                                      false); // plus one to avoid the same id as node itself
+        ASSERT(propertyID != 0); // zero is not allowed that makes the property id the same as the node
+        FGID id = GetID() + propertyID;
+        outputProperties[propertyID] = Property{this, name, type, id, false};
 
-        outputPropertyIDs[name] = id;
-
-        return {&outputProperties, outputProperties.size() - 1};
+        return {&outputProperties, propertyID};
     }
 
     template <ConfigurableType type, class T>
@@ -421,17 +376,11 @@ protected:
             return std::any_cast<T>(&configs.back()->data);
     }
 
-    void ClearConfigs()
-    {
-        configs.clear();
-    }
-
-    std::unordered_map<std::string, FGID> inputPropertyIDs;
-    std::unordered_map<std::string, FGID> outputPropertyIDs;
+    void ClearConfigs() { configs.clear(); }
 
 private:
-    std::vector<Property> inputProperties;
-    std::vector<Property> outputProperties;
+    std::unordered_map<uint16_t, Property> inputProperties;
+    std::unordered_map<uint16_t, Property> outputProperties;
     FGID id = 0;
     std::string name;
     std::string customName;

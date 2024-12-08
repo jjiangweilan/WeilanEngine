@@ -10,7 +10,12 @@ class ObjPtr
 {
 public:
     ObjPtr() : handle(ObjectTracker::NullHandle) {}
-    ObjPtr(Object* object) { handle = ObjectTracker::Singleton().Track(object->GetUUID()); };
+    ObjPtr(Object* object) {
+        if (object != nullptr)
+            handle = ObjectTracker::Singleton().Track(object->GetUUID());
+        else
+            handle = ObjectTracker::NullHandle;
+    };
     ObjPtr(const UUID& uuid) { handle = ObjectTracker::Singleton().Track(uuid); }
     ObjPtr(std::nullptr_t) { handle = ObjectTracker::NullHandle; }
     ObjPtr(const ObjPtr<T>& other) { handle = ObjectTracker::Singleton().Track(other.handle); }

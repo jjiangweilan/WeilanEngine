@@ -24,9 +24,9 @@ class SkyboxPassNode : public Node
 
         AddConfig<ConfigurableType::Bool>("enable", true);
 
-        input.color = AddInputProperty("color", PropertyType::Attachment);
-        input.depth = AddInputProperty("depth", PropertyType::Attachment);
-        output.color = AddOutputProperty("color", PropertyType::Attachment);
+        input.color = AddInputProperty("color", PropertyType::Attachment, 1);
+        input.depth = AddInputProperty("depth", PropertyType::Attachment, 2);
+        output.color = AddOutputProperty("color", PropertyType::Attachment, 3);
 
         Gfx::RG::SubpassAttachment c[] = {{
             0,
