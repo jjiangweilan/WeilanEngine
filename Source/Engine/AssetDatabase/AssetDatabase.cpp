@@ -763,7 +763,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
     /* Debug Comment */
-    // std::filesystem::path debugPath = "AnimatedCube.gltf";
+    // std::filesystem::path debugPath = "SceneLit.shad";
     // if (Utils::strContians(path.string(), debugPath.string()))
     // {
     //     spdlog::info("{}", debugPath.string());
@@ -777,11 +777,13 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     auto assetData = assets.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;
 
-    nlohmann::json assetMeta = nlohmann::json::object();
+    // copy json meta is slow, so we use pointer here
+    static nlohmann::json empty = nlohmann::json::object();
+    const nlohmann::json* assetMeta = &empty;
     // this asset is already imported once, we can read its meta
     if (assetData)
     {
-        assetMeta = assetData->GetMeta();
+        assetMeta = &assetData->GetMeta();
 
         // override the asset path because this asset may be an internal asset
         absoluteAssetPath = assetData->GetAssetAbsolutePath();
@@ -793,7 +795,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
     if (loader == nullptr)
         return nullptr;
-    loader->Setup(importDatabase, absoluteAssetPath, assetMeta);
+    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
     bool importNeeded = forceReimport || loader->ImportNeeded();
     std::vector<std::filesystem::path> importedAssetFilePaths;

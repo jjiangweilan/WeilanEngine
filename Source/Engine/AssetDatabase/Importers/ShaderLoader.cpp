@@ -2,6 +2,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/Shader.hpp"
 #include "Rendering/ShaderCompiler.hpp"
+#include "Libs/Profiler.hpp"
 #include <fstream>
 #include <spirv_cross/spirv_reflect.hpp>
 

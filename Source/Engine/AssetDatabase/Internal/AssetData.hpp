@@ -6,6 +6,9 @@
 #include <fstream>
 #include <memory>
 
+// perf: consider change this with a Copy-On-Write wrap, copying json is slow
+using AssetMeta = nlohmann::json;
+
 // an AssetData represent an imported Asset, it contains meta information about the asset and the asset itself
 class AssetData
 {
@@ -73,7 +76,7 @@ public:
 
     std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
-    nlohmann::json GetMeta() { return meta; }
+    const nlohmann::json& GetMeta() { return meta; }
 
 private:
     // scaii code stands for Wei Lan Engine AssetFile
