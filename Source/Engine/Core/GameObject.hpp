@@ -70,7 +70,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<GameObject*>& GetChildren() { return children; }
+    const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
 
     template <class T>
     std::vector<T*> GetComponentsInChildren();
@@ -242,7 +242,7 @@ private:
     bool wantsToBeEnabled = false;
     mutable bool updateLocalMatrix = true;
 
-    std::vector<GameObject*> children;
+    std::vector<ObjPtr<GameObject>> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;
     std::vector<std::unique_ptr<Component>> components;
     GameObject* parent = nullptr;

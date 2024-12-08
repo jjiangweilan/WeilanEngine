@@ -178,14 +178,37 @@ glm::vec3 PlayerController::CalculateSphericalPosition(float xDelta, float yDelt
 
 void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
 {
-    glm::vec3 sphPos = CalculateSphericalPosition(0, 0, cameraPhi, cameraTheta);
-    glm::vec3 finalSphOffset = sphPos * cameraDistance;
-    auto playerPos = GetGameObject()->GetPosition();
+    auto cameraGO = target->GetGameObject();
 
-    playerPos.y = 0;
-    target->GetGameObject()->SetPosition(playerPos + finalSphOffset);
+    xDelta *= rotateSpeed;
+    yDelta *= rotateSpeed;
+    auto playerPos = GetGameObject()->GetPosition();
+    glm::vec3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
+    glm::vec3 finalSphOffset = sphPos * cameraDistance;
+
+    cameraGO->SetPosition(playerPos + finalSphOffset);
 }
 
+void PlayerController::SetSmoothCameraSphericalPos(float xDelta, float yDelta, glm::vec3 previousPlayerPos)
+{
+    auto cameraGO = target->GetGameObject();
+
+    xDelta *= rotateSpeed;
+    yDelta *= rotateSpeed;
+    auto playerPos = GetGameObject()->GetPosition();
+    glm::vec3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
+    glm::vec3 finalSphOffset = sphPos * cameraDistance;
+
+    auto targetCameraPos = playerPos + finalSphOffset;
+    float cameraPosDistance = glm::length(cameraGO->GetPosition() - targetCameraPos);
+    auto newCameraPosition = glm::lerp(
+        cameraGO->GetPosition(),
+        playerPos + finalSphOffset,
+        glm::clamp(cameraPosDistance / maxCameraDistance, 0.0f, 1.0f)
+    );
+
+    cameraGO->SetPosition(newCameraPosition);
+}
 void PlayerController::OnEnable() {}
 
 void PlayerController::OnDisable() {}
@@ -231,6 +254,7 @@ void PlayerController::Tick()
         HandleInput();
 
         // update player and camera position
+        auto previousPlayerPos = GetGameObject()->GetPosition();
         auto pos = character->GetPosition();
         GetGameObject()->SetPosition(
             {pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()}
@@ -242,16 +266,15 @@ void PlayerController::Tick()
         /* camera update */
         // set camera lookat (camera position)
         auto characterPos = GetGameObject()->GetPosition();
-        characterPos.y = playerHorizonPos;
+        // characterPos.y = playerHorizonPos;
         // set camera lookat character
-        SetCameraSphericalPos(-lx, -ly);
+        SetSmoothCameraSphericalPos(lx, ly, previousPlayerPos);
         auto cameraGO = target->GetGameObject();
         glm::vec3 cameraPos = cameraGO->GetPosition();
         auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
         cameraGO->SetLocalRotation(lookAtQuat);
 
         UpdatePlayerLookAt(-lx);
-
 
         /****** update animation ******/
         if (rootMotionAnimationPlayer)
@@ -269,8 +292,6 @@ void PlayerController::UpdatePlayerLookAt(float xDelta)
 {
     if (rotationRoot)
     {
-        glm::vec3 rot =
-            CalculateSphericalPosition(xDelta * Time::DeltaTime() * playerRotationSpeed, 0, playerPhi, playerTheta);
         auto v = velocity;
         v.y = 0;
         float speed = glm::length(v);

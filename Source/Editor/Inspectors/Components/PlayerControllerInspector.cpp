@@ -35,6 +35,7 @@ public:
         ImGui::DragFloat("playerRotationSpeed", &target->playerRotationSpeed);
         ImGui::DragFloat("camera phi", &target->cameraPhi);
         ImGui::DragFloat("camera theta", &target->cameraTheta);
+        ImGui::DragFloat("max camera distance", &target->maxCameraDistance);
 
         auto go = target->GetGameObject();
         float radius = target->GetCharacterCapsuleShapeRadius();

@@ -101,6 +101,8 @@ GameObject* Scene::CopyGameObject(GameObject& gameObject)
     newObj->SetScene(this);
 
     GameObject* top = newObj.get();
+    auto&& children = newObj->GetOwningChildren();
+    gameObjects.insert(gameObjects.end(), std::move_iterator(children.begin()), std::move_iterator(children.end()));
     gameObjects.push_back(std::move(newObj));
 
     if (gameObject.GetParent() == nullptr)
@@ -237,7 +239,11 @@ void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObject
 
 void Scene::Serialize(Serializer* s) const
 {
-    s->Serialize<std::unique_ptr<GameObject>>("gameObjects", gameObjects, [](const std::unique_ptr<GameObject>& go) { return true; });
+    s->Serialize<std::unique_ptr<GameObject>>(
+        "gameObjects",
+        gameObjects,
+        [](const std::unique_ptr<GameObject>& go) { return true; }
+    );
     s->Serialize("roots", roots);
     s->Serialize("camera", camera);
 }

@@ -161,7 +161,7 @@ void GameObject::RemoveChild(GameObject* child)
     auto it = children.begin();
     while (it != children.end())
     {
-        if (*it == child)
+        if ((*it).Get() == child)
         {
             children.erase(it);
             return;

@@ -31,6 +31,7 @@ public:
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
     float playerRotationSpeed = 30.0f;
+    float maxCameraDistance = 1.0;
     float playerHorizonPos = 0.0f;
     // Usages:
     // 1. rotate by PlayerController to make the player facing to moving direction
@@ -81,6 +82,7 @@ private:
     float animationBlendFactor = 0.0f;
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
+    void SetSmoothCameraSphericalPos(float xDelta, float yDelta, glm::vec3 previousPlayerPos);
     void UpdatePlayerLookAt(float xDelta);
     void
     ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
