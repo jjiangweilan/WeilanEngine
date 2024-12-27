@@ -7,8 +7,8 @@
 #include "VKShaderInfo.hpp"
 #include "VKSharedResource.hpp"
 #include <unordered_map>
-#include <vk_mem_alloc.h>
 #include <variant>
+#include <vk_mem_alloc.h>
 namespace Gfx
 {
 class VKBuffer;
@@ -16,6 +16,10 @@ class VKImage;
 class VKShaderProgram;
 class VKDescriptorPool;
 class VKDriver;
+namespace VK::RenderGraph
+{
+class Graph;
+}
 
 struct VKWritableGPUResource
 {
@@ -52,7 +56,7 @@ class VKShaderResource : public ShaderResource
     // ---------------------------- New API ----------------------------------
 public:
     void SetName(std::string_view name) override;
-    
+
     VKShaderResource();
     VKShaderResource(const VKShaderResource& other) = delete;
     ~VKShaderResource() override;
@@ -61,44 +65,48 @@ public:
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
+    void SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
     void RebuildAll() override;
 
-    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram);
-    const std::vector<VKWritableGPUResource>& GetWritableResources(uint32_t set, VKShaderProgram* shaderProgram);
+    VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph);
+    const std::vector<VKWritableGPUResource>& GetWritableResources(
+        uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
+    );
+
 protected:
     enum class ShaderBindingType
     {
         None,
         ImageView,
-        Buffer
+        Buffer,
+        ImageID,
     };
 
     struct ResourceRef
     {
         bool IsValidRef()
         {
-            if (type == ShaderBindingType::None) return false;
+            if (type == ShaderBindingType::None)
+                return false;
             else if (type == ShaderBindingType::Buffer)
                 return std::get<SRef<Buffer>>(res) != nullptr;
             else if (type == ShaderBindingType::ImageView)
                 return std::get<SRef<ImageView>>(res) != nullptr;
+            else if (type == ShaderBindingType::ImageID)
+                return true;
 
             return false;
         }
 
-        void* GetRef()
-        {
-            if (type == ShaderBindingType::Buffer)
-                return std::get<SRef<Buffer>>(res).Get();
-            else if (type == ShaderBindingType::ImageView)
-                return std::get<SRef<ImageView>>(res).Get();
+        void* GetRef();
 
-            return nullptr;
-        }
+        bool IsImageView() const { return type == ShaderBindingType::ImageView; }
 
-        std::variant<SRef<ImageView>, SRef<Buffer>> res = SRef<ImageView>(nullptr);
+        const Gfx::RG::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::RG::ImageIdentifier>(res) : Gfx::RG::ImageIdentifier::GetEmpty(); }
+
+        std::variant<SRef<ImageView>, SRef<Buffer>, Gfx::RG::ImageIdentifier> res = SRef<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
     };
 

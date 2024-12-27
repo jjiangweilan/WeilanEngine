@@ -17,7 +17,7 @@ void KtxExporter::Export(
     uint32_t mipLevel,
     bool isArray,
     bool isCubemap,
-    Gfx::ImageFormat format,
+    Gfx::GfxFormat format,
     bool enableCompression
 )
 {
@@ -46,7 +46,7 @@ void KtxExporter::Export(
     }
 
     size_t offset = 0;
-    const size_t formatByteSize = Gfx::MapImageFormatToByteSize(format);
+    const size_t formatByteSize = Gfx::MapGfxFormatToByteSize(format);
     int lw = width;
     int lh = height;
     for (int level = 0; level < createInfo.numLevels; ++level)

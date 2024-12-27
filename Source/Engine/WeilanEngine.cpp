@@ -19,12 +19,14 @@
 //
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
+#include "Rendering/ShaderLibrary.hpp"
 WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
     event->Deinit();
     gfxDriver->WaitForIdle();
+    ShaderLibrary::Singleton().RemoveAllShaders();
     DelayDestroy::Singleton()->Flush();
     DeinitJoltPhysics();
     // physics->Destroy();
@@ -54,6 +56,9 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
+
+    auto imguiShaderProgram = ShaderLibrary::GetShader(ShaderLibrary::ImGui);
+
     InitJoltPhysics();
     assetDatabase = std::make_unique<AssetDatabase>();
     AssetDatabase::SingletonReference() = assetDatabase.get();

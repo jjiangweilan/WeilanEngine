@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <Libs/Assert.hpp>
 
 namespace Gfx
 {
@@ -31,8 +32,7 @@ struct ImageSubresourceRange
 
     std::vector<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
     {
-        if (aspectMask != other.aspectMask)
-            throw std::logic_error("image aspect mask must match");
+        ASSERT((aspectMask & other.aspectMask) != ImageAspect::None && "image aspect mask must match");
 
         std::vector<ImageSubresourceRange> rtn{};
         // bottom area
@@ -101,8 +101,7 @@ struct ImageSubresourceRange
 
     ImageSubresourceRange And(const ImageSubresourceRange& other)
     {
-        if (aspectMask != other.aspectMask)
-            throw std::logic_error("image aspect mask must match");
+        ASSERT((aspectMask & other.aspectMask) != ImageAspect::None && "image aspect mask must match");
 
         uint32_t lm = glm::max(baseMipLevel, other.baseMipLevel);
         uint32_t rm = glm::min(baseMipLevel + levelCount, other.baseMipLevel + other.levelCount);
@@ -140,10 +139,17 @@ struct ImageSubresourceLayers
 
 struct ImageViewOption
 {
-    int baseMipLevel;
-    int levelCount;
-    int baseArrayLayer;
-    int layerCount;
+    ImageViewOption() {}
+    ImageViewOption(ImageAspectFlags aspect) : aspect(aspect) {}
+    ImageViewOption(int baseMipLevel, int levelCount, int baseArrayLayer, int layerCount, ImageAspectFlags aspect)
+        : baseMipLevel(baseMipLevel), levelCount(levelCount), baseArrayLayer(baseArrayLayer), layerCount(layerCount),
+          aspect(aspect)
+    {}
+    int baseMipLevel = 0;
+    int levelCount = 1;
+    int baseArrayLayer = 0;
+    int layerCount = 1;
+    ImageAspectFlags aspect = ImageAspect::Color;
     bool operator==(const ImageViewOption& other) const = default;
 };
 
@@ -158,20 +164,14 @@ public:
     virtual const ImageDescription& GetDescription() = 0;
     virtual void SetData(std::span<uint8_t> binaryData, uint32_t mip = 0, uint32_t layer = 0) = 0;
 
-    bool IsGPUWrite()
-    {
-        return isGPUWrite;
-    }
+    bool IsGPUWrite() { return isGPUWrite; }
 
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
     virtual ImageView& GetImageView(const ImageViewOption& option) = 0;
     virtual ImageLayout GetImageLayout() = 0;
 
-    virtual const UUID& GetUUID()
-    {
-        return uuid;
-    }
+    virtual const UUID& GetUUID() { return uuid; }
 
 protected:
     UUID uuid;

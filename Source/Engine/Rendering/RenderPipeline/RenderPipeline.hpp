@@ -1,11 +1,97 @@
 #pragma once
 
+#include "GfxDriver/RenderGraph.hpp"
+#include "Libs/Math.hpp"
+#include "Rendering/RenderingData.hpp"
+
+namespace GPUParameter
+{
+using namespace glm;
+#include "Shaders/DeferredPBRShadingInput.hlsl"
+#include "Shaders/Library/PerScene.hlsl"
+} // namespace GPUParameter
+
+class Scene;
+class Camera;
+
 namespace Rendering
 {
 class RenderPipeline
 {
 public:
     RenderPipeline();
-};
 
+    void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
+    const Gfx::RG::ImageIdentifier& GetMainColor() { return mainColor; }
+    const Gfx::RG::ImageIdentifier& GetMainDepth() { return mainDepth; }
+
+private:
+    std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
+
+    Gfx::RG::ImageIdentifier mainColor = "mainColor";
+    Gfx::RG::ImageIdentifier mainDepth = "mainDepth";
+    Gfx::RG::ImageIdentifier albedoGBuffer = "albedoGBuffer";
+    Gfx::RG::ImageIdentifier normalGBuffer = "normalGBuffer";
+    Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";
+
+    Gfx::RG::ImageDescription mainColorDescription;
+    Gfx::RG::ImageDescription mainDepthDescription;
+    Gfx::RG::ImageDescription albedoGBufferDescription;
+    Gfx::RG::ImageDescription normalGBufferDescription;
+    Gfx::RG::ImageDescription maskGBufferDescription;
+
+    struct ExecutionState
+    {
+        bool renderMainLightShadow = false;
+    } state{};
+
+    struct PerScene
+    {
+        PerScene();
+        GPUParameter::PerScene cpuParameter;
+        std::unique_ptr<Gfx::Buffer> gpuBuffer;
+        std::unique_ptr<Gfx::ShaderResource> gpuResourceSet;
+    } perScene{};
+
+    struct GBufferPass
+    {
+        GBufferPass();
+        Gfx::RG::RenderPass pass;
+    } gbufferPass{};
+
+    struct ShadingPass
+    {
+        ShadingPass();
+        Gfx::RG::RenderPass pass;
+        GPUParameter::DeferredPBRShadingInput cpuParameter;
+        std::unique_ptr<Gfx::ShaderResource> gpuResource;
+        std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
+        ObjPtr<Shader2> shadingShader;
+
+        Texture* brdfPreIntegeral;
+    } shadingPass{};
+
+    struct ShadowMapPass
+    {
+        ShadowMapPass();
+
+        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 1);
+        Gfx::RG::ImageIdentifier shadowMapId;
+        Gfx::ImageDescription shadowDescription;
+        std::unique_ptr<Gfx::Image> shadowMap;
+        ObjPtr<Shader2> shadowMapShader;
+
+        bool updateMainLightShadow = true;
+
+        const glm::float2 shadowMapSize = {1024, 1024};
+
+    } shadowMapPass{};
+
+    struct
+    {
+        glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};
+    } labelColors;
+
+    DrawList sceneDrawList;
+};
 } // namespace Rendering

@@ -12,7 +12,7 @@ namespace Gfx::RG
 struct ImageDescription
 {
     ImageDescription() {}
-    ImageDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format, bool randomWrite = false)
+    ImageDescription(uint32_t width, uint32_t height, Gfx::GfxFormat format, bool randomWrite = false)
         : data({width, height, format, randomWrite})
     {
         Rehash();
@@ -50,7 +50,7 @@ struct ImageDescription
         }
     }
 
-    void SetFormat(Gfx::ImageFormat format)
+    void SetFormat(Gfx::GfxFormat format)
     {
         if (data.format != format)
         {
@@ -69,7 +69,7 @@ struct ImageDescription
         return data.height;
     }
 
-    Gfx::ImageFormat GetFormat() const
+    Gfx::GfxFormat GetFormat() const
     {
         return data.format;
     }
@@ -89,7 +89,7 @@ private:
     {
         uint32_t width = 0;
         uint32_t height = 0;
-        Gfx::ImageFormat format = Gfx::ImageFormat::Invalid;
+        Gfx::GfxFormat format = Gfx::GfxFormat::Invalid;
         bool randomWrite = false;
         bool operator==(const InternalData& other) const = default;
     } data;
@@ -104,6 +104,8 @@ private:
 
 struct ImageIdentifier
 {
+    static const ImageIdentifier& GetEmpty();
+
     enum class Type
     {
         None,
@@ -112,6 +114,7 @@ struct ImageIdentifier
     };
 
     ImageIdentifier() : type(Type::Handle), rtHandle(UUID()) {}
+    ImageIdentifier(const char* name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(std::string_view name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(Image& image) : type(Type::Image), image(&image) {}
 
@@ -168,6 +171,8 @@ private:
         image = other.image;
         rtHandle = other.rtHandle;
     }
+
+    static ImageIdentifier CreateEmpty();
 };
 
 struct SubpassAttachment
@@ -190,7 +195,13 @@ class RenderPass
 {
 public:
     RenderPass() : uuid(), name(std::to_string(GetDefaultNameId()++)) {}
-    RenderPass(int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
+    RenderPass( int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
+    {
+        attachments.resize(attachmentCount);
+        subpasses.resize(subpassCount);
+    }
+
+    RenderPass(std::string_view name, int subpassCount, int attachmentCount) : uuid(), name(name)
     {
         attachments.resize(attachmentCount);
         subpasses.resize(subpassCount);
@@ -293,11 +304,10 @@ public:
     }
 
 private:
+    UUID uuid;
     std::string name;
     std::vector<ImageIdentifier> attachments;
     std::vector<Subpass> subpasses;
-
-    UUID uuid;
 
     int& GetDefaultNameId()
     {

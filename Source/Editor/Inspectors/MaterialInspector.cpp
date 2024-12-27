@@ -4,7 +4,7 @@
 #include "Inspector.hpp"
 #include "Rendering/EnumStringMapping.hpp"
 #include "Rendering/Material.hpp"
-
+#include "GfxDriver/ShaderProgram.hpp"
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
@@ -18,40 +18,40 @@ public:
 
         for (auto& obj : Object::GetAllEngineObjects())
         {
-            if (obj.second->GetObjectTypeID() == Shader::StaticGetObjectTypeID())
+            if (obj.second->GetObjectTypeID() == Shader2::StaticGetObjectTypeID())
             {
-                shaders.push_back(static_cast<Shader*>(obj.second));
+                shaders.push_back(static_cast<Shader2*>(obj.second));
             }
         }
 
-        std::sort(shaders.begin(), shaders.end(), [](Shader* f, Shader* s) { return s->GetName() < s->GetName(); });
+        std::sort(shaders.begin(), shaders.end(), [](Shader2* f, Shader2* s) { return f->GetShaderProgram()->GetName() < s->GetShaderProgram()->GetName(); });
     }
 
-    void ShowFeatures(const std::vector<std::vector<std::string>>& features)
-    {
-        for (auto& fs : features)
-        {
-            for (auto& f : fs)
-            {
-                if (f != ShaderBase::DefaultGlobalFeatureWord)
-                {
-                    bool enabled = target->IsFeatureEnabled(f);
-                    ImGui::PushStyleColor(
-                        ImGuiCol_Button,
-                        enabled ? ImVec4(0.2, 0.7, 0.2, 1) : ImVec4(0.7, 0.2, 0.2, 1)
-                    );
-                    if (ImGui::Button(f.c_str()))
-                    {
-                        if (enabled)
-                            target->DisableFeature(f);
-                        else
-                            target->EnableFeature(f);
-                    }
-                    ImGui::PopStyleColor();
-                }
-            }
-        }
-    }
+    //void ShowFeatures(const std::vector<std::vector<std::string>>& features)
+    //{
+    //    for (auto& fs : features)
+    //    {
+    //        for (auto& f : fs)
+    //        {
+    //            if (f != ShaderBase::DefaultGlobalFeatureWord)
+    //            {
+    //                bool enabled = target->IsFeatureEnabled(f);
+    //                ImGui::PushStyleColor(
+    //                    ImGuiCol_Button,
+    //                    enabled ? ImVec4(0.2, 0.7, 0.2, 1) : ImVec4(0.7, 0.2, 0.2, 1)
+    //                );
+    //                if (ImGui::Button(f.c_str()))
+    //                {
+    //                    if (enabled)
+    //                        target->DisableFeature(f);
+    //                    else
+    //                        target->EnableFeature(f);
+    //                }
+    //                ImGui::PopStyleColor();
+    //            }
+    //        }
+    //    }
+    //}
 
     void DrawInspector(GameEditor& editor) override
     {
@@ -66,40 +66,40 @@ public:
 
         if (auto shader = target->GetShader())
         {
-            ShowFeatures(shader->GetDefaultShaderConfig()->vertFeatures);
-            ShowFeatures(shader->GetDefaultShaderConfig()->fragFeatures);
+            // ShowFeatures(shader->GetDefaultShaderConfig()->vertFeatures);
+            // ShowFeatures(shader->GetDefaultShaderConfig()->fragFeatures);
         }
 
         auto shader = target->GetShader();
         std::string shaderGUIID = "empty";
 
-        int selectedIndex = 0;
-        if (shader != nullptr)
-        {
-            for (auto s : shaders)
-            {
-                if (shader == s)
-                    break;
-                selectedIndex++;
-            }
-        }
-        if (GUI::EnumDropDown(
-                "shader",
-                selectedIndex,
-                shaders.size(),
-                [this](int i) { return shaders[i]->GetName().c_str(); }
-            ))
-        {
-            target->SetShader(dynamic_cast<Shader*>(shaders[selectedIndex]));
-        }
+        // int selectedIndex = 0;
+        // if (shader != nullptr)
+        // {
+        //     for (auto s : shaders)
+        //     {
+        //         if (shader.Get() == s)
+        //             break;
+        //         selectedIndex++;
+        //     }
+        // }
+        // if (GUI::EnumDropDown(
+        //         "shader",
+        //         selectedIndex,
+        //         shaders.size(),
+        //         [this](int i) { return shaders[i]->GetShaderProgram()->GetName().c_str(); }
+        //     ))
+        // {
+        //     target->SetShader(shaders[selectedIndex]);
+        // }
 
         if (shader)
         {
             auto& shaderInfo = target->GetShaderProgram()->GetShaderInfo();
 
-            std::vector<Gfx::ShaderInfo::Binding> textureBindings;
-            std::vector<Gfx::ShaderInfo::Binding> numericBindings;
-            for (auto& binding : shaderInfo.bindings)
+            std::vector<Gfx::PipelineInfo::Binding> textureBindings;
+            std::vector<Gfx::PipelineInfo::Binding> numericBindings;
+            /*for (auto& binding : shaderInfo.bindings)
             {
                 if (binding.second.type == Gfx::ShaderInfo::BindingType::Texture &&
                     binding.second.setNum == (int)Gfx::ShaderResourceFrequency::Material)
@@ -185,7 +185,7 @@ public:
 
                     ImGui::Unindent();
                 }
-            }
+            }*/
 
             ImGui::Spacing();
             ImGui::Text("ShaderConfig");
@@ -239,7 +239,7 @@ public:
 private:
     static const char _register;
     char featureToEnable[256];
-    std::vector<Shader*> shaders;
+    std::vector<Shader2*> shaders;
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {

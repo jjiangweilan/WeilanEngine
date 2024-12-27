@@ -197,7 +197,7 @@ std::vector<std::filesystem::path> TextureLoader::Import()
             if (is16Bit)
                 bits = 16;
 
-            Gfx::ImageFormat format = Gfx::GetImageFormat(bits, desiredChannels, linearFormat);
+            Gfx::GfxFormat format = Gfx::GetGfxFormat(bits, desiredChannels, linearFormat);
 
             //
             // note: this "converToCube ? 1 : layers" prevents creating array of cubeMaps, but ktx separate the

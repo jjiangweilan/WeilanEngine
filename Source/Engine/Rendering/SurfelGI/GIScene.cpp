@@ -50,19 +50,19 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
 
     albedoBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
         .usages = Gfx::BufferUsage::Transfer_Dst,
-        .size = Gfx::MapImageFormatToByteSize(Gfx::ImageFormat::R32G32B32A32_SFloat),
+        .size = Gfx::MapGfxFormatToByteSize(Gfx::GfxFormat::R32G32B32A32_SFloat),
         .visibleInCPU = true,
         .debugName = "surfel albedo buf",
     });
     positionBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
         .usages = Gfx::BufferUsage::Transfer_Dst,
-        .size = Gfx::MapImageFormatToByteSize(Gfx::ImageFormat::R32G32B32A32_SFloat),
+        .size = Gfx::MapGfxFormatToByteSize(Gfx::GfxFormat::R32G32B32A32_SFloat),
         .visibleInCPU = true,
         .debugName = "surfel position buf",
     });
     normalBuf = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
         .usages = Gfx::BufferUsage::Transfer_Dst,
-        .size = Gfx::MapImageFormatToByteSize(Gfx::ImageFormat::R32G32B32A32_SFloat),
+        .size = Gfx::MapGfxFormatToByteSize(Gfx::GfxFormat::R32G32B32A32_SFloat),
         .visibleInCPU = true,
         .debugName = "surfel normal buf",
     });

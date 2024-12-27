@@ -1,8 +1,8 @@
 #pragma once
 
+#include "CompiledSpv.hpp"
 #include "Core/Ptr.hpp"
 #include "ShaderConfig.hpp"
-#include "ShaderInfo.hpp"
 #include <string>
 #include <vector>
 namespace Gfx
@@ -19,9 +19,9 @@ class ShaderProgram
 public:
     ShaderProgram(bool isCompute) : isCompute(isCompute) {}
     virtual ~ShaderProgram() {};
-    virtual std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() = 0;
+    virtual const PipelineConfig& GetDefaultShaderConfig() = 0;
     virtual const std::string& GetName() = 0;
-    virtual const ShaderInfo::ShaderInfo& GetShaderInfo() = 0;
+    virtual const PipelineInfo& GetShaderInfo() = 0;
     bool IsCompute() { return isCompute; }
     const UUID& GetUUID() const { return uuid; }
 

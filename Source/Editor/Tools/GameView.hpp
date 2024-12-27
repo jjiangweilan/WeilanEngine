@@ -33,6 +33,8 @@ public:
         const Gfx::RG::ImageIdentifier* gameDepthImage
     );
 
+    void SetActiveScene(ObjPtr<Scene> scene);
+
     Camera* GetEditorCamera() const
     {
         return editorCamera;
@@ -90,7 +92,7 @@ private:
 
         // expecting 1x1m, origin in the center of the geometry
         Mesh* plane;
-        Shader* gridShader;
+        ObjPtr<Shader2> gridShader;
         glm::vec3 pos; // dynamically centered around editor camera
         const glm::vec3 scale = glm::vec3(
             50, 1, 50
@@ -103,6 +105,9 @@ private:
     bool firstFrame = true;
     ObjPtr<Camera> gameCamera = nullptr;
     ObjPtr<Camera> editorCamera = nullptr;
+    ObjPtr<Shader2> outlineRawColorPassShader;
+    ObjPtr<Shader2> outlineFullScreenPassShader;
+
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
     Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::Default(
@@ -112,8 +117,6 @@ private:
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store
     );
-    Shader* outlineRawColorPassShader;
-    Shader* outlineFullScreenPassShader;
 
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;

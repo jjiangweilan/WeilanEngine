@@ -139,7 +139,7 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     data.toPos = glm::vec4(drawLine.to, 1.0f);
     data.color = drawLine.color;
 
-    Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader()->GetDefaultShaderProgram();
+    Gfx::ShaderProgram* lineShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
     cmd.SetPushConstant(lineShaderProgram, (void*)&data);
     cmd.BindShaderProgram(lineShaderProgram, lineShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(2, 1, 0, 0);
@@ -150,20 +150,28 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     Submesh* halfSphere = EngineInternalResources::GetHalfSphereMesh();
     Submesh* cylinder = EngineInternalResources::GetCylinderMesh();
     Material* mat = EngineInternalResources::GetDefaultMaterial();
-    auto program = mat->GetShader()->GetShaderProgram(ShaderFeatureBitmask{});
+    auto program = mat->GetShader()->GetShaderProgram();
 
     glm::mat4 cylinderMatrix = glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
                                glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.halfHeight, draw.radius));
 
     cmd.BindResource(2, mat->GetShaderResource());
-    auto config = std::make_shared<Gfx::ShaderConfig>(*mat->GetShaderConfig());
-    config->polygonMode = Gfx::PolygonMode::Line;
+
 
     // top half sphere
     cmd.BindIndexBuffer(cylinder->GetIndexBuffer(), 0, cylinder->GetIndexBufferType());
     cmd.BindVertexBuffer(cylinder->GetGfxVertexBufferBindings(), 0);
     cmd.SetPushConstant(program, &cylinderMatrix);
-    cmd.BindShaderProgram(program, config);
+    const Gfx::PipelineConfig& config = mat->GetShaderConfig();
+    if (config->polygonMode != Gfx::PolygonMode::Line)
+    {
+        auto config = *mat->GetShaderConfig();
+        cmd.BindShaderProgram(program, config);
+    }
+    else
+    {
+        cmd.BindShaderProgram(program, config);
+    }
     cmd.DrawIndexed(cylinder->GetIndexCount(), 1, 0, 0, 0);
 
     float yOffset = draw.halfHeight;
@@ -199,7 +207,7 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
     data.v2 = glm::vec4(draw.v2, 1.0f);
     data.color = draw.color;
 
-    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetLineShader()->GetDefaultShaderProgram();
+    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
     cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(3, 1, 0, 0);

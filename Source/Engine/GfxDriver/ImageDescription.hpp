@@ -11,7 +11,7 @@ struct ImageDescription
         uint32_t width,
         uint32_t height,
         uint32_t depth,
-        Gfx::ImageFormat format,
+        Gfx::GfxFormat format,
         Gfx::MultiSampling multiSampling,
         uint32_t mipLevels,
         bool isCubemap
@@ -20,12 +20,12 @@ struct ImageDescription
           mipLevels(mipLevels), isCubemap(isCubemap)
     {}
 
-    ImageDescription(uint32_t width, uint32_t height, Gfx::ImageFormat format)
+    ImageDescription(uint32_t width, uint32_t height, Gfx::GfxFormat format)
         : width(width), height(height), depth(1.0f), format(format), multiSampling(MultiSampling::Sample_Count_1),
           mipLevels(1), isCubemap(false)
     {}
 
-    ImageDescription(uint32_t width, uint32_t height, uint32_t depth, Gfx::ImageFormat format)
+    ImageDescription(uint32_t width, uint32_t height, uint32_t depth, Gfx::GfxFormat format)
         : width(width), height(height), depth(depth), format(format), multiSampling(MultiSampling::Sample_Count_1),
           mipLevels(1), isCubemap(false)
     {}
@@ -33,7 +33,7 @@ struct ImageDescription
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t depth = 1;
-    Gfx::ImageFormat format = ImageFormat::R8G8B8A8_SRGB;
+    Gfx::GfxFormat format = GfxFormat::R8G8B8A8_SRGB;
     Gfx::MultiSampling multiSampling = MultiSampling::Sample_Count_1;
     uint32_t mipLevels = 1;
     bool isCubemap = false;
@@ -61,7 +61,7 @@ private:
             pixels += lw * lh;
             scale *= 0.5;
         }
-        return pixels * GetLayer() * MapImageFormatToByteSize(format);
+        return pixels * GetLayer() * MapGfxFormatToByteSize(format);
     }
 };
 } // namespace Gfx

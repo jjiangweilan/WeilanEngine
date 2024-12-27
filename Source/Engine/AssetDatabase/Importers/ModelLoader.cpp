@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
 #include "Rendering/Animation.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 #include <assimp/GltfMaterial.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -48,8 +49,11 @@ struct ModelImporterImple
         this->absoluteAssetPath = path;
         Assimp::Importer importer;
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-        scene =
-            importer.ReadFile(path.string().c_str(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenBoundingBoxes);
+        scene = importer.ReadFile(
+            path.string().c_str(),
+            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals |
+                aiProcess_GenBoundingBoxes
+        );
 
         if (scene == nullptr)
         {
@@ -329,7 +333,7 @@ private:
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {
             std::unique_ptr<Material> mat = std::make_unique<Material>();
-            mat->SetShader(Shader::GetDefault());
+            mat->SetShader("SceneLit");
             auto material = scene->mMaterials[materialIndex];
             mat->SetName(material->GetName().C_Str());
 

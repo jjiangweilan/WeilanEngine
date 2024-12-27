@@ -1,27 +1,27 @@
 #include "VKShaderResource.hpp"
+#include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
+#include "Libs/Assert.hpp"
+#include "RHI/VKRenderGraph.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKDriver.hpp"
 #include "VKShaderProgram.hpp"
 #include "VKSharedResource.hpp"
-#include "Libs/Assert.hpp"
-
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
 
 namespace Gfx
 {
-static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderInfo::ShaderStageFlags stages)
+static VkPipelineStageFlags ShaderStageToPipelineStage(ShaderStage stages)
 {
-    using namespace ShaderInfo;
     VkPipelineStageFlags pipelineStages = 0;
-    if (stages & ShaderStage::Vert)
+    if (HasFlag(stages, ShaderStage::Vertex))
         pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-    if (stages & ShaderStage::Frag)
+    if (HasFlag(stages, ShaderStage::Fragment))
         pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    if (stages & ShaderStage::Comp)
+    if (HasFlag(stages, ShaderStage::Compute))
         pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
     return pipelineStages;
@@ -49,7 +49,7 @@ void VKShaderResource::Clear()
     sets.clear();
 }
 
-VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), sets(0) {}
+VKShaderResource::VKShaderResource() : sharedResource(VKContext::Instance()->sharedResource), sets() {}
 
 VKShaderResource::~VKShaderResource()
 {
@@ -73,6 +73,16 @@ void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buf
             bindings.erase(handle);
         else
             bindings[handle][index] = {buffer->GetSRef(), ShaderBindingType::Buffer};
+        RebuildAll();
+    }
+}
+
+void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId)
+{
+    auto& binding = bindings[handle][index];
+    if (binding.GetID() != imageId)
+    {
+        bindings[handle][index] = {imageId, ShaderBindingType::ImageID};
         RebuildAll();
     }
 }
@@ -112,11 +122,15 @@ void VKShaderResource::Remove(ShaderBindingHandle handle)
     }
 }
 
-VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram)
+VkDescriptorSet VKShaderResource::GetDescriptorSet(
+    uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
+)
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
-    auto iter = sets.find(shaderProgram->GetUUID());
+    auto& uuid = shaderProgram->GetUUID();
+
+    auto iter = sets.find(uuid);
 
     VkDescriptorSet finalReturn = VK_NULL_HANDLE;
     bool rebuild = false;
@@ -166,25 +180,24 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
         uint32_t bufferWriteIndex = 0;
         uint32_t imageWriteIndex = 0;
         uint32_t writeCount = 0;
-        auto iter = shaderInfo.descriptorSetBindingMap.find(set);
-        if (iter != shaderInfo.descriptorSetBindingMap.end())
-        {
-            ASSERT(iter->second.size() < 64);
 
-            for (auto b : iter->second)
+        const auto& descriptorSet = shaderInfo.descriptorSets[set];
+        {
+            for (const auto& b : descriptorSet.bindings)
             {
+
                 writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[writeCount].pNext = VK_NULL_HANDLE;
                 writes[writeCount].dstSet = finalReturn;
-                writes[writeCount].descriptorType = ShaderInfo::Utils::MapBindingType(b->type);
-                writes[writeCount].dstBinding = b->bindingNum;
+                writes[writeCount].descriptorType = MapDescriptorType(b.descriptorType);
+                writes[writeCount].dstBinding = b.bindingNum;
                 writes[writeCount].dstArrayElement = 0;
-                writes[writeCount].descriptorCount = b->count;
+                writes[writeCount].descriptorCount = b.descriptorCount;
                 writes[writeCount].pImageInfo = VK_NULL_HANDLE;
                 writes[writeCount].pBufferInfo = VK_NULL_HANDLE;
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
-                ShaderBindingHandle nameHash(b->name);
+                ShaderBindingHandle nameHash(b.name);
                 auto& binding = bindings[nameHash];
 
                 int anyNonNullIndex = 0;
@@ -196,44 +209,47 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                     }
                 }
 
-                switch (b->type)
+                switch (b.descriptorType)
                 {
-                    case Gfx::ShaderInfo::BindingType::UBO:
-                    case Gfx::ShaderInfo::BindingType::SSBO:
+                    case DescriptorType::UniformBuffer:
+                    case DescriptorType::StorageBuffer:
                         writes[writeCount].pBufferInfo = &bufferInfos[bufferWriteIndex];
                         break;
-                    case Gfx::ShaderInfo::BindingType::Texture:
-                    case Gfx::ShaderInfo::BindingType::StorageImage:
-                    case Gfx::ShaderInfo::BindingType::SeparateImage:
-                    case Gfx::ShaderInfo::BindingType::SeparateSampler:
-                        writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex];
-                        break;
+                    case DescriptorType::CombinedImageSampler:
+                    case DescriptorType::StorageImage:
+                    case DescriptorType::SampledImage:
+                    case DescriptorType::Sampler: writes[writeCount].pImageInfo = &imageInfos[imageWriteIndex]; break;
                 }
 
                 for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
                 {
                     ResourceRef resRef = binding[i];
 
-                    switch (b->type)
+                    switch (b.descriptorType)
                     {
-                        case ShaderInfo::BindingType::UBO:
-                        case ShaderInfo::BindingType::SSBO:
+                        case DescriptorType::UniformBuffer:
+                        case DescriptorType::StorageBuffer:
                             {
                                 VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferWriteIndex++];
                                 VKBuffer* buffer = nullptr;
                                 if (resRef.type != ShaderBindingType::Buffer || resRef.GetRef() == nullptr)
                                 {
-                                    std::string bufferName =
-                                        fmt::format("Default Buffer for {}", shaderProgram->GetName());
-                                    Buffer::CreateInfo createInfo{
-                                        .usages = (b->type == ShaderInfo::BindingType::UBO ? BufferUsage::Uniform
-                                                                                           : BufferUsage::Storage) |
-                                                  BufferUsage::Transfer_Dst,
-                                        .size = 1,
-                                        .visibleInCPU = false,
-                                        .debugName = bufferName.c_str()
-                                    };
-                                    defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                                    if (defaultBuffer == nullptr)
+                                    {
+                                        std::string bufferName =
+                                            fmt::format("Default Buffer for {}", shaderProgram->GetName());
+                                        Buffer::CreateInfo createInfo{
+                                            .usages =
+                                                (b.descriptorType == DescriptorType::UniformBuffer ? BufferUsage::Uniform
+                                                                                                   : BufferUsage::Storage) |
+                                                BufferUsage::Transfer_Dst,
+                                            .size = 1,
+                                            .visibleInCPU = false,
+                                            .debugName = bufferName.c_str()
+                                        };
+                                        defaultBuffer = std::make_unique<VKBuffer>(createInfo);
+                                    }
+
                                     buffer = defaultBuffer.get();
                                 }
                                 else
@@ -244,11 +260,11 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 if (buffer->IsGPUWrite())
                                 {
                                     VkPipelineStageFlags pipelineStages = 0;
-                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Vert)
+                                    if (HasFlag(b.stages, ShaderStage::Vertex))
                                         pipelineStages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Frag)
+                                    if (HasFlag(b.stages, ShaderStage::Fragment))
                                         pipelineStages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-                                    if (b->stages & Gfx::ShaderInfo::ShaderStage::Comp)
+                                    if (HasFlag(b.stages, ShaderStage::Compute))
                                         pipelineStages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
                                     VKWritableGPUResource gpuResource{
@@ -257,7 +273,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                         .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
-                                            (b->type == ShaderInfo::BindingType::SSBO ? VK_ACCESS_SHADER_WRITE_BIT : 0)
+                                            (b.descriptorType == DescriptorType::StorageBuffer
+                                                 ? VK_ACCESS_SHADER_WRITE_BIT
+                                                 : 0)
                                         ),
                                     };
 
@@ -268,7 +286,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 bufferInfo.range = VK_WHOLE_SIZE;
                                 break;
                             }
-                        case ShaderInfo::BindingType::StorageImage:
+                        case DescriptorType::StorageImage:
                             {
                                 // it's possible a storage image isn't used if it's an array
                                 if (resRef.GetRef() == nullptr)
@@ -281,8 +299,14 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 }
                                 else
                                 {
-                                    VKImageView* imageView = (VKImageView*)resRef.GetRef();
-                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
+                                    VKImageView* imageView = nullptr;
+                                    if (resRef.IsImageView())
+                                        imageView = (VKImageView*)resRef.GetRef();
+                                    else
+                                        imageView = static_cast<VKImageView*>(
+                                            &graph->GetImage(resRef.GetID().GetAsUUID())->GetDefaultImageView()
+                                        );
+                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
 
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
@@ -312,43 +336,46 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                 break;
                             }
-                        case ShaderInfo::BindingType::Texture:
-                        case ShaderInfo::BindingType::SeparateImage:
+                        case DescriptorType::CombinedImageSampler:
+                        case DescriptorType::SampledImage:
                             {
-                                VKImageView* imageView = (VKImageView*)resRef.GetRef();
-                                if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D ||
-                                    b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
+                                VKImageView* imageView = nullptr;
+                                if (resRef.IsImageView())
+                                    imageView = (VKImageView*)resRef.GetRef();
+                                else if (resRef.IsValidRef())
+                                    imageView = static_cast<VKImageView*>(
+                                        &graph->GetImage(resRef.GetID().GetAsUUID())->GetDefaultImageView()
+                                    );
+                                if (b.textureType == TextureType::Tex2D || b.textureType == TextureType::Tex3D)
                                 {
                                     VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                                    imageInfo.sampler = b->type == ShaderInfo::BindingType::Texture
+                                    imageInfo.sampler = b.descriptorType == DescriptorType::SampledImage
                                                             ? sharedResource->GetDefaultSampler()
                                                             : VK_NULL_HANDLE;
-                                    if (resRef.GetRef() != nullptr &&
-                                        !imageView->GetImage().GetDescription().isCubemap &&
-                                        resRef.type == ShaderBindingType::ImageView)
+                                    if (imageView != nullptr &&
+                                        !imageView->GetImage().GetDescription().isCubemap)
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
                                     }
                                     else
                                     {
-                                        if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex2D)
+                                        if (b.textureType == TextureType::Tex2D)
                                             imageInfo.imageView =
                                                 sharedResource->GetDefaultTexture2D()->GetDefaultVkImageView();
-                                        else if (b->binding.texture.type == ShaderInfo::Texture::Type::Tex3D)
+                                        else if (b.textureType == TextureType::Tex3D)
                                             imageInfo.imageView =
                                                 sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
                                     }
                                 }
-                                else if (b->binding.texture.type == ShaderInfo::Texture::Type::TexCube)
+                                else if (b.textureType == TextureType::TexCube)
                                 {
                                     VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                                     imageInfo.sampler = sharedResource->GetDefaultSampler();
 
-                                    if (resRef.GetRef() != nullptr &&
-                                        imageView->GetImage().GetDescription().isCubemap &&
-                                        resRef.type == ShaderBindingType::ImageView)
+                                    if (imageView != nullptr &&
+                                        imageView->GetImage().GetDescription().isCubemap)
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
                                     }
@@ -361,7 +388,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
 
                                 if (imageView && imageView->GetImage().IsGPUWrite())
                                 {
-                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b->stages);
+                                    VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
                                         .data = imageView->GetImage().GetSRef(),
@@ -375,11 +402,10 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(uint32_t set, VKShaderProgram
                                 }
                                 break;
                             }
-                        case ShaderInfo::BindingType::SeparateSampler:
+                        case DescriptorType::Sampler:
                             {
-                                auto createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
-                                    b->actualName,
-                                    b->binding.separateSampler.enableCompare
+                                auto createInfo = SamplerCachePool::GenerateSamplerCreateInfo(
+                                    descriptorSet.samplerConfigs[b.samplerIndex]
                                 );
                                 VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
                                 VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
@@ -419,18 +445,28 @@ void VKShaderResource::SetNameInternal(
     VKDebugUtils::SetDebugName(
         VK_OBJECT_TYPE_DESCRIPTOR_SET,
         (uint64_t)set,
-        fmt::format("{}-shader {}-setIndex {}", name, shader->GetName(), setIndex).c_str()
+        fmt::format("{}, {}, set {}", name, shader->GetName(), setIndex).c_str()
     );
 }
 
+void* VKShaderResource::ResourceRef::GetRef()
+{
+    if (type == ShaderBindingType::Buffer)
+        return std::get<SRef<Buffer>>(res).Get();
+    else if (type == ShaderBindingType::ImageView)
+        return std::get<SRef<ImageView>>(res).Get();
+
+    return nullptr;
+}
+
 const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
-    uint32_t set, VKShaderProgram* shaderProgram
+    uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
 )
 {
     auto iter = sets.find(shaderProgram->GetUUID());
     if (iter == sets.end() || iter->second.rebuild)
     {
-        GetDescriptorSet(set, shaderProgram);
+        GetDescriptorSet(set, shaderProgram, graph);
         iter = sets.find(shaderProgram->GetUUID());
     }
     if (iter != sets.end() && iter->second.creationSetIndex == set)

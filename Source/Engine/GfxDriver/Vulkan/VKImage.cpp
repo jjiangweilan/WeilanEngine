@@ -31,6 +31,12 @@ VKImage::VKImage(const ImageDescription& imageDescription, ImageUsageFlags usage
         arrayLayers = 6;
     }
 
+    if (imageDescription.width <= 0 || imageDescription.height <= 0)
+    {
+        spdlog::warn("Trying to create a zero sized image");
+        return;
+    }
+
     MakeVkObjects();
     CreateImageView();
 
@@ -233,6 +239,7 @@ VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& 
 ImageView& VKImage::GetImageView(const ImageViewOption& option)
 {
     ImageSubresourceRange range = GenerateDefaultSubresourceRange();
+    range.aspectMask = option.aspect;
     range.baseMipLevel = option.baseMipLevel;
     range.levelCount = option.levelCount;
     range.baseArrayLayer = option.baseArrayLayer;

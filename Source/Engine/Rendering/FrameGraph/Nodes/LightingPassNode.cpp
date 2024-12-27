@@ -1,6 +1,5 @@
 #include "../NodeBlueprint.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Model.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 #include "Rendering/Shader.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include <spdlog/spdlog.h>
@@ -42,11 +41,9 @@ class LightingPassNode : public Node
         Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
         lightingPass.SetSubpass(0, lightingPassAttachments);
 
-        lightingPassShader =
-            (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBRLighting.shad");
-        lightingPassShaderProgram = lightingPassShader->GetShaderProgram(0, 0);
-        lightingPassConfig = std::make_shared<Gfx::ShaderConfig>(*lightingPassShaderProgram->GetDefaultShaderConfig());
-        lightingPassConfig->color.blends.push_back({
+        lightingPassShader = ShaderLibrary::GetShader(ShaderLibrary::DeferredPBRShading);
+        auto lightingPassConfig_t = *lightingPassShader->GetShaderProgram()->GetDefaultShaderConfig();
+        lightingPassConfig_t.color.blends.push_back({
             .blendEnable = true,
             .srcColorBlendFactor = Gfx::BlendFactor::One,
             .dstColorBlendFactor = Gfx::BlendFactor::One,
@@ -56,6 +53,7 @@ class LightingPassNode : public Node
             .alphaBlendOp = Gfx::BlendOp::Add,
             .colorWriteMask = Gfx::ColorComponentBit::Component_All_Bits,
         });
+        lightingPassConfig = lightingPassConfig_t;
 
         shaderResource = GetGfxDriver()->CreateShaderResource();
         shadingPropertiesBuffer = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
@@ -100,10 +98,6 @@ class LightingPassNode : public Node
         Gfx::Viewport viewport{0, 0, static_cast<float>(rtWidth), static_cast<float>(rtHeight), 0, 1};
         cmd.SetViewport(viewport);
 
-#if ENGINE_DEV_BUILD
-        lightingPassShaderProgram = lightingPassShader->GetShaderProgram(0, 0);
-#endif
-
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
         lightingPass.SetAttachment(0, colorProp.id);
         cmd.BeginRenderPass(lightingPass, lightingPassClearValues);
@@ -112,7 +106,7 @@ class LightingPassNode : public Node
         cmd.SetTexture("maskTex", maskProp.id);
         cmd.SetTexture("depthTex", depthProp.id);
         cmd.SetTexture("aoMap", aoProp.id);
-        cmd.BindShaderProgram(lightingPassShaderProgram, lightingPassConfig);
+        cmd.BindShaderProgram(lightingPassShader->GetShaderProgram(), lightingPassConfig);
         cmd.BindResource(1, shaderResource.get());
         cmd.Draw(6, 1, 0, 0);
         cmd.EndRenderPass();
@@ -134,9 +128,8 @@ private:
 
     Gfx::RG::RenderPass lightingPass;
 
-    Shader* lightingPassShader;
-    Gfx::ShaderProgram* lightingPassShaderProgram;
-    std::shared_ptr<Gfx::ShaderConfig> lightingPassConfig;
+    ObjPtr<Shader2> lightingPassShader;
+    Gfx::PipelineConfig lightingPassConfig;
 
     struct
     {

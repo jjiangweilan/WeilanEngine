@@ -12,8 +12,8 @@ struct SceneObjectDrawData
     SceneObjectDrawData() = default;
     SceneObjectDrawData(SceneObjectDrawData&& other) = default;
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
-    Shader* shader = nullptr;
-    std::shared_ptr<const Gfx::ShaderConfig> shaderConfig = nullptr;
+    Shader2* shader = nullptr;
+    const Gfx::PipelineConfig* shaderConfig = nullptr;
     Material* material = nullptr;
     Gfx::ShaderResource* materialResource = nullptr;
     Gfx::ShaderResource* objectResource = nullptr;

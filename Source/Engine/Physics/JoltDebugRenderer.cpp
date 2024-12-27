@@ -70,7 +70,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);
-    batch->material = std::make_unique<Material>(EngineInternalResources::GetJoltDebugShader());
+    batch->material = std::make_unique<Material>(&EngineInternalResources::GetJoltDebugShader());
 
     return batch;
 }
@@ -119,7 +119,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);
-    batch->material = std::make_unique<Material>(EngineInternalResources::GetJoltDebugShader());
+    batch->material = std::make_unique<Material>(&EngineInternalResources::GetJoltDebugShader());
 
     return batch;
 }

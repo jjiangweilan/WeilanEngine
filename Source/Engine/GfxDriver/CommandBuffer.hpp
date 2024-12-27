@@ -89,7 +89,7 @@ public:
         std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
     ) = 0;
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
-    virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, std::shared_ptr<const ShaderConfig> config) = 0;
+    virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) = 0;
 
     virtual void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void NextRenderPass() = 0;
@@ -152,7 +152,7 @@ public:
         Gfx::Buffer& buffer, void* dst, size_t size, size_t offset = 0
     ) = 0;
 
-    virtual void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
+    virtual void AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 
     virtual void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp = {}) = 0;

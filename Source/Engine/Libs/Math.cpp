@@ -1,5 +1,4 @@
 #include "Math.hpp"
-#include "glm/gtc/quaternion.hpp"
 namespace Math
 {
 void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::quat& rot)

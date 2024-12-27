@@ -3,41 +3,23 @@
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Libs/Assert.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 
 DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
-Material::Material() : shader(nullptr), shaderResource(nullptr)
+Material::Material(std::string_view shaderName)
 {
-    SetName("new material");
-    schedule = std::make_shared<Schedule>();
-    shaderResource = GetGfxDriver()->CreateShaderResource();
+    SetShader(shaderName);
 }
 
-// Material::Material(const Material& other) : Asset(other), shader(nullptr), shaderConfig(other.shaderConfig)
-//{
-//     for (auto& ubo : other.ubos)
-//     {
-//         auto& thisUbo = this->ubos[ubo.first];
-//         thisUbo.buffer = nullptr;
-//         thisUbo.floats = ubo.second.floats;
-//         thisUbo.vectors = ubo.second.vectors;
-//         thisUbo.matrices = ubo.second.matrices;
-//     }
-//
-//     schedule = std::make_shared<Schedule>();
-//
-//     if (other.shader)
-//         SetShader(other.shader);
-//
-//     shaderResource = GetGfxDriver()->CreateShaderResource();
-// }
+Material::Material(ObjPtr<Shader2> shader)
+{
+    SetShaderNoProtection(shader);
+}
 
-Material::Material(ShaderBase* shader) : Material()
+Material::Material() : shaderInUse(nullptr), shaderResource(nullptr)
 {
     SetName("new material");
-    SetShader(shader);
-
-    schedule = std::make_shared<Schedule>();
     shaderResource = GetGfxDriver()->CreateShaderResource();
 }
 
@@ -49,15 +31,6 @@ void Material::SetTexture(const std::string& param, std::nullptr_t)
     if (shaderResource != nullptr)
         shaderResource->Remove(param);
     SetDirty();
-}
-
-void Material::SetBuffer(const std::string& param, Gfx::Buffer* buffer)
-{
-    bufferValues[param] = buffer;
-    if (shaderResource != nullptr)
-    {
-        shaderResource->SetBuffer(param, buffer);
-    }
 }
 
 void Material::SetTexture(
@@ -122,11 +95,8 @@ void Material::RebuildAllMaterials()
                 if (kv.second != nullptr)
                     mat->SetTexture(kv.first, kv.second);
             }
-            for (auto& ubo : mat->ubos)
-            {
-                mat->shaderResource->SetBuffer(ubo.first, ubo.second.buffer.get());
-                ubo.second.dirty = true;
-            }
+            mat->shaderResource->SetBuffer(PerMaterial, mat->ubo.buffer.get());
+            mat->ubo.dirty = true;
         }
     }
 }
@@ -147,21 +117,23 @@ void Material::SetTexture(
 
 void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
 {
-    auto& u = ubos[param];
-    u.matrices[member] = value;
-    u.dirty = true;
-    uploadNeeded = true;
-    SetDirty();
+    auto iter = ubo.matrices.find(param);
+    if (iter == ubo.matrices.end() || iter->second != value)
+    {
+        ubo.matrices[member] = value;
+        ubo.dirty = true;
+        uploadNeeded = true;
+        SetDirty();
+    }
 }
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
 {
-    auto& u = ubos[param];
-    auto iter = u.floats.find(param);
-    if (iter == u.floats.end() || iter->second != value)
+    auto iter = ubo.floats.find(param);
+    if (iter == ubo.floats.end() || iter->second != value)
     {
-        u.floats[member] = value;
-        u.dirty = true;
+        ubo.floats[member] = value;
+        ubo.dirty = true;
         uploadNeeded = true;
         SetDirty();
     }
@@ -169,39 +141,32 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
 {
-    auto& u = ubos[param];
-    u.vectors[member] = value;
-    u.dirty = true;
-    uploadNeeded = true;
-    SetDirty();
+    auto iter = ubo.vectors.find(param);
+    if (iter == ubo.vectors.end() || iter->second != value)
+    {
+        ubo.vectors[member] = value;
+        ubo.dirty = true;
+        uploadNeeded = true;
+        SetDirty();
+    }
 }
 
 glm::mat4 Material::GetMatrix(const std::string& param, const std::string& member)
 {
-    uploadNeeded = true;
-    auto iter = ubos.find(param);
-    if (iter != ubos.end())
+    auto memIter = ubo.matrices.find(member);
+    if (memIter != ubo.matrices.end())
     {
-        auto memIter = iter->second.matrices.find(member);
-        if (memIter != iter->second.matrices.end())
-        {
-            return memIter->second;
-        }
+        return memIter->second;
     }
     return glm::mat4(0);
 }
 
 glm::vec4 Material::GetVector(const std::string& param, const std::string& member)
 {
-    uploadNeeded = true;
-    auto iter = ubos.find(param);
-    if (iter != ubos.end())
+    auto memIter = ubo.vectors.find(member);
+    if (memIter != ubo.vectors.end())
     {
-        auto memIter = iter->second.vectors.find(member);
-        if (memIter != iter->second.vectors.end())
-        {
-            return memIter->second;
-        }
+        return memIter->second;
     }
     return glm::vec4(0);
 }
@@ -219,48 +184,59 @@ Texture* Material::GetTexture(const std::string& param)
 
 float Material::GetFloat(const std::string& param, const std::string& member)
 {
-    uploadNeeded = true;
-    auto iter = ubos.find(param);
-    if (iter != ubos.end())
+    auto memIter = ubo.floats.find(member);
+    if (memIter != ubo.floats.end())
     {
-        auto memIter = iter->second.floats.find(member);
-        if (memIter != iter->second.floats.end())
-        {
-            return memIter->second;
-        }
+        return memIter->second;
     }
     return 0;
 }
-
-void Material::SetShader(ShaderBase* shader)
+void Material::SetShader(Shader2* shader)
 {
-    if (shader != nullptr) // why null check? I think we don't need it
+    if (this->shaderInUse.Get() == shader)
     {
+        needRequestNewShader = false;
+        this->shaderName = shader->GetName();
         SetShaderNoProtection(shader);
         SetDirty();
     }
 }
 
-void Material::SetShaderNoProtection(ShaderBase* shader)
+void Material::SetShader(std::string_view shaderName)
 {
-    this->shader = shader;
+    if (shaderInUse == nullptr || this->shaderName != shaderName)
+    {
+        shaderFeatures = &ShaderLibrary::QueryShaderFeatures(shaderName.data());
+
+        if (shaderFeatures)
+        {
+            auto perm = shaderFeatures->GetPermutation(enabledFeatures);
+            auto shader = ShaderLibrary::GetShader(shaderName.data(), perm);
+            needRequestNewShader = false;
+            this->shaderName = shaderName;
+            SetShaderNoProtection(shader);
+            SetDirty();
+        }
+    }
+}
+
+void Material::SetShaderNoProtection(ObjPtr<Shader2> shaderProgram)
+{
+    this->shaderInUse = shaderProgram;
     uploadNeeded = true;
-    shaderConfig = std::make_shared<Gfx::ShaderConfig>(*shader->GetDefaultShaderConfig());
-    // if (shaderResource != nullptr)
-    // {
-    //     GetGfxDriver()->WaitForIdle();
-    // }
+    shaderConfig = shaderInUse->GetShaderProgram()->GetDefaultShaderConfig();
 }
 
 void Material::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
-    s->Serialize("shader", shader);
-    s->Serialize("ubos", ubos);
+    s->Serialize("shader", shaderInUse);
+    s->Serialize("ubo", ubo);
     s->Serialize("textureValues", textureValues);
     std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
-    s->Serialize("shaderConfig", shaderConfig && overrideShaderConfig ? shaderConfig->ToJson() : nlohmann::json());
+    s->Serialize("overrideShaderConfig", overrideShaderConfig);
+    s->Serialize("shaderConfig", overrideShaderConfig ? shaderConfig.ToJson() : nlohmann::json());
 }
 
 std::unique_ptr<Asset> Material::Clone()
@@ -271,59 +247,30 @@ std::unique_ptr<Asset> Material::Clone()
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
+    if (uploadNeeded && shaderInUse)
+    {
+        UploadDataToGPU(shaderInUse->GetShaderProgram());
+    }
     return shaderResource.get();
 }
 
-Gfx::ShaderProgram* Material::GetShaderProgram(int shaderPassIndex)
+Gfx::ShaderProgram* Material::GetShaderProgram()
 {
-    if (!shader)
-        return nullptr;
-
-    uint64_t globalShaderFeaturesHash = Shader::GetEnabledFeaturesHash();
-    if (cachedShaderPrograms[shaderPassIndex] == nullptr ||
-        this->globalShaderFeaturesHash != globalShaderFeaturesHash || shaderContentHash != shader->GetContentHash())
+    if (needRequestNewShader && shaderFeatures)
     {
-        shaderContentHash = shader->GetContentHash();
-
-        this->globalShaderFeaturesHash = globalShaderFeaturesHash;
-        cachedShaderProgramFeatures = std::vector<std::string>(enabledFeatures.begin(), enabledFeatures.end());
-        auto& globalEnabledFeatures = Shader::GetEnabledFeatures();
-        cachedShaderProgramFeatures
-            .insert(cachedShaderProgramFeatures.end(), globalEnabledFeatures.begin(), globalEnabledFeatures.end());
-        auto newProgram = shader->GetShaderProgram(
-            shaderPassIndex,
-            shader->GetShaderFeatureBitmask(shaderPassIndex, cachedShaderProgramFeatures)
-        );
-
-        if (newProgram != cachedShaderPrograms[shaderPassIndex])
-        {
-            shaderResource->RebuildAll();
-            cachedShaderPrograms[shaderPassIndex] = newProgram;
-            for (auto& u : ubos)
-            {
-                u.second.buffer = nullptr; // recreation needed
-                u.second.dirty = true;
-                uploadNeeded = true;
-            }
-        }
+        shaderInUse = ShaderLibrary::GetShader(shaderName.data(), shaderFeatures->GetPermutation(enabledFeatures));
+        needRequestNewShader = false;
     }
 
-    Gfx::ShaderProgram* shaderProgram = cachedShaderPrograms[shaderPassIndex];
-
-    if (uploadNeeded)
-    {
-        UploadDataToGPU(shaderProgram);
-    }
-
-    return shaderProgram;
+    return shaderInUse->GetShaderProgram();
 }
 
 void Material::EnableFeature(const std::string& name)
 {
     if (!enabledFeatures.contains(name))
     {
+        needRequestNewShader = true;
         enabledFeatures.emplace(name);
-        cachedShaderPrograms.clear();
     }
 }
 
@@ -331,16 +278,16 @@ void Material::DisableFeature(const std::string& name)
 {
     if (enabledFeatures.contains(name))
     {
+        needRequestNewShader = true;
         enabledFeatures.erase(name);
-        cachedShaderPrograms.clear();
     }
 }
 
 void Material::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
-    s->Deserialize("shader", shader);
-    s->Deserialize("ubos", ubos);
+    // s->Deserialize("shader", shader);
+    s->Deserialize("ubo", ubo);
     s->Deserialize(
         "textureValues",
         textureValues,
@@ -368,17 +315,19 @@ void Material::Deserialize(Serializer* s)
     }
     nlohmann::json shaderConfigJson;
     s->Deserialize("shaderConfig", shaderConfigJson);
+    s->Deserialize("overrideShaderConfig", overrideShaderConfig);
     if (shaderConfigJson != nullptr)
     {
-        shaderConfig = std::make_shared<Gfx::ShaderConfig>(Gfx::ShaderConfig::FromJson(shaderConfigJson));
+        // shaderConfig = std::make_shared<Gfx::ShaderConfig>(Gfx::ShaderConfig::FromJson(shaderConfigJson));
     }
 }
 
 void Material::OnLoaded()
 {
+    return;
     uploadNeeded = true;
 
-    bool hasConfig = shaderConfig != nullptr;
+    bool hasConfig = overrideShaderConfig;
     using namespace Gfx;
 
     CullMode cullMode = CullMode::Back;
@@ -386,17 +335,19 @@ void Material::OnLoaded()
 
     if (hasConfig)
     {
-        cullMode = shaderConfig->cullMode;
-        topology = shaderConfig->topology;
+        auto config = *shaderConfig;
+        cullMode = config.cullMode;
+        topology = config.topology;
     }
 
-    this->SetShader(this->shader);
+    this->SetShader(shaderName);
 
     if (hasConfig)
     {
-        overrideShaderConfig = true;
-        shaderConfig->cullMode = cullMode;
-        shaderConfig->topology = topology;
+        auto copy = *shaderConfig;
+        copy.cullMode = cullMode;
+        copy.topology = topology;
+        *shaderConfig = copy;
     }
 }
 
@@ -422,110 +373,135 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 
     uploadNeeded = false;
 
-    for (auto& u : ubos)
+    if (ubo.dirty)
     {
-        if (u.second.dirty)
+        ubo.dirty = false;
+        const auto& pipelineInfo = shaderProgram->GetShaderInfo();
+        auto binding = pipelineInfo.descriptorSets[1].GetBinding(PerMaterial);
+        if (binding != nullptr &&
+            binding->descriptorType == Gfx::DescriptorType::UniformBuffer)
         {
-            u.second.dirty = false;
-            auto bindingIter = shaderProgram->GetShaderInfo().bindings.find(u.first);
-            if (bindingIter != shaderProgram->GetShaderInfo().bindings.end() &&
-                bindingIter->second.type == Gfx::ShaderInfo::BindingType::UBO)
+            // Create the buffer
+            if (ubo.buffer == nullptr)
             {
-                // Create the buffer
-                if (u.second.buffer == nullptr)
+                size_t size = binding->byteSize;
+                std::unique_ptr<Gfx::Buffer> buffer = GetGfxDriver()->CreateBuffer({
+                    .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
+                    .size = size,
+                    .visibleInCPU = false,
+                    .debugName = "Material Uniform Buffer",
+                });
+
+                shaderResource->SetBuffer(PerMaterial, buffer.get());
+                ubo.buffer = std::move(buffer);
+            }
+
+            auto bufSize = binding->byteSize;
+            std::vector<uint8_t, GlobalTempAllocator<uint8_t>> tempUploadData(bufSize);
+
+            ASSERT(binding->descriptorType == Gfx::DescriptorType::UniformBuffer && "UBO should be a structure");
+            for (auto& member : binding->bufferMembers)
+            {
+                UploadDataToGPUInternal(pipelineInfo, member, tempUploadData);
+            }
+            GetGfxDriver()->UploadBuffer(*ubo.buffer, tempUploadData.data(), tempUploadData.size(), 0);
+        }
+    }
+}
+
+void Material::UploadDataToGPUInternal(
+    const Gfx::PipelineInfo& pipelineInfo,
+    const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
+    std::vector<uint8_t, GlobalTempAllocator<uint8_t>>& buf
+)
+{
+    size_t offset = bufferDataDescription.offset;
+    size_t bufSize = buf.size();
+    ASSERT(!bufferDataDescription.IsArray());
+
+    if (bufferDataDescription.IsVector())
+    {
+        ASSERT(bufferDataDescription.type == Gfx::PipelineInfo::MemberDataType::Float);
+        {
+            auto iter = ubo.vectors.find(bufferDataDescription.name);
+            if (iter != ubo.vectors.end())
+            {
+                if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)
                 {
-                    size_t size = bindingIter->second.binding.ubo.data.size;
-                    std::unique_ptr<Gfx::Buffer> buffer = GetGfxDriver()->CreateBuffer({
-                        .usages = Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform,
-                        .size = size,
-                        .visibleInCPU = false,
-                        .debugName = "Material Uniform Buffer",
-                    });
-
-                    shaderResource->SetBuffer(u.first, buffer.get());
-                    u.second.buffer = std::move(buffer);
+                    ASSERT(offset + sizeof(glm::vec4) <= bufSize);
+                    *((glm::vec4*)(buf.data() + offset)) = iter->second;
                 }
-
-                auto bufSize = bindingIter->second.binding.ubo.data.size;
-                tempUploadData.clear();
-                tempUploadData.resize(bufSize);
-
-                auto& members = bindingIter->second.binding.ubo.data.members;
-                for (auto& m : members)
+                else if (bufferDataDescription.rowCount == 2)
                 {
-                    switch (m.second.data->type)
-                    {
-                        case Gfx::ShaderInfo::ShaderDataType::Float:
-                            {
-                                auto iter = u.second.floats.find(m.first);
-                                if (iter != u.second.floats.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(float) <= bufSize);
-                                    *((float*)(tempUploadData.data() + offset)) = iter->second;
-                                }
-                                break;
-                            }
-                        case Gfx::ShaderInfo::ShaderDataType::UInt:
-                            {
-                                auto iter = u.second.floats.find(m.first);
-                                if (iter != u.second.floats.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(float) <= bufSize);
-                                    *((uint32_t*)(tempUploadData.data() + offset)) = (uint32_t)iter->second;
-                                }
-                                break;
-                            }
-                        case Gfx::ShaderInfo::ShaderDataType::Int:
-                            {
-                                auto iter = u.second.floats.find(m.first);
-                                if (iter != u.second.floats.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(float) <= bufSize);
-                                    *((int32_t*)(tempUploadData.data() + offset)) = (int32_t)iter->second;
-                                }
-                                break;
-                            }
-                        case Gfx::ShaderInfo::ShaderDataType::Vec4:
-                        case Gfx::ShaderInfo::ShaderDataType::Vec3:
-                            {
-                                auto iter = u.second.vectors.find(m.first);
-                                if (iter != u.second.vectors.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(glm::vec4) <= bufSize);
-                                    *((glm::vec4*)(tempUploadData.data() + offset)) = iter->second;
-                                }
-                                break;
-                            }
-                        case Gfx::ShaderInfo::ShaderDataType::Vec2:
-                            {
-                                auto iter = u.second.vectors.find(m.first);
-                                if (iter != u.second.vectors.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(glm::vec2) <= bufSize);
-                                    *((glm::vec2*)(tempUploadData.data() + offset)) = glm::vec2(iter->second);
-                                }
-                                break;
-                            }
-                        case Gfx::ShaderInfo::ShaderDataType::Mat4:
-                            {
-                                auto iter = u.second.matrices.find(m.first);
-                                if (iter != u.second.matrices.end())
-                                {
-                                    size_t offset = m.second.offset;
-                                    ASSERT(offset + sizeof(glm::mat4) <= bufSize);
-                                    *((glm::mat4*)(tempUploadData.data() + offset)) = iter->second;
-                                }
-                                break;
-                            }
-                    }
+                    ASSERT(offset + sizeof(glm::vec2) <= bufSize);
+                    *((glm::vec2*)(buf.data() + offset)) = glm::vec2(iter->second);
                 }
-                GetGfxDriver()->UploadBuffer(*u.second.buffer, tempUploadData.data(), tempUploadData.size(), 0);
             }
         }
+    }
+    else if (bufferDataDescription.IsMatrix())
+    {
+        auto iter = ubo.matrices.find(bufferDataDescription.name);
+        if (iter != ubo.matrices.end())
+        {
+            ASSERT(bufferDataDescription.rowCount == 4 && bufferDataDescription.columnCount == 4);
+            {
+                ASSERT(offset + sizeof(glm::mat4) <= bufSize);
+                *((glm::mat4*)(buf.data() + offset)) = iter->second;
+            }
+        }
+    }
+    else // scatter type
+    {
+        switch (bufferDataDescription.type)
+        {
+            case Gfx::PipelineInfo::MemberDataType::Float:
+                {
+                    auto iter = ubo.floats.find(bufferDataDescription.name);
+                    if (iter != ubo.floats.end())
+                    {
+                        ASSERT(offset + sizeof(float) <= bufSize);
+                        *((float*)(buf.data() + offset)) = iter->second;
+                    }
+                    break;
+                }
+            case Gfx::PipelineInfo::MemberDataType::UInt:
+                {
+                    auto iter = ubo.floats.find(bufferDataDescription.name);
+                    if (iter != ubo.floats.end())
+                    {
+                        ASSERT(offset + sizeof(uint32_t) <= bufSize);
+                        *((uint32_t*)(buf.data() + offset)) = (uint32_t)iter->second;
+                    }
+                    break;
+                }
+            case Gfx::PipelineInfo::MemberDataType::Int:
+                {
+                    auto iter = ubo.floats.find(bufferDataDescription.name);
+                    if (iter != ubo.floats.end())
+                    {
+                        ASSERT(offset + sizeof(int32_t) <= bufSize);
+                        *((int32_t*)(buf.data() + offset)) = (int32_t)iter->second;
+                    }
+                    break;
+                }
+            case Gfx::PipelineInfo::MemberDataType::Structure:
+                {
+                    ASSERT(false && "Nested Structure not supported in material");
+                    break;
+                }
+            default: ASSERT(0 && "Not Handled"); break;
+        }
+    }
+}
+
+const Gfx::PipelineConfig& Material::GetShaderConfig()
+{
+    if (overrideShaderConfig || shaderInUse == nullptr)
+        return shaderConfig;
+    else
+    {
+        Shader2* s = shaderInUse;
+        return s->GetShaderProgram()->GetDefaultShaderConfig();
     }
 }

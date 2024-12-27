@@ -52,7 +52,7 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
         }
     }
 
-    LoadEngineInternal();
+    // LoadEngineInternal();
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -591,11 +591,9 @@ void AssetDatabase::LoadEngineInternal()
     {
         LoadAsset(p);
     }
-    // LoadAssets(shaderPathes);
-    Shader* standardShader = (Shader*)LoadAsset("_engine_internal/Shaders/Game/SceneLit.shad");
-    Shader::SetDefault(standardShader);
+
     Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");
-    defaultMat->SetShader(standardShader);
+    defaultMat->SetShader("SceneLit");
 
     std::vector<std::filesystem::path> others(shaderIter, importPathes.end());
 

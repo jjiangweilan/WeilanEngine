@@ -1,14 +1,1 @@
-{
- "enabledFeature": {
-  "size": 0
- },
- "name": "PrimitiveGrid",
- "shader": "c320321d-37a2-5126-a1f9-25263f6ce64f",
- "textureValues": {
-  "size": 0
- },
- "ubos": {
-  "size": 0
- },
- "uuid": "f56af1a5-ba66-545d-8ebb-5e984f12b29a"
-}
+{"enabledFeature":{"size":0},"name":"PrimitiveGrid","overrideShaderConfig":false,"shader":"00000000-0000-0000-0000-000000000000","shaderConfig":null,"textureValues":{"size":0},"ubo":{"floats":{"size":0},"matrices":{"size":0},"vectors":{"size":0}},"uuid":"f56af1a5-ba66-545d-8ebb-5e984f12b29a"}

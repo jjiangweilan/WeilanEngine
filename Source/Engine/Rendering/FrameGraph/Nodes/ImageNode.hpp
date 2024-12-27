@@ -32,7 +32,7 @@ private:
     Gfx::RG::ImageDescription desc;
 
     glm::vec2* size;
-    Gfx::ImageFormat* format;
+    Gfx::GfxFormat* format;
 
     void DefineNode();
     static char _reg;

@@ -1,0 +1,2 @@
+#include "Shader2.hpp"
+DEFINE_OBJECT(Shader2, "B1E88B63-32EF-4690-B694-EE8F23BF7E72");

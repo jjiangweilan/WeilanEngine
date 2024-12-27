@@ -23,9 +23,7 @@ class SamplerCachePool
 public:
     static VkSampler RequestSampler(VkSamplerCreateInfo& createInfo);
     static void DestroyPool();
-    static VkSamplerCreateInfo GenerateSamplerCreateInfoFromString(
-        const std::string& lowerBindingName, bool enableCompare
-    );
+    static VkSamplerCreateInfo GenerateSamplerCreateInfo(const Gfx::PipelineInfo::SamplerConfig& samplerConfig);
 
 private:
     static std::unordered_map<vk::SamplerCreateInfo, VkSampler> samplers;
@@ -35,43 +33,28 @@ class VKShaderProgram : public ShaderProgram
 {
 public:
     using SetNum = uint32_t;
-    VKShaderProgram(
-        std::shared_ptr<const ShaderConfig> config,
-        VKContext* context,
-        const std::string& name,
-        ShaderProgramCreateInfo& createInfo
-    );
+    VKShaderProgram(VKContext* context, const GraphicsPipelineCreateInfo& createInfo);
+    VKShaderProgram(VKContext* context, const ComputePipelineCreateInfo& createInfo);
 
     VKShaderProgram(const VKShaderProgram& other) = delete;
     ~VKShaderProgram() override;
 
     VkPipelineLayout GetVKPipelineLayout();
-    bool HasSet(uint32_t set)
-    {
-        return GetLayoutHash(set) != 0;
-    }
 
-    // request a pipeline object according to config
-    // we may have slightly different pipelines with different configs, VKShader should cache these pipelines(TODO)
-    VkPipeline RequestGraphicsPipeline(const ShaderConfig& config, VKRenderPass* renderPass, uint32_t subpass);
-    VkPipeline RequestComputePipeline(const ShaderConfig& config);
+    VkPipeline RequestGraphicsPipeline(const PipelineConfig& config, VKRenderPass * renderPass, uint32_t subpass);
+    VkPipeline RequestComputePipeline();
     VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
 
-    std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
+    // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
-    const ShaderInfo::ShaderInfo& GetShaderInfo() override
-    {
-        return shaderInfo;
-    }
-    const std::string& GetName() override
-    {
-        return name;
-    }
-
-    // note layout created with VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR won't register to layouy hashes
-    size_t GetLayoutHash(uint32_t set);
+    const PipelineConfig& GetDefaultShaderConfig() override { return defaultPipelineConfig; };
+    const PipelineInfo& GetShaderInfo() override { return pipelineInfo; }
+    const std::string& GetName() override { return name; }
+    bool HasSet(int set) const { return set >= 0 && set < pipelineInfo.descriptorSets.size(); }
 
 private:
+    using PipelineRequestHash = uint64_t;
+
     struct DescriptorSetLayoutBindingWrap
     {
         std::vector<VkDescriptorSetLayoutBinding> binding;
@@ -79,33 +62,26 @@ private:
     };
     typedef std::unordered_map<SetNum, DescriptorSetLayoutBindingWrap> DescriptorSetBindings;
     typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
-    struct PipelineCache
-    {
-        VkPipeline pipeline;
-        VkRenderPass renderPass;
-        uint32_t subpass;
-        ShaderConfig config;
-    };
 
     std::string name = "";
-    ShaderInfo::ShaderInfo shaderInfo = {};
     VKObjectManager* objManager = nullptr;
-    std::unique_ptr<VKShaderModule> vertShaderModule;
-    std::unique_ptr<VKShaderModule> fragShaderModule;
-    std::unique_ptr<VKShaderModule> computeShaderModule;
+    VkShaderModule vertexModule = VK_NULL_HANDLE;
+    VkShaderModule fragmentModule = VK_NULL_HANDLE;
+    VkShaderModule computeModule = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    std::vector<PipelineCache> caches = {};
-    std::vector<VkSampler> immutableSamplers = {};
-    std::vector<size_t> layoutHash = {};
+    std::unordered_map<PipelineRequestHash, VkPipeline> caches = {};
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools = {};
-    VkDescriptorSet descriptorSet;
+    PipelineInfo pipelineInfo;
+    PipelineConfig defaultPipelineConfig;
+    // cached data
+    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
+    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
 
     // descriptor pool take a pointer to these value so these can't be temp values
     DescriptorSetBindings descriptorSetBindings = {};
 
-    void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
+    // void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
+    void GeneratePipelineLayout();
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
-
-    std::shared_ptr<const ShaderConfig> defaultShaderConfig = {};
 };
 } // namespace Gfx

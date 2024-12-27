@@ -21,7 +21,7 @@ public:
         uint32_t mipLevel,
         bool isArray,
         bool isCubemap,
-        Gfx::ImageFormat format,
+        Gfx::GfxFormat format,
         bool enableCompression = false
     );
 };

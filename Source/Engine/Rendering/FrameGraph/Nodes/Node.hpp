@@ -63,7 +63,7 @@ struct Configurable
         else if constexpr (type == ConfigurableType::Float)
             static_assert(std::is_same_v<T, float>);
         else if constexpr (type == ConfigurableType::Format)
-            static_assert(std::is_same_v<T, Gfx::ImageFormat>);
+            static_assert(std::is_same_v<T, Gfx::GfxFormat>);
         else if constexpr (type == ConfigurableType::Vec2)
             static_assert(std::is_same_v<T, glm::vec2>);
         else if constexpr (type == ConfigurableType::Vec3)

@@ -404,13 +404,13 @@
 //     g.feedbackTex = g.feedbackTexGraph.AddNode<RGraph::ImageNode>();
 //     g.feedbackTex->width = frameTexWidth / feedbackTexScale;
 //     g.feedbackTex->height = frameTexheight / feedbackTexScale;
-//     g.feedbackTex->format = Gfx::ImageFormat::R16G16B16A16_UNorm;
+//     g.feedbackTex->format = Gfx::GfxFormat::R16G16B16A16_UNorm;
 //     g.feedbackTex->SetName("VirtualTextureRenderer-feedbackTex");
 //
 //     g.feedbackDepthTex = g.feedbackTexGraph.AddNode<RGraph::ImageNode>();
 //     g.feedbackDepthTex->width = frameTexWidth / feedbackTexScale;
 //     g.feedbackDepthTex->height = frameTexheight / feedbackTexScale;
-//     g.feedbackDepthTex->format = Gfx::ImageFormat::D16_UNorm;
+//     g.feedbackDepthTex->format = Gfx::GfxFormat::D16_UNorm;
 //     g.feedbackDepthTex->SetName("VirtualTextureRenderer-feedbackDepthTex");
 //
 //     g.feedbackPass = g.feedbackTexGraph.AddNode<RGraph::RenderPassNode>();
@@ -429,7 +429,7 @@
 //     g.readbackBuf = g.feedbackTexGraph.AddNode<RGraph::BufferNode>();
 //     g.readbackBuf->props.size =
 //         g.feedbackTex->width * g.feedbackTex->height *
-//         Gfx::Utils::MapImageFormatToByteSize(Gfx::ImageFormat::R16G16B16A16_UNorm); // R16G16B16A16_SFloat
+//         Gfx::Utils::MapGfxFormatToByteSize(Gfx::GfxFormat::R16G16B16A16_UNorm); // R16G16B16A16_SFloat
 //     g.readbackBuf->props.debugName = "VirtualTextureRenderer-feadbackBuf";
 //     g.readbackBuf->props.visibleInCPU = true;
 //

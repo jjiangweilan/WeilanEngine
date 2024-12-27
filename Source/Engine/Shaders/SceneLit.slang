@@ -1,0 +1,144 @@
+import Library.PerScene;
+#include "DeferredPBRShading.hlsl"
+
+static extern const bool _AlphaTest = false;
+static extern const bool _BaseColorMap = true;
+static extern const bool _NormalMap = true;
+static extern const bool _EmissiveMap = true;
+static extern const bool _MetallicRoughnessMap = true;
+
+interface IVertexInput
+{
+    float3 GetPosition();
+    float3 GetNormal();
+    float4 GetTangent();
+    float2 GetUV();
+    float4 GetBone();
+}
+
+struct StandardVertexInput : IVertexInput
+{
+    float3 position;
+    float3 normal;
+    float4 tangent;
+    float2 uv;
+
+    float3 GetPosition() {return position;}
+    float3 GetNormal() {return normal;}
+    float4 GetTangent() {return float4(0,0,0,1);}
+    float2 GetUV() { return 0;}
+    float4 GetBone() { return 0;}
+}
+
+extern struct VertexInput : IVertexInput = StandardVertexInput;
+
+struct PushConstant
+{
+    matrix<float,4,4> model;
+} 
+
+[vk_push_constant]
+PushConstant pconst;
+
+struct VertexOutput
+{
+    float4 position : SV_Position;
+    float3 positionWS;
+    float3 normalWS;
+    float3 tangentWS;
+    float3 bitangentWS;
+    float2 uv;
+}
+
+ParameterBlock<PerScene> scene;
+
+[shader("vertex")]
+VertexOutput VertexMain(VertexInput input)
+{
+    VertexOutput output;
+    float3 vertexPos = input.GetPosition();
+    float3 normal = input.GetNormal();
+    float3 tangent = input.GetTangent().xyz;
+
+    output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
+
+    matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.model; // maybe a invTspModel calculated in CPU if it's needed
+    output.normalWS = mul(model33, normal).xyz;
+    output.tangentWS = mul(model33, tangent).xyz;
+    output.bitangentWS = input.GetTangent().w * cross(output.normalWS, output.tangentWS);
+    output.uv = input.GetUV();
+
+    output.position = mul(scene.viewProjection, float4(output.positionWS, 1));
+
+    return output;
+}
+
+struct PerMaterial
+{
+    float4 baseColorFactor;
+    float4 emissive;
+    float roughness;
+    float metallic;
+    float alphaCutoff;
+
+    Sampler2D baseColorTex;
+    Sampler2D normalMap;
+    Sampler2D metallicRoughnessMap;
+    Sampler2D emissiveMap;
+};
+
+ParameterBlock<PerMaterial> perMaterial;
+
+struct FragmentOutput
+{
+    float4 color : SV_Target0;
+    float4 albedo : SV_Target1;
+    float4 normal : SV_Target2;
+    float4 property : SV_Target3;
+}
+
+[shader("fragment")]
+FragmentOutput FragmentMain(VertexOutput input)
+{
+    FragmentOutput output;
+
+    float4 baseColor = perMaterial.baseColorFactor;
+    if (_BaseColorMap)
+    {
+        baseColor *= perMaterial.baseColorTex.Sample(input.uv);
+    }
+
+    if (_AlphaTest)
+    {
+        if (baseColor.a < perMaterial.alphaCutoff)
+            discard;
+    }
+
+    float metallic = perMaterial.metallic;
+    float roughness = perMaterial.roughness;
+    if (_MetallicRoughnessMap)
+    {
+        float2 metallicRoughness = float2(roughness, metallic) * perMaterial.metallicRoughnessMap.Sample(input.uv).gb;
+    }
+
+    float3 normal = float3(0,0,1);
+    if (_NormalMap)
+    {
+        normal = perMaterial.normalMap.Sample(input.uv).xyz * 2 - 1;
+    }
+    matrix<float,3,3> TBN = matrix<float,3,3>(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS));
+    float3 n = EncodeGBufferNormal(normalize(mul(TBN, normal)));
+
+    float4 emission = 0;
+    if (_EmissiveMap)
+    {
+        emission = perMaterial.emissiveMap.Sample(input.uv);
+    }
+
+    output.color = float4(emission.xyz * perMaterial.emissive.xyz, 1.0f);
+    output.albedo = float4(baseColor.xyz, 1.0f);
+    output.normal = float4(n, 1.0f);
+    output.property = float4(metallic, roughness, 0, 1.0f);
+
+    return output;
+}

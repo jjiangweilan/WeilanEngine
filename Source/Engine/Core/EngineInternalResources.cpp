@@ -1,13 +1,13 @@
 #include "EngineInternalResources.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Model.hpp"
-
+#include "Rendering/ShaderLibrary.hpp"
 EngineInternalResources::EngineInternalResources()
 {
     auto db = AssetDatabase::Singleton();
-    lineShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/LineShader.shad"));
-    joltDebugShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/JoltDebugShader.shad"));
-    triangleShader = static_cast<Shader*>(db->LoadAsset("_engine_internal/Shaders/TriangleShader.shad"));
+    lineShader = ShaderLibrary::GetShader(ShaderLibrary::LineShader);
+    joltDebugShader = ShaderLibrary::GetShader(ShaderLibrary::JoltDebugShader);
+    triangleShader = ShaderLibrary::GetShader(ShaderLibrary::TriangleShader);
     defaultMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/Default.mat"));
     models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Sphere.glb")))->GetMeshes()[0].get();
     models.capsule = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Capsule.fbx")))->GetMeshes()[0].get();

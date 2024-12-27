@@ -3,16 +3,162 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
+#include "Libs/Allocator/GlobalTempAllocator.hpp"
+#include "Libs/Assert.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
-#include "VKShaderModule.hpp"
 #include "VKShaderProgram.hpp"
-#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {
+
+VKShaderProgram::VKShaderProgram(VKContext* context, const GraphicsPipelineCreateInfo& createInfo)
+    : ShaderProgram(false), name(createInfo.pipelineInfo.name), objManager(context->objManager)
+{
+    pipelineInfo = createInfo.pipelineInfo;
+    defaultPipelineConfig = createInfo.defaultConfig;
+    VkShaderModuleCreateInfo vertexModuleCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .codeSize = createInfo.vertSpv.size(),
+        .pCode = (uint32_t*)createInfo.vertSpv.data()
+    };
+
+    VkShaderModuleCreateInfo fragmentModuleCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .codeSize = createInfo.fragSpv.size(),
+        .pCode = (uint32_t*)createInfo.fragSpv.data()
+    };
+    objManager->CreateShaderModule(vertexModuleCreateInfo, vertexModule);
+    objManager->CreateShaderModule(fragmentModuleCreateInfo, fragmentModule);
+    GeneratePipelineLayout();
+
+    // vertex inputs
+    if (pipelineInfo.isVertexInterleaved)
+    {
+        uint32_t offset = 0;
+        vertexAttributeDescriptions.reserve(pipelineInfo.vertexInputs.size());
+        for (auto& vertexAttribute : pipelineInfo.vertexInputs)
+        {
+            VkVertexInputAttributeDescription attributeDesc;
+            attributeDesc.location = vertexAttribute.location;
+            attributeDesc.binding = 0;
+            attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+            attributeDesc.offset = offset;
+
+            vertexAttributeDescriptions.push_back(attributeDesc);
+            offset += vertexAttribute.size;
+        }
+
+        VkVertexInputBindingDescription bindingDesc;
+        bindingDesc.binding = 0;
+        bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        bindingDesc.stride = offset; // offset becomes the total stride size
+        vertexInputBindingDescriptions.push_back(bindingDesc);
+    }
+    else
+    {
+        if (!pipelineInfo.vertexInputs.empty())
+        {
+            auto& vertexAttribute = pipelineInfo.vertexInputs[0];
+            VkVertexInputAttributeDescription attributeDesc;
+            attributeDesc.location = vertexAttribute.location;
+            attributeDesc.binding = 0;
+            attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+            attributeDesc.offset = 0;
+            vertexAttributeDescriptions.push_back(attributeDesc);
+
+            VkVertexInputBindingDescription bindingDesc;
+            bindingDesc.binding = 0;
+            bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            bindingDesc.stride = vertexAttribute.size;
+            vertexInputBindingDescriptions.push_back(bindingDesc);
+
+            size_t attributeOffset = 0;
+            for (int i = 1; i < pipelineInfo.vertexInputs.size(); ++i)
+            {
+                auto& vertexAttribute = pipelineInfo.vertexInputs[i];
+                VkVertexInputAttributeDescription attributeDesc;
+                attributeDesc.location = vertexAttribute.location;
+                attributeDesc.binding = 1;
+                attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+                attributeDesc.offset = attributeOffset;
+                vertexAttributeDescriptions.push_back(attributeDesc);
+                attributeOffset += vertexAttribute.size;
+            }
+
+            // attributeOffset == 0 means there is no attributes
+            if (attributeOffset != 0)
+            {
+                VkVertexInputBindingDescription attrBindingDesc;
+                attrBindingDesc.binding = 1;
+                attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                attrBindingDesc.stride = attributeOffset;
+                vertexInputBindingDescriptions.push_back(attrBindingDesc);
+            }
+        }
+    }
+}
+
+VKShaderProgram::VKShaderProgram(VKContext* context, const ComputePipelineCreateInfo& createInfo)
+    : ShaderProgram(false), name(createInfo.name), objManager(context->objManager)
+{
+    VkShaderModuleCreateInfo computeModuleCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .codeSize = createInfo.computeSpv.size(),
+        .pCode = createInfo.computeSpv.data()
+    };
+    objManager->CreateShaderModule(computeModuleCreateInfo, computeModule);
+
+    VkPipelineShaderStageCreateInfo computePipelineShaderStageCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+        .module = computeModule,
+        .pName = "main",
+        .pSpecializationInfo = VK_NULL_HANDLE,
+    };
+
+    VkComputePipelineCreateInfo computePipelineCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .stage = computePipelineShaderStageCreateInfo,
+        .layout = pipelineLayout,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = 0,
+    };
+
+    VkPipeline pipeline;
+    objManager->CreateComputePipeline(computePipelineCreateInfo, pipeline);
+    caches[0] = pipeline;
+}
+
+VKShaderProgram::~VKShaderProgram()
+{
+    if (vertexModule)
+        objManager->DestroyShaderModule(vertexModule);
+    if (fragmentModule)
+        objManager->DestroyShaderModule(fragmentModule);
+    if (computeModule)
+        objManager->DestroyShaderModule(computeModule);
+
+    if (pipelineLayout)
+        objManager->DestroyPipelineLayout(pipelineLayout);
+
+    for (auto v : caches)
+    {
+        objManager->DestroyPipeline(v.second);
+    }
+}
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
 {
@@ -41,40 +187,22 @@ void SamplerCachePool::DestroyPool()
 std::unordered_map<vk::SamplerCreateInfo, VkSampler> SamplerCachePool::samplers =
     std::unordered_map<vk::SamplerCreateInfo, VkSampler>();
 
-VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfoFromString(
-    const std::string& lowerBindingName, bool enableCompare
-)
+VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::PipelineInfo::SamplerConfig& samplerConfig)
 {
-    VkFilter filter = VK_FILTER_LINEAR;
-    // if (bindingName.find("linear")) filter = VK_FILTER_LINEAR;
-    if (lowerBindingName.find("_point") != lowerBindingName.npos)
-        filter = VK_FILTER_NEAREST;
-
-    VkSamplerAddressMode addressMode = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-    if (lowerBindingName.find("_clamptoborder") != lowerBindingName.npos)
-        addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    else if (lowerBindingName.find("_clamp") != lowerBindingName.npos)
-        addressMode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-
-    VkBool32 anisotropyEnable = VK_FALSE;
-    if (lowerBindingName.find("_anisotropic") != lowerBindingName.npos)
-        anisotropyEnable = VK_TRUE;
-
     VkSamplerCreateInfo samplerCreateInfo{};
     samplerCreateInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerCreateInfo.pNext = VK_NULL_HANDLE;
     samplerCreateInfo.flags = 0;
-    samplerCreateInfo.magFilter = filter; // VK_FILTER_NEAREST;
-    samplerCreateInfo.minFilter = filter; // VK_FILTER_NEAREST;
+    samplerCreateInfo.magFilter = MapFilter(samplerConfig.magFilter);
+    samplerCreateInfo.minFilter = MapFilter(samplerConfig.minFilter); // VK_FILTER_NEAREST;
     samplerCreateInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerCreateInfo.addressModeU = addressMode;
-    samplerCreateInfo.addressModeV = addressMode;
-    samplerCreateInfo.addressModeW = addressMode;
+    samplerCreateInfo.addressModeU = MapSamplerAddressMode(samplerConfig.addressModeU);
+    samplerCreateInfo.addressModeV = MapSamplerAddressMode(samplerConfig.addressModeV);
+    samplerCreateInfo.addressModeW = MapSamplerAddressMode(samplerConfig.addressModeW);
     samplerCreateInfo.mipLodBias = 0;
-    samplerCreateInfo.anisotropyEnable = anisotropyEnable;
+    samplerCreateInfo.anisotropyEnable = samplerConfig.anisotropic;
     samplerCreateInfo.maxAnisotropy = 0;
-    samplerCreateInfo.compareEnable = enableCompare;
+    samplerCreateInfo.compareEnable = samplerConfig.enbaleCompare;
     samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     samplerCreateInfo.minLod = 0;
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
@@ -118,227 +246,90 @@ VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
     return *descriptorPools[slot];
 }
 
-VKShaderProgram::VKShaderProgram(
-    std::shared_ptr<const ShaderConfig> config,
-    VKContext* context,
-    const std::string& name,
-    ShaderProgramCreateInfo& createInfo
-)
-    : ShaderProgram(createInfo.compSpv.size() != 0), name(name), objManager(context->objManager)
-{
-    // compile as a compute shader
-    if (createInfo.compSpv.size() != 0)
-    {
-        computeShaderModule =
-            std::make_unique<VKShaderModule>(name, createInfo.compSpv, createInfo.compReflection, false, *config);
-
-        ShaderInfo::Utils::Merge(shaderInfo, computeShaderModule->GetShaderInfo());
-        CreateShaderPipeline(config, computeShaderModule.get());
-    }
-    else
-    {
-        bool vertInterleaved = true;
-        if (config != nullptr)
-            vertInterleaved = config->vertexInterleaved;
-
-        vertShaderModule = std::make_unique<VKShaderModule>(
-            name,
-            createInfo.vertSpv,
-            createInfo.vertReflection,
-            vertInterleaved,
-            *config
-        ); // the  namespace is necessary to pass MSVC compilation
-        fragShaderModule =
-            std::make_unique<VKShaderModule>(name, createInfo.fragSpv, createInfo.fragReflection, vertInterleaved, *config);
-
-        // combine ShaderStageInfo into ShaderInfo
-        ShaderInfo::Utils::Merge(shaderInfo, vertShaderModule->GetShaderInfo());
-        ShaderInfo::Utils::Merge(shaderInfo, fragShaderModule->GetShaderInfo());
-
-        CreateShaderPipeline(config, fragShaderModule.get());
-    }
-}
-
-VKShaderProgram::~VKShaderProgram()
-{
-    if (pipelineLayout)
-    {
-        objManager->DestroyPipelineLayout(pipelineLayout);
-    }
-
-    for (auto v : caches)
-    {
-        objManager->DestroyPipeline(v.pipeline);
-    }
-}
-
-void VKShaderProgram::CreateShaderPipeline(
-    std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule
-)
-{
-
-    for (auto& b : shaderInfo.bindings)
-    {
-        shaderInfo.descriptorSetBindingMap[b.second.setNum].push_back(&b.second);
-    }
-
-    // generate bindings
-    for (auto& iter : shaderInfo.bindings)
-    {
-        auto& descriptorSetWrap = descriptorSetBindings[iter.second.setNum];
-        ShaderInfo::Binding& binding = iter.second;
-
-        auto bindingIter = std::find_if(
-            descriptorSetWrap.binding.begin(),
-            descriptorSetWrap.binding.end(),
-            [&binding](VkDescriptorSetLayoutBinding& b) { return b.binding == binding.bindingNum; }
-        );
-
-        if (bindingIter != descriptorSetWrap.binding.end())
-        {
-            continue;
-        }
-
-        VkDescriptorSetLayoutBinding b{};
-        b.stageFlags = ShaderInfo::Utils::MapShaderStage(binding.stages);
-        b.binding = binding.bindingNum;
-        b.descriptorCount = binding.count;
-        b.descriptorType = ShaderInfo::Utils::MapBindingType(binding.type);
-
-        if (binding.type == ShaderInfo::BindingType::Texture)
-        {
-            std::string lowerBindingName = iter.first;
-            for (auto& c : lowerBindingName)
-            {
-                c = std::tolower(c);
-            }
-            VkSamplerCreateInfo createInfo = SamplerCachePool::GenerateSamplerCreateInfoFromString(
-                lowerBindingName,
-                binding.binding.texture.enableCompare
-            );
-            VkSampler sampler = SamplerCachePool::RequestSampler(createInfo);
-
-            descriptorSetWrap.samplers.push_back(std::vector<VkSampler>(b.descriptorCount, sampler));
-        }
-        else
-        {
-            descriptorSetWrap.samplers.push_back(std::vector<VkSampler>());
-        }
-
-        descriptorSetWrap.binding.push_back(b);
-    }
-
-    for (auto& set : descriptorSetBindings)
-    {
-        for (int i = 0; i < set.second.binding.size(); i++)
-        {
-            if (set.second.binding[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-                set.second.binding[i].pImmutableSamplers = set.second.samplers[i].data();
-            else
-                set.second.binding[i].pImmutableSamplers = nullptr;
-        }
-    }
-
-    GeneratePipelineLayoutAndGetDescriptorPool(descriptorSetBindings);
-
-    if (config != nullptr)
-    {
-        defaultShaderConfig = config;
-    }
-    else
-    {
-        ShaderConfig defaultShaderConfig;
-        // generate default shader config
-        auto& outputs = fallbackConfigModule->GetShaderInfo().outputs;
-        defaultShaderConfig.depth.writeEnable = true;
-        defaultShaderConfig.depth.testEnable = true;
-        defaultShaderConfig.depth.boundTestEnable = false;
-        defaultShaderConfig.depth.compOp = CompareOp::Less_or_Equal;
-        defaultShaderConfig.cullMode = CullMode::Back;
-        defaultShaderConfig.stencil.testEnable = false;
-        defaultShaderConfig.color.blendConstants[0] = 1;
-        defaultShaderConfig.color.blendConstants[1] = 1;
-        defaultShaderConfig.color.blendConstants[2] = 1;
-        defaultShaderConfig.color.blendConstants[3] = 1;
-        defaultShaderConfig.color.blends.resize(outputs.size());
-        for (uint32_t i = 0; i < outputs.size(); ++i)
-        {
-            defaultShaderConfig.color.blends[i].blendEnable = false;
-            defaultShaderConfig.color.blends[i].colorWriteMask =
-                Gfx::ColorComponentBit::Component_R_Bit | Gfx::ColorComponentBit::Component_G_Bit |
-                Gfx::ColorComponentBit::Component_B_Bit | Gfx::ColorComponentBit::Component_A_Bit;
-        }
-
-        this->defaultShaderConfig = std::make_unique<ShaderConfig>(defaultShaderConfig);
-    }
-}
-
-void VKShaderProgram::GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined)
+void VKShaderProgram::GeneratePipelineLayout()
 {
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineLayoutCreateInfo.flags = 0;
 
-    std::vector<RefPtr<VKShaderModule>> modules;
-    if (vertShaderModule != nullptr)
-        modules.push_back(vertShaderModule);
-    if (fragShaderModule != nullptr)
-        modules.push_back(fragShaderModule);
-    if (computeShaderModule != nullptr)
-        modules.push_back(computeShaderModule);
+    std::vector<VkDescriptorSetLayout> layouts(
+        pipelineInfo.descriptorSets.size()
+    );
+    using DescriptorSetLayoutBindingVector =
+        std::vector<VkDescriptorSetLayoutBinding, GlobalTempAllocator<VkDescriptorSetLayoutBinding>>;
+    const int MaxImmutableSamplerBindings = 512;
+    VkSampler immutableSamplers[MaxImmutableSamplerBindings] = {};
+    int immutableSamplerIndex = 0;
 
-    // we use fixed amount of descriptor set. They are grouped by update frequency. TODO: this is a very hard coded
-    // solution. Need to change
-    uint32_t maxSet = 0;
-    for (auto& set : combined)
-    {
-        maxSet = set.first > maxSet ? set.first : maxSet;
-    }
-    uint32_t setCount = maxSet + 1;
-    pipelineLayoutCreateInfo.setLayoutCount = setCount;
-    std::vector<VkDescriptorSetLayout> layouts(setCount);
-    for (uint32_t i = 0; i < setCount; ++i)
+    for (uint32_t i = 0; i < layouts.size(); ++i)
     {
         VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
         descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         descriptorSetLayoutCreateInfo.pNext = VK_NULL_HANDLE;
-        if (name == "ImGui")
-        {
-            descriptorSetLayoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-        }
-        else
-        {
-            descriptorSetLayoutCreateInfo.flags = 0;
-        }
-        descriptorSetLayoutCreateInfo.bindingCount = combined[i].binding.size();
-        descriptorSetLayoutCreateInfo.pBindings = combined[i].binding.data();
+        descriptorSetLayoutCreateInfo.flags = 0;
 
-        if ((descriptorSetLayoutCreateInfo.flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR) == 0)
+        const auto& descriptorSetInfos = pipelineInfo.descriptorSets[i];
+
+        DescriptorSetLayoutBindingVector descriptorSetLayoutBindingVector;
+        descriptorSetLayoutBindingVector.resize(descriptorSetInfos.bindings.size());
+
+        for (size_t bindingIndex = 0; bindingIndex < descriptorSetInfos.bindings.size(); ++bindingIndex)
         {
-            layoutHash.push_back(std::hash<vk::DescriptorSetLayoutCreateInfo>{}(descriptorSetLayoutCreateInfo));
+            const auto& binding = descriptorSetInfos.bindings[bindingIndex];
+
+            int immutableSamplerOffset = -1;
+            if (binding.descriptorType == DescriptorType::CombinedImageSampler)
+            {
+                const auto& samplerConfig = descriptorSetInfos.samplerConfigs[binding.samplerIndex];
+                VkSamplerCreateInfo samplerCreateInfo = SamplerCachePool::GenerateSamplerCreateInfo(samplerConfig);
+                VkSampler sampler = SamplerCachePool::RequestSampler(samplerCreateInfo);
+                immutableSamplerOffset = immutableSamplerIndex;
+                for (int count = 0; count < descriptorSetInfos.bindings[bindingIndex].descriptorCount && immutableSamplerIndex < MaxImmutableSamplerBindings; count++)
+                {
+                    immutableSamplers[immutableSamplerIndex] = sampler;
+                    immutableSamplerIndex++;
+                }
+            }
+
+            descriptorSetLayoutBindingVector[bindingIndex].binding = descriptorSetInfos.bindings[bindingIndex].bindingNum;
+            descriptorSetLayoutBindingVector[bindingIndex].descriptorType =
+                MapDescriptorType(descriptorSetInfos.bindings[bindingIndex].descriptorType);
+            descriptorSetLayoutBindingVector[bindingIndex].descriptorCount =
+                descriptorSetInfos.bindings[bindingIndex].descriptorCount;
+            descriptorSetLayoutBindingVector[bindingIndex].stageFlags =
+                MapShaderStages(descriptorSetInfos.bindings[bindingIndex].stages);
+            descriptorSetLayoutBindingVector[bindingIndex].pImmutableSamplers = immutableSamplerOffset == -1 ? nullptr : &immutableSamplers[immutableSamplerOffset];
         }
+
+        descriptorSetLayoutCreateInfo.bindingCount = descriptorSetLayoutBindingVector.size();
+        descriptorSetLayoutCreateInfo.pBindings = descriptorSetLayoutBindingVector.data();
+
         auto& pool =
             VKContext::Instance()->descriptorPoolCache->RequestDescriptorPool(name, descriptorSetLayoutCreateInfo);
         descriptorPools.push_back(&pool);
         layouts[i] = pool.GetLayout();
     }
+
+    ASSERT(immutableSamplerIndex <= MaxImmutableSamplerBindings);
+
+    pipelineLayoutCreateInfo.setLayoutCount = layouts.size();
     pipelineLayoutCreateInfo.pSetLayouts = layouts.data();
 
-    VkPushConstantRange ranges[32];
-    uint32_t i = 0;
+    VkPushConstantRange pushConstantRanges[32];
+    uint32_t pushConstantIndex = 0;
     uint32_t offset = 0;
-    for (auto iter = shaderInfo.pushConstants.begin(); iter != shaderInfo.pushConstants.end(); iter++)
+    for (auto& p : pipelineInfo.pushConstants)
     {
-        ranges[i].size = iter->second.data.size;
-        ranges[i].offset = offset;
-        ranges[i].stageFlags = ShaderInfo::Utils::MapShaderStage(iter->second.stages);
-        offset += iter->second.data.size;
-        i += 1;
-        ASSERT(i < 32);
+        pushConstantRanges[pushConstantIndex].size = p.size;
+        pushConstantRanges[pushConstantIndex].offset = offset;
+        pushConstantRanges[pushConstantIndex].stageFlags = MapShaderStages(p.stages);
+        offset += p.size;
+        pushConstantIndex += 1;
+        ASSERT(pushConstantIndex < 32);
     }
-    pipelineLayoutCreateInfo.pushConstantRangeCount = i;
-    pipelineLayoutCreateInfo.pPushConstantRanges = ranges;
+    pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantIndex;
+    pipelineLayoutCreateInfo.pPushConstantRanges = pushConstantRanges;
 
     objManager->CreatePipelineLayout(pipelineLayoutCreateInfo, pipelineLayout);
 }
@@ -348,37 +339,11 @@ VkPipelineLayout VKShaderProgram::GetVKPipelineLayout()
     return pipelineLayout;
 }
 
-std::shared_ptr<const ShaderConfig> VKShaderProgram::GetDefaultShaderConfig()
-{
-    return defaultShaderConfig;
-}
-
-VkPipeline VKShaderProgram::RequestComputePipeline(const ShaderConfig& config)
+VkPipeline VKShaderProgram::RequestComputePipeline()
 {
     if (isCompute)
     {
-        if (!caches.empty())
-            return caches.front().pipeline;
-
-        VkComputePipelineCreateInfo createInfo{
-            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-            .pNext = VK_NULL_HANDLE,
-            .flags = 0,
-            .stage = computeShaderModule->GetShaderModuleGraphicsPipelineCreateInfos().pipelineShaderStageCreateInfo,
-            .layout = pipelineLayout,
-            .basePipelineHandle = VK_NULL_HANDLE,
-            .basePipelineIndex = 0,
-        };
-
-        VkPipeline pipeline;
-        objManager->CreateComputePipeline(createInfo, pipeline);
-
-        PipelineCache newCache;
-        newCache.pipeline = pipeline;
-        newCache.config = config;
-        caches.push_back(newCache);
-
-        return pipeline;
+        return caches.begin()->second;
     }
     else
     {
@@ -388,13 +353,17 @@ VkPipeline VKShaderProgram::RequestComputePipeline(const ShaderConfig& config)
 }
 
 VkPipeline VKShaderProgram::RequestGraphicsPipeline(
-    const ShaderConfig& config, VKRenderPass* renderPass, uint32_t subpassIndex
+    const PipelineConfig& config, VKRenderPass* renderPass, uint32_t subpassIndex
 )
 {
-    for (auto& cache : caches)
+    uint64_t requestHash = config.GetHash();
+    HashCombine(requestHash, renderPass->GetHandle());
+    HashCombine(requestHash, subpassIndex);
+
+    auto cacheIter = caches.find(requestHash);
+    if (cacheIter != caches.end())
     {
-        if (cache.config == config && cache.subpass == subpassIndex && cache.renderPass == renderPass->GetHandle())
-            return cache.pipeline;
+        return cacheIter->second;
     }
 
     VkGraphicsPipelineCreateInfo createInfo;
@@ -402,27 +371,50 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.flags = 0;
     createInfo.stageCount = 2;
-
-    const ShaderModuleGraphicsPipelineCreateInfos& vertGPInfos =
-        vertShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
-    const ShaderModuleGraphicsPipelineCreateInfos& fragGPInfos =
-        fragShaderModule->GetShaderModuleGraphicsPipelineCreateInfos();
-
-    VkPipelineShaderStageCreateInfo shaderStageCreateInfos[] = {
-        vertGPInfos.pipelineShaderStageCreateInfo,
-        fragGPInfos.pipelineShaderStageCreateInfo
+    VkPipelineShaderStageCreateInfo vertexPipelineShaderStageCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_VERTEX_BIT,
+        .module = vertexModule,
+        .pName = "main",
+        .pSpecializationInfo = VK_NULL_HANDLE,
     };
+    VkPipelineShaderStageCreateInfo fragmentPipelineShaderStageCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+        .module = fragmentModule,
+        .pName = "main",
+        .pSpecializationInfo = VK_NULL_HANDLE,
+    };
+    VkPipelineShaderStageCreateInfo shaderStageCreateInfos[2] = {
+        vertexPipelineShaderStageCreateInfo,
+        fragmentPipelineShaderStageCreateInfo
+    };
+
     createInfo.pStages = shaderStageCreateInfos;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};
     pipelineInputAssemblyStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     pipelineInputAssemblyStateCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineInputAssemblyStateCreateInfo.flags = 0;
-    pipelineInputAssemblyStateCreateInfo.topology = MapPrimitiveTopology(config.topology);
+    pipelineInputAssemblyStateCreateInfo.topology = MapPrimitiveTopology(config->topology);
     pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
     createInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
 
-    createInfo.pVertexInputState = &vertGPInfos.pipelineVertexInputStateCreateInfo;
+    VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .pNext = VK_NULL_HANDLE,
+        .flags = 0,
+        .vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindingDescriptions.size()),
+        .pVertexBindingDescriptions = vertexInputBindingDescriptions.data(),
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size()),
+        .pVertexAttributeDescriptions = vertexAttributeDescriptions.data(),
+    };
+
+    createInfo.pVertexInputState = &pipelineVertexInputStateCreateInfo;
 
     // viewportState
     createInfo.pTessellationState = VK_NULL_HANDLE;
@@ -454,8 +446,8 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     pipelineRasterizationStateCreateInfo.flags = 0;
     pipelineRasterizationStateCreateInfo.depthClampEnable = false;
     pipelineRasterizationStateCreateInfo.rasterizerDiscardEnable = false;
-    pipelineRasterizationStateCreateInfo.polygonMode = MapPolygonMode(config.polygonMode);
-    pipelineRasterizationStateCreateInfo.cullMode = MapCullMode(config.cullMode);
+    pipelineRasterizationStateCreateInfo.polygonMode = MapPolygonMode(config->polygonMode);
+    pipelineRasterizationStateCreateInfo.cullMode = MapCullMode(config->cullMode);
     pipelineRasterizationStateCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     pipelineRasterizationStateCreateInfo.depthBiasEnable = false;
     pipelineRasterizationStateCreateInfo.depthBiasConstantFactor = 0;
@@ -480,15 +472,15 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     depthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencilStateCreateInfo.pNext = VK_NULL_HANDLE;
     depthStencilStateCreateInfo.flags = 0;
-    depthStencilStateCreateInfo.depthTestEnable = config.depth.testEnable;
-    depthStencilStateCreateInfo.depthWriteEnable = config.depth.writeEnable;
-    depthStencilStateCreateInfo.depthCompareOp = MapCompareOp(config.depth.compOp);
-    depthStencilStateCreateInfo.depthBoundsTestEnable = config.depth.boundTestEnable;
-    depthStencilStateCreateInfo.stencilTestEnable = config.stencil.testEnable;
-    depthStencilStateCreateInfo.front = MapVKStencilOpState(config.stencil.front);
-    depthStencilStateCreateInfo.back = MapVKStencilOpState(config.stencil.back);
-    depthStencilStateCreateInfo.minDepthBounds = config.depth.minBounds;
-    depthStencilStateCreateInfo.maxDepthBounds = config.depth.maxBounds;
+    depthStencilStateCreateInfo.depthTestEnable = config->depth.testEnable;
+    depthStencilStateCreateInfo.depthWriteEnable = config->depth.writeEnable;
+    depthStencilStateCreateInfo.depthCompareOp = MapCompareOp(config->depth.compOp);
+    depthStencilStateCreateInfo.depthBoundsTestEnable = config->depth.boundTestEnable;
+    depthStencilStateCreateInfo.stencilTestEnable = config->stencil.testEnable;
+    depthStencilStateCreateInfo.front = MapVKStencilOpState(config->stencil.front);
+    depthStencilStateCreateInfo.back = MapVKStencilOpState(config->stencil.back);
+    depthStencilStateCreateInfo.minDepthBounds = config->depth.minBounds;
+    depthStencilStateCreateInfo.maxDepthBounds = config->depth.maxBounds;
     createInfo.pDepthStencilState = &depthStencilStateCreateInfo;
 
     VkPipelineColorBlendStateCreateInfo colorBlendStateCreateInfo;
@@ -501,17 +493,18 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     // protect unwritten output with color mask
     auto& subpass = renderPass->GetSubpesses()[subpassIndex];
     size_t subpassSize = subpass.colors.size();
-    std::vector<VkPipelineColorBlendAttachmentState> blendStates(subpassSize);
+    std::vector<VkPipelineColorBlendAttachmentState, GlobalTempAllocator<VkPipelineColorBlendAttachmentState>>
+        blendStates(subpassSize);
     for (uint32_t i = 0; i < subpassSize; ++i)
     {
-        if (i < config.color.blends.size())
+        if (i < config->color.blends.size())
         {
-            blendStates[i] = MapColorBlendAttachmentState(config.color.blends[i]);
+            blendStates[i] = MapColorBlendAttachmentState(config->color.blends[i]);
         }
         else
         {
             blendStates[i].blendEnable = false;
-            if (i < fragShaderModule->GetShaderInfo().outputs.size())
+            if (i < pipelineInfo.fragmentOutputs.size())
             {
                 blendStates[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                                 VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -524,10 +517,10 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     }
     colorBlendStateCreateInfo.attachmentCount = blendStates.size();
     colorBlendStateCreateInfo.pAttachments = blendStates.data();
-    colorBlendStateCreateInfo.blendConstants[0] = config.color.blendConstants[0];
-    colorBlendStateCreateInfo.blendConstants[1] = config.color.blendConstants[1];
-    colorBlendStateCreateInfo.blendConstants[2] = config.color.blendConstants[2];
-    colorBlendStateCreateInfo.blendConstants[3] = config.color.blendConstants[3];
+    colorBlendStateCreateInfo.blendConstants[0] = config->color.blendConstants[0];
+    colorBlendStateCreateInfo.blendConstants[1] = config->color.blendConstants[1];
+    colorBlendStateCreateInfo.blendConstants[2] = config->color.blendConstants[2];
+    colorBlendStateCreateInfo.blendConstants[3] = config->color.blendConstants[3];
     createInfo.pColorBlendState = &colorBlendStateCreateInfo;
 
     VkDynamicState dynamicState[]{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
@@ -555,22 +548,9 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     VkPipeline pipeline;
     objManager->CreateGraphicsPipeline(createInfo, pipeline);
 
-    PipelineCache newCache;
-    newCache.pipeline = pipeline;
-    newCache.config = config;
-    newCache.renderPass = renderPass->GetHandle();
-    newCache.subpass = subpassIndex;
-    caches.push_back(newCache);
+    caches[requestHash] = pipeline;
 
     return pipeline;
 }
 
-size_t VKShaderProgram::GetLayoutHash(uint32_t set)
-{
-    if (set < layoutHash.size())
-    {
-        return layoutHash[set];
-    }
-    return 0;
-}
 } // namespace Gfx

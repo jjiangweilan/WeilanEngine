@@ -11,7 +11,7 @@ ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
             rtWidth,
             rtHeight,
             1,
-            Gfx::ImageFormat::R8G8B8A8_SRGB,
+            Gfx::GfxFormat::R8G8B8A8_SRGB,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             true
@@ -25,7 +25,7 @@ ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
             rtWidth,
             rtHeight,
             1,
-            Gfx::ImageFormat::A2B10G10R10_UNorm,
+            Gfx::GfxFormat::A2B10G10R10_UNorm,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             true
@@ -39,7 +39,7 @@ ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
             rtWidth,
             rtHeight,
             1,
-            Gfx::ImageFormat::D32_SFloat,
+            Gfx::GfxFormat::D32_SFloat,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             true
@@ -71,12 +71,12 @@ ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
         Gfx::MultiSampling::Sample_Count_1,
         Gfx::AttachmentLoadOperation::Clear
     };
-    octahedralRemapShader = GetOctahedralRemapBaker();
-    probeOctahedralPass->AddSubpass({albedoAtta, normalAtta, radialDistance}, std::nullopt);
-    reprojectMaterial.SetShader(octahedralRemapShader);
-    reprojectMaterial.SetTexture("albedoCubemap", albedoCubemap.get());
-    reprojectMaterial.SetTexture("normalCubemap", normalCubemap.get());
-    reprojectMaterial.SetTexture("radialDistanceCubemap", depthCubeMap.get());
+    //octahedralRemapShader = GetOctahedralRemapBaker();
+    //probeOctahedralPass->AddSubpass({albedoAtta, normalAtta, radialDistance}, std::nullopt);
+    //reprojectMaterial.SetShader(octahedralRemapShader);
+    //reprojectMaterial.SetTexture("albedoCubemap", albedoCubemap.get());
+    //reprojectMaterial.SetTexture("normalCubemap", normalCubemap.get());
+    //reprojectMaterial.SetTexture("radialDistanceCubemap", depthCubeMap.get());
 }
 
 static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from, int to)
@@ -84,7 +84,7 @@ static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from,
     for (int i = from; i < to; ++i)
     {
         auto& draw = drawList->at(i);
-        auto shaderProgram = draw.material->GetShaderProgram("LightFieldProbeBake");
+        auto shaderProgram = draw.material->GetShaderProgram();
         if (shaderProgram)
         {
             cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);

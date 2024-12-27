@@ -3,6 +3,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
+#include "Libs/Assert.hpp"
 #include "Profiler/Profiler.hpp"
 #include "RHI/VKDataUploader.hpp"
 #include "VKBuffer.hpp"
@@ -18,7 +19,6 @@
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
-#include "Libs/Assert.hpp"
 #include <SDL_vulkan.h>
 
 #include <algorithm>
@@ -191,12 +191,16 @@ void VKDriver::ForceSyncResources()
     return; // TODO: reimplementation needed
 }
 
-std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(
-    const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
-)
+std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo)
 {
     std::scoped_lock lock(driverMutex);
-    return std::make_unique<VKShaderProgram>(config, context.get(), name, createInfo);
+    return std::make_unique<VKShaderProgram>(context.get(), createInfo);
+}
+
+std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(ComputePipelineCreateInfo& createInfo)
+{
+    std::scoped_lock lock(driverMutex);
+    return std::make_unique<VKShaderProgram>(context.get(), createInfo);
 }
 
 std::unique_ptr<Semaphore> VKDriver::CreateSemaphore(const Semaphore::CreateInfo& createInfo)
@@ -298,7 +302,7 @@ void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, u
     vkWaitForFences(device.handle, vkFences.size(), vkFences.data(), waitAll, timeout);
 }
 
-bool VKDriver::IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages)
+bool VKDriver::IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages)
 {
     VkImageFormatProperties props;
     if (vkGetPhysicalDeviceImageFormatProperties(
@@ -318,7 +322,7 @@ void VKDriver::GenerateMipmaps(SRef<VKImage> image)
 {
     std::scoped_lock lock(driverMutex);
     internalPendingCommands.push_back(
-        [imageRef=image](VkCommandBuffer cmd)
+        [imageRef = image](VkCommandBuffer cmd)
         {
             auto image = imageRef.Get();
             if (image == nullptr)
@@ -847,6 +851,7 @@ VkBool32 VKDriver::DebugCallback(
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             {
                 SPDLOG_ERROR(pCallbackData->pMessage);
+                __debugbreak();
                 return VK_FALSE;
             }
         default: break;
@@ -1042,7 +1047,7 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+    std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 #endif

@@ -23,9 +23,9 @@ public:
     static Submesh* GetCylinderMesh() { return GetSingleton().models.cylinder->GetSubmesh(0); }
     static Models& GetModels() { return GetSingleton().models; }
     static Material* GetDefaultMaterial() { return GetSingleton().defaultMaterial; }
-    static Shader* GetLineShader() { return GetSingleton().lineShader; }
-    static Shader* GetTriangleShader() { return GetSingleton().triangleShader; }
-    static Shader* GetJoltDebugShader() { return GetSingleton().joltDebugShader; }
+    static Shader2& GetLineShader() { return *GetSingleton().lineShader; }
+    static Shader2& GetTriangleShader() { return *GetSingleton().triangleShader; }
+    static Shader2& GetJoltDebugShader() { return *GetSingleton().joltDebugShader; }
 
 private:
     Models models;
@@ -34,11 +34,11 @@ private:
     Material* defaultMaterial;
 
     // gizmos
-    Shader* lineShader;
-    Shader* triangleShader;
+    Shader2* lineShader;
+    Shader2* triangleShader;
 
     // jolt debug
-    Shader* joltDebugShader;
+    Shader2* joltDebugShader;
 
     static EngineInternalResources& GetSingleton();
 };

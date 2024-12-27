@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include <slang.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #undef CreateSemaphore
@@ -67,7 +68,7 @@ public:
 
     virtual ~GfxDriver(){};
 
-    virtual bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags uages) = 0;
+    virtual bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual Image* GetSwapChainImage() = 0;
     virtual SDL_Window* GetSDLWindow() = 0;
@@ -85,9 +86,8 @@ public:
     virtual std::unique_ptr<RenderPass> CreateRenderPass() = 0;
     virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
     virtual std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
-    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
-    ) = 0;
+    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(ComputePipelineCreateInfo& createInfo) = 0;
 
     virtual std::unique_ptr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;

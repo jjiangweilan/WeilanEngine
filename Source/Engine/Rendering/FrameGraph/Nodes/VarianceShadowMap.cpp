@@ -39,7 +39,7 @@ public:
     //                             .name = "shadow map",
     //                             .handle = 0,
     //                             .create = true,
-    //                             .format = Gfx::ImageFormat::R32G32_SFloat,
+    //                             .format = Gfx::GfxFormat::R32G32_SFloat,
     //                             .imageView = RenderGraph::ImageView{Gfx::ImageAspect::Color, 0},
     //                             .multiSampling = Gfx::MultiSampling::Sample_Count_1,
     //                             .mipLevels = 1,
@@ -52,7 +52,7 @@ public:
     //                         .name = "shadow depth",
     //                         .handle = 2,
     //                         .create = true,
-    //                         .format = Gfx::ImageFormat::D32_SFloat,
+    //                         .format = Gfx::GfxFormat::D32_SFloat,
     //                         .storeOp = Gfx::AttachmentStoreOperation::DontCare,
     //                     },
     //             },
@@ -104,7 +104,7 @@ public:
     //                         RenderGraph::Attachment{
     //                             .handle = RenderGraph::StrToHandle("dst"),
     //                             .create = true,
-    //                             .format = Gfx::ImageFormat::R32G32_SFloat,
+    //                             .format = Gfx::GfxFormat::R32G32_SFloat,
     //                         },
     //
     //                     },
@@ -160,7 +160,7 @@ public:
     //                         RenderGraph::Attachment{
     //                             .handle = RenderGraph::StrToHandle("dst"),
     //                             .create = false,
-    //                             .format = Gfx::ImageFormat::R32G32_SFloat,
+    //                             .format = Gfx::GfxFormat::R32G32_SFloat,
     //                             .imageView = RenderGraph::ImageView{Gfx::ImageAspect::Color, 0},
     //                         },
     //

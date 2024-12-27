@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
+#include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include <memory>
 
 namespace Gfx
@@ -13,10 +14,9 @@ class GameLoop
 public:
     GameLoop();
     ~GameLoop();
-    void SetScene(Scene& scene, Camera& camera)
+    void SetScene(Scene& scene)
     {
         this->scene = &scene;
-        this->camera = &camera;
     }
 
     void Play();
@@ -40,5 +40,5 @@ private:
     void RenderScene();
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     ObjPtr<Scene> scene = nullptr;
-    ObjPtr<Camera> camera = nullptr;
+    Rendering::RenderPipeline renderPipeline;
 };

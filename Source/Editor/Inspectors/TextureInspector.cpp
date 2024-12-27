@@ -65,7 +65,7 @@ public:
         float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
         ImGui::Text("size: %d x %d", width, height);
         ImGui::Text("memory size (without mip): %f Mb", mb);
-        ImGui::Text("format %s", Gfx::MapImageFormatToString(target->GetDescription().img.format));
+        ImGui::Text("format %s", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
 
         // show and update meta
         ImGui::NewLine();

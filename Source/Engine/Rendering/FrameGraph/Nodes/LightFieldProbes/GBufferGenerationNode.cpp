@@ -26,15 +26,15 @@ class GBufferGenerationNode : public Node
             std::make_unique<Material>(EngineInternalResources::GetLightProbeFieldGBufferGenerationShader());
 
         albedoCubemap = GetGfxDriver()->CreateImage(
-            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::ImageFormat::R8G8B8A8_SRGB},
+            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::GfxFormat::R8G8B8A8_SRGB},
             Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
         );
         normalCubemap = GetGfxDriver()->CreateImage(
-            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::ImageFormat::A2B10G10R10_UNorm},
+            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::GfxFormat::A2B10G10R10_UNorm},
             Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
         );
         depthCubeMap = GetGfxDriver()->CreateImage(
-            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::ImageFormat::D32_SFloat},
+            Gfx::ImageDescription{rtWidth, rtHeight, Gfx::GfxFormat::D32_SFloat},
             Gfx::ImageUsage::Texture | Gfx::ImageUsage::DepthStencilAttachment
         );
         for (int i = 0; i < 6; ++i)

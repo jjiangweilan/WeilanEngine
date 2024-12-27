@@ -1,17 +1,14 @@
 #include "GameLoop.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Profiler.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
-#include "GfxDriver/GfxDriver.hpp"
 #include "Scene/Scene.hpp"
 #include <spdlog/spdlog.h>
 
-GameLoop::GameLoop()
-{
-    cmd = GetGfxDriver()->CreateCommandBuffer();
-}
+GameLoop::GameLoop() {}
 
 GameLoop::~GameLoop() {}
 
@@ -34,51 +31,46 @@ const void GameLoop::Tick(
     ENGINE_SCOPED_PROFILE("GameLoop - Tick");
 
     Scene* scene = this->scene;
-    if (scene == nullptr || camera == nullptr)
+    if (scene == nullptr)
         return;
 
-    // update physics
-    ENGINE_BEGIN_PROFILE("Physics Tick")
     if (isPlaying)
     {
-        scene->GetPhysicsScene().Tick();
-
-        for (auto go : scene->GetRootObjects())
+        ENGINE_BEGIN_PROFILE("Physics Tick")
+        if (isPlaying)
         {
-            TickGameObject(go);
+            // update physics
+            scene->GetPhysicsScene().Tick();
+
+            // tick game objects
+            for (auto go : scene->GetRootObjects())
+            {
+                TickGameObject(go);
+            }
         }
+
+        ENGINE_END_PROFILE
     }
-    scene->GetPhysicsScene().DebugDraw();
-    ENGINE_END_PROFILE
 
     // render
-    ENGINE_BEGIN_PROFILE("FrameGraph")
-    Rendering::FrameGraph::Graph* graph = camera ? camera->GetFrameGraph() : nullptr;
 
-    if (graph && graph->IsCompiled())
+    if (scene && scene->GetMainCamera())
     {
-        graph->SetScreenSize(outputImage.GetDescription().width, outputImage.GetDescription().height);
-
+        scene->GetPhysicsScene().DebugDraw();
         scene->GetRenderingScene().Tick();
-        graph->Execute(*cmd, *scene, *camera);
+        renderPipeline.Render(
+            *scene,
+            *scene->GetMainCamera(),
+            {outputImage.GetDescription().width, outputImage.GetDescription().height}
+        );
     }
-
-    ENGINE_END_PROFILE
-
-    ENGINE_BEGIN_PROFILE("call GfxDriver-ExecuteCommandBuffer")
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
-    ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("GameLoop Tick clean-up")
-    cmd->Reset(true);
     Graphics::GetSingleton().ClearDraws();
-    if (graph)
-    {
-        outGraphOutputImage = graph->GetOutputImage();
-        outGraphOutputDepthImage = graph->GetOutputDepthImage();
-    }
-    else
-        return;
+
+    outGraphOutputImage = &renderPipeline.GetMainColor();
+    outGraphOutputDepthImage = &renderPipeline.GetMainDepth();
+
     ENGINE_END_PROFILE
 }
 

@@ -49,7 +49,7 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     int width, height, bytePerPixel;
     ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&fontData, &width, &height, &bytePerPixel);
     auto fontImage = GetGfxDriver()->CreateImage(
-        Gfx::ImageDescription((uint32_t)width, (uint32_t)height, Gfx::ImageFormat::R8G8B8A8_UNorm),
+        Gfx::ImageDescription((uint32_t)width, (uint32_t)height, Gfx::GfxFormat::R8G8B8A8_UNorm),
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
     fontImage->SetName("ImGUI font");
@@ -98,7 +98,7 @@ GameEditor::GameEditor(const char* path)
     if (!lastActiveSceneUUID.IsEmpty())
     {
         auto scene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
-        EditorState::activeScene = scene;
+        EditorState::activeScene = nullptr;
     }
 
     auto& io = ImGui::GetIO();
@@ -1446,6 +1446,12 @@ void GameEditor::SaveProject()
     engine->assetDatabase->SaveDirtyAssets();
     if (EditorState::activeScene)
         engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+}
+
+void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
+{
+    EditorState::activeScene = scene;
+    gameView.SetActiveScene(scene);
 }
 
 void GameEditor::EngineResourceDebug()

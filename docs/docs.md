@@ -36,7 +36,7 @@ auto renderEditor = graph->AddNode(
                 {
                     .width = width,
                     .height = height,
-                    .format = Gfx::ImageFormat::R16G16B16A16_SFloat,
+                    .format = Gfx::GfxFormat::R16G16B16A16_SFloat,
                     .multiSampling = Gfx::MultiSampling::Sample_Count_1,
                     .mipLevels = 1,
                     .isCubemap = false,

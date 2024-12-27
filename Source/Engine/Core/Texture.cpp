@@ -31,7 +31,7 @@ Texture::Texture(TextureDescription texDesc, const UUID& uuid) : desc(texDesc)
     CreateGfxImage(desc);
 }
 
-Texture::Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, Gfx::ImageFormat format, const UUID& uuid)
+Texture::Texture(uint8_t* data, size_t byteSize, ImageDataType imageDataType, Gfx::GfxFormat format, const UUID& uuid)
 {
     SetUUID(uuid);
 
@@ -58,7 +58,7 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     );
     image->SetName(GetName());
 
-    size_t byteSize = Gfx::MapImageFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
+    size_t byteSize = Gfx::MapGfxFormatToByteSize(texDesc.img.format) * texDesc.img.width * texDesc.img.height;
     uint8_t* data = texDesc.data;
 
     GetGfxDriver()->UploadImage(*image, data, byteSize);
@@ -281,7 +281,7 @@ void Texture::ConvertRawImageToKtx(TextureDescription& desc)
     ktxTexture_Destroy(ktxTexture(texture));
 }
 
-void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::ImageFormat format)
+void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFormat format)
 {
     int width, height, channels, desiredChannels;
     stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);
@@ -344,43 +344,43 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::Image
         stbi_image_free(loaded);
     }
 
-    if (format == Gfx::ImageFormat::Invalid)
+    if (format == Gfx::GfxFormat::Invalid)
     {
         if (desiredChannels == 4)
         {
             if (isHDR)
-                format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+                format = Gfx::GfxFormat::R32G32B32A32_SFloat;
             else if (is16Bit)
-                format = Gfx::ImageFormat::R16G16B16A16_SFloat;
+                format = Gfx::GfxFormat::R16G16B16A16_SFloat;
             else
-                format = Gfx::ImageFormat::R8G8B8A8_SRGB;
+                format = Gfx::GfxFormat::R8G8B8A8_SRGB;
         }
         else if (desiredChannels == 3)
         {
             if (isHDR)
-                format = Gfx::ImageFormat::R32G32B32_SFloat;
+                format = Gfx::GfxFormat::R32G32B32_SFloat;
             else if (is16Bit)
-                format = Gfx::ImageFormat::R16G16B16_SFloat;
+                format = Gfx::GfxFormat::R16G16B16_SFloat;
             else
-                format = Gfx::ImageFormat::R8G8B8_SRGB;
+                format = Gfx::GfxFormat::R8G8B8_SRGB;
         }
         else if (desiredChannels == 2)
         {
             if (isHDR)
-                format = Gfx::ImageFormat::R32G32_SFloat;
+                format = Gfx::GfxFormat::R32G32_SFloat;
             else if (is16Bit)
-                format = Gfx::ImageFormat::R16G16_SFloat;
+                format = Gfx::GfxFormat::R16G16_SFloat;
             else
-                format = Gfx::ImageFormat::R8G8_SRGB;
+                format = Gfx::GfxFormat::R8G8_SRGB;
         }
         else if (desiredChannels == 1)
         {
             if (isHDR)
-                format = Gfx::ImageFormat::R32_SFloat;
+                format = Gfx::GfxFormat::R32_SFloat;
             else if (is16Bit)
-                format = Gfx::ImageFormat::R16_SFloat;
+                format = Gfx::GfxFormat::R16_SFloat;
             else
-                format = Gfx::ImageFormat::R8_SRGB;
+                format = Gfx::GfxFormat::R8_SRGB;
         }
     }
 
@@ -500,7 +500,7 @@ bool Texture::LoadFromFile(const char* path)
                 {
                     if (e != ".ktx" && e == ext)
                     {
-                        LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size(), Gfx::ImageFormat::Invalid);
+                        LoadStbSupoprtedTexture((uint8_t*)s.data(), s.size(), Gfx::GfxFormat::Invalid);
                         break;
                     }
                 }

@@ -51,11 +51,11 @@ void ImageNode::DefineNode()
     output.attachment = AddOutputProperty("image", PropertyType::Attachment, 1);
 
     AddConfig<ConfigurableType::Vec2>("size", glm::vec2{512.0f, 512.0f});
-    AddConfig<ConfigurableType::Format>("format", Gfx::ImageFormat::R8G8B8A8_UNorm);
+    AddConfig<ConfigurableType::Format>("format", Gfx::GfxFormat::R8G8B8A8_UNorm);
     AddConfig<ConfigurableType::Int>("mip level", int{1});
 
     size = GetConfigurablePtr<glm::vec2>("size");
-    format = GetConfigurablePtr<Gfx::ImageFormat>("format");
+    format = GetConfigurablePtr<Gfx::GfxFormat>("format");
 }
 
 const Gfx::RG::ImageIdentifier& ImageNode::GetImage()

@@ -100,9 +100,9 @@ void FrameGraphEditor::DrawConfigurableField(
     }
     else if (config.type == fg::ConfigurableType::Format)
     {
-        Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(config.data);
+        Gfx::GfxFormat v = std::any_cast<Gfx::GfxFormat>(config.data);
 
-        if (ImGui::Button(Gfx::MapImageFormatToString(v)))
+        if (ImGui::Button(Gfx::MapGfxFormatToString(v)))
         {
             openImageFormatPopup = true;
             targetConfig = &config;
@@ -264,14 +264,14 @@ void FrameGraphEditor::Draw(ax::NodeEditor::EditorContext* context, Rendering::F
         if (ImGui::BeginPopup("Image Format"))
         {
             ASSERT(targetConfig != nullptr);
-            Gfx::ImageFormat v = std::any_cast<Gfx::ImageFormat>(targetConfig->data);
+            Gfx::GfxFormat v = std::any_cast<Gfx::GfxFormat>(targetConfig->data);
 
-            for (int i = 0; i <= static_cast<int>(Gfx::ImageFormat::Invalid); ++i)
+            for (int i = 0; i <= static_cast<int>(Gfx::GfxFormat::Invalid); ++i)
             {
                 const bool isSelected = (static_cast<int>(v) == i);
-                if (ImGui::MenuItem(Gfx::MapImageFormatToString(static_cast<Gfx::ImageFormat>(i))))
+                if (ImGui::MenuItem(Gfx::MapGfxFormatToString(static_cast<Gfx::GfxFormat>(i))))
                 {
-                    targetConfig->data = static_cast<Gfx::ImageFormat>(i);
+                    targetConfig->data = static_cast<Gfx::GfxFormat>(i);
                 }
 
                 if (isSelected)

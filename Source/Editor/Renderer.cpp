@@ -1,9 +1,8 @@
 #include "Renderer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
-#include "Rendering/ShaderCompiler.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 #include "spdlog/spdlog.h"
-#include <spirv_cross/spirv_reflect.hpp>
-
 namespace Editor
 {
 static const char* imguiShader =
@@ -61,31 +60,7 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
     stagingBuffer2 =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
-    ShaderCompiler compiler;
-    compiler.Compile("", imguiShader);
-
-    auto config = compiler.GetConfig();
-
-
-    auto& compieldSpv = compiler.GetCompiledSpvs().at(0);
-
-    spirv_cross::CompilerReflection vertCompilerReflection(
-        (const uint32_t*)compieldSpv.vertSpv_noOp.data(),
-        compieldSpv.vertSpv_noOp.size()
-    );
-
-    Gfx::ShaderProgramCreateInfo createInfo;
-    createInfo.vertSpv = compieldSpv.vertSpv;
-    createInfo.vertReflection = nlohmann::json::parse(vertCompilerReflection.compile());
-
-    spirv_cross::CompilerReflection fragCompilerReflection(
-        (const uint32_t*)compieldSpv.fragSpv_noOp.data(),
-        compieldSpv.fragSpv_noOp.size()
-    );
-    createInfo.fragSpv = compieldSpv.fragSpv;
-    createInfo.fragReflection = nlohmann::json::parse(fragCompilerReflection.compile());
-
-    shaderProgram = GetGfxDriver()->CreateShaderProgram("ImGui", config, createInfo);
+    shader = ShaderLibrary::GetShader(ShaderLibrary::ImGui);
 
     this->fontImage = fontImage;
     this->finalImage = finalImage;
@@ -177,15 +152,10 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
     uint32_t globalIdxOffset = 0;
     uint32_t globalVtxOffset = 0;
 
-    cmd.BindShaderProgram(shaderProgram.get(), shaderProgram->GetDefaultShaderConfig());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
     cmd.BindIndexBuffer(indexBuffer.get(), 0, Gfx::IndexBufferType::UInt16);
-    Gfx::DescriptorBinding bindings[] = {{
-        .dstBinding = 0,
-        .dstArrayElement = 0,
-        .descriptorCount = 1,
-        .imageView = &fontImage->GetDefaultImageView(),
-    }};
-    cmd.PushDescriptor(*shaderProgram, 0, bindings);
+
+    BindTexture(cmd, &fontImage->GetDefaultImageView());
 
     // cmdBuf->BindShaderProgram(imGuiData.shaderProgram, imGuiData.shaderProgram->GetDefaultShaderConfig());
     // cmdBuf->BindResource(imGuiData.generalShaderRes);
@@ -198,7 +168,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
     scale2Translate2[2] = -1.0f - imguiDrawData->DisplayPos.x * scale2Translate2[0];
     scale2Translate2[3] = -1.0f - imguiDrawData->DisplayPos.y * scale2Translate2[1];
     // cmdBuf->SetPushConstant(imGuiData.shaderProgram, &scale2Translate2);
-    cmd.SetPushConstant(shaderProgram.get(), &scale2Translate2);
+    cmd.SetPushConstant(shader->GetShaderProgram(), &scale2Translate2);
 
     // hard coded ImGui shader's vertex input
     // cmdBuf->BindVertexBuffer({imGuiData.vertexBuffer}, {0}, 0);
@@ -220,24 +190,12 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
             Gfx::ImageView* imageView = (Gfx::ImageView*)pcmd->TextureId;
             if (imageView != nullptr)
             {
-                Gfx::DescriptorBinding bindings[] = {{
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .imageView = imageView,
-                }};
-                cmd.PushDescriptor(*shaderProgram, 0, bindings);
+                BindTexture(cmd, imageView);
                 isGeneralResourceBinded = false;
             }
             else if (!isGeneralResourceBinded)
             {
-                Gfx::DescriptorBinding bindings[] = {{
-                    .dstBinding = 0,
-                    .dstArrayElement = 0,
-                    .descriptorCount = 1,
-                    .imageView = &fontImage->GetDefaultImageView(),
-                }};
-                cmd.PushDescriptor(*shaderProgram, 0, bindings);
+                BindTexture(cmd, &fontImage->GetDefaultImageView());
                 isGeneralResourceBinded = true;
             }
 
@@ -284,7 +242,29 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
 
 void Renderer::Execute(ImDrawData* data, Gfx::CommandBuffer& cmd)
 {
+    // if (imageViewToResource.size() > 1)
+    // {
+    //     imageViewToResource.clear();
+    // }
     this->drawData = data;
     RenderEditor(cmd);
+}
+
+void Renderer::BindTexture(Gfx::CommandBuffer& cmd, Gfx::ImageView* imageView)
+{
+
+    auto iter = imageViewToResource.find(imageView->GetUUID());
+    if (iter != imageViewToResource.end())
+    {
+        cmd.BindResource(0, iter->second.get());
+    }
+    else
+    {
+        auto newResource = GetGfxDriver()->CreateShaderResource();
+        newResource->SetImage("texture", imageView);
+        auto tmp = newResource.get();
+        imageViewToResource[imageView->GetUUID()] = std::move(newResource);
+        cmd.BindResource(0, tmp);
+    }
 }
 } // namespace Editor

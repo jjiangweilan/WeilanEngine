@@ -53,7 +53,7 @@ public:
     void Execute(VkCommandBuffer cmd);
 
     VKImage* GetImage(const UUID& id);
-    VKImage* Request(RG::ImageIdentifier& id, RG::ImageDescription& desc);
+    VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc);
     VKRenderPass* Request(RG::RenderPass& renderPass);
 
 private:
@@ -74,11 +74,11 @@ private:
     struct RecordState
     {
         VKShaderProgram* bindedProgram = nullptr;
-        ShaderConfig config;
-        int bindProgramIndex;
+        PipelineConfig config{};
+        int bindProgramIndex{};
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
-    } recordState;
+    } recordState {};
 
     struct ExecutionState
     {
@@ -90,8 +90,8 @@ private:
 
         VKShaderProgram* lastBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;     // shader that is actually binded
-        std::shared_ptr<const ShaderConfig> shaderConfig;
-        std::shared_ptr<const ShaderConfig> lastShaderConfig;
+        PipelineConfig shaderConfig;
+        PipelineConfig lastShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
         int subpassIndex = -1;
         VKRenderPass* renderPass;
@@ -111,7 +111,8 @@ private:
     std::vector<VkMemoryBarrier> memoryBarriers;
     std::vector<std::shared_ptr<AsyncReadbackHandle>> asyncReadbacks;
 
-    std::unordered_map<ShaderProgram*, VKShaderResource> globalResources;
+    using ShaderProgramID = UUID;
+    std::unordered_map<ShaderProgramID, VKShaderResource> globalResources;
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ShaderBinding>> globalResourcePool;
     // std::unique_ptr<VKShaderResource> globalResource;
     //

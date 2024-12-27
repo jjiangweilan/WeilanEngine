@@ -75,7 +75,7 @@ enum class ImageViewType
     Cube_Array,
 };
 
-enum class ImageFormat
+enum class GfxFormat
 {
     R16G16B16A16_SFloat = 0,
     R16G16B16A16_UNorm,
@@ -126,10 +126,10 @@ enum class ImageFormat
     Invalid
 };
 
-ImageFormat GetImageFormat(int channelBits, int channels, bool linear);
+GfxFormat GetGfxFormat(int channelBits, int channels, bool linear);
 
-ImageFormat MapStringToImageFormat(std::string_view name);
-const char* MapImageFormatToString(ImageFormat format);
+GfxFormat MapStringToGfxFormat(std::string_view name);
+const char* MapGfxFormatToString(GfxFormat format);
 
 enum class MultiSampling
 {
@@ -290,10 +290,10 @@ ENUM_FLAGS(AccessMask, uint64_t){
 };
 bool HasWriteAccessMask(AccessMaskFlags flags);
 bool HasReadAccessMask(AccessMaskFlags flags);
-bool IsDepthStencilFormat(ImageFormat format);
-bool HasStencil(ImageFormat format);
-bool IsColoFormat(ImageFormat format);
-uint32_t MapImageFormatToByteSize(ImageFormat format);
+bool IsDepthStencilFormat(GfxFormat format);
+bool HasStencil(GfxFormat format);
+bool IsColoFormat(GfxFormat format);
+uint32_t MapGfxFormatToByteSize(GfxFormat format);
 
 ENUM_FLAGS(PipelineStage, uint64_t){
     None = 0,
@@ -314,6 +314,60 @@ ENUM_FLAGS(PipelineStage, uint64_t){
     Host = 0x00004000,
     All_Graphics = 0x00008000,
     All_Commands = 0x00010000,
+};
+
+enum class ShaderStage
+{
+    None = 0,
+    Vertex = 1,
+    Fragment = 1 << 2,
+    Compute = 1 << 3,
+};
+ENUM_FLAGS(ShaderStage, int);
+
+enum class DescriptorType
+{
+    Sampler = 0,
+    CombinedImageSampler = 1,
+    SampledImage = 2,
+    StorageImage = 3,
+    UniformTexelBuffer = 4,
+    StorageTexelBuffer = 5,
+    UniformBuffer = 6,
+    StorageBuffer = 7,
+    UniformBufferDynamic = 8,
+    StorageBufferDynamic = 9,
+    InputAttachment = 10,
+    Invalid = 11
+};
+
+enum class SamplerAddressMode
+{
+    Repeat = 0,
+    MirroredRepeat = 1,
+    ClampToEdge = 2,
+    ClampToBorder = 3,
+    MirrorClampToEdge = 4,
+};
+
+enum class SamplerMipmapMode
+{
+    Nearest = 0,
+    Linear = 1,
+};
+
+enum class FilterMode
+{
+    Nearest = 0,
+    Linear = 1,
+};
+
+enum class TextureType
+{
+    Invalid,
+    Tex2D,
+    Tex3D,
+    TexCube,
 };
 
 } // namespace Gfx

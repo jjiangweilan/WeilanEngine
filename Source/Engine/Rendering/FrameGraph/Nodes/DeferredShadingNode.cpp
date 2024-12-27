@@ -71,13 +71,13 @@ class DeferredShadingNode : public Node
         int rtHeight = colorProp.desc.GetHeight();
         albedoDesc.SetWidth(rtWidth);
         albedoDesc.SetHeight(rtHeight);
-        albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
+        albedoDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_SRGB);
         normalDesc.SetWidth(colorProp.desc.GetWidth());
         normalDesc.SetHeight(colorProp.desc.GetHeight());
-        normalDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+        normalDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_UNorm);
         maskDesc.SetWidth(colorProp.desc.GetWidth());
         maskDesc.SetHeight(colorProp.desc.GetHeight());
-        maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+        maskDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_UNorm);
 
         cmd.AllocateAttachment(albedoRTID, albedoDesc);
         cmd.AllocateAttachment(normalRTID, normalDesc);
@@ -114,7 +114,7 @@ class DeferredShadingNode : public Node
                 {
                     cmd.BindResource(3, draw.objectResource);
                 }
-                cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&draw.pushConstant);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
         }

@@ -95,7 +95,7 @@ void VKCommandBuffer::BindResource(uint32_t set, Gfx::ShaderResource* resource)
     cmds.push_back(VKCmd{VKCmdType::BindResource, cmd});
 }
 
-void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, std::shared_ptr<const ShaderConfig> config)
+void VKCommandBuffer::BindShaderProgram(RefPtr<Gfx::ShaderProgram> bProgram, const PipelineConfig& config)
 {
     VKBindShaderProgramCmd cmd{};
 
@@ -173,9 +173,8 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, 
     cmd.stages = 0;
     for (auto& ps : shaderProgram->GetShaderInfo().pushConstants)
     {
-        auto& pushConstant = ps.second;
-        cmd.stages |= ShaderInfo::Utils::MapShaderStage(pushConstant.stages);
-        totalSize += pushConstant.data.size;
+        cmd.stages |= MapShaderStages(ps.stages);
+        totalSize += ps.size;
     }
     cmd.dataSize = totalSize;
     memcpy(cmd.data, data, totalSize < 128 ? totalSize : 128);
@@ -354,7 +353,7 @@ void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buff
     cmds.push_back(VKCmd{VKCmdType::SetBuffer, cmd});
 }
 
-void VKCommandBuffer::AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc)
+void VKCommandBuffer::AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
 {
     graph->Request(id, desc);
 }

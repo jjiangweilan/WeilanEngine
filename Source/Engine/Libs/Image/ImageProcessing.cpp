@@ -18,7 +18,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     imgDesc.depth = 1;
     imgDesc.isCubemap = false;
     imgDesc.mipLevels = 1;
-    imgDesc.format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+    imgDesc.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
     imgDesc.depth = 1;
     imgDesc.multiSampling = Gfx::MultiSampling::Sample_Count_1;
 
@@ -83,7 +83,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     imgDesc.depth = 1;
     imgDesc.isCubemap = false;
     imgDesc.mipLevels = 1;
-    imgDesc.format = Gfx::ImageFormat::R32G32B32A32_SFloat;
+    imgDesc.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
     imgDesc.depth = 1;
     imgDesc.multiSampling = Gfx::MultiSampling::Sample_Count_1;
 
@@ -126,7 +126,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
         mats.push_back(std::make_unique<Material>(compute));
         Material* mat = mats.back().get();
 
-        mat->SetTexture("_LightCubemap", dstCuebmap.get(), Gfx::ImageViewOption{mip, 1, 0, 6});
+        mat->SetTexture("_LightCubemap", dstCuebmap.get(), Gfx::ImageViewOption{mip, 1, 0, 6, Gfx::ImageAspect::Color});
         struct PushConstant
         {
             glm::vec4 texelSize;
@@ -158,7 +158,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
              .extend = {static_cast<uint32_t>(mipWidth), static_cast<uint32_t>(mipHeight), 1}}
         };
 
-        byteOffset += mipWidth * mipHeight * 6 * Gfx::MapImageFormatToByteSize(imgDesc.format);
+        byteOffset += mipWidth * mipHeight * 6 * Gfx::MapGfxFormatToByteSize(imgDesc.format);
         mipWidth *= 0.5;
         mipHeight *= 0.5;
         cmd->CopyImageToBuffer(dstCuebmap, readbackBuf, regions);

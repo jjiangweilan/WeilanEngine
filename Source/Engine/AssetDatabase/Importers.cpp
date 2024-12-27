@@ -91,8 +91,8 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
         std::unique_ptr<Material> mat = std::make_unique<Material>();
         SetAssetNameAndUUID(mat.get(), jsonData, "materials", i);
 
-        if (shader)
-            mat->SetShader(shader);
+        //if (shader)
+           // mat->SetShader(shader);
 
         nlohmann::json& matJson = jsonData["materials"][i];
         auto config = *mat->GetShaderConfig();

@@ -57,7 +57,7 @@ private:
 class GizmoDrawMesh : public GizmoBase
 {
 public:
-    GizmoDrawMesh(Mesh* mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
+    GizmoDrawMesh(Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix)
         : mesh(mesh), submeshIndex(submeshIndex), shader(shader), material(nullptr), modelMatrix(modelMatrix)
     {}
 
@@ -82,8 +82,8 @@ public:
             }
             else
             {
-                cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &modelMatrix);
-                cmd.BindShaderProgram(shader->GetDefaultShaderProgram(), shader->GetDefaultShaderConfig());
+                cmd.SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
+                cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
             }
             cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
         }
@@ -105,7 +105,7 @@ public:
 private:
     Mesh* mesh;
     int submeshIndex;
-    Shader* shader;
+    ObjPtr<Shader2> shader;
     Material* material;
     glm::mat4 modelMatrix;
 };
@@ -187,6 +187,7 @@ void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
 
 void Gizmos::DispatchAllDiszmos(Gfx::CommandBuffer& cmd)
 {
+    return;
     for (auto& g : GetSingleton().gizmos)
     {
         g->Draw(cmd);
@@ -214,7 +215,7 @@ void Gizmos::DrawLight(const glm::vec3& position)
     GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawLight>(position));
 }
 
-void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Shader* shader, const glm::mat4& modelMatrix)
+void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix)
 {
     GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, shader, modelMatrix));
 }

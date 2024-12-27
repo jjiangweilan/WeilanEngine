@@ -45,8 +45,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.indexBufferType = submesh.GetIndexBufferType();
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectResource = meshRenderer.GetObjectResource();
-                        drawData.shader = (Shader*)shader;
-                        drawData.shaderConfig = material->GetShaderConfig();
+                        drawData.shader = shader.Get();
+                        drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.pushConstant = modelMatrix;
                         drawData.indexCount = indexCount;
@@ -65,7 +65,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
             if (material == nullptr)
                 continue;
 
-            auto shader = material ? material->GetShaderProgram() : nullptr;
+            auto shader = material ? material->GetShader() : nullptr;
             for (auto mesh : meshes)
             {
                 for (auto& submesh : mesh->GetSubmeshes())
@@ -86,8 +86,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.indexBufferType = submesh.GetIndexBufferType();
                         drawData.materialResource = material->GetShaderResource();
                         drawData.objectResource = meshRenderer.GetObjectResource();
-                        drawData.shader = (Shader*)shader;
-                        drawData.shaderConfig = material->GetShaderConfig();
+                        drawData.shader = shader;
+                        drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
                         drawData.pushConstant = modelMatrix;
                         drawData.indexCount = indexCount;
@@ -117,7 +117,7 @@ void DrawList::Sort(const glm::vec3& cameraPos)
         this->begin(),
         this->end(),
         [](const SceneObjectDrawData& val)
-        { return val.shaderConfig->color.blends.empty() ? true : !val.shaderConfig->color.blends[0].blendEnable; }
+        { return (*val.shaderConfig)->color.blends.empty() ? true : !(*val.shaderConfig)->color.blends[0].blendEnable; }
     );
     this->transparentIndex = std::distance(this->begin(), transparentIter);
 
@@ -129,7 +129,7 @@ void DrawList::Sort(const glm::vec3& cameraPos)
         {
             static std::string alphaTest = "_AlphaTest";
 
-            auto& features = val.material->GetCachedShaderProgramFeatureUsed();
+            auto features = val.material->GetCachedShaderProgramFeatureUsed();
             return std::find(features.begin(), features.end(), alphaTest) == features.end();
         }
     );

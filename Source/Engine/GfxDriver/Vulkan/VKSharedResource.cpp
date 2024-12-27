@@ -31,7 +31,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
 
     // create default image
     ImageDescription desc{};
-    desc.format = ImageFormat::R8G8B8A8_UNorm;
+    desc.format = GfxFormat::R8G8B8A8_UNorm;
     desc.height = 2;
     desc.width = 2;
     desc.depth = 1;
@@ -44,7 +44,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     defaultTexture->SetData(pxls, 0, 0);
 
     ImageDescription tex3DDesc{};
-    tex3DDesc.format = ImageFormat::R8G8B8A8_UNorm;
+    tex3DDesc.format = GfxFormat::R8G8B8A8_UNorm;
     tex3DDesc.height = 2;
     tex3DDesc.width = 2;
     tex3DDesc.depth = 2;
@@ -57,7 +57,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     defaultTexture3D->SetData(tex3DData, 0, 0);
 
     ImageDescription storageImage2DDesc{};
-    storageImage2DDesc.format = ImageFormat::R8G8B8A8_UNorm;
+    storageImage2DDesc.format = GfxFormat::R8G8B8A8_UNorm;
     storageImage2DDesc.height = 2;
     storageImage2DDesc.width = 2;
     storageImage2DDesc.depth = 1;
@@ -70,7 +70,7 @@ VKSharedResource::VKSharedResource(VKDriver* driver) : driver(driver)
     defaultStorage2DImage->SetData(pxls, 0, 0, VK_IMAGE_LAYOUT_GENERAL);
 
     ImageDescription descCube{};
-    descCube.format = ImageFormat::R8G8B8A8_UNorm;
+    descCube.format = GfxFormat::R8G8B8A8_UNorm;
     descCube.height = 2;
     descCube.width = 2;
     descCube.depth = 1;

@@ -53,7 +53,7 @@ public:
 
     int FindShaderPass(std::string_view name);
 
-    inline std::shared_ptr<const Gfx::ShaderConfig> GetDefaultShaderConfig()
+    inline const Gfx::PipelineConfig& GetDefaultShaderConfig()
     {
         return shaderPasses[0]->shaderPrograms[0]->GetDefaultShaderConfig();
     }
@@ -137,5 +137,5 @@ public:
     )
         : ShaderBase(name, std::move(shaderProgram), uuid) {};
     ComputeShader(const char* path) { LoadFromFile(path); };
-    bool LoadFromFile(const char* path) override;
+    bool LoadFromFile(const char* path) override { return false; };
 };

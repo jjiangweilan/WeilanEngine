@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "FrameGraph/FrameGraphEditor.hpp"
 #include "Profiler/Profiler.hpp"
@@ -25,6 +26,8 @@ public:
 
     void Start();
     WeilanEngine* GetEngine() { return engine.get(); }
+
+    void SetActiveScene(ObjPtr<Scene> scene);
 
     std::unique_ptr<Gfx::Image> fontImage;
     nlohmann::json editorConfig;

@@ -53,13 +53,13 @@ class GBufferPassNode : public Node
         int rtHeight = depthProp.desc.GetHeight();
         albedoDesc.SetWidth(rtWidth);
         albedoDesc.SetHeight(rtHeight);
-        albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
+        albedoDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_SRGB);
         normalDesc.SetWidth(depthProp.desc.GetWidth());
         normalDesc.SetHeight(depthProp.desc.GetHeight());
-        normalDesc.SetFormat(Gfx::ImageFormat::A2B10G10R10_UNorm);
+        normalDesc.SetFormat(Gfx::GfxFormat::A2B10G10R10_UNorm);
         maskDesc.SetWidth(depthProp.desc.GetWidth());
         maskDesc.SetHeight(depthProp.desc.GetHeight());
-        maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+        maskDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_UNorm);
 
         cmd.AllocateAttachment(albedoRTID, albedoDesc);
         cmd.AllocateAttachment(normalRTID, normalDesc);
@@ -87,7 +87,7 @@ class GBufferPassNode : public Node
             for (int i = 0; i < drawList->alphaTestIndex; ++i)
             {
                 auto& draw = drawList->at(i);
-                auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+                auto shaderProgram = draw.material->GetShaderProgram();
                 if (shaderProgram)
                 {
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
@@ -97,7 +97,7 @@ class GBufferPassNode : public Node
                     {
                         cmd.BindResource(3, draw.objectResource);
                     }
-                    cmd.BindShaderProgram(shaderProgram, draw.shaderConfig);
+                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
@@ -108,7 +108,7 @@ class GBufferPassNode : public Node
             for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
             {
                 auto& draw = drawList->at(i);
-                auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+                auto shaderProgram = draw.material->GetShaderProgram();
                 if (shaderProgram)
                 {
                     cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
@@ -118,7 +118,7 @@ class GBufferPassNode : public Node
                     {
                         cmd.BindResource(3, draw.objectResource);
                     }
-                    cmd.BindShaderProgram(shaderProgram, draw.shaderConfig);
+                    cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
                     cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
                     cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }

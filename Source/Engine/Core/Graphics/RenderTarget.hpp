@@ -62,7 +62,7 @@ struct RenderPassConfig
 struct RenderTargetAttachmentDescription
 {
     RenderTargetAttachmentDescription();
-    Gfx::ImageFormat format;
+    Gfx::GfxFormat format;
     Gfx::MultiSampling multiSampling;
     uint32_t mipLevels;
     ClearValue clearValue;

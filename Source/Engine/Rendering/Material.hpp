@@ -5,7 +5,9 @@
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include "Shader.hpp"
+#include "Libs/Allocator/GlobalTempAllocator.hpp"
+#include "Rendering/Shader2.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
@@ -23,24 +25,17 @@ class Material : public Asset
     DECLARE_ASSET();
 
 public:
-    Material(ShaderBase* shader);
     Material();
+    Material(std::string_view shaderName);
+    Material(ObjPtr<Shader2> shader);
     Material(const Material& other) = delete;
     ~Material() override;
 
-    void SetShader(ShaderBase* shader);
-    ShaderBase* GetShader() { return shader; }
+    void SetShader(std::string_view shaderName);
+    ObjPtr<Shader2> GetShader() { return shaderInUse; }
+    void SetShader(Shader2* shader);
 
-    Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass)
-    {
-        int pass = shader->FindShaderPass(shaderPass);
-        if (pass != -1)
-        {
-            return GetShaderProgram(pass);
-        }
-        return nullptr;
-    }
-    Gfx::ShaderProgram* GetShaderProgram(int shaderPassIndex = 0);
+    Gfx::ShaderProgram* GetShaderProgram();
 
     Gfx::ShaderResource* GetShaderResource() { return ValidateGetShaderResource(); }
 
@@ -57,7 +52,6 @@ public:
     void SetTexture(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
     );
-    void SetBuffer(const std::string& param, Gfx::Buffer* buffer);
     void SetTexture(const std::string& param, std::nullptr_t);
     void EnableFeature(const std::string& name);
     void DisableFeature(const std::string& name);
@@ -70,26 +64,19 @@ public:
     // const UUID& Serialize(RefPtr<AssetFileData> assetFileData) override;
     // void        Deserialize(RefPtr<AssetFileData> assetFileData, RefPtr<AssetDatabase> assetDatabase) override;
 
-    std::shared_ptr<const Gfx::ShaderConfig> GetShaderConfig()
-    {
-        if (overrideShaderConfig || shader == nullptr)
-            return shaderConfig;
-        else
-            return shader->GetDefaultShaderConfig();
-    }
+    const Gfx::PipelineConfig& GetShaderConfig();
 
-    void SetShaderConfig(const Gfx::ShaderConfig& shaderConfig)
+    void SetShaderConfig(const Gfx::PipelineConfig::PipelineConfig_t& shaderConfig)
     {
         overrideShaderConfig = true;
-        this->shaderConfig = std::make_shared<Gfx::ShaderConfig>(shaderConfig);
+        this->shaderConfig = shaderConfig;
     }
-
 
     void OnLoaded() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<std::string>& GetCachedShaderProgramFeatureUsed() const { return cachedShaderProgramFeatures; }
+    std::vector<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
 
     const std::unordered_set<std::string>& GetEnabledFeatures() const { return enabledFeatures; }
     bool IsFeatureEnabled(const std::string& feature) const
@@ -101,6 +88,7 @@ public:
     static void RebuildAllMaterials();
 
 private:
+    inline static const std::string PerMaterial = "perMaterial";
     struct UBO
     {
         bool dirty = false;
@@ -111,53 +99,32 @@ private:
 
         void Serialize(Serializer* ser) const;
         void Deserialize(Serializer* ser);
-    };
+    } ubo;
 
-    union UpdateVal
-    {
-        float f;
-        glm::vec4 vec;
-        glm::mat4 mat;
-    };
-
-    struct ScheduledUpdate
-    {
-        size_t offset;
-        size_t size;
-        UpdateVal val;
-    };
-
-    struct Schedule
-    {
-        bool scheduled;
-        std::vector<ScheduledUpdate> updates;
-    };
-
-    ObjPtr<ShaderBase> shader = nullptr;
-    uint32_t shaderContentHash = -1;
+    std::string shaderName;
+    const ShaderFeatures* shaderFeatures = nullptr;
+    ObjPtr<Shader2> shaderInUse = nullptr;
     std::unique_ptr<Gfx::ShaderResource> shaderResource = nullptr;
-    std::shared_ptr<Gfx::ShaderConfig> shaderConfig;
-    using ShaderPassIndex = int;
-    std::unordered_map<ShaderPassIndex, Gfx::ShaderProgram*> cachedShaderPrograms;
-    std::vector<std::string> cachedShaderProgramFeatures;
-    uint64_t globalShaderFeaturesHash;
+    Gfx::PipelineConfig shaderConfig;
     bool overrideShaderConfig = false;
 
-    std::unordered_map<std::string, UBO> ubos;
+    // std::unordered_map<std::string, UBO> ubos;
     std::unordered_map<std::string, Texture*> textureValues;
     std::unordered_map<std::string, std::optional<Gfx::ImageViewOption>> textureImageViewOptions;
     std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;
-    std::unique_ptr<Gfx::Buffer> buffer;
-    std::shared_ptr<Schedule> schedule;
-
-    std::vector<uint8_t> tempUploadData;
+    bool uploadNeeded = false;
+    bool needRequestNewShader = false;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
-    void SetShaderNoProtection(ShaderBase* shader);
+    void UploadDataToGPUInternal(
+        const Gfx::PipelineInfo& pipeline,
+        const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
+        std::vector<uint8_t, GlobalTempAllocator<uint8_t>>& buf
+    );
+    void SetShaderNoProtection(ObjPtr<Shader2> shaderProgram);
     Gfx::ShaderResource* ValidateGetShaderResource();
     void SetTextureInternal(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
     );
-    bool uploadNeeded = false;
 };

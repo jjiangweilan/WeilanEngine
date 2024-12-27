@@ -26,7 +26,7 @@ void Node::Serialize(Serializer* s) const
         }
         else if (type == ConfigurableType::Format)
         {
-            int v = static_cast<int>(std::any_cast<Gfx::ImageFormat>(c->data));
+            int v = static_cast<int>(std::any_cast<Gfx::GfxFormat>(c->data));
             s->Serialize(c->name, v);
         }
         else if (type == ConfigurableType::Vec2)
@@ -99,7 +99,7 @@ void Node::Deserialize(Serializer* s)
         {
             int v = 0;
             s->Deserialize(c->name, v);
-            c->data = static_cast<Gfx::ImageFormat>(v);
+            c->data = static_cast<Gfx::GfxFormat>(v);
         }
         else if (type == ConfigurableType::Vec2)
         {

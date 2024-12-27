@@ -154,6 +154,7 @@ void Graph::Serialize(Serializer* s) const
 
 void Graph::Deserialize(Serializer* s)
 {
+    return;
     Asset::Deserialize(s);
     s->Deserialize("nodeIDPool", nodeIDPool);
     s->Deserialize("connections", connections);

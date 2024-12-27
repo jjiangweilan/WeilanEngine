@@ -23,13 +23,13 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData,
     int rtHeight = input.colorDesc.GetHeight();
     albedoDesc.SetWidth(rtWidth);
     albedoDesc.SetHeight(rtHeight);
-    albedoDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_SRGB);
+    albedoDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_SRGB);
     normalDesc.SetWidth(input.colorDesc.GetWidth());
     normalDesc.SetHeight(input.colorDesc.GetHeight());
-    normalDesc.SetFormat(Gfx::ImageFormat::A2B10G10R10_UNorm);
+    normalDesc.SetFormat(Gfx::GfxFormat::A2B10G10R10_UNorm);
     maskDesc.SetWidth(input.colorDesc.GetWidth());
     maskDesc.SetHeight(input.colorDesc.GetHeight());
-    maskDesc.SetFormat(Gfx::ImageFormat::R8G8B8A8_UNorm);
+    maskDesc.SetFormat(Gfx::GfxFormat::R8G8B8A8_UNorm);
 
     cmd.AllocateAttachment(output.albedo, albedoDesc);
     cmd.AllocateAttachment(output.normal, normalDesc);
@@ -58,7 +58,7 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData,
         for (int i = 0; i < drawList->alphaTestIndex; ++i)
         {
             auto& draw = drawList->at(i);
-            auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+            auto shaderProgram = draw.material->GetShaderProgram();
             if (shaderProgram)
             {
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
@@ -78,7 +78,7 @@ void GBufferPass::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData,
         for (int i = drawList->alphaTestIndex; i < drawList->transparentIndex; ++i)
         {
             auto& draw = drawList->at(i);
-            auto shaderProgram = draw.material->GetShaderProgram("GBuffer");
+            auto shaderProgram = draw.material->GetShaderProgram();
             if (shaderProgram)
             {
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);

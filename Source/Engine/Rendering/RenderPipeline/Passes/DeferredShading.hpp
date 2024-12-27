@@ -47,8 +47,8 @@ public:
         lightingPassShader =
             (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/StandardPBRLighting.shad");
         lightingPassShaderProgram = lightingPassShader->GetShaderProgram(0, 0);
-        lightingPassConfig = std::make_shared<Gfx::ShaderConfig>(*lightingPassShaderProgram->GetDefaultShaderConfig());
-        lightingPassConfig->color.blends.push_back({
+        auto lightingPassConfig = *lightingPassShaderProgram->GetDefaultShaderConfig();
+        lightingPassConfig.color.blends.push_back({
             .blendEnable = true,
             .srcColorBlendFactor = Gfx::BlendFactor::One,
             .dstColorBlendFactor = Gfx::BlendFactor::One,
@@ -58,6 +58,7 @@ public:
             .alphaBlendOp = Gfx::BlendOp::Add,
             .colorWriteMask = Gfx::ColorComponentBit::Component_All_Bits,
         });
+        this->lightingPassConfig = lightingPassConfig;
 
         shaderResource = GetGfxDriver()->CreateShaderResource();
         shadingPropertiesBuffer = GetGfxDriver()->CreateBuffer(Gfx::Buffer::CreateInfo{
@@ -116,7 +117,7 @@ private:
 
     Shader* lightingPassShader;
     Gfx::ShaderProgram* lightingPassShaderProgram;
-    std::shared_ptr<Gfx::ShaderConfig> lightingPassConfig;
+    Gfx::PipelineConfig lightingPassConfig;
 
     struct ShadingProperties
     {

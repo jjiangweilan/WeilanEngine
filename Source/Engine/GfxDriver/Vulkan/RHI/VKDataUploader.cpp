@@ -63,7 +63,7 @@ void VKDataUploader::UploadImage(
 {
     auto vkDst = static_cast<VKImage*>(dst);
 
-    size_t byteSize = MapImageFormatToByteSize(vkDst->GetDescription().format);
+    size_t byteSize = MapGfxFormatToByteSize(vkDst->GetDescription().format);
     size_t align = byteSize - (offset % byteSize);
 
     if (size + align > stagingBufferSize)
@@ -115,7 +115,7 @@ void VKDataUploader::UploadAllPending(
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
 
-    vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
+    auto waitResult = vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
     vkResetFences(driver->device.handle, 1, &fence);
     vkResetCommandBuffer(cmd, 0);
 

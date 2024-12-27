@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "../GameEditor.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Inspector.hpp"
 
@@ -20,7 +21,7 @@ public:
 
         if (ImGui::Button("Set as active scene"))
         {
-            EditorState::activeScene = target;
+            editor.SetActiveScene(target);
         }
     }
 

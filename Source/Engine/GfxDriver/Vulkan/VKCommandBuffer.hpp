@@ -91,7 +91,7 @@ struct VKBindResourceCmd
 struct VKBindShaderProgramCmd
 {
     VKShaderProgram* program;
-    std::shared_ptr<const ShaderConfig> config;
+    PipelineConfig config;
 };
 
 struct VKBindVertexBufferCmd
@@ -406,7 +406,7 @@ public:
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
     void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex)
         override;
-    void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, std::shared_ptr<const ShaderConfig> config) override;
+    void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
 
     void SetViewport(const Viewport& viewport) override;
@@ -435,7 +435,7 @@ public:
     ) override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachment(RG::ImageIdentifier& id, RG::ImageDescription& desc) override;
+    void AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc) override;
     void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void SetLineWidth(float lineWidth) override;
 

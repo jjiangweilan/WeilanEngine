@@ -26,23 +26,6 @@ public:
         ClearConfigs();
         AddConfig<ConfigurableType::ObjectPtr>("shader", shader);
 
-        if (shader)
-        {
-            for (auto& b : shader->GetDefaultShaderProgram()->GetShaderInfo().bindings)
-            {
-                if (b.second.type == Gfx::ShaderInfo::BindingType::UBO)
-                {
-                    for (auto& m : b.second.binding.ubo.data.members)
-                    {
-                        if (m.second.data->type == Gfx::ShaderInfo::ShaderDataType::Float)
-                        {
-                            AddConfig<ConfigurableType::Float>(m.first.data(), 0.0f);
-                        }
-                    }
-                }
-            }
-        }
-
         Gfx::ClearValue v;
         v.color.float32[0] = 0;
         v.color.float32[1] = 0;

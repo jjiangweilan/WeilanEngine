@@ -12,10 +12,11 @@ class SSAONode : public Node
     DECLARE_FRAME_GRAPH_NODE(SSAONode)
     {
         SetCustomName("SSAO");
+        return;
         shader = (Shader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Game/PostProcess/SSAO.shad");
         noiseTex = (Texture*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Textures/noise.ktx");
 
-        material.SetShader(shader);
+        material.SetShader("PostProcess/SSAO");
         if (aoType == AOType::AlchmeyAO)
         {
             material.EnableFeature("_AlchemyAO");
@@ -159,118 +160,118 @@ class SSAONode : public Node
     {
         auto& cmd = *renderingData.cmd;
         auto inputAttachment = input.attachment->GetValue<AttachmentProperty>();
-        if (*enable)
-        {
-            auto depth = input.depth->GetValue<AttachmentProperty>().id;
-            auto normal = input.normal->GetValue<AttachmentProperty>();
-
-            float width = normal.desc.GetWidth();
-            float height = normal.desc.GetHeight();
-
-            if (aoType == AOType::CrysisAO)
-            {
-                CrysisAO newParam{{1 / width, 1 / height, width, height}, *bias, *radius, *rangeCheck};
-                if (crysis != newParam)
-                {
-                    crysis = newParam;
-                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&crysis, sizeof(CrysisAO));
-                }
-            }
-            else if (aoType == AOType::AlchmeyAO)
-            {
-                Alchmey newParam{
-                    {1 / width, 1 / height, width, height},
-                    *strength,
-                    *k,
-                    *beta,
-                    *theta,
-                    *sampleCount,
-                    *radius,
-                    *rangeCheck
-                };
-                if (alchmey != newParam)
-                {
-                    alchmey = newParam;
-                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&alchmey, sizeof(Alchmey));
-                }
-            }
-            else if (aoType == AOType::GTAO)
-            {
-                material.SetFloat("GTAO", "scaling", *gtaoScaling);
-                material.SetFloat("GTAO", "falloff", *gtaoFalloff);
-                material.SetFloat("GTAO", "bias", *bias);
-                material.SetFloat("GTAO", "strength", *strength);
-                material.SetVector(
-                    "GTAO",
-                    "rtSize",
-                    {inputAttachment.desc.GetWidth(),
-                     inputAttachment.desc.GetHeight(),
-                     1.0f / inputAttachment.desc.GetWidth(),
-                     1.0f / inputAttachment.desc.GetHeight()}
-                );
-            }
-
-            // #if ENGINE_DEV_BUILD
-            //             GetShaderProgram();
-            // #endif
-
-            if (shader != nullptr)
-            {
-                mainPass.SetAttachment(0, inputAttachment.id);
-                cmd.BeginRenderPass(mainPass, clears);
-                cmd.BindResource(1, passResource.get());
-                cmd.SetTexture("noise", *noiseTex->GetGfxImage());
-                cmd.SetTexture(depthHandle, depth);
-                cmd.SetTexture(normalHandle, normal.id);
-                cmd.BindResource(2, material.GetShaderResource());
-                cmd.BindShaderProgram(material.GetShaderProgram(), material.GetShaderConfig());
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-            }
-
-            // blur
-            GaussianBlur newParam = {glm::vec4{
-                1.0f / inputAttachment.desc.GetWidth(),
-                1.0f / inputAttachment.desc.GetHeight(),
-                inputAttachment.desc.GetWidth(),
-                inputAttachment.desc.GetHeight()
-            }};
-            if (newParam != blurParams)
-            {
-                blurParams = newParam;
-                GetGfxDriver()->UploadBuffer(*blur.paramsBuffer, (uint8_t*)&blurParams, sizeof(GaussianBlur));
-            }
-
-            for (int i = 0; i < *blurCount; ++i)
-            {
-                cmd.SetBuffer("GaussianBlur", *blur.paramsBuffer);
-                cmd.AllocateAttachment(blur.tmpRT, inputAttachment.desc);
-                blur.hPass.SetAttachment(0, blur.tmpRT);
-                cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
-                cmd.BeginRenderPass(blur.hPass, clears);
-                cmd.SetTexture(sourceHandle, inputAttachment.id);
-#if ENGINE_DEV_BUILD
-                blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
-                blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
-#endif
-                cmd.BindShaderProgram(blur.hShader, blur.hShader->GetDefaultShaderConfig());
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-
-                blur.vPass.SetAttachment(0, inputAttachment.id);
-                cmd.BeginRenderPass(blur.vPass, clears);
-                cmd.SetTexture(sourceHandle, blur.tmpRT);
-                cmd.BindShaderProgram(blur.vShader, blur.hShader->GetDefaultShaderConfig());
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-            }
-        }
-        else
-        {
-            mainPass.SetAttachment(0, inputAttachment.id);
-            cmd.BeginRenderPass(mainPass, clears);
-            cmd.EndRenderPass();
-        }
+//        if (*enable)
+//        {
+//            auto depth = input.depth->GetValue<AttachmentProperty>().id;
+//            auto normal = input.normal->GetValue<AttachmentProperty>();
+//
+//            float width = normal.desc.GetWidth();
+//            float height = normal.desc.GetHeight();
+//
+//            if (aoType == AOType::CrysisAO)
+//            {
+//                CrysisAO newParam{{1 / width, 1 / height, width, height}, *bias, *radius, *rangeCheck};
+//                if (crysis != newParam)
+//                {
+//                    crysis = newParam;
+//                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&crysis, sizeof(CrysisAO));
+//                }
+//            }
+//            else if (aoType == AOType::AlchmeyAO)
+//            {
+//                Alchmey newParam{
+//                    {1 / width, 1 / height, width, height},
+//                    *strength,
+//                    *k,
+//                    *beta,
+//                    *theta,
+//                    *sampleCount,
+//                    *radius,
+//                    *rangeCheck
+//                };
+//                if (alchmey != newParam)
+//                {
+//                    alchmey = newParam;
+//                    GetGfxDriver()->UploadBuffer(*ssaoParamBuf, (uint8_t*)&alchmey, sizeof(Alchmey));
+//                }
+//            }
+//            else if (aoType == AOType::GTAO)
+//            {
+//                material.SetFloat("GTAO", "scaling", *gtaoScaling);
+//                material.SetFloat("GTAO", "falloff", *gtaoFalloff);
+//                material.SetFloat("GTAO", "bias", *bias);
+//                material.SetFloat("GTAO", "strength", *strength);
+//                material.SetVector(
+//                    "GTAO",
+//                    "rtSize",
+//                    {inputAttachment.desc.GetWidth(),
+//                     inputAttachment.desc.GetHeight(),
+//                     1.0f / inputAttachment.desc.GetWidth(),
+//                     1.0f / inputAttachment.desc.GetHeight()}
+//                );
+//            }
+//
+//            // #if ENGINE_DEV_BUILD
+//            //             GetShaderProgram();
+//            // #endif
+//
+//            if (shader != nullptr)
+//            {
+//                mainPass.SetAttachment(0, inputAttachment.id);
+//                cmd.BeginRenderPass(mainPass, clears);
+//                cmd.BindResource(1, passResource.get());
+//                cmd.SetTexture("noise", *noiseTex->GetGfxImage());
+//                cmd.SetTexture(depthHandle, depth);
+//                cmd.SetTexture(normalHandle, normal.id);
+//                cmd.BindResource(2, material.GetShaderResource());
+//                cmd.BindShaderProgram(material.GetShaderProgram(), material.GetShaderConfig());
+//                cmd.Draw(6, 1, 0, 0);
+//                cmd.EndRenderPass();
+//            }
+//
+//            // blur
+//            GaussianBlur newParam = {glm::vec4{
+//                1.0f / inputAttachment.desc.GetWidth(),
+//                1.0f / inputAttachment.desc.GetHeight(),
+//                inputAttachment.desc.GetWidth(),
+//                inputAttachment.desc.GetHeight()
+//            }};
+//            if (newParam != blurParams)
+//            {
+//                blurParams = newParam;
+//                GetGfxDriver()->UploadBuffer(*blur.paramsBuffer, (uint8_t*)&blurParams, sizeof(GaussianBlur));
+//            }
+//
+//            for (int i = 0; i < *blurCount; ++i)
+//            {
+//                cmd.SetBuffer("GaussianBlur", *blur.paramsBuffer);
+//                cmd.AllocateAttachment(blur.tmpRT, inputAttachment.desc);
+//                blur.hPass.SetAttachment(0, blur.tmpRT);
+//                cmd.UpdateViewportAndScissor(inputAttachment.desc.GetWidth(), inputAttachment.desc.GetHeight());
+//                cmd.BeginRenderPass(blur.hPass, clears);
+//                cmd.SetTexture(sourceHandle, inputAttachment.id);
+//#if ENGINE_DEV_BUILD
+//                blur.hShader = blur.shader->GetShaderProgram({"_Horizontal"});
+//                blur.vShader = blur.shader->GetShaderProgram({"_Vertical"});
+//#endif
+//                cmd.BindShaderProgram(blur.hShader, blur.hShader->GetDefaultShaderConfig());
+//                cmd.Draw(6, 1, 0, 0);
+//                cmd.EndRenderPass();
+//
+//                blur.vPass.SetAttachment(0, inputAttachment.id);
+//                cmd.BeginRenderPass(blur.vPass, clears);
+//                cmd.SetTexture(sourceHandle, blur.tmpRT);
+//                cmd.BindShaderProgram(blur.vShader, blur.hShader->GetDefaultShaderConfig());
+//                cmd.Draw(6, 1, 0, 0);
+//                cmd.EndRenderPass();
+//            }
+//        }
+//        else
+//        {
+//            mainPass.SetAttachment(0, inputAttachment.id);
+//            cmd.BeginRenderPass(mainPass, clears);
+//            cmd.EndRenderPass();
+//        }
 
         output.color->SetValue(input.attachment->GetValue<AttachmentProperty>());
     }
@@ -324,7 +325,7 @@ private:
         std::unique_ptr<Gfx::Buffer> paramsBuffer;
         Gfx::RG::RenderPass hPass;
         Gfx::RG::RenderPass vPass;
-        Gfx::ShaderConfig config;
+        Gfx::PipelineConfig config;
     } blur;
 
     struct RandomSamples

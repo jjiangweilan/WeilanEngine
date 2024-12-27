@@ -40,7 +40,7 @@ public:
         if (shadowMap == nullptr || (shadowMap->GetDescription().width != shadowMapSize.x ||
                                      shadowMap->GetDescription().height != shadowMapSize.y))
         {
-            Gfx::ImageDescription desc(shadowMapSize.x, shadowMapSize.y, Gfx::ImageFormat::D32_SFloat);
+            Gfx::ImageDescription desc(shadowMapSize.x, shadowMapSize.y, Gfx::GfxFormat::D32_SFloat);
             shadowMap =
                 GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture);
             shadowMapId = *shadowMap;
@@ -56,7 +56,7 @@ public:
             cmd.SetScissor(0, 1, &rect);
             shadowDescription.SetWidth(shadowMapSize.x);
             shadowDescription.SetHeight(shadowMapSize.y);
-            shadowDescription.SetFormat(Gfx::ImageFormat::D32_SFloat);
+            shadowDescription.SetFormat(Gfx::GfxFormat::D32_SFloat);
             shadowPass.SetAttachment(0, shadowMapId);
             cmd.BeginRenderPass(shadowPass, shadowMapClears);
             auto program = shadowmapShader->GetShaderProgram(0);

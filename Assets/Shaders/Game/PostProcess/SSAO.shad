@@ -150,14 +150,6 @@ void main()
 
     float occlusion = GetSSAOVM(posVS, normalVS, 1.0f, 1.0f);
     oAO = occlusion;
-    // if (posVS.z > gtao.debugPoint.x)
-    // {
-    //     float occlusion = GetSSAOVM(posVS, normalVS, 0.5, 0.5);
-    //     oAO = occlusion;
-    // }
-    // else
-    // {
-    // }
 }
 
 #else

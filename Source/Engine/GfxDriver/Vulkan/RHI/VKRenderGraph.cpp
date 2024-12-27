@@ -25,7 +25,7 @@ public:
         return nullptr;
     }
 
-    VKImage* Request(RG::ImageIdentifier& id, RG::ImageDescription& desc)
+    VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
     {
         auto iter = images.find(id.GetAsUUID());
         if (iter != images.end() && iter->second.desc == desc)
@@ -271,6 +271,13 @@ bool Graph::TrackResource(
 
     if (iter != resourceUsageTracks.end())
     {
+        // because we don't enale separate depth/stencil, when range comes from a depth only imageView, we need to track both depth and stencil for aspectMask
+        // force a stencil flag when the original format has stencil
+        if (Gfx::HasStencil(writableResource->GetDescription().format))
+        {
+            range.aspectMask |= Gfx::ImageAspect::Stencil;
+        }
+
         ResourceUsage usage{stages, access, range, layout};
         if (iter->second.currentFrameUsages.empty())
         {
@@ -301,7 +308,7 @@ bool Graph::TrackResource(
     return false;
 }
 
-VKImage* Graph::Request(RG::ImageIdentifier& id, RG::ImageDescription& desc)
+VKImage* Graph::Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc)
 {
     return resourceAllocator->Request(id, desc);
 }
@@ -1209,9 +1216,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 {
                     auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
                     exeState.lastBindedShader = args.program;
-                    exeState.shaderConfig = args.config;
-                    exeState.setResources[0].needUpdate = true;
-                    exeState.setResources[0].resource = &globalResources[args.program];
+                    exeState.shaderConfig = *args.config;
                     break;
                 }
             case VKCmdType::BindIndexBuffer:
@@ -1543,7 +1548,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
 
         if (exeState.lastBindedShader->IsCompute())
         {
-            auto pipeline = exeState.lastBindedShader->RequestComputePipeline(*exeState.shaderConfig);
+            auto pipeline = exeState.lastBindedShader->RequestComputePipeline();
 
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
         }
@@ -1551,9 +1556,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
         {
             // binding pipeline
             auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
-                *exeState.shaderConfig,
-                exeState.renderPass,
-                exeState.subpassIndex
+                    exeState.shaderConfig, exeState.renderPass, exeState.subpassIndex
             );
 
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -1561,6 +1564,11 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
 
         exeState.bindedShader = exeState.lastBindedShader;
         exeState.shaderConfig = exeState.lastShaderConfig;
+
+        exeState.setResources[0].needUpdate = true;
+        exeState.setResources[1].needUpdate = true;
+        exeState.setResources[2].needUpdate = true;
+        exeState.setResources[3].needUpdate = true;
     }
 }
 
@@ -1568,7 +1576,7 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
 {
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
-        auto sourceSet = exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader);
+        auto sourceSet = exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader, this);
         if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
         {
             vkCmdBindDescriptorSets(
@@ -1648,62 +1656,7 @@ void Graph::PutBarrier(VkCommandBuffer vkcmd, int index)
 
 void Graph::ScheduleBindShaderProgram(VKCmd& cmd, int visitIndex)
 {
-    ENGINE_SCOPED_PROFILE("ScheduleBindShaderProgram");
-    auto& args = std::get<VKBindShaderProgramCmd>(cmd.args);
-    if (args.program != recordState.bindedProgram || *args.config != recordState.config)
-    {
-        recordState.config = *args.config;
-        recordState.bindedProgram = args.program;
-        recordState.bindProgramIndex = visitIndex;
-
-        auto& resource = globalResources[args.program];
-        auto& bindingMap = args.program->GetShaderInfo().descriptorSetBindingMap;
-        auto iter = bindingMap.find(0);
-        if (iter != bindingMap.end())
-        {
-            recordState.bindedSetUpdateNeeded[0] = true;
-            for (auto& binding : iter->second)
-            {
-                auto resourceFromPool = globalResourcePool.find(binding->resourceHandle);
-                if (resourceFromPool != globalResourcePool.end())
-                {
-                    for (int elementIndex = 0; elementIndex < binding->count; ++elementIndex)
-                    {
-                        auto& element = resourceFromPool->second[elementIndex];
-                        if (!element.IsNull())
-                        {
-                            bool isBufferType = (binding->type == ShaderInfo::BindingType::UBO ||
-                                                 binding->type == ShaderInfo::BindingType::SSBO) &&
-                                                element.type == ResourceType::Buffer;
-                            bool isImageType = (binding->type == ShaderInfo::BindingType::SeparateImage ||
-                                                binding->type == ShaderInfo::BindingType::Texture ||
-                                                binding->type == ShaderInfo::BindingType::StorageImage) &&
-                                               element.type == ResourceType::Image;
-
-                            if (isBufferType)
-                            {
-                                auto& res = std::get<SRef<Buffer>>(element.res);
-                                resource.SetBuffer(binding->resourceHandle, elementIndex, res.Get());
-                            }
-                            else if (isImageType)
-                            {
-                                auto& res = std::get<SRef<Image>>(element.res);
-                                if (element.imageViewOption.has_value())
-                                {
-                                    auto& imageView = res->GetImageView(*element.imageViewOption);
-                                    resource.SetImage(binding->resourceHandle, elementIndex, &imageView);
-                                }
-                                else
-                                {
-                                    resource.SetImage(binding->resourceHandle, elementIndex, res.Get());
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    recordState.bindProgramIndex = visitIndex;
 }
 
 VKImage* Graph::GetImage(const UUID& hash)
@@ -1728,13 +1681,12 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
             auto bindProgramIndex = recordState.bindProgramIndex;
             auto& bindProgramArgs = std::get<VKBindShaderProgramCmd>(currentSchedulingCmds[bindProgramIndex].args);
             auto program = bindProgramArgs.program;
-            VKBindResourceCmd* bindSetCmd =
-                i == 0 ? nullptr : &std::get<VKBindResourceCmd>(currentSchedulingCmds[bindSetCmdIndex].args);
-            uint32_t updateSet = i == 0 ? 0 : bindSetCmd->set;
-            VKShaderResource* resource = i == 0 ? &globalResources[program] : bindSetCmd->resource;
+            VKBindResourceCmd* bindSetCmd = &std::get<VKBindResourceCmd>(currentSchedulingCmds[bindSetCmdIndex].args);
+            uint32_t updateSet = bindSetCmd->set;
+            VKShaderResource* resource = bindSetCmd->resource;
             if (resource == nullptr)
                 continue;
-            auto& writableResources = resource->GetWritableResources(updateSet, program);
+            auto& writableResources = resource->GetWritableResources(updateSet, program, this);
             for (auto& w : writableResources)
             {
                 ResourceType type = ResourceType::Image;

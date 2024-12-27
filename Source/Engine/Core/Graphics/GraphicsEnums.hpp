@@ -1,6 +1,6 @@
 #pragma once
 
-enum class ImageFormat
+enum class GfxFormat
 {
     R16G16B16A16_SFloat,
     D16_UNorm

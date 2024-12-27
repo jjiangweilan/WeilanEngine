@@ -13,7 +13,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
             octahedralMapSize,
             octahedralMapSize,
             1,
-            Gfx::ImageFormat::R8G8B8A8_SRGB,
+            Gfx::GfxFormat::R8G8B8A8_SRGB,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             false
@@ -26,7 +26,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
             octahedralMapSize,
             octahedralMapSize,
             1,
-            Gfx::ImageFormat::A2B10G10R10_UNorm,
+            Gfx::GfxFormat::A2B10G10R10_UNorm,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             false
@@ -39,7 +39,7 @@ Probe::Probe(const glm::vec3& pos) : position(pos)
             octahedralMapSize,
             octahedralMapSize,
             1,
-            Gfx::ImageFormat::R32_SFloat,
+            Gfx::GfxFormat::R32_SFloat,
             Gfx::MultiSampling::Sample_Count_1,
             1,
             false

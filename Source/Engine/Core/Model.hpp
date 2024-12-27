@@ -50,7 +50,7 @@ public:
         return nullptr;
     }
 
-    bool LoadFromFile(const char* path) override;
+    bool LoadFromFile(const char* path) override { return false; }
 
     std::vector<Asset*> GetInternalAssets() override;
 

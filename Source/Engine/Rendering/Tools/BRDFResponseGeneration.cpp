@@ -15,7 +15,7 @@ void GenerateBRDFResponseTexture(const char* path)
     imgDesc.depth = 1;
     imgDesc.isCubemap = false;
     imgDesc.mipLevels = 1;
-    imgDesc.format = Gfx::ImageFormat::R32G32_SFloat;
+    imgDesc.format = Gfx::GfxFormat::R32G32_SFloat;
     imgDesc.depth = 1;
     imgDesc.multiSampling = Gfx::MultiSampling::Sample_Count_1;
 

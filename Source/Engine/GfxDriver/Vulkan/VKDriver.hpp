@@ -53,21 +53,15 @@ public:
         RefPtr<Fence> signalFence
     ) override;
     void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
-    const GPUFeatures& GetGPUFeatures() override
-    {
-        return gpuFeatures;
-    }
+    const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
 
-    bool IsFormatAvaliable(ImageFormat format, ImageUsageFlags usages) override;
+    bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages) override;
     ;
     SDL_Window* GetSDLWindow() override;
     Image* GetSwapChainImage() override;
     Extent2D GetSurfaceSize() override;
     Backend GetGfxBackendType() override;
-    RefPtr<VKSharedResource> GetSharedResource()
-    {
-        return sharedResource;
-    }
+    RefPtr<VKSharedResource> GetSharedResource() { return sharedResource; }
 
     virtual std::unique_ptr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) override;
     virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) override;
@@ -81,9 +75,8 @@ public:
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
-    std::unique_ptr<ShaderProgram> CreateShaderProgram(
-        const std::string& name, std::shared_ptr<const ShaderConfig> config, ShaderProgramCreateInfo& createInfo
-    ) override;
+    std::unique_ptr<ShaderProgram> CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo) override;
+    std::unique_ptr<ShaderProgram> CreateShaderProgram(ComputePipelineCreateInfo& createInfo) override;
     std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
     void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) override;

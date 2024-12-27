@@ -8,8 +8,6 @@
 
 #if CONFIG
 name: Game / StandardPBRLighting
-features:
-    - [ _, _AlphaTest ]
 debug: true
 #endif
 
@@ -54,7 +52,8 @@ layout(std430, set = 0, binding = 12) readonly buffer Tiles
     uint buckets[];
 };
 
-layout(set = 1) uniform ShadingProperties
+layout(set = 1)
+uniform ShadingProperties
 {
     float shadowConstantBias;
     float shadowNormalBias;

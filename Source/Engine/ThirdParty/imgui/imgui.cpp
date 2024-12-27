@@ -15943,7 +15943,7 @@ bool ImGui::SetDragDropPayload(const char* type, const void* data, size_t data_s
         cond = ImGuiCond_Always;
 
     IM_ASSERT(type != NULL);
-    IM_ASSERT(strlen(type) < IM_ARRAYSIZE(payload.DataType) && "Payload type can be at most 32 characters long");
+    IM_ASSERT(strlen(type) < IM_ARRAYSIZE(payload.MemberDataType) && "Payload type can be at most 32 characters long");
     IM_ASSERT((data != NULL && data_size > 0) || (data == NULL && data_size == 0));
     IM_ASSERT(cond == ImGuiCond_Always || cond == ImGuiCond_Once);
     IM_ASSERT(payload.SourceId != 0); // Not called between BeginDragDropSource() and EndDragDropSource()
@@ -15951,7 +15951,7 @@ bool ImGui::SetDragDropPayload(const char* type, const void* data, size_t data_s
     if (cond == ImGuiCond_Always || payload.DataFrameCount == -1)
     {
         // Copy payload
-        ImStrncpy(payload.DataType, type, IM_ARRAYSIZE(payload.DataType));
+        ImStrncpy(payload.MemberDataType, type, IM_ARRAYSIZE(payload.MemberDataType));
         g.DragDropPayloadBufHeap.resize(0);
         if (data_size > sizeof(g.DragDropPayloadBufLocal))
         {
@@ -23910,7 +23910,7 @@ void ImGui::ShowMetricsWindow(bool* p_open)
             "DragDrop: %d, SourceId = 0x%08X, Payload \"%s\" (%d bytes)",
             g.DragDropActive,
             g.DragDropPayload.SourceId,
-            g.DragDropPayload.DataType,
+            g.DragDropPayload.MemberDataType,
             g.DragDropPayload.DataSize
         );
         DebugLocateItemOnHover(g.DragDropPayload.SourceId);
@@ -25209,7 +25209,7 @@ void ImGui::DebugHookIdInfo(ImGuiID id, ImGuiDataType data_type, const void* dat
         default: IM_ASSERT(0);
     }
     info->QuerySuccess = true;
-    info->DataType = data_type;
+    info->MemberDataType = data_type;
 }
 
 static int StackToolFormatLevelInfo(ImGuiIDStackTool* tool, int n, bool format_for_ui, char* buf, size_t buf_size)
@@ -25223,7 +25223,7 @@ static int StackToolFormatLevelInfo(ImGuiIDStackTool* tool, int n, bool format_f
         return ImFormatString(
             buf,
             buf_size,
-            (format_for_ui && info->DataType == ImGuiDataType_String) ? "\"%s\"" : "%s",
+            (format_for_ui && info->MemberDataType == ImGuiDataType_String) ? "\"%s\"" : "%s",
             info->Desc
         );
     if (tool->StackLevel < tool->Results.Size) // Only start using fallback below when all queries are done, so during

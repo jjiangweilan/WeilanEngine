@@ -17,10 +17,10 @@ add_library(WeilanEngine SHARED)
 
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
     target_compile_options(WeilanEngine PUBLIC /MP /W0) # currently we have so many compiler warnings. I shut them down for now
-    target_compile_options(WeilanEngine PRIVATE "/ZI")
+    target_compile_options(WeilanEngine PRIVATE "/Zi")
     target_compile_options(WeilanEngine PRIVATE "/Od")
     target_compile_options(WeilanEngine PRIVATE "/Ob0")
-    target_compile_options(WeilanEngineEditor PRIVATE "/ZI")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
 endif()
 
 set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
@@ -59,13 +59,13 @@ target_link_libraries( WeilanEngine
     ryml::ryml
     SDL2::SDL2
     spdlog
-    spirv-cross-core
-    spirv-cross-reflect
-    spirv-cross-glsl
     fmt
     ktx
     glm
-    shaderc_shared
+    slang
+    fmt
+    ktx
+    glm
     Jolt
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator

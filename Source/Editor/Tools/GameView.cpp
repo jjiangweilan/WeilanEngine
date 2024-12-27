@@ -11,6 +11,7 @@
 #include "GameEditor.hpp"
 #include "Libs/Math.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
+#include "Rendering/ShaderLibrary.hpp"
 #include "Tools/PickObjectFromGameView.hpp"
 
 namespace Editor
@@ -38,7 +39,7 @@ struct GameView::PlayTheGame
             sceneCopy->SetFlags(AssetStateFlags::DontSave);
             gameView->gameCamera = sceneCopy->GetMainCamera();
             EditorState::activeScene = sceneCopy;
-            EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
+            EditorState::gameLoop->SetScene(*sceneCopy);
             gameView->editorCameraGO->SetScene(sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
@@ -78,7 +79,7 @@ struct GameView::PlayTheGame
                 gameView->editorCameraGO->SetScene(ori);
                 gameView->gameCamera = ori->GetMainCamera();
                 EditorState::activeScene = ori;
-                EditorState::gameLoop->SetScene(*ori, *gameView->GetCurrentlyActiveCamera());
+                EditorState::gameLoop->SetScene(*ori);
             }
 
             // destroy sceneCopy
@@ -93,6 +94,18 @@ void GameView::Deinit()
 {
     playTheGame->Stop(this);
 }
+
+void GameView::SetActiveScene(ObjPtr<Scene> scene)
+{
+    if (scene)
+    {
+        gameCamera = EditorState::activeScene->GetMainCamera();
+        editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
+        EditorState::activeScene->SetMainCamera(editorCamera);
+        EditorState::gameLoop->SetScene(*EditorState::activeScene);
+    }
+}
+
 void GameView::Init()
 {
     editorCameraGO = std::make_unique<GameObject>();
@@ -103,24 +116,7 @@ void GameView::Init()
     // setup camera state
     if (EditorState::activeScene)
     {
-        gameCamera = EditorState::activeScene->GetMainCamera();
-        editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
-        if (gameCamera)
-        {
-            auto fg = gameCamera->GetFrameGraph();
-            if (fg)
-            {
-                editorCamera->SetFrameGraph(fg);
-                if (!fg->IsCompiled())
-                    fg->Compile();
-
-                if (!fg->IsCompiled())
-                {
-                    spdlog::info("FrameGraph initial compiling failed");
-                }
-            }
-        }
-        EditorState::gameLoop->SetScene(*EditorState::activeScene, *editorCamera);
+        SetActiveScene(EditorState::activeScene);
     }
 
     if (GameEditor::instance->editorConfig.contains("editorCamera"))
@@ -147,19 +143,14 @@ void GameView::Init()
         editorCamera->GetGameObject()->SetScale({scale[0], scale[1], scale[2]});
     }
 
-    outlineRawColorPassShader =
-        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineRawColorPass.shad")
-        );
-    outlineFullScreenPassShader =
-        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/OutlineFullScreenPass.shad"
-        ));
+    outlineRawColorPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineRawColorPass);
+    outlineFullScreenPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineFullScreenPass);
 
     editorWorldSpaceGrid.plane =
         static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"))
             ->GetMeshes()[0]
             .get();
-    editorWorldSpaceGrid.gridShader =
-        static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
+    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(ShaderLibrary::PlaneGrid);
 
     ChangeGameScreenResolution({256, 256});
 }
@@ -256,7 +247,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
     pendingDeleteSceneImages.push_back({std::move(sceneImage), 0});
 
     sceneImage = GetGfxDriver()->CreateImage(
-        Gfx::ImageDescription(width, height, Gfx::ImageFormat::R8G8B8A8_SRGB),
+        Gfx::ImageDescription(width, height, Gfx::GfxFormat::R8G8B8A8_SRGB),
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
@@ -301,14 +292,14 @@ void GameView::Render(
                     }
 
                     cmd.BindShaderProgram(
-                        outlineRawColorPassShader->GetDefaultShaderProgram(),
-                        outlineRawColorPassShader->GetDefaultShaderConfig()
+                        outlineRawColorPassShader->GetShaderProgram(),
+                        outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
                     );
                     for (auto& draw : drawList)
                     {
                         cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                         cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        cmd.SetPushConstant(draw.shader->GetShaderProgram(0, 0), (void*)&draw.pushConstant);
+                        cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&draw.pushConstant);
                         cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                     }
                 }
@@ -327,8 +318,8 @@ void GameView::Render(
         {
             cmd.SetTexture("mainTex", outlineSrcRT);
             cmd.BindShaderProgram(
-                outlineFullScreenPassShader->GetDefaultShaderProgram(),
-                outlineFullScreenPassShader->GetDefaultShaderConfig()
+                outlineFullScreenPassShader->GetShaderProgram(),
+                outlineFullScreenPassShader->GetShaderProgram()->GetDefaultShaderConfig()
             );
             cmd.Draw(6, 1, 0, 0);
         }
@@ -397,7 +388,8 @@ bool GameView::Tick()
         {
             useViewCamera = !useViewCamera;
             auto mainCam = GetCurrentlyActiveCamera();
-            EditorState::gameLoop->SetScene(*EditorState::activeScene, *mainCam);
+            EditorState::activeScene->SetMainCamera(mainCam);
+            EditorState::gameLoop->SetScene(*EditorState::activeScene);
 
             Input::GetSingleton().SetGameplayInput(!useViewCamera);
         }

@@ -102,10 +102,10 @@ VKDevice::VKDevice(VKInstance* instance, VKSurface* surface, QueueRequest* queue
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
     deviceCreateInfo.pEnabledFeatures = &requiredDeviceFeatures;
-    deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-    deviceCreateInfo.enabledLayerCount = 0;
+    deviceCreateInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
     deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
+    deviceCreateInfo.enabledLayerCount = 0;
 
     vkCreateDevice(gpu.GetHandle(), &deviceCreateInfo, VK_NULL_HANDLE, &deviceHandle);
 
