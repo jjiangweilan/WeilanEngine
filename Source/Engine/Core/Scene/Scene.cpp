@@ -46,7 +46,7 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
     return temp;
 }
 
-const std::vector<GameObject*>& Scene::GetRootObjects()
+const std::vector<ObjPtr<GameObject>>& Scene::GetRootObjects()
 {
     return roots;
 }
@@ -139,7 +139,7 @@ void Scene::DestroyGameObject(GameObject* obj)
         parent->RemoveChild(obj);
     }
 
-    auto rootIter = std::find(roots.begin(), roots.end(), obj);
+    auto rootIter = std::find_if(roots.begin(), roots.end(), [&](ObjPtr<GameObject>& f) {return f.Get() == obj; });
     if (rootIter != roots.end())
     {
         roots.erase(rootIter);
@@ -172,7 +172,7 @@ void Scene::RemoveGameObjectFromRoot(GameObject* obj)
     auto it = roots.begin();
     while (it != roots.end())
     {
-        if (*it == obj)
+        if ((*it).Get() == obj)
         {
             roots.erase(it);
             return;

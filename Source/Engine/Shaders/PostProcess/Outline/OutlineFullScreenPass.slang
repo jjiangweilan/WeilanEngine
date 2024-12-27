@@ -17,11 +17,6 @@ struct VertexOutput
     float2 uv;
 }
 
-struct VertexInput
-{
-    float3 position;
-}
-
 struct Transform
 {
     matrix<float, 4,4> model;
@@ -37,7 +32,7 @@ ParameterBlock<Parameter> parameter;
 Transform transform;
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input, uint vertexID : SV_VertexID)
+VertexOutput VertexMain(uint vertexID : SV_VertexID)
 {
     float4 c_Positions[6] = 
     {

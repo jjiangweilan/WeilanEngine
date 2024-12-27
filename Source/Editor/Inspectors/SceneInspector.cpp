@@ -23,6 +23,11 @@ public:
         {
             editor.SetActiveScene(target);
         }
+
+        if (ImGui::Button("Fix Undestroied GameObject Not In Scene Tree"))
+        {
+            target->FixUndestroiedGameObjectNotInSceneTree();
+        }
     }
 
 private:

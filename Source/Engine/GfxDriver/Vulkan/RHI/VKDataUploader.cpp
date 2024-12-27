@@ -115,7 +115,7 @@ void VKDataUploader::UploadAllPending(
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
 
-    auto waitResult = vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
+    auto waitResult = vkWaitForFences(driver->device.handle, 1, &fence, true, std::numeric_limits<uint64_t>::max());
     vkResetFences(driver->device.handle, 1, &fence);
     vkResetCommandBuffer(cmd, 0);
 

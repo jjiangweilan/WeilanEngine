@@ -255,9 +255,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         shadingPass.gpuResource->SetImage("normalTex"_shaderBinding, normalGBuffer);
         shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
         shadingPass.gpuResource->SetImage("depthTex"_shaderBinding, &depthImageView);
-        shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
-        shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube->GetGfxImage());
         shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowMapPass.shadowMap.get());
+        if (diffuseCube)
+            shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
+        if (specularCube)
+            shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube->GetGfxImage());
 
         shadingPass.pass.SetAttachment(0, mainColor);
 
@@ -280,6 +282,8 @@ RenderPipeline::PerScene::PerScene()
                     ->CreateBuffer(sizeof(GPUParameter::PerScene), Gfx::BufferUsage::Uniform, false, false, "PerScene");
     gpuResourceSet = GetGfxDriver()->CreateShaderResource();
     gpuResourceSet->SetBuffer("scene", gpuBuffer.get());
+
+    ASSERT(gpuBuffer->GetSize() == sizeof(GPUParameter::PerScene));
 }
 
 RenderPipeline::ShadingPass::ShadingPass()

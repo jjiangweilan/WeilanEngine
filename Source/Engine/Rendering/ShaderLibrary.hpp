@@ -38,6 +38,21 @@ struct ShaderFeatures
         return perm;
     }
 
+    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation)
+    {
+        std::vector<std::string> result{};
+        for (int bit = 0; bit < permutation.size(); ++bit)
+        {
+            if (permutation.test(bit))
+            {
+                result.push_back(bitMaskToFeature[bit]);
+            }
+        }
+
+        return result;
+    }
+
+    std::unordered_map<uint32_t, std::string> bitMaskToFeature;
     std::unordered_map<std::string, uint32_t> featureToBitMask;
     std::vector<ShaderToggleFeature> toggleFeatures;
 };
@@ -100,7 +115,7 @@ private:
     ShaderLibrary();
     const char* shaderRootPath = GetShaderRootPath();
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
-    std::unique_ptr<Gfx::ShaderProgram> CompileGraphicsShader(const char* shaderName);
+    std::unique_ptr<Gfx::ShaderProgram> CompileGraphicsShader(const char* shaderName, ShaderPermutation permutation);
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
 
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);

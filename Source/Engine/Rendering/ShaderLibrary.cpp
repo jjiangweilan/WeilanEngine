@@ -62,13 +62,16 @@ ShaderLibrary::ShaderLibrary()
     globalSession->createSession(sessionDesc, session.writeRef());
 }
 
-std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileGraphicsShader(const char* shaderName)
+std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileGraphicsShader(
+    const char* shaderName, ShaderPermutation permutation
+)
 {
     ShaderCompiler compiler;
     Gfx::PipelineInfo pipelineInfo{};
     Gfx::PipelineConfig pipelineConfig{};
-    RetriveShaderFeatures(shaderName);
-    compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig);
+    auto features = RetriveShaderFeatures(shaderName);
+    auto featureStrings = features.GetFeautresFromBitmask(permutation);
+    compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
 
     {
         Gfx::GraphicsPipelineCreateInfo createInfo{};
@@ -171,7 +174,7 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
         }
     }
 
-    std::unique_ptr<Gfx::ShaderProgram> newShader = CompileGraphicsShader(name);
+    std::unique_ptr<Gfx::ShaderProgram> newShader = CompileGraphicsShader(name, permutation);
     library[name].shaders.emplace(permutation, CompiledShader(std::move(newShader), permutation));
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }
@@ -229,7 +232,8 @@ const ShaderFeatures& ShaderLibrary::RetriveShaderFeatures(const char* shaderNam
         CollectToggleFeatures(module, features.toggleFeatures);
         for (int featureIndex = 0; featureIndex < features.toggleFeatures.size() && featureIndex < 64; ++featureIndex)
         {
-            features.featureToBitMask[features.toggleFeatures[featureIndex].name] = 1 << featureIndex;
+            features.featureToBitMask[features.toggleFeatures[featureIndex].name] = featureIndex;
+            features.bitMaskToFeature[featureIndex] = features.toggleFeatures[featureIndex].name;
         }
     }
 

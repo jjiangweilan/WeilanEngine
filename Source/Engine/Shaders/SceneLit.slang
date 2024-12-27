@@ -2,10 +2,10 @@ import Library.PerScene;
 #include "DeferredPBRShading.hlsl"
 
 static extern const bool _AlphaTest = false;
-static extern const bool _BaseColorMap = true;
-static extern const bool _NormalMap = true;
-static extern const bool _EmissiveMap = true;
-static extern const bool _MetallicRoughnessMap = true;
+static extern const bool _BaseColorMap = false;
+static extern const bool _NormalMap = false;
+static extern const bool _EmissiveMap = false;
+static extern const bool _MetallicRoughnessMap = false;
 
 interface IVertexInput
 {

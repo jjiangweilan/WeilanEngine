@@ -333,7 +333,7 @@ private:
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {
             std::unique_ptr<Material> mat = std::make_unique<Material>();
-            mat->SetShader("SceneLit");
+            mat->SetShader(ShaderLibrary::SceneLit);
             auto material = scene->mMaterials[materialIndex];
             mat->SetName(material->GetName().C_Str());
 

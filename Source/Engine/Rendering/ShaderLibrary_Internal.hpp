@@ -59,11 +59,42 @@ public:
         return SLANG_OK;
     }
 
+    struct StringBlob : public slang::IBlob
+    {
+        std::string string;
+
+        SLANG_NO_THROW void const* getBufferPointer() override { return string.c_str(); }
+        SLANG_NO_THROW size_t getBufferSize() override { return string.size(); }
+
+        SLANG_NO_THROW SlangResult SLANG_MCALL queryInterface(SlangUUID const& uuid, void** outObject) override
+        {
+            *outObject = nullptr;
+            return SLANG_OK;
+        }
+        SLANG_NO_THROW uint32_t SLANG_MCALL addRef() override { return 0; }
+        SLANG_NO_THROW uint32_t SLANG_MCALL release() override { return 0; }
+    };
+
+    slang::IModule* LoadFeatureModule(slang::ISession* session, const std::string& shaderName, std::string featureName)
+    {
+        auto srcString = fmt::format("export static const bool {} = true;", featureName);
+        std::string moduleName = fmt::format("{}-{}", shaderName, featureName);
+        std::string syntheticModulePath = fmt::format("_syntheticPath/{}.slang", moduleName);
+        slang::IModule* toggleModule = session->loadModuleFromSourceString(
+            moduleName.c_str(),       // module name
+            syntheticModulePath.c_str(), // synthetic module path
+            srcString.c_str()
+        ); // module source content
+
+        return toggleModule;
+    }
+
     Result CompileAndReflectProgram(
         slang::ISession* session,
         const char* shaderName,
         Gfx::PipelineInfo& outPipelineInfo,
-        Gfx::PipelineConfig& outPipelineConfig
+        Gfx::PipelineConfig& outPipelineConfig,
+        const std::vector<std::string>& enabledFeatures
     )
     {
         globalSession = session->getGlobalSession();
@@ -77,10 +108,12 @@ public:
         if (!module)
             return SLANG_FAIL;
 
-        std::vector<ComPtr<slang::IComponentType>> componentsToLink;
+        std::vector<slang::IComponentType*> componentsToLink;
 
-        // ### Finding Entry Points
-        //
+        for(auto& enabledFeature : enabledFeatures)
+        {
+            componentsToLink.push_back(LoadFeatureModule(session, shaderName, enabledFeature));
+        }
 
         int definedEntryPointCount = module->getDefinedEntryPointCount();
         for (int i = 0; i < definedEntryPointCount; i++)

@@ -52,7 +52,7 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
         }
     }
 
-    // LoadEngineInternal();
+    LoadEngineInternal();
 }
 
 void AssetDatabase::SaveAsset(Asset& asset)
@@ -581,23 +581,11 @@ void AssetDatabase::LoadEngineInternal()
         }
     }
 
-    auto shaderIter = std::partition(
-        importPathes.begin(),
-        importPathes.end(),
-        [](std::filesystem::path& path) { return path.extension() == ".shad"; }
-    );
-    std::vector<std::filesystem::path> shaderPathes(importPathes.begin(), shaderIter);
-    for (auto& p : shaderPathes)
-    {
-        LoadAsset(p);
-    }
 
     Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");
     defaultMat->SetShader("SceneLit");
 
-    std::vector<std::filesystem::path> others(shaderIter, importPathes.end());
-
-    for (auto& p : others)
+    for (auto& p : importPathes)
     {
         LoadAsset(p);
     }

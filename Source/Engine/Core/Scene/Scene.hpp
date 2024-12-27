@@ -21,7 +21,7 @@ public:
     void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
 
-    const std::vector<GameObject*>& GetRootObjects();
+    const std::vector<ObjPtr<GameObject>>& GetRootObjects();
 
     void Tick();
     void PrePhysicsTick();
@@ -99,7 +99,7 @@ protected:
     PhysicsScene physicsScene;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
-    std::vector<GameObject*> roots;
+    std::vector<ObjPtr<GameObject>> roots;
 
     Camera* camera = nullptr;
 
