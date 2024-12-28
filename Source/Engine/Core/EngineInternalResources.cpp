@@ -9,6 +9,7 @@ EngineInternalResources::EngineInternalResources()
     joltDebugShader = ShaderLibrary::GetShader(ShaderLibrary::JoltDebugShader);
     triangleShader = ShaderLibrary::GetShader(ShaderLibrary::TriangleShader);
     defaultMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/Default.mat"));
+    defaultMaterial->SetShader(ShaderLibrary::SceneLit);
     models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Sphere.glb")))->GetMeshes()[0].get();
     models.capsule = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Capsule.fbx")))->GetMeshes()[0].get();
     models.halfSphere =

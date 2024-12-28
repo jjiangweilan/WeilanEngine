@@ -581,10 +581,6 @@ void AssetDatabase::LoadEngineInternal()
         }
     }
 
-
-    Material* defaultMat = (Material*)LoadAsset("_engine_internal/Materials/Default.mat");
-    defaultMat->SetShader("SceneLit");
-
     for (auto& p : importPathes)
     {
         LoadAsset(p);
