@@ -84,21 +84,11 @@ bool WeilanEngine::BeginFrame()
     if (!gfxDriver->BeginFrame())
         return false;
 
-#if ENGINE_EDITOR
-    ImGui_ImplSDL2_NewFrame();
-    ImGui::NewFrame();
-    ImGuizmo::BeginFrame();
-#endif
-
     return true;
 }
 
 void WeilanEngine::EndFrame()
 {
-#if ENGINE_EDITOR
-    ImGui::EndFrame();
-#endif
-
     event->Reset();
 
     // submit anything in the active command and present the surface

@@ -63,7 +63,7 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
 VKImage::VKImage(VKImage&& other)
     : Image(other.usageFlags), arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk),
       usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
-      allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), layout(other.layout),
+      allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)),
       stageMask(other.stageMask), accessMask(other.accessMask), imageDescription(other.imageDescription),
       imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), layoutTrack(std::exchange(other.layoutTrack, {}))
 {}
@@ -99,7 +99,6 @@ void VKImage::MakeVkObjects()
     imageCreateInfo.queueFamilyIndexCount = 1;
     imageCreateInfo.pQueueFamilyIndices = &VKContext::Instance()->mainQueue->queueFamilyIndex;
     imageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VKContext::Instance()->allocator->CreateImage(imageCreateInfo, image_vk, allocation_vma, &allocationInfo_vma);
 }
@@ -200,11 +199,6 @@ VkImageView VKImage::GetDefaultVkImageView()
 VkImageSubresourceRange VKImage::GetDefaultSubresourceRange()
 {
     return imageView->GetVkSubresourceRange();
-}
-
-ImageLayout VKImage::GetImageLayout()
-{
-    return MapVKImageLayout(layout);
 }
 
 void VKImage::SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer)

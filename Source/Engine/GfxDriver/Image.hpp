@@ -169,7 +169,6 @@ public:
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
     virtual ImageView& GetImageView(const ImageViewOption& option) = 0;
-    virtual ImageLayout GetImageLayout() = 0;
 
     virtual const UUID& GetUUID() { return uuid; }
 

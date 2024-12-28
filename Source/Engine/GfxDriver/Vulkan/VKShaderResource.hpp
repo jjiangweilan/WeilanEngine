@@ -46,6 +46,7 @@ struct Barrier
     int memoryBarrierIndex = -1;
     int bufferMemoryBarrierIndex = -1;
     int imageMemorybarrierIndex = -1;
+    VKImage* targetImage = nullptr;
 };
 
 // TODO:

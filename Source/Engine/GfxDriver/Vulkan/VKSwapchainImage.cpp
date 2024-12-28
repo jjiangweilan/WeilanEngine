@@ -22,7 +22,6 @@ void VKSwapChainImage::Recreate(
     imageDescription.width = width;
     imageDescription.height = height;
     imageDescription.mipLevels = 1;
-    layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     for (auto image : swapchainImages)
     {

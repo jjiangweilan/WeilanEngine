@@ -49,8 +49,8 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
             return;
         }
 
-        assetUUID = dataJson["assetUUID"];
-        assetTypeID = dataJson["assetTypeID"];
+        assetUUID = std::string(dataJson["assetUUID"]);
+        assetTypeID = std::string(dataJson["assetTypeID"]);
         std::string assetPathStr = dataJson.value("assetPath", "");
         assetPath = assetPathStr;
         meta = dataJson.value("meta", nlohmann::json::object());
@@ -80,7 +80,7 @@ AssetData::AssetData(const UUID& assetDataUUID, const std::filesystem::path& pro
         {
             for (auto pair : nameToUUIDJson.items())
             {
-                nameToUUID[pair.key()] = pair.value();
+                nameToUUID[pair.key()] = std::string(pair.value());
             }
         }
 

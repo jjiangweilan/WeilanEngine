@@ -145,7 +145,7 @@ public:
     Swapchain swapchain;
     Surface surface;
     GPUFeatures gpuFeatures;
-    std::vector<std::unique_ptr<VKWindow>> extraWindows;
+    std::vector<std::unique_ptr<VKWindow>> extraWindows{};
 
     std::mutex driverMutex;
 

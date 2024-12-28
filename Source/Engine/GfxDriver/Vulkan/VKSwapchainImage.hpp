@@ -32,11 +32,6 @@ public:
         VkImageUsageFlags usageFlags
     );
 
-    void NotifyLayoutChange(VkImageLayout newLayout) override
-    {
-        swapchainImages[activeIndex]->NotifyLayoutChange(newLayout);
-    }
-
     const ImageDescription& GetDescription() override
     {
         return swapchainImages[activeIndex]->GetDescription();
@@ -45,11 +40,6 @@ public:
     const UUID& GetUUID() override
     {
         return swapchainImageUUIDs[activeIndex];
-    }
-
-    VkImageLayout GetLayout() override
-    {
-        return swapchainImages[activeIndex]->GetLayout();
     }
 
     void SetActiveSwapChainImage(uint32_t index)

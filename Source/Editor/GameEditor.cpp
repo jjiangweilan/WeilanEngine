@@ -680,6 +680,10 @@ void GameEditor::Start()
     {
         if (engine->BeginFrame())
         {
+            ImGui_ImplSDL2_NewFrame();
+            ImGui::NewFrame();
+            ImGuizmo::BeginFrame();
+
             endEvents.TickBegin();
             endPopup.TickBegin();
 

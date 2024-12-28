@@ -569,6 +569,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
                             srcAccess = VK_ACCESS_NONE;
                         }
                         Barrier barrier;
+                        barrier.targetImage = image;
                         barrier.srcStageMask = srcStages;
                         barrier.dstStageMask = currentUsage.stages;
                         VkImageMemoryBarrier imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
@@ -630,6 +631,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
 
             barrier.barrierCount = 1;
             barrier.imageMemorybarrierIndex = imageMemoryBarriers.size();
+            barrier.targetImage = image;
             barriers.push_back(barrier);
             barrierCount += 1;
             imageMemoryBarriers.push_back(imageBarrier);

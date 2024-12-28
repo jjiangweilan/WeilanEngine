@@ -32,15 +32,10 @@ public:
     {
         return image_vk;
     }
-    virtual VkImageLayout GetLayout()
-    {
-        return layout;
-    }
 
     void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer) override;
     void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer, VkImageLayout finalLayout);
 
-    virtual ImageLayout GetImageLayout() override;
     virtual const ImageDescription& GetDescription() override
     {
         return imageDescription;
@@ -53,12 +48,6 @@ public:
     {
         return name;
     };
-
-    // used in command buffer
-    virtual void NotifyLayoutChange(VkImageLayout newLayout)
-    {
-        this->layout = newLayout;
-    }
 
     bool IsSwapchainProxy()
     {
@@ -111,7 +100,6 @@ protected:
     VmaAllocationInfo allocationInfo_vma;
     VmaAllocation allocation_vma = nullptr;
 
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkAccessFlags accessMask = VK_ACCESS_MEMORY_READ_BIT;
     ImageDescription imageDescription;
@@ -130,46 +118,4 @@ protected:
 };
 
 VkImageSubresourceRange MapVkImageSubresourceRange(const ImageSubresourceRange& range);
-
-// class VKSwapChainImageProxy : public VKImage
-// {
-// public:
-//     VKSwapChainImageProxy();
-//     ~VKSwapChainImageProxy() override;
-//
-//     void SetActiveSwapChainImage(RefPtr<VKImage> activeImage, uint32_t index);
-//
-//     void UpdateImageDescription(const ImageDescription& desc)
-//     {
-//         this->imageDescription = desc;
-//     }
-//     uint32_t GetActiveIndex()
-//     {
-//         return activeIndex;
-//     }
-//     virtual VkImageView GetDefaultVkImageView() override
-//     {
-//         return activeImage->GetDefaultVkImageView();
-//     }
-//     virtual VkImage GetImage() override
-//     {
-//         return activeImage->GetImage();
-//     }
-//     virtual VkImageLayout GetLayout() override
-//     {
-//         return activeImage->GetLayout();
-//     }
-//     virtual VkImageSubresourceRange GetDefaultSubresourceRange() override
-//     {
-//         return activeImage->GetDefaultSubresourceRange();
-//     }
-//     virtual ImageView& GetDefaultImageView() override
-//     {
-//         return activeImage->GetDefaultImageView();
-//     }
-//
-// private:
-//     uint32_t activeIndex;
-//     RefPtr<VKImage> activeImage;
-// };
 } // namespace Gfx

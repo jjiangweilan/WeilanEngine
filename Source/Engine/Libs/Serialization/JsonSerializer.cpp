@@ -16,7 +16,7 @@ void JsonSerializer::Serialize(std::string_view name, const UUID& uuid)
 }
 void JsonSerializer::Deserialize(std::string_view name, UUID& uuid)
 {
-    uuid = j.value(TO_JSON_PTR(name), UUID::GetEmptyUUID());
+    uuid = j.value(TO_JSON_PTR(name), UUID::GetEmptyUUID().ToString());
 }
 
 std::unique_ptr<Serializer> JsonSerializer::CreateSubserializer()

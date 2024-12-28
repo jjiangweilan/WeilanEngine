@@ -76,7 +76,7 @@ FetchContent_MakeAvailable(SPDLOG)
 
 FetchContent_Declare(rapidyaml
     GIT_REPOSITORY https://github.com/biojppm/rapidyaml.git
-    GIT_TAG v0.4.1
+    GIT_TAG v0.7.2
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )
@@ -84,7 +84,7 @@ FetchContent_MakeAvailable(rapidyaml)
 
 FetchContent_Declare(json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.10.4
+    GIT_TAG v3.11.3
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )
@@ -93,7 +93,7 @@ FetchContent_MakeAvailable(json)
 
 FetchContent_Declare(glm
     GIT_REPOSITORY "https://github.com/g-truc/glm.git"
-    GIT_TAG "0.9.9.8"
+    GIT_TAG 1.0.1
     GIT_PROGRESS TRUE
     UPDATE_DISCONNECTED TRUE
     )
