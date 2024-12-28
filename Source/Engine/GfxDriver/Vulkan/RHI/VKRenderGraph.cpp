@@ -1518,6 +1518,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
         }
     }
 
+    debugCurrentSchedulingCmds = currentSchedulingCmds;
     currentSchedulingCmds.clear();
     for (auto& r : resourceUsageTracks)
     {

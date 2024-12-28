@@ -1,4 +1,5 @@
 #include "JsonSerializer.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 #define TO_JSON_PTR(x) nlohmann::json::json_pointer(fmt::format("{}{}", "/", x))
 void JsonSerializer::Serialize(std::string_view name, const std::string& val)
@@ -113,20 +114,28 @@ void JsonSerializer::Serialize(std::string_view name, const glm::mat4& v)
 
 void JsonSerializer::Deserialize(std::string_view name, glm::mat4& v)
 {
-    nlohmann::json jc0 = j[TO_JSON_PTR(name)][0];
-    nlohmann::json jc1 = j[TO_JSON_PTR(name)][1];
-    nlohmann::json jc2 = j[TO_JSON_PTR(name)][2];
-    nlohmann::json jc3 = j[TO_JSON_PTR(name)][3];
+    auto path = TO_JSON_PTR(name);
+    if (j.contains(path))
+    {
+        auto& result = j[path];
 
-    float c0[4] = {jc0[0], jc0[1], jc0[2], jc0[3]};
-    float c1[4] = {jc1[0], jc1[1], jc1[2], jc1[3]};
-    float c2[4] = {jc2[0], jc2[1], jc2[2], jc2[3]};
-    float c3[4] = {jc3[0], jc3[1], jc3[2], jc3[3]};
+        nlohmann::json jc0 = result[0];
+        nlohmann::json jc1 = result[1];
+        nlohmann::json jc2 = result[2];
+        nlohmann::json jc3 = result[3];
 
-    v[0] = {c0[0], c0[1], c0[2], c0[3]};
-    v[1] = {c1[0], c1[1], c1[2], c1[3]};
-    v[2] = {c2[0], c2[1], c2[2], c2[3]};
-    v[3] = {c3[0], c3[1], c3[2], c3[3]};
+        float c0[4] = { jc0[0], jc0[1], jc0[2], jc0[3] };
+        float c1[4] = { jc1[0], jc1[1], jc1[2], jc1[3] };
+        float c2[4] = { jc2[0], jc2[1], jc2[2], jc2[3] };
+        float c3[4] = { jc3[0], jc3[1], jc3[2], jc3[3] };
+
+        v[0] = { c0[0], c0[1], c0[2], c0[3] };
+        v[1] = { c1[0], c1[1], c1[2], c1[3] };
+        v[2] = { c2[0], c2[1], c2[2], c2[3] };
+        v[3] = { c3[0], c3[1], c3[2], c3[3] };
+    }
+    else
+        v = glm::mat4();
 }
 
 void JsonSerializer::Serialize(std::string_view name, const glm::quat& v)
@@ -252,4 +261,24 @@ bool JsonSerializer::IsNull(std::string_view name)
 bool JsonSerializer::IsNull()
 {
     return j.is_null();
+}
+
+size_t JsonSerializer::GetArraySize(std::string_view name)
+{
+    nlohmann::json& array = j[TO_JSON_PTR(name)];
+    if (array.is_array())
+        return array.size();
+
+    return 0;
+}
+
+const nlohmann::json& JsonSerializer::GetJsonObject(std::string_view name)
+{
+    if (j.is_object())
+    {
+        return j[TO_JSON_PTR(name)];
+    }
+
+    static nlohmann::json::object_t empty;
+    return empty;
 }

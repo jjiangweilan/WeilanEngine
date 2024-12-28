@@ -51,7 +51,7 @@ struct ModelImporterImple
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene = importer.ReadFile(
             path.string().c_str(),
-            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals |
+            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace |
                 aiProcess_GenBoundingBoxes
         );
 

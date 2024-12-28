@@ -1,60 +1,8 @@
 {
- "enabledFeature": {
-  "size": 0
- },
  "name": "new material",
- "shader": "e4a2bc99-b3fc-5297-8832-fbca9a35fef7",
- "textureValues": {
-  "0_key": "skybox",
-  "0_value": "0ba1a3ed-03f6-4a53-83c3-0fb7bc1be3d1",
-  "size": 1
- },
- "ubos": {
-  "0_key": "Params",
-  "0_value": {
-   "floats": {
-    "0_key": "horizonToSkyMix",
-    "0_value": 3.369999885559082,
-    "1_key": "useCubemap",
-    "1_value": 1.0,
-    "size": 2
-   },
-   "matrices": {
-    "size": 0
-   },
-   "vectors": {
-    "0_key": "sky_color",
-    "0_value": [
-     0.14000000059604645,
-     0.07000000029802322,
-     0.5699999928474426,
-     0.0
-    ],
-    "1_key": "horizon_color",
-    "1_value": [
-     0.03999999910593033,
-     0.4099999964237213,
-     0.3700000047683716,
-     0.0
-    ],
-    "size": 2
-   }
-  },
-  "1_key": "params",
-  "1_value": {
-   "floats": {
-    "0_key": "useCubemap",
-    "0_value": 0.0,
-    "size": 1
-   },
-   "matrices": {
-    "size": 0
-   },
-   "vectors": {
-    "size": 0
-   }
-  },
-  "size": 2
- },
+ "overrideShaderConfig": false,
+ "shader": "00000000-0000-0000-0000-000000000000",
+ "shaderConfig": null,
+ "ubo": {},
  "uuid": "a9cdce1b-754b-52b8-b4d9-49e3efac83bf"
 }

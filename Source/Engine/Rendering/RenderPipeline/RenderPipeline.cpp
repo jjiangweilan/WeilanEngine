@@ -56,6 +56,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             Light* mainLight = nullptr;
             auto lights = scene.GetActiveLights();
 
+            param.lightCount = glm::float4(lights.size(), 0, 0, 0);
             for (int i = 0; i < lights.size(); ++i)
             {
                 param.lights[i].ambientScale = lights[i]->GetAmbientScale();
@@ -104,8 +105,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             }
         }
 
-        GetGfxDriver()
-            ->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
+        GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
     };
 
     Gfx::CommandBuffer* cmd = commandBuffer.get();
@@ -113,7 +113,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     sceneDrawList.clear();
     sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
     sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
-
 
     // Setup
     {
@@ -242,6 +241,21 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Shading
     cmd->BeginLabel("Shading", &labelColors.passColor[0]);
     {
+        // Upload GPU Parameter
+        {
+            shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{
+                .shadowMapTexelSize = shadowMapPass.shadowMapTexelSize,
+                .shadowConstantBias = 0.001f,
+                .shadowNormalBias = 0.3f
+            };
+
+            GetGfxDriver()->UploadBuffer(
+                *shadingPass.perMaterialBuffer,
+                (uint8_t*)&shadingPass.cpuParameter,
+                sizeof(GPUParameter::DeferredPBRShadingInput)
+            );
+        }
+
         // set scissor and viewpor
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
@@ -333,7 +347,7 @@ RenderPipeline::ShadowMapPass::ShadowMapPass()
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);
 
-    shadowDescription = Gfx::ImageDescription(shadowMapSize.x, shadowMapSize.y, Gfx::GfxFormat::D32_SFloat);
+    shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
 
     shadowMap = GetGfxDriver()->CreateImage(
         shadowDescription,

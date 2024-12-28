@@ -622,9 +622,9 @@ bool VKDriver::EndFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
     auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
-    if (result != 0)
+    if (result != VK_SUCCESS)
     {
-        __debugbreak;
+        ;        __debugbreak();
     }
     ENGINE_END_PROFILE
 

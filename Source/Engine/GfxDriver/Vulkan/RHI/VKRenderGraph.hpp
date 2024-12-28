@@ -99,8 +99,9 @@ private:
         bool overrideScissor = false;
     } exeState;
 
-    std::vector<VKCmd> currentSchedulingCmds;
-    size_t previousActiveSchedulingCmdsSize;
+    std::vector<VKCmd> currentSchedulingCmds{};
+    std::vector<VKCmd> debugCurrentSchedulingCmds;
+        size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;

@@ -4,6 +4,7 @@
 #include "Core/Ptr.hpp"
 #include "Libs/UUID.hpp"
 #include "Serializable.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include <concepts>
 #include <cstddef>
 #include <fmt/format.h>
@@ -194,6 +195,11 @@ protected:
     virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
     virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
     virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
+
+    virtual size_t GetArraySize(std::string_view name) = 0;
+
+    // this is stupid, but I don't know how to work around unordered_map deserialization
+    virtual const nlohmann::json& GetJsonObject(std::string_view name) = 0;
 };
 
 template <class T>
@@ -203,18 +209,9 @@ concept HasReferenceResolveCallbackParamter =
 template <class T, class U>
 void Serializer::Serialize(std::string_view name, const std::unordered_map<T, U>& val)
 {
-    uint32_t size = val.size();
-    std::string path = fmt::format("{}/size", name);
-    Serialize(path.data(), size);
-    int i = 0;
     for (auto& iter : val)
     {
-        std::string keypath = fmt::format("{}/{}_key", name, i);
-        Serialize(keypath, iter.first);
-
-        std::string valuepath = fmt::format("{}/{}_value", name, i);
-        Serialize(valuepath, iter.second);
-        i += 1;
+        Serialize(fmt::format("{}/{}", name, iter.first), iter.second);
     }
 }
 
@@ -223,21 +220,10 @@ void Serializer::Deserialize(
     std::string_view name, std::unordered_map<T, U>& val, const ReferenceResolveCallback& callback
 )
 {
-    uint32_t size;
-    auto sizepath = fmt::format("{}/size", name);
-    Deserialize(sizepath.data(), size);
-    for (int i = 0; i < size; ++i)
+    auto& j = GetJsonObject(name);
+    for(auto& item : j.items())
     {
-        T key;
-        U value;
-        std::string keypath = fmt::format("{}/{}_key", name, i);
-        Deserialize(keypath, key);
-
-        std::string valuepath = fmt::format("{}/{}_value", name, i);
-        if constexpr (HasReferenceResolveCallbackParamter<U>)
-            Deserialize(valuepath, val[key], callback);
-        else
-            Deserialize(valuepath, val[key]);
+        Deserialize(fmt::format("{}/{}", name, item.key()), val[item.key()]);
     }
 }
 
@@ -246,32 +232,27 @@ void Serializer::Serialize(
     std::string_view name, const std::vector<T>& val, std::function<bool(const T&)> shouldSerialize
 )
 {
-    int serializeCount = 0;
+    int serializeIndex = 0;
     for (int i = 0; i < val.size(); ++i)
     {
         bool serializeThis = shouldSerialize ? shouldSerialize(val[i]) : true;
         if (serializeThis)
         {
-            std::string s = fmt::format("{}/data/{}", name, serializeCount);
+            std::string s = fmt::format("{}/{}", name, serializeIndex);
             Serialize(s, val[i]);
-            serializeCount += 1;
+            serializeIndex += 1;
         }
     }
-
-    std::string sizepath = fmt::format("{}/size", name);
-    Serialize(sizepath, serializeCount);
 }
 
 template <class T>
 void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback)
 {
-    uint32_t size;
-    std::string sizepath = fmt::format("{}/size", name);
-    Deserialize(sizepath, size);
+    uint32_t size = GetArraySize(name);
     val.resize(size);
     for (int i = 0; i < size; ++i)
     {
-        std::string path = fmt::format("{}/data/{}", name, i);
+        std::string path = fmt::format("{}/{}", name, i);
         if constexpr (HasReferenceResolveCallbackParamter<T>)
             Deserialize(path, val[i], callback);
         else

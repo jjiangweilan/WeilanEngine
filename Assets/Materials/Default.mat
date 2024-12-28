@@ -1,1 +1,8 @@
-{"enabledFeature":{"size":0},"name":"new material","overrideShaderConfig":false,"shader":"00000000-0000-0000-0000-000000000000","shaderConfig":null,"textureValues":{"size":0},"ubo":{"floats":{"size":0},"matrices":{"size":0},"vectors":{"size":0}},"uuid":"de050c71-c66b-5130-86f0-1d2906a07ff5"}
+{
+ "name": "new material",
+ "overrideShaderConfig": false,
+ "shader": "b4e04c45-54ce-4562-bfb0-b7a20b1e0c8d",
+ "shaderConfig": null,
+ "ubo": {},
+ "uuid": "de050c71-c66b-5130-86f0-1d2906a07ff5"
+}

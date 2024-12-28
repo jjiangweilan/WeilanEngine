@@ -63,7 +63,7 @@ public:
 
     std::vector<uint8_t> GetBinary() override
     {
-        std::string b = j.dump();
+        std::string b = j.dump(1);
         std::vector<uint8_t> a(b.begin(), b.end());
         return a;
     }
@@ -75,6 +75,9 @@ protected:
     std::unique_ptr<Serializer> CreateSubserializer() override;
     void AppendSubserializer(std::string_view name, Serializer* s) override;
     std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) override;
+
+    size_t GetArraySize(std::string_view path) override;
+    const nlohmann::json& GetJsonObject(std::string_view name) override;
 
 private:
     nlohmann::json j;

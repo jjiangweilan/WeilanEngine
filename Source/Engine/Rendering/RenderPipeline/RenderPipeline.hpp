@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/RenderingData.hpp"
@@ -48,9 +49,9 @@ private:
     struct PerScene
     {
         PerScene();
-        GPUParameter::PerScene cpuParameter;
-        std::unique_ptr<Gfx::Buffer> gpuBuffer;
-        std::unique_ptr<Gfx::ShaderResource> gpuResourceSet;
+        GPUParameter::PerScene cpuParameter{};
+        std::unique_ptr<Gfx::Buffer> gpuBuffer{};
+        std::unique_ptr<Gfx::ShaderResource> gpuResourceSet{};
     } perScene{};
 
     struct GBufferPass
@@ -69,6 +70,8 @@ private:
         ObjPtr<Shader2> shadingShader;
 
         Texture* brdfPreIntegeral;
+
+        void UploadGPUParameter(Gfx::CommandBuffer& cmd);
     } shadingPass{};
 
     struct ShadowMapPass
@@ -83,7 +86,8 @@ private:
 
         bool updateMainLightShadow = true;
 
-        const glm::float2 shadowMapSize = {1024, 1024};
+        const float shadowMapWidth = 1024.0f;
+        const glm::float4 shadowMapTexelSize = {1 / shadowMapWidth, 1 / shadowMapWidth, shadowMapWidth, shadowMapWidth};
 
     } shadowMapPass{};
 
