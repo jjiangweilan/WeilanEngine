@@ -98,6 +98,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
                 // in case no material is provided in model file
                 auto newMat = std::make_unique<Material>();
                 Material* mat = newMat.get();
+                mat->SetName(fmt::format("Auto Gen Material {}", i));
                 mat->SetShader("SceneLit");
                 if (p["attributes"].contains("TANGENT"))
                 {

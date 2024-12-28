@@ -41,6 +41,8 @@
 #undef CreateSemaphore
 #endif
 
+#define CHECK_VK_RESULT(x) ASSERT((x) == VK_SUCCESS)
+
 namespace Gfx
 {
 VKDriver::VKDriver(const CreateInfo& createInfo)
@@ -283,7 +285,7 @@ void VKDriver::QueueSubmit(
 
     VkFence fence = signalFence == nullptr ? VK_NULL_HANDLE : static_cast<VKFence*>(signalFence.Get())->GetHandle();
 
-    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);
+    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence));
 }
 
 std::unique_ptr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::CreateInfo& createInfo)
@@ -299,7 +301,7 @@ void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, u
         vkFences.push_back(static_cast<VKFence*>(f.Get())->GetHandle());
     }
 
-    vkWaitForFences(device.handle, vkFences.size(), vkFences.data(), waitAll, timeout);
+    CHECK_VK_RESULT(vkWaitForFences(device.handle, vkFences.size(), vkFences.data(), waitAll, timeout));
 }
 
 bool VKDriver::IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages)
@@ -543,7 +545,7 @@ void VKDriver::FlushPendingCommands()
     submitInfo.pCommandBuffers = &cmd;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
-    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence));
 
     allocator.Reset();
     internalPendingCommands.clear();
@@ -580,10 +582,10 @@ bool VKDriver::EndFrame()
     ENGINE_BEGIN_PROFILE("VKDriver - Record Commands")
     auto cmd = inflightData[currentInflightIndex].cmd;
 
-    vkResetCommandBuffer(cmd, 0);
+    CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd, &beginInfo);
+    CHECK_VK_RESULT(vkBeginCommandBuffer(cmd, &beginInfo));
 
     for (auto& f : internalPendingCommands)
     {
@@ -591,7 +593,7 @@ bool VKDriver::EndFrame()
     }
     renderGraph->Execute(cmd);
 
-    vkEndCommandBuffer(cmd);
+    CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE
 
     VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
@@ -619,7 +621,7 @@ bool VKDriver::EndFrame()
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
-    vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence));
     ENGINE_END_PROFILE
 
     allocator.Reset();

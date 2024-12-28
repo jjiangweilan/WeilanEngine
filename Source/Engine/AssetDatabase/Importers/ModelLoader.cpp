@@ -335,8 +335,12 @@ private:
             std::unique_ptr<Material> mat = std::make_unique<Material>();
             mat->SetShader(ShaderLibrary::SceneLit);
             auto material = scene->mMaterials[materialIndex];
-            mat->SetName(material->GetName().C_Str());
-            spdlog::info("import material: {}", material->GetName().C_Str());
+            std::string materialName = material->GetName().C_Str();
+            if (materialName.empty())
+            {
+                materialName = fmt::format("Material {}", materialIndex);
+            }
+            mat->SetName(materialName);
 
             aiColor4D baseColorFactor = {0.5, 0.5, 0.5, 0.5};
             aiColor4D emissive = {0, 0, 0, 0};
@@ -404,7 +408,7 @@ private:
                 blend.blendEnable = false;
             }
             mat->SetShaderConfig(shaderConfig);
-            mat->SetName(material->GetName().C_Str());
+
             materials.push_back(std::move(mat));
         }
     }

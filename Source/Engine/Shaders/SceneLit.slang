@@ -25,8 +25,8 @@ struct StandardVertexInput : IVertexInput
 
     float3 GetPosition() {return position;}
     float3 GetNormal() {return normal;}
-    float4 GetTangent() {return float4(0,0,0,1);}
-    float2 GetUV() { return 0;}
+    float4 GetTangent() {return tangent;}
+    float2 GetUV() { return uv;}
     float4 GetBone() { return 0;}
 }
 

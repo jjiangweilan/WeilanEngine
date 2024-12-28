@@ -687,7 +687,6 @@ void GameEditor::Start()
             endEvents.TickBegin();
             endPopup.TickBegin();
 
-            auto cmd = GetGfxDriver()->CreateCommandBuffer();
             if (engine->event->GetWindowClose().state)
             {
                 gameView.Deinit(); // stop playing the game
@@ -712,10 +711,11 @@ void GameEditor::Start()
             endPopup.TickEnd();
             endEvents.TickEnd();
 
-            cmd->Reset(true);
-            Render(*cmd, gameOutputImage, gameOutputDepthImage);
+            ImGui::Render();
 
+            Render(*cmd, gameOutputImage, gameOutputDepthImage);
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+            cmd->Reset(true);
 
             engine->EndFrame();
         }
@@ -844,7 +844,6 @@ void GameEditor::Render(
     if (gameImage)
         gameView.Render(cmd, gameImage, gameDepthImage);
 
-    ImGui::Render();
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
 
     auto& io = ImGui::GetIO();
