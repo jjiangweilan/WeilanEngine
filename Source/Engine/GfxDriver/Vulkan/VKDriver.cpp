@@ -621,7 +621,11 @@ bool VKDriver::EndFrame()
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
-    CHECK_VK_RESULT(vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence));
+    auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
+    if (result != 0)
+    {
+        __debugbreak;
+    }
     ENGINE_END_PROFILE
 
     allocator.Reset();
@@ -848,6 +852,7 @@ VkBool32 VKDriver::DebugCallback(
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             {
                 SPDLOG_WARN(pCallbackData->pMessage);
+                __debugbreak();
                 return VK_FALSE;
             }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:

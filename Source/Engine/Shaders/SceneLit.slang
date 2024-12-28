@@ -58,14 +58,14 @@ VertexOutput VertexMain(VertexInput input)
     VertexOutput output;
     float3 vertexPos = input.GetPosition();
     float3 normal = input.GetNormal();
-    float3 tangent = input.GetTangent().xyz;
+    float4 tangent = input.GetTangent();
 
     output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
 
     matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.model; // maybe a invTspModel calculated in CPU if it's needed
     output.normalWS = mul(model33, normal).xyz;
-    output.tangentWS = mul(model33, tangent).xyz;
-    output.bitangentWS = input.GetTangent().w * cross(output.normalWS, output.tangentWS);
+    output.tangentWS = mul(model33, tangent.xyz);
+    output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
     output.position = mul(scene.viewProjection, float4(output.positionWS, 1));
@@ -119,6 +119,8 @@ FragmentOutput FragmentMain(VertexOutput input)
     if (_MetallicRoughnessMap)
     {
         float2 metallicRoughness = float2(roughness, metallic) * perMaterial.metallicRoughnessMap.Sample(input.uv).gb;
+        metallic = metallicRoughness.y;
+        roughness = max(metallicRoughness.x, 0.01);
     }
 
     float3 normal = float3(0,0,1);
@@ -126,7 +128,8 @@ FragmentOutput FragmentMain(VertexOutput input)
     {
         normal = perMaterial.normalMap.Sample(input.uv).xyz * 2 - 1;
     }
-    matrix<float,3,3> TBN = matrix<float,3,3>(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS));
+    float3x3 TBN = transpose(float3x3(normalize(input.tangentWS), normalize(input.bitangentWS), normalize(input.normalWS)));
+
     float3 n = EncodeGBufferNormal(normalize(mul(TBN, normal)));
 
     float4 emission = 0;

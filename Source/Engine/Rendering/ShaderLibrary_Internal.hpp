@@ -295,7 +295,7 @@ public:
         std::string name = variableLayout->getName();
         bool linearFilter = Utils::strContians(name, "linear");
 
-        bool repeatSample = Utils::strContians(name, "repeat");
+        bool clampSample = Utils::strContians(name, "clamp");
 
         std::string samplerTypeName = variableLayout->getType()->getName();
         if (samplerTypeName == "SamplerComparisonState")
@@ -304,10 +304,10 @@ public:
             config.enbaleCompare = false;
         config.anisotropic = false;
 
-        if (repeatSample)
-            config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::Repeat;
-        else
+        if (clampSample)
             config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::ClampToEdge;
+        else
+            config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::Repeat;
 
         if (linearFilter)
         {

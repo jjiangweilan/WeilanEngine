@@ -36,7 +36,6 @@ VertexOutput VertexMain(VertexInput input)
 }
 
 [shader("fragment")]
-float4 FragmentMain() :SV_Target
+void FragmentMain()
 {
-    return 0;
 }
