@@ -4,6 +4,7 @@
 #include "Core/Object.hpp"
 #include "EditorState.hpp"
 #include "Libs/EnumFlags.hpp"
+#include "Libs/Serialization/JsonSerializer.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include <concepts>
@@ -300,7 +301,27 @@ public:
         return selected;
     }
 
+    static bool InputText(const char* label, std::string& text)
+    {
+        if (textArea.size() < text.size() + 1)
+        {
+            textArea.resize((text.size() + 1) * 2);
+        }
+
+        std::strcpy(textArea.data(), text.data());
+        if (ImGui::InputText(label, textArea.data(), textArea.size()))
+        {
+            text = textArea.data();
+            return true;
+        }
+
+        return false;
+    }
+
+    static void AutoObjectInspector(Object* target);
+
 private:
     static const char* PayloadType;
+    static std::vector<char> textArea;
 };
 } // namespace Editor

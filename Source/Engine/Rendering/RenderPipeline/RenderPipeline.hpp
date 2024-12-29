@@ -3,6 +3,7 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
+#include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderingData.hpp"
 
 namespace GPUParameter
@@ -17,6 +18,7 @@ class Camera;
 
 namespace Rendering
 {
+
 class RenderPipeline
 {
 public:
@@ -25,6 +27,9 @@ public:
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
     const Gfx::RG::ImageIdentifier& GetMainColor() { return mainColor; }
     const Gfx::RG::ImageIdentifier& GetMainDepth() { return mainDepth; }
+
+    ObjPtr<RenderPipelineSetting> GetRenderPipelineSetting() const { return setting; }
+    void SetRenderPipelineSetting(ObjPtr<RenderPipelineSetting> setting) { this->setting = setting; }
 
 private:
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
@@ -97,5 +102,6 @@ private:
     } labelColors;
 
     DrawList sceneDrawList;
+    ObjPtr<RenderPipelineSetting> setting;
 };
 } // namespace Rendering

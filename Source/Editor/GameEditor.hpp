@@ -84,20 +84,19 @@ private:
     );
     void SaveProject();
 
-    void AssetWindow();
+    void ShowAssetWindow();
+    void ShowInspectorWindow();
+    void ShowSurfelGIBakerWindow();
+    void ShowConsoleOutputWindow();
+    void ShowAssetDatabaseViewer();
+
     void AssetShowDir(const std::filesystem::path& path, int depth);
-    void InspectorWindow();
-    void SurfelGIBakerWindow();
-
-    void ConsoleOutputWindow();
-    void AssetDatabaseViewer();
-
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
-    void SceneTree(Scene& scene);
+    void ShowSceneTree(Scene& scene);
     void SceneTree(
         GameObject* go, int imguiID, GameObject* currentSelected, std::vector<SRef<Object>>& selects, bool autoExpand
     );
-    void GameProfiler(Profiler& profiler);
+    void ShowGameProfiler(Profiler& profiler);
     void EngineResourceDebug();
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);

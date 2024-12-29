@@ -33,8 +33,11 @@ void ObjectTracker::RemoveObject(Object* object)
 
     if (slotIndex != NullHandle)
     {
-        ASSERT(slotIndex >= 0 && slotIndex < slots.size());
-        uuidToSlotIndex.erase(object->GetUUID());
+        ASSERT(slotIndex > 0 && slotIndex < slots.size());
+        if (slots[slotIndex].referenceCount == 0)
+        {
+            uuidToSlotIndex.erase(object->GetUUID());
+        }
         slots[slotIndex].object = nullptr;
         ReleaseSlotIfNotReferenced(slotIndex);
     }

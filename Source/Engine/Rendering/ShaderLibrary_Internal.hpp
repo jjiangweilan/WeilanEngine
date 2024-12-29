@@ -81,7 +81,7 @@ public:
         std::string moduleName = fmt::format("{}-{}", shaderName, featureName);
         std::string syntheticModulePath = fmt::format("_syntheticPath/{}.slang", moduleName);
         slang::IModule* toggleModule = session->loadModuleFromSourceString(
-            moduleName.c_str(),       // module name
+            moduleName.c_str(),          // module name
             syntheticModulePath.c_str(), // synthetic module path
             srcString.c_str()
         ); // module source content
@@ -110,7 +110,7 @@ public:
 
         std::vector<slang::IComponentType*> componentsToLink;
 
-        for(auto& enabledFeature : enabledFeatures)
+        for (auto& enabledFeature : enabledFeatures)
         {
             componentsToLink.push_back(LoadFeatureModule(session, shaderName, enabledFeature));
         }
@@ -293,7 +293,7 @@ public:
     {
         Gfx::PipelineInfo::SamplerConfig config{};
         std::string name = variableLayout->getName();
-        bool linearFilter = Utils::strContians(name, "linear");
+        bool pointFilter = Utils::strContians(name, "point");
 
         bool clampSample = Utils::strContians(name, "clamp");
 
@@ -309,15 +309,15 @@ public:
         else
             config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::Repeat;
 
-        if (linearFilter)
-        {
-            config.minFilter = Gfx::FilterMode::Linear;
-            config.magFilter = Gfx::FilterMode::Linear;
-        }
-        else
+        if (pointFilter)
         {
             config.minFilter = Gfx::FilterMode::Nearest;
             config.magFilter = Gfx::FilterMode::Nearest;
+        }
+        else
+        {
+            config.minFilter = Gfx::FilterMode::Linear;
+            config.magFilter = Gfx::FilterMode::Linear;
         }
 
         return set.AddSamplerConfig(config);

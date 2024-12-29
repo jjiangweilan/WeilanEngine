@@ -4,8 +4,10 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Ptr.hpp"
 #include "Core/Scene/PhysicsScene.hpp"
 #include "GfxDriver/ShaderResource.hpp"
+#include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "RenderingScene.hpp"
 #include <SDL.h>
 
@@ -93,10 +95,18 @@ public:
         }
     }
 
+    ObjPtr<Rendering::RenderPipelineSetting> GetRenderPipelineSetting() const { return renderPipelineSetting; }
+    void SetRenderPipelineSetting(ObjPtr<Rendering::RenderPipelineSetting> setting)
+    {
+        this->renderPipelineSetting = setting;
+    }
+
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;
     PhysicsScene physicsScene;
+
+    ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<ObjPtr<GameObject>> roots;

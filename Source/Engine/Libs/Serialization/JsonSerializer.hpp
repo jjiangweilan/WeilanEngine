@@ -68,6 +68,8 @@ public:
         return a;
     }
 
+    const nlohmann::json& GetJson() { return j; }
+
 protected:
     void Serialize(std::string_view name, unsigned char* p, size_t size) override;
     void Deserialize(std::string_view name, unsigned char* p, size_t size) override;

@@ -28,6 +28,12 @@ public:
         {
             target->FixUndestroiedGameObjectNotInSceneTree();
         }
+
+        auto renderPipelineSetting = target->GetRenderPipelineSetting().Get();
+        if (GUI::ObjectField("Render Pipeline", renderPipelineSetting))
+        {
+            target->SetRenderPipelineSetting(renderPipelineSetting);
+        }
     }
 
 private:

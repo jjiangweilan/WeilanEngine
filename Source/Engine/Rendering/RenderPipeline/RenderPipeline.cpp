@@ -14,6 +14,8 @@ RenderPipeline::RenderPipeline()
 
 void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
+    setting = scene.GetRenderPipelineSetting();
+
     auto UpdatePerScene = [&]()
     {
         auto camGo = camera.GetGameObject();
@@ -110,10 +112,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     Gfx::CommandBuffer* cmd = commandBuffer.get();
 
-    sceneDrawList.clear();
-    sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
-    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
-
     // Setup
     {
         auto AllocateImage = [](Gfx::CommandBuffer& cmd,
@@ -150,10 +148,17 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R8G8B8A8_SRGB, mainColorDescription);
         AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
 
+        // no settings quit here
+        if (setting == nullptr)
+            return;
+
         UpdatePerScene();
     }
-
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
+
+    sceneDrawList.clear();
+    sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 
@@ -245,8 +250,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         {
             shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{
                 .shadowMapTexelSize = shadowMapPass.shadowMapTexelSize,
-                .shadowConstantBias = 0.001f,
-                .shadowNormalBias = 0.3f
+                .shadowConstantBias = setting->shadowConstantBias / 1000.0f,
+                .shadowNormalBias = setting->shadowNormalBias
             };
 
             GetGfxDriver()->UploadBuffer(
@@ -357,4 +362,6 @@ RenderPipeline::ShadowMapPass::ShadowMapPass()
 
     pass.SetAttachment(0, shadowMapId);
 }
+
 } // namespace Rendering
+  //

@@ -10,3 +10,6 @@ public:
     virtual void Deserialize(Serializer* s) = 0;
     virtual ~Serializable(){};
 };
+
+#define SERIALIZE(ser, name) ser->Serialize(#name, name)
+#define DESERIALIZE(ser, name) ser->Deserialize(#name, name)

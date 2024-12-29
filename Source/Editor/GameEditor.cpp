@@ -18,6 +18,7 @@
 #include "ThirdParty/imgui/implot.h"
 #include <cmath>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <memory>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -184,7 +185,7 @@ static void ProfileTree(const ProfileScope& scope, int id)
     ImGui::PopID();
 }
 
-void GameEditor::GameProfiler(Profiler& profiler)
+void GameEditor::ShowGameProfiler(Profiler& profiler)
 {
     auto& frameProfiles = profiler.GetFrameProfiles();
     ImGui::Begin("Profiler Module");
@@ -337,7 +338,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
-void GameEditor::SceneTree(Scene& scene)
+void GameEditor::ShowSceneTree(Scene& scene)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_MenuBar);
 
@@ -591,12 +592,17 @@ void GameEditor::MainMenuBar()
             if (ImGui::MenuItem("Material"))
             {
                 auto mat = std::make_unique<Material>();
-                engine->assetDatabase->SaveAsset(std::move(mat), "new material");
+                engine->assetDatabase->SaveAsset(std::move(mat), "New Material");
             }
             if (ImGui::MenuItem("Frame Graph"))
             {
                 auto graph = std::make_unique<Rendering::FrameGraph::Graph>();
-                engine->assetDatabase->SaveAsset(std::move(graph), "new frame graph");
+                engine->assetDatabase->SaveAsset(std::move(graph), "New FrameGraph");
+            }
+            if (ImGui::MenuItem("Render Pipeline Setting"))
+            {
+                auto renderPipelineSetting = std::make_unique<Rendering::RenderPipelineSetting>();
+                engine->assetDatabase->SaveAsset(std::move(renderPipelineSetting), "New RenderPipelineSetting");
             }
             ImGui::EndMenu();
         }
@@ -729,9 +735,9 @@ void GameEditor::GUIPass()
     MainMenuBar();
     OpenSceneWindow();
 
-    AssetWindow();
-    InspectorWindow();
-    SurfelGIBakerWindow();
+    ShowAssetWindow();
+    ShowInspectorWindow();
+    ShowSurfelGIBakerWindow();
 
     EngineResourceDebug();
 
@@ -764,12 +770,12 @@ void GameEditor::GUIPass()
 
     if (EditorState::activeScene)
     {
-        SceneTree(*EditorState::activeScene);
+        ShowSceneTree(*EditorState::activeScene);
     }
 
-    GameProfiler(Profiler::GetSingleton());
-    ConsoleOutputWindow();
-    AssetDatabaseViewer();
+    ShowGameProfiler(Profiler::GetSingleton());
+    ShowConsoleOutputWindow();
+    ShowAssetDatabaseViewer();
 
     if (pbrBaker)
     {
@@ -786,7 +792,7 @@ void GameEditor::GUIPass()
     }
 }
 
-void GameEditor::SurfelGIBakerWindow()
+void GameEditor::ShowSurfelGIBakerWindow()
 {
     if (surfelGIBaker)
     {
@@ -856,7 +862,7 @@ void GameEditor::Render(
 
 void GameEditor::OpenWindow() {}
 
-void GameEditor::InspectorWindow()
+void GameEditor::ShowInspectorWindow()
 {
     if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_I))
     {
@@ -937,7 +943,6 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
     {
         if (entry.is_directory())
         {
-
             const std::filesystem::path& path = entry.path();
             auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
             bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
@@ -1113,7 +1118,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
     }
 }
 
-void GameEditor::AssetWindow()
+void GameEditor::ShowAssetWindow()
 {
     if (assetWindow)
     {
@@ -1177,7 +1182,7 @@ void GameEditor::AssetWindow()
     }
 }
 
-void GameEditor::ConsoleOutputWindow()
+void GameEditor::ShowConsoleOutputWindow()
 {
     auto ringBufferSink = engine->GetRingBufferLoggerSink();
     auto lastRaw = ringBufferSink->last_raw();
@@ -1419,7 +1424,7 @@ void GameEditor::WindowRegisteryIteration(WindowRegisterInfo& info, int pathInde
     }
 }
 
-void GameEditor::AssetDatabaseViewer()
+void GameEditor::ShowAssetDatabaseViewer()
 {
     if (assetDatabaseWindow)
     {

@@ -742,7 +742,7 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 
 Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
-    SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
+    // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
     /* Debug Comment */
     // std::filesystem::path debugPath = "SceneLit.shad";

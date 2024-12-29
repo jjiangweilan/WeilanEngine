@@ -246,6 +246,7 @@ void Scene::Serialize(Serializer* s) const
     );
     s->Serialize("roots", roots);
     s->Serialize("camera", camera);
+    s->Serialize("renderPipelineSetting", renderPipelineSetting);
 }
 
 std::unique_ptr<Asset> Scene::Clone()
@@ -266,6 +267,7 @@ void Scene::Deserialize(Serializer* s)
     s->Deserialize("gameObjects", gameObjects);
     s->Deserialize("roots", roots);
     s->Deserialize("camera", camera);
+    s->Deserialize("renderPipelineSetting", renderPipelineSetting);
 }
 
 void Scene::OnLoaded()
