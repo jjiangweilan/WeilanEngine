@@ -75,8 +75,7 @@ public:
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
-    std::unique_ptr<ShaderProgram> CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo) override;
-    std::unique_ptr<ShaderProgram> CreateShaderProgram(ComputePipelineCreateInfo& createInfo) override;
+    std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) override;
     std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
     void ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd) override;

@@ -86,8 +86,7 @@ public:
     virtual std::unique_ptr<RenderPass> CreateRenderPass() = 0;
     virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
     virtual std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
-    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo) = 0;
-    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(ComputePipelineCreateInfo& createInfo) = 0;
+    virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) = 0;
 
     virtual std::unique_ptr<Semaphore> CreateSemaphore(const Semaphore::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<Fence> CreateFence(const Fence::CreateInfo& createInfo) = 0;

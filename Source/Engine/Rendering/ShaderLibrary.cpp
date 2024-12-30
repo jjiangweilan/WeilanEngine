@@ -62,9 +62,7 @@ ShaderLibrary::ShaderLibrary()
     globalSession->createSession(sessionDesc, session.writeRef());
 }
 
-std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileGraphicsShader(
-    const char* shaderName, ShaderPermutation permutation
-)
+std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::ComputeShader(const char* shaderName, ShaderPermutation permutation)
 {
     ShaderCompiler compiler;
     Gfx::PipelineInfo pipelineInfo{};
@@ -74,29 +72,60 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileGraphicsShader(
     compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
 
     {
-        Gfx::GraphicsPipelineCreateInfo createInfo{};
+        Gfx::PipelineCreateInfo createInfo{};
         createInfo.defaultConfig = pipelineConfig;
         createInfo.pipelineInfo = pipelineInfo;
 
         auto& linkedProgram = compiler.linkedProgram;
-        Slang::ComPtr<slang::IBlob> vertexKernelBlob, fragmentKernelBlob;
-        Slang::ComPtr<slang::IBlob> vertexDiagnostics, fragmentDiagnostics;
-        linkedProgram->getEntryPointCode(
-            compiler.vertexEntryPointIndex,
-            0,
-            vertexKernelBlob.writeRef(),
-            vertexDiagnostics.writeRef()
-        );
-        linkedProgram->getEntryPointCode(
-            compiler.fragmentEntryPointIndex,
-            0,
-            fragmentKernelBlob.writeRef(),
-            fragmentDiagnostics.writeRef()
-        );
-        createInfo.vertSpv = std::vector<uint8_t>(vertexKernelBlob->getBufferSize());
-        createInfo.fragSpv = std::vector<uint8_t>(fragmentKernelBlob->getBufferSize());
-        memcpy(createInfo.vertSpv.data(), vertexKernelBlob->getBufferPointer(), vertexKernelBlob->getBufferSize());
-        memcpy(createInfo.fragSpv.data(), fragmentKernelBlob->getBufferPointer(), fragmentKernelBlob->getBufferSize());
+        Slang::ComPtr<slang::IBlob> vertexKernelBlob, vertexDiagnostics;
+        Slang::ComPtr<slang::IBlob> fragmentKernelBlob, fragmentDiagnostics;
+        Slang::ComPtr<slang::IBlob> computeKernelBlob, computeDiagnostics;
+        if (compiler.vertexEntryPointIndex != -1)
+        {
+            linkedProgram->getEntryPointCode(
+                compiler.vertexEntryPointIndex,
+                0,
+                vertexKernelBlob.writeRef(),
+                vertexDiagnostics.writeRef()
+            );
+        }
+
+        if (compiler.fragmentEntryPointIndex != -1)
+        {
+            linkedProgram->getEntryPointCode(
+                compiler.fragmentEntryPointIndex,
+                0,
+                fragmentKernelBlob.writeRef(),
+                fragmentDiagnostics.writeRef()
+            );
+        }
+
+        if (compiler.computeEntryPointIndex != -1)
+        {
+            linkedProgram->getEntryPointCode(
+                compiler.computeEntryPointIndex,
+                0,
+                computeKernelBlob.writeRef(),
+                computeDiagnostics.writeRef()
+            );
+        }
+
+        if (compiler.fragmentEntryPointIndex != -1 && compiler.vertexEntryPointIndex != -1)
+        {
+            createInfo.vertSpv = std::vector<uint8_t>(vertexKernelBlob->getBufferSize());
+            createInfo.fragSpv = std::vector<uint8_t>(fragmentKernelBlob->getBufferSize());
+            memcpy(createInfo.vertSpv.data(), vertexKernelBlob->getBufferPointer(), vertexKernelBlob->getBufferSize());
+            memcpy(
+                createInfo.fragSpv.data(),
+                fragmentKernelBlob->getBufferPointer(),
+                fragmentKernelBlob->getBufferSize()
+            );
+        }
+        else if (compiler.computeEntryPointIndex != -1)
+        {
+            createInfo.computeSpv = std::vector<uint8_t>(computeKernelBlob->getBufferSize());
+            memcpy(createInfo.computeSpv.data(), vertexKernelBlob->getBufferPointer(), vertexKernelBlob->getBufferSize());
+        }
 
         return GetGfxDriver()->CreateShaderProgram(createInfo);
     }
@@ -174,7 +203,7 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
         }
     }
 
-    std::unique_ptr<Gfx::ShaderProgram> newShader = CompileGraphicsShader(name, permutation);
+    std::unique_ptr<Gfx::ShaderProgram> newShader = ComputeShader(name, permutation);
     library[name].shaders.emplace(permutation, CompiledShader(std::move(newShader), permutation));
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }

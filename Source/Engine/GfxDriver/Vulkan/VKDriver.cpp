@@ -193,13 +193,7 @@ void VKDriver::ForceSyncResources()
     return; // TODO: reimplementation needed
 }
 
-std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(GraphicsPipelineCreateInfo& createInfo)
-{
-    std::scoped_lock lock(driverMutex);
-    return std::make_unique<VKShaderProgram>(context.get(), createInfo);
-}
-
-std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(ComputePipelineCreateInfo& createInfo)
+std::unique_ptr<ShaderProgram> VKDriver::CreateShaderProgram(PipelineCreateInfo& createInfo)
 {
     std::scoped_lock lock(driverMutex);
     return std::make_unique<VKShaderProgram>(context.get(), createInfo);

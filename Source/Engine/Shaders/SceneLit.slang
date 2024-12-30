@@ -50,7 +50,7 @@ struct VertexOutput
     float2 uv;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
 VertexOutput VertexMain(VertexInput input)
@@ -68,7 +68,7 @@ VertexOutput VertexMain(VertexInput input)
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
-    output.position = mul(scene.viewProjection, float4(output.positionWS, 1));
+    output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
 
     return output;
 }

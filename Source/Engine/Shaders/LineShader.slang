@@ -15,7 +15,7 @@ struct PushConstant
 [vk::push_constant]
 PushConstant p;
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 struct VertexOutput
 {
@@ -27,7 +27,7 @@ void VertexMain(uint vertexId : SV_VertexID)
 {
 VertexOutput output;
     float4 pos = float4(vertexId == 0 ? p.fromWS.xyz : p.toWS.xyz, 1.0f);
-    output.position = mul(scene.viewProjection, pos);
+    output.position = mul(perScene.viewProjection, pos);
 }
 
 [shader("fragment")]

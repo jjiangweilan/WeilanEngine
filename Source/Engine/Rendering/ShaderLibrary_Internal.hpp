@@ -22,6 +22,7 @@ struct ShaderCompiler
     // results
     int vertexEntryPointIndex = -1;
     int fragmentEntryPointIndex = -1;
+    int computeEntryPointIndex = -1;
     ComPtr<slang::IComponentType> linkedProgram{};
 
     slang::ProgramLayout* _programLayout;
@@ -134,6 +135,11 @@ public:
             {
                 outPipelineInfo.vertexShaderName = entryPoint->getFunctionReflection()->getName();
                 vertexEntryPointIndex = i;
+            }
+            else if (name == "\"compute\"")
+            {
+                outPipelineInfo.computeShaderName = entryPoint->getFunctionReflection()->getName();
+                computeEntryPointIndex = i;
             }
 
             componentsToLink.push_back(ComPtr<slang::IComponentType>(entryPoint.get()));

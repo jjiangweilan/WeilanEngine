@@ -20,7 +20,7 @@ struct VertexInput
     float3 position;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 struct Transform
 {
@@ -34,7 +34,7 @@ Transform transform;
 VertexOutput VertexMain(VertexInput input)
 {
     VertexOutput output;
-    output.position = mul(scene.viewProjection, mul(transform.model, float4(input.position, 1.0f)));
+    output.position = mul(perScene.viewProjection, mul(transform.model, float4(input.position, 1.0f)));
     return output;
 }
 

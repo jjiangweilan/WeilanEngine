@@ -25,7 +25,7 @@ struct VertexOutput
     float2 uv;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 [vk::push_constant]
 Transform transform;
@@ -35,7 +35,7 @@ VertexOutput VertexMain(VertexInput input)
 {
     VertexOutput output;
     output.positionWS = mul(transform.model, float4(input.position, 1.0));
-    output.position = mul(scene.viewProjection, output.positionWS);
+    output.position = mul(perScene.viewProjection, output.positionWS);
     output.uv = input.uv * 100;
 
     return output;

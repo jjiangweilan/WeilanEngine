@@ -14,132 +14,136 @@
 namespace Gfx
 {
 
-VKShaderProgram::VKShaderProgram(VKContext* context, const GraphicsPipelineCreateInfo& createInfo)
+VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& createInfo)
     : ShaderProgram(false), name(createInfo.pipelineInfo.name), objManager(context->objManager)
 {
     pipelineInfo = createInfo.pipelineInfo;
     defaultPipelineConfig = createInfo.defaultConfig;
-    VkShaderModuleCreateInfo vertexModuleCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .codeSize = createInfo.vertSpv.size(),
-        .pCode = (uint32_t*)createInfo.vertSpv.data()
-    };
 
-    VkShaderModuleCreateInfo fragmentModuleCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .codeSize = createInfo.fragSpv.size(),
-        .pCode = (uint32_t*)createInfo.fragSpv.data()
-    };
-    objManager->CreateShaderModule(vertexModuleCreateInfo, vertexModule);
-    objManager->CreateShaderModule(fragmentModuleCreateInfo, fragmentModule);
-    GeneratePipelineLayout();
-
-    // vertex inputs
-    if (pipelineInfo.isVertexInterleaved)
+    if (!createInfo.vertSpv.empty() && !createInfo.fragSpv.empty())
     {
-        uint32_t offset = 0;
-        vertexAttributeDescriptions.reserve(pipelineInfo.vertexInputs.size());
-        for (auto& vertexAttribute : pipelineInfo.vertexInputs)
-        {
-            VkVertexInputAttributeDescription attributeDesc;
-            attributeDesc.location = vertexAttribute.location;
-            attributeDesc.binding = 0;
-            attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-            attributeDesc.offset = offset;
+        VkShaderModuleCreateInfo vertexModuleCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .codeSize = createInfo.vertSpv.size(),
+            .pCode = (uint32_t*)createInfo.vertSpv.data()
+        };
 
-            vertexAttributeDescriptions.push_back(attributeDesc);
-            offset += vertexAttribute.size;
-        }
+        VkShaderModuleCreateInfo fragmentModuleCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .codeSize = createInfo.fragSpv.size(),
+            .pCode = (uint32_t*)createInfo.fragSpv.data()
+        };
+        objManager->CreateShaderModule(vertexModuleCreateInfo, vertexModule);
+        objManager->CreateShaderModule(fragmentModuleCreateInfo, fragmentModule);
+        GeneratePipelineLayout();
 
-        VkVertexInputBindingDescription bindingDesc;
-        bindingDesc.binding = 0;
-        bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        bindingDesc.stride = offset; // offset becomes the total stride size
-        vertexInputBindingDescriptions.push_back(bindingDesc);
-    }
-    else
-    {
-        if (!pipelineInfo.vertexInputs.empty())
+        // vertex inputs
+        if (pipelineInfo.isVertexInterleaved)
         {
-            auto& vertexAttribute = pipelineInfo.vertexInputs[0];
-            VkVertexInputAttributeDescription attributeDesc;
-            attributeDesc.location = vertexAttribute.location;
-            attributeDesc.binding = 0;
-            attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-            attributeDesc.offset = 0;
-            vertexAttributeDescriptions.push_back(attributeDesc);
+            uint32_t offset = 0;
+            vertexAttributeDescriptions.reserve(pipelineInfo.vertexInputs.size());
+            for (auto& vertexAttribute : pipelineInfo.vertexInputs)
+            {
+                VkVertexInputAttributeDescription attributeDesc;
+                attributeDesc.location = vertexAttribute.location;
+                attributeDesc.binding = 0;
+                attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+                attributeDesc.offset = offset;
+
+                vertexAttributeDescriptions.push_back(attributeDesc);
+                offset += vertexAttribute.size;
+            }
 
             VkVertexInputBindingDescription bindingDesc;
             bindingDesc.binding = 0;
             bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            bindingDesc.stride = vertexAttribute.size;
+            bindingDesc.stride = offset; // offset becomes the total stride size
             vertexInputBindingDescriptions.push_back(bindingDesc);
-
-            size_t attributeOffset = 0;
-            for (int i = 1; i < pipelineInfo.vertexInputs.size(); ++i)
+        }
+        else
+        {
+            if (!pipelineInfo.vertexInputs.empty())
             {
-                auto& vertexAttribute = pipelineInfo.vertexInputs[i];
+                auto& vertexAttribute = pipelineInfo.vertexInputs[0];
                 VkVertexInputAttributeDescription attributeDesc;
                 attributeDesc.location = vertexAttribute.location;
-                attributeDesc.binding = 1;
+                attributeDesc.binding = 0;
                 attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-                attributeDesc.offset = attributeOffset;
+                attributeDesc.offset = 0;
                 vertexAttributeDescriptions.push_back(attributeDesc);
-                attributeOffset += vertexAttribute.size;
-            }
 
-            // attributeOffset == 0 means there is no attributes
-            if (attributeOffset != 0)
-            {
-                VkVertexInputBindingDescription attrBindingDesc;
-                attrBindingDesc.binding = 1;
-                attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-                attrBindingDesc.stride = attributeOffset;
-                vertexInputBindingDescriptions.push_back(attrBindingDesc);
+                VkVertexInputBindingDescription bindingDesc;
+                bindingDesc.binding = 0;
+                bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                bindingDesc.stride = vertexAttribute.size;
+                vertexInputBindingDescriptions.push_back(bindingDesc);
+
+                size_t attributeOffset = 0;
+                for (int i = 1; i < pipelineInfo.vertexInputs.size(); ++i)
+                {
+                    auto& vertexAttribute = pipelineInfo.vertexInputs[i];
+                    VkVertexInputAttributeDescription attributeDesc;
+                    attributeDesc.location = vertexAttribute.location;
+                    attributeDesc.binding = 1;
+                    attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+                    attributeDesc.offset = attributeOffset;
+                    vertexAttributeDescriptions.push_back(attributeDesc);
+                    attributeOffset += vertexAttribute.size;
+                }
+
+                // attributeOffset == 0 means there is no attributes
+                if (attributeOffset != 0)
+                {
+                    VkVertexInputBindingDescription attrBindingDesc;
+                    attrBindingDesc.binding = 1;
+                    attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+                    attrBindingDesc.stride = attributeOffset;
+                    vertexInputBindingDescriptions.push_back(attrBindingDesc);
+                }
             }
         }
     }
-}
-
-VKShaderProgram::VKShaderProgram(VKContext* context, const ComputePipelineCreateInfo& createInfo)
-    : ShaderProgram(false), name(createInfo.name), objManager(context->objManager)
-{
-    VkShaderModuleCreateInfo computeModuleCreateInfo{
+    else if (!createInfo.computeSpv.empty())
+    {
+        VkShaderModuleCreateInfo computeModuleCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .pNext = VK_NULL_HANDLE,
         .flags = 0,
         .codeSize = createInfo.computeSpv.size(),
-        .pCode = createInfo.computeSpv.data()
-    };
-    objManager->CreateShaderModule(computeModuleCreateInfo, computeModule);
+        .pCode = (uint32_t*)createInfo.computeSpv.data()
+        };
+        objManager->CreateShaderModule(computeModuleCreateInfo, computeModule);
 
-    VkPipelineShaderStageCreateInfo computePipelineShaderStageCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-        .module = computeModule,
-        .pName = "main",
-        .pSpecializationInfo = VK_NULL_HANDLE,
-    };
+        VkPipelineShaderStageCreateInfo computePipelineShaderStageCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+            .module = computeModule,
+            .pName = "main",
+            .pSpecializationInfo = VK_NULL_HANDLE,
+        };
 
-    VkComputePipelineCreateInfo computePipelineCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .stage = computePipelineShaderStageCreateInfo,
-        .layout = pipelineLayout,
-        .basePipelineHandle = VK_NULL_HANDLE,
-        .basePipelineIndex = 0,
-    };
+        VkComputePipelineCreateInfo computePipelineCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .stage = computePipelineShaderStageCreateInfo,
+            .layout = pipelineLayout,
+            .basePipelineHandle = VK_NULL_HANDLE,
+            .basePipelineIndex = 0,
+        };
 
-    VkPipeline pipeline;
-    objManager->CreateComputePipeline(computePipelineCreateInfo, pipeline);
-    caches[0] = pipeline;
+        VkPipeline pipeline;
+        objManager->CreateComputePipeline(computePipelineCreateInfo, pipeline);
+        caches[0] = pipeline;
+    }
+    else
+        ASSERT(0 && "not possible to create empty shader");
 }
 
 VKShaderProgram::~VKShaderProgram()

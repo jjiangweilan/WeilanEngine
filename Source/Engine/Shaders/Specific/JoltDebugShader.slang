@@ -30,14 +30,14 @@ struct VertexOutput
     float4 color;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
 void VertexMain(VertexInput input)
 {
     VertexOutput output;
     float3 positionWS = float3(mul(transform.model, float4(input.position, 1)).xyz);
-    output.position = mul(scene.viewProjection, float4(positionWS, 1));
+    output.position = mul(perScene.viewProjection, float4(positionWS, 1));
     // slightly push the line to the camera
     output.position.z -= 0.0001;
     output.color = input.color;

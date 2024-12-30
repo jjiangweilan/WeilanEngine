@@ -22,7 +22,7 @@ struct DeferredInput
     SamplerComparisonState samplerShadow;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 ParameterBlock<DeferredInput> perMaterial;
 
 #define NearZero 0.000001
@@ -136,7 +136,7 @@ float3 ParallaxShadowReprojection(float3 P1, float3 L1, float3 L0)
     float sum = 0, cnt = 0; 
     for (int i = 0; i < 8; ++i) 
     { 
-        float4 Sp = mul(scene.worldToShadow, float4(S, 1));
+        float4 Sp = mul(perScene.worldToShadow, float4(S, 1));
         Sp = Sp / Sp.w;
         float2 shadowUV = Sp.xy * 0.5 + 0.5;
         float occDepth = perMaterial.shadowMap.SampleLevel(perMaterial.sampler_point_clamp, shadowUV, 0).r; 
@@ -188,14 +188,14 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     float roughness = mask.y;
     float3 baseColor = perMaterial.albedoTex.Sample(input.uv).xyz;
     float depth = perMaterial.depthTex.Sample(input.uv).x;
-    float4 positionWS = mul(scene.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
+    float4 positionWS = mul(perScene.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
     positionWS /= positionWS.w;
-    float3 v = normalize(scene.viewPos.xyz - positionWS.xyz);
+    float3 v = normalize(perScene.viewPos.xyz - positionWS.xyz);
 
     float3 color = float3(0, 0, 0);
-    for (int i = 0; i < scene.lightCount.x; ++i)
+    for (int i = 0; i < perScene.lightCount.x; ++i)
     {
-        float4 lightPos = scene.lights[i].position;
+        float4 lightPos = perScene.lights[i].position;
         float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
         float dotNL = max(dot(n, l), NearZero);
@@ -204,9 +204,9 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         float3 kd = 1 - F;
         kd *= 1 - metallic;
 
-        float3 light = dotNL * scene.lights[i].intensity * scene.lights[i].lightColor.xyz;
-        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  scene.lights[i].pointLightTerm2);
-// global.scene.lights[i].pointLightTerm1,;
+        float3 light = dotNL * perScene.lights[i].intensity * perScene.lights[i].lightColor.xyz;
+        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  perScene.lights[i].pointLightTerm2);
+// global.perScene.lights[i].pointLightTerm1,;
 
         float3 lighting = light * (kd * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
         // possible solution https://bruop.github.io/ibl/
@@ -221,12 +221,12 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             const float shadowNormalBias = perMaterial.input.shadowNormalBias;
 
             float3 shadowWorldPos = positionWS.xyz;
-            if (scene.cachedMainLightDirection.a == 1.0f)
+            if (perScene.cachedMainLightDirection.a == 1.0f)
             {
-                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, scene.cachedMainLightDirection.xyz);
+                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, perScene.cachedMainLightDirection.xyz);
             }
 
-            float4 shadowCS = mul(scene.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0));
+            float4 shadowCS = mul(perScene.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0));
             shadowCS = shadowCS / shadowCS.w;
             float2 shadowUV = shadowCS.xy * 0.5 + 0.5;
             float objShadowDepth = shadowCS.z - shadowBias;
@@ -251,7 +251,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     // diffuse cube light
     float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
     float3 diffuseCubeColor = perMaterial.diffuseCube.Sample(n).xyz;
-    float3 ambient = (1 - metallic) * ao * baseColor * diffuseCubeColor * (scene.lightCount.x > 0 ? scene.lights[0].ambientScale : 1);
+    float3 ambient = (1 - metallic) * ao * baseColor * diffuseCubeColor * (perScene.lightCount.x > 0 ? perScene.lights[0].ambientScale : 1);
 
     return float4(color + ambient + indirectSpecular, 1);
 }

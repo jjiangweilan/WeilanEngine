@@ -144,6 +144,7 @@ struct PipelineInfo
     std::string name = "";
     std::string vertexShaderName = "";
     std::string fragmentShaderName = "";
+    std::string computeShaderName = "";
 
     // this just means the position is not interleaved, but all the other attributes are interleaved
     bool isVertexInterleaved = false;
@@ -176,18 +177,13 @@ struct PipelineInfo
     }
 };
 
-struct GraphicsPipelineCreateInfo
+struct PipelineCreateInfo
 {
     std::vector<uint8_t> vertSpv = {};
     std::vector<uint8_t> fragSpv = {};
+    std::vector<uint8_t> computeSpv = {};
 
     PipelineInfo pipelineInfo = {};
     PipelineConfig defaultConfig = {};
-};
-
-struct ComputePipelineCreateInfo
-{
-    std::string name = "";
-    std::vector<uint32_t> computeSpv = {};
 };
 } // namespace Gfx

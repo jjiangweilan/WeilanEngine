@@ -22,7 +22,7 @@ struct VertexOutput
     float4 position : SV_Position;
 }
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
 VertexOutput VertexMain(VertexInput input)
@@ -30,7 +30,7 @@ VertexOutput VertexMain(VertexInput input)
     float3 positionWS = float3(mul(transform.model, float4(input.position, 1.0)).xyz);
 
     VertexOutput output;
-    output.position = mul(scene.worldToShadow, float4(positionWS, 1.0));
+    output.position = mul(perScene.worldToShadow, float4(positionWS, 1.0));
 
     return output;
 }

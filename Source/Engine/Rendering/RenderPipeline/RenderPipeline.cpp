@@ -300,7 +300,7 @@ RenderPipeline::PerScene::PerScene()
     gpuBuffer = GetGfxDriver()
                     ->CreateBuffer(sizeof(GPUParameter::PerScene), Gfx::BufferUsage::Uniform, false, false, "PerScene");
     gpuResourceSet = GetGfxDriver()->CreateShaderResource();
-    gpuResourceSet->SetBuffer("scene", gpuBuffer.get());
+    gpuResourceSet->SetBuffer("perScene", gpuBuffer.get());
 
     ASSERT(gpuBuffer->GetSize() == sizeof(GPUParameter::PerScene));
 }

@@ -33,8 +33,7 @@ class VKShaderProgram : public ShaderProgram
 {
 public:
     using SetNum = uint32_t;
-    VKShaderProgram(VKContext* context, const GraphicsPipelineCreateInfo& createInfo);
-    VKShaderProgram(VKContext* context, const ComputePipelineCreateInfo& createInfo);
+    VKShaderProgram(VKContext* context, const PipelineCreateInfo& createInfo);
 
     VKShaderProgram(const VKShaderProgram& other) = delete;
     ~VKShaderProgram() override;
