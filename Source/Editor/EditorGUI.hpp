@@ -323,5 +323,7 @@ public:
 private:
     static const char* PayloadType;
     static std::vector<char> textArea;
+
+    static void AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged);
 };
 } // namespace Editor

@@ -14,6 +14,7 @@ public:
     }
 
     JsonSerializer() : j(nlohmann::json::object()) {}
+    JsonSerializer(const nlohmann::json& j) : j(j) {}
 
     void Serialize(std::string_view name, const bool val) override;
     void Deserialize(std::string_view name, bool& val) override;

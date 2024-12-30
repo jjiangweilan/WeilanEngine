@@ -6,12 +6,13 @@ DEFINE_ASSET(RenderPipelineSetting, "55542C94-5DC2-4A3C-B778-01B380872E4D", "ren
 void RenderPipelineSetting::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
-    SERIALIZE(s, shadowConstantBias);
-    SERIALIZE(s, shadowNormalBias);
+    SERIALIZE(s, shadowMap);
+    SERIALIZE(s, screenSpaceShadow);
 }
+
 void RenderPipelineSetting::Deserialize(Serializer* s) {
     Asset::Deserialize(s);
-    DESERIALIZE(s, shadowConstantBias);
-    DESERIALIZE(s, shadowNormalBias);
+    DESERIALIZE(s, shadowMap);
+    DESERIALIZE(s, screenSpaceShadow);
 }
 } // namespace Rendering

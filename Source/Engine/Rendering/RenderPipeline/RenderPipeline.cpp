@@ -250,8 +250,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         {
             shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{
                 .shadowMapTexelSize = shadowMapPass.shadowMapTexelSize,
-                .shadowConstantBias = setting->shadowConstantBias / 1000.0f,
-                .shadowNormalBias = setting->shadowNormalBias
+                .shadowConstantBias = setting->shadowMap.constantBias / 1000.0f,
+                .shadowNormalBias = setting->shadowMap.normalBias
             };
 
             GetGfxDriver()->UploadBuffer(
