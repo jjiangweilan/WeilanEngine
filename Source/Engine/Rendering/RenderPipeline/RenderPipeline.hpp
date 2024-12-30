@@ -96,6 +96,14 @@ private:
 
     } shadowMapPass{};
 
+    struct ScreenSpaceShadow
+    {
+        ScreenSpaceShadow();
+
+        ObjPtr<Shader2> shader{};
+
+    } screenSpaceShadowPass{};
+
     struct
     {
         glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};

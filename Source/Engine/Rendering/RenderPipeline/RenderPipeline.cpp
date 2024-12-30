@@ -363,5 +363,9 @@ RenderPipeline::ShadowMapPass::ShadowMapPass()
     pass.SetAttachment(0, shadowMapId);
 }
 
+RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow() {
+    shader = ShaderLibrary::GetShader(ShaderLibrary::ScreenSpaceShadow);
+}
+
 } // namespace Rendering
   //
