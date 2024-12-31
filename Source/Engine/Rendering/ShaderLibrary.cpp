@@ -43,7 +43,7 @@ ShaderLibrary::ShaderLibrary()
         .searchPathCount = sizeof(searchPaths) / sizeof(const char*),
 
         .preprocessorMacros = preprocessorMacros,
-        .preprocessorMacroCount = 1,
+        .preprocessorMacroCount = sizeof(preprocessorMacros) / sizeof(slang::PreprocessorMacroDesc),
 
         .fileSystem = nullptr,
 
@@ -62,7 +62,7 @@ ShaderLibrary::ShaderLibrary()
     globalSession->createSession(sessionDesc, session.writeRef());
 }
 
-std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::ComputeShader(const char* shaderName, ShaderPermutation permutation)
+std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* shaderName, ShaderPermutation permutation)
 {
     ShaderCompiler compiler;
     Gfx::PipelineInfo pipelineInfo{};
@@ -124,7 +124,11 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::ComputeShader(const char* sha
         else if (compiler.computeEntryPointIndex != -1)
         {
             createInfo.computeSpv = std::vector<uint8_t>(computeKernelBlob->getBufferSize());
-            memcpy(createInfo.computeSpv.data(), vertexKernelBlob->getBufferPointer(), vertexKernelBlob->getBufferSize());
+            memcpy(
+                createInfo.computeSpv.data(),
+                computeKernelBlob->getBufferPointer(),
+                computeKernelBlob->getBufferSize()
+            );
         }
 
         return GetGfxDriver()->CreateShaderProgram(createInfo);
@@ -203,7 +207,7 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
         }
     }
 
-    std::unique_ptr<Gfx::ShaderProgram> newShader = ComputeShader(name, permutation);
+    std::unique_ptr<Gfx::ShaderProgram> newShader = CompileShader(name, permutation);
     library[name].shaders.emplace(permutation, CompiledShader(std::move(newShader), permutation));
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }

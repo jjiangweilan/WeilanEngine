@@ -127,6 +127,7 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
             .pName = "main",
             .pSpecializationInfo = VK_NULL_HANDLE,
         };
+        GeneratePipelineLayout();
 
         VkComputePipelineCreateInfo computePipelineCreateInfo{
             .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,

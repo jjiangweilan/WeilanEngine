@@ -26,6 +26,9 @@ struct ShaderCompiler
     ComPtr<slang::IComponentType> linkedProgram{};
 
     slang::ProgramLayout* _programLayout;
+    inline bool HasVertexEntryPoint() const { return vertexEntryPointIndex != -1; }
+    inline bool HasFragmentEntryPoint() const { return fragmentEntryPointIndex != -1; }
+    inline bool HasComputeEntryPoint() const { return computeEntryPointIndex != -1; }
 
 private:
     slang::IGlobalSession* globalSession;
@@ -175,8 +178,10 @@ public:
 
         outPipelineInfo = {};
         CollectSets(programLayout->getGlobalParamsVarLayout(), outPipelineInfo);
-        CollectVertexInput(outPipelineInfo);
-        CollectFragmentOutput(outPipelineInfo);
+        if (HasVertexEntryPoint())
+            CollectVertexInput(outPipelineInfo);
+        if (HasFragmentEntryPoint())
+            CollectFragmentOutput(outPipelineInfo);
         for (auto& set : outPipelineInfo.descriptorSets)
             set.UpdateBindingIndex();
         outPipelineInfo.name = shaderName;
@@ -256,16 +261,19 @@ public:
                 type = Gfx::DescriptorType::Sampler;
             else if (rangeType == slang::BindingType::Texture)
             {
-                if (accessType == SLANG_RESOURCE_ACCESS_READ)
-                    type = Gfx::DescriptorType::SampledImage;
-                else if (accessType == SLANG_RESOURCE_ACCESS_READ_WRITE)
-                    type = Gfx::DescriptorType::StorageImage;
-                else
-                    ASSERT(false && "Not Handled");
+                type = Gfx::DescriptorType::SampledImage;
+            }
+            else if (rangeType == slang::BindingType::MutableTexture)
+            {
+                type = Gfx::DescriptorType::StorageImage;
+            }
+            else if (rangeType == slang::BindingType::MutableTypedBuffer || rangeType == slang::BindingType::MutableRawBuffer)
+            {
+                type = Gfx::DescriptorType::StorageBuffer;
             }
             else if (rangeType == slang::BindingType::TypedBuffer || rangeType == slang::BindingType::RawBuffer)
             {
-                type = Gfx::DescriptorType::StorageBuffer;
+                ASSERT(0 && "Not Handled");
             }
             else if (rangeType == slang::BindingType::ConstantBuffer || rangeType == slang::BindingType::ParameterBlock)
             {
