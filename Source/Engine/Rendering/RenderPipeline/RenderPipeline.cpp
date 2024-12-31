@@ -5,6 +5,10 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
+#if ENGINE_EDITOR
+#include "ThirdParty/imgui/imgui.h"
+#endif
+
 namespace Rendering
 {
 RenderPipeline::RenderPipeline()
@@ -293,6 +297,21 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
     cmd->Reset(true);
+
+#if ENGINE_EDITOR
+
+    auto RenderTargetDebugPoint = [](std::string_view label, Gfx::ImageView* imageView)
+    {
+        const auto& desc = imageView->GetImage().GetDescription();
+        ImGui::Image(imageView, {(float)desc.width / 4.0f, (float)desc.height / 4.0f});
+    };
+
+    ImGui::Begin("Render Pipeline");
+
+    RenderTargetDebugPoint("ShadowMap", &shadowMapPass.shadowMap->GetDefaultImageView());
+
+    ImGui::End();
+#endif
 }
 
 RenderPipeline::PerScene::PerScene()
