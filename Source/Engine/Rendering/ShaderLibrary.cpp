@@ -10,7 +10,7 @@ ShaderLibrary::ShaderLibrary()
     slang::TargetDesc targetDesc{
         .structureSize = sizeof(slang::TargetDesc),
         .format = SLANG_SPIRV,
-        .profile = globalSession->findProfile("spirv_1_3"),
+        .profile = globalSession->findProfile("spirv_1_5"),
     };
     const char* searchPaths[] = {shaderRootPath};
     slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
