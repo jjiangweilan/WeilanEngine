@@ -72,6 +72,7 @@ public:
     static constexpr const char* PostProcess_SSAO = "PostProcess/SSAO";
     static constexpr const char* ShadowMapObject = "ShadowMapObject";
     static constexpr const char* ScreenSpaceShadow = "ScreenSpaceShadow";
+    static constexpr const char* FXAA = "FXAA";
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {

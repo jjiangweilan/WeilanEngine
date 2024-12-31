@@ -1,5 +1,6 @@
 
 #include "EditorGUI.hpp"
+#include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
@@ -28,10 +29,11 @@ void GUI::AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged)
         auto& value = item.value();
         if (value.is_object())
         {
-            ImGui::Text("%s", key.c_str());
-            ImGui::Indent(10);
-            AutoObjectInspectorInternal(value, valueChanged);
-            ImGui::Indent(-10);
+            if (ImGui::TreeNode(key.c_str()))
+            {
+                AutoObjectInspectorInternal(value, valueChanged);
+                ImGui::TreePop();
+            }
         }
         else if (value.is_number_float())
         {
@@ -46,7 +48,7 @@ void GUI::AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged)
         else if (value.is_boolean())
         {
             bool val = value;
-            if(ImGui::Checkbox(key.c_str(), &val))
+            if (ImGui::Checkbox(key.c_str(), &val))
             {
                 value = val;
                 valueChanged = true;

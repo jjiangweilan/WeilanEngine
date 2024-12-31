@@ -17,7 +17,7 @@ VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 193);
+    appInfo.apiVersion = VK_MAKE_VERSION(1, 3, 250);
     appInfo.pNext = VK_NULL_HANDLE;
 
     VkInstanceCreateInfo createInfo{};

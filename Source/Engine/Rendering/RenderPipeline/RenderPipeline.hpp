@@ -68,6 +68,7 @@ private:
     struct ShadingPass
     {
         ShadingPass();
+
         Gfx::RG::RenderPass pass;
         GPUParameter::DeferredPBRShadingInput cpuParameter;
         std::unique_ptr<Gfx::ShaderResource> gpuResource;
@@ -95,6 +96,16 @@ private:
         const glm::float4 shadowMapTexelSize = {1 / shadowMapWidth, 1 / shadowMapWidth, shadowMapWidth, shadowMapWidth};
 
     } shadowMapPass{};
+
+    struct FXAAPass
+    {
+        FXAAPass();
+
+        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 1);
+        void Execute();
+
+        ObjPtr<Shader2> shader;
+    } fxaaPass{};
 
     struct ScreenSpaceShadow
     {

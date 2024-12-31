@@ -386,5 +386,20 @@ RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow() {
     shader = ShaderLibrary::GetShader(ShaderLibrary::ScreenSpaceShadow);
 }
 
+RenderPipeline::FXAAPass::FXAAPass()
+{
+    shader = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
+}
+
+void RenderPipeline::FXAAPass::Execute()
+{
+    // Gfx::CommandBuffer& cmd;
+    // glm::float2 sourceSize;
+    // glm::float2 dstSize;
+    //
+    // cmd.SetPushConstant(shader->GetShaderProgram(), &sourceSize);
+    // cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+}
+
 } // namespace Rendering
   //
