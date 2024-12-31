@@ -56,8 +56,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-
-    auto imguiShaderProgram = ShaderLibrary::GetShader(ShaderLibrary::ImGui);
+    auto program = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
 
     InitJoltPhysics();
     assetDatabase = std::make_unique<AssetDatabase>();

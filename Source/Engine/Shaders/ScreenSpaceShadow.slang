@@ -1,6 +1,7 @@
 struct PerMaterial
 {
 #if GPU_RESOURCE
+[format("rgba32f")]
 RWTexture2D<float4> outputTex;
 #endif
 }

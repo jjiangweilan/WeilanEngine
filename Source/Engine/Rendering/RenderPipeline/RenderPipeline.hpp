@@ -25,8 +25,8 @@ public:
     RenderPipeline();
 
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
-    const Gfx::RG::ImageIdentifier& GetMainColor() { return mainColor; }
-    const Gfx::RG::ImageIdentifier& GetMainDepth() { return mainDepth; }
+    const Gfx::RG::ImageIdentifier& GetOutputColor() { return finalColor; }
+    const Gfx::RG::ImageIdentifier& GetOutputDepth() { return mainDepth; }
 
     ObjPtr<RenderPipelineSetting> GetRenderPipelineSetting() const { return setting; }
     void SetRenderPipelineSetting(ObjPtr<RenderPipelineSetting> setting) { this->setting = setting; }
@@ -39,6 +39,7 @@ private:
     Gfx::RG::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::RG::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";
+    Gfx::RG::ImageIdentifier finalColor;
 
     Gfx::RG::ImageDescription mainColorDescription;
     Gfx::RG::ImageDescription mainDepthDescription;
@@ -97,14 +98,27 @@ private:
 
     } shadowMapPass{};
 
+    struct ColorGradingPass
+    {
+        Gfx::RG::ImageIdentifier colorGradingId = Gfx::RG::ImageIdentifier("Color Grading");
+    } colorGradingPass{};
+
+    // WIP
     struct FXAAPass
     {
         FXAAPass();
 
         Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 1);
-        void Execute();
+        Gfx::RG::ImageIdentifier fxaaId = "FXAA";
+        void Execute(
+            Gfx::CommandBuffer& cmd,
+            const glm::float4& sourceSize,
+            const Gfx::RG::ImageIdentifier& src,
+            const Gfx::RG::ImageIdentifier& dst
+        );
 
         ObjPtr<Shader2> shader;
+        std::unique_ptr<Gfx::ShaderResource> resource;
     } fxaaPass{};
 
     struct ScreenSpaceShadow

@@ -741,7 +741,22 @@ public:
     void CollectSets(slang::VariableLayoutReflection* scopeVarLayout, Gfx::PipelineInfo& outPipelineInfo)
     {
         auto scopeTypeLayout = scopeVarLayout->getTypeLayout();
-        switch (scopeTypeLayout->getKind())
+        const auto& kind = scopeTypeLayout->getKind();
+        auto ProcessAsPushConstant = [&](slang::VariableLayoutReflection* var)
+        {
+            if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
+            {
+                Gfx::PipelineInfo::PushConstant pushConstant;
+                pushConstant.stages =
+                    Gfx::ShaderStage::Vertex |
+                    Gfx::ShaderStage::
+                    Fragment; // https://github.com/shader-slang/slang/issues/5685
+                // push constant not supported to query yet
+                pushConstant.size = var->getTypeLayout()->getElementTypeLayout()->getSize();
+                outPipelineInfo.pushConstants.push_back(pushConstant);
+            }
+        };
+        switch (kind)
         {
             // #### Parameters are Grouped Into a Structure
             //
@@ -753,6 +768,7 @@ public:
                         auto param = scopeTypeLayout->getFieldByIndex(i);
                         auto paramTypeLayout = param->getTypeLayout();
                         auto paramKind = paramTypeLayout->getKind();
+                        std::string name = param->getName();
                         switch (paramKind)
                         {
                             case slang::TypeReflection::Kind::ParameterBlock:
@@ -762,17 +778,7 @@ public:
                                 break;
                             case slang::TypeReflection::Kind::ConstantBuffer:
                                 {
-                                    if (param->getCategory() == slang::ParameterCategory::PushConstantBuffer)
-                                    {
-                                        Gfx::PipelineInfo::PushConstant pushConstant;
-                                        pushConstant.stages =
-                                            Gfx::ShaderStage::Vertex |
-                                            Gfx::ShaderStage::
-                                                Fragment; // https://github.com/shader-slang/slang/issues/5685
-                                                          // push constant not supported to query yet
-                                        pushConstant.size = param->getTypeLayout()->getElementTypeLayout()->getSize();
-                                        outPipelineInfo.pushConstants.push_back(pushConstant);
-                                    }
+                                    ProcessAsPushConstant(param);
                                     break;
                                 }
                             default: ASSERT(false && "Not handled");
@@ -780,8 +786,7 @@ public:
                     }
                     break;
                 }
-
-            default: break; // ASSERT(false && "Not handled"); break;
+            default: ASSERT(false && "Not handled"); break;
         }
     }
 

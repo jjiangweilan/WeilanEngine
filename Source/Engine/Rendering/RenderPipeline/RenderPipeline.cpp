@@ -149,7 +149,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             cmd.AllocateAttachment(id, desc);
         };
 
-        AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R8G8B8A8_SRGB, mainColorDescription);
+        AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
         AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
 
         // no settings quit here
@@ -294,6 +294,29 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel();
 
+    cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
+    {
+        // TODO
+        Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+        cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
+        cmd->Blit(mainColor, colorGradingPass.colorGradingId);
+        finalColor = colorGradingPass.colorGradingId;
+    }
+    cmd->EndLabel();
+
+    // FXAA
+    if (setting->fxaa)
+    {
+        cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
+        {
+            Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+            cmd->AllocateAttachment(fxaaPass.fxaaId, resultDesc);
+            fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.fxaaId);
+            finalColor = fxaaPass.fxaaId;
+        }
+        cmd->EndLabel();
+    }
+
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
     cmd->Reset(true);
@@ -382,23 +405,42 @@ RenderPipeline::ShadowMapPass::ShadowMapPass()
     pass.SetAttachment(0, shadowMapId);
 }
 
-RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow() {
+RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow()
+{
     shader = ShaderLibrary::GetShader(ShaderLibrary::ScreenSpaceShadow);
 }
 
 RenderPipeline::FXAAPass::FXAAPass()
 {
     shader = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
+    resource = GetGfxDriver()->CreateShaderResource();
+
+    Gfx::RG::SubpassAttachment attachmentDesc{
+        0,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
+    };
+    Gfx::RG::SubpassAttachment attachments[] = {attachmentDesc};
+    pass.SetSubpass(0, attachments);
 }
 
-void RenderPipeline::FXAAPass::Execute()
+void RenderPipeline::FXAAPass::Execute(
+    Gfx::CommandBuffer& cmd,
+    const glm::float4& sourceSize,
+    const Gfx::RG::ImageIdentifier& src,
+    const Gfx::RG::ImageIdentifier& dst
+)
 {
-    // Gfx::CommandBuffer& cmd;
-    // glm::float2 sourceSize;
-    // glm::float2 dstSize;
-    //
-    // cmd.SetPushConstant(shader->GetShaderProgram(), &sourceSize);
-    // cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    ;
+    pass.SetAttachment(0, dst);
+    resource->SetImage("source", GetGfxDriver()->GetImageFromRenderGraph(src));
+    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    cmd.BeginRenderPass(pass, clears);
+    cmd.SetPushConstant(shader->GetShaderProgram(), (void*)&sourceSize[0]);
+    cmd.BindResource(0, resource.get());
+    cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd.Draw(6, 1, 0, 0);
+    cmd.EndRenderPass();
 }
 
 } // namespace Rendering

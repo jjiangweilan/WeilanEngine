@@ -171,7 +171,7 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, 
 
     uint32_t totalSize = 0;
     cmd.stages = 0;
-    for (auto& ps : shaderProgram->GetShaderInfo().pushConstants)
+    for (const auto& ps : shaderProgram->GetShaderInfo().pushConstants)
     {
         cmd.stages |= MapShaderStages(ps.stages);
         totalSize += ps.size;

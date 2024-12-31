@@ -8,11 +8,13 @@ void RenderPipelineSetting::Serialize(Serializer* s) const
     Asset::Serialize(s);
     SERIALIZE(s, shadowMap);
     SERIALIZE(s, screenSpaceShadow);
+    SERIALIZE(s, fxaa);
 }
 
 void RenderPipelineSetting::Deserialize(Serializer* s) {
     Asset::Deserialize(s);
     DESERIALIZE(s, shadowMap);
     DESERIALIZE(s, screenSpaceShadow);
+    DESERIALIZE(s, fxaa);
 }
 } // namespace Rendering

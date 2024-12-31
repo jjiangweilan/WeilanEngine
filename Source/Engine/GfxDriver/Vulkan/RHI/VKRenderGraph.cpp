@@ -1558,6 +1558,7 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
         else
         {
             // binding pipeline
+            ASSERT(exeState.renderPass != nullptr && "RenderPass is null, draw call maybe not inside a RenderPass");
             auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
                     exeState.shaderConfig, exeState.renderPass, exeState.subpassIndex
             );
