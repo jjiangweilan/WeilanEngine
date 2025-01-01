@@ -2,6 +2,7 @@
 #include "AssetDatabase/Exporters/KtxExporter.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Core/Time.hpp"
 #include "DragDropIDs.hpp"
 #include "EditorGUI.hpp"
@@ -333,8 +334,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     auto go = gameObjects[0].get();
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
-    Material* mats[] = {(Material*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat")
-    };
+    Material* mats[] = {EngineInternalResources::GetDefaultGridMaterial()};
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
@@ -841,7 +841,7 @@ void GameEditor::Render(
 {
     // make sure we don't have sync issue with game rendering
 
-    glm::float4 color = {0.3,0.6,0.12,1.0};
+    glm::float4 color = {0.3, 0.6, 0.12, 1.0};
     cmd.BeginLabel("ImGui", &color[0]);
     for (auto& t : registeredTools)
     {

@@ -51,8 +51,8 @@ struct ModelImporterImple
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         scene = importer.ReadFile(
             path.string().c_str(),
-            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_CalcTangentSpace |
-                aiProcess_GenBoundingBoxes
+            aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_GenUVCoords |
+                aiProcess_CalcTangentSpace | aiProcess_GenBoundingBoxes | aiProcess_OptimizeMeshes
         );
 
         if (scene == nullptr)
@@ -139,7 +139,8 @@ private:
                 "texCoords_6",
                 "texCoords_7"
             };
-            for (int i = 0; i < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++i)
+            const int MaxTexcoordChannels = 1;
+            for (int i = 0; i < MaxTexcoordChannels; ++i)
             {
                 if (mesh->HasTextureCoords(i))
                 {
@@ -216,7 +217,7 @@ private:
                 }
             }
 
-            for (int i = 0; i < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++i)
+            for (int i = 0; i < MaxTexcoordChannels; ++i)
             {
                 if (mesh->HasTextureCoords(i))
                 {
@@ -295,7 +296,7 @@ private:
             std::vector<Submesh> submeshes;
             submeshes.push_back(std::move(submesh));
             myMesh->SetSubmeshes(std::move(submeshes));
-            myMesh->SetName(mesh->mName.C_Str());
+            myMesh->SetName(fmt::format("{} {}", mesh->mName.C_Str(), meshIndex));
             myMesh->SetSkeleton(skeleton);
             this->meshes.push_back(std::move(myMesh));
         }

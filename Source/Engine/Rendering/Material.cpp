@@ -193,7 +193,7 @@ float Material::GetFloat(const std::string& param, const std::string& member)
 }
 void Material::SetShader(Shader2* shader)
 {
-    if (this->shaderInUse.Get() == shader)
+    if (this->shaderInUse.Get() != shader)
     {
         needRequestNewShader = false;
         this->shaderName = shader->GetName();
