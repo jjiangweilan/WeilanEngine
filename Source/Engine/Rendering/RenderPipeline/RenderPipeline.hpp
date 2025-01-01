@@ -31,6 +31,8 @@ public:
     ObjPtr<RenderPipelineSetting> GetRenderPipelineSetting() const { return setting; }
     void SetRenderPipelineSetting(ObjPtr<RenderPipelineSetting> setting) { this->setting = setting; }
 
+    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.gpuResourceSet.get(); }
+
 private:
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 

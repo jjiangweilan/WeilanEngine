@@ -14,17 +14,11 @@ class GameLoop
 public:
     GameLoop();
     ~GameLoop();
-    void SetScene(Scene& scene)
-    {
-        this->scene = &scene;
-    }
+    void SetScene(Scene& scene) { this->scene = &scene; }
 
     void Play();
     void Stop();
-    inline bool IsPlaying()
-    {
-        return isPlaying;
-    }
+    inline bool IsPlaying() { return isPlaying; }
 
     // I think we better render into outputImage (Like we render directly into a swapchain when we are in release
     // mode?), currently I just use it to pass some information about the screen (size)
@@ -33,6 +27,8 @@ public:
         const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
         const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
     );
+
+    const Rendering::RenderPipeline& GetRenderPipeline() const { return renderPipeline; }
 
 private:
     bool isPlaying = false;

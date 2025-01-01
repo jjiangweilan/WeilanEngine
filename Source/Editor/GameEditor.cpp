@@ -841,6 +841,8 @@ void GameEditor::Render(
 {
     // make sure we don't have sync issue with game rendering
 
+    glm::float4 color = {0.3,0.6,0.12,1.0};
+    cmd.BeginLabel("ImGui", &color[0]);
     for (auto& t : registeredTools)
     {
         if (t.isOpen)
@@ -858,6 +860,8 @@ void GameEditor::Render(
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
+
+    cmd.EndLabel();
 }
 
 void GameEditor::OpenWindow() {}

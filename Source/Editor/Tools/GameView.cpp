@@ -9,6 +9,7 @@
 #include "Editor/HudDebug.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Math.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "Rendering/ShaderLibrary.hpp"
@@ -112,6 +113,7 @@ void GameView::Init()
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
     playTheGame = std::make_unique<PlayTheGame>();
+    outlineGPUResource = GetGfxDriver()->CreateShaderResource();
 
     // setup camera state
     if (EditorState::activeScene)
@@ -261,6 +263,8 @@ void GameView::Render(
 {
     if (gameImage && gameDepthImage)
     {
+        glm::float4 color{0.4, 0.5, 0.13, 1.0};
+        cmd.BeginLabel("Game View", &color[0]);
         auto selectedObjects = EditorState::GetSelectedObjects();
         bool hasGameObjectSelected = false;
         // selection outline src pass
@@ -291,6 +295,7 @@ void GameView::Render(
                         }
                     }
 
+                    cmd.BindResource(0, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
                     cmd.BindShaderProgram(
                         outlineRawColorPassShader->GetShaderProgram(),
                         outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
@@ -316,7 +321,8 @@ void GameView::Render(
 
         if (hasGameObjectSelected)
         {
-            cmd.SetTexture("mainTex", outlineSrcRT);
+            outlineGPUResource->SetImage("mainTex", GetGfxDriver()->GetImageFromRenderGraph(outlineSrcRT));
+            cmd.BindResource(0, outlineGPUResource.get());
             cmd.BindShaderProgram(
                 outlineFullScreenPassShader->GetShaderProgram(),
                 outlineFullScreenPassShader->GetShaderProgram()->GetDefaultShaderConfig()
@@ -348,6 +354,7 @@ void GameView::Render(
         auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
         if (outputImage)
             cmd.Blit(outputImage, sceneImage.get());
+        cmd.EndLabel();
     }
 }
 

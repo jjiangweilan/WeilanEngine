@@ -107,6 +107,7 @@ private:
     ObjPtr<Camera> editorCamera = nullptr;
     ObjPtr<Shader2> outlineRawColorPassShader;
     ObjPtr<Shader2> outlineFullScreenPassShader;
+    std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
