@@ -18,6 +18,7 @@ void GUI::AutoObjectInspector(Object* target)
     {
         JsonSerializer newSer(j);
         (static_cast<Serializable*>(target))->Deserialize(&newSer);
+        static_cast<Asset*>(target)->SetDirty();
     }
 }
 

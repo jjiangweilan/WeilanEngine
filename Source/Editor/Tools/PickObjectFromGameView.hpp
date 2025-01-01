@@ -111,30 +111,37 @@ public:
         if (mr)
         {
             auto model = obj->GetWorldMatrix();
-            auto mesh = mr->GetMesh();
-            if (mesh)
+            auto meshes = mr->GetMeshes();
+            for (auto mesh : meshes)
             {
-                for (const Submesh& submesh : mesh->GetSubmeshes())
+                if (mesh)
                 {
-                    auto& indices = submesh.GetIndices();
-                    auto& positions = submesh.GetPositions();
-
-                    // I just assume binding zero is a vec3 position, this is not robust
-                    for (int i = 0; i < submesh.GetIndexCount(); i += 3)
+                    for (const Submesh& submesh : mesh->GetSubmeshes())
                     {
-                        int j = i + 1;
-                        int k = i + 2;
+                        auto& indices = submesh.GetIndices();
+                        auto& positions = submesh.GetPositions();
 
-                        glm::vec3 v0, v1, v2;
-                        v0 = model * glm::vec4(positions[indices[i]], 1.0);
-                        v1 = model * glm::vec4(positions[indices[j]], 1.0);
-                        v2 = model * glm::vec4(positions[indices[k]], 1.0);
-
-                        glm::vec2 bary;
-                        float newDistance = -1;
-                        if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
+                        // I just assume binding zero is a vec3 position, this is not robust
+                        for (int i = 0; i < submesh.GetIndexCount(); i += 3)
                         {
-                            distance = glm::min(distance, newDistance);
+                            int j = i + 1;
+                            int k = i + 2;
+
+                            glm::vec3 v0, v1, v2;
+                            v0 = model * glm::vec4(positions[indices[i]], 1.0);
+                            v1 = model * glm::vec4(positions[indices[j]], 1.0);
+                            v2 = model * glm::vec4(positions[indices[k]], 1.0);
+
+                            glm::vec2 bary;
+                            float newDistance = -1;
+                            if (glm::intersectRayTriangle(ori, dir, v0, v1, v2, bary, newDistance))
+                            {
+                                // newDistance > 0 means the triangle is in front of the camera
+                                if (newDistance > 0)
+                                {
+                                    distance = glm::min(distance, newDistance);
+                                }
+                            }
                         }
                     }
                 }
