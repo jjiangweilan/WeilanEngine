@@ -101,10 +101,14 @@ public:
         this->renderPipelineSetting = setting;
     }
 
+    const Rendering::DrawList& GetDrawList();
+
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;
     PhysicsScene physicsScene;
+
+    Rendering::DrawList sceneDrawList;
 
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
 
@@ -116,4 +120,5 @@ protected:
     void TickGameObject(GameObject* obj);
     void PrePhysicsTickGameObject(GameObject* obj);
     void DestroyGameObjectNestedCall(GameObject* obj);
+
 };

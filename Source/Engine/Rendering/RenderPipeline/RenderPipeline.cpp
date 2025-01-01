@@ -11,6 +11,7 @@
 
 namespace Rendering
 {
+
 RenderPipeline::RenderPipeline()
 {
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
@@ -160,9 +161,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
-    sceneDrawList.clear();
-    sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
-    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
+    const auto& sceneDrawList = scene.GetDrawList();
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 

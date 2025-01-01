@@ -1,6 +1,28 @@
 #include "Scene.hpp"
 DEFINE_ASSET(Scene, "BE42FB0F-42FF-4951-8D7D-DBD28439D3E7", "scene");
 
+class SceneRendererSorter
+{
+public:
+    void operator()(Scene& scene, Rendering::DrawList& outDrawList)
+    {
+        outDrawList.clear();
+        auto camera = scene.GetMainCamera();
+        if (camera)
+        {
+            outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+            outDrawList.Sort(camera->GetGameObject()->GetPosition());
+        }
+    }
+};
+
+const Rendering::DrawList& Scene::GetDrawList()
+{
+    sceneDrawList.clear();
+    SceneRendererSorter()(*this, sceneDrawList);
+    return sceneDrawList;
+}
+
 Scene::Scene() : Asset(), renderingScene(), physicsScene(this)
 {
     name = "New GameScene";
@@ -139,7 +161,7 @@ void Scene::DestroyGameObject(GameObject* obj)
         parent->RemoveChild(obj);
     }
 
-    auto rootIter = std::find_if(roots.begin(), roots.end(), [&](ObjPtr<GameObject>& f) {return f.Get() == obj; });
+    auto rootIter = std::find_if(roots.begin(), roots.end(), [&](ObjPtr<GameObject>& f) { return f.Get() == obj; });
     if (rootIter != roots.end())
     {
         roots.erase(rootIter);

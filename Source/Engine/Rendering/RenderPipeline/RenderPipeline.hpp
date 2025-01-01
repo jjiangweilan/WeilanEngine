@@ -134,7 +134,6 @@ private:
         glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};
     } labelColors;
 
-    DrawList sceneDrawList;
     ObjPtr<RenderPipelineSetting> setting;
 };
 } // namespace Rendering
