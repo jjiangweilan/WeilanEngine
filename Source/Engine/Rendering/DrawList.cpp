@@ -1,6 +1,8 @@
 #include "DrawList.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
+
 namespace Rendering
 {
 void swap(SceneObjectDrawData&& a, SceneObjectDrawData&& b)
@@ -148,5 +150,27 @@ void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
     this->opaqueIndex = 0;
     this->alphaTestIndex = this->size();
     this->transparentIndex = this->size();
+}
+
+void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
+{
+    for (int i = from; i < to; ++i)
+    {
+        auto& draw = this->at(i);
+        auto shaderProgram = draw.material->GetShaderProgram();
+        if (shaderProgram)
+        {
+            cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+            cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+            cmd.BindResource(1, draw.materialResource);
+            if (draw.objectResource)
+            {
+                cmd.BindResource(2, draw.objectResource);
+            }
+            cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
+            cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
+            cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+        }
+    }
 }
 } // namespace Rendering

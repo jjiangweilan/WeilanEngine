@@ -145,3 +145,27 @@ FragmentOutput FragmentMain(VertexOutput input)
 
     return output;
 }
+
+// struct GIBakeOutput
+// {
+//     float4 albedo : SV_Target0;
+//     float4 normal : SV_Target1;
+// }
+// 
+// struct ProbeInfo
+// {
+//     float4 position;
+// };
+// 
+// [vk_binding(0,3)]
+// ParameterBlock<ProbeInfo> probeInfos;
+// 
+// [shader("fragment")]
+// GIBakeOutput GIMicroGBuffer(VertexInput input)
+// {
+//     GIBakeOutput output;
+//     output.albedo = float4(0);
+//     output.normal = float4(0);
+// 
+//     return output;
+// }

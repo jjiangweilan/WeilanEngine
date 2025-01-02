@@ -88,9 +88,6 @@ struct ProbeFace
     };
 };
 
-/** TODO
-  1. maybe implement a feature that let scene object write it's own "ShaderPass", instead of assuming StandardPBR
-  */
 class ProbeBaker
 {
 public:

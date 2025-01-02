@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Component/MeshRenderer.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/Shader.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
@@ -34,5 +33,7 @@ public:
     void Add(std::span<MeshRenderer*> meshRenderers);
     void Add(MeshRenderer& meshRenderer);
     void Sort(const glm::vec3& cameraPos);
+
+    void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const;
 };
 } // namespace Rendering

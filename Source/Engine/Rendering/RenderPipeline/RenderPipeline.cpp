@@ -215,32 +215,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         gbufferPass.pass.SetAttachment(4, mainDepth);
         cmd->BeginRenderPass(gbufferPass.pass, clears);
 
-        auto DrawDrawListRange = [&](int from, int to)
-        {
-            for (int i = from; i < to; ++i)
-            {
-                auto& draw = sceneDrawList.at(i);
-                auto shaderProgram = draw.material->GetShaderProgram();
-                if (shaderProgram)
-                {
-                    cmd->BindVertexBuffer(draw.vertexBufferBinding, 0);
-                    cmd->BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                    cmd->BindResource(1, draw.materialResource);
-                    if (draw.objectResource)
-                    {
-                        cmd->BindResource(2, draw.objectResource);
-                    }
-                    cmd->BindShaderProgram(shaderProgram, *draw.shaderConfig);
-                    cmd->SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
-                    cmd->DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-                }
-            }
-        };
-
         // draw
-        DrawDrawListRange(0, sceneDrawList.alphaTestIndex);
-        DrawDrawListRange(sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex);
-        DrawDrawListRange(sceneDrawList.transparentIndex, sceneDrawList.size());
+        sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex);
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex);
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
 
         cmd->EndRenderPass();
     }

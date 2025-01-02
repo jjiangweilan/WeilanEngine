@@ -71,12 +71,6 @@ ProbeBaker::ProbeBaker(Probe& probe) : probe(&probe)
         Gfx::MultiSampling::Sample_Count_1,
         Gfx::AttachmentLoadOperation::Clear
     };
-    //octahedralRemapShader = GetOctahedralRemapBaker();
-    //probeOctahedralPass->AddSubpass({albedoAtta, normalAtta, radialDistance}, std::nullopt);
-    //reprojectMaterial.SetShader(octahedralRemapShader);
-    //reprojectMaterial.SetTexture("albedoCubemap", albedoCubemap.get());
-    //reprojectMaterial.SetTexture("normalCubemap", normalCubemap.get());
-    //reprojectMaterial.SetTexture("radialDistanceCubemap", depthCubeMap.get());
 }
 
 static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from, int to)
