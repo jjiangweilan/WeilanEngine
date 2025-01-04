@@ -39,7 +39,6 @@ public:
     std::unique_ptr<Asset> Clone() override;
 
     std::vector<GameObject*> GetAllGameObjects();
-
     std::vector<Light*> GetActiveLights();
 
     void Serialize(Serializer* s) const override;
@@ -62,44 +61,15 @@ public:
     }
     void SetMainCamera(Camera* camera) { this->camera = camera; }
 
-    Gfx::ShaderResource* GetSceneShaderResource();
-
     RenderingScene& GetRenderingScene() { return renderingScene; }
     PhysicsScene& GetPhysicsScene() { return physicsScene; }
 
-    std::vector<std::unique_ptr<GameObject>>& GetGameObjects() { return gameObjects; }
+    auto& GetGameObjects() { return gameObjects; }
 
-    void FixUndestroiedGameObjectNotInSceneTree()
-    {
-        auto gos = GetAllGameObjects();
+    void FixUndestroiedGameObjectNotInSceneTree();
 
-        bool nextErase = true;
-        while (nextErase)
-        {
-            auto& gs = GetGameObjects();
-            for (int i = 0; i < gs.size(); ++i)
-            {
-                auto& g = gs[i];
-                auto iter = std::find(gos.begin(), gos.end(), g.get());
-                if (iter == gos.end())
-                {
-                    nextErase = true;
-                    gs.erase(gs.begin() + i);
-                    break;
-                }
-                else
-                {
-                    nextErase = false;
-                }
-            }
-        }
-    }
-
-    ObjPtr<Rendering::RenderPipelineSetting> GetRenderPipelineSetting() const { return renderPipelineSetting; }
-    void SetRenderPipelineSetting(ObjPtr<Rendering::RenderPipelineSetting> setting)
-    {
-        this->renderPipelineSetting = setting;
-    }
+    auto GetRenderPipelineSetting() const { return renderPipelineSetting; }
+    void SetRenderPipelineSetting(const auto& val) { renderPipelineSetting = val; }
 
 protected:
     // this should be deleted after gameObjects
@@ -118,5 +88,4 @@ protected:
     void TickGameObject(GameObject* obj);
     void PrePhysicsTickGameObject(GameObject* obj);
     void DestroyGameObjectNestedCall(GameObject* obj);
-
 };

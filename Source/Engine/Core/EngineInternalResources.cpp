@@ -10,8 +10,10 @@ EngineInternalResources::EngineInternalResources()
     triangleShader = ShaderLibrary::GetShader(ShaderLibrary::TriangleShader);
     defaultMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/Default.mat"));
     defaultMaterial->SetShader(ShaderLibrary::SceneLit);
+    defaultMaterial->SetFlags(AssetStateFlags::DontSave);
     defaultGridMaterial = static_cast<Material*>(db->LoadAsset("_engine_internal/Materials/PrimitiveGrid.mat"));
     defaultGridMaterial->SetShader(ShaderLibrary::GetShader(ShaderLibrary::PrimitiveShape));
+    defaultGridMaterial->SetFlags(AssetStateFlags::DontSave);
     models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Sphere.fbx")))->GetMeshes()[0].get();
     models.capsule = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Capsule.fbx")))->GetMeshes()[0].get();
     models.halfSphere =

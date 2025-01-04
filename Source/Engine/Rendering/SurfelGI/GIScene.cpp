@@ -172,6 +172,7 @@ void GIScene::Serialize(Serializer* s) const
 
     s->Serialize("surfels", surfels);
 }
+
 void GIScene::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
@@ -185,12 +186,14 @@ void Surfel::Serialize(Serializer* s) const
     s->Serialize("position", position);
     s->Serialize("normal", normal);
 }
+
 void Surfel::Deserialize(Serializer* s)
 {
     s->Deserialize("albedo", albedo);
     s->Deserialize("position", position);
     s->Deserialize("normal", normal);
 }
+
 void GIScene::Reload(Asset&& asset)
 {
     if (GIScene* newGIScene = dynamic_cast<GIScene*>(&asset))

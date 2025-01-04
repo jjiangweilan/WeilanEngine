@@ -295,6 +295,14 @@ const std::string& GIScene::GetName()
 void GIScene::Serialize(Serializer* s) const {}
 void GIScene::Deserialize(Serializer* s) {}
 
+void GIScene::PrebakeScene()
+{
+    auto go = GetGameObject();
+    Scene* scene = go ? go->GetScene() : nullptr;
+    if (!scene)
+        return;
+}
+
 std::unique_ptr<Component> GIScene::Clone(GameObject& owner)
 {
     return nullptr;

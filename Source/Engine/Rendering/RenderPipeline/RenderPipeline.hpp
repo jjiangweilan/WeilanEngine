@@ -25,13 +25,12 @@ public:
     RenderPipeline();
 
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
-    const Gfx::RG::ImageIdentifier& GetOutputColor() { return finalColor; }
-    const Gfx::RG::ImageIdentifier& GetOutputDepth() { return mainDepth; }
-
-    ObjPtr<RenderPipelineSetting> GetRenderPipelineSetting() const { return setting; }
-    void SetRenderPipelineSetting(ObjPtr<RenderPipelineSetting> setting) { this->setting = setting; }
-
+    const auto& GetOutputColor() const { return finalColor; }
+    const auto& GetOutputDepth() const { return mainDepth; }
+    auto GetRenderPipelineSetting() const { return setting; }
     Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.gpuResourceSet.get(); }
+
+    void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
 private:
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;

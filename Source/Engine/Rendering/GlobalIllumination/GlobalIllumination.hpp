@@ -33,5 +33,8 @@ public:
     const std::string& GetName() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+
+    //***** API *****//
+    void PrebakeScene();
 };
 } // namespace Rendering::GI

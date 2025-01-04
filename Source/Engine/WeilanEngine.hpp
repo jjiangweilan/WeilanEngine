@@ -67,6 +67,8 @@ private:
     std::filesystem::path projectPath;
     std::filesystem::path projectAssetPath;
 
+    void InitAssetDatabase();
+    void DeinitAssetDatabase();
     void InitJoltPhysics();
     void DeinitJoltPhysics();
 

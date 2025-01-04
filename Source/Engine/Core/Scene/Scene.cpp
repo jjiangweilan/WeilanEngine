@@ -299,3 +299,30 @@ std::unique_ptr<GameObject> Scene::RetrieveGameObject(GameObject* obj)
 
     return target;
 }
+
+void Scene::FixUndestroiedGameObjectNotInSceneTree()
+{
+
+    auto gos = GetAllGameObjects();
+
+    bool nextErase = true;
+    while (nextErase)
+    {
+        auto& gs = GetGameObjects();
+        for (int i = 0; i < gs.size(); ++i)
+        {
+            auto& g = gs[i];
+            auto iter = std::find(gos.begin(), gos.end(), g.get());
+            if (iter == gos.end())
+            {
+                nextErase = true;
+                gs.erase(gs.begin() + i);
+                break;
+            }
+            else
+            {
+                nextErase = false;
+            }
+        }
+    }
+}

@@ -146,7 +146,8 @@ void JoltDebugRenderer::DrawGeometry(
         {c0.GetX(), c0.GetY(), c0.GetZ(), c0.GetW()},
         {c1.GetX(), c1.GetY(), c1.GetZ(), c1.GetW()},
         {c2.GetX(), c2.GetY(), c2.GetZ(), c2.GetW()},
-        {c3.GetX(), c3.GetY(), c3.GetZ(), c3.GetW()}};
+        {c3.GetX(), c3.GetY(), c3.GetZ(), c3.GetW()}
+    };
 
     // all geometry is drawn in wire frame regardless of the settings
     // it's hard set in shader
@@ -170,7 +171,15 @@ bool& JoltDebugRenderer::GetDrawAll()
 std::unique_ptr<JoltDebugRenderer>& JoltDebugRenderer::GetDebugRenderer()
 {
     static std::unique_ptr<JoltDebugRenderer> joltDebugRenderer;
-    if (joltDebugRenderer == nullptr)
-        joltDebugRenderer = std::make_unique<JoltDebugRenderer>();
     return joltDebugRenderer;
+}
+
+void JoltDebugRenderer::Init()
+{
+    GetDebugRenderer() = std::make_unique<JoltDebugRenderer>();
+}
+
+void JoltDebugRenderer::Deinit()
+{
+    GetDebugRenderer() = nullptr;
 }

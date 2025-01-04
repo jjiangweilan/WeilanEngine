@@ -86,7 +86,9 @@ public:
     }
 
     static ShaderLibrary& Singleton();
-    void RemoveAllShaders() { library.clear(); }
+    void RemoveAllShaders() { 
+        // calling .clear() may not actually clear the members
+        library.clear(); }
 
 private:
     ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());

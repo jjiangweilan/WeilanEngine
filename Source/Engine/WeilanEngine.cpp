@@ -17,9 +17,9 @@
 #include <Jolt/RegisterTypes.h>
 // clang-format on
 //
+#include "Rendering/ShaderLibrary.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
-#include "Rendering/ShaderLibrary.hpp"
 WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
@@ -29,6 +29,7 @@ WeilanEngine::~WeilanEngine()
     ShaderLibrary::Singleton().RemoveAllShaders();
     DelayDestroy::Singleton()->Flush();
     DeinitJoltPhysics();
+    DeinitAssetDatabase();
     // physics->Destroy();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -58,10 +59,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
     auto program = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
 
+    InitAssetDatabase();
     InitJoltPhysics();
-    assetDatabase = std::make_unique<AssetDatabase>();
-    AssetDatabase::SingletonReference() = assetDatabase.get();
-    assetDatabase->Init(projectPath);
     event = std::make_unique<Event>();
     event->Init();
 #if ENGINE_EDITOR
@@ -165,11 +164,13 @@ void WeilanEngine::InitJoltPhysics()
     // (PhysicsMaterial::sDefault) make sure to initialize it before this function or else this function will create
     // one for you.
     JPH::RegisterTypes();
+
+    JoltDebugRenderer::Init();
 }
 
 void WeilanEngine::DeinitJoltPhysics()
 {
-    JoltDebugRenderer::GetDebugRenderer() = nullptr;
+    JoltDebugRenderer::Deinit();
 
     // Unregisters all types with the factory and cleans up the default material
     JPH::UnregisterTypes();
@@ -206,6 +207,18 @@ void WeilanEngine::InitSDL()
 
     mainWindow.size.width = drawableWidth;
     mainWindow.size.height = drawbaleHeight;
+}
+
+void WeilanEngine::DeinitAssetDatabase()
+{
+    assetDatabase = nullptr;
+}
+
+void WeilanEngine::InitAssetDatabase()
+{
+    assetDatabase = std::make_unique<AssetDatabase>();
+    AssetDatabase::SingletonReference() = assetDatabase.get();
+    assetDatabase->Init(projectPath);
 }
 
 void WeilanEngine::DeinitSDL()
