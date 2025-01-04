@@ -14,6 +14,7 @@ public:
     void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
     {
         outDrawList.clear();
+
         outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
         outDrawList.Sort(camera.GetGameObject()->GetPosition());
     }

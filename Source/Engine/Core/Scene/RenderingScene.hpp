@@ -11,6 +11,7 @@ class SceneEnvironment;
 class Terrain;
 class GrassSurface;
 class Cloud;
+
 class RenderingScene
 {
 public:
@@ -34,10 +35,7 @@ public:
         }
     }
 
-    void SetTerrain(Terrain& terrain)
-    {
-        this->terrain = &terrain;
-    }
+    void SetTerrain(Terrain& terrain) { this->terrain = &terrain; }
 
     void RemoveTerrain(Terrain& terrain)
     {
@@ -47,25 +45,13 @@ public:
         }
     }
 
-    Terrain* GetTerrain()
-    {
-        return terrain;
-    }
+    Terrain* GetTerrain() { return terrain; }
 
-    void AddRenderer(MeshRenderer& renderingObject)
-    {
-        meshRenderers.push_back(&renderingObject);
-    }
+    void AddRenderer(MeshRenderer& renderingObject) { meshRenderers.push_back(&renderingObject); }
 
-    void AddRenderer(Cloud& renderingObject)
-    {
-        clouds.push_back(&renderingObject);
-    }
+    void AddRenderer(Cloud& renderingObject) { clouds.push_back(&renderingObject); }
 
-    void AddGrassSurface(GrassSurface& grassSurface)
-    {
-        grassSurfaces.push_back(&grassSurface);
-    }
+    void AddGrassSurface(GrassSurface& grassSurface) { grassSurfaces.push_back(&grassSurface); }
 
     void RemoveGrassSurface(GrassSurface& grassSurface)
     {
@@ -97,26 +83,13 @@ public:
         }
     }
 
-    std::span<GrassSurface*> GetGrassSurface()
-    {
-        return grassSurfaces;
-    }
+    std::span<GrassSurface*> GetGrassSurface() { return grassSurfaces; }
 
-    std::span<MeshRenderer*> GetMeshRenderers()
-    {
-        return meshRenderers;
-    }
+    std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
 
-    const std::vector<Cloud*>& GetClouds()
-    {
-        return clouds;
-    }
+    const std::vector<Cloud*>& GetClouds() { return clouds; }
 
-    SceneEnvironment* GetSceneEnvironment()
-    {
-        return sceneEnvironment;
-    }
-
+    SceneEnvironment* GetSceneEnvironment() { return sceneEnvironment; }
 
     void Tick();
 
@@ -126,5 +99,4 @@ private:
     std::vector<Cloud*> clouds;
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
-
 };
