@@ -33,6 +33,21 @@ public:
         }
     } shadowMap;
 
+    struct DebugDraw : Serializable
+    {
+        bool drawMeshRendererAABB = false;
+
+        void Serialize(Serializer* s) const override
+        {
+            SERIALIZE(s, drawMeshRendererAABB);
+        }
+
+        void Deserialize(Serializer* s) override
+        {
+            DESERIALIZE(s, drawMeshRendererAABB);
+        }
+    } debugDraw;
+
     bool fxaa = true;
 
     void Serialize(Serializer* s) const override;

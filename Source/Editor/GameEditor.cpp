@@ -15,6 +15,7 @@
 #include "PrototypeUtils.hpp"
 #include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
+#include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
 #include "ThirdParty/imgui/implot.h"
 #include <cmath>
@@ -738,6 +739,7 @@ void GameEditor::GUIPass()
     ShowAssetWindow();
     ShowInspectorWindow();
     ShowSurfelGIBakerWindow();
+    ShowRenderPipelineSetting();
 
     EngineResourceDebug();
 
@@ -1589,6 +1591,14 @@ void GameEditor::EngineResourceDebug()
 
         ImGui::TreePop();
     }
+    ImGui::End();
+}
+
+void GameEditor::ShowRenderPipelineSetting()
+{
+    ImGui::Begin("Render Pipeline");
+    auto setting = loop->GetRenderPipeline().GetRenderPipelineSetting();
+    GUI::AutoObjectInspector(setting);
     ImGui::End();
 }
 } // namespace Editor

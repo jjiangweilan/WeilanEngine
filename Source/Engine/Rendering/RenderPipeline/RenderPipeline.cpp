@@ -5,12 +5,19 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
-#if ENGINE_EDITOR
-#include "ThirdParty/imgui/imgui.h"
-#endif
-
 namespace Rendering
 {
+
+class SceneRendererSorter
+{
+public:
+    void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
+    {
+        outDrawList.clear();
+        outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+        outDrawList.Sort(camera.GetGameObject()->GetPosition());
+    }
+};
 
 RenderPipeline::RenderPipeline()
 {
@@ -161,7 +168,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
-    const auto& sceneDrawList = scene.GetDrawList();
+    DrawList sceneDrawList;
+    SceneRendererSorter()(scene, camera, sceneDrawList);
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 
@@ -294,24 +302,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndLabel();
     }
 
+    // Debug
+    {
+
+    }
+
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
     cmd->Reset(true);
-
-#if ENGINE_EDITOR
-
-    auto RenderTargetDebugPoint = [](std::string_view label, Gfx::ImageView* imageView)
-    {
-        const auto& desc = imageView->GetImage().GetDescription();
-        ImGui::Image(imageView, {(float)desc.width / 4.0f, (float)desc.height / 4.0f});
-    };
-
-    ImGui::Begin("Render Pipeline");
-
-    RenderTargetDebugPoint("ShadowMap", &shadowMapPass.shadowMap->GetDefaultImageView());
-
-    ImGui::End();
-#endif
 }
 
 RenderPipeline::PerScene::PerScene()

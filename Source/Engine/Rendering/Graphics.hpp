@@ -1,8 +1,7 @@
 #pragma once
 #include "Core/SafeReferenceable.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include <glm/glm.hpp>
-#include <glm/gtx/quaternion.hpp>
+#include "Libs/Math.hpp"
 #include <variant>
 #include <vector>
 
@@ -18,6 +17,9 @@ class Graphics
 public:
     static void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color = {1, 1, 1, 1});
     static void DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
+    static void DrawCube(
+        const glm::float3& positin, const glm::float3& exent, const glm::mat4& model, Material& material
+    );
     static void DrawCapsule(
         float height, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
     );

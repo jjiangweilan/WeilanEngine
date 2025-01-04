@@ -101,8 +101,6 @@ public:
         this->renderPipelineSetting = setting;
     }
 
-    const Rendering::DrawList& GetDrawList();
-
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;

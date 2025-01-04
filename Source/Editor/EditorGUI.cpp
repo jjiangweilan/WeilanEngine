@@ -8,6 +8,8 @@ const char* GUI::PayloadType = "_DragDropIntenralTypeID";
 std::vector<char> GUI::textArea = std::vector<char>(1024);
 void GUI::AutoObjectInspector(Object* target)
 {
+    if (target == nullptr)
+        return;
     JsonSerializer ser;
     (static_cast<Serializable*>(target))->Serialize(&ser);
     auto j = ser.GetJson();
