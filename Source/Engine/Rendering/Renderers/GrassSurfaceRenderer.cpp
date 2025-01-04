@@ -5,7 +5,7 @@
 GrassSurfaceRenderer::GrassSurfaceRenderer()
 {
     grassMesh =
-        ((Model*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/GrassBlade.glb"))->GetMeshes()[0].get();
+        ((Model*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/GrassBlade.fbx"))->GetMeshes()[0].get();
 }
 
 void GrassSurfaceRenderer::DispatchCompute(GrassSurface& grassSurface, Gfx::CommandBuffer& cmd)

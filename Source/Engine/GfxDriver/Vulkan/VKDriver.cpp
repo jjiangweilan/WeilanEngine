@@ -616,10 +616,6 @@ bool VKDriver::EndFrame()
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
     auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
-    if (result != VK_SUCCESS)
-    {
-        ;        __debugbreak();
-    }
     ENGINE_END_PROFILE
 
     allocator.Reset();
@@ -846,13 +842,11 @@ VkBool32 VKDriver::DebugCallback(
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
             {
                 SPDLOG_WARN(pCallbackData->pMessage);
-                __debugbreak();
                 return VK_FALSE;
             }
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
             {
                 SPDLOG_ERROR(pCallbackData->pMessage);
-                __debugbreak();
                 return VK_FALSE;
             }
         default: break;

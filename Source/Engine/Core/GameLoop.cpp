@@ -63,13 +63,18 @@ const void GameLoop::Tick(
             *scene->GetMainCamera(),
             {outputImage.GetDescription().width, outputImage.GetDescription().height}
         );
+
+        outGraphOutputImage = &renderPipeline.GetOutputColor();
+        outGraphOutputDepthImage = &renderPipeline.GetOutputDepth();
+    }
+    else
+    {
+        outGraphOutputImage = nullptr;
+        outGraphOutputDepthImage = nullptr;
     }
 
     ENGINE_BEGIN_PROFILE("GameLoop Tick clean-up")
     Graphics::GetSingleton().ClearDraws();
-
-    outGraphOutputImage = &renderPipeline.GetOutputColor();
-    outGraphOutputDepthImage = &renderPipeline.GetOutputDepth();
 
     ENGINE_END_PROFILE
 }

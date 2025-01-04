@@ -44,7 +44,7 @@ class SkyboxPassNode : public Node
             Gfx::Buffer::CreateInfo{Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Uniform, sizeof(SkyboxPass)}
         );
 
-        Model* model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Cube.glb"));
+        Model* model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Cube.fbx"));
         cube = model->GetMeshes()[0].get();
     }
 

@@ -34,7 +34,7 @@ class WorldGridModuleEditor : public Window
 
     void OnOpen() override
     {
-        plane = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"))
+        plane = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
                     ->GetMeshes()[0]
                     .get();
         gridShader =

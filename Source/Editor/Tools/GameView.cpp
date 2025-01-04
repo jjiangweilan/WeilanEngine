@@ -149,7 +149,7 @@ void GameView::Init()
     outlineFullScreenPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineFullScreenPass);
 
     editorWorldSpaceGrid.plane =
-        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.glb"))
+        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
             ->GetMeshes()[0]
             .get();
     editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(ShaderLibrary::PlaneGrid);

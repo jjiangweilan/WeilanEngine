@@ -453,15 +453,15 @@ void GameEditor::ShowSceneTree(Scene& scene)
         {
             if (ImGui::MenuItem("Cube"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.glb");
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.fbx");
             }
             else if (ImGui::MenuItem("Sphere"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.glb");
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.fbx");
             }
             else if (ImGui::MenuItem("Plane"))
             {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.glb");
+                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.fbx");
             }
             ImGui::EndMenu();
         }
