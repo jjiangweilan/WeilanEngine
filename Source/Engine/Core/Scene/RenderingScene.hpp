@@ -1,9 +1,11 @@
 #pragma once
-#include "GfxDriver/Image.hpp"
-#include "Rendering/DrawList.hpp"
+#include "Core/Ptr.hpp"
+#include "Libs/Math.hpp"
+#include "Rendering/Structs.hpp"
 
 #include <algorithm>
 #include <glm/glm.hpp>
+#include <span>
 #include <vector>
 
 class MeshRenderer;
@@ -47,7 +49,11 @@ public:
 
     Terrain* GetTerrain() { return terrain; }
 
-    void AddRenderer(MeshRenderer& renderingObject) { meshRenderers.push_back(&renderingObject); }
+    void AddRenderer(MeshRenderer& renderingObject)
+    {
+        meshRenderers.push_back(&renderingObject);
+        updateRendererNodeHierarchy = true;
+    }
 
     void AddRenderer(Cloud& renderingObject) { clouds.push_back(&renderingObject); }
 
@@ -94,9 +100,38 @@ public:
     void Tick();
 
 private:
+    struct BoundingVolumeHierarchy
+    {
+    public:
+        void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
+
+        struct Node
+        {
+            AABB aabb{};
+
+            int childNodeLeft = -1;
+            int childNodeRight = -1;
+            bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1 && !objectIndices.empty(); }
+            bool IsEmpty() const { return objectIndices.empty(); }
+
+            std::vector<int> objectIndices{};
+        };
+
+        std::vector<Node> nodes;
+        std::vector<ObjPtr<MeshRenderer>> objects;
+        std::vector<glm::float3> objectCenters;
+        int maxNonLeafNodeIndex = 0;
+
+        void UpdateNodeBounds(int nodeIndex);
+        void UpdateNode(int nodeIndex);
+    };
+
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;
     std::vector<Cloud*> clouds;
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
+
+    BoundingVolumeHierarchy rendererNodeHierarchy;
+    bool updateRendererNodeHierarchy = false;
 };

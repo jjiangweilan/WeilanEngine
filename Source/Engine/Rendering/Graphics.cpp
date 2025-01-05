@@ -121,7 +121,7 @@ void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
             cmd.BindIndexBuffer(submesh->GetIndexBuffer(), 0, submesh->GetIndexBufferType());
             cmd.BindVertexBuffer(bindings, 0);
             cmd.SetPushConstant(shader, &drawMesh.model);
-            cmd.BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+            cmd.BindShaderProgram(shader, mat->GetShaderConfig());
             cmd.BindResource(2, mat->GetShaderResource());
             cmd.DrawIndexed(submesh->GetIndexCount(), 1, 0, 0, 0);
         }

@@ -1,5 +1,11 @@
 import Library.PerScene;
 
+#if CONFIG
+depth:
+    testEnable: false
+    writeEnable: false
+#endif
+
 #include "Utils/VertexFullScreen.hlsl"
 #include "DeferredPBRShading.hlsl"
 #include "DeferredPBRShadingInput.hlsl"

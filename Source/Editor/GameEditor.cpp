@@ -332,7 +332,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
     auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
     auto gameObjects = model->CreateGameObject();
-    auto go = gameObjects[0].get();
+    auto go = gameObjects[1].get(); // internal object uses fbx from Blender, there is an empty root object we need to skip
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
     Material* mats[] = {EngineInternalResources::GetDefaultGridMaterial()};

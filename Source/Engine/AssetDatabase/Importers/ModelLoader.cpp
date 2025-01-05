@@ -288,10 +288,10 @@ private:
             submesh.SetPositions(std::move(positions));
             submesh.SetVertexAttribute(std::move(attributes));
             submesh.SetIndices(std::move(indices));
-            submesh.SetAABB(
-                {{mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z},
-                 {mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z}}
-            );
+            AABB aabb;
+            aabb.min = { mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z },
+            aabb.max = { mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z };
+            submesh.SetAABB(aabb);
             submesh.Apply();
             std::vector<Submesh> submeshes;
             submeshes.push_back(std::move(submesh));

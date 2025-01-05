@@ -16,6 +16,7 @@ class SkyboxPassNode : public Node
     {
         SetCustomName("Skybox");
         skyboxMat = std::make_unique<Material>("ProcedualSkybox");
+        skyboxMat->SetFlags(AssetStateFlags::DontSave);
         skyboxMat->SetFloat("Params", "horizonToSkyMix", 3.37);
         skyboxMat->SetVector("Params", "sky_color", glm::vec4{0.14, 0.07, 0.569, 0});
         skyboxMat->SetVector("Params", "horizon_color", glm::vec4{0.0399, 0.41, 0.37, 0});

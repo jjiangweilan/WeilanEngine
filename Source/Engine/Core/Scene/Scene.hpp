@@ -76,8 +76,6 @@ protected:
     RenderingScene renderingScene;
     PhysicsScene physicsScene;
 
-    Rendering::DrawList sceneDrawList;
-
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;

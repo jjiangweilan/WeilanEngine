@@ -16,6 +16,7 @@ EngineInternalResources::EngineInternalResources()
     defaultGridMaterial->SetFlags(AssetStateFlags::DontSave);
     models.sphere = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Sphere.fbx")))->GetMeshes()[0].get();
     models.capsule = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Capsule.fbx")))->GetMeshes()[0].get();
+    models.cube = (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Cube.fbx")))->GetMeshes()[0].get();
     models.halfSphere =
         (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/HalfSphere.fbx")))->GetMeshes()[0].get();
     models.cylinder =

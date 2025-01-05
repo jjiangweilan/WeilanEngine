@@ -1,6 +1,5 @@
 #pragma once
-#include "glm/glm.hpp"
-#include <cinttypes>
+#include "Libs/Math.hpp"
 
 struct Offset2D
 {
@@ -36,6 +35,10 @@ struct Rect2D
 
 struct AABB
 {
+    glm::float3 min = {};
+    glm::float3 max = {};
+    glm::float3 GetCenter() { return (min + max) / 2.0f; }
+
     AABB() : min(0), max(0) {}
     AABB(const glm::vec3& center, const glm::vec3& size)
     {
@@ -43,8 +46,6 @@ struct AABB
         min = center - halfSize;
         max = center + halfSize;
     }
-    glm::vec3 min;
-    glm::vec3 max;
 
     void Transform(const glm::mat3& rs, const glm::vec3& t)
     {

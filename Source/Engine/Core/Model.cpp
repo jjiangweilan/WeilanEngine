@@ -438,7 +438,7 @@ std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node
         meshRenderer->SetMeshes(meshes);
     }
 
-    std::vector<std::unique_ptr<GameObject>> gos;
+    std::vector<std::unique_ptr<GameObject>> gos{};
     auto goTmp = go.get();
     gos.push_back(std::move(go));
 

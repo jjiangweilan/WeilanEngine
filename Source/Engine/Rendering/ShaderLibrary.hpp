@@ -74,6 +74,7 @@ public:
     static constexpr const char* ScreenSpaceShadow = "ScreenSpaceShadow";
     static constexpr const char* FXAA = "FXAA";
     static constexpr const char* PrimitiveShape = "PrimitiveShape";
+    static constexpr const char* SimpleForwardLit = "SimpleForwardLit";
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {

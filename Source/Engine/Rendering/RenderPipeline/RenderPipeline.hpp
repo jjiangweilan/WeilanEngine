@@ -37,6 +37,7 @@ private:
 
     Gfx::RG::ImageIdentifier mainColor = "mainColor";
     Gfx::RG::ImageIdentifier mainDepth = "mainDepth";
+    Gfx::RG::ImageIdentifier depthCopy = "depthCopy";
     Gfx::RG::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::RG::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";

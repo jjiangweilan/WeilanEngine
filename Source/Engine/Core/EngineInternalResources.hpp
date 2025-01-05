@@ -14,6 +14,7 @@ public:
         Mesh* capsule;
         Mesh* halfSphere;
         Mesh* cylinder;
+        Mesh* cube;
     };
 
     static void Init();
@@ -21,6 +22,7 @@ public:
     static Submesh* GetCapsuleMesh() { return GetSingleton().models.capsule->GetSubmesh(0); }
     static Submesh* GetHalfSphereMesh() { return GetSingleton().models.halfSphere->GetSubmesh(0); }
     static Submesh* GetCylinderMesh() { return GetSingleton().models.cylinder->GetSubmesh(0); }
+    static Submesh* GetCubeMesh() { return GetSingleton().models.cube->GetSubmesh(0); }
     static Models& GetModels() { return GetSingleton().models; }
     static Material* GetDefaultMaterial() { return GetSingleton().defaultMaterial; }
     static Material* GetDefaultGridMaterial() { return GetSingleton().defaultGridMaterial; }

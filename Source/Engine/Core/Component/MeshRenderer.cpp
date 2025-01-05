@@ -24,7 +24,7 @@ void MeshRenderer::SetMeshes(std::span<Mesh*> meshes)
     this->meshes.clear();
     this->meshes = std::vector(meshes.begin(), meshes.end());
     this->materials.resize(meshes.size());
-    UpdateAABB();
+    aabbBoundsNeedUpdate = true;
 }
 
 void MeshRenderer::UpdateAABB()
@@ -32,23 +32,22 @@ void MeshRenderer::UpdateAABB()
     glm::vec3 min =
         {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
     glm::vec3 max =
-        {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
+        {std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
 
+    bool isValid = false;
     for (auto mesh : meshes)
     {
         if (mesh != nullptr)
         {
+            isValid = true;
             auto& aabb = mesh->GetAABB();
-            min.x = glm::min(min.x, aabb.min.x);
-            min.y = glm::min(min.y, aabb.min.y);
-            min.z = glm::min(min.z, aabb.min.z);
-            max.x = glm::max(max.x, aabb.max.x);
-            max.y = glm::max(max.y, aabb.max.y);
-            max.z = glm::max(max.z, aabb.max.z);
+            min = glm::min(min, aabb.min);
+            max = glm::max(max, aabb.max);
         }
     }
 
-    aabb = {min, max};
+    if (isValid)
+        aabb = {min, max};
 }
 
 void MeshRenderer::SetMaterials(std::span<Material*> materials)
@@ -86,7 +85,7 @@ void MeshRenderer::Serialize(Serializer* s) const
 void MeshRenderer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize("meshes", meshes, [this](void* res) { UpdateAABB(); });
+    s->Deserialize("meshes", meshes, [this](void* res) { aabbBoundsNeedUpdate = true; });
     s->Deserialize("materials", materials);
     s->Deserialize("aabbMin", aabb.min);
     s->Deserialize("aabbMax", aabb.max);
@@ -146,10 +145,22 @@ void MeshRenderer::OnDisable()
 
 AABB MeshRenderer::GetAABB()
 {
-    auto model = GetGameObject()->GetWorldMatrix();
-    AABB aabb = this->aabb;
-    aabb.Transform(glm::mat3(model), model[3]);
-    return aabb;
+    if (aabbBoundsNeedUpdate)
+    {
+        UpdateAABB();
+        aabbBoundsNeedUpdate = false;
+        aabbPositionNeedUpdate = true;
+    }
+
+    if (aabbPositionNeedUpdate)
+    {
+        auto model = GetGameObject()->GetWorldMatrix();
+        aabbWS = this->aabb;
+        aabbWS.Transform(glm::mat3(model), model[3]);
+        aabbPositionNeedUpdate = false;
+    }
+
+    return aabbWS;
 }
 
 void MeshRenderer::Tick() {}

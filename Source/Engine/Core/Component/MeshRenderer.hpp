@@ -62,15 +62,19 @@ public:
 
     // called by RenderingScene
     void UpdateSkinning();
+
 private:
     /***** Serialized Data ******/
-    std::vector<Mesh*> meshes;
+    std::vector<Mesh*> meshes{};
     std::vector<Material*> materials = {};
     bool multipass = false;
-    AABB aabb;
+    AABB aabb {};
+    AABB aabbWS {};
     bool wantsToEnableSkinning = false;
 
     /**** Runtime Data *******/
+    bool aabbBoundsNeedUpdate = true;
+    bool aabbPositionNeedUpdate = true;
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
     struct Skinning
     {
@@ -93,4 +97,5 @@ private:
 
     void OnEnable() override;
     void OnDisable() override;
+    void TransformChanged() override { aabbPositionNeedUpdate = true; }
 };

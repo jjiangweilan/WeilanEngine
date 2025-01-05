@@ -3,6 +3,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
 namespace Rendering
@@ -14,7 +15,6 @@ public:
     void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
     {
         outDrawList.clear();
-
         outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
         outDrawList.Sort(camera.GetGameObject()->GetPosition());
     }
@@ -160,6 +160,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
         AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
+        AllocateImage(*cmd, depthCopy, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
 
         // no settings quit here
         if (setting == nullptr)
@@ -251,13 +252,15 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             );
         }
 
+        cmd->Blit(mainDepth, depthCopy);
+
         // set scissor and viewpor
-        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}};
+        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {0, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
         auto diffuseCube = camera.GetDiffuseEnv();
         auto specularCube = camera.GetDiffuseEnv();
 
-        auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
+        auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
         auto& depthImageView = depthImage->GetImageView({Gfx::ImageAspect::Depth});
 
         shadingPass.gpuResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
@@ -271,11 +274,15 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             shadingPass.gpuResource->SetImage("specularCube"_shaderBinding, specularCube->GetGfxImage());
 
         shadingPass.pass.SetAttachment(0, mainColor);
+        shadingPass.pass.SetAttachment(1, mainDepth);
 
         cmd->BeginRenderPass(shadingPass.pass, lightingPassClearValues);
         cmd->BindResource(1, shadingPass.gpuResource.get());
         cmd->BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
         cmd->Draw(6, 1, 0, 0);
+
+        RenderingUtils::DrawGraphics(*cmd);
+
         cmd->EndRenderPass();
     }
     cmd->EndLabel();
@@ -304,9 +311,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
 
     // Debug
-    {
-
-    }
+    {}
 
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 
@@ -325,14 +330,20 @@ RenderPipeline::PerScene::PerScene()
 
 RenderPipeline::ShadingPass::ShadingPass()
 {
-    pass = Gfx::RG::RenderPass("shading", 1, 1);
+    pass = Gfx::RG::RenderPass("shading", 1, 2);
     Gfx::RG::SubpassAttachment lightingPassAttachment{
         0,
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store
     };
+
+    Gfx::RG::SubpassAttachment depthAttachment{
+        1,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
+    };
     Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
-    pass.SetSubpass(0, lightingPassAttachments);
+    pass.SetSubpass(0, lightingPassAttachments, depthAttachment);
     gpuResource = GetGfxDriver()->CreateShaderResource();
     perMaterialBuffer = GetGfxDriver()->CreateBuffer(
         sizeof(GPUParameter::DeferredPBRShadingInput),

@@ -581,14 +581,19 @@ bool VKDriver::EndFrame()
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     CHECK_VK_RESULT(vkBeginCommandBuffer(cmd, &beginInfo));
 
+    ENGINE_BEGIN_PROFILE("Render Graph Execution")
     for (auto& f : internalPendingCommands)
     {
         f(cmd);
     }
     renderGraph->Execute(cmd);
+    ENGINE_END_PROFILE
 
+    ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
     CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE
+
+    ENGINE_END_PROFILE // VKDriver - Record Commands
 
     VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
@@ -1042,7 +1047,10 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME };
+    std::vector<const char*> deviceExtensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+    };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
 #endif
