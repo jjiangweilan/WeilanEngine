@@ -164,7 +164,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // no settings quit here
         if (setting == nullptr)
+        {
+            finalColor = mainColor;
             return;
+        }
 
         UpdatePerScene();
     }

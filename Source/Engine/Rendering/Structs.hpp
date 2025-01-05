@@ -35,14 +35,14 @@ struct Rect2D
 
 struct AABB
 {
-    struct PosConstruct {};
+    struct PosConstruct
+    {};
     glm::float3 min = {};
     glm::float3 max = {};
     glm::float3 GetCenter() { return (min + max) / 2.0f; }
 
     AABB() : min(0), max(0) {}
-    AABB(const glm::float3& min, const glm::float3& max) : min(min), max(max)
-    { }
+    AABB(const glm::float3& min, const glm::float3& max) : min(min), max(max) {}
     AABB(const glm::float3& center, const glm::float3& size, PosConstruct)
     {
         glm::float3 halfSize = size / 2.0f;
@@ -53,19 +53,59 @@ struct AABB
     void Transform(const glm::float3x3& rs, const glm::float3& t)
     {
 
-        glm::float3 nmin, nmax;
-        nmin = t;
-        nmax = t;
-        for (int i = 0; i < 3; ++i)
-            for (int j = 0; j < 3; ++j)
+        // fast path
+        // the following algorithm only works for uniform scaling
+        if (rs[0] == glm::float3(1, 0, 0) && rs[1] == glm::float3(0, 1, 0) && rs[2] == glm::float3(0, 0, 1))
+        {
+            glm::float3 nmin, nmax;
+            nmin = t;
+            nmax = t;
+
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j)
+                {
+                    float a = rs[i][j] * min[j];
+                    float b = rs[i][j] * max[j];
+                    nmin[i] += a < b ? a : b;
+                    nmax[i] += a < b ? b : a;
+                }
+
+            min = nmin;
+            max = nmax;
+        }
+        else
+        {
+            auto m = glm::float4x4(rs);
+            m[3] = glm::float4(t, 1);
+            glm::float3 nmin, nmax;
+            nmin = glm::float3(std::numeric_limits<float>::max());
+            nmax = glm::float3(std::numeric_limits<float>::lowest());
+
+            glm::float3 v[] = {
+                {min.x, min.y, min.z},
+                {max.x, min.y, min.z},
+                {min.x, max.y, min.z},
+                {min.x, min.y, max.z},
+
+                {max.x, max.y, min.z},
+                {min.x, max.y, max.z},
+                {max.x, min.y, max.z},
+                {max.x, max.y, max.z},
+            };
+
+            for (int vi = 0; vi < 8; vi++)
             {
-                float a = rs[i][j] * min[j];
-                float b = rs[i][j] * max[j];
-                nmin[i] += a < b ? a : b;
-                nmax[i] += a < b ? b : a;
+                v[vi] = m * glm::float4(v[vi], 1.0);
             }
 
-        min = nmin;
-        max = nmax;
+            for (int vi = 0; vi < 8; vi++)
+            {
+                nmin = glm::min(nmin, v[vi]);
+                nmax = glm::max(nmax, v[vi]);
+            }
+
+            min = nmin;
+            max = nmax;
+        }
     }
 };
