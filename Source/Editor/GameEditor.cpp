@@ -139,7 +139,7 @@ GameEditor::~GameEditor()
     engine->DestroyGameLoop(loop);
     InspectorRegistry::DestroyAll();
 
-    if (EditorState::activeScene && !loop->IsPlaying())
+    if (EditorState::activeScene)
         editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
 
     loop = nullptr;

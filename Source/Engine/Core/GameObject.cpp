@@ -306,13 +306,19 @@ glm::mat4 GameObject::GetWorldMatrix() const
 {
     auto& localMatrix = GetLocalMatrix();
 
-    auto finalMatrix = localMatrix;
-    if (parent != nullptr)
+    if (transformChanged && parent != nullptr)
     {
-        finalMatrix = parent->GetWorldMatrix() * localMatrix;
+        worldMatrix = parent->GetWorldMatrix() * localMatrix;
+        transformChanged = false;
+        return worldMatrix;
     }
+    {
+        transformChanged = false;
+        if (parent == nullptr)
+            return localMatrix;
 
-    return finalMatrix;
+        return worldMatrix;
+    }
 }
 
 glm::quat GameObject::GetRotation() const

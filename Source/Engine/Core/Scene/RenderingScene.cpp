@@ -98,80 +98,91 @@ void RenderingScene::Tick()
 
     if (updateRendererNodeHierarchy)
     {
-        rendererNodeHierarchy.Build(meshRenderers.data(), meshRenderers.size(), 8);
+        rendererNodeHierarchy.Build(meshRenderers.data(), meshRenderers.size(), 12);
         updateRendererNodeHierarchy = false;
     }
 
     static int debugLevel = 2;
+    static bool drawObjBounds = false;
+    static bool bvhDebug = false;
     ImGui::Begin("BVH Debug");
-    ImGui::InputInt("debug level", &debugLevel);
+    ImGui::Checkbox("Bvh Debug", &bvhDebug);
+    ImGui::InputInt("Debug Level", &debugLevel);
     ImGui::End();
     static Mesh* mesh = EngineInternalResources::GetModels().cube;
     static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleForwardLit));
-    auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
-    config.polygonMode = Gfx::PolygonMode::Line;
-    mat.SetShaderConfig(config);
-    if (debugLevel < 0)
+    if (bvhDebug)
     {
-        for (auto& n : rendererNodeHierarchy.nodes)
+        auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
+        config.polygonMode = Gfx::PolygonMode::Line;
+        mat.SetShaderConfig(config);
+        if (debugLevel < 0)
         {
-            if (n.IsLeaf() && !n.IsEmpty())
+            for (auto& n : rendererNodeHierarchy.nodes)
             {
-                glm::float3 scale = (n.aabb.max - n.aabb.min);
-                if (scale.x != 0 && scale.y != 0 && scale.z != 0)
+                if (n.IsLeaf() && !n.IsEmpty())
                 {
-                    glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                    glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
-                    Graphics::DrawMesh(*mesh, 0, model, mat);
-                }
-
-                for (auto objIdx : n.objectIndices)
-                {
-                    auto obj = rendererNodeHierarchy.objects[objIdx].Get();
-                    if (obj)
+                    glm::float3 scale = (n.aabb.max - n.aabb.min);
+                    if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
-                        auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
-
-                        glm::float3 position = (aabb.max + aabb.min) / 2.0f;
-                        glm::float3 scale = (aabb.max - aabb.min);
+                        glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
                         glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                         Graphics::DrawMesh(*mesh, 0, model, mat);
+                    }
+
+                    for (auto objIdx : n.objectIndices)
+                    {
+                        auto obj = rendererNodeHierarchy.objects[objIdx].Get();
+                        if (obj)
+                        {
+                            auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
+
+                            glm::float3 position = (aabb.max + aabb.min) / 2.0f;
+                            glm::float3 scale = (aabb.max - aabb.min);
+                            glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                            Graphics::DrawMesh(*mesh, 0, model, mat);
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int i = glm::pow(2, debugLevel) - 1; i < glm::pow(2, debugLevel + 1) - 1; ++i)
+            {
+                if (i >= rendererNodeHierarchy.nodes.size())
+                    return;
+                auto& n = rendererNodeHierarchy.nodes[i];
+                if (!n.IsEmpty())
+                {
+                    glm::float3 scale = (n.aabb.max - n.aabb.min);
+                    if (scale.x != 0 && scale.y != 0 && scale.z != 0)
+                    {
+                        glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
+                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        Graphics::DrawMesh(*mesh, 0, model, mat);
+                    }
+
+                    if (drawObjBounds)
+                    {
+                        for (auto objIdx : n.objectIndices)
+                        {
+                            auto obj = rendererNodeHierarchy.objects[objIdx].Get();
+                            if (obj)
+                            {
+                                auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
+
+                                glm::float3 position = (aabb.max + aabb.min) / 2.0f;
+                                glm::float3 scale = (aabb.max - aabb.min);
+                                glm::float4x4 model =
+                                    glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                                Graphics::DrawMesh(*mesh, 0, model, mat);
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    else
-    {
-        for (int i = glm::pow(2, debugLevel) - 1; i < glm::pow(2, debugLevel + 1) - 1; ++i)
-        {
-            if (i >= rendererNodeHierarchy.nodes.size())
-                return;
-            auto& n = rendererNodeHierarchy.nodes[i];
-            if (!n.IsEmpty())
-            {
-                glm::float3 scale = (n.aabb.max - n.aabb.min);
-                if (scale.x != 0 && scale.y != 0 && scale.z != 0)
-                {
-                    glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                    glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
-                    Graphics::DrawMesh(*mesh, 0, model, mat);
-                }
-
-                for (auto objIdx : n.objectIndices)
-                {
-                    auto obj = rendererNodeHierarchy.objects[objIdx].Get();
-                    if (obj)
-                    {
-                        auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
-
-                        glm::float3 position = (aabb.max + aabb.min) / 2.0f;
-                        glm::float3 scale = (aabb.max - aabb.min);
-                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
-                        Graphics::DrawMesh(*mesh, 0, model, mat);
-                    }
-                }
-            }
-        }
-    }
+    
 }

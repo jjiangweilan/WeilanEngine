@@ -3,6 +3,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Profiler/Profiler.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
@@ -27,6 +28,7 @@ RenderPipeline::RenderPipeline()
 
 void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
+    ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
 
     auto UpdatePerScene = [&]()
@@ -69,7 +71,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // light data
         {
             Light* mainLight = nullptr;
+            ENGINE_BEGIN_PROFILE("Get Active Lights")
             auto lights = scene.GetActiveLights();
+            ENGINE_END_PROFILE
 
             param.lightCount = glm::float4(lights.size(), 0, 0, 0);
             for (int i = 0; i < lights.size(); ++i)
@@ -175,6 +179,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     DrawList sceneDrawList;
     SceneRendererSorter()(scene, camera, sceneDrawList);
+    ENGINE_END_PROFILE
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 

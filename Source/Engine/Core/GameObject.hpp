@@ -235,11 +235,13 @@ private:
     // euler angle is defined as X * Y * Z (pitch yaw row), which coresponds to glm::quat(eulerAngles)
     glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
     mutable glm::mat4 localMatrix;
+    mutable glm::mat4 worldMatrix;
 
     // when GameObject is being copied or deattached from a scene, it can't be enabled immediately
     // wantsToBeEnabled will be set to true whth enabled is false in that case
     bool enabled = false;
     bool wantsToBeEnabled = false;
+    mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
 
     std::vector<ObjPtr<GameObject>> children;
@@ -257,6 +259,8 @@ private:
 
     void TransformChanged()
     {
+        transformChanged = true;
+
         if (!EngineState::GetSingleton().isPlaying)
         {
             for (auto& c : components)

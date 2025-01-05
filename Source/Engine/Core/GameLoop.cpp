@@ -56,13 +56,21 @@ const void GameLoop::Tick(
 
     if (scene && scene->GetMainCamera())
     {
+        ENGINE_BEGIN_PROFILE("GameLoop - Physics Debug Draw");
         scene->GetPhysicsScene().DebugDraw();
+        ENGINE_END_PROFILE
+
+        ENGINE_BEGIN_PROFILE("GameLoop - Rendering Scene Tick");
         scene->GetRenderingScene().Tick();
+        ENGINE_END_PROFILE
+
+        ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
         renderPipeline.Render(
             *scene,
             *scene->GetMainCamera(),
             {outputImage.GetDescription().width, outputImage.GetDescription().height}
         );
+        ENGINE_END_PROFILE
 
         outGraphOutputImage = &renderPipeline.GetOutputColor();
         outGraphOutputDepthImage = &renderPipeline.GetOutputDepth();
