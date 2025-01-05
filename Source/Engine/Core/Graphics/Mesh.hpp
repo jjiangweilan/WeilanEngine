@@ -185,12 +185,8 @@ public:
         for (auto& submesh : this->submeshes)
         {
             auto& aabb = submesh.GetAABB();
-            min.x = glm::min(min.x, aabb.min.x);
-            min.y = glm::min(min.y, aabb.min.y);
-            min.z = glm::min(min.z, aabb.min.z);
-            max.x = glm::max(max.x, aabb.max.x);
-            max.y = glm::max(max.y, aabb.max.y);
-            max.z = glm::max(max.z, aabb.max.z);
+            min = glm::min(min, aabb.min);
+            max = glm::max(max, aabb.max);
         }
 
         aabb = {min, max};
