@@ -19,10 +19,17 @@ void MeshRenderer::SetMesh(Mesh* mesh)
     SetMeshes(meshes);
 }
 
+void MeshRenderer::SetMaterial(Material* material)
+{
+    Material* mats[] = {material};
+    SetMaterials(mats);
+}
+
 void MeshRenderer::SetMeshes(std::span<Mesh*> meshes)
 {
     this->meshes.clear();
-    this->meshes = std::vector(meshes.begin(), meshes.end());
+    for (auto m : meshes)
+        this->meshes.push_back(m);
     this->materials.resize(meshes.size());
     aabbBoundsNeedUpdate = true;
 }
@@ -31,8 +38,11 @@ void MeshRenderer::UpdateAABB()
 {
     glm::vec3 min =
         {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
-    glm::vec3 max =
-        {std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
+    glm::vec3 max = {
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest()
+    };
 
     bool isValid = false;
     for (auto mesh : meshes)
@@ -49,10 +59,15 @@ void MeshRenderer::UpdateAABB()
     if (isValid)
         aabb = {min, max};
 }
-
+void MeshRenderer::SetMaterials(std::span<ObjPtr<Material>> materials)
+{
+    this->materials = std::vector<ObjPtr<Material>>(materials.begin(), materials.end());
+}
 void MeshRenderer::SetMaterials(std::span<Material*> materials)
 {
-    this->materials = std::vector<Material*>(materials.begin(), materials.end());
+    this->materials.clear();
+    for (auto m : materials)
+        this->materials.push_back(m);
 }
 
 Mesh* MeshRenderer::GetMesh()
@@ -61,13 +76,13 @@ Mesh* MeshRenderer::GetMesh()
     return meshes.empty() ? nullptr : meshes[0];
 }
 
-std::span<Mesh*> MeshRenderer::GetMeshes()
+std::span<ObjPtr<Mesh>> MeshRenderer::GetMeshes()
 {
     ValidateSkinning();
     return meshes;
 }
 
-const std::vector<Material*>& MeshRenderer::GetMaterials()
+const std::vector<ObjPtr<Material>>& MeshRenderer::GetMaterials()
 {
     return materials;
 }

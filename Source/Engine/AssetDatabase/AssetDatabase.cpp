@@ -851,13 +851,6 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
 
-    if (serializer && localResolveMap)
-    {
-        const auto& managedObjectCounters = serializer->GetManagedObjects();
-        this->managedObjectCounters.insert(managedObjectCounters.begin(), managedObjectCounters.end());
-
-        ResolveSerializerReference(*serializer, *localResolveMap);
-    }
 
     if (serializer)
     {
@@ -865,22 +858,6 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         {
             LoadAssetByID(uuid);
         }
-    }
-
-    // see if there is any reference need to be resolved to this object
-    auto iter = referenceResolveMap.find(asset->GetUUID());
-    if (iter != referenceResolveMap.end())
-    {
-        for (auto& resolve : iter->second)
-        {
-            if (resolve.target != nullptr)
-                *resolve.target = asset;
-            if (resolve.callback)
-            {
-                resolve.callback(asset);
-            }
-        }
-        referenceResolveMap.erase(iter);
     }
 
     asset->OnLoaded();

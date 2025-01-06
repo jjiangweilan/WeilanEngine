@@ -44,14 +44,16 @@ public:
     void Tick() override;
     void SetMeshes(std::span<Mesh*> meshes);
     void SetMesh(Mesh* mesh);
+    void SetMaterials(std::span<ObjPtr<Material>> materials);
     void SetMaterials(std::span<Material*> materials);
+    void SetMaterial(Material* material);
     Mesh* GetMesh();
-    std::span<Mesh*> GetMeshes();
+    std::span<ObjPtr<Mesh>> GetMeshes();
     AABB GetAABB();
     void ValidateSkinning();
     void DisableSkinning();
     bool IsSkinningEnabled();
-    const std::vector<Material*>& GetMaterials();
+    const std::vector<ObjPtr<Material>>& GetMaterials();
     Gfx::ShaderResource* GetObjectResource() { return gpuResource.get(); }
 
     void OnDrawGizmos() override;
@@ -65,8 +67,8 @@ public:
 
 private:
     /***** Serialized Data ******/
-    std::vector<Mesh*> meshes{};
-    std::vector<Material*> materials = {};
+    std::vector<ObjPtr<Mesh>> meshes{};
+    std::vector<ObjPtr<Material>> materials = {};
     bool multipass = false;
     AABB aabb {};
     AABB aabbWS {};

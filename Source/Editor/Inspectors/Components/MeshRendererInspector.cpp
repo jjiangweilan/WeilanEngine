@@ -68,7 +68,7 @@ public:
         }
         // show materials
         ImGui::Text("Materials: ");
-        std::vector<Material*> mats = meshRenderer->GetMaterials();
+        auto mats = meshRenderer->GetMaterials();
         for (int i = 0; i < mats.size(); ++i)
         {
             Material* mat = mats[i];

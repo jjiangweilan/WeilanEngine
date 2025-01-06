@@ -332,7 +332,8 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
     auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
     auto gameObjects = model->CreateGameObject();
-    auto go = gameObjects[1].get(); // internal object uses fbx from Blender, there is an empty root object we need to skip
+    auto go =
+        gameObjects[1].get(); // internal object uses fbx from Blender, there is an empty root object we need to skip
     std::unique_ptr<GameObject> firstModelClone(static_cast<GameObject*>(go->Clone().release()));
     firstModelClone->SetWantsToBeEnabled();
     Material* mats[] = {EngineInternalResources::GetDefaultGridMaterial()};
@@ -411,6 +412,32 @@ void GameEditor::ShowSceneTree(Scene& scene)
         {
             auto go = scene.CreateGameObject();
             go->SetParent(sceneTreeContextObject);
+        }
+
+        if (ImGui::Button("Split Mesh Renderer"))
+        {
+            auto selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
+            if (selected)
+            {
+                auto meshRenderer = selected->GetComponent<MeshRenderer>();
+                auto meshes = meshRenderer->GetMeshes();
+                auto materials = meshRenderer->GetMaterials();
+
+                for(int i = 0; i < meshes.size() && i < materials.size(); ++i)
+                {
+                    auto mesh = meshes[i];
+                    auto material = materials[i];
+
+                    auto child = scene.CreateGameObject();
+                    child->SetParent(selected, false);
+
+                    auto m = child->AddComponent<MeshRenderer>();
+                    m->SetMesh(mesh);
+                    m->SetMaterial(material);
+                }
+
+                selected->RemoveComponent(meshRenderer);
+            }
         }
 
         if (ImGui::Button("Delete"))
