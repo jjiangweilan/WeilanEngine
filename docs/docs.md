@@ -1,5 +1,8 @@
 # WeilanEngine Coding Document
 
+## How to convert assets
+https://github.com/KhronosGroup/3D-Formats-Guidelines/blob/main/subpages/KTXArtistGuide_glTF-Transform.md
+
 ## GfxDriver
 a very thin wrap of Graphics APIs, it's basically des
 

@@ -12,7 +12,7 @@
 #include <ktx.h>
 #include <ktxvulkan.h>
 
-DEFINE_ASSET_LOADER(TextureLoader, "ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
+DEFINE_ASSET_LOADER(TextureLoader, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
 
 const std::vector<std::type_index>& TextureLoader::GetImportTypes()
 {
@@ -79,7 +79,7 @@ std::vector<std::filesystem::path> TextureLoader::Import()
     f.open(absoluteAssetPath, std::ios::binary | std::ios_base::in);
     if (f.good() && f.is_open())
     {
-        if (absoluteAssetPath.extension() != ".ktx")
+        if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
         {
             std::stringstream ss;
             ss << f.rdbuf();

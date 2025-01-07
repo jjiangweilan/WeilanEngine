@@ -86,33 +86,19 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         std::unique_ptr<SerializeReferenceResolveMap> resolveMap = nullptr;
         std::unique_ptr<JsonSerializer> ser = nullptr;
     };
-    const int size = pathes.size();
-    std::vector<Asset*> results(size, nullptr);
-    std::vector<AsyncImport> asyncImport(size);
 
-    for (int i = 0; i < pathes.size(); ++i)
+    std::vector<std::filesystem::path> validPathes{};
+    for (auto& path : pathes)
     {
-        auto& path = pathes[i];
-        auto assetData = assets.GetAssetData(path);
-        asyncImport[i].assetData = assetData;
-        asyncImport[i].absoluteAssetPath = assetDirectory / path;
-        if (assetData)
+        if (AssetRegistry::IsExtensionAnAsset(path.extension().string()))
         {
-            // override the asset path because this asset may be an internal asset
-            asyncImport[i].absoluteAssetPath = assetData->GetAssetAbsolutePath();
-            auto a = assetData->GetAsset();
-            if (a)
-            {
-                results[i] = a;
-                asyncImport[i].stateTrack = 1;
-            }
-        }
-
-        if (!std::filesystem::exists(asyncImport[i].absoluteAssetPath))
-        {
-            asyncImport[i].stateTrack = 2;
+            validPathes.push_back(path);
         }
     }
+
+    const int size = validPathes.size();
+    std::vector<Asset*> results(size, nullptr);
+    std::vector<AsyncImport> asyncImport(size);
 
     for (int i = 0; i < size; ++i)
     {
@@ -169,7 +155,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
             else
             {
                 std::unique_ptr<AssetData> ad =
-                    std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), pathes[i], projectRoot);
+                    std::make_unique<AssetData>(std::move(asyncImport[i].newAsset), validPathes[i], projectRoot);
                 ad->SaveToDisk(projectRoot);
 
                 assets.Add(std::move(ad));
@@ -850,7 +836,6 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     // SCOPED_PROFILER(path.string());
 
     // see if the asset is an external asset(ktx, glb...), if so, start importing it
-
 
     if (serializer)
     {
