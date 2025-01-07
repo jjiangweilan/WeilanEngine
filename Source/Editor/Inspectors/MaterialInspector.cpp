@@ -189,19 +189,25 @@ public:
 
             ImGui::Spacing();
             ImGui::Text("ShaderConfig");
-            auto config = *target->GetShaderConfig();
-            int cullMode = static_cast<int>(config.cullMode);
-
-            if (GUI::EnumDropDown(
-                    "CullMode",
-                    cullMode,
-                    static_cast<int>(Gfx::CullMode::MAX_COUNT),
-                    [](int index) { return Utils::MapStrCullMode(static_cast<Gfx::CullMode>(index)); }
-                ))
+            auto config = target->GetShaderConfig();
+            auto json = config.ToJson();
+            if(GUI::JsonInspector(json))
             {
-                config.cullMode = static_cast<Gfx::CullMode>(cullMode);
-                target->SetShaderConfig(config);
+                config = Gfx::PipelineConfig::FromJson(json);
+                target->SetShaderConfig(*config);
             }
+            // int cullMode = static_cast<int>(config.cullMode);
+            //
+            // if (GUI::EnumDropDown(
+            //         "CullMode",
+            //         cullMode,
+            //         static_cast<int>(Gfx::CullMode::MAX_COUNT),
+            //         [](int index) { return Utils::MapStrCullMode(static_cast<Gfx::CullMode>(index)); }
+            //     ))
+            // {
+            //     config.cullMode = static_cast<Gfx::CullMode>(cullMode);
+            //     target->SetShaderConfig(config);
+            // }
 
             ImGui::Spacing();
             ImGui::Text("Textures");

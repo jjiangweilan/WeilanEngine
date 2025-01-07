@@ -14,7 +14,7 @@ void GUI::AutoObjectInspector(Object* target)
     (static_cast<Serializable*>(target))->Serialize(&ser);
     auto j = ser.GetJson();
     bool valueChanged = false;
-    AutoObjectInspectorInternal(j, valueChanged);
+    JsonInspectorInternal(j, valueChanged);
 
     if (valueChanged)
     {
@@ -24,7 +24,14 @@ void GUI::AutoObjectInspector(Object* target)
     }
 }
 
-void GUI::AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged)
+bool GUI::JsonInspector(nlohmann::json& j)
+{
+    bool valueChanged = false;
+    JsonInspectorInternal(j, valueChanged);
+    return valueChanged;
+}
+
+void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
 {
     for (auto& item : j.items())
     {
@@ -34,7 +41,7 @@ void GUI::AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged)
         {
             if (ImGui::TreeNode(key.c_str()))
             {
-                AutoObjectInspectorInternal(value, valueChanged);
+                JsonInspectorInternal(value, valueChanged);
                 ImGui::TreePop();
             }
         }

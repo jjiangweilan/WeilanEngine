@@ -319,11 +319,12 @@ public:
     }
 
     static void AutoObjectInspector(Object* target);
+    static bool JsonInspector(nlohmann::json& j);
 
 private:
     static const char* PayloadType;
     static std::vector<char> textArea;
 
-    static void AutoObjectInspectorInternal(nlohmann::json& j, bool& valueChanged);
+    static void JsonInspectorInternal(nlohmann::json& j, bool& valueChanged);
 };
 } // namespace Editor
