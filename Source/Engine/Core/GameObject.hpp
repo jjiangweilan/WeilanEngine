@@ -247,8 +247,8 @@ private:
     std::vector<ObjPtr<GameObject>> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;
     std::vector<std::unique_ptr<Component>> components;
-    GameObject* parent = nullptr;
-    Scene* gameScene = nullptr;
+    ObjPtr<GameObject> parent = nullptr;
+    ObjPtr<Scene> gameScene = nullptr;
 
     GameObject* FindInternal(GameObject* go, std::string_view name);
 

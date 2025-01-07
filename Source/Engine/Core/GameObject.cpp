@@ -172,7 +172,7 @@ void GameObject::RemoveChild(GameObject* child)
 
 void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
 {
-    if (this->parent == newParent || HasFlag(flags, GameObjectFlag::DontChangeHierarchy))
+    if (this->parent.Get() == newParent || HasFlag(flags, GameObjectFlag::DontChangeHierarchy))
     {
         return;
     }
@@ -223,7 +223,7 @@ void GameObject::SetParent(GameObject* newParent, bool keepWorldSpacePostion)
 
 void GameObject::SetScene(Scene* scene)
 {
-    if (this->gameScene != scene)
+    if (this->gameScene.Get() != scene)
     {
         if (this->gameScene != nullptr)
         {
@@ -306,19 +306,25 @@ glm::mat4 GameObject::GetWorldMatrix() const
 {
     auto& localMatrix = GetLocalMatrix();
 
-    if (transformChanged && parent != nullptr)
+    if (transformChanged)
     {
-        worldMatrix = parent->GetWorldMatrix() * localMatrix;
-        transformChanged = false;
-        return worldMatrix;
+        if (parent != nullptr)
+        {
+            worldMatrix = parent->GetWorldMatrix() * localMatrix;
+            transformChanged = false;
+            return worldMatrix;
+        }
+        else
+        {
+            worldMatrix = localMatrix;
+        }
     }
-    {
-        transformChanged = false;
-        if (parent == nullptr)
-            return localMatrix;
 
+    transformChanged = false;
+    if (parent == nullptr)
         return worldMatrix;
-    }
+
+    return worldMatrix;
 }
 
 glm::quat GameObject::GetRotation() const
