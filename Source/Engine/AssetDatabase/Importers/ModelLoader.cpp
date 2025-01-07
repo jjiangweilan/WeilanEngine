@@ -289,8 +289,8 @@ private:
             submesh.SetVertexAttribute(std::move(attributes));
             submesh.SetIndices(std::move(indices));
             AABB aabb;
-            aabb.min = { mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z },
-            aabb.max = { mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z };
+            aabb.min = {mesh->mAABB.mMin.x, mesh->mAABB.mMin.y, mesh->mAABB.mMin.z},
+            aabb.max = {mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z};
             submesh.SetAABB(aabb);
             submesh.Apply();
             std::vector<Submesh> submeshes;
@@ -331,6 +331,32 @@ private:
 
     void ProcessMaterial()
     {
+        // preload all textures
+        std::set<std::filesystem::path> texturePaths{};
+        aiTextureType textureTypes[] =
+            {aiTextureType_DIFFUSE, aiTextureType_NORMALS, aiTextureType_METALNESS, aiTextureType_EMISSIVE};
+        for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
+        {
+            for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
+            {
+                auto material = scene->mMaterials[materialIndex];
+                for (int i = 0; i < sizeof(textureTypes) / sizeof(aiTextureType); ++i)
+                {
+                    if (material->GetTextureCount(textureTypes[i]) > 0)
+                    {
+                        aiString texName;
+                        material->Get(AI_MATKEY_TEXTURE(textureTypes[i], 0), texName);
+                        texturePaths.insert(std::filesystem::relative(
+                            absoluteAssetPath.parent_path() / texName.C_Str(),
+                            AssetDatabase::Singleton()->GetAssetDirectory()
+                        ));
+                    }
+                }
+            }
+        }
+        std::vector<std::filesystem::path> texturePathsAsVec(texturePaths.begin(), texturePaths.end());
+        AssetDatabase::Singleton()->LoadAssets(texturePathsAsVec);
+
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {
             std::unique_ptr<Material> mat = std::make_unique<Material>();
@@ -400,7 +426,7 @@ private:
                 blend.srcAlphaBlendFactor = Gfx::BlendFactor::Src_Alpha;
                 blend.dstAlphaBlendFactor = Gfx::BlendFactor::One_Minus_Src_Alpha;
                 blend.alphaBlendOp = Gfx::BlendOp::Add;
-                shaderConfig.depth.testEnable = false;
+                shaderConfig.depth.writeEnable = false;
             }
             else
             {
