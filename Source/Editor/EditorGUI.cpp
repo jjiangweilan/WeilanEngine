@@ -64,6 +64,85 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
                 valueChanged = true;
             }
         }
+        else if (value.is_array())
+        {
+            int length = value.size();
+            ImGui::SetNextItemWidth(80);
+            if (length == 2)
+            {
+                glm::float2 val;
+                val.x = value[0];
+                val.y = value[1];
+                if (ImGui::InputFloat2(key.c_str(), &val[0]))
+                {
+                    value[0] = val.x;
+                    value[1] = val.y;
+                    valueChanged = true;
+                }
+            }
+            else if (length == 3)
+            {
+                glm::float3 val;
+                val.x = value[0];
+                val.y = value[1];
+                val.z = value[2];
+                if (ImGui::InputFloat3(key.c_str(), &val[0]))
+                {
+                    value[0] = val.x;
+                    value[1] = val.y;
+                    value[2] = val.z;
+                    valueChanged = true;
+                }
+            }
+            else if (length == 4)
+            {
+                glm::float4 val;
+                val.x = value[0];
+                val.y = value[1];
+                val.z = value[2];
+                val.w = value[3];
+                if (ImGui::InputFloat4(key.c_str(), &val[0]))
+                {
+                    value[0] = val.x;
+                    value[1] = val.y;
+                    value[2] = val.z;
+                    value[3] = val.w;
+                    valueChanged = true;
+                }
+            }
+        }
+        else if (value.is_string())
+        {
+            bool isUUID = false;
+            std::string text = value;
+            if (text.size() == 36) // potentially a UUID
+            {
+                auto uuid = UUID(text);
+                if (!uuid.IsEmpty())
+                {
+                    isUUID = true;
+
+                    // 'uuid' is treated specially because it's most likely the uuid of the object itself
+                    if (std::strcmp(key.c_str(), "uuid") != 0)
+                    {
+                        ObjPtr<Object> objPtr(uuid);
+                        Object* obj = objPtr.Get();
+                        if (ObjectField(key.c_str(), obj))
+                        {
+                            value = obj->GetUUID().ToString();
+                        }
+                    }
+                }
+            }
+
+            if (!isUUID)
+            {
+                if (GUI::InputText(key.c_str(), text))
+                {
+                    value = text;
+                }
+            }
+        }
     }
 }
 } // namespace Editor
