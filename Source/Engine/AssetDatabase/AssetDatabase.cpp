@@ -100,6 +100,31 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
     std::vector<Asset*> results(size, nullptr);
     std::vector<AsyncImport> asyncImport(size);
 
+    for (int i = 0; i < validPathes.size(); ++i)
+    {
+        auto& path = validPathes[i];
+        auto assetData = assets.GetAssetData(path);
+        asyncImport[i].assetData = assetData;
+        asyncImport[i].absoluteAssetPath = assetDirectory / path;
+        if (assetData)
+        {
+            // override the asset path because this asset may be an internal asset
+            asyncImport[i].absoluteAssetPath = assetData->GetAssetAbsolutePath();
+            auto a = assetData->GetAsset();
+            if (a)
+            {
+                results[i] = a;
+                asyncImport[i].stateTrack = 1;
+            }
+        }
+
+        if (!std::filesystem::exists(asyncImport[i].absoluteAssetPath))
+        {
+            asyncImport[i].stateTrack = 2;
+        }
+    }
+
+
     for (int i = 0; i < size; ++i)
     {
         if (asyncImport[i].stateTrack == 0)
