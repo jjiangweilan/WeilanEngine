@@ -70,9 +70,6 @@ struct PerMaterial
 }
 
 #define M_PI 3.1415926
-#define USE_PERLIN_NOISE_3D
-#define USE_WORLEY_NOISE_3D
-#include "Utils/Noise.hlsl"
 #include "Utils/Util.hlsl"
 
 ParameterBlock<PerMaterial> perMaterial;
