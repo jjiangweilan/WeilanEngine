@@ -33,6 +33,7 @@ bool GUI::JsonInspector(nlohmann::json& j)
 
 void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
 {
+    const float BaseInputWidth = 60;
     for (auto& item : j.items())
     {
         auto& key = item.key();
@@ -48,7 +49,7 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
         else if (value.is_number_float())
         {
             float val = value;
-            ImGui::SetNextItemWidth(80);
+            ImGui::SetNextItemWidth(BaseInputWidth);
             if (ImGui::DragFloat(key.c_str(), &val))
             {
                 value = val;
@@ -67,13 +68,13 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
         else if (value.is_array())
         {
             int length = value.size();
-            ImGui::SetNextItemWidth(80);
             if (length == 2)
             {
                 glm::float2 val;
                 val.x = value[0];
                 val.y = value[1];
-                if (ImGui::InputFloat2(key.c_str(), &val[0]))
+                ImGui::SetNextItemWidth(BaseInputWidth * 2);
+                if (ImGui::DragFloat2(key.c_str(), &val[0]))
                 {
                     value[0] = val.x;
                     value[1] = val.y;
@@ -86,7 +87,8 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
                 val.x = value[0];
                 val.y = value[1];
                 val.z = value[2];
-                if (ImGui::InputFloat3(key.c_str(), &val[0]))
+                ImGui::SetNextItemWidth(BaseInputWidth * 3);
+                if (ImGui::DragFloat3(key.c_str(), &val[0]))
                 {
                     value[0] = val.x;
                     value[1] = val.y;
@@ -101,7 +103,8 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
                 val.y = value[1];
                 val.z = value[2];
                 val.w = value[3];
-                if (ImGui::InputFloat4(key.c_str(), &val[0]))
+                ImGui::SetNextItemWidth(BaseInputWidth * 4);
+                if (ImGui::DragFloat4(key.c_str(), &val[0]))
                 {
                     value[0] = val.x;
                     value[1] = val.y;
