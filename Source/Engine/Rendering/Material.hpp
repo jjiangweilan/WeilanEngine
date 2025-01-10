@@ -44,6 +44,7 @@ public:
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
+    int GetSet(const std::string& name) const;
 
     [[deprecated("Use Texture version instead")]]
     void SetTexture(
@@ -87,8 +88,8 @@ public:
     // a dirty implementation to use when a texture is reimported in editor
     static void RebuildAllMaterials();
 
-private:
     inline static const std::string PerMaterial = "perMaterial";
+private:
     struct UBO
     {
         bool dirty = false;

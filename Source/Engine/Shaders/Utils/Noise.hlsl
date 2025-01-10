@@ -2,7 +2,7 @@
 
 // seems not working on RTX gpu, maybe because of sin?
 float rand(float2 co){
-    return fract(sin(dot(co.xy ,float2(12.9898,78.233))) * 43758.5453);
+    return frac(sin(dot(co.xy ,float2(12.9898,78.233))) * 43758.5453);
 }
 
 float3 hash3(uint3 x)
@@ -38,7 +38,7 @@ float fade(float t)
 float hash13(float3 pos)
 {
     float2 uv = pos.xy + pos.z * 1341.5331;
-    return hash1(floatBitsToUint(uv));
+    return hash1(asuint(uv));
 // #if defined(NOISE_WHITE_NOISE_TEX)
 //     return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
 // #else
@@ -62,13 +62,13 @@ float perlinNoise3D(float3 pos)
     float v = fade(pf.y);
     float w = fade(pf.z);
 
-    return mix( mix( mix( grad3D(hash13(pi + float3(0, 0, 0)), pf - float3(0, 0, 0)),
+    return lerp( lerp( lerp( grad3D(hash13(pi + float3(0, 0, 0)), pf - float3(0, 0, 0)),
                     grad3D(hash13(pi + float3(1, 0, 0)), pf - float3(1, 0, 0)), u ),
-                mix( grad3D(hash13(pi + float3(0, 1, 0)), pf - float3(0, 1, 0)), 
+                lerp( grad3D(hash13(pi + float3(0, 1, 0)), pf - float3(0, 1, 0)), 
                     grad3D(hash13(pi + float3(1, 1, 0)), pf - float3(1, 1, 0)), u ), v ),
-            mix( mix( grad3D(hash13(pi + float3(0, 0, 1)), pf - float3(0, 0, 1)), 
+            lerp( lerp( grad3D(hash13(pi + float3(0, 0, 1)), pf - float3(0, 0, 1)), 
                     grad3D(hash13(pi + float3(1, 0, 1)), pf - float3(1, 0, 1)), u ),
-                mix( grad3D(hash13(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
+                lerp( grad3D(hash13(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
                     grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
 }
 #endif
@@ -124,7 +124,7 @@ float worley3D(float3 p){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
-                float3 rId = hash3(floatBitsToUint(id+coord));
+                float3 rId = hash3(asuint(id+coord));
 
                 float3 r = coord + rId - fd; 
 

@@ -101,6 +101,7 @@ struct PipelineInfo
 
     struct DescriptorSet
     {
+        std::string name;
         int setNum = 0;
         std::vector<Binding> bindings = {};
         std::unordered_map<std::string, Binding*> nameToBinding = {};
@@ -152,6 +153,19 @@ struct PipelineInfo
     std::vector<FragmentOutput> fragmentOutputs = {};
     std::vector<DescriptorSet> descriptorSets = {};
     std::vector<PushConstant> pushConstants = {};
+
+    const DescriptorSet* GetDescriptorSet(const std::string& name) const
+    {
+        for (int i = 0; i < descriptorSets.size(); ++i)
+        {
+            if (descriptorSets[i].name == name)
+            {
+                return &descriptorSets[i];
+            }
+        }
+
+        return nullptr;
+    }
 
     std::string DumpInformation() const
     {

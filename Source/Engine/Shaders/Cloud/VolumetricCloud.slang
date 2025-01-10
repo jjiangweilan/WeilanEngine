@@ -7,6 +7,11 @@ blend:
 - one oneMinusSrcAlpha
 #endif
 
+#include "Structs.hlsl"
+#include "Utils/Util.hlsl"
+
+#define M_PI 3.1415926
+
 ParameterBlock<PerScene> scene;
 
 struct VertexOutput {
@@ -27,52 +32,18 @@ struct VertexInput
 };
 
 [shader("vertex")]
-VertexOutput Vertex(VertexInput input)
+VertexOutput VertexMain(VertexInput input)
 {
     VertexOutput output;
 
     float3 positionWS = mul(transform.model, float4(input.position, 1)).xyz;
     output.positionWS = positionWS.xyz;
     output.position = mul(scene.viewProjection, float4(positionWS, 1));
+
+    return output;
 }
 
-struct Cloud
-{
-    float4 position;
-    float delta;
-    float lightStep;
-    float phaseFactor;
-
-   // float4 worley_freq;
-   // float4 perlin0_freq;
-   // float4 perlin1_freq;
-
-    float cloudDensity;
-    float absorption;
-    float dualLobHenyeyGreenstein;
-    float4 cloudDensity_remap;
-    float2 edgeFade;
-    float lightIntensityScale;
-    float4 sdfScale;
-    float4 lighting_remap;
-    float4 worley_amp;
-} prop;
-
-// layout(set = SET_GLOBAL, binding = 7) uniform Global
-// {
-//     float time;
-// } g;
-
-struct PerMaterial
-{
-    Texture3D cloudDensity;
-    SamplerState sampler_Linear_ClampToBorder;
-}
-
-#define M_PI 3.1415926
-#include "Utils/Util.hlsl"
-
-ParameterBlock<PerMaterial> perMaterial;
+ParameterBlock<Cloud> perMaterial;
 
 float BoxSdf(float3 p, float scale)
 {
@@ -94,7 +65,7 @@ float BoxSdf(float3 p, float3 scale)
 
 float Absorption(float d)
 {
-    return 2 * exp(-1 * d * prop.absorption) * (1-exp(-d*2));
+    return 2 * exp(-1 * d * perMaterial.absorption) * (1-exp(-d*2));
 }
 
 float HenyeyGreenstein(float g, float costh)
@@ -128,44 +99,44 @@ float SampleCloudDensity(float3 pos)
 
     float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
 
-    return clamp(remap(cloud * prop.cloudDensity, prop.cloudDensity_remap),0, 1);
+    return clamp(remap(cloud * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap),0, 1);
 }
 
 float SampleCloudDensity(float3 pos, out float3 normalizedPos)
 {
     normalizedPos = NormalizePosition(pos);
-    return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, normalizedPos).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, normalizedPos).x * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap.x, perMaterial.cloudDensity_remap.y,perMaterial.cloudDensity_remap.z,perMaterial.cloudDensity_remap.w),0, 1);
 }
 
 
 float SampleCloudDensity1(float3 uv)
 {
-    return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, uv).x * prop.cloudDensity, prop.cloudDensity_remap.x, prop.cloudDensity_remap.y,prop.cloudDensity_remap.z,prop.cloudDensity_remap.w),0, 1);
+    return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, uv).x * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap.x, perMaterial.cloudDensity_remap.y,perMaterial.cloudDensity_remap.z,perMaterial.cloudDensity_remap.w),0, 1);
 }
 
 float GetDensity(float3 curr)
 {
-    float sdf = BoxSdf(curr, prop.sdfScale.xyz);
+    float sdf = BoxSdf(curr, perMaterial.sdfScale.xyz);
     float3 normalizedPos = NormalizePosition(curr);
 
     float4 cloud0 = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, normalizedPos);
 
     float perlinWorley = cloud0.x;
-    float worley = cloud0.y * prop.worley_amp.x + cloud0.z * prop.worley_amp.y + cloud0.w * prop.worley_amp.z; 
+    float worley = cloud0.y * perMaterial.worley_amp.x + cloud0.z * perMaterial.worley_amp.y + cloud0.w * perMaterial.worley_amp.z; 
 
     float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
 
-    return remap(cloud - max(sdf, 0)* prop.edgeFade.x, prop.cloudDensity_remap);
+    return remap(cloud - max(sdf, 0)* perMaterial.edgeFade.x, perMaterial.cloudDensity_remap);
 }
 
 float3 LightMarch(float3 end, float3 ldir)
 {
     const float travelDistance = 20;
-    const float delta = prop.lightStep > 0 ? prop.lightStep : 1;
+    const float delta = perMaterial.lightStep > 0 ? perMaterial.lightStep : 1;
 
     float travel = 0;
     float3 curr = end - travelDistance * ldir;
-    float3 lightColor = float3(prop.lightIntensityScale);
+    float3 lightColor = float3(perMaterial.lightIntensityScale);
     float4 light = float4(0);
     for(;travel < travelDistance; travel += delta)
     {
@@ -179,7 +150,7 @@ float3 LightMarch(float3 end, float3 ldir)
 
             // float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
             float phaseCos = 1;
-            float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
+            float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
             float reflectAbsorption = Absorption(den);
             // float ndotl = clamp((den - den1) / 0.3,0,1);
 
@@ -202,7 +173,7 @@ float3 LightMarch(float3 end, float3 ldir)
 float4 RayMarching1(float3 origin, float3 dir)
 {
     const float travelDistance = 20;
-    const float delta = prop.delta > 0 ? prop.delta : 0.01f;
+    const float delta = perMaterial.delta > 0 ? perMaterial.delta : 0.01f;
 
     float travel = 0.01;
     float3 curr = origin;
@@ -219,10 +190,10 @@ float4 RayMarching1(float3 origin, float3 dir)
             float cloudDensity0 = GetDensity(curr + 0.1 * ldir);
 
             float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
-            float3 l = float3(float3(0.93,0.85,0.75)*0.9 + prop.lightIntensityScale*float3(1.0,0.6,0.3)*ndotl);
+            float3 l = float3(float3(0.93,0.85,0.75)*0.9 + perMaterial.lightIntensityScale*float3(1.0,0.6,0.3)*ndotl);
 
             float phaseCos = dot(-dir, -ldir);
-            // float phase = DualLobHenyeyGreenstein(prop.phaseFactor, phaseCos, prop.dualLobHenyeyGreenstein);
+            // float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
             float absorption = Absorption(den);
 
             // float3 lightColor = LightMarch(curr, ldir);
@@ -241,7 +212,7 @@ float4 RayMarching1(float3 origin, float3 dir)
 }
 
 [shader("fragment")]
-float4 Fragment(VertexOutput input) : SV_Target
+float4 FragmentMain(VertexOutput input) : SV_Target
 {
 float len = length(input.positionWS.xyz - scene.viewPos.xyz);
     float3 dir = (input.positionWS.xyz - scene.viewPos.xyz) / len;
@@ -249,6 +220,6 @@ float len = length(input.positionWS.xyz - scene.viewPos.xyz);
     const float travelDistance = min(20, len);
 
     float4 lighting = RayMarching1(end - travelDistance * dir, dir);
-    float4 result = float4(remap(lighting.xyz, prop.lighting_remap), clamp(lighting.a, 0, 1));//clamp(directAbsorption,0,1));
+    float4 result = float4(remap(lighting.xyz, perMaterial.lighting_remap), clamp(lighting.a, 0, 1));//clamp(directAbsorption,0,1));
     return result;
 }

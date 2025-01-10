@@ -267,7 +267,8 @@ public:
             {
                 type = Gfx::DescriptorType::StorageImage;
             }
-            else if (rangeType == slang::BindingType::MutableTypedBuffer || rangeType == slang::BindingType::MutableRawBuffer)
+            else if (rangeType == slang::BindingType::MutableTypedBuffer ||
+                     rangeType == slang::BindingType::MutableRawBuffer)
             {
                 type = Gfx::DescriptorType::StorageBuffer;
             }
@@ -548,7 +549,14 @@ public:
                         // https://github.com/shader-slang/slang/issues/5940
                         if (binding.stages == Gfx::ShaderStage::None)
                         {
-                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                            if (HasComputeEntryPoint())
+                            {
+                                binding.stages = Gfx::ShaderStage::Compute;
+                            }
+                            else
+                            {
+                                binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                            }
                         }
 
                         outBindings.push_back(binding);
@@ -567,9 +575,9 @@ public:
     {
         Gfx::PipelineInfo::DescriptorSet set{};
         set.setNum = setLayoutReflection->getOffset((SlangParameterCategory)slang::SubElementRegisterSpace);
-        std::string name = setLayoutReflection->getName();
         CollectBindings(setLayoutReflection, nullptr, set, 0, set.bindings);
 
+        set.name = setLayoutReflection->getName();
         pipelineInfo.descriptorSets.push_back(set);
     }
 
@@ -747,10 +755,8 @@ public:
             if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
             {
                 Gfx::PipelineInfo::PushConstant pushConstant;
-                pushConstant.stages =
-                    Gfx::ShaderStage::Vertex |
-                    Gfx::ShaderStage::
-                    Fragment; // https://github.com/shader-slang/slang/issues/5685
+                pushConstant.stages = Gfx::ShaderStage::Vertex |
+                                      Gfx::ShaderStage::Fragment; // https://github.com/shader-slang/slang/issues/5685
                 // push constant not supported to query yet
                 pushConstant.size = var->getTypeLayout()->getElementTypeLayout()->getSize();
                 outPipelineInfo.pushConstants.push_back(pushConstant);

@@ -5,57 +5,13 @@
 #include "Inspector.hpp"
 #include "Rendering/EnumStringMapping.hpp"
 #include "Rendering/Material.hpp"
+#include "ThirdParty/imgui/imgui.h"
 namespace Editor
 {
 class MaterialInspector : public Inspector<Material>
 {
 public:
-    void OnEnable(Object& obj) override
-    {
-        Inspector<Material>::OnEnable(obj);
-
-        featureToEnable[0] = '\0';
-
-        for (auto& obj : Object::GetAllEngineObjects())
-        {
-            if (obj.second->GetObjectTypeID() == Shader2::StaticGetObjectTypeID())
-            {
-                shaders.push_back(static_cast<Shader2*>(obj.second));
-            }
-        }
-
-        std::sort(
-            shaders.begin(),
-            shaders.end(),
-            [](Shader2* f, Shader2* s) { return f->GetShaderProgram()->GetName() < s->GetShaderProgram()->GetName(); }
-        );
-    }
-
-    // void ShowFeatures(const std::vector<std::vector<std::string>>& features)
-    //{
-    //     for (auto& fs : features)
-    //     {
-    //         for (auto& f : fs)
-    //         {
-    //             if (f != ShaderBase::DefaultGlobalFeatureWord)
-    //             {
-    //                 bool enabled = target->IsFeatureEnabled(f);
-    //                 ImGui::PushStyleColor(
-    //                     ImGuiCol_Button,
-    //                     enabled ? ImVec4(0.2, 0.7, 0.2, 1) : ImVec4(0.7, 0.2, 0.2, 1)
-    //                 );
-    //                 if (ImGui::Button(f.c_str()))
-    //                 {
-    //                     if (enabled)
-    //                         target->DisableFeature(f);
-    //                     else
-    //                         target->EnableFeature(f);
-    //                 }
-    //                 ImGui::PopStyleColor();
-    //             }
-    //         }
-    //     }
-    // }
+    void OnEnable(Object& obj) override { Inspector<Material>::OnEnable(obj); }
 
     void DrawInspector(GameEditor& editor) override
     {
@@ -63,13 +19,47 @@ public:
         if (GUI::InputText("Name", name))
             target->SetName(name);
 
+        auto shader = target->GetShaderProgram();
+        if (shader)
+        {
+            auto& pipelineInfo = shader->GetShaderInfo();
+            auto set = pipelineInfo.GetDescriptorSet(Material::PerMaterial);
+            if (set)
+            {
+                const auto binding = set->GetBinding(Material::PerMaterial);
+                if (binding)
+                {
+                    for (auto member : binding->bufferMembers)
+                    {
+                        if (member.IsVector())
+                        {
+                            glm::float4 val = target->GetVector("", member.name);
+                            if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
+                            {
+                                target->SetVector("", member.name, val);
+                            }
+                        }
+                        else if (member.IsElement())
+                        {
+                            float val = target->GetFloat("", member.name);
+                            if (ImGui::DragFloat(member.name.c_str(), &val))
+                            {
+                                target->SetFloat("", member.name, val);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ImGui::Separator();
+
         GUI::AutoObjectInspector(target);
     }
 
 private:
     static const char _register;
     char featureToEnable[256];
-    std::vector<Shader2*> shaders;
 
     glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
     {

@@ -1,6 +1,7 @@
 #include "../EditorState.hpp"
 #include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
+#include "Core/Component/Cloud.hpp"
 #include "Core/Component/GrassSurface.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/LightFieldProbes.hpp"
@@ -53,6 +54,8 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<GrassSurface>();
             if (ImGui::MenuItem("AnimationPlayer"))
                 target->AddComponent<AnimationPlayer>();
+            if (ImGui::MenuItem("Cloud"))
+                target->AddComponent<Cloud>();
             ImGui::EndMenu();
         }
         ImGui::EndMenuBar();

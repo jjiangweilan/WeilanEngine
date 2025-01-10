@@ -25,7 +25,6 @@ public:
             SERIALIZE(s, constantBias);
             SERIALIZE(s, normalBias);
         }
-
         void Deserialize(Serializer* s) override
         {
             DESERIALIZE(s, constantBias);
@@ -41,7 +40,6 @@ public:
         {
             SERIALIZE(s, drawMeshRendererAABB);
         }
-
         void Deserialize(Serializer* s) override
         {
             DESERIALIZE(s, drawMeshRendererAABB);

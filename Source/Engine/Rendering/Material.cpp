@@ -237,6 +237,7 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("enabledFeature", enabledFeatureVec);
     s->Serialize("overrideShaderConfig", overrideShaderConfig);
     s->Serialize("shaderConfig", overrideShaderConfig ? shaderConfig.ToJson() : nlohmann::json());
+    SERIALIZE(s, shaderName);
 }
 
 std::unique_ptr<Asset> Material::Clone()
@@ -316,9 +317,10 @@ void Material::Deserialize(Serializer* s)
     nlohmann::json shaderConfigJson;
     s->Deserialize("shaderConfig", shaderConfigJson);
     s->Deserialize("overrideShaderConfig", overrideShaderConfig);
-    if (shaderConfigJson != nullptr)
+    DESERIALIZE(s, shaderName);
+    if (!shaderName.empty())
     {
-        // shaderConfig = std::make_shared<Gfx::ShaderConfig>(Gfx::ShaderConfig::FromJson(shaderConfigJson));
+        SetShader(shaderName);
     }
 }
 
@@ -377,9 +379,12 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
     {
         ubo.dirty = false;
         const auto& pipelineInfo = shaderProgram->GetShaderInfo();
-        auto binding = pipelineInfo.descriptorSets[1].GetBinding(PerMaterial);
-        if (binding != nullptr &&
-            binding->descriptorType == Gfx::DescriptorType::UniformBuffer)
+        auto descriptorSet = pipelineInfo.GetDescriptorSet(PerMaterial);
+        if (descriptorSet == nullptr)
+            return;
+
+        auto binding = descriptorSet->GetBinding(PerMaterial);
+        if (binding != nullptr && binding->descriptorType == Gfx::DescriptorType::UniformBuffer)
         {
             // Create the buffer
             if (ubo.buffer == nullptr)
@@ -504,4 +509,13 @@ const Gfx::PipelineConfig& Material::GetShaderConfig()
         Shader2* s = shaderInUse;
         return s->GetShaderProgram()->GetDefaultShaderConfig();
     }
+}
+
+int Material::GetSet(const std::string& name) const
+{
+    if (shaderInUse)
+    {
+        shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(name);
+    }
+    return -1;
 }
