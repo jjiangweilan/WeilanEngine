@@ -22,6 +22,7 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
 
     if (!createInfo.vertSpv.empty() && !createInfo.fragSpv.empty())
     {
+        isCompute = false;
         VkShaderModuleCreateInfo vertexModuleCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .pNext = VK_NULL_HANDLE,
@@ -109,6 +110,7 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
     }
     else if (!createInfo.computeSpv.empty())
     {
+        isCompute = true;
         VkShaderModuleCreateInfo computeModuleCreateInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .pNext = VK_NULL_HANDLE,

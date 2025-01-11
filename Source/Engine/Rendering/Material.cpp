@@ -515,7 +515,7 @@ int Material::GetSet(const std::string& name) const
 {
     if (shaderInUse)
     {
-        shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(name);
+        return shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(name)->setNum;
     }
     return -1;
 }

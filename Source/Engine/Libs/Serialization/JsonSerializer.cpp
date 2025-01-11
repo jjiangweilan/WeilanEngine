@@ -8,7 +8,14 @@ void JsonSerializer::Serialize(std::string_view name, const std::string& val)
 }
 void JsonSerializer::Deserialize(std::string_view name, std::string& val)
 {
-    val = j.value(TO_JSON_PTR(name), "");
+    try
+    {
+        val = j.value(TO_JSON_PTR(name), "");
+    }
+    catch (...)
+    {
+        val = "";
+    }
 }
 
 void JsonSerializer::Serialize(std::string_view name, const UUID& uuid)
@@ -17,7 +24,14 @@ void JsonSerializer::Serialize(std::string_view name, const UUID& uuid)
 }
 void JsonSerializer::Deserialize(std::string_view name, UUID& uuid)
 {
-    uuid = j.value(TO_JSON_PTR(name), UUID::GetEmptyUUID().ToString());
+    try
+    {
+        uuid = j.value(TO_JSON_PTR(name), UUID::GetEmptyUUID().ToString());
+    }
+    catch(...)
+    {
+        uuid = UUID::GetEmptyUUID();
+    }
 }
 
 std::unique_ptr<Serializer> JsonSerializer::CreateSubserializer()
@@ -28,8 +42,19 @@ std::unique_ptr<Serializer> JsonSerializer::CreateSubserializer()
 std::unique_ptr<Serializer> JsonSerializer::CreateSubdeserializer(std::string_view name)
 {
     auto ser = std::make_unique<JsonSerializer>();
-    ser->j = j[TO_JSON_PTR(name)];
     ser->resolveCallbacks = resolveCallbacks;
+    try
+    {
+        ser->j = j[TO_JSON_PTR(name)];
+        if (!ser->j.is_object())
+        {
+            ser->j = {};
+        }
+    }
+    catch (...)
+    {
+        ser->j = {};
+    }
     return ser;
 }
 

@@ -18,14 +18,7 @@ public:
 
 private:
     bool updateCloudShape = true;
-    inline static const char* cloudNoiseGenerator = "Cloud/CloudNoiseGenerator";
-    inline static const char* volumetricCloud = "Cloud/VolumetricCloud";
 
-    struct
-    {
-        std::unique_ptr<Gfx::Image> tex;
-        Gfx::ImageDescription desc;
-    } cloudNoise;
 
     Submesh* cube;
 };

@@ -236,7 +236,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // draw
         sceneDrawList.DrawRangeHelper(*cmd, 0, sceneDrawList.alphaTestIndex);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.alphaTestIndex, sceneDrawList.transparentIndex);
-        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
 
         cmd->EndRenderPass();
     }
@@ -291,6 +290,18 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         RenderingUtils::DrawGraphics(*cmd);
 
+        cmd->EndRenderPass();
+    }
+    cmd->EndLabel();
+
+    // Forward Pass
+    cmd->BeginLabel("Forward", &labelColors.passColor[0]);
+    {
+        forwardPass.pass.SetAttachment(0, mainColor);
+        forwardPass.pass.SetAttachment(1, mainDepth);
+        Gfx::ClearValue clear[] = {{0,0,0,0}, {0,0}};
+        cmd->BeginRenderPass(forwardPass.pass, clear);
+        sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
         cmd->EndRenderPass();
     }
     cmd->EndLabel();
@@ -417,6 +428,17 @@ RenderPipeline::FXAAPass::FXAAPass()
     };
     Gfx::RG::SubpassAttachment attachments[] = {attachmentDesc};
     pass.SetSubpass(0, attachments);
+}
+
+RenderPipeline::ForwardPass::ForwardPass()
+{
+    pass = Gfx::RG::RenderPass::Default(
+        "Forward Pass",
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
+    );
 }
 
 void RenderPipeline::FXAAPass::Execute(

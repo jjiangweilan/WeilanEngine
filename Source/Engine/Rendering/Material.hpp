@@ -46,7 +46,6 @@ public:
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
     int GetSet(const std::string& name) const;
 
-    [[deprecated("Use Texture version instead")]]
     void SetTexture(
         const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
     );

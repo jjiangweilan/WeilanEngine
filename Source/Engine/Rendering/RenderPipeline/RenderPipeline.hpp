@@ -69,6 +69,12 @@ private:
         Gfx::RG::RenderPass pass;
     } gbufferPass{};
 
+    struct ForwardPass
+    {
+        ForwardPass();
+        Gfx::RG::RenderPass pass;
+    } forwardPass{};
+
     struct ShadingPass
     {
         ShadingPass();

@@ -7,12 +7,34 @@ blend:
 - one oneMinusSrcAlpha
 #endif
 
-#include "Structs.hlsl"
+struct Cloud
+{
+    float4 position;
+    float delta;
+    float lightStep;
+    float phaseFactor;
+
+    float cloudDensityScale;
+    float absorption;
+    float dualLobHenyeyGreenstein;
+    float4 cloudDensity_remap;
+    float2 edgeFade;
+    float lightIntensityScale;
+    float4 sdfScale;
+    float4 lighting_remap;
+    float4 worley_amp;
+
+#if GPU_RESOURCE
+    Texture3D cloudDensity;
+    SamplerState sampler_Linear_ClampToBorder;
+#endif
+};
+
 #include "Utils/Util.hlsl"
 
 #define M_PI 3.1415926
 
-ParameterBlock<PerScene> scene;
+ParameterBlock<PerScene> perScene;
 
 struct VertexOutput {
     float4 position : SV_Position;
@@ -38,7 +60,7 @@ VertexOutput VertexMain(VertexInput input)
 
     float3 positionWS = mul(transform.model, float4(input.position, 1)).xyz;
     output.positionWS = positionWS.xyz;
-    output.position = mul(scene.viewProjection, float4(positionWS, 1));
+    output.position = mul(perScene.viewProjection, float4(positionWS, 1));
 
     return output;
 }
@@ -178,7 +200,7 @@ float4 RayMarching1(float3 origin, float3 dir)
     float travel = 0.01;
     float3 curr = origin;
     float distance = 0;
-    float3 ldir = normalize(scene.lights[0].position.xyz);
+    float3 ldir = normalize(perScene.lights[0].position.xyz);
     float4 light = float4(0);
     for(;travel < travelDistance; travel += delta)
     {
@@ -214,8 +236,8 @@ float4 RayMarching1(float3 origin, float3 dir)
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
-float len = length(input.positionWS.xyz - scene.viewPos.xyz);
-    float3 dir = (input.positionWS.xyz - scene.viewPos.xyz) / len;
+    float len = length(input.positionWS.xyz - perScene.viewPos.xyz);
+    float3 dir = (input.positionWS.xyz - perScene.viewPos.xyz) / len;
     float3 end = input.positionWS.xyz;
     const float travelDistance = min(20, len);
 

@@ -20,6 +20,15 @@ public:
             target->SetName(name);
 
         auto shader = target->GetShaderProgram();
+        Draw(shader);
+
+        ImGui::Separator();
+
+        GUI::AutoObjectInspector(target);
+    }
+
+    void Draw(Gfx::ShaderProgram* shader)
+    {
         if (shader)
         {
             auto& pipelineInfo = shader->GetShaderInfo();
@@ -51,10 +60,6 @@ public:
                 }
             }
         }
-
-        ImGui::Separator();
-
-        GUI::AutoObjectInspector(target);
     }
 
 private:

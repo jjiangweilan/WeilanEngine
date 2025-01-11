@@ -18,8 +18,6 @@ struct NoiseParameter
 #if GPU_RESOURCE
     [format("rgba8")]
     RWTexture3D<float4> imgOutput;
-    [format("rgba8")]
-    RWTexture3D<float4> imgOutput2;
 #endif
 };
 ParameterBlock<NoiseParameter> perMaterial;
@@ -29,10 +27,9 @@ ParameterBlock<NoiseParameter> perMaterial;
 #include "Utils/Noise.hlsl"
 #include "Utils/Util.hlsl"
 
-void CloudDensity(float3 pos0, float3 pos1, out float4 texOutput0, out float4 texOutput1)
+void CloudDensity(float3 pos0, out float4 texOutput0)
 {
     pos0 += float3(0,0,perMaterial.time);
-    pos1 += float3(0,0,perMaterial.time);
     //
     // Initial values
     float4 frequency = perMaterial.worley_freq;
@@ -57,25 +54,22 @@ void CloudDensity(float3 pos0, float3 pos1, out float4 texOutput0, out float4 te
     texOutput0.z = worley1;
     texOutput0.w = worley2;
 
-    frequency = perMaterial.worley1_freq;
-    texOutput1.x = perMaterial.worley1_amp.x * (1 - worley3D(frequency.x * pos1));
-    texOutput1.y = perMaterial.worley1_amp.y * (1 - worley3D(frequency.y * pos1));
-    texOutput1.z = perMaterial.worley1_amp.z * (1 - worley3D(frequency.z * pos1));
+    // frequency = perMaterial.worley1_freq;
+    // texOutput1.x = perMaterial.worley1_amp.x * (1 - worley3D(frequency.x * pos1));
+    // texOutput1.y = perMaterial.worley1_amp.y * (1 - worley3D(frequency.y * pos1));
+    // texOutput1.z = perMaterial.worley1_amp.z * (1 - worley3D(frequency.z * pos1));
 }
 
 [shader("compute")]
 [numthreads(8,8,8)]
-void ComputeMain(uint3 id : SV_GroupThreadID) {
+void ComputeMain(uint3 id : SV_DispatchThreadID) {
     uint3 coord = id;
-    float3 uv1 = (coord / 64.0f + 1/128.0f) * perMaterial.uvScale.xyx;
-    float3 uv0 = (coord / 128.0f + 1/256.0f) * perMaterial.uvScale.xyx;
-    float4 tex0;
-    float4 tex1;
-    CloudDensity(uv0, uv1, tex0, tex1);
 
-    if (all(coord < uint3(64)))
+    if (all(coord.xy < uint2(512)) && coord.z < 64)
     {
-        perMaterial.imgOutput2[coord] = tex1;
+        float3 uv0 = (coord / 512.0f + 1/1024.0f) * perMaterial.uvScale.xxy;
+        float4 tex0;
+        CloudDensity(uv0, tex0);
         perMaterial.imgOutput[coord] = tex0;
     }
 }

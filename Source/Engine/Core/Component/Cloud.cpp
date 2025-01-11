@@ -1,5 +1,7 @@
 #include "Cloud.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/MeshRenderer.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
@@ -7,9 +9,18 @@
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
-Cloud::Cloud() : Component(nullptr) {};
+Cloud::Cloud() : Component(nullptr)
+{};
 
-Cloud::Cloud(GameObject* owner) : Component(owner) {};
+Cloud::Cloud(GameObject* owner) : Component(owner)
+{
+    Setup();
+};
+
+void Cloud::OnLoaded()
+{
+    Setup();
+}
 
 void Cloud::Serialize(Serializer* s) const
 {
@@ -65,8 +76,8 @@ void Cloud::CreateCloudMaterials()
     std::unique_ptr<Material> noiseGenerator;
 
     Rendering::CloudRenderer::CreateCloudMaterials(volumetricCloud, noiseGenerator);
-    this->volumetricCloud = AssetDatabase::Singleton()->SaveAsset(std::move(volumetricCloud), "volumetricCloud");
-    this->noiseGenerator = AssetDatabase::Singleton()->SaveAsset(std::move(noiseGenerator), "noiseGenerator");
+    // this->volumetricCloud = AssetDatabase::Singleton()->SaveAsset(std::move(volumetricCloud), "volumetricCloud");
+    // this->noiseGenerator = AssetDatabase::Singleton()->SaveAsset(std::move(noiseGenerator), "noiseGenerator");
 }
 
 void Cloud::OnEnable()
@@ -77,4 +88,41 @@ void Cloud::OnEnable()
 void Cloud::OnDisable()
 {
     RemoveFromRenderingScene();
+}
+
+void Cloud::UpdateNoiseTexture()
+{
+    auto cmd = GetGfxDriver()->CreateCommandBuffer();
+
+    cmd->BindResource(noiseGenerator->GetSet("perMaterial"), noiseGenerator->GetShaderResource());
+    int dispatchX = glm::ceil(cloudNoise.desc.width / 8.0f);
+    int dispatchY = glm::ceil(cloudNoise.desc.height / 8.0f);
+    int dispatchZ = glm::ceil(cloudNoise.desc.depth / 8.0f);
+    cmd->BindShaderProgram(noiseGenerator->GetShaderProgram(), noiseGenerator->GetShaderConfig());
+    cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
+
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+}
+
+void Cloud::Setup()
+{
+    if (!isSetup)
+    {
+        isSetup = true;
+        cloudNoise.desc = Gfx::ImageDescription(512, 512, 64, Gfx::GfxFormat::R8G8B8A8_UNorm);
+        cloudNoise.tex = GetGfxDriver()->CreateImage(cloudNoise.desc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
+
+        volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
+        noiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
+        noiseGenerator->SetTexture("imgOutput", cloudNoise.tex.get());
+
+        auto meshRenderer = GetGameObject()->GetComponent<MeshRenderer>();
+        if (meshRenderer == nullptr)
+            meshRenderer = GetGameObject()->AddComponent<MeshRenderer>();
+
+        meshRenderer->SetMesh(EngineInternalResources::GetModels().cube);
+        meshRenderer->SetMaterial(volumetricCloud.get());
+        volumetricCloud->SetTexture("cloudDensity", cloudNoise.tex.get());
+        UpdateNoiseTexture();
+    }
 }
