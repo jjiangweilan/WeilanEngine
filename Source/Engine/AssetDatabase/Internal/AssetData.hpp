@@ -52,7 +52,7 @@ public:
     const std::filesystem::path& GetAssetAbsolutePath() { return absolutePath; }
 
     void UpdateAssetUUIDs();
-    Asset* SetAsset(std::unique_ptr<Asset>&& asset);
+    Asset* SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot);
     Asset* GetAsset();
     void UnloadAsset() { asset = nullptr; }
 
@@ -77,7 +77,6 @@ public:
     std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
     const nlohmann::json& GetMeta() { return meta; }
-
 private:
     // scaii code stands for Wei Lan Engine AssetFile
     static const uint32_t WLEA = 0b01010111 << 24 | 0b01001100 << 16 | 0b01000101 << 8 | 0b01000001;

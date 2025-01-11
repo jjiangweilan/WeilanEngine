@@ -50,7 +50,7 @@ public:
             buttonName = curr->GetUUID().ToString().c_str();
         }
 
-        if (ImGui::Button(curr == nullptr ? "null" : buttonName.c_str()))
+        if (ImGui::Button(curr == nullptr ? "null" : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()))
         {
             EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }

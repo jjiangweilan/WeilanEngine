@@ -62,6 +62,10 @@ void CloudRenderer::CreateCloudMaterials(
 {
     volumetricCloud = std::make_unique<Material>();
     noiseGenerator = std::make_unique<Material>();
+
+    volumetricCloud->SetName("Volumetric Cloud");
+    noiseGenerator->SetName("Noise Generator");
+
     volumetricCloud->SetShader(ShaderLibrary::GetShader(CloudRenderer::volumetricCloud));
     noiseGenerator->SetShader(ShaderLibrary::GetShader(CloudRenderer::cloudNoiseGenerator));
 }

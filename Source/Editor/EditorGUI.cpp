@@ -118,22 +118,18 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
         {
             bool isUUID = false;
             std::string text = value;
-            if (text.size() == 36) // potentially a UUID
+            if (text.size() == 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' && text[23] == '-') // potentially a UUID
             {
+                isUUID = true;
                 auto uuid = UUID(text);
-                if (!uuid.IsEmpty())
+                // 'uuid' is treated specially because it's most likely the uuid of the object itself
+                if (std::strcmp(key.c_str(), "uuid") != 0)
                 {
-                    isUUID = true;
-
-                    // 'uuid' is treated specially because it's most likely the uuid of the object itself
-                    if (std::strcmp(key.c_str(), "uuid") != 0)
+                    ObjPtr<Object> objPtr(uuid);
+                    Object* obj = objPtr.Get();
+                    if (ObjectField(key.c_str(), obj))
                     {
-                        ObjPtr<Object> objPtr(uuid);
-                        Object* obj = objPtr.Get();
-                        if (ObjectField(key.c_str(), obj))
-                        {
-                            value = obj->GetUUID().ToString();
-                        }
+                        value = obj->GetUUID().ToString();
                     }
                 }
             }

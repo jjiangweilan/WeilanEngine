@@ -124,7 +124,6 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         }
     }
 
-
     for (int i = 0; i < size; ++i)
     {
         if (asyncImport[i].stateTrack == 0)
@@ -174,7 +173,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
             results[i] = asyncImport[i].newAsset.get();
             if (asyncImport[i].assetData)
             {
-                asyncImport[i].assetData->SetAsset(std::move(asyncImport[i].newAsset));
+                asyncImport[i].assetData->SetAsset(std::move(asyncImport[i].newAsset), projectRoot);
             }
             // a new asset needs to be recored/imported in assetDatabase
             else
@@ -466,13 +465,18 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
     path.replace_extension(a->GetExtension());
     auto fullPath = assetDirectory / path;
     int index = 1;
-    std::filesystem::path filename = path.filename();
+    const std::filesystem::path& stem = path.stem();
+    const std::filesystem::path& extension = path.extension();
+    const std::filesystem::path& parentPath = fullPath.parent_path();
+
     while (std::filesystem::exists(fullPath))
     {
-        auto newFilename = fmt::format("{} {}", filename.string(), index);
-        fullPath = fullPath.parent_path() / newFilename;
+        auto newFilename = fmt::format("{} {}{}", stem.string(), index, extension.string());
+        fullPath = parentPath / newFilename;
         index++;
     }
+
+    path = std::filesystem::relative(fullPath, GetAssetDirectory());
     // only internal asset can be created
     if (!a->IsExternalAsset())
     {
@@ -492,11 +496,8 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
         {
             if (AssetData* ad = assets.GetAssetData(path))
             {
-                if (Asset* asset = ad->GetAsset())
-                {
-                    asset->Reload(std::move(*a));
-                    SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
-                }
+                auto asset = ad->SetAsset(std::move(a), projectRoot);
+                SerializeAssetToDisk(*asset, ad->GetAssetAbsolutePath());
             }
         }
     }
@@ -831,7 +832,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
         // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
         // happen before reference resolve so that it has the correct UUID
         assetData->SetMeta(loader->GetMeta());
-        asset = assetData->SetAsset(std::move(newAsset));
+        asset = assetData->SetAsset(std::move(newAsset), projectRoot);
         assetData->SaveToDisk(projectRoot);
 
         // this asset has a aseet data and is already loaded, it's a reload!
@@ -956,26 +957,36 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
     if (!std::filesystem::exists(fullPath))
         return;
 
+    auto RemoveAsset = [&](const std::filesystem::path& path)
+    {
+        auto assetPath = std::filesystem::relative(path, GetAssetDirectory());
+
+        auto assetData = assets.GetAssetData(assetPath);
+
+        if (assetData)
+        {
+            // set assetData's imported file to nothing (effectly remove all imported assets)
+            SyncImportedAssetFiles(assetData, {});
+
+            std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString());
+        }
+
+        assets.data.erase(std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; }));
+    };
+
     if (std::filesystem::is_directory(fullPath))
     {
         for (auto entry : std::filesystem::recursive_directory_iterator(fullPath))
         {
             if (entry.is_regular_file())
             {
-                auto entryPath = entry.path();
-                auto assetPath = std::filesystem::relative(entryPath, GetAssetDirectory());
-
-                auto assetData = assets.GetAssetData(assetPath);
-
-                if (assetData)
-                {
-                    // set assetData's imported file to nothing (effectly remove all imported assets)
-                    SyncImportedAssetFiles(assetData, {});
-
-                    std::filesystem::remove(assetData->GetAssetDataUUID().ToString());
-                }
+                RemoveAsset(entry.path());
             }
         }
+    }
+    else
+    {
+        RemoveAsset(fullPath);
     }
 
     std::filesystem::remove_all(fullPath);

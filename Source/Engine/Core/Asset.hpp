@@ -30,6 +30,7 @@ public:
     Asset(Asset&& other) = default;
     virtual ~Asset() {};
 
+    [[deprecated("we should replace this with ObjPtr")]]
     virtual void Reload(Asset&& asset)
     {
         // uuid = std::move(asset.uuid); reload should change uuid, it's managed by AssetData

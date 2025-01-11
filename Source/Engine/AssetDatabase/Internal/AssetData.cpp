@@ -122,17 +122,19 @@ Asset* AssetData::GetAsset()
     return nullptr;
 }
 
-Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset)
+Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot)
 {
-    if (this->asset != nullptr)
-        this->asset->Reload(std::move(*asset));
-    else
+    this->asset = std::move(asset);
+
+    std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
+    if (std::filesystem::exists(path))
     {
-        this->asset = std::move(asset);
+        std::filesystem::remove(path);
     }
 
-    UpdateAssetUUIDs();
+    SaveToDisk(projectRoot);
 
+    UpdateAssetUUIDs();
     return this->asset.get();
 }
 
@@ -223,5 +225,5 @@ nlohmann::json AssetData::DumpInfo() const
 
 std::string AssetData::GetNameToUUIDKey(Asset* obj)
 {
-    return fmt::format("{}-{}",obj->GetName(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()));
+    return fmt::format("{}-{}", obj->GetName(), ObjectRegistry::GetTypeName(obj->GetObjectTypeID()));
 }
