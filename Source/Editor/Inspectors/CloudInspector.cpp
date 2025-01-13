@@ -15,7 +15,7 @@ public:
         ImGui::Text("Noise Generator");
         auto ptr = target->noiseGenerator.get();
         ImGui::Checkbox("Always Update", &alwayUpdate);
-        if(Draw(target->noiseGenerator.get(), target->noiseGenerator->GetShaderProgram()) || alwayUpdate)
+        if (Draw(target->noiseGenerator.get(), target->noiseGenerator->GetShaderProgram()) || alwayUpdate)
         {
             target->UpdateNoiseTexture();
         }
@@ -62,8 +62,10 @@ public:
         return changed;
     }
 
-
 private:
+    using ViewSlice = int;
+    ViewSlice viewSlice;
+    std::unordered_map<ViewSlice, std::unique_ptr<Gfx::ImageView>> imageViews;
     static const char _register;
     bool alwayUpdate = false;
 };

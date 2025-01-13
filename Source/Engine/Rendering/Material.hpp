@@ -41,6 +41,9 @@ public:
 
     std::unique_ptr<Asset> Clone() override;
 
+    void SetMatrix(const std::string& name, const glm::mat4& value);
+    void SetFloat(const std::string& name, float value);
+    void SetVector(const std::string& name, const glm::vec4& value);
     void SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value);
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);

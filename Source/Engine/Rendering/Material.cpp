@@ -115,9 +115,24 @@ void Material::SetTexture(
     SetDirty();
 }
 
+void Material::SetMatrix(const std::string& name, const glm::mat4& value)
+{
+    SetMatrix("", name, value);
+}
+
+void Material::SetFloat(const std::string& name, float value)
+{
+    SetFloat("", name, value);
+}
+
+void Material::SetVector(const std::string& name, const glm::vec4& value)
+{
+    SetVector("", name, value);
+}
+
 void Material::SetMatrix(const std::string& param, const std::string& member, const glm::mat4& value)
 {
-    auto iter = ubo.matrices.find(param);
+    auto iter = ubo.matrices.find(member);
     if (iter == ubo.matrices.end() || iter->second != value)
     {
         ubo.matrices[member] = value;
@@ -129,7 +144,7 @@ void Material::SetMatrix(const std::string& param, const std::string& member, co
 
 void Material::SetFloat(const std::string& param, const std::string& member, float value)
 {
-    auto iter = ubo.floats.find(param);
+    auto iter = ubo.floats.find(member);
     if (iter == ubo.floats.end() || iter->second != value)
     {
         ubo.floats[member] = value;
@@ -141,7 +156,7 @@ void Material::SetFloat(const std::string& param, const std::string& member, flo
 
 void Material::SetVector(const std::string& param, const std::string& member, const glm::vec4& value)
 {
-    auto iter = ubo.vectors.find(param);
+    auto iter = ubo.vectors.find(member);
     if (iter == ubo.vectors.end() || iter->second != value)
     {
         ubo.vectors[member] = value;

@@ -9,8 +9,7 @@
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
-Cloud::Cloud() : Component(nullptr)
-{};
+Cloud::Cloud() : Component(nullptr) {};
 
 Cloud::Cloud(GameObject* owner) : Component(owner)
 {
@@ -110,7 +109,8 @@ void Cloud::Setup()
     {
         isSetup = true;
         cloudNoise.desc = Gfx::ImageDescription(512, 512, 64, Gfx::GfxFormat::R8G8B8A8_UNorm);
-        cloudNoise.tex = GetGfxDriver()->CreateImage(cloudNoise.desc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
+        cloudNoise.tex =
+            GetGfxDriver()->CreateImage(cloudNoise.desc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
 
         volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
         noiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
@@ -124,5 +124,19 @@ void Cloud::Setup()
         meshRenderer->SetMaterial(volumetricCloud.get());
         volumetricCloud->SetTexture("cloudDensity", cloudNoise.tex.get());
         UpdateNoiseTexture();
+        UpdateCloudGPUProperties();
     }
+}
+
+void Cloud::TransformChanged()
+{
+    UpdateCloudGPUProperties();
+}
+
+void Cloud::UpdateCloudGPUProperties()
+{
+    auto go = GetGameObject();
+    const glm::float3 scale = go->GetScale();
+    volumetricCloud->SetVector("cubePos", glm::float4(go->GetPosition() - scale / 2.0f, 1.0));
+    volumetricCloud->SetVector("cubeExtent", glm::float4(scale, 1.0));
 }
