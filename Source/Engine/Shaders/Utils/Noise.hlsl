@@ -71,6 +71,26 @@ float perlinNoise3D(float3 pos)
                 lerp( grad3D(hash13(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
                     grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
 }
+
+float perlinNoise3DWrap(float3 pos)
+{
+    float3 pi = floor(pos); 
+    float3 pf = pos - pi;
+    pi %= 8;
+
+    float u = fade(pf.x);
+    float v = fade(pf.y);
+    float w = fade(pf.z);
+
+    return lerp( lerp( lerp( grad3D(hash13(pi + float3(0, 0, 0)), pf - float3(0, 0, 0)),
+                    grad3D(hash13(pi + float3(1, 0, 0)), pf - float3(1, 0, 0)), u ),
+                lerp( grad3D(hash13(pi + float3(0, 1, 0)), pf - float3(0, 1, 0)), 
+                    grad3D(hash13(pi + float3(1, 1, 0)), pf - float3(1, 1, 0)), u ), v ),
+            lerp( lerp( grad3D(hash13(pi + float3(0, 0, 1)), pf - float3(0, 0, 1)), 
+                    grad3D(hash13(pi + float3(1, 0, 1)), pf - float3(1, 0, 1)), u ),
+                lerp( grad3D(hash13(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
+                    grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
+}
 #endif
 
 // worley noise
@@ -124,6 +144,40 @@ float worley3D(float3 p){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
+                float3 rId = hash3(asuint(id+coord));
+
+                float3 r = coord + rId - fd; 
+
+                float d = dot(r,r);
+
+                if(d < minimalDist){
+                    minimalDist = d;
+                }
+
+            }//z
+        }//y
+    }//x
+
+    return minimalDist;
+}
+
+float worley3DWrap(float3 p){
+
+    float3 id = floor(p);
+    float3 fd = fract(p);
+
+    float n = 0.;
+
+    float minimalDist = 1.;
+
+
+    for(float x = -1.; x <=1.; x++){
+        for(float y = -1.; y <=1.; y++){
+            for(float z = -1.; z <=1.; z++){
+
+                float3 coord = float3(x,y,z);
+                float3 wrapped = (id+coord) % 8;
+
                 float3 rId = hash3(asuint(id+coord));
 
                 float3 r = coord + rId - fd; 

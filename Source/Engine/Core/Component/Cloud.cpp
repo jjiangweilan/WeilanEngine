@@ -170,10 +170,6 @@ void Cloud::UpdateCloudGPUProperties()
 {
     auto go = GetGameObject();
     glm::float3 scale = go->GetScale();
-    scale.z = scale.x;
-    scale.y = scale.x;
-    go->SetScale(scale);
-
     volumetricCloud->SetVector("cubePos", glm::float4(go->GetPosition() - scale / 2.0f, 1.0));
     volumetricCloud->SetVector("cubeExtent", glm::float4(scale, 1.0));
 }

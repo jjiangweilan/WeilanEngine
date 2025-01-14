@@ -22,7 +22,7 @@ struct Cloud
 
 #if GPU_RESOURCE
     Texture3D cloudDensity;
-    SamplerState sampler_Linear_Clamp;
+    SamplerState sampler_Linear_Repeat;
 #endif
 };
 
@@ -65,6 +65,7 @@ ParameterBlock<Cloud> perMaterial;
 
 float3 WSNormalization(float3 pos)
 {
+    return pos;
     return (pos - perMaterial.cubePos.xyz) / perMaterial.cubeExtent.xyz;
 }
 
@@ -82,7 +83,7 @@ float3 NStoTS(float3 pos)
 
 float SampleDensity(float3 samplePos)
 {
-    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Clamp, samplePos);
+    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, samplePos);
 
     return density.x * (density.y + density.z + density.w);
 }
@@ -101,7 +102,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 
         float3 dir = normalize(positionWS - viewPos);
         float3 start = positionWS;
-        float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Clamp, start);
+        float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, start);
     }
 
     const float maxThickness = max(perMaterial.maxThickness, 0.01);
@@ -122,10 +123,6 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     {
         float3 samplePos = lerp(start, end, v);
         float density = SampleDensity(samplePos).x;
-        if (any(samplePos > 1) || any(samplePos < 0))
-        {
-            density = 0;
-        }
         transmittance *= Extinction(density * fixedStep * perMaterial.extinction);
     }
 

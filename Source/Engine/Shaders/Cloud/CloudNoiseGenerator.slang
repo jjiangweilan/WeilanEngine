@@ -43,17 +43,17 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     float perlin = 0;
 
     float4 amp = perMaterial.perlin0_amp;
-    perlin += amp.x * (perlinNoise3D(pos0 * perMaterial.perlin0_freq.x));
-    perlin += amp.y * (perlinNoise3D(pos0 * perMaterial.perlin0_freq.y));
-    perlin += amp.z * (perlinNoise3D(pos0 * perMaterial.perlin0_freq.z));
-    perlin += amp.w * (perlinNoise3D(pos0 * perMaterial.perlin0_freq.w));
+    perlin += amp.x * (perlinNoise3DWrap(pos0 * perMaterial.perlin0_freq.x));
+    perlin += amp.y * (perlinNoise3DWrap(pos0 * perMaterial.perlin0_freq.y));
+    perlin += amp.z * (perlinNoise3DWrap(pos0 * perMaterial.perlin0_freq.z));
+    perlin += amp.w * (perlinNoise3DWrap(pos0 * perMaterial.perlin0_freq.w));
     perlin = remap(perlin, perMaterial.perlin0_remap.x, perMaterial.perlin0_remap.y, perMaterial.perlin0_remap.z, perMaterial.perlin0_remap.w);
     //perlin = abs(perlin * 2. - 1.);
     
     float worley = perMaterial.worley_amp.x * (worley3D(frequency.x * pos0));
-    float worley0 = (1 - worley3D(frequency.x * pos0));
-    float worley1 = (1 - worley3D(frequency.y * pos0));
-    float worley2 = (1 - worley3D(frequency.z * pos0));
+    float worley0 = (1 - worley3DWrap(frequency.x * pos0));
+    float worley1 = (1 - worley3DWrap(frequency.y * pos0));
+    float worley2 = (1 - worley3DWrap(frequency.z * pos0));
 
     float perlinWorley = remap(perlin, worley, 1, 0, 1);
     texOutput0.x = perlinWorley;
