@@ -254,7 +254,6 @@ public:
         ASSERT(typeLayout->getBindingRangeCount() == 1);
         {
             auto rangeType = typeLayout->getBindingRangeType(0);
-            auto accessType = typeLayout->getResourceAccess();
             if (rangeType == slang::BindingType::CombinedTextureSampler)
                 type = Gfx::DescriptorType::CombinedImageSampler;
             else if (rangeType == slang::BindingType::Sampler)
@@ -308,9 +307,9 @@ public:
     {
         Gfx::PipelineInfo::SamplerConfig config{};
         std::string name = variableLayout->getName();
-        bool pointFilter = Utils::strContians(name, "point");
+        bool pointFilter = Utils::strContians(Utils::strToLower(name), "point");
 
-        bool clampSample = Utils::strContians(name, "clamp");
+        bool clampSample = Utils::strContians(Utils::strToLower(name), "clamp");
 
         std::string samplerTypeName = variableLayout->getType()->getName();
         if (samplerTypeName == "SamplerComparisonState")
@@ -526,7 +525,7 @@ public:
             case slang::TypeReflection::Kind::ParameterBlock:
                 {
                     auto elementVarLayout = typeLayout->getElementVarLayout();
-                    int size = elementVarLayout->getTypeLayout()->getSize();
+                    int size = elementVarLayout->getTypeLayout()->getStride();
                     if (size != 0)
                     {
                         Gfx::PipelineInfo::Binding binding{};

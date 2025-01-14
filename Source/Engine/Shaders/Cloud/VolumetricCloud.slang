@@ -15,9 +15,14 @@ struct Cloud
     float fixedStep; // fixed step in normalized scale
     float extinction;
 
+    float debugNoise;
+    float debugChannel;
+    float3 debugPoint;
+    float3 debugPlane;
+
 #if GPU_RESOURCE
     Texture3D cloudDensity;
-    SamplerState sampler_Linear_ClampToBorder;
+    SamplerState sampler_Linear_Clamp;
 #endif
 };
 
@@ -77,14 +82,28 @@ float3 NStoTS(float3 pos)
 
 float SampleDensity(float3 samplePos)
 {
-    float density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, samplePos).x;
-    return density;
+    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Clamp, samplePos);
+
+    return density.x * (density.y + density.z + density.w);
 }
 
 // expecting cull back
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
+    if (perMaterial.debugNoise != 0)
+    {
+        const float maxThickness = max(perMaterial.maxThickness, 0.01);
+        const float fixedStep = max(perMaterial.fixedStep, 0.01);
+
+        float3 positionWS = NStoTS(WSNormalization(input.positionWS.xyz));
+        float3 viewPos = NStoTS(WSNormalization(perScene.viewPos.xyz));
+
+        float3 dir = normalize(positionWS - viewPos);
+        float3 start = positionWS;
+        float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Clamp, start);
+    }
+
     const float maxThickness = max(perMaterial.maxThickness, 0.01);
     const float fixedStep = max(perMaterial.fixedStep, 0.01);
 
@@ -103,8 +122,11 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     {
         float3 samplePos = lerp(start, end, v);
         float density = SampleDensity(samplePos).x;
+        if (any(samplePos > 1) || any(samplePos < 0))
+        {
+            density = 0;
+        }
         transmittance *= Extinction(density * fixedStep * perMaterial.extinction);
-        printf("%v4f", samplePos);
     }
 
     transmittance = max(0, transmittance);

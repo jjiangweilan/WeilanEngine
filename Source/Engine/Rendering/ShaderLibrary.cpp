@@ -5,61 +5,7 @@
 
 ShaderLibrary::ShaderLibrary()
 {
-    createGlobalSession(globalSession.writeRef());
-
-    slang::TargetDesc targetDesc{
-        .structureSize = sizeof(slang::TargetDesc),
-        .format = SLANG_SPIRV,
-        .profile = globalSession->findProfile("spirv_1_5"),
-    };
-    const char* searchPaths[] = {shaderRootPath};
-    slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
-    slang::CompilerOptionValue debugLevel{};
-    bool debug = true;
-    debugLevel.kind = slang::CompilerOptionValueKind::Int;
-    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_STANDARD : 0;
-    slang::CompilerOptionEntry compileOptions[] = {{slang::CompilerOptionName::DebugInformation, debugLevel}};
-    slang::SessionDesc sessionDesc{
-        /** The size of this structure, in bytes.
-         */
-        .structureSize = sizeof(slang::SessionDesc),
-
-        /** Code generation targets to include in the session.
-         */
-        .targets = &targetDesc,
-        .targetCount = 1,
-
-        /** Flags to configure the session.
-         */
-        .flags = slang::kSessionFlags_None,
-
-        /** Default layout to assume for variables with matrix types.
-         */
-        .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-
-        /** Paths to use when searching for `#include`d or `import`ed files.
-         */
-        .searchPaths = searchPaths,
-        .searchPathCount = sizeof(searchPaths) / sizeof(const char*),
-
-        .preprocessorMacros = preprocessorMacros,
-        .preprocessorMacroCount = sizeof(preprocessorMacros) / sizeof(slang::PreprocessorMacroDesc),
-
-        .fileSystem = nullptr,
-
-        .enableEffectAnnotations = false,
-        .allowGLSLSyntax = false,
-
-        /** Pointer to an array of compiler option entries, whose size is compilerOptionEntryCount.
-         */
-        .compilerOptionEntries = compileOptions,
-
-        /** Number of additional compiler option entries.
-         */
-        .compilerOptionEntryCount = 1,
-    };
-
-    globalSession->createSession(sessionDesc, session.writeRef());
+    Init();
 }
 
 std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* shaderName, ShaderPermutation permutation)
@@ -274,101 +220,93 @@ const ShaderFeatures& ShaderLibrary::RetriveShaderFeatures(const char* shaderNam
     return library[shaderName].features;
 }
 
-void ShaderLibrary::CollectVertexInputs(
-    slang::EntryPointReflection* vertexEntryPointReflection,
-    std::vector<Gfx::PipelineInfo::VertexAttribute>& outVertexAttributes,
-    std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstant
-)
+void ShaderLibrary::ReloadAllShadersImpl()
 {
-    // vertexEntryPointReflection->getVarLayout();
+    GetGfxDriver()->WaitForIdle();
+    Init();
 
-    // using getParameterXXX is not recommended
-    /*for (int parameterIndex = 0; parameterIndex < vertexEntryPointReflection->getParameterCount(); ++parameterIndex)
+    for (auto& shader : library)
     {
-        auto param = vertexEntryPointReflection->getParameterByIndex(parameterIndex);
-        auto paramCategory = param->getCategory();
-        if (paramCategory == slang::ParameterCategory::VertexInput)
+        for (auto& m : shader.second.shaders)
         {
-            auto paramTypeLayout = param->getTypeLayout();
-            auto paramType = param->getType();
-
-            for (int fieldIndex = 0; fieldIndex < paramTypeLayout->getFieldCount(); fieldIndex++)
-            {
-                Gfx::PipelineInfo::VertexAttribute vertexAttribute;
-                auto field = paramType->getFieldByIndex(fieldIndex);
-                auto fieldLayout = paramTypeLayout->getFieldByIndex(fieldIndex);
-
-                vertexAttribute.name = fieldLayout->getName();
-                int channelCount = fieldLayout->getTypeLayout()->getColumnCount();
-                vertexAttribute.size =
-                    fieldLayout->getTypeLayout()->getSize(SLANG_PARAMETER_CATEGORY_VARYING_INPUT) * channelCount;
-                vertexAttribute.location = fieldLayout->getBindingIndex();
-
-                auto byteSizeAttribute = field->findUserAttributeByName(globalSession, "UnderlyingFormat");
-                if (byteSizeAttribute)
-                {
-                    size_t strLen = 0;
-                    const char* str = byteSizeAttribute->getArgumentValueString(0, &strLen);
-                    std::string_view strView(str, str + strLen);
-                    vertexAttribute.format = Gfx::MapStringToGfxFormat(strView);
-                    if (vertexAttribute.format == Gfx::GfxFormat::Invalid)
-                    {
-                        spdlog::warn(
-                            "provided shader UnderlyingFormat type is not supported, fall back to R32G32B32A32_SFloat"
-                        );
-                        vertexAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
-                    }
-                }
-                else
-                {
-                    if (channelCount == 1)
-                        vertexAttribute.format = Gfx::GfxFormat::R32_SFloat;
-                    else if (channelCount == 2)
-                        vertexAttribute.format = Gfx::GfxFormat::R32G32_SFloat;
-                    else if (channelCount == 3)
-                        vertexAttribute.format = Gfx::GfxFormat::R32G32B32_SFloat;
-                    else if (channelCount == 4)
-                        vertexAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
-                }
-
-                outVertexAttributes.push_back(vertexAttribute);
-            }
+            m.second.Recompile(this);
         }
-        else if (paramCategory == slang::ParameterCategory::PushConstantBuffer)
-        {
-            spdlog::warn("per stage push constants not supported");
-        }
-    }*/
+    }
 }
 
-// Gfx::DescriptorType ShaderLibrary::MapDescriptorType(
-//     slang::TypeReflection* typeReflection, Gfx::TextureType& textureType
-// )
-// {
-using namespace slang;
-// auto typeKind = typeReflection->getKind();
-// switch (typeKind)
-// {
-//     case TypeReflection::Kind::SamplerState: return Gfx::DescriptorType::Sampler;
-//     case TypeReflection::Kind::Resource:
-//         {
-//             auto resourceShape = typeReflection->getResourceShape();
-//             if (resourceShape == SlangResourceShape::SLANG_TEXTURE_2D)
-//             {
-//                 textureType == Gfx::TextureType::Tex2D
-//             }
-//             else if (resourceShape == SlangResourceShape::SLANG_TEXTURE_3D)
-//             {
-//                 textureType = Gfx::TextureType::Tex3D;
-//             }
-//             else if (resourceShape == SlangResourceShape::SLANG_TEXTURE_CUBE)
-//             {
-//                 textureType = Gfx::TextureType::TexCube;
-//             }
-//             return Gfx::DescriptorType::SampledImage;
-//         }
-// }
-// Sampler = 0, CombinedImageSampler = 1, SampledImage = 2, StorageImage = 3, UniformTexelBuffer = 4,
-// StorageTexelBuffer = 5, UniformBuffer = 6, StorageBuffer = 7, UniformBufferDynamic = 8, StorageBufferDynamic = 9,
-// InputAttachment = 10,
-// }
+void ShaderLibrary::CompiledShader::Recompile(ShaderLibrary* parent)
+{
+    try
+    {
+        auto newShader = parent->CompileShader(shader->GetName().c_str(), permutation);
+        if (newShader)
+        {
+            shader = std::move(newShader);
+            shaderHandle.ReplaceShader(shader.get());
+        }
+    }
+    catch (std::exception e)
+    {
+        spdlog::error(e.what());
+    }
+}
+void ShaderLibrary::Init()
+{
+    globalSession = nullptr;
+
+    createGlobalSession(globalSession.writeRef());
+
+    slang::TargetDesc targetDesc{
+        .structureSize = sizeof(slang::TargetDesc),
+        .format = SLANG_SPIRV,
+        .profile = globalSession->findProfile("spirv_1_5"),
+    };
+    const char* searchPaths[] = {shaderRootPath};
+    slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
+    slang::CompilerOptionValue debugLevel{};
+    bool debug = true;
+    debugLevel.kind = slang::CompilerOptionValueKind::Int;
+    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_STANDARD : 0;
+    slang::CompilerOptionEntry compileOptions[] = {{slang::CompilerOptionName::DebugInformation, debugLevel}};
+    slang::SessionDesc sessionDesc{
+        /** The size of this structure, in bytes.
+         */
+        .structureSize = sizeof(slang::SessionDesc),
+
+        /** Code generation targets to include in the session.
+         */
+        .targets = &targetDesc,
+        .targetCount = 1,
+
+        /** Flags to configure the session.
+         */
+        .flags = slang::kSessionFlags_None,
+
+        /** Default layout to assume for variables with matrix types.
+         */
+        .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+
+        /** Paths to use when searching for `#include`d or `import`ed files.
+         */
+        .searchPaths = searchPaths,
+        .searchPathCount = sizeof(searchPaths) / sizeof(const char*),
+
+        .preprocessorMacros = preprocessorMacros,
+        .preprocessorMacroCount = sizeof(preprocessorMacros) / sizeof(slang::PreprocessorMacroDesc),
+
+        .fileSystem = nullptr,
+
+        .enableEffectAnnotations = false,
+        .allowGLSLSyntax = false,
+
+        /** Pointer to an array of compiler option entries, whose size is compilerOptionEntryCount.
+         */
+        .compilerOptionEntries = compileOptions,
+
+        /** Number of additional compiler option entries.
+         */
+        .compilerOptionEntryCount = 1,
+    };
+
+    globalSession->createSession(sessionDesc, session.writeRef());
+}

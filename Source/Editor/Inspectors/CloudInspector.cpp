@@ -19,6 +19,22 @@ public:
         {
             target->UpdateNoiseTexture();
         }
+
+        ImGui::Checkbox("Debug", &debugOn);
+
+        if (debugOn)
+        {
+            auto debugImage = target->UpdateDebugImage();
+            if (ImGui::DragFloat("Debug Layer", &debugLayer))
+            {
+                target->debugImageMaterial->SetFloat("layer", debugLayer);
+            }
+            if (ImGui::DragFloat("Debug Axis", &debugAxis))
+            {
+                target->debugImageMaterial->SetFloat("axis", debugAxis);
+            }
+            ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
+        }
     }
 
     // taken from MaterialInspector
@@ -39,10 +55,30 @@ public:
                         if (member.IsVector())
                         {
                             glm::float4 val = target->GetVector("", member.name);
-                            if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
+
+                            if (member.rowCount == 4)
                             {
-                                target->SetVector("", member.name, val);
-                                changed = true;
+                                if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                    changed = true;
+                                }
+                            }
+                            if (member.rowCount == 3)
+                            {
+                                if (ImGui::DragFloat3(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                    changed = true;
+                                }
+                            }
+                            else if (member.rowCount == 2)
+                            {
+                                if (ImGui::DragFloat2(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                    changed = true;
+                                }
                             }
                         }
                         else if (member.IsElement())
@@ -68,6 +104,9 @@ private:
     std::unordered_map<ViewSlice, std::unique_ptr<Gfx::ImageView>> imageViews;
     static const char _register;
     bool alwayUpdate = false;
+    float debugLayer = 0;
+    float debugAxis = 0;
+    bool debugOn = false;
 };
 
 const char CloudInspector::_register = InspectorRegistry::Register<CloudInspector, Cloud>();

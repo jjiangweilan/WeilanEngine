@@ -18,6 +18,7 @@ public:
 
     Gfx::ShaderProgram* GetShaderProgram() { return shaderProgram; }
     const std::string& GetName() const { return shaderProgram->GetName(); };
+    void ReplaceShader(Gfx::ShaderProgram* shader) { this->shaderProgram = shader; }
 
 private:
     Gfx::ShaderProgram* shaderProgram = nullptr;

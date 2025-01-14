@@ -45,7 +45,7 @@ std::vector<std::filesystem::path> TextureLoader::Import()
             return true;
 
         bool linearFormat = true;
-        auto lowerCasePathStr = Utils::strTolower(absoluteAssetPath.filename().string());
+        auto lowerCasePathStr = Utils::strToLower(absoluteAssetPath.filename().string());
 
         bool srgFormat =
             Utils::strContians(lowerCasePathStr, "srgb") || Utils::strContians(lowerCasePathStr, "diffuse") ||

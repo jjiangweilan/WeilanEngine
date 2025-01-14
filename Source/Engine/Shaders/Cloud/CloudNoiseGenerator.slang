@@ -11,7 +11,7 @@ struct NoiseParameter
     float4 worley1_freq;
     float4 worley1_amp;
 
-    float2 uvScale;
+    float4 uvScale;
     float p;
     float time;
 
@@ -26,6 +26,13 @@ ParameterBlock<NoiseParameter> perMaterial;
 #define USE_WORLEY_NOISE_3D
 #include "Utils/Noise.hlsl"
 #include "Utils/Util.hlsl"
+
+float4 Spherical(float3 uv)
+{
+    uv = uv - float3(0.5);
+    float density = max(0, 1 - length(uv) * 2);
+    return density;
+}
 
 void CloudDensity(float3 pos0, out float4 texOutput0)
 {
@@ -65,10 +72,11 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
 void ComputeMain(uint3 id : SV_DispatchThreadID) {
     uint3 coord = id;
 
-    if (all(coord.xy < uint2(512)) && coord.z < 64)
+    if (all(coord < uint3(512)))
     {
-        float3 uv0 = (coord / 512.0f + 1/1024.0f) * perMaterial.uvScale.xxy;
+        float3 uv0 = (coord / 512.0f + 1/1024.0f) * perMaterial.uvScale.xyz;
         float4 tex0;
+        // tex0 = Spherical(uv0);
         CloudDensity(uv0, tex0);
         perMaterial.imgOutput[coord] = tex0;
     }

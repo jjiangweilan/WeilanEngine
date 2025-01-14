@@ -43,9 +43,27 @@ public:
                         if (member.IsVector())
                         {
                             glm::float4 val = target->GetVector("", member.name);
-                            if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
+
+                            if (member.rowCount == 4)
                             {
-                                target->SetVector("", member.name, val);
+                                if (ImGui::DragFloat4(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                }
+                            }
+                            if (member.rowCount == 3)
+                            {
+                                if (ImGui::DragFloat3(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                }
+                            }
+                            else if (member.rowCount == 2)
+                            {
+                                if (ImGui::DragFloat2(member.name.c_str(), &val[0]))
+                                {
+                                    target->SetVector("", member.name, val);
+                                }
                             }
                         }
                         else if (member.IsElement())

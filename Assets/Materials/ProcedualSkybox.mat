@@ -3,6 +3,7 @@
  "overrideShaderConfig": false,
  "shader": "00000000-0000-0000-0000-000000000000",
  "shaderConfig": null,
+ "shaderName": "",
  "ubo": {},
  "uuid": "a9cdce1b-754b-52b8-b4d9-49e3efac83bf"
 }

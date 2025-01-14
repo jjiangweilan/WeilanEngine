@@ -103,12 +103,45 @@ void Cloud::UpdateNoiseTexture()
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }
 
+Gfx::Image* Cloud::UpdateDebugImage()
+{
+    if (debugImage == nullptr)
+    {
+        Gfx::ImageDescription desc(cloudSideResolution, cloudSideResolution, 1, Gfx::GfxFormat::R8G8B8A8_UNorm);
+        debugImage = GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment);
+        debugImageMaterial = std::make_unique<Material>();
+        debugImageMaterial->SetFlags(AssetStateFlags::DontSave);
+        debugImageMaterial->SetShader(ShaderLibrary::GetShader("Specific/TextureDebug3D"));
+        debugImageMaterial->SetFloat("layer", 0);
+        debugImageMaterial->SetFloat("axis", 0);
+        debugImageMaterial->SetTexture("tex", cloudNoise.tex.get());
+    }
+
+    auto cmd = GetGfxDriver()->CreateCommandBuffer();
+    debugRenderPass.SetAttachment(0, Gfx::RG::ImageIdentifier(*debugImage));
+    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    cmd->BeginRenderPass(debugRenderPass, clears);
+    cmd->BindResource(debugImageMaterial->GetSet("perMaterial"), debugImageMaterial->GetShaderResource());
+    cmd->BindShaderProgram(debugImageMaterial->GetShaderProgram(), debugImageMaterial->GetShaderConfig());
+    cmd->Draw(6, 1, 0, 0);
+    cmd->EndRenderPass();
+
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+
+    return debugImage.get();
+}
+
 void Cloud::Setup()
 {
     if (!isSetup)
     {
         isSetup = true;
-        cloudNoise.desc = Gfx::ImageDescription(512, 512, 64, Gfx::GfxFormat::R8G8B8A8_UNorm);
+        cloudNoise.desc = Gfx::ImageDescription(
+            cloudSideResolution,
+            cloudSideResolution,
+            cloudHeightResolution,
+            Gfx::GfxFormat::R8G8B8A8_UNorm
+        );
         cloudNoise.tex =
             GetGfxDriver()->CreateImage(cloudNoise.desc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
 
@@ -136,7 +169,11 @@ void Cloud::TransformChanged()
 void Cloud::UpdateCloudGPUProperties()
 {
     auto go = GetGameObject();
-    const glm::float3 scale = go->GetScale();
+    glm::float3 scale = go->GetScale();
+    scale.z = scale.x;
+    scale.y = scale.x;
+    go->SetScale(scale);
+
     volumetricCloud->SetVector("cubePos", glm::float4(go->GetPosition() - scale / 2.0f, 1.0));
     volumetricCloud->SetVector("cubeExtent", glm::float4(scale, 1.0));
 }

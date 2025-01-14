@@ -33,12 +33,20 @@ public:
 
     void Setup();
     void UpdateNoiseTexture();
+    Gfx::Image* UpdateDebugImage();
     void OnLoaded() override;
     void TransformChanged() override;
 
 private:
     std::unique_ptr<Material> volumetricCloud;
     std::unique_ptr<Material> noiseGenerator;
+
+    std::unique_ptr<Gfx::Image> debugImage;
+    std::unique_ptr<Material> debugImageMaterial;
+    Gfx::RG::RenderPass debugRenderPass = Gfx::RG::RenderPass::SingleColor("a debug pass");
+
+    const float cloudSideResolution = 512;
+    const float cloudHeightResolution = 512;
     bool isSetup = false;
 
     inline static const char* cloudNoiseGeneratorShader = "Cloud/CloudNoiseGenerator";

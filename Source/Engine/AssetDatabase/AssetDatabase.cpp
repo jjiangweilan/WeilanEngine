@@ -627,34 +627,33 @@ void AssetDatabase::RefreshShader()
 {
     if (requestShaderRefresh)
     {
-        GetGfxDriver()->WaitForIdle();
-
         requestShaderRefresh = false;
-        for (auto& d : assets.data)
-        {
-            auto asset = d->GetAsset();
-            if (ShaderBase* s = dynamic_cast<ShaderBase*>(asset))
-            {
-                auto loader = AssetLoaderRegistry::CreateAssetLoaderByType(typeid(*s));
-                loader->Setup(importDatabase, d->GetAssetAbsolutePath(), d->meta);
-                if (requestShaderRefreshAll || loader->ImportNeeded())
-                {
-                    try
-                    {
-                        SyncImportedAssetFiles(d.get(), loader->Import());
-                        SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
-                        loader->Load();
-                        s->Reload(std::move(*loader->RetrieveAsset()));
-                        d->UpdateAssetUUIDs();
-                        d->UpdateLastWriteTime();
-                    }
-                    catch (const std::exception& e)
-                    {
-                        SPDLOG_ERROR("failed to reload {}", d->GetAssetAbsolutePath().string());
-                    }
-                }
-            }
-        }
+        ShaderLibrary::ReloadAllShaders();
+        // for (auto& d : assets.data)
+        // {
+        //     auto asset = d->GetAsset();
+        //     if (ShaderBase* s = dynamic_cast<ShaderBase*>(asset))
+        //     {
+        //         auto loader = AssetLoaderRegistry::CreateAssetLoaderByType(typeid(*s));
+        //         loader->Setup(importDatabase, d->GetAssetAbsolutePath(), d->meta);
+        //         if (requestShaderRefreshAll || loader->ImportNeeded())
+        //         {
+        //             try
+        //             {
+        //                 SyncImportedAssetFiles(d.get(), loader->Import());
+        //                 SPDLOG_INFO("Shader reloaded: {}", d->GetAssetPath().string());
+        //                 loader->Load();
+        //                 s->Reload(std::move(*loader->RetrieveAsset()));
+        //                 d->UpdateAssetUUIDs();
+        //                 d->UpdateLastWriteTime();
+        //             }
+        //             catch (const std::exception& e)
+        //             {
+        //                 SPDLOG_ERROR("failed to reload {}", d->GetAssetAbsolutePath().string());
+        //             }
+        //         }
+        //     }
+        // }
 
         requestShaderRefreshAll = false;
     }

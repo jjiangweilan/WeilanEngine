@@ -4,7 +4,7 @@
 #include <sstream>
 namespace Utils
 {
-std::string strTolower(const std::string& ss)
+std::string strToLower(const std::string& ss)
 {
     std::string s = ss;
     std::transform(

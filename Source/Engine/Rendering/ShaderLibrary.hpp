@@ -87,14 +87,21 @@ public:
         return Singleton().QueryShaderFeaturesImpl(name);
     }
 
-    static ShaderLibrary& Singleton();
+    static void ReloadAllShaders()
+    {
+        return Singleton().ReloadAllShadersImpl();
+    }
+
     void RemoveAllShaders() { 
         // calling .clear() may not actually clear the members
         library.clear(); }
 
+    static ShaderLibrary& Singleton();
 private:
     ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
+    void ReloadAllShadersImpl();
+    void Init();
 
     struct CompiledShader
     {
@@ -107,6 +114,8 @@ private:
         std::unique_ptr<Gfx::ShaderProgram> shader;
         Shader2 shaderHandle; // contains the shader object and return it to user
         ShaderPermutation permutation;
+
+        void Recompile(ShaderLibrary* parent);
     };
 
     struct ShaderModule
@@ -126,11 +135,6 @@ private:
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
 
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
-    void CollectVertexInputs(
-        slang::EntryPointReflection* vertexEntryPointReflection,
-        std::vector<Gfx::PipelineInfo::VertexAttribute>& outVertexAttributes,
-        std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstant
-    );
     void CheckPushconstant(
         slang::VariableLayoutReflection* param,
         Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
