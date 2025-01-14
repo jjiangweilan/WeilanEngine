@@ -45,6 +45,17 @@ float hash13(float3 pos)
 // #endif
 }
 
+float hash13Wrap(uint3 input)
+{
+    float3 pos = input % 32;
+    float2 uv = pos.xy + pos.z * 1341.5331;
+    return hash1(asuint(uv));
+// #if defined(NOISE_WHITE_NOISE_TEX)
+//     return texture(NOISE_WHITE_NOISE_TEX, (uv+ 0.5)/256.0).x;
+// #else
+// #endif
+}
+
 float grad3D(float hash, float3 pos) 
 {
     int h = int(1e4*hash) & 15;
@@ -76,20 +87,19 @@ float perlinNoise3DWrap(float3 pos)
 {
     float3 pi = floor(pos); 
     float3 pf = pos - pi;
-    pi %= 8;
 
     float u = fade(pf.x);
     float v = fade(pf.y);
     float w = fade(pf.z);
 
-    return lerp( lerp( lerp( grad3D(hash13(pi + float3(0, 0, 0)), pf - float3(0, 0, 0)),
-                    grad3D(hash13(pi + float3(1, 0, 0)), pf - float3(1, 0, 0)), u ),
-                lerp( grad3D(hash13(pi + float3(0, 1, 0)), pf - float3(0, 1, 0)), 
-                    grad3D(hash13(pi + float3(1, 1, 0)), pf - float3(1, 1, 0)), u ), v ),
-            lerp( lerp( grad3D(hash13(pi + float3(0, 0, 1)), pf - float3(0, 0, 1)), 
-                    grad3D(hash13(pi + float3(1, 0, 1)), pf - float3(1, 0, 1)), u ),
-                lerp( grad3D(hash13(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
-                    grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
+    return lerp( lerp( lerp( grad3D(hash13Wrap(pi + float3(0, 0, 0)), pf - float3(0, 0, 0)),
+                    grad3D(hash13Wrap(pi + float3(1, 0, 0)), pf - float3(1, 0, 0)), u ),
+                lerp( grad3D(hash13Wrap(pi + float3(0, 1, 0)), pf - float3(0, 1, 0)), 
+                    grad3D(hash13Wrap(pi + float3(1, 1, 0)), pf - float3(1, 1, 0)), u ), v ),
+            lerp( lerp( grad3D(hash13Wrap(pi + float3(0, 0, 1)), pf - float3(0, 0, 1)), 
+                    grad3D(hash13Wrap(pi + float3(1, 0, 1)), pf - float3(1, 0, 1)), u ),
+                lerp( grad3D(hash13Wrap(pi + float3(0, 1, 1)), pf - float3(0, 1, 1)), 
+                    grad3D(hash13Wrap(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
 }
 #endif
 
@@ -176,9 +186,9 @@ float worley3DWrap(float3 p){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
-                float3 wrapped = (id+coord) % 8;
+                float3 wrapped = (id+coord) % float3(8.0f);
 
-                float3 rId = hash3(asuint(id+coord));
+                float3 rId = hash3(asuint(wrapped));
 
                 float3 r = coord + rId - fd; 
 

@@ -85,7 +85,7 @@ float SampleDensity(float3 samplePos)
 {
     float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, samplePos);
 
-    return density.x * (density.y + density.z + density.w);
+    return density.x;// * (density.y + density.z + density.w);
 }
 
 // expecting cull back

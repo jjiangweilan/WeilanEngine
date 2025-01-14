@@ -56,7 +56,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     float worley2 = (1 - worley3DWrap(frequency.z * pos0));
 
     float perlinWorley = remap(perlin, worley, 1, 0, 1);
-    texOutput0.x = perlinWorley;
+    texOutput0.x =perlin;// perlinWorley;
     texOutput0.y = worley0;
     texOutput0.z = worley1;
     texOutput0.w = worley2;
