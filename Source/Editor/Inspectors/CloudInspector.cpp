@@ -1,5 +1,5 @@
-#include "Modules/VolumetricCloud/Cloud.hpp"
 #include "Inspector.hpp"
+#include "Modules/VolumetricCloud/Cloud.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -24,16 +24,20 @@ public:
 
         if (debugOn)
         {
-            auto debugImage = target->UpdateDebugImage();
-            if (ImGui::DragFloat("Debug Layer", &debugLayer))
+            ImGui::BeginChild("Global Cloud Type");
             {
-                target->debugImageMaterial->SetFloat("layer", debugLayer);
+                auto debugImage = target->UpdateDebugImage();
+                if (ImGui::DragFloat("Debug Layer", &debugLayer))
+                {
+                    target->debugImageMaterial->SetFloat("layer", debugLayer);
+                }
+                if (ImGui::DragFloat("Debug Axis", &debugAxis))
+                {
+                    target->debugImageMaterial->SetFloat("axis", debugAxis);
+                }
+                ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
             }
-            if (ImGui::DragFloat("Debug Axis", &debugAxis))
-            {
-                target->debugImageMaterial->SetFloat("axis", debugAxis);
-            }
-            ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
+            ImGui::EndChild();
         }
     }
 

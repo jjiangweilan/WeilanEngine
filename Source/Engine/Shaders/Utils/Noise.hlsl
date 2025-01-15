@@ -165,7 +165,7 @@ float worley3D(float3 p){
     return minimalDist;
 }
 
-float worley3DWrap(float3 p){
+float worley3DWrap(float3 p, float wrap){
 
     float3 id = floor(p);
     float3 fd = fract(p);
@@ -180,7 +180,7 @@ float worley3DWrap(float3 p){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
-                float3 wrapped = (id+coord) % float3(8.0f);
+                float3 wrapped = (id+coord) % float3(wrap);
 
                 float3 rId = hash3(asuint(wrapped));
 

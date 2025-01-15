@@ -276,7 +276,7 @@ void ShaderLibrary::Init()
     slang::CompilerOptionValue debugLevel{};
     bool debug = true;
     debugLevel.kind = slang::CompilerOptionValueKind::Int;
-    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_STANDARD : 0;
+    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_MAXIMAL : 0;
     slang::CompilerOptionEntry compileOptions[] = {{slang::CompilerOptionName::DebugInformation, debugLevel}};
     slang::SessionDesc sessionDesc{
         /** The size of this structure, in bytes.
