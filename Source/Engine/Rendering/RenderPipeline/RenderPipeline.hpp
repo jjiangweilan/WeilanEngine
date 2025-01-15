@@ -4,7 +4,6 @@
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
 #include "RenderPipelineSetting.hpp"
-#include "Rendering/RenderPipeline/Renderers/CloudRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
 
 namespace GPUParameter
@@ -142,8 +141,6 @@ private:
     {
         glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};
     } labelColors;
-
-    CloudRenderer cloudRenderer;
 
     ObjPtr<RenderPipelineSetting> setting;
 };

@@ -229,6 +229,10 @@ void Material::SetShader(std::string_view shaderName)
             auto shader = ShaderLibrary::GetShader(shaderName.data(), perm);
             needRequestNewShader = false;
             this->shaderName = shaderName;
+
+            if (shader == nullptr)
+                return;
+
             SetShaderNoProtection(shader);
             SetDirty();
         }

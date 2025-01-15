@@ -15,7 +15,11 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
     Gfx::PipelineConfig pipelineConfig{};
     auto features = RetriveShaderFeatures(shaderName);
     auto featureStrings = features.GetFeautresFromBitmask(permutation);
-    compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
+    auto compileResult = compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
+    if (compileResult == SLANG_FAIL)
+    {
+        return nullptr;
+    }
 
     {
         Gfx::PipelineCreateInfo createInfo{};
@@ -143,6 +147,7 @@ ShaderLibrary& ShaderLibrary::Singleton()
 
 ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation permutation)
 {
+    std::scoped_lock lock(lk);
     auto shaderIter = library.find(name);
     if (shaderIter != library.end())
     {
@@ -154,6 +159,10 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
     }
 
     std::unique_ptr<Gfx::ShaderProgram> newShader = CompileShader(name, permutation);
+    if (newShader == nullptr)
+    {
+        return nullptr;
+    }
     library[name].shaders.emplace(permutation, CompiledShader(std::move(newShader), permutation));
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }
@@ -253,6 +262,7 @@ void ShaderLibrary::CompiledShader::Recompile(ShaderLibrary* parent)
 void ShaderLibrary::Init()
 {
     globalSession = nullptr;
+    session = nullptr;
 
     createGlobalSession(globalSession.writeRef());
 

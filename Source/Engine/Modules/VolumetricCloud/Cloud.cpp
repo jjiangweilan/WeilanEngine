@@ -5,7 +5,6 @@
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/RenderPipeline/Renderers/CloudRenderer.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
@@ -67,16 +66,6 @@ void Cloud::RemoveFromRenderingScene()
         auto renderingScene = &scene->GetRenderingScene();
         renderingScene->RemoveRenderer(*this);
     }
-}
-
-void Cloud::CreateCloudMaterials()
-{
-    std::unique_ptr<Material> volumetricCloud;
-    std::unique_ptr<Material> noiseGenerator;
-
-    Rendering::CloudRenderer::CreateCloudMaterials(volumetricCloud, noiseGenerator);
-    // this->volumetricCloud = AssetDatabase::Singleton()->SaveAsset(std::move(volumetricCloud), "volumetricCloud");
-    // this->noiseGenerator = AssetDatabase::Singleton()->SaveAsset(std::move(noiseGenerator), "noiseGenerator");
 }
 
 void Cloud::OnEnable()

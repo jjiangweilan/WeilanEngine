@@ -127,6 +127,7 @@ private:
     Slang::ComPtr<slang::IGlobalSession> globalSession;
     Slang::ComPtr<slang::ISession> session;
     std::unordered_map<std::string, ShaderModule> library;
+    std::mutex lk;
 
     ShaderLibrary();
     const char* shaderRootPath = GetShaderRootPath();

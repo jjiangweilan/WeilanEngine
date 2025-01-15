@@ -11,6 +11,7 @@ struct Cloud
 {
     float4 cubePos; // left bottom position
     float4 cubeExtent; // cube extent
+    float4 sampleScale;
     float maxThickness; // max thickness in normalized scale
     float fixedStep; // fixed step in normalized scale
     float extinction;
@@ -121,7 +122,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     float4 light = 0;
     for (float v = 0; v < maxThickness; v += fixedStep)
     {
-        float3 samplePos = lerp(start, end, v);
+        float3 samplePos = lerp(start, end, v) / perMaterial.sampleScale.xyz;
         float density = SampleDensity(samplePos).x;
         transmittance *= Extinction(density * fixedStep * perMaterial.extinction);
     }

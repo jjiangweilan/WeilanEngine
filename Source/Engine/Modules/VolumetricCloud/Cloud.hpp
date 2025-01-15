@@ -1,16 +1,15 @@
 #pragma once
 
-#include "Component.hpp"
+#include "Core/Component/Component.hpp"
 #include "Core/Graphics/Mesh.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/Structs.hpp"
 #include <memory>
 class RenderingScene;
 
 namespace Editor
 {
-    class CloudInspector;
+class CloudInspector;
 }
 
 class Cloud : public Component
@@ -27,7 +26,6 @@ public:
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    void CreateCloudMaterials();
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
 
@@ -49,8 +47,8 @@ private:
     const float cloudHeightResolution = 512;
     bool isSetup = false;
 
-    inline static const char* cloudNoiseGeneratorShader = "Cloud/CloudNoiseGenerator";
-    inline static const char* volumetricCloudShader = "Cloud/VolumetricCloud";
+    inline static const char* cloudNoiseGeneratorShader = "Source/Engine/Modules/VolumetricCloud/Shaders/CloudNoiseGenerator";
+    inline static const char* volumetricCloudShader = "Source/Engine/Modules/VolumetricCloud/Shaders/VolumetricCloud";
 
     struct
     {
@@ -66,4 +64,5 @@ private:
     void OnDisable() override;
 
     friend Editor::CloudInspector;
+
 };
