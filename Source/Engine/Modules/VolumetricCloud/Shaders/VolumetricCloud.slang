@@ -7,23 +7,32 @@ blend:
 - srcAlpha oneMinusSrcAlpha
 #endif
 
+
+/*
+      y---z
+     /     \
+   /        \
+  x          w
+*/
+typealias CloudType = float4;
+
 struct Cloud
 {
     float4 cubePos; // left bottom position
     float4 cubeExtent; // cube extent
     float4 sampleScale;
+    CloudType stratusType;
+    CloudType stratocumulusType;
+    CloudType cumulusType;
     float maxThickness; // max thickness in normalized scale
     float fixedStep; // fixed step in normalized scale
     float extinction;
 
-    float debugNoise;
-    float debugChannel;
-    float3 debugPoint;
-    float3 debugPlane;
-
 #if GPU_RESOURCE
     Texture3D cloudDensity;
+    Texture2D cloudSettings;
     SamplerState sampler_Linear_Repeat;
+
 #endif
 };
 
@@ -66,25 +75,27 @@ ParameterBlock<Cloud> perMaterial;
 
 float3 WSNormalization(float3 pos)
 {
-    return pos;
     return (pos - perMaterial.cubePos.xyz) / perMaterial.cubeExtent.xyz;
 }
 
+float CloudType_Get(float y, CloudType type)
+{
+    return saturate(remap(y, type.x, type.y, 0, 1) * remap(y, type.z, type.w, 1, 0));
+}
 
 float Extinction(float d)
 {
     return exp(-1 * d);
 }
 
-// normalized world space to texture space
-float3 NStoTS(float3 pos)
+float SampleDensity(float3 positionWS)
 {
-    return pos.xzy;
-}
+    float3 samplePos = positionWS / perMaterial.sampleScale.xyz;
+    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, samplePos.xzy);
 
-float SampleDensity(float3 samplePos)
-{
-    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, samplePos);
+    float3 normalizedPos = WSNormalization(positionWS);
+    float cloudTypeDensity = CloudType_Get(normalizedPos.y, perMaterial.stratusType);
+    density *= cloudTypeDensity;
 
     return density.x * (density.y + density.z + density.w);
 }
@@ -93,24 +104,11 @@ float SampleDensity(float3 samplePos)
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
-    if (perMaterial.debugNoise != 0)
-    {
-        const float maxThickness = max(perMaterial.maxThickness, 0.01);
-        const float fixedStep = max(perMaterial.fixedStep, 0.01);
-
-        float3 positionWS = NStoTS(WSNormalization(input.positionWS.xyz));
-        float3 viewPos = NStoTS(WSNormalization(perScene.viewPos.xyz));
-
-        float3 dir = normalize(positionWS - viewPos);
-        float3 start = positionWS;
-        float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, start);
-    }
-
     const float maxThickness = max(perMaterial.maxThickness, 0.01);
     const float fixedStep = max(perMaterial.fixedStep, 0.01);
 
-    float3 positionWS = NStoTS(WSNormalization(input.positionWS.xyz));
-    float3 viewPos = NStoTS(WSNormalization(perScene.viewPos.xyz));
+    float3 positionWS = (input.positionWS.xyz);
+    float3 viewPos = (perScene.viewPos.xyz);
 
     float3 dir = normalize(positionWS - viewPos);
     float3 start = positionWS;
@@ -122,8 +120,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     float4 light = 0;
     for (float v = 0; v < maxThickness; v += fixedStep)
     {
-        float3 samplePos = lerp(start, end, v) / perMaterial.sampleScale.xyz;
-        float density = SampleDensity(samplePos).x;
+        float3 postionWS = lerp(start, end, v);
+        float density = SampleDensity(postionWS).x;
         transmittance *= Extinction(density * fixedStep * perMaterial.extinction);
     }
 

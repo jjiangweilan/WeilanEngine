@@ -49,7 +49,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     perlin += amp.w * (perlinNoise3DWrap(pos0 * floor(perMaterial.perlin0_freq.w), floor(perMaterial.uvScale.w)));
     perlin = remap(perlin, perMaterial.perlin0_remap.x, perMaterial.perlin0_remap.y, perMaterial.perlin0_remap.z, perMaterial.perlin0_remap.w);
     //perlin = abs(perlin * 2. - 1.);
-    
+
     float worley = perMaterial.worley_amp.x * (worley3DWrap(frequency.x * pos0, floor(perMaterial.uvScale.w)));
     float worley0 = (1 - worley3DWrap(frequency.x * pos0, floor(perMaterial.uvScale.w)));
     float worley1 = (1 - worley3DWrap(frequency.y * pos0, floor(perMaterial.uvScale.w)));

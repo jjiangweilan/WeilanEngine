@@ -72,6 +72,16 @@ float perlinNoise3D(float3 pos)
                     grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
 }
 
+float grad3DWrap(float hash, float3 pos) 
+{
+    if (any(pos == 0))
+        return 0;
+    int h = int(1e4*hash) & 15;
+    float u = h<8 ? pos.x : pos.y,
+          v = h<4 ? pos.y : h==12||h==14 ? pos.x : pos.z;
+    return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
+}
+
 float perlinNoise3DWrap(float3 pos, float period)
 {
     float3 pi = floor(pos); 
@@ -81,14 +91,14 @@ float perlinNoise3DWrap(float3 pos, float period)
     float v = fade(pf.y);
     float w = fade(pf.z);
 
-    float grad000 = grad3D(hash13((pi + float3(0, 0, 0)) % period), pf - float3(0, 0, 0));
-    float grad100 = grad3D(hash13((pi + float3(1, 0, 0)) % period), pf - float3(1, 0, 0));
-    float grad010 = grad3D(hash13((pi + float3(0, 1, 0)) % period), pf - float3(0, 1, 0));
-    float grad110 = grad3D(hash13((pi + float3(1, 1, 0)) % period), pf - float3(1, 1, 0));
-    float grad001 = grad3D(hash13((pi + float3(0, 0, 1)) % period), pf - float3(0, 0, 1));
-    float grad101 = grad3D(hash13((pi + float3(1, 0, 1)) % period), pf - float3(1, 0, 1));
-    float grad011 = grad3D(hash13((pi + float3(0, 1, 1)) % period), pf - float3(0, 1, 1));
-    float grad111 = grad3D(hash13((pi + float3(1, 1, 1)) % period), pf - float3(1, 1, 1));
+    float grad000 = grad3DWrap(hash13((pi + float3(0, 0, 0)) % period), pf - float3(0, 0, 0));
+    float grad100 = grad3DWrap(hash13((pi + float3(1, 0, 0)) % period), pf - float3(1, 0, 0));
+    float grad010 = grad3DWrap(hash13((pi + float3(0, 1, 0)) % period), pf - float3(0, 1, 0));
+    float grad110 = grad3DWrap(hash13((pi + float3(1, 1, 0)) % period), pf - float3(1, 1, 0));
+    float grad001 = grad3DWrap(hash13((pi + float3(0, 0, 1)) % period), pf - float3(0, 0, 1));
+    float grad101 = grad3DWrap(hash13((pi + float3(1, 0, 1)) % period), pf - float3(1, 0, 1));
+    float grad011 = grad3DWrap(hash13((pi + float3(0, 1, 1)) % period), pf - float3(0, 1, 1));
+    float grad111 = grad3DWrap(hash13((pi + float3(1, 1, 1)) % period), pf - float3(1, 1, 1));
 
     return lerp(
             lerp(lerp(grad000,grad100,u),lerp(grad010, grad110,u),v),
