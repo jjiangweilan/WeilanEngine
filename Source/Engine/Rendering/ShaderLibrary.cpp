@@ -261,8 +261,8 @@ void ShaderLibrary::CompiledShader::Recompile(ShaderLibrary* parent)
 }
 void ShaderLibrary::Init()
 {
-    globalSession = nullptr;
     session = nullptr;
+    globalSession = nullptr;
 
     createGlobalSession(globalSession.writeRef());
 

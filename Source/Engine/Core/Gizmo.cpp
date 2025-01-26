@@ -5,11 +5,11 @@
 #include "Rendering/Shader.hpp"
 #include <glm/glm.hpp>
 
-Shader* GizmoBase::GetBillboardShader()
+ObjPtr<Shader2> GizmoBase::GetBillboardShader()
 {
-    static Shader* shader = nullptr;
+    static ObjPtr<Shader2> shader = nullptr;
     if (shader == nullptr)
-        shader = static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Billboard.shad"));
+        shader = ShaderLibrary::GetShader("Billboard");
 
     return shader;
 }
@@ -17,25 +17,22 @@ Shader* GizmoBase::GetBillboardShader()
 class GizmoDrawLight : public GizmoBase
 {
 public:
-    GizmoDrawLight() : position(0){};
+    GizmoDrawLight() : position(0) { Init(); };
     GizmoDrawLight(const glm::vec3& position);
     void Draw(Gfx::CommandBuffer& cmd) override
     {
-        Shader* shader = GizmoBase::GetBillboardShader();
+        ObjPtr<Shader2> shader = GizmoBase::GetBillboardShader();
 
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
-        Gfx::ShaderProgram* program = shader->GetDefaultShaderProgram();
-        cmd.SetTexture("mainTex", *GetLightTexture()->GetGfxImage());
-        cmd.BindShaderProgram(program, shader->GetDefaultShaderConfig());
-        cmd.SetPushConstant(shader->GetDefaultShaderProgram(), &pconst);
+        Gfx::ShaderProgram* program = shader->GetShaderProgram();
+        cmd.BindResource(1, GetMaterial().GetShaderResource());
+        cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
+        cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
         cmd.Draw(6, 1, 0, 0);
     }
 
-    AABB GetAABB() override
-    {
-        return AABB(position, scale);
-    }
+    AABB GetAABB() override { return AABB(position, scale); }
 
 private:
     glm::vec3 position;
@@ -51,6 +48,21 @@ private:
         }
 
         return lightTex;
+    }
+    void Init() {
+
+    }
+    static Material& GetMaterial()
+    {
+        static std::unique_ptr<Material> mat;
+        if (mat == nullptr)
+        {
+            mat = std::make_unique<Material>();
+            mat->SetShader(GetBillboardShader());
+            mat->SetTexture("mainTex", GetLightTexture());
+        }
+
+        return *mat;
     }
 };
 
@@ -76,7 +88,7 @@ public:
             if (material != nullptr)
             {
                 Gfx::ShaderProgram* program = material->GetShaderProgram();
-                cmd.BindResource(2, material->GetShaderResource());
+                cmd.BindResource(material->GetSet("perMaterial"), material->GetShaderResource());
                 cmd.SetPushConstant(program, &modelMatrix);
                 cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
             }
@@ -113,7 +125,7 @@ private:
 class GizmoCamera : public GizmoBase
 {
 public:
-    GizmoCamera(){};
+    GizmoCamera() {};
     GizmoCamera(float fov, float near, float far, float aspect);
 
 private:
@@ -123,7 +135,7 @@ private:
     float aspect;
 };
 
-GizmoDrawLight::GizmoDrawLight(const glm::vec3& position) : position(position) {}
+GizmoDrawLight::GizmoDrawLight(const glm::vec3& position) : position(position) { Init(); }
 
 Gizmos& Gizmos::GetSingleton()
 {
@@ -187,7 +199,6 @@ void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
 
 void Gizmos::DispatchAllDiszmos(Gfx::CommandBuffer& cmd)
 {
-    return;
     for (auto& g : GetSingleton().gizmos)
     {
         g->Draw(cmd);

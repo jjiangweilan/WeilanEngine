@@ -43,8 +43,8 @@ private:
     std::unique_ptr<Material> debugImageMaterial;
     Gfx::RG::RenderPass debugRenderPass = Gfx::RG::RenderPass::SingleColor("a debug pass");
 
-    const float cloudSideResolution = 512;
-    const float cloudHeightResolution = 512;
+    const float cloudSideResolution = 128;
+    const float cloudHeightResolution = 128;
     bool isSetup = false;
 
     inline static const char* cloudNoiseGeneratorShader = "Source/Engine/Modules/VolumetricCloud/Shaders/CloudNoiseGenerator";

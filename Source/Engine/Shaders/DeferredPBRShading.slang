@@ -2,14 +2,43 @@ import Library.PerScene;
 
 #if CONFIG
 depth:
-    testEnable: false
+    testEnable: true
     writeEnable: false
+    compOp: notEqual
 #endif
 
-#include "Utils/VertexFullScreen.hlsl"
 #include "DeferredPBRShading.hlsl"
 #include "DeferredPBRShadingInput.hlsl"
 #include "Shadows.hlsl"
+
+struct VertexOutput
+{
+    float4 position : SV_Position;
+    float2 uv;
+}
+
+[shader("vertex")]
+VertexOutput VertexMain(uint id : SV_VertexID)
+{
+    float4 c_Positions[6] =
+    {
+        { -1, -1, 0.5, 1 },
+        { -1, 1, 0.5, 1 },
+        { 1, 1, 0.5, 1 },
+
+        { -1, -1, 0.5, 1 },
+        { 1, 1, 0.5, 1 },
+        { 1, -1, 0.5, 1 }
+    };
+
+    VertexOutput output;
+
+    output.position = c_Positions[id];
+    output.uv = output.position.xy * 0.5 + 0.5;
+    output.position.z = 1;
+
+    return output;
+}
 
 struct DeferredInput
 {

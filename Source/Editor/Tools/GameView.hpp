@@ -61,6 +61,9 @@ private:
     bool useViewCamera = true;
     bool isAltDown = false;
     float editorCameraSpeed = 5.0f;
+    Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
+    ObjPtr<Shader2> editorFinalColorBlitShader;
+    std::unique_ptr<Material> editorFinalColorBlitMaterial;
 
     struct EditorCameraLookAtController
     {

@@ -309,6 +309,7 @@ public:
         std::string name = variableLayout->getName();
         bool pointFilter = Utils::strContians(Utils::strToLower(name), "point");
 
+        bool clampSampleToBorder = Utils::strContians(Utils::strToLower(name), "clamptoborder");
         bool clampSample = Utils::strContians(Utils::strToLower(name), "clamp");
 
         std::string samplerTypeName = variableLayout->getType()->getName();
@@ -318,7 +319,9 @@ public:
             config.enbaleCompare = false;
         config.anisotropic = false;
 
-        if (clampSample)
+        if (clampSampleToBorder)
+            config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::ClampToBorder;
+        else if (clampSample)
             config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::ClampToEdge;
         else
             config.addressModeU = config.addressModeV = config.addressModeW = Gfx::SamplerAddressMode::Repeat;

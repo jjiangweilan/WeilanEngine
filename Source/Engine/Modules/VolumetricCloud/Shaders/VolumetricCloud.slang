@@ -4,7 +4,7 @@ import Library.PerScene;
 name: Game/Cloud
 cull: back
 blend:
-- srcAlpha oneMinusSrcAlpha
+- one srcAlpha
 #endif
 
 
@@ -24,14 +24,18 @@ struct Cloud
     CloudType stratusType;
     CloudType stratocumulusType;
     CloudType cumulusType;
+    float4 baseClouseShapeRemap;
     float maxThickness; // max thickness in normalized scale
     float fixedStep; // fixed step in normalized scale
     float extinction;
+    float lightExtinction;
+    float lightPhase_K;
+    float lightPhase_g;
 
 #if GPU_RESOURCE
     Texture3D cloudDensity;
     Texture2D cloudSettings;
-    SamplerState sampler_Linear_Repeat;
+    SamplerState sampler_Linear_ClampToBorder;
 
 #endif
 };
@@ -78,27 +82,86 @@ float3 WSNormalization(float3 pos)
     return (pos - perMaterial.cubePos.xyz) / perMaterial.cubeExtent.xyz;
 }
 
-float CloudType_Get(float y, CloudType type)
-{
-    return saturate(remap(y, type.x, type.y, 0, 1) * remap(y, type.z, type.w, 1, 0));
-}
 
-float Extinction(float d)
+float Transmittance(float d)
 {
     return exp(-1 * d);
 }
 
+float PowderSugar(float d)
+{
+    return 1.0 - exp(-2*d);
+}
+
 float SampleDensity(float3 positionWS)
 {
-    float3 samplePos = positionWS / perMaterial.sampleScale.xyz;
-    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_Repeat, samplePos.xzy);
+    float3 samplePos = WSNormalization(positionWS / perMaterial.sampleScale.xyz);
 
-    float3 normalizedPos = WSNormalization(positionWS);
-    float cloudTypeDensity = CloudType_Get(normalizedPos.y, perMaterial.stratusType);
-    density *= cloudTypeDensity;
+    float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, samplePos.xzy);
+    float lowFrequencyFbm = 0.425 * density.y + 0.35 * density.z + 0.225 * density.w;
+    float cloudHeight = WSNormalization(positionWS).y;
+    const float4 cloudType = perMaterial.stratusType;
+    float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
+          * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
-    return density.x * (density.y + density.z + density.w);
+    float baseCloudShape = density.x * cloudTypeGradient;
+    float cloudShape = saturate(remap(baseCloudShape, 1 - lowFrequencyFbm, 1.0, 0, 1));
+
+    return cloudShape;
 }
+
+
+// -1 < g < 1, 0.8 for clouds
+float HenyeyGreenstein(float g, float costh)
+{
+    return (1.0 - g * g) / (4.0 * M_PI * pow(1.0 + g * g - 2.0 * g * costh, 1.5f));
+}
+
+float DualLobHenyeyGreenstein(float g, float costh, float K)
+{
+    return lerp(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), K);
+}
+
+// float3 LightMarch(float3 end, float3 ldir)
+// {
+//     const float travelDistance = 20;
+//     const float delta = perMaterial.lightStep > 0 ? perMaterial.lightStep : 1;
+// 
+//     float travel = 0;
+//     float3 curr = end - travelDistance * ldir;
+//     float3 lightColor = float3(perMaterial.lightIntensityScale);
+//     float4 light = float4(0);
+//     for(;travel < travelDistance; travel += delta)
+//     {
+//         float cloudDensity = GetDensity(curr);
+// 
+//         if (cloudDensity > 0)
+//         {
+//             float den = cloudDensity;
+//             // float cloudDensity0 = GetDensity(curr + 0.3 * ldir);
+//             // float den1 = SampleCloudDensity(curr + 0.1 * ldir);
+// 
+//             // float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
+//             float phaseCos = 1;
+//             float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
+//             float reflectAbsorption = Absorption(den);
+//             // float ndotl = clamp((den - den1) / 0.3,0,1);
+// 
+//             float4 col = float4(lightColor.xyz, den);
+// 
+// 
+//             col.rgb *= (col.a * phase * reflectAbsorption );
+//             light += col * (1-light.a);
+//         }
+//         // float val = normalizedPos.y*2-1;
+//         // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
+//         // cloudDensity *= heightDensity;
+// 
+//         curr += ldir * delta;
+//     }
+// 
+//     return light.xyz;//Absorption(distance);
+// }
 
 // expecting cull back
 [shader("fragment")]
@@ -116,18 +179,49 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 
     float4 color = 0;
 
-    float transmittance = 1;
-    float4 light = 0;
+    float3 ldir = perScene.lights[0].position.xyz;
+    float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, dot(ldir, dir), perMaterial.lightPhase_K));
+
+    float totalTransmittance = 1;
+    float3 lighting = 0;
     for (float v = 0; v < maxThickness; v += fixedStep)
     {
-        float3 postionWS = lerp(start, end, v);
-        float density = SampleDensity(postionWS).x;
-        transmittance *= Extinction(density * fixedStep * perMaterial.extinction);
+        float3 postionWS = lerp(start, end, v / maxThickness);
+        float density = SampleDensity(postionWS);
+
+        if (density > 0)
+        {
+            float d = density * fixedStep * perMaterial.extinction;
+            float transmittance = Transmittance(d);
+            totalTransmittance *= transmittance;
+
+            // marching towards light
+            const float lightSampleStep = 0.05;
+            const float maxLightSampleStepCount = 16;
+            float3 lightSampleWS = postionWS + ldir * lightSampleStep;
+            float lightTotalDensity = 0;
+            for(float lv = 0; lv < maxLightSampleStepCount; lv++)
+            {
+                float lightSampleDensity = SampleDensity(lightSampleWS);
+
+                if (lightSampleDensity > 0)
+                {
+                    float dd = lightSampleDensity * lightSampleStep;
+                    lightTotalDensity += dd;
+                }
+            }
+            float lightTransmittance = saturate(Transmittance(lightTotalDensity * perMaterial.lightExtinction));
+
+            lighting += perScene.lights[0].lightColor.xyz * totalTransmittance * phase * lightTransmittance;
+
+            if (totalTransmittance < 0.001)
+                break;
+        }
     }
 
-    transmittance = max(0, transmittance);
+    totalTransmittance = max(0, totalTransmittance);
 
-    return float4(1,1,1,1 - transmittance);
+    return float4(lighting, totalTransmittance);
 }
 
 

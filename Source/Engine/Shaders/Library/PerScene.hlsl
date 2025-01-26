@@ -27,5 +27,9 @@ struct PerScene
     float4 cameraFrustum;// left right bottom top
     float4 screenSize;
     float4 cachedMainLightDirection;
+    float time;
+    float padding0;
+    float padding1;
+    float padding2;
     Light lights[MAX_LIGHT_COUNT];
 };

@@ -267,7 +267,13 @@ std::unique_ptr<Asset> Material::Clone()
 
 Gfx::ShaderResource* Material::ValidateGetShaderResource()
 {
-    if (uploadNeeded && shaderInUse)
+    if (shaderInUse == nullptr)
+    {
+        spdlog::warn("Shader is not set in material");
+        return nullptr;
+    }
+
+    if (uploadNeeded)
     {
         UploadDataToGPU(shaderInUse->GetShaderProgram());
     }

@@ -87,16 +87,16 @@ public:
         return Singleton().QueryShaderFeaturesImpl(name);
     }
 
-    static void ReloadAllShaders()
+    static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
+
+    void RemoveAllShaders()
     {
-        return Singleton().ReloadAllShadersImpl();
+        // calling .clear() may not actually clear the members
+        library.clear();
     }
 
-    void RemoveAllShaders() { 
-        // calling .clear() may not actually clear the members
-        library.clear(); }
-
     static ShaderLibrary& Singleton();
+
 private:
     ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);

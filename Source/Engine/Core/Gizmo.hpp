@@ -8,7 +8,6 @@
 #include <vector>
 
 class Texture;
-class Shader;
 class GameObject;
 namespace Gfx
 {
@@ -28,7 +27,7 @@ public:
     static void SetActiveCarrier(GameObject* carrier);
     static void ClearActiveCarrier();
 
-    static Shader* GetBillboardShader();
+    static ObjPtr<Shader2> GetBillboardShader();
     virtual void Draw(Gfx::CommandBuffer& cmd) = 0;
     virtual AABB GetAABB() = 0;
 

@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
+#include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/RenderingUtils.hpp"
@@ -67,6 +68,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             camera.GetProjectionTop()
         );
         param.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
+        param.time = Time::TimeSinceLaunch();
 
         // light data
         {
