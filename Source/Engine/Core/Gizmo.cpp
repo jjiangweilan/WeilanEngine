@@ -26,7 +26,8 @@ public:
         glm::vec4 pos(position, 1.0);
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
-        cmd.BindResource(1, GetMaterial().GetShaderResource());
+        cmd.BindResource(0, perScene);
+        cmd.BindResource(GetMaterial().GetSet("perMaterial"), GetMaterial().GetShaderResource());
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
         cmd.Draw(6, 1, 0, 0);
@@ -197,10 +198,11 @@ void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
     }
 }
 
-void Gizmos::DispatchAllDiszmos(Gfx::CommandBuffer& cmd)
+void Gizmos::DispatchAllDiszmos(Gfx::CommandBuffer& cmd, Gfx::ShaderResource* perScene)
 {
     for (auto& g : GetSingleton().gizmos)
     {
+        g->Setup(perScene);
         g->Draw(cmd);
     }
 }

@@ -17,10 +17,7 @@ class CommandBuffer;
 class GizmoBase
 {
 public:
-    GizmoBase()
-    {
-        carrier = GetActiveCarrier();
-    }
+    GizmoBase() { carrier = GetActiveCarrier(); }
     virtual ~GizmoBase() {}
     // a gizmos can be associated with a GameObject, Gizmos use static pattern so the associated carrier is recorded
     // besides OnDrawGizmos by the caller
@@ -31,10 +28,12 @@ public:
     virtual void Draw(Gfx::CommandBuffer& cmd) = 0;
     virtual AABB GetAABB() = 0;
 
-    GameObject* GetCarrier()
-    {
-        return carrier;
-    }
+    GameObject* GetCarrier() { return carrier; }
+
+    void Setup(Gfx::ShaderResource* perScene) { this->perScene = perScene; }
+
+protected:
+    Gfx::ShaderResource* perScene;
 
 private:
     GameObject* carrier;
@@ -48,19 +47,13 @@ public:
     static void DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix);
     static void DrawMesh(Mesh& mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix);
     static void DrawLight(const glm::vec3& position);
-    static void DispatchAllDiszmos(Gfx::CommandBuffer& cmd);
+    static void DispatchAllDiszmos(Gfx::CommandBuffer& cmd, Gfx::ShaderResource* perScene);
 
-    int GetSize()
-    {
-        return gizmos.size();
-    }
+    int GetSize() { return gizmos.size(); }
 
     static bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
     static void PickGizmos(const Ray& ray, std::vector<GameObject*>& result);
-    static void ClearAllRegisteredGizmos()
-    {
-        GetSingleton().gizmos.clear();
-    }
+    static void ClearAllRegisteredGizmos() { GetSingleton().gizmos.clear(); }
 
     template <std::derived_from<GizmoBase> T, class... Args>
     void Add(Args&&... args)
@@ -68,10 +61,7 @@ public:
         gizmos.push_back(T(std::forward<Args>(args)...));
     }
 
-    void Clear()
-    {
-        gizmos.clear();
-    }
+    void Clear() { gizmos.clear(); }
 
 private:
     static Gizmos& GetSingleton();

@@ -359,8 +359,7 @@ void GameView::Render(
                 }
             }
 
-            cmd.BindResource(0, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
-            Gizmos::DispatchAllDiszmos(cmd);
+            Gizmos::DispatchAllDiszmos(cmd, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
             Gizmos::ClearAllRegisteredGizmos();
             cmd.EndRenderPass();
         }
