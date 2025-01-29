@@ -33,7 +33,7 @@ public:
         cmd.Draw(6, 1, 0, 0);
     }
 
-    AABB GetAABB() override { return AABB(position, scale); }
+    AABB GetAABB() override { return AABB(position, scale, AABB::PosConstruct{}); }
 
 private:
     glm::vec3 position;
@@ -192,8 +192,11 @@ void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
         float t;
         if (RayVsAABB(ray, aabb, t))
         {
-            if (GameObject* carrier = g->GetCarrier())
-                result.push_back(carrier);
+            if (t > 0)
+            {
+                if (GameObject* carrier = g->GetCarrier())
+                    result.push_back(carrier);
+            }
         }
     }
 }
