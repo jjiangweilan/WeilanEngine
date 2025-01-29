@@ -24,20 +24,17 @@ public:
 
         if (debugOn)
         {
-            ImGui::BeginChild("Global Cloud Type");
+            auto debugImage = target->UpdateDebugImage();
+            if (ImGui::DragFloat("Debug Layer", &debugLayer))
             {
-                auto debugImage = target->UpdateDebugImage();
-                if (ImGui::DragFloat("Debug Layer", &debugLayer))
-                {
-                    target->debugImageMaterial->SetFloat("layer", debugLayer);
-                }
-                if (ImGui::DragFloat("Debug Axis", &debugAxis))
-                {
-                    target->debugImageMaterial->SetFloat("axis", debugAxis);
-                }
-                ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
+                target->debugImageMaterial->SetFloat("layer", debugLayer);
             }
-            ImGui::EndChild();
+            if (ImGui::DragFloat("Debug Axis", &debugAxis))
+            {
+                target->debugImageMaterial->SetFloat("axis", debugAxis);
+            }
+            ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
+
         }
     }
 
