@@ -1,4 +1,3 @@
-#pragma once
 #include "ObjectReflection.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Component/Component.hpp"
