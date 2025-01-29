@@ -112,11 +112,11 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
     {
         isCompute = true;
         VkShaderModuleCreateInfo computeModuleCreateInfo{
-        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-        .pNext = VK_NULL_HANDLE,
-        .flags = 0,
-        .codeSize = createInfo.computeSpv.size(),
-        .pCode = (uint32_t*)createInfo.computeSpv.data()
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = VK_NULL_HANDLE,
+            .flags = 0,
+            .codeSize = createInfo.computeSpv.size(),
+            .pCode = (uint32_t*)createInfo.computeSpv.data()
         };
         objManager->CreateShaderModule(computeModuleCreateInfo, computeModule);
 
@@ -259,12 +259,13 @@ void VKShaderProgram::GeneratePipelineLayout()
     pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.pNext = VK_NULL_HANDLE;
     pipelineLayoutCreateInfo.flags = 0;
-
-    std::vector<VkDescriptorSetLayout> layouts(
-        pipelineInfo.descriptorSets.size()
-    );
+    // prepare data
     using DescriptorSetLayoutBindingVector =
         std::vector<VkDescriptorSetLayoutBinding, GlobalTempAllocator<VkDescriptorSetLayoutBinding>>;
+    std::vector<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
+    std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()
+    ); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
+       // memory address as hashing input
     const int MaxImmutableSamplerBindings = 512;
     VkSampler immutableSamplers[MaxImmutableSamplerBindings] = {};
     int immutableSamplerIndex = 0;
@@ -278,7 +279,7 @@ void VKShaderProgram::GeneratePipelineLayout()
 
         const auto& descriptorSetInfos = pipelineInfo.descriptorSets[i];
 
-        DescriptorSetLayoutBindingVector descriptorSetLayoutBindingVector;
+        auto& descriptorSetLayoutBindingVector = descriptorSetLayoutBindingVectors[i];
         descriptorSetLayoutBindingVector.resize(descriptorSetInfos.bindings.size());
 
         for (size_t bindingIndex = 0; bindingIndex < descriptorSetInfos.bindings.size(); ++bindingIndex)
@@ -292,21 +293,25 @@ void VKShaderProgram::GeneratePipelineLayout()
                 VkSamplerCreateInfo samplerCreateInfo = SamplerCachePool::GenerateSamplerCreateInfo(samplerConfig);
                 VkSampler sampler = SamplerCachePool::RequestSampler(samplerCreateInfo);
                 immutableSamplerOffset = immutableSamplerIndex;
-                for (int count = 0; count < descriptorSetInfos.bindings[bindingIndex].descriptorCount && immutableSamplerIndex < MaxImmutableSamplerBindings; count++)
+                for (int count = 0; count < descriptorSetInfos.bindings[bindingIndex].descriptorCount &&
+                                    immutableSamplerIndex < MaxImmutableSamplerBindings;
+                     count++)
                 {
                     immutableSamplers[immutableSamplerIndex] = sampler;
                     immutableSamplerIndex++;
                 }
             }
 
-            descriptorSetLayoutBindingVector[bindingIndex].binding = descriptorSetInfos.bindings[bindingIndex].bindingNum;
+            descriptorSetLayoutBindingVector[bindingIndex].binding =
+                descriptorSetInfos.bindings[bindingIndex].bindingNum;
             descriptorSetLayoutBindingVector[bindingIndex].descriptorType =
                 MapDescriptorType(descriptorSetInfos.bindings[bindingIndex].descriptorType);
             descriptorSetLayoutBindingVector[bindingIndex].descriptorCount =
                 descriptorSetInfos.bindings[bindingIndex].descriptorCount;
             descriptorSetLayoutBindingVector[bindingIndex].stageFlags =
                 MapShaderStages(descriptorSetInfos.bindings[bindingIndex].stages);
-            descriptorSetLayoutBindingVector[bindingIndex].pImmutableSamplers = immutableSamplerOffset == -1 ? nullptr : &immutableSamplers[immutableSamplerOffset];
+            descriptorSetLayoutBindingVector[bindingIndex].pImmutableSamplers =
+                immutableSamplerOffset == -1 ? nullptr : &immutableSamplers[immutableSamplerOffset];
         }
 
         descriptorSetLayoutCreateInfo.bindingCount = descriptorSetLayoutBindingVector.size();
