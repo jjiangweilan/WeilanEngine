@@ -758,6 +758,7 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
+    ImGui::ShowDemoWindow();
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();

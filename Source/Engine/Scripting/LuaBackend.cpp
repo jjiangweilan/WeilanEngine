@@ -1,61 +1,34 @@
 #include "LuaBackend.hpp"
-#include <fstream>
+#include "Scripting/LuaBackend_Internal.hpp"
+#include "ThirdParty/lua/lua.hpp"
 #include <spdlog/spdlog.h>
-LuaBackend::LuaBackend() : state(luaL_newstate()), wraps(state)
-{
-    luaL_openlibs(state);
-}
 
-RefPtr<LuaBackend> LuaBackend::Instance()
+LuaBackend::LuaBackend()
 {
-    if (instance == nullptr)
+    if (L == nullptr)
     {
-        instance = std::unique_ptr<LuaBackend>(new LuaBackend());
-    }
+        L = luaL_newstate();
+        luaL_openlibs(L);
 
-    return instance.get();
-}
+        lua_newtable(L);
+        lua_pushvalue(L, -1);
+        lua_setglobal(L, "wl");
 
-void LuaBackend::LoadFile(const std::filesystem::path& path)
-{
-    std::fstream f;
-    f.open(path);
+        lua_pushstring(L, "GameScript");
+        LuaScript_LuaBinding().BindClass(L);
+        lua_settable(L, -3);
 
-    if (f.is_open() && f.good())
-    {
-        std::stringstream ss;
-        ss << f.rdbuf();
-        if (luaL_dostring(state, ss.str().c_str()) != 0)
-        {
-            const char* str = lua_tostring(state, -1);
-            SPDLOG_ERROR("Con't load lua file {}", str);
-        }
-    }
-    else
-        SPDLOG_ERROR("Can't read lua file {}", path.string());
-}
-
-void LuaBackend::LoadLuaInFolder(const std::filesystem::path& folder)
-{
-    LoadLuaInFolderIter(folder);
-}
-
-void LuaBackend::LoadLuaInFolderIter(const std::filesystem::path& entry)
-{
-    if (std::filesystem::is_directory(entry))
-    {
-        for (auto const& dir_entry : std::filesystem::directory_iterator(entry))
-        {
-            LoadLuaInFolderIter(dir_entry);
-        }
-    }
-    else
-    {
-        if (entry.extension() == ".lua")
-        {
-            LoadFile(entry);
-        }
+        lua_pop(L, 1); // pop wl global table
     }
 }
 
-std::unique_ptr<LuaBackend> LuaBackend::instance = nullptr;
+LuaBackend::~LuaBackend()
+{
+    if (L)
+    {
+        lua_close(L);
+        L = nullptr;
+    }
+}
+
+lua_State* LuaBackend::L = nullptr;

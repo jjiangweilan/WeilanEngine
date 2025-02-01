@@ -29,6 +29,8 @@ public:
         subpasses.clear();
     }
 
+    bool RenderPassRenderingValidationCheck() override;
+
     // you should first call GetHandle then GetFrameBuffer
     VkFramebuffer GetFrameBuffer();
     VkRenderPass GetHandle();

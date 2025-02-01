@@ -18,10 +18,7 @@ struct ImageDescription
         Rehash();
     }
 
-    bool operator==(const ImageDescription& other) const
-    {
-        return data == other.data;
-    }
+    bool operator==(const ImageDescription& other) const { return data == other.data; }
 
     void SetRandomWrite(bool enable)
     {
@@ -59,30 +56,15 @@ struct ImageDescription
         }
     }
 
-    uint32_t GetWidth() const
-    {
-        return data.width;
-    }
+    uint32_t GetWidth() const { return data.width; }
 
-    uint32_t GetHeight() const
-    {
-        return data.height;
-    }
+    uint32_t GetHeight() const { return data.height; }
 
-    Gfx::GfxFormat GetFormat() const
-    {
-        return data.format;
-    }
+    Gfx::GfxFormat GetFormat() const { return data.format; }
 
-    uint64_t GetHash() const
-    {
-        return hash;
-    }
+    uint64_t GetHash() const { return hash; }
 
-    bool GetRandomWrite() const
-    {
-        return data.randomWrite;
-    }
+    bool GetRandomWrite() const { return data.randomWrite; }
 
 private:
     struct InternalData
@@ -96,10 +78,7 @@ private:
 
     uint64_t hash;
 
-    void Rehash()
-    {
-        hash = XXH3_64bits(&data, sizeof(InternalData));
-    }
+    void Rehash() { hash = XXH3_64bits(&data, sizeof(InternalData)); }
 };
 
 struct ImageIdentifier
@@ -134,30 +113,18 @@ struct ImageIdentifier
             {
                 return rtHandle == other.rtHandle;
             }
-
-            return false;
         }
+        
+        return true;
     }
 
-    Type GetType() const
-    {
-        return type;
-    }
+    Type GetType() const { return type; }
 
-    Image* GetAsImage() const
-    {
-        return image;
-    }
+    Image* GetAsImage() const { return image; }
 
-    UUID GetAsUUID() const
-    {
-        return rtHandle;
-    }
+    UUID GetAsUUID() const { return rtHandle; }
 
-    const std::string& GetName() const
-    {
-        return name;
-    }
+    const std::string& GetName() const { return name; }
 
 private:
     Type type = Type::None;
@@ -195,15 +162,15 @@ class RenderPass
 {
 public:
     RenderPass() : uuid(), name(std::to_string(GetDefaultNameId()++)) {}
-    RenderPass( int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
+    RenderPass(int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
     {
-        attachments.resize(attachmentCount);
+        attachments.resize(attachmentCount, ImageIdentifier::GetEmpty());
         subpasses.resize(subpassCount);
     }
 
     RenderPass(std::string_view name, int subpassCount, int attachmentCount) : uuid(), name(name)
     {
-        attachments.resize(attachmentCount);
+        attachments.resize(attachmentCount, ImageIdentifier::GetEmpty());
         subpasses.resize(subpassCount);
     }
 
@@ -219,14 +186,10 @@ public:
         }
     }
 
-    const std::vector<ImageIdentifier>& GetAttachments()
-    {
-        return attachments;
-    }
-    const std::vector<Subpass>& GetSubpasses()
-    {
-        return subpasses;
-    }
+    bool IsValidForRendering() const;
+
+    const std::vector<ImageIdentifier>& GetAttachments() { return attachments; }
+    const std::vector<Subpass>& GetSubpasses() { return subpasses; }
 
     void SetSubpass(
         int index, std::span<SubpassAttachment> colors, std::optional<SubpassAttachment> depth = std::nullopt
@@ -259,10 +222,7 @@ public:
         }
     }
 
-    const UUID& GetUUID() const
-    {
-        return uuid;
-    }
+    const UUID& GetUUID() const { return uuid; }
 
     static RenderPass Default(
         std::string_view name = "default render pass",
@@ -293,15 +253,9 @@ public:
         return rp;
     }
 
-    void SetName(std::string_view name)
-    {
-        this->name = name;
-    }
+    void SetName(std::string_view name) { this->name = name; }
 
-    const std::string& GetName()
-    {
-        return name;
-    }
+    const std::string& GetName() { return name; }
 
 private:
     UUID uuid;

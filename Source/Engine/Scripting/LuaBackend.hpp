@@ -1,38 +1,17 @@
 #pragma once
 
-#include "Core/Ptr.hpp"
-#include "LuaWraps.hpp"
 #include "ThirdParty/lua/lua.hpp"
-#include <filesystem>
 class LuaBackend
 {
 public:
-    static RefPtr<LuaBackend> Instance();
-
-    inline lua_State* GetL()
-    {
-        return state;
-    }
-    void LoadLuaInFolder(const std::filesystem::path& folder);
-    void LoadFile(const std::filesystem::path& path);
-    void OpenL()
-    {
-        if (!state)
-            state = luaL_newstate();
-    }
-    void CloseL()
-    {
-        if (state)
-            lua_close(state);
-    }
+    static lua_State* L;
+    LuaBackend();
+    ~LuaBackend();
 
 private:
-    LuaBackend();
 
-    lua_State* state = nullptr;
-    LuaWraps wraps;
-
-    static std::unique_ptr<LuaBackend> instance;
-
-    void LoadLuaInFolderIter(const std::filesystem::path& folder);
+    /**** Test *****/
+    int luaRef;
+    void InstantiateScript(const char* scriptPath);
+    /***************/
 };

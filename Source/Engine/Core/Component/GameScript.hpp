@@ -2,19 +2,21 @@
 #include "Component.hpp"
 #include "ThirdParty/lua/lua.hpp"
 
-class LuaScript : public Component
+class GameScript : public Component
 {
     DECLARE_OBJECT();
 
 public:
-    LuaScript();
-    LuaScript(GameObject* gameObject);
+    GameScript();
+    GameScript(GameObject* gameObject);
 
     const std::string& GetLuaClass()
     {
         return luaClassName;
     }
-    void RefLuaClass(const char* luaClass);
+
+    void SetScript(const char* scriptPath);
+
     void Construct();
     void Destruct();
     void Tick() override;
@@ -28,6 +30,7 @@ public:
 
 private:
     std::string luaClassName;
+    lua_State* L;
 
     using LuaRef = int;
 

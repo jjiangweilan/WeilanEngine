@@ -102,6 +102,12 @@ void RenderingScene::Tick()
         updateRendererNodeHierarchy = false;
     }
 
+    // BVH Debug
+    // BVHDebug()
+}
+
+void RenderingScene::BVHDebug()
+{
     static int debugLevel = 2;
     static bool drawObjBounds = false;
     static bool bvhDebug = false;
@@ -110,7 +116,7 @@ void RenderingScene::Tick()
     ImGui::InputInt("Debug Level", &debugLevel);
     ImGui::End();
     static Mesh* mesh = EngineInternalResources::GetModels().cube;
-    static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleForwardLit));
+    static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleColor));
     if (bvhDebug)
     {
         auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
@@ -126,7 +132,8 @@ void RenderingScene::Tick()
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
                         glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        glm::float4x4 model =
+                            glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                         Graphics::DrawMesh(*mesh, 0, model, mat);
                     }
 
@@ -139,7 +146,8 @@ void RenderingScene::Tick()
 
                             glm::float3 position = (aabb.max + aabb.min) / 2.0f;
                             glm::float3 scale = (aabb.max - aabb.min);
-                            glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                            glm::float4x4 model =
+                                glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                             Graphics::DrawMesh(*mesh, 0, model, mat);
                         }
                     }
@@ -159,7 +167,8 @@ void RenderingScene::Tick()
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
                         glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        glm::float4x4 model =
+                            glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                         Graphics::DrawMesh(*mesh, 0, model, mat);
                     }
 
@@ -184,5 +193,5 @@ void RenderingScene::Tick()
             }
         }
     }
-    
+
 }

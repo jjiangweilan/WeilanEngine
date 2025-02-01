@@ -134,4 +134,6 @@ private:
 
     BoundingVolumeHierarchy rendererNodeHierarchy;
     bool updateRendererNodeHierarchy = false;
+
+    void BVHDebug();
 };

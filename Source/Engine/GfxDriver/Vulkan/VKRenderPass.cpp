@@ -2,10 +2,10 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKUtils.hpp"
+#include "Libs/Assert.hpp"
 #include "VKContext.hpp"
 #include "VKImage.hpp"
 #include "VKImageView.hpp"
-#include "Libs/Assert.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
 namespace Gfx
@@ -25,7 +25,7 @@ void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::option
 {
     if (depth.has_value())
     {
-        if(!IsDepthStencilFormat(depth->imageView->GetImage().GetDescription().format))
+        if (!IsDepthStencilFormat(depth->imageView->GetImage().GetDescription().format))
         {
             SPDLOG_ERROR("VKRenderPass: depth has to be a depth/stencil format");
             return;
@@ -290,6 +290,20 @@ VkRenderPass VKRenderPass::GetHandle()
     }
 
     return renderPass;
+}
+
+bool VKRenderPass::RenderPassRenderingValidationCheck()
+{
+    if (subpasses.empty())
+        return false;
+
+    for (auto& subpass : subpasses)
+    {
+        if(subpass.colors.empty() && !subpass.depth.has_value())
+            return false;
+    }
+
+    return true;
 }
 
 } // namespace Gfx

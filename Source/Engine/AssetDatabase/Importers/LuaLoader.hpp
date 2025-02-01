@@ -2,7 +2,7 @@
 
 #include "AssetLoader.hpp"
 
-class ModelLoader : public AssetLoader
+class LuaLoader : public AssetLoader
 {
     DECLARE_ASSET_LOADER()
 

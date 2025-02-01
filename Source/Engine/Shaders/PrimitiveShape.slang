@@ -29,7 +29,8 @@ extern struct VertexInput : IVertexInput = StandardVertexInput;
 
 struct PushConstant
 {
-    matrix<float,4,4> model;
+    float4x4 model;
+    float4x4 invTspModel;
 } 
 
 [vk_push_constant]
@@ -58,14 +59,16 @@ VertexOutput VertexMain(VertexInput input)
 
     output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
 
-    matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.model; // maybe a invTspModel calculated in CPU if it's needed
+    matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.invTspModel;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
     output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
-    output.positionOS = input.GetPosition();
+
+    float3 scale = float3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
+    output.positionOS = input.GetPosition() * scale;
 
     return output;
 }
@@ -99,8 +102,7 @@ FragmentOutput FragmentMain(VertexOutput input)
 {
     FragmentOutput output;
 
-    float3 scale = float3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
-    float grid = PristineGrid3D(input.positionOS * scale, 0.01f);
+    float grid = PristineGrid3D(input.positionOS, 0.01f);
     float4 baseColor = float4(float3(lerp(0.5, 1.0, grid)), 1.0);
 
     float3 normal = float3(0,0,1);

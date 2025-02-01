@@ -1,5 +1,6 @@
 #include "RenderPipeline.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
@@ -199,7 +200,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
                 cmd->BindShaderProgram(program, program->GetDefaultShaderConfig());
                 cmd->BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd->BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd->SetPushConstant(program, (void*)&draw.pushConstant);
+                auto ps = draw.GetPushConstant();
+                cmd->SetPushConstant(program, (void*)&ps);
                 cmd->DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
 
@@ -263,7 +265,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->Blit(mainDepth, depthCopy);
 
-        // set scissor and viewpor
         Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {0, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
         auto diffuseCube = camera.GetDiffuseEnv();
@@ -296,13 +297,26 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel();
 
+    // TODO: copy mainColor and mainDepth for special effects
+
     // Forward Pass
     cmd->BeginLabel("Forward", &labelColors.passColor[0]);
     {
         forwardPass.pass.SetAttachment(0, mainColor);
         forwardPass.pass.SetAttachment(1, mainDepth);
-        Gfx::ClearValue clear[] = {{0,0,0,0}, {0,0}};
-        cmd->BeginRenderPass(forwardPass.pass, clear);
+
+        Gfx::ClearValue clears[] = {{0,0,0,0},{0,0}};
+        cmd->BeginRenderPass(forwardPass.pass, clears);
+
+        // skybox
+        cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);
+        cmd->BindVertexBuffer(skyboxPass.cube->GetGfxVertexBufferBindings(), 0);
+        cmd->BindIndexBuffer(skyboxPass.cube->GetIndexBuffer(), 0, skyboxPass.cube->GetIndexBufferType());
+        cmd->BindShaderProgram(skyboxPass.skyboxShader->GetShaderProgram(), skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
+        cmd->EndLabel();
+
+        // draw objects
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
         cmd->EndRenderPass();
     }
@@ -460,6 +474,20 @@ void RenderPipeline::FXAAPass::Execute(
     cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
     cmd.Draw(6, 1, 0, 0);
     cmd.EndRenderPass();
+}
+
+RenderPipeline::SkyboxPass::SkyboxPass()
+{
+    pass = Gfx::RG::RenderPass::Default(
+        "Skybox",
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::Store
+    );
+
+    cube = EngineInternalResources::GetCubeMesh();
+    skyboxShader = ShaderLibrary::GetShader(ShaderLibrary::Skybox);
 }
 
 } // namespace Rendering

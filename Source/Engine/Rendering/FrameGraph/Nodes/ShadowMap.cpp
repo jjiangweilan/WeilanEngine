@@ -66,7 +66,8 @@ public:
                 cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
                 cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd.SetPushConstant(program, (void*)&draw.pushConstant);
+                auto ps = draw.GetPushConstant();
+                cmd.SetPushConstant(program, (void*)&ps);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
 

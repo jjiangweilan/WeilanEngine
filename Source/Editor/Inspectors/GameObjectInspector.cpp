@@ -4,15 +4,15 @@
 #include "Core/Component/GrassSurface.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/LightFieldProbes.hpp"
-#include "Core/Component/LuaScript.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Modules/VolumetricCloud/Cloud.hpp"
 #include "GamePlay/Component/PlayerController.hpp"
 #include "Inspector.hpp"
+#include "Modules/VolumetricCloud/Cloud.hpp"
 #include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include <glm/glm.hpp>
@@ -44,8 +44,8 @@ class GameObjectInspector : public Inspector<GameObject>
                 target->AddComponent<SceneEnvironment>();
             if (ImGui::MenuItem("PhysicsBody"))
                 target->AddComponent<PhysicsBody>();
-            if (ImGui::MenuItem("LuaScript"))
-                target->AddComponent<LuaScript>();
+            if (ImGui::MenuItem("GameScript"))
+                target->AddComponent<GameScript>();
             if (ImGui::MenuItem("PlayerController"))
                 target->AddComponent<PlayerController>();
             if (ImGui::MenuItem("LightFieldProbes"))
@@ -63,7 +63,7 @@ class GameObjectInspector : public Inspector<GameObject>
         ImGui::Text("%s", target->GetUUID().ToString().c_str());
 
         // object information
-        ImGui::Separator();
+        ImGui::SeparatorText("Object Information");
         auto& name = target->GetName();
         char cname[1024];
         strcpy(cname, name.data());
@@ -80,19 +80,6 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetName(cname);
         }
 
-        ImGui::Separator();
-        auto prototype = target->GetPrototype();
-        if (prototype)
-        {
-            ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
-            ImGui::Text("Prototype: %s", prototype->GetName().c_str());
-            if (ImGui::Button("Reset As Prototype"))
-            {
-                target->ResetAsPrototype();
-            }
-        }
-
-        ImGui::Separator();
         glm::vec3 pos = target->GetLocalPosition();
         if (ImGui::DragFloat3("Position", &pos[0]))
         {
@@ -112,6 +99,19 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetScale(scale);
         }
 
+        auto prototype = target->GetPrototype();
+        if (prototype)
+        {
+            ImGui::SeparatorText("Prototype");
+            ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
+            ImGui::Text("Prototype: %s", prototype->GetName().c_str());
+            if (ImGui::Button("Reset As Prototype"))
+            {
+                target->ResetAsPrototype();
+            }
+        }
+
+
         // Components
         int enableCheckBoxID = 0;
         Component* removeThis = nullptr;
@@ -119,7 +119,7 @@ class GameObjectInspector : public Inspector<GameObject>
         {
             ImGui::PushID(enableCheckBoxID++);
             auto& c = *co;
-            ImGui::Separator();
+            ImGui::SeparatorText(c.GetName().c_str());
             bool cEnabled = c.IsEnabled();
             if (ImGui::Checkbox("##Enable", &cEnabled))
             {
@@ -128,8 +128,6 @@ class GameObjectInspector : public Inspector<GameObject>
                 else
                     c.Disable();
             }
-            ImGui::SameLine();
-            ImGui::Text("%s", c.GetName().c_str());
             ImGui::SameLine();
             if (ImGui::Button("remove!"))
             {

@@ -19,8 +19,16 @@ struct SceneObjectDrawData
     Gfx::Buffer* indexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType;
     std::vector<Gfx::VertexBufferBinding> vertexBufferBinding;
-    glm::mat4 pushConstant;
     uint32_t indexCount;
+    glm::float4x4 model;
+    glm::float4x4 invTspModel;
+    std::array<std::byte, 128> GetPushConstant() const
+    {
+        std::array<std::byte, 128> data;
+        memcpy(&data[0], &model[0], sizeof(glm::float4x4));
+        memcpy(&data[0] + sizeof(glm::float4x4), &invTspModel[0], sizeof(glm::float4x4));
+        return data;
+    }
 };
 void swap(SceneObjectDrawData&& a, SceneObjectDrawData&& b);
 

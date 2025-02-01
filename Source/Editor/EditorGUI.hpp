@@ -121,15 +121,17 @@ public:
             return false;
 
         bool isValid = false;
+        DragDrop d;
+        Object* payload = nullptr;
+        if (onDrag)
+        {
+            onDrag(payload);
+            if (payload == nullptr)
+                return false;
+            d.type = &typeid(*payload);
+        }
         if (ImGui::BeginDragDropSource())
         {
-            DragDrop d;
-            Object* payload = nullptr;
-            if (onDrag)
-            {
-                onDrag(payload);
-                d.type = &typeid(*payload);
-            }
             d.objectPayload = payload;
             strcpy(d.pathString, asString.data());
             d.tags = DragDropTag::Path | DragDropTag::Object;

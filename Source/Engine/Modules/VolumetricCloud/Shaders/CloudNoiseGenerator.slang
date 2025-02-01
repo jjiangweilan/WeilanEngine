@@ -36,7 +36,7 @@ float4 Spherical(float3 uv)
 
 void CloudDensity(float3 pos0, out float4 texOutput0)
 {
-    pos0 += float3(0,0,perMaterial.time);
+    pos0 += float3(0,perMaterial.time,0);
     //
     // Initial values
     float4 frequency = perMaterial.worley_freq;

@@ -34,7 +34,8 @@ extern struct VertexInput : IVertexInput = StandardVertexInput;
 
 struct PushConstant
 {
-    matrix<float,4,4> model;
+    float4x4 model;
+    float4x4 invTspModel;
 } 
 
 [vk_push_constant]
@@ -62,7 +63,7 @@ VertexOutput VertexMain(VertexInput input)
 
     output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
 
-    matrix<float,3,3> model33 = (matrix<float,3,3>)pconst.model; // maybe a invTspModel calculated in CPU if it's needed
+    matrix<float,3,3> model33 = (float3x3)pconst.invTspModel;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);

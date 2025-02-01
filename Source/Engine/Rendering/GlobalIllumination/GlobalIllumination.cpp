@@ -262,7 +262,8 @@ private:
                     cmd.BindResource(3, draw.objectResource);
                 }
                 cmd.BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
-                cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
+                auto ps = draw.GetPushConstant();
+                cmd.SetPushConstant(shaderProgram, (void*)&ps);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
         }

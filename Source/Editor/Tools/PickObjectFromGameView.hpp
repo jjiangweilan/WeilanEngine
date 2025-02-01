@@ -66,7 +66,7 @@ public:
         }
 
         for (auto& t : threads)
-            t.join();
+            if (t.joinable()) t.join();
 
         return results;
     }

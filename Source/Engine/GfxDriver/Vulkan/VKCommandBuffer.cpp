@@ -1,12 +1,13 @@
 #include "VKCommandBuffer.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
+#include "GfxDriver/Vulkan/VKRenderPass.hpp"
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
-#include "GfxDriver/Vulkan/VKRenderPass.hpp"
-#include "RHI/VKRenderGraph.hpp"
 #include "Libs/Assert.hpp"
+#include "RHI/VKRenderGraph.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
+#include <_abort.h>
 
 namespace Gfx
 {
@@ -16,6 +17,11 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx
     ASSERT(clearValues.size() <= 8);
 
     VKBeginRenderPassCmd cmd{};
+
+    if (validationCheck && !renderPass.RenderPassRenderingValidationCheck())
+    {
+        spdlog::critical("failed to execute render pass because it's not ready for rendering, you need to set subpass and also set attachments in subpass");
+    }
 
     cmd.renderPass = static_cast<VKRenderPass*>(&renderPass);
     for (int i = 0; i < clearValues.size() && i < 8; ++i)
@@ -42,7 +48,7 @@ void VKCommandBuffer::DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t 
     cmd.drawCount = drawCount;
     cmd.stride = stride;
 
-    cmds.push_back(VKCmd {VKCmdType::DrawIndirect, cmd});
+    cmds.push_back(VKCmd{VKCmdType::DrawIndirect, cmd});
 }
 
 void VKCommandBuffer::DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride)
@@ -117,7 +123,7 @@ void VKCommandBuffer::BindVertexBuffer(
     cmd.firstBindingIndex = firstBindingIndex;
     cmd.vertexBufferBindingCount = vertexBufferBindings.size();
 
-    cmds.push_back(VKCmd {VKCmdType::BindVertexBuffer, cmd});
+    cmds.push_back(VKCmd{VKCmdType::BindVertexBuffer, cmd});
 }
 
 void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType)
@@ -126,8 +132,7 @@ void VKCommandBuffer::BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offse
 
     cmd.buffer = static_cast<VKBuffer*>(buffer.Get());
     cmd.offset = offset;
-    cmd.indexType =
-        indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+    cmd.indexType = indexBufferType == Gfx::IndexBufferType::UInt16 ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
     cmds.push_back(VKCmd{VKCmdType::BindIndexBuffer, cmd});
 }
@@ -161,7 +166,7 @@ void VKCommandBuffer::CopyImageToBuffer(
 
     cmd.regionsCount = regions.size();
 
-    cmds.push_back(VKCmd {VKCmdType::CopyImageToBuffer, cmd});
+    cmds.push_back(VKCmd{VKCmdType::CopyImageToBuffer, cmd});
 };
 
 void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data)
@@ -178,7 +183,7 @@ void VKCommandBuffer::SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, 
     }
     cmd.dataSize = totalSize;
     memcpy(cmd.data, data, totalSize < 128 ? totalSize : 128);
-    cmds.push_back(VKCmd {VKCmdType::SetPushConstant, cmd});
+    cmds.push_back(VKCmd{VKCmdType::SetPushConstant, cmd});
 };
 void VKCommandBuffer::SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect)
 {
@@ -364,7 +369,7 @@ void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<Clea
 
     if (validationCheck)
     {
-        if (renderPass.GetAttachments().size() != clearValues.size())
+        if (renderPass.GetAttachments().size() != clearValues.size() || !renderPass.IsValidForRendering())
         {
             throw std::runtime_error("");
         }

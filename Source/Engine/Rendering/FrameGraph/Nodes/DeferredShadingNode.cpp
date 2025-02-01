@@ -114,7 +114,8 @@ class DeferredShadingNode : public Node
                 {
                     cmd.BindResource(3, draw.objectResource);
                 }
-                cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&draw.pushConstant);
+                auto ps = draw.GetPushConstant();
+                cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&ps);
                 cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
         }

@@ -190,13 +190,10 @@ void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
     {
         AABB aabb = g->GetAABB();
         float t;
-        if (RayVsAABB(ray, aabb, t))
+        if (RayVsAABB(ray, aabb, t) && t > 0)
         {
-            if (t > 0)
-            {
-                if (GameObject* carrier = g->GetCarrier())
-                    result.push_back(carrier);
-            }
+            if (GameObject* carrier = g->GetCarrier())
+                result.push_back(carrier);
         }
     }
 }

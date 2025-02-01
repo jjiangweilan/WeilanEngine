@@ -49,8 +49,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = shader.Get();
                         drawData.shaderConfig = &material->GetShaderConfig();
-                        auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
-                        drawData.pushConstant = modelMatrix;
+                        drawData.model = meshRenderer.GetGameObject()->GetWorldMatrix();
+                        drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
                         drawData.indexCount = indexCount;
                         drawData.material = material;
                         push_back(std::move(drawData));
@@ -91,7 +91,8 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.shader = shader;
                         drawData.shaderConfig = &material->GetShaderConfig();
                         auto modelMatrix = meshRenderer.GetGameObject()->GetWorldMatrix();
-                        drawData.pushConstant = modelMatrix;
+                        drawData.model = modelMatrix;
+                        drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
                         drawData.indexCount = indexCount;
 
                         push_back(std::move(drawData));
@@ -109,8 +110,8 @@ void DrawList::Sort(const glm::vec3& cameraPos)
         this->end(),
         [&cameraPos](const SceneObjectDrawData& left, const SceneObjectDrawData& right)
         {
-            return glm::distance2(cameraPos, glm::vec3(left.pushConstant[3])) <
-                   glm::distance2(cameraPos, glm::vec3(right.pushConstant[3]));
+            return glm::distance2(cameraPos, glm::vec3(left.model[3])) <
+                   glm::distance2(cameraPos, glm::vec3(right.model[3]));
         }
     );
 
@@ -168,7 +169,8 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
                 cmd.BindResource(2, draw.objectResource);
             }
             cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
-            cmd.SetPushConstant(shaderProgram, (void*)&draw.pushConstant);
+            auto ps = draw.GetPushConstant();
+            cmd.SetPushConstant(shaderProgram, (void*)&ps);
             cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
         }
     }

@@ -75,7 +75,9 @@ public:
     static constexpr const char* FXAA = "FXAA";
     static constexpr const char* PrimitiveShape = "PrimitiveShape";
     static constexpr const char* SimpleForwardLit = "SimpleForwardLit";
+    static constexpr const char* SimpleColor = "SimpleColor";
     static constexpr const char* VolumetricCloud = "VolumetricCloud";
+    static constexpr const char* Skybox = "Skybox";
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {

@@ -2,6 +2,7 @@
 #include "Core/DelayDestroy.hpp"
 #include "Core/GameLoop.hpp"
 #include "Profiler/Profiler.hpp"
+#include "Scripting/LuaBackend.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -67,6 +68,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     ImGui::CreateContext();
     ImGui_ImplSDL2_InitForVulkan(GetGfxDriver()->GetSDLWindow());
 #endif
+
+    LuaBackend luaBackend;
 }
 
 bool WeilanEngine::BeginFrame()

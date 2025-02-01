@@ -111,6 +111,14 @@ private:
         Gfx::RG::ImageIdentifier colorGradingId = Gfx::RG::ImageIdentifier("Color Grading");
     } colorGradingPass{};
 
+    struct SkyboxPass
+    {
+        SkyboxPass();
+        Submesh* cube;
+        ObjPtr<Shader2> skyboxShader;
+        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 2);
+    } skyboxPass{};
+
     // WIP
     struct FXAAPass
     {
@@ -140,6 +148,7 @@ private:
     struct
     {
         glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};
+        glm::float4 passColor1 = {0.5, 0.2, 0.6, 1.0};
     } labelColors;
 
     ObjPtr<RenderPipelineSetting> setting;

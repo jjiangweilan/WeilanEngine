@@ -93,19 +93,19 @@ float PowderSugar(float d)
     return 1.0 - exp(-2*d);
 }
 
-float SampleDensity(float3 positionWS)
+float SampleDensity(float3 normalizedPos)
 {
-    float3 samplePos = WSNormalization(positionWS / perMaterial.sampleScale.xyz);
+    float3 samplePos = normalizedPos * perMaterial.sampleScale.xyz;
 
     float4 density = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, samplePos.xzy);
     float lowFrequencyFbm = 0.425 * density.y + 0.35 * density.z + 0.225 * density.w;
-    float cloudHeight = WSNormalization(positionWS).y;
+    float cloudHeight = normalizedPos.y;
     const float4 cloudType = perMaterial.stratusType;
     float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
           * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
     float baseCloudShape = density.x * cloudTypeGradient;
-    float cloudShape = saturate(remap(baseCloudShape, 1 - lowFrequencyFbm, 1.0, 0, 1));
+    float cloudShape = saturate(remap(baseCloudShape, lowFrequencyFbm, 1.0, 0, 1));
 
     return cloudShape;
 }
@@ -163,7 +163,6 @@ float DualLobHenyeyGreenstein(float g, float costh, float K)
 //     return light.xyz;//Absorption(distance);
 // }
 
-// expecting cull back
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
@@ -187,13 +186,17 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     for (float v = 0; v < maxThickness; v += fixedStep)
     {
         float3 postionWS = lerp(start, end, v / maxThickness);
-        float density = SampleDensity(postionWS);
+        float3 normalizedPos = WSNormalization(postionWS);
+        float density = SampleDensity(normalizedPos);
 
         if (density > 0)
         {
             float d = density * fixedStep * perMaterial.extinction;
             float transmittance = Transmittance(d);
             totalTransmittance *= transmittance;
+
+            if (totalTransmittance < 0.005)
+                break;
 
             // marching towards light
             const float lightSampleStep = 0.05;
@@ -202,7 +205,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             float lightTotalDensity = 0;
             for(float lv = 0; lv < maxLightSampleStepCount; lv++)
             {
-                float lightSampleDensity = SampleDensity(lightSampleWS);
+                float3 lightNormalizedPos = WSNormalization(lightSampleWS);
+                float lightSampleDensity = SampleDensity(lightNormalizedPos);
 
                 if (lightSampleDensity > 0)
                 {
@@ -210,12 +214,16 @@ float4 FragmentMain(VertexOutput input) : SV_Target
                     lightTotalDensity += dd;
                 }
             }
-            float lightTransmittance = saturate(Transmittance(lightTotalDensity * perMaterial.lightExtinction));
+            float light_d = lightTotalDensity * perMaterial.lightExtinction;
+            float lightTransmittance = saturate(Transmittance(light_d));
 
-            lighting += perScene.lights[0].lightColor.xyz * totalTransmittance * phase * lightTransmittance;
+            float3 ambient = perScene.lights[0].lightColor.xyz * lerp(0.3, 0.7, normalizedPos.y);
+            float3 luminance = ambient + perScene.lights[0].lightColor.xyz * phase * lightTransmittance;
 
-            if (totalTransmittance < 0.001)
-                break;
+            // energy conservation https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf
+            lighting += 
+                totalTransmittance * (luminance - luminance * transmittance) / perMaterial.lightExtinction; 
+
         }
     }
 
@@ -224,205 +232,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     return float4(lighting, totalTransmittance);
 }
 
-
-//struct Cloud
-//{
-//    float4 position;
-//    float lightStep;
-//    float phaseFactor;
-//
-//    float cloudDensityScale;
-//    float absorption;
-//    float dualLobHenyeyGreenstein;
-//    float4 cloudDensity_remap;
-//    float2 edgeFade;
-//    float lightIntensityScale;
-//    float4 sdfScale;
-//    float4 lighting_remap;
-//    float4 worley_amp;
-//
-//#if GPU_RESOURCE
-//    Texture3D cloudDensity;
-//    SamplerState sampler_Linear_ClampToBorder;
-//#endif
-//};
-
-// float BoxSdf(float3 p, float scale)
-// {
-//   // // mat4 model = transform.model[3].xyz;
-//   float3 b = 0.5 * scale * float3(length(transform.model[0].xyz), length(transform.model[1].xyz), length(transform.model[2].xyz));
-//   float3 q = abs(p - transform.model[3].xyz) - b;
-//   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-//   // return -length(p - transform.model[3].xyz)+length(transform.model[0].xyz);
-// }
-// 
-// float BoxSdf(float3 p, float3 scale)
-// {
-//   // // mat4 model = transform.model[3].xyz;
-//   float3 b = 0.5 * scale * float3(length(transform.model[0].xyz), length(transform.model[1].xyz), length(transform.model[2].xyz));
-//   float3 q = abs(p - transform.model[3].xyz) - b;
-//   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-//   // return -length(p - transform.model[3].xyz)+length(transform.model[0].xyz);
-// }
-// 
-// float Absorption(float d)
-// {
-//     return 2 * exp(-1 * d * perMaterial.absorption) * (1-exp(-d*2));
-// }
-// 
-// float HenyeyGreenstein(float g, float costh)
-// {
-//     return (1.0 - g * g) / (4.0 * M_PI * pow(1.0 + g * g - 2.0 * g * costh, 3.0/2.0));
-// }
-// 
-// float DualLobHenyeyGreenstein(float g, float costh, float K)
-// {
-//     return lerp(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), K);
-// }
-// 
-// float3 NormalizePosition(float3 pos)
-// {
-//     // we use a 1m box
-//     float3 extend = 0.5 * float3(length(transform.model[0].xyz), length(transform.model[1].xyz), length(transform.model[2].xyz));
-//     float3 cubePos = transform.model[3].xyz;
-// 
-//     float3 o = (pos - cubePos + extend) / (2 * extend);
-//     return o;
-// 
-// }
-// 
-// 
-// float SampleCloudDensity(float3 pos)
-// {
-//     float4 cloud0 = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, NormalizePosition(pos));
-// 
-//     float perlinWorley = cloud0.x;
-//     float worley = cloud0.y * .625 + cloud0.z * .125 + cloud0.w * .25; 
-// 
-//     float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
-// 
-//     return clamp(remap(cloud * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap),0, 1);
-// }
-// 
-// float SampleCloudDensity(float3 pos, out float3 normalizedPos)
-// {
-//     normalizedPos = NormalizePosition(pos);
-//     return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, normalizedPos).x * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap.x, perMaterial.cloudDensity_remap.y,perMaterial.cloudDensity_remap.z,perMaterial.cloudDensity_remap.w),0, 1);
-// }
-// 
-// 
-// float SampleCloudDensity1(float3 uv)
-// {
-//     return clamp(remap(perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, uv).x * perMaterial.cloudDensityScale, perMaterial.cloudDensity_remap.x, perMaterial.cloudDensity_remap.y,perMaterial.cloudDensity_remap.z,perMaterial.cloudDensity_remap.w),0, 1);
-// }
-// 
-// float GetDensity(float3 curr)
-// {
-//     float sdf = BoxSdf(curr, perMaterial.sdfScale.xyz);
-//     float3 normalizedPos = NormalizePosition(curr);
-// 
-//     float4 cloud0 = perMaterial.cloudDensity.Sample(perMaterial.sampler_Linear_ClampToBorder, normalizedPos);
-// 
-//     float perlinWorley = cloud0.x;
-//     float worley = cloud0.y * perMaterial.worley_amp.x + cloud0.z * perMaterial.worley_amp.y + cloud0.w * perMaterial.worley_amp.z; 
-// 
-//     float cloud = remap(perlinWorley, worley - 1., 1., 0., 1.);
-// 
-//     return remap(cloud - max(sdf, 0)* perMaterial.edgeFade.x, perMaterial.cloudDensity_remap);
-// }
-// 
-// float3 LightMarch(float3 end, float3 ldir)
-// {
-//     const float travelDistance = 20;
-//     const float delta = perMaterial.lightStep > 0 ? perMaterial.lightStep : 1;
-// 
-//     float travel = 0;
-//     float3 curr = end - travelDistance * ldir;
-//     float3 lightColor = float3(perMaterial.lightIntensityScale);
-//     float4 light = float4(0);
-//     for(;travel < travelDistance; travel += delta)
-//     {
-//         float cloudDensity = GetDensity(curr);
-// 
-//         if (cloudDensity > 0)
-//         {
-//             float den = cloudDensity;
-//             // float cloudDensity0 = GetDensity(curr + 0.3 * ldir);
-//             // float den1 = SampleCloudDensity(curr + 0.1 * ldir);
-// 
-//             // float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
-//             float phaseCos = 1;
-//             float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
-//             float reflectAbsorption = Absorption(den);
-//             // float ndotl = clamp((den - den1) / 0.3,0,1);
-// 
-//             float4 col = float4(lightColor.xyz, den);
-// 
-// 
-//             col.rgb *= (col.a * phase * reflectAbsorption );
-//             light += col * (1-light.a);
-//         }
-//         // float val = normalizedPos.y*2-1;
-//         // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
-//         // cloudDensity *= heightDensity;
-// 
-//         curr += ldir * delta;
-//     }
-// 
-//     return light.xyz;//Absorption(distance);
-// }
-// 
-// float4 RayMarching1(float3 origin, float3 dir)
-// {
-//     const float travelDistance = 20;
-//     const float delta = perMaterial.delta > 0 ? perMaterial.delta : 0.01f;
-// 
-//     float travel = 0.01;
-//     float3 curr = origin;
-//     float distance = 0;
-//     float3 ldir = normalize(perScene.lights[0].position.xyz);
-//     float4 light = float4(0);
-//     for(;travel < travelDistance; travel += delta)
-//     {
-//         float cloudDensity = GetDensity(curr);
-// 
-//         if (cloudDensity > 0)
-//         {
-//             float den = cloudDensity;
-//             float cloudDensity0 = GetDensity(curr + 0.1 * ldir);
-// 
-//             float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
-//             float3 l = float3(float3(0.93,0.85,0.75)*0.9 + perMaterial.lightIntensityScale*float3(1.0,0.6,0.3)*ndotl);
-// 
-//             float phaseCos = dot(-dir, -ldir);
-//             // float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
-//             float absorption = Absorption(den);
-// 
-//             // float3 lightColor = LightMarch(curr, ldir);
-//             float4 col = float4(lerp( float3(1.0,0.93,0.84), float3(0.25,0.3,0.4), den), min(den * absorption, 1));
-//             col.rgb *= l * (col.a * absorption);// * phase );
-//             light += col * (1-light.a);
-//         }
-//         // float val = normalizedPos.y*2-1;
-//         // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
-//         // cloudDensity *= heightDensity;
-// 
-//         curr += dir * delta;
-//     }
-// 
-//     return light;
-// }
-
-// expecting cull front
-// - one oneMinusSrcAlpha
-// float4 RayMarching1_FragmentMain(VertexOutput input)
-// {
-//     float len = length(input.positionWS.xyz - perScene.viewPos.xyz);
-//     float3 dir = (input.positionWS.xyz - perScene.viewPos.xyz) / len;
-//     float3 end = input.positionWS.xyz;
-//     const float travelDistance = min(20, len);
-// 
-//     float4 lighting = RayMarching1(end - travelDistance * dir, dir);
-//     float4 result = float4(remap(lighting.xyz, perMaterial.lighting_remap), clamp(lighting.a, 0, 1));//clamp(directAbsorption,0,1));
-//     return result;
-// }
+/**
+2024-1-29
+if you adjust the stratusType so that lower part has a low difference range the light will be dark, but if the lower part has a high difference range, it will be bright. This indicates that light transmittance is falsely calculated
+*/
