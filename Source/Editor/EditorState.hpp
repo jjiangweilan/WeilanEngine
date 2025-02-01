@@ -18,6 +18,13 @@ public:
     static ObjPtr<Scene> activeScene;
     static GameLoop* gameLoop;
 
+    static void Clear()
+    {
+        activeScene = nullptr;
+        gameLoop = nullptr;
+        selectedObjects = {};
+    }
+
 private:
     static std::vector<SRef<Object>> selectedObjects;
 };

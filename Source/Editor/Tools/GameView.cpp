@@ -44,21 +44,6 @@ struct GameView::PlayTheGame
             gameView->editorCameraGO->SetScene(sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
-
-            // originalScene = scene.GetSRef<Scene>();
-            // sceneCopy = std::make_unique<Scene>();
-            // AssetDatabase::Singleton()->CopyThroughSerialization<JsonSerializer>(scene, *sceneCopy);
-            // sceneCopy->SetName("scene copy");
-            // gameView->gameCamera = sceneCopy->GetMainCamera();
-            //
-            // EditorState::activeScene = sceneCopy.get();
-            // EditorState::gameLoop->SetScene(*sceneCopy, *gameView->GetCurrentlyActiveCamera());
-            // gameView->editorCameraGO->SetScene(sceneCopy.get());
-            //
-            // EngineState::GetSingleton().isPlaying = true;
-            // EditorState::gameLoop->Play();
-            //
-            // EditorState::SelectObject(nullptr);
         }
     }
 
@@ -73,14 +58,14 @@ struct GameView::PlayTheGame
             // resume editor state
             EngineState::GetSingleton().isPlaying = false;
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
-            auto originalScene = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
-            auto ori = originalScene;
+            auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
             {
                 gameView->editorCameraGO->SetScene(ori);
                 gameView->gameCamera = ori->GetMainCamera();
                 EditorState::activeScene = ori;
                 EditorState::gameLoop->SetScene(*ori);
+                EditorState::activeScene->SetMainCamera(gameView->editorCamera);
             }
 
             // destroy sceneCopy
@@ -424,9 +409,15 @@ bool GameView::Tick()
         if (ImGui::MenuItem(toggleViewCamera))
         {
             useViewCamera = !useViewCamera;
-            auto mainCam = GetCurrentlyActiveCamera();
-            EditorState::activeScene->SetMainCamera(mainCam);
-            EditorState::gameLoop->SetScene(*EditorState::activeScene);
+            if (useViewCamera)
+            {
+                EditorState::activeScene->SetMainCamera(editorCamera);
+            }
+            else
+            {
+                // let scene search a main camera
+                EditorState::activeScene->SetMainCamera(nullptr);
+            }
 
             Input::GetSingleton().SetGameplayInput(!useViewCamera);
         }
@@ -893,10 +884,7 @@ Camera* GameView::GetCurrentlyActiveCamera()
 {
     Camera* mainCam = nullptr;
     auto scene = EditorState::activeScene;
-    if (useViewCamera)
-        mainCam = editorCamera;
-    else
-        mainCam = scene->GetMainCamera();
+    mainCam = scene->GetMainCamera();
     return mainCam;
 }
 } // namespace Editor

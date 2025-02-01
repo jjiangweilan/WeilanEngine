@@ -119,7 +119,6 @@ class GameObjectInspector : public Inspector<GameObject>
         {
             ImGui::PushID(enableCheckBoxID++);
             auto& c = *co;
-            ImGui::SeparatorText(c.GetName().c_str());
             bool cEnabled = c.IsEnabled();
             if (ImGui::Checkbox("##Enable", &cEnabled))
             {
@@ -129,6 +128,7 @@ class GameObjectInspector : public Inspector<GameObject>
                     c.Disable();
             }
             ImGui::SameLine();
+            ImGui::SeparatorText(c.GetName().c_str());
             if (ImGui::Button("remove!"))
             {
                 removeThis = co.get();

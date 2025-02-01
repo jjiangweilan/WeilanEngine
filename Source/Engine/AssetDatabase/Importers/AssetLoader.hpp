@@ -26,7 +26,7 @@ public:
     virtual ~AssetLoader(){}
     virtual void Setup(ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta)
     {
-        absoluteAssetPath = assetPath;
+        this->absoluteAssetPath = assetPath;
         this->meta = meta;
         this->importDatabase = &importDatabase;
     }

@@ -6,6 +6,7 @@
 #include "Core/Time.hpp"
 #include "Event/Event.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Scripting/LuaBackend.hpp"
 #include <filesystem>
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
@@ -53,6 +54,7 @@ public:
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
+    std::unique_ptr<LuaBackend> luaBackend;
 
 private:
     struct MainWindow

@@ -50,13 +50,15 @@ public:
             buttonName = curr->GetUUID().ToString().c_str();
         }
 
-        if (ImGui::Button(curr == nullptr ? "null" : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()))
+        if (ImGui::Button(
+                curr == nullptr ? "null" : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()
+            ))
         {
             EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }
 
         Object* target = nullptr;
-        if (DragDropTarget(typeid(T), target))
+        if (DragDropTarget(target))
         {
             curr = (T*)target;
             newValue = true;
@@ -121,17 +123,22 @@ public:
             return false;
 
         bool isValid = false;
-        DragDrop d;
-        Object* payload = nullptr;
-        if (onDrag)
-        {
-            onDrag(payload);
-            if (payload == nullptr)
-                return false;
-            d.type = &typeid(*payload);
-        }
+
         if (ImGui::BeginDragDropSource())
         {
+            DragDrop d;
+            Object* payload = nullptr;
+            if (onDrag)
+            {
+                onDrag(payload);
+                if (payload == nullptr)
+                {
+                    ImGui::EndDragDropSource();
+                    return false;
+                }
+                d.type = &typeid(*payload);
+            }
+
             d.objectPayload = payload;
             strcpy(d.pathString, asString.data());
             d.tags = DragDropTag::Path | DragDropTag::Object;
@@ -204,80 +211,12 @@ public:
 
     static bool DragDropTarget(Object*& obj, ImRect rect = {{0, 0}, {0, 0}})
     {
-        bool isValid = false;
-        obj = nullptr;
-
-        bool begin = false;
-        if (rect.Min.x == 0 && rect.Min.y == 0 && rect.Max.x == 0 && rect.Max.y == 0)
-        {
-            begin = ImGui::BeginDragDropTarget();
-        }
-        else
-        {
-
-            begin = ImGui::BeginDragDropTargetCustom(rect, 999);
-        }
-
-        if (begin)
-        {
-            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-            if (payload && payload->IsDataType(PayloadType))
-            {
-                DragDrop* dragDrop = (DragDrop*)payload->Data;
-                if (HasFlag(dragDrop->tags, DragDropTag::Object))
-                {
-                    ImGui::AcceptDragDropPayload(PayloadType);
-                    if (payload->IsDelivery())
-                    {
-                        obj = (Object*)dragDrop->objectPayload;
-                        isValid = true;
-                    }
-                }
-            }
-
-            ImGui::EndDragDropTarget();
-        }
-
-        return isValid;
+        return DragDropTarget(obj, rect, nullptr);
     }
 
     static bool DragDropTarget(const std::type_info& type, Object*& obj, ImRect rect = {{0, 0}, {0, 0}})
     {
-        bool isValid = false;
-        obj = nullptr;
-
-        bool begin = false;
-        if (rect.Min.x == 0 && rect.Min.y == 0 && rect.Max.x == 0 && rect.Max.y == 0)
-        {
-            begin = ImGui::BeginDragDropTarget();
-        }
-        else
-        {
-
-            begin = ImGui::BeginDragDropTargetCustom(rect, 999);
-        }
-
-        if (begin)
-        {
-            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-            if (payload && payload->IsDataType(PayloadType))
-            {
-                DragDrop* dragDrop = (DragDrop*)payload->Data;
-                if (HasFlag(dragDrop->tags, DragDropTag::Object) && *dragDrop->type == type)
-                {
-                    ImGui::AcceptDragDropPayload(PayloadType);
-                    if (payload->IsDelivery())
-                    {
-                        obj = (Object*)dragDrop->objectPayload;
-                        isValid = true;
-                    }
-                }
-            }
-
-            ImGui::EndDragDropTarget();
-        }
-
-        return isValid;
+        return DragDropTarget(obj, rect, &type);
     }
 
     static bool EnumDropDown(
@@ -329,5 +268,49 @@ private:
     static std::vector<char> textArea;
 
     static void JsonInspectorInternal(nlohmann::json& j, bool& valueChanged);
+
+    static bool DragDropTarget(Object*& obj, ImRect rect, const std::type_info* type)
+    {
+        bool isValid = false;
+        obj = nullptr;
+
+        bool begin = false;
+        if (rect.Min.x == 0 && rect.Min.y == 0 && rect.Max.x == 0 && rect.Max.y == 0)
+        {
+            begin = ImGui::BeginDragDropTarget();
+        }
+        else
+        {
+
+            begin = ImGui::BeginDragDropTargetCustom(rect, 999);
+        }
+
+        if (begin)
+        {
+            const ImGuiPayload* payload = ImGui::GetDragDropPayload();
+            if (payload && payload->IsDataType(PayloadType))
+            {
+                DragDrop* dragDrop = (DragDrop*)payload->Data;
+                bool validType = true;
+                if (type != nullptr)
+                {
+                    validType = *dragDrop->type == *type;
+                }
+                if (HasFlag(dragDrop->tags, DragDropTag::Object) && validType)
+                {
+                    ImGui::AcceptDragDropPayload(PayloadType);
+                    if (payload->IsDelivery())
+                    {
+                        obj = (Object*)dragDrop->objectPayload;
+                        isValid = true;
+                    }
+                }
+            }
+
+            ImGui::EndDragDropTarget();
+        }
+
+        return isValid;
+    }
 };
 } // namespace Editor

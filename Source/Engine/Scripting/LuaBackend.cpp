@@ -3,7 +3,18 @@
 #include "ThirdParty/lua/lua.hpp"
 #include <spdlog/spdlog.h>
 
-LuaBackend::LuaBackend()
+LuaBackend::LuaBackend() {}
+
+LuaBackend::~LuaBackend()
+{
+    if (L)
+    {
+        lua_close(L);
+        L = nullptr;
+    }
+}
+
+void LuaBackend::Init(const char* projectAssetFolder)
 {
     if (L == nullptr)
     {
@@ -19,16 +30,38 @@ LuaBackend::LuaBackend()
         lua_settable(L, -3);
 
         lua_pop(L, 1); // pop wl global table
+
+        // set search path
+        lua_getglobal(L, "package");
+        lua_pushstring(L, "path");
+        lua_pushstring(L, (std::string(projectAssetFolder) + "/?.lua").c_str());
+        lua_settable(L, -3);
+        lua_pop(L, 1);
+
+        // redirect print
+        static const struct luaL_Reg printlib[] = {
+            {"print", EnginePrint},
+            {NULL, NULL} /* end of array */
+        };
+        lua_getglobal(L, "_G");
+        luaL_setfuncs(L, printlib, 0);
+        lua_pop(L, 1);
     }
 }
 
-LuaBackend::~LuaBackend()
+int LuaBackend::EnginePrint(lua_State* L)
 {
-    if (L)
+    int nargs = lua_gettop(L);
+
+    for (int i = 1; i <= nargs; i++)
     {
-        lua_close(L);
-        L = nullptr;
+        if (lua_isstring(L, i))
+        {
+            spdlog::info(lua_tostring(L, i));
+        }
     }
+
+    return 0;
 }
 
 lua_State* LuaBackend::L = nullptr;

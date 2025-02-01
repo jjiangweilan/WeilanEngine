@@ -35,7 +35,7 @@ public:
     const SRef<Texture>& GetSpecularEnv() { return specularEnv; }
 
     void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
-    Rendering::FrameGraph::Graph* GetFrameGraph() const { return frameGraph; }
+    Rendering::FrameGraph::Graph* GetFrameGraph() const;
 
     static RefPtr<Camera> mainCamera;
 

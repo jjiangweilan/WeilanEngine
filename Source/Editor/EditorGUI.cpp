@@ -130,6 +130,7 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
                     if (ObjectField(key.c_str(), obj))
                     {
                         value = obj->GetUUID().ToString();
+                        valueChanged = true;
                     }
                 }
             }
@@ -139,6 +140,7 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
                 if (GUI::InputText(key.c_str(), text))
                 {
                     value = text;
+                    valueChanged = true;
                 }
             }
         }

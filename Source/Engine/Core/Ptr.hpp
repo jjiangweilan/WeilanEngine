@@ -9,8 +9,11 @@ template <class T>
 class ObjPtr
 {
 public:
+    using element_type = T;
+
     ObjPtr() : handle(ObjectTracker::NullHandle) {}
-    ObjPtr(Object* object) {
+    ObjPtr(Object* object)
+    {
         if (object != nullptr)
             handle = ObjectTracker::Singleton().Track(object->GetUUID());
         else
@@ -73,10 +76,31 @@ public:
     inline bool operator==(ObjPtr<T> other) const { return handle == other.handle; }
     inline bool operator!=(ObjPtr<T> other) const { return handle != other.handle; }
 
-    inline T* operator->() const {return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
+    inline T* operator->() const { return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
     inline T& operator*() const { return *(T*)(ObjectTracker::Singleton().GetObject(handle)); }
 
-    T* Get() const { return (T*)(ObjectTracker::Singleton().GetObject(handle)); }
+    T* Get() const
+    {
+        auto obj = ObjectTracker::Singleton().GetObject(handle);
+
+#if ENGINE_DEV_BUILD
+        if (obj == nullptr)
+        {
+            return nullptr;
+        }
+
+        if constexpr (!std::is_same_v<T, Object>)
+        {
+            if (T::StaticGetObjectTypeID() != obj->GetObjectTypeID())
+            {
+                spdlog::critical("Invalid handle detected,  this shouldn't happen");
+                return nullptr;
+            }
+        }
+#endif
+
+        return (T*)obj;
+    }
 
 private:
     ObjectTrackHandle handle;

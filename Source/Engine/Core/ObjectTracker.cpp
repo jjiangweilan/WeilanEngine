@@ -1,7 +1,7 @@
 #include "ObjectTracker.hpp"
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
-
+#include "Core/Asset.hpp"
 ObjectTracker& ObjectTracker::Singleton()
 {
     static ObjectTracker singleton;
@@ -34,10 +34,6 @@ void ObjectTracker::RemoveObject(Object* object)
     if (slotIndex != NullHandle)
     {
         ASSERT(slotIndex > 0 && slotIndex < slots.size());
-        if (slots[slotIndex].referenceCount == 0)
-        {
-            uuidToSlotIndex.erase(object->GetUUID());
-        }
         slots[slotIndex].object = nullptr;
         ReleaseSlotIfNotReferenced(slotIndex);
     }
@@ -90,6 +86,9 @@ void ObjectTracker::ReleaseSlotIfNotReferenced(uint32_t slotIndex)
 {
     if (slots[slotIndex].referenceCount == 0 && slots[slotIndex].object == nullptr)
     {
+        const auto& uuid = slotIndexToUUID[slotIndex];
+        uuidToSlotIndex.erase(uuid);
+        slotIndexToUUID.erase(slotIndex);
         freeSlotIndices.push_back(slotIndex);
     }
 }
@@ -103,6 +102,7 @@ uint32_t ObjectTracker::GetOrAllocateSlot(const UUID& uuid)
 
     uint32_t newSlot = AllocateSlot();
     uuidToSlotIndex[uuid] = newSlot;
+    slotIndexToUUID[newSlot] = uuid;
     return newSlot;
 }
 

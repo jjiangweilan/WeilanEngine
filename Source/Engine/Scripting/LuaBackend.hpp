@@ -8,10 +8,8 @@ public:
     LuaBackend();
     ~LuaBackend();
 
-private:
+    void Init(const char* projectAssetFolder);
 
-    /**** Test *****/
-    int luaRef;
-    void InstantiateScript(const char* scriptPath);
-    /***************/
+private:
+    static int EnginePrint(lua_State* L);
 };

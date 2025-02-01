@@ -159,6 +159,9 @@ GameEditor::~GameEditor()
     auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
     std::ofstream editorConfigFile(editorConfigPath);
     editorConfigFile << editorConfig.dump(0);
+
+    // cleanup editor state
+    EditorState::Clear();
 }
 
 bool IsAncestorOf(GameObject* ancestor, GameObject* child)

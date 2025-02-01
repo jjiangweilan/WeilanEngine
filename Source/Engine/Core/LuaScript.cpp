@@ -3,10 +3,36 @@
 
 DEFINE_ASSET(LuaScript, "656C3158-FDAB-4EB3-AED4-CC4DFACA46F8", "lua")
 
-void LuaScript::LoadScript(const std::filesystem::path& path)
+int LuaScript::Instantiate()
 {
+    const auto L = LuaBackend::L;
+    if (luaClassRef != LUA_REFNIL)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
+        lua_pushstring(L, "New");
+        lua_gettable(L, -2);
+        lua_pushvalue(L, -2);
+        
+        if (lua_pcall(L, 1, 0, 0))
+        {
+            SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+            lua_pop(L, 1);
+            return LUA_REFNIL;
+        }
+
+        auto ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        return ref;
+    }
+    return LUA_REFNIL;
+}
+
+void LuaScript::LoadScript(const char* luaScriptPath)
+{
+    this->scriptAssetPath = luaScriptPath;
+    this->SetName(luaScriptPath);
+
     auto L = LuaBackend::L;
-    std::string script = fmt::format("local code = require '{}';return code or {}", path.string(), "{}");
+    std::string script = fmt::format("local code = require '{}';return code or {}", luaScriptPath, "{}");
 
 #define wllua_popall()                                                                                                 \
     int stacknum = lua_gettop(L);                                                                                      \
@@ -60,4 +86,8 @@ void LuaScript::LoadScript(const std::filesystem::path& path)
         spdlog::critical("Internal Lua Error: wl.GameScript doesn't have a New function");
         return;
     }
+    lua_pop(L, 1); // pop the function
+
+    // Is this a valid lua GameScript
+    luaClassRef = luaL_ref(L, LUA_REGISTRYINDEX);
 }

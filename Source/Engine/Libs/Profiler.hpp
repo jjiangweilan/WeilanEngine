@@ -19,7 +19,7 @@ public:
 
         if (!message.empty())
         {
-            spdlog::info("Profiled \({}\), {}", pass, message);
+            spdlog::info("Profiled ({}), {}", pass, message);
         }
     }
 
