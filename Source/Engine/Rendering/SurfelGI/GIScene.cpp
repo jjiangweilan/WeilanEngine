@@ -37,7 +37,6 @@ GIScene GISceneBaker::Bake(BakerConfig bakerConfig)
     graph.Connect(sceneSort->GetOutput().at(0).GetID(), surfelBakeNode->inputDrawList);
     graph.Compile();
 
-    bakerCamera->SetFrameGraph(&graph);
     auto mainCam = scene->GetMainCamera();
 
     scene->SetMainCamera(bakerCamera);

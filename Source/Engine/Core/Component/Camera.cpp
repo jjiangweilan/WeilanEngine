@@ -127,7 +127,6 @@ void Camera::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("projectionMatrix", projectionMatrix);
     s->Serialize("viewMatrix", viewMatrix);
-    s->Serialize("frameGraph", frameGraph);
     s->Serialize("diffuseEnv", diffuseEnv.Get());
     s->Serialize("specularEnv", specularEnv.Get());
 }
@@ -136,7 +135,6 @@ void Camera::Deserialize(Serializer* s)
     Component::Deserialize(s);
     s->Deserialize("projectionMatrix", projectionMatrix);
     s->Deserialize("viewMatrix", viewMatrix);
-    s->Deserialize("frameGraph", frameGraph);
     s->Deserialize(
         "diffuseEnv",
         nullptr,
@@ -180,7 +178,6 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->enabled = enabled;
     clone->projectionMatrix = projectionMatrix;
     clone->viewMatrix = viewMatrix;
-    clone->frameGraph = frameGraph;
     clone->near = near;
     clone->far = far;
     clone->fov = fov;
@@ -188,11 +185,6 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->diffuseEnv = diffuseEnv;
     clone->specularEnv = specularEnv;
     return clone;
-}
-
-void Camera::SetFrameGraph(Rendering::FrameGraph::Graph* graph)
-{
-    this->frameGraph = graph;
 }
 
 glm::vec3 Camera::GetForward()
@@ -215,9 +207,4 @@ void Camera::Tick()
     float width, height;
     SystemInfo::Singleton().GetScreenSize(width, height);
     SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
-}
-
-Rendering::FrameGraph::Graph* Camera::GetFrameGraph() const
-{
-    return frameGraph;
 }

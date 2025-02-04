@@ -7,7 +7,6 @@
 #include "RHI/VKRenderGraph.hpp"
 #include "VKBuffer.hpp"
 #include "VKImage.hpp"
-#include <_abort.h>
 
 namespace Gfx
 {

@@ -501,8 +501,8 @@ private:
 
             myAnimation->clips[animationName] = std::make_unique<Animation::AnimationClip>(
                 animationName,
-                clip->mTicksPerSecond,
-                clip->mDuration,
+                (float)clip->mTicksPerSecond,
+                (float)clip->mDuration,
                 channels
             );
         }

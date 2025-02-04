@@ -34,9 +34,6 @@ public:
     const SRef<Texture>& GetDiffuseEnv() { return diffuseEnv; }
     const SRef<Texture>& GetSpecularEnv() { return specularEnv; }
 
-    void SetFrameGraph(Rendering::FrameGraph::Graph* graph);
-    Rendering::FrameGraph::Graph* GetFrameGraph() const;
-
     static RefPtr<Camera> mainCamera;
 
     // get camera fov half angle
@@ -59,7 +56,6 @@ private:
     SRef<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    ObjPtr<Rendering::FrameGraph::Graph> frameGraph = nullptr;
     float near;
     float far;
     float fov;

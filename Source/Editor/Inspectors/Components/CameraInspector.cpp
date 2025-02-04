@@ -42,31 +42,6 @@ public:
             }
         }
 
-        auto frameGraph = target->GetFrameGraph();
-        const char* buttonName = "empty";
-        if (frameGraph)
-        {
-            buttonName = frameGraph->GetName().c_str();
-        }
-        ImGui::Text("Frame Graph: ");
-        ImGui::SameLine();
-        if (ImGui::Button(buttonName))
-        {
-            EditorState::SelectObject(frameGraph->GetSRef());
-        }
-
-        Object* frameGraphPayload;
-        if (GUI::DragDropTarget(typeid(Rendering::FrameGraph::Graph), frameGraphPayload))
-        {
-            target->SetFrameGraph((Rendering::FrameGraph::Graph*)frameGraphPayload);
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Clear"))
-        {
-            target->SetFrameGraph(nullptr);
-        }
-
         Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix());
     }
 
