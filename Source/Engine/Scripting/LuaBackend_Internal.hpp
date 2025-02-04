@@ -19,20 +19,19 @@ struct ProcessArgs;
 template <class Type, class... Rest>
 struct ProcessArgs<Type, Rest...>
 {
-    static auto Dispatch()
+    static auto BuildParameter()
     {
         std::tuple<Type> arg = ProcessArg<Type>();
-        auto rest = ProcessArgs<Rest...>::Dispatch();
+        auto rest = ProcessArgs<Rest...>::BuildParameter();
 
         return std::tuple_cat(std::move(arg), std::move(rest));
-
     }
 };
 
 template <>
 struct ProcessArgs<>
 {
-    static std::tuple<> Dispatch() { return std::make_tuple(); }
+    static std::tuple<> BuildParameter() { return std::make_tuple(); }
 };
 
 /****************************************/
@@ -42,17 +41,35 @@ template <class T>
 class LuaBinder
 {
 public:
+    LuaBinder(lua_State* L, const char* name) { luaL_newmetatable(L, name); }
+
     template <class R, class... Args>
-    static void Bind(const char* name, R (T::*f)(Args...))
+    void Bind(const char* name, R (T::*f)(Args...))
     {
-        LuaBindingProcessor::ProcessArgs<Args...>::Dispatch();
+        struct Wrap
+        {
+            static int f(lua_State* L)
+            {
+                T* v = (T*)lua_touserdata(L, -1);
+                auto parameters = LuaBindingProcessor::ProcessArgs<Args...>::BuildParameter();
+                std::apply(std::bind_front(f, v), parameters);
+            };
+        };
+
+        lua_pushcfunction(L, &Wrap::f);
+        lua_pushstring(L, name);
+        lua_settable(L, -3);
     }
 
     template <class R, class... Args>
-    static void Bind(const char* name, R (T::*f)(Args...) const)
+    void Bind(const char* name, R (T::*f)(Args...) const)
     {
         Bind(name, reinterpret_cast<R (T::*)(Args...)>(f));
     }
+
+    static int f(lua_State* L) {}
+
+    lua_State* L;
 };
 
 class LuaScript_LuaBinding
@@ -88,8 +105,9 @@ public:
         GameObject** ptr = (GameObject**)lua_newuserdata(L, sizeof(void*));
         *ptr = self;
 
-        LuaBinder<GameObject>::Bind("GetPosition", &GameObject::GetPosition);
-        LuaBinder<GameObject>::Bind("GetPosition", &GameObject::SetPosition);
+        LuaBinder<GameObject> lua_gameObject(L, "GameObject");
+        // lua_gameObject.Bind("GetPosition", &GameObject::GetPosition);
+        lua_gameObject.Bind("SetPosition", &GameObject::SetPosition);
     }
 
 private:
