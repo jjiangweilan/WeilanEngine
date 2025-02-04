@@ -8,9 +8,7 @@ class LuaScript : public Asset
     DECLARE_ASSET();
 
 public:
-
-    // return a LuaRef representing as the instance from the lua class
-    int Instantiate();
+    int GetLuaClassRef() const { return luaClassRef; }
 
     void LoadScript(const char* luaScriptPath);
 

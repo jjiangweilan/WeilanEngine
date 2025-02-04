@@ -20,8 +20,24 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
     }
 
-    luaRef = luaScript->Instantiate();
-    Construct();
+    int luaClassRef = luaScript->GetLuaClassRef();
+    if (luaClassRef != LUA_REFNIL)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
+        lua_pushstring(L, "New");
+        lua_gettable(L, -2);
+        lua_pushvalue(L, -2);
+
+        if (lua_pcall(L, 1, 0, 0))
+        {
+            SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+            lua_pop(L, 1);
+            return;
+        }
+
+        luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
+        Construct();
+    }
 }
 
 void GameScript::Construct()

@@ -16,37 +16,34 @@ LuaBackend::~LuaBackend()
 
 void LuaBackend::Init(const char* projectAssetFolder)
 {
-    if (L == nullptr)
-    {
-        L = luaL_newstate();
-        luaL_openlibs(L);
+    L = luaL_newstate();
+    luaL_openlibs(L);
 
-        lua_newtable(L);
-        lua_pushvalue(L, -1);
-        lua_setglobal(L, "wl");
+    lua_newtable(L);
+    lua_pushvalue(L, -1);
+    lua_setglobal(L, "wl");
 
-        lua_pushstring(L, "GameScript");
-        LuaScript_LuaBinding().BindClass(L);
-        lua_settable(L, -3);
+    lua_pushstring(L, "GameScript");
+    LuaScript_LuaBinding().BindClass(L);
+    lua_settable(L, -3);
 
-        lua_pop(L, 1); // pop wl global table
+    lua_pop(L, 1); // pop wl global table
 
-        // set search path
-        lua_getglobal(L, "package");
-        lua_pushstring(L, "path");
-        lua_pushstring(L, (std::string(projectAssetFolder) + "/?.lua").c_str());
-        lua_settable(L, -3);
-        lua_pop(L, 1);
+    // set search path
+    lua_getglobal(L, "package");
+    lua_pushstring(L, "path");
+    lua_pushstring(L, (std::string(projectAssetFolder) + "/?.lua").c_str());
+    lua_settable(L, -3);
+    lua_pop(L, 1);
 
-        // redirect print
-        static const struct luaL_Reg printlib[] = {
-            {"print", EnginePrint},
-            {NULL, NULL} /* end of array */
-        };
-        lua_getglobal(L, "_G");
-        luaL_setfuncs(L, printlib, 0);
-        lua_pop(L, 1);
-    }
+    // redirect print
+    static const struct luaL_Reg printlib[] = {
+        {"print", EnginePrint},
+        {NULL, NULL} /* end of array */
+    };
+    lua_getglobal(L, "_G");
+    luaL_setfuncs(L, printlib, 0);
+    lua_pop(L, 1);
 }
 
 int LuaBackend::EnginePrint(lua_State* L)
