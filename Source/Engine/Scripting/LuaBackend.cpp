@@ -19,16 +19,6 @@ void LuaBackend::Init(const char* projectAssetFolder)
     L = luaL_newstate();
     luaL_openlibs(L);
 
-    lua_newtable(L);
-    lua_pushvalue(L, -1);
-    lua_setglobal(L, "wl");
-
-    lua_pushstring(L, "GameScript");
-    LuaScript_LuaBinding().BindClass(L);
-    lua_settable(L, -3);
-
-    lua_pop(L, 1); // pop wl global table
-
     // set search path
     lua_getglobal(L, "package");
     lua_pushstring(L, "path");
@@ -44,6 +34,9 @@ void LuaBackend::Init(const char* projectAssetFolder)
     lua_getglobal(L, "_G");
     luaL_setfuncs(L, printlib, 0);
     lua_pop(L, 1);
+
+    LuaBindings().BindClasses(L);
+
 }
 
 int LuaBackend::EnginePrint(lua_State* L)

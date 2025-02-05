@@ -25,6 +25,8 @@ public:
     void Deserialize(Serializer* s) override;
     void OnLoaded() override;
 
+    void Print(int x) { spdlog::info(x); }
+
 private:
     ObjPtr<LuaScript> luaScript;
     using LuaRef = int;

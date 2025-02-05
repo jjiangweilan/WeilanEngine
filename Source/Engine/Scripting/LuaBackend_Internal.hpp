@@ -1,114 +1,95 @@
 #pragma once
+#include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
 #include "ThirdParty/lua/lua.hpp"
 
-namespace LuaBindingProcessor
+namespace LuaBinderHelper
 {
-
-/****** Type Processing *******/
-template <class Type>
-static std::remove_reference_t<Type> ProcessArg()
-{
-    return Type{};
-}
 
 /****** Type Processing Dispatchers *******/
-template <class... Args>
-struct ProcessArgs;
 
-template <class Type, class... Rest>
-struct ProcessArgs<Type, Rest...>
-{
-    static auto BuildParameter()
-    {
-        std::tuple<Type> arg = ProcessArg<Type>();
-        auto rest = ProcessArgs<Rest...>::BuildParameter();
-
-        return std::tuple_cat(std::move(arg), std::move(rest));
-    }
-};
-
-template <>
-struct ProcessArgs<>
-{
-    static std::tuple<> BuildParameter() { return std::make_tuple(); }
-};
+struct ProcessArgs
+{};
 
 /****************************************/
-} // namespace LuaBindingProcessor
+} // namespace LuaBinderHelper
 
 template <class T>
 class LuaBinder
 {
 public:
-    LuaBinder(lua_State* L, const char* name) { luaL_newmetatable(L, name); }
-
-    template <class R, class... Args>
-    void Bind(const char* name, R (T::*f)(Args...))
+    LuaBinder(lua_State* L, const char* name)
     {
-        struct Wrap
-        {
-            static int f(lua_State* L)
-            {
-                T* v = (T*)lua_touserdata(L, -1);
-                auto parameters = LuaBindingProcessor::ProcessArgs<Args...>::BuildParameter();
-                std::apply(std::bind_front(f, v), parameters);
-            };
-        };
+        this->L = L;
+        this->name = name;
+        luaL_newmetatable(L, name);
+        lua_pushstring(L, "__index");
+        lua_pushvalue(L, -2); /* pushes the metatable */
+        lua_settable(L, -3);  /* metatable.__index = metatable */
+    }
 
-        lua_pushcfunction(L, &Wrap::f);
+    ~LuaBinder()
+    {
         lua_pushstring(L, name);
         lua_settable(L, -3);
     }
 
     template <class R, class... Args>
-    void Bind(const char* name, R (T::*f)(Args...) const)
+    void BindFunction(const char* name, R (T::*f)(Args...))
     {
-        Bind(name, reinterpret_cast<R (T::*)(Args...)>(f));
+        static auto FF = f;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                T* v = (T*)lua_touserdata(L, -1);
+                CallMemberFunc<T, Args...>(v, FF);
+
+                return 0;
+            };
+        };
+
+        lua_pushcfunction(L, &Wrap::cfunc);
+        lua_pushstring(L, name);
+        lua_settable(L, -3);
     }
 
-    static int f(lua_State* L) {}
-
-    lua_State* L;
-};
-
-class LuaScript_LuaBinding
-{
-public:
-    void BindClass(lua_State* L)
+    template <class R, class... Args>
+    void BindFunction(const char* name, R (T::*f)(Args...) const)
     {
-        luaL_newmetatable(L, "GameScript");
-        lua_pushstring(L, "__index");
-        lua_pushvalue(L, -2); /* pushes the metatable */
-        lua_settable(L, -3);  /* metatable.__index = metatable */
-
-        const luaL_Reg funcs[] = {{"New", New}, {"GetComponent", GetComponent}, {nullptr, nullptr}};
-        luaL_setfuncs(L, funcs, 0);
-    }
-
-    static int New(lua_State* L)
-    {
-        lua_newtable(L);
-        luaL_setmetatable(L, "GameScript");
-
-        return 1;
-    }
-
-    static int GetComponent(lua_State* L) { return 0; }
-};
-
-class GameObject_LuaBinding
-{
-public:
-    void Bind(GameObject* self, lua_State* L)
-    {
-        GameObject** ptr = (GameObject**)lua_newuserdata(L, sizeof(void*));
-        *ptr = self;
-
-        LuaBinder<GameObject> lua_gameObject(L, "GameObject");
-        // lua_gameObject.Bind("GetPosition", &GameObject::GetPosition);
-        lua_gameObject.Bind("SetPosition", &GameObject::SetPosition);
+        BindFunction(name, reinterpret_cast<R (T::*)(Args...)>(f));
     }
 
 private:
+    lua_State* L;
+    const char* name;
+    template <class Type>
+    static std::remove_reference_t<Type> ProcessArg()
+    {
+        return std::remove_reference_t<Type>{};
+    }
+
+    /****** Type Processing *******/
+    template <class ObjType, class... Args>
+    static void CallMemberFunc(ObjType* v, auto f)
+    {
+        (v->*f)(ProcessArg<Args>()...);
+    }
+};
+
+class LuaBindings
+{
+public:
+    // this function will leave a table on stack
+    void BindClasses(lua_State* L)
+    {
+        lua_newtable(L);
+        lua_pushvalue(L, -1);
+        lua_setglobal(L, "wl");
+
+        LuaBinder<GameScript> gameScript(L, "GameScript");
+        gameScript.BindFunction("Print", &GameScript::Print);
+
+        lua_pop(L, 1); // pop wl global table
+    }
 };
