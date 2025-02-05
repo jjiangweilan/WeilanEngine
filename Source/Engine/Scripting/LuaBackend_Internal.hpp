@@ -18,24 +18,32 @@ template <class T>
 class LuaBinder
 {
 public:
-    LuaBinder(lua_State* L, const char* name)
+    LuaBinder(lua_State* L) { this->L = L; }
+
+    LuaBinder<T>& Begin(const char* name)
     {
-        this->L = L;
         this->name = name;
+
         luaL_newmetatable(L, name);
         lua_pushstring(L, "__index");
         lua_pushvalue(L, -2); /* pushes the metatable */
         lua_settable(L, -3);  /* metatable.__index = metatable */
+
+        return *this;
     }
 
-    ~LuaBinder()
+    LuaBinder<T>& End()
     {
         lua_pushstring(L, name);
-        lua_settable(L, -3);
+        lua_pushvalue(L, -2);
+        lua_settable(L, -4); /* set the global wl table */
+        lua_pop(L, 1);       /* pop the metatable */
+
+        return *this;
     }
 
     template <class R, class... Args>
-    void BindFunction(const char* name, R (T::*f)(Args...))
+    LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...))
     {
         static auto FF = f;
         struct Wrap
@@ -45,19 +53,49 @@ public:
                 T* v = (T*)lua_touserdata(L, -1);
                 CallMemberFunc<T, Args...>(v, FF);
 
-                return 0;
+                if constexpr (std::is_void_v<R>)
+                    return 0;
+                else
+                    return 1;
             };
         };
+        auto c = lua_gettop(L);
 
-        lua_pushcfunction(L, &Wrap::cfunc);
         lua_pushstring(L, name);
+        lua_pushcfunction(L, &Wrap::cfunc);
         lua_settable(L, -3);
+
+        return *this;
     }
 
     template <class R, class... Args>
-    void BindFunction(const char* name, R (T::*f)(Args...) const)
+    LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...) const)
     {
-        BindFunction(name, reinterpret_cast<R (T::*)(Args...)>(f));
+        return BindMemFn(name, reinterpret_cast<R (T::*)(Args...)>(f));
+    }
+
+    template <class R, class... Args>
+    LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
+    {
+        static auto FF = f;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                FF(ProcessArg<Args>()...);
+                if constexpr (std::is_void_v<R>)
+                    return 0;
+                else
+                    return 1;
+            };
+        };
+        auto c = lua_gettop(L);
+
+        lua_pushstring(L, name);
+        lua_pushcfunction(L, &Wrap::cfunc);
+        lua_settable(L, -3);
+
+        return *this;
     }
 
 private:
@@ -84,12 +122,13 @@ public:
     void BindClasses(lua_State* L)
     {
         lua_newtable(L);
-        lua_pushvalue(L, -1);
+
+        LuaBinder<GameScript> gameScript(L);
+        gameScript.Begin("GameScript")
+            .BindMemFn("Print", &GameScript::Print)
+            .BindStaticFn("New", &GameScript::LuaNew)
+            .End();
+
         lua_setglobal(L, "wl");
-
-        LuaBinder<GameScript> gameScript(L, "GameScript");
-        gameScript.BindFunction("Print", &GameScript::Print);
-
-        lua_pop(L, 1); // pop wl global table
     }
 };
