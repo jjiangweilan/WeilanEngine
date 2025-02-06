@@ -27,11 +27,6 @@ public:
 
     void Print(int x) { spdlog::info(x); }
 
-    static void LuaNew()
-    {
-        spdlog::info("call new");
-    }
-
 private:
     ObjPtr<LuaScript> luaScript;
     using LuaRef = int;

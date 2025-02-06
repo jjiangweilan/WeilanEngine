@@ -1,18 +1,8 @@
 #pragma once
 #include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
+#include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.hpp"
-
-namespace LuaBinderHelper
-{
-
-/****** Type Processing Dispatchers *******/
-
-struct ProcessArgs
-{};
-
-/****************************************/
-} // namespace LuaBinderHelper
 
 template <class T>
 class LuaBinder
@@ -25,9 +15,10 @@ public:
         this->name = name;
 
         luaL_newmetatable(L, name);
-        lua_pushstring(L, "__index");
-        lua_pushvalue(L, -2); /* pushes the metatable */
-        lua_settable(L, -3);  /* metatable.__index = metatable */
+
+        lua_pushstring(L, "New");
+        lua_pushcfunction(L, &LuaBinder<T>::New);
+        lua_settable(L, -3);
 
         return *this;
     }
@@ -59,7 +50,6 @@ public:
                     return 1;
             };
         };
-        auto c = lua_gettop(L);
 
         lua_pushstring(L, name);
         lua_pushcfunction(L, &Wrap::cfunc);
@@ -89,7 +79,6 @@ public:
                     return 1;
             };
         };
-        auto c = lua_gettop(L);
 
         lua_pushstring(L, name);
         lua_pushcfunction(L, &Wrap::cfunc);
@@ -113,6 +102,21 @@ private:
     {
         (v->*f)(ProcessArg<Args>()...);
     }
+
+    static int New(lua_State* L)
+    {
+        // expecting a table on top of the stack
+        lua_newtable(L);
+
+        lua_pushstring(L, "__index");
+        lua_pushvalue(L, -3);
+        lua_settable(L, -4);
+
+        lua_pushvalue(L, -2);
+        lua_setmetatable(L, -2);
+
+        return 1;
+    }
 };
 
 class LuaBindings
@@ -126,7 +130,6 @@ public:
         LuaBinder<GameScript> gameScript(L);
         gameScript.Begin("GameScript")
             .BindMemFn("Print", &GameScript::Print)
-            .BindStaticFn("New", &GameScript::LuaNew)
             .End();
 
         lua_setglobal(L, "wl");

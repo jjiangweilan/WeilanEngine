@@ -44,12 +44,12 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     // if not then return
     if (lua_getmetatable(L, -1))
     {                                          /* does it have a metatable? */
-        luaL_getmetatable(L, "wl.GameScript"); /* get correct metatable */
+        luaL_getmetatable(L, "GameScript"); /* get correct metatable */
         if (!lua_rawequal(L, -1, -2))          /* not the same? */
         {
             wllua_popall();
 
-            spdlog::critical("Internal Lua Error: wl.GameScript is not defined");
+            spdlog::critical("Internal Lua Error: GameScript is not defined");
             return; /* value is a userdata with wrong metatable */
         }
         lua_pop(L, 2); /* remove both metatables */
@@ -60,7 +60,7 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     if (!lua_isfunction(L, -1))
     {
         wllua_popall();
-        spdlog::critical("Internal Lua Error: wl.GameScript doesn't have a New function");
+        spdlog::critical("Internal Lua Error: GameScript doesn't have a New function");
         return;
     }
     lua_pop(L, 1); // pop the function
