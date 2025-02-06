@@ -59,7 +59,6 @@ public:
                     return 1;
             };
         };
-        auto c = lua_gettop(L);
 
         lua_pushstring(L, name);
         lua_pushcfunction(L, &Wrap::cfunc);
@@ -71,7 +70,7 @@ public:
     template <class R, class... Args>
     LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...) const)
     {
-        return BindMemFn(name, reinterpret_cast<R (T::*)(Args...)>(f));
+        return BindMemFn(name, const_cast<R (T::*)(Args...)>(f));
     }
 
     template <class R, class... Args>
@@ -89,7 +88,6 @@ public:
                     return 1;
             };
         };
-        auto c = lua_gettop(L);
 
         lua_pushstring(L, name);
         lua_pushcfunction(L, &Wrap::cfunc);
@@ -126,7 +124,6 @@ public:
         LuaBinder<GameScript> gameScript(L);
         gameScript.Begin("GameScript")
             .BindMemFn("Print", &GameScript::Print)
-            .BindStaticFn("New", &GameScript::LuaNew)
             .End();
 
         lua_setglobal(L, "wl");
