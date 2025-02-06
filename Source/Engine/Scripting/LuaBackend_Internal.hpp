@@ -61,7 +61,7 @@ public:
     template <class R, class... Args>
     LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...) const)
     {
-        return BindMemFn(name, reinterpret_cast<R (T::*)(Args...)>(f));
+        return BindMemFn(name, const_cast<R (T::*)(Args...)>(f));
     }
 
     template <class R, class... Args>
