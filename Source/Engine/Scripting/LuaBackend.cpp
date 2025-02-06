@@ -35,20 +35,6 @@ void LuaBackend::Init(const char* projectAssetFolder)
     luaL_setfuncs(L, printlib, 0);
     lua_pop(L, 1);
 
-    // Class lib
-    class Lua_Class
-    {
-        static int New(lua_State* L)
-        {
-            lua_newtable(L);
-            lua_pushstring(L, "__index");
-            lua_pushvalue(L, -2);
-            lua_settable(L, -3);
-
-            return 1;
-        }
-    };
-
     lua_newtable(L);
 
     LuaBindings().BindClasses(L);
