@@ -5,7 +5,7 @@
 // representing a lua class derived from GameScript
 class LuaScript : public Asset
 {
-    DECLARE_ASSET();
+    DECLARE_EXTERNAL_ASSET();
 
 public:
     int GetLuaClassRef() const { return luaClassRef; }

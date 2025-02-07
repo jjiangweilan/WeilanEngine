@@ -42,7 +42,7 @@ public:
             static int cfunc(lua_State* L)
             {
                 T* v = (T*)lua_touserdata(L, -1);
-                CallMemberFunc<T, Args...>(v, FF);
+                CallMemberFunc<T, Args...>(L, v, FF);
 
                 if constexpr (std::is_void_v<R>)
                     return 0;
@@ -91,16 +91,26 @@ private:
     lua_State* L;
     const char* name;
     template <class Type>
-    static std::remove_reference_t<Type> ProcessArg()
+    static std::remove_reference_t<Type> ProcessArg(lua_State* L)
     {
-        return std::remove_reference_t<Type>{};
+        if constexpr (std::is_integral_v<Type>)
+        {
+            lua_Integer v = luaL_checkinteger(L, -1);
+            return v;
+        }
+        else if constexpr (std::is_floating_point_v<Type>)
+        {
+            return luaL_checknumber(L, -1);
+        }
+        else
+            return std::remove_reference_t<Type>{};
     }
 
     /****** Type Processing *******/
     template <class ObjType, class... Args>
-    static void CallMemberFunc(ObjType* v, auto f)
+    static void CallMemberFunc(lua_State* L, ObjType* v, auto f)
     {
-        (v->*f)(ProcessArg<Args>()...);
+        (v->*f)(ProcessArg<Args>(L)...);
     }
 
     static int New(lua_State* L)
@@ -128,9 +138,7 @@ public:
         lua_newtable(L);
 
         LuaBinder<GameScript> gameScript(L);
-        gameScript.Begin("GameScript")
-            .BindMemFn("Print", &GameScript::Print)
-            .End();
+        gameScript.Begin("GameScript").BindMemFn("Print", &GameScript::Print).End();
 
         lua_setglobal(L, "wl");
     }

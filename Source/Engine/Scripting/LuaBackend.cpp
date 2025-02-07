@@ -35,10 +35,7 @@ void LuaBackend::Init(const char* projectAssetFolder)
     luaL_setfuncs(L, printlib, 0);
     lua_pop(L, 1);
 
-    lua_newtable(L);
-
     LuaBindings().BindClasses(L);
-
 }
 
 int LuaBackend::EnginePrint(lua_State* L)
