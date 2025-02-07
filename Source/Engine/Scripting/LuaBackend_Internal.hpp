@@ -42,12 +42,19 @@ public:
             static int cfunc(lua_State* L)
             {
                 T* v = (T*)lua_touserdata(L, -1);
-                CallMemberFunc<T, Args...>(L, v, FF);
 
                 if constexpr (std::is_void_v<R>)
+                {
+                    CallMemberFunc<T, R, Args...>(L, v, FF);
                     return 0;
+                }
                 else
+                {
+                    R rtn = CallMemberFunc<T, R, Args...>(L, v, FF);
+                    ProcessRtn<R>(L, std::move(rtn));
+
                     return 1;
+                }
             };
         };
 
@@ -90,6 +97,7 @@ public:
 private:
     lua_State* L;
     const char* name;
+
     template <class Type>
     static std::remove_reference_t<Type> ProcessArg(lua_State* L)
     {
@@ -106,11 +114,55 @@ private:
             return std::remove_reference_t<Type>{};
     }
 
-    /****** Type Processing *******/
-    template <class ObjType, class... Args>
-    static void CallMemberFunc(lua_State* L, ObjType* v, auto f)
+    template <class R>
+    static void ProcessRtn(lua_State* L, R&& v)
     {
-        (v->*f)(ProcessArg<Args>(L)...);
+        if constexpr (std::is_integral_v<R> && !std::is_same_v<R, bool>)
+        {
+            // Handle integers
+            lua_pushinteger(L, static_cast<lua_Integer>(v));
+        }
+        else if constexpr (std::is_floating_point_v<R>)
+        {
+            // Handle floating-point types
+            lua_pushnumber(L, static_cast<lua_Number>(v));
+        }
+        else if constexpr (std::is_same_v<R, const char*>)
+        {
+            // Handle const char*
+            lua_pushstring(L, v);
+        }
+        else if constexpr (std::is_same_v<R, std::string>)
+        {
+            // Handle std::string
+            lua_pushlstring(L, v.c_str(), v.size());
+        }
+        else if constexpr (std::is_same_v<R, bool>)
+        {
+            // Handle boolean types
+            lua_pushboolean(L, v);
+        }
+        else
+        {
+            // Handle user-defined types
+            lua_pushlightuserdata(L, static_cast<void*>(&v));
+
+            R* m = lua_newuserdata(L, sizeof(R));
+            *m = std::move(v);
+
+            lua_pushstring(L, "_wl_runtimetype");
+            lua_pushinteger(L, typeid(R).hash_code());
+        }
+    }
+
+    /****** Type Processing *******/
+    template <class ObjType, class R, class... Args>
+    static auto CallMemberFunc(lua_State* L, ObjType* v, auto f)
+    {
+        if (std::is_void_v<R>)
+            (v->*f)(ProcessArg<Args>(L)...);
+        else
+            return (v->*f)(ProcessArg<Args>(L)...);
     }
 
     static int New(lua_State* L)
@@ -127,6 +179,10 @@ private:
 
         return 1;
     }
+
+    template <class R>
+    void ReturnAsUserdata(R r)
+    {}
 };
 
 class LuaBindings
@@ -138,7 +194,7 @@ public:
         lua_newtable(L);
 
         LuaBinder<GameScript> gameScript(L);
-        gameScript.Begin("GameScript").BindMemFn("Print", &GameScript::Print).End();
+        gameScript.Begin("GameScript").BindMemFn("AddOne", &GameScript::AddOne).End();
 
         lua_setglobal(L, "wl");
     }
