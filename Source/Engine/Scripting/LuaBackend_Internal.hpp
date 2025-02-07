@@ -3,6 +3,21 @@
 #include "Core/GameObject.hpp"
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.hpp"
+#include <typeindex>
+
+class LuaTypeRegister
+{
+    template<class T>
+    void PushTypeMetatable()
+    {
+        auto iter = typeToMetatableName.find(typeid(T));
+        if (iter != typeToMetatableName.end())
+        {
+        }
+    }
+
+    std::unordered_map<std::type_index, std::string> typeToMetatableName;
+};
 
 template <class T>
 class LuaBinder

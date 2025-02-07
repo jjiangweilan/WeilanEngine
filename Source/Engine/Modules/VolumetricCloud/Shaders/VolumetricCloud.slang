@@ -102,7 +102,7 @@ float SampleDensity(float3 normalizedPos)
     float cloudHeight = normalizedPos.y;
     const float4 cloudType = perMaterial.stratusType;
     float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
-          * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
+                            * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
     float baseCloudShape = density.x * cloudTypeGradient;
     float cloudShape = saturate(remap(baseCloudShape, lowFrequencyFbm, 1.0, 0, 1));
@@ -121,47 +121,6 @@ float DualLobHenyeyGreenstein(float g, float costh, float K)
 {
     return lerp(HenyeyGreenstein(-g, costh), HenyeyGreenstein(g, costh), K);
 }
-
-// float3 LightMarch(float3 end, float3 ldir)
-// {
-//     const float travelDistance = 20;
-//     const float delta = perMaterial.lightStep > 0 ? perMaterial.lightStep : 1;
-// 
-//     float travel = 0;
-//     float3 curr = end - travelDistance * ldir;
-//     float3 lightColor = float3(perMaterial.lightIntensityScale);
-//     float4 light = float4(0);
-//     for(;travel < travelDistance; travel += delta)
-//     {
-//         float cloudDensity = GetDensity(curr);
-// 
-//         if (cloudDensity > 0)
-//         {
-//             float den = cloudDensity;
-//             // float cloudDensity0 = GetDensity(curr + 0.3 * ldir);
-//             // float den1 = SampleCloudDensity(curr + 0.1 * ldir);
-// 
-//             // float ndotl = clamp(cloudDensity - cloudDensity0, 0, 1);
-//             float phaseCos = 1;
-//             float phase = DualLobHenyeyGreenstein(perMaterial.phaseFactor, phaseCos, perMaterial.dualLobHenyeyGreenstein);
-//             float reflectAbsorption = Absorption(den);
-//             // float ndotl = clamp((den - den1) / 0.3,0,1);
-// 
-//             float4 col = float4(lightColor.xyz, den);
-// 
-// 
-//             col.rgb *= (col.a * phase * reflectAbsorption );
-//             light += col * (1-light.a);
-//         }
-//         // float val = normalizedPos.y*2-1;
-//         // float heightDensity = clamp(-pow(abs(val), 6.0f) + 1,0, 1);
-//         // cloudDensity *= heightDensity;
-// 
-//         curr += ldir * delta;
-//     }
-// 
-//     return light.xyz;//Absorption(distance);
-// }
 
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
