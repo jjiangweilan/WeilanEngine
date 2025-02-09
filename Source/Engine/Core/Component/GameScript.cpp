@@ -23,17 +23,10 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     int luaClassRef = luaScript->GetLuaClassRef();
     if (luaClassRef != LUA_REFNIL)
     {
+        ObjPtr<GameScript>* v = (ObjPtr<GameScript>*)lua_newuserdata(L, sizeof(ObjPtr<GameScript>));
+        *v = this;
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
-        lua_pushstring(L, "New");
-        lua_gettable(L, -2);
-        lua_pushvalue(L, -2);
-
-        if (lua_pcall(L, 1, 0, 0))
-        {
-            SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-            lua_pop(L, 1);
-            return;
-        }
+        lua_setmetatable(L, -2);
 
         luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
         Construct();
@@ -47,9 +40,9 @@ void GameScript::Construct()
     if (luaRef)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_pushstring(L, "Construct");
-        lua_gettable(L, -2);
-        if (lua_iscfunction(L, -1))
+        lua_getfield(L, -1, "Construct");
+        int s = lua_type(L, -1);
+        if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, -2);
             if (lua_pcall(L, 1, 0, 0))
@@ -70,7 +63,7 @@ void GameScript::Tick()
         lua_pushstring(L, "Tick");
         lua_gettable(L, -2);
 
-        if (lua_iscfunction(L, -1))
+        if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, -2);
 
@@ -93,7 +86,7 @@ void GameScript::Destruct()
         lua_gettable(L, -2);
         lua_pushvalue(L, -2);
 
-        if (lua_iscfunction(L, -1))
+        if (lua_isfunction(L, -1))
         {
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));

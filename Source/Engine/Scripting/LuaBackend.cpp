@@ -54,3 +54,6 @@ int LuaBackend::EnginePrint(lua_State* L)
 }
 
 lua_State* LuaBackend::L = nullptr;
+
+// define typeToName
+std::unordered_map<std::type_index, std::string> LuaTypeRegistery::typeToName = std::unordered_map<std::type_index, std::string>();
