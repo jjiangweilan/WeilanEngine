@@ -25,9 +25,9 @@ public:
     void Deserialize(Serializer* s) override;
     void OnLoaded() override;
 
-    GameObject* AddOne(int x)
+    int AddOne(int x)
     {
-        return nullptr;
+        return 1 + x;
     }
 
 private:
@@ -35,7 +35,4 @@ private:
     using LuaRef = int;
 
     LuaRef luaRef = LUA_REFNIL;
-
-    template<class T>
-    friend struct LuaBinding;
 };
