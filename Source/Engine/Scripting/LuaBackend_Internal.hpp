@@ -5,18 +5,21 @@
 #include "ThirdParty/lua/lua.hpp"
 #include <typeindex>
 
-class LuaTypeRegister
-{
-    template<class T>
-    void PushTypeMetatable()
-    {
-        auto iter = typeToMetatableName.find(typeid(T));
-        if (iter != typeToMetatableName.end())
-        {
-        }
-    }
+extern const char* const LuaNameSpace;
 
-    std::unordered_map<std::type_index, std::string> typeToMetatableName;
+struct LuaTypeRegistry
+{
+    static std::unordered_map<std::type_index, std::string> typeToMetatableName;
+};
+
+template <class T>
+struct LuaBinding
+{
+    static const char* Bind(lua_State* L)
+    {
+        throw std::runtime_error("LuaBinding not implemented for type");
+        return "";
+    }
 };
 
 template <class T>
@@ -48,8 +51,8 @@ public:
         return *this;
     }
 
-    template <class R, class... Args>
-    LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...))
+    template <class R, class TT, class... Args>
+    LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...))
     {
         static auto FF = f;
         struct Wrap
@@ -80,10 +83,10 @@ public:
         return *this;
     }
 
-    template <class R, class... Args>
-    LuaBinder<T>& BindMemFn(const char* name, R (T::*f)(Args...) const)
+    template <class R, class TT, class... Args>
+    LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...) const)
     {
-        return BindMemFn(name, const_cast<R (T::*)(Args...)>(f));
+        return BindMemFn(name, const_cast<R (TT::*)(Args...)>(f));
     }
 
     template <class R, class... Args>
@@ -165,9 +168,26 @@ private:
             R* m = lua_newuserdata(L, sizeof(R));
             *m = std::move(v);
 
-            lua_pushstring(L, "_wl_runtimetype");
-            lua_pushinteger(L, typeid(R).hash_code());
+            PushTypeMetatable<R>(L);
         }
+    }
+
+    template <class R>
+    static void PushTypeMetatable(lua_State* L)
+    {
+        const char* name = nullptr;
+        auto iter = LuaTypeRegistry::typeToMetatableName.find(typeid(R));
+        if (iter == LuaTypeRegistry::typeToMetatableName.end())
+        {
+            lua_getglobal(L, LuaNameSpace);
+            name = LuaBinding<T>::Bind(L);
+            lua_pop(L, 1);
+            LuaTypeRegistry::typeToMetatableName[typeid(T)] = name;
+        }
+        else
+            name = iter->second.c_str();
+
+        luaL_getmetatable(L, name);
     }
 
     /****** Type Processing *******/
@@ -194,23 +214,19 @@ private:
 
         return 1;
     }
-
-    template <class R>
-    void ReturnAsUserdata(R r)
-    {}
 };
 
-class LuaBindings
+template <>
+struct LuaBinding<GameScript>
 {
-public:
-    // this function will leave a table on stack
-    void BindClasses(lua_State* L)
+    static const char* Bind(lua_State* L)
     {
-        lua_newtable(L);
-
         LuaBinder<GameScript> gameScript(L);
-        gameScript.Begin("GameScript").BindMemFn("AddOne", &GameScript::AddOne).End();
+        gameScript.Begin("GameScript")
+            .BindMemFn("AddOne", &GameScript::AddOne)
+            .BindMemFn("GetGameObject", &GameScript::GetGameObject)
+            .End();
 
-        lua_setglobal(L, "wl");
+        return "GameScript";
     }
 };

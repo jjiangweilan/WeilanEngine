@@ -1,5 +1,6 @@
 #include "LuaBackend.hpp"
 #include "Scripting/LuaBackend_Internal.hpp"
+#include "ThirdParty/lua/lua.h"
 #include "ThirdParty/lua/lua.hpp"
 #include <spdlog/spdlog.h>
 
@@ -35,7 +36,11 @@ void LuaBackend::Init(const char* projectAssetFolder)
     luaL_setfuncs(L, printlib, 0);
     lua_pop(L, 1);
 
-    LuaBindings().BindClasses(L);
+    lua_newtable(L);
+
+    LuaBinding<GameScript>::Bind(L);
+
+    lua_setglobal(L, LuaNameSpace);
 }
 
 int LuaBackend::EnginePrint(lua_State* L)
@@ -54,3 +59,5 @@ int LuaBackend::EnginePrint(lua_State* L)
 }
 
 lua_State* LuaBackend::L = nullptr;
+
+const char* const LuaNameSpace = "wl";
