@@ -4,7 +4,9 @@
 class LuaBackend
 {
 public:
+    static LuaBackend* GetInstance() { return instance; }
     static lua_State* L;
+
     LuaBackend();
     ~LuaBackend();
 
@@ -12,4 +14,5 @@ public:
 
 private:
     static int EnginePrint(lua_State* L);
+    static LuaBackend* instance;
 };

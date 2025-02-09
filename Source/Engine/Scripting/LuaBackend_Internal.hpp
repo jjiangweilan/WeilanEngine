@@ -24,6 +24,9 @@ public:
         luaL_newmetatable(L, name);
         LuaTypeRegistery::typeToName[typeid(T)] = name;
 
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -1, "__index");
+
         lua_pushstring(L, "New");
         lua_pushcfunction(L, &LuaBinder<T>::New);
         lua_settable(L, -3);
@@ -53,12 +56,12 @@ public:
 
                 if constexpr (std::is_void_v<R>)
                 {
-                    CallMemberFunc<T, R, Args...>(L, v, FF);
+                    CallMemberFunc<R, Args...>(L, v, FF);
                     return 0;
                 }
                 else
                 {
-                    R rtn = CallMemberFunc<T, R, Args...>(L, v, FF);
+                    R rtn = CallMemberFunc<R, Args...>(L, v, FF);
                     ProcessRtn<R>(L, std::move(rtn));
 
                     return 1;
@@ -76,7 +79,7 @@ public:
     template <class R, class TT, class... Args>
     LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...) const)
     {
-        return BindMemFn(name, const_cast<R (TT::*)(Args...)>(f));
+        return BindMemFn(name, reinterpret_cast<R (TT::*)(Args...)>(f));
     }
 
     template <class R, class... Args>
@@ -87,7 +90,7 @@ public:
         {
             static int cfunc(lua_State* L)
             {
-                FF(ProcessArg<Args>()...);
+                FF(ProcessArg<Args>(L)...);
                 if constexpr (std::is_void_v<R>)
                     return 0;
                 else
@@ -153,11 +156,31 @@ private:
         else
         {
             // Handle user-defined types
-            R* m = (R*)lua_newuserdata(L, sizeof(R));
-            *m = std::move(v);
+            void* m = lua_newuserdata(L, sizeof(R));
+            new (m) R(std::move(v));
 
-            PushTypeMetatable<R>(L);
-            lua_setmetatable(L, -1);
+            // refactor to PushUserData()
+            if constexpr (std::is_pointer_v<R>)
+            {
+                // TODO: push a special table to handle pointer
+                PushTypeMetatable<std::remove_pointer_t<R>>(L);
+            }
+            else if constexpr (std::is_reference_v<R>)
+            {
+                // TODO: convert to pointer
+                PushTypeMetatable<std::remove_reference_t<R>>(L);
+            }
+            else if constexpr (IsObjPtr<R>::value)
+            {
+                // TODO: push a special table to handle ObjPtr
+                PushTypeMetatable<R::element_type>(L);
+            }
+            else // value type
+            {
+                PushTypeMetatable<R>(L);
+            }
+
+            lua_setmetatable(L, -2);
         }
     }
 
@@ -179,8 +202,8 @@ private:
     using Lua_Ref = int;
 
     /****** Type Processing *******/
-    template <class ObjType, class R, class... Args>
-    static auto CallMemberFunc(lua_State* L, ObjType* v, auto f)
+    template <class R, class... Args>
+    static auto CallMemberFunc(lua_State* L, T* v, auto f)
     {
         if (std::is_void_v<R>)
             (v->*f)(ProcessArg<Args>(L)...);
@@ -193,9 +216,11 @@ private:
         // expecting a `self` table on top of the stack
         lua_newtable(L);
 
-        lua_pushstring(L, "__index");
-        lua_pushvalue(L, -3);
-        lua_settable(L, -4);
+        lua_pushvalue(L, -2);
+        lua_setfield(L, -2, "__index");
+
+        lua_pushvalue(L, -2);
+        lua_setfield(L, -2, "__newindex");
 
         lua_pushvalue(L, -2);
         lua_setmetatable(L, -2);
@@ -218,6 +243,18 @@ public:
             .Begin("GameScript")
             .BindMemFn("AddOne", &GameScript::AddOne)
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
+            .End();
+
+        LuaBinder<GameObject> gameObject(L);
+        gameObject
+            .Begin("GameObject")
+            .BindMemFn("GetPosition", &GameObject::GetPosition)
+            .End();
+
+        LuaBinder<glm::vec3> vec3(L);
+        vec3
+            .Begin("Vec")
+            .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>)
             .End();
 
         // clang-format on

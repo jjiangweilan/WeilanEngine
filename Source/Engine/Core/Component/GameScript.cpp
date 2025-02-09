@@ -23,8 +23,8 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     int luaClassRef = luaScript->GetLuaClassRef();
     if (luaClassRef != LUA_REFNIL)
     {
-        ObjPtr<GameScript>* v = (ObjPtr<GameScript>*)lua_newuserdata(L, sizeof(ObjPtr<GameScript>));
-        *v = this;
+        void* buf = lua_newuserdata(L, sizeof(ObjPtr<GameScript>));
+        ObjPtr<GameScript>* obj = new (buf) ObjPtr<GameScript>(this);
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
         lua_setmetatable(L, -2);
 
@@ -40,16 +40,17 @@ void GameScript::Construct()
     if (luaRef)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+        lua_getmetatable(L, -1);
+
         lua_getfield(L, -1, "Construct");
-        int s = lua_type(L, -1);
         if (lua_isfunction(L, -1))
         {
-            lua_pushvalue(L, -2);
+            lua_pushvalue(L, -3);
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 1);
+        lua_pop(L, 2);
     }
 }
 
@@ -60,9 +61,10 @@ void GameScript::Tick()
     if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_pushstring(L, "Tick");
-        lua_gettable(L, -2);
 
+        lua_getmetatable(L, -1);
+
+        lua_getfield(L, -1, "Tick");
         if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, -2);
@@ -71,7 +73,7 @@ void GameScript::Tick()
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 1);
+        lua_pop(L, 2);
     }
 }
 
@@ -82,17 +84,16 @@ void GameScript::Destruct()
     if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_pushstring(L, "Destruct");
-        lua_gettable(L, -2);
-        lua_pushvalue(L, -2);
+        lua_getmetatable(L, -1);
 
+        lua_getfield(L, -1, "Destruct");
         if (lua_isfunction(L, -1))
         {
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 1);
+        lua_pop(L, 2);
     }
 }
 
