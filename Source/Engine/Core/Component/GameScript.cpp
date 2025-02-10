@@ -56,7 +56,7 @@ void GameScript::Construct()
         lua_getfield(L, 1, "Construct");
         if (lua_isfunction(L, -1))
         {
-            lua_pushvalue(L, -3);
+            lua_pushvalue(L, 1);
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
@@ -75,8 +75,7 @@ void GameScript::Tick()
         lua_getfield(L, 1, "Tick");
         if (lua_isfunction(L, -1))
         {
-            lua_pushvalue(L, -2);
-
+            lua_pushvalue(L, 1);
             if (lua_pcall(L, 1, 0, 0) != 0)
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
@@ -95,6 +94,7 @@ void GameScript::Destruct()
         lua_getfield(L, 1, "Destruct");
         if (lua_isfunction(L, -1))
         {
+            lua_pushvalue(L, 1);
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
