@@ -61,7 +61,7 @@ void GameScript::Construct()
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 2);
+        lua_pop(L, 1);
     }
 }
 
@@ -80,7 +80,7 @@ void GameScript::Tick()
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 2);
+        lua_pop(L, 1);
     }
 }
 
@@ -99,7 +99,7 @@ void GameScript::Destruct()
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
 
-        lua_pop(L, 2);
+        lua_pop(L, 1);
     }
 }
 

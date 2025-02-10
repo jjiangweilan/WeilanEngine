@@ -81,7 +81,6 @@ struct PushEngineUserDataHelper
         lua_setfield(L, -2, "__index");
 
         lua_setmetatable(L, -2);
-        lua_getfield(L, 1, LuaEngineTableField::dataType);
     }
 
 private:
@@ -137,6 +136,7 @@ public:
     template <class R, class TT, class... Args>
     LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...))
     {
+        // TODO: use c closure instead
         static auto FF = f;
         struct Wrap
         {
@@ -165,14 +165,15 @@ public:
                 }
                 else if (type == LuaEngineUserDataType::ObjPtr)
                 {
-                    T* v = *(ObjPtr<T>*)u;
                     if constexpr (std::is_void_v<R>)
                     {
+                        T* v = *(ObjPtr<T>*)u;
                         CallMemberFunc<R, Args...>(L, v, FF);
                         return 0;
                     }
-                    else
+                    else if constexpr (std::is_base_of_v<Object, T>)
                     {
+                        T* v = *(ObjPtr<T>*)u;
                         R rtn = CallMemberFunc<R, Args...>(L, v, FF);
                         ProcessRtn<R>(L, std::move(rtn));
 
@@ -211,9 +212,16 @@ public:
         return BindMemFn(name, reinterpret_cast<R (TT::*)(Args...)>(f));
     }
 
+    template <class R, class TT, class... Args>
+    LuaBinder<T>& BindMemFn(const char* name, const R (TT::*f)(Args...) const)
+    {
+        return BindMemFn(name, reinterpret_cast<R (TT::*)(Args...)>(f));
+    }
+
     template <class R, class... Args>
     LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
     {
+        // TODO: use c closure instead
         static auto FF = f;
         struct Wrap
         {
@@ -234,6 +242,83 @@ public:
         return *this;
     }
 
+    template <class R>
+    LuaBinder<T>& BindDirectAccess(const char* name, std::function<R(T& val)>&& f)
+    {
+        using FT = std::function<R(T& val)>;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                int fIndex = lua_upvalueindex(1);
+                std::function<R(T& val)>& f = *(std::function<R(T & val)>*)lua_touserdata(L, fIndex);
+
+                void* u = (void*)lua_touserdata(L, 1);
+                lua_getfield(L, 1, LuaEngineTableField::dataType);
+                LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
+                lua_pop(L, 1);
+
+                if (type == LuaEngineUserDataType::RawPtr)
+                {
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        T* v = *(T**)u;
+                        f(*v);
+                        return 0;
+                    }
+                    else
+                    {
+                        T* v = *(T**)u;
+                        R rtn = f(*v);
+                        ProcessRtn<R>(L, std::move(rtn));
+
+                        return 1;
+                    }
+                }
+                else if (type == LuaEngineUserDataType::ObjPtr)
+                {
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        T* v = *(ObjPtr<T>*)u;
+                        f(*v);
+                        return 0;
+                    }
+                    else if constexpr (std::is_base_of_v<Object, T>)
+                    {
+                        T* v = *(ObjPtr<T>*)u;
+                        R rtn = f(*v);
+                        ProcessRtn<R>(L, std::move(rtn));
+
+                        return 1;
+                    }
+                }
+                else // LuaEngineUserDataType::Value
+                {
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        T* v = (T*)u;
+                        f(*v);
+                        return 0;
+                    }
+                    else
+                    {
+                        T* v = (T*)u;
+                        R rtn = f(*v);
+                        ProcessRtn<R>(L, std::move(rtn));
+
+                        return 1;
+                    }
+                }
+            };
+        };
+
+        lua_pushstring(L, name);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new(fm) std::function<R(T & val)>(std::move(f));
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
+        lua_settable(L, -3);
+        return *this;
+    }
 private:
     lua_State* L;
     const char* name;
@@ -338,9 +423,13 @@ public:
             .BindMemFn("GetPosition", &GameObject::GetPosition)
             .End();
 
+        glm::vec3 x;
         LuaBinder<glm::vec3> vec3(L);
         vec3
             .Begin("Vec")
+            .BindDirectAccess<float>("GetX", [](glm::vec3& val) {return val[0]; })
+            .BindDirectAccess<float>("GetY", [](glm::vec3& val) {return val[1]; })
+            .BindDirectAccess<float>("GetZ", [](glm::vec3& val) {return val[2]; })
             .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>)
             .End();
 
