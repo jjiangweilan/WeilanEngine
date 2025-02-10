@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Scripting/LuaBackend_Internal.hpp"
 #include "ThirdParty/lua/lua.hpp"
 class LuaBackend
 {

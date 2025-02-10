@@ -23,11 +23,24 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     int luaClassRef = luaScript->GetLuaClassRef();
     if (luaClassRef != LUA_REFNIL)
     {
-        void* buf = lua_newuserdata(L, sizeof(ObjPtr<GameScript>));
-        ObjPtr<GameScript>* obj = new (buf) ObjPtr<GameScript>(this);
-        lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
-        lua_setmetatable(L, -2);
+        void* m = lua_newuserdata(L, sizeof(void*));
+        new (m) GameScript*(this);
 
+        lua_newtable(L);
+        {
+            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
+            lua_setfield(L, 2, LuaEngineTableField::dataType);
+
+            lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
+            lua_setmetatable(L, 2);
+
+            lua_pushvalue(L, 2);
+            lua_setfield(L, 2, "__index");
+
+            lua_pushvalue(L, 2);
+            lua_setfield(L, 2, "__newindex");
+        }
+        lua_setmetatable(L, 1);
         luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
         Construct();
     }
@@ -40,9 +53,7 @@ void GameScript::Construct()
     if (luaRef)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getmetatable(L, -1);
-
-        lua_getfield(L, -1, "Construct");
+        lua_getfield(L, 1, "Construct");
         if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, -3);
@@ -61,10 +72,7 @@ void GameScript::Tick()
     if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-
-        lua_getmetatable(L, -1);
-
-        lua_getfield(L, -1, "Tick");
+        lua_getfield(L, 1, "Tick");
         if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, -2);
@@ -84,9 +92,7 @@ void GameScript::Destruct()
     if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getmetatable(L, -1);
-
-        lua_getfield(L, -1, "Destruct");
+        lua_getfield(L, 1, "Destruct");
         if (lua_isfunction(L, -1))
         {
             if (lua_pcall(L, 1, 0, 0))

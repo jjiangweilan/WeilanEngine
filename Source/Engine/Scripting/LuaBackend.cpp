@@ -1,5 +1,4 @@
 #include "LuaBackend.hpp"
-#include "Scripting/LuaBackend_Internal.hpp"
 #include "ThirdParty/lua/lua.hpp"
 #include <spdlog/spdlog.h>
 

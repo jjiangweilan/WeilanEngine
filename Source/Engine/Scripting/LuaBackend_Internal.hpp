@@ -11,6 +11,96 @@ struct LuaTypeRegistery
     static std::unordered_map<std::type_index, std::string> typeToName;
 };
 
+// decay value and ObjPtr to raw pointer
+struct UserDataDecay
+{
+    static int ValueDecay(lua_State* L) { return 1; }
+};
+
+enum class LuaEngineUserDataType
+{
+    Value,
+    RawPtr,
+    ObjPtr
+};
+
+struct LuaEngineTableField
+{
+    inline static const char* dataType = "__wl_dataType";
+};
+
+struct PushEngineUserDataHelper
+{
+    template <class R>
+    static void Execute(lua_State* L, R&& v)
+    {
+        // Handle user-defined types
+        void* m = lua_newuserdata(L, sizeof(R));
+
+        // refactor to PushUserData()
+        lua_newtable(L);
+        if constexpr (std::is_pointer_v<R>)
+        {
+            new (m) R(std::move(v));
+            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
+            lua_setfield(L, -2, LuaEngineTableField::dataType);
+
+            PushTypeMetatable<std::remove_pointer_t<R>>(L);
+            lua_setmetatable(L, -2);
+        }
+        else if constexpr (std::is_reference_v<R>)
+        {
+            new (m) R(std::move(&v));
+            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
+            lua_setfield(L, -2, LuaEngineTableField::dataType);
+
+            PushTypeMetatable<std::remove_reference_t<R>>(L);
+            lua_setmetatable(L, -2);
+        }
+        else if constexpr (IsObjPtr<R>::value)
+        {
+            new (m) R(std::move(v));
+            // TODO: push a special table to handle ObjPtr
+            lua_pushinteger(L, (int)LuaEngineUserDataType::ObjPtr);
+            lua_setfield(L, -2, LuaEngineTableField::dataType);
+
+            PushTypeMetatable<R::element_type>(L);
+            lua_setmetatable(L, -2);
+        }
+        else // value type
+        {
+            new (m) R(std::move(v));
+            // TODO: push a special table to handle ObjPtr
+            lua_pushinteger(L, (int)LuaEngineUserDataType::Value);
+            lua_setfield(L, -2, LuaEngineTableField::dataType);
+
+            PushTypeMetatable<R>(L);
+            lua_setmetatable(L, -2);
+        }
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "__index");
+
+        lua_setmetatable(L, -2);
+        lua_getfield(L, 1, LuaEngineTableField::dataType);
+    }
+
+private:
+    template <class V>
+    static void PushTypeMetatable(lua_State* L)
+    {
+        const char* name = nullptr;
+        auto iter = LuaTypeRegistery::typeToName.find(typeid(V));
+        if (iter != LuaTypeRegistery::typeToName.end())
+        {
+            name = iter->second.c_str();
+        }
+        else
+            throw std::runtime_error("Type not registered");
+
+        luaL_getmetatable(L, name);
+    }
+};
+
 template <class T>
 class LuaBinder
 {
@@ -52,19 +142,58 @@ public:
         {
             static int cfunc(lua_State* L)
             {
-                T* v = (T*)lua_touserdata(L, -1);
+                void* u = (void*)lua_touserdata(L, 1);
+                lua_getfield(L, 1, LuaEngineTableField::dataType);
+                LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
+                lua_pop(L, 1);
 
-                if constexpr (std::is_void_v<R>)
+                if (type == LuaEngineUserDataType::RawPtr)
                 {
-                    CallMemberFunc<R, Args...>(L, v, FF);
-                    return 0;
+                    T* v = *(T**)u;
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        CallMemberFunc<R, Args...>(L, v, FF);
+                        return 0;
+                    }
+                    else
+                    {
+                        R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                        ProcessRtn<R>(L, std::move(rtn));
+
+                        return 1;
+                    }
                 }
-                else
+                else if (type == LuaEngineUserDataType::ObjPtr)
                 {
-                    R rtn = CallMemberFunc<R, Args...>(L, v, FF);
-                    ProcessRtn<R>(L, std::move(rtn));
+                    T* v = *(ObjPtr<T>*)u;
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        CallMemberFunc<R, Args...>(L, v, FF);
+                        return 0;
+                    }
+                    else
+                    {
+                        R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                        ProcessRtn<R>(L, std::move(rtn));
 
-                    return 1;
+                        return 1;
+                    }
+                }
+                else // LuaEngineUserDataType::Value
+                {
+                    T* v = (T*)u;
+                    if constexpr (std::is_void_v<R>)
+                    {
+                        CallMemberFunc<R, Args...>(L, v, FF);
+                        return 0;
+                    }
+                    else
+                    {
+                        R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                        ProcessRtn<R>(L, std::move(rtn));
+
+                        return 1;
+                    }
                 }
             };
         };
@@ -112,6 +241,7 @@ private:
     template <class Type>
     static std::remove_reference_t<Type> ProcessArg(lua_State* L)
     {
+        // TODO: takes args from lua stack and convert to C++ types
         if constexpr (std::is_integral_v<Type>)
         {
             lua_Integer v = luaL_checkinteger(L, -1);
@@ -155,48 +285,8 @@ private:
         }
         else
         {
-            // Handle user-defined types
-            void* m = lua_newuserdata(L, sizeof(R));
-            new (m) R(std::move(v));
-
-            // refactor to PushUserData()
-            if constexpr (std::is_pointer_v<R>)
-            {
-                // TODO: push a special table to handle pointer
-                PushTypeMetatable<std::remove_pointer_t<R>>(L);
-            }
-            else if constexpr (std::is_reference_v<R>)
-            {
-                // TODO: convert to pointer
-                PushTypeMetatable<std::remove_reference_t<R>>(L);
-            }
-            else if constexpr (IsObjPtr<R>::value)
-            {
-                // TODO: push a special table to handle ObjPtr
-                PushTypeMetatable<R::element_type>(L);
-            }
-            else // value type
-            {
-                PushTypeMetatable<R>(L);
-            }
-
-            lua_setmetatable(L, -2);
+            PushEngineUserDataHelper::Execute(L, std::move(v));
         }
-    }
-
-    template <class V>
-    static void PushTypeMetatable(lua_State* L)
-    {
-        const char* name = nullptr;
-        auto iter = LuaTypeRegistery::typeToName.find(typeid(V));
-        if (iter != LuaTypeRegistery::typeToName.end())
-        {
-            name = iter->second.c_str();
-        }
-        else
-            throw std::runtime_error("Type not registered");
-
-        luaL_getmetatable(L, name);
     }
 
     using Lua_Ref = int;
@@ -216,11 +306,8 @@ private:
         // expecting a `self` table on top of the stack
         lua_newtable(L);
 
-        lua_pushvalue(L, -2);
+        lua_pushvalue(L, -1);
         lua_setfield(L, -2, "__index");
-
-        lua_pushvalue(L, -2);
-        lua_setfield(L, -2, "__newindex");
 
         lua_pushvalue(L, -2);
         lua_setmetatable(L, -2);
