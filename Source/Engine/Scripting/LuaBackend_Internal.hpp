@@ -39,6 +39,7 @@ struct PushEngineUserDataHelper
         void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<R>));
 
         // refactor to PushUserData()
+        lua_newtable(L);
         if constexpr (std::is_pointer_v<R>)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(v));
@@ -59,6 +60,9 @@ struct PushEngineUserDataHelper
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::Value, std::move(v));
             PushTypeMetatable<R>(L);
         }
+        lua_setmetatable(L, -2);
+        lua_pushvalue(L, -1);
+        lua_setfield(L, -2, "__index");
 
         lua_setmetatable(L, -2);
     }
