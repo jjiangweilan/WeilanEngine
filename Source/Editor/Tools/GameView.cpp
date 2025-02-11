@@ -475,6 +475,7 @@ bool GameView::Tick()
     else if (strcmp(menuSelected, "Play") == 0)
     {
         playTheGame->Play(this);
+        scene = EditorState::activeScene;
     }
     else if (strcmp(menuSelected, "Pause") == 0)
     {
@@ -483,6 +484,7 @@ bool GameView::Tick()
     else if (strcmp(menuSelected, "Stop") == 0)
     {
         playTheGame->Stop(this);
+        scene = EditorState::activeScene;
     }
     else if (strcmp(menuSelected, "Overlay") == 0)
     {}

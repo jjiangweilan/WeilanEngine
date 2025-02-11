@@ -232,7 +232,12 @@ public:
         {
             static int cfunc(lua_State* L)
             {
-                FF(ProcessArg<Args>(L)...);
+                ProcessArg_StaticFunction<std::tuple<Args...>, R>(
+                    L,
+                    FF,
+                    0,
+                    std::make_index_sequence<sizeof...(Args)>{}
+                );
                 if constexpr (std::is_void_v<R>)
                     return 0;
                 else
@@ -252,12 +257,12 @@ public:
     {
         return BindFn(name, std::function(std::move(f)));
     }
-private:
 
+private:
     template <class R, class... Args>
-    LuaBinder<T>& BindFn(const char* name, std::function<R (T& val, Args...)>&& f)
+    LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
     {
-        using FT = std::function<R(T& val, Args...)>;
+        using FT = std::function<R(T & val, Args...)>;
         struct Wrap
         {
             static int cfunc(lua_State* L)
@@ -275,13 +280,14 @@ private:
                     if constexpr (std::is_void_v<R>)
                     {
                         T* v = *(T**)u;
-                        f(*v, ProcessArg<Args>(L)...);
+                        ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         return 0;
                     }
                     else
                     {
                         T* v = *(T**)u;
-                        R rtn = f(*v, ProcessArg<Args>(L)...);
+                        R rtn =
+                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         ProcessRtn<R>(L, std::move(rtn));
 
                         return 1;
@@ -294,13 +300,19 @@ private:
                         if constexpr (std::is_void_v<R>)
                         {
                             T* v = *(ObjPtr<T>*)u;
-                            f(*v, ProcessArg<Args>(L)...);
+                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                             return 0;
                         }
                         else
                         {
                             T* v = *(ObjPtr<T>*)u;
-                            R rtn = f(*v, ProcessArg<Args>(L)...);
+                            R rtn = ProcessArg<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
                             ProcessRtn<R>(L, std::move(rtn));
 
                             return 1;
@@ -314,13 +326,14 @@ private:
                     if constexpr (std::is_void_v<R>)
                     {
                         T* v = (T*)u;
-                        ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
+                        ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         return 0;
                     }
                     else
                     {
                         T* v = (T*)u;
-                        R rtn = ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
+                        R rtn =
+                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         ProcessRtn<R>(L, std::move(rtn));
 
                         return 1;
@@ -341,27 +354,76 @@ private:
     const char* name;
 
     template <class Tuple, class R, size_t... I>
-    static R ProcessArg(lua_State* L, auto& f, T* v, std::index_sequence<I...>)
+    static R ProcessArg(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
     {
-        return f(*v, ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, I)...);
+        return f(*v, ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+    }
+
+    template <class Tuple, class R, size_t... I>
+    static R ProcessArg_FunctionPointer(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
+    {
+        return (v->*f)(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+    }
+
+    template <class Tuple, class R, size_t... I>
+    static R ProcessArg_StaticFunction(lua_State* L, auto& f, int argOffset, std::index_sequence<I...>)
+    {
+        return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }
 
     template <class Type>
-    static std::remove_reference_t<Type> ProcessArgImpl(lua_State* L, size_t idx)
+    static std::remove_reference_t<Type> ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
     {
-        // TODO: takes args from lua stack and convert to C++ types
         if constexpr (std::is_integral_v<Type>)
         {
-            lua_Integer v = luaL_checkinteger(L, -1);
+            lua_Integer v = luaL_checkinteger(L, argOffset + idx + 1);
             return v;
         }
         else if constexpr (std::is_floating_point_v<Type>)
         {
-            lua_Number v = luaL_checknumber(L, -1);
+            lua_Number v = luaL_checknumber(L, argOffset + idx + 1);
             return v;
         }
-        else
-            return std::remove_reference_t<Type>{};
+        else if constexpr (std::is_same_v<Type, const char*>)
+		{
+			const char* v = luaL_checkstring(L, argOffset + idx + 1);
+			return v;
+		}
+		else if constexpr (std::is_same_v<Type, std::string>)
+		{
+			size_t len;
+			const char* v = luaL_checklstring(L, argOffset + idx + 1, &len);
+			return std::string(v, len);
+		}
+		else if constexpr (std::is_same_v<Type, bool>)
+		{
+			bool v = lua_toboolean(L, argOffset + idx + 1);
+			return v;
+		}
+		else
+		{
+			void* u = lua_touserdata(L, argOffset + idx + 1);
+			lua_getfield(L, argOffset + idx + 1, LuaEngineTableField::dataType);
+			LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
+			lua_pop(L, 1);
+
+            using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
+			if (type == LuaEngineUserDataType::RawPtr)
+			{
+                return **(RawType**)(u);
+			}
+			else if (type == LuaEngineUserDataType::ObjPtr)
+			{
+                if constexpr (std::is_base_of_v<Object, Type>)
+                {
+                    return *(ObjPtr<Type>*)u;
+                }
+			}
+			else // LuaEngineUserDataType::Value
+			{
+				return *(RawType*)u;
+			}
+		}
     }
 
     template <class R>
@@ -405,9 +467,15 @@ private:
     static auto CallMemberFunc(lua_State* L, T* v, auto f)
     {
         if (std::is_void_v<R>)
-            ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
+            ProcessArg_FunctionPointer<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
         else
-            return ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
+            return ProcessArg_FunctionPointer<std::tuple<Args...>, R>(
+                L,
+                f,
+                v,
+                1,
+                std::make_index_sequence<sizeof...(Args)>{}
+            );
     }
 
     static int New(lua_State* L)
@@ -452,8 +520,8 @@ public:
         vec3
             .Begin("Vec")
             .BindFn("GetX", [](glm::vec3& val) {return val[0]; })
-            .BindFn("GetX", [](glm::vec3& val) {return val[1]; })
-            .BindFn("GetY", [](glm::vec3& val) {return val[2]; })
+            .BindFn("GetY", [](glm::vec3& val) {return val[1]; })
+            .BindFn("GetZ", [](glm::vec3& val) {return val[2]; })
             .BindFn("SetX", [](glm::vec3& val, float v) {val[0] = v; })
             .BindFn("SetY", [](glm::vec3& val, float v) {val[1] = v; })
             .BindFn("SetZ", [](glm::vec3& val, float v) {val[2] = v; })
