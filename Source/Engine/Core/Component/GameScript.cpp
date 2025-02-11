@@ -23,14 +23,11 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     int luaClassRef = luaScript->GetLuaClassRef();
     if (luaClassRef != LUA_REFNIL)
     {
-        void* m = lua_newuserdata(L, sizeof(void*));
-        new (m) GameScript*(this);
+        void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<GameScript*>));
+        new (m) LuaUserDataPack<GameScript*>(LuaEngineUserDataType::RawPtr, this);
 
         lua_newtable(L);
         {
-            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
-            lua_setfield(L, 2, LuaEngineTableField::dataType);
-
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
             lua_setmetatable(L, 2);
 

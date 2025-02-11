@@ -23,56 +23,42 @@ struct LuaEngineTableField
     inline static const char* dataType = "__wl_dataType";
 };
 
+template <class T>
+struct LuaUserDataPack
+{
+    LuaEngineUserDataType dataType;
+    T val;
+};
+
 struct PushEngineUserDataHelper
 {
     template <class R>
     static void Execute(lua_State* L, R&& v)
     {
         // Handle user-defined types
-        void* m = lua_newuserdata(L, sizeof(R));
+        void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<R>));
 
         // refactor to PushUserData()
-        lua_newtable(L);
         if constexpr (std::is_pointer_v<R>)
         {
-            new (m) R(std::move(v));
-            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
-            lua_setfield(L, -2, LuaEngineTableField::dataType);
-
+            new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(v));
             PushTypeMetatable<std::remove_pointer_t<R>>(L);
-            lua_setmetatable(L, -2);
         }
         else if constexpr (std::is_reference_v<R>)
         {
-            new (m) R(std::move(&v));
-            lua_pushinteger(L, (int)LuaEngineUserDataType::RawPtr);
-            lua_setfield(L, -2, LuaEngineTableField::dataType);
-
+            new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(&v));
             PushTypeMetatable<std::remove_reference_t<R>>(L);
-            lua_setmetatable(L, -2);
         }
         else if constexpr (IsObjPtr<R>::value)
         {
-            new (m) R(std::move(v));
-            // TODO: push a special table to handle ObjPtr
-            lua_pushinteger(L, (int)LuaEngineUserDataType::ObjPtr);
-            lua_setfield(L, -2, LuaEngineTableField::dataType);
-
+            new (m) LuaUserDataPack<R>(LuaEngineUserDataType::ObjPtr, std::move(v));
             PushTypeMetatable<R::element_type>(L);
-            lua_setmetatable(L, -2);
         }
         else // value type
         {
-            new (m) R(std::move(v));
-            // TODO: push a special table to handle ObjPtr
-            lua_pushinteger(L, (int)LuaEngineUserDataType::Value);
-            lua_setfield(L, -2, LuaEngineTableField::dataType);
-
+            new (m) LuaUserDataPack<R>(LuaEngineUserDataType::Value, std::move(v));
             PushTypeMetatable<R>(L);
-            lua_setmetatable(L, -2);
         }
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__index");
 
         lua_setmetatable(L, -2);
     }
@@ -132,19 +118,18 @@ public:
     LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...))
     {
         // TODO: use c closure instead
-        static auto FF = f;
+        static auto FF = f;                                                                     
         struct Wrap
         {
             static int cfunc(lua_State* L)
             {
-                void* u = (void*)lua_touserdata(L, 1);
-                lua_getfield(L, 1, LuaEngineTableField::dataType);
-                LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
-                lua_pop(L, 1);
+                ASSERT(lua_isuserdata(L, 1));
+                void* mem = lua_touserdata(L, 1);
+                LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
                 if (type == LuaEngineUserDataType::RawPtr)
                 {
-                    T* v = *(T**)u;
+                    T* v = ((LuaUserDataPack<T*>*)mem)->val;
                     if constexpr (std::is_void_v<R>)
                     {
                         CallMemberFunc<R, Args...>(L, v, FF);
@@ -162,15 +147,14 @@ public:
                 {
                     if constexpr (std::is_base_of_v<Object, T>)
                     {
+                        T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)mem)->val);
                         if constexpr (std::is_void_v<R>)
                         {
-                            T* v = *(ObjPtr<T>*)u;
                             CallMemberFunc<R, Args...>(L, v, FF);
                             return 0;
                         }
                         else
                         {
-                            T* v = *(ObjPtr<T>*)u;
                             R rtn = CallMemberFunc<R, Args...>(L, v, FF);
                             ProcessRtn<R>(L, std::move(rtn));
 
@@ -182,7 +166,7 @@ public:
                 }
                 else // LuaEngineUserDataType::Value
                 {
-                    T* v = (T*)u;
+                    T* v = &(((LuaUserDataPack<T>*)mem)->val);
                     if constexpr (std::is_void_v<R>)
                     {
                         CallMemberFunc<R, Args...>(L, v, FF);
@@ -271,7 +255,7 @@ private:
     template <class R, class... Args>
     LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
     {
-        using FT = std::function<R(T& val, Args...)>;
+        using FT = std::function<R(T & val, Args...)>;
         struct Wrap
         {
             static int cfunc(lua_State* L)
@@ -279,22 +263,20 @@ private:
                 int fIndex = lua_upvalueindex(1);
                 FT& f = *(FT*)lua_touserdata(L, fIndex);
 
-                void* u = (void*)lua_touserdata(L, 1);
-                lua_getfield(L, 1, LuaEngineTableField::dataType);
-                LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
-                lua_pop(L, 1);
+                void* u = lua_touserdata(L, 1);
+                LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
 
                 if (type == LuaEngineUserDataType::RawPtr)
                 {
                     if constexpr (std::is_void_v<R>)
                     {
-                        T* v = *(T**)u;
+                        T* v = ((LuaUserDataPack<T*>*)u)->val;
                         ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         return 0;
                     }
                     else
                     {
-                        T* v = *(T**)u;
+                        T* v = ((LuaUserDataPack<T*>*)u)->val;
                         R rtn =
                             ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         ProcessRtn<R>(L, std::move(rtn));
@@ -308,13 +290,13 @@ private:
                     {
                         if constexpr (std::is_void_v<R>)
                         {
-                            T* v = *(ObjPtr<T>*)u;
+                            T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
                             ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                             return 0;
                         }
                         else
                         {
-                            T* v = *(ObjPtr<T>*)u;
+                            T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
                             R rtn = ProcessArg<std::tuple<Args...>, R>(
                                 L,
                                 f,
@@ -334,13 +316,13 @@ private:
                 {
                     if constexpr (std::is_void_v<R>)
                     {
-                        T* v = (T*)u;
+                        T* v = &(((LuaUserDataPack<T>*)u)->val);
                         ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         return 0;
                     }
                     else
                     {
-                        T* v = (T*)u;
+                        T* v = &(((LuaUserDataPack<T>*)u)->val);
                         R rtn =
                             ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                         ProcessRtn<R>(L, std::move(rtn));
@@ -408,27 +390,23 @@ private:
         }
         else
         {
-            void* u = lua_touserdata(L, argOffset + idx + 1);
-            lua_getfield(L, argOffset + idx + 1, LuaEngineTableField::dataType);
-            LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
-            lua_pop(L, 1);
+            void* mem = lua_touserdata(L, argOffset + idx + 1);
+            LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
             using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
             if (type == LuaEngineUserDataType::RawPtr)
             {
-                return **(RawType**)(u);
+                return *((LuaUserDataPack<RawType*>*)mem)->val;
             }
             else if (type == LuaEngineUserDataType::ObjPtr)
             {
                 if constexpr (std::is_base_of_v<Object, Type>)
                 {
-                    return *(ObjPtr<Type>*)u;
+                    return *((LuaUserDataPack<ObjPtr<Type>>*)mem)->val;
                 }
             }
-            else // LuaEngineUserDataType::Value
-            {
-                return *(RawType*)u;
-            }
+
+            return ((LuaUserDataPack<RawType>*)mem)->val; // LuaEngineUserDataType::Value
         }
     }
 
