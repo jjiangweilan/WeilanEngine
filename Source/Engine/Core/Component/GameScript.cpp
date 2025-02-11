@@ -42,8 +42,17 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
         }
         lua_setmetatable(L, 1);
         luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
-        Construct();
     }
+}
+
+void GameScript::OnStart()
+{
+    Construct();
+}
+
+void GameScript::OnStop()
+{
+    Destruct();
 }
 
 void GameScript::Construct()

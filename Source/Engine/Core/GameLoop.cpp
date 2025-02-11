@@ -104,6 +104,11 @@ void GameLoop::Play()
 void GameLoop::Stop()
 {
     isPlaying = false;
+    auto gos = scene->GetAllGameObjects();
+    for (auto go : gos)
+    {
+        go->OnStop();
+    }
 }
 
 void GameLoop::RenderScene() {}

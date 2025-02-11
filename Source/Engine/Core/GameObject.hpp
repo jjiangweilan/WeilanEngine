@@ -107,6 +107,14 @@ public:
         }
     }
 
+    void OnStop()
+    {
+        for (auto& c : components)
+        {
+            c->OnStop();
+        }
+    }
+
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
     {
         updateLocalMatrix = true;

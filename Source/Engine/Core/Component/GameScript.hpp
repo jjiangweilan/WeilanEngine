@@ -17,6 +17,8 @@ public:
     void Construct();
     void Destruct();
     void Tick() override;
+    void OnStart() override;
+    void OnStop() override;
     void OnDestroy() override;
 
     std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }

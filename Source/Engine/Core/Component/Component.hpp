@@ -46,6 +46,7 @@ public:
 
     // called when play mode enter
     virtual void OnStart() {}
+    virtual void OnStop() {}
     virtual void OnDrawGizmos() {}
     virtual void OnLoaded() {}
 
