@@ -11,12 +11,6 @@ struct LuaTypeRegistery
     static std::unordered_map<std::type_index, std::string> typeToName;
 };
 
-// decay value and ObjPtr to raw pointer
-struct UserDataDecay
-{
-    static int ValueDecay(lua_State* L) { return 1; }
-};
-
 enum class LuaEngineUserDataType
 {
     Value,
@@ -114,7 +108,8 @@ public:
         LuaTypeRegistery::typeToName[typeid(T)] = name;
 
         lua_pushvalue(L, -1);
-        lua_setfield(L, -1, "__index");
+        lua_pushcclosure(L, &Index, 1);
+        lua_setfield(L, -2, "__index");
 
         lua_pushstring(L, "New");
         lua_pushcfunction(L, &LuaBinder<T>::New);
@@ -259,10 +254,24 @@ public:
     }
 
 private:
+    lua_State* L;
+    const char* name;
+
+    static int Index(lua_State* L)
+    {
+        bool userData = lua_isuserdata(L, 1);
+        void* u = (void*)lua_touserdata(L, 1);
+        const char* key = lua_tostring(L, 2);
+        int tableIdx = lua_upvalueindex(1);
+        lua_getfield(L, tableIdx, key);
+
+        return 1;
+    }
+
     template <class R, class... Args>
     LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
     {
-        using FT = std::function<R(T & val, Args...)>;
+        using FT = std::function<R(T& val, Args...)>;
         struct Wrap
         {
             static int cfunc(lua_State* L)
@@ -350,9 +359,6 @@ private:
         return *this;
     }
 
-    lua_State* L;
-    const char* name;
-
     template <class Tuple, class R, size_t... I>
     static R ProcessArg(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
     {
@@ -385,45 +391,45 @@ private:
             return v;
         }
         else if constexpr (std::is_same_v<Type, const char*>)
-		{
-			const char* v = luaL_checkstring(L, argOffset + idx + 1);
-			return v;
-		}
-		else if constexpr (std::is_same_v<Type, std::string>)
-		{
-			size_t len;
-			const char* v = luaL_checklstring(L, argOffset + idx + 1, &len);
-			return std::string(v, len);
-		}
-		else if constexpr (std::is_same_v<Type, bool>)
-		{
-			bool v = lua_toboolean(L, argOffset + idx + 1);
-			return v;
-		}
-		else
-		{
-			void* u = lua_touserdata(L, argOffset + idx + 1);
-			lua_getfield(L, argOffset + idx + 1, LuaEngineTableField::dataType);
-			LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
-			lua_pop(L, 1);
+        {
+            const char* v = luaL_checkstring(L, argOffset + idx + 1);
+            return v;
+        }
+        else if constexpr (std::is_same_v<Type, std::string>)
+        {
+            size_t len;
+            const char* v = luaL_checklstring(L, argOffset + idx + 1, &len);
+            return std::string(v, len);
+        }
+        else if constexpr (std::is_same_v<Type, bool>)
+        {
+            bool v = lua_toboolean(L, argOffset + idx + 1);
+            return v;
+        }
+        else
+        {
+            void* u = lua_touserdata(L, argOffset + idx + 1);
+            lua_getfield(L, argOffset + idx + 1, LuaEngineTableField::dataType);
+            LuaEngineUserDataType type = (LuaEngineUserDataType)lua_tointeger(L, -1);
+            lua_pop(L, 1);
 
             using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
-			if (type == LuaEngineUserDataType::RawPtr)
-			{
+            if (type == LuaEngineUserDataType::RawPtr)
+            {
                 return **(RawType**)(u);
-			}
-			else if (type == LuaEngineUserDataType::ObjPtr)
-			{
+            }
+            else if (type == LuaEngineUserDataType::ObjPtr)
+            {
                 if constexpr (std::is_base_of_v<Object, Type>)
                 {
                     return *(ObjPtr<Type>*)u;
                 }
-			}
-			else // LuaEngineUserDataType::Value
-			{
-				return *(RawType*)u;
-			}
-		}
+            }
+            else // LuaEngineUserDataType::Value
+            {
+                return *(RawType*)u;
+            }
+        }
     }
 
     template <class R>
