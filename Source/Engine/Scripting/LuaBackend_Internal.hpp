@@ -314,13 +314,13 @@ private:
                     if constexpr (std::is_void_v<R>)
                     {
                         T* v = (T*)u;
-                        f(*v, ProcessArg<Args>(L)...);
+                        ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
                         return 0;
                     }
                     else
                     {
                         T* v = (T*)u;
-                        R rtn = f(*v, ProcessArg<Args>(L)...);
+                        R rtn = ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
                         ProcessRtn<R>(L, std::move(rtn));
 
                         return 1;
@@ -340,8 +340,14 @@ private:
     lua_State* L;
     const char* name;
 
+    template <class Tuple, class R, size_t... I>
+    static R ProcessArg(lua_State* L, auto& f, T* v, std::index_sequence<I...>)
+    {
+        return f(*v, ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, I)...);
+    }
+
     template <class Type>
-    static std::remove_reference_t<Type> ProcessArg(lua_State* L)
+    static std::remove_reference_t<Type> ProcessArgImpl(lua_State* L, size_t idx)
     {
         // TODO: takes args from lua stack and convert to C++ types
         if constexpr (std::is_integral_v<Type>)
@@ -399,9 +405,9 @@ private:
     static auto CallMemberFunc(lua_State* L, T* v, auto f)
     {
         if (std::is_void_v<R>)
-            (v->*f)(ProcessArg<Args>(L)...);
+            ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
         else
-            return (v->*f)(ProcessArg<Args>(L)...);
+            return ProcessArg<std::tuple<Args...>, R>(L, f, v, std::make_index_sequence<sizeof...(Args)>{});
     }
 
     static int New(lua_State* L)
