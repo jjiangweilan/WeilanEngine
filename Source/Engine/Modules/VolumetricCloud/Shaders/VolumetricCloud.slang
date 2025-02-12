@@ -18,23 +18,20 @@ typealias CloudType = float4;
 
 struct Cloud
 {
-    float4 cloudPlane;
-    float4 stratusType;
-    float4 stratocumulusType;
-    float4 cumulusType;
-    float4 areaMapRemap;
-    float4 planet;
-    float2 ambientHeightScale;
-    float cloudHeightRange;
+    float4 cubePos; // left bottom position
+    float4 cubeExtent; // cube extent
+    float4 sampleScale;
+    CloudType stratusType;
+    CloudType stratocumulusType;
+    CloudType cumulusType;
+    float4 baseClouseShapeRemap;
     float maxThickness; // max thickness in normalized scale
-    float fixedStep;    // fixed step in normalized scale
+    float fixedStep; // fixed step in normalized scale
     float extinction;
     float lightExtinction;
-    float lightPhase_g;
     float lightPhase_K;
-    float areaMapPixelWorldSize; //sampleScale.z
-    float detailMapScale; // sampleScale.x
-    float cloudSphereBend; // sampleScale.y
+    float lightPhase_g;
+
 
 #if GPU_RESOURCE
     Texture3D cloudDensity;
