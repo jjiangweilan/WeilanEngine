@@ -4,19 +4,7 @@
 
 LuaBackend::LuaBackend() {}
 
-LuaBackend::~LuaBackend()
-{
-    if (L)
-    {
-        lua_close(L);
-        L = nullptr;
-    }
-
-    if (instance == this)
-    {
-        instance = nullptr;
-    }
-}
+LuaBackend::~LuaBackend() {}
 
 void LuaBackend::Init(const char* projectAssetFolder)
 {
@@ -43,6 +31,7 @@ void LuaBackend::Init(const char* projectAssetFolder)
 
         LuaBindings().BindClasses(L);
         instance = this;
+        currentStateUUID = UUID();
     }
 }
 
@@ -67,4 +56,20 @@ lua_State* LuaBackend::L = nullptr;
 std::unordered_map<std::type_index, std::string> LuaTypeRegistery::typeToName =
     std::unordered_map<std::type_index, std::string>();
 
+void LuaBackend::Destroy()
+{
+    if (L)
+    {
+        lua_close(L);
+        L = nullptr;
+    }
+
+    if (instance == this)
+    {
+        instance = nullptr;
+    }
+    LuaTypeRegistery::typeToName.clear();
+}
+
 LuaBackend* LuaBackend::instance = nullptr;
+UUID LuaBackend::currentStateUUID = UUID();

@@ -10,6 +10,7 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     this->SetName(luaScriptPath);
 
     auto L = LuaBackend::L;
+    luaBackendUUID = LuaBackend::currentStateUUID;
     std::string script = fmt::format("local code = require '{}';return code or {}", luaScriptPath, "{}");
 
 #define wllua_popall()                                                                                                 \
@@ -68,4 +69,13 @@ void LuaScript::LoadScript(const char* luaScriptPath)
 
     // Is this a valid lua GameScript
     luaClassRef = luaL_ref(L, LUA_REGISTRYINDEX);
+}
+
+int LuaScript::GetLuaClassRef()
+{
+    if (luaBackendUUID != LuaBackend::currentStateUUID)
+    {
+        LoadScript(scriptAssetPath.string().c_str());
+    }
+    return luaClassRef;
 }

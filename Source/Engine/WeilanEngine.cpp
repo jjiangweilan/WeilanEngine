@@ -228,3 +228,9 @@ void WeilanEngine::DeinitSDL()
     // destroy appWindow
     SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
+
+void WeilanEngine::ReloadScripts()
+{
+    luaBackend->Destroy();
+    luaBackend->Init(assetDatabase->GetAssetDirectory().string().c_str());
+}

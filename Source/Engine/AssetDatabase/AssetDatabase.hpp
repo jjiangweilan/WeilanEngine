@@ -26,6 +26,8 @@ public:
 
     bool IsAssetInDatabase(Asset& asset);
 
+    void ReloadScripts();
+
     void RequestShaderRefresh(bool all = false);
     void RefreshShader();
     const std::filesystem::path& GetAssetPath(const UUID& uuid)

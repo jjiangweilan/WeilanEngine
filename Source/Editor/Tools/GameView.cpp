@@ -1,3 +1,4 @@
+
 #include "GameView.hpp"
 
 #include "Core/Component/Camera.hpp"
@@ -35,9 +36,12 @@ struct GameView::PlayTheGame
             AssetDatabase::Singleton()->SaveAsset(scene);
             originalScenePath = AssetDatabase::Singleton()->GetAssetPath(scene.GetUUID());
             AssetDatabase::Singleton()->UnloadAsset(scene);
+
+            GameEditor::instance->GetEngine()->ReloadScripts();
             sceneCopy = AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             sceneCopy->SetName("scene copy");
             sceneCopy->SetFlags(AssetStateFlags::DontSave);
+
             gameView->gameCamera = sceneCopy->GetMainCamera();
             EditorState::activeScene = sceneCopy;
             EditorState::gameLoop->SetScene(*sceneCopy);
@@ -58,6 +62,8 @@ struct GameView::PlayTheGame
             // resume editor state
             EngineState::GetSingleton().isPlaying = false;
             AssetDatabase::Singleton()->UnloadAsset(*sceneCopy);
+
+            GameEditor::instance->GetEngine()->ReloadScripts();
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
             {
@@ -67,7 +73,6 @@ struct GameView::PlayTheGame
                 EditorState::gameLoop->SetScene(*ori);
                 EditorState::activeScene->SetMainCamera(gameView->editorCamera);
             }
-
             // destroy sceneCopy
             sceneCopy = nullptr;
         }
@@ -332,7 +337,7 @@ void GameView::Render(
             if (editorWorldSpaceGrid.show)
             {
                 auto activeCamera = GetCurrentlyActiveCamera();
-                if (activeCamera == editorCamera)
+                if (activeCamera == editorCamera.Get())
                 {
                     glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
                     pos.y = 0;

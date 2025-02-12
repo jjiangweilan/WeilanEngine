@@ -14,11 +14,13 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     const auto L = LuaBackend::L;
     this->luaScript = luaScript;
 
-    if (luaRef)
+    if (luaRef && luaBackendUUID == LuaBackend::currentStateUUID)
     {
         Destruct();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
     }
+
+    luaBackendUUID = LuaBackend::currentStateUUID;
 
     int luaClassRef = luaScript->GetLuaClassRef();
     if (luaClassRef != LUA_REFNIL)

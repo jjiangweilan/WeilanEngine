@@ -41,19 +41,20 @@ struct PushEngineUserDataHelper
         // Handle user-defined types
         void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<R>));
 
+        using RawType = std::remove_const_t<std::remove_reference_t<R>>;
         // refactor to PushUserData()
         lua_newtable(L);
-        if constexpr (std::is_pointer_v<R>)
+        if constexpr (std::is_pointer_v<RawType>)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(v));
             PushTypeMetatable<std::remove_pointer_t<R>>(L);
         }
-        else if constexpr (std::is_reference_v<R>)
+        else if constexpr (std::is_reference_v<RawType>)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(&v));
             PushTypeMetatable<std::remove_reference_t<R>>(L);
         }
-        else if constexpr (IsObjPtr<R>::value)
+        else if constexpr (IsObjPtr<RawType>::value)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::ObjPtr, std::move(v));
             PushTypeMetatable<R::element_type>(L);
@@ -218,10 +219,11 @@ public:
                 void* mem = lua_touserdata(L, 1);
                 LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
+                using RawType = std::remove_const_t<std::remove_reference_t<R>>;
                 if (type == LuaEngineUserDataType::RawPtr)
                 {
                     T* v = ((LuaUserDataPack<T*>*)mem)->val;
-                    if constexpr (std::is_void_v<R>)
+                    if constexpr (std::is_void_v<RawType>)
                     {
                         CallMemberFunc<R, Args...>(L, v, FF);
                         return 0;
@@ -239,7 +241,7 @@ public:
                     if constexpr (std::is_base_of_v<Object, T>)
                     {
                         T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)mem)->val);
-                        if constexpr (std::is_void_v<R>)
+                        if constexpr (std::is_void_v<RawType>)
                         {
                             CallMemberFunc<R, Args...>(L, v, FF);
                             return 0;
@@ -258,7 +260,7 @@ public:
                 else // LuaEngineUserDataType::Value
                 {
                     T* v = &(((LuaUserDataPack<T>*)mem)->val);
-                    if constexpr (std::is_void_v<R>)
+                    if constexpr (std::is_void_v<RawType>)
                     {
                         CallMemberFunc<R, Args...>(L, v, FF);
                         return 0;
@@ -389,9 +391,10 @@ private:
                 void* u = lua_touserdata(L, 1);
                 LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
 
+                using RawType = std::remove_const_t<std::remove_reference_t<R>>;
                 if (type == LuaEngineUserDataType::RawPtr)
                 {
-                    if constexpr (std::is_void_v<R>)
+                    if constexpr (std::is_void_v<RawType>)
                     {
                         T* v = ((LuaUserDataPack<T*>*)u)->val;
                         ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
@@ -411,7 +414,7 @@ private:
                 {
                     if constexpr (std::is_base_of_v<Object, T>)
                     {
-                        if constexpr (std::is_void_v<R>)
+                        if constexpr (std::is_void_v<RawType>)
                         {
                             T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
                             ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
@@ -437,7 +440,7 @@ private:
                 }
                 else // LuaEngineUserDataType::Value
                 {
-                    if constexpr (std::is_void_v<R>)
+                    if constexpr (std::is_void_v<RawType>)
                     {
                         T* v = &(((LuaUserDataPack<T>*)u)->val);
                         ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});

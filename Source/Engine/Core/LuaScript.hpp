@@ -8,7 +8,7 @@ class LuaScript : public Asset
     DECLARE_EXTERNAL_ASSET();
 
 public:
-    int GetLuaClassRef() const { return luaClassRef; }
+    int GetLuaClassRef();
 
     void LoadScript(const char* luaScriptPath);
 
@@ -16,4 +16,5 @@ private:
     std::filesystem::path scriptAssetPath;
 
     int luaClassRef = LUA_REFNIL;
+    UUID luaBackendUUID;
 };

@@ -35,6 +35,7 @@ public:
 private:
     ObjPtr<LuaScript> luaScript;
     using LuaRef = int;
+    UUID luaBackendUUID;
 
     LuaRef luaRef = LUA_REFNIL;
 };
