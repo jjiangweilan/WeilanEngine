@@ -21,6 +21,8 @@ enum class LuaEngineUserDataType
 struct LuaEngineTableField
 {
     inline static const char* dataType = "__wl_dataType";
+    inline static const char* propertiesGet = "__wl_properties_get";
+    inline static const char* propertiesSet = "__wl_properties_set";
 };
 
 template <class T>
@@ -30,9 +32,10 @@ struct LuaUserDataPack
     T val;
 };
 
+template <class R>
 struct PushEngineUserDataHelper
 {
-    template <class R>
+    // push a userdata of value v with a per userdata metatable
     static void Execute(lua_State* L, R&& v)
     {
         // Handle user-defined types
@@ -60,11 +63,87 @@ struct PushEngineUserDataHelper
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::Value, std::move(v));
             PushTypeMetatable<R>(L);
         }
-        lua_setmetatable(L, -2);
-        lua_pushvalue(L, -1);
+        lua_setmetatable(L, -2); // set userdat metatable's metatable
+        lua_pushcfunction(L, &Index);
         lua_setfield(L, -2, "__index");
 
+        lua_pushcfunction(L, &NewIndex);
+        lua_setfield(L, -2, "__newindex");
+
         lua_setmetatable(L, -2);
+    }
+
+    static int Index(lua_State* L)
+    {
+        ASSERT(lua_isuserdata(L, 1));         // 1
+        const char* key = lua_tostring(L, 2); // 2
+
+        int currentInspectingTable = 3;
+        lua_getmetatable(L, 1); // 3
+        int oldTop = lua_gettop(L);
+        do // currentInspectingTable + 1
+        {
+            lua_pushstring(L, LuaEngineTableField::propertiesGet);
+            if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
+            {
+                lua_pushvalue(L, 2);                    // push the key
+                if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
+                {
+                    lua_pushvalue(L, 1); // 6
+
+                    if (lua_pcall(L, 1, 1, 0)) // pop 6, 5
+                    {
+                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                    }
+
+                    return 1;
+                }
+                else
+                {
+                    lua_pop(L, 2); // pop + 2/3
+                }
+            }
+        }
+        while (lua_getmetatable(L, currentInspectingTable++));
+        // property not found, continue ...
+        int newTop = lua_gettop(L);
+        lua_pop(L, newTop - oldTop); // cleanup
+
+        lua_getfield(L, 3, key);
+        return 1;
+    }
+
+    static int NewIndex(lua_State* L)
+    {
+        ASSERT(lua_isuserdata(L, 1));
+        const char* key = lua_tostring(L, 2); // 2
+        // 3 is the argument
+
+        ASSERT(lua_getmetatable(L, 1) == 1);                    // 4
+        lua_getfield(L, 3, LuaEngineTableField::propertiesSet); // 5
+        if (lua_istable(L, 4))
+        {
+            lua_getfield(L, 4, key); // 6
+            if (lua_iscfunction(L, 5))
+            {
+                lua_pushvalue(L, 1); // 7
+                lua_pushvalue(L, 3); // 8
+
+                if (lua_pcall(L, 2, 0, 0)) // pop 6, 7, 8
+                {
+                    SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                }
+
+                return 0;
+            }
+            else
+                lua_pop(L, 1); // pop 6
+        }
+        // failed to set to properties, try set to metatable with whatevery it has
+        lua_pop(L, 1); // pop 5
+        lua_pushvalue(L, 3);
+        lua_setfield(L, 3, key);
+        return 0;
     }
 
 private:
@@ -122,7 +201,7 @@ public:
     LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...))
     {
         // TODO: use c closure instead
-        static auto FF = f;                                                                     
+        static auto FF = f;
         struct Wrap
         {
             static int cfunc(lua_State* L)
@@ -239,6 +318,11 @@ public:
     LuaBinder<T>& BindFn(const char* name, F&& f)
     {
         return BindFn(name, std::function(std::move(f)));
+    }
+
+    template <class Getter, class Setter>
+    LuaBinder<T>& BindProperty(const char* name, Getter&& getter, Setter&& setter)
+    {
     }
 
 private:
@@ -444,7 +528,7 @@ private:
         }
         else
         {
-            PushEngineUserDataHelper::Execute(L, std::move(v));
+            PushEngineUserDataHelper<R>::Execute(L, std::move(v));
         }
     }
 
@@ -507,6 +591,9 @@ public:
         LuaBinder<glm::vec3> vec3(L);
         vec3
             .Begin("Vec")
+            .BindProperty("x", [](glm::vec3& val) {return val[0];}, [](glm::vec3& val, float v){return val[0] = v;})
+            .BindProperty("y", [](glm::vec3& val) {return val[1];}, [](glm::vec3& val, float v){return val[1] = v;})
+            .BindProperty("z", [](glm::vec3& val) {return val[2];}, [](glm::vec3& val, float v){return val[2] = v;})
             .BindFn("GetX", [](glm::vec3& val) {return val[0]; })
             .BindFn("GetY", [](glm::vec3& val) {return val[1]; })
             .BindFn("GetZ", [](glm::vec3& val) {return val[2]; })
