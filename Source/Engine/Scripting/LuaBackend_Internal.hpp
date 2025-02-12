@@ -91,7 +91,7 @@ struct PushEngineUserDataHelper
                 {
                     lua_pushvalue(L, 1); // 6
 
-                    if (lua_pcall(L, 1, 1, 0)) // pop 6, 5
+                    if (lua_pcall(L, 1, 1, 0)) // pop 6, +3
                     {
                         SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
                     }
@@ -328,6 +328,12 @@ public:
         return BindFn(name, std::function(std::move(f)));
     }
 
+    template <class V>
+    LuaBinder<T>& BindProperty(const char* name, V T::* p)
+    {
+        return BindProperty(name, [p](T& val) { return val.*p; }, [p](T& val, const V& v) { val.*p = v; });
+    }
+
     template <class Getter, class Setter>
     LuaBinder<T>& BindProperty(const char* name, Getter&& getter, Setter&& setter)
     {
@@ -343,14 +349,13 @@ public:
             hasPropertyTable = true;
         }
 
-        lua_getfield(L, -1, LuaEngineTableField::propertiesGet); // 2
-        BindFn(name, getter);
+        lua_getfield(L, -1, LuaEngineTableField::propertiesGet); // 3
+        BindFn(name, std::move(getter));
         lua_pop(L, 1);
 
-        lua_getfield(L, -1, LuaEngineTableField::propertiesSet); // 2
-        BindFn(name, setter);
+        lua_getfield(L, -1, LuaEngineTableField::propertiesSet); // 4
+        BindFn(name, std::move(setter));
         lua_pop(L, 1);
-
         return *this;
     }
 
@@ -480,34 +485,36 @@ private:
     template <class Type>
     static std::remove_reference_t<Type> ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
     {
-        if constexpr (std::is_integral_v<Type>)
+        using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
+        if constexpr (std::is_integral_v<RawType>)
         {
             lua_Integer v = luaL_checkinteger(L, argOffset + idx + 1);
             return v;
         }
-        else if constexpr (std::is_floating_point_v<Type>)
+        else if constexpr (std::is_floating_point_v<RawType>)
         {
             lua_Number v = luaL_checknumber(L, argOffset + idx + 1);
             return v;
         }
-        else if constexpr (std::is_same_v<Type, const char*>)
+        else if constexpr (std::is_same_v<RawType, const char*>)
         {
             const char* v = luaL_checkstring(L, argOffset + idx + 1);
             return v;
         }
-        else if constexpr (std::is_same_v<Type, std::string>)
+        else if constexpr (std::is_same_v<RawType, std::string>)
         {
             size_t len;
             const char* v = luaL_checklstring(L, argOffset + idx + 1, &len);
             return std::string(v, len);
         }
-        else if constexpr (std::is_same_v<Type, bool>)
+        else if constexpr (std::is_same_v<RawType, bool>)
         {
             bool v = lua_toboolean(L, argOffset + idx + 1);
             return v;
         }
         else
         {
+            ASSERT(lua_isuserdata(L, argOffset + idx + 1));
             void* mem = lua_touserdata(L, argOffset + idx + 1);
             LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
@@ -621,17 +628,9 @@ public:
         LuaBinder<glm::vec3> vec3(L);
         vec3
             .Begin("Vec")
-            .BindProperty("x", 
-                [](glm::vec3& val) 
-                {
-                    return val[0];
-                }, 
-                [](glm::vec3& val, float v)
-                {
-                    return val[0] = v;
-                })
-            .BindProperty("y", [](glm::vec3& val) {return val[1];}, [](glm::vec3& val, float v){return val[1] = v;})
-            .BindProperty("z", [](glm::vec3& val) {return val[2];}, [](glm::vec3& val, float v){return val[2] = v;})
+            .BindProperty("x", &glm::vec3::x)
+            .BindProperty("y", &glm::vec3::y)
+            .BindProperty("z", &glm::vec3::z)
             .BindFn("GetX", [](glm::vec3& val) {return val[0]; })
             .BindFn("GetY", [](glm::vec3& val) {return val[1]; })
             .BindFn("GetZ", [](glm::vec3& val) {return val[2]; })
