@@ -183,6 +183,9 @@ public:
 
     const std::vector<UUID>& GetReferencedObjects() { return referencedObjects; }
 
+    virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
+    virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
+    virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
 protected:
     SerializeReferenceResolveMap* resolveCallbacks;
     std::unordered_map<UUID, Object*> objects;
@@ -192,9 +195,6 @@ protected:
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
 
-    virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
-    virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
-    virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
 
     virtual size_t GetArraySize(std::string_view name) = 0;
 

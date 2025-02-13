@@ -12,6 +12,11 @@ public:
         {
             target->SetScript(script);
         }
+
+        JsonSerializer s;
+        target->Serialize(&s);
+        auto j = s.GetJson();
+        GUI::JsonInspector(j);
     }
 
 private:

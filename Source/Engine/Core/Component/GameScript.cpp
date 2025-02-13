@@ -158,44 +158,57 @@ void GameScript::Serialize(Serializer* s) const
         lua_pushnil(L); // First key
         while (lua_next(L, -2) != 0)
         {
+            std::string key = "";
             // 'key' is at index -2 and 'value' at index -1.
             if (lua_isstring(L, -2))
             {
-                printf("Key: %s, ", lua_tostring(L, -2));
+                key = lua_tostring(L, -2);
             }
             else if (lua_isnumber(L, -2))
             {
-                printf("Key: %g, ", lua_tonumber(L, -2));
+                key = std::to_string(lua_tonumber(L, -2));
             }
 
             if (lua_isstring(L, -1))
             {
-                printf("Value: %s\n", lua_tostring(L, -1));
+                std::string val = lua_tostring(L, -1);
+                s->Serialize(key, val);
             }
             else if (lua_isboolean(L, -1))
             {
-                printf("Value: %s\n", lua_toboolean(L, -1) ? "true" : "false");
+                bool val = lua_toboolean(L, -1);
+                s->Serialize(key, val);
             }
             else if (lua_isnumber(L, -1))
             {
-                printf("Value: %g\n", lua_tonumber(L, -1));
+                float val = lua_tonumber(L, -1);
+                s->Serialize(key, val);
             }
-            else
+            else if (lua_isuserdata(L, -1))
             {
-                printf("Value: (non-printable)\n");
+                lua_getfield(L, -1, "Serialize");
+
+                if (lua_isfunction(L, -1))
+                {
+                    lua_pushvalue(L, -2);
+                    
+                    auto subs = s->CreateSubserializer();
+                    // prepare serializer
+                    LuaUserDataPack<Serializer*>* d =
+                        (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
+                    d->dataType = LuaEngineUserDataType::RawPtr;
+                    d->val = subs.get();
+
+                    if (lua_pcall(L, 2, 0, 0))
+                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+
+                    s->AppendSubserializer(key, subs.get());
+                }
+                else
+                    lua_pop(L, 1); // pop the nil field
             }
 
             lua_pop(L, 1); // Remove 'value', keep 'key'
-                           //
-                           // lua_getfield(L, 1, "Serialize");
-                           //
-                           // if (lua_isfunction(L, -1))
-                           // {
-                           //     lua_pushvalue(L, 1);
-                           //     lua_pushlightuserdata(L, s);
-                           //     if (lua_pcall(L, 2, 0, 0))
-                           //         SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-                           // }
         }
 
         int top = lua_gettop(L);
