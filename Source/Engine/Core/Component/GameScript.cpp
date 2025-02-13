@@ -1,6 +1,7 @@
 #include "GameScript.hpp"
 
 #include "Scripting/LuaBackend.hpp"
+#include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
 #include <spdlog/spdlog.h>
 
@@ -14,9 +15,9 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     const auto L = LuaBackend::L;
     this->luaScript = luaScript;
 
-    if (luaRef && luaBackendUUID == LuaBackend::currentStateUUID)
+    if (luaRef != LUA_REFNIL && luaBackendUUID == LuaBackend::currentStateUUID)
     {
-        Destruct();
+        OnStop();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
     }
 
@@ -41,27 +42,41 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
         }
         lua_setmetatable(L, 1);
         luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
+
+        if (luaRef != LUA_REFNIL)
+        {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+            lua_getfield(L, 1, "Init");
+            if (lua_isfunction(L, -1))
+            {
+                lua_pushvalue(L, 1);
+                if (lua_pcall(L, 1, 0, 0))
+                    SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+            }
+
+            lua_pop(L, 1);
+        }
     }
 }
 
 void GameScript::OnStart()
 {
-    Construct();
+    LuaOnStart();
 }
 
 void GameScript::OnStop()
 {
-    Destruct();
+    LuaOnStop();
 }
 
-void GameScript::Construct()
+void GameScript::LuaOnStart()
 {
     const auto L = LuaBackend::L;
 
-    if (luaRef)
+    if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getfield(L, 1, "Construct");
+        lua_getfield(L, 1, "OnStart");
         if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, 1);
@@ -92,14 +107,14 @@ void GameScript::Tick()
     }
 }
 
-void GameScript::Destruct()
+void GameScript::LuaOnStop()
 {
     const auto L = LuaBackend::L;
 
     if (luaRef != LUA_REFNIL)
     {
         lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getfield(L, 1, "Destruct");
+        lua_getfield(L, 1, "OnStop");
         if (lua_isfunction(L, -1))
         {
             lua_pushvalue(L, 1);
@@ -121,9 +136,9 @@ void GameScript::OnDestroy()
 {
     const auto L = LuaBackend::L;
 
-    if (luaRef)
+    if (luaRef != LUA_REFNIL)
     {
-        Destruct();
+        OnStop();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
     }
 }
@@ -132,6 +147,61 @@ void GameScript::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
     SERIALIZE(s, luaScript);
+
+    const auto L = LuaBackend::L;
+
+    if (luaRef != LUA_REFNIL)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+        lua_getmetatable(L, -1);
+
+        lua_pushnil(L); // First key
+        while (lua_next(L, -2) != 0)
+        {
+            // 'key' is at index -2 and 'value' at index -1.
+            if (lua_isstring(L, -2))
+            {
+                printf("Key: %s, ", lua_tostring(L, -2));
+            }
+            else if (lua_isnumber(L, -2))
+            {
+                printf("Key: %g, ", lua_tonumber(L, -2));
+            }
+
+            if (lua_isstring(L, -1))
+            {
+                printf("Value: %s\n", lua_tostring(L, -1));
+            }
+            else if (lua_isboolean(L, -1))
+            {
+                printf("Value: %s\n", lua_toboolean(L, -1) ? "true" : "false");
+            }
+            else if (lua_isnumber(L, -1))
+            {
+                printf("Value: %g\n", lua_tonumber(L, -1));
+            }
+            else
+            {
+                printf("Value: (non-printable)\n");
+            }
+
+            lua_pop(L, 1); // Remove 'value', keep 'key'
+                           //
+                           // lua_getfield(L, 1, "Serialize");
+                           //
+                           // if (lua_isfunction(L, -1))
+                           // {
+                           //     lua_pushvalue(L, 1);
+                           //     lua_pushlightuserdata(L, s);
+                           //     if (lua_pcall(L, 2, 0, 0))
+                           //         SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                           // }
+        }
+
+        int top = lua_gettop(L);
+
+        lua_pop(L, 2);
+    }
 }
 
 void GameScript::Deserialize(Serializer* s)

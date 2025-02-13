@@ -3,19 +3,24 @@
 #include "Core/LuaScript.hpp"
 #include "ThirdParty/lua/lua.hpp"
 
+#include <unordered_map>
+
 class GameScript : public Component
 {
     DECLARE_OBJECT();
 
 public:
+    // a list of lua supported type stored in c++
+    using LuaSerializationClientSideCache = nlohmann::json;
+
     GameScript();
     GameScript(GameObject* gameObject);
 
     ObjPtr<LuaScript> GetScript() { return luaScript; }
     void SetScript(ObjPtr<LuaScript> luaScript);
 
-    void Construct();
-    void Destruct();
+    void LuaOnStart();
+    void LuaOnStop();
     void Tick() override;
     void OnStart() override;
     void OnStop() override;
@@ -36,6 +41,7 @@ private:
     ObjPtr<LuaScript> luaScript;
     using LuaRef = int;
     UUID luaBackendUUID;
+    LuaSerializationClientSideCache luaDataCache;
 
     LuaRef luaRef = LUA_REFNIL;
 };

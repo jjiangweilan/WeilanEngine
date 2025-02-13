@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
+#include "Libs/Serialization/Serializable.hpp"
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
 #include "ThirdParty/lua/lua.hpp"
@@ -192,6 +193,13 @@ public:
         lua_pushstring(L, "New");
         lua_pushcfunction(L, &LuaBinder<T>::New);
         lua_settable(L, -3);
+
+        // push serialization
+        if  constexpr(std::is_base_of_v<Serializable, T>)
+        {
+            BindMemFn("Serialize", &T::Serialize);
+            BindMemFn("Deserialize", &T::Deserialize);
+        }
 
         return *this;
     }
