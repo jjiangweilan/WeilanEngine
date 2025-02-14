@@ -547,6 +547,7 @@ void VKDriver::FlushPendingCommands()
 
 bool VKDriver::EndFrame()
 {
+    std::scoped_lock lock(driverMutex);
     ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
 
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
