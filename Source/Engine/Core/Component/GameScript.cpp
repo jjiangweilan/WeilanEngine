@@ -232,7 +232,7 @@ void GameScript::LuaSerialize(Serializer* s) const
                 float val = lua_tonumber(L, -1);
                 s->Serialize(key, val);
             }
-            else if (lua_isuserdata(L, -1)) // DEBUG fix me
+            else if (lua_isuserdata(L, -1))
             {
                 lua_getfield(L, -1, "Serialize");
 
@@ -255,6 +255,8 @@ void GameScript::LuaSerialize(Serializer* s) const
                 else
                     lua_pop(L, 1); // pop the nil field
             }
+
+            lua_pop(L, 1);
         }
 
         lua_pop(L, 2);
@@ -323,6 +325,8 @@ void GameScript::LuaDeserialize(Serializer* s)
                 else
                     lua_pop(L, 1); // pop the nil field
             }
+        
+            lua_pop(L, 1);
         }
 
         lua_pop(L, 2);

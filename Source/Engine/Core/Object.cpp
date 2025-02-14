@@ -24,13 +24,6 @@ std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* Obje
     return registeredObject.get();
 }
 
-// char ObjectRegistry::RegisterObject(const ObjectTypeID& ObjectID, std::string_view typeName, const Creator& creator)
-// {
-//     GetObjectTypeRegistry()->emplace(ObjectID, creator);
-//     GetObjectTypeRegistryByName()->emplace(typeName, creator);
-//     return '0';
-// }
-
 std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* ObjectRegistry::GetObjectTypeRegistryByName()
 {
     static std::unique_ptr<std::unordered_map<std::string, ObjectRegistry::Creator>> registeredObject =
