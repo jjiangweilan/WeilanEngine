@@ -24,6 +24,8 @@ WeilanEngine::WeilanEngine() {};
 
 WeilanEngine::~WeilanEngine()
 {
+    Gizmos::ResourceCleanup();
+
     event->Deinit();
     gfxDriver->WaitForIdle();
     ShaderLibrary::Singleton().RemoveAllShaders();

@@ -27,7 +27,7 @@ public:
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
         cmd.BindResource(0, perScene);
-        cmd.BindResource(GetMaterial().GetSet("perMaterial"), GetMaterial().GetShaderResource());
+        cmd.BindResource(GetMaterial()->GetSet("perMaterial"), GetMaterial()->GetShaderResource());
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
         cmd.Draw(6, 1, 0, 0);
@@ -53,7 +53,7 @@ private:
     void Init() {
 
     }
-    static Material& GetMaterial()
+    static std::unique_ptr<Material>& GetMaterial()
     {
         static std::unique_ptr<Material> mat;
         if (mat == nullptr)
@@ -63,8 +63,10 @@ private:
             mat->SetTexture("mainTex", GetLightTexture());
         }
 
-        return *mat;
+        return mat;
     }
+
+    friend class Gizmos;
 };
 
 class GizmoDrawMesh : public GizmoBase
@@ -236,6 +238,11 @@ void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader, cons
 void Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
 {
     GetSingleton().gizmos.push_back(std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, material, modelMatrix));
+}
+
+void Gizmos::ResourceCleanup()
+{
+    GizmoDrawLight::GetMaterial().release();
 }
 
 // namespace Gizmos

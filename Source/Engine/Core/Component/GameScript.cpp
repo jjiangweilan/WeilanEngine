@@ -222,11 +222,6 @@ void GameScript::LuaSerialize(Serializer* s) const
                 bool val = lua_toboolean(L, -1);
                 s->Serialize(key, val);
             }
-            else if (lua_isinteger(L, -1))
-            {
-                uint32_t val = lua_tointeger(L, -1);
-                s->Serialize(key, val);
-            }
             else if (valType == LUA_NUMTYPES)
             {
                 float val = lua_tonumber(L, -1);
@@ -288,13 +283,6 @@ void GameScript::LuaDeserialize(Serializer* s)
                 bool val;
                 s->Deserialize(key, val);
                 lua_pushboolean(L, val);
-                lua_setfield(L, 1, key.c_str());
-            }
-            else if (lua_isinteger(L, -1))
-            {
-                uint32_t val = lua_tointeger(L, -1);
-                s->Deserialize(key, val);
-                lua_pushinteger(L, val);
                 lua_setfield(L, 1, key.c_str());
             }
             else if (valType == LUA_NUMTYPES)
