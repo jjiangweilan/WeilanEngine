@@ -65,6 +65,7 @@ public:
     void SetScene(Scene* scene);
     Scene* GetScene();
     void Tick();
+    void IdleTick();
     void PrePhysicsTick();
 
     void Serialize(Serializer* s) const override;

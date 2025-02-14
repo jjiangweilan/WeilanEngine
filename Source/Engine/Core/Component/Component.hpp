@@ -13,7 +13,8 @@ class Component : public Object
 public:
     Component(GameObject* gameObject);
     virtual ~Component();
-    virtual void Tick() {};
+    virtual void Tick() {}
+    virtual void IdleTick() {}
     virtual void PrePhysicsTick() {};
 
     virtual const std::string& GetName() = 0;

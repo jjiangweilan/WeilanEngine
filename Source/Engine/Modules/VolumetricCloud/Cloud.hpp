@@ -34,6 +34,8 @@ public:
     Gfx::Image* UpdateDebugImage();
     void OnLoaded() override;
     void TransformChanged() override;
+    void Tick() override;
+    void IdleTick() override;
 
 private:
     std::unique_ptr<Material> volumetricCloud;
@@ -58,7 +60,6 @@ private:
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
-    void UpdateCloudGPUProperties();
 
     void OnEnable() override;
     void OnDisable() override;

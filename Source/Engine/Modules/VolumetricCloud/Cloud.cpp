@@ -1,7 +1,4 @@
 #include "Cloud.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/Component/MeshRenderer.hpp"
-#include "Core/EngineInternalResources.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
@@ -120,6 +117,43 @@ Gfx::Image* Cloud::UpdateDebugImage()
     return debugImage.get();
 }
 
+void Cloud::Tick()
+{
+    ObjPtr<Cloud> self = this;
+    GetScene()->GetRenderingScene().Draw(
+        "cloud",
+        RenderingEvent::Skybox,
+        [self](Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+        {
+            if (self == nullptr)
+                return;
+
+            auto scene = self->GetScene();
+            self->volumetricCloud->SetTexture("mainColor", renderingData.mainColor);
+            self->volumetricCloud->SetTexture(
+                "depthMap",
+                renderingData.mainDepth,
+                Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth}
+            );
+            cmd.BindShaderProgram(
+                self->volumetricCloud->GetShader()->GetShaderProgram(),
+                self->volumetricCloud->GetShaderConfig()
+            );
+            cmd.BindResource(self->volumetricCloud->GetSet("perMaterial"), self->volumetricCloud->GetShaderResource());
+            cmd.Dispatch(
+                (renderingData.sceneInfo->screenSize.x + 7) / 8,
+                (renderingData.sceneInfo->screenSize.y + 7) / 8,
+                1
+            );
+        }
+    );
+}
+
+void Cloud::IdleTick()
+{
+    Tick();
+}
+
 void Cloud::Setup()
 {
     if (!isSetup)
@@ -138,27 +172,11 @@ void Cloud::Setup()
         noiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
         noiseGenerator->SetTexture("imgOutput", cloudNoise.tex.get());
 
-        auto meshRenderer = GetGameObject()->GetComponent<MeshRenderer>();
-        if (meshRenderer == nullptr)
-            meshRenderer = GetGameObject()->AddComponent<MeshRenderer>();
-
-        meshRenderer->SetMesh(EngineInternalResources::GetModels().cube);
-        meshRenderer->SetMaterial(volumetricCloud.get());
         volumetricCloud->SetTexture("cloudDensity", cloudNoise.tex.get());
         UpdateNoiseTexture();
-        UpdateCloudGPUProperties();
     }
 }
 
 void Cloud::TransformChanged()
 {
-    UpdateCloudGPUProperties();
-}
-
-void Cloud::UpdateCloudGPUProperties()
-{
-    auto go = GetGameObject();
-    glm::float3 scale = go->GetScale();
-    volumetricCloud->SetVector("cubePos", glm::float4(go->GetPosition() - scale / 2.0f, 1.0));
-    volumetricCloud->SetVector("cubeExtent", glm::float4(scale, 1.0));
 }

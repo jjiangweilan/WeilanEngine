@@ -80,6 +80,14 @@ void GameObject::Tick()
     }
 }
 
+void GameObject::IdleTick()
+{
+    for (auto& comp : components)
+    {
+        comp->IdleTick();
+    }
+}
+
 void GameObject::PrePhysicsTick()
 {
     for (auto& comp : components)

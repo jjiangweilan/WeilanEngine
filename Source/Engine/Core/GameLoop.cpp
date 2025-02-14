@@ -2,7 +2,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Profiler.hpp"
 #include "Profiler/Profiler.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"
 #include "Scene/Scene.hpp"
@@ -22,6 +21,16 @@ static void TickGameObject(GameObject* go)
     }
 }
 
+static void IdleTickGameObject(GameObject* go)
+{
+    go->IdleTick();
+
+    for (auto chil : go->GetChildren())
+    {
+        IdleTickGameObject(chil);
+    }
+}
+
 const void GameLoop::Tick(
     Gfx::Image& outputImage,
     const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
@@ -34,22 +43,27 @@ const void GameLoop::Tick(
     if (scene == nullptr)
         return;
 
+    auto rootObjects = scene->GetRootObjects();
     if (isPlaying)
     {
         ENGINE_BEGIN_PROFILE("Physics Tick")
-        if (isPlaying)
-        {
-            // update physics
-            scene->GetPhysicsScene().Tick();
+        // update physics
+        scene->GetPhysicsScene().Tick();
 
-            // tick game objects
-            for (auto go : scene->GetRootObjects())
-            {
-                TickGameObject(go);
-            }
+        // tick game objects
+        for (auto go : rootObjects)
+        {
+            TickGameObject(go);
         }
 
         ENGINE_END_PROFILE
+    }
+    else
+    {
+        for (auto go : scene->GetRootObjects())
+        {
+            IdleTickGameObject(go);
+        }
     }
 
     // render

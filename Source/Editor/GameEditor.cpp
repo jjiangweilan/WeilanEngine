@@ -13,7 +13,6 @@
 #include "Libs/Assert.hpp"
 #include "Platform/FileExplore.hpp"
 #include "PrototypeUtils.hpp"
-#include "Rendering/SurfelGI/GIScene.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -625,11 +624,6 @@ void GameEditor::MainMenuBar()
                 auto mat = std::make_unique<Material>();
                 engine->assetDatabase->SaveAsset(std::move(mat), "New Material");
             }
-            if (ImGui::MenuItem("Frame Graph"))
-            {
-                auto graph = std::make_unique<Rendering::FrameGraph::Graph>();
-                engine->assetDatabase->SaveAsset(std::move(graph), "New FrameGraph");
-            }
             if (ImGui::MenuItem("Render Pipeline Setting"))
             {
                 auto renderPipelineSetting = std::make_unique<Rendering::RenderPipelineSetting>();
@@ -829,42 +823,7 @@ void GameEditor::ShowSurfelGIBakerWindow()
 {
     if (surfelGIBaker)
     {
-        ImGui::Begin("Surfel GI Baker");
-        static SurfelGI::BakerConfig c{
-            .scene = EditorState::activeScene,
-            .templateShader = nullptr,
-            .worldBoundsMin = {-5, -5, -5},
-            .worldBoundsMax = {5, 5, 5},
-        };
-
-        const char* templateShaderName = "Template Scene Shader";
-        if (c.templateShader != nullptr)
-        {
-            templateShaderName = c.templateShader->GetName().c_str();
-        }
-        if (ImGui::Button(templateShaderName))
-        {
-            EditorState::SelectObject(c.templateShader->GetSRef());
-        }
-
-        Object* shaderObj = nullptr;
-        if (GUI::DragDropTarget(typeid(Shader), shaderObj))
-        {
-            c.templateShader = (Shader*)shaderObj;
-        }
-
-        ImGui::InputFloat3("World Bounds Min", &c.worldBoundsMin[0]);
-        ImGui::InputFloat3("World Bounds Max", &c.worldBoundsMax[0]);
-
-        if (ImGui::Button("Bake"))
-        {
-            SurfelGI::GISceneBaker baker;
-            auto giScene = std::make_unique<SurfelGI::GIScene>(baker.Bake(c));
-
-            engine->assetDatabase->SaveAsset(std::move(giScene), "demo");
-        }
-
-        ImGui::End();
+        
     }
 }
 

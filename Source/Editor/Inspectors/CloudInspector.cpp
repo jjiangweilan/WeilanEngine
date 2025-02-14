@@ -15,6 +15,10 @@ public:
         ImGui::Text("Noise Generator");
         auto ptr = target->noiseGenerator.get();
         ImGui::Checkbox("Always Update", &alwayUpdate);
+        ImGui::SeparatorText("Parameter");
+        Draw(target->volumetricCloud.get(), target->volumetricCloud->GetShaderProgram());
+
+        ImGui::SeparatorText("Noise Generator");
         if (Draw(target->noiseGenerator.get(), target->noiseGenerator->GetShaderProgram()) || alwayUpdate)
         {
             target->UpdateNoiseTexture();
@@ -34,7 +38,6 @@ public:
                 target->debugImageMaterial->SetFloat("axis", debugAxis);
             }
             ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
-
         }
     }
 

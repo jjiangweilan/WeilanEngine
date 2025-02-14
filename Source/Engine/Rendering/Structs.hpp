@@ -1,6 +1,12 @@
 #pragma once
 #include "Libs/Math.hpp"
 
+enum class RenderingEvent
+{
+    Skybox,
+    MAX_RENDERING_EVENT
+};
+
 struct Offset2D
 {
     int32_t x;

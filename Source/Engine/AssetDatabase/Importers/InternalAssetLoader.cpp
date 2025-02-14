@@ -1,7 +1,6 @@
 #include "InternalAssetLoader.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Rendering/Material.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include <fstream>
 #include <typeindex>
 
@@ -10,7 +9,7 @@ DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,proto,fgraph,renderPipeline"
 class Material;
 const std::vector<std::type_index>& InternalAssetLoader::GetImportTypes()
 {
-    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject), typeid(Rendering::FrameGraph::Graph)};
+    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject)};
     return types;
 }
 

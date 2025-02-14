@@ -1,7 +1,6 @@
 #pragma once
 #include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "FrameGraph/FrameGraphEditor.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
 #include "ThirdParty/imgui/imgui.h"

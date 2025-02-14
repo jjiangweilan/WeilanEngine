@@ -6,13 +6,6 @@
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderingData.hpp"
 
-namespace GPUParameter
-{
-using namespace glm;
-#include "Shaders/DeferredPBRShadingInput.hlsl"
-#include "Shaders/Library/PerScene.hlsl"
-} // namespace GPUParameter
-
 class Scene;
 class Camera;
 
@@ -152,5 +145,6 @@ private:
     } labelColors;
 
     ObjPtr<RenderPipelineSetting> setting;
+    RenderingData renderingData;
 };
 } // namespace Rendering

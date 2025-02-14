@@ -1,3 +1,5 @@
+#pragma once
+
 struct DeferredPBRShadingInput
 {
     float4 shadowMapTexelSize;

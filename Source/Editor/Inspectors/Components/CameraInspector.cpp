@@ -5,7 +5,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "DragDropIDs.hpp"
 #include "EditorGUI.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include "Rendering/Graphics.hpp"
 namespace Editor
 {

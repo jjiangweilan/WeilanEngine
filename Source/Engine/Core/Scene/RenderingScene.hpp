@@ -1,6 +1,8 @@
 #pragma once
 #include "Core/Ptr.hpp"
+#include "GfxDriver/CommandBuffer.hpp"
 #include "Libs/Math.hpp"
+#include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
 
 #include <algorithm>
@@ -17,7 +19,10 @@ class Cloud;
 class RenderingScene
 {
 public:
-    RenderingScene() {};
+    RenderingScene()
+    {
+        renderingEvents.resize((int)RenderingEvent::MAX_RENDERING_EVENT);
+    };
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
@@ -79,6 +84,13 @@ public:
         }
     }
 
+    void Execute(RenderingEvent event, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData);
+    void Draw(
+        std::string_view name,
+        RenderingEvent event,
+        std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
+    );
+
     void RemoveRenderer(Cloud& renderingObject)
     {
         auto iter = std::find(clouds.begin(), clouds.end(), &renderingObject);
@@ -129,6 +141,8 @@ private:
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;
     std::vector<Cloud*> clouds;
+    std::vector<std::vector<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
+        renderingEvents;
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
 

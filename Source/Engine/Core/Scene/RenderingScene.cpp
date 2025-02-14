@@ -132,8 +132,7 @@ void RenderingScene::BVHDebug()
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
                         glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                        glm::float4x4 model =
-                            glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                         Graphics::DrawMesh(*mesh, 0, model, mat);
                     }
 
@@ -167,8 +166,7 @@ void RenderingScene::BVHDebug()
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
                         glm::float3 position = (n.aabb.max + n.aabb.min) / 2.0f;
-                        glm::float4x4 model =
-                            glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
                         Graphics::DrawMesh(*mesh, 0, model, mat);
                     }
 
@@ -193,5 +191,23 @@ void RenderingScene::BVHDebug()
             }
         }
     }
+}
 
+void RenderingScene::Execute(RenderingEvent event, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+{
+    for (auto& f : renderingEvents[(int)event])
+    {
+        f(cmd, renderingData);
+    }
+
+    renderingEvents[(int)event].clear();
+}
+
+void RenderingScene::Draw(
+    std::string_view name,
+    RenderingEvent event,
+    std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
+)
+{
+    renderingEvents[(int)event].push_back(std::move(f));
 }

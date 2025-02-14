@@ -2,7 +2,6 @@
 #include "Core/GameObject.hpp"
 #include "Core/SystemInfo.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Rendering/FrameGraph/FrameGraph.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
 DEFINE_OBJECT(Camera, "7BDC1BC9-A96E-4ABC-AE76-DD6AB8C69A19");

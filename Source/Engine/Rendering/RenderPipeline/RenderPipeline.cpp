@@ -165,6 +165,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             cmd.AllocateAttachment(id, desc);
         };
 
+        mainColorDescription.SetRandomWrite(true);
         AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
         AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
         AllocateImage(*cmd, depthCopy, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
@@ -177,6 +178,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         }
 
         UpdatePerScene();
+        renderingData.sceneInfo = &perScene.cpuParameter;
+        renderingData.mainCamera = &camera;
+        renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
+        renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
     }
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
@@ -316,7 +321,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
         cmd->EndLabel();
 
+        cmd->EndRenderPass();
+
+        scene.GetRenderingScene().Execute(RenderingEvent::Skybox, *cmd, renderingData);
+
         // draw objects
+        cmd->BeginRenderPass(forwardPass.pass, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
         cmd->EndRenderPass();
     }

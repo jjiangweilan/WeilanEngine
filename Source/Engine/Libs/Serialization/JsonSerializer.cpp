@@ -120,7 +120,14 @@ void JsonSerializer::Serialize(std::string_view name, const float& v)
 
 void JsonSerializer::Deserialize(std::string_view name, float& v)
 {
-    v = j.value(TO_JSON_PTR(name), 0.0f);
+    try
+    {
+        v = j.value(TO_JSON_PTR(name), 0.0f);
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        v = 0.0f;
+    }
 }
 
 void JsonSerializer::Serialize(std::string_view name, const glm::mat4& v)

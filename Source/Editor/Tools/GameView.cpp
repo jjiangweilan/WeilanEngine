@@ -47,6 +47,7 @@ struct GameView::PlayTheGame
             EditorState::gameLoop->SetScene(*sceneCopy);
             gameView->editorCameraGO->SetScene(sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
+            sceneCopy->SetMainCamera(gameView->editorCamera);
             EditorState::gameLoop->Play();
         }
     }
@@ -287,7 +288,7 @@ void GameView::Render(
                 {
                     hasGameObjectSelected = true;
                     auto mrs = go->GetComponentsInChildren<MeshRenderer>();
-                    Rendering::FrameGraph::DrawList drawList;
+                    Rendering::DrawList drawList;
                     for (MeshRenderer* meshRenderer : mrs)
                     {
                         if (meshRenderer)
