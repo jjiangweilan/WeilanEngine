@@ -14,7 +14,7 @@ void GUI::AutoObjectInspector(Object* target)
     (static_cast<Serializable*>(target))->Serialize(&ser);
     auto j = ser.GetJson();
     bool valueChanged = false;
-    JsonInspectorInternal(j, valueChanged);
+    JsonInspector(j, valueChanged);
 
     if (valueChanged)
     {
@@ -27,11 +27,11 @@ void GUI::AutoObjectInspector(Object* target)
 bool GUI::JsonInspector(nlohmann::json& j)
 {
     bool valueChanged = false;
-    JsonInspectorInternal(j, valueChanged);
+    JsonInspector(j, valueChanged);
     return valueChanged;
 }
 
-void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
+void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
 {
     const float BaseInputWidth = 60;
     for (auto& item : j.items())
@@ -42,8 +42,18 @@ void GUI::JsonInspectorInternal(nlohmann::json& j, bool& valueChanged)
         {
             if (ImGui::TreeNode(key.c_str()))
             {
-                JsonInspectorInternal(value, valueChanged);
+                JsonInspector(value, valueChanged);
                 ImGui::TreePop();
+            }
+        }
+        else if (value.is_number_integer())
+        {
+            int val = value;
+            ImGui::SetNextItemWidth(BaseInputWidth);
+            if (ImGui::DragInt(key.c_str(), &val))
+            {
+                value = val;
+                valueChanged = true;
             }
         }
         else if (value.is_number_float())

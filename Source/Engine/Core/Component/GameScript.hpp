@@ -28,9 +28,10 @@ public:
 
     std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }
     const std::string& GetName() override;
+    void LuaSerialize(Serializer* s) const;
+    void LuaDeserialize(Serializer* s);
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
-    void OnLoaded() override;
 
     int AddOne(int x)
     {
@@ -42,6 +43,7 @@ private:
     using LuaRef = int;
     UUID luaBackendUUID;
     LuaSerializationClientSideCache luaDataCache;
+    std::vector<std::string> serializationValKeys;
 
     LuaRef luaRef = LUA_REFNIL;
 };

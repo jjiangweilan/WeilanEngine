@@ -14,9 +14,15 @@ public:
         }
 
         JsonSerializer s;
-        target->Serialize(&s);
+        target->LuaSerialize(&s);
         auto j = s.GetJson();
-        GUI::JsonInspector(j);
+        bool valueChanged = false;
+        GUI::JsonInspector(j, valueChanged);
+        if (valueChanged)
+        {
+            JsonSerializer des(j);
+            target->LuaDeserialize(&des);
+        }
     }
 
 private:

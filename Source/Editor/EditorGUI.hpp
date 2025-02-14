@@ -262,12 +262,12 @@ public:
 
     static void AutoObjectInspector(Object* target);
     static bool JsonInspector(nlohmann::json& j);
+    static void JsonInspector(nlohmann::json& j, bool& valueChanged);
 
 private:
     static const char* PayloadType;
     static std::vector<char> textArea;
 
-    static void JsonInspectorInternal(nlohmann::json& j, bool& valueChanged);
 
     static bool DragDropTarget(Object*& obj, ImRect rect, const std::type_info* type)
     {
