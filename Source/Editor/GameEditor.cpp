@@ -425,7 +425,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 auto meshes = meshRenderer->GetMeshes();
                 auto materials = meshRenderer->GetMaterials();
 
-                for(int i = 0; i < meshes.size() && i < materials.size(); ++i)
+                for (int i = 0; i < meshes.size() && i < materials.size(); ++i)
                 {
                     auto mesh = meshes[i];
                     auto material = materials[i];
@@ -649,12 +649,9 @@ void GameEditor::MainMenuBar()
 
     if (ImGui::BeginMenu("Scene"))
     {
-        if (ImGui::BeginMenu("Tools"))
-        {
-            if (ImGui::MenuItem("Scene Tree"))
-                sceneTree = !sceneTree;
-            ImGui::EndMenu();
-        }
+        if (ImGui::MenuItem("Scene Tree"))
+            sceneTree = !sceneTree;
+
         if (ImGui::MenuItem("Scene Info"))
             sceneInfo = !sceneInfo;
 
@@ -694,6 +691,18 @@ void GameEditor::MainMenuBar()
             Platform::FileExplore::OpenFolder(".");
         }
         ImGui::EndMenu();
+    }
+
+    bool isRenderDocInitialized = GetGfxDriver()->IsRenderDocInitialized();
+    if (ImGui::MenuItem(isRenderDocInitialized ? "RenderDoc(Capture)" : "RenderDoc"))
+    {
+        if (!isRenderDocInitialized)
+            GetGfxDriver()->InitializeRenderDoc();
+
+        if (isRenderDocInitialized)
+        {
+            GetGfxDriver()->CaptureFrameRenderDoc();
+        }
     }
 
     for (auto& windowInfo : WindowRegistery::GetRegistery())
@@ -755,7 +764,6 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
-    ImGui::ShowDemoWindow();
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();
@@ -822,9 +830,7 @@ void GameEditor::GUIPass()
 void GameEditor::ShowSurfelGIBakerWindow()
 {
     if (surfelGIBaker)
-    {
-        
-    }
+    {}
 }
 
 void GameEditor::Render(

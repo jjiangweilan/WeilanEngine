@@ -75,6 +75,8 @@ public:
     void DestroyExtraWindow(Window* window) override;
     std::unique_ptr<CommandBuffer> CreateCommandBuffer() override;
 
+    void CaptureFrameRenderDoc() override;
+
     std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) override;
     std::unique_ptr<CommandPool> CreateCommandPool(const CommandPool::CreateInfo& createInfo) override;
     void ExecuteCommandBuffer(Gfx::CommandBuffer& cmd) override;
@@ -188,6 +190,12 @@ public:
 
 private:
     SDL_Window* window;
+    struct SDLInfo;
+    std::unique_ptr<SDLInfo> sdlInfo;
+
+    bool captureFrame = false;
+    bool captureFrameBegin = false;
+
     void FrameEndClear();
 
     VkResult CreateDebugUtilsMessengerEXT(

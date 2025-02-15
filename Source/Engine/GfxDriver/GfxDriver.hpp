@@ -5,26 +5,22 @@
 #include "CommandPool.hpp"
 #include "CommandQueue.hpp"
 #include "CompiledSpv.hpp"
+#include "Core/Ptr.hpp"
 #include "Fence.hpp"
 #include "Image.hpp"
 #include "ImageView.hpp"
 #include "Libs/EnumFlags.hpp"
-#include "Core/Ptr.hpp"
 #include "Semaphore.hpp"
+#include "ThirdParty/renderdoc/renderdoc_app.h"
 #include "Window.hpp"
 
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
+#include <slang.h>
 #include <span>
-#include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
-#include <slang.h>
-
-#if defined(_WIN32) || defined(_WIN64)
-#undef CreateSemaphore
-#endif
 
 namespace Gfx
 {
@@ -66,7 +62,8 @@ public:
 
     static std::unique_ptr<GfxDriver> CreateGfxDriver(Backend backend, const CreateInfo& createInfo);
 
-    virtual ~GfxDriver(){};
+    GfxDriver();
+    virtual ~GfxDriver();
 
     virtual bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
@@ -131,11 +128,25 @@ public:
     virtual void DestroyExtraWindow(Window* window) = 0;
 
     std::unique_ptr<Buffer> CreateBuffer(
-        size_t size, BufferUsageFlags usages, bool visibleInCPU = false, bool gpuWrite = false, const char* debugName = ""
+        size_t size,
+        BufferUsageFlags usages,
+        bool visibleInCPU = false,
+        bool gpuWrite = false,
+        const char* debugName = ""
     );
+
+    bool IsRenderDocInitialized() const { return renderDocAPI != nullptr; }
+    void InitializeRenderDoc();
+    virtual void CaptureFrameRenderDoc() = 0;
 
 private:
     static GfxDriver*& InstanceInternal();
+
+protected:
+    RENDERDOC_API_1_6_0* renderDocAPI = nullptr;
+    struct RenderdocModule;
+    std::unique_ptr<RenderdocModule> renderdocModule;
+
 };
 } // namespace Gfx
 

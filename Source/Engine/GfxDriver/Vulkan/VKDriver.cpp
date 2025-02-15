@@ -19,6 +19,7 @@
 #include "VKShaderModule.hpp"
 #include "VKShaderResource.hpp"
 #include "VKSharedResource.hpp"
+#include <SDL_syswm.h>
 #include <SDL_vulkan.h>
 
 #include <algorithm>
@@ -45,6 +46,10 @@
 
 namespace Gfx
 {
+struct VKDriver::SDLInfo
+{
+    SDL_SysWMinfo wmInfo;
+};
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
     window = createInfo.window;
@@ -115,6 +120,10 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
     renderGraph = std::make_unique<VK::RenderGraph::Graph>();
+
+    sdlInfo = std::make_unique<SDLInfo>();
+    SDL_VERSION(&sdlInfo->wmInfo.version);
+    SDL_GetWindowWMInfo(window, &sdlInfo->wmInfo);
 }
 
 VKDriver::~VKDriver()
@@ -470,6 +479,17 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 
 bool VKDriver::BeginFrame()
 {
+    if (captureFrame && IsRenderDocInitialized())
+    {
+        renderDocAPI->LaunchReplayUI(1, NULL);
+
+        renderDocAPI->StartFrameCapture(
+            RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(instance.handle),
+            sdlInfo->wmInfo.info.win.window
+        );
+        captureFrameBegin = true;
+    }
+
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
     // acquire next swapchain
     VkResult acquireResult = vkAcquireNextImageKHR(
@@ -596,7 +616,7 @@ bool VKDriver::EndFrame()
 
     ENGINE_END_PROFILE // VKDriver - Record Commands
 
-    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
+        VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -657,6 +677,16 @@ bool VKDriver::EndFrame()
     // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
     // uploads it
     dataUploader->WaitForUploadFinish();
+
+    if (captureFrameBegin && IsRenderDocInitialized())
+    {
+        renderDocAPI->EndFrameCapture(
+            RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(instance.handle),
+            sdlInfo->wmInfo.info.win.window
+        );
+        captureFrameBegin = false;
+        captureFrame = false;
+    }
 
     return swapchainRecreated;
 }
@@ -1239,5 +1269,10 @@ void VKDriver::DestroyExtraWindow(Window* window)
     {
         extraWindows.erase(iter);
     }
+}
+
+void VKDriver::CaptureFrameRenderDoc()
+{
+    captureFrame = true;
 }
 } // namespace Gfx
