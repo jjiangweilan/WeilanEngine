@@ -1,4 +1,5 @@
 #pragma once
+#include "Libs/SpinLock.hpp"
 #include "Libs/UUID.hpp"
 #include <unordered_map>
 #include <vector>
@@ -21,7 +22,11 @@ public:
 
     static ObjectTracker& Singleton();
 
-    inline Object* GetObject(ObjectTrackHandle handle) { return slots.at(handle).object; }
+    inline Object* GetObject(ObjectTrackHandle handle)
+    {
+        ScopedSpinLock lk{lock};
+        return slots.at(handle).object;
+    }
 
     ObjectTrackHandle Track(const UUID& uuid);
     ObjectTrackHandle Track(ObjectTrackHandle handle);
@@ -31,7 +36,11 @@ public:
     void AddObject(Object* object);
     void RemoveObject(Object* object);
 
-    const std::unordered_map<UUID, ObjectTrackHandle>& GetUUIDToSlotIndex() { return uuidToSlotIndex; }
+    std::unordered_map<UUID, ObjectTrackHandle> GetUUIDToSlotIndex()
+    {
+        ScopedSpinLock lk{lock};
+        return uuidToSlotIndex;
+    }
 
 private:
     struct Slot
@@ -44,6 +53,7 @@ private:
     std::vector<uint32_t> freeSlotIndices;
     std::unordered_map<uint32_t, UUID> slotIndexToUUID;
     std::unordered_map<UUID, uint32_t> uuidToSlotIndex;
+    Spinlock lock;
 
     uint32_t GetOrAllocateSlot(const UUID& uuid);
     uint32_t AllocateSlot();

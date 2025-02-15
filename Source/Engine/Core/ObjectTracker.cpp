@@ -1,7 +1,7 @@
 #include "ObjectTracker.hpp"
+#include "Core/Asset.hpp"
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
-#include "Core/Asset.hpp"
 ObjectTracker& ObjectTracker::Singleton()
 {
     static ObjectTracker singleton;
@@ -10,6 +10,8 @@ ObjectTracker& ObjectTracker::Singleton()
 
 void ObjectTracker::AddObject(Object* object)
 {
+    ScopedSpinLock lk{lock};
+
     const UUID& uuid = object->GetUUID();
     if (uuid.IsEmpty())
         return;
@@ -23,6 +25,7 @@ void ObjectTracker::AddObject(Object* object)
 
 void ObjectTracker::RemoveObject(Object* object)
 {
+    ScopedSpinLock lk{lock};
     if (object->GetUUID().IsEmpty())
         return;
 
@@ -41,6 +44,7 @@ void ObjectTracker::RemoveObject(Object* object)
 
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
 {
+    ScopedSpinLock lk{lock};
     uint32_t slotIndex = handle;
     slots[slotIndex].referenceCount += 1;
 
@@ -49,6 +53,7 @@ ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
 
 ObjectTrackHandle ObjectTracker::Track(const UUID& uuid)
 {
+    ScopedSpinLock lk{lock};
     uint32_t slotIndex = GetOrAllocateSlot(uuid);
     slots[slotIndex].referenceCount += 1;
 
@@ -57,6 +62,7 @@ ObjectTrackHandle ObjectTracker::Track(const UUID& uuid)
 
 void ObjectTracker::Detrack(ObjectTrackHandle handle)
 {
+    ScopedSpinLock lk{lock};
     if (handle != NullHandle)
     {
         uint32_t slotIndex = handle;
@@ -68,6 +74,7 @@ void ObjectTracker::Detrack(ObjectTrackHandle handle)
 
 void ObjectTracker::Detrack(const UUID& uuid)
 {
+    ScopedSpinLock lk{lock};
     auto iter = uuidToSlotIndex.find(uuid);
 
     if (iter != uuidToSlotIndex.end())
