@@ -95,7 +95,7 @@ void Material::RebuildAllMaterials()
                 if (kv.second != nullptr)
                     mat->SetTexture(kv.first, kv.second);
             }
-            mat->shaderResource->SetBuffer(PerMaterial, mat->ubo.buffer.get());
+            mat->ubo.buffer = nullptr;
             mat->ubo.dirty = true;
         }
     }

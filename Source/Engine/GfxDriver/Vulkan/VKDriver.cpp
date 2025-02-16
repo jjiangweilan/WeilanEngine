@@ -479,6 +479,7 @@ std::unique_ptr<ShaderResource> VKDriver::CreateShaderResource()
 
 bool VKDriver::BeginFrame()
 {
+#if __WIN32__
     if (captureFrame && IsRenderDocInitialized())
     {
         renderDocAPI->LaunchReplayUI(1, NULL);
@@ -489,6 +490,7 @@ bool VKDriver::BeginFrame()
         );
         captureFrameBegin = true;
     }
+#endif
 
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
     // acquire next swapchain
@@ -678,6 +680,7 @@ bool VKDriver::EndFrame()
     // uploads it
     dataUploader->WaitForUploadFinish();
 
+#if __WIN32__
     if (captureFrameBegin && IsRenderDocInitialized())
     {
         renderDocAPI->EndFrameCapture(
@@ -687,7 +690,7 @@ bool VKDriver::EndFrame()
         captureFrameBegin = false;
         captureFrame = false;
     }
-
+#endif
     return swapchainRecreated;
 }
 
