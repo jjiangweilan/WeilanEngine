@@ -2,6 +2,7 @@ struct PerMaterial
 {
     float layer;
     float axis;
+    float channel;
 
 #if GPU_RESOURCE
     Sampler3D tex;
@@ -31,7 +32,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         uv = float3(input.uv.x, input.uv.y, perMaterial.layer);
         
 
-    output = perMaterial.tex.Sample(uv);
+    output = perMaterial.tex.Sample(uv)[(int)clamp(perMaterial.channel,0,3)];
 
     return output;
 }

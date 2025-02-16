@@ -78,6 +78,8 @@ public:
     static constexpr const char* SimpleColor = "SimpleColor";
     static constexpr const char* VolumetricCloud = "VolumetricCloud";
     static constexpr const char* Skybox = "Skybox";
+    static constexpr const char* ColorGrading = "ColorGrading";
+    static constexpr const char* InterleavedGradientNoise = "InterleavedGradientNoise";
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {

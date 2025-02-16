@@ -101,8 +101,12 @@ private:
 
     struct ColorGradingPass
     {
+        ColorGradingPass();
         Gfx::RG::ImageIdentifier colorGradingId = Gfx::RG::ImageIdentifier("Color Grading");
-    } colorGradingPass{};
+        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("Color Grading");
+        ObjPtr<Shader2> colorGradingShader;
+        Material mat;
+    } colorGradingPass;
 
     struct SkyboxPass
     {
@@ -146,5 +150,8 @@ private:
 
     ObjPtr<RenderPipelineSetting> setting;
     RenderingData renderingData;
+
+    Material interleavedGradientNoiseMat;
+
 };
 } // namespace Rendering

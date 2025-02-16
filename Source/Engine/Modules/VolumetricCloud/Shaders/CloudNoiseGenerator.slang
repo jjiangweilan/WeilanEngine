@@ -1,19 +1,14 @@
 struct NoiseParameter
 {
-    float4 worley_freq;
-    float4 worley_amp;
-    float4 worley_remap;
+    float perlin_Lacunarity = 2.0;
+    float perlin_Gain = 0.5;
+    float perlin_Amplitude = 0.5;
+    float perlin_Frequency = 1.0;
 
-    float4 perlin0_freq;
-    float4 perlin0_amp;
-    float4 perlin0_remap;
-
-    float4 worley1_freq;
-    float4 worley1_amp;
-
-    float4 uvScale;
-    float p;
-    float time;
+    float worley_Lacunarity = 2.0;
+    float worley_Gain = 0.5;
+    float worley_Amplitude = 0.5;
+    float worley_Frequency = 1.0;
 
 #if GPU_RESOURCE
     [format("rgba8")]
@@ -36,35 +31,59 @@ float4 Spherical(float3 uv)
 
 void CloudDensity(float3 pos0, out float4 texOutput0)
 {
-    pos0 += float3(0,perMaterial.time,0);
-    //
-    // Initial values
-    float4 frequency = perMaterial.worley_freq;
-    float perlin = 0;
+    const int octaves = 8;
 
-    float4 amp = perMaterial.perlin0_amp;
-    perlin += amp.x * (perlinNoise3D(pos0 * (perMaterial.perlin0_freq.x)));
-    perlin += amp.y * (perlinNoise3D(pos0 * (perMaterial.perlin0_freq.y)));
-    perlin += amp.z * (perlinNoise3D(pos0 * (perMaterial.perlin0_freq.z)));
-    perlin += amp.w * (perlinNoise3D(pos0 * (perMaterial.perlin0_freq.w)));
-    perlin = remap(perlin, perMaterial.perlin0_remap.x, perMaterial.perlin0_remap.y, perMaterial.perlin0_remap.z, perMaterial.perlin0_remap.w);
-    //perlin = abs(perlin * 2. - 1.);
+// perlin
+    float noise = 0;
+    float lacunarity = perMaterial.perlin_Lacunarity;
+    float gain = perMaterial.perlin_Gain;
+    float amplitude = perMaterial.perlin_Amplitude;
+    float frequency = perMaterial.perlin_Frequency;
+    for (int i = 0; i < octaves; i++) {
+        noise += amplitude * perlinNoise3DWrap(pos0, frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    texOutput0.x = noise * 0.5 + 0.5;// perlinWorley;
 
-    float worley = perMaterial.worley_amp.x * (worley3D(frequency.x * pos0));
-    float worley0 = (worley3D(frequency.x * pos0));
-    float worley1 = (worley3D(frequency.y * pos0));
-    float worley2 = (worley3D(frequency.z * pos0));
+    // worley 0
+    noise = 0;
+    lacunarity = perMaterial.worley_Lacunarity;
+    gain = perMaterial.worley_Gain;
+    amplitude = perMaterial.worley_Amplitude;
+    frequency = perMaterial.worley_Frequency;
+    for (int i = 0; i < octaves; i++) {
+        noise += amplitude * worley3D(pos0 + 1024, frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    texOutput0.y = 1 - noise;
 
-    float perlinWorley = remap(perlin, worley, 1, 0, 1);
-    texOutput0.x = perlin;// perlinWorley;
-    texOutput0.y = worley0;
-    texOutput0.z = worley1;
-    texOutput0.w = worley2;
+    // worley 1
+    noise = 0;
+    lacunarity = perMaterial.worley_Lacunarity;
+    gain = perMaterial.worley_Gain;
+    amplitude = perMaterial.worley_Amplitude;
+    frequency = perMaterial.worley_Frequency * 2;
+    for (int i = 0; i < octaves; i++) {
+        noise += amplitude * worley3D(pos0 + 512, frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    texOutput0.z = 1 - noise;
 
-    // frequency = perMaterial.worley1_freq;
-    // texOutput1.x = perMaterial.worley1_amp.x * (1 - worley3D(frequency.x * pos1));
-    // texOutput1.y = perMaterial.worley1_amp.y * (1 - worley3D(frequency.y * pos1));
-    // texOutput1.z = perMaterial.worley1_amp.z * (1 - worley3D(frequency.z * pos1));
+    // worley 2
+    noise = 0;
+    lacunarity = perMaterial.worley_Lacunarity;
+    gain = perMaterial.worley_Gain;
+    amplitude = perMaterial.worley_Amplitude;
+    frequency = perMaterial.worley_Frequency * 4;
+    for (int i = 0; i < octaves; i++) {
+        noise += amplitude * worley3D(pos0 + 128, frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    texOutput0.w = 1 - noise;
 }
 
 [shader("compute")]
@@ -74,7 +93,7 @@ void ComputeMain(uint3 id : SV_DispatchThreadID) {
 
     if (all(coord < uint3(128)))
     {
-        float3 uv0 = (coord / 128.0f + 1/256.0f) * (perMaterial.uvScale.xyz);
+        float3 uv0 = (coord / 128.0f + 1/256.0f);
         float4 tex0;
         // tex0 = Spherical(uv0);
         CloudDensity(uv0, tex0);

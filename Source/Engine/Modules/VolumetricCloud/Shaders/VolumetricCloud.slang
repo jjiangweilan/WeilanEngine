@@ -16,6 +16,7 @@ struct VolumetricCloudParameter {
     float4 planet;
     float4 cloudAreaMap_TexelSize;
     float2 ambientHeightScale;
+    float2 sdfArea;
     float cloudHeightRange;
     float maxThickness; // max thickness in normalized scale
     float fixedStep;    // fixed step in normalized scale
@@ -38,6 +39,7 @@ struct VolumetricCloudParameter {
     Texture3D cloudDensity;
     Texture2D cloudAreaMap;
     Texture2D depthMap;
+    Texture2D interleavedGradientNoise;
     SamplerState sampler_Linear_Repeat;
     SamplerState sampler_Linear_Clamp;
 #endif
@@ -61,8 +63,9 @@ float CloudType_Get(float y, float4 type) {
 float Transmittance(float d) { return exp(-1 * d) ; }
 
 float HenyeyGreenstein(float g, float costh) {
+    const float pi = 3.14159265358979323846;
     return (1.0 - g * g) /
-        (4.0 * 3.1415926 * pow(1.0 + g * g - 2.0 * g * costh, 3.0 / 2.0));
+        (4.0 * pi * pow(1.0 + g * g - 2.0 * g * costh, 3.0 / 2.0));
 }
 
 float DualLobHenyeyGreenstein(float g, float costh, float K) {
@@ -73,43 +76,55 @@ struct CloudInfo
 {
     float density;
     float dimensionalProfile;
-    float normalizedHeight;
 };
 
 float SdfAreaMap(float3 worldPos)
 {
-    return saturate(smoothstep(1, 0.8, saturate(length(worldPos) / perMaterial.radiusTest)));
+    return saturate(smoothstep(perMaterial.sdfArea.x, perMaterial.sdfArea.y, saturate(length(worldPos) / perMaterial.radiusTest)));
+}
+
+bool RayIntersectsBox(float3 rayOrigin, float3 rayDirection, float3 boxMin, float3 boxMax, out float tMin, out float tMax) {
+    float t1 = (boxMin.x - rayOrigin.x) / rayDirection.x;
+    float t2 = (boxMax.x - rayOrigin.x) / rayDirection.x;
+    tMin = min(t1, t2);
+    tMax = max(t1, t2);
+    
+    t1 = (boxMin.y - rayOrigin.y) / rayDirection.y;
+    t2 = (boxMax.y - rayOrigin.y) / rayDirection.y;
+    tMin = max(tMin, min(t1, t2));
+    tMax = min(tMax, max(t1, t2));
+    
+    t1 = (boxMin.z - rayOrigin.z) / rayDirection.z;
+    t2 = (boxMax.z - rayOrigin.z) / rayDirection.z;
+    tMin = max(tMin, min(t1, t2));
+    tMax = min(tMax, max(t1, t2));
+    
+    return tMax >= max(tMin, 0.0);
 }
 
 CloudInfo SampleDensity(float3 worldPos)
 {
     CloudInfo info;
-    float areaMap = SdfAreaMap(worldPos);
-    info.density = areaMap;
-    info.dimensionalProfile = areaMap;
-    info.normalizedHeight = 1.0f;
 
     float3 detailSamplePos = (worldPos) / perMaterial.detailMapScale;
-    float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, detailSamplePos.xzy, 0);
-    float lowFrequencyFbm = 0.625 * density.y + 0.25 * density.z + 0.125 * density.w;
+    float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, detailSamplePos.xyz, 0);
+    // info.dimensionalProfile *= density.x;
 
-    info.density = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
-    return info;
-
+    float areaMap = remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1);
     const float4 cloudType = perMaterial.stratusType;
-    float cameraDistance = length(worldPos - perScene.viewPos.xyz);
-    float cloudHeight =  max(0, worldPos.y - perMaterial.cloudPlane.w) / perMaterial.cloudHeightRange;
-    cloudHeight += cameraDistance / (perMaterial.cloudSphereBend * perMaterial.cloudHeightRange);
-    cloudHeight = saturate(cloudHeight);
-    info.normalizedHeight = cloudHeight;
+    float cloudHeight = saturate((worldPos.y + 10) / 20);
     float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
                             * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
-    info.dimensionalProfile = cloudTypeGradient * areaMap;
-    // float cloudShape = saturate(remap(info.dimensionalProfile, 1 - lowFrequencyFbm, 1.0, 0, 1));
-    float cloudShape = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
+    areaMap = remap(areaMap, 1 - cloudTypeGradient, 1, 0, 1);
 
-    info.density = cloudShape;
+    float lowFrequencyFbm = 0.625 * density.y + 0.25 * density.z + 0.125 * density.w;
+    info.dimensionalProfile = saturate(remap(areaMap, 1 - lowFrequencyFbm, 1.0, 0, 1)) ;
+
+    info.density = info.dimensionalProfile;
+    // info.density = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
+
+    return info;
 }
 
 float3 LightMarch(float3 pos)
@@ -118,43 +133,46 @@ float3 LightMarch(float3 pos)
     const float fixedStep = perMaterial.lightStep;
     for(int i = 1; i < perMaterial.lightStepCount; i++)
     {
-        pos += -fixedStep * perScene.lights[0].position.xyz;
+        pos += fixedStep * perScene.lights[0].position.xyz;
         CloudInfo cloudInfo = SampleDensity(pos);
         extinction += cloudInfo.density * fixedStep;
     }
     extinction *= perMaterial.lightExtinction;
 
-    return extinction * perScene.lights[0].lightColor.xyz * perMaterial.lightScale;
+    return Transmittance(extinction) * perScene.lights[0].lightColor.xyz * perMaterial.lightScale;
 }
 
 
 float4 RenderCloud(float3 dir, float3 start, float3 end) {
-    const float FixedStep = max(perMaterial.fixedStep, 0.01);
-
+    const float FixedStep = max(perMaterial.fixedStep, 0.001);
     float4 color = 0;
 
     float backgroundTransmittance = 1;
 
-    float3 ldir = normalize(-perScene.lights[0].position.xyz);
+    float3 ldir = normalize(perScene.lights[0].position.xyz);
     float3 lightColor = perScene.lights[0].lightColor.xyz;
 
     float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, dot(ldir, dir), perMaterial.lightPhase_K));
 
     float4 lighting = float4(0,0,0,1);
-    float step = length(start - end) * FixedStep;
+    float step = length(start - end) * perMaterial.fixedStep;
     [loop]
-    for (float v = 0; v < 1; v += FixedStep) {
+    for (float v = 0.01f; v < 1; v += FixedStep) {
         float3 positionWS = lerp(start, end, v);
         CloudInfo cloudInfo = SampleDensity(positionWS);
-        float extinction = max(cloudInfo.density * step * perMaterial.extinction, 0.00001f);
-        float transmittance = Transmittance(extinction);
+        if (cloudInfo.density > 0)
+        {
+            float extinction = max(cloudInfo.density * perMaterial.extinction, 0.000000001f);
+            float transmittance = Transmittance(extinction * step);
 
-        // https://advances.realtimerendering.com/s2023/Nubis%20Cubed%20(Advances%202023).pdf
-        float3 ambient = float3(0,0.3,0) * pow(1 - cloudInfo.dimensionalProfile, 0.5);
-        float3 luminance = LightMarch(positionWS);
-        float3 integScattering = (luminance - luminance * transmittance) / extinction;
-        lighting.xyz += integScattering * lighting.a;
-        lighting.a *= transmittance;
+            float3 ambient = 0.01;
+            float3 luminance = phase * LightMarch(positionWS);
+
+            // https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf
+            float3 integScattering = (luminance - luminance * transmittance) / extinction;
+            lighting.xyz += integScattering * lighting.a;
+            lighting.a *= transmittance;
+        }
     }
 
     return float4(lighting.xyz, lighting.a);
@@ -221,12 +239,18 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
     float4 rayPoint = mul(perScene.invNDCToWorld, float4(screenCoord, 1.0));
     rayPoint.xyz /= rayPoint.w;
     float3 dir = normalize(rayPoint.xyz - perScene.viewPos.xyz);
-    float t = RaySphereIntersect(perScene.viewPos.xyz, dir, 0, perMaterial.radiusTest);
-    if (t < 0)
+
+    float noiseOffset = (perMaterial.interleavedGradientNoise.Load(int3(id.xy % 32, 0)).x) ;
+    float tmin, tmax;
+    bool intersected = RayIntersectsBox(perScene.viewPos.xyz, dir, float3(-100, -10, -100), float3(100, 10, 100), tmin, tmax);
+    // float t = RaySphereIntersect(perScene.viewPos.xyz, dir, 0, perMaterial.radiusTest) + noiseOffset;
+    if (!intersected)
         return;
 
-    float3 start = perScene.viewPos.xyz + t * dir;
-    float4 cloud = RenderCloud(dir, start, start + dir * 10);
+    tmin += noiseOffset;
+    float3 start = perScene.viewPos.xyz + tmin * dir;
+    float3 end = perScene.viewPos.xyz + tmax * dir;
+    float4 cloud = RenderCloud(dir, start, end);
 
     float4 mainColor = perMaterial.mainColor.Load(id.xy);
     perMaterial.mainColor[id.xy] = lerp(float4(cloud.xyz, mainColor.a), mainColor, cloud.w);
