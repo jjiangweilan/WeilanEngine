@@ -9,13 +9,11 @@
 namespace Gfx
 {
 
-#if __WIN32__
-HMODULE renderdocAPIMod;
-#endif
-
 struct GfxDriver::RenderdocModule
 {
+#if __WIN32__
     HMODULE mod;
+#endif
 };
 
 GfxDriver::GfxDriver()
@@ -30,7 +28,9 @@ GfxDriver::~GfxDriver()
 {
     if (renderDocAPI != nullptr)
     {
+#if __WIN32__
         FreeLibrary(renderdocModule->mod);
+#endif
     }
 }
 
