@@ -26,6 +26,27 @@ public:
 RenderPipeline::RenderPipeline()
 {
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
+
+    Gfx::ImageDescription interleavedGradientNoiseDesc(32, 32, 1, Gfx::GfxFormat::R8_UNorm);
+    renderingData.interleavedGradientNoise =
+        GetGfxDriver()->CreateImage(interleavedGradientNoiseDesc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage);
+
+    // generate interleavedGradientNoise
+    auto interleavedGradientNoiseShader = ShaderLibrary::GetShader(ShaderLibrary::InterleavedGradientNoise);
+    interleavedGradientNoiseMat.SetShader(interleavedGradientNoiseShader);
+    interleavedGradientNoiseMat.SetTexture("tex", renderingData.interleavedGradientNoise.get());
+    auto cmd = GetGfxDriver()->CreateCommandBuffer();
+    cmd->BindResource(0, interleavedGradientNoiseMat.GetShaderResource());
+    cmd->BindShaderProgram(
+        interleavedGradientNoiseShader->GetShaderProgram(),
+        interleavedGradientNoiseShader->GetShaderProgram()->GetDefaultShaderConfig()
+    );
+    cmd->Dispatch(
+        (interleavedGradientNoiseDesc.width + 7) / 8,
+        (interleavedGradientNoiseDesc.height + 7) / 8,
+        1
+    );
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }
 
 void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
@@ -310,14 +331,17 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         forwardPass.pass.SetAttachment(0, mainColor);
         forwardPass.pass.SetAttachment(1, mainDepth);
 
-        Gfx::ClearValue clears[] = {{0,0,0,0},{0,0}};
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPass.pass, clears);
 
         // skybox
         cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);
         cmd->BindVertexBuffer(skyboxPass.cube->GetGfxVertexBufferBindings(), 0);
         cmd->BindIndexBuffer(skyboxPass.cube->GetIndexBuffer(), 0, skyboxPass.cube->GetIndexBufferType());
-        cmd->BindShaderProgram(skyboxPass.skyboxShader->GetShaderProgram(), skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig());
+        cmd->BindShaderProgram(
+            skyboxPass.skyboxShader->GetShaderProgram(),
+            skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig()
+        );
         cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
         cmd->EndLabel();
 
@@ -332,15 +356,28 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel();
 
-    cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
+    // start post procesing
+    finalColor = mainColor;
+
+    if (setting->postProcess.colorGrading)
     {
-        // TODO
-        Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
-        cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
-        cmd->Blit(mainColor, colorGradingPass.colorGradingId);
-        finalColor = colorGradingPass.colorGradingId;
+        cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
+        {
+            // TODO
+            Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+            cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
+            colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
+            colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
+            Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+            cmd->BeginRenderPass(colorGradingPass.pass, clears);
+            cmd->BindShaderProgram(colorGradingPass.mat.GetShaderProgram(), colorGradingPass.mat.GetShaderConfig());
+            cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
+            cmd->Draw(6, 1, 0, 0);
+            cmd->EndRenderPass();
+            finalColor = colorGradingPass.colorGradingId;
+        }
+        cmd->EndLabel();
     }
-    cmd->EndLabel();
 
     // FXAA
     if (setting->fxaa)
@@ -498,6 +535,12 @@ RenderPipeline::SkyboxPass::SkyboxPass()
 
     cube = EngineInternalResources::GetCubeMesh();
     skyboxShader = ShaderLibrary::GetShader(ShaderLibrary::Skybox);
+}
+
+RenderPipeline::ColorGradingPass::ColorGradingPass()
+{
+    colorGradingShader = ShaderLibrary::GetShader(ShaderLibrary::ColorGrading);
+    mat.SetShader(colorGradingShader);
 }
 
 } // namespace Rendering

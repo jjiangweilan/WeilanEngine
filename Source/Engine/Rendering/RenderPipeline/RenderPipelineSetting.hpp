@@ -1,4 +1,5 @@
 #include "Core/Asset.hpp"
+#include "Libs/Serialization/Serializable.hpp"
 
 #pragma once
 namespace Rendering
@@ -8,6 +9,14 @@ class RenderPipelineSetting : public Asset
     DECLARE_ASSET();
 
 public:
+    struct PostProcess : Serializable
+    {
+        bool colorGrading = true;
+
+        void Serialize(Serializer* s) const override { SERIALIZE(s, colorGrading); }
+        void Deserialize(Serializer* s) override { DESERIALIZE(s, colorGrading); }
+    } postProcess;
+
     struct ScreenSpaceShadow : Serializable
     {
         bool enabled;
@@ -36,14 +45,8 @@ public:
     {
         bool drawMeshRendererAABB = false;
 
-        void Serialize(Serializer* s) const override
-        {
-            SERIALIZE(s, drawMeshRendererAABB);
-        }
-        void Deserialize(Serializer* s) override
-        {
-            DESERIALIZE(s, drawMeshRendererAABB);
-        }
+        void Serialize(Serializer* s) const override { SERIALIZE(s, drawMeshRendererAABB); }
+        void Deserialize(Serializer* s) override { DESERIALIZE(s, drawMeshRendererAABB); }
     } debugDraw;
 
     bool fxaa = true;

@@ -84,6 +84,7 @@ float grad3DWrap(float hash, float3 pos)
 
 float perlinNoise3DWrap(float3 pos, float period)
 {
+    pos *= period;
     float3 pi = floor(pos); 
     float3 pf = pos - pi;
 
@@ -142,9 +143,15 @@ float worley(float2 coord) {
 // modified from https://www.shadertoy.com/view/3d3fWN
 #if defined(USE_WORLEY_NOISE_3D)
 
-// range (0, 1)
-float worley3D(float3 p){
+float3 mod(float3 x, float3 y)
+{
+    return x - y * floor(x/y);
+}
 
+// range (0, 1)
+float worley3D(float3 p, float frequency){
+
+    p *= frequency;
     float3 id = floor(p);
     float3 fd = fract(p);
 
@@ -158,7 +165,7 @@ float worley3D(float3 p){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
-                float3 rId = hash3(asuint(id+coord));
+                float3 rId = hash3(asuint(mod((id+coord) , frequency)));
 
                 float3 r = coord + rId - fd; 
 

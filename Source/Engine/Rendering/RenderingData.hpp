@@ -30,5 +30,7 @@ struct RenderingData
     GPUParameter::PerScene* sceneInfo;
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
+
+    std::unique_ptr<Gfx::Image> interleavedGradientNoise;
 };
 } // namespace Rendering

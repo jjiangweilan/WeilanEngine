@@ -37,7 +37,12 @@ public:
             {
                 target->debugImageMaterial->SetFloat("axis", debugAxis);
             }
-            ImGui::Image(&debugImage->GetDefaultImageView(), {256, 256});
+            if (ImGui::DragFloat("Debug Channel", &debugChannel))
+            {
+                target->debugImageMaterial->SetFloat("channel", debugChannel);
+            }
+            ImGui::DragFloat("Image Size Scale", &sizeScale);
+            ImGui::Image(&debugImage->GetDefaultImageView(), (glm::vec2{256, 256} * sizeScale));
         }
     }
 
@@ -108,8 +113,10 @@ private:
     std::unordered_map<ViewSlice, std::unique_ptr<Gfx::ImageView>> imageViews;
     static const char _register;
     bool alwayUpdate = false;
+    float sizeScale = 1.0;
     float debugLayer = 0;
     float debugAxis = 0;
+    float debugChannel = 0;
     bool debugOn = false;
 };
 
