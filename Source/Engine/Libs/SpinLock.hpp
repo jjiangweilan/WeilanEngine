@@ -10,7 +10,6 @@ public:
     {
         while (flag.test_and_set(std::memory_order_acquire))
         {
-            spdlog::info("Spinlock is locked");
         }
     }
 
