@@ -12,6 +12,8 @@ struct VolumetricCloudParameter {
     float4 stratocumulusType;
     float4 cumulusType;
     float4 areaMapRemap;
+    float4 ambientColor;
+    float cubeSize;
     float nearPlane;
     float maxThickness; // max thickness in normalized scale
     float fixedStep;    // fixed step in normalized scale
@@ -26,6 +28,7 @@ struct VolumetricCloudParameter {
     float lightScale;
     float lightStep;
     float lightStepCount;
+    float globalScale;
 
 #if GPU_RESOURCE
     [format("rgba8")]
@@ -38,6 +41,16 @@ struct VolumetricCloudParameter {
     SamplerState sampler_Linear_Clamp;
 #endif
 };
+
+float3 GetCloudMin()
+{
+    return float3(-perMaterial.cubeSize, -10, -perMaterial.cubeSize);
+}
+
+float3 GetCloudMax()
+{
+    return float3(perMaterial.cubeSize, 10, perMaterial.cubeSize);
+}
 
 ParameterBlock<PerScene> perScene;
 ParameterBlock<VolumetricCloudParameter> perMaterial;
@@ -93,35 +106,47 @@ bool RayIntersectsBox(float3 rayOrigin, float3 rayDirection, float3 boxMin, floa
     return tMax >= max(tMin, 0.0);
 }
 
+bool IsPosInsideCloud(float3 pos)
+{
+    return pos.x >= GetCloudMin().x && pos.x <= GetCloudMax().x &&
+           pos.y >= GetCloudMin().y && pos.y <= GetCloudMax().y &&
+           pos.z >= GetCloudMin().z && pos.z <= GetCloudMax().z;
+}
+
 CloudInfo SampleDensity(float3 worldPos)
 {
-    CloudInfo info;
+    CloudInfo info = CloudInfo(0,0,0);
 
-    float3 samplePos = (worldPos) / perMaterial.detailMapScale;
-    float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz, 0);
-    // info.dimensionalProfile *= density.x;
+    if (IsPosInsideCloud(worldPos))
+    {
+        float3 samplePos = (worldPos) / perMaterial.detailMapScale;
+        float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz, 0);
+        // info.dimensionalProfile *= density.x;
 
-    float areaMap = saturate(remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1));
-    const float4 cloudType = perMaterial.stratusType;
-    float cloudHeight = saturate((worldPos.y + 10) / 20);
-    float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
-                            * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
+        float areaMap = saturate(remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1));
+        const float4 cloudType = perMaterial.stratusType;
+        float cloudHeight = saturate((worldPos.y + 10) / 20);
+        float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
+            * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
-    info.normalizedHeight = cloudHeight;
-    areaMap *= cloudTypeGradient;
+        info.normalizedHeight = cloudHeight;
+        areaMap *= cloudTypeGradient;
 
-    float lowFrequencyFbm = 0.625 * density.y + 0.25 * density.z + 0.125 * density.w;
-    info.dimensionalProfile = areaMap;//saturate(remap(areaMap, 1 - lowFrequencyFbm, 1.0, 0, 1)) ;
-    info.density = info.dimensionalProfile;
-    return info;
+        float lowFrequencyFbm = 0.625 * density.y + 0.25 * density.z + 0.125 * density.w;
+        info.dimensionalProfile = saturate(remap(areaMap, 1 - lowFrequencyFbm, 1.0, 0, 1)) ;
 
-    // float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
-    // float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz, 0).yzw;
-    // float highFrequencyFbm = 0.625 * highFrequencyNoises.x + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
-    // float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
 
-    // info.density = saturate(remap(info.dimensionalProfile * 0.76, highFrequencyNoiseModifier * 0.8, 1, 0, 1));
-    // info.density = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
+        float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
+        float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz, 0).yzw;
+        float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
+        float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
+
+        info.density = saturate(remap(info.dimensionalProfile, 1 - highFrequencyNoiseModifier, 1, 0, 1));
+        // info.density = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
+
+        // info.density = info.dimensionalProfile;
+    }
+
 
     return info;
 }
@@ -145,9 +170,6 @@ float3 LightMarch(float3 pos, float mu)
 
 float4 RenderCloud(float3 dir, float3 start, float3 end) {
     const float FixedStep = max(perMaterial.fixedStep, 0.001);
-    float3 ldir = normalize(perScene.lights[0].position.xyz);
-    float mu = dot(ldir, dir);
-    float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, mu, perMaterial.lightPhase_K));
 
     float4 lighting = float4(0,0,0,1);
     float step = length(start - end) * perMaterial.fixedStep;
@@ -160,8 +182,11 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
             float extinction = max(cloudInfo.density * perMaterial.extinction, 0.0000001f);
             float transmittance = Transmittance(extinction * step);
 
-            float3 ambient = perMaterial.ambientScale * perScene.lights[0].lightColor.xyz * lerp(0.5,0.8, cloudInfo.dimensionalProfile);
-            float3 luminance = phase * LightMarch(positionWS, mu);// + ambient;
+            float3 ambient =  perMaterial.ambientScale * perMaterial.ambientColor.xyz * pow(1.0f -  cloudInfo.dimensionalProfile, 0.5) * lerp(0.3, 0.5, cloudInfo.normalizedHeight);
+            float3 ldir = normalize(perScene.lights[0].position.xyz * 1000000 - positionWS);
+            float mu = dot(ldir, dir);
+            float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, mu, perMaterial.lightPhase_K));
+            float3 luminance = phase * LightMarch(positionWS, mu) + ambient;
 
             // https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf
             float3 integScattering = (luminance - luminance * transmittance) / extinction;
@@ -170,7 +195,7 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
         }
     }
 
-    return float4(lighting.xyz, lighting.a);
+    return float4(lighting.xyz * perMaterial.globalScale, lighting.a);
 }
 
 bool RayPlaneIntersection(float3 origin, float3 dir, float4 plane, out float t)
@@ -237,13 +262,13 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
 
     float noiseOffset = (perMaterial.interleavedGradientNoise.Load(int3(id.xy % 32, 0)).x) ;
     float tmin, tmax;
-    bool intersected = RayIntersectsBox(perScene.viewPos.xyz, dir, float3(-10, -10, -10), float3(10, 10, 10), tmin, tmax);
+    bool intersected = RayIntersectsBox(perScene.viewPos.xyz, dir, GetCloudMin(), GetCloudMax(), tmin, tmax);
     tmin = max(tmin, 0.001);
     // float t = RaySphereIntersect(perScene.viewPos.xyz, dir, 0, perMaterial.radiusTest) + noiseOffset;
     if (!intersected)
         return;
 
-    // tmin += noiseOffset;
+    tmin += noiseOffset;
     float3 start = perScene.viewPos.xyz + tmin * dir;
     float3 end = perScene.viewPos.xyz + tmax * dir;
     float4 cloud = RenderCloud(dir, start, end);

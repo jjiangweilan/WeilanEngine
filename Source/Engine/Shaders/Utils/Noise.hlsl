@@ -72,14 +72,9 @@ float perlinNoise3D(float3 pos)
                     grad3D(hash13(pi + float3(1, 1, 1)), pf - float3(1, 1, 1)), u ), v ), w );
 }
 
-float grad3DWrap(float hash, float3 pos) 
+float3 mod(float3 x, float3 y)
 {
-    if (any(pos == 0))
-        return 0;
-    int h = int(1e4*hash) & 15;
-    float u = h<8 ? pos.x : pos.y,
-          v = h<4 ? pos.y : h==12||h==14 ? pos.x : pos.z;
-    return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
+    return x - y * floor(x/y);
 }
 
 float perlinNoise3DWrap(float3 pos, float period)
@@ -92,14 +87,14 @@ float perlinNoise3DWrap(float3 pos, float period)
     float v = fade(pf.y);
     float w = fade(pf.z);
 
-    float grad000 = grad3DWrap(hash13((pi + float3(0, 0, 0)) % period), pf - float3(0, 0, 0));
-    float grad100 = grad3DWrap(hash13((pi + float3(1, 0, 0)) % period), pf - float3(1, 0, 0));
-    float grad010 = grad3DWrap(hash13((pi + float3(0, 1, 0)) % period), pf - float3(0, 1, 0));
-    float grad110 = grad3DWrap(hash13((pi + float3(1, 1, 0)) % period), pf - float3(1, 1, 0));
-    float grad001 = grad3DWrap(hash13((pi + float3(0, 0, 1)) % period), pf - float3(0, 0, 1));
-    float grad101 = grad3DWrap(hash13((pi + float3(1, 0, 1)) % period), pf - float3(1, 0, 1));
-    float grad011 = grad3DWrap(hash13((pi + float3(0, 1, 1)) % period), pf - float3(0, 1, 1));
-    float grad111 = grad3DWrap(hash13((pi + float3(1, 1, 1)) % period), pf - float3(1, 1, 1));
+    float grad000 = grad3D(hash13(mod(pi + float3(0, 0, 0), period)), pf - float3(0, 0, 0));
+    float grad100 = grad3D(hash13(mod(pi + float3(1, 0, 0), period)), pf - float3(1, 0, 0));
+    float grad010 = grad3D(hash13(mod(pi + float3(0, 1, 0), period)), pf - float3(0, 1, 0));
+    float grad110 = grad3D(hash13(mod(pi + float3(1, 1, 0), period)), pf - float3(1, 1, 0));
+    float grad001 = grad3D(hash13(mod(pi + float3(0, 0, 1), period)), pf - float3(0, 0, 1));
+    float grad101 = grad3D(hash13(mod(pi + float3(1, 0, 1), period)), pf - float3(1, 0, 1));
+    float grad011 = grad3D(hash13(mod(pi + float3(0, 1, 1), period)), pf - float3(0, 1, 1));
+    float grad111 = grad3D(hash13(mod(pi + float3(1, 1, 1), period)), pf - float3(1, 1, 1));
 
     return lerp(
             lerp(lerp(grad000,grad100,u),lerp(grad010, grad110,u),v),
@@ -143,31 +138,25 @@ float worley(float2 coord) {
 // modified from https://www.shadertoy.com/view/3d3fWN
 #if defined(USE_WORLEY_NOISE_3D)
 
-float3 mod(float3 x, float3 y)
-{
-    return x - y * floor(x/y);
-}
-
 // range (0, 1)
-float worley3D(float3 p, float frequency){
+float worley3D(float3 p, float frequency, float seed = 0){
 
     p *= frequency;
     float3 id = floor(p);
     float3 fd = fract(p);
 
-    float n = 0.;
-
-    float minimalDist = 1.;
-
+    float minimalDist = 1000.;
 
     for(float x = -1.; x <=1.; x++){
         for(float y = -1.; y <=1.; y++){
             for(float z = -1.; z <=1.; z++){
 
                 float3 coord = float3(x,y,z);
-                float3 rId = hash3(asuint(mod((id+coord) , frequency)));
+                float3 hashCoord = id+coord;
 
-                float3 r = coord + rId - fd; 
+                float3 rId = hash3(asuint(mod(hashCoord, frequency.xxx) + seed));
+
+                float3 r = fd - (coord + rId); 
 
                 float d = dot(r,r);
 
@@ -186,8 +175,6 @@ float worley3DWrap(float3 p, float wrap){
 
     float3 id = floor(p);
     float3 fd = fract(p);
-
-    float n = 0.;
 
     float minimalDist = 1.;
 

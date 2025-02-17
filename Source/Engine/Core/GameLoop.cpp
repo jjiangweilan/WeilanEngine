@@ -1,4 +1,5 @@
 #include "GameLoop.hpp"
+#include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Libs/Profiler.hpp"
 #include "Profiler/Profiler.hpp"
@@ -42,6 +43,13 @@ const void GameLoop::Tick(
     Scene* scene = this->scene;
     if (scene == nullptr)
         return;
+
+    const float frameCap = 1.0f / 60.0f;
+    float delta = Time::DeltaTime();
+    if (delta < frameCap)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)((frameCap - delta) * 1000)));
+    }
 
     auto rootObjects = scene->GetRootObjects();
     if (isPlaying)

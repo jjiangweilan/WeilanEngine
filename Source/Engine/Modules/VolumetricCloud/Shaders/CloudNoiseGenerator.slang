@@ -31,7 +31,7 @@ float4 Spherical(float3 uv)
 
 void CloudDensity(float3 pos0, out float4 texOutput0)
 {
-    const int octaves = 8;
+    const int octaves = 4;
 
 // perlin
     float noise = 0;
@@ -44,7 +44,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
         frequency *= lacunarity;
         amplitude *= gain;
     }
-    texOutput0.x = noise * 0.5 + 0.5;// perlinWorley;
+    texOutput0.x = noise;// perlinWorley;
 
     // worley 0
     noise = 0;
@@ -53,7 +53,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     amplitude = perMaterial.worley_Amplitude;
     frequency = perMaterial.worley_Frequency;
     for (int i = 0; i < octaves; i++) {
-        noise += amplitude * worley3D(pos0, frequency);
+        noise += amplitude * worley3D(pos0, frequency, 0);
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -66,7 +66,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     amplitude = perMaterial.worley_Amplitude;
     frequency = perMaterial.worley_Frequency * 2;
     for (int i = 0; i < octaves; i++) {
-        noise += amplitude * worley3D(pos0, frequency);
+        noise += amplitude * worley3D(pos0, frequency, 23.541);
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -77,9 +77,9 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     lacunarity = perMaterial.worley_Lacunarity;
     gain = perMaterial.worley_Gain;
     amplitude = perMaterial.worley_Amplitude;
-    frequency = perMaterial.worley_Frequency * 3;
+    frequency = perMaterial.worley_Frequency * 4;
     for (int i = 0; i < octaves; i++) {
-        noise += amplitude * worley3D(pos0, frequency);
+        noise += amplitude * worley3D(pos0, frequency, 12.4566);
         frequency *= lacunarity;
         amplitude *= gain;
     }
