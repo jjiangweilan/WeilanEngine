@@ -13,13 +13,18 @@ public:
 
         ImGui::Separator();
         ImGui::Text("Noise Generator");
-        auto ptr = target->noiseGenerator.get();
         ImGui::Checkbox("Always Update", &alwayUpdate);
         ImGui::SeparatorText("Parameter");
         Draw(target->volumetricCloud.get(), target->volumetricCloud->GetShaderProgram());
 
         ImGui::SeparatorText("Noise Generator");
-        if (Draw(target->noiseGenerator.get(), target->noiseGenerator->GetShaderProgram()) || alwayUpdate)
+        bool update = Draw(target->noiseGenerator.get(), target->noiseGenerator->GetShaderProgram());
+
+        ImGui::SeparatorText("High Frequency Noise Generator");
+        update |= Draw(target->highFrequencyNoiseGenerator.get(), target->highFrequencyNoiseGenerator->GetShaderProgram());
+
+        update |= alwayUpdate;
+        if (update)
         {
             target->UpdateNoiseTexture();
         }
@@ -28,7 +33,9 @@ public:
 
         if (debugOn)
         {
-            auto debugImage = target->UpdateDebugImage();
+            ImGui::DragInt("Debug Image Index", &debugImageIndex, 1, 0, 1);
+
+            auto debugImage = target->UpdateDebugImage(debugImageIndex);
             if (ImGui::DragFloat("Debug Layer", &debugLayer))
             {
                 target->debugImageMaterial->SetFloat("layer", debugLayer);
@@ -49,6 +56,7 @@ public:
     // taken from MaterialInspector
     bool Draw(Material* target, Gfx::ShaderProgram* shader)
     {
+        ImGui::PushID(target);
         bool changed = false;
         if (shader)
         {
@@ -103,16 +111,17 @@ public:
                 }
             }
         }
+        ImGui::PopID();
 
         return changed;
     }
 
 private:
     using ViewSlice = int;
-    ViewSlice viewSlice;
     std::unordered_map<ViewSlice, std::unique_ptr<Gfx::ImageView>> imageViews;
     static const char _register;
     bool alwayUpdate = false;
+    int debugImageIndex = 0;
     float sizeScale = 1.0;
     float debugLayer = 0;
     float debugAxis = 0;
