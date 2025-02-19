@@ -69,9 +69,29 @@ public:
                         else if (member.IsElement())
                         {
                             float val = target->GetFloat("", member.name);
-                            if (ImGui::DragFloat(member.name.c_str(), &val))
+
+                            if (member.type == Gfx::PipelineInfo::MemberDataType::Float)
                             {
-                                target->SetFloat("", member.name, val);
+                                if (ImGui::DragFloat(member.name.c_str(), &val))
+                                {
+                                    target->SetFloat("", member.name, val);
+                                }
+                            }
+                            else if (member.type == Gfx::PipelineInfo::MemberDataType::Int)
+                            {
+                                int ival = val;
+                                if (ImGui::DragInt(member.name.c_str(), &ival))
+                                {
+                                    target->SetFloat("", member.name, val);
+                                }
+                            }
+                            else if (member.type == Gfx::PipelineInfo::MemberDataType::UInt)
+                            {
+                                int ival = val;
+                                if (ImGui::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
+                                {
+                                    target->SetFloat("", member.name, val);
+                                }
                             }
                         }
                     }

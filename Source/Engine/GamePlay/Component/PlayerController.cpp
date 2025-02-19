@@ -99,7 +99,7 @@ void PlayerController::HandleInput()
     {
         velocity = {groundVelocity.GetX(), groundVelocity.GetY(), groundVelocity.GetZ()};
 
-        if (Input::GetSingleton().Jump() && movingTowardsGround)
+        if (Input::Jump() && movingTowardsGround)
         {
             velocity.y += 10.0f;
         }
@@ -107,7 +107,7 @@ void PlayerController::HandleInput()
 
     // set movement
     float mx, my;
-    Input::GetSingleton().GetMovement(mx, my);
+    Input::GetMovement(mx, my);
 
     if (mx != 0 || my != 0)
     {
@@ -261,7 +261,7 @@ void PlayerController::Tick()
         );
 
         float lx, ly;
-        Input::GetSingleton().GetLookAround(lx, ly);
+        Input::GetLookAround(lx, ly);
 
         /* camera update */
         // set camera lookat (camera position)

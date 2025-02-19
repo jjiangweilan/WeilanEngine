@@ -5,22 +5,39 @@
 class Input
 {
 public:
-    // left joystick
-    inline void GetMovement(float& x, float& y)
+    static float GetMovementX()
     {
-        x = leftJoyAxis.x;
-        y = leftJoyAxis.y;
+        float x, y;
+        GetSingleton().GetMovementImpl(x, y);
+        return x;
     }
 
-    // right joystick
-    inline void GetLookAround(float& x, float& y)
+    static float GetMovementY()
     {
-        x = rightJoyAxis.x;
-        y = rightJoyAxis.y;
+        float x, y;
+        GetSingleton().GetMovementImpl(x, y);
+        return y;
     }
 
-    // ps5: is x button down
-    inline bool Jump() { return rightPad.down || keyboard.space; }
+    static void GetMovement(float& x, float& y) { GetSingleton().GetMovementImpl(x, y); }
+
+    static void GetLookAround(float& x, float& y) { GetSingleton().GetLookAroundImpl(x, y); }
+
+    static float GetLookAroundX()
+    {
+        float x, y;
+        GetSingleton().GetLookAroundImpl(x, y);
+        return x;
+    }
+
+    static float GetLookAroundY()
+    {
+        float x, y;
+        GetSingleton().GetLookAroundImpl(x, y);
+        return y;
+    }
+
+    static bool Jump() { return GetSingleton().JumpImpl(); }
 
     void PushEvent(SDL_Event& event);
 
@@ -57,6 +74,23 @@ private:
     bool gameplayInput = false;
 
     float JoyStickRemap(int& val);
+
+    // left joystick
+    inline void GetMovementImpl(float& x, float& y)
+    {
+        x = leftJoyAxis.x;
+        y = leftJoyAxis.y;
+    }
+
+    // right joystick
+    inline void GetLookAroundImpl(float& x, float& y)
+    {
+        x = rightJoyAxis.x;
+        y = rightJoyAxis.y;
+    }
+
+    // ps5: is x button down
+    inline bool JumpImpl() { return rightPad.down || keyboard.space; }
 
     friend class Event;
 };

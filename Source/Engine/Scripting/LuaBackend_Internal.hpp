@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
+#include "GamePlay/Input.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
@@ -195,7 +196,7 @@ public:
         lua_settable(L, -3);
 
         // push serialization
-        if  constexpr(std::is_base_of_v<Serializable, T>)
+        if constexpr (std::is_base_of_v<Serializable, T>)
         {
             BindMemFn("Serialize", &T::Serialize);
             BindMemFn("Deserialize", &T::Deserialize);
@@ -217,12 +218,14 @@ public:
     template <class R, class TT, class... Args>
     LuaBinder<T>& BindMemFn(const char* name, R (TT::*f)(Args...))
     {
-        // TODO: use c closure instead
-        static auto FF = f;
+        using FT = decltype(f);
         struct Wrap
         {
             static int cfunc(lua_State* L)
             {
+                int fIndex = lua_upvalueindex(1);
+                FT& f = *(FT*)lua_touserdata(L, fIndex);
+
                 ASSERT(lua_isuserdata(L, 1));
                 void* mem = lua_touserdata(L, 1);
                 LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
@@ -233,12 +236,12 @@ public:
                     T* v = ((LuaUserDataPack<T*>*)mem)->val;
                     if constexpr (std::is_void_v<RawType>)
                     {
-                        CallMemberFunc<R, Args...>(L, v, FF);
+                        CallMemberFunc<R, Args...>(L, v, f);
                         return 0;
                     }
                     else
                     {
-                        R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                        R rtn = CallMemberFunc<R, Args...>(L, v, f);
                         ProcessRtn<R>(L, std::move(rtn));
 
                         return 1;
@@ -251,12 +254,12 @@ public:
                         T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)mem)->val);
                         if constexpr (std::is_void_v<RawType>)
                         {
-                            CallMemberFunc<R, Args...>(L, v, FF);
+                            CallMemberFunc<R, Args...>(L, v, f);
                             return 0;
                         }
                         else
                         {
-                            R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                            R rtn = CallMemberFunc<R, Args...>(L, v, f);
                             ProcessRtn<R>(L, std::move(rtn));
 
                             return 1;
@@ -270,12 +273,12 @@ public:
                     T* v = &(((LuaUserDataPack<T>*)mem)->val);
                     if constexpr (std::is_void_v<RawType>)
                     {
-                        CallMemberFunc<R, Args...>(L, v, FF);
+                        CallMemberFunc<R, Args...>(L, v, f);
                         return 0;
                     }
                     else
                     {
-                        R rtn = CallMemberFunc<R, Args...>(L, v, FF);
+                        R rtn = CallMemberFunc<R, Args...>(L, v, f);
                         ProcessRtn<R>(L, std::move(rtn));
 
                         return 1;
@@ -285,7 +288,9 @@ public:
         };
 
         lua_pushstring(L, name);
-        lua_pushcfunction(L, &Wrap::cfunc);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new (fm) FT(f);
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
         lua_settable(L, -3);
 
         return *this;
@@ -306,27 +311,42 @@ public:
     template <class R, class... Args>
     LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
     {
-        // TODO: use c closure instead
-        static auto FF = f;
+        using FT = decltype(f);
         struct Wrap
         {
             static int cfunc(lua_State* L)
             {
-                ProcessArg_StaticFunction<std::tuple<Args...>, R>(
-                    L,
-                    FF,
-                    0,
-                    std::make_index_sequence<sizeof...(Args)>{}
-                );
+                int fIndex = lua_upvalueindex(1);
+                FT& f = *(FT*)lua_touserdata(L, fIndex);
+
                 if constexpr (std::is_void_v<R>)
+                {
+                    ProcessArg_StaticFunction<std::tuple<Args...>, R>(
+                        L,
+                        f,
+                        0,
+                        std::make_index_sequence<sizeof...(Args)>{}
+                    );
                     return 0;
+                }
                 else
+                {
+                    R rtn = ProcessArg_StaticFunction<std::tuple<Args...>, R>(
+                        L,
+                        f,
+                        0,
+                        std::make_index_sequence<sizeof...(Args)>{}
+                    );
+                    ProcessRtn<R>(L, std::move(rtn));
                     return 1;
+                }
             };
         };
 
         lua_pushstring(L, name);
-        lua_pushcfunction(L, &Wrap::cfunc);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new (fm) FT(f);
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
         lua_settable(L, -3);
 
         return *this;
@@ -650,6 +670,17 @@ public:
             .BindFn("SetZ", [](glm::vec3& val, float v) {val[2] = v; })
             .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>)
             .End();
+
+        LuaBinder<Input> input(L);
+        input
+            .Begin("Input")
+            .BindStaticFn("GetMovementX", Input::GetMovementX)
+            .BindStaticFn("GetMovementY", Input::GetMovementY)
+            .BindStaticFn("GetLookAroundX", Input::GetLookAroundX)
+            .BindStaticFn("GetLookAroundY", Input::GetLookAroundY)
+            .BindStaticFn("Jump", Input::Jump)
+            .End()
+            ;
 
         // clang-format on
 

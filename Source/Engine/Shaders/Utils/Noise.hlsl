@@ -156,7 +156,7 @@ float worley3D(float3 p, float frequency, float seed = 0){
 
                 float3 rId = hash3(asuint(mod(hashCoord, frequency.xxx) + seed));
 
-                float3 r = fd - (coord + rId); 
+                float3 r = (coord + rId) - fd; 
 
                 float d = dot(r,r);
 
