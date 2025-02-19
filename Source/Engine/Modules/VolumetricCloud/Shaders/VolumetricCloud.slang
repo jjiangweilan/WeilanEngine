@@ -11,7 +11,8 @@ struct VolumetricCloudParameter {
     float4 stratusType = float4(-0.36, 0.17, 0.57, 0.62);
     float4 areaMapRemap = float4(-0.22, 1.0, 0, 0);
     float4 ambientColor = float4(1,1,1,1);
-    float cubeSize = 256;
+    float4 cloudCenter = float4(0, 0, 0, 0);
+    float4 cloudExtent = float4(64, 10, 64, 0);
     float nearPlane; // filled by runtime
     float fixedStep = 0.01;  // fixed step in normalized scale, 0.01 means 100 steps
     float extinction = 2.0; // equals scattering coefficient when absorption is 0
@@ -40,12 +41,12 @@ struct VolumetricCloudParameter {
 
 float3 GetCloudMin()
 {
-    return float3(-perMaterial.cubeSize, -10, -perMaterial.cubeSize);
+    return perMaterial.cloudCenter.xyz - perMaterial.cloudExtent.xyz;
 }
 
 float3 GetCloudMax()
 {
-    return float3(perMaterial.cubeSize, 10, perMaterial.cubeSize);
+    return perMaterial.cloudCenter.xyz + perMaterial.cloudExtent.xyz;
 }
 
 ParameterBlock<PerScene> perScene;
@@ -121,7 +122,7 @@ CloudInfo SampleDensity(float3 worldPos)
 
         float areaMap = saturate(remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1));
         const float4 cloudType = perMaterial.stratusType;
-        float cloudHeight = saturate((worldPos.y + 10) / 20);
+        float cloudHeight = saturate((worldPos.y - GetCloudMin().y) / (abs(GetCloudMax().y) + abs(GetCloudMin().y)));
         float cloudTypeGradient = saturate(remap(cloudHeight, cloudType.x, cloudType.y, 0.0, 1.0))
             * saturate(remap(cloudHeight, cloudType.z, cloudType.w, 1.0, 0.0));
 
@@ -132,14 +133,16 @@ CloudInfo SampleDensity(float3 worldPos)
         info.dimensionalProfile = saturate(remap(areaMap, 1 - lowFrequencyFbm, 1.0, 0, 1)) ;
         info.density = info.dimensionalProfile;
 
-
-        // apply details
-         float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
-         float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz + float3(perScene.time * 0.12,0,perScene.time * 0.1), 0).yzw;
-         float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
-highFrequencyFbm = 1- highFrequencyFbm;
-         float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
-         info.density = saturate(remap(info.dimensionalProfile, 1 - highFrequencyNoiseModifier, 1, 0, 1));
+        if (areaMap > 0)
+        {
+            // apply details
+            float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
+            float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz + float3(perScene.time * 0.12,0,perScene.time * 0.1), 0).yzw;
+            float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
+            highFrequencyFbm = 1- highFrequencyFbm;
+            float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
+            info.density = saturate(remap(info.dimensionalProfile, 1 - highFrequencyNoiseModifier, 1, 0, 1));
+        }
 
     }
 

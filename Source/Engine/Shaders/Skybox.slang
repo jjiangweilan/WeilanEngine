@@ -35,7 +35,7 @@ float3 Sky(float3 ro, float3 rd, float3 lightDir, bool hasSun)
     // horizon
     skyCol = lerp( skyCol, 0.68 * float3(.418, .394, .372), pow( 1.0 - max(rd.y, 0.0), 16.0 ) );
 
-    return skyCol * 0.3;
+    return skyCol * 0.45;
 }
 
 struct VertexInput
