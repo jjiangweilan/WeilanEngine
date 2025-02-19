@@ -44,13 +44,6 @@ const void GameLoop::Tick(
     if (scene == nullptr)
         return;
 
-    const float frameCap = 1.0f / 60.0f;
-    float delta = Time::DeltaTime();
-    if (delta < frameCap)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds((int)((frameCap - delta) * 1000)));
-    }
-
     auto rootObjects = scene->GetRootObjects();
     if (isPlaying)
     {
