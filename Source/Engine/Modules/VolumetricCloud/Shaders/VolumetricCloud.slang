@@ -8,27 +8,23 @@ blend:
 #endif
 
 struct VolumetricCloudParameter {
-    float4 stratusType;
-    float4 stratocumulusType;
-    float4 cumulusType;
-    float4 areaMapRemap;
-    float4 ambientColor;
-    float cubeSize;
-    float nearPlane;
-    float maxThickness; // max thickness in normalized scale
-    float fixedStep;    // fixed step in normalized scale
-    float extinction; // equals scattering coefficient when absorption is 0
-    float lightExtinction;
-    float lightPhase_g;
-    float lightPhase_K;
-    float areaMapPixelWorldSize;
-    float detailMapScale;
-    float highFrequencyMapScale;
-    float ambientScale;
-    float lightScale;
-    float lightStep;
-    float lightStepCount;
-    float globalScale;
+    float4 stratusType = float4(-0.36, 0.17, 0.57, 0.62);
+    float4 areaMapRemap = float4(-0.22, 1.0, 0, 0);
+    float4 ambientColor = float4(1,1,1,1);
+    float cubeSize = 256;
+    float nearPlane; // filled by runtime
+    float fixedStep = 0.01;  // fixed step in normalized scale, 0.01 means 100 steps
+    float extinction = 2.0; // equals scattering coefficient when absorption is 0
+    float lightExtinction = 0.1;
+    float lightPhase_g = 0.3;
+    float lightPhase_K = 0.8;
+    float detailMapScale = 256;
+    float highFrequencyMapScale = 6;
+    float ambientScale = 0.05;
+    float lightScale = 6;
+    float lightStep = 0.5;
+    float lightStepCount = 64;
+    float globalScale = 1.0f;
 
 #if GPU_RESOURCE
     [format("rgba8")]
@@ -68,7 +64,7 @@ float CloudType_Get(float y, float4 type) {
 }
 
 float Transmittance(float d) { return exp(-1 * d) ; }
-float PowderEffect(float d, float costh) { return 1 - exp(-d*2) ; }
+float PowderEffect(float d) { return 1 - exp(-d*2) ; }
 
 float HenyeyGreenstein(float g, float costh) {
     const float pi = 3.14159265358979323846;
@@ -163,7 +159,7 @@ float3 LightMarch(float3 pos, float mu)
     }
     extinction *= perMaterial.lightExtinction;
 
-    float powderEffect = 1.0f;//PowderEffect(extinction, mu);
+    float powderEffect = 1.0f;//PowderEffect(extinction);
     return Transmittance(extinction) * powderEffect * perScene.lights[0].lightColor.xyz * perMaterial.lightScale;
 }
 
@@ -182,7 +178,7 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
             float extinction = max(cloudInfo.density * perMaterial.extinction, 0.000001f);
             float transmittance = Transmittance(extinction * step);
 
-            float3 ambient =  perMaterial.ambientScale * perMaterial.ambientColor.xyz * pow(1.0f -  cloudInfo.dimensionalProfile, 0.5) * lerp(0.3, 0.5, cloudInfo.normalizedHeight);
+            float3 ambient =  perMaterial.ambientScale * perMaterial.ambientColor.xyz * pow(1.0f -  cloudInfo.dimensionalProfile, 0.5);// * lerp(0.3, 0.5, cloudInfo.normalizedHeight);
             float3 ldir = normalize(perScene.lights[0].position.xyz * 1000000 - positionWS);
             float mu = dot(ldir, dir);
             float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, mu, perMaterial.lightPhase_K));
@@ -265,12 +261,12 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
     float noiseOffset = (perMaterial.interleavedGradientNoise.Load(int3(id.xy % 32, 0)).x) ;
     float tmin, tmax;
     bool intersected = RayIntersectsBox(perScene.viewPos.xyz, dir, GetCloudMin(), GetCloudMax(), tmin, tmax);
-    tmin = max(tmin, 0.001);
+    tmin = max(tmin, 0.00001);
     // float t = RaySphereIntersect(perScene.viewPos.xyz, dir, 0, perMaterial.radiusTest) + noiseOffset;
     if (!intersected)
         return;
 
-    // tmin += noiseOffset;
+    tmin += noiseOffset;
     float3 start = perScene.viewPos.xyz + tmin * dir;
     float3 end = perScene.viewPos.xyz + tmax * dir;
     float4 cloud = RenderCloud(dir, start, end);
