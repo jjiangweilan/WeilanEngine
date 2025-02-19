@@ -17,7 +17,7 @@ struct VolumetricCloudParameter {
     float nearPlane;
     float maxThickness; // max thickness in normalized scale
     float fixedStep;    // fixed step in normalized scale
-    float extinction;
+    float extinction; // equals scattering coefficient when absorption is 0
     float lightExtinction;
     float lightPhase_g;
     float lightPhase_K;
@@ -134,17 +134,17 @@ CloudInfo SampleDensity(float3 worldPos)
 
         float lowFrequencyFbm = 0.625 * density.y + 0.25 * density.z + 0.125 * density.w;
         info.dimensionalProfile = saturate(remap(areaMap, 1 - lowFrequencyFbm, 1.0, 0, 1)) ;
+        info.density = info.dimensionalProfile;
 
 
-        float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
-        float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz, 0).yzw;
-        float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
-        float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
+        // apply details
+         float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
+         float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz + float3(perScene.time * 0.12,0,perScene.time * 0.1), 0).yzw;
+         float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
+highFrequencyFbm = 1- highFrequencyFbm;
+         float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));
+         info.density = saturate(remap(info.dimensionalProfile, 1 - highFrequencyNoiseModifier, 1, 0, 1));
 
-        info.density = saturate(remap(info.dimensionalProfile, 1 - highFrequencyNoiseModifier, 1, 0, 1));
-        // info.density = saturate(lowFrequencyFbm - (1 - info.dimensionalProfile));
-
-        // info.density = info.dimensionalProfile;
     }
 
 
@@ -179,23 +179,25 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
         CloudInfo cloudInfo = SampleDensity(positionWS);
         if (cloudInfo.density > 0)
         {
-            float extinction = max(cloudInfo.density * perMaterial.extinction, 0.0000001f);
+            float extinction = max(cloudInfo.density * perMaterial.extinction, 0.000001f);
             float transmittance = Transmittance(extinction * step);
 
             float3 ambient =  perMaterial.ambientScale * perMaterial.ambientColor.xyz * pow(1.0f -  cloudInfo.dimensionalProfile, 0.5) * lerp(0.3, 0.5, cloudInfo.normalizedHeight);
             float3 ldir = normalize(perScene.lights[0].position.xyz * 1000000 - positionWS);
             float mu = dot(ldir, dir);
             float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, mu, perMaterial.lightPhase_K));
-            float3 luminance = phase * LightMarch(positionWS, mu) + ambient;
+            float3 luminance = phase * LightMarch(positionWS, mu) + ambient; // luminance should be scaled by scattering (density * perMaterial.scattering)
 
             // https://media.contentapi.ea.com/content/dam/eacom/frostbite/files/s2016-pbs-frostbite-sky-clouds-new.pdf
-            float3 integScattering = (luminance - luminance * transmittance) / extinction;
+            // extinction = scattering + absorption, absorption == 0, so extinction == scattering so we can omit both final multiplication to luminance by scattering and the division in integScattering by exiting
+            float3 integScattering = (luminance - luminance * transmittance);
             lighting.xyz += integScattering * lighting.a;
             lighting.a *= transmittance;
+            printf("%v4f\n", lighting);
         }
     }
 
-    return float4(lighting.xyz * perMaterial.globalScale, lighting.a);
+    return float4(lighting.xyz * perMaterial.globalScale, lighting.w);
 }
 
 bool RayPlaneIntersection(float3 origin, float3 dir, float4 plane, out float t)
@@ -268,7 +270,7 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
     if (!intersected)
         return;
 
-    tmin += noiseOffset;
+    // tmin += noiseOffset;
     float3 start = perScene.viewPos.xyz + tmin * dir;
     float3 end = perScene.viewPos.xyz + tmax * dir;
     float4 cloud = RenderCloud(dir, start, end);

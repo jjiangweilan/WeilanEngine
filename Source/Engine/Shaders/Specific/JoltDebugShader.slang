@@ -33,7 +33,7 @@ struct VertexOutput
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
-void VertexMain(VertexInput input)
+VertexOutput VertexMain(VertexInput input)
 {
     VertexOutput output;
     float3 positionWS = float3(mul(transform.model, float4(input.position, 1)).xyz);
@@ -41,6 +41,8 @@ void VertexMain(VertexInput input)
     // slightly push the line to the camera
     output.position.z -= 0.0001;
     output.color = input.color;
+
+    return output;
 }
 
 [shader("fragment")]

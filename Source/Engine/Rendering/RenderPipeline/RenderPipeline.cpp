@@ -317,8 +317,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BindShaderProgram(shadingShader, shadingShader->GetDefaultShaderConfig());
         cmd->Draw(6, 1, 0, 0);
 
-        RenderingUtils::DrawGraphics(*cmd);
-
         cmd->EndRenderPass();
     }
     cmd->EndLabel();
@@ -333,6 +331,10 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPass.pass, clears);
+
+        cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
+        RenderingUtils::DrawGraphics(*cmd);
+        cmd->EndLabel();
 
         // skybox
         cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);

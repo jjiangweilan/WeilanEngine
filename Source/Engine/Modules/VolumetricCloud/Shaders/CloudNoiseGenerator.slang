@@ -4,6 +4,7 @@ struct NoiseParameter
     float perlin_Gain = 0.5;
     float perlin_Amplitude = 0.5;
     float perlin_Frequency = 1.0;
+    int octaves = 8;
 
     float worley_Lacunarity = 2.0;
     float worley_Gain = 0.5;
@@ -31,9 +32,9 @@ float4 Spherical(float3 uv)
 
 void CloudDensity(float3 pos0, out float4 texOutput0)
 {
-    const int octaves = 4;
+    const int octaves = perMaterial.octaves;
 
-// perlin
+// perlin-worley
     float noise = 0;
     float lacunarity = perMaterial.perlin_Lacunarity;
     float gain = perMaterial.perlin_Gain;
@@ -44,7 +45,18 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
         frequency *= lacunarity;
         amplitude *= gain;
     }
-    texOutput0.x = noise;// perlinWorley;
+
+    float worley = 0;
+    lacunarity = perMaterial.worley_Lacunarity;
+    gain = perMaterial.worley_Gain;
+    amplitude = perMaterial.worley_Amplitude;
+    frequency = perMaterial.worley_Frequency;
+    for (int i = 0; i < octaves; i++) {
+        worley += amplitude * worley3D(pos0 + 2341, frequency);
+        frequency *= lacunarity;
+        amplitude *= gain;
+    }
+    texOutput0.x = remap(noise, 0, 1, 1 - worley, 1);// perlinWorley;
 
     // worley 0
     noise = 0;
@@ -53,7 +65,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     amplitude = perMaterial.worley_Amplitude;
     frequency = perMaterial.worley_Frequency;
     for (int i = 0; i < octaves; i++) {
-        noise += amplitude * worley3D(pos0, frequency, 0);
+        noise += amplitude * worley3D(pos0 + 2211, frequency, 0);
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -66,7 +78,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     amplitude = perMaterial.worley_Amplitude;
     frequency = perMaterial.worley_Frequency * 2;
     for (int i = 0; i < octaves; i++) {
-        noise += amplitude * worley3D(pos0, frequency, 23.541);
+        noise += amplitude * worley3D(pos0 + 952, frequency, 23.541);
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -77,7 +89,7 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
     lacunarity = perMaterial.worley_Lacunarity;
     gain = perMaterial.worley_Gain;
     amplitude = perMaterial.worley_Amplitude;
-    frequency = perMaterial.worley_Frequency * 4;
+    frequency = perMaterial.worley_Frequency * 3;
     for (int i = 0; i < octaves; i++) {
         noise += amplitude * worley3D(pos0, frequency, 12.4566);
         frequency *= lacunarity;
@@ -91,9 +103,11 @@ void CloudDensity(float3 pos0, out float4 texOutput0)
 void ComputeMain(uint3 id : SV_DispatchThreadID) {
     uint3 coord = id;
 
-    if (all(coord < uint3(128)))
+    uint width, height, depth;
+    perMaterial.imgOutput.GetDimensions(width, height, depth);
+    if (all(coord < uint3(width, height, depth)))
     {
-        float3 uv0 = (coord / 128.0f + 1/256.0f);
+        float3 uv0 = (coord / (float)width + 0.5 / width);
         float4 tex0;
         // tex0 = Spherical(uv0);
         CloudDensity(uv0, tex0);
