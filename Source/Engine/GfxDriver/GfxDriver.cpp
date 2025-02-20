@@ -19,9 +19,9 @@ struct GfxDriver::RenderdocModule
 GfxDriver::GfxDriver()
 {
     renderdocModule = std::make_unique<RenderdocModule>();
-#if ENGINE_DEV_BUILD
-    InitializeRenderDoc();
-#endif
+// #if ENGINE_DEV_BUILD
+//     InitializeRenderDoc();
+// #endif
 }
 
 GfxDriver::~GfxDriver()

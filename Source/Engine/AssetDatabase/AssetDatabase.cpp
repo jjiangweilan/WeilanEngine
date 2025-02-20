@@ -968,9 +968,9 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
             SyncImportedAssetFiles(assetData, {});
 
             std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString());
-        }
 
-        assets.data.erase(std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; }));
+            assets.data.erase(std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; }));
+        }
     };
 
     if (std::filesystem::is_directory(fullPath))
