@@ -76,11 +76,11 @@ public:
     template <class T>
     std::vector<T*> GetComponentsInChildren();
 
-    bool IsPrototype() const
+    bool IsPrefab() const
     {
         if (auto parent = GetParent())
         {
-            return parent->IsPrototype() && isPrototype;
+            return parent->IsPrefab() && isPrototype;
         }
 
         return isPrototype;
