@@ -193,7 +193,6 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
             float3 integScattering = (luminance - luminance * transmittance);
             lighting.xyz += integScattering * lighting.a;
             lighting.a *= transmittance;
-            printf("%v4f\n", lighting);
         }
     }
 
@@ -278,16 +277,3 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
     float4 mainColor = perMaterial.mainColor.Load(id.xy);
     perMaterial.mainColor[id.xy] = lerp(float4(cloud.xyz, mainColor.a), mainColor, cloud.w);
 }
-
-/**
-2024-1-29
-if you adjust the stratusType so that lower part has a low difference range the light will be dark, but if the lower part has a high difference range, it will be bright. This indicates that light transmittance is falsely calculated
-
-#ifndef VOLUMETRIC_CLOUD_INCLUDED
-#define VOLUMETRIC_CLOUD_INCLUDED
-
-
-
-#endif
-*/
-
