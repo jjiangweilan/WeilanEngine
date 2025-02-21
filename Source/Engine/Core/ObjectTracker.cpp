@@ -8,10 +8,8 @@ ObjectTracker& ObjectTracker::Singleton()
     return singleton;
 }
 
-void ObjectTracker::AddObject(Object* object)
+void ObjectTracker::AddObjectImpl(Object* object)
 {
-    ScopedSpinLock lk{lock};
-
     const UUID& uuid = object->GetUUID();
     if (uuid.IsEmpty())
         return;
@@ -23,9 +21,15 @@ void ObjectTracker::AddObject(Object* object)
     slots[slotIndex].object = object;
 }
 
-void ObjectTracker::RemoveObject(Object* object)
+void ObjectTracker::AddObject(Object* object)
 {
     ScopedSpinLock lk{lock};
+
+    AddObjectImpl(object);
+}
+
+void ObjectTracker::RemoveObjectImpl(Object* object)
+{
     if (object->GetUUID().IsEmpty())
         return;
 
@@ -40,6 +44,20 @@ void ObjectTracker::RemoveObject(Object* object)
         slots[slotIndex].object = nullptr;
         ReleaseSlotIfNotReferenced(slotIndex);
     }
+}
+
+void ObjectTracker::RemoveObject(Object* object)
+{
+    ScopedSpinLock lk{lock};
+    RemoveObjectImpl(object);
+}
+
+void ObjectTracker::ReplaceObject(Object* dst, Object* src)
+{
+    ScopedSpinLock lk{lock};
+    RemoveObject(src);
+    dst->uuid = std::exchange(src->uuid, UUID::GetEmptyUUID());
+    AddObject(dst);
 }
 
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)

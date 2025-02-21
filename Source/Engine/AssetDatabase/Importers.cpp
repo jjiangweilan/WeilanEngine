@@ -29,7 +29,8 @@ std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
+static void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
+static void SetGameObjectNameAndUUID(GameObject* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
 std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
@@ -167,7 +168,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
     {
         nlohmann::json& sceneJson = scenesJson[i];
         std::unique_ptr<GameObject> rootGameObject = std::make_unique<GameObject>();
-        SetAssetNameAndUUID(rootGameObject.get(), jsonData, "scenes", i);
+        SetGameObjectNameAndUUID(rootGameObject.get(), jsonData, "scenes", i);
         rootGameObject->SetName(std::string(sceneJson["name"]));
 
         for (int nodeIndex : sceneJson["nodes"])
@@ -258,6 +259,21 @@ void SetAssetNameAndUUID(Asset* asset, nlohmann::json& j, const std::string& ass
     else
     {
         asset->SetName(assetGroupName + std::to_string(index));
+    }
+}
+
+void SetGameObjectNameAndUUID(GameObject* gameObject, nlohmann::json& j, const std::string& assetGroupName, int index)
+{
+    auto& meshJson = j[assetGroupName][index];
+
+    if (meshJson.contains("name"))
+    {
+        std::string meshName = meshJson["name"];
+        gameObject->SetName(meshName);
+    }
+    else
+    {
+        gameObject->SetName(assetGroupName + std::to_string(index));
     }
 }
 

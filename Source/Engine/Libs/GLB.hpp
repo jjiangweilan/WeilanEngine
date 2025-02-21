@@ -4,6 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <vector>
 
+class GameObject;
 namespace Utils
 {
 class GLB
@@ -16,6 +17,7 @@ public:
         unsigned char*& binaryData
     );
     static void SetAssetName(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index);
+    static void SetGameObjectName(GameObject* asset, nlohmann::json& j, const std::string& assetGroupName, int index);
     static std::vector<std::unique_ptr<Mesh>> ExtractMeshes(
         nlohmann::json& jsonData, unsigned char*& binaryData, int maximumMesh = std::numeric_limits<int>::max()
     );

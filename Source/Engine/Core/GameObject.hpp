@@ -25,9 +25,10 @@ enum class GameObjectFlag : uint32_t
 };
 ENUM_FLAGS(GameObjectFlag, uint32_t);
 
-class GameObject : public Asset
+class Prefab;
+class GameObject : public Object
 {
-    DECLARE_ASSET();
+    DECLARE_OBJECT();
 
 public:
     GameObject(Scene* gameScene);
@@ -36,7 +37,6 @@ public:
     GameObject();
     ~GameObject();
 
-    std::unique_ptr<Asset> Clone() override;
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
 
@@ -78,12 +78,7 @@ public:
 
     bool IsPrefab() const
     {
-        if (auto parent = GetParent())
-        {
-            return parent->IsPrefab() && isPrototype;
-        }
-
-        return isPrototype;
+        return prefab != nullptr;
     }
 
     bool IsEnabled() { return enabled; }
@@ -217,27 +212,19 @@ public:
         return temp;
     }
 
-    std::vector<std::unique_ptr<GameObject>>&& GetOwningChildren() { return std::move(owningChildren); }
+    auto GetOwningChildren() { return std::move(owningChildren); }
+    auto GetPrefab() const { return prefab; }
+    auto GetName() const -> const std::string& { return name; }
+    auto SetName(const std::string& name) { this->name = name; }
 
-    void OnLoaded() override;
-
-    GameObject* GetPrototype() { return prototype; }
-
-    void SetPrototype(GameObject* prototype)
-    {
-        this->prototype = prototype;
-        if (prototype != nullptr)
-            ResetAsPrototype();
-    }
-
-    void ResetAsPrototype();
+    void OnLoaded();
 
 private:
-    GameObject* prototype = nullptr;
+    std::string name;
+    ObjPtr<Object> prefab = nullptr;
     GameObjectFlag flags = GameObjectFlag::None;
 
     // a prototype GameObject stores all it's children
-    bool isPrototype;
     glm::vec3 position = glm::vec3(0);
     glm::vec3 scale = glm::vec3(1, 1, 1);
     glm::quat rotation = glm::quat(1, 0, 0, 0);

@@ -16,12 +16,7 @@ public:
 
     Object() { ObjectTracker::Singleton().AddObject(this); }
 
-    Object(Object&& other) : uuid()
-    {
-        ObjectTracker::Singleton().RemoveObject(&other);
-        uuid = std::exchange(other.uuid, UUID::GetEmptyUUID());
-        ObjectTracker::Singleton().AddObject(this);
-    }
+    Object(Object&& other) : uuid() { ObjectTracker::Singleton().ReplaceObject(this, &other); }
 
     Object(const Object& other) : uuid() { ObjectTracker::Singleton().AddObject(this); };
     virtual ~Object() { ObjectTracker::Singleton().RemoveObject(this); }
@@ -51,6 +46,7 @@ protected:
     UUID uuid;
 
     friend class ObjectReflection;
+    friend class ObjectTracker;
 };
 
 using ObjectTypeID = UUID;
@@ -108,7 +104,7 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 }
 
 #define DECLARE_OBJECT()                                                                                               \
-    friend class ObjectReflection;                                                                                   \
+    friend class ObjectReflection;                                                                                     \
                                                                                                                        \
 public:                                                                                                                \
     static const ObjectTypeID& StaticGetObjectTypeID();                                                                \

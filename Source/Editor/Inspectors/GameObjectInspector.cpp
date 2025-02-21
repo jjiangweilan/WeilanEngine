@@ -98,17 +98,17 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetScale(scale);
         }
 
-        auto prototype = target->GetPrototype();
-        if (prototype)
-        {
-            ImGui::SeparatorText("Prototype");
-            ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
-            ImGui::Text("Prototype: %s", prototype->GetName().c_str());
-            if (ImGui::Button("Reset As Prototype"))
-            {
-                target->ResetAsPrototype();
-            }
-        }
+        // auto prototype = target->GetPrototype();
+        // if (prototype)
+        // {
+        //     ImGui::SeparatorText("Prototype");
+        //     ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
+        //     ImGui::Text("Prototype: %s", prototype->GetName().c_str());
+        //     if (ImGui::Button("Reset As Prototype"))
+        //     {
+        //         target->ResetAsPrototype();
+        //     }
+        // }
 
 
         // Components

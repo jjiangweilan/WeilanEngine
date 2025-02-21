@@ -255,7 +255,7 @@ std::unique_ptr<Asset> Scene::Clone()
 
     for (GameObject* root : roots)
     {
-        std::unique_ptr<GameObject> go = std::unique_ptr<GameObject>(static_cast<GameObject*>(root->Clone().release()));
+        std::unique_ptr<GameObject> go = std::make_unique<GameObject>(*root);
         copy->AddGameObject(std::move(go));
     }
 

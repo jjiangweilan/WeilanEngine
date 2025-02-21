@@ -1,6 +1,6 @@
 #include "GLB.hpp"
 #include "Libs/Assert.hpp"
-
+#include "Core/GameObject.hpp"
 #include <fstream>
 
 namespace Utils
@@ -77,6 +77,21 @@ void GLB::GetGLBData(
 }
 
 void GLB::SetAssetName(Asset* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
+{
+    auto& meshJson = j[assetGroupName][index];
+
+    if (meshJson.contains("name"))
+    {
+        std::string meshName = meshJson["name"];
+        asset->SetName(meshName + "_" + assetGroupName);
+    }
+    else
+    {
+        asset->SetName(assetGroupName + std::to_string(index));
+    }
+}
+
+void GLB::SetGameObjectName(GameObject* asset, nlohmann::json& j, const std::string& assetGroupName, int index)
 {
     auto& meshJson = j[assetGroupName][index];
 

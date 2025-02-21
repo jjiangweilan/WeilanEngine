@@ -4,8 +4,9 @@
 
 class Prefab : public Asset
 {
+    DECLARE_ASSET()
+
 public:
-    void SetGameObject();
 
 private:
     int rootGameObjectIndex = -1;
