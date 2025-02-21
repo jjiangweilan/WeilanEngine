@@ -55,9 +55,9 @@ void ObjectTracker::RemoveObject(Object* object)
 void ObjectTracker::ReplaceObject(Object* dst, Object* src)
 {
     ScopedSpinLock lk{lock};
-    RemoveObject(src);
+    RemoveObjectImpl(src);
     dst->uuid = std::exchange(src->uuid, UUID::GetEmptyUUID());
-    AddObject(dst);
+    AddObjectImpl(dst);
 }
 
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
