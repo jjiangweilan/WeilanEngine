@@ -106,15 +106,13 @@ private:
     ObjectTrackHandle handle;
 };
 
-template<class T>
+template <class T>
 struct IsObjPtr : public std::false_type
-{
-};
+{};
 
-template<class T>
+template <class T>
 struct IsObjPtr<ObjPtr<T>> : public std::true_type
-{
-};
+{};
 
 template <class T>
 class RefPtr

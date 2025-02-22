@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/Object.hpp"
 #include "GamePlay/Input.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "ThirdParty/lua/lauxlib.h"
@@ -191,10 +192,6 @@ public:
         lua_pushcclosure(L, &Index, 1);
         lua_setfield(L, -2, "__index");
 
-        lua_pushstring(L, "New");
-        lua_pushcfunction(L, &LuaBinder<T>::New);
-        lua_settable(L, -3);
-
         // push serialization
         if constexpr (IsSerializable<T>)
         {
@@ -232,7 +229,6 @@ public:
                 int fIndex = lua_upvalueindex(1);
                 FT& f = *(FT*)lua_touserdata(L, fIndex);
 
-                ASSERT(lua_isuserdata(L, 1));
                 void* mem = lua_touserdata(L, 1);
                 LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
 
@@ -423,6 +419,29 @@ private:
         return 1;
     }
 
+    LuaBinder<T>& BindFn(const char* name, std::function<int(lua_State*)>&& f)
+    {
+        using FT = std::function<int(lua_State*)>;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                int fIndex = lua_upvalueindex(1);
+                FT& f = *(FT*)lua_touserdata(L, fIndex);
+                ASSERT(lua_istable(L, 1));
+
+                return f(L);
+            }
+        };
+
+        lua_pushstring(L, name);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new (fm) FT(std::move(f));
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
+        lua_settable(L, -3);
+        return *this;
+    }
+
     template <class R, class... Args>
     LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
     {
@@ -528,7 +547,15 @@ private:
     template <class Tuple, class R, size_t... I>
     static R ProcessArg_StaticFunction(lua_State* L, auto& f, int argOffset, std::index_sequence<I...>)
     {
-        return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+        if constexpr (std::tuple_size_v<Tuple> == 1)
+        {
+            if constexpr (std::is_same_v<std::tuple_element_t<0, Tuple>, lua_State*> && std::is_integral_v<R>)
+            {
+                return f(L);
+            }
+        }
+        else
+            return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }
 
     template <class Type>
@@ -638,23 +665,8 @@ private:
             );
     }
 
-    static int New(lua_State* L)
-    {
-        // expecting a `self` table on top of the stack
-        lua_newtable(L);
-
-        lua_pushvalue(L, -1);
-        lua_setfield(L, -2, "__index");
-
-        lua_pushvalue(L, -2);
-        lua_setmetatable(L, -2);
-
-        return 1;
-    }
+    static int New(lua_State* L) {}
 };
-
-class LuaObjPtr
-{};
 
 class LuaBindings
 {
@@ -668,6 +680,20 @@ public:
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript")
+            .BindFn("New", [](lua_State* L){
+                    // expecting a `self` table on top of the stack
+                    ASSERT(lua_istable(L, 1));
+
+                    lua_newtable(L);
+
+                    lua_pushvalue(L, -1);
+                    lua_setfield(L, -2, "__index");
+
+                    lua_pushvalue(L, -2);
+                    lua_setmetatable(L, -2);
+
+                    return 1;
+                    })
             .BindMemFn("AddOne", &GameScript::AddOne)
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
             .End();
@@ -706,7 +732,6 @@ public:
             .End()
             ;
 
-        LuaBinder<LuaObjPtr> luaObjPtr(L);
         // clang-format on
 
         lua_setglobal(L, "wl");

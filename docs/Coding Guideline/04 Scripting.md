@@ -9,3 +9,8 @@ lua binding is written in the file LuaBackend_Internal.hpp. `LuaBackend` should 
 
 # 3 The type of userdata
 the engine handles value type, raw pointer type and ObjPtr, so if a function that needs to be called in lua side, it should only takes these three types, which means smart pointers in std are not supported
+
+# 4 How to use LuaBinder
+`BindFn` 1. if the first parameter is the reference to the binding class, it act like BindMemFn except the actual value is passed in. 2. if the function signature is `(lua_State*) -> int` then you write a custom lua c function for the class's metatable itself, called in lua like `T:Func`
+
+`BindStaticFn` same as BindFn, if the signature is `(lua_State*) ->` then the function can be called in lua like `T.Func`

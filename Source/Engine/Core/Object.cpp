@@ -5,7 +5,7 @@ Object::EngineObjectMap Object::GetAllEngineObjects()
     Object::EngineObjectMap map;
     spdlog::info("calling GetAllEngineObjects()");
 
-    for(auto& v : ObjectTracker::Singleton().GetUUIDToSlotIndex())
+    for (auto& v : ObjectTracker::Singleton().GetUUIDToSlotIndex())
     {
         auto obj = ObjectTracker::Singleton().GetObject(v.second);
         if (obj != nullptr)

@@ -379,7 +379,6 @@ std::unique_ptr<Component> GameScript::Clone(GameObject& owner)
     auto newScript = std::make_unique<GameScript>();
     newScript->luaScript = luaScript;
     newScript->luaBackendUUID = luaBackendUUID;
-    newScript->luaDataCache = luaDataCache;
     newScript->serializationValKeys = serializationValKeys;
 
     return newScript;
