@@ -98,17 +98,16 @@ class GameObjectInspector : public Inspector<GameObject>
             target->SetScale(scale);
         }
 
-        // auto prototype = target->GetPrototype();
-        // if (prototype)
-        // {
-        //     ImGui::SeparatorText("Prototype");
-        //     ImGui::Text("%s", prototype->GetUUID().ToString().c_str());
-        //     ImGui::Text("Prototype: %s", prototype->GetName().c_str());
-        //     if (ImGui::Button("Reset As Prototype"))
-        //     {
-        //         target->ResetAsPrototype();
-        //     }
-        // }
+        // show prefab
+        auto prefab = target->GetPrefab();
+        if (prefab)
+        {
+            ImGui::SeparatorText("Prefab");
+            if (ImGui::Button("Reset To Prefab"))
+            {
+                target->ResetToPrefab();
+            }
+        }
 
 
         // Components

@@ -33,3 +33,23 @@ void Component::Deserialize(Serializer* s)
     s->Deserialize("gameObject", gameObject);
     s->Deserialize("enabled", enabled);
 }
+
+void Component::Enable()
+{
+    if (enabled == false)
+    {
+        enabled = true;
+        if (gameObject->IsEnabled())
+            OnEnable();
+    }
+}
+
+void Component::Disable()
+{
+    if (enabled == true)
+    {
+        enabled = false;
+        if (gameObject->IsEnabled())
+            OnDisable();
+    }
+}

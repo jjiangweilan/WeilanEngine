@@ -196,10 +196,16 @@ public:
         lua_settable(L, -3);
 
         // push serialization
-        if constexpr (std::is_base_of_v<Serializable, T>)
+        if constexpr (IsSerializable<T>)
         {
             BindMemFn("Serialize", &T::Serialize);
             BindMemFn("Deserialize", &T::Deserialize);
+        }
+
+        if constexpr (CanBeSerializerParameter<T>)
+        {
+            BindFn("SerializeTo", [](T& val, const char* name, Serializer* s) { s->Serialize(name, val); });
+            BindFn("DeserializeTo", [](T& val, const char* name, Serializer* s) { s->Deserialize(name, val); });
         }
 
         return *this;
@@ -309,9 +315,9 @@ public:
     }
 
     template <class R, class... Args>
-    LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
+    LuaBinder<T>& BindStaticFn(const char* name, std::function<R(Args...)>&& f)
     {
-        using FT = decltype(f);
+        using FT = std::function<R(Args...)>;
         struct Wrap
         {
             static int cfunc(lua_State* L)
@@ -350,6 +356,18 @@ public:
         lua_settable(L, -3);
 
         return *this;
+    }
+
+    template <class F>
+    LuaBinder<T>& BindStaticFn(const char* name, F&& f)
+    {
+        return BindStaticFn(name, std::function(std::move(f)));
+    }
+
+    template <class R, class... Args>
+    LuaBinder<T>& BindStaticFn(const char* name, R (*f)(Args...))
+    {
+        return BindStaticFn(name, std::function<R(Args...)>([f](Args... args) -> R { return f(args...); }));
     }
 
     template <class F>
@@ -514,8 +532,10 @@ private:
     }
 
     template <class Type>
-    static std::remove_reference_t<Type> ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
+    static auto ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
     {
+        // TODO: we need to determine what we can actually return here for the case where the input is a pointer.
+        // It can be a raw pointer, an ObjPtr, or a value(by deference). a logic should be determined here.
         using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
         if constexpr (std::is_integral_v<RawType>)
         {
@@ -633,6 +653,9 @@ private:
     }
 };
 
+class LuaObjPtr
+{};
+
 class LuaBindings
 {
 public:
@@ -658,7 +681,8 @@ public:
 
         LuaBinder<glm::vec3> vec3(L);
         vec3
-            .Begin("Vec")
+            .Begin("Vec3")
+            .BindStaticFn("New", [](){ return glm::vec3{0,0,0}; })
             .BindProperty("x", &glm::vec3::x)
             .BindProperty("y", &glm::vec3::y)
             .BindProperty("z", &glm::vec3::z)
@@ -682,6 +706,7 @@ public:
             .End()
             ;
 
+        LuaBinder<LuaObjPtr> luaObjPtr(L);
         // clang-format on
 
         lua_setglobal(L, "wl");

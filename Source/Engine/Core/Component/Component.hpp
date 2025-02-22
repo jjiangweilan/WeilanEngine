@@ -23,23 +23,9 @@ public:
 
     bool IsEnabled() { return enabled; }
 
-    void Enable()
-    {
-        if (enabled == false)
-        {
-            enabled = true;
-            OnEnable();
-        }
-    };
+    void Enable();
 
-    void Disable()
-    {
-        if (enabled == true)
-        {
-            enabled = false;
-            OnDisable();
-        }
-    }
+    void Disable();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

@@ -1,14 +1,21 @@
 #pragma once
 #include "Core/Asset.hpp"
-#include "Core/GameObject.hpp"
 
+class GameObject;
 class Prefab : public Asset
 {
     DECLARE_ASSET()
 
 public:
+    Prefab(GameObject* gameObject = nullptr);
+
+    std::unique_ptr<GameObject> Instantiate();
+
+    const GameObject* GetGameObject() const { return gameObject.get(); }
+
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
 
 private:
-    int rootGameObjectIndex = -1;
-    std::vector<GameObject> gameObjects;
+    std::unique_ptr<GameObject> gameObject;
 };

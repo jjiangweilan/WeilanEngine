@@ -2,6 +2,7 @@
 
 #include "Asset.hpp"
 #include "Component/Component.hpp"
+#include "Core/Prefab.hpp"
 #include "EngineState.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -53,6 +54,8 @@ public:
         }
     }
 
+    void LinkPrefab(Prefab* prefab);
+
     void SetFlags(GameObjectFlag f) { this->flags = f; }
     GameObjectFlag GetFlags() { return flags; }
 
@@ -76,10 +79,7 @@ public:
     template <class T>
     std::vector<T*> GetComponentsInChildren();
 
-    bool IsPrefab() const
-    {
-        return prefab != nullptr;
-    }
+    bool IsPrefab() const { return prefab != nullptr; }
 
     bool IsEnabled() { return enabled; }
 
@@ -216,12 +216,13 @@ public:
     auto GetPrefab() const { return prefab; }
     auto GetName() const -> const std::string& { return name; }
     auto SetName(const std::string& name) { this->name = name; }
+    void ResetToPrefab();
 
     void OnLoaded();
 
 private:
     std::string name;
-    ObjPtr<Object> prefab = nullptr;
+    ObjPtr<Prefab> prefab = nullptr;
     GameObjectFlag flags = GameObjectFlag::None;
 
     // a prototype GameObject stores all it's children

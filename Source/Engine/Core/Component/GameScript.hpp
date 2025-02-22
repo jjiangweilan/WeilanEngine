@@ -26,7 +26,7 @@ public:
     void OnStop() override;
     void OnDestroy() override;
 
-    std::unique_ptr<Component> Clone(GameObject& owner) override { return nullptr; }
+    std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
     void LuaSerialize(Serializer* s) const;
     void LuaDeserialize(Serializer* s);

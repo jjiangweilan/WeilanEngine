@@ -53,7 +53,6 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
                 if (lua_pcall(L, 1, 0, 0))
                     SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
 
-
                 lua_getmetatable(L, -1);
 
                 lua_pushnil(L); // First key
@@ -231,6 +230,7 @@ void GameScript::LuaSerialize(Serializer* s) const
             {
                 lua_getfield(L, -1, "Serialize");
 
+                bool serializeFailed = false;
                 if (lua_isfunction(L, -1))
                 {
                     lua_pushvalue(L, -2);
@@ -239,7 +239,9 @@ void GameScript::LuaSerialize(Serializer* s) const
                     // prepare serializer
                     LuaUserDataPack<Serializer*>* d =
                         (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
-                    d->dataType = LuaEngineUserDataType::RawPtr;
+                    d->dataType =
+                        LuaEngineUserDataType::Value; // Value? yes, we are pass the pointer as value, if it's a RawPtr
+                                                      // type LuaBackend will deference it to get the actual `value`
                     d->val = subs.get();
 
                     if (lua_pcall(L, 2, 0, 0))
@@ -248,7 +250,32 @@ void GameScript::LuaSerialize(Serializer* s) const
                     s->AppendSubserializer(key, subs.get());
                 }
                 else
+                {
+                    serializeFailed = true;
                     lua_pop(L, 1); // pop the nil field
+                }
+
+                if (serializeFailed)
+                {
+                    lua_getfield(L, -1, "SerializeTo");
+
+                    if (lua_isfunction(L, -1))
+                    {
+                        lua_pushvalue(L, -2);
+                        lua_pushstring(L, key.c_str());
+
+                        // prepare serializer
+                        LuaUserDataPack<Serializer*>* d =
+                            (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
+                        d->dataType = LuaEngineUserDataType::Value;
+                        d->val = s;
+
+                        if (lua_pcall(L, 3, 0, 0))
+                            SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                    }
+                    else
+                        lua_pop(L, 1);
+                }
             }
 
             lua_pop(L, 1);
@@ -296,6 +323,7 @@ void GameScript::LuaDeserialize(Serializer* s)
             {
                 lua_getfield(L, -1, "Deserialize");
 
+                bool deserializeFailed = false;
                 if (lua_isfunction(L, -1))
                 {
                     lua_pushvalue(L, -2);
@@ -304,19 +332,55 @@ void GameScript::LuaDeserialize(Serializer* s)
                     // prepare serializer
                     LuaUserDataPack<Serializer*>* d =
                         (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
-                    d->dataType = LuaEngineUserDataType::RawPtr;
+                    d->dataType = LuaEngineUserDataType::Value;
                     d->val = subs.get();
 
                     if (lua_pcall(L, 2, 0, 0))
                         SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
                 }
                 else
+                {
+                    deserializeFailed = true;
                     lua_pop(L, 1); // pop the nil field
+                }
+
+                if (deserializeFailed)
+                {
+                    lua_getfield(L, -1, "DeserializeTo");
+
+                    if (lua_isfunction(L, -1))
+                    {
+                        lua_pushvalue(L, -2);
+                        lua_pushstring(L, key.c_str());
+
+                        // prepare serializer
+                        LuaUserDataPack<Serializer*>* d =
+                            (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
+                        d->dataType = LuaEngineUserDataType::Value;
+                        d->val = s;
+
+                        if (lua_pcall(L, 3, 0, 0))
+                            SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                    }
+                    else
+                        lua_pop(L, 1);
+                }
             }
-        
+
             lua_pop(L, 1);
         }
 
         lua_pop(L, 2);
     }
+}
+
+std::unique_ptr<Component> GameScript::Clone(GameObject& owner)
+{
+    auto newScript = std::make_unique<GameScript>();
+    newScript->luaScript = luaScript;
+    newScript->luaBackendUUID = luaBackendUUID;
+    newScript->luaDataCache = luaDataCache;
+    newScript->serializationValKeys = serializationValKeys;
+
+    return newScript;
 }

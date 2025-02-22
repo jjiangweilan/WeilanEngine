@@ -260,6 +260,7 @@ public:
         return false;
     }
 
+    static void AutoObjectInspect(const Object* target);
     static void AutoObjectInspector(Object* target);
     static bool JsonInspector(nlohmann::json& j);
     static void JsonInspector(nlohmann::json& j, bool& valueChanged);

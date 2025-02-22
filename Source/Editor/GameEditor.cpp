@@ -1,10 +1,8 @@
 #include "GameEditor.hpp"
-#include "AssetDatabase/Exporters/KtxExporter.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
-#include "Core/Time.hpp"
-#include "DragDropIDs.hpp"
 #include "EditorGUI.hpp"
 #include "EditorState.hpp"
 #include "FileIcons.hpp"
@@ -12,7 +10,6 @@
 #include "Inspectors/Inspector.hpp"
 #include "Libs/Assert.hpp"
 #include "Platform/FileExplore.hpp"
-#include "PrototypeUtils.hpp"
 #include "Rendering/Tools/BRDFResponseGeneration.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -163,17 +160,6 @@ GameEditor::~GameEditor()
     EditorState::Clear();
 }
 
-bool IsAncestorOf(GameObject* ancestor, GameObject* child)
-{
-    GameObject* parent = child->GetParent();
-    while (parent != ancestor && parent != nullptr)
-    {
-        parent = parent->GetParent();
-    }
-
-    return parent == ancestor;
-}
-
 static void ProfileTree(const ProfileScope& scope, int id)
 {
     ImGui::PushID(id);
@@ -266,70 +252,6 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
     ImGui::End();
 }
 
-void GameEditor::SceneTree(
-    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<SRef<Object>>& selects, bool autoExpand
-)
-{
-    ImGuiTreeNodeFlags nodeFlags =
-        ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](SRef<Object>& o) { return o.Get() == go; });
-    if (selectsIter != selects.end())
-    {
-        nodeFlags |= ImGuiTreeNodeFlags_Selected;
-    }
-
-    if (autoExpand && currentSelected != nullptr && IsAncestorOf(go, currentSelected))
-        ImGui::SetNextItemOpen(true);
-
-    if (go->GetChildren().empty())
-        nodeFlags |= ImGuiTreeNodeFlags_Leaf;
-
-    bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
-    if (ImGui::IsItemHovered())
-    {
-        // select game object
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-        {
-            bool deselect = ImGui::IsKeyDown(ImGuiKey_LeftAlt);
-
-            if (deselect)
-            {
-                EditorState::DeselectObject(go);
-            }
-            else
-            {
-                bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
-                EditorState::SelectObject(go->GetSRef(), multiSelect);
-            }
-        }
-
-        // open context tree
-        if (ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-        {
-            sceneTreeContextObject = go;
-            beginSceneTreeContextPopup = true;
-        }
-    }
-
-    GUI::DragDropSource(go->GetName().c_str(), go);
-
-    Object* dropGO;
-    if (GUI::DragDropTarget(typeid(GameObject), dropGO))
-    {
-        ((GameObject*)dropGO)->SetParent(go);
-    }
-
-    if (treeOpen)
-    {
-        for (auto child : go->GetChildren())
-        {
-            SceneTree(child, ++imguiID, currentSelected, selects, autoExpand);
-        }
-        ImGui::TreePop();
-    }
-}
-
 void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
 {
     auto model = static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(path));
@@ -342,162 +264,6 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
-void GameEditor::ShowSceneTree(Scene& scene)
-{
-    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_MenuBar);
-
-    ImGui::BeginMenuBar();
-    if (ImGui::BeginMenu("Objects"))
-    {
-        if (ImGui::MenuItem("Create Object"))
-        {
-            scene.CreateGameObject();
-        }
-        ImGui::EndMenu();
-    }
-    if (ImGui::BeginMenu("Objects"))
-    {
-        if (ImGui::MenuItem("Ok"))
-            spdlog::info("ok");
-        ImGui::EndMenu();
-    }
-    ImGui::EndMenuBar();
-
-    auto windowPos = ImGui::GetWindowPos();
-    auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
-
-    std::filesystem::path filePath;
-    if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
-    {
-        if (Model* model = dynamic_cast<Model*>(AssetDatabase::Singleton()->LoadAsset(filePath)))
-        {
-            auto gos = model->CreateGameObject();
-            for (auto& go : gos)
-                go->SetWantsToBeEnabled();
-            scene.AddGameObjects(std::move(gos));
-        }
-    }
-
-    static GameObject* currentSelected = nullptr;
-    bool autoExpand = false;
-    GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
-    if (currentSelected != selected)
-        autoExpand = true;
-    currentSelected = selected;
-    size_t imguiTreeId = 0;
-    auto selects = EditorState::GetSelectedObjects();
-    for (auto root : scene.GetRootObjects())
-    {
-        SceneTree(root, ++imguiTreeId, currentSelected, selects, autoExpand);
-    }
-
-    bool isSceneTreeWindowHovered = ImGui::IsWindowHovered();
-    ImGui::End();
-
-    // context menu of scene tree
-    static const char* gameObjectContextMenu = "GameObject Context Menu";
-    static const char* sceneTreeContextMenu = "Scene Tree Context Menu";
-    if (beginSceneTreeContextPopup)
-    {
-        beginSceneTreeContextPopup = false;
-        ImGui::OpenPopup(gameObjectContextMenu);
-    }
-
-    if (ImGui::BeginPopup(gameObjectContextMenu))
-    {
-        if (ImGui::Button("Create As Prototype"))
-        {
-            PrototypeUtils::MakePrototype(sceneTreeContextObject, sceneTreeContextObject->GetName());
-        }
-
-        if (ImGui::Button("Create GameOject"))
-        {
-            auto go = scene.CreateGameObject();
-            go->SetParent(sceneTreeContextObject);
-        }
-
-        if (ImGui::Button("Split Mesh Renderer"))
-        {
-            auto selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
-            if (selected)
-            {
-                auto meshRenderer = selected->GetComponent<MeshRenderer>();
-                auto meshes = meshRenderer->GetMeshes();
-                auto materials = meshRenderer->GetMaterials();
-
-                for (int i = 0; i < meshes.size() && i < materials.size(); ++i)
-                {
-                    auto mesh = meshes[i];
-                    auto material = materials[i];
-
-                    auto child = scene.CreateGameObject();
-                    child->SetParent(selected, false);
-
-                    auto m = child->AddComponent<MeshRenderer>();
-                    m->SetMesh(mesh);
-                    m->SetMaterial(material);
-                }
-
-                selected->RemoveComponent(meshRenderer);
-            }
-        }
-
-        if (ImGui::Button("Delete"))
-        {
-            auto selects = EditorState::GetSelectedObjects();
-            if (std::find_if(
-                    selects.begin(),
-                    selects.end(),
-                    [this](SRef<Object>& o) { return o.Get() == sceneTreeContextObject; }
-                ) != selects.end())
-            {
-                for (auto& s : selects)
-                {
-                    GameObject* ptr = static_cast<GameObject*>(s.Get());
-                    if (ptr)
-                        EditorState::activeScene->DestroyGameObject(ptr);
-                }
-                ImGui::CloseCurrentPopup();
-                sceneTreeContextObject = nullptr;
-            }
-            else
-            {
-                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
-                ImGui::CloseCurrentPopup();
-                sceneTreeContextObject = nullptr;
-            }
-        }
-        ImGui::EndPopup();
-    }
-
-    // scene tree context menu
-    if (!ImGui::IsPopupOpen(gameObjectContextMenu) && ImGui::IsMouseReleased(ImGuiMouseButton_Right) &&
-        isSceneTreeWindowHovered)
-    {
-        ImGui::OpenPopup(sceneTreeContextMenu);
-    }
-    if (ImGui::BeginPopup(sceneTreeContextMenu))
-    {
-        if (ImGui::BeginMenu("Create 3D Objects"))
-        {
-            if (ImGui::MenuItem("Cube"))
-            {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Cube.fbx");
-            }
-            else if (ImGui::MenuItem("Sphere"))
-            {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Sphere.fbx");
-            }
-            else if (ImGui::MenuItem("Plane"))
-            {
-                AddPrimitiveAssetToScene(scene, "_engine_internal/Models/Plane.fbx");
-            }
-            ImGui::EndMenu();
-        }
-        ImGui::EndPopup();
-    }
-}
-
 static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)

@@ -1,5 +1,6 @@
 #include "GameObject.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Prefab.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Libs/Math.hpp"
 #include <glm/gtx/matrix_decompose.hpp>
@@ -417,28 +418,28 @@ void GameObject::SetLocalScale(const glm::vec3& scale)
 //     // sanity check, there shouldn't have any owningChildren
 //     if (!owningChildren.empty())
 //         return;
-// 
+//
 //     if (prototype == nullptr)
 //         return;
-// 
+//
 //     Scene* scene = GetScene();
 //     if (scene == nullptr)
 //         return;
-// 
+//
 //     for (auto child : children)
 //     {
 //         scene->DestroyGameObject(child);
 //     }
 //     children.clear();
-// 
+//
 //     SetEnable(false);
 //     components.clear();
-// 
+//
 //     for (auto& c : prototype->components)
 //     {
 //         components.push_back(c->Clone(*this));
 //     }
-// 
+//
 //     for (GameObject* child : prototype->children)
 //     {
 //         std::unique_ptr<GameObject> newChild = std::make_unique<GameObject>(*child);
@@ -446,7 +447,7 @@ void GameObject::SetLocalScale(const glm::vec3& scale)
 //         scene->AddGameObject(std::move(newChild));
 //         tmp->SetParent(this);
 //     }
-// 
+//
 //     if (wantsToBeEnabled)
 //     {
 //         for (auto& c : components)
@@ -476,4 +477,25 @@ GameObject* GameObject::Find(std::string_view name)
     }
 
     return nullptr;
+}
+
+void GameObject::LinkPrefab(Prefab* prefab)
+{
+    this->prefab = prefab;
+}
+
+void GameObject::ResetToPrefab()
+{
+    auto prefabInstance = prefab->GetGameObject();
+    auto scene = GetScene();
+    auto parent = GetParent();
+    auto worldMatrix = GetWorldMatrix();
+
+    if (prefabInstance && scene)
+    {
+        scene->DestroyGameObject(this);
+        auto newGo = scene->AddGameObject(std::make_unique<GameObject>(*prefabInstance));
+        newGo->SetParent(parent);
+        newGo->SetWorldMatrix(worldMatrix);
+    }
 }

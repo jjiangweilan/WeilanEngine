@@ -24,6 +24,17 @@ void GUI::AutoObjectInspector(Object* target)
     }
 }
 
+void GUI::AutoObjectInspect(const Object* target)
+{
+    if (target == nullptr)
+        return;
+    JsonSerializer ser;
+    (static_cast<const Serializable*>(target))->Serialize(&ser);
+    auto j = ser.GetJson();
+    bool valueChanged = false;
+    JsonInspector(j, valueChanged);
+}
+
 bool GUI::JsonInspector(nlohmann::json& j)
 {
     bool valueChanged = false;
@@ -128,7 +139,8 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
         {
             bool isUUID = false;
             std::string text = value;
-            if (text.size() == 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' && text[23] == '-') // potentially a UUID
+            if (text.size() == 36 && text[8] == '-' && text[13] == '-' && text[18] == '-' &&
+                text[23] == '-') // potentially a UUID
             {
                 isUUID = true;
                 auto uuid = UUID(text);

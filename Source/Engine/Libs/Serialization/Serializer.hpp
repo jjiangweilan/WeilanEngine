@@ -34,7 +34,9 @@ concept HasSerializeFunc = requires(T a, Serializer* s) {
 };
 
 template <class T>
-concept IsSerializable = IsSerializableClass<T> || HasSerializeFunc<T>;
+concept IsSerializable =
+    IsSerializableClass<T> ||
+    HasSerializeFunc<T>; // use with CanBeSerializerParameter for full test, Serializer itself uses this only
 
 template <class T>
 struct HasUUIDContained : std::false_type
@@ -186,6 +188,7 @@ public:
     virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
     virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
     virtual void AppendSubserializer(std::string_view name, Serializer* s) = 0;
+
 protected:
     SerializeReferenceResolveMap* resolveCallbacks;
     std::unordered_map<UUID, Object*> objects;
@@ -194,7 +197,6 @@ protected:
 
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
-
 
     virtual size_t GetArraySize(std::string_view name) = 0;
 
@@ -221,7 +223,7 @@ void Serializer::Deserialize(
 )
 {
     auto& j = GetJsonObject(name);
-    for(auto& item : j.items())
+    for (auto& item : j.items())
     {
         Deserialize(fmt::format("{}/{}", name, item.key()), val[item.key()]);
     }
@@ -491,3 +493,9 @@ void Serializer::Deserialize(std::string_view name, Ref<T>& val)
 template <HasUUID T>
 void Serializer::Deserialize(std::string_view name, Ref<T>& val, const ReferenceResolveCallback& callback)
 {}
+
+template <class T>
+concept CanBeSerializerParameter = requires(T a, Serializer* s) {
+    s->Serialize("", a);
+    s->Deserialize("", a);
+};
