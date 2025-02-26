@@ -22,9 +22,9 @@ public:
         auto shader = target->GetShaderProgram();
         Draw(shader);
 
-        ImGui::Separator();
+        ImGui::SeparatorText("Auto Inspector");
 
-        GUI::AutoObjectInspector(target);
+        GUI::AutoObjectInspector(target, true);
     }
 
     void Draw(Gfx::ShaderProgram* shader)

@@ -34,7 +34,12 @@ public:
     }
 
     virtual const UUID& GetObjectTypeID() = 0;
-
+    virtual const std::string& GetTypeName() = 0;
+    static const std::string& StaticGetTypeName()
+    {
+        static std::string typeName = "Object";
+        return typeName;
+    }
     static EngineObjectMap GetAllEngineObjects();
     template <class T>
     static std::vector<T*> GetObjectsOfType();
@@ -108,6 +113,8 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
                                                                                                                        \
 public:                                                                                                                \
     static const ObjectTypeID& StaticGetObjectTypeID();                                                                \
+    static const std::string& StaticGetTypeName();                                                                     \
+    const std::string& GetTypeName() override;                                                                         \
     const ObjectTypeID& GetObjectTypeID() override;                                                                    \
                                                                                                                        \
 private:                                                                                                               \
@@ -127,6 +134,15 @@ private:                                                                        
     const ObjectTypeID& Type::GetObjectTypeID()                                                                        \
     {                                                                                                                  \
         return Type::StaticGetObjectTypeID();                                                                          \
+    }                                                                                                                  \
+    const std::string& Type::StaticGetTypeName()                                                                       \
+    {                                                                                                                  \
+        static std::string typeName = #Type;                                                                           \
+        return typeName;                                                                                               \
+    }                                                                                                                  \
+    const std::string& Type::GetTypeName()                                                                             \
+    {                                                                                                                  \
+        return StaticGetTypeName();                                                                                    \
     }
 
 template <class T>

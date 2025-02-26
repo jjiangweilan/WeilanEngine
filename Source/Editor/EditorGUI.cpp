@@ -6,7 +6,7 @@ namespace Editor
 {
 const char* GUI::PayloadType = "_DragDropIntenralTypeID";
 std::vector<char> GUI::textArea = std::vector<char>(1024);
-void GUI::AutoObjectInspector(Object* target)
+void GUI::AutoObjectInspector(Object* target, bool readOnly)
 {
     if (target == nullptr)
         return;
@@ -16,7 +16,7 @@ void GUI::AutoObjectInspector(Object* target)
     bool valueChanged = false;
     JsonInspector(j, valueChanged);
 
-    if (valueChanged)
+    if (valueChanged && !readOnly)
     {
         JsonSerializer newSer(j);
         (static_cast<Serializable*>(target))->Deserialize(&newSer);
@@ -89,7 +89,7 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
         else if (value.is_array())
         {
             int length = value.size();
-            if (length == 2)
+            if (length == 2 && value[0].is_number() && value[1].is_number())
             {
                 glm::float2 val;
                 val.x = value[0];
@@ -102,7 +102,7 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
                     valueChanged = true;
                 }
             }
-            else if (length == 3)
+            else if (length == 3 && value[0].is_number() && value[1].is_number() && value[2].is_number())
             {
                 glm::float3 val;
                 val.x = value[0];
@@ -117,7 +117,8 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
                     valueChanged = true;
                 }
             }
-            else if (length == 4)
+            else if (length == 4 && value[0].is_number() && value[1].is_number() && value[2].is_number() &&
+                     value[3].is_number())
             {
                 glm::float4 val;
                 val.x = value[0];
@@ -132,6 +133,14 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
                     value[2] = val.z;
                     value[3] = val.w;
                     valueChanged = true;
+                }
+            }
+            else
+            {
+                if (ImGui::TreeNode(key.c_str()))
+                {
+                    JsonInspector(value, valueChanged);
+                    ImGui::TreePop();
                 }
             }
         }

@@ -60,7 +60,7 @@ struct PushEngineUserDataHelper
         else if constexpr (IsObjPtr<RawType>::value)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::ObjPtr, std::move(v));
-            PushTypeMetatable<R::element_type>(L);
+            PushTypeMetatable<typename R::element_type>(L);
         }
         else // value type
         {
@@ -733,8 +733,7 @@ public:
             .BindStaticFn("GetLookAroundX", Input::GetLookAroundX)
             .BindStaticFn("GetLookAroundY", Input::GetLookAroundY)
             .BindStaticFn("Jump", Input::Jump)
-            .End()
-            ;
+            .End();
 
         // clang-format on
 

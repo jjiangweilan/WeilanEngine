@@ -47,21 +47,35 @@ public:
         }
         else if (curr != nullptr)
         {
-            buttonName = curr->GetUUID().ToString().c_str();
+            buttonName = curr->GetUUID().ToString().substr(0, 6);
         }
 
+        bool stylePushedForNullCurr = false;
+        if (curr == nullptr)
+        {
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {1.0f, 0.65, 0.45, 1});
+            ImGui::PushStyleColor(ImGuiCol_Button, {1.0f, 0.5, 0.3, 1});
+            stylePushedForNullCurr= true;
+        }
         if (ImGui::Button(
-                curr == nullptr ? "null" : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()
+                curr == nullptr ? T::StaticGetTypeName().c_str()
+                                : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()
             ))
         {
             EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
         }
+        if (stylePushedForNullCurr)
+            ImGui::PopStyleColor(2);
 
         Object* target = nullptr;
         if (DragDropTarget(target))
         {
-            curr = (T*)target;
-            newValue = true;
+            T* t = dynamic_cast<T*>(target);
+            if (t != nullptr)
+            {
+                curr = (T*)target;
+                newValue = true;
+            }
         }
         else if (DragDropTarget(typeid(GameObject), target))
         {
@@ -261,14 +275,13 @@ public:
     }
 
     static void AutoObjectInspect(const Object* target);
-    static void AutoObjectInspector(Object* target);
+    static void AutoObjectInspector(Object* target, bool readOnly = false);
     static bool JsonInspector(nlohmann::json& j);
     static void JsonInspector(nlohmann::json& j, bool& valueChanged);
 
 private:
     static const char* PayloadType;
     static std::vector<char> textArea;
-
 
     static bool DragDropTarget(Object*& obj, ImRect rect, const std::type_info* type)
     {
