@@ -76,8 +76,10 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
                     lua_pop(L, 1); // Remove 'value', keep 'key'
                 }
 
-                lua_pop(L, 1); // pop the metatable
+                lua_pop(L, 1);
             }
+            else
+                lua_pop(L, 1);
 
             lua_pop(L, 1);
         }
@@ -108,6 +110,8 @@ void GameScript::LuaOnStart()
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
+        else
+            lua_pop(L, 1);
 
         lua_pop(L, 1);
     }
@@ -127,6 +131,8 @@ void GameScript::Tick()
             if (lua_pcall(L, 1, 0, 0) != 0)
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
+        else
+            lua_pop(L, 1);
 
         lua_pop(L, 1);
     }
@@ -146,6 +152,8 @@ void GameScript::LuaOnStop()
             if (lua_pcall(L, 1, 0, 0))
                 SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
         }
+        else
+            lua_pop(L, 1);
 
         lua_pop(L, 1);
     }

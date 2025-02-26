@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
@@ -335,7 +336,15 @@ public:
                     );
                     return 0;
                 }
-                else
+                else if constexpr (std::tuple_size_v<std::tuple<Args...>> == 1)
+                {
+                    if constexpr (std::is_same_v<std::tuple_element_t<0, std::tuple<Args...>>, lua_State*> &&
+                                  std::is_integral_v<R>)
+                    {
+                        return f(L);
+                    }
+                }
+                // else
                 {
                     R rtn = ProcessArg_StaticFunction<std::tuple<Args...>, R>(
                         L,
@@ -551,15 +560,7 @@ private:
     template <class Tuple, class R, size_t... I>
     static R ProcessArg_StaticFunction(lua_State* L, auto& f, int argOffset, std::index_sequence<I...>)
     {
-        if constexpr (std::tuple_size_v<Tuple> == 1)
-        {
-            if constexpr (std::is_same_v<std::tuple_element_t<0, Tuple>, lua_State*> && std::is_integral_v<R>)
-            {
-                return f(L);
-            }
-        }
-        else
-            return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+        return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }
 
     template <class Type>
@@ -733,6 +734,33 @@ public:
             .BindStaticFn("GetLookAroundX", Input::GetLookAroundX)
             .BindStaticFn("GetLookAroundY", Input::GetLookAroundY)
             .BindStaticFn("Jump", Input::Jump)
+            .End();
+
+        LuaBinder<AnimationPlayer> animationPlayer(L);
+        animationPlayer.Begin("AnimationPlayer")
+            .End();
+
+        LuaBinder<ObjPtr<Object>> objPtr(L);
+        objPtr
+            .Begin("ObjPtr")
+            .BindStaticFn("New", [](lua_State* L) -> int { 
+                    const char* typeName = luaL_checkstring(L, -1);
+                    luaL_getmetatable(L, typeName);
+                    if (lua_istable(L, -1))
+                    {
+                        LuaUserDataPack<ObjPtr<Object>>* m = (LuaUserDataPack<ObjPtr<Object>>*)lua_newuserdata(L, sizeof(LuaUserDataPack<ObjPtr<Object>>));
+                        m->dataType = LuaEngineUserDataType::ObjPtr;
+                        m->val = ObjPtr<Object>();
+                        lua_pushvalue(L, -2);
+                        lua_setmetatable(L, -2);
+                    }
+                    else
+                    {
+                        lua_pop(L, 1);
+                        lua_pushnil(L);
+                    }
+                    return 1;
+            })
             .End();
 
         // clang-format on
