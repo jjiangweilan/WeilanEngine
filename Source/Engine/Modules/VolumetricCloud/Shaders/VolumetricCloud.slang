@@ -117,7 +117,8 @@ CloudInfo SampleDensity(float3 worldPos)
     if (IsPosInsideCloud(worldPos))
     {
         float3 samplePos = (worldPos) / perMaterial.detailMapScale;
-        float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz, 0);
+        float3 offset = float3(perScene.time * 0.001,0,perScene.time * 0.001);
+        float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz + offset, 0);
         // info.dimensionalProfile *= density.x;
 
         float areaMap = saturate(remap(density.r, perMaterial.areaMapRemap.x, perMaterial.areaMapRemap.y, 0, 1));
@@ -137,7 +138,7 @@ CloudInfo SampleDensity(float3 worldPos)
         {
             // apply details
             float3 highFrequencySamplePos = (worldPos) / perMaterial.highFrequencyMapScale;
-            float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz + float3(perScene.time * 0.12,0,perScene.time * 0.1), 0).yzw;
+            float3 highFrequencyNoises = perMaterial.highFrequencyCloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, highFrequencySamplePos.xyz, 0).yzw;
             float highFrequencyFbm = 0.625 * highFrequencyNoises.x;// + 0.25 * highFrequencyNoises.y + 0.125 * highFrequencyNoises.z;
             highFrequencyFbm = 1- highFrequencyFbm;
             float highFrequencyNoiseModifier = lerp(highFrequencyFbm, 1 - highFrequencyFbm, saturate(cloudTypeGradient * 10));

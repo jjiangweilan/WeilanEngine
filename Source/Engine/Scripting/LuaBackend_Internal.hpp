@@ -205,6 +205,10 @@ public:
             BindFn("DeserializeTo", [](T& val, const char* name, Serializer* s) { s->Deserialize(name, val); });
         }
 
+        // register container type
+        // Vector
+        // ObjPtr
+
         return *this;
     }
 

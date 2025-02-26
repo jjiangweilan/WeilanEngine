@@ -79,7 +79,7 @@ public:
     template <class T>
     std::vector<T*> GetComponentsInChildren();
 
-    bool IsPrefab() const { return prefab != nullptr; }
+    bool HasPrefab() const { return prefab != nullptr; }
 
     bool IsEnabled() { return enabled; }
 

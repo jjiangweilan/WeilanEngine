@@ -3,6 +3,7 @@
 #include "EditorGUI.hpp"
 #include "EditorState.hpp"
 #include "GameEditor.hpp"
+#include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
@@ -201,7 +202,14 @@ void GameEditor::SceneTree(
     if (go->GetChildren().empty())
         nodeFlags |= ImGuiTreeNodeFlags_Leaf;
 
+    bool hasPrefab = go->HasPrefab();
+
+    if (hasPrefab)
+        ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3, 0.3, 0.3, 1.0));
     bool treeOpen = ImGui::TreeNodeEx(fmt::format("{}##{}", go->GetName(), imguiID).c_str(), nodeFlags);
+    if (hasPrefab)
+        ImGui::PopStyleColor();
+
     if (ImGui::IsItemHovered())
     {
         // select game object

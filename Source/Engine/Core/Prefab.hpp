@@ -11,7 +11,7 @@ public:
 
     std::unique_ptr<GameObject> Instantiate();
 
-    const GameObject* GetGameObject() const { return gameObject.get(); }
+    GameObject* GetGameObject() const { return gameObject.get(); }
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

@@ -19,7 +19,7 @@ public:
 
     virtual const std::string& GetName() = 0;
     virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
-    GameObject* GetGameObject();
+    ObjPtr<GameObject> GetGameObject();
 
     bool IsEnabled() { return enabled; }
 

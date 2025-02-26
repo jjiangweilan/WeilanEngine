@@ -8,7 +8,7 @@ Component::~Component()
     OnDestroy();
 }
 
-GameObject* Component::GetGameObject()
+ObjPtr<GameObject> Component::GetGameObject()
 {
     return gameObject;
 }
