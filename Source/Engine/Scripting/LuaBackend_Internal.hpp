@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/GameScript.hpp"
+#include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
 #include "GamePlay/Input.hpp"
@@ -87,7 +88,7 @@ struct PushEngineUserDataHelper
         else if constexpr (IsObjPtr<RawType>::value)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::ObjPtr, std::move(v));
-            PushTypeMetatable<typename R::element_type>(L);
+            PushTypeMetatable(L, v->GetTypeName().c_str());
         }
         else // value type
         {
@@ -186,6 +187,12 @@ struct PushEngineUserDataHelper
     }
 
 private:
+    static void PushTypeMetatable(lua_State* L, const char* className)
+    {
+        luaL_getmetatable(L, className);
+        ASSERT(lua_istable(L, -1));
+    }
+
     template <class V>
     static void PushTypeMetatable(lua_State* L)
     {
@@ -814,6 +821,13 @@ public:
         LuaBinder<AnimationPlayer> animationPlayer(L);
         animationPlayer
             .Begin("AnimationPlayer")
+            .End();
+
+        LuaBinder<Light> light(L);
+        light
+            .Begin("Light")
+            .BindMemFn("GetIntensity", &Light::GetIntensity)
+            .BindMemFn("SetIntensity", &Light::SetIntensity)
             .End();
 
         // ObjPtr

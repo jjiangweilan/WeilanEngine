@@ -135,6 +135,9 @@ public:
         }
     }
 
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
+    void OnDrawGizmos() override;
 private:
     LightType lightType = LightType::Directional;
     glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
@@ -153,8 +156,4 @@ private:
         glm::mat4 cachedWorldToShadow = glm::mat4(1.0f);
 
     } shadowCache;
-
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
-    void OnDrawGizmos() override;
 };
