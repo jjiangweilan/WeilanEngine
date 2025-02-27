@@ -3,6 +3,7 @@
 #include "Scripting/LuaBackend.hpp"
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
+#include <cstring>
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(GameScript, "8584BFED-B936-44D3-9011-9D492118A17C");
@@ -236,53 +237,63 @@ void GameScript::LuaSerialize(Serializer* s) const
             }
             else if (lua_isuserdata(L, -1))
             {
-                lua_getfield(L, -1, "Serialize");
-
-                bool serializeFailed = false;
-                if (lua_isfunction(L, -1))
+                void* m = lua_touserdata(L, -1);
+                LuaEngineUserDataType* type = (LuaEngineUserDataType*)m;
+                if (*type == LuaEngineUserDataType::Value)
                 {
-                    lua_pushvalue(L, -2);
+                    lua_getfield(L, -1, "Serialize");
 
-                    auto subs = s->CreateSubserializer();
-                    // prepare serializer
-                    LuaUserDataPack<Serializer*>* d =
-                        (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
-                    d->dataType =
-                        LuaEngineUserDataType::Value; // Value? yes, we are pass the pointer as value, if it's a RawPtr
-                                                      // type LuaBackend will deference it to get the actual `value`
-                    d->val = subs.get();
-
-                    if (lua_pcall(L, 2, 0, 0))
-                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-
-                    s->AppendSubserializer(key, subs.get());
-                }
-                else
-                {
-                    serializeFailed = true;
-                    lua_pop(L, 1); // pop the nil field
-                }
-
-                if (serializeFailed)
-                {
-                    lua_getfield(L, -1, "SerializeTo");
-
+                    bool serializeFailed = false;
                     if (lua_isfunction(L, -1))
                     {
                         lua_pushvalue(L, -2);
-                        lua_pushstring(L, key.c_str());
 
+                        auto subs = s->CreateSubserializer();
                         // prepare serializer
                         LuaUserDataPack<Serializer*>* d =
                             (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
-                        d->dataType = LuaEngineUserDataType::Value;
-                        d->val = s;
+                        d->dataType = LuaEngineUserDataType::Value; // Value? yes, we are pass the pointer as value, if
+                                                                    // it's a RawPtr type LuaBackend will deference it
+                                                                    // to get the actual `value`
+                        d->val = subs.get();
 
-                        if (lua_pcall(L, 3, 0, 0))
+                        if (lua_pcall(L, 2, 0, 0))
                             SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+
+                        s->AppendSubserializer(key, subs.get());
                     }
                     else
-                        lua_pop(L, 1);
+                    {
+                        serializeFailed = true;
+                        lua_pop(L, 1); // pop the nil field
+                    }
+
+                    if (serializeFailed)
+                    {
+                        lua_getfield(L, -1, "SerializeTo");
+
+                        if (lua_isfunction(L, -1))
+                        {
+                            lua_pushvalue(L, -2);
+                            lua_pushstring(L, key.c_str());
+
+                            // prepare serializer
+                            LuaUserDataPack<Serializer*>* d =
+                                (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
+                            d->dataType = LuaEngineUserDataType::Value;
+                            d->val = s;
+
+                            if (lua_pcall(L, 3, 0, 0))
+                                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                        }
+                        else
+                            lua_pop(L, 1);
+                    }
+                }
+                else if (*type == LuaEngineUserDataType::ObjPtr)
+                {
+                    LuaUserDataPack<ObjPtr<Object>>* mm = (LuaUserDataPack<ObjPtr<Object>>*)m;
+                    s->Serialize(key, mm->val);
                 }
             }
 
@@ -329,49 +340,67 @@ void GameScript::LuaDeserialize(Serializer* s)
             }
             else if (lua_isuserdata(L, -1))
             {
-                lua_getfield(L, -1, "Deserialize");
-
-                bool deserializeFailed = false;
-                if (lua_isfunction(L, -1))
+                void* m = lua_touserdata(L, -1);
+                LuaEngineUserDataType* type = (LuaEngineUserDataType*)m;
+                if (*type == LuaEngineUserDataType::Value)
                 {
-                    lua_pushvalue(L, -2);
+                    lua_getfield(L, -1, "Deserialize");
 
-                    auto subs = s->CreateSubdeserializer(key);
-                    // prepare serializer
-                    LuaUserDataPack<Serializer*>* d =
-                        (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
-                    d->dataType = LuaEngineUserDataType::Value;
-                    d->val = subs.get();
-
-                    if (lua_pcall(L, 2, 0, 0))
-                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-                }
-                else
-                {
-                    deserializeFailed = true;
-                    lua_pop(L, 1); // pop the nil field
-                }
-
-                if (deserializeFailed)
-                {
-                    lua_getfield(L, -1, "DeserializeTo");
-
+                    bool deserializeFailed = false;
                     if (lua_isfunction(L, -1))
                     {
                         lua_pushvalue(L, -2);
-                        lua_pushstring(L, key.c_str());
 
+                        auto subs = s->CreateSubdeserializer(key);
                         // prepare serializer
                         LuaUserDataPack<Serializer*>* d =
                             (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
                         d->dataType = LuaEngineUserDataType::Value;
-                        d->val = s;
+                        d->val = subs.get();
 
-                        if (lua_pcall(L, 3, 0, 0))
+                        if (lua_pcall(L, 2, 0, 0))
                             SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
                     }
                     else
-                        lua_pop(L, 1);
+                    {
+                        deserializeFailed = true;
+                        lua_pop(L, 1); // pop the nil field
+                    }
+
+                    if (deserializeFailed)
+                    {
+                        lua_getfield(L, -1, "DeserializeTo");
+
+                        if (lua_isfunction(L, -1))
+                        {
+                            lua_pushvalue(L, -2);
+                            lua_pushstring(L, key.c_str());
+
+                            // prepare serializer
+                            LuaUserDataPack<Serializer*>* d =
+                                (LuaUserDataPack<Serializer*>*)lua_newuserdata(L, sizeof(LuaUserDataPack<Serializer*>));
+                            d->dataType = LuaEngineUserDataType::Value;
+                            d->val = s;
+
+                            if (lua_pcall(L, 3, 0, 0))
+                                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                        }
+                        else
+                            lua_pop(L, 1);
+                    }
+                }
+                else if (*type == LuaEngineUserDataType::ObjPtr)
+                {
+                    LuaUserDataPack<ObjPtr<Object>>* mm = (LuaUserDataPack<ObjPtr<Object>>*)m;
+                    ObjPtr<Object> val;
+                    s->Deserialize(key, val);
+                    if (lua_getfield(L, -1, "__name") == LUA_TSTRING)
+                    {
+                        const char* expectedClassName = lua_tostring(L, -1);
+                        mm->Assign(expectedClassName, val);
+                    }
+
+                    lua_pop(L, 1);
                 }
             }
 

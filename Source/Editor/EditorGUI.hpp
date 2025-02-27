@@ -43,11 +43,11 @@ public:
         Asset* asset = dynamic_cast<Asset*>(curr);
         if (asset)
         {
-            buttonName = asset->GetName();
+            buttonName = fmt::format("{}({})", asset->GetName(), curr->GetTypeName());
         }
         else if (curr != nullptr)
         {
-            buttonName = curr->GetUUID().ToString().substr(0, 6);
+            buttonName = fmt::format("{}({})", curr->GetUUID().ToString().substr(0, 6), curr->GetTypeName());
         }
 
         bool stylePushedForNullCurr = false;

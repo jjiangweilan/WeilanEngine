@@ -8,6 +8,7 @@
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
 #include "ThirdParty/lua/lua.hpp"
+#include <stdexcept>
 #include <typeindex>
 
 struct LuaTypeRegistery
@@ -34,6 +35,27 @@ struct LuaUserDataPack
 {
     LuaEngineUserDataType dataType;
     T val;
+
+    // expectedClassName: class name of val
+    void Assign(const char* expectedClassName, ObjPtr<Object> assigningObject)
+    {
+        if constexpr (IsObject<T>)
+        {
+            if (assigningObject == nullptr || strcmp(expectedClassName, assigningObject->GetTypeName().c_str()) == 0)
+            {
+                this->val = assigningObject;
+            }
+            else
+            {
+                spdlog::warn("Lua: type mismatch, expected: {}, got: {}", expectedClassName, assigningObject->GetTypeName());
+            }
+        }
+    }
+};
+
+struct InvalidObjPtrError : std::runtime_error
+{
+    explicit InvalidObjPtrError(const char* _Message) : std::runtime_error(_Message) {}
 };
 
 template <class R>
@@ -463,44 +485,26 @@ private:
         {
             static int cfunc(lua_State* L)
             {
-                int fIndex = lua_upvalueindex(1);
-                FT& f = *(FT*)lua_touserdata(L, fIndex);
-
-                void* u = lua_touserdata(L, 1);
-                LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
-
-                using RawType = std::remove_const_t<std::remove_reference_t<R>>;
-                if (type == LuaEngineUserDataType::RawPtr)
+                try
                 {
-                    if constexpr (std::is_void_v<RawType>)
-                    {
-                        T* v = ((LuaUserDataPack<T*>*)u)->val;
-                        ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                        return 0;
-                    }
-                    else
-                    {
-                        T* v = ((LuaUserDataPack<T*>*)u)->val;
-                        R rtn =
-                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                        ProcessRtn<R>(L, std::move(rtn));
+                    int fIndex = lua_upvalueindex(1);
+                    FT& f = *(FT*)lua_touserdata(L, fIndex);
 
-                        return 1;
-                    }
-                }
-                else if (type == LuaEngineUserDataType::ObjPtr)
-                {
-                    if constexpr (std::is_base_of_v<Object, T>)
+                    void* u = lua_touserdata(L, 1);
+                    LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
+
+                    using RawType = std::remove_const_t<std::remove_reference_t<R>>;
+                    if (type == LuaEngineUserDataType::RawPtr)
                     {
                         if constexpr (std::is_void_v<RawType>)
                         {
-                            T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                            T* v = ((LuaUserDataPack<T*>*)u)->val;
                             ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
                             return 0;
                         }
                         else
                         {
-                            T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                            T* v = ((LuaUserDataPack<T*>*)u)->val;
                             R rtn = ProcessArg<std::tuple<Args...>, R>(
                                 L,
                                 f,
@@ -513,26 +517,68 @@ private:
                             return 1;
                         }
                     }
-                    else
-                        return 0;
-                }
-                else // LuaEngineUserDataType::Value
-                {
-                    if constexpr (std::is_void_v<RawType>)
+                    else if (type == LuaEngineUserDataType::ObjPtr)
                     {
-                        T* v = &(((LuaUserDataPack<T>*)u)->val);
-                        ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                        return 0;
-                    }
-                    else
-                    {
-                        T* v = &(((LuaUserDataPack<T>*)u)->val);
-                        R rtn =
-                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                        ProcessRtn<R>(L, std::move(rtn));
+                        if constexpr (std::is_base_of_v<Object, T>)
+                        {
+                            if constexpr (std::is_void_v<RawType>)
+                            {
+                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                                ProcessArg<std::tuple<Args...>, R>(
+                                    L,
+                                    f,
+                                    v,
+                                    1,
+                                    std::make_index_sequence<sizeof...(Args)>{}
+                                );
+                                return 0;
+                            }
+                            else
+                            {
+                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                                R rtn = ProcessArg<std::tuple<Args...>, R>(
+                                    L,
+                                    f,
+                                    v,
+                                    1,
+                                    std::make_index_sequence<sizeof...(Args)>{}
+                                );
+                                ProcessRtn<R>(L, std::move(rtn));
 
-                        return 1;
+                                return 1;
+                            }
+                        }
+                        else
+                            return 0;
                     }
+                    else // LuaEngineUserDataType::Value
+                    {
+                        if constexpr (std::is_void_v<RawType>)
+                        {
+                            T* v = &(((LuaUserDataPack<T>*)u)->val);
+                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
+                            return 0;
+                        }
+                        else
+                        {
+                            T* v = &(((LuaUserDataPack<T>*)u)->val);
+                            R rtn = ProcessArg<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
+                            ProcessRtn<R>(L, std::move(rtn));
+
+                            return 1;
+                        }
+                    }
+                }
+                catch (InvalidObjPtrError e)
+                {
+                    spdlog::error("Lua Error: {}", e.what());
+                    return 0;
                 }
             };
         };
@@ -564,7 +610,7 @@ private:
     }
 
     template <class Type>
-    static auto ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
+    static auto&& ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
     {
         // TODO: we need to determine what we can actually return here for the case where the input is a pointer.
         // It can be a raw pointer, an ObjPtr, or a value(by deference). a logic should be determined here.
@@ -610,7 +656,31 @@ private:
             {
                 if constexpr (std::is_base_of_v<Object, Type>)
                 {
-                    return *((LuaUserDataPack<ObjPtr<Type>>*)mem)->val;
+                    ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
+                    if (obj == nullptr || obj->GetObjectTypeID() != Type::StaticGetObjectTypeID())
+                    {
+                        luaL_error(L, "Invalid object type");
+                        throw InvalidObjPtrError("Valida Object Type");
+                    }
+                    return *obj;
+                }
+                // now falling back to Value type, this can happen in the following case
+                // T::f(const GameObject& go) <- lua: go:f(self.A_objPtr), calling above
+                // T::f(ObjPtr<GameObject> go) <- lua: go:f(self.A_objPtr), this will fall back to Value type which
+                // ObjPtr<GameObject> is not based of Object
+
+                // before falling back the Value type, we still need to do a type check
+                if constexpr (IsObjPtr<RawType>::value)
+                {
+                    ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
+                    if constexpr (!std::is_same_v<RawType::element_type, Object>)
+                    {
+                        if (obj == nullptr || obj->GetObjectTypeID() != RawType::element_type::StaticGetObjectTypeID())
+                        {
+                            luaL_error(L, "Invalid object type");
+                            throw InvalidObjPtrError("Valida Object Type");
+                        }
+                    }
                 }
             }
 
@@ -749,8 +819,8 @@ public:
                     if (lua_istable(L, -1))
                     {
                         LuaUserDataPack<ObjPtr<Object>>* m = (LuaUserDataPack<ObjPtr<Object>>*)lua_newuserdata(L, sizeof(LuaUserDataPack<ObjPtr<Object>>));
+                        new (m)LuaUserDataPack<ObjPtr<Object>>();
                         m->dataType = LuaEngineUserDataType::ObjPtr;
-                        m->val = ObjPtr<Object>();
                         lua_pushvalue(L, -2);
                         lua_setmetatable(L, -2);
                     }
@@ -761,8 +831,8 @@ public:
                     }
                     return 1;
             })
+            .BindStaticFn("IsValid", [](ObjPtr<Object> val) { return val != nullptr; })
             .End();
-
         // clang-format on
 
         lua_setglobal(L, "wl");
