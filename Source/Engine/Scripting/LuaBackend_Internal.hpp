@@ -47,7 +47,11 @@ struct LuaUserDataPack
             }
             else
             {
-                spdlog::warn("Lua: type mismatch, expected: {}, got: {}", expectedClassName, assigningObject->GetTypeName());
+                spdlog::warn(
+                    "Lua: type mismatch, expected: {}, got: {}",
+                    expectedClassName,
+                    assigningObject->GetTypeName()
+                );
             }
         }
     }
@@ -445,8 +449,6 @@ private:
 
     static int Index(lua_State* L)
     {
-        bool userData = lua_isuserdata(L, 1);
-        void* u = (void*)lua_touserdata(L, 1);
         const char* key = lua_tostring(L, 2);
         int tableIdx = lua_upvalueindex(1);
         lua_getfield(L, tableIdx, key);
@@ -610,7 +612,7 @@ private:
     }
 
     template <class Type>
-    static auto&& ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
+    static auto ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
     {
         // TODO: we need to determine what we can actually return here for the case where the input is a pointer.
         // It can be a raw pointer, an ObjPtr, or a value(by deference). a logic should be determined here.
@@ -673,7 +675,7 @@ private:
                 if constexpr (IsObjPtr<RawType>::value)
                 {
                     ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
-                    if constexpr (!std::is_same_v<RawType::element_type, Object>)
+                    if constexpr (!std::is_same_v<typename RawType::element_type, Object>)
                     {
                         if (obj == nullptr || obj->GetObjectTypeID() != RawType::element_type::StaticGetObjectTypeID())
                         {
@@ -778,6 +780,8 @@ public:
             .Begin("GameObject")
             .BindMemFn("GetPosition", &GameObject::GetPosition)
             .BindMemFn("SetPosition", &GameObject::SetPosition)
+            .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy)
+            .BindMemFn("GetComponent", static_cast<ObjPtr<Component>(GameObject::*)(const char*)>(&GameObject::GetComponent))
             .End();
 
         LuaBinder<glm::vec3> vec3(L);
@@ -806,10 +810,13 @@ public:
             .BindStaticFn("Jump", Input::Jump)
             .End();
 
+        // Components
         LuaBinder<AnimationPlayer> animationPlayer(L);
-        animationPlayer.Begin("AnimationPlayer")
+        animationPlayer
+            .Begin("AnimationPlayer")
             .End();
 
+        // ObjPtr
         LuaBinder<ObjPtr<Object>> objPtr(L);
         objPtr
             .Begin("ObjPtr")
@@ -832,6 +839,12 @@ public:
                     return 1;
             })
             .BindStaticFn("IsValid", [](ObjPtr<Object> val) { return val != nullptr; })
+            .End();
+
+        // Objects
+        LuaBinder<Animation> animation(L);
+            animation
+            .Begin("Animation")
             .End();
         // clang-format on
 

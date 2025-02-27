@@ -62,7 +62,8 @@ public:
     template <class T>
     T* GetComponent();
 
-    Component* GetComponent(const char* name); // obsolete
+    ObjPtr<Component> GetComponentInHierachy(const char* className);
+    ObjPtr<Component> GetComponent(const char* className);
 
     std::vector<std::unique_ptr<Component>>& GetComponents();
     void SetScene(Scene* scene);

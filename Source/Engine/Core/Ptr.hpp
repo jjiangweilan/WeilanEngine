@@ -89,7 +89,8 @@ public:
             return nullptr;
         }
 
-        if constexpr (!std::is_same_v<T, Object>)
+        // I don't have a proper way to handle inheritance yet
+        if constexpr (!std::is_same_v<T, Object> && !std::is_same_v<T, Component>)
         {
             if (T::StaticGetObjectTypeID() != obj->GetObjectTypeID())
             {

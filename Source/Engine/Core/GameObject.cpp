@@ -499,3 +499,33 @@ void GameObject::ResetToPrefab()
         newGo->SetWorldMatrix(worldMatrix);
     }
 }
+
+ObjPtr<Component> GameObject::GetComponentInHierachy(const char* className)
+{
+    Component* found = GetComponent(className);
+
+    if (found)
+        return found;
+
+    for (auto& c : children)
+    {
+        found = c->GetComponentInHierachy(className);
+        if (found)
+            return found;
+    }
+
+    return nullptr;
+}
+
+ObjPtr<Component> GameObject::GetComponent(const char* className)
+{
+    for (auto& c : components)
+    {
+        if (c->GetTypeName().compare(className) == 0)
+        {
+            return c.get();
+        }
+    }
+
+    return nullptr;
+}
