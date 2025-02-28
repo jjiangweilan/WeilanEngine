@@ -72,6 +72,12 @@ void PhysicsBody::OnEnable()
     {
         Init();
     }
+    else
+    {
+        auto& physicsScene = scene->GetPhysicsScene();
+        physicsScene.AddPhysicsBody(*this);
+        physicsScene.GetBodyInterface().ActivateBody(body->GetID());
+    }
 
     // TransformChanged();
 }
@@ -218,7 +224,9 @@ void PhysicsBody::UpdateGameObject()
     if (body)
     {
         auto newPos = body->GetPosition();
-        gameObject->SetPosition({newPos.GetX() - bodyOffset.x, newPos.GetY() - bodyOffset.y, newPos.GetZ() - bodyOffset.z});
+        gameObject->SetPosition(
+            {newPos.GetX() - bodyOffset.x, newPos.GetY() - bodyOffset.y, newPos.GetZ() - bodyOffset.z}
+        );
 
         auto newRot = body->GetRotation();
         gameObject->SetRotation({newRot.GetW(), newRot.GetX(), newRot.GetY(), newRot.GetZ()});

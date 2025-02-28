@@ -30,7 +30,7 @@ layout(set = SET_MATERIAL, binding = 0) uniform PBR
 } matParams;
 
 #ifdef _Vertex_Skeleton
-#define MAX_BONE_SIZE 64
+#define MAX_BONE_SIZE 256
 layout(set = SET_OBJECT, binding = 0) uniform BoneTransform
 {
     mat4 bones[MAX_BONE_SIZE];

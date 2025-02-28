@@ -60,6 +60,14 @@ void ObjectTracker::ReplaceObject(Object* dst, Object* src)
     AddObjectImpl(dst);
 }
 
+void ObjectTracker::ReplaceObjectUUID(Object* object, const UUID& uuid)
+{
+    ScopedSpinLock lk{lock};
+    RemoveObjectImpl(object);
+    object->uuid = uuid;
+    AddObjectImpl(object);
+}
+
 ObjectTrackHandle ObjectTracker::Track(ObjectTrackHandle handle)
 {
     ScopedSpinLock lk{lock};

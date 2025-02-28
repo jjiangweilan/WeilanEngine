@@ -35,6 +35,7 @@ public:
 
     void AddObject(Object* object);
     void RemoveObject(Object* object);
+    void ReplaceObjectUUID(Object* object, const UUID& uuid);
     void ReplaceObject(Object* dst, Object* src);
 
     std::unordered_map<UUID, ObjectTrackHandle> GetUUIDToSlotIndex()

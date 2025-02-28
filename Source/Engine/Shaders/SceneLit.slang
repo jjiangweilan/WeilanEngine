@@ -30,6 +30,21 @@ struct StandardVertexInput : IVertexInput
     float4 GetBone() { return 0;}
 }
 
+struct SkinnedVertexInput : IVertexInput
+{
+    float3 position;
+    float3 normal;
+    float4 tangent;
+    float2 uv;
+    float4 bone;
+
+    float3 GetPosition() {return position;}
+    float3 GetNormal() {return normal;}
+    float4 GetTangent() {return tangent;}
+    float2 GetUV() { return uv;}
+    float4 GetBone() { return bone;}
+}
+
 extern struct VertexInput : IVertexInput = StandardVertexInput;
 
 struct PushConstant
@@ -53,8 +68,7 @@ struct VertexOutput
 
 ParameterBlock<PerScene> perScene;
 
-[shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput SceneLitVertex(IVertexInput input)
 {
     VertexOutput output;
     float3 vertexPos = input.GetPosition();
@@ -72,6 +86,13 @@ VertexOutput VertexMain(VertexInput input)
     output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
 
     return output;
+}
+
+
+[shader("vertex")]
+VertexOutput VertexMain(VertexInput input)
+{
+    return SceneLitVertex(input);
 }
 
 struct PerMaterial
@@ -98,8 +119,7 @@ struct FragmentOutput
     float4 property : SV_Target3;
 }
 
-[shader("fragment")]
-FragmentOutput FragmentMain(VertexOutput input)
+FragmentOutput SceneLitFragment(VertexOutput input)
 {
     FragmentOutput output;
 
@@ -145,6 +165,12 @@ FragmentOutput FragmentMain(VertexOutput input)
     output.property = float4(metallic, roughness, 0, 1.0f);
 
     return output;
+}
+
+[shader("fragment")]
+FragmentOutput FragmentMain(VertexOutput input)
+{
+    return SceneLitFragment(input);
 }
 
 // struct GIBakeOutput

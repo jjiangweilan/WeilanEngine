@@ -77,6 +77,7 @@ private:
         {
             if (scene->mMeshes[node->mMeshes[m]]->HasBones())
             {
+                materials[scene->mMeshes[node->mMeshes[m]]->mMaterialIndex]->SetShader(ShaderLibrary::SceneLitSkinned);
                 materials[scene->mMeshes[node->mMeshes[m]]->mMaterialIndex]->EnableFeature("_Vertex_Skeleton");
             }
             modelNode.meshes.push_back({node->mMeshes[m], scene->mMeshes[node->mMeshes[m]]->mMaterialIndex});

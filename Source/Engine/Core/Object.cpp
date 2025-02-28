@@ -57,11 +57,13 @@ std::vector<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
 void Object::Serialize(Serializer* s) const
 {
     s->Serialize("uuid", uuid);
+    s->Serialize("name", name);
 }
 
 void Object::Deserialize(Serializer* s)
 {
-    ObjectTracker::Singleton().RemoveObject(this);
+    UUID uuid;
     s->Deserialize("uuid", uuid);
-    ObjectTracker::Singleton().AddObject(this);
+    s->Deserialize("name", name);
+    ObjectTracker::Singleton().ReplaceObjectUUID(this, uuid);
 }

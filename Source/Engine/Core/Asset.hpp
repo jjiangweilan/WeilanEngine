@@ -19,12 +19,11 @@ ENUM_FLAGS(AssetStateFlags, int);
 class Asset : public Object
 {
 public:
-    virtual void SetName(std::string_view name)
+    void SetName(std::string_view name) override
     {
-        this->name = name;
+        Object::SetName(name);
         SetDirty();
     }
-    const std::string& GetName() const { return name; }
     Asset() = default;
     Asset(const Asset& other) = default;
     Asset(Asset&& other) = default;
@@ -55,13 +54,11 @@ public:
     void Serialize(Serializer* s) const override
     {
         Object::Serialize(s);
-        s->Serialize("name", name);
     }
 
     void Deserialize(Serializer* s) override
     {
         Object::Deserialize(s);
-        s->Deserialize("name", name);
     }
 
     virtual void OnLoaded() {}

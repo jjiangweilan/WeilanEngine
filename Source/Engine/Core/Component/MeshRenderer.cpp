@@ -184,7 +184,6 @@ void MeshRenderer::UpdateSkinning()
 {
     if (skinning.enabled)
     {
-
         Skinning::GPUBoneTransforms boneTransforms;
         int maxBoneCount = skinning.bones.size();
         for (int bi = 0; bi < maxBoneCount && bi < Skinning::MaxBoneSize; bi++)

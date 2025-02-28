@@ -104,7 +104,6 @@ Scene* GameObject::GetScene()
 void GameObject::Serialize(Serializer* s) const
 {
     Object::Serialize(s);
-    s->Serialize("name", name);
     s->Serialize("components", components);
     s->Serialize("rotation", rotation);
     s->Serialize("position", position);
@@ -135,7 +134,6 @@ void GameObject::SetWorldMatrix(const glm::mat4& matrix)
 void GameObject::Deserialize(Serializer* s)
 {
     Object::Deserialize(s);
-    s->Deserialize("name", name);
     s->Deserialize("enabled", enabled);
     s->Deserialize("children", children);
     s->Deserialize("parent", parent);

@@ -40,14 +40,9 @@ public:
         ImGui::Text("%s: ", name.data());
         ImGui::SameLine();
         std::string buttonName = "null";
-        Asset* asset = dynamic_cast<Asset*>(curr);
-        if (asset)
+        if (curr != nullptr)
         {
-            buttonName = fmt::format("{}({})", asset->GetName(), curr->GetTypeName());
-        }
-        else if (curr != nullptr)
-        {
-            buttonName = fmt::format("{}({})", curr->GetUUID().ToString().substr(0, 6), curr->GetTypeName());
+            buttonName = fmt::format("{}({})", curr->GetName().empty() ? curr->GetUUID().ToString().substr(0, 6) : curr->GetName(), curr->GetTypeName());
         }
 
         bool stylePushedForNullCurr = false;
@@ -55,7 +50,7 @@ public:
         {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {1.0f, 0.65, 0.45, 1});
             ImGui::PushStyleColor(ImGuiCol_Button, {1.0f, 0.5, 0.3, 1});
-            stylePushedForNullCurr= true;
+            stylePushedForNullCurr = true;
         }
         if (ImGui::Button(
                 curr == nullptr ? T::StaticGetTypeName().c_str()

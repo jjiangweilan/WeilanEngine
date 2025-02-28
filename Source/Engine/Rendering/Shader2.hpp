@@ -8,8 +8,11 @@ class Shader2 : public Object
 
 public:
     Shader2() : Object(), shaderProgram(nullptr) {}
-    Shader2(Gfx::ShaderProgram* shaderProgram) : Object(), shaderProgram(shaderProgram) {}
-    Shader2(const Shader2& other) : Object(), shaderProgram(other.shaderProgram) {}
+    Shader2(Gfx::ShaderProgram* shaderProgram) : Object(), shaderProgram(shaderProgram)
+    {
+        SetName(shaderProgram->GetName());
+    }
+    Shader2(const Shader2& other) : Object(other), shaderProgram(other.shaderProgram) { SetName(other.name); }
     Shader2(Shader2&& other) : Object(std::move(other)), shaderProgram(other.shaderProgram) {}
 
     Shader2 operator=(const Shader2& other) = delete;

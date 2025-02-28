@@ -16,9 +16,12 @@ public:
 
     Object() { ObjectTracker::Singleton().AddObject(this); }
 
-    Object(Object&& other) : uuid() { ObjectTracker::Singleton().ReplaceObject(this, &other); }
+    Object(Object&& other) : name(std::move(other.name)), uuid()
+    {
+        ObjectTracker::Singleton().ReplaceObject(this, &other);
+    }
 
-    Object(const Object& other) : uuid() { ObjectTracker::Singleton().AddObject(this); };
+    Object(const Object& other) : name(other.name), uuid() { ObjectTracker::Singleton().AddObject(this); };
     virtual ~Object() { ObjectTracker::Singleton().RemoveObject(this); }
 
     const UUID& GetUUID() const { return uuid; }
@@ -44,10 +47,14 @@ public:
     template <class T>
     static std::vector<T*> GetObjectsOfType();
 
+    virtual void SetName(std::string_view name) { this->name = name; }
+    const std::string& GetName() const { return name; }
+
 protected:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
+    std::string name;
     UUID uuid;
 
     friend class ObjectReflection;

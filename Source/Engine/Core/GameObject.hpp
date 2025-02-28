@@ -215,14 +215,11 @@ public:
 
     auto GetOwningChildren() { return std::move(owningChildren); }
     auto GetPrefab() const { return prefab; }
-    auto GetName() const -> const std::string& { return name; }
-    auto SetName(const std::string& name) { this->name = name; }
     void ResetToPrefab();
 
     void OnLoaded();
 
 private:
-    std::string name;
     ObjPtr<Prefab> prefab = nullptr;
     GameObjectFlag flags = GameObjectFlag::None;
 

@@ -390,6 +390,11 @@ public:
                                 {
                                     member.type = Gfx::PipelineInfo::MemberDataType::Structure;
                                 }
+                                else if (elementKind == slang::TypeReflection::Kind::Matrix)
+                                {
+                                    auto elementScalarType = fieldTypeLayout->getElementTypeLayout()->getScalarType();
+                                    member.type = MapSlangScalarType(elementScalarType);
+                                }
                                 else
                                 {
                                     member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());

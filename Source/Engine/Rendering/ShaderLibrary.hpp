@@ -62,6 +62,7 @@ class ShaderLibrary
 public:
     static constexpr const char* DeferredPBRShading = "DeferredPBRShading";
     static constexpr const char* SceneLit = "SceneLit";
+    static constexpr const char* SceneLitSkinned = "SceneLitSkinned";
     static constexpr const char* PlaneGrid = "PlaneGrid";
     static constexpr const char* ImGui = "ImGui";
     static constexpr const char* LineShader = "LineShader";
