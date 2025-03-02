@@ -38,6 +38,8 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
                 vertexKernelBlob.writeRef(),
                 vertexDiagnostics.writeRef()
             );
+
+            ShaderCompiler::DiagnoseIfNeeded(vertexDiagnostics);
         }
 
         if (compiler.fragmentEntryPointIndex != -1)
@@ -48,6 +50,8 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
                 fragmentKernelBlob.writeRef(),
                 fragmentDiagnostics.writeRef()
             );
+
+            ShaderCompiler::DiagnoseIfNeeded(fragmentDiagnostics);
         }
 
         if (compiler.computeEntryPointIndex != -1)
@@ -58,6 +62,8 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
                 computeKernelBlob.writeRef(),
                 computeDiagnostics.writeRef()
             );
+
+            ShaderCompiler::DiagnoseIfNeeded(computeDiagnostics);
         }
 
         if (compiler.fragmentEntryPointIndex != -1 && compiler.vertexEntryPointIndex != -1)
@@ -268,7 +274,7 @@ void ShaderLibrary::Init()
 
     slang::TargetDesc targetDesc{
         .structureSize = sizeof(slang::TargetDesc),
-        .format = SLANG_SPIRV,
+        .format = SlangCompileTarget::SLANG_SPIRV,
         .profile = globalSession->findProfile("spirv_1_5"),
     };
     const char* searchPaths[] = {shaderRootPath};

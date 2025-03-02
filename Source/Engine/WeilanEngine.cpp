@@ -57,9 +57,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
 
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle, true};
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
-    auto program = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
 
     InitAssetDatabase();
     InitJoltPhysics();

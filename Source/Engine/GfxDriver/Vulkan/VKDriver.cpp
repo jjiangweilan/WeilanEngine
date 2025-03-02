@@ -52,6 +52,11 @@ struct VKDriver::SDLInfo
 };
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
+#if ENGINE_DEV_BUILD
+    if (createInfo.enableRenderDoc)
+        InitializeRenderDoc();
+#endif
+
     window = createInfo.window;
     CreateInstance();
     CreatePhysicalDevice();

@@ -55,7 +55,8 @@ public:
     struct CreateInfo
     {
         // the initial window size used to create sdl window
-        SDL_Window* window;
+        SDL_Window* window = nullptr;
+        bool enableRenderDoc = false;
     };
 
     static RefPtr<GfxDriver> Instance();

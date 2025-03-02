@@ -34,7 +34,7 @@ private:
     slang::IGlobalSession* globalSession;
 
 public:
-    void DiagnoseIfNeeded(slang::IBlob* diagnostics)
+    static void DiagnoseIfNeeded(slang::IBlob* diagnostics)
     {
         if (diagnostics)
         {

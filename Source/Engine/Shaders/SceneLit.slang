@@ -27,25 +27,10 @@ struct StandardVertexInput : IVertexInput
     float3 GetNormal() {return normal;}
     float4 GetTangent() {return tangent;}
     float2 GetUV() { return uv;}
-    float4 GetBone() { return 0;}
+    float4 GetBone() { return float4(0,0,0,0);}
 }
 
-struct SkinnedVertexInput : IVertexInput
-{
-    float3 position;
-    float3 normal;
-    float4 tangent;
-    float2 uv;
-    float4 bone;
-
-    float3 GetPosition() {return position;}
-    float3 GetNormal() {return normal;}
-    float4 GetTangent() {return tangent;}
-    float2 GetUV() { return uv;}
-    float4 GetBone() { return bone;}
-}
-
-extern struct VertexInput : IVertexInput = StandardVertexInput;
+// extern struct VertexInput : IVertexInput = StandardVertexInput;
 
 struct PushConstant
 {
@@ -68,7 +53,7 @@ struct VertexOutput
 
 ParameterBlock<PerScene> perScene;
 
-VertexOutput SceneLitVertex(IVertexInput input)
+VertexOutput SceneLitVertex(StandardVertexInput input)
 {
     VertexOutput output;
     float3 vertexPos = input.GetPosition();
@@ -90,7 +75,7 @@ VertexOutput SceneLitVertex(IVertexInput input)
 
 
 [shader("vertex")]
-VertexOutput VertexMain(VertexInput input)
+VertexOutput VertexMain(StandardVertexInput input)
 {
     return SceneLitVertex(input);
 }
