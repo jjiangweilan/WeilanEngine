@@ -7,7 +7,7 @@ namespace Editor
 class HudDebug
 {
 public:
-    void Print(std::string_view log);
+    static void Print(std::string_view log);
     std::vector<std::string>&& FlushLogs()
     {
         return std::move(logs);

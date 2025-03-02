@@ -14,6 +14,7 @@
 #include "Libs/Math.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "Rendering/ShaderLibrary.hpp"
+#include "ThirdParty/imgui/imgui.h"
 #include "Tools/PickObjectFromGameView.hpp"
 
 namespace Editor
@@ -164,7 +165,7 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
     if (!ImGui::IsWindowHovered())
         return;
 
-    static ImVec2 lastMouseDelta = ImVec2(0, 0);
+    auto mouseDelta = mouseTrack.GetMouseDelta(ImGuiMouseButton_Right);
     if (ImGui::IsMouseDown(ImGuiMouseButton_Right))
     {
         auto go = editorCamera.GetGameObject();
@@ -210,12 +211,10 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         pos += dir;
         go->SetPosition(pos);
 
-        auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right, 0);
-        glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
-        mouseDelta.y = -mouseDelta.y;
-        lastMouseDelta = mouseLastClickDelta;
-        auto upDown = glm::radians(mouseDelta.y * 50) * Time::DeltaTime();
-        auto leftRight = glm::radians(mouseDelta.x * 50) * Time::DeltaTime();
+        // glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
+        // lastMouseDelta = mouseLastClickDelta;
+        auto upDown = 25 * glm::radians(mouseDelta.y) * Time::DeltaTime();
+        auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
 
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right + upDown * up;
@@ -225,10 +224,6 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
     }
     else if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
     {
-        auto mouseLastClickDelta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle, 0);
-        glm::vec2 mouseDelta = {mouseLastClickDelta.x - lastMouseDelta.x, mouseLastClickDelta.y - lastMouseDelta.y};
-        mouseDelta.y = -mouseDelta.y;
-        lastMouseDelta = mouseLastClickDelta;
         auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
         auto leftRight = glm::radians(mouseDelta.x * 100) * Time::DeltaTime();
 
@@ -237,13 +232,9 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         pos += go->GetUp() * upDown + leftRight * go->GetRight();
         go->SetPosition(pos);
     }
-    else
-    {
-        lastMouseDelta = ImVec2(0, 0);
-    }
 
     glm::vec3 pos = editorCamera.GetGameObject()->GetPosition();
-    HudDebug::Singleton().Print(fmt::format("{}, {}, {}", pos.x, pos.y, pos.z));
+    HudDebug::Print(fmt::format("{}, {}, {}", pos.x, pos.y, pos.z));
 }
 
 void GameView::CreateRenderData(uint32_t width, uint32_t height)

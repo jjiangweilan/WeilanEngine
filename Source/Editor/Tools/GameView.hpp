@@ -17,10 +17,7 @@ public:
     ~GameView() override;
 
 public:
-    std::vector<std::string> GetToolMenuItem() override
-    {
-        return {"View", "Game"};
-    }
+    std::vector<std::string> GetToolMenuItem() override { return {"View", "Game"}; }
 
     void Init();
     void Deinit();
@@ -35,15 +32,9 @@ public:
 
     void SetActiveScene(ObjPtr<Scene> scene);
 
-    Camera* GetEditorCamera() const
-    {
-        return editorCamera;
-    }
+    Camera* GetEditorCamera() const { return editorCamera; }
 
-    Gfx::Image* GetSceneImage()
-    {
-        return sceneImage.get();
-    }
+    Gfx::Image* GetSceneImage() { return sceneImage.get(); }
 
 private:
     std::unique_ptr<Gfx::Image> sceneImage;
@@ -101,6 +92,38 @@ private:
             50, 1, 50
         ); // the plane's mesh center is it's geometry center, so scale 50 to scale the plane by 100
     } editorWorldSpaceGrid = {};
+
+    struct MouseDelta
+    {
+        bool isTracking = false;
+        glm::float2 lastMousePos;
+
+        glm::float2 GetMouseDelta(ImGuiMouseButton mouseButton)
+        {
+            if (ImGui::IsMouseDown(mouseButton))
+            {
+                if (isTracking == false)
+                {
+                    isTracking = true;
+                    lastMousePos = ImGui::GetMousePos();
+                    return glm::float2(0, 0);
+                }
+                else
+                {
+                    auto currentPos = ImGui::GetMousePos();
+                    auto delta = currentPos - lastMousePos;
+                    lastMousePos = currentPos;
+                    return {delta.x, -delta.y};
+                }
+            }
+            if (ImGui::IsMouseReleased(mouseButton))
+            {
+                isTracking = false;
+            }
+
+            return {0, 0};
+        }
+    } mouseTrack;
 
     struct PlayTheGame;
     std::unique_ptr<PlayTheGame> playTheGame;

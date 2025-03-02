@@ -1,10 +1,11 @@
 #include "HudDebug.hpp"
+#include <ranges>
 
 namespace Editor
 {
 void HudDebug::Print(std::string_view log)
 {
-    logs.push_back(std::string(log));
+    Singleton().logs.push_back(std::string(log));
 }
 
 HudDebug& HudDebug::Singleton()
