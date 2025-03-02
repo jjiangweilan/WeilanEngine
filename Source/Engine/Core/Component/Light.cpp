@@ -22,7 +22,7 @@ glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
     }
     else
     {
-        glm::mat4 proj = glm::orthoLH_ZO(-30., 30., -30., 30., -300., 700.);
+        glm::mat4 proj = glm::orthoLH_ZO(-10., 10., -10., 10., -300., 700.);
         auto model = gameObject->GetWorldMatrix();
         model[3] = glm::vec4(follow, 1.0);
         shadowCache.cachedWorldToShadow = proj * glm::inverse(model);

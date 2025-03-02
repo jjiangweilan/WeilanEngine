@@ -224,7 +224,7 @@ void MeshRenderer::ValidateSkinning()
 
                 if (boneGO == nullptr)
                 {
-                    spdlog::warn("bone not found {}, skining is not enabled", bone.name);
+                    spdlog::warn("bone not found {}, disabling skinning", bone.name);
                     DisableSkinning();
                     return;
                 }
@@ -244,7 +244,7 @@ void MeshRenderer::ValidateSkinning()
             wantsToEnableSkinning = true;
 
             gpuResource = GetGfxDriver()->CreateShaderResource();
-            gpuResource->SetBuffer("BoneTransform", skinning.bonesBuffer.get());
+            gpuResource->SetBuffer("skeleton", skinning.bonesBuffer.get());
 
             Skinning::GPUBoneTransforms boneTransforms;
             int maxBoneCount = skinning.bones.size();

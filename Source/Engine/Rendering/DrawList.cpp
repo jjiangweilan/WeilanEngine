@@ -53,6 +53,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         drawData.invTspModel = glm::inverse(glm::transpose(glm::float3x3(drawData.model)));
                         drawData.indexCount = indexCount;
                         drawData.material = material;
+                        drawData.skinned = meshRenderer.IsSkinningEnabled();
                         push_back(std::move(drawData));
                     }
                 }

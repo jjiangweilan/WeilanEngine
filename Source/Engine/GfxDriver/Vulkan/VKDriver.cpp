@@ -58,7 +58,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 #endif
 
     window = createInfo.window;
-    CreateInstance();
+    CreateInstance(createInfo.enableGfxDriverValidation);
     CreatePhysicalDevice();
     CreateSurface();
     CreateDevice();
@@ -778,7 +778,7 @@ bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<con
     return true;
 }
 
-void VKDriver::CreateInstance()
+void VKDriver::CreateInstance(bool enableValidationLayers)
 {
     // Create vulkan application info
     VkApplicationInfo appInfo{};
@@ -814,7 +814,6 @@ void VKDriver::CreateInstance()
         "VK_LAYER_KHRONOS_synchronization2"
     }; // If you don't get syncrhonization validation work, be sure it's enabled
        // and overrided in vkconfig app in VulkanSDK
-    bool enableValidationLayers = true;
     if (enableValidationLayers)
     {
         if (!Instance_CheckAvalibilityOfValidationLayers(validationLayers))

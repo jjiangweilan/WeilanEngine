@@ -91,6 +91,7 @@ private:
         Gfx::ImageDescription shadowDescription;
         std::unique_ptr<Gfx::Image> shadowMap;
         ObjPtr<Shader2> shadowMapShader;
+        ObjPtr<Shader2> shadowMapShaderSkinned;
 
         bool updateMainLightShadow = true;
 

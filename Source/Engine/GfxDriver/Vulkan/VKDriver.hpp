@@ -170,7 +170,7 @@ public:
     VkCommandBuffer immediateCmd = VK_NULL_HANDLE;
     VkFence immediateCmdFence = VK_NULL_HANDLE;
 
-    void CreateInstance();
+    void CreateInstance(bool enableValidationLayers);
     void CreatePhysicalDevice();
     void CreateDevice();
     void CreateSurface();

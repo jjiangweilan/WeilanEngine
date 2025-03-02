@@ -41,11 +41,7 @@ RenderPipeline::RenderPipeline()
         interleavedGradientNoiseShader->GetShaderProgram(),
         interleavedGradientNoiseShader->GetShaderProgram()->GetDefaultShaderConfig()
     );
-    cmd->Dispatch(
-        (interleavedGradientNoiseDesc.width + 7) / 8,
-        (interleavedGradientNoiseDesc.height + 7) / 8,
-        1
-    );
+    cmd->Dispatch((interleavedGradientNoiseDesc.width + 7) / 8, (interleavedGradientNoiseDesc.height + 7) / 8, 1);
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }
 
@@ -220,14 +216,27 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             Gfx::ClearValue shadowMapClears[] = {{1.0f, 0}};
             cmd->BeginRenderPass(shadowMapPass.pass, shadowMapClears);
             auto program = shadowMapPass.shadowMapShader->GetShaderProgram();
+            auto programSkinned = shadowMapPass.shadowMapShaderSkinned->GetShaderProgram();
 
             for (auto& draw : sceneDrawList)
             {
-                cmd->BindShaderProgram(program, program->GetDefaultShaderConfig());
+                auto programUsed = program;
+                [[unlikely]]
+                if (draw.skinned)
+                {
+                    programUsed = programSkinned;
+                    if (draw.objectResource)
+                        cmd->BindResource(1, draw.objectResource);
+                }
+                else
+                {
+                    auto ps = draw.GetPushConstant();
+                    cmd->SetPushConstant(programUsed, (void*)&ps);
+                }
+                cmd->BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
+
                 cmd->BindVertexBuffer(draw.vertexBufferBinding, 0);
                 cmd->BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                auto ps = draw.GetPushConstant();
-                cmd->SetPushConstant(program, (void*)&ps);
                 cmd->DrawIndexed(draw.indexCount, 1, 0, 0, 0);
             }
 
@@ -464,6 +473,7 @@ RenderPipeline::ShadowMapPass::ShadowMapPass()
     );
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);
+    shadowMapShaderSkinned = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObjectSkinned);
 
     shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
 

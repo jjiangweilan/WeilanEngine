@@ -821,6 +821,8 @@ public:
         LuaBinder<AnimationPlayer> animationPlayer(L);
         animationPlayer
             .Begin("AnimationPlayer")
+            .BindMemFn("SetClip", &AnimationPlayer::SetClip)
+            .BindMemFn("Play", &AnimationPlayer::Play)
             .End();
 
         LuaBinder<Light> light(L);

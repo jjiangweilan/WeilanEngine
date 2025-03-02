@@ -1,4 +1,5 @@
 import Library.PerScene;
+import Skeleton;
 #include "DeferredPBRShading.hlsl"
 
 static extern const bool _AlphaTest = false;
@@ -66,11 +67,10 @@ struct PerMaterial
     Sampler2D emissiveMap;
 };
 
-#define MAX_BONE_SIZE 256
 struct PerObject
 {
-    float4x4 bones[MAX_BONE_SIZE];
-};
+    ConstantBuffer<Skeleton> skeleton;
+}
 
 ParameterBlock<PerScene> perScene;
 ParameterBlock<PerMaterial> perMaterial;
@@ -89,27 +89,17 @@ VertexOutput SceneLitVertex(IVertexInput input)
     VertexOutput output;
 
 // calculate bone position
-    float4x4 boneMatrix = float4x4(0);
-    float4 bone = input.GetBone();
-    for(int i = 0; i < 4; ++i)
-    {
-        float boneWeight = bone[i];
-        if (boneWeight != 0)
-        {
-            int boneIndex = int(boneWeight * 0.1);
-            float weight = boneWeight - boneIndex * 10;
-            boneMatrix += perObject.bones[boneIndex] * weight;
-        }
-    }
+    float4 boneWeights = input.GetBone();
+    float4x4 skeletonMatrix = perObject.skeleton.GetSkeletonMatrix(boneWeights);
 
     float3 position = input.GetPosition();
-    float4 vertexPos = mul(boneMatrix, float4(position, 1));
+    float4 vertexPos = mul(skeletonMatrix, float4(position, 1));
     float3 normal = input.GetNormal();
     float4 tangent = input.GetTangent();
 
-    output.positionWS = mul(pconst.model, float4(vertexPos.xyz, 1)).xyz;
+    output.positionWS = vertexPos.xyz;//mul(pconst.model, float4(vertexPos.xyz, 1)).xyz;
 
-    matrix<float,3,3> model33 = (float3x3)pconst.invTspModel;
+    matrix<float,3,3> model33 = (float3x3)skeletonMatrix;
     output.normalWS = mul(model33, normal).xyz;
     output.tangentWS = mul(model33, tangent.xyz);
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);

@@ -11,6 +11,7 @@ struct SceneObjectDrawData
     SceneObjectDrawData() = default;
     SceneObjectDrawData(SceneObjectDrawData&& other) = default;
     SceneObjectDrawData& operator=(SceneObjectDrawData&& other) = default;
+    bool skinned = false;
     Shader2* shader = nullptr;
     const Gfx::PipelineConfig* shaderConfig = nullptr;
     Material* material = nullptr;

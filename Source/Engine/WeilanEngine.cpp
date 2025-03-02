@@ -57,7 +57,11 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
 
-    Gfx::GfxDriver::CreateInfo gfxCreateInfo{mainWindow.handle, true};
+    Gfx::GfxDriver::CreateInfo gfxCreateInfo{
+        .window = mainWindow.handle,
+        .enableRenderDoc = false,
+        .enableGfxDriverValidation = false
+    };
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
 
     InitAssetDatabase();

@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Object.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
+#include <unordered_map>
 
 class Shader2 : public Object
 {
