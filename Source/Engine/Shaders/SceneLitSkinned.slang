@@ -16,20 +16,6 @@ interface IVertexInput
     float4 GetBone();
 }
 
-struct StandardVertexInput : IVertexInput
-{
-    float3 position;
-    float3 normal;
-    float4 tangent;
-    float2 uv;
-
-    float3 GetPosition() {return position;}
-    float3 GetNormal() {return normal;}
-    float4 GetTangent() {return tangent;}
-    float2 GetUV() { return uv;}
-    float4 GetBone() { return 0;}
-}
-
 struct SkinnedVertexInput : IVertexInput
 {
     float3 position;
@@ -116,11 +102,12 @@ VertexOutput SceneLitVertex(IVertexInput input)
         }
     }
 
-    float3 vertexPos = mul(boneMatrix, float4(input.GetPosition(), 1));
+    float3 position = input.GetPosition();
+    float4 vertexPos = mul(boneMatrix, float4(position, 1));
     float3 normal = input.GetNormal();
     float4 tangent = input.GetTangent();
 
-    output.positionWS = mul(pconst.model, float4(vertexPos, 1)).xyz;
+    output.positionWS = mul(pconst.model, float4(vertexPos.xyz, 1)).xyz;
 
     matrix<float,3,3> model33 = (float3x3)pconst.invTspModel;
     output.normalWS = mul(model33, normal).xyz;

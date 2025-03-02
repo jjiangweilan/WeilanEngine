@@ -30,7 +30,7 @@ struct StandardVertexInput : IVertexInput
     float4 GetBone() { return float4(0,0,0,0);}
 }
 
-// extern struct VertexInput : IVertexInput = StandardVertexInput;
+extern struct VertexInput : IVertexInput = StandardVertexInput;
 
 struct PushConstant
 {
@@ -53,7 +53,7 @@ struct VertexOutput
 
 ParameterBlock<PerScene> perScene;
 
-VertexOutput SceneLitVertex(StandardVertexInput input)
+VertexOutput SceneLitVertex(VertexInput input)
 {
     VertexOutput output;
     float3 vertexPos = input.GetPosition();
@@ -75,7 +75,7 @@ VertexOutput SceneLitVertex(StandardVertexInput input)
 
 
 [shader("vertex")]
-VertexOutput VertexMain(StandardVertexInput input)
+VertexOutput VertexMain(VertexInput input)
 {
     return SceneLitVertex(input);
 }
