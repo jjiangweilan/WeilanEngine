@@ -120,25 +120,25 @@ private:
             if (mesh->HasNormals())
             {
                 attributeStrideSize += normalSize;
-                attributes.AddAttribute("normal", normalSize);
+                attributes.AddAttribute("NORMAL0", normalSize);
             }
 
             if (mesh->HasTangentsAndBitangents())
             {
                 tangentStrideOffset = attributeStrideSize;
                 attributeStrideSize += tangentSize; // we only use tangent
-                attributes.AddAttribute("tangent", tangentSize);
+                attributes.AddAttribute("TANGENT0", tangentSize);
             }
 
             const char* texCoordNames[8] = {
-                "texCoords_0",
-                "texCoords_1",
-                "texCoords_2",
-                "texCoords_3",
-                "texCoords_4",
-                "texCoords_5",
-                "texCoords_6",
-                "texCoords_7"
+                "TEXCOORD0",
+                "TEXCOORD1",
+                "TEXCOORD2",
+                "TEXCOORD3",
+                "TEXCOORD4",
+                "TEXCOORD5",
+                "TEXCOORD6",
+                "TEXCOORD7"
             };
             const int MaxTexcoordChannels = 1;
             for (int i = 0; i < MaxTexcoordChannels; ++i)
@@ -153,14 +153,14 @@ private:
             }
 
             const char* vertexColorNames[8] = {
-                "vertexColor_0",
-                "vertexColor_1",
-                "vertexColor_2",
-                "vertexColor_3",
-                "vertexColor_4",
-                "vertexColor_5",
-                "vertexColor_6",
-                "vertexColor_7"
+                "COLOR0",
+                "COLOR1",
+                "COLOR2",
+                "COLOR3",
+                "COLOR4",
+                "COLOR5",
+                "COLOR6",
+                "COLOR7"
             };
             const uint32_t vertexColorSize = 16;
             for (int i = 0; i < AI_MAX_NUMBER_OF_COLOR_SETS; ++i)
@@ -173,12 +173,12 @@ private:
                 }
             }
 
-            const uint32_t skeletonSize = 16; // packed id + weight
+            const uint32_t boneSize = 16; // packed id + weight
             if (mesh->HasBones())
             {
                 skeletonOffset = attributeStrideSize;
-                attributeStrideSize += skeletonSize;
-                attributes.AddAttribute("skeleton", skeletonSize);
+                attributeStrideSize += boneSize;
+                attributes.AddAttribute("BONE0", boneSize);
             }
 
             std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices, 0);

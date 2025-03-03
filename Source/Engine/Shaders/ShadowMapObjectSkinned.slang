@@ -15,8 +15,8 @@ Transform transform;
 
 struct VertexInput
 {
-    float3 position;
-    float3 normal;
+    float3 position : POSITION0;
+    float3 normal : TEX12;
     float4 tangent;
     float2 uv;
     float4 bone;

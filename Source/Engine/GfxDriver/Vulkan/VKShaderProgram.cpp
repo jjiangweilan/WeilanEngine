@@ -368,7 +368,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     const PipelineConfig& config, VKRenderPass* renderPass, uint32_t subpassIndex
 )
 {
-    uint64_t requestHash = config.GetHash();
+    PipelineRequestHash requestHash = config.GetHash();
     HashCombine(requestHash, renderPass->GetHandle());
     HashCombine(requestHash, subpassIndex);
 

@@ -76,6 +76,7 @@ struct PipelineInfo
     struct VertexAttribute
     {
         std::string name = ""; // not hashed
+        std::string semanticName = "";
         int location;
         int size;
         GfxFormat format;
