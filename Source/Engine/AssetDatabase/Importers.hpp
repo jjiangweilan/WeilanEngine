@@ -5,5 +5,5 @@
 class Importers
 {
 public:
-    static std::unique_ptr<Model> GLB(const char* path, Shader* shader = nullptr);
+    static std::unique_ptr<Model> GLB(const char* path, Obsolete::Shader* shader = nullptr);
 };

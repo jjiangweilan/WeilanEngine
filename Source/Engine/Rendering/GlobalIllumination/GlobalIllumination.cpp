@@ -241,10 +241,10 @@ private:
 
     std::unique_ptr<Gfx::RenderPass> probeOctahedralPass;
     Probe* probe;
-    Shader* probeCubemapShader;
-    Shader* octahedralRemapShader;
+    Obsolete::Shader* probeCubemapShader;
+    Obsolete::Shader* octahedralRemapShader;
 
-    Shader* GetOctahedralRemapBaker();
+    Obsolete::Shader* GetOctahedralRemapBaker();
 
     void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from, int to)
     {

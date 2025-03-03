@@ -116,9 +116,9 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
             // draw opaque objects
             DispatchBake(cmd, drawList, 0, drawList->alphaTestIndex);
             // draw alpha tested objects
-            Shader::EnableFeature("_AlphaTest");
+            Obsolete::Shader::EnableFeature("_AlphaTest");
             DispatchBake(cmd, drawList, drawList->alphaTestIndex, drawList->transparentIndex);
-            Shader::DisableFeature("_AlphaTest");
+            Obsolete::Shader::DisableFeature("_AlphaTest");
         }
         cmd.EndRenderPass();
     }
@@ -148,12 +148,12 @@ void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
     probe->baked = true;
 }
 
-Shader* ProbeBaker::GetOctahedralRemapBaker()
+Obsolete::Shader* ProbeBaker::GetOctahedralRemapBaker()
 {
-    static Shader* octahedralRemapBakerShader = nullptr;
+    static Obsolete::Shader* octahedralRemapBakerShader = nullptr;
     if (!octahedralRemapBakerShader)
     {
-        octahedralRemapBakerShader = (Shader*)AssetDatabase::Singleton()->LoadAsset(
+        octahedralRemapBakerShader = (Obsolete::Shader*)AssetDatabase::Singleton()->LoadAsset(
             "_engine_internal/Shaders/LightFieldProbes/OctahedralRemapBaker.shad"
         );
     }

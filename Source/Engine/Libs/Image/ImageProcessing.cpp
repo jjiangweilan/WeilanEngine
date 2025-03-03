@@ -40,7 +40,7 @@ void GenerateIrradianceCubemap(float* source, int width, int height, int outputS
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    ComputeShader* compute = (ComputeShader*)AssetDatabase::Singleton()->LoadAsset(
+    Obsolete::ComputeShader* compute = (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset(
         "_engine_internal/Shaders/Utils/IrradianceMapGeneration.comp"
     );
 
@@ -107,8 +107,8 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    ComputeShader* compute =
-        (ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
+    Obsolete::ComputeShader* compute =
+        (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
 
     Gfx::BufferImageCopyRegion srcCopy[] = {
         {0,

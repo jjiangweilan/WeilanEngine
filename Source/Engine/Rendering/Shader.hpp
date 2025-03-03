@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Ptr.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
+#include "Shader2.hpp"
 #include "ShaderFeatureBitmask.hpp"
 #include <set>
 #include <string>
@@ -13,6 +14,19 @@ class ShaderLoader;
 } // namespace Gfx
   //
 
+class Shader : public Asset
+{
+    DECLARE_ASSET();
+
+public:
+    ObjPtr<Shader2> GetShader(const std::string& name);
+
+private:
+    std::unordered_map<std::string, ObjPtr<Shader2>> shaders;
+};
+
+namespace Obsolete
+{
 struct ShaderPass
 {
     std::string name;
@@ -139,3 +153,4 @@ public:
     ComputeShader(const char* path) { LoadFromFile(path); };
     bool LoadFromFile(const char* path) override { return false; };
 };
+} // namespace Obsolete

@@ -26,8 +26,8 @@ void GenerateBRDFResponseTexture(const char* path)
 
     std::unique_ptr<Gfx::CommandBuffer> cmd = GetGfxDriver()->CreateCommandBuffer();
 
-    ComputeShader* compute =
-        (ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
+    Obsolete::ComputeShader* compute =
+        (Obsolete::ComputeShader*)AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/Utils/IBLBRDF.comp");
     Gfx::ShaderProgram* program = compute->GetShaderProgram({"BRDF_IBL"});
 
     glm::vec4 texelSize = {1.0f / imgDesc.width, 1.0f / imgDesc.height, imgDesc.width, imgDesc.height};

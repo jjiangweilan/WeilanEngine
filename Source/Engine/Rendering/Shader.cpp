@@ -5,6 +5,10 @@
 #include "ThirdParty/xxHash/xxhash.h"
 #include <spdlog/spdlog.h>
 
+DEFINE_ASSET(Shader, "31183784-BB44-4E1C-80CA-81E8F982A04E", "shader");
+
+namespace Obsolete
+{
 DEFINE_ASSET(Shader, "41EF74E2-6DAF-4755-A385-ABFCC4E83147", "shad");
 DEFINE_ASSET(ComputeShader, "91093726-6D8F-440C-B617-6AA3FDA08DEA", "comp");
 
@@ -192,3 +196,4 @@ bool Shader::LoadFromFile(const char* path)
 {
     return false;
 }
+} // namespace Obsolete

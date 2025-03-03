@@ -12,7 +12,7 @@ class WorldGridModuleEditor : public Window
     DECLARE_EDITOR_WINDOW(WorldGridModuleEditor)
     bool showGrid;
     Mesh* plane;
-    Shader* gridShader;
+    Obsolete::Shader* gridShader;
     glm::vec3 pos = glm::vec3(0);
     glm::vec3 scale = glm::vec3(10);
     glm::vec3 rotation;
@@ -38,7 +38,7 @@ class WorldGridModuleEditor : public Window
                     ->GetMeshes()[0]
                     .get();
         gridShader =
-            static_cast<Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
+            static_cast<Obsolete::Shader*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Shaders/PlaneGrid.shad"));
     }
 
     void ShowGrid()

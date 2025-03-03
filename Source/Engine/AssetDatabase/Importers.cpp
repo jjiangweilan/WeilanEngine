@@ -33,7 +33,7 @@ static void SetAssetNameAndUUID(Asset* resource, nlohmann::json& j, const std::s
 static void SetGameObjectNameAndUUID(GameObject* resource, nlohmann::json& j, const std::string& assetGroupName, int index);
 Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshIndex, int primitiveIndex);
 
-std::unique_ptr<Model> Importers::GLB(const char* cpath, Shader* shader)
+std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shader)
 {
     // read uuid file
     std::filesystem::path path(cpath);

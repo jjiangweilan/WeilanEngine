@@ -8,7 +8,7 @@ DEFINE_ASSET_LOADER(ShaderLoader, "shad,comp")
 
 const std::vector<std::type_index>& ShaderLoader::GetImportTypes()
 {
-    static std::vector<std::type_index> types = {typeid(Shader), typeid(ComputeShader)};
+    static std::vector<std::type_index> types = {typeid(Obsolete::Shader), typeid(Obsolete::ComputeShader)};
     return types;
 }
 
@@ -20,16 +20,16 @@ bool ShaderLoader::ImportNeeded()
 void ShaderLoader::Load()
 {
     nlohmann::json shaderPasses = meta["compiledShaderPasses"];
-    std::vector<std::unique_ptr<ShaderPass>> passes;
+    std::vector<std::unique_ptr<Obsolete::ShaderPass>> passes;
 
-    std::unique_ptr<ShaderBase> shader;
+    std::unique_ptr<Obsolete::ShaderBase> shader;
     if (absoluteAssetPath.extension() == ".shad")
     {
-        shader = std::make_unique<Shader>();
+        shader = std::make_unique<Obsolete::Shader>();
     }
     else if (absoluteAssetPath.extension() == ".comp")
     {
-        shader = std::make_unique<ComputeShader>();
+        shader = std::make_unique<Obsolete::ComputeShader>();
     }
 
     shader->SetShaderPasses(std::move(passes));
