@@ -1,14 +1,17 @@
 #pragma once
 #include "Core/Asset.hpp"
 #include "GfxDriver/Buffer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/VertexBufferBinding.hpp"
 #include "Rendering/Structs.hpp"
+#include <algorithm>
 #include <glm/glm.hpp>
 
 #include <string_view>
 #include <vector>
 
 // interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
+//
 
 struct SkeletonBone
 {
@@ -29,6 +32,7 @@ class VertexAttributes
 public:
     struct Attribute
     {
+        std::string semanticName;
         std::string name;
         int size;
     };
@@ -39,9 +43,9 @@ public:
         return iter != attributes.end();
     }
 
-    VertexAttributes& AddAttribute(const char* name, int size)
+    VertexAttributes& AddAttribute(const char* semanticName, int size)
     {
-        attributes.push_back(Attribute{name, size});
+        attributes.push_back(Attribute{semanticName, "", size});
         return *this;
     }
 
