@@ -1,6 +1,7 @@
 #include "JoltDebugRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Graphics/Mesh.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Rendering/Material.hpp"
 
@@ -35,9 +36,9 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     std::vector<uint32_t> indices;
     VertexAttributes attributes;
     std::vector<uint8_t> attributeData;
-    attributes.AddAttribute("normal", 3 * sizeof(float));
-    attributes.AddAttribute("color", 4 * sizeof(float));
-    attributes.AddAttribute("uv", 2 * sizeof(float));
+    attributes.AddAttribute("normal", VertexAttributeSemantics::Normal, 0, 3 * sizeof(float));
+    attributes.AddAttribute("color", VertexAttributeSemantics::Color, 0, 4 * sizeof(float));
+    attributes.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 2 * sizeof(float));
     for (int i = 0; i < inTriangleCount; ++i)
     {
         auto& tri = inTriangles[i];

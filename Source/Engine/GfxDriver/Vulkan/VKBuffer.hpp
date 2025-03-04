@@ -19,15 +19,9 @@ public:
     );
     void* GetCPUVisibleAddress() override;
     void SetDebugName(const char* name) override;
-    size_t GetSize() override
-    {
-        return size;
-    }
+    size_t GetSize() override { return size; }
 
-    inline VkBuffer GetHandle()
-    {
-        return buffer;
-    }
+    inline VkBuffer GetHandle() { return buffer; }
 
 private:
     std::string name;

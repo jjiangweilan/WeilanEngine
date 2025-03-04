@@ -30,6 +30,7 @@ Submesh::Submesh(
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
     bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    gfxVertexBuffer->SetVertexAttributes(attributes);
 
     // calculate index buffer size
     std::size_t indexBufferSize = indexCount * (indexBufferType == Gfx::IndexBufferType::UInt16 ? 2 : 4);

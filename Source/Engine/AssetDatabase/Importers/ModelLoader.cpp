@@ -1,5 +1,6 @@
 #include "ModelLoader.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Graphics/Mesh.hpp"
 #include "Core/Model.hpp"
 #include "Rendering/Animation.hpp"
 #include "Rendering/ShaderLibrary.hpp"
@@ -120,26 +121,19 @@ private:
             if (mesh->HasNormals())
             {
                 attributeStrideSize += normalSize;
-                attributes.AddAttribute("NORMAL0", normalSize);
+                attributes.AddAttribute("NORMAL0", VertexAttributeSemantics::Normal, 0, normalSize);
             }
 
             if (mesh->HasTangentsAndBitangents())
             {
                 tangentStrideOffset = attributeStrideSize;
                 attributeStrideSize += tangentSize; // we only use tangent
-                attributes.AddAttribute("TANGENT0", tangentSize);
+                attributes.AddAttribute("TANGENT0", VertexAttributeSemantics::Tangent, 0, tangentSize);
             }
 
-            const char* texCoordNames[8] = {
-                "TEXCOORD0",
-                "TEXCOORD1",
-                "TEXCOORD2",
-                "TEXCOORD3",
-                "TEXCOORD4",
-                "TEXCOORD5",
-                "TEXCOORD6",
-                "TEXCOORD7"
-            };
+            const char* texCoordNames[8] =
+                {"TEXCOORD0", "TEXCOORD1", "TEXCOORD2", "TEXCOORD3", "TEXCOORD4", "TEXCOORD5", "TEXCOORD6", "TEXCOORD7"
+                };
             const int MaxTexcoordChannels = 1;
             for (int i = 0; i < MaxTexcoordChannels; ++i)
             {
@@ -148,20 +142,12 @@ private:
                     texCoordStrideOffsets[i] = attributeStrideSize;
                     uint32_t size = mesh->mNumUVComponents[i] * 4;
                     attributeStrideSize += size;
-                    attributes.AddAttribute(texCoordNames[i], size);
+                    attributes.AddAttribute(texCoordNames[i], VertexAttributeSemantics::Texcoord, i, size);
                 }
             }
 
-            const char* vertexColorNames[8] = {
-                "COLOR0",
-                "COLOR1",
-                "COLOR2",
-                "COLOR3",
-                "COLOR4",
-                "COLOR5",
-                "COLOR6",
-                "COLOR7"
-            };
+            const char* vertexColorNames[8] =
+                {"COLOR0", "COLOR1", "COLOR2", "COLOR3", "COLOR4", "COLOR5", "COLOR6", "COLOR7"};
             const uint32_t vertexColorSize = 16;
             for (int i = 0; i < AI_MAX_NUMBER_OF_COLOR_SETS; ++i)
             {
@@ -169,7 +155,7 @@ private:
                 {
                     vertexColorStrideOffsets[i] = attributeStrideSize;
                     attributeStrideSize += vertexColorSize;
-                    attributes.AddAttribute(vertexColorNames[i], vertexColorSize);
+                    attributes.AddAttribute(vertexColorNames[i], VertexAttributeSemantics::Color, i, vertexColorSize);
                 }
             }
 
@@ -178,7 +164,7 @@ private:
             {
                 skeletonOffset = attributeStrideSize;
                 attributeStrideSize += boneSize;
-                attributes.AddAttribute("BONE0", boneSize);
+                attributes.AddAttribute("BONE0", VertexAttributeSemantics::Bone, 0, boneSize);
             }
 
             std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices, 0);

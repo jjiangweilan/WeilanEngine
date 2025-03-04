@@ -1205,6 +1205,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                         vkOffsets[i] = args.vertexBufferBindings[i].offset;
                     }
 
+
                     vkCmdBindVertexBuffers(
                         vkcmd,
                         args.firstBindingIndex,

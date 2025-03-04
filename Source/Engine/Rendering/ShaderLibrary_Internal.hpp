@@ -2,6 +2,7 @@
 #include "Libs/Assert.hpp"
 #include "Libs/Utils.hpp"
 #include "Rendering/EnumStringMapping.hpp"
+#include <condition_variable>
 #include <fstream>
 #include <regex>
 #include <ryml.hpp>

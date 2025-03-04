@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "GfxDriver/Buffer.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
 #include "GfxDriver/VertexBufferBinding.hpp"
 #include "Rendering/Structs.hpp"
 #include <algorithm>
@@ -19,52 +20,7 @@ struct SkeletonBone
     glm::mat4 offsetMatrix;
 };
 
-struct VertexBinding
-{
-    std::size_t byteOffset;
-    std::size_t byteSize;
-    std::string name;
-};
-
 using Skeleton = std::vector<SkeletonBone>;
-class VertexAttributes
-{
-public:
-    struct Attribute
-    {
-        std::string semanticName;
-        std::string name;
-        int size;
-    };
-
-    bool HasAttribute(std::string_view name)
-    {
-        auto iter = std::find_if(attributes.begin(), attributes.end(), [name](Attribute& v) { return v.name == name; });
-        return iter != attributes.end();
-    }
-
-    VertexAttributes& AddAttribute(const char* semanticName, int size)
-    {
-        attributes.push_back(Attribute{semanticName, "", size});
-        return *this;
-    }
-
-    size_t GetSize() const { return data.size(); }
-
-    const std::vector<uint8_t> GetData() { return data; }
-
-    void SetData(const std::vector<uint8_t>& data) { this->data = data; }
-
-    void SetData(std::vector<uint8_t>&& data) { this->data = std::move(data); }
-
-    const std::vector<Attribute>& GetDescription() const { return attributes; }
-
-private:
-    std::vector<Attribute> attributes;
-
-    // raw attribute data, attributes should be interleaved
-    std::vector<uint8_t> data;
-};
 
 class Submesh
 {
@@ -183,8 +139,11 @@ public:
 
         glm::vec3 min =
             {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
-        glm::vec3 max =
-            {std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
+        glm::vec3 max = {
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest(),
+            std::numeric_limits<float>::lowest()
+        };
 
         for (auto& submesh : this->submeshes)
         {

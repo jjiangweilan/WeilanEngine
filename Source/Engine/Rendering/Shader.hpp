@@ -19,10 +19,10 @@ class Shader : public Asset
     DECLARE_ASSET();
 
 public:
-    ObjPtr<Shader2> GetShader(const std::string& name);
+    ObjPtr<Shader2> GetShader(const std::string& passName);
 
 private:
-    std::unordered_map<std::string, ObjPtr<Shader2>> shaders;
+    std::unordered_map<std::string, ObjPtr<Shader2>> passes;
 };
 
 namespace Obsolete
