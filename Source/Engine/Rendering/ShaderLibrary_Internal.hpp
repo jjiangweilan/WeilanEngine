@@ -632,6 +632,13 @@ public:
                 vertexAttribute.location =
                     locationOffset + variableLayout->getOffset(SLANG_PARAMETER_CATEGORY_VARYING_INPUT);
 
+                const char* semanticName = variableLayout->getSemanticName();
+                if (semanticName)
+                {
+                    vertexAttribute.semanticName = semanticName;
+                    vertexAttribute.semanticIndex = variableLayout->getSemanticIndex();
+                }
+
                 auto byteSizeAttribute = variableLayout->getVariable()->findAttributeByName(globalSession, "format");
                 auto elementCount = variableLayout->getType()->getElementCount();
                 if (byteSizeAttribute)
