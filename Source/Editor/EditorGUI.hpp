@@ -48,8 +48,8 @@ public:
         bool stylePushedForNullCurr = false;
         if (curr == nullptr)
         {
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {1.0f, 0.65, 0.45, 1});
-            ImGui::PushStyleColor(ImGuiCol_Button, {1.0f, 0.5, 0.3, 1});
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, {0.6f, 0.65, 0.45, 1});
+            ImGui::PushStyleColor(ImGuiCol_Button, {0.45f, 0.31, 0.28, 1});
             stylePushedForNullCurr = true;
         }
         if (ImGui::Button(
