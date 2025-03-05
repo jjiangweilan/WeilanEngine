@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
-#include "ThirdParty/imgui/imgui.h"
 #include "Rendering/Shader2.hpp"
+#include "ThirdParty/imgui/imgui.h"
 #include <tuple>
 
 namespace Editor
@@ -31,7 +31,15 @@ private:
     void RenderEditor(Gfx::CommandBuffer& cmd);
 
     void BindTexture(Gfx::CommandBuffer& cmd, Gfx::ImageView* imageView);
-    
+
+    VertexAttributes GetFixedVertexAttributes()
+    {
+        VertexAttributes v;
+        v.AddAttribute("position", VertexAttributeSemantics::Position, 0, 8);
+        v.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 8);
+        v.AddAttribute("color", VertexAttributeSemantics::Color, 0, 4); // R8G8B8A8_UNorm
+        return v;
+    }
 };
 
 } // namespace Editor

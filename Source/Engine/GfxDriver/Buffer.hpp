@@ -4,6 +4,7 @@
 #include "GfxEnums.hpp"
 #include "Libs/Assert.hpp"
 #include "Libs/UUID.hpp"
+#include <unordered_map>
 #include <string>
 namespace Gfx
 {
@@ -35,18 +36,25 @@ public:
     BufferUsageFlags GetUsages() { return bufferUsages; }
     const UUID& GetUUID() { return uuid; }
 
-    void SetVertexAttributes(const VertexAttributes& attributes) { this->attributes = attributes; }
-    auto GetVertexAttributes() -> const VertexAttributes&
+    void SetVertexAttributes(int binding, const VertexAttributes& attributes)
     {
+        this->attributes[binding] = attributes;
+    }
+    auto GetVertexAttributes(int binding) -> const VertexAttributes&
+    {
+        auto iter = attributes.find(binding);
+        ASSERT(iter != attributes.end());
+
 #if ENGINE_DEV_BUILD
-        ASSERT(attributes.GetDescription().size() != 0 && ((int)(bufferUsages & BufferUsage::Vertex) != 0));
+        ASSERT(iter->second.GetDescription().size() != 0 && ((int)(bufferUsages & BufferUsage::Vertex) != 0));
 #endif
-        return attributes;
+        return iter->second;
     }
 
 private:
     BufferUsageFlags bufferUsages = BufferUsage::None;
-    VertexAttributes attributes = {}; // describing vertex attributes when buffer is used as vertex buffer
+    std::unordered_map<int, VertexAttributes> attributes = {
+    }; // describing vertex attributes when buffer is used as vertex buffer
     bool gpuWrite;
     UUID uuid;
 };

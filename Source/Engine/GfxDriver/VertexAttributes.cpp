@@ -26,10 +26,10 @@ VertexAttributeSemantics MapVertexAttributeSemantics(std::string_view name)
 {
     if (name == "POSITION")
         return VertexAttributeSemantics::Position;
-    if (name == "TANGENT")
-        return VertexAttributeSemantics::Tangent;
     if (name == "NORMAL")
         return VertexAttributeSemantics::Normal;
+    if (name == "TANGENT")
+        return VertexAttributeSemantics::Tangent;
     if (name == "TEXCOORD")
         return VertexAttributeSemantics::Texcoord;
     if (name == "COLOR")

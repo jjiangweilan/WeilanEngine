@@ -648,15 +648,16 @@ public:
                 }
                 else // use default semantics
                 {
-                    VertexAttributeSemantics defaultSemantics[5] = {
+                    VertexAttributeSemantics defaultSemantics[6] = {
                         VertexAttributeSemantics::Position,
                         VertexAttributeSemantics::Normal,
                         VertexAttributeSemantics::Tangent,
+                        VertexAttributeSemantics::Texcoord,
                         VertexAttributeSemantics::Color,
                         VertexAttributeSemantics::Bone
                     };
                     vertexAttribute.semanticName =
-                        defaultSemantics[outVertexAttributes.size() < 5 ? outVertexAttributes.size() : 0];
+                        defaultSemantics[outVertexAttributes.size() < 6 ? outVertexAttributes.size() : 0];
                     vertexAttribute.semanticIndex = 0;
                 }
 

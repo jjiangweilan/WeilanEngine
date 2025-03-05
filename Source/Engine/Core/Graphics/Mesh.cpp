@@ -17,6 +17,7 @@ Submesh::Submesh(
     : indexBufferType(indexBufferType), bindings(std::move(bindings)), indexCount(indexCount), name(name),
       vertexBuffer(std::move(vertexBuffer)), indexBuffer(std::move(indexBuffer))
 {
+    ASSERT(false && "Not Used");
     // calculate vertex buffer size
     std::size_t vertexBufferSize = 0;
     for (auto& binding : this->bindings)
@@ -30,7 +31,6 @@ Submesh::Submesh(
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
     bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-    gfxVertexBuffer->SetVertexAttributes(attributes);
 
     // calculate index buffer size
     std::size_t indexBufferSize = indexCount * (indexBufferType == Gfx::IndexBufferType::UInt16 ? 2 : 4);
@@ -131,7 +131,11 @@ void Submesh::Apply()
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
     bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
-    gfxVertexBuffer->SetVertexAttributes(attributes);
+    VertexAttributes positionBinding{};
+    positionBinding
+        .AddAttribute("position", VertexAttributeSemantics::Position, 0, sizeof(decltype(positions)::value_type));
+    gfxVertexBuffer->SetVertexAttributes(0, positionBinding);
+    gfxVertexBuffer->SetVertexAttributes(1, attributes);
 
     // calculate index buffer size
     size_t indexByteSize = indexBufferType == Gfx::IndexBufferType::UInt16 ? sizeof(uint16_t) : sizeof(uint32_t);

@@ -90,7 +90,18 @@ VertexOutput SceneLitVertex(IVertexInput input)
 
 // calculate bone position
     float4 boneWeights = input.GetBone();
-    float4x4 skeletonMatrix = perObject.skeleton.GetSkeletonMatrix(boneWeights);
+
+    float4x4 skeletonMatrix = float4x4(0);
+    for(int i = 0; i < 4; ++i)
+    {
+        float boneWeight = boneWeights[i];
+        if (boneWeight != 0)
+        {
+            int boneIndex = int(boneWeight * 0.1);
+            float weight = boneWeight - boneIndex * 10;
+            skeletonMatrix += perObject.skeleton.bones[boneIndex] * weight;
+        }
+    }
 
     float3 position = input.GetPosition();
     float4 vertexPos = mul(skeletonMatrix, float4(position, 1));

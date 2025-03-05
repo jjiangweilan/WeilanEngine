@@ -315,9 +315,9 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     PipelineRequestHash requestHash = config.GetHash();
     HashCombine(requestHash, renderPass->GetHandle());
     HashCombine(requestHash, subpassIndex);
-    for (auto b : vertexBindingBuffers)
+    for (int i = 0; i < vertexBindingBuffers.size(); ++i)
     {
-        HashCombine(requestHash, b->GetVertexAttributes().GetAttributeHash());
+        HashCombine(requestHash, vertexBindingBuffers[i]->GetVertexAttributes(i));
     }
 
     auto cacheIter = caches.find(requestHash);
@@ -370,7 +370,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
         int bindingIndex = 0;
         for (VKBuffer* vtxBuf : vertexBindingBuffers)
         {
-            auto attributes = vtxBuf->GetVertexAttributes();
+            auto attributes = vtxBuf->GetVertexAttributes(bindingIndex);
             size_t stride = 0;
             for (const auto& a : attributes.GetDescription())
             {
@@ -400,7 +400,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
             int vtxBufBindingIndex = 0;
             for (VKBuffer* vtxBuf : vertexBindingBuffers)
             {
-                auto& attributes = vtxBuf->GetVertexAttributes();
+                auto& attributes = vtxBuf->GetVertexAttributes(vtxBufBindingIndex);
                 int attributeOffset = 0;
                 for (auto& vtxBufAttributeDesc : attributes.GetDescription())
                 {

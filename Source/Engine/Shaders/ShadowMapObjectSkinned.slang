@@ -39,7 +39,18 @@ ParameterBlock<PerObject> perObject;
 VertexOutput VertexMain(VertexInput input)
 {
     float4 boneWeights = input.bone;
-    float4x4 skeletonMatrix = perObject.skeleton.GetSkeletonMatrix(boneWeights);
+
+    float4x4 skeletonMatrix = float4x4(0);
+    for(int i = 0; i < 4; ++i)
+    {
+        float boneWeight = boneWeights[i];
+        if (boneWeight != 0)
+        {
+            int boneIndex = int(boneWeight * 0.1);
+            float weight = boneWeight - boneIndex * 10;
+            skeletonMatrix += perObject.skeleton.bones[boneIndex] * weight;
+        }
+    }
 
     float3 positionWS = float3(mul(skeletonMatrix, float4(input.position, 1.0)).xyz);
 

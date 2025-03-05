@@ -12,8 +12,8 @@ struct VertexBinding
 enum class VertexAttributeSemantics
 {
     Position,
-    Tangent,
     Normal,
+    Tangent,
     Texcoord,
     Color,
     Bone, // index = int(bone * 0.1), weight = bone - index * 10
