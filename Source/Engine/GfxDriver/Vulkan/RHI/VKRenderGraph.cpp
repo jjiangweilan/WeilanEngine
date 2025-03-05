@@ -5,8 +5,8 @@
 #include "../VKShaderProgram.hpp"
 #include "../VKShaderResource.hpp"
 #include "../VKUtils.hpp"
-#include "Libs/Assert.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
+#include "Libs/Assert.hpp"
 #include "Profiler/Profiler.hpp"
 
 namespace Gfx::VK::RenderGraph
@@ -271,8 +271,8 @@ bool Graph::TrackResource(
 
     if (iter != resourceUsageTracks.end())
     {
-        // because we don't enale separate depth/stencil, when range comes from a depth only imageView, we need to track both depth and stencil for aspectMask
-        // force a stencil flag when the original format has stencil
+        // because we don't enale separate depth/stencil, when range comes from a depth only imageView, we need to track
+        // both depth and stencil for aspectMask force a stencil flag when the original format has stencil
         if (Gfx::HasStencil(writableResource->GetDescription().format))
         {
             range.aspectMask |= Gfx::ImageAspect::Stencil;
@@ -465,16 +465,12 @@ void Graph::GoThroughRenderPass(
         {
             auto& args = std::get<VKSetTextureCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
-                {
-                ResourceType::Image, args.image != nullptr ? args.image->GetSRef() : nullptr,
-                args.imageViewOption
-            };
+                {ResourceType::Image, args.image != nullptr ? args.image->GetSRef() : nullptr, args.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] =
-                {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
+            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -771,10 +767,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         if (cmd.type == VKCmdType::BeginRenderPass)
         {
             auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
-            GoThroughRenderPass(
-                *args.renderPass,
-                visitIndex, args.barrierCount, args.barrierOffset
-            );
+            GoThroughRenderPass(*args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::AsyncReadback)
         {
@@ -785,12 +778,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         {
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
             auto renderPass = resourceAllocator->Request(*args.renderPass);
-            GoThroughRenderPass(
-                *renderPass,
-                visitIndex,
-                args.barrierCount,
-                args.barrierOffset
-            );
+            GoThroughRenderPass(*renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
@@ -901,8 +889,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             size_t barrierOffset = barriers.size();
             size_t barrierCount = 0;
             if (TrackResource(args.src, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_TRANSFER_READ_BIT))
-                barrierCount +=
-                    MakeBarrierForLastUsage(args.src, args.src->GetUUID());
+                barrierCount += MakeBarrierForLastUsage(args.src, args.src->GetUUID());
 
             for (int i = 0; i < args.regionCount; ++i)
             {
@@ -922,8 +909,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_WRITE_BIT
                     ))
-                    barrierCount +=
-                        MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
+                    barrierCount += MakeBarrierForLastUsage(args.dst, args.dst->GetUUID());
             }
 
             args.barrierOffset = barrierOffset;
@@ -1032,13 +1018,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     auto& args = std::get<VKDrawCmd>(cmd.args);
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
-                    vkCmdDraw(
-                        vkcmd,
-                        args.vertexCount,
-                        args.instanceCount,
-                        args.firstVertex,
-                        args.firstInstance
-                    );
+                    vkCmdDraw(vkcmd, args.vertexCount, args.instanceCount, args.firstVertex, args.firstInstance);
                     break;
                 }
             case VKCmdType::DrawIndirect:
@@ -1201,10 +1181,11 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     for (uint32_t i = 0; i < args.vertexBufferBindingCount; ++i)
                     {
                         VKBuffer* vkbuf = static_cast<VKBuffer*>(args.vertexBufferBindings[i].buffer);
+                        exeState.vertexBufferBindings[i] = vkbuf;
                         vkBuffers[i] = vkbuf->GetHandle();
                         vkOffsets[i] = args.vertexBufferBindings[i].offset;
                     }
-
+                    exeState.vertexBufferBindingCount = args.vertexBufferBindingCount;
 
                     vkCmdBindVertexBuffers(
                         vkcmd,
@@ -1299,12 +1280,7 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                 {
                     auto& args = std::get<VKSetScissorCmd>(cmd.args);
                     exeState.overrideScissor = true;
-                    vkCmdSetScissor(
-                        vkcmd,
-                        args.firstScissor,
-                        args.scissorCount,
-                        args.rects
-                    );
+                    vkCmdSetScissor(vkcmd, args.firstScissor, args.scissorCount, args.rects);
                     break;
                 }
             case VKCmdType::Dispatch:
@@ -1547,7 +1523,8 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint 
 
 void Graph::TryBindShader(VkCommandBuffer cmd)
 {
-    if ((exeState.bindedShader != exeState.lastBindedShader || exeState.shaderConfig != exeState.lastShaderConfig) && exeState.lastBindedShader != nullptr)
+    if ((exeState.bindedShader != exeState.lastBindedShader || exeState.shaderConfig != exeState.lastShaderConfig) &&
+        exeState.lastBindedShader != nullptr)
     {
 
         if (exeState.lastBindedShader->IsCompute())
@@ -1561,7 +1538,10 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
             // binding pipeline
             ASSERT(exeState.renderPass != nullptr && "RenderPass is null, draw call maybe not inside a RenderPass");
             auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
-                    exeState.shaderConfig, exeState.renderPass, exeState.subpassIndex
+                exeState.shaderConfig,
+                std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
+                exeState.renderPass,
+                exeState.subpassIndex
             );
 
             vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -1581,7 +1561,8 @@ void Graph::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPi
 {
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
-        auto sourceSet = exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader, this);
+        auto sourceSet =
+            exeState.setResources[index].resource->GetDescriptorSet(index, exeState.lastBindedShader, this);
         if (sourceSet != VK_NULL_HANDLE && sourceSet != exeState.bindedDescriptorSets[index])
         {
             vkCmdBindDescriptorSets(

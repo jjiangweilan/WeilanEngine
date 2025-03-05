@@ -2,6 +2,8 @@
 #include "../CompiledSpv.hpp"
 #include "../DescriptorSetSlot.hpp"
 #include "../ShaderProgram.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
+#include "GfxDriver/Vulkan/Internal/VKMemAllocator.hpp"
 #include "VKShaderInfo.hpp"
 #include <memory>
 #include <unordered_map>
@@ -40,7 +42,12 @@ public:
 
     VkPipelineLayout GetVKPipelineLayout();
 
-    VkPipeline RequestGraphicsPipeline(const PipelineConfig& config, VKRenderPass * renderPass, uint32_t subpass);
+    VkPipeline RequestGraphicsPipeline(
+        const PipelineConfig& config,
+        std::span<VKBuffer*> vertexBindingBuffers,
+        VKRenderPass* renderPass,
+        uint32_t subpass
+    );
     VkPipeline RequestComputePipeline();
     VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
 
@@ -72,9 +79,6 @@ private:
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools = {};
     PipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
-    // cached data
-    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
-    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
 
     // descriptor pool take a pointer to these value so these can't be temp values
     DescriptorSetBindings descriptorSetBindings = {};

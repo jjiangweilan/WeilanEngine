@@ -1,10 +1,11 @@
 #pragma once
 #include "GfxDriver/ShaderConfig.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
 #include "Libs/EnumFlags.hpp"
 #include "ResourceHandle.hpp"
 #include <nlohmann/json.hpp>
-#include <vector>
 #include <sstream>
+#include <vector>
 
 namespace Gfx
 {
@@ -76,7 +77,7 @@ struct PipelineInfo
     struct VertexAttribute
     {
         std::string name = ""; // not hashed
-        std::string semanticName = "";
+        VertexAttributeSemantics semanticName = VertexAttributeSemantics::Position;
         int semanticIndex = 0;
         int location;
         int size;
@@ -142,7 +143,6 @@ struct PipelineInfo
         uint32_t size = 0;
         ShaderStageFlags stages = ShaderStage::None;
     };
-
 
     std::string name = "";
     std::string vertexShaderName = "";

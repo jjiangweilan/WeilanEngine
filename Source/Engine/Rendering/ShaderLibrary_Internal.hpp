@@ -1,4 +1,5 @@
 #include "GfxDriver/GfxDriver.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
 #include "Libs/Assert.hpp"
 #include "Libs/Utils.hpp"
 #include "Rendering/EnumStringMapping.hpp"
@@ -633,11 +634,30 @@ public:
                 vertexAttribute.location =
                     locationOffset + variableLayout->getOffset(SLANG_PARAMETER_CATEGORY_VARYING_INPUT);
 
+                bool used = false;
+                metadataForEntryPoints[vertexEntryPointIndex]
+                    ->isParameterLocationUsed(SLANG_PARAMETER_CATEGORY_VERTEX_INPUT, 0, vertexAttribute.location, used);
+                if (!used)
+                    return;
+
                 const char* semanticName = variableLayout->getSemanticName();
                 if (semanticName)
                 {
-                    vertexAttribute.semanticName = semanticName;
+                    vertexAttribute.semanticName = MapVertexAttributeSemantics(semanticName);
                     vertexAttribute.semanticIndex = variableLayout->getSemanticIndex();
+                }
+                else // use default semantics
+                {
+                    VertexAttributeSemantics defaultSemantics[5] = {
+                        VertexAttributeSemantics::Position,
+                        VertexAttributeSemantics::Normal,
+                        VertexAttributeSemantics::Tangent,
+                        VertexAttributeSemantics::Color,
+                        VertexAttributeSemantics::Bone
+                    };
+                    vertexAttribute.semanticName =
+                        defaultSemantics[outVertexAttributes.size() < 5 ? outVertexAttributes.size() : 0];
+                    vertexAttribute.semanticIndex = 0;
                 }
 
                 auto byteSizeAttribute = variableLayout->getVariable()->findAttributeByName(globalSession, "format");

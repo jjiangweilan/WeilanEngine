@@ -19,6 +19,8 @@ enum class VertexAttributeSemantics
     Bone, // index = int(bone * 0.1), weight = bone - index * 10
 };
 
+VertexAttributeSemantics MapVertexAttributeSemantics(std::string_view name);
+
 class VertexAttributes
 {
 public:
@@ -50,9 +52,14 @@ public:
 
     const std::vector<Attribute>& GetDescription() const { return attributes; }
 
+    size_t GetAttributeHash() const;
+
 private:
     std::vector<Attribute> attributes;
+    mutable size_t hash = 0;
 
     // raw attribute data, attributes should be interleaved
     std::vector<uint8_t> data;
+
+    void Rehash() const;
 };

@@ -78,7 +78,7 @@ private:
         int bindProgramIndex{};
         int bindSetCmdIndex[4];
         bool bindedSetUpdateNeeded[4] = {false, false, false, false};
-    } recordState {};
+    } recordState{};
 
     struct ExecutionState
     {
@@ -93,6 +93,8 @@ private:
         PipelineConfig shaderConfig;
         PipelineConfig lastShaderConfig;
         VkDescriptorSet bindedDescriptorSets[4];
+        VKBuffer* vertexBufferBindings[8];
+        int vertexBufferBindingCount = 0;
         int subpassIndex = -1;
         VKRenderPass* renderPass;
         bool overrideViewport = false;
@@ -101,7 +103,7 @@ private:
 
     std::vector<VKCmd> currentSchedulingCmds{};
     std::vector<VKCmd> debugCurrentSchedulingCmds;
-        size_t previousActiveSchedulingCmdsSize;
+    size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;

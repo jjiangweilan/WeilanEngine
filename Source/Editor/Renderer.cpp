@@ -55,6 +55,11 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
     indexBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, 2048, false});
     vertexBuffer =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, 2048, false});
+    VertexAttributes v;
+    v.AddAttribute("position", VertexAttributeSemantics::Position, 0, 8);
+    v.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 8);
+    v.AddAttribute("color", VertexAttributeSemantics::Color, 0, 16);
+    vertexBuffer->SetVertexAttributes(v);
     stagingBuffer =
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
     stagingBuffer2 =
@@ -99,9 +104,17 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
         {
             GetGfxDriver()->WaitForIdle();
             if (createVertex)
+            {
                 vertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(
                     {Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, vertexSize, false}
                 );
+
+                VertexAttributes v;
+                v.AddAttribute("position", VertexAttributeSemantics::Position, 0, 8);
+                v.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 8);
+                v.AddAttribute("color", VertexAttributeSemantics::Color, 0, 16);
+                vertexBuffer->SetVertexAttributes(v);
+            }
             if (createIndex)
                 indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(
                     {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false}

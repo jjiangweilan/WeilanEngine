@@ -1,3 +1,4 @@
+#include "Libs/Hash.hpp"
 #include "VKRenderPass.hpp"
 
 #include "Internal/VKEnumMapper.hpp"
@@ -6,9 +7,12 @@
 #include "Libs/Allocator/GlobalTempAllocator.hpp"
 #include "Libs/Assert.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
+#include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKShaderProgram.hpp"
+#include "vulkan/vulkan_core.h"
+#include <cwchar>
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
@@ -43,71 +47,8 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
         GeneratePipelineLayout();
 
         // vertex inputs
-        if (pipelineInfo.isVertexInterleaved)
-        {
-            uint32_t offset = 0;
-            vertexAttributeDescriptions.reserve(pipelineInfo.vertexInputs.size());
-            for (auto& vertexAttribute : pipelineInfo.vertexInputs)
-            {
-                VkVertexInputAttributeDescription attributeDesc;
-                attributeDesc.location = vertexAttribute.location;
-                attributeDesc.binding = 0;
-                attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-                attributeDesc.offset = offset;
-
-                vertexAttributeDescriptions.push_back(attributeDesc);
-                offset += vertexAttribute.size;
-            }
-
-            VkVertexInputBindingDescription bindingDesc;
-            bindingDesc.binding = 0;
-            bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-            bindingDesc.stride = offset; // offset becomes the total stride size
-            vertexInputBindingDescriptions.push_back(bindingDesc);
-        }
-        else
-        {
-            if (!pipelineInfo.vertexInputs.empty())
-            {
-                auto& vertexAttribute = pipelineInfo.vertexInputs[0];
-                VkVertexInputAttributeDescription attributeDesc;
-                attributeDesc.location = vertexAttribute.location;
-                attributeDesc.binding = 0;
-                attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-                attributeDesc.offset = 0;
-                vertexAttributeDescriptions.push_back(attributeDesc);
-
-                VkVertexInputBindingDescription bindingDesc;
-                bindingDesc.binding = 0;
-                bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-                bindingDesc.stride = vertexAttribute.size;
-                vertexInputBindingDescriptions.push_back(bindingDesc);
-
-                size_t attributeOffset = 0;
-                for (int i = 1; i < pipelineInfo.vertexInputs.size(); ++i)
-                {
-                    auto& vertexAttribute = pipelineInfo.vertexInputs[i];
-                    VkVertexInputAttributeDescription attributeDesc;
-                    attributeDesc.location = vertexAttribute.location;
-                    attributeDesc.binding = 1;
-                    attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
-                    attributeDesc.offset = attributeOffset;
-                    vertexAttributeDescriptions.push_back(attributeDesc);
-                    attributeOffset += vertexAttribute.size;
-                }
-
-                // attributeOffset == 0 means there is no attributes
-                if (attributeOffset != 0)
-                {
-                    VkVertexInputBindingDescription attrBindingDesc;
-                    attrBindingDesc.binding = 1;
-                    attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-                    attrBindingDesc.stride = attributeOffset;
-                    vertexInputBindingDescriptions.push_back(attrBindingDesc);
-                }
-            }
-        }
     }
+
     else if (!createInfo.computeSpv.empty())
     {
         isCompute = true;
@@ -365,12 +306,19 @@ VkPipeline VKShaderProgram::RequestComputePipeline()
 }
 
 VkPipeline VKShaderProgram::RequestGraphicsPipeline(
-    const PipelineConfig& config, VKRenderPass* renderPass, uint32_t subpassIndex
+    const PipelineConfig& config,
+    std::span<VKBuffer*> vertexBindingBuffers,
+    VKRenderPass* renderPass,
+    uint32_t subpassIndex
 )
 {
     PipelineRequestHash requestHash = config.GetHash();
     HashCombine(requestHash, renderPass->GetHandle());
     HashCombine(requestHash, subpassIndex);
+    for (auto b : vertexBindingBuffers)
+    {
+        HashCombine(requestHash, b->GetVertexAttributes().GetAttributeHash());
+    }
 
     auto cacheIter = caches.find(requestHash);
     if (cacheIter != caches.end())
@@ -415,6 +363,64 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     pipelineInputAssemblyStateCreateInfo.topology = MapPrimitiveTopology(config->topology);
     pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = false;
     createInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
+
+    /******* Vertex Input ********/
+    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions{};
+    {
+        int bindingIndex = 0;
+        for (VKBuffer* vtxBuf : vertexBindingBuffers)
+        {
+            auto attributes = vtxBuf->GetVertexAttributes();
+            size_t stride = 0;
+            for (const auto& a : attributes.GetDescription())
+            {
+                stride += a.size;
+            }
+
+            VkVertexInputBindingDescription attrBindingDesc;
+            attrBindingDesc.binding = bindingIndex;
+            attrBindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+            attrBindingDesc.stride = stride;
+            vertexInputBindingDescriptions.push_back(attrBindingDesc);
+
+            bindingIndex += 1;
+        }
+    }
+
+    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
+    {
+        for (auto& vertexAttribute : pipelineInfo.vertexInputs)
+        {
+            VkVertexInputAttributeDescription attributeDesc;
+            attributeDesc.location = vertexAttribute.location;
+            attributeDesc.format = Gfx::MapFormat(vertexAttribute.format);
+            attributeDesc.binding = 0;
+            attributeDesc.offset = 0;
+
+            int vtxBufBindingIndex = 0;
+            for (VKBuffer* vtxBuf : vertexBindingBuffers)
+            {
+                auto& attributes = vtxBuf->GetVertexAttributes();
+                int attributeOffset = 0;
+                for (auto& vtxBufAttributeDesc : attributes.GetDescription())
+                {
+                    if (vtxBufAttributeDesc.semanticName == vertexAttribute.semanticName &&
+                        vtxBufAttributeDesc.semanticIndex == vertexAttribute.semanticIndex)
+                    {
+                        ASSERT(vtxBufAttributeDesc.size == vertexAttribute.size);
+                        attributeDesc.binding = vtxBufBindingIndex;
+                        attributeDesc.offset = attributeOffset;
+                        break;
+                    }
+                    attributeOffset += vtxBufAttributeDesc.size;
+                }
+
+                vtxBufBindingIndex += 1;
+            }
+
+            vertexAttributeDescriptions.push_back(attributeDesc);
+        }
+    }
 
     VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

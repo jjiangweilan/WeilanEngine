@@ -2,6 +2,7 @@
 #include "Core/SafeReferenceable.hpp"
 #include "GfxDriver/VertexAttributes.hpp"
 #include "GfxEnums.hpp"
+#include "Libs/Assert.hpp"
 #include "Libs/UUID.hpp"
 #include <string>
 namespace Gfx
@@ -35,7 +36,13 @@ public:
     const UUID& GetUUID() { return uuid; }
 
     void SetVertexAttributes(const VertexAttributes& attributes) { this->attributes = attributes; }
-    auto GetVertexAttributes() -> const VertexAttributes& { return attributes; }
+    auto GetVertexAttributes() -> const VertexAttributes&
+    {
+#if ENGINE_DEV_BUILD
+        ASSERT(attributes.GetDescription().size() != 0 && ((int)(bufferUsages & BufferUsage::Vertex) != 0));
+#endif
+        return attributes;
+    }
 
 private:
     BufferUsageFlags bufferUsages = BufferUsage::None;

@@ -131,6 +131,7 @@ void Submesh::Apply()
     bufCreateInfo.usages = Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst;
     bufCreateInfo.debugName = name.data();
     gfxVertexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(bufCreateInfo);
+    gfxVertexBuffer->SetVertexAttributes(attributes);
 
     // calculate index buffer size
     size_t indexByteSize = indexBufferType == Gfx::IndexBufferType::UInt16 ? sizeof(uint16_t) : sizeof(uint32_t);

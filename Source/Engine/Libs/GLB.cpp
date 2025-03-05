@@ -1,6 +1,7 @@
 #include "GLB.hpp"
-#include "Libs/Assert.hpp"
 #include "Core/GameObject.hpp"
+#include "GfxDriver/VertexAttributes.hpp"
+#include "Libs/Assert.hpp"
 #include <fstream>
 
 namespace Utils
@@ -225,7 +226,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     // indexBuffer
     indices.resize(indexCount);
     if (indexBufferType == Gfx::IndexBufferType::UInt32)
-        memcpy(indices.data(), binaryData + indexBufferOffset,sizeof(uint32_t) * indexCount);
+        memcpy(indices.data(), binaryData + indexBufferOffset, sizeof(uint32_t) * indexCount);
     else
     {
         for (int i = 0; i < indexCount; ++i)
@@ -314,7 +315,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 
             int byteSize = GetTypeSize(accessor);
 
-            attribute.AddAttribute(attributeName.data(), byteSize);
+            attribute.AddAttribute(attributeName.data(), VertexAttributeSemantics::Position, 0, byteSize);
             // copy as interleaved data
             if (byteStride == 0)
             {
