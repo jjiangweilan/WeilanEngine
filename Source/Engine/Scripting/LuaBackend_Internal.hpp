@@ -792,7 +792,7 @@ public:
                     auto v = go.GetComponent(className);
                     if (v != nullptr)
                     {
-                        LuaBinder<GameObject>::ProcessRtn(L, v);
+                        LuaBinder<GameObject>::ProcessRtn(L, std::move(v));
                         return 1;
                     }
 
