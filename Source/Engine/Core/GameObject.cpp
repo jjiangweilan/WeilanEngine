@@ -1,5 +1,6 @@
 #include "GameObject.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Prefab.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Libs/Math.hpp"
