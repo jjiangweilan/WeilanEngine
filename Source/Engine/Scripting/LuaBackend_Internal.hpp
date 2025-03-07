@@ -29,6 +29,7 @@ struct LuaEngineTableField
     inline static const char* dataType = "__wl_dataType";
     inline static const char* propertiesGet = "__wl_properties_get";
     inline static const char* propertiesSet = "__wl_properties_set";
+    inline static const char* className = "__wl_className";
 };
 
 template <class T>
@@ -764,7 +765,7 @@ public:
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript")
-            .BindFn("New", [](lua_State* L){
+            .BindFn("New", [](lua_State* L, const char* className){
                     // expecting a `self` table on top of the stack
                     ASSERT(lua_istable(L, 1));
 
@@ -775,6 +776,9 @@ public:
 
                     lua_pushvalue(L, -2);
                     lua_setmetatable(L, -2);
+
+                    lua_pushstring(L, className);
+                    lua_setfield(L, -2, LuaEngineTableField::className);
 
                     return 1;
                     })

@@ -50,9 +50,9 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
             // get lua class name
             lua_getmetatable(L, -1);
-            lua_getfield(L, -1, "__name");
+            lua_getfield(L, -1, LuaEngineTableField::className);
             luaClassName = lua_tostring(L, -1);
-            lua_pop(L, 1);
+            lua_pop(L, 2);
 
             lua_getfield(L, 1, "Init");
             if (lua_isfunction(L, -1))
