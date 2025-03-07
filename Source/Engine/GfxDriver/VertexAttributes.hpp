@@ -54,6 +54,20 @@ public:
 
     size_t GetAttributeHash() const;
 
+    bool FindSemantics(VertexAttributeSemantics semantic, int index, Attribute& out) const
+    {
+        for (auto& a : attributes)
+        {
+            if (a.semanticName == semantic && a.semanticIndex == index)
+            {
+                out = a;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 private:
     std::vector<Attribute> attributes;
     mutable size_t hash = 0;

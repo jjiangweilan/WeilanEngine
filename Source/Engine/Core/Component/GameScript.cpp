@@ -47,6 +47,13 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
         if (luaRef != LUA_REFNIL)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+
+            // get lua class name
+            lua_getmetatable(L, -1);
+            lua_getfield(L, -1, "__name");
+            luaClassName = lua_tostring(L, -1);
+            lua_pop(L, 1);
+
             lua_getfield(L, 1, "Init");
             if (lua_isfunction(L, -1))
             {
@@ -419,4 +426,16 @@ std::unique_ptr<Component> GameScript::Clone(GameObject& owner)
     newScript->serializationValKeys = serializationValKeys;
 
     return newScript;
+}
+
+int GameScript::LuaPushReferenceToStack()
+{
+    if (luaRef != LUA_REFNIL)
+    {
+        const auto L = LuaBackend::L;
+        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+        return 1;
+    }
+
+    return 0;
 }

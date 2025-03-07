@@ -449,6 +449,40 @@ public:
         return *this;
     }
 
+    template <class R>
+    static void ProcessRtn(lua_State* L, R&& v)
+    {
+        if constexpr (std::is_integral_v<R> && !std::is_same_v<R, bool>)
+        {
+            // Handle integers
+            lua_pushinteger(L, static_cast<lua_Integer>(v));
+        }
+        else if constexpr (std::is_floating_point_v<R>)
+        {
+            // Handle floating-point types
+            lua_pushnumber(L, static_cast<lua_Number>(v));
+        }
+        else if constexpr (std::is_same_v<R, const char*>)
+        {
+            // Handle const char*
+            lua_pushstring(L, v);
+        }
+        else if constexpr (std::is_same_v<R, std::string>)
+        {
+            // Handle std::string
+            lua_pushlstring(L, v.c_str(), v.size());
+        }
+        else if constexpr (std::is_same_v<R, bool>)
+        {
+            // Handle boolean types
+            lua_pushboolean(L, v);
+        }
+        else
+        {
+            PushEngineUserDataHelper<R>::Execute(L, std::move(v));
+        }
+    }
+
 private:
     bool hasPropertyTable = false;
     lua_State* L;
@@ -697,40 +731,6 @@ private:
         }
     }
 
-    template <class R>
-    static void ProcessRtn(lua_State* L, R&& v)
-    {
-        if constexpr (std::is_integral_v<R> && !std::is_same_v<R, bool>)
-        {
-            // Handle integers
-            lua_pushinteger(L, static_cast<lua_Integer>(v));
-        }
-        else if constexpr (std::is_floating_point_v<R>)
-        {
-            // Handle floating-point types
-            lua_pushnumber(L, static_cast<lua_Number>(v));
-        }
-        else if constexpr (std::is_same_v<R, const char*>)
-        {
-            // Handle const char*
-            lua_pushstring(L, v);
-        }
-        else if constexpr (std::is_same_v<R, std::string>)
-        {
-            // Handle std::string
-            lua_pushlstring(L, v.c_str(), v.size());
-        }
-        else if constexpr (std::is_same_v<R, bool>)
-        {
-            // Handle boolean types
-            lua_pushboolean(L, v);
-        }
-        else
-        {
-            PushEngineUserDataHelper<R>::Execute(L, std::move(v));
-        }
-    }
-
     using Lua_Ref = int;
 
     /****** Type Processing *******/
@@ -788,7 +788,31 @@ public:
             .BindMemFn("GetPosition", &GameObject::GetPosition)
             .BindMemFn("SetPosition", &GameObject::SetPosition)
             .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy)
-            .BindMemFn("GetComponent", static_cast<ObjPtr<Component>(GameObject::*)(const char*)>(&GameObject::GetComponent))
+            .BindFn("GetComponent", [L](GameObject& go, const char* className)->int{
+                    auto v = go.GetComponent(className);
+                    if (v != nullptr)
+                    {
+                        LuaBinder<GameObject>::ProcessRtn(L, v);
+                        return 1;
+                    }
+
+                    // failed to get Engine Component, try Lua Script
+                    auto& comps = go.GetComponents();
+                    for(auto& c : comps)
+                    {
+                        if(c->GetObjectTypeID() == GameScript::StaticGetObjectTypeID())
+                        {
+                            auto cast = static_cast<GameScript*>(c.get());
+                            auto& luaClassName = cast->GetLuaClassName();
+                            if (luaClassName == className)
+                            {
+                                return cast->LuaPushReferenceToStack();
+                            }
+                        }
+                    }
+
+                    return 0;
+                    })
             .End();
 
         LuaBinder<glm::vec3> vec3(L);
