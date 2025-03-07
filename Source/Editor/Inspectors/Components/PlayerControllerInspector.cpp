@@ -20,7 +20,11 @@ public:
         {
             target->SetCamera(camera);
         }
-        GUI::ObjectField("rotation root", target->rotationRoot);
+        auto obj = target->rotationRoot.Get();
+        if (GUI::ObjectField("rotation root", obj))
+        {
+            target->rotationRoot = obj;
+        }
 
         AnimationPlayer* animationPlayer = target->GetRootMotionAnimationPlayer();
         if (GUI::ObjectField("root motion animation player", animationPlayer))
