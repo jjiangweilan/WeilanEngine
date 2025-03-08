@@ -19,3 +19,7 @@ private:
     static int EnginePrint(lua_State* L);
     static LuaBackend* instance;
 };
+
+// extern "C" {
+//     int luaopen_WeilanEngine(lua_State* L);
+// }

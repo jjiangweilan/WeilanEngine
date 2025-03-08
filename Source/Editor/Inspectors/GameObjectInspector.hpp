@@ -1,16 +1,16 @@
 #pragma once
 
 #include "../EditorState.hpp"
-#include "Core/GameObject.hpp"
 #include "Core/Component/AnimationPlayer.hpp"
 #include "Core/Component/Camera.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Component/GrassSurface.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/Component/LightFieldProbes.hpp"
-#include "Core/Component/GameScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
+#include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GamePlay/Component/PlayerController.hpp"
 #include "Inspector.hpp"
@@ -33,6 +33,7 @@ private:
     static char _register;
     glm::vec3 point, axis;
     float angle;
+    Component* contextComponent = nullptr;
 };
 
 } // namespace Editor

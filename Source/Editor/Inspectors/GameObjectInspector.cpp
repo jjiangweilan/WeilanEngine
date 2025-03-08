@@ -1,4 +1,7 @@
 #include "GameObjectInspector.hpp"
+#include "Core/Component/Component.hpp"
+#include "EditorState.hpp"
+#include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
@@ -92,9 +95,9 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
         }
     }
 
-    // Components
+    ImGui::SeparatorText("Components");
     int enableCheckBoxID = 0;
-    Component* removeThis = nullptr;
+    bool popupTriggered = false;
     for (auto& co : target->GetComponents())
     {
         ImGui::PushID(enableCheckBoxID++);
@@ -108,20 +111,46 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                 c.Disable();
         }
         ImGui::SameLine();
-        ImGui::SeparatorText(c.GetName().c_str());
-        if (ImGui::Button("remove!"))
+        // ImGui::SeparatorText(c.GetName().c_str());
+        bool showAsSelected = contextComponent != nullptr && (contextComponent == co.get() ||
+                                                              EditorState::GetMainSelectedObject() == contextComponent);
+        ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
+        bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
         {
-            removeThis = co.get();
+            if (!popupTriggered)
+            {
+                popupTriggered = true;
+                ImGui::OpenPopup("Component Context");
+                contextComponent = co.get();
+            }
         }
 
-        auto inspector = InspectorRegistry::GetInspector(c);
-        inspector->OnEnable(c);
-        inspector->DrawInspector(editor);
+        if (expandComponent)
+        {
+            auto inspector = InspectorRegistry::GetInspector(c);
+            inspector->OnEnable(c);
+            inspector->DrawInspector(editor);
+            ImGui::TreePop();
+        }
+
         ImGui::PopID();
     }
 
-    if (removeThis != nullptr)
-        target->RemoveComponent(removeThis);
+    if (ImGui::BeginPopupContextWindow("Component Context"))
+    {
+        if (ImGui::MenuItem("Delete"))
+        {
+            target->RemoveComponent(contextComponent);
+            contextComponent = nullptr;
+        }
+        ImGui::EndPopup();
+    }
+
+    if (!ImGui::IsPopupOpen("Component Context") && !popupTriggered)
+    {
+        contextComponent = nullptr;
+    }
 }
 
 } // namespace Editor

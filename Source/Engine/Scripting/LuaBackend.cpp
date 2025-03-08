@@ -6,6 +6,13 @@ LuaBackend::LuaBackend() {}
 
 LuaBackend::~LuaBackend() {}
 
+// int luaopen_WeilanEngine(lua_State* L)
+// {
+//     LuaBindings().BindClasses(L);
+//
+//     return 1;
+// }
+
 void LuaBackend::Init(const char* projectAssetFolder)
 {
     if (instance == nullptr)

@@ -70,7 +70,7 @@ public:
 
 private:
     std::vector<Attribute> attributes;
-    mutable size_t hash = 0;
+    mutable uint64_t hash = 0;
 
     // raw attribute data, attributes should be interleaved
     std::vector<uint8_t> data;
