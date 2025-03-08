@@ -47,6 +47,10 @@ void Input::PushEvent(SDL_Event& event)
             {
                 rightPad.down = pressType;
             }
+            if (event.jbutton.button == 2)
+            {
+                rightPadPressed.left = pressType;
+            }
         }
         else if (event.type == SDL_JOYBUTTONUP)
         {}

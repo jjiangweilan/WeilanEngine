@@ -765,20 +765,22 @@ public:
         LuaBinder<GameScript> gameScript(L);
         gameScript
             .Begin("GameScript")
-            .BindFn("New", [](lua_State* L, const char* className){
+            .BindFn("New", [](lua_State* L){
                     // expecting a `self` table on top of the stack
                     ASSERT(lua_istable(L, 1));
+                    ASSERT(lua_isstring(L, 2));
+                    const char* className = lua_tostring(L, 2);
 
                     lua_newtable(L);
 
                     lua_pushvalue(L, -1);
                     lua_setfield(L, -2, "__index");
 
-                    lua_pushvalue(L, -2);
+                    lua_pushvalue(L, 1);
                     lua_setmetatable(L, -2);
 
                     lua_pushstring(L, className);
-                    lua_setfield(L, -2, LuaEngineTableField::className);
+                    lua_setfield(L, 3, LuaEngineTableField::className);
 
                     return 1;
                     })
@@ -842,6 +844,7 @@ public:
             .BindStaticFn("GetMovementY", Input::GetMovementY)
             .BindStaticFn("GetLookAroundX", Input::GetLookAroundX)
             .BindStaticFn("GetLookAroundY", Input::GetLookAroundY)
+            .BindStaticFn("IsInteractPressed", Input::IsInteractPressed)
             .BindStaticFn("Jump", Input::Jump)
             .End();
 

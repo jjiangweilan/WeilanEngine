@@ -23,6 +23,7 @@ void Event::Poll()
 {
 
     SDL_Event event;
+    Input::GetSingleton().Reset();
     while (SDL_PollEvent(&event))
     {
 #if ENGINE_EDITOR

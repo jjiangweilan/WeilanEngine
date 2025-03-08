@@ -19,6 +19,8 @@ public:
         return y;
     }
 
+    static bool IsInteractPressed() { return GetSingleton().rightPadPressed.left; }
+
     static void GetMovement(float& x, float& y) { GetSingleton().GetMovementImpl(x, y); }
 
     static void GetLookAround(float& x, float& y) { GetSingleton().GetLookAroundImpl(x, y); }
@@ -42,7 +44,14 @@ public:
     void PushEvent(SDL_Event& event);
 
     void SetGameplayInput(bool enabled) { this->gameplayInput = enabled; }
-    void Reset() {}
+
+    void Reset()
+    {
+        rightPadPressed.up = false;
+        rightPadPressed.down = false;
+        rightPadPressed.left = false;
+        rightPadPressed.right = false;
+    }
 
     static Input& GetSingleton();
 
@@ -63,6 +72,15 @@ private:
         bool right;
 
     } dPad, rightPad;
+
+    struct PadPressed
+    {
+        bool up;
+        bool down;
+        bool left;
+        bool right;
+
+    } rightPadPressed;
 
     struct Keyboard
     {
