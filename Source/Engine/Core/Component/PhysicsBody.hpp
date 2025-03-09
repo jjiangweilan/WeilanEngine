@@ -124,6 +124,7 @@ public:
     void Deserialize(Serializer* s) override;
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
+    void Tick() override;
 
     // set this to true, the physics scene will try to draw this physics body in this frame
     bool debugDrawRequest = false;

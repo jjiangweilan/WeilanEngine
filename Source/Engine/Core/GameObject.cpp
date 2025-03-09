@@ -528,3 +528,38 @@ ObjPtr<Component> GameObject::GetComponent(const char* className)
 
     return nullptr;
 }
+
+int GameObject::RegisterContactEventAdded(
+    const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
+)
+{
+    for (int i = 0; i < contactAddedCallbacks.size(); ++i)
+    {
+        if (contactAddedCallbacks[i] == nullptr)
+        {
+            contactAddedCallbacks[i] = f;
+            return i;
+        }
+    }
+
+    contactAddedCallbacks.push_back(f);
+    return contactAddedCallbacks.size() - 1;
+}
+
+int GameObject::RegisterContactEventRemoved(
+    const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
+)
+{
+
+    for (int i = 0; i < contactRemovedCallbacks.size(); ++i)
+    {
+        if (contactRemovedCallbacks[i] == nullptr)
+        {
+            contactRemovedCallbacks[i] = f;
+            return i;
+        }
+    }
+
+    contactRemovedCallbacks.push_back(f);
+    return contactRemovedCallbacks.size() - 1;
+}

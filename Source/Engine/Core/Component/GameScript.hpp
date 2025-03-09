@@ -3,6 +3,12 @@
 #include "Core/LuaScript.hpp"
 #include "ThirdParty/lua/lua.hpp"
 
+// clang-format off
+#include <Jolt/Jolt.h>
+// clang-format on
+#include <Jolt/Physics/Collision/ContactListener.h>
+
+class PhysicsBody;
 class GameScript : public Component
 {
     DECLARE_OBJECT();
@@ -39,5 +45,27 @@ private:
     std::vector<std::string> serializationValKeys;
     std::string luaClassName = "";
 
+    // lua state
+    bool isScriptStarted = false;
+
+    // game callback functions
+    bool hasOnContactAdded = false;
+    bool hasOnContactRemoved = false;
+    bool hasOnContactPersisted = false;
+    bool hasOnContactValidate = false;
+
+    int onContactID_Added = -1;
+    int onContactID_Removed = -1;
+
     LuaRef luaRef = LUA_REFNIL;
+
+    void RegisterPhysicsCallbacks();
+    void UnregisterPhysicsCallbacks();
+
+    void OnContactAdded(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&);
+    void OnContactRemoved(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&);
+
+    void RemoveScript();
+
+    bool CallLua(const char* functionName);
 };

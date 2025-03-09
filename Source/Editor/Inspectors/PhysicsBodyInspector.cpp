@@ -1,6 +1,7 @@
 #include "../EditorState.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Inspector.hpp"
+#include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
 {
@@ -9,7 +10,14 @@ class PhysicsBodyInspector : public Inspector<PhysicsBody>
 public:
     void DrawInspector(GameEditor& editor) override
     {
-        const char* items[] = {"Scene", "Moving"}; // defined in PhysicsLayer.hpp
+        /** Sensor **/
+        bool isSensor = target->IsSensor();
+        if (ImGui::Checkbox("isSensor", &isSensor))
+        {
+            target->SetSensor(isSensor);
+        }
+
+        const char* items[] = {"Scene", "Moving", "Interactable"}; // defined in PhysicsLayer.hpp
         int currentItenIndex = static_cast<int>(target->GetLayer());
         if (ImGui::Combo("combo", &currentItenIndex, items, IM_ARRAYSIZE(items)))
         {
@@ -17,8 +25,11 @@ public:
                 target->SetLayer(PhysicsLayer::Scene);
             else if (currentItenIndex == 1)
                 target->SetLayer(PhysicsLayer::Moving);
+            else if (currentItenIndex)
+                target->SetLayer(PhysicsLayer::Interactable);
         }
 
+        /** Shape **/
         const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule", "Compound"};
         int currentShapeIndex = static_cast<int>(target->GetShape());
         glm::vec4 bodyScale = target->GetBodyScale();
@@ -36,13 +47,14 @@ public:
                 target->SetShape(PhysicsBodyShapes::Compound);
         }
 
+        /** Position **/
         auto bodyOffset = target->GetBodyOffset();
         if (ImGui::DragFloat3("Body Offset", &bodyOffset[0]))
         {
             target->SetBodyOffset(bodyOffset);
         }
 
-        // scale
+        /** Scale **/
         if (currentShapeIndex == 0)
         {
             if (ImGui::DragFloat3("Box Scale", &bodyScale[0]))

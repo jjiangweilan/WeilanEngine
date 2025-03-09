@@ -116,12 +116,11 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                                                               EditorState::GetMainSelectedObject() == contextComponent);
         ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
         bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
         {
             if (!popupTriggered)
             {
                 popupTriggered = true;
-                ImGui::OpenPopup("Component Context");
                 contextComponent = co.get();
             }
         }
@@ -136,8 +135,10 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
         ImGui::PopID();
     }
+    if (popupTriggered)
+        ImGui::OpenPopup("Component Context");
 
-    if (ImGui::BeginPopupContextWindow("Component Context"))
+    if (ImGui::BeginPopup("Component Context"))
     {
         if (ImGui::MenuItem("Delete"))
         {

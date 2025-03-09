@@ -3,12 +3,19 @@
 #include "Asset.hpp"
 #include "Component/Component.hpp"
 #include "Core/Prefab.hpp"
+#include "Core/Ptr.hpp"
 #include "EngineState.hpp"
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <memory>
 #include <vector>
+
+// clang-format off
+#include <Jolt/Jolt.h>
+// clang-format on
+#include <Jolt/Physics/Collision/ContactListener.h>
 
 class Scene;
 
@@ -27,6 +34,9 @@ enum class GameObjectFlag : uint32_t
 ENUM_FLAGS(GameObjectFlag, uint32_t);
 
 class Prefab;
+class PhysicsBody;
+using PhysicsContactCallback =
+    std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
 class GameObject : public Object
 {
     DECLARE_OBJECT();
@@ -95,6 +105,23 @@ public:
     void SetPosition(const glm::vec3& position);
     void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
+
+    int RegisterContactEventAdded(
+        const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
+    );
+    int RegisterContactEventRemoved(
+        const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
+    );
+    void UnregisterContactEventAdded(int id)
+    {
+        if (id >= 0 && id < contactAddedCallbacks.size())
+            contactAddedCallbacks[id] = nullptr;
+    }
+    void UnregisterContactEventRemoved(int id)
+    {
+        if (id >= 0 && id < contactRemovedCallbacks.size())
+            contactRemovedCallbacks[id] = nullptr;
+    }
 
     void OnStart()
     {
@@ -238,6 +265,9 @@ private:
     bool wantsToBeEnabled = false;
     mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
+
+    std::vector<PhysicsContactCallback> contactAddedCallbacks = {};
+    std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
 
     std::vector<ObjPtr<GameObject>> children;
     std::vector<std::unique_ptr<GameObject>> owningChildren;

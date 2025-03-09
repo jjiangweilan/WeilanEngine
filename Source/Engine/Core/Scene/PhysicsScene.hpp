@@ -50,7 +50,8 @@ namespace BroadPhaseLayers
 {
 static constexpr JPH::BroadPhaseLayer Scene(0);
 static constexpr JPH::BroadPhaseLayer Moving(1);
-static constexpr JPH::uint NUM_LAYERS(2);
+static constexpr JPH::BroadPhaseLayer Interactable(2);
+static constexpr JPH::uint NUM_LAYERS(3);
 }; // namespace BroadPhaseLayers
 
 // BroadPhaseLayerInterface implementation
@@ -63,12 +64,10 @@ public:
         // Create a mapping table from object to broad phase layer
         mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Scene)] = BroadPhaseLayers::Scene;
         mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Moving)] = BroadPhaseLayers::Moving;
+        mObjectToBroadPhase[static_cast<int>(PhysicsLayer::Interactable)] = BroadPhaseLayers::Interactable;
     }
 
-    virtual JPH::uint GetNumBroadPhaseLayers() const override
-    {
-        return BroadPhaseLayers::NUM_LAYERS;
-    }
+    virtual JPH::uint GetNumBroadPhaseLayers() const override { return BroadPhaseLayers::NUM_LAYERS; }
 
     virtual JPH::BroadPhaseLayer GetBroadPhaseLayer(JPH::ObjectLayer inLayer) const override
     {
@@ -83,6 +82,7 @@ public:
         {
             case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Moving: return "Moving";
             case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Scene: return "Scene";
+            case (JPH::BroadPhaseLayer::Type)BroadPhaseLayers::Interactable: return "Interactable";
             default: JPH_ASSERT(false); return "INVALID";
         }
     }
@@ -100,8 +100,10 @@ public:
     {
         switch (inLayer1)
         {
-            case static_cast<int>(PhysicsLayer::Scene): return inLayer2 == BroadPhaseLayers::Moving;
+            case static_cast<int>(PhysicsLayer::Scene):
+                return inLayer2 == BroadPhaseLayers::Moving || inLayer2 == BroadPhaseLayers::Interactable;
             case static_cast<int>(PhysicsLayer::Moving): return true;
+            case static_cast<int>(PhysicsLayer::Interactable): return true;
             default: JPH_ASSERT(false); return false;
         }
     }
@@ -178,10 +180,7 @@ public:
     PhysicsScene(const PhysicsScene& other) = delete;
     PhysicsScene(PhysicsScene&& other) = delete;
 
-    JPH::BodyInterface& GetBodyInterface()
-    {
-        return *bodyInterface;
-    }
+    JPH::BodyInterface& GetBodyInterface() { return *bodyInterface; }
 
     void AddPhysicsBody(PhysicsBody& body);
 
@@ -198,10 +197,7 @@ public:
     void Tick();
     void DebugDraw();
 
-    JPH::PhysicsSystem& GetPhysicsSystem()
-    {
-        return physicsSystem;
-    }
+    JPH::PhysicsSystem& GetPhysicsSystem() { return physicsSystem; }
 
 private:
     Scene* scene;
@@ -215,10 +211,7 @@ private:
     {
     public:
         DebugBodyDrawFilter() : drawRequested(32) {}
-        bool ShouldDraw(const JPH::Body& inBody) const override
-        {
-            return drawRequested.contains(inBody.GetID());
-        }
+        bool ShouldDraw(const JPH::Body& inBody) const override { return drawRequested.contains(inBody.GetID()); }
         std::unordered_set<JPH::BodyID> drawRequested;
 
     } bodyDrawFilter;

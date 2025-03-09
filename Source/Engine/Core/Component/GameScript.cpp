@@ -18,7 +18,7 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
     if (luaRef != LUA_REFNIL && luaBackendUUID == LuaBackend::currentStateUUID)
     {
-        OnStop();
+        LuaOnStop();
         luaL_unref(L, LUA_REGISTRYINDEX, luaRef);
     }
 
@@ -48,11 +48,32 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
         {
             lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
 
-            // get lua class name
             lua_getmetatable(L, -1);
-            lua_getfield(L, -1, LuaEngineTableField::className);
-            luaClassName = lua_tostring(L, -1);
-            lua_pop(L, 2);
+            {
+                // get lua class name
+                lua_getfield(L, -1, LuaEngineTableField::className);
+                luaClassName = lua_tostring(L, -1);
+                lua_pop(L, 1);
+
+                // check callback methods
+                lua_getfield(L, -1, "OnContactAdded");
+                hasOnContactAdded = lua_isfunction(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "OnContactRemoved");
+                hasOnContactRemoved = lua_isfunction(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "OnContactPersisted");
+                hasOnContactPersisted = lua_isfunction(L, -1);
+                lua_pop(L, 1);
+
+                lua_getfield(L, -1, "OnContactValidate");
+                hasOnContactValidate = lua_isfunction(L, -1);
+                lua_pop(L, 1);
+
+                lua_pop(L, 1); // pop metatable
+            }
 
             lua_getfield(L, 1, "Init");
             if (lua_isfunction(L, -1))
@@ -96,11 +117,18 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
 void GameScript::OnStart()
 {
+    // register physics
+    if (hasOnContactAdded || hasOnContactRemoved || hasOnContactPersisted || hasOnContactValidate)
+    {
+        RegisterPhysicsCallbacks();
+    }
+
     LuaOnStart();
 }
 
 void GameScript::OnStop()
 {
+    UnregisterPhysicsCallbacks();
     LuaOnStop();
 }
 
@@ -108,63 +136,24 @@ void GameScript::LuaOnStart()
 {
     const auto L = LuaBackend::L;
 
-    if (luaRef != LUA_REFNIL)
-    {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getfield(L, 1, "OnStart");
-        if (lua_isfunction(L, -1))
-        {
-            lua_pushvalue(L, 1);
-            if (lua_pcall(L, 1, 0, 0))
-                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-        }
-        else
-            lua_pop(L, 1);
-
-        lua_pop(L, 1);
-    }
+    isScriptStarted = CallLua("OnStart");
 }
 
 void GameScript::Tick()
 {
-    const auto L = LuaBackend::L;
-
-    if (luaRef != LUA_REFNIL)
-    {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getfield(L, 1, "Tick");
-        if (lua_isfunction(L, -1))
-        {
-            lua_pushvalue(L, 1);
-            if (lua_pcall(L, 1, 0, 0) != 0)
-                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-        }
-        else
-            lua_pop(L, 1);
-
-        lua_pop(L, 1);
-    }
+    CallLua("Tick");
 }
 
 void GameScript::LuaOnStop()
 {
     const auto L = LuaBackend::L;
 
-    if (luaRef != LUA_REFNIL)
+    if (isScriptStarted)
     {
-        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-        lua_getfield(L, 1, "OnStop");
-        if (lua_isfunction(L, -1))
-        {
-            lua_pushvalue(L, 1);
-            if (lua_pcall(L, 1, 0, 0))
-                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-        }
-        else
-            lua_pop(L, 1);
-
-        lua_pop(L, 1);
+        CallLua("OnStop");
     }
+
+    isScriptStarted = false;
 }
 
 const std::string& GameScript::GetName()
@@ -438,4 +427,70 @@ int GameScript::LuaPushReferenceToStack()
     }
 
     return 0;
+}
+
+void GameScript::RegisterPhysicsCallbacks()
+{
+    ObjPtr<GameScript> self = this;
+    onContactID_Added = gameObject->RegisterContactEventAdded(
+        [self](PhysicsBody* b0, PhysicsBody* b1, const JPH::ContactManifold& m, JPH::ContactSettings& s)
+        {
+            if (self != nullptr)
+                self->OnContactAdded(b0, b1, m, s);
+        }
+    );
+    onContactID_Removed = gameObject->RegisterContactEventRemoved(
+        [self](PhysicsBody* b0, PhysicsBody* b1, const JPH::ContactManifold& m, JPH::ContactSettings& s)
+        {
+            if (self != nullptr)
+                self->OnContactRemoved(b0, b1, m, s);
+        }
+    );
+}
+
+void GameScript::UnregisterPhysicsCallbacks()
+{
+    if (onContactID_Added != -1)
+        gameObject->UnregisterContactEventAdded(onContactID_Added);
+
+    if (onContactID_Removed != -1)
+        gameObject->UnregisterContactEventAdded(onContactID_Removed);
+}
+
+void GameScript::OnContactAdded(
+    PhysicsBody* b0, PhysicsBody* b1, const JPH::ContactManifold& m, JPH::ContactSettings& s
+)
+{
+    CallLua("OnContactAdded");
+}
+
+void GameScript::OnContactRemoved(
+    PhysicsBody* b0, PhysicsBody* b1, const JPH::ContactManifold& m, JPH::ContactSettings& s
+)
+{}
+
+bool GameScript::CallLua(const char* functionName)
+{
+    const auto L = LuaBackend::L;
+
+    bool called = false;
+    if (luaRef != LUA_REFNIL)
+    {
+        lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
+        lua_getfield(L, 1, functionName);
+        if (lua_isfunction(L, -1))
+        {
+            lua_pushvalue(L, 1);
+            if (lua_pcall(L, 1, 0, 0) != 0)
+                SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+            else
+                called = true;
+        }
+        else
+            lua_pop(L, 1);
+
+        lua_pop(L, 1);
+    }
+
+    return called;
 }

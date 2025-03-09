@@ -226,7 +226,7 @@ void PhysicsBody::SetGravityFactor(float f)
 
 void PhysicsBody::UpdateGameObject()
 {
-    if (body)
+    if (body && motionType == JPH::EMotionType::Dynamic)
     {
         auto newPos = body->GetPosition();
         gameObject->SetPosition(
@@ -316,6 +316,19 @@ void PhysicsBody::SetLinearVelocity(const glm::vec3& velocity)
 void PhysicsBody::AddForce(const glm::vec3& force)
 {
     body->AddForce({force.x, force.y, force.z});
+}
+
+void PhysicsBody::Tick()
+{
+    if (motionType == JPH::EMotionType::Kinematic && body)
+    {
+        auto pos = gameObject->GetPosition();
+
+        JPH::Vec3 worldPos = {pos.x + bodyOffset.x, pos.y + bodyOffset.y, pos.z + bodyOffset.z};
+        auto rot = gameObject->GetRotation();
+        GetBodyInterface()
+            ->SetPositionAndRotation(body->GetID(), worldPos, {rot.w, rot.x, rot.y, rot.z}, JPH::EActivation::Activate);
+    }
 }
 
 glm::vec3 PhysicsBody::GetLinearVelocity()
