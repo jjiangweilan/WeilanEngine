@@ -2,6 +2,8 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
+#include "slang.h"
 
 using namespace JPH;
 using namespace JPH::literals;
@@ -21,6 +23,7 @@ void PhysicsBody::Serialize(Serializer* s) const
     s->Serialize("gravityFactor", gravityFactor);
     s->Serialize("motionType", static_cast<int>(motionType));
     s->Serialize("shapeType", static_cast<int>(shapeType));
+    s->Serialize("isSensor", isSensor);
 }
 void PhysicsBody::Deserialize(Serializer* s)
 {
@@ -38,6 +41,7 @@ void PhysicsBody::Deserialize(Serializer* s)
     int shapeType = 0;
     s->Deserialize("shapeType", shapeType);
     this->shapeType = static_cast<PhysicsBodyShapes>(shapeType);
+    s->Deserialize("isSensor", isSensor);
 }
 
 const std::string& PhysicsBody::GetName()
@@ -146,6 +150,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
                 motionType,
                 static_cast<ObjectLayer>(layer)
             );
+            bodyCreationSettings.mIsSensor = isSensor;
 
             bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
 
@@ -414,5 +419,47 @@ void PhysicsBody::SetShape(PhysicsBodyShapes shape)
         case PhysicsBodyShapes::Sphere: SetAsSphere(); break;
         case PhysicsBodyShapes::Mesh: SetAsMeshRenderer(); break;
         case PhysicsBodyShapes::Capsule: SetAsCapsule(); break;
+        case PhysicsBodyShapes::Compound: SetAsCompound(); break;
+    }
+}
+
+bool PhysicsBody::SetAsCompound()
+{
+    recreateShape = [this]()
+    {
+        // Define the shapes that will be part of the compound shape
+        JPH::Array<JPH::Ref<JPH::Shape>> shapes;
+
+        // Example: Adding a box and a sphere to the compound shape
+        glm::vec3 boxSize = glm::vec3(bodyScale) * gameObject->GetScale();
+        JPH::BoxShapeSettings boxSettings({boxSize.x, boxSize.y, boxSize.z});
+        auto boxShape = boxSettings.Create().Get();
+        shapes.push_back(boxShape);
+
+        float sphereSize = gameObject->GetScale().x * bodyScale.x;
+        JPH::SphereShapeSettings sphereSettings(sphereSize);
+        auto sphereShape = sphereSettings.Create().Get();
+        shapes.push_back(sphereShape);
+
+        // Create the compound shape settings
+        JPH::StaticCompoundShapeSettings compoundSettings;
+        SetShape(compoundSettings);
+
+        UpdateBodyPositionAndRotation();
+        return true;
+    };
+
+    return recreateShape();
+}
+
+void PhysicsBody::SetSensor(bool isSensor)
+{
+    bool oldVal = this->isSensor;
+    this->isSensor = isSensor;
+
+    if (oldVal != this->isSensor)
+    {
+        if (recreateShape)
+            recreateShape();
     }
 }

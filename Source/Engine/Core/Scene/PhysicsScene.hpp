@@ -5,6 +5,7 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/TempAllocator.h>
 // clang-format on
+#include "Core/Ptr.hpp"
 #include "Physics/JoltDebugRenderer.hpp"
 #include "PhysicsLayer.hpp"
 #include <Jolt/Physics/Body/BodyActivationListener.h>
@@ -15,6 +16,7 @@
 #include <Jolt/Physics/PhysicsSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 #include <Jolt/RegisterTypes.h>
+#include <mutex>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
 
@@ -138,14 +140,15 @@ public:
         JPH::ContactSettings& ioSettings
     ) override
     {
-        // spdlog::info("A contact was persisted");
+        spdlog::info("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
 
 private:
     PhysicsScene* pScene;
-    std::unordered_map<JPH::BodyID, PhysicsBody*> contactingBodies;
+    std::unordered_map<JPH::BodyID, ObjPtr<PhysicsBody>> contactingBodies;
+    std::mutex contactLock;
 };
 
 // An example activation listener

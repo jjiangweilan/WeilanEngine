@@ -71,11 +71,11 @@ void Input::PushEvent(SDL_Event& event)
             }
             else if (event.key.keysym.scancode == SDL_SCANCODE_W)
             {
-                leftJoyAxis.y = pressing ? -1 : 0;
+                leftJoyAxis.y = pressing ? 1 : 0;
             }
             else if (event.key.keysym.scancode == SDL_SCANCODE_S)
             {
-                leftJoyAxis.y = pressing ? 1 : 0;
+                leftJoyAxis.y = pressing ? -1 : 0;
             }
         }
     }

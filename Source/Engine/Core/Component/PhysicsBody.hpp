@@ -14,6 +14,7 @@
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/MeshShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
 
 class PhysicsScene;
 
@@ -22,7 +23,8 @@ enum class PhysicsBodyShapes
     Box,
     Sphere,
     Mesh,
-    Capsule
+    Capsule,
+    Compound
 };
 
 class PhysicsBody : public Component
@@ -71,6 +73,9 @@ public:
             recreateShape();
     }
 
+    bool IsSensor() { return isSensor; }
+    void SetSensor(bool isSensor);
+
     PhysicsLayer GetLayer() const { return layer; }
 
     float GetGravityFactory() const { return gravityFactor; }
@@ -105,28 +110,23 @@ public:
         }
     }
 
-    void OnStart() override;
-
     void SetLinearVelocity(const glm::vec3& velocity);
     glm::vec3 GetLinearVelocity();
     void AddForce(const glm::vec3& force);
     void AddImpulse(const glm::vec3& impulse);
-
     void SetGravityFactor(float f);
+    void UpdateGameObject();
+    JPH::Body* GetBody() { return body; }
+    JPH::Ref<JPH::Shape> GetShapeRef() { return shapeRef; }
 
+    void OnStart() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
 
-    void UpdateGameObject();
-
     // set this to true, the physics scene will try to draw this physics body in this frame
     bool debugDrawRequest = false;
-
-    JPH::Body* GetBody() { return body; }
-
-    JPH::Ref<JPH::Shape> GetShapeRef() { return shapeRef; }
 
 private:
     using ContactAddedEventCallbackType =
@@ -136,6 +136,7 @@ private:
     glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;
+    bool isSensor = false;
 
     JPH::EMotionType motionType = JPH::EMotionType::Static;
     JPH::Ref<JPH::Shape> shapeRef;
@@ -158,4 +159,5 @@ private:
     bool SetAsCapsule();
     bool SetAsMeshRenderer();
     bool SetAsBox();
+    bool SetAsCompound();
 };

@@ -3,6 +3,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
 #include "Libs/Assert.hpp"
+#include <mutex>
 
 PhysicsScene::PhysicsScene(Scene* scene)
     : scene(scene), physicsUpdateDeltaAccumulation(0.0f), temp_allocator(10 * 1024 * 1024),
@@ -103,32 +104,34 @@ void PhysicsContactListener::OnContactAdded(
     JPH::ContactSettings& ioSettings
 )
 {
-    // crash, maybe mutithreading issue
-    //auto body1 = reinterpret_cast<PhysicsBody*>(inBody1.GetUserData());
-    //auto body2 = reinterpret_cast<PhysicsBody*>(inBody2.GetUserData());
+    std::scoped_lock _lock(contactLock);
 
-    //if (body1)
-    //{
-    //    body1->InvokeContactAddedEvent(body2, inManifold, ioSettings);
-    //    contactingBodies[inBody1.GetID()] = body1;
-    //}
-    //if (body2)
-    //{
-    //    body2->InvokeContactAddedEvent(body1, inManifold, ioSettings);
-    //    contactingBodies[inBody2.GetID()] = body2;
-    //}
+    auto body1 = reinterpret_cast<PhysicsBody*>(inBody1.GetUserData());
+    auto body2 = reinterpret_cast<PhysicsBody*>(inBody2.GetUserData());
+
+    if (body1)
+    {
+        body1->InvokeContactAddedEvent(body2, inManifold, ioSettings);
+        contactingBodies[inBody1.GetID()] = body1;
+    }
+    if (body2)
+    {
+        body2->InvokeContactAddedEvent(body1, inManifold, ioSettings);
+        contactingBodies[inBody2.GetID()] = body2;
+    }
 }
 
 void PhysicsContactListener::OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair)
 {
-    // crash, maybe mutithreading issue
-    //auto body1 = contactingBodies[inSubShapePair.GetBody1ID()];
-    //auto body2 = contactingBodies[inSubShapePair.GetBody2ID()];
+    std::scoped_lock _lock(contactLock);
 
-    //if (body1)
-    //    body1->InvokeContactRemovedEvent(body2);
-    //if (body2)
-    //    body2->InvokeContactRemovedEvent(body1);
+    auto body1 = contactingBodies[inSubShapePair.GetBody1ID()];
+    auto body2 = contactingBodies[inSubShapePair.GetBody2ID()];
+
+    if (body1)
+        body1->InvokeContactRemovedEvent(body2);
+    if (body2)
+        body2->InvokeContactRemovedEvent(body1);
 }
 
 void PhysicsScene::AddPhysicsBody(PhysicsBody& body)

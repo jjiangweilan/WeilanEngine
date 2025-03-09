@@ -19,7 +19,7 @@ public:
                 target->SetLayer(PhysicsLayer::Moving);
         }
 
-        const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule"};
+        const char* shapes[] = {"Box", "Sphere", "Mesh", "Capsule", "Compound"};
         int currentShapeIndex = static_cast<int>(target->GetShape());
         glm::vec4 bodyScale = target->GetBodyScale();
         if (ImGui::Combo("Shape", &currentShapeIndex, shapes, IM_ARRAYSIZE(shapes)))
@@ -32,6 +32,8 @@ public:
                 target->SetShape(PhysicsBodyShapes::Mesh);
             else if (currentShapeIndex == 3)
                 target->SetShape(PhysicsBodyShapes::Capsule);
+            else if (currentItenIndex == 4)
+                target->SetShape(PhysicsBodyShapes::Compound);
         }
 
         auto bodyOffset = target->GetBodyOffset();
