@@ -208,9 +208,9 @@ void WeilanEngine::InitSDL()
     SDL_GetCurrentDisplayMode(0, &displayMode);
 
     if (mainWindow.size.width > displayMode.w)
-        mainWindow.size.width = displayMode.w * 0.8;
+        mainWindow.size.width = displayMode.w;
     if (mainWindow.size.height > displayMode.h)
-        mainWindow.size.height = displayMode.h * 0.8;
+        mainWindow.size.height = displayMode.h;
 
     mainWindow.handle = SDL_CreateWindow(
         "WeilanGame",
