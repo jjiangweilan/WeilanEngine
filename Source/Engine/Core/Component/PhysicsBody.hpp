@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Scene/PhysicsLayer.hpp"
 #include <memory>
 
@@ -25,6 +26,13 @@ enum class PhysicsBodyShapes
     Mesh,
     Capsule,
     Compound
+};
+
+enum class PhysicsContactEvent
+{
+    Added,
+    Removed,
+    Persisted
 };
 
 class PhysicsBody : public Component
@@ -126,6 +134,8 @@ public:
     const std::string& GetName() override;
     void Tick() override;
 
+    void RegisterLuaCallback(PhysicsContactEvent event, GameScript* gameScript, const char* luaCallbackName);
+
     // set this to true, the physics scene will try to draw this physics body in this frame
     bool debugDrawRequest = false;
 
@@ -133,6 +143,12 @@ private:
     using ContactAddedEventCallbackType =
         std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
     using ContactRemovedEventCallbackType = std::function<void(PhysicsBody*, PhysicsBody*)>;
+
+    struct LuaCallback
+    {
+        std::string callback;
+    };
+
     glm::vec4 bodyScale = {1.0, 1.0, 1.0, 1.0};
     glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
     PhysicsLayer layer = PhysicsLayer::Scene;
@@ -147,6 +163,10 @@ private:
     std::function<bool()> recreateShape = nullptr;
     std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
     std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
+
+    std::vector<LuaCallback> contactAddedLuaCallbacks = {};
+    std::vector<LuaCallback> contactRemovedLuaCallbacks = {};
+    std::vector<LuaCallback> contactPersistedLuaCallbacks = {};
 
     void OnEnable() override;
     void OnDisable() override;

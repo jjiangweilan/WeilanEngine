@@ -476,3 +476,23 @@ void PhysicsBody::SetSensor(bool isSensor)
             recreateShape();
     }
 }
+
+void PhysicsBody::RegisterLuaCallback(PhysicsContactEvent event, GameScript* gameScript, const char* luaCallbackName)
+{
+
+    std::vector<LuaCallback>* callbacks = nullptr;
+    switch (event)
+    {
+        case PhysicsContactEvent::Added: callbacks = &contactAddedLuaCallbacks;
+        case PhysicsContactEvent::Removed: callbacks = &contactRemovedLuaCallbacks;
+        case PhysicsContactEvent::Persisted: callbacks = &contactPersistedLuaCallbacks;
+    }
+
+    if (callbacks == nullptr)
+        return;
+
+    LuaCallback cb{};
+    cb.callback = luaCallbackName;
+
+    callbacks->push_back(cb);
+}
