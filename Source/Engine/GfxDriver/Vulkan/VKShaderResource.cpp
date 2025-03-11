@@ -168,7 +168,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 
     if (rebuild)
     {
-        SPDLOG_INFO("VKShaderResource: rebuild descriptor set");
+        SPDLOG_TRACE("VKShaderResource: rebuild descriptor set");
         writableGPUResources->clear();
         auto& shaderInfo = shaderProgram->GetShaderInfo();
         SetNameInternal(name, shaderProgram, finalReturn, set);

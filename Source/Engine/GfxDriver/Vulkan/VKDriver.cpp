@@ -753,10 +753,10 @@ bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<con
 
     std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-    for (auto& k : availableLayers)
-    {
-        SPDLOG_INFO(k.layerName);
-    }
+    // for (auto& k : availableLayers)
+    // {
+    //     SPDLOG_INFO(k.layerName);
+    // }
     for (const char* layerName : validationLayers)
     {
         bool layerFound = false;

@@ -69,7 +69,7 @@ public:
                 id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName(),
                 reinterpret_cast<size_t>(image->GetImage())
             ));
-            SPDLOG_INFO(
+            SPDLOG_TRACE(
                 "VKRenderGraph: create new iamge({}) {}",
                 reinterpret_cast<size_t>(image.get()),
                 id.GetAsUUID().ToString()
@@ -161,7 +161,7 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            SPDLOG_INFO("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
+            SPDLOG_TRACE("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
             renderPasses[uuid] = {std::move(renderPassObj), std::move(imageReferences), 0};
 
             return temp;
