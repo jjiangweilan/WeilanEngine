@@ -63,18 +63,21 @@ void PhysicsScene::Tick()
     }
 
     physicsUpdateDeltaAccumulation += Time::DeltaTime();
-    while (physicsUpdateDeltaAccumulation >= DeltaTime)
+    int updateCount = physicsUpdateDeltaAccumulation / physicsUpdateHz;
+    physicsUpdateDeltaAccumulation -= updateCount * physicsUpdateHz;
+    while (updateCount > 0)
     {
         scene->PrePhysicsTick();
 
-        physicsSystem.Update(DeltaTime, CollisionSteps, &temp_allocator, &job_system);
-        physicsUpdateDeltaAccumulation -= DeltaTime;
+        physicsSystem.Update(physicsUpdateHz, CollisionSteps, &temp_allocator, &job_system);
 
-        // Step the world
-        for (auto& b : bodies)
-        {
-            b.second->UpdateGameObject();
-        }
+        updateCount--;
+    }
+
+    // Step the world
+    for (auto& b : bodies)
+    {
+        b.second->UpdateGameObject();
     }
 }
 

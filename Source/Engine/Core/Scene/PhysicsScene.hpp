@@ -214,6 +214,7 @@ private:
     std::unordered_map<JPH::BodyID, PhysicsBody*> bodies;
     bool optimizeNeeded = false;
     float physicsUpdateDeltaAccumulation;
+    const float physicsUpdateHz = 1.0f / 60;
 
     class DebugBodyDrawFilter : public JPH::BodyDrawFilter
     {

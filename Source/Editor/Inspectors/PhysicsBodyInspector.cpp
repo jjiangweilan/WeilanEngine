@@ -112,113 +112,194 @@ public:
         target->debugDrawRequest = true;
 
         ImGui::SeparatorText("Lua Callback");
-        ImGui::Indent(5);
-        ImGui::SeparatorText("Contact Added");
+        ImGuiTreeNodeFlags callbackTreeNodeFlags = 0;
+
         auto contactAddedLuaCallbacks = target->GetContactAddedLuaCallbacks();
-        if (DrawPhysicsLuaCallbackInspector(contactAddedLuaCallbacks))
+        if (ImGui::TreeNodeEx("Contact Added", contactAddedLuaCallbacks.empty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen))
         {
-            target->SetContactAddedLuaCallbacks(contactAddedLuaCallbacks);
+            if (DrawPhysicsLuaCallbackInspector(contactAddedLuaCallbacks))
+            {
+                target->SetContactAddedLuaCallbacks(contactAddedLuaCallbacks);
+            }
+            ImGui::TreePop();
         }
-        ImGui::SeparatorText("Contact Removed");
+
         auto contactRemovedLuaCallbacks = target->GetContactRemovedLuaCallbacks();
-        if (DrawPhysicsLuaCallbackInspector(contactRemovedLuaCallbacks))
+        if (ImGui::TreeNodeEx(
+                "Contact Removed",
+                contactRemovedLuaCallbacks.empty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen
+            ))
         {
-            target->SetContactRemovedLuaCallbacks(contactRemovedLuaCallbacks);
+            if (DrawPhysicsLuaCallbackInspector(contactRemovedLuaCallbacks))
+            {
+                target->SetContactRemovedLuaCallbacks(contactRemovedLuaCallbacks);
+            }
+            ImGui::TreePop();
         }
-        ImGui::SeparatorText("Contact Persisted");
+
         auto contactPersistedLuaCallbacks = target->GetContactPersistedLuaCallbacks();
-        if (DrawPhysicsLuaCallbackInspector(contactPersistedLuaCallbacks))
+        if (ImGui::TreeNodeEx(
+                "Contact Persisted",
+                contactPersistedLuaCallbacks.empty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen
+            ))
         {
-            target->SetContactPersistedLuaCallbacks(contactPersistedLuaCallbacks);
+            if (DrawPhysicsLuaCallbackInspector(contactPersistedLuaCallbacks))
+            {
+                target->SetContactPersistedLuaCallbacks(contactPersistedLuaCallbacks);
+            }
+            ImGui::TreePop();
         }
-        ImGui::Indent(-5);
 
         ImGui::SeparatorText("Status");
-        auto& body = *target->GetBody();
-        ImGui::LabelText("ID", "%i", body.GetID().GetIndexAndSequenceNumber());
-        ImGui::LabelText("Body Type", "%s", body.GetBodyType() == JPH::EBodyType::RigidBody ? "Rigid" : "Soft");
-        ImGui::LabelText("Is Active", "%s", body.IsActive() ? "True" : "False");
-
-        ImGui::LabelText("Motion Type", "%s", motionTypes[currentMotionType]);
-        ImGui::LabelText("Is Sensor", "%s", body.IsSensor() ? "True" : "False");
-        ImGui::LabelText("Can Be Kinematic or Dynamic", "%s", body.CanBeKinematicOrDynamic() ? "True" : "False");
-        ImGui::LabelText("Use Manifold Reduction", "%s", body.GetUseManifoldReduction() ? "True" : "False");
-        // ImGui::LabelText("Sensor Detects Static", "%s", body.SensorDetectsStatic() ? "True" : "False");
-        ImGui::LabelText(
-            "Broad Phase Layer",
-            "%s",
-            BPLayerInterfaceImpl::GetBroadPhaseLayerNameImpl(body.GetBroadPhaseLayer())
-        );
-        ImGui::LabelText("Object Layer", "%d", body.GetObjectLayer());
-        ImGui::LabelText("Friction", "%.2f", body.GetFriction());
-        ImGui::LabelText("Restitution", "%.2f", body.GetRestitution());
-        ImGui::LabelText("User Data", "%llu", body.GetUserData());
-        if (body.GetMotionProperties())
+        auto body = target->GetBody();
+        if (body && ImGui::BeginTable("StatusTable", 2))
         {
-            ImGui::LabelText("Allow Sleeping", "%s", body.GetAllowSleeping() ? "True" : "False");
-            ImGui::LabelText(
-                "Linear Velocity",
-                "(%.2f, %.2f, %.2f)",
-                body.GetLinearVelocity().GetX(),
-                body.GetLinearVelocity().GetY(),
-                body.GetLinearVelocity().GetZ()
-            );
-            ImGui::LabelText(
-                "Angular Velocity",
-                "(%.2f, %.2f, %.2f)",
-                body.GetAngularVelocity().GetX(),
-                body.GetAngularVelocity().GetY(),
-                body.GetAngularVelocity().GetZ()
-            );
-            ImGui::LabelText(
-                "Accumulated Force",
-                "(%.2f, %.2f, %.2f)",
-                body.GetAccumulatedForce().GetX(),
-                body.GetAccumulatedForce().GetY(),
-                body.GetAccumulatedForce().GetZ()
-            );
-            ImGui::LabelText(
-                "Accumulated Torque",
-                "(%.2f, %.2f, %.2f)",
-                body.GetAccumulatedTorque().GetX(),
-                body.GetAccumulatedTorque().GetY(),
-                body.GetAccumulatedTorque().GetZ()
-            );
-            ImGui::LabelText("In Broad Phase", "%s", body.IsInBroadPhase() ? "True" : "False");
-            ImGui::LabelText("Collision Cache Invalid", "%s", body.IsCollisionCacheInvalid() ? "True" : "False");
-            ImGui::LabelText("Shape", "%s", body.GetShape() ? "Valid" : "Null");
-            ImGui::LabelText(
-                "Position",
-                "(%.2f, %.2f, %.2f)",
-                body.GetPosition().GetX(),
-                body.GetPosition().GetY(),
-                body.GetPosition().GetZ()
-            );
-            ImGui::LabelText(
-                "Rotation",
-                "(%.2f, %.2f, %.2f, %.2f)",
-                body.GetRotation().GetX(),
-                body.GetRotation().GetY(),
-                body.GetRotation().GetZ(),
-                body.GetRotation().GetW()
-            );
-            ImGui::LabelText(
-                "Center of Mass Position",
-                "(%.2f, %.2f, %.2f)",
-                body.GetCenterOfMassPosition().GetX(),
-                body.GetCenterOfMassPosition().GetY(),
-                body.GetCenterOfMassPosition().GetZ()
-            );
-            ImGui::LabelText(
-                "World Space Bounds",
-                "(%.2f, %.2f, %.2f) - (%.2f, %.2f, %.2f)",
-                body.GetWorldSpaceBounds().mMin.GetX(),
-                body.GetWorldSpaceBounds().mMin.GetY(),
-                body.GetWorldSpaceBounds().mMin.GetZ(),
-                body.GetWorldSpaceBounds().mMax.GetX(),
-                body.GetWorldSpaceBounds().mMax.GetY(),
-                body.GetWorldSpaceBounds().mMax.GetZ()
-            );
+            ImGui::TableNextColumn();
+            ImGui::Text("ID");
+            ImGui::TableNextColumn();
+            ImGui::Text("%i", body->GetID().GetIndexAndSequenceNumber());
+            ImGui::TableNextColumn();
+            ImGui::Text("Body Type");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", body->GetBodyType() == JPH::EBodyType::RigidBody ? "Rigid" : "Soft");
+            ImGui::TableNextColumn();
+            ImGui::Text("Is Active");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", body->IsActive() ? "True" : "False");
+            ImGui::TableNextColumn();
+            ImGui::Text("Motion Type");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", motionTypes[currentMotionType]);
+            ImGui::TableNextColumn();
+            ImGui::Text("Is Sensor");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", body->IsSensor() ? "True" : "False");
+            ImGui::TableNextColumn();
+            ImGui::Text("Can Be Kinematic or Dynamic");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", body->CanBeKinematicOrDynamic() ? "True" : "False");
+            ImGui::TableNextColumn();
+            ImGui::Text("Use Manifold Reduction");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", body->GetUseManifoldReduction() ? "True" : "False");
+            ImGui::TableNextColumn();
+            ImGui::Text("Broad Phase Layer");
+            ImGui::TableNextColumn();
+            ImGui::Text("%s", BPLayerInterfaceImpl::GetBroadPhaseLayerNameImpl(body->GetBroadPhaseLayer()));
+            ImGui::TableNextColumn();
+            ImGui::Text("Object Layer");
+            ImGui::TableNextColumn();
+            ImGui::Text("%d", body->GetObjectLayer());
+            ImGui::TableNextColumn();
+            ImGui::Text("Friction");
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f", body->GetFriction());
+            ImGui::TableNextColumn();
+            ImGui::Text("Restitution");
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f", body->GetRestitution());
+            ImGui::TableNextColumn();
+            ImGui::Text("User Data");
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", body->GetUserData());
+
+            if (body->GetMotionProperties())
+            {
+                ImGui::TableNextColumn();
+                ImGui::Text("Allow Sleeping");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", body->GetAllowSleeping() ? "True" : "False");
+                ImGui::TableNextColumn();
+                ImGui::Text("Linear Velocity");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetLinearVelocity().GetX(),
+                    body->GetLinearVelocity().GetY(),
+                    body->GetLinearVelocity().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("Angular Velocity");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetAngularVelocity().GetX(),
+                    body->GetAngularVelocity().GetY(),
+                    body->GetAngularVelocity().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("Accumulated Force");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetAccumulatedForce().GetX(),
+                    body->GetAccumulatedForce().GetY(),
+                    body->GetAccumulatedForce().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("Accumulated Torque");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetAccumulatedTorque().GetX(),
+                    body->GetAccumulatedTorque().GetY(),
+                    body->GetAccumulatedTorque().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("In Broad Phase");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", body->IsInBroadPhase() ? "True" : "False");
+                ImGui::TableNextColumn();
+                ImGui::Text("Collision Cache Invalid");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", body->IsCollisionCacheInvalid() ? "True" : "False");
+                ImGui::TableNextColumn();
+                ImGui::Text("Shape");
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", body->GetShape() ? "Valid" : "Null");
+                ImGui::TableNextColumn();
+                ImGui::Text("Position");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetPosition().GetX(),
+                    body->GetPosition().GetY(),
+                    body->GetPosition().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("Rotation");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f, %.2f)",
+                    body->GetRotation().GetX(),
+                    body->GetRotation().GetY(),
+                    body->GetRotation().GetZ(),
+                    body->GetRotation().GetW()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("Center of Mass Position");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f)",
+                    body->GetCenterOfMassPosition().GetX(),
+                    body->GetCenterOfMassPosition().GetY(),
+                    body->GetCenterOfMassPosition().GetZ()
+                );
+                ImGui::TableNextColumn();
+                ImGui::Text("World Space Bounds");
+                ImGui::TableNextColumn();
+                ImGui::Text(
+                    "(%.2f, %.2f, %.2f) - (%.2f, %.2f, %.2f)",
+                    body->GetWorldSpaceBounds().mMin.GetX(),
+                    body->GetWorldSpaceBounds().mMin.GetY(),
+                    body->GetWorldSpaceBounds().mMin.GetZ(),
+                    body->GetWorldSpaceBounds().mMax.GetX(),
+                    body->GetWorldSpaceBounds().mMax.GetY(),
+                    body->GetWorldSpaceBounds().mMax.GetZ()
+                );
+            }
+
+            ImGui::EndTable();
         }
     }
 
@@ -232,12 +313,12 @@ private:
         {
             bool wantRemove = false;
             ImGui::PushID(static_cast<int>(i));
+            ImGui::Text("%zu", i + 1);
+            ImGui::SameLine();
             if (ImGui::Button("x"))
             {
                 wantRemove = true;
             }
-            ImGui::SameLine();
-            ImGui::Text("%zu", i);
             ImGui::SameLine();
             GameScript* gameScript = callbacks[i].gameScript;
             if (GUI::ObjectField("", gameScript))

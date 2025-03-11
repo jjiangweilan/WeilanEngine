@@ -67,19 +67,31 @@ public:
         if (stylePushedForNullCurr)
             ImGui::PopStyleColor(2);
 
-        Object* target = nullptr;
-        if (DragDropTarget(target))
+        Object* source = nullptr;
+        if (DragDropTarget(source))
         {
-            T* t = dynamic_cast<T*>(target);
+            T* t = dynamic_cast<T*>(source);
             if (t != nullptr)
             {
-                curr = (T*)target;
+                curr = (T*)source;
                 newValue = true;
             }
+            else if (source != nullptr)
+            {
+                if (GameObject* asGameObject = dynamic_cast<GameObject*>(source))
+                {
+                    auto sourceFound = asGameObject->GetComponent<T>();
+                    if (sourceFound)
+                    {
+                        curr = (T*)sourceFound;
+                        newValue = true;
+                    }
+                }
+            }
         }
-        else if (DragDropTarget(typeid(GameObject), target))
+        else if (DragDropTarget(typeid(GameObject), source))
         {
-            GameObject* go = (GameObject*)target;
+            GameObject* go = (GameObject*)source;
             curr = go->GetComponent<T>();
             newValue = curr != nullptr;
         }
