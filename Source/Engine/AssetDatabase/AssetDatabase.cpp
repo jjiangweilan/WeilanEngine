@@ -57,7 +57,7 @@ void AssetDatabase::Init(const std::filesystem::path& projectRoot)
 
 void AssetDatabase::SaveAsset(Asset& asset)
 {
-    if (asset.IsExternalAsset())
+    if (asset.IsExternalAsset() || HasFlag(asset.GetFlags(), AssetState::DontSave))
         return;
     // this method only saves asset that is already imported
     AssetData* assetData = assets.GetAssetData(asset.GetUUID());
@@ -461,6 +461,11 @@ Asset* AssetDatabase::SaveAsset(std::unique_ptr<Asset>&& a, std::filesystem::pat
 {
     if (path.is_absolute())
         return nullptr;
+
+    if (HasFlag(a->GetFlags(), AssetState::DontSave))
+    {
+        return a.get();
+    }
 
     path.replace_extension(a->GetExtension());
     auto fullPath = assetDirectory / path;
@@ -969,7 +974,9 @@ void AssetDatabase::Remove(const std::filesystem::path& path)
 
             std::filesystem::remove(GetProjectAssetDatabaseDirectory() / assetData->GetAssetDataUUID().ToString());
 
-            assets.data.erase(std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; }));
+            assets.data.erase(
+                std::remove_if(assets.data.begin(), assets.data.end(), [&](auto& d) { return d.get() == assetData; })
+            );
         }
     };
 

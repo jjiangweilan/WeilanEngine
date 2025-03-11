@@ -41,7 +41,7 @@ struct GameView::PlayTheGame
             GameEditor::instance->GetEngine()->ReloadScripts();
             sceneCopy = AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             sceneCopy->SetName("scene copy");
-            sceneCopy->SetFlags(AssetStateFlags::DontSave);
+            sceneCopy->SetFlags(AssetState::DontSave);
 
             gameView->gameCamera = sceneCopy->GetMainCamera();
             EditorState::activeScene = sceneCopy;

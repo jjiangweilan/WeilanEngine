@@ -9,12 +9,12 @@
 #pragma once
 
 class AssetDatabase;
-enum class AssetStateFlags
+enum class AssetState
 {
     None = 0,
     DontSave = 1,
 };
-ENUM_FLAGS(AssetStateFlags, int);
+ENUM_FLAGS(AssetState, int);
 
 class Asset : public Object
 {
@@ -45,21 +45,17 @@ public:
 
     virtual std::vector<Asset*> GetInternalAssets() { return std::vector<Asset*>{}; }
 
-    bool IsDirty() { return HasFlag(stateFlags, AssetStateFlags::DontSave) ? false : isDirty; }
+    bool IsDirty() { return HasFlag(stateFlags, AssetState::DontSave) ? false : isDirty; }
 
     virtual std::unique_ptr<Asset> Clone() { return nullptr; }
 
-    void SetFlags(AssetStateFlags flags) { this->stateFlags = flags; }
+    void SetFlags(AssetStateFlags flags) { this->stateFlags |= flags; }
+    void UnsetFlags(AssetStateFlags flags) { this->stateFlags &= ~flags; }
+    AssetStateFlags GetFlags() const { return stateFlags; }
 
-    void Serialize(Serializer* s) const override
-    {
-        Object::Serialize(s);
-    }
+    void Serialize(Serializer* s) const override { Object::Serialize(s); }
 
-    void Deserialize(Serializer* s) override
-    {
-        Object::Deserialize(s);
-    }
+    void Deserialize(Serializer* s) override { Object::Deserialize(s); }
 
     virtual void OnLoaded() {}
 
@@ -90,7 +86,7 @@ protected:
 
 private:
     bool isDirty = false;
-    AssetStateFlags stateFlags = AssetStateFlags::None;
+    AssetStateFlags stateFlags = AssetState::None;
 
     friend class ObjectReflection;
 };
