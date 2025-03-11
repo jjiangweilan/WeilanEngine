@@ -1,6 +1,8 @@
 #include "../EditorState.hpp"
 #include "Core/Component/PhysicsBody.hpp"
+#include "Core/Scene/PhysicsScene.hpp"
 #include "Inspector.hpp"
+#include "Jolt/Physics/Body/Body.h"
 #include "ThirdParty/imgui/imgui.h"
 
 namespace Editor
@@ -97,6 +99,96 @@ public:
         }
 
         target->debugDrawRequest = true;
+
+        ImGui::SeparatorText("Status");
+
+        // label out all information of body
+        auto& body = *target->GetBody();
+        ImGui::LabelText("ID", "%i", body.GetID().GetIndexAndSequenceNumber());
+        ImGui::LabelText("Body Type", "%s", body.GetBodyType() == JPH::EBodyType::RigidBody ? "Rigid" : "Soft");
+        ImGui::LabelText("Is Active", "%s", body.IsActive() ? "True" : "False");
+
+        ImGui::LabelText("Motion Type", "%s", motionTypes[currentMotionType]);
+        ImGui::LabelText("Is Sensor", "%s", body.IsSensor() ? "True" : "False");
+        ImGui::LabelText("Can Be Kinematic or Dynamic", "%s", body.CanBeKinematicOrDynamic() ? "True" : "False");
+        ImGui::LabelText("Use Manifold Reduction", "%s", body.GetUseManifoldReduction() ? "True" : "False");
+        // ImGui::LabelText("Sensor Detects Static", "%s", body.SensorDetectsStatic() ? "True" : "False");
+        ImGui::LabelText(
+            "Broad Phase Layer",
+            "%s",
+            BPLayerInterfaceImpl::GetBroadPhaseLayerNameImpl(body.GetBroadPhaseLayer())
+        );
+        ImGui::LabelText("Object Layer", "%d", body.GetObjectLayer());
+        ImGui::LabelText("Friction", "%.2f", body.GetFriction());
+        ImGui::LabelText("Restitution", "%.2f", body.GetRestitution());
+        ImGui::LabelText("User Data", "%llu", body.GetUserData());
+        if (body.GetMotionProperties())
+        {
+            ImGui::LabelText("Allow Sleeping", "%s", body.GetAllowSleeping() ? "True" : "False");
+            ImGui::LabelText(
+                "Linear Velocity",
+                "(%.2f, %.2f, %.2f)",
+                body.GetLinearVelocity().GetX(),
+                body.GetLinearVelocity().GetY(),
+                body.GetLinearVelocity().GetZ()
+            );
+            ImGui::LabelText(
+                "Angular Velocity",
+                "(%.2f, %.2f, %.2f)",
+                body.GetAngularVelocity().GetX(),
+                body.GetAngularVelocity().GetY(),
+                body.GetAngularVelocity().GetZ()
+            );
+            ImGui::LabelText(
+                "Accumulated Force",
+                "(%.2f, %.2f, %.2f)",
+                body.GetAccumulatedForce().GetX(),
+                body.GetAccumulatedForce().GetY(),
+                body.GetAccumulatedForce().GetZ()
+            );
+            ImGui::LabelText(
+                "Accumulated Torque",
+                "(%.2f, %.2f, %.2f)",
+                body.GetAccumulatedTorque().GetX(),
+                body.GetAccumulatedTorque().GetY(),
+                body.GetAccumulatedTorque().GetZ()
+            );
+            ImGui::LabelText("In Broad Phase", "%s", body.IsInBroadPhase() ? "True" : "False");
+            ImGui::LabelText("Collision Cache Invalid", "%s", body.IsCollisionCacheInvalid() ? "True" : "False");
+            ImGui::LabelText("Shape", "%s", body.GetShape() ? "Valid" : "Null");
+            ImGui::LabelText(
+                "Position",
+                "(%.2f, %.2f, %.2f)",
+                body.GetPosition().GetX(),
+                body.GetPosition().GetY(),
+                body.GetPosition().GetZ()
+            );
+            ImGui::LabelText(
+                "Rotation",
+                "(%.2f, %.2f, %.2f, %.2f)",
+                body.GetRotation().GetX(),
+                body.GetRotation().GetY(),
+                body.GetRotation().GetZ(),
+                body.GetRotation().GetW()
+            );
+            ImGui::LabelText(
+                "Center of Mass Position",
+                "(%.2f, %.2f, %.2f)",
+                body.GetCenterOfMassPosition().GetX(),
+                body.GetCenterOfMassPosition().GetY(),
+                body.GetCenterOfMassPosition().GetZ()
+            );
+            ImGui::LabelText(
+                "World Space Bounds",
+                "(%.2f, %.2f, %.2f) - (%.2f, %.2f, %.2f)",
+                body.GetWorldSpaceBounds().mMin.GetX(),
+                body.GetWorldSpaceBounds().mMin.GetY(),
+                body.GetWorldSpaceBounds().mMin.GetZ(),
+                body.GetWorldSpaceBounds().mMax.GetX(),
+                body.GetWorldSpaceBounds().mMax.GetY(),
+                body.GetWorldSpaceBounds().mMax.GetZ()
+            );
+        }
     }
 
 private:

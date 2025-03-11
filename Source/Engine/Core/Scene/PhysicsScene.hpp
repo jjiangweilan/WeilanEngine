@@ -24,23 +24,6 @@ class PhysicsBody;
 class PhysicsScene;
 class Scene;
 
-/// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
-{
-public:
-    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
-    {
-        switch (static_cast<PhysicsLayer>(inObject1))
-        {
-            case PhysicsLayer::Scene:
-                return static_cast<PhysicsLayer>(inObject2) ==
-                       PhysicsLayer::Moving;        // Non moving only collides with moving
-            case PhysicsLayer::Moving: return true; // Moving collides with everything
-            default: JPH_ASSERT(false); return false;
-        }
-    }
-};
-
 // Each broadphase layer results in a separate bounding volume tree in the broad phase. You at least want to have
 // a layer for non-moving and moving objects to avoid having to update a tree full of static objects every frame.
 // You can have a 1-on-1 mapping between object layers and broadphase layers (like in this case) but if you have
@@ -75,8 +58,7 @@ public:
         return mObjectToBroadPhase[inLayer];
     }
 
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+    static const char* GetBroadPhaseLayerNameImpl(JPH::BroadPhaseLayer inLayer)
     {
         switch ((JPH::BroadPhaseLayer::Type)inLayer)
         {
@@ -86,10 +68,36 @@ public:
             default: JPH_ASSERT(false); return "INVALID";
         }
     }
+
+#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
+    virtual const char* GetBroadPhaseLayerName(JPH::BroadPhaseLayer inLayer) const override
+    {
+        return GetBroadPhaseLayerNameImpl(inLayer);
+    }
 #endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
 
 private:
     JPH::BroadPhaseLayer mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NUM_LAYERS)];
+};
+
+
+/// Class that determines if two object layers can collide
+class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
+{
+public:
+    virtual bool ShouldCollide(JPH::ObjectLayer inObject1, JPH::ObjectLayer inObject2) const override
+    {
+        switch (static_cast<PhysicsLayer>(inObject1))
+        {
+        case PhysicsLayer::Scene:
+            return static_cast<PhysicsLayer>(inObject2) ==
+                PhysicsLayer::Moving || static_cast<PhysicsLayer>(inObject2) ==
+                PhysicsLayer::Interactable;        // Non moving only collides with moving
+        case PhysicsLayer::Moving: return true; // Moving collides with everything
+        case PhysicsLayer::Interactable: return true; // Moving collides with everything
+        default: JPH_ASSERT(false); return false;
+        }
+    }
 };
 
 /// Class that determines if an object layer can collide with a broadphase layer

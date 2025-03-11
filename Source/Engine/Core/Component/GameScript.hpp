@@ -36,6 +36,7 @@ public:
 
     int AddOne(int x) { return 1 + x; }
     int LuaPushReferenceToStack();
+    bool CallLua(const char* functionName);
     const std::string& GetLuaClassName() const { return luaClassName; }
 
 private:
@@ -67,5 +68,4 @@ private:
 
     void RemoveScript();
 
-    bool CallLua(const char* functionName);
 };

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Core/Component/GameScript.hpp"
 #include "Core/Scene/PhysicsLayer.hpp"
 #include <memory>
 
@@ -34,7 +33,7 @@ enum class PhysicsContactEvent
     Removed,
     Persisted
 };
-
+class GameScript;
 class PhysicsBody : public Component
 {
     DECLARE_OBJECT();
@@ -110,13 +109,7 @@ public:
 
     void InvokeContactAddedEvent(
         PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
-    )
-    {
-        for (auto& f : contactAddedCallbacks)
-        {
-            f(this, other, manifold, settings);
-        }
-    }
+    );
 
     void SetLinearVelocity(const glm::vec3& velocity);
     glm::vec3 GetLinearVelocity();
@@ -146,10 +139,11 @@ private:
 
     struct LuaCallback
     {
+        ObjPtr<GameScript> gameScript;
         std::string callback;
     };
 
-    glm::vec4 bodyScale = {1.0, 1.0, 1.0, 1.0};
+    glm::vec4 bodyScale = {0.5, 0.5, 0.5, 1.0};
     glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;

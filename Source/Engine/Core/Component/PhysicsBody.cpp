@@ -1,9 +1,9 @@
 #include "PhysicsBody.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Jolt/Physics/Collision/Shape/StaticCompoundShape.h"
-#include "slang.h"
 
 using namespace JPH;
 using namespace JPH::literals;
@@ -151,8 +151,9 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
                 static_cast<ObjectLayer>(layer)
             );
             bodyCreationSettings.mIsSensor = isSensor;
-
-            bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
+            // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
+            bodyCreationSettings.mMotionType = motionType;
+            bodyCreationSettings.mCollideKinematicVsNonDynamic = false;
 
             auto& physicsWorld = GetScene()->GetPhysicsScene();
             auto& bodyInterface = physicsWorld.GetBodyInterface();
@@ -379,6 +380,10 @@ bool PhysicsBody::SetAsMeshRenderer()
         if (createFromMeshRenderer)
         {
             JPH::MeshShapeSettings meshShapeSettings(triangles);
+            if (motionType == JPH::EMotionType::Dynamic)
+            {
+                spdlog::warn("dynamic mesh shape is not supported, expect errors");
+            }
             SetShape(meshShapeSettings);
 
             UpdateBodyPositionAndRotation();
@@ -492,7 +497,26 @@ void PhysicsBody::RegisterLuaCallback(PhysicsContactEvent event, GameScript* gam
         return;
 
     LuaCallback cb{};
+    cb.gameScript = gameScript;
     cb.callback = luaCallbackName;
 
     callbacks->push_back(cb);
+}
+
+void PhysicsBody::InvokeContactAddedEvent(
+    PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
+)
+{
+    for (auto& f : contactAddedCallbacks)
+    {
+        f(this, other, manifold, settings);
+    }
+
+    for (auto& c : contactAddedLuaCallbacks)
+    {
+        if (c.gameScript)
+        {
+            c.gameScript->CallLua(c.callback.c_str());
+        }
+    }
 }
