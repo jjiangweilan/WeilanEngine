@@ -116,6 +116,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                                                               EditorState::GetMainSelectedObject() == contextComponent);
         ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
         bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
+        GUI::DragDropSource(c.GetName().c_str(), &c);
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
         {
             if (!popupTriggered)

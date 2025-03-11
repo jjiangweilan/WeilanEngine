@@ -33,7 +33,17 @@ enum class PhysicsContactEvent
     Removed,
     Persisted
 };
+
 class GameScript;
+struct PhysicsLuaCallback : public Serializable
+{
+    ObjPtr<GameScript> gameScript;
+    std::string callback;
+
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
+};
+
 class PhysicsBody : public Component
 {
     DECLARE_OBJECT();
@@ -83,6 +93,11 @@ public:
     bool IsSensor() { return isSensor; }
     void SetSensor(bool isSensor);
 
+    bool ShouldKinematicGenerateContactPointsWithNonDynamic() const
+    {
+        return kinematicGenerateContactPointsWithNonDynamic;
+    }
+    void SetKinematicCollideWithNonDynamic(bool shouldCollide);
     PhysicsLayer GetLayer() const { return layer; }
 
     float GetGravityFactory() const { return gravityFactor; }
@@ -99,13 +114,7 @@ public:
         contactRemovedCallbacks.push_back(f);
     }
 
-    void InvokeContactRemovedEvent(PhysicsBody* other)
-    {
-        for (auto& f : contactRemovedCallbacks)
-        {
-            f(this, other);
-        }
-    }
+    void InvokeContactRemovedEvent(PhysicsBody* other);
 
     void InvokeContactAddedEvent(
         PhysicsBody* other, const JPH::ContactManifold& manifold, JPH::ContactSettings& settings
@@ -132,22 +141,37 @@ public:
     // set this to true, the physics scene will try to draw this physics body in this frame
     bool debugDrawRequest = false;
 
+    // get registered lua callback events
+    const std::vector<PhysicsLuaCallback>& GetContactAddedLuaCallbacks() const { return contactAddedLuaCallbacks; }
+    const std::vector<PhysicsLuaCallback>& GetContactRemovedLuaCallbacks() const { return contactRemovedLuaCallbacks; }
+    const std::vector<PhysicsLuaCallback>& GetContactPersistedLuaCallbacks() const
+    {
+        return contactPersistedLuaCallbacks;
+    }
+    void SetContactAddedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    {
+        contactAddedLuaCallbacks = callbacks;
+    }
+    void SetContactRemovedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    {
+        contactRemovedLuaCallbacks = callbacks;
+    }
+    void SetContactPersistedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    {
+        contactPersistedLuaCallbacks = callbacks;
+    }
+
 private:
     using ContactAddedEventCallbackType =
         std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>;
     using ContactRemovedEventCallbackType = std::function<void(PhysicsBody*, PhysicsBody*)>;
-
-    struct LuaCallback
-    {
-        ObjPtr<GameScript> gameScript;
-        std::string callback;
-    };
 
     glm::vec4 bodyScale = {0.5, 0.5, 0.5, 1.0};
     glm::vec4 bodyOffset = {0.0, 0.0, 0.0, 0.0};
     PhysicsLayer layer = PhysicsLayer::Scene;
     float gravityFactor = 0.0f;
     bool isSensor = false;
+    bool kinematicGenerateContactPointsWithNonDynamic = false;
 
     JPH::EMotionType motionType = JPH::EMotionType::Static;
     JPH::Ref<JPH::Shape> shapeRef;
@@ -158,9 +182,9 @@ private:
     std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
     std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
 
-    std::vector<LuaCallback> contactAddedLuaCallbacks = {};
-    std::vector<LuaCallback> contactRemovedLuaCallbacks = {};
-    std::vector<LuaCallback> contactPersistedLuaCallbacks = {};
+    std::vector<PhysicsLuaCallback> contactAddedLuaCallbacks = {};
+    std::vector<PhysicsLuaCallback> contactRemovedLuaCallbacks = {};
+    std::vector<PhysicsLuaCallback> contactPersistedLuaCallbacks = {};
 
     void OnEnable() override;
     void OnDisable() override;

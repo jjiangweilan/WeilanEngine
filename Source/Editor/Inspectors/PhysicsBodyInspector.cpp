@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Component/PhysicsBody.hpp"
 #include "Core/Scene/PhysicsScene.hpp"
 #include "Inspector.hpp"
@@ -98,11 +99,41 @@ public:
             target->SetMotionType(static_cast<JPH::EMotionType>(currentMotionType));
         }
 
+        if (motionType == JPH::EMotionType::Kinematic)
+        {
+            bool shouldKinematicGenerateContactPointsWithNonDynamic =
+                target->ShouldKinematicGenerateContactPointsWithNonDynamic();
+            if (ImGui::Checkbox("Collide With NonDynamic", &shouldKinematicGenerateContactPointsWithNonDynamic))
+            {
+                target->SetKinematicCollideWithNonDynamic(shouldKinematicGenerateContactPointsWithNonDynamic);
+            }
+        }
+
         target->debugDrawRequest = true;
 
-        ImGui::SeparatorText("Status");
+        ImGui::SeparatorText("Lua Callback");
+        ImGui::Indent(5);
+        ImGui::SeparatorText("Contact Added");
+        auto contactAddedLuaCallbacks = target->GetContactAddedLuaCallbacks();
+        if (DrawPhysicsLuaCallbackInspector(contactAddedLuaCallbacks))
+        {
+            target->SetContactAddedLuaCallbacks(contactAddedLuaCallbacks);
+        }
+        ImGui::SeparatorText("Contact Removed");
+        auto contactRemovedLuaCallbacks = target->GetContactRemovedLuaCallbacks();
+        if (DrawPhysicsLuaCallbackInspector(contactRemovedLuaCallbacks))
+        {
+            target->SetContactRemovedLuaCallbacks(contactRemovedLuaCallbacks);
+        }
+        ImGui::SeparatorText("Contact Persisted");
+        auto contactPersistedLuaCallbacks = target->GetContactPersistedLuaCallbacks();
+        if (DrawPhysicsLuaCallbackInspector(contactPersistedLuaCallbacks))
+        {
+            target->SetContactPersistedLuaCallbacks(contactPersistedLuaCallbacks);
+        }
+        ImGui::Indent(-5);
 
-        // label out all information of body
+        ImGui::SeparatorText("Status");
         auto& body = *target->GetBody();
         ImGui::LabelText("ID", "%i", body.GetID().GetIndexAndSequenceNumber());
         ImGui::LabelText("Body Type", "%s", body.GetBodyType() == JPH::EBodyType::RigidBody ? "Rigid" : "Soft");
@@ -193,6 +224,52 @@ public:
 
 private:
     static const char _register;
+
+    bool DrawPhysicsLuaCallbackInspector(std::vector<PhysicsLuaCallback>& callbacks)
+    {
+        bool changed = false;
+        for (size_t i = 0; i < callbacks.size(); ++i)
+        {
+            bool wantRemove = false;
+            ImGui::PushID(static_cast<int>(i));
+            if (ImGui::Button("x"))
+            {
+                wantRemove = true;
+            }
+            ImGui::SameLine();
+            ImGui::Text("%zu", i);
+            ImGui::SameLine();
+            GameScript* gameScript = callbacks[i].gameScript;
+            if (GUI::ObjectField("", gameScript))
+            {
+                changed = true;
+                callbacks[i].gameScript = gameScript;
+            }
+            ImGui::SameLine();
+            if (GUI::InputText("##Callback", callbacks[i].callback, "Function Name"))
+            {
+                changed = true;
+            }
+            if (wantRemove)
+            {
+                changed = true;
+                callbacks.erase(callbacks.begin() + i);
+                --i; // Adjust index after removal
+            }
+            ImGui::PopID();
+        }
+
+        if (ImGui::Button("Add Callback"))
+        {
+            changed = true;
+            PhysicsLuaCallback cb;
+            cb.gameScript = nullptr;
+            cb.callback = "";
+            callbacks.push_back(cb);
+        }
+
+        return changed;
+    }
 };
 
 const char PhysicsBodyInspector::_register = InspectorRegistry::Register<PhysicsBodyInspector, PhysicsBody>();

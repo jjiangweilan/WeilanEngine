@@ -640,7 +640,7 @@ void GameEditor::ShowInspectorWindow()
     {
         ImGui::Begin("Inspector", &inspectorWindow, ImGuiWindowFlags_MenuBar);
         static bool lockWindow;
-        static Object* primarySelected;
+        static ObjPtr<Object> primarySelected;
 
         if (ImGui::Checkbox("Lock window", &lockWindow))
         {
@@ -659,7 +659,7 @@ void GameEditor::ShowInspectorWindow()
             if (primarySelected)
             {
                 bool noInspector = primaryInspector == nullptr;
-                bool chageInspector = !noInspector && primaryInspector->GetTarget() != primarySelected;
+                bool chageInspector = !noInspector && primaryInspector->GetTarget() != primarySelected.Get();
                 if (noInspector || chageInspector)
                 {
                     primaryInspector = InspectorRegistry::GetInspector(*primarySelected);

@@ -150,7 +150,7 @@ public:
         JPH::ContactSettings& ioSettings
     ) override
     {
-        spdlog::info("A contact was persisted");
+        // spdlog::info("A contact was persisted");
     }
 
     virtual void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;

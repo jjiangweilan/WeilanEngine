@@ -24,6 +24,10 @@ void PhysicsBody::Serialize(Serializer* s) const
     s->Serialize("motionType", static_cast<int>(motionType));
     s->Serialize("shapeType", static_cast<int>(shapeType));
     s->Serialize("isSensor", isSensor);
+    s->Serialize("kinematicGenerateContactPointsWithNonDynamic", kinematicGenerateContactPointsWithNonDynamic);
+    SERIALIZE(s, contactAddedLuaCallbacks);
+    SERIALIZE(s, contactRemovedLuaCallbacks);
+    SERIALIZE(s, contactPersistedLuaCallbacks);
 }
 void PhysicsBody::Deserialize(Serializer* s)
 {
@@ -42,6 +46,10 @@ void PhysicsBody::Deserialize(Serializer* s)
     s->Deserialize("shapeType", shapeType);
     this->shapeType = static_cast<PhysicsBodyShapes>(shapeType);
     s->Deserialize("isSensor", isSensor);
+    s->Deserialize("kinematicGenerateContactPointsWithNonDynamic", kinematicGenerateContactPointsWithNonDynamic);
+    DESERIALIZE(s, contactAddedLuaCallbacks);
+    DESERIALIZE(s, contactRemovedLuaCallbacks);
+    DESERIALIZE(s, contactPersistedLuaCallbacks);
 }
 
 const std::string& PhysicsBody::GetName()
@@ -153,7 +161,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
             bodyCreationSettings.mIsSensor = isSensor;
             // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
             bodyCreationSettings.mMotionType = motionType;
-            bodyCreationSettings.mCollideKinematicVsNonDynamic = false;
+            bodyCreationSettings.mCollideKinematicVsNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
 
             auto& physicsWorld = GetScene()->GetPhysicsScene();
             auto& bodyInterface = physicsWorld.GetBodyInterface();
@@ -485,7 +493,7 @@ void PhysicsBody::SetSensor(bool isSensor)
 void PhysicsBody::RegisterLuaCallback(PhysicsContactEvent event, GameScript* gameScript, const char* luaCallbackName)
 {
 
-    std::vector<LuaCallback>* callbacks = nullptr;
+    std::vector<PhysicsLuaCallback>* callbacks = nullptr;
     switch (event)
     {
         case PhysicsContactEvent::Added: callbacks = &contactAddedLuaCallbacks;
@@ -496,7 +504,7 @@ void PhysicsBody::RegisterLuaCallback(PhysicsContactEvent event, GameScript* gam
     if (callbacks == nullptr)
         return;
 
-    LuaCallback cb{};
+    PhysicsLuaCallback cb{};
     cb.gameScript = gameScript;
     cb.callback = luaCallbackName;
 
@@ -519,4 +527,42 @@ void PhysicsBody::InvokeContactAddedEvent(
             c.gameScript->CallLua(c.callback.c_str());
         }
     }
+}
+
+void PhysicsBody::InvokeContactRemovedEvent(PhysicsBody* other)
+{
+    for (auto& f : contactRemovedCallbacks)
+    {
+        f(this, other);
+    }
+
+    for (auto& c : contactRemovedLuaCallbacks)
+    {
+        if (c.gameScript)
+        {
+            c.gameScript->CallLua(c.callback.c_str());
+        }
+    }
+}
+
+void PhysicsBody::SetKinematicCollideWithNonDynamic(bool shouldCollide)
+{
+    kinematicGenerateContactPointsWithNonDynamic = shouldCollide;
+
+    if (body && body->GetCollideKinematicVsNonDynamic() != kinematicGenerateContactPointsWithNonDynamic)
+    {
+        body->SetCollideKinematicVsNonDynamic(kinematicGenerateContactPointsWithNonDynamic);
+    }
+}
+
+void PhysicsLuaCallback::Serialize(Serializer* s) const
+{
+    SERIALIZE(s, gameScript);
+    SERIALIZE(s, callback);
+}
+
+void PhysicsLuaCallback::Deserialize(Serializer* s)
+{
+    DESERIALIZE(s, gameScript);
+    DESERIALIZE(s, callback);
 }

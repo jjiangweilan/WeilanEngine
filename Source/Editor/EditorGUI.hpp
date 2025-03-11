@@ -37,12 +37,17 @@ public:
     {
         bool newValue = false;
         ImGui::PushID(0);
-        ImGui::Text("%s: ", name.data());
+        if (!name.empty())
+            ImGui::Text("%s: ", name.data());
         ImGui::SameLine();
         std::string buttonName = "null";
         if (curr != nullptr)
         {
-            buttonName = fmt::format("{}({})", curr->GetName().empty() ? curr->GetUUID().ToString().substr(0, 6) : curr->GetName(), curr->GetTypeName());
+            buttonName = fmt::format(
+                "{}({})",
+                curr->GetName().empty() ? curr->GetUUID().ToString().substr(0, 6) : curr->GetName(),
+                curr->GetTypeName()
+            );
         }
 
         bool stylePushedForNullCurr = false;
@@ -252,7 +257,7 @@ public:
         return selected;
     }
 
-    static bool InputText(const char* label, std::string& text)
+    static bool InputText(const char* label, std::string& text, const char* hind = nullptr)
     {
         if (textArea.size() < text.size() + 1)
         {
@@ -260,10 +265,22 @@ public:
         }
 
         std::strcpy(textArea.data(), text.data());
-        if (ImGui::InputText(label, textArea.data(), textArea.size()))
+        if (hind != nullptr)
         {
-            text = textArea.data();
-            return true;
+            if (ImGui::InputTextWithHint(label, hind, textArea.data(), textArea.size()))
+            {
+                text = textArea.data();
+                return true;
+            }
+        }
+
+        else
+        {
+            if (ImGui::InputText(label, textArea.data(), textArea.size()))
+            {
+                text = textArea.data();
+                return true;
+            }
         }
 
         return false;
