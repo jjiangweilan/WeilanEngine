@@ -565,6 +565,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 
     VkPipeline pipeline;
     objManager->CreateGraphicsPipeline(createInfo, pipeline);
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline, name.c_str());
 
     caches[requestHash] = pipeline;
 

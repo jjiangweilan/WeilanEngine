@@ -476,9 +476,16 @@ public:
 
                     // TODO: currently slang can't report stage usage correctly
                     // https://github.com/shader-slang/slang/issues/5940
-                    if (binding.stages == Gfx::ShaderStage::None)
+                    // if (binding.stages == Gfx::ShaderStage::None)
                     {
-                        binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        if (HasComputeEntryPoint())
+                        {
+                            binding.stages = Gfx::ShaderStage::Compute;
+                        }
+                        else
+                        {
+                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        }
                     }
 
                     outBindings.push_back(binding);
@@ -506,9 +513,16 @@ public:
 
                     // TODO: currently slang can't report stage usage correctly
                     // https://github.com/shader-slang/slang/issues/5940
-                    if (binding.stages == Gfx::ShaderStage::None)
+                    // if (binding.stages == Gfx::ShaderStage::None)
                     {
-                        binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        if (HasComputeEntryPoint())
+                        {
+                            binding.stages = Gfx::ShaderStage::Compute;
+                        }
+                        else
+                        {
+                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        }
                     }
 
                     outBindings.push_back(binding);
@@ -556,7 +570,7 @@ public:
 
                         // TODO: currently slang can't report stage usage correctly
                         // https://github.com/shader-slang/slang/issues/5940
-                        if (binding.stages == Gfx::ShaderStage::None)
+                        // if (binding.stages == Gfx::ShaderStage::None)
                         {
                             if (HasComputeEntryPoint())
                             {
