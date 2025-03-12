@@ -15,7 +15,7 @@ include(FetchContent)
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
-    GIT_TAG "v2025.2"
+    GIT_TAG "f4d5372d3354e62770b076b47892b5172223e98a"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
 )

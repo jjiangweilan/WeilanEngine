@@ -65,13 +65,10 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
     return output;
 }
 
-layout(location = 0) in float2 uv;
-layout(location = 0) out float4 oColor;
-
 [shader("fragment")]
 float4 Fragment(VertexOutput input) : SV_Target
 {
-    float4 oColor = perMaterial.mainTex.Sample(uv);
+    float4 oColor = perMaterial.mainTex.Sample(input.uv);
     if (oColor.a < 0.5)
         discard;
 
