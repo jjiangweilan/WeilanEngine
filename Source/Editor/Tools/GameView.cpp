@@ -215,7 +215,6 @@ void GameView::EditorCameraWalkAround(Camera& editorCamera, float& editorCameraS
         // lastMouseDelta = mouseLastClickDelta;
         auto upDown = 25 * glm::radians(mouseDelta.y) * Time::DeltaTime();
         auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
-
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right + upDown * up;
         auto final = glm::lookAt(eye, eye + (forward + lookAtDelta), glm::vec3(0, 1, 0));

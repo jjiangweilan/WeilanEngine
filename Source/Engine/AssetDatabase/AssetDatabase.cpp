@@ -259,24 +259,30 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         }
 
         // see if there is any reference need to be resolved to this object
-        auto iter = referenceResolveMap.find(results[i]->GetUUID());
-        if (iter != referenceResolveMap.end())
+        if (results[i] != nullptr)
         {
-            for (auto& resolve : iter->second)
+            auto iter = referenceResolveMap.find(results[i]->GetUUID());
+            if (iter != referenceResolveMap.end())
             {
-                if (resolve.target != nullptr)
-                    *resolve.target = results[i];
-                if (resolve.callback)
+                for (auto& resolve : iter->second)
                 {
-                    resolve.callback(results[i]);
+                    if (resolve.target != nullptr)
+                        *resolve.target = results[i];
+                    if (resolve.callback)
+                    {
+                        resolve.callback(results[i]);
+                    }
                 }
+                referenceResolveMap.erase(iter);
             }
-            referenceResolveMap.erase(iter);
         }
     }
 
     for (auto a : results)
-        a->OnLoaded();
+    {
+        if (a!= nullptr)
+            a->OnLoaded();
+    }
     return results;
 }
 

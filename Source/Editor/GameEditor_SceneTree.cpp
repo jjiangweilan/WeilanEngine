@@ -44,6 +44,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
     auto windowPos = ImGui::GetWindowPos();
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
     std::filesystem::path filePath;
+    // drop a external object
     if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
     {
         Object* asset = AssetDatabase::Singleton()->LoadAsset(filePath);
@@ -59,6 +60,13 @@ void GameEditor::ShowSceneTree(Scene& scene)
         {
             scene.AddGameObject(prefab->Instantiate());
         }
+    }
+
+    Object* moveToRoot = nullptr;
+    if (GUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
+    {
+        GameObject* casted = static_cast<GameObject*>(moveToRoot);
+        casted->SetParent(nullptr, true);
     }
 
     static GameObject* currentSelected = nullptr;

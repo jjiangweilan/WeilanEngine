@@ -6,6 +6,10 @@ class Time
 public:
     static void Tick();
 
+    // delta time in real time
+    static float RealtimedDeltaTime();
+
+    // delta time since last frame
     static float DeltaTime()
     {
         return GetTimeInternal().deltaTime;

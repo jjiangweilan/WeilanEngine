@@ -13,6 +13,14 @@ void Time::Tick()
     t.lastTime = nowTime;
 }
 
+float Time::RealtimedDeltaTime()
+{
+    auto& t = GetTimeInternal();
+	auto nowTime = Time::Clock::now();
+	auto deltaTimeDuration = nowTime - t.lastTime;
+	return std::chrono::duration_cast<std::chrono::microseconds>(deltaTimeDuration).count() * 1e-6f;
+}
+
 Time& Time::GetTimeInternal()
 {
     static std::unique_ptr<Time> time = std::unique_ptr<Time>(new Time);
