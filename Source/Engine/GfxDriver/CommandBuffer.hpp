@@ -64,15 +64,9 @@ struct BlitOp
 struct AsyncReadbackHandle
 {
 public:
-    virtual uint8_t* GetData()
-    {
-        return nullptr;
-    }
+    virtual uint8_t* GetData() { return nullptr; }
 
-    virtual bool IsComplete()
-    {
-        return false;
-    }
+    virtual bool IsComplete() { return false; }
 };
 
 class CommandBuffer
@@ -80,9 +74,11 @@ class CommandBuffer
 public:
     virtual ~CommandBuffer() {};
 
+    virtual void BeginLabel(std::string_view label, const glm::float4& color) = 0;
     virtual void BeginLabel(std::string_view label, float color[4]) = 0;
     virtual void EndLabel() = 0;
     virtual void InsertLabel(std::string_view label, float color[4]) = 0;
+    virtual void InsertLabel(std::string_view label, const glm::float4& color) = 0;
 
     virtual void BindResource(uint32_t set, Gfx::ShaderResource* resource) = 0;
     virtual void BindVertexBuffer(
@@ -179,10 +175,7 @@ public:
         SetTexture(name, 0, image, imageViewOption);
     }
 
-    void SetBuffer(ShaderBindingHandle name, Gfx::Buffer& buffer)
-    {
-        SetBuffer(name, 0, buffer);
-    }
+    void SetBuffer(ShaderBindingHandle name, Gfx::Buffer& buffer) { SetBuffer(name, 0, buffer); }
 
     void SetTexture(
         std::string_view name, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption = std::nullopt
@@ -198,9 +191,6 @@ public:
         SetTexture(ShaderBindingHandle(name), 0, id, imageViewOption);
     }
 
-    void SetBuffer(std::string_view name, Gfx::Buffer& buffer)
-    {
-        SetBuffer(ShaderBindingHandle(name), 0, buffer);
-    }
+    void SetBuffer(std::string_view name, Gfx::Buffer& buffer) { SetBuffer(ShaderBindingHandle(name), 0, buffer); }
 };
 } // namespace Gfx

@@ -19,7 +19,8 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx
 
     if (validationCheck && !renderPass.RenderPassRenderingValidationCheck())
     {
-        spdlog::critical("failed to execute render pass because it's not ready for rendering, you need to set subpass and also set attachments in subpass");
+        spdlog::critical("failed to execute render pass because it's not ready for rendering, you need to set subpass "
+                         "and also set attachments in subpass");
     }
 
     cmd.renderPass = static_cast<VKRenderPass*>(&renderPass);
@@ -413,6 +414,18 @@ void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bli
     cmds.push_back(VKCmd{VKCmdType::Blit, cmd});
 }
 
+void VKCommandBuffer::BeginLabel(std::string_view label, const glm::float4& color)
+{
+    VKBeginLabelCmd cmd{};
+
+    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
+    strcpy(tmp, (char*)label.data());
+    cmd.label = tmp;
+    memcpy(cmd.color, &color[0], sizeof(float) * 4);
+
+    cmds.push_back(VKCmd{VKCmdType::BeginLabel, cmd});
+}
+
 void VKCommandBuffer::BeginLabel(std::string_view label, float color[4])
 {
     VKBeginLabelCmd cmd{};
@@ -438,6 +451,18 @@ void VKCommandBuffer::InsertLabel(std::string_view label, float color[4])
     strcpy(tmp, (char*)label.data());
     cmd.label = tmp;
     memcpy(cmd.color, color, sizeof(float) * 4);
+
+    cmds.push_back(VKCmd{VKCmdType::InsertLabel, cmd});
+}
+
+void VKCommandBuffer::InsertLabel(std::string_view label, const glm::float4& color)
+{
+    VKInsertLabelCmd cmd{};
+
+    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
+    strcpy(tmp, (char*)label.data());
+    cmd.label = tmp;
+    memcpy(cmd.color, &color[0], sizeof(float) * 4);
 
     cmds.push_back(VKCmd{VKCmdType::InsertLabel, cmd});
 }

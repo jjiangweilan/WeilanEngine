@@ -388,8 +388,10 @@ public:
     ~VKCommandBuffer() {};
 
     void BeginLabel(std::string_view label, float color[4]) override;
+    void BeginLabel(std::string_view label, const glm::float4& color) override;
     void EndLabel() override;
     void InsertLabel(std::string_view label, float color[4]) override;
+    void InsertLabel(std::string_view label, const glm::float4& color) override;
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(
         uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, uint32_t vertexOffset, uint32_t firstInstance
