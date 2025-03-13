@@ -86,18 +86,19 @@ void Material::RebuildAllMaterials()
         if (mat->shaderResource)
         {
             mat->shaderResource->Clear();
-        }
 
-        // copy to skip reset test
-        auto copy = mat->textureValues;
-        mat->textureValues.clear();
-        for (auto& kv : copy)
-        {
-            if (kv.second != nullptr)
-                mat->SetTexture(kv.first, kv.second);
+            // copy to skip reset test
+            auto copy = mat->textureValues;
+            mat->textureValues.clear();
+            for (auto& kv : copy)
+            {
+                if (kv.second != nullptr)
+                    mat->SetTexture(kv.first, kv.second);
+            }
+            mat->ubo.buffer = nullptr;
+            mat->ubo.dirty = true;
+            mat->uploadNeeded = true;
         }
-        mat->ubo.buffer = nullptr;
-        mat->ubo.dirty = true;
     }
 }
 
