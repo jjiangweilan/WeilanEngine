@@ -117,7 +117,11 @@ private:
         Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 2);
     } skyboxPass{};
 
-    // WIP
+    struct AmbientOcclusion
+    {
+        AmbientOcclusion();
+    } ambientOcclusionPass;
+
     struct FXAAPass
     {
         FXAAPass();
@@ -153,6 +157,5 @@ private:
     RenderingData renderingData;
 
     Material interleavedGradientNoiseMat;
-
 };
 } // namespace Rendering

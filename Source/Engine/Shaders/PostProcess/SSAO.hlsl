@@ -9,3 +9,4 @@ struct SSAOInput
     float radius;
     float rangeCheck;
 };
+
