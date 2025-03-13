@@ -1,4 +1,5 @@
 #include "Core/Asset.hpp"
+#include "Libs/Math.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 
 #pragma once
@@ -48,6 +49,30 @@ public:
         void Serialize(Serializer* s) const override { SERIALIZE(s, drawMeshRendererAABB); }
         void Deserialize(Serializer* s) override { DESERIALIZE(s, drawMeshRendererAABB); }
     } debugDraw;
+
+    struct SSAO : Serializable
+    {
+        float strength;
+        float scaling;
+        float falloff;
+        float bias;
+
+        void Serialize(Serializer* s) const override
+        {
+            SERIALIZE(s, strength);
+            SERIALIZE(s, scaling);
+            SERIALIZE(s, falloff);
+            SERIALIZE(s, bias);
+        }
+
+        void Deserialize(Serializer* s) override
+        {
+            DESERIALIZE(s, strength);
+            DESERIALIZE(s, scaling);
+            DESERIALIZE(s, falloff);
+            DESERIALIZE(s, bias);
+        }
+    } ssao;
 
     bool fxaa = true;
 

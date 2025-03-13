@@ -280,6 +280,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
     cmd->EndLabel();
 
+    // ambient occlusion pass
+    ambientOcclusionPass.Execute(cmd, renderingData.mainDepth, setting, renderingData);
+
     // Shading
     cmd->BeginLabel("Shading", &labelColors.passColor[0]);
     {
@@ -313,6 +316,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
         shadingPass.gpuResource->SetImage("depthTex"_shaderBinding, &depthImageView);
         shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowMapPass.shadowMap.get());
+        shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusionPass.ssao);
         if (diffuseCube)
             shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
         if (specularCube)
@@ -553,6 +557,43 @@ RenderPipeline::ColorGradingPass::ColorGradingPass()
 {
     colorGradingShader = ShaderLibrary::GetShader(ShaderLibrary::ColorGrading);
     mat.SetShader(colorGradingShader);
+}
+
+RenderPipeline::AmbientOcclusionPass::AmbientOcclusionPass()
+{
+    ssaoShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_SSAO);
+    mat.SetShader(ssaoShader);
+}
+
+void RenderPipeline::AmbientOcclusionPass::Execute(
+    Gfx::CommandBuffer* cmd, Gfx::Image* texDepth, RenderPipelineSetting* setting, RenderingData& renderingData
+)
+{
+    mat.SetFloat("strength", setting->ssao.strength);
+    mat.SetFloat("scaling", setting->ssao.scaling);
+    mat.SetFloat("falloff", setting->ssao.falloff);
+    mat.SetFloat("bias", setting->ssao.bias);
+
+    mat.SetVector("rtSize", renderingData.sceneInfo->screenSize);
+    mat.SetTexture("depthTex", texDepth);
+
+    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    Gfx::RG::ImageDescription desc(
+        renderingData.sceneInfo->screenSize.x,
+        renderingData.sceneInfo->screenSize.y,
+        Gfx::GfxFormat::R32_SFloat
+    );
+
+    cmd->AllocateAttachment(ssao, desc);
+
+    pass.SetAttachment(0, ssao);
+    cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
+    cmd->BeginRenderPass(pass, clears);
+    cmd->BindResource(mat.GetSet("perMaterial"), mat.GetShaderResource());
+    cmd->BindShaderProgram(ssaoShader->GetShaderProgram(), ssaoShader->GetShaderProgram()->GetDefaultShaderConfig());
+    cmd->Draw(6, 1, 0, 0);
+    cmd->EndRenderPass();
+    cmd->EndLabel();
 }
 
 } // namespace Rendering

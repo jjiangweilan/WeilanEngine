@@ -117,9 +117,17 @@ private:
         Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 2);
     } skyboxPass{};
 
-    struct AmbientOcclusion
+    struct AmbientOcclusionPass
     {
-        AmbientOcclusion();
+        AmbientOcclusionPass();
+        ObjPtr<Shader2> ssaoShader;
+        Material mat;
+        Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
+
+        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("SSAO");
+        void Execute(
+            Gfx::CommandBuffer* cmd, Gfx::Image* texDepth, RenderPipelineSetting* setting, RenderingData& renderingData
+        );
     } ambientOcclusionPass;
 
     struct FXAAPass
