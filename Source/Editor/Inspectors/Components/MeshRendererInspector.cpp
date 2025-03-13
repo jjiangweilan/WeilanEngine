@@ -67,7 +67,7 @@ public:
 
         else if (bp)
         {
-            EditorState::SelectObject(mesh->GetSRef());
+            EditorState::SelectObject(mesh);
         }
         // show materials
         ImGui::Text("Materials: ");
@@ -83,7 +83,7 @@ public:
 
             if (ImGui::Button(buttonID.c_str()))
             {
-                EditorState::SelectObject(mats[i]->GetSRef());
+                EditorState::SelectObject(mats[i].Get());
             };
 
             Object* materialPayload;

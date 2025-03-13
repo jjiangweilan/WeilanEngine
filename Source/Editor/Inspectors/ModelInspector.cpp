@@ -26,7 +26,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::SelectObject(mesh->GetSRef());
+                EditorState::SelectObject(mesh.get());
             }
         }
         ImGui::Unindent();
@@ -45,7 +45,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::SelectObject(material->GetSRef());
+                EditorState::SelectObject(material.get());
             }
 
             ImGui::SameLine();
@@ -81,7 +81,7 @@ public:
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
-                EditorState::SelectObject(texture->GetSRef());
+                EditorState::SelectObject(texture.get());
             }
         }
         ImGui::Unindent();
@@ -99,7 +99,7 @@ public:
             }
             if(ImGui::Button(animName))
             {
-                EditorState::SelectObject(anim->GetSRef());
+                EditorState::SelectObject(anim);
             }
             GUI::DragDropSource(anim->GetName().c_str(), anim);
         }

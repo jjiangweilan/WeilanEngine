@@ -27,10 +27,7 @@ template <class T>
 class Inspector : public InspectorBase
 {
 public:
-    void OnEnable(Object& obj) override
-    {
-        target = static_cast<T*>(&obj);
-    }
+    void OnEnable(Object& obj) override { target = static_cast<T*>(&obj); }
     void DrawInspector(GameEditor& editor) override
     {
         // default inspector
@@ -44,7 +41,7 @@ public:
 
         GUI::DragDropSource(name, target);
 
-        if (Asset* asset = dynamic_cast<Asset*>(target))
+        if (Asset* asset = dynamic_cast<Asset*>(target.Get()))
         {
             auto nameStr = asset->GetName();
             char name[256];
@@ -56,12 +53,9 @@ public:
         }
     };
 
-    Object* GetTarget() override
-    {
-        return target;
-    }
+    Object* GetTarget() override { return target; }
 
 protected:
-    T* target;
+    ObjPtr<T> target;
 };
 } // namespace Editor

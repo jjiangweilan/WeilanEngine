@@ -23,7 +23,7 @@ public:
                     "editor renderer doesn't support rendering cubemap yet, click me to see the texture##Diffuse"
                 ))
             {
-                EditorState::SelectObject(diffuseCube->GetSRef());
+                EditorState::SelectObject(diffuseCube);
             }
         }
         else
@@ -43,7 +43,7 @@ public:
                     "editor renderer doesn't support rendering cubemap yet, click me to see the texture##Specular"
                 ))
             {
-                EditorState::SelectObject(specularCube->GetSRef());
+                EditorState::SelectObject(specularCube);
             }
         }
         else

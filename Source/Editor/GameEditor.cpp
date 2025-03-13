@@ -647,7 +647,7 @@ void GameEditor::ShowInspectorWindow()
             if (lockWindow)
                 primarySelected = EditorState::GetMainSelectedObject();
             else
-                EditorState::SelectObject(primarySelected->GetSRef());
+                EditorState::SelectObject(primarySelected);
         }
 
         auto selectedObject = EditorState::GetMainSelectedObject();
@@ -697,7 +697,7 @@ void GameEditor::ShowInspectorWindow()
             // recover selected object
             if (lockWindow == false)
             {
-                EditorState::SelectObject(primarySelected->GetSRef());
+                EditorState::SelectObject(primarySelected);
             }
         }
     }

@@ -2,7 +2,7 @@
 
 namespace Editor
 {
-std::vector<SRef<Object>> EditorState::selectedObjects = {};
+std::vector<ObjPtr<Object>> EditorState::selectedObjects = {};
 ObjPtr<Scene> EditorState::activeScene = nullptr;
 GameLoop* EditorState::gameLoop = nullptr;
 
@@ -11,8 +11,11 @@ void EditorState::DeselectObject(Object* obj)
     if (obj == nullptr)
         return;
 
-    auto findIter =
-        std::find_if(selectedObjects.begin(), selectedObjects.end(), [obj](SRef<Object> o) { return o.Get() == obj; });
+    auto findIter = std::find_if(
+        selectedObjects.begin(),
+        selectedObjects.end(),
+        [obj](ObjPtr<Object> o) { return o.Get() == obj; }
+    );
 
     if (findIter != selectedObjects.end())
     {
@@ -20,7 +23,7 @@ void EditorState::DeselectObject(Object* obj)
     }
 }
 
-void EditorState::SelectObject(SRef<Object> obj, bool multiSelect)
+void EditorState::SelectObject(ObjPtr<Object> obj, bool multiSelect)
 {
     Object* ptr = obj.Get();
     if (obj == nullptr)
@@ -39,7 +42,7 @@ void EditorState::SelectObject(SRef<Object> obj, bool multiSelect)
         auto findIter = std::find_if(
             selectedObjects.begin(),
             selectedObjects.end(),
-            [ptr](SRef<Object> o) { return o.Get() == ptr; }
+            [ptr](ObjPtr<Object> o) { return o.Get() == ptr; }
         );
         if (findIter == selectedObjects.end())
         {
@@ -61,7 +64,7 @@ Object* EditorState::GetMainSelectedObject()
     return nullptr;
 }
 
-std::vector<SRef<Object>> EditorState::GetSelectedObjects()
+std::vector<ObjPtr<Object>> EditorState::GetSelectedObjects()
 {
     return selectedObjects;
 }

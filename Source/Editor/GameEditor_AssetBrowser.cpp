@@ -42,7 +42,7 @@ void GameEditor::ShowAssetWindow()
                         Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
                         if (asset)
                         {
-                            EditorState::SelectObject(asset->GetSRef());
+                            EditorState::SelectObject(asset);
                         }
                     }
 
@@ -218,7 +218,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
                     );
                     if (asset)
                     {
-                        EditorState::SelectObject(asset->GetSRef());
+                        EditorState::SelectObject(asset);
                     }
                 }
 

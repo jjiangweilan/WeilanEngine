@@ -517,7 +517,7 @@ bool GameView::Tick()
         {
             if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
             {
-                EditorState::SelectObject(scene->CopyGameObject(*selected)->GetSRef());
+                EditorState::SelectObject(scene->CopyGameObject(*selected));
             }
         }
     }
@@ -643,12 +643,12 @@ bool GameView::Tick()
                         auto findIter = std::find_if(
                             selectedObjects.begin(),
                             selectedObjects.end(),
-                            [picked](SRef<Object> o) { return o.Get() == picked; }
+                            [picked](ObjPtr<Object> o) { return o.Get() == picked; }
                         );
                         if (findIter == selectedObjects.end())
                         {
                             bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
-                            EditorState::SelectObject(picked->GetSRef(), multiSelect);
+                            EditorState::SelectObject(picked, multiSelect);
                         }
                         else
                         {
@@ -658,7 +658,7 @@ bool GameView::Tick()
                             }
                             else
                             {
-                                EditorState::SelectObject(picked->GetSRef(), false);
+                                EditorState::SelectObject(picked, false);
                             }
                         }
                     }

@@ -91,6 +91,7 @@ public:
     static void RebuildAllMaterials();
 
     inline static const std::string PerMaterial = "perMaterial";
+
 private:
     struct UBO
     {
@@ -112,7 +113,7 @@ private:
     bool overrideShaderConfig = false;
 
     // std::unordered_map<std::string, UBO> ubos;
-    std::unordered_map<std::string, Texture*> textureValues;
+    std::unordered_map<std::string, ObjPtr<Texture>> textureValues;
     std::unordered_map<std::string, std::optional<Gfx::ImageViewOption>> textureImageViewOptions;
     std::unordered_map<std::string, Gfx::Buffer*> bufferValues;
     std::unordered_set<std::string> enabledFeatures;

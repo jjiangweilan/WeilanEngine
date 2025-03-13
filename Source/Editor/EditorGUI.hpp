@@ -62,7 +62,7 @@ public:
                                 : fmt::format("{}##{}", buttonName.c_str(), curr->GetUUID().ToString()).c_str()
             ))
         {
-            EditorState::SelectObject(curr ? curr->GetSRef() : nullptr);
+            EditorState::SelectObject(curr);
         }
         if (stylePushedForNullCurr)
             ImGui::PopStyleColor(2);

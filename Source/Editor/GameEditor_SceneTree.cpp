@@ -141,7 +141,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
             if (std::find_if(
                     selects.begin(),
                     selects.end(),
-                    [this](SRef<Object>& o) { return o.Get() == sceneTreeContextObject; }
+                    [this](ObjPtr<Object>& o) { return o.Get() == sceneTreeContextObject; }
                 ) != selects.end())
             {
                 for (auto& s : selects)
@@ -192,13 +192,13 @@ void GameEditor::ShowSceneTree(Scene& scene)
 }
 
 void GameEditor::SceneTree(
-    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<SRef<Object>>& selects, bool autoExpand
+    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
 )
 {
     ImGuiTreeNodeFlags nodeFlags =
         ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 
-    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](SRef<Object>& o) { return o.Get() == go; });
+    auto selectsIter = std::find_if(selects.begin(), selects.end(), [go](ObjPtr<Object>& o) { return o.Get() == go; });
     if (selectsIter != selects.end())
     {
         nodeFlags |= ImGuiTreeNodeFlags_Selected;
@@ -232,7 +232,7 @@ void GameEditor::SceneTree(
             else
             {
                 bool multiSelect = ImGui::IsKeyDown(ImGuiKey_LeftShift);
-                EditorState::SelectObject(go->GetSRef(), multiSelect);
+                EditorState::SelectObject(go, multiSelect);
             }
         }
 

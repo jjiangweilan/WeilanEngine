@@ -41,7 +41,7 @@ void Material::SetTexture(
     bool same = false;
     if (iter != textureValues.end())
     {
-        same = iter->second == texture;
+        same = iter->second.Get() == texture;
     }
     if (same)
     {
@@ -86,18 +86,18 @@ void Material::RebuildAllMaterials()
         if (mat->shaderResource)
         {
             mat->shaderResource->Clear();
-
-            // copy to skip reset test
-            auto copy = mat->textureValues;
-            mat->textureValues.clear();
-            for (auto& kv : copy)
-            {
-                if (kv.second != nullptr)
-                    mat->SetTexture(kv.first, kv.second);
-            }
-            mat->ubo.buffer = nullptr;
-            mat->ubo.dirty = true;
         }
+
+        // copy to skip reset test
+        auto copy = mat->textureValues;
+        mat->textureValues.clear();
+        for (auto& kv : copy)
+        {
+            if (kv.second != nullptr)
+                mat->SetTexture(kv.first, kv.second);
+        }
+        mat->ubo.buffer = nullptr;
+        mat->ubo.dirty = true;
     }
 }
 
@@ -324,7 +324,7 @@ void Material::Deserialize(Serializer* s)
                 Texture* tex = (Texture*)res;
                 for (auto& kv : textureValues)
                 {
-                    if (kv.second == tex)
+                    if (kv.second.Get() == tex)
                     {
                         SetTextureInternal(kv.first, tex, std::nullopt);
                         break;

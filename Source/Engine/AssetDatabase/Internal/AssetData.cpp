@@ -122,9 +122,9 @@ Asset* AssetData::GetAsset()
     return nullptr;
 }
 
-Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& asset, const std::filesystem::path& projectRoot)
+Asset* AssetData::SetAsset(std::unique_ptr<Asset>&& inAsset, const std::filesystem::path& projectRoot)
 {
-    this->asset = std::move(asset);
+    this->asset = std::move(inAsset); // note: asset UUID  will be updated laster in UpdateAssetUUIDs
 
     std::filesystem::path path = projectRoot / "AssetDatabase" / assetDataUUID.ToString();
     if (std::filesystem::exists(path))

@@ -10,10 +10,10 @@ namespace Editor
 class EditorState
 {
 public:
-    static void SelectObject(SRef<Object> obj, bool multiSelect = false);
+    static void SelectObject(ObjPtr<Object> obj, bool multiSelect = false);
     static Object* GetMainSelectedObject();
     static void DeselectObject(Object* obj);
-    static std::vector<SRef<Object>> GetSelectedObjects();
+    static std::vector<ObjPtr<Object>> GetSelectedObjects();
 
     static ObjPtr<Scene> activeScene;
     static GameLoop* gameLoop;
@@ -26,6 +26,6 @@ public:
     }
 
 private:
-    static std::vector<SRef<Object>> selectedObjects;
+    static std::vector<ObjPtr<Object>> selectedObjects;
 };
 } // namespace Editor
