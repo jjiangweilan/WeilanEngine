@@ -138,20 +138,6 @@ void PlayerController::OnStart()
     {
         return;
     }
-    auto targetGO = target->GetGameObject();
-    if (targetGO == GetGameObject())
-    {
-        return;
-    }
-
-    // set camera's initial position
-    SetCameraSphericalPos(0, 0);
-
-    // set camera's initial rotation
-    auto characterPos = GetGameObject()->GetPosition();
-    glm::vec3 cameraPos = targetGO->GetPosition();
-    auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
-    targetGO->SetRotation(lookAtQuat);
 
     CreateCharacterPhysicsShape();
 
@@ -209,7 +195,23 @@ void PlayerController::SetSmoothCameraSphericalPos(float xDelta, float yDelta, g
 
     cameraGO->SetPosition(newCameraPosition);
 }
-void PlayerController::OnEnable() {}
+void PlayerController::OnEnable()
+{
+    auto targetGO = target->GetGameObject();
+    if (targetGO == GetGameObject())
+    {
+        return;
+    }
+
+    // set camera's initial position
+    SetCameraSphericalPos(0, 0);
+
+    // set camera's initial rotation
+    auto characterPos = GetGameObject()->GetPosition();
+    glm::vec3 cameraPos = targetGO->GetPosition();
+    auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
+    targetGO->SetRotation(lookAtQuat);
+}
 
 void PlayerController::OnDisable() {}
 

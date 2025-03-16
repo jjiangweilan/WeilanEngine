@@ -9,9 +9,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" )
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
+option(ENABLE_ADDRESS_SANITIZER "" OFF)
 
 include(CheckIPOSupported)
 include(FetchContent)
+
+if (ENABLE_ADDRESS_SANITIZER)
+add_compile_options("/fsanitize=address")
+endif()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
@@ -33,16 +38,16 @@ set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 FetchContent_MakeAvailable(Slang)
 
-set_target_properties(slang-glslang
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-)
-set_target_properties(slang
-    PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-)
+# set_target_properties(slang-glslang
+#     PROPERTIES
+#     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+# )
+# set_target_properties(slang
+#     PROPERTIES
+#     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+# )
 add_dependencies(slang
 slang-glslang
 )
@@ -53,7 +58,13 @@ FetchContent_Declare(SDL2
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
     )
-set(SDL_SHARED ON)
+
+if (ENABLE_ADDRESS_SANITIZER)
+    set(SDL_SHARED OFF)
+else()
+    set(SDL_SHARED ON)
+endif()
+
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(fmt

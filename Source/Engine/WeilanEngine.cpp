@@ -59,7 +59,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{
         .window = mainWindow.handle,
-        .enableRenderDoc = true,
+        .enableRenderDoc = false,
         .enableGfxDriverValidation = true
     };
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);

@@ -17,6 +17,7 @@ void SHProbe::Init(int level) {}
 
 void SHProbe::UpdateProbe(const float4& position, const SHProbeUpdateSettings& settings)
 {
+    return;
     auto scene = GetScene();
     ASSERT(scene != nullptr);
 

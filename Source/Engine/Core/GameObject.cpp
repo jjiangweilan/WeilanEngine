@@ -585,5 +585,8 @@ void GameObject::LookAt(const float3& lookAtPos)
 {
     auto pos = GetPosition();
     auto mat = glm::lookAt(pos, lookAtPos, {0, 1, 0});
-    SetWorldMatrix(glm::inverse(mat));
+    float3x3 rotMat = mat;
+    rotMat = glm::transpose(rotMat);
+    auto rot = glm::quat_cast(rotMat);
+    SetRotation(rot);
 }

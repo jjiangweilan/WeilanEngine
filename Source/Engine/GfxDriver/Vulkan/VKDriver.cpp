@@ -42,7 +42,11 @@
 #undef CreateSemaphore
 #endif
 
+#if NDEBUG
+#define CHECK_VK_RESULT(x) x
+#else
 #define CHECK_VK_RESULT(x) ASSERT((x) == VK_SUCCESS)
+#endif
 
 namespace Gfx
 {

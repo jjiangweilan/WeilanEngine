@@ -272,7 +272,7 @@ void Texture::ConvertRawImageToKtx(TextureDescription& desc)
         return;
     }
     char writer[100];
-    snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", 0);
+    snprintf(writer, sizeof(writer), "%s version %s", "WeilanEngine", "0");
     ktxHashList_AddKVPair(&texture->kvDataHead, KTX_WRITER_KEY, (ktx_uint32_t)strlen(writer) + 1, writer);
 
     LoadKtxTexture(texture, desc.img.mipLevels);
