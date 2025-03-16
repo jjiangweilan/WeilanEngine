@@ -584,9 +584,10 @@ Component* GameObject::AddComponent(std::string_view componentName)
 void GameObject::LookAt(const float3& lookAtPos)
 {
     auto pos = GetPosition();
-    auto mat = glm::lookAt(pos, lookAtPos, {0, 1, 0});
-    float3x3 rotMat = mat;
-    rotMat = glm::transpose(rotMat);
-    auto rot = glm::quat_cast(rotMat);
+    float4x4 mat = glm::lookAt(pos, lookAtPos, {0, 1, 0});
+    mat = glm::transpose(mat);
+    mat[0] = -mat[0];
+    mat[2] = -mat[2];
+    auto rot = glm::quat_cast(mat);
     SetRotation(rot);
 }

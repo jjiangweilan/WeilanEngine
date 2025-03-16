@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Component/AnimationPlayer.hpp"
+#include "Core/Component/Camera.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
@@ -854,6 +855,12 @@ public:
             .Begin("AnimationPlayer")
             .BindMemFn("SetClip", &AnimationPlayer::SetClip)
             .BindMemFn("Play", &AnimationPlayer::Play)
+            .End();
+
+        LuaBinder<Camera> camera(L);
+        camera
+            .Begin("Camera")
+            .BindMemFn("LookAt", &Camera::LookAt)
             .End();
 
         LuaBinder<Light> light(L);

@@ -43,6 +43,8 @@ public:
     float GetNear();
     float GetFar();
 
+    void LookAt(const float3& lookAtPos);
+
     void DrawGizmos();
     void Tick() override;
 

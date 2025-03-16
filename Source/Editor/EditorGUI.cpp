@@ -160,7 +160,10 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
                     Object* obj = objPtr.Get();
                     if (ObjectField(key.c_str(), obj))
                     {
-                        value = obj->GetUUID().ToString();
+                        if (obj)
+                            value = obj->GetUUID().ToString();
+                        else
+                            value = UUID::GetEmptyUUID().ToString();
                         valueChanged = true;
                     }
                 }

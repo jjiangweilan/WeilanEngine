@@ -64,6 +64,13 @@ public:
         {
             EditorState::SelectObject(curr);
         }
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            curr = nullptr;
+            newValue = true;
+        }
+
         if (stylePushedForNullCurr)
             ImGui::PopStyleColor(2);
 

@@ -207,3 +207,13 @@ void Camera::Tick()
     SystemInfo::Singleton().GetScreenSize(width, height);
     SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
 }
+
+void Camera::LookAt(const float3& lookAtPos)
+{
+    auto pos = GetGameObject()->GetPosition();
+    auto mat = glm::lookAt(pos, lookAtPos, {0, 1, 0});
+    float3x3 rotMat = mat;
+    rotMat = glm::transpose(rotMat);
+    auto rot = glm::quat_cast(rotMat);
+    GetGameObject()->SetRotation(rot);
+}
