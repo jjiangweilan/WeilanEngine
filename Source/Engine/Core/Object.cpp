@@ -48,6 +48,17 @@ std::unique_ptr<Object> ObjectRegistry::CreateObject(const ObjectTypeID& id)
     return nullptr;
 }
 
+std::unique_ptr<Object> ObjectRegistry::CreateObjectByName(std::string_view name)
+{
+    auto iter = GetObjectTypeRegistryByName()->find(std::string(name));
+    if (iter != GetObjectTypeRegistryByName()->end())
+    {
+        return iter->second();
+    }
+
+    return nullptr;
+}
+
 std::vector<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
 {
     static std::vector<std::string> s{};

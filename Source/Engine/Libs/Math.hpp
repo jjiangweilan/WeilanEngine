@@ -101,3 +101,10 @@ void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::
 
 } // namespace Math
 
+
+using glm::float4;
+using glm::float3;
+using glm::float2;
+using glm::float4x4;
+using glm::float3x3;
+using glm::float2x2;

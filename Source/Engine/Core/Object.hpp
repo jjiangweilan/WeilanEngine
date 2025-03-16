@@ -71,6 +71,7 @@ public:
     static std::unique_ptr<T> CreateObject(const ObjectTypeID& id);
     template <class T>
     static std::unique_ptr<T> CreateObject(std::string_view id);
+    static std::unique_ptr<Object> CreateObjectByName(std::string_view name);
     template <class T>
     static char RegisterObject(const ObjectTypeID& objectID, std::string_view typeName, const Creator& creator)
     {

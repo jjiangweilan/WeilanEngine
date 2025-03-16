@@ -587,6 +587,9 @@ public:
                     CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
                     break;
                 }
+            //case slang::TypeReflection::Kind::Array: 
+            //    ASSERT(false && "Not Implemented");
+
             default:
                 {
                     break;

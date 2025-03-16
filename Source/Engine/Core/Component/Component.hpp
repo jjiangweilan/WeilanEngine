@@ -18,7 +18,7 @@ public:
     virtual void PrePhysicsTick() {};
 
     virtual const std::string& GetName() = 0;
-    virtual std::unique_ptr<Component> Clone(GameObject& owner) = 0;
+    virtual std::unique_ptr<Component> Clone(GameObject& owner) { return nullptr; }
     ObjPtr<GameObject> GetGameObject();
 
     bool IsEnabled() { return enabled; }
@@ -60,9 +60,9 @@ public:
     ExampleComponent();
     ExampleComponent(GameObject* gameObject);
     ~ExampleComponent();
+    const std::string& GetName() override;
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
-    const std::string& GetName() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     void OnLoaded() override;

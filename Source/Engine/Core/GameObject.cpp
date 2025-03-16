@@ -563,3 +563,17 @@ int GameObject::RegisterContactEventRemoved(
     contactRemovedCallbacks.push_back(f);
     return contactRemovedCallbacks.size() - 1;
 }
+
+Component* GameObject::AddComponent(std::string_view componentName)
+{
+    auto p = ObjectRegistry::CreateObjectByName(componentName);
+    Component* temp = dynamic_cast<Component*>(p.release());
+    if (temp == nullptr)
+        return nullptr;
+
+    temp->gameObject = this;
+    std::unique_ptr<Component> compPtr(temp);
+    components.push_back(std::move(compPtr));
+    temp->Enable();
+    return temp;
+}

@@ -50,6 +50,7 @@ public:
 
     template <class T, class... Args>
     T* AddComponent(Args&&... args);
+    Component* AddComponent(std::string_view componentName);
 
     GameObject* Find(std::string_view name);
 

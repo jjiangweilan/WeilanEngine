@@ -12,12 +12,19 @@ class Camera;
 namespace Rendering
 {
 
+class SceneRendererSorter
+{
+public:
+    void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList);
+};
+
 class RenderPipeline
 {
 public:
     RenderPipeline();
 
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
+    void RenderSkyboxOnly(Scene& scene, Camera& camera);
     const auto& GetOutputColor() const { return finalColor; }
     const auto& GetOutputDepth() const { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
@@ -165,5 +172,8 @@ private:
     RenderingData renderingData;
 
     Material interleavedGradientNoiseMat;
+
+    void FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
+    void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
 };
 } // namespace Rendering

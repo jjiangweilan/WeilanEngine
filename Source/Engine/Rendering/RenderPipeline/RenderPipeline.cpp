@@ -12,17 +12,6 @@
 namespace Rendering
 {
 
-class SceneRendererSorter
-{
-public:
-    void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
-    {
-        outDrawList.clear();
-        outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
-        outDrawList.Sort(camera.GetGameObject()->GetPosition());
-    }
-};
-
 RenderPipeline::RenderPipeline()
 {
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
@@ -49,157 +38,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 {
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
-
-    auto UpdatePerScene = [&]()
-    {
-        auto camGo = camera.GetGameObject();
-
-        glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
-        glm::matrix<float, 4, 4> projectionMatrix = camera.GetProjectionMatrix();
-        glm::matrix<float, 4, 4> vp = projectionMatrix * viewMatrix;
-        glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
-
-        auto& param = perScene.cpuParameter;
-
-        param.projection = projectionMatrix;
-        param.viewProjection = vp;
-        param.viewPos = viewPos;
-        param.view = viewMatrix;
-        param.shadowMapSize = {
-            1024,
-            1024,
-            1.0 / 1024.0f,
-            1.0 / 1024.0f,
-        };
-        param.invProjection = glm::inverse(projectionMatrix);
-        param.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
-        param.cameraZBufferParams = glm::vec4(
-            camera.GetNear(),
-            camera.GetFar(),
-            (camera.GetNear() - camera.GetFar()) / (camera.GetNear() * camera.GetFar()),
-            1.0f / camera.GetNear()
-        );
-        param.cameraFrustum = glm::vec4(
-            -camera.GetProjectionRight(),
-            camera.GetProjectionRight(),
-            -camera.GetProjectionTop(),
-            camera.GetProjectionTop()
-        );
-        param.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
-        param.time = Time::TimeSinceLaunch();
-
-        // light data
-        {
-            Light* mainLight = nullptr;
-            ENGINE_BEGIN_PROFILE("Get Active Lights")
-            auto lights = scene.GetActiveLights();
-            ENGINE_END_PROFILE
-
-            param.lightCount = glm::float4(lights.size(), 0, 0, 0);
-            for (int i = 0; i < lights.size(); ++i)
-            {
-                param.lights[i].ambientScale = lights[i]->GetAmbientScale();
-                param.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
-                param.lights[i].intensity = lights[i]->GetIntensity();
-                auto model = lights[i]->GetGameObject()->GetWorldMatrix();
-                switch (lights[i]->GetLightType())
-                {
-                    case LightType::Directional:
-                        {
-                            mainLight = lights[i];
-                            glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
-                            param.lights[i].position = {pos, 0};
-
-                            if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
-                            {
-                                mainLight = lights[i];
-                            }
-                            break;
-                        }
-                    case LightType::Point:
-                        {
-                            glm::vec3 pos = model[3];
-                            param.lights[i].position = {pos, 1};
-                            param.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
-                            param.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
-                            break;
-                        }
-                }
-            }
-
-            if (mainLight)
-            {
-                state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
-
-                param.worldToShadow = mainLight->WorldToShadowMatrix(camera.GetGameObject()->GetPosition());
-
-                if (mainLight->IsShadowCacheEnabled())
-                {
-                    param.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
-                }
-                else
-                {
-                    param.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
-                }
-            }
-        }
-
-        GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
-    };
-
     Gfx::CommandBuffer* cmd = commandBuffer.get();
 
+    UpdateSceneInfo(scene, camera, screenSize);
+    FrameSetup(cmd, scene, camera, screenSize);
+
     // Setup
-    {
-        auto AllocateImage = [](Gfx::CommandBuffer& cmd,
-                                const Gfx::RG::ImageIdentifier& id,
-                                glm::float2 size,
-                                glm::float2 screenSize,
-                                Gfx::GfxFormat format,
-                                Gfx::RG::ImageDescription& desc)
-        {
-            if (size.x == 0)
-            {
-                desc.SetWidth(screenSize.x);
-            }
-            else if (size.x < 1.0f)
-            {
-                desc.SetWidth(screenSize.x * size.x);
-            }
-            else
-                desc.SetWidth(size.x);
-            if (size.y == 0)
-            {
-                desc.SetHeight(screenSize.y);
-            }
-            else if (size.y < 1.0f)
-            {
-                desc.SetHeight(screenSize.y * size.y);
-            }
-            else
-                desc.SetHeight(size.y);
-            desc.SetFormat(format);
-            cmd.AllocateAttachment(id, desc);
-        };
-
-        mainColorDescription.SetRandomWrite(true);
-        AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
-        AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
-        AllocateImage(*cmd, depthCopy, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
-
-        // no settings quit here
-        if (setting == nullptr)
-        {
-            finalColor = mainColor;
-            return;
-        }
-
-        UpdatePerScene();
-        renderingData.sceneInfo = &perScene.cpuParameter;
-        renderingData.mainCamera = &camera;
-        renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
-        renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
-    }
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
     DrawList sceneDrawList;
@@ -594,6 +438,179 @@ void RenderPipeline::AmbientOcclusionPass::Execute(
     cmd->Draw(6, 1, 0, 0);
     cmd->EndRenderPass();
     cmd->EndLabel();
+}
+
+void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
+{
+    outDrawList.clear();
+    outDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+    outDrawList.Sort(camera.GetGameObject()->GetPosition());
+}
+
+void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera)
+{
+    auto cmd = commandBuffer.get();
+    cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);
+    cmd->BindVertexBuffer(skyboxPass.cube->GetGfxVertexBufferBindings(), 0);
+    cmd->BindIndexBuffer(skyboxPass.cube->GetIndexBuffer(), 0, skyboxPass.cube->GetIndexBufferType());
+    cmd->BindShaderProgram(
+        skyboxPass.skyboxShader->GetShaderProgram(),
+        skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig()
+    );
+    cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
+    cmd->EndLabel();
+
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+    cmd->Reset(true);
+}
+
+void RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize)
+{
+    auto AllocateImage = [](Gfx::CommandBuffer& cmd,
+                            const Gfx::RG::ImageIdentifier& id,
+                            glm::float2 size,
+                            glm::float2 screenSize,
+                            Gfx::GfxFormat format,
+                            Gfx::RG::ImageDescription& desc)
+    {
+        if (size.x == 0)
+        {
+            desc.SetWidth(screenSize.x);
+        }
+        else if (size.x < 1.0f)
+        {
+            desc.SetWidth(screenSize.x * size.x);
+        }
+        else
+            desc.SetWidth(size.x);
+        if (size.y == 0)
+        {
+            desc.SetHeight(screenSize.y);
+        }
+        else if (size.y < 1.0f)
+        {
+            desc.SetHeight(screenSize.y * size.y);
+        }
+        else
+            desc.SetHeight(size.y);
+        desc.SetFormat(format);
+        cmd.AllocateAttachment(id, desc);
+    };
+
+    mainColorDescription.SetRandomWrite(true);
+    AllocateImage(*cmd, mainColor, {0, 0}, screenSize, Gfx::GfxFormat::R16G16B16A16_SFloat, mainColorDescription);
+    AllocateImage(*cmd, mainDepth, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
+    AllocateImage(*cmd, depthCopy, {0, 0}, screenSize, Gfx::GfxFormat::D32_SFLOAT_S8_UInt, mainDepthDescription);
+
+    // no settings quit here
+    if (setting == nullptr)
+    {
+        finalColor = mainColor;
+        return;
+    }
+
+    UpdateSceneInfo(scene, camera, screenSize);
+    renderingData.sceneInfo = &perScene.cpuParameter;
+    renderingData.mainCamera = &camera;
+    renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
+    renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
+}
+
+void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize)
+{
+    auto camGo = camera.GetGameObject();
+
+    glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
+    glm::matrix<float, 4, 4> projectionMatrix = camera.GetProjectionMatrix();
+    glm::matrix<float, 4, 4> vp = projectionMatrix * viewMatrix;
+    glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
+
+    auto& param = perScene.cpuParameter;
+
+    param.projection = projectionMatrix;
+    param.viewProjection = vp;
+    param.viewPos = viewPos;
+    param.view = viewMatrix;
+    param.shadowMapSize = {
+        1024,
+        1024,
+        1.0 / 1024.0f,
+        1.0 / 1024.0f,
+    };
+    param.invProjection = glm::inverse(projectionMatrix);
+    param.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
+    param.cameraZBufferParams = glm::vec4(
+        camera.GetNear(),
+        camera.GetFar(),
+        (camera.GetNear() - camera.GetFar()) / (camera.GetNear() * camera.GetFar()),
+        1.0f / camera.GetNear()
+    );
+    param.cameraFrustum = glm::vec4(
+        -camera.GetProjectionRight(),
+        camera.GetProjectionRight(),
+        -camera.GetProjectionTop(),
+        camera.GetProjectionTop()
+    );
+    param.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
+    param.time = Time::TimeSinceLaunch();
+
+    // light data
+    {
+        Light* mainLight = nullptr;
+        ENGINE_BEGIN_PROFILE("Get Active Lights")
+        auto lights = scene.GetActiveLights();
+        ENGINE_END_PROFILE
+
+        param.lightCount = glm::float4(lights.size(), 0, 0, 0);
+        for (int i = 0; i < lights.size(); ++i)
+        {
+            param.lights[i].ambientScale = lights[i]->GetAmbientScale();
+            param.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
+            param.lights[i].intensity = lights[i]->GetIntensity();
+            auto model = lights[i]->GetGameObject()->GetWorldMatrix();
+            switch (lights[i]->GetLightType())
+            {
+                case LightType::Directional:
+                    {
+                        mainLight = lights[i];
+                        glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
+                        param.lights[i].position = {pos, 0};
+
+                        if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
+                        {
+                            mainLight = lights[i];
+                        }
+                        break;
+                    }
+                case LightType::Point:
+                    {
+                        glm::vec3 pos = model[3];
+                        param.lights[i].position = {pos, 1};
+                        param.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
+                        param.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
+                        break;
+                    }
+            }
+        }
+
+        if (mainLight)
+        {
+            state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
+
+            param.worldToShadow = mainLight->WorldToShadowMatrix(camera.GetGameObject()->GetPosition());
+
+            if (mainLight->IsShadowCacheEnabled())
+            {
+                param.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
+            }
+            else
+            {
+                param.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
+            }
+        }
+    }
+
+    GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
 }
 
 } // namespace Rendering

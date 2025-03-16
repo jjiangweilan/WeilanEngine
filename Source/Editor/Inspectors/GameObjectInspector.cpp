@@ -19,28 +19,14 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     // Create Component
     if (ImGui::BeginMenu("Create Component"))
     {
-        if (ImGui::MenuItem("Camera"))
-            target->AddComponent<Camera>();
-        if (ImGui::MenuItem("MeshRenderer"))
-            target->AddComponent<MeshRenderer>();
-        if (ImGui::MenuItem("Light"))
-            target->AddComponent<Light>();
-        if (ImGui::MenuItem("SceneEnvironment"))
-            target->AddComponent<SceneEnvironment>();
-        if (ImGui::MenuItem("PhysicsBody"))
-            target->AddComponent<PhysicsBody>();
-        if (ImGui::MenuItem("GameScript"))
-            target->AddComponent<GameScript>();
-        if (ImGui::MenuItem("PlayerController"))
-            target->AddComponent<PlayerController>();
-        if (ImGui::MenuItem("LightFieldProbes"))
-            target->AddComponent<LightFieldProbes>();
-        if (ImGui::MenuItem("GrassSurface"))
-            target->AddComponent<GrassSurface>();
-        if (ImGui::MenuItem("AnimationPlayer"))
-            target->AddComponent<AnimationPlayer>();
-        if (ImGui::MenuItem("Cloud"))
-            target->AddComponent<Cloud>();
+        auto componentNames = ObjectRegistry::GetComponentTypeNames();
+        std::sort(componentNames.begin(), componentNames.end(), [](auto& l, auto& r) { return l < r; });
+        for (auto& componentName : ObjectRegistry::GetComponentTypeNames())
+        {
+            if (ImGui::MenuItem(componentName.c_str()))
+                target->AddComponent(componentName);
+        }
+
         ImGui::EndMenu();
     }
     ImGui::EndMenuBar();
