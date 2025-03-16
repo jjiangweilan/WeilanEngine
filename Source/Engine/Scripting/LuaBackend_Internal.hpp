@@ -60,6 +60,29 @@ struct LuaUserDataPack
     }
 };
 
+template <class T>
+T* GetLuaUserDataPackValue(lua_State* L, int idx)
+{
+    void* mem = lua_touserdata(L, 1);
+    LuaEngineUserDataType type = *(LuaEngineUserDataType*)mem;
+
+    if (type == LuaEngineUserDataType::RawPtr)
+    {
+        return ((LuaUserDataPack<T*>*)mem)->val;
+    }
+    else if (type == LuaEngineUserDataType::ObjPtr)
+    {
+        if constexpr (std::is_base_of_v<Object, T>)
+            return &*(((LuaUserDataPack<ObjPtr<T>>*)mem)->val);
+        else
+            return nullptr;
+    }
+    else // LuaEngineUserDataType::Value
+    {
+        return &(((LuaUserDataPack<T>*)mem)->val);
+    }
+}
+
 struct InvalidObjPtrError : std::runtime_error
 {
     explicit InvalidObjPtrError(const char* _Message) : std::runtime_error(_Message) {}
@@ -363,7 +386,7 @@ public:
 
                 if constexpr (std::is_void_v<R>)
                 {
-                    ProcessArg_StaticFunction<std::tuple<Args...>, R>(
+                    CallbackDispatch_StaticFunction<std::tuple<Args...>, R>(
                         L,
                         f,
                         0,
@@ -381,7 +404,7 @@ public:
                 }
                 // else
                 {
-                    R rtn = ProcessArg_StaticFunction<std::tuple<Args...>, R>(
+                    R rtn = CallbackDispatch_StaticFunction<std::tuple<Args...>, R>(
                         L,
                         f,
                         0,
@@ -485,177 +508,8 @@ public:
         }
     }
 
-private:
-    bool hasPropertyTable = false;
-    lua_State* L;
-    const char* name;
-
-    static int Index(lua_State* L)
-    {
-        const char* key = lua_tostring(L, 2);
-        int tableIdx = lua_upvalueindex(1);
-        lua_getfield(L, tableIdx, key);
-
-        return 1;
-    }
-
-    LuaBinder<T>& BindFn(const char* name, std::function<int(lua_State*)>&& f)
-    {
-        using FT = std::function<int(lua_State*)>;
-        struct Wrap
-        {
-            static int cfunc(lua_State* L)
-            {
-                int fIndex = lua_upvalueindex(1);
-                FT& f = *(FT*)lua_touserdata(L, fIndex);
-                ASSERT(lua_istable(L, 1));
-
-                return f(L);
-            }
-        };
-
-        lua_pushstring(L, name);
-        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
-        new (fm) FT(std::move(f));
-        lua_pushcclosure(L, &Wrap::cfunc, 1);
-        lua_settable(L, -3);
-        return *this;
-    }
-
-    template <class R, class... Args>
-    LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
-    {
-        using FT = std::function<R(T & val, Args...)>;
-        struct Wrap
-        {
-            static int cfunc(lua_State* L)
-            {
-                try
-                {
-                    int fIndex = lua_upvalueindex(1);
-                    FT& f = *(FT*)lua_touserdata(L, fIndex);
-
-                    void* u = lua_touserdata(L, 1);
-                    LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
-
-                    using RawType = std::remove_const_t<std::remove_reference_t<R>>;
-                    if (type == LuaEngineUserDataType::RawPtr)
-                    {
-                        if constexpr (std::is_void_v<RawType>)
-                        {
-                            T* v = ((LuaUserDataPack<T*>*)u)->val;
-                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                            return 0;
-                        }
-                        else
-                        {
-                            T* v = ((LuaUserDataPack<T*>*)u)->val;
-                            R rtn = ProcessArg<std::tuple<Args...>, R>(
-                                L,
-                                f,
-                                v,
-                                1,
-                                std::make_index_sequence<sizeof...(Args)>{}
-                            );
-                            ProcessRtn<R>(L, std::move(rtn));
-
-                            return 1;
-                        }
-                    }
-                    else if (type == LuaEngineUserDataType::ObjPtr)
-                    {
-                        if constexpr (std::is_base_of_v<Object, T>)
-                        {
-                            if constexpr (std::is_void_v<RawType>)
-                            {
-                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
-                                ProcessArg<std::tuple<Args...>, R>(
-                                    L,
-                                    f,
-                                    v,
-                                    1,
-                                    std::make_index_sequence<sizeof...(Args)>{}
-                                );
-                                return 0;
-                            }
-                            else
-                            {
-                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
-                                R rtn = ProcessArg<std::tuple<Args...>, R>(
-                                    L,
-                                    f,
-                                    v,
-                                    1,
-                                    std::make_index_sequence<sizeof...(Args)>{}
-                                );
-                                ProcessRtn<R>(L, std::move(rtn));
-
-                                return 1;
-                            }
-                        }
-                        else
-                            return 0;
-                    }
-                    else // LuaEngineUserDataType::Value
-                    {
-                        if constexpr (std::is_void_v<RawType>)
-                        {
-                            T* v = &(((LuaUserDataPack<T>*)u)->val);
-                            ProcessArg<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
-                            return 0;
-                        }
-                        else
-                        {
-                            T* v = &(((LuaUserDataPack<T>*)u)->val);
-                            R rtn = ProcessArg<std::tuple<Args...>, R>(
-                                L,
-                                f,
-                                v,
-                                1,
-                                std::make_index_sequence<sizeof...(Args)>{}
-                            );
-                            ProcessRtn<R>(L, std::move(rtn));
-
-                            return 1;
-                        }
-                    }
-                }
-                catch (InvalidObjPtrError e)
-                {
-                    spdlog::error("Lua Error: {}", e.what());
-                    return 0;
-                }
-            };
-        };
-
-        lua_pushstring(L, name);
-        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
-        new (fm) FT(std::move(f));
-        lua_pushcclosure(L, &Wrap::cfunc, 1);
-        lua_settable(L, -3);
-        return *this;
-    }
-
-    template <class Tuple, class R, size_t... I>
-    static R ProcessArg(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
-    {
-        return f(*v, ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
-    }
-
-    template <class Tuple, class R, size_t... I>
-    static R ProcessArg_FunctionPointer(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
-    {
-        return (v->*f)(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
-    }
-
-    template <class Tuple, class R, size_t... I>
-    static R ProcessArg_StaticFunction(lua_State* L, auto& f, int argOffset, std::index_sequence<I...>)
-    {
-        return f(ProcessArgImpl<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
-    }
-
     template <class Type>
-    static auto ProcessArgImpl(lua_State* L, int argOffset, size_t idx)
+    static auto ProcessArg(lua_State* L, int argOffset, size_t idx)
     {
         // TODO: we need to determine what we can actually return here for the case where the input is a pointer.
         // It can be a raw pointer, an ObjPtr, or a value(by deference). a logic should be determined here.
@@ -733,6 +587,187 @@ private:
         }
     }
 
+private:
+    bool hasPropertyTable = false;
+    lua_State* L;
+    const char* name;
+
+    static int Index(lua_State* L)
+    {
+        const char* key = lua_tostring(L, 2);
+        int tableIdx = lua_upvalueindex(1);
+        lua_getfield(L, tableIdx, key);
+
+        return 1;
+    }
+
+    LuaBinder<T>& BindFn(const char* name, std::function<int(lua_State*)>&& f)
+    {
+        using FT = std::function<int(lua_State*)>;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                int fIndex = lua_upvalueindex(1);
+                FT& f = *(FT*)lua_touserdata(L, fIndex);
+                ASSERT(lua_istable(L, 1));
+
+                return f(L);
+            }
+        };
+
+        lua_pushstring(L, name);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new (fm) FT(std::move(f));
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
+        lua_settable(L, -3);
+        return *this;
+    }
+
+    template <class R, class... Args>
+    LuaBinder<T>& BindFn(const char* name, std::function<R(T& val, Args...)>&& f)
+    {
+        using FT = std::function<R(T & val, Args...)>;
+        struct Wrap
+        {
+            static int cfunc(lua_State* L)
+            {
+                try
+                {
+                    int fIndex = lua_upvalueindex(1);
+                    FT& f = *(FT*)lua_touserdata(L, fIndex);
+
+                    void* u = lua_touserdata(L, 1);
+                    LuaEngineUserDataType type = *(LuaEngineUserDataType*)u;
+
+                    using RawType = std::remove_const_t<std::remove_reference_t<R>>;
+                    if (type == LuaEngineUserDataType::RawPtr)
+                    {
+                        if constexpr (std::is_void_v<RawType>)
+                        {
+                            T* v = ((LuaUserDataPack<T*>*)u)->val;
+                            CallbackDispatch<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
+                            return 0;
+                        }
+                        else
+                        {
+                            T* v = ((LuaUserDataPack<T*>*)u)->val;
+                            R rtn = CallbackDispatch<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
+                            ProcessRtn<R>(L, std::move(rtn));
+
+                            return 1;
+                        }
+                    }
+                    else if (type == LuaEngineUserDataType::ObjPtr)
+                    {
+                        if constexpr (std::is_base_of_v<Object, T>)
+                        {
+                            if constexpr (std::is_void_v<RawType>)
+                            {
+                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                                CallbackDispatch<std::tuple<Args...>, R>(
+                                    L,
+                                    f,
+                                    v,
+                                    1,
+                                    std::make_index_sequence<sizeof...(Args)>{}
+                                );
+                                return 0;
+                            }
+                            else
+                            {
+                                T* v = &*(((LuaUserDataPack<ObjPtr<T>>*)u)->val);
+                                R rtn = CallbackDispatch<std::tuple<Args...>, R>(
+                                    L,
+                                    f,
+                                    v,
+                                    1,
+                                    std::make_index_sequence<sizeof...(Args)>{}
+                                );
+                                ProcessRtn<R>(L, std::move(rtn));
+
+                                return 1;
+                            }
+                        }
+                        else
+                            return 0;
+                    }
+                    else // LuaEngineUserDataType::Value
+                    {
+                        if constexpr (std::is_void_v<RawType>)
+                        {
+                            T* v = &(((LuaUserDataPack<T>*)u)->val);
+                            CallbackDispatch<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
+                            return 0;
+                        }
+                        else
+                        {
+                            T* v = &(((LuaUserDataPack<T>*)u)->val);
+                            R rtn = CallbackDispatch<std::tuple<Args...>, R>(
+                                L,
+                                f,
+                                v,
+                                1,
+                                std::make_index_sequence<sizeof...(Args)>{}
+                            );
+                            ProcessRtn<R>(L, std::move(rtn));
+
+                            return 1;
+                        }
+                    }
+                }
+                catch (InvalidObjPtrError e)
+                {
+                    spdlog::error("Lua Error: {}", e.what());
+                    return 0;
+                }
+            };
+        };
+
+        lua_pushstring(L, name);
+        void* fm = lua_newuserdata(L, sizeof(FT)); // f as upvalue
+        new (fm) FT(std::move(f));
+        lua_pushcclosure(L, &Wrap::cfunc, 1);
+        lua_settable(L, -3);
+        return *this;
+    }
+
+    template <class Tuple, class R, size_t... I>
+    static R CallbackDispatch(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
+    {
+        return f(*v, ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+    }
+
+    template <class Tuple, class R, size_t... I>
+    static R CallbackDispatch_FunctionPointer(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
+    {
+        return (v->*f)(ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+    }
+
+    template <class Tuple, class R, size_t... I>
+    static R CallbackDispatch_StaticFunction(lua_State* L, auto& f, int argOffset, std::index_sequence<I...>)
+    {
+        return f(ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
+    }
+
     using Lua_Ref = int;
 
     /****** Type Processing *******/
@@ -740,9 +775,15 @@ private:
     static auto CallMemberFunc(lua_State* L, T* v, auto f)
     {
         if (std::is_void_v<R>)
-            ProcessArg_FunctionPointer<std::tuple<Args...>, R>(L, f, v, 1, std::make_index_sequence<sizeof...(Args)>{});
+            CallbackDispatch_FunctionPointer<std::tuple<Args...>, R>(
+                L,
+                f,
+                v,
+                1,
+                std::make_index_sequence<sizeof...(Args)>{}
+            );
         else
-            return ProcessArg_FunctionPointer<std::tuple<Args...>, R>(
+            return CallbackDispatch_FunctionPointer<std::tuple<Args...>, R>(
                 L,
                 f,
                 v,
@@ -795,8 +836,14 @@ public:
             .BindMemFn("SetPosition", &GameObject::SetPosition)
             .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy)
             .BindMemFn("LookAt", &GameObject::LookAt)
-            .BindFn("GetComponent", [L](GameObject& go, const char* className)->int{
-                    auto v = go.GetComponent(className);
+            .BindFn("GetComponent", [](lua_State* L) -> int {
+                    GameObject* go = GetLuaUserDataPackValue<GameObject>(L, 1);
+                    const char* className = luaL_checkstring(L, 2);
+
+                    if (go == nullptr || className == nullptr)
+                        return 0;
+                    
+                    auto v = go->GetComponent(className);
                     if (v != nullptr)
                     {
                         LuaBinder<GameObject>::ProcessRtn(L, std::move(v));
@@ -804,22 +851,18 @@ public:
                     }
 
                     // failed to get Engine Component, try Lua Script
-                    auto& comps = go.GetComponents();
-                    for(auto& c : comps)
+                    auto gameScript = go->GetComponent<GameScript>();
+                    if(gameScript != nullptr)
                     {
-                        if(c->GetObjectTypeID() == GameScript::StaticGetObjectTypeID())
+                        auto& luaClassName = gameScript->GetLuaClassName();
+                        if (luaClassName == className)
                         {
-                            auto cast = static_cast<GameScript*>(c.get());
-                            auto& luaClassName = cast->GetLuaClassName();
-                            if (luaClassName == className)
-                            {
-                                return cast->LuaPushReferenceToStack();
-                            }
+                            return gameScript->LuaPushReferenceToStack();
                         }
                     }
 
                     return 0;
-                    })
+                })
             .End();
 
         LuaBinder<glm::vec3> vec3(L);
