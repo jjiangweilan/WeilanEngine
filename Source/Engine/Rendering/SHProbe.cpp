@@ -29,10 +29,10 @@ void SHProbe::UpdateProbe(const float4& position, const SHProbeUpdateSettings& s
             facesPipeline[face].RenderSkyboxOnly(*scene, *scene->GetMainCamera());
         }
 
-        Gfx::RG::ImageIdentifier outputColor = facesPipeline[face].GetOutputColor();
-        auto cmd = GetGfxDriver()->CreateCommandBuffer();
-
-        GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+        // Gfx::RG::ImageIdentifier outputColor = facesPipeline[face].GetOutputColor();
+        // auto cmd = GetGfxDriver()->CreateCommandBuffer();
+        //
+        // GetGfxDriver()->ExecuteCommandBuffer(*cmd);
     }
     else
     {
