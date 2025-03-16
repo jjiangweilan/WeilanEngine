@@ -577,3 +577,5 @@ Component* GameObject::AddComponent(std::string_view componentName)
     temp->Enable();
     return temp;
 }
+
+void GameObject::LookAt(const float3& position, const float3 dir) {}

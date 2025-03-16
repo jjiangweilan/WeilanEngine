@@ -63,14 +63,17 @@ VKImage::VKImage(VkImage image, const ImageDescription& imageDescription, ImageU
 VKImage::VKImage(VKImage&& other)
     : Image(other.usageFlags), arrayLayers(other.arrayLayers), imageType_vk(other.imageType_vk),
       usageFlags(other.usageFlags), image_vk(std::exchange(other.image_vk, VK_NULL_HANDLE)),
-      allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)),
-      stageMask(other.stageMask), accessMask(other.accessMask), imageDescription(other.imageDescription),
-      imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), layoutTrack(std::exchange(other.layoutTrack, {}))
+      allocation_vma(std::exchange(other.allocation_vma, VK_NULL_HANDLE)), stageMask(other.stageMask),
+      accessMask(other.accessMask), imageDescription(other.imageDescription),
+      imageView(std::exchange(other.imageView, VK_NULL_HANDLE)), layoutTrack(std::exchange(other.layoutTrack, {})),
+      imageViewForShaderResource(std::exchange(other.imageViewForShaderResource, VK_NULL_HANDLE))
+
 {}
 
 VKImage::~VKImage()
 {
     imageView = nullptr;
+    imageViewForShaderResource = nullptr;
     if (image_vk != VK_NULL_HANDLE && allocation_vma != nullptr)
         VKContext::Instance()->allocator->DestoryImage(image_vk, allocation_vma);
 }
@@ -105,12 +108,26 @@ void VKImage::MakeVkObjects()
 
 void VKImage::CreateImageView()
 {
+    auto defaultSubresourceRange = GenerateDefaultSubresourceRange();
     imageView = std::unique_ptr<VKImageView>(new VKImageView({
         .image = *this,
         .imageViewType = GenerateDefaultImageViewViewType(),
-        .subresourceRange = GenerateDefaultSubresourceRange(),
+        .subresourceRange = defaultSubresourceRange,
     }));
     imageView->SetName("Default ImageView");
+
+    // create a new default image view for when aspect mask has both dept and stencil
+    if (HasFlag(defaultSubresourceRange.aspectMask, ImageAspect::Depth) &&
+        HasFlag(defaultSubresourceRange.aspectMask, ImageAspect::Stencil))
+    {
+        defaultSubresourceRange.aspectMask = ImageAspect::Depth;
+        imageViewForShaderResource = std::unique_ptr<VKImageView>(new VKImageView({
+            .image = *this,
+            .imageViewType = GenerateDefaultImageViewViewType(),
+            .subresourceRange = defaultSubresourceRange,
+        }));
+        imageViewForShaderResource->SetName("Default ImageView");
+    }
 }
 
 ImageSubresourceRange VKImage::GetSubresourceRange()
@@ -267,6 +284,14 @@ ImageView& VKImage::GetImageView(const ImageViewOption& option)
         imageViews[vkImageViewCreateInfo] = std::move(imageView);
         return *temp;
     }
+}
+
+ImageView& VKImage::GetDefaultImageViewForShaderResource()
+{
+    if (imageViewForShaderResource != nullptr)
+        return *imageViewForShaderResource;
+
+    return GetDefaultImageView();
 }
 
 // VKSwapChainImageProxy::~VKSwapChainImageProxy() {}

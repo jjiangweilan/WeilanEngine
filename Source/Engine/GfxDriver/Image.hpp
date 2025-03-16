@@ -5,13 +5,13 @@
 #include "ImageDescription.hpp"
 #include "Libs/UUID.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
+#include <Libs/Assert.hpp>
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <Libs/Assert.hpp>
 
 namespace Gfx
 {
@@ -168,6 +168,7 @@ public:
 
     virtual ImageSubresourceRange GetSubresourceRange() = 0;
     virtual ImageView& GetDefaultImageView() = 0;
+    virtual ImageView& GetDefaultImageViewForShaderResource() { return GetDefaultImageView(); }
     virtual ImageView& GetImageView(const ImageViewOption& option) = 0;
 
     virtual const UUID& GetUUID() { return uuid; }

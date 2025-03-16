@@ -139,7 +139,7 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
                     interface->SetShape(
                         body->GetID(),
                         result.Get(),
-                        true,
+                        false,
                         (static_cast<int>(layer) & static_cast<int>(PhysicsLayer::Moving)) == 1
                             ? EActivation::Activate
                             : EActivation::DontActivate
@@ -162,6 +162,11 @@ bool PhysicsBody::SetShape(JPH::ShapeSettings& shape)
             // bodyCreationSettings.mAllowDynamicOrKinematic = motionType != EMotionType::Static;
             bodyCreationSettings.mMotionType = motionType;
             bodyCreationSettings.mCollideKinematicVsNonDynamic = kinematicGenerateContactPointsWithNonDynamic;
+            if (shapeType == PhysicsBodyShapes::Mesh)
+            {
+                bodyCreationSettings.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+                bodyCreationSettings.mMassPropertiesOverride = {1.0, JPH::Mat44::sZero()};
+            }
 
             auto& physicsWorld = GetScene()->GetPhysicsScene();
             auto& bodyInterface = physicsWorld.GetBodyInterface();

@@ -203,7 +203,7 @@ public:
             ImGui::TableNextColumn();
             ImGui::Text("%llu", body->GetUserData());
 
-            if (body->GetMotionProperties())
+            if (!body->IsStatic() && body->GetMotionProperties())
             {
                 ImGui::TableNextColumn();
                 ImGui::Text("Allow Sleeping");
@@ -227,24 +227,28 @@ public:
                     body->GetAngularVelocity().GetY(),
                     body->GetAngularVelocity().GetZ()
                 );
-                ImGui::TableNextColumn();
-                ImGui::Text("Accumulated Force");
-                ImGui::TableNextColumn();
-                ImGui::Text(
-                    "(%.2f, %.2f, %.2f)",
-                    body->GetAccumulatedForce().GetX(),
-                    body->GetAccumulatedForce().GetY(),
-                    body->GetAccumulatedForce().GetZ()
-                );
-                ImGui::TableNextColumn();
-                ImGui::Text("Accumulated Torque");
-                ImGui::TableNextColumn();
-                ImGui::Text(
-                    "(%.2f, %.2f, %.2f)",
-                    body->GetAccumulatedTorque().GetX(),
-                    body->GetAccumulatedTorque().GetY(),
-                    body->GetAccumulatedTorque().GetZ()
-                );
+                if (body->IsDynamic())
+                {
+                    ImGui::TableNextColumn();
+                    ImGui::Text("Accumulated Force");
+                    ImGui::TableNextColumn();
+                    ImGui::Text(
+                        "(%.2f, %.2f, %.2f)",
+                        body->GetAccumulatedForce().GetX(),
+                        body->GetAccumulatedForce().GetY(),
+                        body->GetAccumulatedForce().GetZ()
+                    );
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("Accumulated Torque");
+                    ImGui::TableNextColumn();
+                    ImGui::Text(
+                        "(%.2f, %.2f, %.2f)",
+                        body->GetAccumulatedTorque().GetX(),
+                        body->GetAccumulatedTorque().GetY(),
+                        body->GetAccumulatedTorque().GetZ()
+                    );
+                }
                 ImGui::TableNextColumn();
                 ImGui::Text("In Broad Phase");
                 ImGui::TableNextColumn();

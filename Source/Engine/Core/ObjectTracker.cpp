@@ -155,3 +155,6 @@ uint32_t ObjectTracker::AllocateSlot()
 
     return slotIndex;
 }
+
+ObjectTracker::~ObjectTracker() { }
+

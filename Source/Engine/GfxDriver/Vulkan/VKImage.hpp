@@ -36,6 +36,8 @@ public:
     void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer) override;
     void SetData(std::span<uint8_t> binaryData, uint32_t mip, uint32_t layer, VkImageLayout finalLayout);
 
+    virtual ImageView& GetDefaultImageViewForShaderResource() override;
+
     virtual const ImageDescription& GetDescription() override
     {
         return imageDescription;
@@ -104,6 +106,7 @@ protected:
     VkAccessFlags accessMask = VK_ACCESS_MEMORY_READ_BIT;
     ImageDescription imageDescription;
     std::unique_ptr<VKImageView> imageView;
+    std::unique_ptr<VKImageView> imageViewForShaderResource = nullptr;
     std::string name;
     std::vector<VkImageLayout> layoutTrack;
     bool isSwapchainProxy = false;

@@ -20,6 +20,8 @@ public:
         uuidToSlotIndex[UUID::GetEmptyUUID()] = 0;
     }
 
+    ~ObjectTracker();
+
     static ObjectTracker& Singleton();
 
     inline Object* GetObject(ObjectTrackHandle handle)

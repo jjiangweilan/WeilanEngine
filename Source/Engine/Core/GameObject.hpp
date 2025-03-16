@@ -100,12 +100,14 @@ public:
     GameObject* GetParent() const { return parent; }
     void SetParent(GameObject* parent, bool keepWorldSpacePostion = true);
 
+    // **** Transform related ****/
     void SetLocalRotation(const glm::quat& rotation);
     void SetRotation(const glm::quat& rotation);
     void SetLocalPosition(const glm::vec3& localPosition);
     void SetPosition(const glm::vec3& position);
     void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
+    void LookAt(const float3& position, const float3 dir);
 
     int RegisterContactEventAdded(
         const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
