@@ -28,8 +28,6 @@ void SHProbe::UpdateProbe(const float4& position, const SHProbeUpdateSettings& s
         {
             Camera camera;
 
-            // 
-
             facesPipeline[face].RenderSkyboxOnly(*scene, *scene->GetMainCamera());
         }
 

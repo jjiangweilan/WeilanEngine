@@ -107,7 +107,7 @@ public:
     void SetPosition(const glm::vec3& position);
     void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
-    void LookAt(const float3& position, const float3 dir);
+    void LookAt(const float3& lookAtPos);
 
     int RegisterContactEventAdded(
         const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f

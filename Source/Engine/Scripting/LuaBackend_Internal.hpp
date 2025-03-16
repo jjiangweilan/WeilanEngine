@@ -784,7 +784,6 @@ public:
 
                     return 1;
                     })
-            .BindMemFn("AddOne", &GameScript::AddOne)
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
             .End();
 
@@ -794,6 +793,7 @@ public:
             .BindMemFn("GetPosition", &GameObject::GetPosition)
             .BindMemFn("SetPosition", &GameObject::SetPosition)
             .BindMemFn("GetComponentInHierachy", &GameObject::GetComponentInHierachy)
+            .BindMemFn("LookAt", &GameObject::LookAt)
             .BindFn("GetComponent", [L](GameObject& go, const char* className)->int{
                     auto v = go.GetComponent(className);
                     if (v != nullptr)

@@ -14,11 +14,14 @@ GameLoop::~GameLoop() {}
 
 static void TickGameObject(GameObject* go)
 {
-    go->Tick();
-
-    for (auto chil : go->GetChildren())
+    if (go->IsEnabled())
     {
-        TickGameObject(chil);
+        go->Tick();
+
+        for (auto chil : go->GetChildren())
+        {
+            TickGameObject(chil);
+        }
     }
 }
 

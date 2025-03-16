@@ -34,7 +34,6 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    int AddOne(int x) { return 1 + x; }
     int LuaPushReferenceToStack();
     bool CallLua(const char* functionName);
     const std::string& GetLuaClassName() const { return luaClassName; }

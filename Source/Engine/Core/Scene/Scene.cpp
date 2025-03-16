@@ -193,11 +193,14 @@ void Scene::TickGameObject(GameObject* obj)
 
 void Scene::PrePhysicsTickGameObject(GameObject* obj)
 {
-    obj->PrePhysicsTick();
-
-    for (auto child : obj->GetChildren())
+    if (obj->IsEnabled())
     {
-        PrePhysicsTickGameObject(child);
+        obj->PrePhysicsTick();
+
+        for (auto child : obj->GetChildren())
+        {
+            PrePhysicsTickGameObject(child);
+        }
     }
 }
 

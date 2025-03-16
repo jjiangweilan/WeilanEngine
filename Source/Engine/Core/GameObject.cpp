@@ -72,7 +72,8 @@ void GameObject::Tick()
 {
     for (auto& comp : components)
     {
-        comp->Tick();
+        if (comp->IsEnabled())
+            comp->Tick();
     }
 }
 
@@ -80,7 +81,8 @@ void GameObject::IdleTick()
 {
     for (auto& comp : components)
     {
-        comp->IdleTick();
+        if (comp->IsEnabled())
+            comp->IdleTick();
     }
 }
 
@@ -88,7 +90,8 @@ void GameObject::PrePhysicsTick()
 {
     for (auto& comp : components)
     {
-        comp->PrePhysicsTick();
+        if (comp->IsEnabled())
+            comp->PrePhysicsTick();
     }
 }
 
@@ -578,4 +581,9 @@ Component* GameObject::AddComponent(std::string_view componentName)
     return temp;
 }
 
-void GameObject::LookAt(const float3& position, const float3 dir) {}
+void GameObject::LookAt(const float3& lookAtPos)
+{
+    auto pos = GetPosition();
+    auto mat = glm::lookAt(pos, lookAtPos, {0, 1, 0});
+    SetWorldMatrix(glm::inverse(mat));
+}
