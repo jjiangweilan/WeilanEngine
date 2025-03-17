@@ -169,11 +169,12 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
     // cmdBuf->BindIndexBuffer(imGuiData.indexBuffer.Get(), 0, IndexBufferType::UInt16);
     //
     // update scale  and translate
-    float scale2Translate2[4];
+    float scale2Translate2[5];
     scale2Translate2[0] = 2.0f / imguiDrawData->DisplaySize.x;
     scale2Translate2[1] = 2.0f / imguiDrawData->DisplaySize.y;
     scale2Translate2[2] = -1.0f - imguiDrawData->DisplayPos.x * scale2Translate2[0];
     scale2Translate2[3] = -1.0f - imguiDrawData->DisplayPos.y * scale2Translate2[1];
+    scale2Translate2[4] = -1.0f;
     // cmdBuf->SetPushConstant(imGuiData.shaderProgram, &scale2Translate2);
     cmd.SetPushConstant(shader->GetShaderProgram(), &scale2Translate2);
 
@@ -197,11 +198,15 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
             Gfx::ImageView* imageView = (Gfx::ImageView*)pcmd->TextureId;
             if (imageView != nullptr)
             {
+                scale2Translate2[4] = 1.0f;
+                cmd.SetPushConstant(shader->GetShaderProgram(), &scale2Translate2);
                 BindTexture(cmd, imageView);
                 isGeneralResourceBinded = false;
             }
             else if (!isGeneralResourceBinded)
             {
+                scale2Translate2[4] = -1.0f;
+                cmd.SetPushConstant(shader->GetShaderProgram(), &scale2Translate2);
                 BindTexture(cmd, &fontImage->GetDefaultImageView());
                 isGeneralResourceBinded = true;
             }

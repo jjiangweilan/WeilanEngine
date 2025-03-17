@@ -1,5 +1,4 @@
 #pragma once
-#include "../Tool.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
@@ -10,19 +9,17 @@
 
 namespace Editor
 {
-class GameView : public Tool
+class GameView
 {
 public:
     GameView();
-    ~GameView() override;
+    ~GameView();
 
 public:
-    std::vector<std::string> GetToolMenuItem() override { return {"View", "Game"}; }
-
     void Init();
     void Deinit();
 
-    bool Tick() override;
+    bool Tick();
 
     void Render(
         Gfx::CommandBuffer& cmd,
@@ -32,9 +29,7 @@ public:
 
     void SetActiveScene(ObjPtr<Scene> scene);
 
-    Camera* GetEditorCamera() const { return editorCamera; }
-
-    Gfx::Image* GetSceneImage() { return sceneImage.get(); }
+    Gfx::Image* GetGameScreenImage() { return sceneImage.get(); }
 
 private:
     std::unique_ptr<Gfx::Image> sceneImage;
@@ -47,26 +42,11 @@ private:
         int frameCount = 0;
     };
     std::list<PendingDelete> pendingDeleteSceneImages;
-    std::unique_ptr<GameObject> editorCameraGO;
     Gfx::Image* graphOutputImage = nullptr;
-    bool useViewCamera = true;
     bool isAltDown = false;
-    float editorCameraSpeed = 5.0f;
     Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
-
-    struct EditorCameraLookAtController
-    {
-        enum class Mode
-        {
-            LookAt,
-            FlyAround
-        };
-
-        glm::vec3 lookAtCenter;
-        glm::vec3 lookAtOffset;
-    };
 
     struct
     {
@@ -130,7 +110,6 @@ private:
 
     bool firstFrame = true;
     ObjPtr<Camera> gameCamera = nullptr;
-    ObjPtr<Camera> editorCamera = nullptr;
     ObjPtr<Shader2> outlineRawColorPassShader;
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
@@ -149,10 +128,6 @@ private:
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
     void CreateRenderData(uint32_t width, uint32_t height);
-    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj);
     void ChangeGameScreenResolution(glm::ivec2 resolution);
-    void FocusOnObject(Camera& camera, GameObject& gameObject);
-    Camera* GetCurrentlyActiveCamera();
-    void EditorCameraWalkAround(Camera& editorCamera, float& editorCameraSpeed);
 };
 } // namespace Editor

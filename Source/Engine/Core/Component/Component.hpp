@@ -34,6 +34,7 @@ public:
     // called when play mode enter
     virtual void OnStart() {}
     virtual void OnStop() {}
+    [[deprecated("Use Gizmos::DrawXXX instead")]]
     virtual void OnDrawGizmos() {}
     virtual void OnLoaded() {}
 

@@ -36,7 +36,7 @@ static void IdleTickGameObject(GameObject* go)
 }
 
 const void GameLoop::Tick(
-    Gfx::Image& outputImage,
+    float2 screenSize,
     const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
     const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
 )
@@ -83,11 +83,7 @@ const void GameLoop::Tick(
         ENGINE_END_PROFILE
 
         ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
-        renderPipeline.Render(
-            *scene,
-            *scene->GetMainCamera(),
-            {outputImage.GetDescription().width, outputImage.GetDescription().height}
-        );
+        renderPipeline.Render(*scene, *scene->GetMainCamera(), screenSize);
         ENGINE_END_PROFILE
 
         outGraphOutputImage = &renderPipeline.GetOutputColor();

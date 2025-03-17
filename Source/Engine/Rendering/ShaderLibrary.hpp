@@ -88,6 +88,11 @@ public:
         return Singleton().GetShaderImpl(name, permutation);
     }
 
+    static ObjPtr<Shader2> GetShader(const char* name, const std::vector<std::string>& permutations)
+    {
+        return Singleton().GetShaderImpl(name, QueryShaderFeatures(name).GetPermutation(permutations));
+    }
+
     static const ShaderFeatures& QueryShaderFeatures(const char* name)
     {
         return Singleton().QueryShaderFeaturesImpl(name);

@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxEnums.hpp"
+#include "Libs/Math.hpp"
 
 namespace Gfx
 {
@@ -30,6 +31,8 @@ struct ImageDescription
           mipLevels(1), isCubemap(false)
     {}
 
+    float3 GetSize() const { return {width, height, depth}; }
+
     uint32_t width = 0;
     uint32_t height = 0;
     uint32_t depth = 1;
@@ -38,15 +41,9 @@ struct ImageDescription
     uint32_t mipLevels = 1;
     bool isCubemap = false;
 
-    uint32_t GetLayer() const
-    {
-        return isCubemap ? 6 : 1;
-    }
+    uint32_t GetLayer() const { return isCubemap ? 6 : 1; }
 
-    size_t GetByteSize() const
-    {
-        return CalcByteSize();
-    }
+    size_t GetByteSize() const { return CalcByteSize(); }
 
 private:
     size_t CalcByteSize() const

@@ -17,7 +17,9 @@ struct Vertex
 
 struct PerMaterial
 {
-    Sampler2D texture;
+    Texture2D texture;
+    SamplerState sampler_linear;
+    SamplerState sampler_linear_clamp;
 }
 
 ParameterBlock<PerMaterial> perMaterial;
@@ -33,6 +35,7 @@ struct PushConstant
 {
     float2 scale;
     float2 translate;
+    float useClampSampler;
 }
 [vk::push_constant]
 PushConstant p;
@@ -51,6 +54,14 @@ VOut VertexMain(Vertex input)
 [shader("fragment")]
 float4 FragmentMain(VOut input) : SV_Target
 {
-    let color = float4(pow(input.color.xyz, 2.2f), input.color.a) * perMaterial.texture.Sample(input.uv);
-    return color;
+    if (p.useClampSampler > 0.0f)
+    {
+        let color = float4(pow(input.color.xyz, 2.2f), input.color.a) * perMaterial.texture.Sample(perMaterial.sampler_linear_clamp, input.uv);
+        return color;
+    }
+    else
+    {
+        let color = float4(pow(input.color.xyz, 2.2f), input.color.a) * perMaterial.texture.Sample(perMaterial.sampler_linear, input.uv);
+        return color;
+    }
 }

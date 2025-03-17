@@ -11,10 +11,6 @@ Camera::Camera(GameObject* gameObject) : Component(gameObject), projectionMatrix
     {
         mainCamera = this;
     }
-
-    auto swapChainImage = GetGfxDriver()->GetSwapChainImage();
-    auto& desc = swapChainImage->GetDescription();
-    SetProjectionMatrix(glm::radians(60.0f), desc.width / (float)desc.height, 0.01f, 1000.f);
 }
 
 Camera::Camera() : Component(nullptr), projectionMatrix(), viewMatrix()
@@ -69,28 +65,22 @@ void Camera::SetSpecularEnv(Texture* cubemap)
         specularEnv = nullptr;
 }
 
-void Camera::SetProjectionMatrix(float fovy, float aspect, float n, float f)
+const glm::mat4& Camera::GetProjectionMatrix(float aspect)
 {
-    // float tangent = glm::tan(fovy / 2);
-    // float t = n * tangent;
-    // float r = t * aspect;
+    if (this->aspect != aspect || updateProjectionMatrix)
+    {
+        if (aspect == 0.0f)
+        {
+            auto screenSize = SystemInfo::Singleton().GetScreenSize();
+            aspect = screenSize.x / screenSize.y;
+        }
 
-    // glm::mat4 proj(0.0f);
-    // proj[0][0] = n / r;
-    // proj[1][1] = -n / t;
-    // proj[2][2] = f / (f - n);
-    // proj[2][3] = -1;
-    // proj[3][2] = f * n / (f - n);
-    projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, n, f);
-    projectionMatrix[1] = -projectionMatrix[1];
-    this->aspect = aspect;
-    fov = fovy;
-    near = n;
-    far = f;
-}
+        updateProjectionMatrix = false;
+        this->aspect = aspect;
+        projectionMatrix = glm::perspectiveLH_ZO(fov, aspect, near, far);
+        projectionMatrix[1] = -projectionMatrix[1];
+    }
 
-const glm::mat4& Camera::GetProjectionMatrix() const
-{
     return projectionMatrix;
 }
 
@@ -159,11 +149,6 @@ void Camera::Deserialize(Serializer* s)
     );
 }
 
-void Camera::SetProjectionMatrix(const glm::mat4& proj)
-{
-    this->projectionMatrix = proj;
-}
-
 const std::string& Camera::GetName()
 {
     static std::string name = "Camera";
@@ -201,12 +186,7 @@ float Camera::GetFoV()
     return glm::atan(GetProjectionTop() / GetNear());
 }
 
-void Camera::Tick()
-{
-    float width, height;
-    SystemInfo::Singleton().GetScreenSize(width, height);
-    SetProjectionMatrix(glm::radians(60.0f), width / (float)height, 0.01f, 1000.f);
-}
+void Camera::Tick() {}
 
 void Camera::LookAt(const float3& lookAtPos)
 {

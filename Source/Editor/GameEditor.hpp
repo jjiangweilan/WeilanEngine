@@ -1,11 +1,12 @@
 #pragma once
 #include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "GameView.hpp"
+#include "SceneEditor.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_internal.h"
-#include "Tools/GameView.hpp"
 #include "WeilanEngine.hpp"
 #include "Window.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
@@ -15,7 +16,6 @@ class WeilanEngine;
 namespace Editor
 {
 
-class Tool;
 class InspectorBase;
 class GameEditor
 {
@@ -33,18 +33,12 @@ public:
     static GameEditor* instance;
 
 private:
-    struct RegisteredTool
-    {
-        bool isOpen;
-        Tool* tool;
-    };
-
-private:
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     GameLoop* loop;
 
     GameView gameView;
+    SceneEditor sceneEditor;
 
     GameObject* sceneTreeContextObject = nullptr;
     bool beginSceneTreeContextPopup = false;
@@ -63,8 +57,6 @@ private:
     InspectorBase* primaryInspector = nullptr;
     InspectorBase* secondaryInspector = nullptr;
 
-    std::vector<RegisteredTool> registeredTools;
-    std::vector<std::unique_ptr<Tool>> toolList;
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::list<std::unique_ptr<Window>> activeWindows;
 

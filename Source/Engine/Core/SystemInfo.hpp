@@ -1,4 +1,5 @@
 #pragma once
+#include "Libs/Math.hpp"
 
 class SystemInfo
 {
@@ -13,6 +14,8 @@ public:
         this->screenWidth = width;
         this->screenHeight = height;
     }
+
+    float2 GetScreenSize() { return {screenWidth, screenHeight}; }
 
     static SystemInfo& Singleton();
 

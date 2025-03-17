@@ -20,13 +20,11 @@ public:
     ~Camera() override {};
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     glm::mat4 GetViewMatrix() const;
-    const glm::mat4& GetProjectionMatrix() const;
+    const glm::mat4& GetProjectionMatrix(float aspect = 0.0f);
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     glm::vec3 GetForward();
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
-    void SetProjectionMatrix(float fovy, float aspect, float zNear, float zFar);
-    void SetProjectionMatrix(const glm::mat4& proj);
     void GenerateFrustumPlanes(glm::float4 frustumPlanes[6]);
 
     void SetDiffuseEnv(Texture* cubemap);
@@ -42,6 +40,21 @@ public:
     float GetProjectionTop();
     float GetNear();
     float GetFar();
+    void SetFoV(float fov)
+    {
+        this->fov = fov;
+        updateProjectionMatrix = true;
+    }
+    void SetNear(float near)
+    {
+        this->near = near;
+        updateProjectionMatrix = true;
+    }
+    void SetFar(float far)
+    {
+        this->far = far;
+        updateProjectionMatrix = true;
+    }
 
     void LookAt(const float3& lookAtPos);
 
@@ -58,8 +71,9 @@ private:
     SRef<Texture> specularEnv = nullptr;
     glm::mat4 projectionMatrix;
     glm::mat4 viewMatrix;
-    float near;
-    float far;
-    float fov;
-    float aspect;
+    float near = 0.01f;
+    float far = 1000.0f;
+    float fov = glm::radians(60.0);
+    float aspect = -1.0f;
+    bool updateProjectionMatrix = true;
 };

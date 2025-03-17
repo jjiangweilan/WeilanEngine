@@ -107,19 +107,10 @@ GameEditor::GameEditor(const char* path)
     // EnableMultiViewport();
 
     gameView.Init();
+    sceneEditor.Init();
 
     fontImage = CreateImGuiFont(nullptr);
     gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
-
-    // toolList.emplace_back(new EnvironmentBaker());
-
-    for (auto& t : toolList)
-    {
-        RegisteredTool rt;
-        rt.tool = t.get();
-        rt.isOpen = false;
-        registeredTools.push_back(rt);
-    }
 
     cmd = GetGfxDriver()->CreateCommandBuffer();
     ImPlot::CreateContext();
@@ -140,7 +131,7 @@ GameEditor::~GameEditor()
 
     loop = nullptr;
 
-    if (Camera* cam = gameView.GetEditorCamera())
+    if (Camera* cam = sceneEditor.GetEditorCamera())
     {
         nlohmann::json camJson = {};
         auto pos = cam->GetGameObject()->GetPosition();
@@ -344,30 +335,6 @@ void GameEditor::MainMenuBar()
 {
     ImGui::BeginMainMenuBar();
 
-    for (auto& registeredTool : registeredTools)
-    {
-        auto items = registeredTool.tool->GetToolMenuItem();
-        bool clicked = false;
-        MenuVisitor(items.begin(), items.end(), clicked);
-        if (clicked)
-        {
-            registeredTool.isOpen = !registeredTool.isOpen;
-            if (registeredTool.isOpen)
-                registeredTool.tool->Open();
-            else
-                registeredTool.tool->Close();
-        }
-
-        if (registeredTool.isOpen)
-        {
-            registeredTool.isOpen = registeredTool.tool->Tick();
-            if (!registeredTool.isOpen)
-            {
-                registeredTool.tool->Close();
-            }
-        }
-    }
-
     if (ImGui::BeginMenu("Files"))
     {
         if (ImGui::MenuItem("Save All"))
@@ -496,6 +463,7 @@ void GameEditor::Start()
             if (engine->event->GetWindowClose().state)
             {
                 gameView.Deinit(); // stop playing the game
+                sceneEditor.Deinit();
                 endPopup.Show(
                     "Save Project?",
                     [this]()
@@ -509,10 +477,11 @@ void GameEditor::Start()
 
             GUIPass();
 
-            auto sceneImage = gameView.GetSceneImage();
+            auto gameScreenImage = gameView.GetGameScreenImage();
+            auto screenSize = gameScreenImage->GetDescription().GetSize();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            loop->Tick(*sceneImage, gameOutputImage, gameOutputDepthImage);
+            loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage);
 
             endPopup.TickEnd();
             endEvents.TickEnd();
@@ -557,6 +526,7 @@ void GameEditor::GUIPass()
     }
 
     gameView.Tick();
+    sceneEditor.Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
     {
@@ -607,14 +577,12 @@ void GameEditor::Render(
 
     glm::float4 color = {0.3, 0.6, 0.12, 1.0};
     cmd.BeginLabel("ImGui", &color[0]);
-    for (auto& t : registeredTools)
-    {
-        if (t.isOpen)
-            t.tool->Render(cmd);
-    }
 
     if (gameImage)
+    {
         gameView.Render(cmd, gameImage, gameDepthImage);
+        sceneEditor.Render(cmd, gameImage, gameDepthImage);
+    }
 
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
 
@@ -981,6 +949,7 @@ void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
     EditorState::activeScene = scene;
     gameView.SetActiveScene(scene);
+    sceneEditor.SetActiveScene(scene);
 }
 
 void GameEditor::EngineResourceDebug()
