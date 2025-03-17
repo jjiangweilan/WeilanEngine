@@ -98,6 +98,7 @@ GameEditor::GameEditor(const char* path)
     {
         auto scene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
         EditorState::activeScene = scene;
+        loop->SetScene(*scene);
     }
 
     auto& io = ImGui::GetIO();
@@ -582,8 +583,9 @@ void GameEditor::Render(
     if (gameImage)
     {
         gameView.Render(cmd, gameImage, gameDepthImage);
-        sceneEditor.Render(cmd, gameImage, gameDepthImage);
     }
+
+    sceneEditor.Render(cmd);
 
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
 
@@ -949,7 +951,6 @@ void GameEditor::SaveProject()
 void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
     EditorState::activeScene = scene;
-    gameView.SetActiveScene(scene);
     sceneEditor.SetActiveScene(scene);
 }
 

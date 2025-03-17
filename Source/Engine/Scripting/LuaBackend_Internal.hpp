@@ -589,8 +589,8 @@ public:
 
 private:
     bool hasPropertyTable = false;
-    lua_State* L;
-    const char* name;
+    lua_State* L = nullptr;
+    const char* name = "";
 
     static int Index(lua_State* L)
     {

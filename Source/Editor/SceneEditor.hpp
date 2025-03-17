@@ -31,7 +31,7 @@ public:
     Gfx::Image* GetSceneImage() { return sceneImage.get(); }
 
 private:
-    Rendering::RenderPipeline renderPipeline;
+    std::unique_ptr<Rendering::RenderPipeline> renderPipeline;
 
     std::unique_ptr<Gfx::Image> sceneImage;
 

@@ -82,15 +82,6 @@ void GameView::Deinit()
     playTheGame->Stop(this);
 }
 
-void GameView::SetActiveScene(ObjPtr<Scene> scene)
-{
-    if (scene)
-    {
-        gameCamera = EditorState::activeScene->GetMainCamera();
-        EditorState::gameLoop->SetScene(*EditorState::activeScene);
-    }
-}
-
 void GameView::Init()
 {
     playTheGame = std::make_unique<PlayTheGame>();
@@ -107,20 +98,8 @@ void GameView::Init()
     Gfx::RG::SubpassAttachment colorVec[] = {color};
     editorFinalColorBlitPass.SetSubpass(0, colorVec);
 
-    // setup camera state
-    if (EditorState::activeScene)
-    {
-        SetActiveScene(EditorState::activeScene);
-    }
-
     outlineRawColorPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineRawColorPass);
     outlineFullScreenPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineFullScreenPass);
-
-    editorWorldSpaceGrid.plane =
-        static_cast<Model*>(AssetDatabase::Singleton()->LoadAsset("_engine_internal/Models/Plane.fbx"))
-            ->GetMeshes()[0]
-            .get();
-    editorWorldSpaceGrid.gridShader = ShaderLibrary::GetShader(ShaderLibrary::PlaneGrid);
 
     ChangeGameScreenResolution({1920, 1080});
 }
@@ -206,18 +185,6 @@ bool GameView::Tick()
         {
             menuSelected = "Play";
         }
-        if (ImGui::MenuItem("Overlay"))
-        {
-            menuSelected = "Overlay";
-        }
-        if (ImGui::MenuItem("Physics Debug Draw"))
-        {
-            JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
-        }
-        if (ImGui::MenuItem("Toggle Grid"))
-        {
-            editorWorldSpaceGrid.show = !editorWorldSpaceGrid.show;
-        }
         ImGui::EndMenuBar();
     }
 
@@ -253,8 +220,6 @@ bool GameView::Tick()
     {
         playTheGame->Stop(this);
     }
-    else if (strcmp(menuSelected, "Overlay") == 0)
-    {}
 
     // alway match window size
     //int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;

@@ -521,7 +521,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     auto camGo = camera.GetGameObject();
 
     glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
-    glm::matrix<float, 4, 4> projectionMatrix = camera.GetProjectionMatrix();
+    glm::matrix<float, 4, 4> projectionMatrix = camera.GetAndUpdateProjectionMatrix(screenSize.x / screenSize.y);
     glm::matrix<float, 4, 4> vp = projectionMatrix * viewMatrix;
     glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
 

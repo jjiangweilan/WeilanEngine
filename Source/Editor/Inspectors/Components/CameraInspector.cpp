@@ -41,7 +41,7 @@ public:
             }
         }
 
-        Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix());
+        Graphics::DrawFrustum(target->GetAndUpdateProjectionMatrix() * target->GetViewMatrix());
     }
 
 private:

@@ -27,8 +27,6 @@ public:
         const Gfx::RG::ImageIdentifier* gameDepthImage
     );
 
-    void SetActiveScene(ObjPtr<Scene> scene);
-
     Gfx::Image* GetGameScreenImage() { return sceneImage.get(); }
 
 private:
@@ -58,20 +56,6 @@ private:
         bool useSnap = false;
         glm::vec3 snap = glm::vec3(0.25f);
     } gameObjectConfigs = {};
-
-    struct EditorWorldSpaceGrid
-    {
-        bool show = false;
-        // note: line width is hard coded in shader
-
-        // expecting 1x1m, origin in the center of the geometry
-        Mesh* plane;
-        ObjPtr<Shader2> gridShader;
-        glm::vec3 pos; // dynamically centered around editor camera
-        const glm::vec3 scale = glm::vec3(
-            50, 1, 50
-        ); // the plane's mesh center is it's geometry center, so scale 50 to scale the plane by 100
-    } editorWorldSpaceGrid = {};
 
     struct MouseDelta
     {

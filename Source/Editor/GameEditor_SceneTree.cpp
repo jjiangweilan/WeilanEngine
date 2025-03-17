@@ -21,7 +21,7 @@ static bool IsAncestorOf(GameObject* ancestor, GameObject* child)
 
 void GameEditor::ShowSceneTree(Scene& scene)
 {
-    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_MenuBar);
+    ImGui::Begin("Hierarchy", nullptr, ImGuiWindowFlags_MenuBar);
 
     // Menu Bar
     ImGui::BeginMenuBar();

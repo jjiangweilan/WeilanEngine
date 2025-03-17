@@ -28,15 +28,13 @@ void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
     if (scene)
     {
-        gameCamera = EditorState::activeScene->GetMainCamera();
         editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
-        // EditorState::activeScene->SetMainCamera(editorCamera);
-        EditorState::gameLoop->SetScene(*EditorState::activeScene);
     }
 }
 
 void SceneEditor::Init()
 {
+    renderPipeline = std::make_unique<Rendering::RenderPipeline>();
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
@@ -180,6 +178,7 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
         Gfx::ImageUsage::ColorAttachment | Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst
     );
 
+    d.resolution = {width, height};
     editorCamera->SetFoV(glm::radians(60.0f));
     editorCamera->SetNear(0.01f);
     editorCamera->SetFar(1000.f);
@@ -189,9 +188,9 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
 
-    renderPipeline.Render(*EditorState::activeScene, *editorCamera, d.resolution);
-    auto gameImage = &renderPipeline.GetOutputColor();
-    auto gameDepthImage = &renderPipeline.GetOutputDepth();
+    renderPipeline->Render(*EditorState::activeScene, *editorCamera, d.resolution);
+    auto gameImage = &renderPipeline->GetOutputColor();
+    auto gameDepthImage = &renderPipeline->GetOutputDepth();
 
     cmd.BeginLabel("Scene Editor", &renderPassLabelColor[0]);
     auto selectedObjects = EditorState::GetSelectedObjects();
@@ -224,7 +223,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
                     }
                 }
 
-                cmd.BindResource(0, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
+                cmd.BindResource(0, renderPipeline->GetPerSceneGPUResource());
                 cmd.BindShaderProgram(
                     outlineRawColorPassShader->GetShaderProgram(),
                     outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
@@ -278,7 +277,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             }
         }
 
-        Gizmos::DispatchAllDiszmos(cmd, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
+        Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
         Gizmos::ClearAllRegisteredGizmos();
         cmd.EndRenderPass();
     }
@@ -333,40 +332,27 @@ bool SceneEditor::Tick()
         editorCamera->SetSpecularEnv(gameCamera->GetSpecularEnv().Get());
     }
 
-    const char* menuSelected = "";
     Scene* scene = EditorState::activeScene;
     if (ImGui::BeginMenuBar())
     {
-        const char* toggleViewCamera = "Toggle View Camera: On";
-        if (!useViewCamera)
-            toggleViewCamera = "Toggle View Camera: Off";
-        if (ImGui::MenuItem(toggleViewCamera))
-        {
-            useViewCamera = !useViewCamera;
-            if (useViewCamera)
-            {
-                // EditorState::activeScene->SetMainCamera(editorCamera);
-            }
-            else
-            {
-                // let scene search a main camera
-                // EditorState::activeScene->SetMainCamera(nullptr);
-            }
-
-            Input::GetSingleton().SetGameplayInput(!useViewCamera);
-        }
-        if (ImGui::MenuItem("Resolution"))
-        {
-            menuSelected = "Change Resolution";
-        }
-        if (ImGui::MenuItem("Auto Resize"))
-        {
-            menuSelected = "Auto Resize";
-        }
-        if (ImGui::MenuItem("Overlay"))
-        {
-            menuSelected = "Overlay";
-        }
+        // const char* toggleViewCamera = "Toggle View Camera: On";
+        // if (!useViewCamera)
+        //     toggleViewCamera = "Toggle View Camera: Off";
+        // if (ImGui::MenuItem(toggleViewCamera))
+        // {
+        //     useViewCamera = !useViewCamera;
+        //     if (useViewCamera)
+        //     {
+        //         // EditorState::activeScene->SetMainCamera(editorCamera);
+        //     }
+        //     else
+        //     {
+        //         // let scene search a main camera
+        //         // EditorState::activeScene->SetMainCamera(nullptr);
+        //     }
+        //
+        //     Input::GetSingleton().SetGameplayInput(!useViewCamera);
+        // }
         if (ImGui::MenuItem("Physics Debug Draw"))
         {
             JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
@@ -377,29 +363,6 @@ bool SceneEditor::Tick()
         }
         ImGui::EndMenuBar();
     }
-
-    if (strcmp(menuSelected, "Change Resolution") == 0)
-    {
-        ImGui::OpenPopup("Change Resolution");
-        uint32_t width = 1920;
-        uint32_t height = 1080;
-
-        if (sceneImage)
-        {
-            width = sceneImage->GetDescription().width;
-            height = sceneImage->GetDescription().height;
-        }
-
-        d.resolution = {width, height};
-    }
-    else if (strcmp(menuSelected, "Auto Resize") == 0)
-    {
-        int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-        int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
-        ChangeGameScreenResolution({width, height});
-    }
-    else if (strcmp(menuSelected, "Overlay") == 0)
-    {}
 
     // alway match window size
     int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
@@ -433,8 +396,7 @@ bool SceneEditor::Tick()
         }
     }
 
-    if (useViewCamera)
-        EditorCameraWalkAround(*editorCamera, editorCameraSpeed);
+    EditorCameraWalkAround(*editorCamera, editorCameraSpeed);
 
     // create scene color if it's null or if the window size is changed
     const auto contentMax = ImGui::GetWindowContentRegionMax();
@@ -489,8 +451,7 @@ bool SceneEditor::Tick()
         if (!ImGuizmo::IsUsing())
         {
             // pick a GameObject trough ray
-            if (useViewCamera && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && isGameViewHovered &&
-                ImGui::IsWindowFocused())
+            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && isGameViewHovered && ImGui::IsWindowFocused())
             {
                 auto mousePos = ImGui::GetMousePos();
                 glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
@@ -573,9 +534,9 @@ bool SceneEditor::Tick()
         }
 
         ImGui::SetCursorPos(imagePos);
-        if (useViewCamera && scene != nullptr)
+        if (scene != nullptr)
         {
-            auto mainCam = GetCurrentlyActiveCamera();
+            auto mainCam = editorCamera;
             if (mainCam)
             {
                 glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
@@ -583,7 +544,7 @@ bool SceneEditor::Tick()
                 ImGuizmo::SetGizmoSizeClipSpace(0.2f);
                 ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
 
-                glm::mat4 proj = mainCam->GetProjectionMatrix();
+                glm::mat4 proj = mainCam->GetAndUpdateProjectionMatrix(imageWidth / imageHeight);
                 proj[1] *= -1;
 
                 GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject());
@@ -651,9 +612,6 @@ bool SceneEditor::Tick()
                     ImVec2(100, -100),
                     0x10101010
                 );
-                // auto world = glm::inverse(view);
-                // world[2] = -world[2];
-                // mainCam->GetGameObject()->SetWorldMatrix(world);
             }
         }
 
@@ -782,9 +740,6 @@ void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
 
 Camera* SceneEditor::GetCurrentlyActiveCamera()
 {
-    Camera* mainCam = nullptr;
-    auto scene = EditorState::activeScene;
-    mainCam = scene->GetMainCamera();
-    return mainCam;
+    return editorCamera.Get();
 }
 } // namespace Editor

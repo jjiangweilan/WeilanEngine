@@ -65,7 +65,7 @@ void Camera::SetSpecularEnv(Texture* cubemap)
         specularEnv = nullptr;
 }
 
-const glm::mat4& Camera::GetProjectionMatrix(float aspect)
+const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
 {
     if (this->aspect != aspect || updateProjectionMatrix)
     {
