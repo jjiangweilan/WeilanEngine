@@ -34,7 +34,7 @@ RenderPipeline::RenderPipeline()
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }
 
-void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
+void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize, RenderConfig renderConfig)
 {
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
@@ -189,9 +189,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0}};
         cmd->BeginRenderPass(forwardPass.pass, clears);
 
-        cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
-        RenderingUtils::DrawGraphics(*cmd);
-        cmd->EndLabel();
+        if (renderConfig.drawGraphics)
+        {
+            cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
+            RenderingUtils::DrawGraphics(*cmd);
+            cmd->EndLabel();
+        }
 
         // skybox
         cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);

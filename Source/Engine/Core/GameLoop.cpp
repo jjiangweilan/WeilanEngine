@@ -96,7 +96,6 @@ const void GameLoop::Tick(
     }
 
     ENGINE_BEGIN_PROFILE("GameLoop Tick clean-up")
-    Graphics::GetSingleton().ClearDraws();
 
     ENGINE_END_PROFILE
 }

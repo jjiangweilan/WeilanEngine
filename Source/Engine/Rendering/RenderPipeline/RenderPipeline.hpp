@@ -18,12 +18,17 @@ public:
     void operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList);
 };
 
+struct RenderConfig
+{
+    bool drawGraphics = false;
+};
+
 class RenderPipeline
 {
 public:
     RenderPipeline();
 
-    void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
+    void Render(Scene& scene, Camera& camera, glm::float2 screenSize, RenderConfig renderConfig = {});
     void RenderSkyboxOnly(Scene& scene, Camera& camera);
     const auto& GetOutputColor() const { return finalColor; }
     const auto& GetOutputDepth() const { return mainDepth; }

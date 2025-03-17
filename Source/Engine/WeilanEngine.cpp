@@ -2,6 +2,7 @@
 #include "Core/DelayDestroy.hpp"
 #include "Core/GameLoop.hpp"
 #include "Profiler/Profiler.hpp"
+#include "Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui_impl_sdl2.h"
@@ -116,6 +117,7 @@ void WeilanEngine::EndFrame()
     assetDatabase->RefreshShader();
 #endif
 
+    Graphics::GetSingleton().ClearDraws();
     DelayDestroy::Singleton()->Flush();
     ENGINE_END_FRAME_PROFILE
 }
