@@ -30,7 +30,7 @@ void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
     {
         gameCamera = EditorState::activeScene->GetMainCamera();
         editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
-        EditorState::activeScene->SetMainCamera(editorCamera);
+        // EditorState::activeScene->SetMainCamera(editorCamera);
         EditorState::gameLoop->SetScene(*EditorState::activeScene);
     }
 }
@@ -185,129 +185,130 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
     editorCamera->SetFar(1000.f);
 }
 
-void SceneEditor::Render(
-    Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage, const Gfx::RG::ImageIdentifier* gameDepthImage
-)
+void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
-    if (gameImage && gameDepthImage)
+
+    renderPipeline.Render(*EditorState::activeScene, *editorCamera, d.resolution);
+    auto gameImage = &renderPipeline.GetOutputColor();
+    auto gameDepthImage = &renderPipeline.GetOutputDepth();
+
+    cmd.BeginLabel("Scene Editor", &renderPassLabelColor[0]);
+    auto selectedObjects = EditorState::GetSelectedObjects();
+    bool hasGameObjectSelected = false;
+    // selection outline src pass
     {
-        cmd.BeginLabel("Game View", &renderPassLabelColor[0]);
-        auto selectedObjects = EditorState::GetSelectedObjects();
-        bool hasGameObjectSelected = false;
-        // selection outline src pass
+
+        Gfx::RG::ImageDescription desc{
+            sceneImage->GetDescription().width,
+            sceneImage->GetDescription().height,
+            sceneImage->GetDescription().format
+        };
+        cmd.AllocateAttachment(outlineSrcRT, desc);
+        outlineSrcPass.SetAttachment(0, outlineSrcRT);
+        Gfx::ClearValue outlineSrcPassClears[] = {{0, 0, 0, 0}};
+        cmd.BeginRenderPass(outlineSrcPass, outlineSrcPassClears);
+        for (auto& selected : selectedObjects)
         {
-
-            Gfx::RG::ImageDescription desc{
-                sceneImage->GetDescription().width,
-                sceneImage->GetDescription().height,
-                sceneImage->GetDescription().format
-            };
-            cmd.AllocateAttachment(outlineSrcRT, desc);
-            outlineSrcPass.SetAttachment(0, outlineSrcRT);
-            Gfx::ClearValue outlineSrcPassClears[] = {{0, 0, 0, 0}};
-            cmd.BeginRenderPass(outlineSrcPass, outlineSrcPassClears);
-            for (auto& selected : selectedObjects)
+            GameObject* go = dynamic_cast<GameObject*>(selected.Get());
+            if (go)
             {
-                GameObject* go = dynamic_cast<GameObject*>(selected.Get());
-                if (go)
+                hasGameObjectSelected = true;
+                auto mrs = go->GetComponentsInChildren<MeshRenderer>();
+                Rendering::DrawList drawList;
+                for (MeshRenderer* meshRenderer : mrs)
                 {
-                    hasGameObjectSelected = true;
-                    auto mrs = go->GetComponentsInChildren<MeshRenderer>();
-                    Rendering::DrawList drawList;
-                    for (MeshRenderer* meshRenderer : mrs)
+                    if (meshRenderer)
                     {
-                        if (meshRenderer)
-                        {
-                            drawList.Add(*meshRenderer);
-                        }
-                    }
-
-                    cmd.BindResource(0, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
-                    cmd.BindShaderProgram(
-                        outlineRawColorPassShader->GetShaderProgram(),
-                        outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
-                    );
-                    for (auto& draw : drawList)
-                    {
-                        cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
-                        cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                        auto ps = draw.GetPushConstant();
-                        cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&ps);
-                        cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
+                        drawList.Add(*meshRenderer);
                     }
                 }
-            }
-            cmd.EndRenderPass();
-        }
 
-        // draw outline and gizmos
-        {
-            gameImagePass.SetAttachment(0, *gameImage);
-            if (gameDepthImage)
-                gameImagePass.SetAttachment(1, *gameDepthImage);
-
-            Gfx::ClearValue gameImagePassClears[] = {{0, 0, 0, 0}, {1, 0}};
-            cmd.BeginRenderPass(gameImagePass, gameImagePassClears);
-            if (hasGameObjectSelected)
-            {
-                outlineGPUResource->SetImage("mainTex", GetGfxDriver()->GetImageFromRenderGraph(outlineSrcRT));
-                cmd.BindResource(0, outlineGPUResource.get());
+                cmd.BindResource(0, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
                 cmd.BindShaderProgram(
-                    outlineFullScreenPassShader->GetShaderProgram(),
-                    outlineFullScreenPassShader->GetShaderProgram()->GetDefaultShaderConfig()
+                    outlineRawColorPassShader->GetShaderProgram(),
+                    outlineRawColorPassShader->GetShaderProgram()->GetDefaultShaderConfig()
                 );
-                cmd.Draw(6, 1, 0, 0);
-            }
-
-            // draw grid
-            if (editorWorldSpaceGrid.show)
-            {
-                auto activeCamera = GetCurrentlyActiveCamera();
-                if (activeCamera == editorCamera.Get())
+                for (auto& draw : drawList)
                 {
-                    glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
-                    pos.y = 0;
-                    Gizmos::DrawMesh(
-                        *editorWorldSpaceGrid.plane,
-                        0,
-                        editorWorldSpaceGrid.gridShader,
-                        glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
-                    );
+                    cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
+                    cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
+                    auto ps = draw.GetPushConstant();
+                    cmd.SetPushConstant(draw.shader->GetShaderProgram(), (void*)&ps);
+                    cmd.DrawIndexed(draw.indexCount, 1, 0, 0, 0);
                 }
             }
+        }
+        cmd.EndRenderPass();
+    }
 
-            Gizmos::DispatchAllDiszmos(cmd, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
-            Gizmos::ClearAllRegisteredGizmos();
-            cmd.EndRenderPass();
+    // draw outline and gizmos
+    {
+        gameImagePass.SetAttachment(0, *gameImage);
+        if (gameDepthImage)
+            gameImagePass.SetAttachment(1, *gameDepthImage);
+
+        Gfx::ClearValue gameImagePassClears[] = {{0, 0, 0, 0}, {1, 0}};
+        cmd.BeginRenderPass(gameImagePass, gameImagePassClears);
+        if (hasGameObjectSelected)
+        {
+            outlineGPUResource->SetImage("mainTex", GetGfxDriver()->GetImageFromRenderGraph(outlineSrcRT));
+            cmd.BindResource(0, outlineGPUResource.get());
+            cmd.BindShaderProgram(
+                outlineFullScreenPassShader->GetShaderProgram(),
+                outlineFullScreenPassShader->GetShaderProgram()->GetDefaultShaderConfig()
+            );
+            cmd.Draw(6, 1, 0, 0);
         }
 
-        auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
-        if (outputImage)
+        // draw grid
+        if (editorWorldSpaceGrid.show)
         {
-            cmd.BeginLabel("Editor FinalColorBlit", &renderPassLabelColor[0]);
+            auto activeCamera = GetCurrentlyActiveCamera();
+            if (activeCamera == editorCamera.Get())
             {
-                editorFinalColorBlitMaterial->SetTexture("input", outputImage);
-                Gfx::ClearValue clear[] = {{0, 0, 0, 0}};
-                editorFinalColorBlitPass.SetAttachment(0, *sceneImage);
-                cmd.BeginRenderPass(editorFinalColorBlitPass, clear);
-                cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
-                cmd.BindShaderProgram(
-                    editorFinalColorBlitShader->GetShaderProgram(),
-                    editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
+                glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
+                pos.y = 0;
+                Gizmos::DrawMesh(
+                    *editorWorldSpaceGrid.plane,
+                    0,
+                    editorWorldSpaceGrid.gridShader,
+                    glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)
                 );
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
             }
-            cmd.EndLabel();
+        }
+
+        Gizmos::DispatchAllDiszmos(cmd, EditorState::gameLoop->GetRenderPipeline().GetPerSceneGPUResource());
+        Gizmos::ClearAllRegisteredGizmos();
+        cmd.EndRenderPass();
+    }
+
+    auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
+    if (outputImage)
+    {
+        cmd.BeginLabel("Editor FinalColorBlit", &renderPassLabelColor[0]);
+        {
+            editorFinalColorBlitMaterial->SetTexture("input", outputImage);
+            Gfx::ClearValue clear[] = {{0, 0, 0, 0}};
+            editorFinalColorBlitPass.SetAttachment(0, *sceneImage);
+            cmd.BeginRenderPass(editorFinalColorBlitPass, clear);
+            cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
+            cmd.BindShaderProgram(
+                editorFinalColorBlitShader->GetShaderProgram(),
+                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
+            );
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
         }
         cmd.EndLabel();
     }
+    cmd.EndLabel();
 }
 
 bool SceneEditor::Tick()
 {
-    return false;
+    gameCamera = EditorState::activeScene->GetMainCamera();
+
     for (auto& p : pendingDeleteSceneImages)
     {
         p.frameCount += 1;
@@ -344,12 +345,12 @@ bool SceneEditor::Tick()
             useViewCamera = !useViewCamera;
             if (useViewCamera)
             {
-                EditorState::activeScene->SetMainCamera(editorCamera);
+                // EditorState::activeScene->SetMainCamera(editorCamera);
             }
             else
             {
                 // let scene search a main camera
-                EditorState::activeScene->SetMainCamera(nullptr);
+                // EditorState::activeScene->SetMainCamera(nullptr);
             }
 
             Input::GetSingleton().SetGameplayInput(!useViewCamera);
@@ -411,7 +412,6 @@ bool SceneEditor::Tick()
             ChangeGameScreenResolution({width, height});
         }
     }
-
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C) && ImGui::IsWindowFocused())
     {

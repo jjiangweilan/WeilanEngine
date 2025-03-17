@@ -477,6 +477,7 @@ void GameEditor::Start()
 
             GUIPass();
 
+            // update gameloop
             auto gameScreenImage = gameView.GetGameScreenImage();
             auto screenSize = gameScreenImage->GetDescription().GetSize();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;

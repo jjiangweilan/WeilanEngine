@@ -2,6 +2,7 @@
 #include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
+#include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
 #include "ThirdParty/imgui/imgui.h"
@@ -21,11 +22,7 @@ public:
 
     bool Tick();
 
-    void Render(
-        Gfx::CommandBuffer& cmd,
-        const Gfx::RG::ImageIdentifier* gameImage,
-        const Gfx::RG::ImageIdentifier* gameDepthImage
-    );
+    void Render(Gfx::CommandBuffer& cmd);
 
     void SetActiveScene(ObjPtr<Scene> scene);
 
@@ -34,6 +31,8 @@ public:
     Gfx::Image* GetSceneImage() { return sceneImage.get(); }
 
 private:
+    Rendering::RenderPipeline renderPipeline;
+
     std::unique_ptr<Gfx::Image> sceneImage;
 
     // scene image can't be deleted immediately because it's tracked by the VKDriver for at least two frame (it holds a
