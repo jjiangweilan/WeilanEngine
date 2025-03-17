@@ -335,24 +335,6 @@ bool SceneEditor::Tick()
     Scene* scene = EditorState::activeScene;
     if (ImGui::BeginMenuBar())
     {
-        // const char* toggleViewCamera = "Toggle View Camera: On";
-        // if (!useViewCamera)
-        //     toggleViewCamera = "Toggle View Camera: Off";
-        // if (ImGui::MenuItem(toggleViewCamera))
-        // {
-        //     useViewCamera = !useViewCamera;
-        //     if (useViewCamera)
-        //     {
-        //         // EditorState::activeScene->SetMainCamera(editorCamera);
-        //     }
-        //     else
-        //     {
-        //         // let scene search a main camera
-        //         // EditorState::activeScene->SetMainCamera(nullptr);
-        //     }
-        //
-        //     Input::GetSingleton().SetGameplayInput(!useViewCamera);
-        // }
         if (ImGui::MenuItem("Physics Debug Draw"))
         {
             JoltDebugRenderer::GetDrawAll() = !JoltDebugRenderer::GetDrawAll();
@@ -391,7 +373,7 @@ bool SceneEditor::Tick()
     {
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
         {
-            if (auto mainCam = GetCurrentlyActiveCamera())
+            if (auto mainCam = editorCamera)
                 FocusOnObject(*mainCam, *go);
         }
     }
@@ -682,26 +664,20 @@ void SceneEditor::ChangeGameScreenResolution(glm::ivec2 resolution)
 
 void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
 {
-    glm::vec3 center = gameObject.GetPosition();
-    auto meshRenderers = gameObject.GetComponentsInChildren<MeshRenderer>();
-    auto viewMatrix = cam.GetViewMatrix();
-    glm::vec3 minAABBV =
-        {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
-    glm::vec3 maxAABBV =
-        {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
-
-    for (auto m : meshRenderers)
+    auto ViewSpaceMinMaxTest = [](const float4x4& viewMatrix, const AABB& aabb, float3& outMinAABB, float3& outMaxAABB)
     {
-        auto aabb = m->GetAABB();
-        auto centerV = viewMatrix * glm::vec4(m->GetGameObject()->GetPosition(), 1.0);
         auto minv = viewMatrix * glm::vec4(aabb.min, 1.0f);
         auto maxv = viewMatrix * glm::vec4(aabb.max, 1.0f);
+
+        auto centerV = (maxv + minv) / 2.0f;
 
         // move to camera center
         minv.x -= centerV.x;
         minv.y -= centerV.y;
+        minv.z -= centerV.z;
         maxv.x -= centerV.x;
         maxv.y -= centerV.y;
+        maxv.z -= centerV.z;
 
         glm::vec3 v000 = {minv.x, minv.y, minv.z};
         glm::vec3 v100 = {maxv.x, minv.y, minv.z};
@@ -722,20 +698,45 @@ void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
             glm::max(v100, glm::max(v010, glm::max(v001, glm::max(v110, glm::max(v011, glm::max(v101, v111))))))
         );
 
-        minAABBV = glm::min(minAABBV, minAABBV0);
-        maxAABBV = glm::max(maxAABBV, maxAABBV0);
+        outMinAABB = glm::min(outMinAABB, minAABBV0);
+        outMaxAABB = glm::max(outMaxAABB, maxAABBV0);
+    };
+
+    glm::vec3 center = gameObject.GetPosition();
+    auto meshRenderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+    auto viewMatrix = cam.GetViewMatrix();
+    glm::vec3 minAABBV =
+        {std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    glm::vec3 maxAABBV =
+        {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
+
+    if (!meshRenderers.empty())
+    {
+        for (auto m : meshRenderers)
+        {
+            auto aabb = m->GetAABB();
+            ViewSpaceMinMaxTest(viewMatrix, aabb, minAABBV, maxAABBV);
+        }
+    }
+    else
+    {
+        auto fakeMax = viewMatrix * float4(center + 0.25f, 1.0f);
+        auto fakeMin = viewMatrix * float4(center - 0.25f, 1.0f);
+
+        ViewSpaceMinMaxTest(viewMatrix, {fakeMin, fakeMax}, minAABBV, maxAABBV);
     }
 
     float maxSide = glm::max(
         glm::abs(minAABBV.x),
         glm::max(glm::abs(minAABBV.y), glm::max(glm::abs(maxAABBV.x), glm::abs(maxAABBV.y)))
     );
+    maxSide = glm::max(maxSide, glm::max(glm::abs(minAABBV.z), glm::abs(maxAABBV.z)));
 
     float fov = cam.GetFoV();
     float distance = maxSide / fov;
 
     glm::vec3 forward = cam.GetForward();
-    cam.GetGameObject()->SetPosition(center + forward * distance);
+    cam.GetGameObject()->SetPosition(center - forward * distance);
 }
 
 Camera* SceneEditor::GetCurrentlyActiveCamera()

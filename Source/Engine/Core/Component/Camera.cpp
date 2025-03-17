@@ -173,7 +173,7 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
 
 glm::vec3 Camera::GetForward()
 {
-    return gameObject->GetForward();
+    return -gameObject->GetForward();
 }
 
 void Camera::OnDrawGizmos()
