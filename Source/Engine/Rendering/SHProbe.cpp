@@ -24,12 +24,13 @@ void SHProbe::UpdateProbe(const float4& position, const SHProbeUpdateSettings& s
     if (settings.skyboxOnly)
     {
         // render the skybox
-        RenderPipeline facesPipeline[6];
+        RenderPipeline skyboxRenderPipeline[6];
         for (int face = 0; face < 6; ++face)
         {
             Camera camera;
 
-            facesPipeline[face].RenderSkyboxOnly(*scene, *scene->GetMainCamera());
+            Rendering::RenderConfig config{};
+            skyboxRenderPipeline[face].RenderSkyboxOnly(*scene, *scene->GetMainCamera());
         }
 
         // Gfx::RG::ImageIdentifier outputColor = facesPipeline[face].GetOutputColor();

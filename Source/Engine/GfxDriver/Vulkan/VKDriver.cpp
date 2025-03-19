@@ -1253,6 +1253,10 @@ Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id
     {
         return id.GetAsImage();
     }
+    else if (id.GetType() == Gfx::RG::ImageIdentifier::Type::ImageView)
+    {
+        return &id.GetAsImageView()->GetImage();
+    }
     else if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Handle)
     {
         return renderGraph->GetImage(id.GetAsUUID());

@@ -1,13 +1,14 @@
 #pragma once
+#include "Core/Object.hpp"
 #include "GfxEnums.hpp"
 #include "Image.hpp"
-#include "Core/Object.hpp"
 
 namespace Gfx
 {
 class ImageView : public Object
 {
 public:
+    ImageView() : Object() {};
     struct CreateInfo
     {
         Image& image;
@@ -15,8 +16,7 @@ public:
         ImageSubresourceRange subresourceRange;
     };
 
-    virtual void SetName(std::string_view name) = 0;
-    virtual ~ImageView(){};
+    virtual ~ImageView() {};
     virtual Image& GetImage() = 0;
     virtual const ImageSubresourceRange& GetSubresourceRange() = 0;
     virtual ImageViewType GetImageViewType() = 0;

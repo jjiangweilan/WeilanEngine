@@ -89,6 +89,7 @@ struct ImageIdentifier
     {
         None,
         Image,
+        ImageView,
         Handle
     };
 
@@ -96,6 +97,7 @@ struct ImageIdentifier
     ImageIdentifier(const char* name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(std::string_view name) : type(Type::Handle), name(name), rtHandle(UUID()) {}
     ImageIdentifier(Image& image) : type(Type::Image), image(&image) {}
+    ImageIdentifier(ImageView& imageView) : type(Type::ImageView), imageView(&imageView) {}
 
     bool operator==(const ImageIdentifier& other) const
     {
@@ -113,14 +115,19 @@ struct ImageIdentifier
             {
                 return rtHandle == other.rtHandle;
             }
+            else if (type == Type::ImageView)
+            {
+                return imageView == other.imageView;
+            }
         }
-        
+
         return true;
     }
 
     Type GetType() const { return type; }
 
     Image* GetAsImage() const { return image; }
+    ImageView* GetAsImageView() const { return imageView; }
 
     UUID GetAsUUID() const { return rtHandle; }
 
@@ -130,6 +137,7 @@ private:
     Type type = Type::None;
     std::string name = "";
     Image* image = nullptr;
+    ImageView* imageView = nullptr;
     UUID rtHandle = UUID::GetEmptyUUID();
 
     void Copy(const ImageIdentifier& other)

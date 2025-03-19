@@ -34,7 +34,7 @@ RenderPipeline::RenderPipeline()
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }
 
-void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize, RenderConfig renderConfig)
+void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
@@ -614,6 +614,13 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     }
 
     GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
+}
+
+void RenderPipeline::BlitToFinalColor()
+{
+    Gfx::CommandBuffer* cmd;
+    Gfx::RG::ImageIdentifier id = *renderConfig.colorOutputOverride.value();
+    skyboxPass.pass.SetAttachment(0, id);
 }
 
 } // namespace Rendering

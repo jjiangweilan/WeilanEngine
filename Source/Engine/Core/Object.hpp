@@ -117,7 +117,7 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 }
 
 #define DECLARE_OBJECT()                                                                                               \
-    friend class ObjectReflection;                                                                                     \
+    friend class ::ObjectReflection;                                                                                   \
                                                                                                                        \
 public:                                                                                                                \
     static const ObjectTypeID& StaticGetObjectTypeID();                                                                \

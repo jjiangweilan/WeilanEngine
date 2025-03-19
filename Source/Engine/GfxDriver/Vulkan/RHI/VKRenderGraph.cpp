@@ -91,6 +91,7 @@ public:
         {
             auto renderPassObj = std::make_unique<VKRenderPass>();
             std::vector<SRef<Image>> imageReferences;
+            std::vector<ObjPtr<ImageView>> imageViewReferences;
 
             auto attachments = renderPass.GetAttachments();
             for (auto& subpass : renderPass.GetSubpasses())
@@ -98,7 +99,8 @@ public:
                 std::vector<Attachment> colors;
                 for (RG::SubpassAttachment color : subpass.colors)
                 {
-                    if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
+                    auto idType = attachments[color.attachmentIndex].GetType();
+                    if (idType == RG::ImageIdentifier::Type::Image)
                     {
                         auto image = attachments[color.attachmentIndex].GetAsImage();
                         imageReferences.push_back(image->GetSRef());
@@ -111,7 +113,21 @@ public:
                             color.stencilStoreOp,
                         });
                     }
-                    else if (attachments[color.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
+                    else if (idType == RG::ImageIdentifier::Type::ImageView)
+                    {
+                        auto imageView = attachments[color.attachmentIndex].GetAsImageView();
+                        imageReferences.push_back(imageView->GetImage().GetSRef());
+                        imageViewReferences.push_back(imageView);
+                        colors.push_back(Attachment{
+                            imageView,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            color.loadOp,
+                            color.storeOp,
+                            color.stencilLoadOp,
+                            color.stencilStoreOp,
+                        });
+                    }
+                    else if (idType == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[color.attachmentIndex].GetAsUUID()];
                         imageReferences.push_back(image.image->GetSRef());
@@ -129,7 +145,8 @@ public:
                 std::optional<Attachment> depth;
                 if (subpass.depth.attachmentIndex != -1)
                 {
-                    if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Image)
+                    auto idType = attachments[subpass.depth.attachmentIndex].GetType();
+                    if (idType == RG::ImageIdentifier::Type::Image)
                     {
                         auto image = attachments[subpass.depth.attachmentIndex].GetAsImage();
                         imageReferences.push_back(image->GetSRef());
@@ -142,7 +159,21 @@ public:
                             subpass.depth.stencilStoreOp,
                         };
                     }
-                    else if (attachments[subpass.depth.attachmentIndex].GetType() == RG::ImageIdentifier::Type::Handle)
+                    else if (idType == RG::ImageIdentifier::Type::ImageView)
+                    {
+                        auto imageView = attachments[subpass.depth.attachmentIndex].GetAsImageView();
+                        imageReferences.push_back(imageView->GetImage().GetSRef());
+                        imageViewReferences.push_back(imageView);
+                        depth = Attachment{
+                            imageView,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            subpass.depth.loadOp,
+                            subpass.depth.storeOp,
+                            subpass.depth.stencilLoadOp,
+                            subpass.depth.stencilStoreOp,
+                        };
+                    }
+                    else if (idType == RG::ImageIdentifier::Type::Handle)
                     {
                         auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsUUID()];
                         imageReferences.push_back(image.image->GetSRef());
@@ -162,7 +193,8 @@ public:
 
             auto temp = renderPassObj.get();
             SPDLOG_TRACE("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
-            renderPasses[uuid] = {std::move(renderPassObj), std::move(imageReferences), 0};
+            renderPasses[uuid] =
+                {std::move(renderPassObj), std::move(imageReferences), std::move(imageViewReferences), 0};
 
             return temp;
         }
@@ -220,6 +252,7 @@ private:
     {
         std::unique_ptr<VKRenderPass> renderPass;
         std::vector<SRef<Image>> attachments;
+        std::vector<ObjPtr<ImageView>> imageViews;
         int frameCountFromLastRequest = 0;
 
         bool CheckValidationOfAttachments()
@@ -227,6 +260,12 @@ private:
             for (auto& r : attachments)
             {
                 if (r == nullptr)
+                    return false;
+            }
+
+            for (auto& v : imageViews)
+            {
+                if (v == nullptr)
                     return false;
             }
 

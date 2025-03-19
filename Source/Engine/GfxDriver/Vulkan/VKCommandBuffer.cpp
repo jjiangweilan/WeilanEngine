@@ -318,6 +318,10 @@ void VKCommandBuffer::SetTexture(
 
         cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
     }
+    else if (id.GetType() == RG::ImageIdentifier::Type::ImageView)
+    {
+        ASSERT(false && "use Texture+imageViewOption");
+    }
     else if (id.GetType() == RG::ImageIdentifier::Type::Handle)
     {
         auto image = graph->GetImage(id.GetAsUUID());
@@ -393,6 +397,10 @@ void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bli
     {
         from = static_cast<VKImage*>(src.GetAsImage());
     }
+    else if (src.GetType() == RG::ImageIdentifier::Type::ImageView)
+    {
+        ASSERT(false && "not implemented");
+    }
     else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
     {
         from = graph->GetImage(src.GetAsUUID());
@@ -401,6 +409,10 @@ void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bli
     if (dst.GetType() == RG::ImageIdentifier::Type::Image)
     {
         to = static_cast<VKImage*>(dst.GetAsImage());
+    }
+    else if (src.GetType() == RG::ImageIdentifier::Type::ImageView)
+    {
+        ASSERT(false && "not implemented");
     }
     else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
     {

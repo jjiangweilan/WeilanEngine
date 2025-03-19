@@ -188,7 +188,9 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
 
-    renderPipeline->Render(*EditorState::activeScene, *editorCamera, d.resolution, {.drawGraphics = true});
+    Rendering::RenderConfig renderConfig = { .drawGraphics = true };
+    renderPipeline->SetConfig(renderConfig);
+    renderPipeline->Render(*EditorState::activeScene, *editorCamera, d.resolution);
     auto gameImage = &renderPipeline->GetOutputColor();
     auto gameDepthImage = &renderPipeline->GetOutputDepth();
 

@@ -20,7 +20,11 @@ public:
 
 struct RenderConfig
 {
+    /** draw cmds dispatched by the Graphics API */
     bool drawGraphics = false;
+
+    /** override the color output of the render pipeline */
+    std::optional<Gfx::ImageView*> colorOutputOverride;
 };
 
 class RenderPipeline
@@ -28,7 +32,8 @@ class RenderPipeline
 public:
     RenderPipeline();
 
-    void Render(Scene& scene, Camera& camera, glm::float2 screenSize, RenderConfig renderConfig = {});
+    void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
+    void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
     void RenderSkyboxOnly(Scene& scene, Camera& camera);
     const auto& GetOutputColor() const { return finalColor; }
     const auto& GetOutputDepth() const { return mainDepth; }
@@ -53,6 +58,8 @@ private:
     Gfx::RG::ImageDescription albedoGBufferDescription;
     Gfx::RG::ImageDescription normalGBufferDescription;
     Gfx::RG::ImageDescription maskGBufferDescription;
+
+    RenderConfig renderConfig;
 
     struct ExecutionState
     {
@@ -180,5 +187,6 @@ private:
 
     void FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
+    void BlitToFinalColor();
 };
 } // namespace Rendering
