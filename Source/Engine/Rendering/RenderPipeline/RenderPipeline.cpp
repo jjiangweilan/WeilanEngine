@@ -588,7 +588,15 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
 
 void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)
 {
-    Gfx::RG::ImageIdentifier id = *renderConfig.colorOutputOverride.value();
+    Gfx::RG::ImageIdentifier finalColorId = finalColor;
+
+    bool isColorOverriden = renderConfig.colorOutputOverride.has_value();
+    if (isColorOverriden)
+    {
+        finalColorId = *renderConfig.colorOutputOverride.value();
+    }
+
+
 }
 
 } // namespace Rendering

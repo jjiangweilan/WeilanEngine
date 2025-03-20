@@ -110,7 +110,8 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
                                                              // records again so we need to it as signaled
     VkSemaphoreCreateInfo semaphoreCreateInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-    inflightData.resize(driverConfig.swapchainImageCount);
+    int inflightCount = driverConfig.swapchainImageCount;
+    inflightData.resize(inflightCount);
     for (int i = 0; i < driverConfig.swapchainImageCount; ++i)
     {
         inflightData[i].cmd = cmds[i];
@@ -128,7 +129,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     dataUploader = std::make_unique<VKDataUploader>(this);
     sharedResource = std::make_unique<VKSharedResource>(this);
     context->sharedResource = sharedResource.get();
-    renderGraph = std::make_unique<VK::RenderGraph::Graph>();
+    renderGraph = std::make_unique<VK::RenderGraph::Graph>(inflightCount);
 
     sdlInfo = std::make_unique<SDLInfo>();
     SDL_VERSION(&sdlInfo->wmInfo.version);
@@ -552,7 +553,7 @@ void VKDriver::FlushPendingCommands()
     {
         f(cmd);
     }
-    renderGraph->Execute(cmd);
+    renderGraph->Execute(cmd, currentInflightIndex);
 
     vkEndCommandBuffer(cmd);
 
@@ -618,7 +619,7 @@ bool VKDriver::EndFrame()
     {
         f(cmd);
     }
-    renderGraph->Execute(cmd);
+    renderGraph->Execute(cmd, currentInflightIndex);
     ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
@@ -1214,7 +1215,7 @@ void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 
 void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
 {
-    VK::RenderGraph::Graph rg;
+    VK::RenderGraph::Graph rg(1);
     rg.Schedule((VKCommandBuffer&)cmd);
 
     VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
@@ -1231,7 +1232,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(vkcmd, &beginInfo);
-    rg.Execute(vkcmd);
+    rg.Execute(vkcmd, 0);
     vkEndCommandBuffer(vkcmd);
 
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};

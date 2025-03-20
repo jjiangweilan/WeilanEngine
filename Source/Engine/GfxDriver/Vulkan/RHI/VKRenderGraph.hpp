@@ -42,11 +42,11 @@ struct ResourceUsageTrack
 class Graph
 {
 public:
-    Graph();
+    Graph(int inflightCount);
     ~Graph();
     void Schedule(VKCommandBuffer& cmd);
 
-    void Execute(VkCommandBuffer cmd);
+    void Execute(VkCommandBuffer cmd, int inflightIndex);
 
     VKImage* GetImage(const UUID& id);
     VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc);
@@ -140,7 +140,10 @@ private:
     void PutBarrier(VkCommandBuffer cmd, int index);
 };
 
-Gfx::VKImage* GetImageFromImageIdentifier(
+Gfx::VKImage* ImageIdentifier_GetImage(
+    const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph = nullptr
+);
+Gfx::VKImageView* ImageIdentifier_GetImageView(
     const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph = nullptr
 );
 } // namespace Gfx::VK::RenderGraph

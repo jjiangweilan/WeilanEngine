@@ -98,6 +98,7 @@ public:
     virtual void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) = 0;
+    virtual void GraphicsBlit(const Gfx::RG::ImageIdentifier& from, const Gfx::RG::ImageIdentifier& to) = 0;
 
     virtual void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) = 0;
     virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;

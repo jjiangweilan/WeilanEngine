@@ -1,4 +1,5 @@
 #include "RenderGraph.hpp"
+#include "GfxDriver/RenderGraph.hpp"
 
 Gfx::RG::ImageIdentifier Gfx::RG::ImageIdentifier::CreateEmpty()
 {
@@ -16,17 +17,18 @@ const Gfx::RG::ImageIdentifier& Gfx::RG::ImageIdentifier::GetEmpty()
 
 bool Gfx::RG::RenderPass::IsValidForRendering() const
 {
-    for(auto& subpass : subpasses)
+    for (auto& subpass : subpasses)
     {
         // requires color but it's not set
-        for(auto& c : subpass.colors)
+        for (auto& c : subpass.colors)
         {
-            if(attachments[c.attachmentIndex] == ImageIdentifier::GetEmpty())
+            if (attachments[c.attachmentIndex] == ImageIdentifier::GetEmpty())
                 return false;
         }
 
         // requires depth but it's not set
-        if (subpass.depth.attachmentIndex != -1 && attachments[subpass.depth.attachmentIndex] == ImageIdentifier::GetEmpty())
+        if (subpass.depth.attachmentIndex != -1 &&
+            attachments[subpass.depth.attachmentIndex] == ImageIdentifier::GetEmpty())
             return false;
 
         // no attachmet set

@@ -506,4 +506,13 @@ std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(
     return handle;
 }
 
+void VKCommandBuffer::GraphicsBlit(const RG::ImageIdentifier& from, const RG::ImageIdentifier& to)
+{
+    VKGraphicsBlitCmd cmd{};
+    cmd.from = from;
+    cmd.to = to;
+
+    cmds.push_back(VKCmd{VKCmdType::GraphicsBlit, cmd});
+}
+
 } // namespace Gfx

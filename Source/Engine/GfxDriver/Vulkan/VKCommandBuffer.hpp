@@ -264,6 +264,12 @@ struct VKAsyncReadbackCmd
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
 
+struct VKGraphicsBlitCmd
+{
+    RG::ImageIdentifier from;
+    RG::ImageIdentifier to;
+};
+
 struct VKNoneCmd
 {};
 
@@ -300,7 +306,8 @@ enum class VKCmdType
     BeginLabel,
     EndLabel,
     InsertLabel,
-    AsyncReadback
+    AsyncReadback,
+    GraphicsBlit
 };
 
 struct VKCmd
@@ -338,7 +345,8 @@ struct VKCmd
         VKBeginLabelCmd,
         VKEndLabelCmd,
         VKInsertLabelCmd,
-        VKAsyncReadbackCmd>
+        VKAsyncReadbackCmd,
+        VKGraphicsBlitCmd>
         args;
     // union
     // {
@@ -402,6 +410,7 @@ public:
     void EndRenderPass() override;
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
+    void GraphicsBlit(const RG::ImageIdentifier& from, const RG::ImageIdentifier& to) override;
     // renderpass and framebuffer have to be compatible.
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;

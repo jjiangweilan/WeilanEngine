@@ -101,7 +101,7 @@ public:
                 {
                     const auto& id = attachments[color.attachmentIndex];
                     auto idType = id.GetType();
-                    Gfx::VKImage* image = GetImageFromImageIdentifier(id, graph);
+                    Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
                     Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
@@ -127,7 +127,7 @@ public:
                 {
                     const auto& id = attachments[subpass.depth.attachmentIndex];
                     auto idType = id.GetType();
-                    Gfx::VKImage* image = GetImageFromImageIdentifier(id, graph);
+                    Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
                     Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
@@ -983,7 +983,7 @@ void Graph::Schedule(VKCommandBuffer& cmd)
     }
 }
 
-void Graph::Execute(VkCommandBuffer vkcmd)
+void Graph::Execute(VkCommandBuffer vkcmd, int inflightIndex)
 {
     ENGINE_SCOPED_PROFILE("VKRenderGraph::Execute");
     for (size_t i = 0; i < currentSchedulingCmds.size(); ++i)
@@ -1490,6 +1490,27 @@ void Graph::Execute(VkCommandBuffer vkcmd)
                     VKDebugUtils::CmdInsertLabel(vkcmd, args.label, args.color);
                     break;
                 }
+            case Gfx::VKCmdType::GraphicsBlit:
+                {
+                    auto& args = std::get<VKGraphicsBlitCmd>(cmd.args);
+                    VkRenderingAttachmentInfo colorAttachmentInfo =
+                        VkRenderingAttachmentInfo{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+                    colorAttachmentInfo.imageView = ImageIdentifier_GetImageView(args.from, this)->GetHandle();
+                    const auto& desc = args.from.GetAsImage()->GetDescription();
+
+                    auto renderArea = VkRect2D{VkOffset2D{}, VkExtent2D{desc.width, desc.height}};
+                    VkRenderingInfo renderInfo = VkRenderingInfo{VK_STRUCTURE_TYPE_RENDERING_INFO};
+                    renderInfo.renderArea = renderArea;
+                    renderInfo.pColorAttachments = &colorAttachmentInfo;
+                    renderInfo.layerCount = 1;
+
+                    // Or use ResourceAllocator for RenderPass
+                    vkCmdBeginRendering(vkcmd, &renderInfo);
+
+                    vkCmdEndRendering(vkcmd);
+
+                    break;
+                }
             case VKCmdType::None: break;
         }
     }
@@ -1649,7 +1670,7 @@ VKImage* Graph::GetImage(const UUID& hash)
     return resourceAllocator->GetImage(hash);
 }
 
-Graph::Graph()
+Graph::Graph(int inflightCount)
 {
     resourceAllocator = std::make_unique<ResourceAllocator>(this);
 }
@@ -1719,7 +1740,7 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
     }
 }
 
-Gfx::VKImage* GetImageFromImageIdentifier(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
+Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
 {
     auto idType = id.GetType();
     if (idType == RG::ImageIdentifier::Type::Image)
@@ -1735,6 +1756,27 @@ Gfx::VKImage* GetImageFromImageIdentifier(const Gfx::RG::ImageIdentifier& id, Gf
     else if (idType == RG::ImageIdentifier::Type::Handle && graph != nullptr)
     {
         return graph->GetImage(id.GetAsUUID());
+    }
+
+    return nullptr;
+}
+
+Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
+{
+    auto idType = id.GetType();
+    if (idType == RG::ImageIdentifier::Type::Image)
+    {
+        auto image = id.GetAsImage();
+        return static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
+    }
+    else if (idType == RG::ImageIdentifier::Type::ImageView)
+    {
+        auto imageView = id.GetAsImageView();
+        return static_cast<Gfx::VKImageView*>(imageView);
+    }
+    else if (idType == RG::ImageIdentifier::Type::Handle && graph != nullptr)
+    {
+        return static_cast<Gfx::VKImageView*>(&graph->GetImage(id.GetAsUUID())->GetDefaultImageView());
     }
 
     return nullptr;

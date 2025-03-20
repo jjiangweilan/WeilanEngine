@@ -7,6 +7,11 @@
 #include <optional>
 #include <vector>
 
+namespace Gfx::VK::RenderGraph
+{
+class Graph;
+}
+
 namespace Gfx::RG
 {
 struct ImageDescription
@@ -128,7 +133,6 @@ struct ImageIdentifier
 
     Image* GetAsImage() const { return image; }
     ImageView* GetAsImageView() const { return imageView; }
-
     UUID GetAsUUID() const { return rtHandle; }
 
     const std::string& GetName() const { return name; }
