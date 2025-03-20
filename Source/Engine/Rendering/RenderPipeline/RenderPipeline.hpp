@@ -5,12 +5,14 @@
 #include "Libs/Math.hpp"
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderingData.hpp"
+#include "SkyboxPass.hpp"
 
 class Scene;
 class Camera;
 
 namespace Rendering
 {
+using namespace RenderPasses;
 
 class SceneRendererSorter
 {
@@ -128,13 +130,7 @@ private:
         Material mat;
     } colorGradingPass;
 
-    struct SkyboxPass
-    {
-        SkyboxPass();
-        Submesh* cube;
-        ObjPtr<Shader2> skyboxShader;
-        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 2);
-    } skyboxPass{};
+    SkyboxPass skyboxPass{};
 
     struct AmbientOcclusionPass
     {
@@ -187,6 +183,6 @@ private:
 
     void FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
-    void BlitToFinalColor();
+    void BlitToFinalColor(Gfx::CommandBuffer* cmd);
 };
 } // namespace Rendering

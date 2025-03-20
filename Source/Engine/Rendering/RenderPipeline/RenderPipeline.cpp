@@ -196,16 +196,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             cmd->EndLabel();
         }
 
-        // skybox
-        cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);
-        cmd->BindVertexBuffer(skyboxPass.cube->GetGfxVertexBufferBindings(), 0);
-        cmd->BindIndexBuffer(skyboxPass.cube->GetIndexBuffer(), 0, skyboxPass.cube->GetIndexBufferType());
-        cmd->BindShaderProgram(
-            skyboxPass.skyboxShader->GetShaderProgram(),
-            skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig()
-        );
-        cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
-        cmd->EndLabel();
+        skyboxPass.Execute(cmd);
 
         cmd->EndRenderPass();
 
@@ -386,20 +377,6 @@ void RenderPipeline::FXAAPass::Execute(
     cmd.EndRenderPass();
 }
 
-RenderPipeline::SkyboxPass::SkyboxPass()
-{
-    pass = Gfx::RG::RenderPass::Default(
-        "Skybox",
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store
-    );
-
-    cube = EngineInternalResources::GetCubeMesh();
-    skyboxShader = ShaderLibrary::GetShader(ShaderLibrary::Skybox);
-}
-
 RenderPipeline::ColorGradingPass::ColorGradingPass()
 {
     colorGradingShader = ShaderLibrary::GetShader(ShaderLibrary::ColorGrading);
@@ -453,15 +430,8 @@ void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::Dr
 void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera)
 {
     auto cmd = commandBuffer.get();
-    cmd->BeginLabel("Skybox", &labelColors.passColor1[0]);
-    cmd->BindVertexBuffer(skyboxPass.cube->GetGfxVertexBufferBindings(), 0);
-    cmd->BindIndexBuffer(skyboxPass.cube->GetIndexBuffer(), 0, skyboxPass.cube->GetIndexBufferType());
-    cmd->BindShaderProgram(
-        skyboxPass.skyboxShader->GetShaderProgram(),
-        skyboxPass.skyboxShader->GetShaderProgram()->GetDefaultShaderConfig()
-    );
-    cmd->DrawIndexed(skyboxPass.cube->GetIndexCount(), 1, 0, 0, 0);
-    cmd->EndLabel();
+
+    skyboxPass.Execute(cmd);
 
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
     cmd->Reset(true);
@@ -616,11 +586,9 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
 }
 
-void RenderPipeline::BlitToFinalColor()
+void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)
 {
-    Gfx::CommandBuffer* cmd;
     Gfx::RG::ImageIdentifier id = *renderConfig.colorOutputOverride.value();
-    skyboxPass.pass.SetAttachment(0, id);
 }
 
 } // namespace Rendering
