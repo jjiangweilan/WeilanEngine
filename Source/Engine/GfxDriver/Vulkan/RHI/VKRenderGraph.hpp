@@ -2,10 +2,6 @@
 #include "../VKCommandBuffer.hpp"
 #include <variant>
 
-namespace
-{
-class VKDriver;
-}
 namespace Gfx::VK::RenderGraph
 {
 struct RenderPassNode
@@ -143,4 +139,8 @@ private:
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
 };
+
+Gfx::VKImage* GetImageFromImageIdentifier(
+    const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph = nullptr
+);
 } // namespace Gfx::VK::RenderGraph

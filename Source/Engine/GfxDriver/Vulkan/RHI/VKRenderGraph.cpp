@@ -99,93 +99,53 @@ public:
                 std::vector<Attachment> colors;
                 for (RG::SubpassAttachment color : subpass.colors)
                 {
-                    auto idType = attachments[color.attachmentIndex].GetType();
-                    if (idType == RG::ImageIdentifier::Type::Image)
+                    const auto& id = attachments[color.attachmentIndex];
+                    auto idType = id.GetType();
+                    Gfx::VKImage* image = GetImageFromImageIdentifier(id, graph);
+                    Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
+                                                      ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
+                                                      : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
+                    imageReferences.push_back(image->GetSRef());
+
+                    if (idType == RG::ImageIdentifier::Type::ImageView)
                     {
-                        auto image = attachments[color.attachmentIndex].GetAsImage();
-                        imageReferences.push_back(image->GetSRef());
-                        colors.push_back(Attachment{
-                            &image->GetDefaultImageView(),
-                            Gfx::MultiSampling::Sample_Count_1,
-                            color.loadOp,
-                            color.storeOp,
-                            color.stencilLoadOp,
-                            color.stencilStoreOp,
-                        });
-                    }
-                    else if (idType == RG::ImageIdentifier::Type::ImageView)
-                    {
-                        auto imageView = attachments[color.attachmentIndex].GetAsImageView();
-                        imageReferences.push_back(imageView->GetImage().GetSRef());
                         imageViewReferences.push_back(imageView);
-                        colors.push_back(Attachment{
-                            imageView,
-                            Gfx::MultiSampling::Sample_Count_1,
-                            color.loadOp,
-                            color.storeOp,
-                            color.stencilLoadOp,
-                            color.stencilStoreOp,
-                        });
                     }
-                    else if (idType == RG::ImageIdentifier::Type::Handle)
-                    {
-                        auto& image = images[attachments[color.attachmentIndex].GetAsUUID()];
-                        imageReferences.push_back(image.image->GetSRef());
-                        colors.push_back(Attachment{
-                            &image.image->GetDefaultImageView(),
-                            Gfx::MultiSampling::Sample_Count_1,
-                            color.loadOp,
-                            color.storeOp,
-                            color.stencilLoadOp,
-                            color.stencilStoreOp,
-                        });
-                    }
+
+                    colors.push_back(Attachment{
+                        imageView,
+                        Gfx::MultiSampling::Sample_Count_1,
+                        color.loadOp,
+                        color.storeOp,
+                        color.stencilLoadOp,
+                        color.stencilStoreOp,
+                    });
                 }
 
                 std::optional<Attachment> depth;
                 if (subpass.depth.attachmentIndex != -1)
                 {
-                    auto idType = attachments[subpass.depth.attachmentIndex].GetType();
-                    if (idType == RG::ImageIdentifier::Type::Image)
+                    const auto& id = attachments[subpass.depth.attachmentIndex];
+                    auto idType = id.GetType();
+                    Gfx::VKImage* image = GetImageFromImageIdentifier(id, graph);
+                    Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
+                                                      ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
+                                                      : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
+                    imageReferences.push_back(image->GetSRef());
+
+                    if (idType == RG::ImageIdentifier::Type::ImageView)
                     {
-                        auto image = attachments[subpass.depth.attachmentIndex].GetAsImage();
-                        imageReferences.push_back(image->GetSRef());
-                        depth = Attachment{
-                            &image->GetDefaultImageView(),
-                            Gfx::MultiSampling::Sample_Count_1,
-                            subpass.depth.loadOp,
-                            subpass.depth.storeOp,
-                            subpass.depth.stencilLoadOp,
-                            subpass.depth.stencilStoreOp,
-                        };
-                    }
-                    else if (idType == RG::ImageIdentifier::Type::ImageView)
-                    {
-                        auto imageView = attachments[subpass.depth.attachmentIndex].GetAsImageView();
-                        imageReferences.push_back(imageView->GetImage().GetSRef());
                         imageViewReferences.push_back(imageView);
-                        depth = Attachment{
-                            imageView,
-                            Gfx::MultiSampling::Sample_Count_1,
-                            subpass.depth.loadOp,
-                            subpass.depth.storeOp,
-                            subpass.depth.stencilLoadOp,
-                            subpass.depth.stencilStoreOp,
-                        };
                     }
-                    else if (idType == RG::ImageIdentifier::Type::Handle)
-                    {
-                        auto& image = images[attachments[subpass.depth.attachmentIndex].GetAsUUID()];
-                        imageReferences.push_back(image.image->GetSRef());
-                        depth = Attachment{
-                            &image.image->GetDefaultImageView(),
-                            Gfx::MultiSampling::Sample_Count_1,
-                            subpass.depth.loadOp,
-                            subpass.depth.storeOp,
-                            subpass.depth.stencilLoadOp,
-                            subpass.depth.stencilStoreOp,
-                        };
-                    }
+
+                    depth = Attachment{
+                        imageView,
+                        Gfx::MultiSampling::Sample_Count_1,
+                        subpass.depth.loadOp,
+                        subpass.depth.storeOp,
+                        subpass.depth.stencilLoadOp,
+                        subpass.depth.stencilStoreOp,
+                    };
                 }
 
                 renderPassObj->AddSubpass(colors, depth);
@@ -1757,6 +1717,27 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
             }
         }
     }
+}
+
+Gfx::VKImage* GetImageFromImageIdentifier(const Gfx::RG::ImageIdentifier& id, Gfx::VK::RenderGraph::Graph* graph)
+{
+    auto idType = id.GetType();
+    if (idType == RG::ImageIdentifier::Type::Image)
+    {
+        auto image = id.GetAsImage();
+        return static_cast<Gfx::VKImage*>(image);
+    }
+    else if (idType == RG::ImageIdentifier::Type::ImageView)
+    {
+        auto imageView = id.GetAsImageView();
+        return static_cast<Gfx::VKImage*>(&imageView->GetImage());
+    }
+    else if (idType == RG::ImageIdentifier::Type::Handle && graph != nullptr)
+    {
+        return graph->GetImage(id.GetAsUUID());
+    }
+
+    return nullptr;
 }
 
 } // namespace Gfx::VK::RenderGraph
