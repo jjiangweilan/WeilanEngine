@@ -15,28 +15,50 @@ const std::string& SHProbe::GetName()
 
 void SHProbe::Init(int level) {}
 
-void SHProbe::UpdateProbe(const float4& position, const SHProbeUpdateSettings& settings)
+void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
 {
-    return;
     auto scene = GetScene();
     ASSERT(scene != nullptr);
 
     if (settings.skyboxOnly)
     {
         // render the skybox
+        auto cmd = GetGfxDriver()->CreateCommandBuffer();
+        Gfx::ImageDescription
+            cubeMapDesc(256, 256, 1, Gfx::GfxFormat::R16G16B16A16_SFloat, Gfx::MultiSampling::Sample_Count_1, 1, true);
+
+        auto cubemap = GetGfxDriver()->CreateImage(
+            cubeMapDesc,
+            Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
+        );
+        std::unique_ptr<Gfx::ImageView> imageViews[6];
         RenderPipeline skyboxRenderPipeline[6];
+        Rendering::RenderConfig configs[6];
+        float3 lookAtDirs[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+
+        auto cubeMapCam = scene->AddGameObject(std::make_unique<GameObject>());
+        auto camera = cubeMapCam->AddComponent<Camera>();
+        cubeMapCam->SetPosition(GetGameObject()->GetPosition());
         for (int face = 0; face < 6; ++face)
         {
-            Camera camera;
+            Gfx::ImageView::CreateInfo createInfo{
+                .image = *cubemap.get(),
+                .imageViewType = Gfx::ImageViewType::Image_2D,
+                .subresourceRange =
+                    Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, static_cast<uint32_t>(face), 1}
+            };
+            imageViews[face] = GetGfxDriver()->CreateImageView(createInfo);
+            configs[face].colorOutputOverride = imageViews[face].get();
+            configs[face].cmdOverride = cmd.get();
 
-            Rendering::RenderConfig config{};
-            skyboxRenderPipeline[face].RenderSkyboxOnly(*scene, *scene->GetMainCamera());
+            camera->LookAt(cubeMapCam->GetPosition() + lookAtDirs[face]);
+            skyboxRenderPipeline[face].SetConfig(configs[face]);
+            skyboxRenderPipeline[face].RenderSkyboxOnly(*scene, *camera, {});
         }
 
-        // Gfx::RG::ImageIdentifier outputColor = facesPipeline[face].GetOutputColor();
-        // auto cmd = GetGfxDriver()->CreateCommandBuffer();
-        //
-        // GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+        GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
+        cmd->Reset(true);
+        scene->DestroyGameObject(cubeMapCam);
     }
     else
     {

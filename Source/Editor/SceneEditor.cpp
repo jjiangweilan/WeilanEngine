@@ -188,18 +188,17 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
 
-    Rendering::RenderConfig renderConfig = { .drawGraphics = true };
+    cmd.BeginLabel("Scene Editor View", &renderPassLabelColor[0]);
+    Rendering::RenderConfig renderConfig = {.drawGraphics = true, .cmdOverride = &cmd};
     renderPipeline->SetConfig(renderConfig);
     renderPipeline->Render(*EditorState::activeScene, *editorCamera, d.resolution);
     auto gameImage = &renderPipeline->GetOutputColor();
     auto gameDepthImage = &renderPipeline->GetOutputDepth();
 
-    cmd.BeginLabel("Scene Editor", &renderPassLabelColor[0]);
     auto selectedObjects = EditorState::GetSelectedObjects();
     bool hasGameObjectSelected = false;
     // selection outline src pass
     {
-
         Gfx::RG::ImageDescription desc{
             sceneImage->GetDescription().width,
             sceneImage->GetDescription().height,

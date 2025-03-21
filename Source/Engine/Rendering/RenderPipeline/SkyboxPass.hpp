@@ -9,18 +9,9 @@ struct SkyboxPass
 {
     Submesh* cube;
     ObjPtr<Shader2> skyboxShader;
-    Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 2);
 
     SkyboxPass()
     {
-        pass = Gfx::RG::RenderPass::Default(
-            "Skybox",
-            Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store,
-            Gfx::AttachmentLoadOperation::Load,
-            Gfx::AttachmentStoreOperation::Store
-        );
-
         cube = EngineInternalResources::GetCubeMesh();
         skyboxShader = ShaderLibrary::GetShader(ShaderLibrary::Skybox);
     }

@@ -139,7 +139,7 @@ void Cloud::Tick()
 
             auto scene = self->GetScene();
             self->volumetricCloud->SetTexture("mainColor", renderingData.mainColor);
-            self->volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.get());
+            self->volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
             self->volumetricCloud->SetTexture(
                 "depthMap",
                 renderingData.mainDepth,

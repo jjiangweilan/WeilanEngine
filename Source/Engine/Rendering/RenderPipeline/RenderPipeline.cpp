@@ -16,32 +16,22 @@ RenderPipeline::RenderPipeline()
 {
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
-    Gfx::ImageDescription interleavedGradientNoiseDesc(32, 32, 1, Gfx::GfxFormat::R8_UNorm);
-    renderingData.interleavedGradientNoise =
-        GetGfxDriver()->CreateImage(interleavedGradientNoiseDesc, Gfx::ImageUsage::Texture | Gfx::ImageUsage::Storage);
-
-    // generate interleavedGradientNoise
-    auto interleavedGradientNoiseShader = ShaderLibrary::GetShader(ShaderLibrary::InterleavedGradientNoise);
-    interleavedGradientNoiseMat.SetShader(interleavedGradientNoiseShader);
-    interleavedGradientNoiseMat.SetTexture("tex", renderingData.interleavedGradientNoise.get());
-    auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    cmd->BindResource(0, interleavedGradientNoiseMat.GetShaderResource());
-    cmd->BindShaderProgram(
-        interleavedGradientNoiseShader->GetShaderProgram(),
-        interleavedGradientNoiseShader->GetShaderProgram()->GetDefaultShaderConfig()
-    );
-    cmd->Dispatch((interleavedGradientNoiseDesc.width + 7) / 8, (interleavedGradientNoiseDesc.height + 7) / 8, 1);
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+    Gfx::RG::SubpassAttachment skyboxOnlyPassAttachment[] = {
+        {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
+    };
+    skyboxOnlyPass.SetSubpass(0, skyboxOnlyPassAttachment);
 }
 
 void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
-    Gfx::CommandBuffer* cmd = commandBuffer.get();
+    Gfx::CommandBuffer* cmd = GetCommandBuffer();
 
-    UpdateSceneInfo(scene, camera, screenSize);
-    FrameSetup(cmd, scene, camera, screenSize);
+    if (!FrameSetup(cmd, scene, camera, screenSize))
+    {
+        return;
+    }
 
     // Setup
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
@@ -248,9 +238,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Debug
     {}
 
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
-
-    cmd->Reset(true);
+    if (!IsCommandBufferOverriden())
+    {
+        GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+        cmd->Reset(true);
+    }
 }
 
 RenderPipeline::PerScene::PerScene()
@@ -427,17 +419,36 @@ void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::Dr
     outDrawList.Sort(camera.GetGameObject()->GetPosition());
 }
 
-void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera)
+void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
-    auto cmd = commandBuffer.get();
+    auto cmd = GetCommandBuffer();
 
+    setting = scene.GetRenderPipelineSetting();
+
+    if (renderConfig.colorOutputOverride.has_value())
+    {
+        screenSize = renderConfig.colorOutputOverride.value()->GetImage().GetDescription().GetSize();
+    }
+
+    FrameSetup(cmd, scene, camera, screenSize);
+
+    cmd->BindResource(0, perScene.gpuResourceSet.get());
+
+    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    auto finalColor = GetFinalColor();
+    skyboxOnlyPass.SetAttachment(0, finalColor);
+    cmd->BeginRenderPass(skyboxOnlyPass, clears);
     skyboxPass.Execute(cmd);
+    cmd->EndRenderPass();
 
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
-    cmd->Reset(true);
+    if (!IsCommandBufferOverriden())
+    {
+        GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+        cmd->Reset(true);
+    }
 }
 
-void RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize)
+bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize)
 {
     auto AllocateImage = [](Gfx::CommandBuffer& cmd,
                             const Gfx::RG::ImageIdentifier& id,
@@ -479,7 +490,7 @@ void RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     if (setting == nullptr)
     {
         finalColor = mainColor;
-        return;
+        return false;
     }
 
     UpdateSceneInfo(scene, camera, screenSize);
@@ -487,6 +498,8 @@ void RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     renderingData.mainCamera = &camera;
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
+
+    return true;
 }
 
 void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize)
@@ -595,9 +608,34 @@ void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)
     {
         finalColorId = *renderConfig.colorOutputOverride.value();
     }
-
-
 }
+
+Gfx::CommandBuffer* RenderPipeline::GetCommandBuffer()
+{
+    Gfx::CommandBuffer* cmd = commandBuffer.get();
+    if (renderConfig.cmdOverride.has_value())
+    {
+        cmd = renderConfig.cmdOverride.value();
+    }
+
+    return cmd;
+}
+
+bool RenderPipeline::IsCommandBufferOverriden()
+{
+    return renderConfig.cmdOverride.has_value();
+}
+
+Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
+{
+    if (renderConfig.colorOutputOverride.has_value())
+    {
+        return *renderConfig.colorOutputOverride.value();
+    }
+
+    return finalColor;
+}
+
 
 } // namespace Rendering
   //

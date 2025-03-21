@@ -25,6 +25,8 @@ struct RenderConfig
     /** draw cmds dispatched by the Graphics API */
     bool drawGraphics = false;
 
+    std::optional<Gfx::CommandBuffer*> cmdOverride;
+
     /** override the color output of the render pipeline */
     std::optional<Gfx::ImageView*> colorOutputOverride;
 };
@@ -36,7 +38,7 @@ public:
 
     void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
-    void RenderSkyboxOnly(Scene& scene, Camera& camera);
+    void RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize);
     const auto& GetOutputColor() const { return finalColor; }
     const auto& GetOutputDepth() const { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
@@ -170,6 +172,7 @@ private:
 
     } screenSpaceShadowPass{};
 
+
     struct
     {
         glm::float4 passColor = {0.2, 0.5, 0.1, 1.0};
@@ -179,10 +182,13 @@ private:
     ObjPtr<RenderPipelineSetting> setting;
     RenderingData renderingData;
 
-    Material interleavedGradientNoiseMat;
+    Gfx::RG::RenderPass skyboxOnlyPass = Gfx::RG::RenderPass(1, 1);
 
-    void FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
+    bool FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
     void BlitToFinalColor(Gfx::CommandBuffer* cmd);
+    Gfx::RG::ImageIdentifier GetFinalColor();
+    Gfx::CommandBuffer* GetCommandBuffer();
+    bool IsCommandBufferOverriden();
 };
 } // namespace Rendering

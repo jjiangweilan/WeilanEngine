@@ -19,7 +19,7 @@ public:
     SHProbe(GameObject* gameObject);
 
     void Init(int level);
-    void UpdateProbe(const float4& position, const SHProbeUpdateSettings& settings);
+    void UpdateProbe(const SHProbeUpdateSettings& settings = {});
 
     // ** Componet **//
     const std::string& GetName() override;

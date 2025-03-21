@@ -1,5 +1,6 @@
 #pragma once
 #include "Rendering/DrawList.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include <glm/glm.hpp>
 namespace GPUParameter
 {
@@ -24,6 +25,15 @@ struct LightInfo
     float p0, p1, p2; // padding
 };
 
+struct InterleavedGradientNoise
+{
+    Gfx::Image* GetNoiseTexture() const;
+
+private:
+    mutable std::unique_ptr<Gfx::Image> interleavedGradientNoise;
+    mutable Material interleavedGradientNoiseMat;
+};
+
 struct RenderingData
 {
     Camera* mainCamera;
@@ -31,6 +41,6 @@ struct RenderingData
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
 
-    std::unique_ptr<Gfx::Image> interleavedGradientNoise;
+    InterleavedGradientNoise interleavedGradientNoise;
 };
 } // namespace Rendering
