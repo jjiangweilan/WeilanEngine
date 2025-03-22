@@ -27,7 +27,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         Gfx::ImageDescription
             cubeMapDesc(256, 256, 1, Gfx::GfxFormat::R16G16B16A16_SFloat, Gfx::MultiSampling::Sample_Count_1, 1, true);
 
-        auto cubemap = GetGfxDriver()->CreateImage(
+        cubeMap = GetGfxDriver()->CreateImage(
             cubeMapDesc,
             Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
         );
@@ -42,7 +42,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         for (int face = 0; face < 6; ++face)
         {
             Gfx::ImageView::CreateInfo createInfo{
-                .image = *cubemap.get(),
+                .image = *cubeMap.get(),
                 .imageViewType = Gfx::ImageViewType::Image_2D,
                 .subresourceRange =
                     Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, static_cast<uint32_t>(face), 1}

@@ -8,8 +8,9 @@ namespace Editor
 class ImageInspector
 {
 public:
-    void Initialize(Gfx::Image* gfxImage, bool isCubemap)
+    void Initialize(Gfx::Image* gfxImage)
     {
+        bool isCubemap = gfxImage->GetDescription().isCubemap;
         layer = 0;
         mip = 0;
         this->gfxImage = gfxImage;

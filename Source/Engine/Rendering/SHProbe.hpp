@@ -24,6 +24,8 @@ public:
     // ** Componet **//
     const std::string& GetName() override;
 
+    std::unique_ptr<Gfx::Image> cubeMap;
+
 private:
     int level;
 

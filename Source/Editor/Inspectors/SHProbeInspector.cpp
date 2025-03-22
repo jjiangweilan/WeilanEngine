@@ -1,4 +1,5 @@
 #include "Inspector.hpp"
+#include "InspectorHelper_Image.hpp"
 #include "Rendering/SHProbe.hpp"
 
 namespace Editor
@@ -11,12 +12,13 @@ public:
         if (ImGui::Button("Bake"))
         {
             target->UpdateProbe({});
+            imageInspector.Initialize(target->cubeMap.get());
         }
-
-        target->UpdateProbe({});
     }
 
 private:
+    ImageInspector imageInspector;
+
     static const char _register;
 };
 

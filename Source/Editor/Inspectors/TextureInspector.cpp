@@ -12,7 +12,7 @@ public:
     void OnEnable(Object& obj) override
     {
         Inspector<Texture>::OnEnable(obj);
-        imageInspector.Initialize(target->GetGfxImage(), target->GetDescription().img.isCubemap);
+        imageInspector.Initialize(target->GetGfxImage());
     }
 
     void DrawInspector(GameEditor& editor) override
