@@ -1,9 +1,9 @@
 #include "../EditorState.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
-#include "Core/DelayDestroy.hpp"
 #include "Core/Texture.hpp"
-#include "GfxDriver/GfxDriver.hpp"
 #include "Inspector.hpp"
+#include "InspectorHelper_Image.hpp"
+
 namespace Editor
 {
 class TextureInspector : public Inspector<Texture>
@@ -12,27 +12,9 @@ public:
     void OnEnable(Object& obj) override
     {
         Inspector<Texture>::OnEnable(obj);
-
-        layer = 0;
-        mip = 0;
-        if (!target->GetDescription().img.isCubemap)
-        {
-            imageViewInUse = &target->GetGfxImage()->GetDefaultImageView();
-        }
-        else
-        {
-            if (imageView != nullptr)
-            {
-                DelayDestroy::Singleton()->Destory(std::move(imageView));
-            }
-            imageView = GetGfxDriver()->CreateImageView(
-                {.image = *target->GetGfxImage(),
-                 .imageViewType = Gfx::ImageViewType::Image_2D,
-                 .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, layer, 1}}
-            );
-            imageViewInUse = imageView.get();
-        }
+        imageInspector.Initialize(target->GetGfxImage(), target->GetDescription().img.isCubemap);
     }
+
     void DrawInspector(GameEditor& editor) override
     {
         // object information
@@ -45,11 +27,6 @@ public:
         }
         ImGui::Text("%s", target->GetUUID().ToString().c_str());
 
-        auto width = target->GetDescription().img.width;
-        auto height = target->GetDescription().img.height;
-        auto contentWidth = height > ImGui::GetWindowWidth() ? ImGui::GetWindowWidth() : width;
-        auto size = ResizeKeepRatio(width, height, contentWidth, height) * imageScale;
-
         if (reimport)
         {
             AssetDatabase::Singleton()->LoadAssetByID(target->GetUUID(), true);
@@ -58,12 +35,11 @@ public:
         ImGui::NewLine();
         ImGui::Text("Preview");
         ImGui::Separator();
-        UpdateImageView();
-        ImGui::Image(imageViewInUse, {size.x, size.y});
+        imageInspector.ShowImage(imageScale);
         ImGui::Separator();
         ImGui::DragFloat("Image Scale", &imageScale, 0.01, 0.01, 1.0);
         float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
-        ImGui::Text("size: %d x %d", width, height);
+        ImGui::Text("size: %d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
         ImGui::Text("memory size (without mip): %f Mb", mb);
         ImGui::Text("format %s", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
 
@@ -100,74 +76,15 @@ public:
         if (ImGui::Button("Reimport"))
         {
             reimport = true;
-            if (imageView)
-            {
-                DelayDestroy::Singleton()->Destory(std::move(imageView));
-                imageView = nullptr;
-            }
+            imageInspector.SetReimport(true);
         }
     }
 
 private:
     static const char _register;
-    Gfx::ImageView* imageViewInUse;
-    std::unique_ptr<Gfx::ImageView> imageView;
-    uint32_t layer = 0;
-    uint32_t mip = 0;
-    bool reimport = false;
+    ImageInspector imageInspector;
     float imageScale = 1.0f;
-
-    glm::vec2 ResizeKeepRatio(float width, float height, float contentWidth, float contentHeight)
-    {
-        float imageWidth = width;
-        float imageHeight = height;
-
-        // shrink width
-        if (imageWidth > contentWidth)
-        {
-            float ratio = contentWidth / (float)imageWidth;
-            imageWidth = contentWidth;
-            imageHeight *= ratio;
-        }
-
-        if (imageHeight > contentHeight)
-        {
-            float ratio = contentHeight / (float)imageHeight;
-            imageHeight = contentHeight;
-            imageWidth *= ratio;
-        }
-
-        return {imageWidth, imageHeight};
-    }
-
-    void UpdateImageView()
-    {
-        int layer_i = layer;
-        int mip_i = mip;
-        bool changeImageView = ImGui::InputInt("mip", &mip_i);
-        changeImageView = ImGui::InputInt("layer", &layer_i) || changeImageView;
-        if (reimport || changeImageView)
-        {
-            if (reimport || ((layer_i >= 0 && layer_i != layer && layer_i < target->GetDescription().img.GetLayer()) ||
-                             (mip_i >= 0 && mip_i != mip && mip_i < target->GetDescription().img.mipLevels)))
-            {
-                reimport = false;
-                layer = layer_i;
-                mip = mip_i;
-                if (imageView != nullptr)
-                {
-                    DelayDestroy::Singleton()->Destory(std::move(imageView));
-                }
-                imageView = GetGfxDriver()->CreateImageView(
-                    {.image = *target->GetGfxImage(),
-                     .imageViewType = Gfx::ImageViewType::Image_2D,
-                     .subresourceRange = Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, mip, 1, layer, 1}}
-                );
-                imageView->SetName("imageDisplay-TextureInspector");
-                imageViewInUse = imageView.get();
-            }
-        }
-    }
+    bool reimport = false;
 };
 
 const char TextureInspector::_register = InspectorRegistry::Register<TextureInspector, Texture>();
