@@ -37,11 +37,6 @@ public:
         return swapchainImages[activeIndex]->GetDescription();
     }
 
-    const UUID& GetUUID() override
-    {
-        return swapchainImageUUIDs[activeIndex];
-    }
-
     void SetActiveSwapChainImage(uint32_t index)
     {
         this->activeIndex = index;
@@ -78,7 +73,6 @@ public:
 
 private:
     std::vector<std::unique_ptr<VKImage>> swapchainImages;
-    std::vector<UUID> swapchainImageUUIDs;
     int activeIndex;
     UUID id;
 

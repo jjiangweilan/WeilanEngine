@@ -463,13 +463,17 @@ void Graph::GoThroughRenderPass(
         else if (cmd.type == VKCmdType::SetTexture)
         {
             auto& args = std::get<VKSetTextureCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] =
-                {ResourceType::Image, args.image != nullptr ? ObjPtr<Image>(args.image) : nullptr, args.imageViewOption};
+            globalResourcePool[args.handle][args.index] = {
+                ResourceType::Image,
+                args.image != nullptr ? ObjPtr<Image>(args.image) : nullptr,
+                args.imageViewOption
+            };
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
+            globalResourcePool[args.handle][args.index] =
+                {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -597,12 +601,48 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             std::swap(remainingRange, remainingRangeSwap);
             remainingRangeSwap.clear();
 
+            // cover the situation when there is no overlapping range
+            // in this cast the imagelayout should be UNDEFINED
+            for (int i = 0; i < remainingRange.size(); ++i)
+            {
+                auto& range = remainingRange[i];
+                VkImageLayout currentImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                VkImageSubresourceRange vkRange = Gfx::MapVkImageSubresourceRange(range);
+                if (image->QueryLayout(vkRange, currentImageLayout))
+                {
+                    ASSERT(currentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED);
+
+                    Barrier barrier;
+                    barrier.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+                    barrier.dstStageMask = currentUsage.stages;
+                    VkImageMemoryBarrier imageBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+                    imageBarrier.srcAccessMask = VK_ACCESS_NONE;
+                    imageBarrier.dstAccessMask = currentUsage.access;
+                    imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    imageBarrier.newLayout = currentUsage.layout;
+                    imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                    imageBarrier.subresourceRange = vkRange;
+                    imageBarrier.image = image->GetImage();
+
+                    barrier.barrierCount = 1;
+                    barrier.imageMemorybarrierIndex = imageMemoryBarriers.size();
+                    barrier.targetImage = image;
+                    barriers.push_back(barrier);
+                    barrierCount += 1;
+                    imageMemoryBarriers.push_back(imageBarrier);
+                    image->SetLayout(vkRange, currentUsage.layout);
+                    remainingRange.pop_back();
+                    i -= 2;
+                }
+            }
+
             // break
             if (remainingRange.empty())
                 break;
         }
 
-        // handle the situation when there is not previous usage
+        // handle the situation when there is no previous usage
         auto subresourceRange = Gfx::MapVkImageSubresourceRange(currentUsage.range);
         VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
         if (!image->QueryLayout(subresourceRange, layout)) [[unlikely]]
@@ -956,7 +996,8 @@ void Graph::Schedule(VKCommandBuffer& cmd)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
+            globalResourcePool[args.handle][args.index] =
+                {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {

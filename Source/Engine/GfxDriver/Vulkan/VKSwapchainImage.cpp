@@ -31,10 +31,10 @@ void VKSwapChainImage::Recreate(
     }
 
     this->swapchainImages = std::move(newImages);
-    for(auto& image : swapchainImages)
-    {
-        swapchainImageUUIDs.push_back(UUID());
-    }
+    //for(auto& image : swapchainImages)
+    //{
+    //    swapchainImageUUIDs.push_back(UUID());
+    //}
 
     if (imageView == nullptr)
     {

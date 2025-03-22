@@ -158,7 +158,7 @@ class ImageView;
 class Image : public Object
 {
 public:
-    Image(bool isGPUWrite) : uuid(), isGPUWrite(isGPUWrite) {}
+    Image(bool isGPUWrite) : Object(), isGPUWrite(isGPUWrite) {}
     virtual ~Image() {};
     virtual void SetName(std::string_view name) = 0;
     virtual const std::string& GetName() = 0;
@@ -172,10 +172,7 @@ public:
     virtual ImageView& GetDefaultImageViewForShaderResource() { return GetDefaultImageView(); }
     virtual ImageView& GetImageView(const ImageViewOption& option) = 0;
 
-    virtual const UUID& GetUUID() { return uuid; }
-
 protected:
-    UUID uuid;
     bool isGPUWrite;
 };
 } // namespace Gfx
