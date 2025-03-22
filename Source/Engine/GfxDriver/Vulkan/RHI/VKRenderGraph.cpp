@@ -90,7 +90,7 @@ public:
         else
         {
             auto renderPassObj = std::make_unique<VKRenderPass>();
-            std::vector<SRef<Image>> imageReferences;
+            std::vector<ObjPtr<Image>> imageReferences;
             std::vector<ObjPtr<ImageView>> imageViewReferences;
 
             auto attachments = renderPass.GetAttachments();
@@ -105,7 +105,7 @@ public:
                     Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
-                    imageReferences.push_back(image->GetSRef());
+                    imageReferences.push_back(image);
 
                     if (idType == RG::ImageIdentifier::Type::ImageView)
                     {
@@ -131,7 +131,7 @@ public:
                     Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
-                    imageReferences.push_back(image->GetSRef());
+                    imageReferences.push_back(image);
 
                     if (idType == RG::ImageIdentifier::Type::ImageView)
                     {
@@ -166,9 +166,9 @@ public:
         {
             for (auto& e : r.second)
             {
-                if (e.second.type == ResourceType::Image && std::get<SRef<Image>>(e.second.res).Get() == ptr)
+                if (e.second.type == ResourceType::Image && std::get<ObjPtr<Image>>(e.second.res).Get() == ptr)
                 {
-                    e.second.res = SRef<Image>(nullptr);
+                    e.second.res = ObjPtr<Image>(nullptr);
                 }
             }
         }
@@ -211,7 +211,7 @@ private:
     struct AllocatedRenderPass
     {
         std::unique_ptr<VKRenderPass> renderPass;
-        std::vector<SRef<Image>> attachments;
+        std::vector<ObjPtr<Image>> attachments;
         std::vector<ObjPtr<ImageView>> imageViews;
         int frameCountFromLastRequest = 0;
 
@@ -297,7 +297,7 @@ bool Graph::TrackResource(
     {
         ResourceUsageTrack track;
         track.type = ResourceType::Image;
-        track.res = writableResource->GetSRef();
+        track.res = ObjPtr<Image>(writableResource);
         track.currentFrameUsages.push_back({stages, access, range, layout});
 
         resourceUsageTracks[writableResource->GetUUID()] = track;
@@ -351,7 +351,7 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
     {
         ResourceUsageTrack track;
         track.type = ResourceType::Buffer;
-        track.res = writableResource->GetSRef();
+        track.res = ObjPtr<Buffer>(writableResource);
         track.currentFrameUsages.push_back({stages, access, Gfx::ImageSubresourceRange{}, VK_IMAGE_LAYOUT_UNDEFINED});
 
         resourceUsageTracks[writableResource->GetUUID()] = track;
@@ -464,12 +464,12 @@ void Graph::GoThroughRenderPass(
         {
             auto& args = std::get<VKSetTextureCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
-                {ResourceType::Image, args.image != nullptr ? args.image->GetSRef() : nullptr, args.imageViewOption};
+                {ResourceType::Image, args.image != nullptr ? ObjPtr<Image>(args.image) : nullptr, args.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
+            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
         }
         else if (visitIndex >= currentSchedulingCmds.size())
             break;
@@ -492,7 +492,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
     std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
     if (iter->second.type == ResourceType::Image)
     {
-        VKImage* image = (VKImage*)std::get<SRef<Image>>(iter->second.res).Get();
+        VKImage* image = (VKImage*)std::get<ObjPtr<Image>>(iter->second.res).Get();
         if (image == nullptr)
         {
             // garbage image remove it
@@ -637,7 +637,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
     {
         VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         VkAccessFlags srcAccessMask = VK_ACCESS_NONE;
-        VKBuffer* buffer = ((VKBuffer*)std::get<SRef<Buffer>>(iter->second.res).Get());
+        VKBuffer* buffer = ((VKBuffer*)std::get<ObjPtr<Buffer>>(iter->second.res).Get());
         if (buffer == nullptr)
         {
             // garbage buffer remove it
@@ -950,13 +950,13 @@ void Graph::Schedule(VKCommandBuffer& cmd)
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set texture");
             auto& args = std::get<VKSetTextureCmd>(cmd.args);
             globalResourcePool[args.handle][args.index] =
-                {ResourceType::Image, args.image->GetSRef(), args.imageViewOption};
+                {ResourceType::Image, ObjPtr<Image>(args.image), args.imageViewOption};
         }
         else if (cmd.type == VKCmdType::SetBuffer)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: set buffer");
             auto& args = std::get<VKSetBufferCmd>(cmd.args);
-            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, args.buffer->GetSRef(), std::nullopt};
+            globalResourcePool[args.handle][args.index] = {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
         }
         else if (cmd.type == VKCmdType::AllocateAttachment)
         {
@@ -1703,7 +1703,7 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
                 }
                 if (type == ResourceType::Image)
                 {
-                    VKImage* data = static_cast<VKImage*>(std::get<SRef<Image>>(w.data).Get());
+                    VKImage* data = static_cast<VKImage*>(std::get<ObjPtr<Image>>(w.data).Get());
 
                     if (data == nullptr ||
                         std::find(shaderImageSampleIgnoreList.begin(), shaderImageSampleIgnoreList.end(), data) !=
@@ -1725,7 +1725,7 @@ void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgno
                 }
                 else
                 {
-                    VKBuffer* data = static_cast<VKBuffer*>(std::get<SRef<Buffer>>(w.data).Get());
+                    VKBuffer* data = static_cast<VKBuffer*>(std::get<ObjPtr<Buffer>>(w.data).Get());
                     if (data == nullptr)
                         continue;
 

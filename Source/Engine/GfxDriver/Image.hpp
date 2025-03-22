@@ -4,6 +4,7 @@
 #include "Core/SafeReferenceable.hpp"
 #include "ImageDescription.hpp"
 #include "Libs/UUID.hpp"
+#include "Core/Object.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <Libs/Assert.hpp>
 #include <cinttypes>
@@ -154,7 +155,7 @@ struct ImageViewOption
 };
 
 class ImageView;
-class Image : public SafeReferenceable<Image>
+class Image : public Object
 {
 public:
     Image(bool isGPUWrite) : uuid(), isGPUWrite(isGPUWrite) {}

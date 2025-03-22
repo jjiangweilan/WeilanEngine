@@ -72,7 +72,7 @@ void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buf
         if (buffer == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle][index] = {buffer->GetSRef(), ShaderBindingType::Buffer};
+            bindings[handle][index] = {ObjPtr<Buffer>(buffer), ShaderBindingType::Buffer};
         RebuildAll();
     }
 }
@@ -96,7 +96,7 @@ void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Imag
             bindings.erase(handle);
         else
             bindings[handle][index] = {
-                image->GetDefaultImageViewForShaderResource().GetSRef<ImageView>(),
+                ObjPtr<ImageView>(&image->GetDefaultImageViewForShaderResource()),
                 ShaderBindingType::ImageView
             };
         RebuildAll();
@@ -111,7 +111,7 @@ void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, Gfx::Imag
         if (imageView == nullptr)
             bindings.erase(handle);
         else
-            bindings[handle][index] = {imageView->GetSRef<ImageView>(), ShaderBindingType::ImageView};
+            bindings[handle][index] = {ObjPtr<ImageView>(imageView), ShaderBindingType::ImageView};
         RebuildAll();
     }
 }
@@ -272,7 +272,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Buffer,
-                                        .data = buffer->GetSRef(),
+                                        .data = ObjPtr<Buffer>(buffer),
                                         .stages = pipelineStages,
                                         .access = static_cast<VkAccessFlags>(
                                             VK_ACCESS_SHADER_READ_BIT |
@@ -313,7 +313,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
-                                        .data = imageView->GetImage().GetSRef(),
+                                        .data = ObjPtr<Image>(&imageView->GetImage()),
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
                                         .imageView = imageView,
@@ -392,7 +392,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                     VkPipelineStageFlags pipelineStages = ShaderStageToPipelineStage(b.stages);
                                     VKWritableGPUResource gpuResource{
                                         .type = VKWritableGPUResource::Type::Image,
-                                        .data = imageView->GetImage().GetSRef(),
+                                        .data = ObjPtr<Image>(&imageView->GetImage()),
                                         .stages = pipelineStages,
                                         .access = VK_ACCESS_SHADER_READ_BIT,
                                         .imageView = imageView,
@@ -453,9 +453,9 @@ void VKShaderResource::SetNameInternal(
 void* VKShaderResource::ResourceRef::GetRef()
 {
     if (type == ShaderBindingType::Buffer)
-        return std::get<SRef<Buffer>>(res).Get();
+        return std::get<ObjPtr<Buffer>>(res).Get();
     else if (type == ShaderBindingType::ImageView)
-        return std::get<SRef<ImageView>>(res).Get();
+        return std::get<ObjPtr<ImageView>>(res).Get();
 
     return nullptr;
 }

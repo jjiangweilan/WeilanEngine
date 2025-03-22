@@ -29,7 +29,7 @@ struct VKWritableGPUResource
         Image
     };
     Type type;
-    std::variant<SRef<Image>, SRef<Buffer>> data;
+    std::variant<ObjPtr<Image>, ObjPtr<Buffer>> data;
 
     VkPipelineStageFlags stages;
     VkAccessFlags access;
@@ -92,9 +92,9 @@ protected:
             if (type == ShaderBindingType::None)
                 return false;
             else if (type == ShaderBindingType::Buffer)
-                return std::get<SRef<Buffer>>(res) != nullptr;
+                return std::get<ObjPtr<Buffer>>(res) != nullptr;
             else if (type == ShaderBindingType::ImageView)
-                return std::get<SRef<ImageView>>(res) != nullptr;
+                return std::get<ObjPtr<ImageView>>(res) != nullptr;
             else if (type == ShaderBindingType::ImageID)
                 return true;
 
@@ -107,7 +107,7 @@ protected:
 
         const Gfx::RG::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::RG::ImageIdentifier>(res) : Gfx::RG::ImageIdentifier::GetEmpty(); }
 
-        std::variant<SRef<ImageView>, SRef<Buffer>, Gfx::RG::ImageIdentifier> res = SRef<ImageView>(nullptr);
+        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::RG::ImageIdentifier> res = ObjPtr<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
     };
 

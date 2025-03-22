@@ -13,6 +13,7 @@
 
 namespace Gfx
 {
+DEFINE_OBJECT(VKImage, "D713D759-996D-4CB1-BDF2-12ED4F0CB043");
 static bool IsGPUWrite(ImageUsageFlags usageFlags)
 {
     return (usageFlags & ImageUsage::Storage) ||

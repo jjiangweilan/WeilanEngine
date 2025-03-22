@@ -1,11 +1,10 @@
 #pragma once
-#include "Core/SafeReferenceable.hpp"
+#include "Core/Object.hpp"
 #include "GfxDriver/VertexAttributes.hpp"
 #include "GfxEnums.hpp"
 #include "Libs/Assert.hpp"
 #include "Libs/UUID.hpp"
 #include <unordered_map>
-#include <string>
 namespace Gfx
 {
 
@@ -15,7 +14,7 @@ enum class IndexBufferType
     UInt32
 };
 
-class Buffer : public SafeReferenceable<Buffer>
+class Buffer : public Object
 {
 public:
     struct CreateInfo

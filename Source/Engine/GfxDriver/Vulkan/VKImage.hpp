@@ -19,6 +19,7 @@ namespace Gfx
 class VKImageView;
 class VKImage : public Image
 {
+    DECLARE_OBJECT();
 public:
     VKImage(const ImageDescription& imageDescription, ImageUsageFlags usageFlags);
     VKImage(VkImage image, const ImageDescription& imageDescription, ImageUsageFlags usageFlags);

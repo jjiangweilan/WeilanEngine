@@ -33,7 +33,7 @@ struct ResourceUsageTrack
 {
     ResourceType type;
 
-    std::variant<SRef<Image>, SRef<Buffer>> res;
+    std::variant<ObjPtr<Image>, ObjPtr<Buffer>> res;
 
     std::vector<ResourceUsage> previousFrameUsages;
     std::vector<ResourceUsage> currentFrameUsages;
@@ -57,7 +57,7 @@ private:
     struct ShaderBinding
     {
         ResourceType type;
-        std::variant<SRef<Image>, SRef<Buffer>> res;
+        std::variant<ObjPtr<Image>, ObjPtr<Buffer>> res;
         std::optional<ImageViewOption> imageViewOption = std::nullopt;
         bool IsNull()
         {

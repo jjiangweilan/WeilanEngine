@@ -1,11 +1,12 @@
 #include "VKBuffer.hpp"
-#include "GfxDriver/Vulkan/Internal/VKDevice.hpp"
 #include "GfxDriver/Vulkan/Internal/VKMemAllocator.hpp"
 #include "GfxDriver/Vulkan/VKContext.hpp"
 #include "VKDebugUtils.hpp"
 // reference: https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 namespace Gfx
 {
+DEFINE_OBJECT(VKBuffer, "A3C7ED23-1F74-47D2-BAA0-060B13A96EBE");
+
 VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 {
     VkBufferUsageFlags usage = 0;
@@ -34,6 +35,7 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
     return usage;
 }
 
+VKBuffer::VKBuffer() : Buffer(BufferUsage::None, false) {}
 VKBuffer::VKBuffer(const CreateInfo& createInfo)
     : Buffer(createInfo.usages, createInfo.gpuWrite), allocator(VKContext::Instance()->allocator)
 {

@@ -1,13 +1,15 @@
 #pragma once
 #include "../Buffer.hpp"
 #include "Internal/VKMemAllocator.hpp"
-#include <cinttypes>
 
 namespace Gfx
 {
 class VKBuffer : public Buffer
 {
+    DECLARE_OBJECT();
+
 public:
+    VKBuffer();
     VKBuffer(const CreateInfo& createInfo);
     VKBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocationCreateInfo, const char* debugName);
 
