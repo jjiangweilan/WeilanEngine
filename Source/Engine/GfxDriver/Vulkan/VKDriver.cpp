@@ -1215,6 +1215,14 @@ void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 
 void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
 {
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+
+    dataUploader->UploadAllPending(
+        transferSignalSemaphore,
+        VK_NULL_HANDLE, // protects by fences
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT
+    );
+
     VK::RenderGraph::Graph rg(1);
     rg.Schedule((VKCommandBuffer&)cmd);
 
@@ -1235,9 +1243,13 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     rg.Execute(vkcmd, 0);
     vkEndCommandBuffer(vkcmd);
 
+    VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &vkcmd;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &transferSignalSemaphore;
+    submitInfo.pWaitDstStageMask = &stageMask;
 
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
     vkQueueSubmit(mainQueue.handle, 1, &submitInfo, fence);

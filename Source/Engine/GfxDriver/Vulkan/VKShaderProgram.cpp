@@ -84,7 +84,7 @@ VKShaderProgram::VKShaderProgram(VKContext* context, const PipelineCreateInfo& c
 
         VkPipeline pipeline;
         objManager->CreateComputePipeline(computePipelineCreateInfo, pipeline);
-        caches[0] = pipeline;
+        caches[0] = {nullptr, pipeline};
     }
     else
         ASSERT(0 && "not possible to create empty shader");
@@ -104,7 +104,7 @@ VKShaderProgram::~VKShaderProgram()
 
     for (auto v : caches)
     {
-        objManager->DestroyPipeline(v.second);
+        objManager->DestroyPipeline(v.second.second);
     }
 }
 
@@ -296,7 +296,7 @@ VkPipeline VKShaderProgram::RequestComputePipeline()
 {
     if (isCompute)
     {
-        return caches.begin()->second;
+        return caches.begin()->second.second;
     }
     else
     {
@@ -313,7 +313,11 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 )
 {
     PipelineRequestHash requestHash = config.GetHash();
-    HashCombine(requestHash, renderPass->GetHandle());
+    HashCombine(
+        requestHash,
+        renderPass->GetUUID()
+    ); // seems like vulkan implementation also reuses it's object handle when allocating/deallocating objects, we can't
+       // reliablely use object handle as an unique source
     HashCombine(requestHash, subpassIndex);
     for (int i = 0; i < vertexBindingBuffers.size(); ++i)
     {
@@ -323,7 +327,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     auto cacheIter = caches.find(requestHash);
     if (cacheIter != caches.end())
     {
-        return cacheIter->second;
+        return cacheIter->second.second;
     }
 
     VkGraphicsPipelineCreateInfo createInfo;
@@ -567,9 +571,21 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     objManager->CreateGraphicsPipeline(createInfo, pipeline);
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_PIPELINE, (uint64_t)pipeline, name.c_str());
 
-    caches[requestHash] = pipeline;
+    caches[requestHash] = {renderPass, pipeline};
 
+    CleanUpInvalidCaches();
     return pipeline;
+}
+
+void VKShaderProgram::CleanUpInvalidCaches()
+{
+    for (auto& cache : caches)
+    {
+        if (cache.second.first == nullptr)
+        {
+            caches.erase(cache.first);
+        }
+    }
 }
 
 } // namespace Gfx

@@ -356,7 +356,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                     imageInfo.sampler = b.descriptorType == DescriptorType::SampledImage
                                                             ? sharedResource->GetDefaultSampler()
                                                             : VK_NULL_HANDLE;
-                                    if (imageView != nullptr && !imageView->GetImage().GetDescription().isCubemap)
+                                    if (imageView != nullptr)
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
                                     }

@@ -75,7 +75,7 @@ private:
     VkShaderModule fragmentModule = VK_NULL_HANDLE;
     VkShaderModule computeModule = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-    std::unordered_map<PipelineRequestHash, VkPipeline> caches = {};
+    std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
     std::vector<RefPtr<VKDescriptorPool>> descriptorPools = {};
     PipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
@@ -86,5 +86,6 @@ private:
     // void CreateShaderPipeline(std::shared_ptr<const ShaderConfig> config, VKShaderModule* fallbackConfigModule);
     void GeneratePipelineLayout();
     void GeneratePipelineLayoutAndGetDescriptorPool(DescriptorSetBindings& combined);
+    void CleanUpInvalidCaches();
 };
 } // namespace Gfx

@@ -191,8 +191,8 @@ void Camera::Tick() {}
 void Camera::LookAt(const float3& lookAtPos)
 {
     auto pos = GetGameObject()->GetPosition();
-    auto dir = lookAtPos - pos;
-    auto mat = glm::lookAt(pos, lookAtPos, dir != float3(0, 1, 0) ? float3(0, 1, 0) : float3(1, 0, 0));
+    float3 dir = glm::normalize(lookAtPos - pos);
+    auto mat = glm::lookAt(pos, lookAtPos, glm::abs(dir) != float3(0, 1, 0) ? float3(0, 1, 0) : float3(0, 0, 1));
     float3x3 rotMat = mat;
     rotMat = glm::transpose(rotMat);
     auto rot = glm::quat_cast(rotMat);

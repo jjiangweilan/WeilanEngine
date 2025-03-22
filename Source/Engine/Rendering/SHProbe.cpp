@@ -31,8 +31,9 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
             cubeMapDesc,
             Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
         );
-        std::unique_ptr<Gfx::ImageView> imageViews[6];
+
         RenderPipeline skyboxRenderPipeline[6];
+        std::unique_ptr<Gfx::ImageView> imageViews[6];
         Rendering::RenderConfig configs[6];
         float3 lookAtDirs[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
 

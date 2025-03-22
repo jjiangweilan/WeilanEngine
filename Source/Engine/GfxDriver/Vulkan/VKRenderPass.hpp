@@ -18,16 +18,15 @@ struct Subpass
 };
 class VKRenderPass : public RenderPass
 {
+    DECLARE_OBJECT();
+
 public:
     VKRenderPass();
     VKRenderPass(const VKRenderPass& renderPass) = delete;
     VKRenderPass(VKRenderPass&& renderPass) = delete;
     ~VKRenderPass() override;
     void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) override;
-    void ClearSubpass() override
-    {
-        subpasses.clear();
-    }
+    void ClearSubpass() override { subpasses.clear(); }
 
     bool RenderPassRenderingValidationCheck() override;
 
@@ -36,10 +35,7 @@ public:
     VkRenderPass GetHandle();
     Extent2D GetExtent();
 
-    const std::vector<Subpass>& GetSubpesses()
-    {
-        return subpasses;
-    }
+    const std::vector<Subpass>& GetSubpesses() { return subpasses; }
 
 protected:
     void CreateRenderPass();
@@ -52,7 +48,7 @@ protected:
     std::vector<VkFramebuffer> frameBuffers;
     VKSwapChainImage* swapChainProxy = nullptr;
     UUID swapChainProxyUUIDCopy;
-    Extent2D extent = {0,0};
+    Extent2D extent = {0, 0};
     std::vector<Subpass> subpasses;
 };
 } // namespace Gfx

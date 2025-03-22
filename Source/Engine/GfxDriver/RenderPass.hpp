@@ -47,7 +47,7 @@ struct Attachment
     AttachmentStoreOperation stencilStoreOp = AttachmentStoreOperation::DontCare;
 };
 
-class RenderPass
+class RenderPass : public Object
 {
 public:
     virtual ~RenderPass() {}
