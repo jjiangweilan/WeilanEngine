@@ -14,6 +14,8 @@ public:
             target->UpdateProbe({});
             imageInspector.Initialize(target->cubeMap.get());
         }
+
+        imageInspector.ShowImage(1.0f);
     }
 
 private:

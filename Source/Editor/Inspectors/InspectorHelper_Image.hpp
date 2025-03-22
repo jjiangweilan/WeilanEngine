@@ -35,18 +35,21 @@ public:
 
     void ShowImage(float imageScale)
     {
-        auto width = gfxImage->GetDescription().width;
-        auto height = gfxImage->GetDescription().height;
-        auto contentWidth = height > ImGui::GetWindowWidth() ? ImGui::GetWindowWidth() : width;
-        auto size = ResizeKeepRatio(width, height, contentWidth, height) * imageScale;
-        UpdateImageView(gfxImage->GetDescription().GetLayer(), gfxImage->GetDescription().mipLevels);
-        ImGui::Image(GetImageViewInUse(), {size.x, size.y});
+        if (gfxImage != nullptr)
+        {
+            auto width = gfxImage->GetDescription().width;
+            auto height = gfxImage->GetDescription().height;
+            auto contentWidth = height > ImGui::GetWindowWidth() ? ImGui::GetWindowWidth() : width;
+            auto size = ResizeKeepRatio(width, height, contentWidth, height) * imageScale;
+            UpdateImageView(gfxImage->GetDescription().GetLayer(), gfxImage->GetDescription().mipLevels);
+            ImGui::Image(GetImageViewInUse(), {size.x, size.y});
+        }
     }
 
     void SetReimport(bool value) { reimport = value; }
 
 private:
-    Gfx::Image* gfxImage;
+    ObjPtr<Gfx::Image> gfxImage = nullptr;
     Gfx::ImageView* imageViewInUse;
     std::unique_ptr<Gfx::ImageView> imageView;
     uint32_t layer = 0;
