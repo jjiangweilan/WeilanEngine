@@ -19,6 +19,8 @@ VkImageViewType MapImageViewType(ImageViewType type)
         case ImageViewType::Image_2D_Array: return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
         case ImageViewType::Cube_Array: return VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
     }
+
+    return VK_IMAGE_VIEW_TYPE_2D;
 }
 VkImageViewCreateInfo MapImageViewCreateInfo(VKImage* image, ImageView::CreateInfo createInfo)
 {
