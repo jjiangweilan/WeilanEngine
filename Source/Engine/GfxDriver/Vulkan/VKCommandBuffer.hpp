@@ -2,7 +2,7 @@
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Internal/VKMemAllocator.hpp"
-#include "Libs/LinearAllocator.hpp"
+#include "Libs/AutoGrowLinearAllocator.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
 #include <vector>
@@ -467,7 +467,7 @@ public:
 private:
     bool validationCheck = true;
     std::vector<VKCmd> cmds;
-    LinearAllocator<1024> tmpMemory;
+    AutoGrowLinearAllocator tmpMemory;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 };

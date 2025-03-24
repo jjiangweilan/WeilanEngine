@@ -3,7 +3,7 @@
 #include <vector>
 
 template <size_t chunkSize>
-class LinearAllocator
+class ArenaAllocator
 {
     struct Chunk
     {
@@ -13,13 +13,13 @@ class LinearAllocator
     };
 
 public:
-    LinearAllocator()
+    ArenaAllocator()
     {
         AddChunk();
         freeChunkIndex = 0;
     };
 
-    ~LinearAllocator()
+    ~ArenaAllocator()
     {
         for (auto& c : chunks)
         {

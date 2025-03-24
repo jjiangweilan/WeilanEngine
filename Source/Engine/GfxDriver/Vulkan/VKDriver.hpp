@@ -212,6 +212,6 @@ private:
         void* pUserData
     );
 
-    LinearAllocator<1024> allocator;
+    ArenaAllocator<1024> allocator;
 };
 } // namespace Gfx
