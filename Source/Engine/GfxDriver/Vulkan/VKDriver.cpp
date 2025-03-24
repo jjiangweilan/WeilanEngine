@@ -149,7 +149,7 @@ VKDriver::~VKDriver()
 
     // destroy inflight data
     vkDestroyCommandPool(device.handle, mainCmdPool, VK_NULL_HANDLE);
-    for (InflightData& inflight : inflightData)
+    for (VKInflightCmd& inflight : inflightData)
     {
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
@@ -503,29 +503,6 @@ bool VKDriver::BeginFrame()
 #endif
 
     ENGINE_SCOPED_PROFILE("VKDriver - BeginFrame");
-    // acquire next swapchain
-    VkResult acquireResult = vkAcquireNextImageKHR(
-        device.handle,
-        swapchain.handle,
-        -1,
-        inflightData[currentInflightIndex].imageAcquireSemaphore,
-        VK_NULL_HANDLE,
-        &inflightData[currentInflightIndex].swapchainIndex
-    );
-    swapchain.swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
-
-    for (auto& w : extraWindows)
-    {
-        VkResult acquireResult = vkAcquireNextImageKHR(
-            device.handle,
-            w->swapchain.handle,
-            -1,
-            w->imageAcquireSemaphores[w->activeIndex],
-            VK_NULL_HANDLE,
-            &w->swapchainIndex
-        );
-        w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
-    }
 
     return true;
 }
@@ -582,6 +559,30 @@ bool VKDriver::EndFrame()
     std::scoped_lock lock(driverMutex);
     ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
 
+    // acquire next swapchain
+    VkResult acquireResult = vkAcquireNextImageKHR(
+        device.handle,
+        swapchain.handle,
+        -1,
+        inflightData[currentInflightIndex].imageAcquireSemaphore,
+        VK_NULL_HANDLE,
+        &inflightData[currentInflightIndex].swapchainIndex
+    );
+    swapchain.swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+
+    for (auto& w : extraWindows)
+    {
+        VkResult acquireResult = vkAcquireNextImageKHR(
+            device.handle,
+            w->swapchain.handle,
+            -1,
+            w->imageAcquireSemaphores[w->activeIndex],
+            VK_NULL_HANDLE,
+            &w->swapchainIndex
+        );
+        w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
+    }
+
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
     vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
@@ -603,7 +604,8 @@ bool VKDriver::EndFrame()
             cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
         }
     }
-    renderGraph->Schedule(cmd2);
+    framePrepareData.AppendVKCommandBuffer(&cmd2);
+    renderGraph->Schedule(framePrepareData);
 
     // record scheduled commands
     ENGINE_BEGIN_PROFILE("VKDriver - Record Commands")
@@ -626,9 +628,9 @@ bool VKDriver::EndFrame()
     CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
     ENGINE_END_PROFILE
 
-    ENGINE_END_PROFILE // VKDriver - Record Commands
+    ENGINE_END_PROFILE; // VKDriver - Record Commands
 
-        VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
+    VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     VkSemaphore* signalSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
     waitFlags[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1170,6 +1172,7 @@ void VKDriver::FrameEndClear()
     internalPendingCommands.clear();
     descriptorPoolCache->AppendAndClearCurrentFrameFreeSets();
     ClearResources();
+    framePrepareData.Clear();
 }
 
 void VKDriver::UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset)
@@ -1210,7 +1213,7 @@ void VKDriver::UploadImage(
 
 void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 {
-    renderGraph->Schedule((VKCommandBuffer&)cmd);
+    framePrepareData.AppendVKCommandBuffer(static_cast<VKCommandBuffer*>(&cmd));
 }
 
 void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
@@ -1224,7 +1227,9 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     );
 
     VK::RenderGraph::Graph rg(1);
-    rg.Schedule((VKCommandBuffer&)cmd);
+    VKFramePrepareData framePrepareData;
+    framePrepareData.AppendVKCommandBuffer(static_cast<VKCommandBuffer*>(&cmd));
+    rg.Schedule(framePrepareData);
 
     VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     VkFence fence;

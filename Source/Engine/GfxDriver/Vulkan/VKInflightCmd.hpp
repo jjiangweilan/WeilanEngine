@@ -1,17 +1,26 @@
 #pragma once
+#include "GfxDriver/Vulkan/VKCommandBuffer.hpp"
+#include "Libs/AutoGrowLinearAllocator.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
 {
-class VKInflightCmd
+struct VKInflightCmd
 {
-public:
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     VkFence cmdFence = VK_NULL_HANDLE;
     VkSemaphore imageAcquireSemaphore = VK_NULL_HANDLE;
     VkSemaphore presentSemaphore = VK_NULL_HANDLE;
     uint32_t swapchainIndex = 0;
+};
 
-private:
+struct VKFramePrepareData
+{
+    void AppendVKCommandBuffer(VKCommandBuffer* cmd);
+    void Clear();
+
+    std::vector<VKCmd> cmds{};
+    AutoGrowLinearAllocator memory{};
+    std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks{};
 };
 } // namespace Gfx

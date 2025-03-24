@@ -18,6 +18,7 @@
 #include "VKRenderTarget.hpp"
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
+#include "VKInflightCmd.hpp"
 
 #include "RHI/Buffer.hpp"
 
@@ -150,17 +151,10 @@ public:
 
     std::mutex driverMutex;
 
-    // RHI implementation
-    struct InflightData
-    {
-        VkCommandBuffer cmd = VK_NULL_HANDLE;
-        VkFence cmdFence = VK_NULL_HANDLE;
-        VkSemaphore imageAcquireSemaphore;
-        VkSemaphore presentSemaphore;
-        uint32_t swapchainIndex;
-    };
-    std::vector<InflightData> inflightData = {};
+    std::vector<VKInflightCmd> inflightData = {};
+    VKFramePrepareData framePrepareData;
     uint32_t currentInflightIndex = 0;
+
     std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;

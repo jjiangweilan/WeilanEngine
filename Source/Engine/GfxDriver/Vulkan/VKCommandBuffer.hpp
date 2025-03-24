@@ -466,9 +466,12 @@ public:
 
 private:
     bool validationCheck = true;
+
     std::vector<VKCmd> cmds;
     AutoGrowLinearAllocator tmpMemory;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
+
+    friend struct VKFramePrepareData;
 };
 } // namespace Gfx

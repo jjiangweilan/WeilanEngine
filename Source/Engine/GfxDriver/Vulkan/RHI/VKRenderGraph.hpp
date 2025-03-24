@@ -1,5 +1,6 @@
 #pragma once
 #include "../VKCommandBuffer.hpp"
+#include "../VKInflightCmd.hpp"
 #include <variant>
 
 namespace Gfx::VK::RenderGraph
@@ -44,7 +45,7 @@ class Graph
 public:
     Graph(int inflightCount);
     ~Graph();
-    void Schedule(VKCommandBuffer& cmd);
+    void Schedule(VKFramePrepareData& framePrepare);
 
     void Execute(VkCommandBuffer cmd, int inflightIndex);
 

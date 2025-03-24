@@ -790,13 +790,13 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 
     return barrierCount;
 }
-void Graph::Schedule(VKCommandBuffer& cmd)
+void Graph::Schedule(VKFramePrepareData& framePrepare)
 {
     ENGINE_SCOPED_PROFILE("VKRenderGraph: schedule");
 
     ENGINE_BEGIN_PROFILE("VKRenderGraph: insert cmds");
     int cmdIndexOffset = currentSchedulingCmds.size();
-    currentSchedulingCmds.insert(currentSchedulingCmds.end(), cmd.GetCmds().begin(), cmd.GetCmds().end());
+    currentSchedulingCmds.insert(currentSchedulingCmds.end(), framePrepare.cmds.begin(), framePrepare.cmds.end());
     ENGINE_END_PROFILE
 
     // track where to put barriers
