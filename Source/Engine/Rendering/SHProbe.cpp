@@ -1,6 +1,8 @@
 #include "SHProbe.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Libs/Image/LinearCubemap.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
+#include "ThirdParty/stb/stb_image_write.h"
 
 using namespace Rendering;
 DEFINE_OBJECT(SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
@@ -25,13 +27,22 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         // render the skybox
         auto cmd = GetGfxDriver()->CreateCommandBuffer();
         Gfx::ImageDescription
-            cubeMapDesc(256, 256, 1, Gfx::GfxFormat::R16G16B16A16_SFloat, Gfx::MultiSampling::Sample_Count_1, 1, true);
+            cubeMapDesc(256, 256, 1, Gfx::GfxFormat::R32G32B32A32_SFloat, Gfx::MultiSampling::Sample_Count_1, 1, true);
 
         cubeMap = GetGfxDriver()->CreateImage(
             cubeMapDesc,
-            Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment
+            Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment |
+                Gfx::ImageUsage::TransferSrc
         );
 
+        Gfx::Buffer::CreateInfo staingBufferCreateInfo{
+            Gfx::BufferUsage::Transfer_Dst,
+            cubeMapDesc.GetByteSize(),
+            true,
+            "SH Probe Readback Buffer",
+            true
+        };
+        auto readbackBuffer = GetGfxDriver()->CreateBuffer(staingBufferCreateInfo);
         RenderPipeline skyboxRenderPipeline[6];
         std::unique_ptr<Gfx::ImageView> imageViews[6];
         Rendering::RenderConfig configs[6];
@@ -57,9 +68,26 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
             skyboxRenderPipeline[face].RenderSkyboxOnly(*scene, *camera, {});
         }
 
+        Gfx::BufferImageCopyRegion copyRegion[] = {
+            {0,
+             Gfx::ImageSubresourceLayers{Gfx::ImageAspect::Color, 0, 0, 6},
+             {0, 0, 0},
+             {cubeMapDesc.width, cubeMapDesc.height, 1}}
+        };
+        cmd->CopyImageToBuffer(cubeMap, readbackBuffer, copyRegion);
         GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
         cmd->Reset(true);
         scene->DestroyGameObject(cubeMapCam);
+
+        {
+            LinearCubemap cubeMap(
+                cubeMapDesc.width,
+                cubeMapDesc.height,
+                4,
+                sizeof(float),
+                readbackBuffer->GetCPUVisibleAddress()
+            );
+        }
     }
     else
     {
