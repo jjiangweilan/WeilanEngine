@@ -3,7 +3,8 @@
 #include "Libs/Image/LinearCubemap.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "ThirdParty/stb/stb_image_write.h"
-
+#include <glm/gtc/random.hpp>
+#include <spdlog/spdlog.h>
 using namespace Rendering;
 DEFINE_OBJECT(SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
 
@@ -79,6 +80,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         cmd->Reset(true);
         scene->DestroyGameObject(cubeMapCam);
 
+        // cpu baking to sh
         {
             LinearCubemap cubeMap(
                 cubeMapDesc.width,
@@ -87,10 +89,86 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
                 sizeof(float),
                 readbackBuffer->GetCPUVisibleAddress()
             );
+
+            float3 sh[9]{
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0},
+                {0, 0, 0}
+            };
+
+            const int TotalSampleCount = 1024;
+            for (int l = 0; l <= 2; ++l)
+            {
+                for (int m = -l; m <= l; ++m)
+                {
+                    for (int sampleIdx = 0; sampleIdx < TotalSampleCount; sampleIdx++)
+                    {
+                        int index = l * (l + 1) + m;
+                        auto dir = glm::sphericalRand(1.0f);
+                        float basis = SHBasis(l, m, dir);
+                        float3 color = cubeMap.Sample4<float>(dir);
+                        sh[index] += color * basis;
+                    }
+                }
+            }
+
+            float weight = 4.0f * glm::pi<float>() / TotalSampleCount;
+            for (int i = 0; i < 9; ++i)
+            {
+                sh[i] *= weight;
+                spdlog::info("{}, {}, {}", sh[i].x, sh[i].y, sh[i].z);
+            }
         }
     }
     else
     {
         spdlog::warn("other sh probe not implemented");
     }
+}
+
+float SHProbe::SHBasis(int l, int m, float3 dir)
+{
+    if (l == 0 && m == 0)
+    {
+        return 0.282095; // Y00
+    }
+    else if (l == 1 && m == -1)
+    {
+        return 0.488603 * dir.y; // Y1-1
+    }
+    else if (l == 1 && m == 0)
+    {
+        return 0.488603 * dir.z; // Y10
+    }
+    else if (l == 1 && m == 1)
+    {
+        return 0.488603 * dir.x; // Y11
+    }
+    else if (l == 2 && m == -2)
+    {
+        return 1.092548 * dir.x * dir.y; // Y2-2
+    }
+    else if (l == 2 && m == -1)
+    {
+        return 1.092548 * dir.y * dir.z; // Y2-1
+    }
+    else if (l == 2 && m == 0)
+    {
+        return 0.315392 * (3.0 * dir.z * dir.z - 1.0); // Y20
+    }
+    else if (l == 2 && m == 1)
+    {
+        return 1.092548 * dir.x * dir.z; // Y21
+    }
+    else if (l == 2 && m == 2)
+    {
+        return 0.546274 * (dir.x * dir.x - dir.y * dir.y); // Y22
+    }
+    return 0.0;
 }

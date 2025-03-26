@@ -30,4 +30,8 @@ private:
     int level;
 
     std::unique_ptr<Gfx::Buffer> sh;
+
+
+    void BakeToSh();
+    float SHBasis(int l, int m, float3 dir);
 };

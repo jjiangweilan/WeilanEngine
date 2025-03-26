@@ -14,7 +14,8 @@ public:
 
         if (rawData)
         {
-            totalSize = height * width * channel * elementSize;
+            singleFaceSize = height * width * channel * elementSize;
+            totalSize = height * width * channel * elementSize * 6;
 
             data.resize(totalSize);
             memcpy(data.data(), rawData, totalSize);
@@ -22,13 +23,17 @@ public:
     }
 
     template <class T>
-    T* Sample(int x, int y)
+    T* Sample(float nx, float ny, int face)
     {
+        int x = (nx * width + 0.5);
+        int y = (ny * height + 0.5);
+
         ASSERT(sizeof(T) == elementSize);
+        ASSERT(face >= 0 && face < 6);
         ASSERT(x >= 0 && x < width && "x coordinate out of bounds");
         ASSERT(y >= 0 && y < height && "y coordinate out of bounds");
 
-        uint32_t index = (y * width + x) * channel * elementSize;
+        uint32_t index = (y * width + x) * channel * elementSize + face * singleFaceSize;
 
         ASSERT(index < totalSize && "index out of bounds");
 
@@ -36,17 +41,100 @@ public:
     }
 
     template <class T>
-    glm::vec<4, T, glm::highp> Sample4(int x, int y)
+    glm::vec<4, T, glm::highp> Sample4(float nx, float ny, int face)
     {
+        int x = (nx * width + 0.5);
+        int y = (ny * height + 0.5);
+
         ASSERT(elementSize == 4);
+        ASSERT(face >= 0 && face < 6);
         ASSERT(x >= 0 && x < width && "x coordinate out of bounds");
         ASSERT(y >= 0 && y < height && "y coordinate out of bounds");
 
-        uint32_t index = (y * width + x) * channel * elementSize;
+        uint32_t index = (y * width + x) * channel * elementSize + face * singleFaceSize;
 
         ASSERT(index < totalSize && "index out of bounds");
 
         return *reinterpret_cast<glm::vec<4, T, glm::highp>*>(&data[index]);
+    }
+
+    template <class T>
+    glm::vec<4, T, glm::highp> Sample4(float3 dir)
+    {
+        int face = 0;
+        float2 uv = DirToUV(dir, face);
+        int x = (uv.x * width + 0.5);
+        int y = (uv.y * height + 0.5);
+
+        ASSERT(elementSize == 4);
+        ASSERT(face >= 0 && face < 6);
+        ASSERT(x >= 0 && x < width && "x coordinate out of bounds");
+        ASSERT(y >= 0 && y < height && "y coordinate out of bounds");
+
+        uint32_t index = (y * width + x) * channel * elementSize + face * singleFaceSize;
+
+        ASSERT(index < totalSize && "index out of bounds");
+
+        return *reinterpret_cast<glm::vec<4, T, glm::highp>*>(&data[index]);
+    }
+
+    static float2 DirToUV(float3 dir, int& face)
+    {
+        float absX = std::fabs(dir.x);
+        float absY = std::fabs(dir.y);
+        float absZ = std::fabs(dir.z);
+
+        int faceIndex;
+        float2 uv;
+
+        if (absX >= absY && absX >= absZ)
+        {
+            if (dir.x > 0)
+            {
+                faceIndex = 0; // Positive X
+                uv.x = -dir.z / absX;
+                uv.y = -dir.y / absX;
+            }
+            else
+            {
+                faceIndex = 1; // Negative X
+                uv.x = dir.z / absX;
+                uv.y = -dir.y / absX;
+            }
+        }
+        else if (absY >= absX && absY >= absZ)
+        {
+            if (dir.y > 0)
+            {
+                faceIndex = 2; // Positive Y
+                uv.x = dir.x / absY;
+                uv.y = dir.z / absY;
+            }
+            else
+            {
+                faceIndex = 3; // Negative Y
+                uv.x = dir.x / absY;
+                uv.y = -dir.z / absY;
+            }
+        }
+        else
+        {
+            if (dir.z > 0)
+            {
+                faceIndex = 4; // Positive Z
+                uv.x = dir.x / absZ;
+                uv.y = -dir.y / absZ;
+            }
+            else
+            {
+                faceIndex = 5; // Negative Z
+                uv.x = -dir.x / absZ;
+                uv.y = -dir.y / absZ;
+            }
+        }
+
+        face = faceIndex;
+        return float2(uv.x, uv.y) * 0.5f + 0.5f;
     }
 
 private:
@@ -55,5 +143,6 @@ private:
     uint32_t channel;
     uint32_t elementSize;
     uint32_t totalSize;
+    uint32_t singleFaceSize;
     std::vector<unsigned char> data;
 };

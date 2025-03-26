@@ -1,7 +1,9 @@
 #pragma once
 
+#include "Random.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/random.hpp>
 
 #if GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
 #ifndef GLM_ENABLE_EXPERIMENTAL
