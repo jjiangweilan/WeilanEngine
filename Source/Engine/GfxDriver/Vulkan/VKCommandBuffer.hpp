@@ -19,6 +19,15 @@ class VKShaderResource;
 class VKShaderProgram;
 class VKDevice;
 
+struct VKAsyncReadbackHandle : public AsyncReadbackHandle
+{
+    uint8_t* GetData() override { return nullptr; }
+    bool IsComplete() override { return isComplete; }
+
+    std::vector<std::uint8_t> data;
+    std::atomic_bool isComplete;
+};
+
 struct VKDrawIndexedCmd
 {
     uint32_t indexCount;
@@ -255,7 +264,6 @@ struct VKAllocateAttachmentCmd
 struct VKAsyncReadbackCmd
 {
     Gfx::Buffer* buffer;
-    void* dst;
     size_t size;
     size_t offset;
 
@@ -452,8 +460,7 @@ public:
 
     void PresentImage(VKImage* image);
 
-    std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, void* dst, size_t size, size_t offset = 0)
-        override;
+    std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset) override;
 
     void Reset(bool releaseResource) override
     {

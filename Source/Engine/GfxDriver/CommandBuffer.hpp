@@ -65,7 +65,6 @@ struct AsyncReadbackHandle
 {
 public:
     virtual uint8_t* GetData() { return nullptr; }
-
     virtual bool IsComplete() { return false; }
 };
 
@@ -145,9 +144,7 @@ public:
     ) = 0;
     virtual void SetBuffer(ShaderBindingHandle name, int index, Gfx::Buffer& buffer) = 0;
 
-    virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(
-        Gfx::Buffer& buffer, void* dst, size_t size, size_t offset = 0
-    ) = 0;
+    virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset = 0) = 0;
 
     virtual void AllocateAttachment(const RG::ImageIdentifier& id, RG::ImageDescription& desc) = 0;
     virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
