@@ -186,6 +186,10 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
 
 void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
+    auto scene = EditorState::activeScene;
+    if (scene == nullptr)
+        return;
+
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
 
     cmd.BeginLabel("Scene Editor View", &renderPassLabelColor[0]);
@@ -307,6 +311,10 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 
 bool SceneEditor::Tick()
 {
+    auto scene = EditorState::activeScene;
+    if (scene == nullptr)
+        return false;
+
     gameCamera = EditorState::activeScene->GetMainCamera();
 
     for (auto& p : pendingDeleteSceneImages)
@@ -333,7 +341,6 @@ bool SceneEditor::Tick()
         editorCamera->SetSpecularEnv(gameCamera->GetSpecularEnv().Get());
     }
 
-    Scene* scene = EditorState::activeScene;
     if (ImGui::BeginMenuBar())
     {
         if (ImGui::MenuItem("Physics Debug Draw"))
