@@ -7,6 +7,11 @@ struct VertexInput
     float3 normal : NORMAL;
 };
 
+struct PushConstant
+{
+    float4x4 model;
+    float4x4 invTspModel;
+} 
 
 struct VertexOutput
 {
@@ -22,12 +27,15 @@ struct PerMaterial
 ParameterBlock<PerScene> perScene;
 ParameterBlock<PerMaterial> perMaterial;
 
+[vk_push_constant]
+PushConstant pconst;
+
 [shader("vertex")]
 VertexOutput Vert(VertexInput input)
 {
     VertexOutput output;
-    output.position = mul(perScene.viewProjection, float4(input.position, 1));
-    output.normalWS = mul(perScene.view, float4(input.normal, 0));
+    output.position = mul(perScene.viewProjection, mul(pconst.model, float4(input.position, 1)));
+    output.normalWS = mul(perScene.view, mul(pconst.model, float4(input.normal, 0)));
 
     return output;
 }
