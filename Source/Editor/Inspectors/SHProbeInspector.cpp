@@ -16,6 +16,8 @@ public:
         }
 
         imageInspector.ShowImage(1.0f);
+
+        target->DrawDebugProbe();
     }
 
 private:

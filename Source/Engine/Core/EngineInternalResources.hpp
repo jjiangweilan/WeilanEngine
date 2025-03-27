@@ -19,6 +19,7 @@ public:
 
     static void Init();
 
+    static Submesh* GetSphereMesh() { return GetSingleton().models.sphere->GetSubmesh(0); }
     static Submesh* GetCapsuleMesh() { return GetSingleton().models.capsule->GetSubmesh(0); }
     static Submesh* GetHalfSphereMesh() { return GetSingleton().models.halfSphere->GetSubmesh(0); }
     static Submesh* GetCylinderMesh() { return GetSingleton().models.cylinder->GetSubmesh(0); }

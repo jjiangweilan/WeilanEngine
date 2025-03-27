@@ -82,6 +82,7 @@ public:
     static constexpr const char* Skybox = "Skybox";
     static constexpr const char* ColorGrading = "ColorGrading";
     static constexpr const char* InterleavedGradientNoise = "InterleavedGradientNoise";
+    static constexpr const char* SHProbe = "SHProbe";
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {

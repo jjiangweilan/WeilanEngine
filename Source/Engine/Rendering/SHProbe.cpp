@@ -1,6 +1,7 @@
 #include "SHProbe.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Libs/Image/LinearCubemap.hpp"
+#include "Rendering/Graphics.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "ThirdParty/stb/stb_image_write.h"
 #include <glm/gtc/random.hpp>
@@ -18,6 +19,40 @@ const std::string& SHProbe::GetName()
 
 void SHProbe::Init(int level) {}
 
+std::array<float3, 9> SHProbe::BakeToSHCPU(
+    Gfx::ImageDescription& cubeMapDesc, std::unique_ptr<Gfx::Buffer>& readbackBuffer
+)
+{
+    LinearCubemap
+        cubeMap(cubeMapDesc.width, cubeMapDesc.height, 4, sizeof(float), readbackBuffer->GetCPUVisibleAddress());
+
+    std::array<float3, 9> sh = {};
+
+    const int TotalSampleCount = 1024;
+    for (int l = 0; l <= 2; ++l)
+    {
+        for (int m = -l; m <= l; ++m)
+        {
+            for (int sampleIdx = 0; sampleIdx < TotalSampleCount; sampleIdx++)
+            {
+                int index = l * (l + 1) + m;
+                auto dir = glm::sphericalRand(1.0f);
+                float basis = SHBasis(l, m, dir);
+                float3 color = cubeMap.Sample4<float>(dir);
+                sh[index] += color * basis;
+            }
+        }
+    }
+
+    float weight = 4.0f * glm::pi<float>() / TotalSampleCount;
+    for (int i = 0; i < 9; ++i)
+    {
+        sh[i] *= weight;
+        spdlog::info("{}, {}, {}", sh[i].x, sh[i].y, sh[i].z);
+    }
+
+    return sh;
+}
 void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
 {
     auto scene = GetScene();
@@ -81,50 +116,19 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         scene->DestroyGameObject(cubeMapCam);
 
         // cpu baking to sh
+        auto sh = BakeToSHCPU(cubeMapDesc, readbackBuffer);
+        shData.clear();
+        for (int i = 0; i < sh.size(); ++i)
         {
-            LinearCubemap cubeMap(
-                cubeMapDesc.width,
-                cubeMapDesc.height,
-                4,
-                sizeof(float),
-                readbackBuffer->GetCPUVisibleAddress()
-            );
-
-            float3 sh[9]{
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0},
-                {0, 0, 0}
-            };
-
-            const int TotalSampleCount = 1024;
-            for (int l = 0; l <= 2; ++l)
-            {
-                for (int m = -l; m <= l; ++m)
-                {
-                    for (int sampleIdx = 0; sampleIdx < TotalSampleCount; sampleIdx++)
-                    {
-                        int index = l * (l + 1) + m;
-                        auto dir = glm::sphericalRand(1.0f);
-                        float basis = SHBasis(l, m, dir);
-                        float3 color = cubeMap.Sample4<float>(dir);
-                        sh[index] += color * basis;
-                    }
-                }
-            }
-
-            float weight = 4.0f * glm::pi<float>() / TotalSampleCount;
-            for (int i = 0; i < 9; ++i)
-            {
-                sh[i] *= weight;
-                spdlog::info("{}, {}, {}", sh[i].x, sh[i].y, sh[i].z);
-            }
+            shData.push_back(float4(sh[i], 1.0));
         }
+
+        this->sh = GetGfxDriver()->CreateBuffer(
+            sizeof(float) * 4 * 9,
+            Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Storage,
+            false,
+            false
+        );
     }
     else
     {
@@ -171,4 +175,20 @@ float SHProbe::SHBasis(int l, int m, float3 dir)
         return 0.546274 * (dir.x * dir.x - dir.y * dir.y); // Y22
     }
     return 0.0;
+}
+
+void SHProbe::DrawDebugProbe()
+{
+    if (sh != nullptr)
+    {
+        if (debugMaterial == nullptr)
+        {
+            debugMaterial = std::make_unique<Material>();
+            debugMaterial->SetShader(ShaderLibrary::GetShader(ShaderLibrary::SHProbe));
+            debugMaterial->GetShaderResource()->SetBuffer("sh", sh.get());
+        }
+
+        auto sphere = EngineInternalResources::GetModels().sphere;
+        Graphics::DrawMesh(*sphere, 0, gameObject->GetWorldMatrix(), *debugMaterial);
+    }
 }
