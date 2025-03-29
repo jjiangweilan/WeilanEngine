@@ -651,6 +651,8 @@ VkDescriptorType MapDescriptorType(DescriptorType type)
         case DescriptorType::SampledImage: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         case DescriptorType::Sampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
         case DescriptorType::StorageImage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        case DescriptorType::UniformTexelBuffer: return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+        case DescriptorType::StorageTexelBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
         default: ASSERT(0 && "Map BindingType failed");
     }
 

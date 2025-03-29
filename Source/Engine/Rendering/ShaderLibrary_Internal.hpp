@@ -247,42 +247,40 @@ public:
         return stages;
     }
 
-    Gfx::DescriptorType MapSlangDescriptorType(slang::VariableLayoutReflection* variableLayout)
+    Gfx::DescriptorType MapSlangDescriptorType(
+        slang::VariableLayoutReflection* variableLayout, SlangResourceShape shape
+    )
     {
         Gfx::DescriptorType type = Gfx::DescriptorType::Invalid;
 
         auto typeLayout = variableLayout->getTypeLayout();
-
+        auto access = typeLayout->getResourceAccess();
         ASSERT(typeLayout->getBindingRangeCount() == 1);
         {
+#define MAP_SLANG_DESCRIPTOR_TYPE_CASE(from, to)                                                                       \
+    case slang::BindingType::from: return Gfx::DescriptorType::to;
+
             auto rangeType = typeLayout->getBindingRangeType(0);
-            if (rangeType == slang::BindingType::CombinedTextureSampler)
-                type = Gfx::DescriptorType::CombinedImageSampler;
-            else if (rangeType == slang::BindingType::Sampler)
-                type = Gfx::DescriptorType::Sampler;
-            else if (rangeType == slang::BindingType::Texture)
+
+            switch (rangeType)
             {
-                type = Gfx::DescriptorType::SampledImage;
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(CombinedTextureSampler, CombinedImageSampler);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(Sampler, Sampler);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(MutableTexture, StorageImage);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(Texture, SampledImage);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(TypedBuffer, UniformTexelBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(MutableTypedBuffer, StorageTexelBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(ConstantBuffer, UniformBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(ParameterBlock, UniformBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(RawBuffer, StorageBuffer);
+                MAP_SLANG_DESCRIPTOR_TYPE_CASE(MutableRawBuffer, StorageBuffer);
+                default:
+                    {
+                        ASSERT(0 && "Not Handled");
+                        type = Gfx::DescriptorType::Invalid;
+                        break;
+                    }
             }
-            else if (rangeType == slang::BindingType::MutableTexture)
-            {
-                type = Gfx::DescriptorType::StorageImage;
-            }
-            else if (rangeType == slang::BindingType::MutableTypedBuffer ||
-                     rangeType == slang::BindingType::MutableRawBuffer)
-            {
-                type = Gfx::DescriptorType::StorageBuffer;
-            }
-            else if (rangeType == slang::BindingType::TypedBuffer || rangeType == slang::BindingType::RawBuffer)
-            {
-                ASSERT(0 && "Not Handled");
-            }
-            else if (rangeType == slang::BindingType::ConstantBuffer || rangeType == slang::BindingType::ParameterBlock)
-            {
-                type = Gfx::DescriptorType::UniformBuffer;
-            }
-            else
-                ASSERT(0 && "Not Handled");
         }
         return type;
     }
@@ -468,7 +466,7 @@ public:
                     binding.bindingNum = currentBinding;
                     binding.descriptorCount = 1; // TODO array binding
                     binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-                    binding.descriptorType = MapSlangDescriptorType(variableLayout);
+                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
                     binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
                     binding.bufferMembers = {};
                     binding.byteSize = 0;
@@ -500,7 +498,7 @@ public:
                     binding.bindingNum = currentBinding;
                     binding.descriptorCount = 1; // TODO array binding
                     binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-                    binding.descriptorType = MapSlangDescriptorType(variableLayout);
+                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
                     if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
                         binding.descriptorType == Gfx::DescriptorType::SampledImage ||
                         binding.descriptorType == Gfx::DescriptorType::StorageImage)
@@ -562,7 +560,8 @@ public:
                             set.setNum,
                             currentBinding
                         );
-                        binding.descriptorType = MapSlangDescriptorType(variableLayout);
+                        binding.descriptorType =
+                            MapSlangDescriptorType(variableLayout, variableLayout->getType()->getResourceShape());
                         binding.textureType = Gfx::TextureType::Invalid;
                         binding.bufferMembers = CollectBufferMembers(elementVarLayout);
                         binding.byteSize = size;
@@ -587,8 +586,8 @@ public:
                     CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
                     break;
                 }
-            //case slang::TypeReflection::Kind::Array: 
-            //    ASSERT(false && "Not Implemented");
+                // case slang::TypeReflection::Kind::Array:
+                //     ASSERT(false && "Not Implemented");
 
             default:
                 {

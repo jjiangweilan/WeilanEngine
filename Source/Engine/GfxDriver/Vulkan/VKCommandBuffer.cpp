@@ -428,7 +428,14 @@ void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, Bli
 
 void VKCommandBuffer::BeginLabel(std::string_view label, const glm::float4& color)
 {
+    if (beginLabelStarted)
+    {
+        spdlog::error("Starting an unmatched label {}, previous label: ", label, currentLabel);
+        beginLabelStarted = false;
+        return;
+    }
     VKBeginLabelCmd cmd{};
+    currentLabel = label;
 
     char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
     strcpy(tmp, (char*)label.data());

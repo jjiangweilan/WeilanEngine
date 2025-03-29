@@ -5,17 +5,13 @@
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
-Cloud::Cloud() : Component(nullptr) {};
+Cloud::Cloud() : Component(nullptr) { };
 
 Cloud::Cloud(GameObject* owner) : Component(owner)
-{
-    Setup();
-};
+{ };
 
 void Cloud::OnLoaded()
-{
-    Setup();
-}
+{ }
 
 void Cloud::Serialize(Serializer* s) const
 {
@@ -70,6 +66,8 @@ void Cloud::RemoveFromRenderingScene()
 void Cloud::OnEnable()
 {
     AddToRenderingScene();
+
+    Setup();
 }
 
 void Cloud::OnDisable()

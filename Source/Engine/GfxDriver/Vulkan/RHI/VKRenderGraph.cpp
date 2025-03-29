@@ -1034,6 +1034,7 @@ void Graph::Execute(VkCommandBuffer vkcmd, int inflightIndex)
         {
             case VKCmdType::SetLineWidth:
                 {
+
                     auto& args = std::get<VKSetLineWidthCmd>(cmd.args);
                     vkCmdSetLineWidth(vkcmd, args.lineWidth);
                     break;

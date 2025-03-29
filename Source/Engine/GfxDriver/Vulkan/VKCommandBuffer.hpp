@@ -473,6 +473,8 @@ public:
 
 private:
     bool validationCheck = true;
+    bool beginLabelStarted = false;
+    std::string currentLabel;
 
     std::vector<VKCmd> cmds;
     AutoGrowLinearAllocator tmpMemory;

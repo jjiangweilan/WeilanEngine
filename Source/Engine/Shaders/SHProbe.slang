@@ -21,7 +21,7 @@ struct VertexOutput
 
 struct PerMaterial
 {
-    Buffer<float4> sh;
+    StructuredBuffer<float4> sh;
 };
 
 ParameterBlock<PerScene> perScene;
