@@ -2,7 +2,7 @@
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Internal/VKMemAllocator.hpp"
-#include "Libs/AutoGrowLinearAllocator.hpp"
+#include "Libs/ArenaAllocator.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
 #include <vector>
@@ -399,6 +399,8 @@ struct VKCmd
 class VKCommandBuffer : public CommandBuffer
 {
 public:
+    using TmpAllocator = ArenaAllocator<1024>;
+
     VKCommandBuffer(VK::RenderGraph::Graph* graph) : graph(graph) {}
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
     ~VKCommandBuffer() {};
@@ -477,7 +479,7 @@ private:
     std::string currentLabel;
 
     std::vector<VKCmd> cmds;
-    AutoGrowLinearAllocator tmpMemory;
+    TmpAllocator tmpMemory;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 

@@ -35,7 +35,7 @@ VertexOutput Vert(VertexInput input)
 {
     VertexOutput output;
     output.position = mul(perScene.viewProjection, mul(pconst.model, float4(input.position, 1)));
-    output.normalWS = mul(perScene.view, mul(pconst.model, float4(input.normal, 0)));
+    output.normalWS = mul(pconst.model, float4(input.normal, 0));
 
     return output;
 }

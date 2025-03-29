@@ -19,6 +19,33 @@ public:
         freeChunkIndex = 0;
     };
 
+    ArenaAllocator(ArenaAllocator&& other) noexcept
+        : freeChunkIndex(other.freeChunkIndex), chunks(std::move(other.chunks))
+    {
+        other.freeChunkIndex = 0;
+    }
+
+    // Move assignment operator
+    ArenaAllocator& operator=(ArenaAllocator&& other) noexcept
+    {
+        if (this != &other)
+        {
+            // Release current resources
+            for (auto& c : chunks)
+            {
+                delete[] c.data;
+            }
+
+            // Transfer ownership
+            freeChunkIndex = other.freeChunkIndex;
+            chunks = std::move(other.chunks);
+
+            // Reset the source object
+            other.freeChunkIndex = 0;
+        }
+        return *this;
+    }
+
     ~ArenaAllocator()
     {
         for (auto& c : chunks)

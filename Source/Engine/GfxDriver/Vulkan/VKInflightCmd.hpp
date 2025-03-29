@@ -1,6 +1,6 @@
 #pragma once
 #include "GfxDriver/Vulkan/VKCommandBuffer.hpp"
-#include "Libs/AutoGrowLinearAllocator.hpp"
+#include "Libs/ArenaAllocator.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -20,7 +20,7 @@ struct VKFramePrepareData
     void Clear();
 
     std::vector<VKCmd> cmds{};
-    AutoGrowLinearAllocator memory{};
+    std::vector<VKCommandBuffer::TmpAllocator> memory{};
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks{};
 };
 } // namespace Gfx

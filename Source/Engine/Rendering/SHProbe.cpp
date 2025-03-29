@@ -129,6 +129,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
             false,
             false
         );
+        GetGfxDriver()->UploadBuffer(*this->sh, (uint8_t*)shData.data(), shData.size() * 4 * sizeof(float), 0);
     }
     else
     {
