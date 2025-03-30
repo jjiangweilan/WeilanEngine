@@ -12,6 +12,11 @@ struct Light
     float pointLightTerm2;
 };
 
+struct SphericalHarmonics_2ndOrder
+{
+    float4 colors[9];
+};
+
 struct PerScene
 {
     float4 viewPos;
@@ -32,4 +37,18 @@ struct PerScene
     float padding1;
     float padding2;
     Light lights[MAX_LIGHT_COUNT];
+
+    SphericalHarmonics_2ndOrder sh_2ndOrder;
+
+#if GPU_RESOURCE
+    Light GetMainLight()
+    {
+        if (lightCount.x > 0)
+        {
+            return lights[0];
+        }
+        else
+            return Light(0,0,0,0,0,0,0);
+    }
+#endif
 };

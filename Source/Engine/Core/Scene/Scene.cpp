@@ -277,12 +277,14 @@ void Scene::OnLoaded()
 {
     for (auto go : GetAllGameObjects())
     {
-        go->OnLoaded();
+        if (go != nullptr)
+            go->OnLoaded();
     }
 
     for (auto& g : gameObjects)
     {
-        g->SetScene(this);
+        if (g != nullptr)
+            g->SetScene(this);
     }
 }
 

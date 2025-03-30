@@ -129,17 +129,10 @@ void SHProbe::UpdateProbe(Scene& scene, const SHProbeUpdateSettings& settings)
             shData.push_back(float4(sh[i], 1.0));
         }
 
-        if (this->sh == nullptr)
+        if (this->sh)
         {
-            this->sh = GetGfxDriver()->CreateBuffer(
-                sizeof(float) * 4 * 9,
-                Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Storage,
-                false,
-                false
-            );
+            GetGfxDriver()->UploadBuffer(*this->sh, (uint8_t*)shData.data(), shData.size() * 4 * sizeof(float), 0);
         }
-
-        GetGfxDriver()->UploadBuffer(*this->sh, (uint8_t*)shData.data(), shData.size() * 4 * sizeof(float), 0);
     }
     else
     {
@@ -190,17 +183,26 @@ float SHProbe::SHBasis(int l, int m, float3 dir)
 
 void SHProbe::DebugDrawProbe(const float3& position)
 {
-    if (sh != nullptr)
+    if (this->sh == nullptr)
     {
-        if (debugMaterial == nullptr)
-        {
-            debugMaterial = std::make_unique<Material>();
-            debugMaterial->SetShader(ShaderLibrary::GetShader(ShaderLibrary::SHProbe));
-            debugMaterial->GetShaderResource()->SetBuffer("sh", sh.get());
-        }
+        this->sh = GetGfxDriver()->CreateBuffer(
+            sizeof(float) * 4 * 9,
+            Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Storage,
+            false,
+            false
+        );
 
-        auto sphere = EngineInternalResources::GetModels().sphere;
-        auto model = glm::translate(float4x4(1.0), position);
-        Graphics::DrawMesh(*sphere, 0, model, *debugMaterial);
+        GetGfxDriver()->UploadBuffer(*this->sh, (uint8_t*)shData.data(), shData.size() * 4 * sizeof(float), 0);
     }
+
+    if (debugMaterial == nullptr)
+    {
+        debugMaterial = std::make_unique<Material>();
+        debugMaterial->SetShader(ShaderLibrary::GetShader(ShaderLibrary::SHProbe));
+        debugMaterial->GetShaderResource()->SetBuffer("sh", sh.get());
+    }
+
+    auto sphere = EngineInternalResources::GetModels().sphere;
+    auto model = glm::translate(float4x4(1.0), position);
+    Graphics::DrawMesh(*sphere, 0, model, *debugMaterial);
 }

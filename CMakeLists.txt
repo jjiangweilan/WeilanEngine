@@ -20,7 +20,7 @@ endif()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
-    GIT_TAG "f4d5372d3354e62770b076b47892b5172223e98a"
+    GIT_TAG "v2025.6.3"
     UPDATE_DISCONNECTED TRUE
     GIT_PROGRESS TRUE
 )

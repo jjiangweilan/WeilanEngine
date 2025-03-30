@@ -188,31 +188,6 @@ float3 ParallaxShadowReprojection(float3 P1, float3 L1, float3 L0)
 
     return P0;
 } 
-float GetMipLevelFromRoughness(float roughness)
-{
-    roughness = max(roughness, 0.001);
-    if (roughness <= 0.2)
-    {
-        return lerp(0, 1, (roughness - 0.001) / 0.2);
-    }
-
-    if (roughness <= 0.5)
-    {
-        return lerp(1, 2, (roughness - 0.2) / 0.3);
-    }
-
-    if (roughness <= 0.8)
-    {
-        return lerp(2, 3, (roughness - 0.5) / 0.3);
-    }
-
-    if (roughness <= 1)
-    {
-        return lerp(3, 4, (roughness - 0.8) / 0.2);
-    }
-
-    return 0;
-}
 
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input) : SV_Target
@@ -273,20 +248,9 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         color += lighting * shadowAttenuation;
     }
 
-    // specular cube light
-    float dotNV = clamp(dot(v, n), 0, 1);
-    float3 f0 = baseColor * metallic;
-    float lod             = GetMipLevelFromRoughness(roughness);
-    float3 reffloat = reflect(-v, n);
-    float3 prefilteredColor = perMaterial.specularCube.SampleLevel(reffloat, lod).xyz;
-    float2 envBRDF          = perMaterial.specularBRDFIntegrationMap.SampleLevel(float2(dotNV, roughness), 0).xy;
-    // float3 energyCompensation = 1.0 + f0 * (1.0 / envBRDF.x - 1.0);
-    float3 indirectSpecular = prefilteredColor * (f0 * envBRDF.x + envBRDF.y);// * energyCompensation;
-
-    // diffuse cube light
     float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
-    float3 diffuseCubeColor = perMaterial.diffuseCube.Sample(n).xyz;
-    float3 ambient = (1 - metallic) * ao * baseColor * diffuseCubeColor * (perScene.lightCount.x > 0 ? perScene.lights[0].ambientScale : 1);
+    float3 ambient = perScene.GetMainLight().ambientScale * ao;
+    color += ambient;
 
-    return float4(color + ambient + indirectSpecular, 1);
+    return float4(color, 1);
 }

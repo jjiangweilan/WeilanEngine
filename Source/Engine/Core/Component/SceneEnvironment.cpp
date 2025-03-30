@@ -31,32 +31,29 @@ void SceneEnvironment::OnDisable()
     }
 }
 
-void SceneEnvironment::SetDiffuseCube(Texture* diffuseCube)
-{
-    if (diffuseCube && diffuseCube->GetDescription().img.isCubemap)
-        this->diffuseCube = diffuseCube;
-    else if (diffuseCube == nullptr)
-        this->diffuseCube = nullptr;
-}
-
-void SceneEnvironment::SetSpecularCube(Texture* specularCube)
-{
-    if (specularCube && specularCube->GetDescription().img.isCubemap)
-        this->specularCube = specularCube;
-    else if (specularCube == nullptr)
-        this->specularCube = nullptr;
-}
-
 void SceneEnvironment::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
-    s->Serialize("diffuseCube", diffuseCube);
-    s->Serialize("specularCube", specularCube);
 }
 
 void SceneEnvironment::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize("diffuseCube", diffuseCube);
-    s->Deserialize("specularCube", specularCube);
+}
+
+void SceneEnvironment::UpdateSkyboxProbe()
+{
+    auto scene = GetScene();
+    if (scene == nullptr)
+        return;
+
+    SHProbeUpdateSettings shProbeUpdateSettings;
+
+    shProbeUpdateSettings.skyboxOnly = true;
+    skyboxProbe.UpdateProbe(*scene, shProbeUpdateSettings);
+}
+
+void SceneEnvironment::DebugDrawSkyboxProbe(const float3& position)
+{
+    skyboxProbe.DebugDrawProbe(position);
 }

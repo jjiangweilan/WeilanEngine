@@ -541,7 +541,9 @@ int Material::GetSet(const std::string& name) const
 {
     if (shaderInUse)
     {
-        return shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(name)->setNum;
+        auto set = shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(name);
+        if (set)
+            return set->setNum;
     }
 
     return 2; // legacy default

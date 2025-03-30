@@ -1,5 +1,6 @@
 #include "RenderPipeline.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/SceneEnvironment.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
@@ -505,6 +506,8 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
 void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize)
 {
     auto camGo = camera.GetGameObject();
+    auto& renderingScene = scene.GetRenderingScene();
+    auto sceneEnvironment = renderingScene.GetSceneEnvironment();
 
     glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
     glm::matrix<float, 4, 4> projectionMatrix = camera.GetAndUpdateProjectionMatrix(screenSize.x / screenSize.y);
@@ -539,6 +542,14 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     );
     param.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
     param.time = Time::TimeSinceLaunch();
+    if (sceneEnvironment)
+    {
+        auto coefs = sceneEnvironment->GetSkyboxProbeCoefficients();
+        for (int i = 0; i < 9 && i < coefs.size(); ++i)
+        {
+            param.sh_2ndOrder.colors[i] = coefs[i];
+        }
+    }
 
     // light data
     {
@@ -635,7 +646,6 @@ Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
 
     return finalColor;
 }
-
 
 } // namespace Rendering
   //

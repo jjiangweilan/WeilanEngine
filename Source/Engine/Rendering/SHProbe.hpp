@@ -29,6 +29,7 @@ public:
     void DebugDrawProbe(const float3& position);
 
     const std::vector<float4>& GetSHCoefficients() const { return shData; }
+    bool HasSH() const { return !shData.empty(); }
 
 private:
     int level;

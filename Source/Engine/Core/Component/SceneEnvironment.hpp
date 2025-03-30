@@ -1,5 +1,6 @@
 #pragma once
 #include "Component.hpp"
+#include "Rendering/SHProbe.hpp"
 
 class Texture;
 class SceneEnvironment : public Component
@@ -7,9 +8,9 @@ class SceneEnvironment : public Component
     DECLARE_OBJECT();
 
 public:
-    SceneEnvironment() : Component(nullptr){};
-    SceneEnvironment(GameObject* owner) : Component(owner){};
-    ~SceneEnvironment() override{};
+    SceneEnvironment() : Component(nullptr) {};
+    SceneEnvironment(GameObject* owner) : Component(owner) {};
+    ~SceneEnvironment() override {};
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -17,28 +18,26 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override
     {
         auto clone = std::make_unique<SceneEnvironment>();
-        clone->diffuseCube = diffuseCube;
-        clone->specularCube = specularCube;
         return clone;
     }
 
-    void SetDiffuseCube(Texture* diffuseCube);
-    void SetSpecularCube(Texture* specularCube);
-
-    Texture* GetDiffuseCube()
+    void UpdateSkyboxProbe();
+    const std::vector<float4>& GetSkyboxProbeCoefficients() const
     {
-        return diffuseCube;
-    }
-
-    Texture* GetSpecularCube()
-    {
-        return specularCube;
+        if (skyboxProbe.HasSH())
+            return skyboxProbe.GetSHCoefficients();
+        else
+        {
+            static std::vector<float4> zeros(9);
+            return zeros;
+        }
     }
 
     void OnEnable() override;
     void OnDisable() override;
 
+    void DebugDrawSkyboxProbe(const float3& position);
+
 private:
-    Texture* diffuseCube = nullptr;
-    Texture* specularCube = nullptr;
+    SHProbe skyboxProbe;
 };

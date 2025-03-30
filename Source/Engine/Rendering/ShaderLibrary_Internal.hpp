@@ -109,8 +109,8 @@ public:
 
         ComPtr<slang::IModule> module;
         module = session->loadModule(shaderName, diagnostics.writeRef());
-
         DiagnoseIfNeeded(diagnostics);
+
         if (!module)
             return SLANG_FAIL;
 

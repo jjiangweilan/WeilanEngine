@@ -95,7 +95,7 @@ private:
         ShadingPass();
 
         Gfx::RG::RenderPass pass;
-        GPUParameter::DeferredPBRShadingInput cpuParameter;
+        GPUParameter::DeferredPBRShadingInput cpuParameter{};
         std::unique_ptr<Gfx::ShaderResource> gpuResource;
         std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
         ObjPtr<Shader2> shadingShader;
@@ -171,7 +171,6 @@ private:
         ObjPtr<Shader2> shader{};
 
     } screenSpaceShadowPass{};
-
 
     struct
     {
