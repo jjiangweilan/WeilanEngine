@@ -25,8 +25,8 @@ public:
     template <class T>
     T* Sample(float nx, float ny, int face)
     {
-        int x = (nx * width + 0.5);
-        int y = (ny * height + 0.5);
+        int x = glm::clamp(nx * width + 0.5f, 0.f, width - 1);
+        int y = glm::clamp(ny * height + 0.5f, 0.f, height - 1);
 
         ASSERT(sizeof(T) == elementSize);
         ASSERT(face >= 0 && face < 6);
@@ -43,8 +43,8 @@ public:
     template <class T>
     glm::vec<4, T, glm::highp> Sample4(float nx, float ny, int face)
     {
-        int x = (nx * width + 0.5);
-        int y = (ny * height + 0.5);
+        int x = glm::clamp(nx * width + 0.5f, 0.f, width - 1.f);
+        int y = glm::clamp(ny * height + 0.5f, 0.f, height - 1.f);
 
         ASSERT(elementSize == 4);
         ASSERT(face >= 0 && face < 6);
@@ -63,8 +63,8 @@ public:
     {
         int face = 0;
         float2 uv = DirToUV(dir, face);
-        int x = (uv.x * width + 0.5);
-        int y = (uv.y * height + 0.5);
+        int x = glm::clamp(uv.x * width + 0.5f, 0.f, width - 1.f);
+        int y = glm::clamp(uv.y * height + 0.5f, 0.f, height - 1.f);
 
         ASSERT(elementSize == 4);
         ASSERT(face >= 0 && face < 6);

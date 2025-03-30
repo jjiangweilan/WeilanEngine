@@ -9,13 +9,8 @@
 using namespace Rendering;
 DEFINE_OBJECT(SHProbe, "2D474098-4932-46EA-9911-C120F5595465");
 
-SHProbe::SHProbe() : Component(nullptr) {}
-SHProbe::SHProbe(GameObject* gameObject) : Component(gameObject) {}
-const std::string& SHProbe::GetName()
-{
-    static std::string name = "SHProbe";
-    return name;
-}
+SHProbe::SHProbe() {}
+SHProbe::SHProbe(GameObject* gameObject) {}
 
 void SHProbe::Init(int level) {}
 
@@ -26,9 +21,22 @@ std::array<float3, 9> SHProbe::BakeToSHCPU(
     LinearCubemap
         cubeMap(cubeMapDesc.width, cubeMapDesc.height, 4, sizeof(float), readbackBuffer->GetCPUVisibleAddress());
 
-    std::array<float3, 9> sh = {};
+    struct Sample
+    {
+        float3 ray;
+        float3 sample;
+    };
+    const int TotalSampleCount = 4096 * 10;
+    std::vector<Sample> samples(TotalSampleCount);
 
-    const int TotalSampleCount = 1024;
+    for (int i = 0; i < TotalSampleCount; ++i)
+    {
+        auto dir = glm::sphericalRand(1.0f);
+        float3 color = cubeMap.Sample4<float>(dir);
+        samples[i] = {dir, color};
+    }
+
+    std::array<float3, 9> sh = {};
     for (int l = 0; l <= 2; ++l)
     {
         for (int m = -l; m <= l; ++m)
@@ -36,9 +44,8 @@ std::array<float3, 9> SHProbe::BakeToSHCPU(
             for (int sampleIdx = 0; sampleIdx < TotalSampleCount; sampleIdx++)
             {
                 int index = l * (l + 1) + m;
-                auto dir = glm::sphericalRand(1.0f);
-                float basis = SHBasis(l, m, dir);
-                float3 color = cubeMap.Sample4<float>(dir);
+                float basis = SHBasis(l, m, samples[sampleIdx].ray);
+                float3 color = samples[sampleIdx].sample;
                 sh[index] += color * basis;
             }
         }
@@ -53,9 +60,8 @@ std::array<float3, 9> SHProbe::BakeToSHCPU(
 
     return sh;
 }
-void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
+void SHProbe::UpdateProbe(Scene& scene, const SHProbeUpdateSettings& settings)
 {
-    auto scene = GetScene();
     ASSERT(scene != nullptr);
 
     if (settings.skyboxOnly)
@@ -65,7 +71,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         Gfx::ImageDescription
             cubeMapDesc(256, 256, 1, Gfx::GfxFormat::R32G32B32A32_SFloat, Gfx::MultiSampling::Sample_Count_1, 1, true);
 
-        cubeMap = GetGfxDriver()->CreateImage(
+        auto cubeMapImage = GetGfxDriver()->CreateImage(
             cubeMapDesc,
             Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture | Gfx::ImageUsage::ColorAttachment |
                 Gfx::ImageUsage::TransferSrc
@@ -84,13 +90,13 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
         Rendering::RenderConfig configs[6];
         float3 lookAtDirs[6] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
 
-        auto cubeMapCam = scene->AddGameObject(std::make_unique<GameObject>());
+        auto cubeMapCam = scene.AddGameObject(std::make_unique<GameObject>());
         auto camera = cubeMapCam->AddComponent<Camera>();
-        cubeMapCam->SetPosition(GetGameObject()->GetPosition());
+        cubeMapCam->SetPosition(cubeMapCam->GetPosition());
         for (int face = 0; face < 6; ++face)
         {
             Gfx::ImageView::CreateInfo createInfo{
-                .image = *cubeMap.get(),
+                .image = *cubeMapImage.get(),
                 .imageViewType = Gfx::ImageViewType::Image_2D,
                 .subresourceRange =
                     Gfx::ImageSubresourceRange{Gfx::ImageAspect::Color, 0, 1, static_cast<uint32_t>(face), 1}
@@ -101,7 +107,7 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
 
             camera->LookAt(cubeMapCam->GetPosition() + lookAtDirs[face]);
             skyboxRenderPipeline[face].SetConfig(configs[face]);
-            skyboxRenderPipeline[face].RenderSkyboxOnly(*scene, *camera, {});
+            skyboxRenderPipeline[face].RenderSkyboxOnly(scene, *camera, {});
         }
 
         Gfx::BufferImageCopyRegion copyRegion[] = {
@@ -110,10 +116,10 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
              {0, 0, 0},
              {cubeMapDesc.width, cubeMapDesc.height, 1}}
         };
-        cmd->CopyImageToBuffer(cubeMap, readbackBuffer, copyRegion);
+        cmd->CopyImageToBuffer(cubeMapImage, readbackBuffer, copyRegion);
         GetGfxDriver()->ExecuteCommandBufferImmediately(*cmd);
         cmd->Reset(true);
-        scene->DestroyGameObject(cubeMapCam);
+        scene.DestroyGameObject(cubeMapCam);
 
         // cpu baking to sh
         auto sh = BakeToSHCPU(cubeMapDesc, readbackBuffer);
@@ -123,12 +129,16 @@ void SHProbe::UpdateProbe(const SHProbeUpdateSettings& settings)
             shData.push_back(float4(sh[i], 1.0));
         }
 
-        this->sh = GetGfxDriver()->CreateBuffer(
-            sizeof(float) * 4 * 9,
-            Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Storage,
-            false,
-            false
-        );
+        if (this->sh == nullptr)
+        {
+            this->sh = GetGfxDriver()->CreateBuffer(
+                sizeof(float) * 4 * 9,
+                Gfx::BufferUsage::Transfer_Dst | Gfx::BufferUsage::Storage,
+                false,
+                false
+            );
+        }
+
         GetGfxDriver()->UploadBuffer(*this->sh, (uint8_t*)shData.data(), shData.size() * 4 * sizeof(float), 0);
     }
     else
@@ -178,7 +188,7 @@ float SHProbe::SHBasis(int l, int m, float3 dir)
     return 0.0;
 }
 
-void SHProbe::DrawDebugProbe()
+void SHProbe::DebugDrawProbe(const float3& position)
 {
     if (sh != nullptr)
     {
@@ -190,6 +200,7 @@ void SHProbe::DrawDebugProbe()
         }
 
         auto sphere = EngineInternalResources::GetModels().sphere;
-        Graphics::DrawMesh(*sphere, 0, gameObject->GetWorldMatrix(), *debugMaterial);
+        auto model = glm::translate(float4x4(1.0), position);
+        Graphics::DrawMesh(*sphere, 0, model, *debugMaterial);
     }
 }

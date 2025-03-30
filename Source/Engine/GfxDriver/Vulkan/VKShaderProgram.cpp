@@ -583,6 +583,7 @@ void VKShaderProgram::CleanUpInvalidCaches()
     {
         if (cache.second.first == nullptr)
         {
+            objManager->DestroyPipeline(cache.second.second);
             caches.erase(cache.first);
         }
     }

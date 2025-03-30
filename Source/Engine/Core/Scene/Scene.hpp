@@ -6,6 +6,7 @@
 #include "Core/GameObject.hpp"
 #include "Core/Ptr.hpp"
 #include "Core/Scene/PhysicsScene.hpp"
+#include "Core/Scene/SceneSettings.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "RenderingScene.hpp"
@@ -71,12 +72,16 @@ public:
     auto GetRenderPipelineSetting() const { return renderPipelineSetting; }
     void SetRenderPipelineSetting(const auto& val) { renderPipelineSetting = val; }
 
+    auto GetSceneSettings() const { return sceneSettings; }
+    void SetSceneSettings(const ObjPtr<SceneSettings>& val) { sceneSettings = val; }
+
 protected:
     // this should be deleted after gameObjects
     RenderingScene renderingScene;
     PhysicsScene physicsScene;
 
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
+    ObjPtr<SceneSettings> sceneSettings;
 
     std::vector<std::unique_ptr<GameObject>> gameObjects;
     std::vector<ObjPtr<GameObject>> roots;
