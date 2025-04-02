@@ -40,6 +40,7 @@ struct RenderingData
     GPUParameter::PerScene* sceneInfo;
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
+    Gfx::Image* depthCopy;
 
     InterleavedGradientNoise interleavedGradientNoise;
 };

@@ -2,6 +2,8 @@
 #include "Core/SafeReferenceable.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Libs/Math.hpp"
+#include "Rendering/RenderingData.hpp"
+#include "Rendering/Structs.hpp"
 #include <variant>
 #include <vector>
 
@@ -27,13 +29,23 @@ public:
         const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, const glm::vec4& color = {1, 1, 1, 1}
     );
     static void DrawFrustum(const glm::mat4& viewProj);
+    static void AddRenderingEvent(
+        std::string_view name,
+        RenderingEvent event,
+        std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
+    );
 
     static Graphics& GetSingleton();
+
+    void ExecuteRenderingEvnet(
+        RenderingEvent event, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData
+    );
 
     void DispatchDraws(Gfx::CommandBuffer& cmd);
     void ClearDraws();
 
 private:
+    Graphics();
     struct DrawLineCmd
     {
         glm::vec3 from, to;
@@ -65,12 +77,27 @@ private:
         glm::vec3 scale;
     };
 
-    using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd>;
+    struct DrawCustomCmd
+    {
+        DrawCustomCmd(
+            RenderingEvent e,
+            std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
+        )
+            : event(e), f(std::move(f))
+        {}
+        RenderingEvent event;
+        std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)> f;
+    };
+
+    using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCustomCmd>;
 
     std::vector<DrawCmds> drawCmds;
+    std::vector<std::vector<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
+        renderingEvents;
 
     static void DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& draw);
     static void DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& draw);
     static void DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& draw);
     static void DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw);
+    static void DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw);
 };

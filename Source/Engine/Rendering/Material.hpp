@@ -78,6 +78,7 @@ public:
     void OnLoaded() override;
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
+    void CopyProperties(Material& other);
 
     std::vector<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
 

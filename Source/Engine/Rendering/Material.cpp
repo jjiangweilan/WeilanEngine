@@ -548,3 +548,27 @@ int Material::GetSet(const std::string& name) const
 
     return 2; // legacy default
 }
+
+void Material::CopyProperties(Material& other)
+{
+    if (ubo.floats != other.ubo.floats)
+    {
+        ubo.floats = other.ubo.floats;
+        ubo.dirty = true;
+        uploadNeeded = true;
+    }
+
+    if (ubo.vectors != other.ubo.vectors)
+    {
+        ubo.vectors = other.ubo.vectors;
+        ubo.dirty = true;
+        uploadNeeded = true;
+    }
+
+    if (ubo.matrices != other.ubo.matrices)
+    {
+        ubo.matrices = other.ubo.matrices;
+        ubo.dirty = true;
+        uploadNeeded = true;
+    }
+}

@@ -3,6 +3,7 @@
 #include "GfxDriver/CommandBuffer.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
+#include "Modules/VolumetricCloud/Cloud.hpp"
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "SkyboxPass.hpp"
@@ -122,6 +123,17 @@ private:
         const glm::float4 shadowMapTexelSize = {1 / shadowMapWidth, 1 / shadowMapWidth, shadowMapWidth, shadowMapWidth};
 
     } shadowMapPass{};
+
+    struct CloudPass
+    {
+        CloudPass();
+
+        std::unique_ptr<Material> volumetricCloud = std::make_unique<Material>();
+        inline static const char* volumetricCloudShader =
+            "Source/Engine/Modules/VolumetricCloud/Shaders/VolumetricCloud";
+
+        void Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, RenderingData& renderingData);
+    } cloudPass;
 
     struct ColorGradingPass
     {

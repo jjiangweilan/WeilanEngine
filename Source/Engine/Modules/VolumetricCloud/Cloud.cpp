@@ -2,16 +2,15 @@
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/Graphics.hpp"
 #include <spdlog/spdlog.h>
 
 DEFINE_OBJECT(Cloud, "D659B514-6D77-498B-88DB-F20FC0F62B10");
-Cloud::Cloud() : Component(nullptr) { };
+Cloud::Cloud() : Component(nullptr) {};
 
-Cloud::Cloud(GameObject* owner) : Component(owner)
-{ };
+Cloud::Cloud(GameObject* owner) : Component(owner) {};
 
-void Cloud::OnLoaded()
-{ }
+void Cloud::OnLoaded() {}
 
 void Cloud::Serialize(Serializer* s) const
 {
@@ -86,11 +85,17 @@ void Cloud::UpdateNoiseTexture()
     cmd->BindShaderProgram(noiseGenerator->GetShaderProgram(), noiseGenerator->GetShaderConfig());
     cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
 
-    cmd->BindResource(highFrequencyNoiseGenerator->GetSet("perMaterial"), highFrequencyNoiseGenerator->GetShaderResource());
+    cmd->BindResource(
+        highFrequencyNoiseGenerator->GetSet("perMaterial"),
+        highFrequencyNoiseGenerator->GetShaderResource()
+    );
     dispatchX = glm::ceil(cloudNoise.highFrequencyNoise->GetDescription().width / 8.0f);
     dispatchY = glm::ceil(cloudNoise.highFrequencyNoise->GetDescription().height / 8.0f);
     dispatchZ = glm::ceil(cloudNoise.highFrequencyNoise->GetDescription().depth / 8.0f);
-    cmd->BindShaderProgram(highFrequencyNoiseGenerator->GetShaderProgram(), highFrequencyNoiseGenerator->GetShaderConfig());
+    cmd->BindShaderProgram(
+        highFrequencyNoiseGenerator->GetShaderProgram(),
+        highFrequencyNoiseGenerator->GetShaderConfig()
+    );
     cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
 
     GetGfxDriver()->ExecuteCommandBuffer(*cmd);
@@ -108,7 +113,10 @@ Gfx::Image* Cloud::UpdateDebugImage(int debugImageIndex)
         debugImageMaterial->SetFloat("layer", 0);
         debugImageMaterial->SetFloat("axis", 0);
     }
-    debugImageMaterial->SetTexture("tex", debugImageIndex == 0 ? cloudNoise.baseShapeNoise.get() : cloudNoise.highFrequencyNoise.get());
+    debugImageMaterial->SetTexture(
+        "tex",
+        debugImageIndex == 0 ? cloudNoise.baseShapeNoise.get() : cloudNoise.highFrequencyNoise.get()
+    );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
     debugRenderPass.SetAttachment(0, Gfx::RG::ImageIdentifier(*debugImage));
@@ -126,33 +134,12 @@ Gfx::Image* Cloud::UpdateDebugImage(int debugImageIndex)
 
 void Cloud::Tick()
 {
-    ObjPtr<Cloud> self = this;
-    GetScene()->GetRenderingScene().Draw(
+    ObjPtr<Cloud> inSelf = this;
+    Graphics::AddRenderingEvent(
         "cloud",
         RenderingEvent::Skybox,
-        [self](Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
+        [inSelf](Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
         {
-            if (self == nullptr)
-                return;
-
-            auto scene = self->GetScene();
-            self->volumetricCloud->SetTexture("mainColor", renderingData.mainColor);
-            self->volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
-            self->volumetricCloud->SetTexture(
-                "depthMap",
-                renderingData.mainDepth,
-                Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth}
-            );
-            cmd.BindShaderProgram(
-                self->volumetricCloud->GetShader()->GetShaderProgram(),
-                self->volumetricCloud->GetShaderConfig()
-            );
-            cmd.BindResource(self->volumetricCloud->GetSet("perMaterial"), self->volumetricCloud->GetShaderResource());
-            cmd.Dispatch(
-                (renderingData.sceneInfo->screenSize.x + 7) / 8,
-                (renderingData.sceneInfo->screenSize.y + 7) / 8,
-                1
-            );
         }
     );
 }
@@ -182,14 +169,11 @@ void Cloud::Setup()
         cloudNoise.highFrequencyNoise =
             GetGfxDriver()->CreateImage(desc, Gfx::ImageUsage::Storage | Gfx::ImageUsage::Texture);
 
-        volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
         noiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
         noiseGenerator->SetTexture("imgOutput", cloudNoise.baseShapeNoise.get());
         highFrequencyNoiseGenerator->SetShader(ShaderLibrary::GetShader(cloudNoiseGeneratorShader));
         highFrequencyNoiseGenerator->SetTexture("imgOutput", cloudNoise.highFrequencyNoise.get());
 
-        volumetricCloud->SetTexture("cloudDensity", cloudNoise.baseShapeNoise.get());
-        volumetricCloud->SetTexture("highFrequencyCloudDensity", cloudNoise.highFrequencyNoise.get());
         UpdateNoiseTexture();
     }
 }

@@ -7,6 +7,7 @@
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Profiler/Profiler.hpp"
+#include "Rendering/Graphics.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
@@ -191,7 +192,12 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->EndRenderPass();
 
-        scene.GetRenderingScene().Execute(RenderingEvent::Skybox, *cmd, renderingData);
+        // Graphics::GetSingleton().ExecuteRenderingEvnet(RenderingEvent::Skybox, *cmd, renderingData);
+        auto& clouds = scene.GetRenderingScene().GetClouds();
+        if (!clouds.empty())
+        {
+            cloudPass.Execute(*clouds[0], *cmd, renderingData);
+        }
 
         // draw objects
         cmd->BeginRenderPass(forwardPass.pass, clears);
@@ -431,7 +437,8 @@ void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 
         screenSize = renderConfig.colorOutputOverride.value()->GetImage().GetDescription().GetSize();
     }
 
-    FrameSetup(cmd, scene, camera, screenSize);
+    if (!FrameSetup(cmd, scene, camera, screenSize))
+        return;
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 
@@ -499,6 +506,7 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     renderingData.mainCamera = &camera;
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
+    renderingData.depthCopy = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
 
     return true;
 }
@@ -645,6 +653,26 @@ Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
     }
 
     return finalColor;
+}
+
+RenderPipeline::CloudPass::CloudPass()
+{
+    volumetricCloud->SetShader(ShaderLibrary::GetShader(volumetricCloudShader));
+}
+
+void RenderPipeline::CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, RenderingData& renderingData)
+{
+    volumetricCloud->CopyProperties(*cloud.volumetricCloud);
+    volumetricCloud->SetTexture("cloudDensity", cloud.cloudNoise.baseShapeNoise.get());
+    volumetricCloud->SetTexture("highFrequencyCloudDensity", cloud.cloudNoise.highFrequencyNoise.get());
+
+    volumetricCloud->SetTexture("mainColor", renderingData.mainColor);
+    volumetricCloud
+        ->SetTexture("depthMap", renderingData.depthCopy, Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth});
+    volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
+    cmd.BindShaderProgram(volumetricCloud->GetShader()->GetShaderProgram(), volumetricCloud->GetShaderConfig());
+    cmd.BindResource(volumetricCloud->GetSet("perMaterial"), volumetricCloud->GetShaderResource());
+    cmd.Dispatch((renderingData.sceneInfo->screenSize.x + 7) / 8, (renderingData.sceneInfo->screenSize.y + 7) / 8, 1);
 }
 
 } // namespace Rendering

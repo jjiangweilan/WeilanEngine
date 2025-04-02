@@ -37,26 +37,25 @@ public:
     void Tick() override;
     void IdleTick() override;
 
-private:
-    std::unique_ptr<Material> volumetricCloud = std::make_unique<Material>();
-    std::unique_ptr<Material> noiseGenerator = std::make_unique<Material>();
-    std::unique_ptr<Material> highFrequencyNoiseGenerator = std::make_unique<Material>();
-
-    std::unique_ptr<Gfx::Image> debugImage;
-    std::unique_ptr<Material> debugImageMaterial;
-    Gfx::RG::RenderPass debugRenderPass = Gfx::RG::RenderPass::SingleColor("a debug pass");
-
-    const float cloudSideResolution = 128;
-    bool isSetup = false;
-
-    inline static const char* cloudNoiseGeneratorShader = "Source/Engine/Modules/VolumetricCloud/Shaders/CloudNoiseGenerator";
-    inline static const char* volumetricCloudShader = "Source/Engine/Modules/VolumetricCloud/Shaders/VolumetricCloud";
-
     struct
     {
         std::unique_ptr<Gfx::Image> baseShapeNoise;
         std::unique_ptr<Gfx::Image> highFrequencyNoise;
     } cloudNoise;
+
+    std::unique_ptr<Material> volumetricCloud = std::make_unique<Material>();
+private:
+    std::unique_ptr<Gfx::Image> debugImage;
+    std::unique_ptr<Material> debugImageMaterial;
+    std::unique_ptr<Material> noiseGenerator = std::make_unique<Material>();
+    std::unique_ptr<Material> highFrequencyNoiseGenerator = std::make_unique<Material>();
+
+    Gfx::RG::RenderPass debugRenderPass = Gfx::RG::RenderPass::SingleColor("a debug pass");
+    inline static const char* cloudNoiseGeneratorShader =
+        "Source/Engine/Modules/VolumetricCloud/Shaders/CloudNoiseGenerator";
+
+    const float cloudSideResolution = 128;
+    bool isSetup = false;
 
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
@@ -65,5 +64,4 @@ private:
     void OnDisable() override;
 
     friend Editor::CloudInspector;
-
 };

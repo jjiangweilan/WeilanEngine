@@ -192,22 +192,3 @@ void RenderingScene::BVHDebug()
         }
     }
 }
-
-void RenderingScene::Execute(RenderingEvent event, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData)
-{
-    for (auto& f : renderingEvents[(int)event])
-    {
-        f(cmd, renderingData);
-    }
-
-    renderingEvents[(int)event].clear();
-}
-
-void RenderingScene::Draw(
-    std::string_view name,
-    RenderingEvent event,
-    std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
-)
-{
-    renderingEvents[(int)event].push_back(std::move(f));
-}

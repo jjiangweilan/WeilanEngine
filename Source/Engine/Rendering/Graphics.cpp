@@ -27,6 +27,15 @@ void Graphics::DrawCapsule(
     GetSingleton().drawCmds.push_back(DrawCapsuleCmd{halfHeight, radius, pos, rotation, scale});
 }
 
+void Graphics::AddRenderingEvent(
+    std::string_view name,
+    RenderingEvent event,
+    std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>&& f
+)
+{
+    GetSingleton().renderingEvents[(int)event].push_back(std::move(f));
+}
+
 void Graphics::DrawFrustum(const glm::mat4& viewProj)
 {
     std::array<glm::vec4, 8> frustumCorners = {
@@ -95,6 +104,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 {
                     DrawCapsuleCommand(cmd, draw);
                 }
+                else if constexpr (std::is_same_v<T, DrawCapsuleCmd>)
+                {
+                    DrawCmdCommand(cmd, draw);
+                }
             },
             drawCmd
         );
@@ -104,6 +117,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
 void Graphics::ClearDraws()
 {
     drawCmds.clear();
+    for (auto& events : renderingEvents)
+    {
+        events.clear();
+    }
 }
 
 void Graphics::DrawMeshCommand(Gfx::CommandBuffer& cmd, DrawMeshCmd& drawMesh)
@@ -145,6 +162,8 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
     cmd.Draw(2, 1, 0, 0);
 }
 
+void Graphics::DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw) {}
+
 void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
 {
     Submesh* halfSphere = EngineInternalResources::GetHalfSphereMesh();
@@ -152,11 +171,11 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     Material* mat = EngineInternalResources::GetDefaultMaterial();
     auto program = mat->GetShader()->GetShaderProgram();
 
-    glm::mat4 cylinderMatrix = glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
-                               glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.halfHeight, draw.radius));
+    glm::mat4 cylinderMatrix =
+        glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
+        glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.halfHeight, draw.radius));
 
     cmd.BindResource(2, mat->GetShaderResource());
-
 
     // top half sphere
     cmd.BindIndexBuffer(cylinder->GetIndexBuffer(), 0, cylinder->GetIndexBufferType());
@@ -211,4 +230,19 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
     cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(3, 1, 0, 0);
+}
+
+Graphics::Graphics()
+{
+    renderingEvents.resize((int)RenderingEvent::MAX_RENDERING_EVENT);
+}
+
+void Graphics::ExecuteRenderingEvnet(
+    RenderingEvent event, Gfx::CommandBuffer& cmd, const Rendering::RenderingData& renderingData
+)
+{
+    for (auto& f : renderingEvents[(int)event])
+    {
+        f(cmd, renderingData);
+    }
 }

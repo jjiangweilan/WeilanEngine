@@ -1,4 +1,4 @@
-import Library.PerScene;
+#include "Library/PerScene.hlsl"
 
 #if CONFIG
 name: Game/Cloud
