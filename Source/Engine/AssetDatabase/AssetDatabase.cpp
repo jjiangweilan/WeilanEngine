@@ -280,7 +280,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 
     for (auto a : results)
     {
-        if (a!= nullptr)
+        if (a != nullptr)
             a->OnLoaded();
     }
     return results;
@@ -1052,4 +1052,24 @@ void AssetDatabase::UnloadAsset(Asset& asset)
         AssetData* ptr = byUUIDIter->second;
         ptr->asset = nullptr;
     }
+}
+
+std::vector<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
+{
+    auto iter = assets.byUUID.find(uuid);
+    if (iter != assets.byUUID.end())
+    {
+        auto absolutePath = iter->second->GetAssetAbsolutePath();
+        if (std::filesystem::exists(absolutePath))
+        {
+            std::ifstream f(absolutePath, std::ios::binary);
+            size_t fileSize = std::filesystem::file_size(absolutePath);
+            std::vector<uint8_t> binary(fileSize);
+            f.read((char*)binary.data(), fileSize);
+
+            return binary;
+        }
+    }
+
+    return {};
 }

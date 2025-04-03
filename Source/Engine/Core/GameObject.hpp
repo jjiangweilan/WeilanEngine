@@ -65,6 +65,19 @@ public:
         }
     }
 
+    void RemoveComponentByIndex(int componentIndex)
+    {
+        if (componentIndex >= 0 && componentIndex < components.size())
+        {
+            auto& comp = components[componentIndex];
+            if (comp != nullptr)
+            {
+                comp->Disable();
+            }
+            components.erase(components.begin() + componentIndex);
+        }
+    }
+
     void LinkPrefab(Prefab* prefab);
 
     void SetFlags(GameObjectFlag f) { this->flags = f; }

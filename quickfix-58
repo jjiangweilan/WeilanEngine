@@ -1,0 +1,28 @@
+Source\Engine\Libs\Serialization\Serializer.hpp     void Deserialize(std::string_view name, std::nullptr_t, const ReferenceResolveCallback& callback);
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, std::string& val) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, nlohmann::json& json) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, bool& val) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, UUID& uuid) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, uint32_t& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, int32_t& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, uint64_t& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, int64_t& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, float& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, glm::mat4& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, glm::quat& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, glm::vec4& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, glm::vec3& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, glm::vec2& v) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, ManagedObject<T>& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, T& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, T*& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, ObjPtr<T>& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, T*& val, const ReferenceResolveCallback& callback)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, RefPtr<T>& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, RefPtr<T>& val, const ReferenceResolveCallback& callback)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, Ref<T>& val)
+Source\Engine\Libs\Serialization\Serializer.hpp void Serializer::Deserialize(std::string_view name, Ref<T>& val, const ReferenceResolveCallback& callback)

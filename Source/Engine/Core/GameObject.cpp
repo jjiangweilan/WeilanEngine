@@ -72,7 +72,7 @@ void GameObject::Tick()
 {
     for (auto& comp : components)
     {
-        if (comp->IsEnabled())
+        if (comp && comp->IsEnabled())
             comp->Tick();
     }
 }
@@ -81,7 +81,7 @@ void GameObject::IdleTick()
 {
     for (auto& comp : components)
     {
-        if (comp->IsEnabled())
+        if (comp && comp->IsEnabled())
             comp->IdleTick();
     }
 }
@@ -90,7 +90,7 @@ void GameObject::PrePhysicsTick()
 {
     for (auto& comp : components)
     {
-        if (comp->IsEnabled())
+        if (comp && comp->IsEnabled())
             comp->PrePhysicsTick();
     }
 }
@@ -154,12 +154,14 @@ void GameObject::OnLoaded()
 {
     for (auto& c : components)
     {
-        c->gameObject = this;
+        if (c)
+            c->gameObject = this;
     }
 
     for (auto& c : components)
     {
-        c->OnLoaded();
+        if (c)
+            c->OnLoaded();
     }
 }
 
@@ -236,7 +238,7 @@ void GameObject::SetScene(Scene* scene)
         {
             for (auto& c : components)
             {
-                if (c->IsEnabled())
+                if (c && c->IsEnabled())
                     c->OnDisable();
             }
         }
@@ -244,7 +246,7 @@ void GameObject::SetScene(Scene* scene)
         this->gameScene = scene;
         for (auto& c : components)
         {
-            if (c->IsEnabled() && enabled)
+            if (c && c->IsEnabled() && enabled)
                 c->OnEnable();
         }
 
@@ -274,7 +276,7 @@ void GameObject::SetEnable(bool isEnabled)
     {
         for (auto& c : components)
         {
-            if (c->IsEnabled())
+            if (c && c->IsEnabled())
             {
                 c->OnEnable();
             }
@@ -284,7 +286,7 @@ void GameObject::SetEnable(bool isEnabled)
     {
         for (auto& c : components)
         {
-            if (c->IsEnabled())
+            if (c && c->IsEnabled())
                 c->OnDisable();
         }
     }
@@ -523,7 +525,7 @@ ObjPtr<Component> GameObject::GetComponent(const char* className)
 {
     for (auto& c : components)
     {
-        if (c->GetTypeName().compare(className) == 0)
+        if (c && c->GetTypeName().compare(className) == 0)
         {
             return c.get();
         }

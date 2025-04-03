@@ -286,31 +286,42 @@ void Serializer::Deserialize(std::string_view name, std::unique_ptr<T>& val)
     if (!IsNull(name))
     {
         T* newVal = nullptr;
+        bool valid = false;
         if constexpr (std::is_abstract_v<T>)
         {
             std::string path = fmt::format("{}/objectTypeID", name);
             ObjectTypeID id;
             Deserialize(path, id);
             auto obj = ObjectRegistry::CreateObject(id);
-            if (obj)
+            // do type check in dev environment
+            Object* casted = obj.get();
+#if ENGINE_DEV_BUILD
+            casted = dynamic_cast<T*>(obj.get());
+#endif
+            if (casted)
             {
                 auto objPtr = obj.release();
                 val.reset(static_cast<T*>(objPtr));
-            }
 
-            path = fmt::format("{}/object", name);
-            Deserialize(path, *val);
+                path = fmt::format("{}/object", name);
+                Deserialize(path, *val);
+                valid = true;
+            }
+            else
+                val = nullptr;
         }
         else
         {
             newVal = new T();
             val.reset(newVal);
             Deserialize(name, *val);
+            valid = true;
         }
 
         if constexpr (std::is_base_of_v<Object, T>)
         {
-            objects[val->GetUUID()] = val.get();
+            if (valid)
+                objects[val->GetUUID()] = val.get();
         }
     }
 }

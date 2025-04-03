@@ -1,4 +1,5 @@
 #include "GameObjectInspector.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Component.hpp"
 #include "EditorState.hpp"
 #include "ThirdParty/imgui/imgui.h"
@@ -84,42 +85,66 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     ImGui::SeparatorText("Components");
     int enableCheckBoxID = 0;
     bool popupTriggered = false;
+    int currentComponentIdx = 0;
     for (auto& co : target->GetComponents())
     {
         ImGui::PushID(enableCheckBoxID++);
-        auto& c = *co;
-        bool cEnabled = c.IsEnabled();
-        if (ImGui::Checkbox("##Enable", &cEnabled))
+        if (co)
         {
-            if (cEnabled)
-                c.Enable();
-            else
-                c.Disable();
-        }
-        ImGui::SameLine();
-        // ImGui::SeparatorText(c.GetName().c_str());
-        bool showAsSelected = contextComponent != nullptr && (contextComponent == co.get() ||
-                                                              EditorState::GetMainSelectedObject() == contextComponent);
-        ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
-        bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
-        GUI::DragDropSource(c.GetName().c_str(), &c);
-        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
-        {
-            if (!popupTriggered)
+            auto& c = *co;
+            bool cEnabled = c.IsEnabled();
+            if (ImGui::Checkbox("##Enable", &cEnabled))
             {
-                popupTriggered = true;
-                contextComponent = co.get();
+                if (cEnabled)
+                    c.Enable();
+                else
+                    c.Disable();
+            }
+            ImGui::SameLine();
+            // ImGui::SeparatorText(c.GetName().c_str());
+            bool showAsSelected =
+                contextComponent != nullptr &&
+                (contextComponent == co.get() || EditorState::GetMainSelectedObject() == contextComponent);
+            ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
+            bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
+            GUI::DragDropSource(c.GetName().c_str(), &c);
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
+            {
+                if (!popupTriggered)
+                {
+                    popupTriggered = true;
+                    contextComponent = co.get();
+                    contextComponentIdx = currentComponentIdx;
+                }
+            }
+
+            if (expandComponent)
+            {
+                auto inspector = InspectorRegistry::GetInspector(c);
+                inspector->OnEnable(c);
+                inspector->DrawInspector(editor);
+                ImGui::TreePop();
+            }
+        }
+        else
+        {
+            std::string nullObjectName = "null - component type is probably removed";
+
+            ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+            ImGui::Button(nullObjectName.c_str());
+            ImGui::PopStyleColor(1);
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
+            {
+                if (!popupTriggered)
+                {
+                    popupTriggered = true;
+                    contextComponent = co.get();
+                    contextComponentIdx = currentComponentIdx;
+                }
             }
         }
 
-        if (expandComponent)
-        {
-            auto inspector = InspectorRegistry::GetInspector(c);
-            inspector->OnEnable(c);
-            inspector->DrawInspector(editor);
-            ImGui::TreePop();
-        }
-
+        currentComponentIdx += 1;
         ImGui::PopID();
     }
     if (popupTriggered)
@@ -129,8 +154,9 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     {
         if (ImGui::MenuItem("Delete"))
         {
-            target->RemoveComponent(contextComponent);
+            target->RemoveComponentByIndex(contextComponentIdx);
             contextComponent = nullptr;
+            contextComponentIdx = -1;
         }
         ImGui::EndPopup();
     }

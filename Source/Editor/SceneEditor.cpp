@@ -422,7 +422,8 @@ bool SceneEditor::Tick()
                 GizmoBase::SetActiveCarrier(g);
                 for (auto& c : g->GetComponents())
                 {
-                    c->OnDrawGizmos();
+                    if (c)
+                        c->OnDrawGizmos();
                 }
                 GizmoBase::ClearActiveCarrier();
             }

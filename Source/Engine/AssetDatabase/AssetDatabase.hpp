@@ -17,6 +17,7 @@ public:
 
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
+    std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
 
     std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
 
@@ -43,25 +44,16 @@ public:
     // remove assetdata in filesystem
     void RemoveAssetData(AssetData* ad);
 
-    const std::filesystem::path& GetAssetDirectory() const
-    {
-        return assetDirectory;
-    }
+    const std::filesystem::path& GetAssetDirectory() const { return assetDirectory; }
 
-    const std::vector<AssetData*>& GetInternalAssets() const
-    {
-        return internalAssets;
-    }
+    const std::vector<AssetData*>& GetInternalAssets() const { return internalAssets; }
 
     std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath)
     {
         return std::filesystem::relative(absolutePath, assetDirectory);
     }
 
-    static AssetDatabase* Singleton()
-    {
-        return SingletonReference();
-    }
+    static AssetDatabase* Singleton() { return SingletonReference(); }
 
     template <std::derived_from<Serializer> S, std::derived_from<Asset> T>
     void CopyThroughSerialization(T& origin, T& copy)
@@ -78,15 +70,9 @@ public:
         copy.OnLoaded();
     }
 
-    const std::filesystem::path& GetProjectRoot() const
-    {
-        return projectRoot;
-    }
+    const std::filesystem::path& GetProjectRoot() const { return projectRoot; }
 
-    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const
-    {
-        return assetDatabaseDirectory;
-    }
+    const std::filesystem::path& GetProjectAssetDatabaseDirectory() const { return assetDatabaseDirectory; }
 
     nlohmann::json GetAssetMeta(Asset& asset)
     {
@@ -108,10 +94,7 @@ public:
             data->SetMeta(meta);
         }
     }
-    const std::vector<std::unique_ptr<AssetData>>& GetAssetData()
-    {
-        return assets.data;
-    }
+    const std::vector<std::unique_ptr<AssetData>>& GetAssetData() { return assets.data; }
 
     // file system
     void CreateFolderAtPath(const std::filesystem::path& path);
@@ -130,10 +113,7 @@ private:
     public:
         struct PathHasher
         {
-            size_t operator()(const std::filesystem::path& path) const
-            {
-                return std::filesystem::hash_value(path);
-            }
+            size_t operator()(const std::filesystem::path& path) const { return std::filesystem::hash_value(path); }
         };
         Asset* Add(std::unique_ptr<AssetData>&& asset);
 

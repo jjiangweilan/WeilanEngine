@@ -34,6 +34,7 @@ private:
     glm::vec3 point, axis;
     float angle;
     Component* contextComponent = nullptr;
+    int contextComponentIdx = -1;
 };
 
 } // namespace Editor
