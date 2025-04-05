@@ -45,9 +45,9 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     // check if the script is a subclass of GameScript
     // if not then return
     if (lua_getmetatable(L, -1))
-    {                                          /* does it have a metatable? */
+    {                                       /* does it have a metatable? */
         luaL_getmetatable(L, "GameScript"); /* get correct metatable */
-        if (!lua_rawequal(L, -1, -2))          /* not the same? */
+        if (!lua_rawequal(L, -1, -2))       /* not the same? */
         {
             wllua_popall();
 
@@ -68,6 +68,10 @@ void LuaScript::LoadScript(const char* luaScriptPath)
     lua_pop(L, 1); // pop the function
 
     // Is this a valid lua GameScript
+    if (luaClassRef != LUA_REFNIL)
+    {
+        luaL_unref(L, LUA_REGISTRYINDEX, luaClassRef);
+    }
     luaClassRef = luaL_ref(L, LUA_REGISTRYINDEX);
 }
 
@@ -78,4 +82,9 @@ int LuaScript::GetLuaClassRef()
         LoadScript(scriptAssetPath.string().c_str());
     }
     return luaClassRef;
+}
+
+void LuaScript::ReloadScript()
+{
+    LoadScript(scriptAssetPath.string().c_str());
 }

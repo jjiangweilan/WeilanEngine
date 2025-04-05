@@ -20,6 +20,7 @@ public:
     ObjPtr<LuaScript> GetScript() { return luaScript; }
     void SetScript(ObjPtr<LuaScript> luaScript);
 
+    void ReloadScript();
     void LuaOnStart();
     void LuaOnStop();
     void Tick() override;

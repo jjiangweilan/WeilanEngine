@@ -1,10 +1,12 @@
 #include "AssetDatabase.hpp"
 #include "AssetDatabase/Importers/AssetLoader.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Importers.hpp"
 #include "Libs/Profiler.hpp"
 #include "Libs/Utils.hpp"
+#include "Scripting/LuaBackend.hpp"
 #include <future>
 #include <iostream>
 #include <spdlog/spdlog.h>
@@ -1051,6 +1053,25 @@ void AssetDatabase::UnloadAsset(Asset& asset)
     {
         AssetData* ptr = byUUIDIter->second;
         ptr->asset = nullptr;
+    }
+}
+
+void AssetDatabase::ReloadScripts()
+{
+    auto luaBackend = LuaBackend::GetInstance();
+    luaBackend->Destroy();
+    luaBackend->Init(GetAssetDirectory().string().c_str());
+
+    auto luaScripts = Object::GetObjectsOfType<LuaScript>();
+    for (auto& lg : luaScripts)
+    {
+        lg->ReloadScript();
+    }
+
+    auto gameScripts = Object::GetObjectsOfType<GameScript>();
+    for (auto& g : gameScripts)
+    {
+        g->ReloadScript();
     }
 }
 

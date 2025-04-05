@@ -11,6 +11,7 @@ public:
     int GetLuaClassRef();
 
     void LoadScript(const char* luaScriptPath);
+    void ReloadScript();
 
 private:
     std::filesystem::path scriptAssetPath;

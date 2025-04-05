@@ -15,6 +15,7 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 {
     const auto L = LuaBackend::L;
     this->luaScript = luaScript;
+    serializationValKeys.clear();
 
     if (luaRef != LUA_REFNIL && luaBackendUUID == LuaBackend::currentStateUUID)
     {
@@ -24,93 +25,96 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
     luaBackendUUID = LuaBackend::currentStateUUID;
 
-    int luaClassRef = luaScript->GetLuaClassRef();
-    if (luaClassRef != LUA_REFNIL)
+    if (luaScript != nullptr)
     {
-        void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<GameScript*>));
-        new (m) LuaUserDataPack<GameScript*>(LuaEngineUserDataType::RawPtr, this);
-
-        lua_newtable(L);
+        int luaClassRef = luaScript->GetLuaClassRef();
+        if (luaClassRef != LUA_REFNIL)
         {
-            lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
-            lua_setmetatable(L, 2);
+            void* m = lua_newuserdata(L, sizeof(LuaUserDataPack<GameScript*>));
+            new (m) LuaUserDataPack<GameScript*>(LuaEngineUserDataType::RawPtr, this);
 
-            lua_pushvalue(L, 2);
-            lua_setfield(L, 2, "__index");
-
-            lua_pushvalue(L, 2);
-            lua_setfield(L, 2, "__newindex");
-        }
-        lua_setmetatable(L, 1);
-        luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
-
-        if (luaRef != LUA_REFNIL)
-        {
-            lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
-
-            lua_getmetatable(L, -1);
+            lua_newtable(L);
             {
-                // get lua class name
-                lua_getfield(L, -1, LuaEngineTableField::className);
-                luaClassName = lua_tostring(L, -1);
-                lua_pop(L, 1);
+                lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
+                lua_setmetatable(L, 2);
 
-                // check callback methods
-                lua_getfield(L, -1, "OnContactAdded");
-                hasOnContactAdded = lua_isfunction(L, -1);
-                lua_pop(L, 1);
+                lua_pushvalue(L, 2);
+                lua_setfield(L, 2, "__index");
 
-                lua_getfield(L, -1, "OnContactRemoved");
-                hasOnContactRemoved = lua_isfunction(L, -1);
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "OnContactPersisted");
-                hasOnContactPersisted = lua_isfunction(L, -1);
-                lua_pop(L, 1);
-
-                lua_getfield(L, -1, "OnContactValidate");
-                hasOnContactValidate = lua_isfunction(L, -1);
-                lua_pop(L, 1);
-
-                lua_pop(L, 1); // pop metatable
+                lua_pushvalue(L, 2);
+                lua_setfield(L, 2, "__newindex");
             }
+            lua_setmetatable(L, 1);
+            luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
 
-            lua_getfield(L, 1, "Init");
-            if (lua_isfunction(L, -1))
+            if (luaRef != LUA_REFNIL)
             {
-                lua_pushvalue(L, 1);
-                if (lua_pcall(L, 1, 0, 0))
-                    SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                lua_rawgeti(L, LUA_REGISTRYINDEX, luaRef);
 
                 lua_getmetatable(L, -1);
-
-                lua_pushnil(L); // First key
-                while (lua_next(L, -2) != 0)
                 {
-                    std::string key = "";
-                    int keyType = lua_type(L, -2);
-                    if (keyType == LUA_TSTRING)
+                    // get lua class name
+                    lua_getfield(L, -1, LuaEngineTableField::className);
+                    luaClassName = lua_tostring(L, -1);
+                    lua_pop(L, 1);
+
+                    // check callback methods
+                    lua_getfield(L, -1, "OnContactAdded");
+                    hasOnContactAdded = lua_isfunction(L, -1);
+                    lua_pop(L, 1);
+
+                    lua_getfield(L, -1, "OnContactRemoved");
+                    hasOnContactRemoved = lua_isfunction(L, -1);
+                    lua_pop(L, 1);
+
+                    lua_getfield(L, -1, "OnContactPersisted");
+                    hasOnContactPersisted = lua_isfunction(L, -1);
+                    lua_pop(L, 1);
+
+                    lua_getfield(L, -1, "OnContactValidate");
+                    hasOnContactValidate = lua_isfunction(L, -1);
+                    lua_pop(L, 1);
+
+                    lua_pop(L, 1); // pop metatable
+                }
+
+                lua_getfield(L, 1, "Init");
+                if (lua_isfunction(L, -1))
+                {
+                    lua_pushvalue(L, 1);
+                    if (lua_pcall(L, 1, 0, 0))
+                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+
+                    lua_getmetatable(L, -1);
+
+                    lua_pushnil(L); // First key
+                    while (lua_next(L, -2) != 0)
                     {
-                        key = lua_tostring(L, -2);
-                    }
-                    else if (keyType == LUA_TNUMBER)
-                    {
-                        key = std::to_string(lua_tonumber(L, -2));
-                    }
-                    if (key[0] != '_' && key[1] != '_')
-                    {
-                        serializationValKeys.push_back(key);
+                        std::string key = "";
+                        int keyType = lua_type(L, -2);
+                        if (keyType == LUA_TSTRING)
+                        {
+                            key = lua_tostring(L, -2);
+                        }
+                        else if (keyType == LUA_TNUMBER)
+                        {
+                            key = std::to_string(lua_tonumber(L, -2));
+                        }
+                        if (key[0] != '_' && key[1] != '_')
+                        {
+                            serializationValKeys.push_back(key);
+                        }
+
+                        lua_pop(L, 1); // Remove 'value', keep 'key'
                     }
 
-                    lua_pop(L, 1); // Remove 'value', keep 'key'
+                    lua_pop(L, 1);
                 }
+                else
+                    lua_pop(L, 1);
 
                 lua_pop(L, 1);
             }
-            else
-                lua_pop(L, 1);
-
-            lua_pop(L, 1);
         }
     }
 }
@@ -493,4 +497,9 @@ bool GameScript::CallLua(const char* functionName)
     }
 
     return called;
+}
+
+void GameScript::ReloadScript()
+{
+    SetScript(luaScript);
 }
