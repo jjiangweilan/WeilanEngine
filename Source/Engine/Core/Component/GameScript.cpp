@@ -24,7 +24,6 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
     }
 
     luaBackendUUID = LuaBackend::currentStateUUID;
-
     if (luaScript != nullptr)
     {
         int luaClassRef = luaScript->GetLuaClassRef();
@@ -35,15 +34,16 @@ void GameScript::SetScript(ObjPtr<LuaScript> luaScript)
 
             lua_newtable(L);
             {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
-                lua_setmetatable(L, 2);
-
                 lua_pushvalue(L, 2);
                 lua_setfield(L, 2, "__index");
 
                 lua_pushvalue(L, 2);
                 lua_setfield(L, 2, "__newindex");
+
+                lua_rawgeti(L, LUA_REGISTRYINDEX, luaClassRef);
+                lua_setmetatable(L, 2);
             }
+
             lua_setmetatable(L, 1);
             luaRef = luaL_ref(L, LUA_REGISTRYINDEX);
 

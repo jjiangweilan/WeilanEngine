@@ -88,6 +88,86 @@ struct InvalidObjPtrError : std::runtime_error
     explicit InvalidObjPtrError(const char* _Message) : std::runtime_error(_Message) {}
 };
 
+static int Lua_UserData_Index(lua_State* L)
+{
+    int type = lua_type(L, 1);
+    ASSERT(lua_isuserdata(L, 1));         // 1
+    const char* key = lua_tostring(L, 2); // 2
+
+    int currentInspectingTable = 3;
+    lua_getmetatable(L, 1); // 3
+    int oldTop = lua_gettop(L);
+    do // currentInspectingTable + 1
+    {
+        lua_pushstring(L, LuaEngineTableField::propertiesGet);
+        if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
+        {
+            lua_pushvalue(L, 2);                    // push the key
+            if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
+            {
+                lua_pushvalue(L, 1); // 6
+
+                if (lua_pcall(L, 1, 1, 0)) // pop 6, +3
+                {
+                    SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                }
+
+                return 1;
+            }
+            else
+            {
+                lua_pop(L, 2); // pop + 2/3
+            }
+        }
+    }
+    while (lua_getmetatable(L, currentInspectingTable++));
+    // property not found, continue ...
+    int newTop = lua_gettop(L);
+    lua_pop(L, newTop - oldTop); // cleanup
+
+    lua_getfield(L, 3, key);
+    return 1;
+}
+
+static int Lua_UserData_NewIndex(lua_State* L)
+{
+    ASSERT(lua_isuserdata(L, 1));         // 1
+    const char* key = lua_tostring(L, 2); // 2
+
+    int currentInspectingTable = 4;
+    lua_getmetatable(L, 1); // 4
+    int oldTop = lua_gettop(L);
+    do // currentInspectingTable + 1
+    {
+        lua_pushstring(L, LuaEngineTableField::propertiesSet);
+        if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
+        {
+            lua_pushvalue(L, 2);                    // push the key
+            if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
+            {
+                lua_pushvalue(L, 1); // 6
+                lua_pushvalue(L, 3); // 7
+
+                if (lua_pcall(L, 2, 1, 0)) // pop 6,7,+3
+                {
+                    SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
+                }
+
+                return 1;
+            }
+            else
+            {
+                lua_pop(L, 2); // pop + 2/3
+            }
+        }
+    }
+    while (lua_getmetatable(L, currentInspectingTable++));
+    // property not found, continue ...
+    int newTop = lua_gettop(L);
+    lua_pop(L, newTop - oldTop); // cleanup
+
+    return 0;
+}
 template <class R>
 struct PushEngineUserDataHelper
 {
@@ -120,95 +200,7 @@ struct PushEngineUserDataHelper
             PushTypeMetatable<R>(L);
         }
 
-        lua_pushcfunction(L, &Index);
-        lua_setfield(L, -2, "__index");
-
-        lua_pushcfunction(L, &NewIndex);
-        lua_setfield(L, -2, "__newindex");
-
         lua_setmetatable(L, -2);
-    }
-
-    static int Index(lua_State* L)
-    {
-        int type = lua_type(L, 1);
-        ASSERT(lua_isuserdata(L, 1));         // 1
-        const char* key = lua_tostring(L, 2); // 2
-
-        int currentInspectingTable = 3;
-        lua_getmetatable(L, 1); // 3
-        int oldTop = lua_gettop(L);
-        do // currentInspectingTable + 1
-        {
-            lua_pushstring(L, LuaEngineTableField::propertiesGet);
-            if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
-            {
-                lua_pushvalue(L, 2);                    // push the key
-                if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
-                {
-                    lua_pushvalue(L, 1); // 6
-
-                    if (lua_pcall(L, 1, 1, 0)) // pop 6, +3
-                    {
-                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-                    }
-
-                    return 1;
-                }
-                else
-                {
-                    lua_pop(L, 2); // pop + 2/3
-                }
-            }
-        }
-        while (lua_getmetatable(L, currentInspectingTable++));
-        // property not found, continue ...
-        int newTop = lua_gettop(L);
-        lua_pop(L, newTop - oldTop); // cleanup
-
-        lua_getfield(L, 3, key);
-        return 1;
-    }
-
-    static int NewIndex(lua_State* L)
-    {
-        ASSERT(lua_isuserdata(L, 1));         // 1
-        const char* key = lua_tostring(L, 2); // 2
-
-        int currentInspectingTable = 4;
-        lua_getmetatable(L, 1); // 4
-        int oldTop = lua_gettop(L);
-        do // currentInspectingTable + 1
-        {
-            lua_pushstring(L, LuaEngineTableField::propertiesSet);
-            if (lua_rawget(L, -2) == LUA_TTABLE) // + 2
-            {
-                lua_pushvalue(L, 2);                    // push the key
-                if (lua_rawget(L, -2) == LUA_TFUNCTION) // + 3
-                {
-                    lua_pushvalue(L, 1); // 6
-                    lua_pushvalue(L, 3); // 7
-
-                    if (lua_pcall(L, 2, 1, 0)) // pop 6,7,+3
-                    {
-                        SPDLOG_ERROR("Lua Error: {}", lua_tostring(L, -1));
-                    }
-
-                    return 1;
-                }
-                else
-                {
-                    lua_pop(L, 2); // pop + 2/3
-                }
-            }
-        }
-        while (lua_getmetatable(L, currentInspectingTable++));
-        // property not found, continue ...
-        int newTop = lua_gettop(L);
-        lua_pop(L, newTop - oldTop); // cleanup
-
-        lua_getfield(L, 4, key);
-        return 1;
     }
 
 private:
@@ -240,7 +232,10 @@ class LuaBinder
 public:
     LuaBinder(lua_State* L) { this->L = L; }
 
-    LuaBinder<T>& Begin(const char* name)
+    /**
+     * @param isUserDataOrTable true if this will be used for userdata else false for a table
+     */
+    LuaBinder<T>& Begin(const char* name, bool isUserDataOrTable = true)
     {
         this->name = name;
 
@@ -248,8 +243,15 @@ public:
         LuaTypeRegistery::typeToName[typeid(T)] = name;
 
         lua_pushvalue(L, -1);
-        lua_pushcclosure(L, &Index, 1);
+        lua_pushcclosure(L, &Lua_UserData_Index, 1);
         lua_setfield(L, -2, "__index");
+
+        if (isUserDataOrTable)
+        {
+            lua_pushvalue(L, -1);
+            lua_pushcclosure(L, &Lua_UserData_NewIndex, 1);
+            lua_setfield(L, -2, "__newindex");
+        }
 
         // push serialization
         if constexpr (IsSerializable<T>)
@@ -806,7 +808,7 @@ public:
         // clang-format off
         LuaBinder<GameScript> gameScript(L);
         gameScript
-            .Begin("GameScript")
+            .Begin("GameScript", false)
             .BindFn("New", [](lua_State* L){
                     // expecting a `self` table on top of the stack
                     ASSERT(lua_istable(L, 1));
@@ -815,15 +817,14 @@ public:
 
                     lua_newtable(L);
 
-                    lua_pushvalue(L, -1);
-                    lua_setfield(L, -2, "__index");
-
-                    lua_pushvalue(L, 1);
-                    lua_setmetatable(L, -2);
-
                     lua_pushstring(L, className);
                     lua_setfield(L, 3, LuaEngineTableField::className);
 
+                    lua_pushvalue(L, -1);
+                    lua_setfield(L, 3, "__index");
+
+                    lua_pushvalue(L, 1);
+                    lua_setmetatable(L, 3);
                     return 1;
                     })
             .BindMemFn("GetGameObject", &GameScript::GetGameObject)
