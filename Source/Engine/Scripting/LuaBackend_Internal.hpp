@@ -99,7 +99,6 @@ struct PushEngineUserDataHelper
 
         using RawType = std::remove_const_t<std::remove_reference_t<R>>;
         // refactor to PushUserData()
-        lua_newtable(L);
         if constexpr (std::is_pointer_v<RawType>)
         {
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::RawPtr, std::move(v));
@@ -120,7 +119,6 @@ struct PushEngineUserDataHelper
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::Value, std::move(v));
             PushTypeMetatable<R>(L);
         }
-        lua_setmetatable(L, -2); // set userdata metatable's metatable
 
         lua_pushcfunction(L, &Index);
         lua_setfield(L, -2, "__index");
