@@ -1,114 +1,71 @@
 #pragma once
+#include "Libs/Math.hpp"
 #include <SDL.h>
-#include <vector>
+
+struct Gamepad
+{
+    Gamepad(int idx) : gamepadID(idx) {}
+    /**
+     * reserved for multi gamepad support,
+     * matching the ID of SDL_JoystickInstanceID
+     */
+    int gamepadID = 0;
+
+    /**
+     * 0: xbox controller, 1: dualsense
+     */
+    int gamepadType;
+
+    /**
+     * @brief: check if a button is pressed for the current frame, button index is basing on the return index of xbox
+     * controller from SDL
+     *
+     * @param idx: 0 'X', 1 'Y', 2 'A', 3 'B'.
+     */
+    bool IsButtonPressed(uint8_t idx);
+
+    /**
+     * @brief: check if a bumper is pressed for the current frame
+     *
+     * @param idx 0 'left bumper', 1 'right bumper'
+     */
+    bool IsBumperPressed(uint8_t idx);
+
+    /**
+     * @brief: get trigger state for the current frame
+     *
+     * @return: 0.0f - 1.0f
+     */
+    float GetTrigger(uint8_t idx);
+
+    /**
+     * @brief; get axis state
+     *
+     * @param idx 0 'left axis', 1 'right axis'
+     */
+    float2 GetAxis(uint8_t idx);
+
+private:
+    /**
+     * @brief: remap the button index based on controller type(xbox, dualsense, switch, etc...)
+     */
+    // TODO: implemented this as an int to int array remap
+    uint8_t ButtonRemap(uint8_t idx) { return idx; }
+};
 
 class Input
 {
 public:
-    static float GetMovementX()
-    {
-        float x, y;
-        GetSingleton().GetMovementImpl(x, y);
-        return x;
-    }
-
-    static float GetMovementY()
-    {
-        float x, y;
-        GetSingleton().GetMovementImpl(x, y);
-        return y;
-    }
-
-    static bool IsInteractPressed() { return GetSingleton().rightPadPressed.left; }
-
-    static void GetMovement(float& x, float& y) { GetSingleton().GetMovementImpl(x, y); }
-
-    static void GetLookAround(float& x, float& y) { GetSingleton().GetLookAroundImpl(x, y); }
-
-    static float GetLookAroundX()
-    {
-        float x, y;
-        GetSingleton().GetLookAroundImpl(x, y);
-        return x;
-    }
-
-    static float GetLookAroundY()
-    {
-        float x, y;
-        GetSingleton().GetLookAroundImpl(x, y);
-        return y;
-    }
-
-    static bool Jump() { return GetSingleton().JumpImpl(); }
-
-    void PushEvent(SDL_Event& event);
-
-    void SetGameplayInput(bool enabled) { this->gameplayInput = enabled; }
-
-    void Reset()
-    {
-        rightPadPressed.up = false;
-        rightPadPressed.down = false;
-        rightPadPressed.left = false;
-        rightPadPressed.right = false;
-    }
-
-    static Input& GetSingleton();
-
-private:
-    Input();
-
-    struct JoyAxis
-    {
-        float x;
-        float y;
-    } leftJoyAxis, rightJoyAxis;
-
-    struct Pad
-    {
-        bool up;
-        bool down;
-        bool left;
-        bool right;
-
-    } dPad, rightPad;
-
-    struct PadPressed
-    {
-        bool up;
-        bool down;
-        bool left;
-        bool right;
-
-    } rightPadPressed;
-
-    struct Keyboard
-    {
-        bool w, a, s, d;
-        bool space;
-    } keyboard;
-    std::vector<SDL_Event> pendingEvents;
-    const int JoyStickDeadZone = 5000;
-    bool gameplayInput = false;
-
-    float JoyStickRemap(int& val);
-
-    // left joystick
-    inline void GetMovementImpl(float& x, float& y)
-    {
-        x = leftJoyAxis.x;
-        y = leftJoyAxis.y;
-    }
-
-    // right joystick
-    inline void GetLookAroundImpl(float& x, float& y)
-    {
-        x = rightJoyAxis.x;
-        y = rightJoyAxis.y;
-    }
-
-    // ps5: is x button down
-    inline bool JumpImpl() { return rightPad.down || keyboard.space; }
-
-    friend class Event;
+    static Gamepad GetGamepad(int padIdx = 0);
+    static float GetMovementX();
+    static float GetMovementY();
+    static bool IsInteractPressed();
+    static void GetMovement(float& x, float& y);
+    static void GetLookAround(float& x, float& y);
+    static float GetLookAroundX();
+    static float GetLookAroundY();
+    static bool Jump();
+    static void PushEvent(SDL_Event& event);
+    static void SetGameplayInput(bool enabled);
+    static void Reset();
 };

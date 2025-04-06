@@ -23,7 +23,7 @@ void LuaBackend::Init(const char* projectAssetFolder)
         // set search path
         lua_getglobal(L, "package");
         lua_pushstring(L, "path");
-        lua_pushstring(L, (std::string(projectAssetFolder) + "/?.lua").c_str());
+        lua_pushstring(L, fmt::format("?.lua;{}/?.lua", std::string(projectAssetFolder)).c_str());
         lua_settable(L, -3);
         lua_pop(L, 1);
 

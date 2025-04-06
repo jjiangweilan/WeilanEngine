@@ -47,6 +47,7 @@ struct GameView::PlayTheGame
             EditorState::gameLoop->SetScene(*sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
+            Input::SetGameplayInput(true);
         }
     }
 
@@ -71,6 +72,7 @@ struct GameView::PlayTheGame
             }
             // destroy sceneCopy
             sceneCopy = nullptr;
+            Input::SetGameplayInput(false);
         }
     }
 };

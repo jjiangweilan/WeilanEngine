@@ -92,7 +92,7 @@ bool WeilanEngine::BeginFrame()
 
     Time::Tick();
 
-    Input::GetSingleton().Reset();
+    Input::Reset();
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();

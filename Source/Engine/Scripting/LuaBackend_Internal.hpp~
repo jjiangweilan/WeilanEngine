@@ -120,8 +120,7 @@ struct PushEngineUserDataHelper
             new (m) LuaUserDataPack<R>(LuaEngineUserDataType::Value, std::move(v));
             PushTypeMetatable<R>(L);
         }
-        lua_setmetatable(L, -2); // set userdata metatable's metatable
-
+        lua_setmetatable(L, -2); // set userdat metatable's metatable
         lua_pushcfunction(L, &Index);
         lua_setfield(L, -2, "__index");
 
@@ -133,7 +132,6 @@ struct PushEngineUserDataHelper
 
     static int Index(lua_State* L)
     {
-        int type = lua_type(L, 1);
         ASSERT(lua_isuserdata(L, 1));         // 1
         const char* key = lua_tostring(L, 2); // 2
 
@@ -889,7 +887,6 @@ public:
             .Begin("Float2")
             .BindStaticFn("New", [](){ return glm::vec2{0,0}; })
             .BindStaticFn("Dot", &glm::dot<2, float, glm::packed_highp>)
-            .BindStaticFn("__eq", [](const float2& l, const float2& r){return l == r;})
             .BindProperty("x", &glm::vec2::x)
             .BindProperty("y", &glm::vec2::y)
             .BindFn("GetX", [](glm::vec2& val) {return val[0]; })

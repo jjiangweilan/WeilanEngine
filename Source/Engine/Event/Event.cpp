@@ -23,7 +23,7 @@ void Event::Poll()
 {
 
     SDL_Event event;
-    Input::GetSingleton().Reset();
+    Input::Reset();
     while (SDL_PollEvent(&event))
     {
 #if ENGINE_EDITOR
@@ -43,6 +43,6 @@ void Event::Poll()
                 windowSizeChange.height = event.window.data2;
             }
         }
-        Input::GetSingleton().PushEvent(event);
+        Input::PushEvent(event);
     }
 }
