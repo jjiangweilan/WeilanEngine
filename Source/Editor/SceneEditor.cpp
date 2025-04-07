@@ -394,7 +394,7 @@ bool SceneEditor::Tick()
     const float contentWidth = contentMax.x - contentMin.x;
     const float contentHeight = contentMax.y - contentMin.y;
 
-    if (sceneImage)
+    if (sceneImage && sceneImage->GetDescription().width > 0 && sceneImage->GetDescription().height > 0)
     {
         float imageWidth = sceneImage->GetDescription().width;
         float imageHeight = sceneImage->GetDescription().height;
@@ -525,7 +525,7 @@ bool SceneEditor::Tick()
         }
 
         ImGui::SetCursorPos(imagePos);
-        if (scene != nullptr)
+        if (scene != nullptr && imageWidth > 0 && imageHeight > 0)
         {
             auto mainCam = editorCamera;
             if (mainCam)

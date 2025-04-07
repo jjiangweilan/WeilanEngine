@@ -72,7 +72,7 @@ const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
         if (aspect == 0.0f)
         {
             auto screenSize = SystemInfo::Singleton().GetScreenSize();
-            aspect = screenSize.x / screenSize.y;
+            aspect = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
         }
 
         updateProjectionMatrix = false;
