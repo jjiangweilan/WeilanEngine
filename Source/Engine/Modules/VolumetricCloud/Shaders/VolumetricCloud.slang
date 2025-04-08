@@ -28,7 +28,7 @@ struct VolumetricCloudParameter {
     float globalScale = 1.0f;
 
 #if GPU_RESOURCE
-    [format("rgba8")]
+    [format("rgba16f")]
     RWTexture2D<float4> mainColor;
     Texture3D cloudDensity;
     Texture3D highFrequencyCloudDensity;

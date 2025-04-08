@@ -123,6 +123,8 @@ const char* MapStrBlendFactor(Gfx::BlendFactor factor)
         case (Gfx::BlendFactor::Src1_Alpha): return "src1Alpha";
         case (Gfx::BlendFactor::One_Minus_Src1_Alpha): return "oneMinusSrc1Alpha";
     }
+
+    return "zero";
 }
 
 const char* MapStrCullMode(Gfx::CullMode cull)
@@ -222,6 +224,8 @@ const char* MapStrStencilOp(Gfx::StencilOp op)
         case (Gfx::StencilOp::Increment_And_Wrap): return "increment_And_Wrap";
         case (Gfx::StencilOp::Decrement_And_Wrap): return "decrement_And_Wrap";
     }
+
+    return "keep";
 }
 
 Gfx::PolygonMode MapPolygonMode(const std::string& str)

@@ -15,7 +15,8 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
     Gfx::PipelineConfig pipelineConfig{};
     auto features = RetriveShaderFeatures(shaderName);
     auto featureStrings = features.GetFeautresFromBitmask(permutation);
-    auto compileResult = compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
+    auto compileResult =
+        compiler.CompileAndReflectProgram(session, shaderName, pipelineInfo, pipelineConfig, featureStrings);
     if (compileResult == SLANG_FAIL)
     {
         return nullptr;
@@ -275,15 +276,23 @@ void ShaderLibrary::Init()
     slang::TargetDesc targetDesc{
         .structureSize = sizeof(slang::TargetDesc),
         .format = SlangCompileTarget::SLANG_SPIRV,
-        .profile = globalSession->findProfile("spirv_1_5"),
+        .profile = globalSession->findProfile("glsl_450"),
     };
     const char* searchPaths[] = {shaderRootPath};
     slang::PreprocessorMacroDesc preprocessorMacros[] = {{"CONFIG", "0"}, {"GPU_RESOURCE", "1"}};
-    slang::CompilerOptionValue debugLevel{};
     bool debug = true;
+
+    slang::CompilerOptionValue debugLevel{};
     debugLevel.kind = slang::CompilerOptionValueKind::Int;
-    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_MAXIMAL : 0;
-    slang::CompilerOptionEntry compileOptions[] = {{slang::CompilerOptionName::DebugInformation, debugLevel}};
+    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_STANDARD : 0;
+
+    slang::CompilerOptionValue debugFomrmat{};
+    debugFomrmat.kind = slang::CompilerOptionValueKind::Int;
+    debugFomrmat.intValue0 = SlangDebugInfoFormat::SLANG_DEBUG_INFO_FORMAT_DEFAULT;
+    slang::CompilerOptionEntry compileOptions[] = {
+        {slang::CompilerOptionName::DebugInformation, debugLevel},
+        {slang::CompilerOptionName::DebugInformationFormat, debugFomrmat}
+    };
     slang::SessionDesc sessionDesc{
         /** The size of this structure, in bytes.
          */
