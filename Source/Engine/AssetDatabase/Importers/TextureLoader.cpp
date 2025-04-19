@@ -110,7 +110,11 @@ std::vector<std::filesystem::path> TextureLoader::Import()
             if (isHDR)
             {
                 loaded =
-                    (stbi_uc*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+                    (uint8_t*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+            }
+            else if (is16Bit)
+            {
+                loaded = (uint8_t*)stbi_load_16_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
             }
             else
             {
@@ -171,7 +175,18 @@ std::vector<std::filesystem::path> TextureLoader::Import()
                 }
                 else if (is16Bit)
                 {
-                    throw std::runtime_error("Not Implemented");
+                    Libs::Image::GenerateBoxFilteredMipmap<uint16_t>(
+                        loaded,
+                        width,
+                        height,
+                        layers,
+                        mipLevels,
+                        desiredChannels,
+                        mippedData,
+                        mippedDataByteSize
+                    );
+                    stbi_image_free(loaded);
+                    loaded = mippedData;
                 }
                 else
                 {

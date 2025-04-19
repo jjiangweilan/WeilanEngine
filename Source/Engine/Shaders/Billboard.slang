@@ -1,4 +1,5 @@
 import Library.PerScene;
+import WeilanEngine;
 #if CONFIG
 name: Billboard
 depth:
@@ -20,6 +21,7 @@ struct FragInput
 Transform transform;
 
 ParameterBlock<PerScene> perScene;
+[Material]
 ParameterBlock<FragInput> perMaterial;
 
 struct VertexOutput

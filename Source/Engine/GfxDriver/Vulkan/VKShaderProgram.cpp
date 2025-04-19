@@ -106,6 +106,11 @@ VKShaderProgram::~VKShaderProgram()
     {
         objManager->DestroyPipeline(v.second.second);
     }
+
+    for (auto pool : descriptorPools)
+    {
+        VKContext::Instance()->descriptorPoolCache->ReleaseDescriptorPool(pool);
+    }
 }
 
 VkSampler SamplerCachePool::RequestSampler(VkSamplerCreateInfo& createInfo)
@@ -189,9 +194,9 @@ VkPipelineColorBlendAttachmentState MapColorBlendAttachmentState(const ColorBlen
     return state;
 }
 
-VKDescriptorPool& VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
+VKDescriptorPool* VKShaderProgram::GetDescriptorPool(DescriptorSetSlot slot)
 {
-    return *descriptorPools[slot];
+    return descriptorPools[slot];
 }
 
 void VKShaderProgram::GeneratePipelineLayout()

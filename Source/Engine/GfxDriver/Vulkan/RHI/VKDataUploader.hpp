@@ -52,7 +52,7 @@ private:
     VKDriver* driver;
     VkCommandBuffer cmd = VK_NULL_HANDLE;
     VkFence fence;
-    const size_t stagingBufferSize = 1024 * 1024 * 48;
+    const size_t stagingBufferSize = 1024 * 1024 * 64;
     size_t offset = 0;
     std::vector<PendingBufferUpload> pendingBufferUploads = {};
     std::vector<PendingImageUpload> pendingImageUploads = {};

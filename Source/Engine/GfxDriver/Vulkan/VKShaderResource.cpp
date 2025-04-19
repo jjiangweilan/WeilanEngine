@@ -42,10 +42,6 @@ DescriptorSetSlot MapDescriptorSetSlot(ShaderResourceFrequency frequency)
 void VKShaderResource::Clear()
 {
     bindings.clear();
-    for (auto& d : sets)
-    {
-        descriptorPool->Deallocate(d.second.set);
-    }
     sets.clear();
 }
 
@@ -55,7 +51,8 @@ VKShaderResource::~VKShaderResource()
 {
     for (auto& d : sets)
     {
-        descriptorPool->Deallocate(d.second.set);
+        if (d.second.descriptorPool != nullptr)
+            d.second.descriptorPool->Deallocate(d.second.set);
     }
 }
 
@@ -131,22 +128,21 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
-    auto& uuid = shaderProgram->GetUUID();
+    SetGroup setGroup = { shaderProgram->GetUUID(), set };
 
-    auto iter = sets.find(uuid);
+    auto iter = sets.find(setGroup);
 
     VkDescriptorSet finalReturn = VK_NULL_HANDLE;
     bool rebuild = false;
     std::vector<VKWritableGPUResource>* writableGPUResources;
     if (iter == sets.end())
     {
-        layout = shaderProgram->GetVKPipelineLayout();
-        descriptorPool = &shaderProgram->GetDescriptorPool(set);
-        VkDescriptorSet descriptorSet = descriptorPool->Allocate();
+        auto pool = shaderProgram->GetDescriptorPool(set);
+        VkDescriptorSet descriptorSet = pool->Allocate();
         finalReturn = descriptorSet;
         rebuild = true;
-        sets[shaderProgram->GetUUID()] = {shaderProgram, set, descriptorSet, false};
-        writableGPUResources = &sets[shaderProgram->GetUUID()].writableGPUResources;
+        sets[setGroup] = {shaderProgram, pool, set, finalReturn, false };
+        writableGPUResources = &sets[setGroup].writableGPUResources;
     }
     else
     {
@@ -158,15 +154,17 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         rebuild = iter->second.rebuild;
         if (rebuild)
         {
-            descriptorPool->Deallocate(iter->second.set);
-
-            descriptorPool = &shaderProgram->GetDescriptorPool(set);
-            finalReturn = descriptorPool->Allocate();
+            iter->second.descriptorPool->Deallocate(iter->second.set);
+            iter->second.descriptorPool = shaderProgram->GetDescriptorPool(set);
+            finalReturn = iter->second.descriptorPool->Allocate();
             iter->second.set = finalReturn;
-            descriptorPool->Deallocate(iter->second.set);
             iter->second.rebuild = false;
             writableGPUResources = &iter->second.writableGPUResources;
         }
+        else
+		{
+			finalReturn = iter->second.set;
+		}
     }
 
     if (rebuild)
@@ -188,7 +186,6 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         {
             for (const auto& b : descriptorSet.bindings)
             {
-
                 writes[writeCount].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[writeCount].pNext = VK_NULL_HANDLE;
                 writes[writeCount].dstSet = finalReturn;
@@ -424,10 +421,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         }
 
         vkUpdateDescriptorSets(GetDevice(), writeCount, writes, 0, VK_NULL_HANDLE);
-        return finalReturn;
     }
 
-    return iter->second.set;
+    return finalReturn;
 }
 
 void VKShaderResource::SetName(std::string_view name)
@@ -446,7 +442,7 @@ void VKShaderResource::SetNameInternal(
     VKDebugUtils::SetDebugName(
         VK_OBJECT_TYPE_DESCRIPTOR_SET,
         (uint64_t)set,
-        fmt::format("{}, {}, set {}", name, shader->GetName(), setIndex).c_str()
+        fmt::format("{:x}, {}, set {}", (uint64_t)set, shader->GetName(), setIndex).c_str()
     );
 }
 
@@ -464,12 +460,14 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
     uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
 )
 {
-    auto iter = sets.find(shaderProgram->GetUUID());
+    SetGroup setGroup = { shaderProgram->GetUUID(), set };
+    auto iter = sets.find(setGroup);
     if (iter == sets.end() || iter->second.rebuild)
     {
         GetDescriptorSet(set, shaderProgram, graph);
-        iter = sets.find(shaderProgram->GetUUID());
+        iter = sets.find(setGroup);
     }
+
     if (iter != sets.end() && iter->second.creationSetIndex == set)
     {
         return iter->second.writableGPUResources;
@@ -477,5 +475,13 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
 
     static std::vector<VKWritableGPUResource> empty;
     return empty;
+}
+
+size_t VKShaderResource::SetGroupHash::operator()(const SetGroup& group) const
+{
+    uint64_t hash = 0;
+    HashCombine(hash, group.set);
+    HashCombine(hash, std::hash<UUID>()(group.id));
+    return hash;
 }
 } // namespace Gfx

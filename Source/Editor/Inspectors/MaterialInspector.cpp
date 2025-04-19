@@ -1,4 +1,5 @@
 #include "../EditorState.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
 #include "EditorGUI.hpp"
 #include "GfxDriver/GfxEnums.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
@@ -20,11 +21,19 @@ public:
             target->SetName(name);
 
         auto shader = target->GetShaderProgram();
+        const char* shaderName = shader ? shader->GetName().c_str() : "";
+        if (const char* picked = GUI::ShaderPicker(shaderName))
+        {
+            target->SetShader(picked);
+        }
+
         Draw(shader);
 
-        ImGui::SeparatorText("Auto Inspector");
-
-        GUI::AutoObjectInspector(target, true);
+        if (ImGui::TreeNode("Auto Inspector"))
+        {
+            GUI::AutoObjectInspector(target, true);
+            ImGui::TreePop();
+        }
     }
 
     void Draw(Gfx::ShaderProgram* shader)
@@ -32,10 +41,10 @@ public:
         if (shader)
         {
             auto& pipelineInfo = shader->GetShaderInfo();
-            auto set = pipelineInfo.GetDescriptorSet(Material::PerMaterial);
+            auto set = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
             if (set)
             {
-                const auto binding = set->GetBinding(Material::PerMaterial);
+                const auto binding = set->GetBinding(0);
                 if (binding)
                 {
                     for (auto member : binding->bufferMembers)
@@ -91,6 +100,50 @@ public:
                                 if (ImGui::DragInt(member.name.c_str(), &ival, 1, 0, std::numeric_limits<int>::max()))
                                 {
                                     target->SetFloat("", member.name, val);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                for (int i = 0; i < set->GetBindingCount(); ++i)
+                {
+                    const auto& binding = set->GetBinding(i);
+                    if (binding->descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+                        binding->descriptorType == Gfx::DescriptorType::SampledImage)
+                    {
+                        auto texture = target->GetTexture(binding->name);
+                        if (texture != nullptr)
+                        {
+                            ImGui::Text("Texture: %s", binding->name.c_str());
+                            ImGui::Image(&texture->GetGfxImage()->GetDefaultImageView(), {100, 100});
+                            if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+                            {
+                                EditorState::SelectObject(texture);
+                            }
+                            std::filesystem::path path;
+
+                            auto windowPos = ImGui::GetWindowPos();
+                            auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
+                            if (GUI::DragDropTarget(path, {windowPos, windowMax}))
+                            {
+                                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                                if (tex)
+                                {
+                                    target->SetTexture(binding->name, tex);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            ImGui::Button(binding->name.c_str());
+                            std::filesystem::path path;
+                            if (GUI::DragDropTarget(path))
+                            {
+                                auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
+                                if (tex)
+                                {
+                                    target->SetTexture(binding->name, tex);
                                 }
                             }
                         }

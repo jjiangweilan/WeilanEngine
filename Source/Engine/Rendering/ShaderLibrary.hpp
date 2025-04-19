@@ -2,7 +2,6 @@
 #include "Libs/Hash.hpp"
 #include "Rendering/Shader.hpp"
 #include "Shader2.hpp"
-#include <bitset>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <spdlog/spdlog.h>
@@ -38,28 +37,85 @@ struct ShaderFeatures
         return perm;
     }
 
-    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation)
+    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation) const
     {
         std::vector<std::string> result{};
         for (int bit = 0; bit < permutation.size(); ++bit)
         {
             if (permutation.test(bit))
             {
-                result.push_back(bitMaskToFeature[bit]);
+                result.push_back(bitMaskToFeature.at(bit));
             }
         }
 
         return result;
     }
 
-    std::unordered_map<uint32_t, std::string> bitMaskToFeature;
-    std::unordered_map<std::string, uint32_t> featureToBitMask;
-    std::vector<ShaderToggleFeature> toggleFeatures;
+    std::unordered_map<uint32_t, std::string> bitMaskToFeature{};
+    std::unordered_map<std::string, uint32_t> featureToBitMask{};
+    std::vector<ShaderToggleFeature> toggleFeatures{};
+};
+
+enum class Shaders : int
+{
+    DeferredPBRShading,
+    SceneLit,
+    SceneLitSkinned,
+    PlaneGrid,
+    ImGui,
+    LineShader,
+    TriangleShader,
+    JoltDebugShader,
+    PostProcess_OutlineFullScreenPass,
+    PostProcess_OutlineRawColorPass,
+    PostProcess_SSAO,
+    ShadowMapObject,
+    ShadowMapObjectSkinned,
+    ScreenSpaceShadow,
+    FXAA,
+    PrimitiveShape,
+    SimpleForwardLit,
+    SimpleColor,
+    VolumetricCloud,
+    Skybox,
+    ColorGrading,
+    InterleavedGradientNoise,
+    SHProbe,
+    Particle,
+    MAX_COUNT
 };
 
 class ShaderLibrary
 {
 public:
+    static constexpr const char* ShaderNameMap[] = {
+        "DeferredPBRShading",
+        "SceneLit",
+        "SceneLitSkinned",
+        "PlaneGrid",
+        "ImGui",
+        "LineShader",
+        "TriangleShader",
+        "Specific/JoltDebugShader",
+        "PostProcess/Outline/OutlineFullScreenPass",
+        "PostProcess/Outline/OutlineRawColorPass",
+        "PostProcess/SSAO",
+        "ShadowMapObject",
+        "ShadowMapObjectSkinned",
+        "ScreenSpaceShadow",
+        "FXAA",
+        "PrimitiveShape",
+        "SimpleForwardLit",
+        "SimpleColor",
+        "VolumetricCloud",
+        "Skybox",
+        "ColorGrading",
+        "InterleavedGradientNoise",
+        "SHProbe",
+        "Particles/Particle",
+    };
+
+    // ***** Deprecating *****
     static constexpr const char* DeferredPBRShading = "DeferredPBRShading";
     static constexpr const char* SceneLit = "SceneLit";
     static constexpr const char* SceneLitSkinned = "SceneLitSkinned";
@@ -83,6 +139,16 @@ public:
     static constexpr const char* ColorGrading = "ColorGrading";
     static constexpr const char* InterleavedGradientNoise = "InterleavedGradientNoise";
     static constexpr const char* SHProbe = "SHProbe";
+    static constexpr const char* Particle = "Particles/Particle";
+    // **************
+    //
+
+    static const char* GetShaderName(Shaders shader) { return ShaderNameMap[(int)shader]; }
+
+    static ObjPtr<Shader2> GetShader(Shaders shader, ShaderPermutation permutation = ShaderPermutation())
+    {
+        return Singleton().GetShaderImpl(ShaderNameMap[(int)shader], permutation);
+    }
 
     static ObjPtr<Shader2> GetShader(const char* name, ShaderPermutation permutation = ShaderPermutation())
     {
@@ -110,11 +176,6 @@ public:
     static ShaderLibrary& Singleton();
 
 private:
-    ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
-    const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
-    void ReloadAllShadersImpl();
-    void Init();
-
     struct CompiledShader
     {
         CompiledShader() : shader(nullptr), permutation() {}
@@ -139,14 +200,19 @@ private:
     Slang::ComPtr<slang::IGlobalSession> globalSession;
     Slang::ComPtr<slang::ISession> session;
     std::unordered_map<std::string, ShaderModule> library;
+    const char* shaderRootPath = GetShaderRootPath();
     std::mutex lk;
 
     ShaderLibrary();
-    const char* shaderRootPath = GetShaderRootPath();
+
+    void Init();
+    void LoadSession();
+    ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
+    const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
+    void ReloadAllShadersImpl();
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
     std::unique_ptr<Gfx::ShaderProgram> CompileShader(const char* shaderName, ShaderPermutation permutation);
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
-
     void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
     void CheckPushconstant(
         slang::VariableLayoutReflection* param,
@@ -155,5 +221,4 @@ private:
         int entryPointIndex,
         Gfx::ShaderStage stage
     );
-    // Gfx::DescriptorType MapDescriptorType();
 };

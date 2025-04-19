@@ -45,7 +45,9 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         }
                         drawData.indexBuffer = submesh.GetIndexBuffer();
                         drawData.indexBufferType = submesh.GetIndexBufferType();
+                        drawData.materialSet = material->GetShader()->GetSet(Gfx::DescriptorSetSemantics::Material);
                         drawData.materialResource = material->GetShaderResource();
+                        drawData.objectSet = material->GetSet(Gfx::DescriptorSetSemantics::Object);
                         drawData.objectResource = meshRenderer.GetObjectResource();
                         drawData.shader = shader.Get();
                         drawData.shaderConfig = &material->GetShaderConfig();
@@ -164,11 +166,10 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
         {
             cmd.BindVertexBuffer(draw.vertexBufferBinding, 0);
             cmd.BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-            cmd.BindResource(1, draw.materialResource);
-            if (draw.objectResource)
-            {
-                cmd.BindResource(2, draw.objectResource);
-            }
+            if (draw.materialSet != -1 && draw.materialResource)
+                cmd.BindResource(draw.materialSet, draw.materialResource);
+            if (draw.objectSet && draw.objectResource)
+                cmd.BindResource(draw.objectSet, draw.objectResource);
             cmd.BindShaderProgram(shaderProgram, *draw.shaderConfig);
             auto ps = draw.GetPushConstant();
             cmd.SetPushConstant(shaderProgram, (void*)&ps);

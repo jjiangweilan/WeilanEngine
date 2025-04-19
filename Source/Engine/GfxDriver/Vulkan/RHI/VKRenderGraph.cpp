@@ -1599,14 +1599,19 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
         {
             // binding pipeline
             ASSERT(exeState.renderPass != nullptr && "RenderPass is null, draw call maybe not inside a RenderPass");
-            auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
-                exeState.shaderConfig,
-                std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
-                exeState.renderPass,
-                exeState.subpassIndex
-            );
 
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            if (exeState.renderPass != nullptr)
+            {
+                auto pipeline = exeState.lastBindedShader->RequestGraphicsPipeline(
+                    exeState.shaderConfig,
+                    std::span<VKBuffer*>(exeState.vertexBufferBindings, exeState.vertexBufferBindingCount),
+                    exeState.renderPass,
+                    exeState.subpassIndex
+                );
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+            }
+            else
+                spdlog::error("draw call outside of renderpass");
         }
 
         exeState.bindedShader = exeState.lastBindedShader;

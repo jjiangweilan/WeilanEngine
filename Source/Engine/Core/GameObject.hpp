@@ -327,6 +327,7 @@ T* GameObject::AddComponent(Args&&... args)
     auto p = std::make_unique<T>(this, args...);
     T* temp = p.get();
     components.push_back(std::move(p));
+    temp->OnInit();
     temp->Enable();
     return temp;
 }

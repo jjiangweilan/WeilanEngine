@@ -1,5 +1,4 @@
 #include "GameObject.hpp"
-#include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/GameScript.hpp"
 #include "Core/Prefab.hpp"
 #include "Core/Scene/Scene.hpp"
@@ -161,7 +160,10 @@ void GameObject::OnLoaded()
     for (auto& c : components)
     {
         if (c)
+        {
+            c->OnInit();
             c->OnLoaded();
+        }
     }
 }
 
@@ -579,6 +581,7 @@ Component* GameObject::AddComponent(std::string_view componentName)
     temp->gameObject = this;
     std::unique_ptr<Component> compPtr(temp);
     components.push_back(std::move(compPtr));
+    temp->OnInit();
     temp->Enable();
     return temp;
 }

@@ -108,6 +108,8 @@ public:
         return newValue;
     }
 
+    static const char* ShaderPicker(const char* shaderName);
+
     static bool DragDropSource(const char* text, std::function<void(Object*& obj)> onDrag)
     {
         bool isValid = false;
@@ -305,7 +307,7 @@ public:
         return false;
     }
 
-    static void AutoObjectInspect(const Object* target);
+    static void AutoObjectInspector(const Object* target);
     static void AutoObjectInspector(Object* target, bool readOnly = false);
     static bool JsonInspector(nlohmann::json& j);
     static void JsonInspector(nlohmann::json& j, bool& valueChanged);

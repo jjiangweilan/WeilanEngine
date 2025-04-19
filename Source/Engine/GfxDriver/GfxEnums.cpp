@@ -211,7 +211,8 @@ const char* MapGfxFormatToString(GfxFormat format)
         return "R16G16B16_SFloat";
     else if (format == GfxFormat::R8_UNorm)
         return "R8_UNorm";
-
+    else if (format == GfxFormat::R16_UNorm)
+        return "R16_UNorm";
     return "Invalid";
 }
 
@@ -237,6 +238,7 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
         case GfxFormat::R8_SRGB: return 1;
         case GfxFormat::R32_SFloat: return 4;
         case GfxFormat::R16_SFloat: return 2;
+        case GfxFormat::R16_UNorm: return 2;
         case GfxFormat::R16G16_UNorm: return 4;
         case GfxFormat::R16G16_SNorm: return 4;
         case GfxFormat::R16G16_UScaled: return 4;
@@ -310,7 +312,7 @@ GfxFormat GetGfxFormat(int channelBits, int channels, bool linear)
         if (channelBits == 32 && linear)
             format = Gfx::GfxFormat::R32G32B32A32_SFloat;
         else if (channelBits == 16 && linear)
-            format = Gfx::GfxFormat::R16G16B16A16_SFloat;
+            format = Gfx::GfxFormat::R16G16B16A16_UNorm;
         else if (channelBits == 8 && !linear)
             format = Gfx::GfxFormat::R8G8B8A8_SRGB;
         else if (channelBits == 8 && linear)
@@ -321,7 +323,7 @@ GfxFormat GetGfxFormat(int channelBits, int channels, bool linear)
         if (channelBits == 32 && linear)
             format = Gfx::GfxFormat::R32G32B32_SFloat;
         else if (channelBits == 16 && linear)
-            format = Gfx::GfxFormat::R16G16B16_SFloat;
+            format = Gfx::GfxFormat::R16G16B16_UNorm;
         else if (channelBits == 8 && !linear)
             format = Gfx::GfxFormat::R8G8B8_SRGB;
         else if (channelBits == 8 && linear)
@@ -332,7 +334,7 @@ GfxFormat GetGfxFormat(int channelBits, int channels, bool linear)
         if (channelBits == 32 && linear)
             format = Gfx::GfxFormat::R32G32_SFloat;
         else if (channelBits == 16 && linear)
-            format = Gfx::GfxFormat::R16G16_SFloat;
+            format = Gfx::GfxFormat::R16G16_UNorm;
         else if (channelBits == 8 && !linear)
             format = Gfx::GfxFormat::R8G8_SRGB;
     }
@@ -341,7 +343,7 @@ GfxFormat GetGfxFormat(int channelBits, int channels, bool linear)
         if (channelBits == 32 && linear)
             format = Gfx::GfxFormat::R32_SFloat;
         else if (channelBits == 16 && linear)
-            format = Gfx::GfxFormat::R16_SFloat;
+            format = Gfx::GfxFormat::R16_UNorm;
         else if (channelBits == 8 && !linear)
             format = Gfx::GfxFormat::R8_SRGB;
         else if (channelBits == 8 && linear)

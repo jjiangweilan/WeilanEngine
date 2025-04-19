@@ -48,7 +48,7 @@ void Cloud::AddToRenderingScene()
     if (scene)
     {
         auto renderingScene = &scene->GetRenderingScene();
-        renderingScene->AddRenderer(*this);
+        renderingScene->AddRenderObject(*this);
     }
 }
 void Cloud::RemoveFromRenderingScene()
@@ -58,7 +58,7 @@ void Cloud::RemoveFromRenderingScene()
     if (scene)
     {
         auto renderingScene = &scene->GetRenderingScene();
-        renderingScene->RemoveRenderer(*this);
+        renderingScene->RemoveRenderObject(*this);
     }
 }
 
@@ -78,7 +78,7 @@ void Cloud::UpdateNoiseTexture()
 {
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
 
-    cmd->BindResource(noiseGenerator->GetSet("perMaterial"), noiseGenerator->GetShaderResource());
+    cmd->BindResource(noiseGenerator->GetSet(Gfx::DescriptorSetSemantics::Material), noiseGenerator->GetShaderResource());
     int dispatchX = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().width / 8.0f);
     int dispatchY = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().height / 8.0f);
     int dispatchZ = glm::ceil(cloudNoise.baseShapeNoise->GetDescription().depth / 8.0f);
@@ -86,7 +86,7 @@ void Cloud::UpdateNoiseTexture()
     cmd->Dispatch(dispatchX, dispatchY, dispatchZ);
 
     cmd->BindResource(
-        highFrequencyNoiseGenerator->GetSet("perMaterial"),
+        highFrequencyNoiseGenerator->GetSet(Gfx::DescriptorSetSemantics::Material),
         highFrequencyNoiseGenerator->GetShaderResource()
     );
     dispatchX = glm::ceil(cloudNoise.highFrequencyNoise->GetDescription().width / 8.0f);
@@ -122,7 +122,7 @@ Gfx::Image* Cloud::UpdateDebugImage(int debugImageIndex)
     debugRenderPass.SetAttachment(0, Gfx::RG::ImageIdentifier(*debugImage));
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd->BeginRenderPass(debugRenderPass, clears);
-    cmd->BindResource(debugImageMaterial->GetSet("perMaterial"), debugImageMaterial->GetShaderResource());
+    cmd->BindResource(debugImageMaterial->GetSet(Gfx::DescriptorSetSemantics::Material), debugImageMaterial->GetShaderResource());
     cmd->BindShaderProgram(debugImageMaterial->GetShaderProgram(), debugImageMaterial->GetShaderConfig());
     cmd->Draw(6, 1, 0, 0);
     cmd->EndRenderPass();

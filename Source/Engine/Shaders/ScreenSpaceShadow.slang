@@ -1,3 +1,5 @@
+import WeilanEngine;
+
 struct PerMaterial
 {
 #if GPU_RESOURCE
@@ -6,6 +8,7 @@ RWTexture2D<float4> outputTex;
 #endif
 }
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 [shader("compute")]

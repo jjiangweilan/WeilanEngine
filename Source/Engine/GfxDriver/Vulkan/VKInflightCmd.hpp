@@ -12,6 +12,8 @@ struct VKInflightCmd
     VkSemaphore imageAcquireSemaphore = VK_NULL_HANDLE;
     VkSemaphore presentSemaphore = VK_NULL_HANDLE;
     uint32_t swapchainIndex = 0;
+
+    std::vector<std::function<void()>> onCompleteCallbacks{};
 };
 
 struct VKFramePrepareData

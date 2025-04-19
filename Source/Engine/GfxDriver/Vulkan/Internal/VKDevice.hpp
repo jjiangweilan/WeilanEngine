@@ -43,7 +43,7 @@ private:
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-        VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME // for shader debug
+        // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME // for shader debug
     };
 
     std::vector<VKCommandQueue> queues;

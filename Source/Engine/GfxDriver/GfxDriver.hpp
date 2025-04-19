@@ -148,7 +148,6 @@ protected:
     RENDERDOC_API_1_6_0* renderDocAPI = nullptr;
     struct RenderdocModule;
     std::unique_ptr<RenderdocModule> renderdocModule;
-
 };
 } // namespace Gfx
 

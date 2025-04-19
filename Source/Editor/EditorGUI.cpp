@@ -24,7 +24,7 @@ void GUI::AutoObjectInspector(Object* target, bool readOnly)
     }
 }
 
-void GUI::AutoObjectInspect(const Object* target)
+void GUI::AutoObjectInspector(const Object* target)
 {
     if (target == nullptr)
         return;
@@ -40,6 +40,28 @@ bool GUI::JsonInspector(nlohmann::json& j)
     bool valueChanged = false;
     JsonInspector(j, valueChanged);
     return valueChanged;
+}
+
+const char* GUI::ShaderPicker(const char* shaderName)
+{
+    int currentIdx = -1;
+    for (int i = 0; i < (int)Shaders::MAX_COUNT; i++)
+    {
+        if (strcmp(shaderName, ShaderLibrary::ShaderNameMap[i]) == 0)
+        {
+            currentIdx = i;
+            break;
+        }
+    }
+
+    ImGui::Combo("Shader", &currentIdx, ShaderLibrary::ShaderNameMap, (int)Shaders::MAX_COUNT);
+
+    if (currentIdx != -1)
+    {
+        return ShaderLibrary::GetShaderName((Shaders)currentIdx);
+    }
+
+    return nullptr;
 }
 
 void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)

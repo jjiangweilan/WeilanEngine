@@ -62,10 +62,10 @@ public:
         if (shader)
         {
             auto& pipelineInfo = shader->GetShaderInfo();
-            auto set = pipelineInfo.GetDescriptorSet(Material::PerMaterial);
+            auto set = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
             if (set)
             {
-                const auto binding = set->GetBinding(Material::PerMaterial);
+                const auto binding = set->GetBinding(0);
                 if (binding)
                 {
                     for (auto member : binding->bufferMembers)

@@ -231,7 +231,8 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
     if (changeFileName)
     {
         ImGui::OpenPopup("Change File Name");
-        strcpy(fn, changeFileNameTarget.string().c_str());
+        auto filename = changeFileNameTarget.filename();
+        strcpy(fn, filename.string().c_str());
     }
     if (ImGui::BeginPopupModal("Change File Name"))
     {
@@ -239,7 +240,9 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
 
         if (ImGui::Selectable("Confirm"))
         {
-            AssetDatabase::Singleton()->Rename(changeFileNameTarget, fn);
+            auto dir = changeFileNameTarget.parent_path();
+            auto finalPath = dir / fn;
+            AssetDatabase::Singleton()->Rename(changeFileNameTarget, finalPath);
         }
         if (ImGui::Selectable("Chancel"))
         {

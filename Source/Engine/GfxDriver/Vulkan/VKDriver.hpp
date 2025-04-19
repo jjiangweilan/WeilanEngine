@@ -15,10 +15,10 @@
 #include "VKCommonDefinations.hpp"
 
 #include "VKCommandPool.hpp"
+#include "VKInflightCmd.hpp"
 #include "VKRenderTarget.hpp"
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
-#include "VKInflightCmd.hpp"
 
 #include "RHI/Buffer.hpp"
 
@@ -182,6 +182,8 @@ public:
     std::vector<const char*> AppWindowGetRequiredExtensions();
     bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
 
+    void AppendOnCompleteCallback(const std::function<void()>& callback);
+
 private:
     SDL_Window* window;
     struct SDLInfo;
@@ -207,5 +209,6 @@ private:
     );
 
     ArenaAllocator<1024> allocator;
+    void WaitForCurrentInflightCmd();
 };
 } // namespace Gfx

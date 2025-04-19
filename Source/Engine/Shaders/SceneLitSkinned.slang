@@ -1,3 +1,4 @@
+import WeilanEngine;
 import Library.PerScene;
 import Skeleton;
 #include "DeferredPBRShading.hlsl"
@@ -72,8 +73,11 @@ struct PerObject
     ConstantBuffer<Skeleton> skeleton;
 }
 
+[Global]
 ParameterBlock<PerScene> perScene;
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
+[Object]
 ParameterBlock<PerObject> perObject;
 
 struct FragmentOutput

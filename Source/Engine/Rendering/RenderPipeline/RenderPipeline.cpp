@@ -1,5 +1,6 @@
 #include "RenderPipeline.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Component/ParticleSystem.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
@@ -8,6 +9,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
+#include "Rendering/Renderers/ParticleRenderer.hpp"
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
@@ -16,6 +18,8 @@ namespace Rendering
 
 RenderPipeline::RenderPipeline()
 {
+    particleRenderer = std::make_unique<ParticleRenderer>();
+
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
     Gfx::RG::SubpassAttachment skyboxOnlyPassAttachment[] = {
@@ -24,12 +28,15 @@ RenderPipeline::RenderPipeline()
     skyboxOnlyPass.SetSubpass(0, skyboxOnlyPassAttachment);
 }
 
+RenderPipeline::~RenderPipeline() {}
+
 void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize)
 {
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
     Gfx::CommandBuffer* cmd = GetCommandBuffer();
 
+    cmd->BeginLabel("Render Scene", {0.623, 0.323, 0.4123, 1.0f});
     if (!FrameSetup(cmd, scene, camera, screenSize))
     {
         return;
@@ -193,15 +200,28 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndRenderPass();
 
         // Graphics::GetSingleton().ExecuteRenderingEvnet(RenderingEvent::Skybox, *cmd, renderingData);
-        auto& clouds = scene.GetRenderingScene().GetClouds();
+        auto clouds = scene.GetRenderingScene().GetClouds();
         if (!clouds.empty())
         {
             cloudPass.Execute(*clouds[0], *cmd, renderingData);
         }
 
         // draw objects
+        cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPass.pass, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
+        cmd->EndLabel();
+
+        // draw particles
+        cmd->BindResource(0, GetPerSceneGPUResource());
+        cmd->BeginLabel("Particles", {0.55, 0.11, 0.57, 1.0f});
+        auto particleSystems = scene.GetRenderingScene().GetParticleSystems();
+        for (auto p : particleSystems)
+        {
+            particleRenderer->Draw(*cmd, p->GetDraw());
+        }
+        cmd->EndLabel();
+
         cmd->EndRenderPass();
     }
     cmd->EndLabel();
@@ -242,8 +262,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->EndLabel();
     }
 
-    // Debug
-    {}
+    cmd->EndLabel(); // Render Scene
 
     if (!IsCommandBufferOverriden())
     {
@@ -412,7 +431,7 @@ void RenderPipeline::AmbientOcclusionPass::Execute(
     pass.SetAttachment(0, ssao);
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
     cmd->BeginRenderPass(pass, clears);
-    cmd->BindResource(mat.GetSet("perMaterial"), mat.GetShaderResource());
+    cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
     cmd->BindShaderProgram(ssaoShader->GetShaderProgram(), ssaoShader->GetShaderProgram()->GetDefaultShaderConfig());
     cmd->Draw(6, 1, 0, 0);
     cmd->EndRenderPass();
@@ -671,7 +690,10 @@ void RenderPipeline::CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, R
         ->SetTexture("depthMap", renderingData.depthCopy, Gfx::ImageViewOption{0, 1, 0, 1, Gfx::ImageAspect::Depth});
     volumetricCloud->SetTexture("interleavedGradientNoise", renderingData.interleavedGradientNoise.GetNoiseTexture());
     cmd.BindShaderProgram(volumetricCloud->GetShader()->GetShaderProgram(), volumetricCloud->GetShaderConfig());
-    cmd.BindResource(volumetricCloud->GetSet("perMaterial"), volumetricCloud->GetShaderResource());
+    cmd.BindResource(
+        volumetricCloud->GetSet(Gfx::DescriptorSetSemantics::Material),
+        volumetricCloud->GetShaderResource()
+    );
     cmd.Dispatch((renderingData.sceneInfo->screenSize.x + 7) / 8, (renderingData.sceneInfo->screenSize.y + 7) / 8, 1);
 }
 

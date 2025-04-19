@@ -31,6 +31,13 @@ struct ShaderProgramCreateInfoVertex
     std::vector<InputAttribute> inputAttributes;
 };
 
+enum class DescriptorSetSemantics
+{
+    Global,
+    Material,
+    Object,
+};
+
 struct PipelineInfo
 {
     enum class MemberDataType
@@ -106,9 +113,22 @@ struct PipelineInfo
     {
         std::string name;
         int setNum = 0;
+        DescriptorSetSemantics semantics = Gfx::DescriptorSetSemantics::Global;
         std::vector<Binding> bindings = {};
         std::unordered_map<std::string, Binding*> nameToBinding = {};
         std::vector<SamplerConfig> samplerConfigs = {};
+
+        const Binding* GetBinding(int bindingIdx) const
+        {
+            if (bindingIdx >= 0 && bindingIdx < bindings.size())
+            {
+                return &bindings[bindingIdx];
+            }
+
+            return nullptr;
+        }
+
+        size_t GetBindingCount() const { return bindings.size(); }
 
         const Binding* GetBinding(std::string_view name) const
         {
@@ -155,6 +175,19 @@ struct PipelineInfo
     std::vector<FragmentOutput> fragmentOutputs = {};
     std::vector<DescriptorSet> descriptorSets = {};
     std::vector<PushConstant> pushConstants = {};
+
+    const DescriptorSet* GetDescriptorSet(DescriptorSetSemantics semantics) const
+    {
+        for (int i = 0; i < descriptorSets.size(); ++i)
+        {
+            if (descriptorSets[i].semantics == semantics)
+            {
+                return &descriptorSets[i];
+            }
+        }
+
+        return nullptr;
+    }
 
     const DescriptorSet* GetDescriptorSet(const std::string& name) const
     {

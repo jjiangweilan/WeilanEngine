@@ -1,3 +1,4 @@
+import WeilanEngine;
 import Library.PerScene;
 import SphericalHarmonics;
 
@@ -24,7 +25,9 @@ struct PerMaterial
     StructuredBuffer<float4> sh;
 };
 
+[Global]
 ParameterBlock<PerScene> perScene;
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 [vk_push_constant]

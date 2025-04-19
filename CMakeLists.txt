@@ -6,7 +6,11 @@ project(WeilanEngine)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}" )
+
+if (MSVC)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
+endif()
 
 option(USE_VULKAN_SDK_TOOLS "Turn it off if want to build our own vulkan sdk tools, useful when we want to build in Debug build type" OFF)
 option(ENABLE_ADDRESS_SANITIZER "" OFF)
@@ -38,16 +42,6 @@ set(SLANG_ENABLE_AFTERMATH OFF)
 set(SLANG_ENABLE_EXAMPLES OFF)
 FetchContent_MakeAvailable(Slang)
 
-# set_target_properties(slang-glslang
-#     PROPERTIES
-#     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-# )
-# set_target_properties(slang
-#     PROPERTIES
-#     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-#     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-# )
 add_dependencies(slang
 slang-glslang
 )
@@ -184,4 +178,117 @@ if(NOT JoltPhysics_POPULATED)
   endif()
 endif()
 
-add_subdirectory(Source)
+
+# WeilanEngine
+
+if (WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+option(UNIT_TEST "enable unit test" OFF)
+option(SHIP "ship build" OFF)
+option(EDITOR_ON "compile with game editor" ON)
+option(DEV_BUILD "Define ENGINE_DEV_BUILD" ON)
+
+# link WeilanEngine to editor
+add_executable(WeilanEngineEditor
+    Source/Editor/Launcher.cpp)
+add_library(WeilanEngine SHARED)
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    target_compile_options(WeilanEngine PUBLIC /MP /W1)
+    target_compile_options(WeilanEngine PRIVATE "/Zi")
+    target_compile_options(WeilanEngine PRIVATE "/Od")
+    target_compile_options(WeilanEngine PRIVATE "/Ob0")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
+endif()
+
+set_property(TARGET WeilanEngine PROPERTY INTERPROCEDURAL_OPTIMIZATION IS_IPO_SUPPORTED)
+file(GLOB_RECURSE CORE_ENGINE_SRC "Source/Engine/*.c" "Source/Engine/*.cpp" "Source/Engine/*.hpp" "Source/Engine/*.h" "Source/Engine/*.tpp")
+if (${DEV_BUILD})
+    target_compile_definitions(WeilanEngine PUBLIC ENGINE_DEV_BUILD)
+    target_compile_definitions(WeilanEngine PUBLIC ENGINE_SOURCE_PATH="${CMAKE_SOURCE_DIR}")
+endif()
+
+if (${EDITOR_ON})
+    target_compile_definitions(WeilanEngine PUBLIC ENGINE_EDITOR)
+endif()
+
+target_sources(WeilanEngine PRIVATE ${CORE_ENGINE_SRC})
+find_package(Vulkan REQUIRED)
+
+target_include_directories( WeilanEngine
+    PUBLIC
+    "Source/Engine/"
+
+    SYSTEM
+    ${Vulkan_INCLUDE_DIRS}
+    )
+
+if(USE_VULKAN_SDK_TOOLS)
+    target_link_directories(WeilanEngine
+        PUBLIC
+        $ENV{VULKAN_SDK}/Lib
+        )
+endif()
+
+target_link_libraries( WeilanEngine
+    PUBLIC
+    ryml::ryml
+    SDL2::SDL2
+    spdlog
+    fmt
+    ktx
+    glm
+    slang
+    fmt
+    ktx
+    glm
+    Jolt
+    nlohmann_json::nlohmann_json
+    GPUOpen::VulkanMemoryAllocator
+    assimp
+    ${Vulkan_LIBRARIES}
+    )
+
+target_compile_definitions(
+    WeilanEngine
+    PUBLIC
+    SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_INFO
+    SPDLOG_FMT_EXTERNAL
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
+    VULKAN_HPP_CPP_VERSION=20
+    GLM_ENABLE_EXPERIMENTAL
+    )
+
+if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "MSVC")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Zi")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Od")
+    target_compile_options(WeilanEngineEditor PRIVATE "/Ob0")
+endif()
+file(GLOB_RECURSE EDITOR_ENGINE_SRC "Source/Editor/*.c" "Source/Editor/*.cpp" "Source/Editor/*.hpp" "Source/Editor/*.h" "Source/Editor/*.tpp")
+target_sources(WeilanEngineEditor PRIVATE ${EDITOR_ENGINE_SRC})
+target_link_libraries(WeilanEngineEditor WeilanEngine)
+target_include_directories( WeilanEngineEditor
+    PUBLIC
+    "Source/Editor/"
+
+    SYSTEM
+    # "${CMAKE_BINARY_DIR}/bin"
+    # "${CMAKE_BINARY_DIR}/include"
+    ${Vulkan_INCLUDE_DIRS}
+    )
+
+if (MSVC)
+    set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "WeilanEngineEditor")
+    set_property(TARGET WeilanEngineEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+endif()
+
+source_group(
+    TREE
+    ${CMAKE_CURRENT_LIST_DIR}
+    FILES
+    ${CORE_ENGINE_SRC}
+    ${Dev_Tool_SRC}
+)
+

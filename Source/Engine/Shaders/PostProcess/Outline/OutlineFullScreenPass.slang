@@ -19,7 +19,7 @@ struct VertexOutput
 
 struct Transform
 {
-    matrix<float, 4,4> model;
+    float4x4 model;
 }
 
 struct Parameter

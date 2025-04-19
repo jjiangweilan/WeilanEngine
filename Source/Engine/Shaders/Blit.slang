@@ -1,4 +1,5 @@
 #include "Utils/VertexFullScreen.hlsl"
+import WeilanEngine;
 
 static extern const bool _ResetAlpha = false;
 
@@ -7,6 +8,7 @@ struct PerMaterial
     Sampler2D input;
 };
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 [shader("fragment")]

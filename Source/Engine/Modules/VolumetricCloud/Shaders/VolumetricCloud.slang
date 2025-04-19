@@ -1,3 +1,5 @@
+import WeilanEngine;
+
 #include "Library/PerScene.hlsl"
 
 #if CONFIG
@@ -49,7 +51,9 @@ float3 GetCloudMax()
     return perMaterial.cloudCenter.xyz + perMaterial.cloudExtent.xyz;
 }
 
+[Global]
 ParameterBlock<PerScene> perScene;
+[Material]
 ParameterBlock<VolumetricCloudParameter> perMaterial;
 
 
@@ -209,6 +213,7 @@ bool RayPlaneIntersection(float3 origin, float3 dir, float4 plane, out float t)
     float denom = dot(planeNorm, rayDir);
     if (abs(denom) < 1e-6)
     {
+        t = 0;
         return false; // no intersection
     }
 

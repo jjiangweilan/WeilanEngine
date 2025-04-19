@@ -584,7 +584,7 @@ bool VKDriver::EndFrame()
     }
 
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    WaitForCurrentInflightCmd();
     vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
@@ -1094,7 +1094,7 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
     std::vector<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
+        // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };
 #if ENGINE_EDITOR
     deviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -1218,7 +1218,7 @@ void VKDriver::ExecuteCommandBuffer(Gfx::CommandBuffer& cmd)
 
 void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
 {
-    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    WaitForCurrentInflightCmd();
 
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
@@ -1287,6 +1287,11 @@ std::unique_ptr<CommandBuffer> VKDriver::CreateCommandBuffer()
     return std::unique_ptr<CommandBuffer>(new VKCommandBuffer(renderGraph.get()));
 }
 
+void VKDriver::AppendOnCompleteCallback(const std::function<void()>& callback)
+{
+    inflightData[currentInflightIndex].onCompleteCallbacks.push_back(callback);
+}
+
 Window* VKDriver::CreateExtraWindow(SDL_Window* window)
 {
     auto newWindow = std::make_unique<VKWindow>(window, driverConfig.swapchainImageCount);
@@ -1307,5 +1312,15 @@ void VKDriver::DestroyExtraWindow(Window* window)
 void VKDriver::CaptureFrameRenderDoc()
 {
     captureFrame = true;
+}
+
+void VKDriver::WaitForCurrentInflightCmd()
+{
+    vkWaitForFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence, true, -1);
+    for (auto& f : inflightData[currentInflightIndex].onCompleteCallbacks)
+    {
+        f();
+    }
+    inflightData[currentInflightIndex].onCompleteCallbacks.clear();
 }
 } // namespace Gfx

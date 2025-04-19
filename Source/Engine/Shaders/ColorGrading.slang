@@ -1,10 +1,12 @@
 #include "Utils/VertexFullScreen.hlsl"
+import WeilanEngine;
 
 struct PerMaterial
 {
     Sampler2D mainColor;
 };
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/

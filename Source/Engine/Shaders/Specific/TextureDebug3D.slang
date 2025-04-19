@@ -1,3 +1,4 @@
+import WeilanEngine;
 struct PerMaterial
 {
     float layer;
@@ -11,6 +12,7 @@ struct PerMaterial
 
 #include "Utils/VertexFullScreen.hlsl"
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 [shader("fragment")]

@@ -1,3 +1,5 @@
+import WeilanEngine;
+
 struct NoiseParameter
 {
     float perlin_Lacunarity = 2.0;
@@ -16,6 +18,7 @@ struct NoiseParameter
     RWTexture3D<float4> imgOutput;
 #endif
 };
+[Material]
 ParameterBlock<NoiseParameter> perMaterial;
 
 #define USE_PERLIN_NOISE_3D

@@ -49,7 +49,7 @@ public:
         uint32_t subpass
     );
     VkPipeline RequestComputePipeline();
-    VKDescriptorPool& GetDescriptorPool(DescriptorSetSlot slot);
+    VKDescriptorPool* GetDescriptorPool(DescriptorSetSlot slot);
 
     // std::shared_ptr<const ShaderConfig> GetDefaultShaderConfig() override;
 
@@ -76,7 +76,7 @@ private:
     VkShaderModule computeModule = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
-    std::vector<RefPtr<VKDescriptorPool>> descriptorPools = {};
+    std::vector<VKDescriptorPool*> descriptorPools = {};
     PipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
 

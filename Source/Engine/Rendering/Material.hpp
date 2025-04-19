@@ -41,6 +41,7 @@ public:
 
     std::unique_ptr<Asset> Clone() override;
 
+    void SetBuffer(const std::string& name, Gfx::Buffer* buffer);
     void SetMatrix(const std::string& name, const glm::mat4& value);
     void SetFloat(const std::string& name, float value);
     void SetVector(const std::string& name, const glm::vec4& value);
@@ -48,6 +49,7 @@ public:
     void SetFloat(const std::string& param, const std::string& member, float value);
     void SetVector(const std::string& param, const std::string& member, const glm::vec4& value);
     int GetSet(const std::string& name) const;
+    int GetSet(Gfx::DescriptorSetSemantics semantics) const;
 
     void SetTexture(
         const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
@@ -90,8 +92,6 @@ public:
 
     // a dirty implementation to use when a texture is reimported in editor
     static void RebuildAllMaterials();
-
-    inline static const std::string PerMaterial = "perMaterial";
 
 private:
     struct UBO

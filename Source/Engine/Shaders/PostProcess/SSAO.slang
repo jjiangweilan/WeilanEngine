@@ -1,6 +1,6 @@
 #include "Utils/VertexFullScreen.hlsl"
+import WeilanEngine;
 import Library.NormalReconstruction;
-import Attributes;
 import Library.PerScene;
 
 #define GTAO_SLICE_COUNT 8
@@ -27,6 +27,7 @@ struct GTAOParameter
     Sampler2D depthTex;
 };
 
+[Global]
 ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GTAOParameter> perMaterial;

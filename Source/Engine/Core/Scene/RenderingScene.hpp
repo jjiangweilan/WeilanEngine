@@ -15,10 +15,16 @@ class SceneEnvironment;
 class Terrain;
 class GrassSurface;
 class Cloud;
+class ParticleSystem;
 
 class RenderingScene
 {
 public:
+#define RENDERING_SCENE_OBJECT_API(Type, name, container)                                                              \
+    void AddRenderObject(Type& name) { AddSpecialObject(name, container); }                                            \
+    void RemoveRenderObject(Type& name) { RemoveSpecialObject(name, container); }                                      \
+    std::span<Type*> Get##Type##s() { return container; }
+
     RenderingScene() {};
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
@@ -51,24 +57,14 @@ public:
 
     Terrain* GetTerrain() { return terrain; }
 
+    RENDERING_SCENE_OBJECT_API(Cloud, cloud, clouds);
+    RENDERING_SCENE_OBJECT_API(GrassSurface, grassSurface, grassSurfaces);
+    RENDERING_SCENE_OBJECT_API(ParticleSystem, particleSystem, particleSystems);
+
     void AddRenderer(MeshRenderer& renderingObject)
     {
         meshRenderers.push_back(&renderingObject);
         updateRendererNodeHierarchy = true;
-    }
-
-    void AddRenderer(Cloud& renderingObject) { clouds.push_back(&renderingObject); }
-
-    void AddGrassSurface(GrassSurface& grassSurface) { grassSurfaces.push_back(&grassSurface); }
-
-    void RemoveGrassSurface(GrassSurface& grassSurface)
-    {
-        auto iter = std::find(grassSurfaces.begin(), grassSurfaces.end(), &grassSurface);
-        if (iter != grassSurfaces.end())
-        {
-            std::swap(*iter, grassSurfaces.back());
-            grassSurfaces.pop_back();
-        }
     }
 
     void RemoveRenderer(MeshRenderer& renderingObject)
@@ -81,27 +77,30 @@ public:
         }
     }
 
-    void RemoveRenderer(Cloud& renderingObject)
-    {
-        auto iter = std::find(clouds.begin(), clouds.end(), &renderingObject);
-        if (iter != clouds.end())
-        {
-            std::swap(*iter, clouds.back());
-            clouds.pop_back();
-        }
-    }
-
-    std::span<GrassSurface*> GetGrassSurface() { return grassSurfaces; }
-
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
-
-    const std::vector<Cloud*>& GetClouds() { return clouds; }
 
     SceneEnvironment* GetSceneEnvironment() { return sceneEnvironment; }
 
     void Tick();
 
 private:
+    template <class T>
+    void AddSpecialObject(T& obj, std::vector<T*>& addTo)
+    {
+        addTo.push_back(&obj);
+    }
+
+    template <class T>
+    void RemoveSpecialObject(T& obj, std::vector<T*>& removeFrom)
+    {
+        auto iter = std::find(removeFrom.begin(), removeFrom.end(), &obj);
+        if (iter != removeFrom.end())
+        {
+            std::swap(*iter, removeFrom.back());
+            removeFrom.pop_back();
+        }
+    }
+
     struct BoundingVolumeHierarchy
     {
     public:
@@ -128,9 +127,11 @@ private:
         void UpdateNode(int nodeIndex);
     };
 
+    std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;
     std::vector<Cloud*> clouds;
+
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;
 

@@ -150,6 +150,8 @@ const char* MapStrBlendOp(Gfx::BlendOp op)
         case (Gfx::BlendOp::Min): return "min";
         case (Gfx::BlendOp::Max): return "max";
     }
+
+    return "add";
 }
 
 const char* MapStrCompareOp(Gfx::CompareOp op)
@@ -165,6 +167,8 @@ const char* MapStrCompareOp(Gfx::CompareOp op)
         case (Gfx::CompareOp::Always): return "always";
         case (Gfx::CompareOp::Less): return "always";
     }
+
+    return "never";
 }
 
 Gfx::CompareOp MapCompareOp(const std::string& str)

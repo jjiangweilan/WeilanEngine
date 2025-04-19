@@ -114,10 +114,26 @@ protected:
     struct SetInfo
     {
         VKShaderProgram* program;
+        ObjPtr<VKDescriptorPool> descriptorPool = nullptr;
         uint32_t creationSetIndex;
-        VkDescriptorSet set = VK_NULL_HANDLE;
+        VkDescriptorSet set;
         bool rebuild = false;
         std::vector<VKWritableGPUResource> writableGPUResources;
+    };
+
+    struct SetGroup
+    {
+        UUID id;
+        uint32_t set;
+        bool operator==(const SetGroup& other) const
+        {
+            return id == other.id && set == other.set;
+        }
+    };
+
+    struct SetGroupHash
+    {
+        size_t operator()(const SetGroup& group) const;
     };
 
     // first key: binding name
@@ -125,8 +141,7 @@ protected:
     std::unordered_map<ShaderBindingHandle, std::unordered_map<int, ResourceRef>> bindings;
     VkPipelineLayout layout = VK_NULL_HANDLE;
     VKSharedResource* sharedResource;
-    VKDescriptorPool* descriptorPool = nullptr;
-    std::unordered_map<UUID, SetInfo> sets;
+    std::unordered_map<SetGroup, SetInfo, SetGroupHash> sets;
     std::unique_ptr<VKBuffer> defaultBuffer;
     std::string name;
 

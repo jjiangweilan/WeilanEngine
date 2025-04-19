@@ -62,8 +62,6 @@ std::array<float3, 9> SHProbe::BakeToSHCPU(
 }
 void SHProbe::UpdateProbe(Scene& scene, const SHProbeUpdateSettings& settings)
 {
-    ASSERT(scene != nullptr);
-
     if (settings.skyboxOnly)
     {
         // render the skybox

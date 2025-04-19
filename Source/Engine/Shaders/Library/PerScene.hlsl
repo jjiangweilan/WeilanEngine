@@ -50,5 +50,15 @@ struct PerScene
         else
             return Light(0,0,0,0,0,0,0);
     }
+
+    float4 ModelToClipSpace(float4 position)
+    {
+        return mul(viewProjection, position);
+    }
+
+    float4 ModelToClipSpace(float3 position)
+    {
+        return mul(viewProjection, float4(position, 1.0));
+    }
 #endif
 };

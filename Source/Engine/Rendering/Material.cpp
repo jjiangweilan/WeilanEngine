@@ -78,6 +78,11 @@ void Material::SetTextureInternal(
     SetDirty();
 }
 
+void Material::SetBuffer(const std::string& name, Gfx::Buffer* buffer)
+{
+    shaderResource->SetBuffer(name, buffer);
+}
+
 void Material::RebuildAllMaterials()
 {
     auto materials = Object::GetObjectsOfType<Material>();
@@ -113,7 +118,6 @@ void Material::SetTexture(
         else
             shaderResource->SetImage(param, image);
     }
-    SetDirty();
 }
 
 void Material::SetMatrix(const std::string& name, const glm::mat4& value)
@@ -289,7 +293,10 @@ Gfx::ShaderProgram* Material::GetShaderProgram()
         needRequestNewShader = false;
     }
 
-    return shaderInUse->GetShaderProgram();
+    if (shaderInUse)
+        return shaderInUse->GetShaderProgram();
+
+    return nullptr;
 }
 
 void Material::EnableFeature(const std::string& name)
@@ -405,11 +412,11 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
     {
         ubo.dirty = false;
         const auto& pipelineInfo = shaderProgram->GetShaderInfo();
-        auto descriptorSet = pipelineInfo.GetDescriptorSet(PerMaterial);
+        auto descriptorSet = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material);
         if (descriptorSet == nullptr)
             return;
 
-        auto binding = descriptorSet->GetBinding(PerMaterial);
+        auto binding = descriptorSet->GetBinding(0);
         if (binding != nullptr && binding->descriptorType == Gfx::DescriptorType::UniformBuffer)
         {
             // Create the buffer
@@ -423,7 +430,8 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
                     .debugName = "Material Uniform Buffer",
                 });
 
-                shaderResource->SetBuffer(PerMaterial, buffer.get());
+                auto uboBindingName = pipelineInfo.GetDescriptorSet(Gfx::DescriptorSetSemantics::Material)->name;
+                shaderResource->SetBuffer(uboBindingName, buffer.get());
                 ubo.buffer = std::move(buffer);
             }
 
@@ -537,6 +545,18 @@ const Gfx::PipelineConfig& Material::GetShaderConfig()
     }
 }
 
+int Material::GetSet(Gfx::DescriptorSetSemantics semantics) const
+{
+    if (shaderInUse)
+    {
+        auto set = shaderInUse->GetShaderProgram()->GetShaderInfo().GetDescriptorSet(semantics);
+        if (set)
+            return set->setNum;
+    }
+
+    return -1;
+}
+
 int Material::GetSet(const std::string& name) const
 {
     if (shaderInUse)
@@ -546,7 +566,7 @@ int Material::GetSet(const std::string& name) const
             return set->setNum;
     }
 
-    return 2; // legacy default
+    return -1;
 }
 
 void Material::CopyProperties(Material& other)

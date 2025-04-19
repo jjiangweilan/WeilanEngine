@@ -1,4 +1,5 @@
 import Library.PerScene;
+import WeilanEngine;
 
 #if CONFIG
 depth:
@@ -58,6 +59,7 @@ struct DeferredInput
 }
 
 ParameterBlock<PerScene> perScene;
+[Material]
 ParameterBlock<DeferredInput> perMaterial;
 
 #define NearZero 0.000001
@@ -209,8 +211,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
         float dotNL = max(dot(n, l), NearZero);
-        float3 F;
-        float3 brdf = SpecularBRDF(baseColor, l, v, n, metallic, roughness, F);
+        float3 F = 0.0f;
+        float3 brdf = float3(0,0,0);//SpecularBRDF(baseColor, l, v, n, metallic, roughness, F);
         float3 kd = 1 - F;
         kd *= 1 - metallic;
 

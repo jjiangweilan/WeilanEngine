@@ -35,13 +35,15 @@ public:
     virtual void OnStart() {}
     virtual void OnStop() {}
     [[deprecated("Use Gizmos::DrawXXX instead")]]
-    virtual void OnDrawGizmos() {}
+    virtual void OnDrawGizmos()
+    {}
     virtual void OnLoaded() {}
 
 protected:
     bool enabled = false;
     GameObject* gameObject;
 
+    virtual void OnInit() {};
     virtual void OnEnable() {};
     virtual void OnDisable() {};
     virtual void OnDestroy() {};
@@ -51,6 +53,23 @@ protected:
 
     friend class GameObject;
 };
+
+#define DECLARE_COMPONENT(TypeName)                                                                                    \
+    DECLARE_OBJECT()                                                                                                   \
+public:                                                                                                                \
+    TypeName() : Component(nullptr) {}                                                                                 \
+    TypeName(GameObject* gameObject) : Component(gameObject) {}                                                        \
+    const std::string& GetName() override;                                                                             \
+                                                                                                                       \
+private:
+
+#define DEFINE_COMPONENT(TypeName, UUID)                                                                               \
+    DEFINE_OBJECT(TypeName, UUID)                                                                                      \
+    const std::string& TypeName::GetName()                                                                             \
+    {                                                                                                                  \
+        static std::string name = #TypeName;                                                                           \
+        return name;                                                                                                   \
+    }
 
 /**
 class ExampleComponent : public Component

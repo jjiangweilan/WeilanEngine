@@ -1,4 +1,5 @@
 #include "Utils/VertexFullScreen.hlsl"
+import WeilanEngine;
 
 #define FXAA_GATHER4_ALPHA 0
 #define FxaaTexOff(t, p, o, r) t.Sample(p + (o * r))
@@ -20,6 +21,7 @@ struct PerMaterial
     Sampler2D source;
 }
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 float FxaaLuma(float4 rgb) 

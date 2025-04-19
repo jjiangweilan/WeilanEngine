@@ -1,3 +1,4 @@
+import WeilanEngine;
 import Library.PerScene;
 #include "DeferredPBRShading.hlsl"
 #include "Library/Grid.hlsl"
@@ -47,6 +48,7 @@ struct VertexOutput
     float2 uv;
 }
 
+[Global]
 ParameterBlock<PerScene> perScene;
 
 [shader("vertex")]
@@ -87,6 +89,7 @@ struct PerMaterial
     Sampler2D emissiveMap;
 };
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 struct FragmentOutput

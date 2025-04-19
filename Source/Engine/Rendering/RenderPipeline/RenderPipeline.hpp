@@ -14,6 +14,7 @@ class Camera;
 namespace Rendering
 {
 using namespace RenderPasses;
+class ParticleRenderer;
 
 class SceneRendererSorter
 {
@@ -36,6 +37,7 @@ class RenderPipeline
 {
 public:
     RenderPipeline();
+    ~RenderPipeline();
 
     void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
@@ -48,6 +50,9 @@ public:
     void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
 private:
+    //class ParticleRenderer;
+
+    std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 
     Gfx::RG::ImageIdentifier mainColor = "mainColor";

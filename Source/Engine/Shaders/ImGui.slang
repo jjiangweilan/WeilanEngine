@@ -1,3 +1,4 @@
+import WeilanEngine;
 #if CONFIG
 blend:
 - srcAlpha oneMinusSrcAlpha
@@ -22,6 +23,7 @@ struct PerMaterial
     SamplerState sampler_linear_clamp;
 }
 
+[Material]
 ParameterBlock<PerMaterial> perMaterial;
 
 struct VOut

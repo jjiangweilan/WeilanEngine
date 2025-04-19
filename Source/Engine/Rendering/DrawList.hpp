@@ -15,6 +15,8 @@ struct SceneObjectDrawData
     Shader2* shader = nullptr;
     const Gfx::PipelineConfig* shaderConfig = nullptr;
     Material* material = nullptr;
+    int materialSet = 0;
+    int objectSet = -1;
     Gfx::ShaderResource* materialResource = nullptr;
     Gfx::ShaderResource* objectResource = nullptr;
     Gfx::Buffer* indexBuffer = nullptr;

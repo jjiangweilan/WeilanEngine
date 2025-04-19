@@ -7,6 +7,8 @@
 
 namespace Gfx
 {
+DEFINE_OBJECT(VKDescriptorPool, "FBAB18F5-E9C3-4CEF-91E2-08CF3386DA1A");
+
 VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo)
     : context(context)
 {
@@ -22,7 +24,6 @@ VKDescriptorPool::VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLay
         poolSizes.push_back({iter.first, iter.second});
     }
 
-    // FIXME: throwing robin_hood::map overflow
     try
     {
         context->objManager->CreateDescriptorSetLayout(layoutCreateInfo, layout);
@@ -132,16 +133,17 @@ VKDescriptorPool& VKDescriptorPoolCache::RequestDescriptorPool(
     const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo
 )
 {
-    auto it = descriptorLayoutPoolCache.find(createInfo);
-    if (it != descriptorLayoutPoolCache.end())
+    descriptorLayoutPoolCache.push_back(std::make_unique<VKDescriptorPool>(context, createInfo));
+    return *descriptorLayoutPoolCache.back().get();
+}
+
+void VKDescriptorPoolCache::ReleaseDescriptorPool(VKDescriptorPool * pool)
+{
+    auto iter = std::find_if(descriptorLayoutPoolCache.begin(), descriptorLayoutPoolCache.end(), [pool](auto& ptr) {return ptr.get() == pool; });
+    if (iter != descriptorLayoutPoolCache.end())
     {
-        return it->second;
-    }
-    else
-    {
-        auto pair =
-            descriptorLayoutPoolCache.emplace(std::make_pair(createInfo, VKDescriptorPool(context, createInfo)));
-        return pair.first->second;
+        std::swap(*iter, descriptorLayoutPoolCache.back());
+        descriptorLayoutPoolCache.pop_back();
     }
 }
 } // namespace Gfx

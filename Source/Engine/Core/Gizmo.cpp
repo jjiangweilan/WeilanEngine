@@ -27,7 +27,10 @@ public:
         glm::vec4 pconst[2] = {pos, glm::vec4(scale, 1.0)};
         Gfx::ShaderProgram* program = shader->GetShaderProgram();
         cmd.BindResource(0, perScene);
-        cmd.BindResource(GetMaterial()->GetSet("perMaterial"), GetMaterial()->GetShaderResource());
+        cmd.BindResource(
+            GetMaterial()->GetSet(Gfx::DescriptorSetSemantics::Material),
+            GetMaterial()->GetShaderResource()
+        );
         cmd.SetPushConstant(shader->GetShaderProgram(), &pconst);
         cmd.BindShaderProgram(program, shader->GetShaderProgram()->GetDefaultShaderConfig());
         cmd.Draw(6, 1, 0, 0);
@@ -50,9 +53,7 @@ private:
 
         return lightTex;
     }
-    void Init() {
-
-    }
+    void Init() {}
     static std::unique_ptr<Material>& GetMaterial()
     {
         static std::unique_ptr<Material> mat;
@@ -91,7 +92,10 @@ public:
             if (material != nullptr)
             {
                 Gfx::ShaderProgram* program = material->GetShaderProgram();
-                cmd.BindResource(material->GetSet("perMaterial"), material->GetShaderResource());
+                cmd.BindResource(
+                    material->GetSet(Gfx::DescriptorSetSemantics::Material),
+                    material->GetShaderResource()
+                );
                 cmd.SetPushConstant(program, &modelMatrix);
                 cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
             }
@@ -138,7 +142,10 @@ private:
     float aspect;
 };
 
-GizmoDrawLight::GizmoDrawLight(const glm::vec3& position) : position(position) { Init(); }
+GizmoDrawLight::GizmoDrawLight(const glm::vec3& position) : position(position)
+{
+    Init();
+}
 
 Gizmos& Gizmos::GetSingleton()
 {

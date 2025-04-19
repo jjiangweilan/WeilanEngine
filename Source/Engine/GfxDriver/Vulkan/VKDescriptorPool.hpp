@@ -7,25 +7,22 @@
 namespace Gfx
 {
 class VKContext;
-class VKDescriptorPool
+class VKDescriptorPool : public Object
 {
+    DECLARE_OBJECT();
+
 public:
+    VKDescriptorPool() {}
     VKDescriptorPool(RefPtr<VKContext> context, VkDescriptorSetLayoutCreateInfo& layoutCreateInfo);
     VKDescriptorPool(const VKDescriptorPool& other) = delete;
     VKDescriptorPool(VKDescriptorPool&& other);
-    VkDescriptorSetLayout GetLayout()
-    {
-        return layout;
-    }
+    VkDescriptorSetLayout GetLayout() { return layout; }
     VkDescriptorSet Allocate();
 
     // TODO: we can't directly deallocate or free a set because it's probably still in use
     // maybe we can have vkdriver provide a way to register a callback to be called after each cmd is finished (test by
     // vkFence)
-    void Deallocate(VkDescriptorSet set)
-    {
-        currFramefreeSets.push_back(set);
-    }
+    void Deallocate(VkDescriptorSet set) { currFramefreeSets.push_back(set); }
 
     void AppendAndClearCurrentFrameFreeSets()
     {
@@ -54,18 +51,19 @@ struct VKDescriptorPoolCache
 {
     VKDescriptorPoolCache(RefPtr<VKContext> context) : context(context) {}
     VKDescriptorPool& RequestDescriptorPool(const std::string& shaderName, VkDescriptorSetLayoutCreateInfo createInfo);
+    void ReleaseDescriptorPool(VKDescriptorPool* pool);
 
     void AppendAndClearCurrentFrameFreeSets()
     {
         for (auto& cache : descriptorLayoutPoolCache)
         {
-            cache.second.AppendAndClearCurrentFrameFreeSets();
+            cache->AppendAndClearCurrentFrameFreeSets();
         }
     }
 
 private:
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
-    std::unordered_map<vk::DescriptorSetLayoutCreateInfo, VKDescriptorPool> descriptorLayoutPoolCache;
+    std::vector<std::unique_ptr<VKDescriptorPool>> descriptorLayoutPoolCache;
     RefPtr<VKContext> context;
 
 private:

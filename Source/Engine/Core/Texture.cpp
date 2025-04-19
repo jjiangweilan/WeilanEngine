@@ -291,10 +291,14 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
     bool is16Bit = stbi_is_16_bit_from_memory(data, byteSize);
     bool isHDR = stbi_is_hdr_from_memory(data, byteSize);
 
-    stbi_uc* loaded = nullptr;
+    uint8_t* loaded = nullptr;
     if (isHDR)
     {
         loaded = (stbi_uc*)stbi_loadf_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
+    }
+    else if (is16Bit)
+    {
+        loaded = (stbi_uc*)stbi_load_16_from_memory(data, (int)byteSize, &width, &height, &channels, desiredChannels);
     }
     else
     {
@@ -322,7 +326,12 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
     }
     else if (is16Bit)
     {
-        throw std::runtime_error("Not implemented");
+        uint8_t* data;
+        elementSize = sizeof(uint16_t);
+        Libs::Image::GenerateBoxFilteredMipmap<
+            uint16_t>(loaded, width, height, 1, (int)texDesc.img.mipLevels, desiredChannels, data, mippedDataByteSize);
+        texDesc.data = data;
+        stbi_image_free(loaded);
     }
     else
     {
@@ -351,7 +360,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
             if (isHDR)
                 format = Gfx::GfxFormat::R32G32B32A32_SFloat;
             else if (is16Bit)
-                format = Gfx::GfxFormat::R16G16B16A16_SFloat;
+                format = Gfx::GfxFormat::R16G16B16A16_UNorm;
             else
                 format = Gfx::GfxFormat::R8G8B8A8_SRGB;
         }
@@ -360,7 +369,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
             if (isHDR)
                 format = Gfx::GfxFormat::R32G32B32_SFloat;
             else if (is16Bit)
-                format = Gfx::GfxFormat::R16G16B16_SFloat;
+                format = Gfx::GfxFormat::R16G16B16_UNorm;
             else
                 format = Gfx::GfxFormat::R8G8B8_SRGB;
         }
@@ -369,7 +378,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
             if (isHDR)
                 format = Gfx::GfxFormat::R32G32_SFloat;
             else if (is16Bit)
-                format = Gfx::GfxFormat::R16G16_SFloat;
+                format = Gfx::GfxFormat::R16G16_UNorm;
             else
                 format = Gfx::GfxFormat::R8G8_SRGB;
         }
@@ -378,7 +387,7 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
             if (isHDR)
                 format = Gfx::GfxFormat::R32_SFloat;
             else if (is16Bit)
-                format = Gfx::GfxFormat::R16_SFloat;
+                format = Gfx::GfxFormat::R16_UNorm;
             else
                 format = Gfx::GfxFormat::R8_SRGB;
         }
