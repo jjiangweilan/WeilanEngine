@@ -2,7 +2,6 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/ParticleSystem.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
-#include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
 #include "Core/Time.hpp"
@@ -19,6 +18,8 @@ namespace Rendering
 RenderPipeline::RenderPipeline()
 {
     particleRenderer = std::make_unique<ParticleRenderer>();
+    shadowRenderer = std::make_unique<ShadowRenderer>();
+    shadowRenderer->Init();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
@@ -52,41 +53,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 
     // Shadow Pass
-    cmd->BeginLabel("Shadow Map", &labelColors.passColor[0]);
-    {
-        if (shadowMapPass.updateMainLightShadow)
-        {
-            Gfx::ClearValue shadowMapClears[] = {{1.0f, 0}};
-            cmd->BeginRenderPass(shadowMapPass.pass, shadowMapClears);
-            auto program = shadowMapPass.shadowMapShader->GetShaderProgram();
-            auto programSkinned = shadowMapPass.shadowMapShaderSkinned->GetShaderProgram();
-
-            for (auto& draw : sceneDrawList)
-            {
-                auto programUsed = program;
-                [[unlikely]]
-                if (draw.skinned)
-                {
-                    programUsed = programSkinned;
-                    if (draw.objectResource)
-                        cmd->BindResource(1, draw.objectResource);
-                }
-                else
-                {
-                    auto ps = draw.GetPushConstant();
-                    cmd->SetPushConstant(programUsed, (void*)&ps);
-                }
-                cmd->BindShaderProgram(programUsed, programUsed->GetDefaultShaderConfig());
-
-                cmd->BindVertexBuffer(draw.vertexBufferBinding, 0);
-                cmd->BindIndexBuffer(draw.indexBuffer, 0, draw.indexBufferType);
-                cmd->DrawIndexed(draw.indexCount, 1, 0, 0, 0);
-            }
-
-            cmd->EndRenderPass();
-        }
-    }
-    cmd->EndLabel();
+    shadowRenderer->Execute(*cmd, sceneDrawList);
 
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);
@@ -132,7 +99,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         // Upload GPU Parameter
         {
             shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{
-                .shadowMapTexelSize = shadowMapPass.shadowMapTexelSize,
+                .shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize(),
                 .shadowConstantBias = setting->shadowMap.constantBias / 1000.0f,
                 .shadowNormalBias = setting->shadowMap.normalBias
             };
@@ -158,7 +125,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         shadingPass.gpuResource->SetImage("normalTex"_shaderBinding, normalGBuffer);
         shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
         shadingPass.gpuResource->SetImage("depthTex"_shaderBinding, &depthImageView);
-        shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowMapPass.shadowMap.get());
+        shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowRenderer->GetShadowMap());
         shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusionPass.ssao);
         if (diffuseCube)
             shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
@@ -321,29 +288,6 @@ RenderPipeline::GBufferPass::GBufferPass()
     Gfx::RG::SubpassAttachment depth{4};
     Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
     pass.SetSubpass(0, subpassAttachments, depth);
-}
-
-RenderPipeline::ShadowMapPass::ShadowMapPass()
-{
-    pass = Gfx::RG::RenderPass(1, 1);
-    pass.SetSubpass(
-        0,
-        {},
-        Gfx::RG::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
-    );
-    pass.SetName("ShadowMap pass");
-    shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);
-    shadowMapShaderSkinned = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObjectSkinned);
-
-    shadowDescription = Gfx::ImageDescription(shadowMapTexelSize.z, shadowMapTexelSize.w, Gfx::GfxFormat::D32_SFloat);
-
-    shadowMap = GetGfxDriver()->CreateImage(
-        shadowDescription,
-        Gfx::ImageUsage::DepthStencilAttachment | Gfx::ImageUsage::Texture
-    );
-    shadowMapId = *shadowMap;
-
-    pass.SetAttachment(0, shadowMapId);
 }
 
 RenderPipeline::ScreenSpaceShadow::ScreenSpaceShadow()

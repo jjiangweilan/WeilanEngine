@@ -1,5 +1,8 @@
 #pragma once
 
+#define NearZero 0.000001
+#define M_PI 3.1415926
+
 float3 EncodeGBufferNormal(float3 normal)
 {
     return normal * 0.5 + 0.5;
@@ -55,3 +58,60 @@ float3 CalcDiffuseCubemap(float3 n, SamplerCube diffuseCubemap, float metallic, 
     float3 ambient = (1 - metallic) * baseColor * diffuseCubeColor * ambientLightScale;
     return ambient;
 }
+
+float3 Fresnel(float3 albedo, float metallic, float dotVH)
+{
+    float3 F0 = float3(0.04); 
+    F0      = lerp(F0, albedo, metallic);
+    float attenuation = pow(2, (-5.55472 * dotVH - 6.98316) * dotVH);
+    return F0 + (1 - F0) * attenuation;
+}
+
+// https://google.github.io/filament/Filament.html
+// this handles half precision well
+#define MEDIUMP_FLT_MAX    65504.0
+#define saturateMediump(x) min(x, MEDIUMP_FLT_MAX)
+float D_GGX_half(float roughness, float NoH, const float3 n, const float3 h) {
+    float3 NxH = cross(n, h);
+    float a = NoH * roughness;
+    float k = roughness / (dot(NxH, NxH) + a * a);
+    float d = k * k * (1.0 / M_PI);
+    return saturateMediump(d);
+}
+
+// original
+float D_GGX(float NoH, float roughness) {
+    // float r2 = roughness * roughness;
+    // r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
+    float a = NoH * roughness;
+    float k = roughness / (1.0 - NoH * NoH + a * a);
+    return k * k * (1.0 / M_PI);
+}
+
+float V_SmithGGXCorrelated(float NoV, float NoL, float roughness) {
+    float a2 = roughness * roughness;
+    float GGXV = NoL * sqrt(NoV * NoV * (1.0 - a2) + a2);
+    float GGXL = NoV * sqrt(NoL * NoL * (1.0 - a2) + a2);
+    return 0.5 / (GGXV + GGXL);
+}
+
+float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic, float roughness, out float3 F)
+{
+    float3 h = normalize(l + v);
+    float dotNH = clamp(dot(n, h), NearZero, 1);
+    float dotNV = clamp(dot(n, v), NearZero, 1);
+    float dotNL = clamp(dot(n, l), NearZero, 1);
+    float dotVH = clamp(dot(v, h), NearZero, 1);
+
+    float D = D_GGX_half(roughness, dotNH, n, h);
+
+    // geometry
+    float V = V_SmithGGXCorrelated(dotNV, dotNL, roughness);
+
+    // fresnel
+    F = Fresnel(albedo, metallic, dotVH);
+
+    float3 brdf = V * D * F;
+    return brdf;
+}
+

@@ -342,7 +342,10 @@ private:
             }
         }
         std::vector<std::filesystem::path> texturePathsAsVec(texturePaths.begin(), texturePaths.end());
-        AssetDatabase::Singleton()->LoadAssets(texturePathsAsVec);
+        for (const auto& p : texturePathsAsVec)
+        {
+            AssetDatabase::Singleton()->LoadAsset(p);
+        }
 
         for (int materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex)
         {

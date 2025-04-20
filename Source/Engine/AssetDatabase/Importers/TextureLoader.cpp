@@ -81,12 +81,12 @@ std::vector<std::filesystem::path> TextureLoader::Import()
     {
         if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
         {
-            std::stringstream ss;
-            ss << f.rdbuf();
-            std::string s = ss.str();
+            size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
+            std::vector<char> fileData(fileSize);
+            f.read(fileData.data(), fileSize);
 
-            uint8_t* data = (uint8_t*)s.data();
-            size_t byteSize = s.size();
+            uint8_t* data = (uint8_t*)fileData.data();
+            size_t byteSize = fileSize;
             int width, height, channels, desiredChannels;
             bool isCubemap = (convertToReflectanceCubemap || converToIrradianceCubemap || convertToCubemap);
             int layers = isCubemap ? 6 : 1;

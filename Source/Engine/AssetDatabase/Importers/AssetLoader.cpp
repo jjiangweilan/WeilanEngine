@@ -4,14 +4,13 @@
 std::vector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
 {
     std::fstream f;
-    f.open(importDatabaseRoot / filename, std::ios::binary | std::ios_base::in);
+    auto absoluteAssetPath = importDatabaseRoot / filename;
+    f.open(absoluteAssetPath, std::ios::binary | std::ios_base::in);
     if (f.good() && f.is_open())
     {
-        std::stringstream ss;
-        ss << f.rdbuf();
-        std::string s = ss.str();
-        std::vector<uint8_t> d(s.size());
-        memcpy(d.data(), s.data(), s.size());
+        auto fileSize = std::filesystem::file_size(absoluteAssetPath);
+        std::vector<uint8_t> d(fileSize);
+        f.read((char*)d.data(), fileSize);
 
         return d;
     }

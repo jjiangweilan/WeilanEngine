@@ -432,9 +432,9 @@ void Texture::SaveAsCubemap(const char* filename)
         f.open(fpath, std::ios::binary | std::ios_base::in);
         if (f.good() && f.is_open())
         {
-            std::stringstream ss;
-            ss << f.rdbuf();
-            std::string s = ss.str();
+            size_t fileSize = std::filesystem::file_size(fpath);
+            std::vector<char> fileData(fileSize);
+            f.read(fileData.data(), fileSize);
 
             auto ext = fpath.extension();
             if (ext == ".ktx")
@@ -449,8 +449,8 @@ void Texture::SaveAsCubemap(const char* filename)
                 {
                     if (e != ".ktx" && e == ext)
                     {
-                        uint8_t* data = (uint8_t*)s.data();
-                        size_t byteSize = s.size();
+                        uint8_t* data = (uint8_t*)fileData.data();
+                        size_t byteSize = fileData.size();
 
                         int width, height, channels, desiredChannels;
                         stbi_info_from_memory(data, byteSize, &width, &height, &desiredChannels);

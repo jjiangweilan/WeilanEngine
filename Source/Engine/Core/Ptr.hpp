@@ -104,6 +104,7 @@ public:
     }
 
 private:
+    // TODO: considering using double pointer
     ObjectTrackHandle handle;
 };
 
