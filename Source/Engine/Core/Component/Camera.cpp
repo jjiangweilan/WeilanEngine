@@ -186,6 +186,37 @@ float Camera::GetFoV()
     return glm::atan(GetProjectionTop() / GetNear());
 }
 
+void Camera::GetFrustumPlanes(glm::float4 frustumPlanes[6])
+{
+    auto view = GetViewMatrix();
+    auto proj = GetAndUpdateProjectionMatrix();
+
+    auto vp = proj * view;
+    auto row3 = glm::row(vp, 3);
+    auto row0 = glm::row(vp, 0);
+    auto row1 = glm::row(vp, 1);
+    auto row2 = glm::row(vp, 2);
+
+    // Left plane
+    frustumPlanes[0] = row3 + row0;
+    // Right plane
+    frustumPlanes[1] = row3 - row0;
+    // Bottom plane
+    frustumPlanes[2] = row3 + row1;
+    // Top plane
+    frustumPlanes[3] = row3 - row1;
+    // Near plane
+    frustumPlanes[4] = row2; // z ranges from 0 to 1
+    // Far plane
+    frustumPlanes[5] = row3 - row2;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        float length = glm::length(glm::vec3(frustumPlanes[i]));
+        frustumPlanes[i] /= length;
+    }
+}
+
 void Camera::Tick() {}
 
 void Camera::LookAt(const float3& lookAtPos)

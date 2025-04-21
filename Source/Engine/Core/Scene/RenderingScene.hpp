@@ -17,6 +17,33 @@ class GrassSurface;
 class Cloud;
 class ParticleSystem;
 
+struct BoundingVolumeHierarchy
+{
+public:
+    struct Node
+    {
+        AABB aabb{};
+
+        int childNodeLeft = -1;
+        int childNodeRight = -1;
+        bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1; }
+        bool IsEmpty() const { return objectIndices.empty(); }
+
+        std::vector<int> objectIndices{};
+    };
+
+    std::vector<Node*> QueryNodesInFrustum(float4 cameraPlanes[]);
+    void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
+
+    std::vector<Node> nodes{};
+    std::vector<ObjPtr<MeshRenderer>> objects{};
+    std::vector<glm::float3> objectCenters{};
+    int maxNonLeafNodeIndex = 0;
+
+    void UpdateNodeBounds(int nodeIndex);
+    void UpdateNode(int nodeIndex);
+};
+
 class RenderingScene
 {
 public:
@@ -100,32 +127,6 @@ private:
             removeFrom.pop_back();
         }
     }
-
-    struct BoundingVolumeHierarchy
-    {
-    public:
-        void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
-
-        struct Node
-        {
-            AABB aabb{};
-
-            int childNodeLeft = -1;
-            int childNodeRight = -1;
-            bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1; }
-            bool IsEmpty() const { return objectIndices.empty(); }
-
-            std::vector<int> objectIndices{};
-        };
-
-        std::vector<Node> nodes{};
-        std::vector<ObjPtr<MeshRenderer>> objects{};
-        std::vector<glm::float3> objectCenters{};
-        int maxNonLeafNodeIndex = 0;
-
-        void UpdateNodeBounds(int nodeIndex);
-        void UpdateNode(int nodeIndex);
-    };
 
     std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;

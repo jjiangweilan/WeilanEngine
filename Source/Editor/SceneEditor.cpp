@@ -111,7 +111,20 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         if (isAltDown)
         {
             float change = ImGui::GetIO().MouseWheel;
-            editorCameraSpeed += change;
+            if (editorCameraSpeed <= 1)
+            {
+                if (editorCameraSpeed < 0.1)
+                {
+                    editorCameraSpeed += change * 0.01f;
+                }
+                else
+                    editorCameraSpeed += change * 0.1f;
+            }
+            else
+            {
+                editorCameraSpeed += change;
+            }
+            editorCameraSpeed = glm::max(editorCameraSpeed, 0.001f);
             if (change != 0)
                 spdlog::info("change editor camera speed to {}", editorCameraSpeed);
         }

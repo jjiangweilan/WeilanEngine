@@ -6,7 +6,7 @@
 
 #include "ThirdParty/imgui/imgui.h"
 
-void RenderingScene::BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
+void BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel)
 {
     nodes.clear();
     objects.clear();
@@ -30,7 +30,7 @@ void RenderingScene::BoundingVolumeHierarchy::Build(MeshRenderer** bvhObjects, i
     }
 }
 
-void RenderingScene::BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
+void BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
 {
     Node& node = nodes[nodeIndex];
 
@@ -46,7 +46,33 @@ void RenderingScene::BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
     }
 }
 
-void RenderingScene::BoundingVolumeHierarchy::UpdateNode(int nodeIndex)
+std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(float4 cameraPlanes[6])
+{
+    std::vector<Node*> resultNodes;
+    for (auto& node : nodes)
+    {
+        if (node.IsLeaf() && !node.IsEmpty())
+        {
+            bool isInFrustum = true;
+            for (int i = 0; i < 6; ++i)
+            {
+                if (glm::dot(cameraPlanes[i], glm::float4(node.aabb.min, 1)) > 0 &&
+                    glm::dot(cameraPlanes[i], glm::float4(node.aabb.max, 1)) > 0)
+                {
+                    isInFrustum = false;
+                    break;
+                }
+            }
+            if (isInFrustum)
+            {
+                resultNodes.push_back(&node);
+            }
+        }
+    }
+    return resultNodes;
+}
+
+void BoundingVolumeHierarchy::UpdateNode(int nodeIndex)
 {
     Node& node = nodes[nodeIndex];
 
