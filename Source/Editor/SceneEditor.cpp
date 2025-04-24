@@ -390,7 +390,18 @@ bool SceneEditor::Tick()
         }
     }
 
-    if (ImGui::IsKeyReleased(ImGuiKey_F))
+    if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_F, 0))
+    {
+        if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
+        {
+            if (auto mainCam = editorCamera)
+            {
+                auto m = mainCam->GetGameObject()->GetWorldMatrix();
+                go->SetWorldMatrix(m);
+            }
+        }
+    }
+    else if (ImGui::IsKeyPressed(ImGuiKey_F))
     {
         if (GameObject* go = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
         {

@@ -28,12 +28,19 @@ public:
         int childNodeRight = -1;
         bool IsLeaf() const { return childNodeLeft == -1 && childNodeRight == -1; }
         bool IsEmpty() const { return objectIndices.empty(); }
+        bool HasLeftChild() const { return childNodeLeft != -1; }
+        bool HasRightChild() const { return childNodeRight != -1; }
 
         std::vector<int> objectIndices{};
+
+        bool IsVisibleInFrustum(const float4 cameraPlanes[6]);
+        bool IsFullyVisibleInFrustum(const float4 cameraPlanes[6]);
     };
 
     std::vector<Node*> QueryNodesInFrustum(float4 cameraPlanes[]);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
+
+    Node& GetRoot() { return nodes[0]; }
 
     std::vector<Node> nodes{};
     std::vector<ObjPtr<MeshRenderer>> objects{};
@@ -42,6 +49,11 @@ public:
 
     void UpdateNodeBounds(int nodeIndex);
     void UpdateNode(int nodeIndex);
+
+private:
+    void QueryNodesInFrustum(
+        float4 cameraPlanes[6], Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
+    );
 };
 
 class RenderingScene
@@ -102,6 +114,7 @@ public:
             std::swap(*iter, meshRenderers.back());
             meshRenderers.pop_back();
         }
+        updateRendererNodeHierarchy = true;
     }
 
     std::span<MeshRenderer*> GetMeshRenderers() { return meshRenderers; }
@@ -111,6 +124,8 @@ public:
     void Tick();
 
 private:
+    Scene* scene;
+
     template <class T>
     void AddSpecialObject(T& obj, std::vector<T*>& addTo)
     {
@@ -140,4 +155,6 @@ private:
     bool updateRendererNodeHierarchy = false;
 
     void BVHDebug();
+
+    friend class Scene;
 };

@@ -1,6 +1,7 @@
 #include "RenderingScene.hpp"
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/Graphics.hpp"
 
@@ -48,28 +49,36 @@ void BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
 
 std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(float4 cameraPlanes[6])
 {
-    std::vector<Node*> resultNodes;
-    for (auto& node : nodes)
+    std::vector<BoundingVolumeHierarchy::Node*> result{};
+
+    auto& root = GetRoot();
+    QueryNodesInFrustum(cameraPlanes, root, result);
+    return result;
+}
+
+void BoundingVolumeHierarchy::QueryNodesInFrustum(
+    float4 cameraPlanes[6], Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
+)
+{
+    // TODO(perf): we should be able to reuse the dot calculation in these two test functions
+
+    if (node.IsFullyVisibleInFrustum(cameraPlanes))
     {
-        if (node.IsLeaf() && !node.IsEmpty())
+        inFrustum.push_back(&node);
+    }
+    else if (node.IsVisibleInFrustum(cameraPlanes))
+    {
+        if (node.HasLeftChild())
+            QueryNodesInFrustum(cameraPlanes, nodes[node.childNodeLeft], inFrustum);
+
+        if (node.HasRightChild())
+            QueryNodesInFrustum(cameraPlanes, nodes[node.childNodeRight], inFrustum);
+
+        if (node.IsLeaf())
         {
-            bool isInFrustum = true;
-            for (int i = 0; i < 6; ++i)
-            {
-                if (glm::dot(cameraPlanes[i], glm::float4(node.aabb.min, 1)) > 0 &&
-                    glm::dot(cameraPlanes[i], glm::float4(node.aabb.max, 1)) > 0)
-                {
-                    isInFrustum = false;
-                    break;
-                }
-            }
-            if (isInFrustum)
-            {
-                resultNodes.push_back(&node);
-            }
+            inFrustum.push_back(&node);
         }
     }
-    return resultNodes;
 }
 
 void BoundingVolumeHierarchy::UpdateNode(int nodeIndex)
@@ -129,7 +138,7 @@ void RenderingScene::Tick()
     }
 
     // BVH Debug
-    // BVHDebug()
+    BVHDebug();
 }
 
 void RenderingScene::BVHDebug()
@@ -137,13 +146,41 @@ void RenderingScene::BVHDebug()
     static int debugLevel = 2;
     static bool drawObjBounds = false;
     static bool bvhDebug = false;
+    static bool frustumCull = false;
+    static bool testCullObject = false;
+
     ImGui::Begin("BVH Debug");
     ImGui::Checkbox("Bvh Debug", &bvhDebug);
+    ImGui::Checkbox("Frustum Cull", &frustumCull);
+    ImGui::Checkbox("Draw Object Bounds", &drawObjBounds);
+    ImGui::Checkbox("Test Cull Object", &testCullObject);
     ImGui::InputInt("Debug Level", &debugLevel);
     ImGui::End();
     static Mesh* mesh = EngineInternalResources::GetModels().cube;
     static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleColor));
-    if (bvhDebug)
+    float4 frustumPlanes[6];
+    scene->GetMainCamera()->GetFrustumPlanes(frustumPlanes);
+    if (testCullObject)
+    {
+        auto nodes = rendererNodeHierarchy.QueryNodesInFrustum(frustumPlanes);
+        for (auto n : nodes)
+        {
+            for (auto objIdx : n->objectIndices)
+            {
+                auto obj = rendererNodeHierarchy.objects[objIdx].Get();
+                if (obj)
+                {
+                    auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
+
+                    glm::float3 position = (aabb.max + aabb.min) / 2.0f;
+                    glm::float3 scale = (aabb.max - aabb.min);
+                    glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                    Graphics::DrawMesh(*mesh, 0, model, mat);
+                }
+            }
+        }
+    }
+    else if (bvhDebug)
     {
         auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
         config.polygonMode = Gfx::PolygonMode::Line;
@@ -154,6 +191,14 @@ void RenderingScene::BVHDebug()
             {
                 if (n.IsLeaf() && !n.IsEmpty())
                 {
+                    if (frustumCull)
+                    {
+                        if (!n.IsVisibleInFrustum(frustumPlanes))
+                        {
+                            continue;
+                        }
+                    }
+
                     glm::float3 scale = (n.aabb.max - n.aabb.min);
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
@@ -188,6 +233,14 @@ void RenderingScene::BVHDebug()
                 auto& n = rendererNodeHierarchy.nodes[i];
                 if (!n.IsEmpty())
                 {
+                    if (frustumCull)
+                    {
+                        if (!n.IsVisibleInFrustum(frustumPlanes))
+                        {
+                            continue;
+                        }
+                    }
+
                     glm::float3 scale = (n.aabb.max - n.aabb.min);
                     if (scale.x != 0 && scale.y != 0 && scale.z != 0)
                     {
@@ -217,4 +270,53 @@ void RenderingScene::BVHDebug()
             }
         }
     }
+}
+bool BoundingVolumeHierarchy::Node::IsFullyVisibleInFrustum(const float4 cameraPlanes[6])
+{
+    const glm::vec3& vmin = aabb.min;
+    const glm::vec3& vmax = aabb.max;
+
+    for (size_t i = 0; i < 6; ++i)
+    {
+        const glm::vec4& g = cameraPlanes[i];
+        if ((glm::dot(g, glm::vec4(vmin.x, vmin.y, vmin.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmin.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmin.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmin.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmin.x, vmin.y, vmax.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmax.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmax.z, 1.0f)) < 0.0) ||
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmax.z, 1.0f)) < 0.0))
+        {
+            // One of the vertices is outside
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const float4 cameraPlanes[6])
+{
+    const glm::vec3& vmin = aabb.min;
+    const glm::vec3& vmax = aabb.max;
+
+    for (size_t i = 0; i < 6; ++i)
+    {
+        const glm::vec4& g = cameraPlanes[i];
+        if ((glm::dot(g, glm::vec4(vmin.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmin.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmin.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmax.z, 1.0f)) < 0.0) &&
+            (glm::dot(g, glm::vec4(vmax.x, vmax.y, vmax.z, 1.0f)) < 0.0))
+        {
+            // Completely outside the frustum
+            return false;
+        }
+    }
+
+    return true;
 }
