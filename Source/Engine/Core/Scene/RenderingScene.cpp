@@ -320,3 +320,19 @@ bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const float4 cameraPlanes
 
     return true;
 }
+
+std::vector<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(float4 cameraPlanes[6])
+{
+    std::vector<MeshRenderer*> objs{};
+    auto nodes = QueryNodesInFrustum(cameraPlanes);
+    for (auto n : nodes)
+    {
+        for (auto objIdx : n->objectIndices)
+        {
+            auto obj = objects[objIdx].Get();
+            objs.push_back(obj);
+        }
+    }
+
+    return objs;
+}

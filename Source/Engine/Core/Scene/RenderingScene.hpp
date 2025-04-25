@@ -37,7 +37,8 @@ public:
         bool IsFullyVisibleInFrustum(const float4 cameraPlanes[6]);
     };
 
-    std::vector<Node*> QueryNodesInFrustum(float4 cameraPlanes[]);
+    std::vector<MeshRenderer*> QueryRendererInFrustum(float4 cameraPlanes[6]);
+    std::vector<Node*> QueryNodesInFrustum(float4 cameraPlanes[6]);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
 
     Node& GetRoot() { return nodes[0]; }
@@ -67,6 +68,16 @@ public:
     RenderingScene() {};
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
+
+    std::vector<MeshRenderer*> QueryRendererInFrustum(float4 cameraPlanes[6])
+    {
+        return rendererNodeHierarchy.QueryRendererInFrustum(cameraPlanes);
+    }
+
+    std::vector<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(float4 cameraPlanes[6])
+    {
+        return rendererNodeHierarchy.QueryNodesInFrustum(cameraPlanes);
+    }
 
     void SetSceneEnvironment(SceneEnvironment& sceneEnvironment)
     {

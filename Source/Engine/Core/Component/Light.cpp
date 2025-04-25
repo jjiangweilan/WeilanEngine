@@ -22,7 +22,14 @@ glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
     }
     else
     {
-        glm::mat4 proj = glm::orthoLH_ZO(-10., 10., -10., 10., -300., 700.);
+        glm::mat4 proj = glm::orthoLH_ZO(
+            directionalLightFrustum_W[0],
+            directionalLightFrustum_W[1],
+            directionalLightFrustum_W[2],
+            directionalLightFrustum_W[3],
+            directionalLightFrustum_W[4],
+            directionalLightFrustum_W[5]
+        );
         auto model = gameObject->GetWorldMatrix();
         model[3] = glm::vec4(follow, 1.0);
         shadowCache.cachedWorldToShadow = proj * glm::inverse(model);
@@ -83,4 +90,33 @@ glm::vec3 Light::GetLightDirection()
     auto model = GetGameObject()->GetWorldMatrix();
     glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
     return pos;
+}
+
+void Light::GetLightFrusutmPlanes(glm::float4 frustumPlanes[6], const float3& follow)
+{
+    auto worldToShadow = WorldToShadowMatrix(follow);
+
+    auto row0 = glm::row(worldToShadow, 0);
+    auto row1 = glm::row(worldToShadow, 1);
+    auto row2 = glm::row(worldToShadow, 2);
+    auto row3 = glm::row(worldToShadow, 3);
+
+    // Left plane
+    frustumPlanes[0] = row0 + row0;
+    // Right plane
+    frustumPlanes[1] = row3 - row0;
+    // Bottom plane
+    frustumPlanes[2] = row3 + row1;
+    // Top plane
+    frustumPlanes[3] = row3 - row1;
+    // Near plane
+    frustumPlanes[4] = row2; // z ranges from 0 to 1
+    // Far plane
+    frustumPlanes[5] = row3 - row2;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        float length = glm::length(glm::vec3(frustumPlanes[i]));
+        frustumPlanes[i] /= length;
+    }
 }

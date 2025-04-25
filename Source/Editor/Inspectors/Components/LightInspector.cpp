@@ -1,6 +1,9 @@
 #include "../../EditorState.hpp"
 #include "../Inspector.hpp"
+#include "Core/Component/Camera.hpp"
 #include "Core/Component/Light.hpp"
+#include "Core/Scene/Scene.hpp"
+#include "Rendering/Graphics.hpp"
 
 namespace Editor
 {
@@ -68,6 +71,22 @@ public:
             light->SetShadowUpdateFrames(targetFrames);
         }
         ImGui::Separator();
+
+        float4 lightFrustumPlanes[6];
+        target->GetLightFrusutmPlanes(lightFrustumPlanes, target->GetGameObject()->GetPosition());
+
+        // 6 different float4 colors
+        float4 colors[6] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {1, 1, 0, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}};
+
+        auto cam = target->GetScene()->GetMainCamera();
+        for (int i = 0; i < 6; ++i)
+        {
+            Graphics::DrawLine(
+                cam->GetGameObject()->GetPosition(),
+                -float3(lightFrustumPlanes[i]) * lightFrustumPlanes[i].a + cam->GetGameObject()->GetPosition(),
+                colors[i]
+            );
+        }
     }
 
 private:

@@ -1,6 +1,6 @@
 #pragma once
-#include "Rendering/DrawList.hpp"
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/DrawList.hpp"
 #include <glm/glm.hpp>
 namespace GPUParameter
 {
@@ -10,6 +10,8 @@ using namespace glm;
 } // namespace GPUParameter
 class Camera;
 class Terrain;
+class Light;
+class Scene;
 namespace Rendering
 {
 struct LightInfo
@@ -36,11 +38,21 @@ private:
 
 struct RenderingData
 {
+    Scene* scene;
     Camera* mainCamera;
     GPUParameter::PerScene* sceneInfo;
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
     Gfx::Image* depthCopy;
+    std::vector<Light*> lights{};
+    int mainLightIndex;
+    Light* GetMainLight()
+    {
+        if (mainLightIndex >= 0 && mainLightIndex < lights.size())
+            return lights[mainLightIndex];
+
+        return nullptr;
+    }
 
     InterleavedGradientNoise interleavedGradientNoise;
 };

@@ -192,10 +192,10 @@ void Camera::GetFrustumPlanes(glm::float4 frustumPlanes[6])
     auto proj = GetAndUpdateProjectionMatrix();
 
     auto vp = proj * view;
-    auto row3 = glm::row(vp, 3);
     auto row0 = glm::row(vp, 0);
     auto row1 = glm::row(vp, 1);
     auto row2 = glm::row(vp, 2);
+    auto row3 = glm::row(vp, 3);
 
     // Left plane
     frustumPlanes[0] = row3 + row0;

@@ -1,6 +1,7 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/DrawList.hpp"
+#include "Rendering/RenderingData.hpp"
 #include "Rendering/Shader2.hpp"
 #include <memory>
 
@@ -13,7 +14,7 @@ class ShadowRenderer
 public:
     void Init();
     void SetSettings(ShadowRendererSettigns settings);
-    void Execute(Gfx::CommandBuffer& cmd, DrawList& sceneDrawList);
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, DrawList& sceneDrawList);
     Gfx::Image* GetShadowMap() { return shadowMap.get(); }
     float4 GetShadowMapTexelSize() { return shadowMapTexelSize; }
 

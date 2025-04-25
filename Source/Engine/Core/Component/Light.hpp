@@ -18,77 +18,40 @@ public:
     ~Light();
 
     void SetLightType(LightType type);
-    void SetRange(float range)
-    {
-        this->range = range;
-    }
-    void SetIntensity(float intensity)
-    {
-        this->intensity = intensity;
-    }
+    void SetRange(float range) { this->range = range; }
+    void SetIntensity(float intensity) { this->intensity = intensity; }
     glm::mat4 WorldToShadowMatrix(const glm::vec3& follow);
 
-    LightType GetLightType() const
-    {
-        return lightType;
-    }
+    LightType GetLightType() const { return lightType; }
 
-    float GetRange() const
-    {
-        return range;
-    }
-    float GetIntensity() const
+    void GetLightFrusutmPlanes(glm::float4 frustumPlanes[6], const float3& follow);
 
-    {
-        return intensity;
-    }
+    float GetRange() const { return range; }
+    float GetIntensity() const { return intensity; }
 
-    glm::vec3 GetLightColor() const
-    {
-        return ambient;
-    }
+    glm::vec3 GetLightColor() const { return ambient; }
 
-    float GetAmbientScale() const
-    {
-        return ambientScale;
-    }
+    float GetAmbientScale() const { return ambientScale; }
 
-    void SetAmbientScale(float scale)
-    {
-        this->ambientScale = scale;
-    }
+    void SetAmbientScale(float scale) { this->ambientScale = scale; }
 
-    void SetLightColor(glm::vec3 ambient)
-    {
-        this->ambient = glm::vec4(ambient, 1.0);
-    }
+    void SetLightColor(glm::vec3 ambient) { this->ambient = glm::vec4(ambient, 1.0); }
 
-    void SetPointLightLinear(float t)
-    {
-        this->pointLightTerm1 = t;
-    }
+    void SetPointLightLinear(float t) { this->pointLightTerm1 = t; }
 
-    void SetPointLightDistance(float t)
-    {
-        this->pointLightTerm2 = t;
-    }
+    void SetPointLightDistance(float t) { this->pointLightTerm2 = t; }
 
-    float GetPointLightLinear()
-    {
-        return pointLightTerm1;
-    }
+    float GetPointLightLinear() { return pointLightTerm1; }
 
-    float GetPointLightDistance()
-    {
-        return pointLightTerm2;
-    }
+    float GetPointLightDistance() { return pointLightTerm2; }
 
     glm::vec3 GetLightDirection();
+    float GetMainLightNearPlane() { return directionalLightFrustum_W[4]; }
+    float GetMainLightFarPlane() { return directionalLightFrustum_W[5]; }
 
-    glm::vec3 GetCachedLightDirection()
-    {
-        return shadowCache.cachedLightDirection;
-    }
+    glm::vec3 GetCachedLightDirection() { return shadowCache.cachedLightDirection; }
+
+    float GetShadowPlane() { return 100; }
 
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
@@ -107,25 +70,13 @@ public:
         shadowCache.frames = 0;
     }
 
-    bool IsShadowCacheEnabled()
-    {
-        return shadowCache.isEnabled;
-    }
+    bool IsShadowCacheEnabled() { return shadowCache.isEnabled; }
 
-    bool ShouldRenderShadowMap()
-    {
-        return !shadowCache.isEnabled || shadowCache.frames == 0;
-    }
+    bool ShouldRenderShadowMap() { return !shadowCache.isEnabled || shadowCache.frames == 0; }
 
-    void SetShadowUpdateFrames(int frames)
-    {
-        shadowCache.targetFrames = frames;
-    }
+    void SetShadowUpdateFrames(int frames) { shadowCache.targetFrames = frames; }
 
-    int GetShadowCacheTargetFrames()
-    {
-        return shadowCache.targetFrames;
-    }
+    int GetShadowCacheTargetFrames() { return shadowCache.targetFrames; }
 
     void Tick() override
     {
@@ -138,7 +89,9 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     void OnDrawGizmos() override;
+
 private:
+    float directionalLightFrustum_W[6] = {-10, 10, -10, 10, -300, 700};
     LightType lightType = LightType::Directional;
     glm::vec4 ambient = glm::vec4(1, 1, 1, 1);
     float ambientScale = 1.0f;

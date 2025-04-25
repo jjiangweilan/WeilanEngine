@@ -44,6 +44,7 @@ public:
     void Add(std::span<MeshRenderer*> meshRenderers);
     void Add(MeshRenderer& meshRenderer);
     void Sort(const glm::vec3& cameraPos);
+    void SortByDistance(const glm::vec3& cameraPos);
 
     void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const;
 };

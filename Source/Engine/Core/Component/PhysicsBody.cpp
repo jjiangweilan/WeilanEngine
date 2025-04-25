@@ -100,8 +100,9 @@ void PhysicsBody::OnDisable()
         return;
 
     auto& physicsScene = scene->GetPhysicsScene();
+    if (body)
+        physicsScene.GetBodyInterface().DeactivateBody(body->GetID());
     physicsScene.RemovePhysicsBody(*this);
-    physicsScene.GetBodyInterface().DeactivateBody(body->GetID());
 }
 
 void PhysicsBody::SetLayer(PhysicsLayer layer)

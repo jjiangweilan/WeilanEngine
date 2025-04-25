@@ -177,4 +177,18 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
         }
     }
 }
+
+void DrawList::SortByDistance(const glm::vec3& cameraPos)
+{
+
+    std::sort(
+        this->begin(),
+        this->end(),
+        [&cameraPos](const SceneObjectDrawData& left, const SceneObjectDrawData& right)
+        {
+            return glm::distance2(cameraPos, glm::vec3(left.model[3])) <
+                   glm::distance2(cameraPos, glm::vec3(right.model[3]));
+        }
+    );
+}
 } // namespace Rendering

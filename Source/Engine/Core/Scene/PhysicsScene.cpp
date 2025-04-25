@@ -149,7 +149,10 @@ void PhysicsScene::AddPhysicsBody(PhysicsBody& body)
 void PhysicsScene::RemovePhysicsBody(PhysicsBody& body)
 {
     auto jphBody = body.GetBody();
-    ASSERT(jphBody != nullptr);
-    bodies.erase(jphBody->GetID());
-    optimizeNeeded = true;
+    if (jphBody)
+    {
+        ASSERT(jphBody != nullptr);
+        bodies.erase(jphBody->GetID());
+        optimizeNeeded = true;
+    }
 }

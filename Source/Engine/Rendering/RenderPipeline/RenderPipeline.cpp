@@ -53,7 +53,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.gpuResourceSet.get());
 
     // Shadow Pass
-    shadowRenderer->Execute(*cmd, sceneDrawList);
+    shadowRenderer->Execute(*cmd, renderingData, sceneDrawList);
 
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);
@@ -470,6 +470,7 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
     renderingData.depthCopy = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
+    renderingData.scene = &scene;
 
     return true;
 }
@@ -526,8 +527,10 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     {
         Light* mainLight = nullptr;
         ENGINE_BEGIN_PROFILE("Get Active Lights")
-        auto lights = scene.GetActiveLights();
+        renderingData.lights = scene.GetActiveLights();
+        renderingData.mainLightIndex = -1;
         ENGINE_END_PROFILE
+        auto& lights = renderingData.lights;
 
         param.lightCount = glm::float4(lights.size(), 0, 0, 0);
         for (int i = 0; i < lights.size(); ++i)
@@ -541,12 +544,14 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                 case LightType::Directional:
                     {
                         mainLight = lights[i];
+                        renderingData.mainLightIndex = i;
                         glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
                         param.lights[i].position = {pos, 0};
 
                         if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
                         {
                             mainLight = lights[i];
+                            renderingData.mainLightIndex = i;
                         }
                         break;
                     }

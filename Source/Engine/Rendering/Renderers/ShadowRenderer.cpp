@@ -1,4 +1,5 @@
 #include "ShadowRenderer.hpp"
+#include "Core/Scene/Scene.hpp"
 
 namespace Rendering
 {
@@ -8,7 +9,7 @@ void ShadowRenderer::Init()
     pass.SetSubpass(
         0,
         {},
-        Gfx::RG::SubpassAttachment{ 0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store }
+        Gfx::RG::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
     );
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);
@@ -25,11 +26,33 @@ void ShadowRenderer::Init()
     pass.SetAttachment(0, shadowMapId);
 }
 
-void ShadowRenderer::SetSettings(ShadowRendererSettigns settings)
-{ }
+void ShadowRenderer::SetSettings(ShadowRendererSettigns settings) {}
 
-void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, DrawList& sceneDrawList)
+void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, DrawList& sceneDrawList)
 {
+    auto mainLight = renderingData.GetMainLight();
+    if (!mainLight)
+    {
+        return;
+    }
+
+    float4 lightFrustum[6];
+    renderingData.GetMainLight()->GetLightFrusutmPlanes(
+        lightFrustum,
+        renderingData.mainCamera->GetGameObject()->GetPosition()
+    );
+    auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(lightFrustum);
+
+    DrawList shadowDrawList;
+    for (auto r : renderers)
+    {
+        shadowDrawList.Add(*r);
+    }
+    shadowDrawList.SortByDistance(
+        renderingData.mainCamera->GetGameObject()->GetPosition() -
+        mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane()
+    );
+
     cmd.BeginLabel("Shadow Map", {0.11, 0.376, 0.729, 1.0});
     {
         if (updateMainLightShadow)
@@ -39,7 +62,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, DrawList& sceneDrawList)
             auto program = shadowMapShader->GetShaderProgram();
             auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
 
-            for (auto& draw : sceneDrawList)
+            for (auto& draw : shadowDrawList)
             {
                 auto programUsed = program;
                 [[unlikely]]
