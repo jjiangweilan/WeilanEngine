@@ -597,3 +597,16 @@ void GameObject::LookAt(const float3& lookAtPos)
     auto rot = glm::quat_cast(mat);
     SetRotation(rot);
 }
+
+void GameObject::TransformChanged()
+{
+    transformChanged = true;
+
+    for (auto& c : components)
+        c->TransformChanged();
+
+    for (auto child : children)
+    {
+        child->TransformChanged();
+    }
+}

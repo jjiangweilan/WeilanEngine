@@ -33,12 +33,12 @@ public:
 
         std::vector<int> objectIndices{};
 
-        bool IsVisibleInFrustum(const float4 cameraPlanes[6]);
-        bool IsFullyVisibleInFrustum(const float4 cameraPlanes[6]);
+        static bool IsVisibleInFrustum(const AABB& aabb, const Frustum& frustum);
+        bool IsFullyVisibleInFrustum(const Frustum& frustum);
     };
 
-    std::vector<MeshRenderer*> QueryRendererInFrustum(float4 cameraPlanes[6]);
-    std::vector<Node*> QueryNodesInFrustum(float4 cameraPlanes[6]);
+    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
+    std::vector<Node*> QueryNodesInFrustum(const Frustum& frustum);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
 
     Node& GetRoot() { return nodes[0]; }
@@ -52,9 +52,7 @@ public:
     void UpdateNode(int nodeIndex);
 
 private:
-    void QueryNodesInFrustum(
-        float4 cameraPlanes[6], Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
-    );
+    void QueryNodesInFrustum(const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum);
 };
 
 class RenderingScene
@@ -69,14 +67,14 @@ public:
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
-    std::vector<MeshRenderer*> QueryRendererInFrustum(float4 cameraPlanes[6])
+    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum)
     {
-        return rendererNodeHierarchy.QueryRendererInFrustum(cameraPlanes);
+        return rendererNodeHierarchy.QueryRendererInFrustum(frustum);
     }
 
-    std::vector<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(float4 cameraPlanes[6])
+    std::vector<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(const Frustum& frustum)
     {
-        return rendererNodeHierarchy.QueryNodesInFrustum(cameraPlanes);
+        return rendererNodeHierarchy.QueryNodesInFrustum(frustum);
     }
 
     void SetSceneEnvironment(SceneEnvironment& sceneEnvironment)
@@ -95,6 +93,7 @@ public:
         }
     }
 
+    void RebuildBVH() { updateRendererNodeHierarchy = true; }
     void SetTerrain(Terrain& terrain) { this->terrain = &terrain; }
 
     void RemoveTerrain(Terrain& terrain)

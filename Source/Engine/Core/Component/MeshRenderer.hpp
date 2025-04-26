@@ -99,5 +99,5 @@ private:
 
     void OnEnable() override;
     void OnDisable() override;
-    void TransformChanged() override { aabbPositionNeedUpdate = true; }
+    void TransformChanged() override;
 };

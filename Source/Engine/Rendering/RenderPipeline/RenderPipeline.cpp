@@ -44,10 +44,22 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
 
     // Setup
+    renderingData.renderPipelineSettings = setting.Get();
+    renderingData.cameraFrustum = camera.GetFrustum();
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
-    DrawList sceneDrawList;
-    SceneRendererSorter()(scene, camera, sceneDrawList);
+    DrawList sceneDrawList{};
+    if (setting->frustumCull)
+    {
+        auto renderers = scene.GetRenderingScene().QueryRendererInFrustum(renderingData.cameraFrustum);
+        sceneDrawList.Add(renderers);
+    }
+    else
+    {
+        sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+    }
+    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
+
     ENGINE_END_PROFILE
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
@@ -88,7 +100,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->EndRenderPass();
     }
-    cmd->EndLabel();
+    cmd->EndLabel(); // GBuffer
 
     // ambient occlusion pass
     ambientOcclusionPass.Execute(cmd, renderingData.mainDepth, setting, renderingData);
@@ -142,7 +154,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->EndRenderPass();
     }
-    cmd->EndLabel();
+    cmd->EndLabel(); // Shading
 
     // TODO: copy mainColor and mainDepth for special effects
 
@@ -159,7 +171,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         {
             cmd->BeginLabel("Draw Graphics", &labelColors.passColor[0]);
             RenderingUtils::DrawGraphics(*cmd);
-            cmd->EndLabel();
+            cmd->EndLabel(); // Draw Graphics
         }
 
         skyboxPass.Execute(cmd);
@@ -177,7 +189,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         cmd->BeginLabel("Forward Objects", {0.12, 0.64, 0.342, 1.0f});
         cmd->BeginRenderPass(forwardPass.pass, clears);
         sceneDrawList.DrawRangeHelper(*cmd, sceneDrawList.transparentIndex, sceneDrawList.size());
-        cmd->EndLabel();
+        cmd->EndLabel(); // Forward Objects
 
         // draw particles
         cmd->BindResource(0, GetPerSceneGPUResource());
@@ -187,11 +199,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         {
             particleRenderer->Draw(*cmd, p->GetDraw());
         }
-        cmd->EndLabel();
+        cmd->EndLabel(); // Particles
 
         cmd->EndRenderPass();
     }
-    cmd->EndLabel();
+    cmd->EndLabel(); // Forward
 
     // start post procesing
     finalColor = mainColor;
@@ -199,21 +211,19 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     if (setting->postProcess.colorGrading)
     {
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
-        {
-            // TODO
-            Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
-            cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
-            colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
-            colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
-            Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
-            cmd->BeginRenderPass(colorGradingPass.pass, clears);
-            cmd->BindShaderProgram(colorGradingPass.mat.GetShaderProgram(), colorGradingPass.mat.GetShaderConfig());
-            cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
-            cmd->Draw(6, 1, 0, 0);
-            cmd->EndRenderPass();
-            finalColor = colorGradingPass.colorGradingId;
-        }
-        cmd->EndLabel();
+        // TODO
+        Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+        cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
+        colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
+        colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+        cmd->BeginRenderPass(colorGradingPass.pass, clears);
+        cmd->BindShaderProgram(colorGradingPass.mat.GetShaderProgram(), colorGradingPass.mat.GetShaderConfig());
+        cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
+        cmd->Draw(6, 1, 0, 0);
+        cmd->EndRenderPass();
+        finalColor = colorGradingPass.colorGradingId;
+        cmd->EndLabel(); // Color Grading
     }
 
     // FXAA
@@ -226,7 +236,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
             fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.fxaaId);
             finalColor = fxaaPass.fxaaId;
         }
-        cmd->EndLabel();
+        cmd->EndLabel(); // FXAA
     }
 
     cmd->EndLabel(); // Render Scene
@@ -327,7 +337,6 @@ void RenderPipeline::FXAAPass::Execute(
     const Gfx::RG::ImageIdentifier& dst
 )
 {
-    ;
     pass.SetAttachment(0, dst);
     resource->SetImage("source", GetGfxDriver()->GetImageFromRenderGraph(src));
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
@@ -379,7 +388,7 @@ void RenderPipeline::AmbientOcclusionPass::Execute(
     cmd->BindShaderProgram(ssaoShader->GetShaderProgram(), ssaoShader->GetShaderProgram()->GetDefaultShaderConfig());
     cmd->Draw(6, 1, 0, 0);
     cmd->EndRenderPass();
-    cmd->EndLabel();
+    cmd->EndLabel(); // SSAO
 }
 
 void SceneRendererSorter::operator()(Scene& scene, Camera& camera, Rendering::DrawList& outDrawList)
@@ -464,14 +473,13 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
         return false;
     }
 
-    UpdateSceneInfo(scene, camera, screenSize);
     renderingData.sceneInfo = &perScene.cpuParameter;
     renderingData.mainCamera = &camera;
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
     renderingData.depthCopy = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
     renderingData.scene = &scene;
-
+    UpdateSceneInfo(scene, camera, screenSize);
     return true;
 }
 
@@ -492,11 +500,12 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     param.viewProjection = vp;
     param.viewPos = viewPos;
     param.view = viewMatrix;
+    auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();
     param.shadowMapSize = {
-        1024,
-        1024,
-        1.0 / 1024.0f,
-        1.0 / 1024.0f,
+        shadowMapTexelSize.z,
+        shadowMapTexelSize.w,
+        shadowMapTexelSize.x,
+        shadowMapTexelSize.y,
     };
     param.invProjection = glm::inverse(projectionMatrix);
     param.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
@@ -545,8 +554,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                     {
                         mainLight = lights[i];
                         renderingData.mainLightIndex = i;
-                        glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
-                        param.lights[i].position = {pos, 0};
+                        param.lights[i].position = {mainLight->GetLightDirection(), 0};
 
                         if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
                         {
@@ -570,7 +578,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         {
             state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
 
-            param.worldToShadow = mainLight->WorldToShadowMatrix(camera.GetGameObject()->GetPosition());
+            param.worldToShadow = shadowRenderer->GetShadowToWorldMatrix(renderingData);
 
             if (mainLight->IsShadowCacheEnabled())
             {

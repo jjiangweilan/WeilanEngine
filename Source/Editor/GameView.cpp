@@ -129,21 +129,17 @@ void GameView::Render(
         auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
         if (outputImage)
         {
-            cmd.BeginLabel("GameView Output", &renderPassLabelColor[0]);
-            {
-                editorFinalColorBlitMaterial->SetTexture("input", outputImage);
-                Gfx::ClearValue clear[] = {{0, 0, 0, 0}};
-                editorFinalColorBlitPass.SetAttachment(0, *sceneImage);
-                cmd.BeginRenderPass(editorFinalColorBlitPass, clear);
-                cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
-                cmd.BindShaderProgram(
-                    editorFinalColorBlitShader->GetShaderProgram(),
-                    editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
-                );
-                cmd.Draw(6, 1, 0, 0);
-                cmd.EndRenderPass();
-            }
-            cmd.EndLabel();
+            editorFinalColorBlitMaterial->SetTexture("input", outputImage);
+            Gfx::ClearValue clear[] = {{0, 0, 0, 0}};
+            editorFinalColorBlitPass.SetAttachment(0, *sceneImage);
+            cmd.BeginRenderPass(editorFinalColorBlitPass, clear);
+            cmd.BindResource(0, editorFinalColorBlitMaterial->GetShaderResource());
+            cmd.BindShaderProgram(
+                editorFinalColorBlitShader->GetShaderProgram(),
+                editorFinalColorBlitShader->GetShaderProgram()->GetDefaultShaderConfig()
+            );
+            cmd.Draw(6, 1, 0, 0);
+            cmd.EndRenderPass();
         }
         cmd.EndLabel();
     }
@@ -224,11 +220,12 @@ bool GameView::Tick()
     }
 
     // alway match window size
-    //int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
-    //int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
-    //if (sceneImage)
+    // int width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+    // int height = ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y;
+    // if (sceneImage)
     //{
-    //    if (firstFrame || width != sceneImage->GetDescription().width || height != sceneImage->GetDescription().height)
+    //    if (firstFrame || width != sceneImage->GetDescription().width || height !=
+    //    sceneImage->GetDescription().height)
     //    {
     //        firstFrame = false;
     //        ChangeGameScreenResolution({width, height});
@@ -237,11 +234,7 @@ bool GameView::Tick()
 
     if (ImGui::BeginPopup("Change Resolution"))
     {
-        int2 predefinedSolutions[] = {
-            {1920, 1080},
-            {2560, 1440},
-            {-1, -1}
-        };
+        int2 predefinedSolutions[] = {{1920, 1080}, {2560, 1440}, {-1, -1}};
         const char* predefinedSolutionsText[] = {"1920x1080", "2560x1440", "Custom"};
         const int totalSelectionCount = sizeof(predefinedSolutionsText) / sizeof(const char*);
         static int resolutionSelectionIdx = totalSelectionCount - 1;
@@ -268,7 +261,12 @@ bool GameView::Tick()
             // resolution selection
             {
                 ImGui::SetNextItemWidth(100);
-                if (ImGui::Combo("##ResolutionCombo", &resolutionSelectionIdx, predefinedSolutionsText, totalSelectionCount))
+                if (ImGui::Combo(
+                        "##ResolutionCombo",
+                        &resolutionSelectionIdx,
+                        predefinedSolutionsText,
+                        totalSelectionCount
+                    ))
                 {
                     if (resolutionSelectionIdx + 1 != totalSelectionCount)
                     {

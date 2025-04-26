@@ -18,7 +18,7 @@ layout(set = SET_GLOBAL, binding = 1) uniform texture2D shadowMap;
 #ifdef G_VSM
 layout(set = SET_GLOBAL, binding = 2) uniform sampler shadowMapSampler;
 #else
-layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_clamp;
+layout(set = SET_GLOBAL, binding = 3) uniform samplerShadow shadowMapSampler_clampToBorder;
 #endif
 layout(set = SET_GLOBAL, binding = 4) uniform samplerCube diffuseCube;
 layout(set = SET_GLOBAL, binding = 5) uniform samplerCube specularCube;

@@ -55,7 +55,7 @@ struct DeferredInput
     Sampler2D specularBRDFIntegrationMap;
     Sampler2D ambientOcclusion;
     SamplerState sampler_point_clamp;
-    SamplerComparisonState samplerShadow;
+    SamplerComparisonState samplerShadow_clampToBorder;
 }
 
 ParameterBlock<PerScene> perScene;
@@ -185,7 +185,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             float objShadowDepth = shadowCS.z - shadowBias;
             if (shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0)
             {
-                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.zw, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow);
+                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.zw, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clampToBorder);
             }
         }
         color += lighting * shadowAttenuation;

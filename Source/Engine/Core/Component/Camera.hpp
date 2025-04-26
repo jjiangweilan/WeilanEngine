@@ -21,11 +21,12 @@ public:
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     glm::mat4 GetViewMatrix() const;
     const glm::mat4& GetAndUpdateProjectionMatrix(float aspect = 0.0f);
+    glm::mat4 CalculateProjectionMatrixWithOverride(float farPlane, float aspect = 0.0f);
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     glm::vec3 GetForward();
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
-    void GetFrustumPlanes(glm::float4 frustumPlanes[6]);
+    Frustum GetFrustum();
 
     void SetDiffuseEnv(Texture* cubemap);
     void SetSpecularEnv(Texture* cubemap);
@@ -57,9 +58,6 @@ public:
     }
 
     void LookAt(const float3& lookAtPos);
-
-    void DrawGizmos();
-    void Tick() override;
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;

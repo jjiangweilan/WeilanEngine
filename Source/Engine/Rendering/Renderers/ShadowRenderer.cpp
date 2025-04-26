@@ -1,5 +1,6 @@
 #include "ShadowRenderer.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Rendering/Graphics.hpp"
 
 namespace Rendering
 {
@@ -28,6 +29,48 @@ void ShadowRenderer::Init()
 
 void ShadowRenderer::SetSettings(ShadowRendererSettigns settings) {}
 
+float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
+{
+    auto light = renderingData.GetMainLight();
+    auto view = renderingData.sceneInfo->view;
+    auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(light->GetShadowDistance());
+    auto vp = projection * view;
+    Frustum frustum(vp, Frustum::CornersOnly{});
+    auto corners = frustum.corners;
+
+    auto lightMatrix = light->GetGameObject()->GetWorldMatrix();
+    lightMatrix[2] = -lightMatrix[2];
+    float4x4 worldToLight = glm::inverse(lightMatrix);
+    for (int i = 0; i < corners.size(); i++)
+    {
+        corners[i] = worldToLight * glm::vec4(corners[i].x, corners[i].y, corners[i].z, 1.0f);
+    }
+
+    AABB shadowFrustumAABB;
+    shadowFrustumAABB.min = float3(std::numeric_limits<float>::max());
+    shadowFrustumAABB.max = float3(std::numeric_limits<float>::lowest());
+
+    for (int i = 0; i < corners.size(); i++)
+    {
+        shadowFrustumAABB.min = glm::min(shadowFrustumAABB.min, corners[i]);
+        shadowFrustumAABB.max = glm::max(shadowFrustumAABB.max, corners[i]);
+    }
+    shadowFrustumAABB.min.z -= 1000.0f; // reserve some space for what's behind the camera
+
+    glm::mat4 proj = glm::orthoLH_ZO(
+        shadowFrustumAABB.min.x,
+        shadowFrustumAABB.max.x,
+        shadowFrustumAABB.min.y,
+        shadowFrustumAABB.max.y,
+        shadowFrustumAABB.min.z,
+        shadowFrustumAABB.max.z
+    );
+    auto ret = proj * worldToLight;
+
+    Graphics::DrawFrustum(ret);
+    return ret;
+}
+
 void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, DrawList& sceneDrawList)
 {
     auto mainLight = renderingData.GetMainLight();
@@ -36,18 +79,19 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
         return;
     }
 
-    float4 lightFrustum[6];
-    renderingData.GetMainLight()->GetLightFrusutmPlanes(
-        lightFrustum,
-        renderingData.mainCamera->GetGameObject()->GetPosition()
-    );
-    auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(lightFrustum);
-
     DrawList shadowDrawList;
-    for (auto r : renderers)
+    std::vector<MeshRenderer*> renderers{};
+    if (renderingData.renderPipelineSettings->shadowFrustumCull)
     {
-        shadowDrawList.Add(*r);
+        Frustum frustum(renderingData.sceneInfo->worldToShadow);
+        auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(frustum);
+        shadowDrawList.Add(renderers);
     }
+    else
+    {
+        shadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
+    }
+
     shadowDrawList.SortByDistance(
         renderingData.mainCamera->GetGameObject()->GetPosition() -
         mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane()
@@ -87,6 +131,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
             cmd.EndRenderPass();
         }
     }
+    cmd.EndLabel();
 }
 } // namespace Rendering
   //

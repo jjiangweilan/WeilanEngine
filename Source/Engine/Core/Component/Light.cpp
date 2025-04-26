@@ -30,7 +30,9 @@ glm::mat4 Light::WorldToShadowMatrix(const glm::vec3& follow)
             directionalLightFrustum_W[4],
             directionalLightFrustum_W[5]
         );
+        proj[1] = -proj[1];
         auto model = gameObject->GetWorldMatrix();
+        model[2] = -model[2];
         model[3] = glm::vec4(follow, 1.0);
         shadowCache.cachedWorldToShadow = proj * glm::inverse(model);
         shadowCache.cachedLightDirection = GetLightDirection();
@@ -48,6 +50,7 @@ void Light::Serialize(Serializer* s) const
     s->Serialize("pointLightTerm1", pointLightTerm1);
     s->Serialize("pointLightTerm2", pointLightTerm2);
     s->Serialize("lightType", static_cast<int>(lightType));
+    s->Serialize("shadowDistance", shadowDistance);
 }
 void Light::Deserialize(Serializer* s)
 {
@@ -61,6 +64,7 @@ void Light::Deserialize(Serializer* s)
     int lightType;
     s->Deserialize("lightType", lightType);
     this->lightType = static_cast<LightType>(lightType);
+    s->Deserialize("shadowDistance", shadowDistance);
 }
 
 const std::string& Light::GetName()
@@ -88,35 +92,12 @@ void Light::OnDrawGizmos()
 glm::vec3 Light::GetLightDirection()
 {
     auto model = GetGameObject()->GetWorldMatrix();
-    glm::vec3 pos = -glm::normalize(glm::vec3(model[2]));
+    glm::vec3 pos = glm::normalize(glm::vec3(model[2]));
     return pos;
 }
 
-void Light::GetLightFrusutmPlanes(glm::float4 frustumPlanes[6], const float3& follow)
+Frustum Light::GetLightFrusutmPlanes(const float3& follow)
 {
     auto worldToShadow = WorldToShadowMatrix(follow);
-
-    auto row0 = glm::row(worldToShadow, 0);
-    auto row1 = glm::row(worldToShadow, 1);
-    auto row2 = glm::row(worldToShadow, 2);
-    auto row3 = glm::row(worldToShadow, 3);
-
-    // Left plane
-    frustumPlanes[0] = row0 + row0;
-    // Right plane
-    frustumPlanes[1] = row3 - row0;
-    // Bottom plane
-    frustumPlanes[2] = row3 + row1;
-    // Top plane
-    frustumPlanes[3] = row3 - row1;
-    // Near plane
-    frustumPlanes[4] = row2; // z ranges from 0 to 1
-    // Far plane
-    frustumPlanes[5] = row3 - row2;
-
-    for (int i = 0; i < 6; ++i)
-    {
-        float length = glm::length(glm::vec3(frustumPlanes[i]));
-        frustumPlanes[i] /= length;
-    }
-}
+    return Frustum(worldToShadow);
+}   

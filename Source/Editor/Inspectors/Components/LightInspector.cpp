@@ -17,12 +17,18 @@ public:
         float intensity = light->GetIntensity();
         float ambientScale = light->GetAmbientScale();
         int lightType = static_cast<int>(light->GetLightType());
+        float shadowDistance = light->GetShadowDistance();
         const char* lightTypes[] = {"Directional", "Point"};
 
         ImGui::Combo("light type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
         if (light->GetLightType() != static_cast<LightType>(lightType))
         {
             light->SetLightType(static_cast<LightType>(lightType));
+        }
+
+        if (ImGui::InputFloat("Shadow Distance", &shadowDistance))
+        {
+            light->SetShadowDistance(shadowDistance);
         }
 
         if (ImGui::DragFloat("ambient scale", &ambientScale))
@@ -72,8 +78,7 @@ public:
         }
         ImGui::Separator();
 
-        float4 lightFrustumPlanes[6];
-        target->GetLightFrusutmPlanes(lightFrustumPlanes, target->GetGameObject()->GetPosition());
+        Frustum frustum = target->GetLightFrusutmPlanes(target->GetGameObject()->GetPosition());
 
         // 6 different float4 colors
         float4 colors[6] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {1, 1, 0, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}};
@@ -83,7 +88,7 @@ public:
         {
             Graphics::DrawLine(
                 cam->GetGameObject()->GetPosition(),
-                -float3(lightFrustumPlanes[i]) * lightFrustumPlanes[i].a + cam->GetGameObject()->GetPosition(),
+                -float3(frustum.planes[i]) * frustum.planes[i].a + cam->GetGameObject()->GetPosition(),
                 colors[i]
             );
         }

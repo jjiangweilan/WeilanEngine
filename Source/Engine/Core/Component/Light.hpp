@@ -24,7 +24,7 @@ public:
 
     LightType GetLightType() const { return lightType; }
 
-    void GetLightFrusutmPlanes(glm::float4 frustumPlanes[6], const float3& follow);
+    Frustum GetLightFrusutmPlanes(const float3& follow);
 
     float GetRange() const { return range; }
     float GetIntensity() const { return intensity; }
@@ -48,6 +48,8 @@ public:
     glm::vec3 GetLightDirection();
     float GetMainLightNearPlane() { return directionalLightFrustum_W[4]; }
     float GetMainLightFarPlane() { return directionalLightFrustum_W[5]; }
+    float GetShadowDistance() { return shadowDistance; }
+    void SetShadowDistance(float shadowDistance) { this->shadowDistance = shadowDistance; }
 
     glm::vec3 GetCachedLightDirection() { return shadowCache.cachedLightDirection; }
 
@@ -99,6 +101,7 @@ private:
     float intensity = 1.0f;
     float pointLightTerm1 = 0.7f;
     float pointLightTerm2 = 1.8f;
+    float shadowDistance = 100.0;
 
     struct
     {

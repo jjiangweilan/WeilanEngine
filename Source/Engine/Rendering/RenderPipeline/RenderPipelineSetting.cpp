@@ -11,14 +11,19 @@ void RenderPipelineSetting::Serialize(Serializer* s) const
     SERIALIZE(s, fxaa);
     SERIALIZE(s, postProcess);
     SERIALIZE(s, ssao);
+    SERIALIZE(s, frustumCull);
+    SERIALIZE(s, shadowFrustumCull);
 }
 
-void RenderPipelineSetting::Deserialize(Serializer* s) {
+void RenderPipelineSetting::Deserialize(Serializer* s)
+{
     Asset::Deserialize(s);
     DESERIALIZE(s, shadowMap);
     DESERIALIZE(s, screenSpaceShadow);
     DESERIALIZE(s, fxaa);
     DESERIALIZE(s, postProcess);
     DESERIALIZE(s, ssao);
+    DESERIALIZE(s, frustumCull);
+    DESERIALIZE(s, shadowFrustumCull);
 }
 } // namespace Rendering

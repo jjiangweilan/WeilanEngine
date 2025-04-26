@@ -69,3 +69,75 @@ bool RayMeshIntersection(
     }
     return false;
 }
+
+Frustum::Frustum(const glm::mat4& vp)
+{
+    auto row0 = glm::row(vp, 0);
+    auto row1 = glm::row(vp, 1);
+    auto row2 = glm::row(vp, 2);
+    auto row3 = glm::row(vp, 3);
+
+    // Left plane
+    planes[0] = row3 + row0;
+    // Right plane
+    planes[1] = row3 - row0;
+    // Bottom plane
+    planes[2] = row3 + row1;
+    // Top plane
+    planes[3] = row3 - row1;
+    // Near plane
+    planes[4] = row2; // z ranges from 0 to 1
+    // Far plane
+    planes[5] = row3 - row2;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        float length = glm::length(glm::vec3(planes[i]));
+        planes[i] /= length;
+    }
+
+    std::array<glm::vec4, 8> corners = {
+        glm::vec4(-1, -1, 0, 1),
+        glm::vec4(1, -1, 0, 1),
+        glm::vec4(1, 1, 0, 1),
+        glm::vec4(-1, 1, 0, 1),
+        glm::vec4(-1, -1, 1, 1),
+        glm::vec4(1, -1, 1, 1),
+        glm::vec4(1, 1, 1, 1),
+        glm::vec4(-1, 1, 1, 1)
+    };
+
+    auto invViewProj = glm::inverse(vp);
+    int i = 0;
+    for (auto& v : corners)
+    {
+        v = invViewProj * v;
+        v /= v.w;
+
+        this->corners[i++] = v;
+    }
+}
+
+Frustum::Frustum(const glm::mat4& vp, CornersOnly)
+{
+    std::array<glm::vec4, 8> corners = {
+        glm::vec4(-1, -1, 0, 1),
+        glm::vec4(1, -1, 0, 1),
+        glm::vec4(1, 1, 0, 1),
+        glm::vec4(-1, 1, 0, 1),
+        glm::vec4(-1, -1, 1, 1),
+        glm::vec4(1, -1, 1, 1),
+        glm::vec4(1, 1, 1, 1),
+        glm::vec4(-1, 1, 1, 1)
+    };
+
+    auto invViewProj = glm::inverse(vp);
+    int i = 0;
+    for (auto& v : corners)
+    {
+        v = invViewProj * v;
+        v /= v.w;
+
+        this->corners[i++] = v;
+    }
+}

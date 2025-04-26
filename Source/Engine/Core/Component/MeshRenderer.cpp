@@ -278,3 +278,9 @@ bool MeshRenderer::IsSkinningEnabled()
 }
 
 void MeshRenderer::OnDrawGizmos() {}
+
+void MeshRenderer::TransformChanged()
+{
+    aabbPositionNeedUpdate = true;
+    GetScene()->GetRenderingScene().RebuildBVH();
+}

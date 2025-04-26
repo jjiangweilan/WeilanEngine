@@ -298,21 +298,7 @@ private:
         return glm::abs(v.x) < compareEpsilon && glm::abs(v.y) < compareEpsilon && glm::abs(v.z) < compareEpsilon;
     }
 
-    void TransformChanged()
-    {
-        transformChanged = true;
-
-        if (!EngineState::GetSingleton().isPlaying)
-        {
-            for (auto& c : components)
-                c->TransformChanged();
-        }
-
-        for (auto child : children)
-        {
-            child->TransformChanged();
-        }
-    }
+    void TransformChanged(); 
 
     inline static const float compareEpsilon = 1e-6f;
 

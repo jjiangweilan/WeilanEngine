@@ -47,32 +47,32 @@ void BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
     }
 }
 
-std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(float4 cameraPlanes[6])
+std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(const Frustum& Frustum)
 {
     std::vector<BoundingVolumeHierarchy::Node*> result{};
 
     auto& root = GetRoot();
-    QueryNodesInFrustum(cameraPlanes, root, result);
+    QueryNodesInFrustum(Frustum, root, result);
     return result;
 }
 
 void BoundingVolumeHierarchy::QueryNodesInFrustum(
-    float4 cameraPlanes[6], Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
+    const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
 )
 {
     // TODO(perf): we should be able to reuse the dot calculation in these two test functions
 
-    if (node.IsFullyVisibleInFrustum(cameraPlanes))
+    if (node.IsFullyVisibleInFrustum(Frustum))
     {
         inFrustum.push_back(&node);
     }
-    else if (node.IsVisibleInFrustum(cameraPlanes))
+    else if (node.IsVisibleInFrustum(node.aabb, Frustum))
     {
         if (node.HasLeftChild())
-            QueryNodesInFrustum(cameraPlanes, nodes[node.childNodeLeft], inFrustum);
+            QueryNodesInFrustum(Frustum, nodes[node.childNodeLeft], inFrustum);
 
         if (node.HasRightChild())
-            QueryNodesInFrustum(cameraPlanes, nodes[node.childNodeRight], inFrustum);
+            QueryNodesInFrustum(Frustum, nodes[node.childNodeRight], inFrustum);
 
         if (node.IsLeaf())
         {
@@ -158,11 +158,15 @@ void RenderingScene::BVHDebug()
     ImGui::End();
     static Mesh* mesh = EngineInternalResources::GetModels().cube;
     static Material mat = Material(ShaderLibrary::GetShader(ShaderLibrary::SimpleColor));
-    float4 frustumPlanes[6];
-    scene->GetMainCamera()->GetFrustumPlanes(frustumPlanes);
+    Frustum frustum = scene->GetMainCamera()->GetFrustum();
+
+    auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
+    config.polygonMode = Gfx::PolygonMode::Line;
+    mat.SetShaderConfig(config);
+
     if (testCullObject)
     {
-        auto nodes = rendererNodeHierarchy.QueryNodesInFrustum(frustumPlanes);
+        auto nodes = rendererNodeHierarchy.QueryNodesInFrustum(frustum);
         for (auto n : nodes)
         {
             for (auto objIdx : n->objectIndices)
@@ -172,19 +176,19 @@ void RenderingScene::BVHDebug()
                 {
                     auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
 
-                    glm::float3 position = (aabb.max + aabb.min) / 2.0f;
-                    glm::float3 scale = (aabb.max - aabb.min);
-                    glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
-                    Graphics::DrawMesh(*mesh, 0, model, mat);
+                    if (BoundingVolumeHierarchy::Node::IsVisibleInFrustum(aabb, frustum))
+                    {
+                        glm::float3 position = (aabb.max + aabb.min) / 2.0f;
+                        glm::float3 scale = (aabb.max - aabb.min);
+                        glm::float4x4 model = glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                        Graphics::DrawMesh(*mesh, 0, model, mat);
+                    }
                 }
             }
         }
     }
     else if (bvhDebug)
     {
-        auto config = *mat.GetShaderProgram()->GetDefaultShaderConfig();
-        config.polygonMode = Gfx::PolygonMode::Line;
-        mat.SetShaderConfig(config);
         if (debugLevel < 0)
         {
             for (auto& n : rendererNodeHierarchy.nodes)
@@ -193,7 +197,7 @@ void RenderingScene::BVHDebug()
                 {
                     if (frustumCull)
                     {
-                        if (!n.IsVisibleInFrustum(frustumPlanes))
+                        if (!n.IsVisibleInFrustum(n.aabb, frustum))
                         {
                             continue;
                         }
@@ -207,18 +211,21 @@ void RenderingScene::BVHDebug()
                         Graphics::DrawMesh(*mesh, 0, model, mat);
                     }
 
-                    for (auto objIdx : n.objectIndices)
+                    if (drawObjBounds)
                     {
-                        auto obj = rendererNodeHierarchy.objects[objIdx].Get();
-                        if (obj)
+                        for (auto objIdx : n.objectIndices)
                         {
-                            auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
+                            auto obj = rendererNodeHierarchy.objects[objIdx].Get();
+                            if (obj)
+                            {
+                                auto aabb = rendererNodeHierarchy.objects[objIdx]->GetAABB();
 
-                            glm::float3 position = (aabb.max + aabb.min) / 2.0f;
-                            glm::float3 scale = (aabb.max - aabb.min);
-                            glm::float4x4 model =
-                                glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
-                            Graphics::DrawMesh(*mesh, 0, model, mat);
+                                glm::float3 position = (aabb.max + aabb.min) / 2.0f;
+                                glm::float3 scale = (aabb.max - aabb.min);
+                                glm::float4x4 model =
+                                    glm::translate(glm::mat4(1), position) * glm::scale(glm::mat4(1), scale);
+                                Graphics::DrawMesh(*mesh, 0, model, mat);
+                            }
                         }
                     }
                 }
@@ -235,7 +242,7 @@ void RenderingScene::BVHDebug()
                 {
                     if (frustumCull)
                     {
-                        if (!n.IsVisibleInFrustum(frustumPlanes))
+                        if (!n.IsVisibleInFrustum(n.aabb, frustum))
                         {
                             continue;
                         }
@@ -271,14 +278,14 @@ void RenderingScene::BVHDebug()
         }
     }
 }
-bool BoundingVolumeHierarchy::Node::IsFullyVisibleInFrustum(const float4 cameraPlanes[6])
+bool BoundingVolumeHierarchy::Node::IsFullyVisibleInFrustum(const Frustum& Frustum)
 {
     const glm::vec3& vmin = aabb.min;
     const glm::vec3& vmax = aabb.max;
 
     for (size_t i = 0; i < 6; ++i)
     {
-        const glm::vec4& g = cameraPlanes[i];
+        const glm::vec4& g = Frustum.planes[i];
         if ((glm::dot(g, glm::vec4(vmin.x, vmin.y, vmin.z, 1.0f)) < 0.0) ||
             (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmin.z, 1.0f)) < 0.0) ||
             (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmin.z, 1.0f)) < 0.0) ||
@@ -296,14 +303,14 @@ bool BoundingVolumeHierarchy::Node::IsFullyVisibleInFrustum(const float4 cameraP
     return true;
 }
 
-bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const float4 cameraPlanes[6])
+bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const AABB& aabb, const Frustum& Frustum)
 {
     const glm::vec3& vmin = aabb.min;
     const glm::vec3& vmax = aabb.max;
 
     for (size_t i = 0; i < 6; ++i)
     {
-        const glm::vec4& g = cameraPlanes[i];
+        const glm::vec4& g = Frustum.planes[i];
         if ((glm::dot(g, glm::vec4(vmin.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
             (glm::dot(g, glm::vec4(vmax.x, vmin.y, vmin.z, 1.0f)) < 0.0) &&
             (glm::dot(g, glm::vec4(vmin.x, vmax.y, vmin.z, 1.0f)) < 0.0) &&
@@ -321,16 +328,17 @@ bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const float4 cameraPlanes
     return true;
 }
 
-std::vector<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(float4 cameraPlanes[6])
+std::vector<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const Frustum& Frustum)
 {
     std::vector<MeshRenderer*> objs{};
-    auto nodes = QueryNodesInFrustum(cameraPlanes);
+    auto nodes = QueryNodesInFrustum(Frustum);
     for (auto n : nodes)
     {
         for (auto objIdx : n->objectIndices)
         {
             auto obj = objects[objIdx].Get();
-            objs.push_back(obj);
+            if (Node::IsVisibleInFrustum(obj->GetAABB(), Frustum))
+                objs.push_back(obj);
         }
     }
 
