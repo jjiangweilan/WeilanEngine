@@ -65,6 +65,7 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
         shadowFrustumAABB.min.z,
         shadowFrustumAABB.max.z
     );
+    // proj[1] = -proj[1]; why we don't do flip?
     auto ret = proj * worldToLight;
 
     Graphics::DrawFrustum(ret);

@@ -1088,4 +1088,17 @@ void GameEditor::ShowRenderPipelineSetting()
     GUI::AutoObjectInspector(setting);
     ImGui::End();
 }
+
+void GameEditor::ShowStaticEngineDebugs()
+{
+    struct StaticEngineDebugsInfo
+    {
+        const char* name;
+        bool* value;
+    };
+
+    static std::vector<StaticEngineDebugsInfo> debugs = {
+        {"Scene "}
+    };
+}
 } // namespace Editor

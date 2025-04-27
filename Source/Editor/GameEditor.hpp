@@ -81,6 +81,7 @@ private:
     void ShowConsoleOutputWindow();
     void ShowAssetDatabaseViewer();
     void ShowRenderPipelineSetting();
+    void ShowStaticEngineDebugs();
 
     void AssetShowDir(const std::filesystem::path& path, int depth);
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
