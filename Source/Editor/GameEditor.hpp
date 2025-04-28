@@ -45,6 +45,7 @@ private:
     bool sceneTree = true;
     bool sceneInfo = false;
 
+    bool engineDebug = true;
     bool assetWindow = true;
     bool inspectorWindow = true;
     bool openSceneWindow = false;

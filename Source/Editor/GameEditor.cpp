@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Asset.hpp"
 #include "Core/Component/MeshRenderer.hpp"
+#include "Core/EngineDebugVars.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "EditorGUI.hpp"
 #include "EditorState.hpp"
@@ -510,6 +511,7 @@ void GameEditor::GUIPass()
     ShowInspectorWindow();
     ShowSurfelGIBakerWindow();
     ShowRenderPipelineSetting();
+    ShowStaticEngineDebugs();
 
     EngineResourceDebug();
 
@@ -1091,14 +1093,19 @@ void GameEditor::ShowRenderPipelineSetting()
 
 void GameEditor::ShowStaticEngineDebugs()
 {
+    ImGui::Begin("Engine Debug", &engineDebug);
     struct StaticEngineDebugsInfo
     {
         const char* name;
         bool* value;
     };
 
-    static std::vector<StaticEngineDebugsInfo> debugs = {
-        {"Scene "}
-    };
+    static std::vector<StaticEngineDebugsInfo> debugs = {{"Scene BVH", &EngineDebugVars::SceneBVH()}};
+
+    for (const auto& p : debugs)
+    {
+        ImGui::Checkbox(p.name, p.value);
+    }
+    ImGui::End();
 }
 } // namespace Editor

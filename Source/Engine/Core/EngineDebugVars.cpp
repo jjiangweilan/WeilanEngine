@@ -1,15 +1,10 @@
-#pragma once
-#include <vector>
+#include "EngineDebugVars.hpp"
 
 #define ENGINE_DEBUG_VAR(name)                                                                                         \
-    static bool& name()                                                                                                \
+    bool& EngineDebugVars::name()                                                                                      \
     {                                                                                                                  \
         static bool val = false;                                                                                       \
         return val;                                                                                                    \
     }
 
-class EngineDebugVars
-{
-public:
-    ENGINE_DEBUG_VAR(SceneBVH);
-};
+ENGINE_DEBUG_VAR(SceneBVH);

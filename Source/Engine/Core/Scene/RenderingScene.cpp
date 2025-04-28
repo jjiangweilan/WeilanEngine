@@ -2,7 +2,7 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/EngineInternalResources.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Core/StaticEngineDebugs.hpp"
+#include "Core/EngineDebugVars.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/Graphics.hpp"
 
@@ -139,7 +139,7 @@ void RenderingScene::Tick()
     }
 
     // BVH Debug
-    if (StaticEngineDebugs::SceneObjectBVH)
+    if (EngineDebugVars::SceneBVH())
     {
         BVHDebug();
     }
