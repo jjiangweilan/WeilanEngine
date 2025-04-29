@@ -1,6 +1,6 @@
 #include "ShadowRenderer.hpp"
-#include "Core/Scene/Scene.hpp"
 #include "Core/EngineDebugVars.hpp"
+#include "Core/Scene/Scene.hpp"
 #include "Rendering/Graphics.hpp"
 
 namespace Rendering
@@ -63,15 +63,16 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
     }
     shadowFrustumAABB.min.z -= 300.0f; // reserve some space for what's behind the camera
 
+    // note: we swap min max of y in this case because the ortho is not symmetric in origin, simplely negate the y axis
+    // won't work
     glm::mat4 proj = glm::orthoLH_ZO(
         shadowFrustumAABB.min.x,
         shadowFrustumAABB.max.x,
-        shadowFrustumAABB.min.y,
         shadowFrustumAABB.max.y,
+        shadowFrustumAABB.min.y,
         shadowFrustumAABB.min.z,
         shadowFrustumAABB.max.z
     );
-    // proj[1] = -proj[1];
     auto ret = proj * worldToLight;
 
     if (EngineDebugVars::ShadowFrustum())
