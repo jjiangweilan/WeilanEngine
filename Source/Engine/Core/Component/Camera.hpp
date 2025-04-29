@@ -26,7 +26,7 @@ public:
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     glm::vec3 GetForward();
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
-    Frustum GetFrustum();
+    Frustum GetFrustum(float aspect = 0.0f);
 
     void SetDiffuseEnv(Texture* cubemap);
     void SetSpecularEnv(Texture* cubemap);

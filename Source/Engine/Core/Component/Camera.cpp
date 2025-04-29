@@ -203,10 +203,10 @@ float Camera::GetFoV()
     return glm::atan(GetProjectionTop() / GetNear());
 }
 
-Frustum Camera::GetFrustum()
+Frustum Camera::GetFrustum(float aspect)
 {
     auto view = GetViewMatrix();
-    auto proj = GetAndUpdateProjectionMatrix();
+    auto proj = GetAndUpdateProjectionMatrix(aspect);
 
     auto vp = proj * view;
     return Frustum(vp);

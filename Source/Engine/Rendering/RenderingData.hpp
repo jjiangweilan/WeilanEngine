@@ -50,6 +50,8 @@ struct RenderingData
     Gfx::Image* depthCopy;
     std::vector<Light*> lights{};
     int mainLightIndex;
+    float2 screenSize;
+    float screenAspect;
     InterleavedGradientNoise interleavedGradientNoise;
 
     Light* GetMainLight()

@@ -36,7 +36,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     ENGINE_BEGIN_PROFILE("RenderPipeline - Setup")
     setting = scene.GetRenderPipelineSetting();
     Gfx::CommandBuffer* cmd = GetCommandBuffer();
-
+    renderingData.screenSize = screenSize;
+    renderingData.screenAspect = screenSize.x / screenSize.y;
     cmd->BeginLabel("Render Scene", {0.623, 0.323, 0.4123, 1.0f});
     if (!FrameSetup(cmd, scene, camera, screenSize))
     {
@@ -45,7 +46,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Setup
     renderingData.renderPipelineSettings = setting.Get();
-    renderingData.cameraFrustum = camera.GetFrustum();
+    renderingData.cameraFrustum = camera.GetFrustum(renderingData.screenAspect);
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
     DrawList sceneDrawList{};
@@ -490,7 +491,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     auto sceneEnvironment = renderingScene.GetSceneEnvironment();
 
     glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
-    glm::matrix<float, 4, 4> projectionMatrix = camera.GetAndUpdateProjectionMatrix(screenSize.x / screenSize.y);
+    glm::matrix<float, 4, 4> projectionMatrix = camera.GetAndUpdateProjectionMatrix(renderingData.screenAspect);
     glm::matrix<float, 4, 4> vp = projectionMatrix * viewMatrix;
     glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
 

@@ -34,7 +34,7 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
 {
     auto light = renderingData.GetMainLight();
     auto view = renderingData.sceneInfo->view;
-    auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(light->GetShadowDistance());
+    auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(light->GetShadowDistance(), renderingData.screenAspect);
     auto vp = projection * view;
     Frustum frustum(vp, Frustum::CornersOnly{});
     auto corners = frustum.corners;
