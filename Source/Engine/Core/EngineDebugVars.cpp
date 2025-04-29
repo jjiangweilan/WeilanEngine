@@ -8,3 +8,4 @@
     }
 
 ENGINE_DEBUG_VAR(SceneBVH);
+ENGINE_DEBUG_VAR(ShadowFrustum);

@@ -1,5 +1,6 @@
 #include "ShadowRenderer.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Core/EngineDebugVars.hpp"
 #include "Rendering/Graphics.hpp"
 
 namespace Rendering
@@ -39,7 +40,12 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
     auto corners = frustum.corners;
 
     auto lightMatrix = light->GetGameObject()->GetWorldMatrix();
+    lightMatrix[0] = float4(glm::normalize(float3(lightMatrix[0])), 0.0);
+    lightMatrix[1] = float4(glm::normalize(float3(lightMatrix[1])), 0.0);
+    lightMatrix[2] = float4(glm::normalize(float3(lightMatrix[2])), 0.0);
     lightMatrix[2] = -lightMatrix[2];
+    lightMatrix[3] = float4(float3(renderingData.sceneInfo->viewPos), 1); // no translation
+
     float4x4 worldToLight = glm::inverse(lightMatrix);
     for (int i = 0; i < corners.size(); i++)
     {
@@ -55,7 +61,7 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
         shadowFrustumAABB.min = glm::min(shadowFrustumAABB.min, corners[i]);
         shadowFrustumAABB.max = glm::max(shadowFrustumAABB.max, corners[i]);
     }
-    shadowFrustumAABB.min.z -= 1000.0f; // reserve some space for what's behind the camera
+    shadowFrustumAABB.min.z -= 300.0f; // reserve some space for what's behind the camera
 
     glm::mat4 proj = glm::orthoLH_ZO(
         shadowFrustumAABB.min.x,
@@ -65,10 +71,11 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
         shadowFrustumAABB.min.z,
         shadowFrustumAABB.max.z
     );
-    // proj[1] = -proj[1]; why we don't do flip?
+    // proj[1] = -proj[1];
     auto ret = proj * worldToLight;
 
-    Graphics::DrawFrustum(ret);
+    if (EngineDebugVars::ShadowFrustum())
+        Graphics::DrawFrustum(ret);
     return ret;
 }
 

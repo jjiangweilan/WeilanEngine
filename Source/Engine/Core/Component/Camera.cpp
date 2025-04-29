@@ -44,6 +44,9 @@ float Camera::GetFar()
 glm::mat4 Camera::GetViewMatrix() const
 {
     auto view = gameObject->GetWorldMatrix();
+    view[0] = glm::normalize(view[0]);
+    view[1] = glm::normalize(view[1]);
+    view[2] = glm::normalize(view[2]);
     view[2] = -view[2];
     view = glm::inverse(view);
     return view;

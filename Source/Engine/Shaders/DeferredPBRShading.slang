@@ -183,8 +183,9 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             shadowCS = shadowCS / shadowCS.w;
             float2 shadowUV = shadowCS.xy * 0.5 + 0.5;
             float objShadowDepth = shadowCS.z - shadowBias;
-            bool valid = shadowUV.x < 1 && shadowUV.y < 1 && shadowUV.x > 0 && shadowUV.y > 0;
-            shadowAttenuation = valid ? PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.zw, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clamp) : 1.0f;
+            bool valid = all(float3(shadowUV, shadowCS.z) > 0) && all(float3(shadowUV, shadowCS.z) < 1);
+            if (valid)
+                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.zw, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clamp);
         }
         color += lighting * shadowAttenuation;
     }

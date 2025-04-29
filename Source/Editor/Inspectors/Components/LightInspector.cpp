@@ -78,20 +78,20 @@ public:
         }
         ImGui::Separator();
 
-        Frustum frustum = target->GetLightFrusutmPlanes(target->GetGameObject()->GetPosition());
+        // Frustum frustum = target->GetLightFrusutmPlanes(target->GetGameObject()->GetPosition());
 
-        // 6 different float4 colors
-        float4 colors[6] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {1, 1, 0, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}};
+        // // 6 different float4 colors
+        // float4 colors[6] = {{1, 0, 0, 1}, {0, 1, 0, 1}, {0, 0, 1, 1}, {1, 1, 0, 1}, {0, 1, 1, 1}, {1, 0, 1, 1}};
 
-        auto cam = target->GetScene()->GetMainCamera();
-        for (int i = 0; i < 6; ++i)
-        {
-            Graphics::DrawLine(
-                cam->GetGameObject()->GetPosition(),
-                -float3(frustum.planes[i]) * frustum.planes[i].a + cam->GetGameObject()->GetPosition(),
-                colors[i]
-            );
-        }
+        // auto cam = target->GetScene()->GetMainCamera();
+        // for (int i = 0; i < 6; ++i)
+        // {
+        //     Graphics::DrawLine(
+        //         cam->GetGameObject()->GetPosition(),
+        //         -float3(frustum.planes[i]) * frustum.planes[i].a + cam->GetGameObject()->GetPosition(),
+        //         colors[i]
+        //     );
+        // }
     }
 
 private:

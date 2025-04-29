@@ -1100,7 +1100,10 @@ void GameEditor::ShowStaticEngineDebugs()
         bool* value;
     };
 
-    static std::vector<StaticEngineDebugsInfo> debugs = {{"Scene BVH", &EngineDebugVars::SceneBVH()}};
+    static std::vector<StaticEngineDebugsInfo> debugs = {
+        {"Scene BVH", &EngineDebugVars::SceneBVH()},
+        {"Shadow Frustum", &EngineDebugVars::ShadowFrustum()}
+    };
 
     for (const auto& p : debugs)
     {
