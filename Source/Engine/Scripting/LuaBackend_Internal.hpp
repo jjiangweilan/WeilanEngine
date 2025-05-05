@@ -5,6 +5,7 @@
 #include "Core/Component/Light.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Object.hpp"
+#include "Core/Time.hpp"
 #include "GamePlay/Input.hpp"
 #include "Libs/Serialization/Serializable.hpp"
 #include "ThirdParty/lua/lauxlib.h"
@@ -866,12 +867,22 @@ public:
                 })
             .End();
 
+        LuaBinder<Time> time(L);
+        time
+            .Begin("Time")
+            .BindStaticFn("DeltaTime", Time::DeltaTime)
+            .End();
+
         LuaBinder<float3> vec3(L);
         vec3
             .Begin("Float3")
             .BindStaticFn("New", [](){ return glm::vec3{0,0,0}; })
             .BindStaticFn("Dot", &glm::dot<3, float, glm::packed_highp>)
             .BindStaticFn("__eq", [](const float3& l, const float3& r){return l == r;})
+            .BindStaticFn("__add", [](const float3& l, const float3& r){return l + r;})
+            .BindStaticFn("__sub", [](const float3& l, const float3& r){return l - r;})
+            .BindStaticFn("__div", [](const float3& l, const float3& r){return l / r;})
+            .BindStaticFn("__mul", [](const float3& l, const float3& r){return l * r;})
             .BindProperty("x", &glm::vec3::x)
             .BindProperty("y", &glm::vec3::y)
             .BindProperty("z", &glm::vec3::z)
