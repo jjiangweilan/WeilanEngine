@@ -15,12 +15,10 @@ public:
     static void DeselectObject(Object* obj);
     static std::vector<ObjPtr<Object>> GetSelectedObjects();
 
-    static ObjPtr<Scene> activeScene;
     static GameLoop* gameLoop;
 
     static void Clear()
     {
-        activeScene = nullptr;
         gameLoop = nullptr;
         selectedObjects = {};
     }

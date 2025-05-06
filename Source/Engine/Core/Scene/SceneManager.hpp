@@ -4,17 +4,14 @@
 class SceneManager
 {
 public:
-    SceneManager();
-
-    Scene* GetActiveScene()
-    {
-        return scene;
-    }
-    void SetActiveScene(Scene& scene)
-    {
-        this->scene = &scene;
-    }
+    static Scene* GetActiveScene() { return GetSceneManager().GetActiveSceneImpl(); }
+    static void SetActiveScene(Scene* scene) { GetSceneManager().SetActiveSceneImpl(scene); }
 
 private:
+    SceneManager();
+    static SceneManager& GetSceneManager();
     Scene* scene = nullptr;
+
+    Scene* GetActiveSceneImpl() { return scene; }
+    void SetActiveSceneImpl(Scene* scene) { this->scene = scene; }
 };

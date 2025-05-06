@@ -148,14 +148,14 @@ void GameEditor::ShowSceneTree(Scene& scene)
                 {
                     GameObject* ptr = static_cast<GameObject*>(s.Get());
                     if (ptr)
-                        EditorState::activeScene->DestroyGameObject(ptr);
+                        SceneManager::GetActiveScene()->DestroyGameObject(ptr);
                 }
                 ImGui::CloseCurrentPopup();
                 sceneTreeContextObject = nullptr;
             }
             else
             {
-                EditorState::activeScene->DestroyGameObject(sceneTreeContextObject);
+                SceneManager::GetActiveScene()->DestroyGameObject(sceneTreeContextObject);
                 ImGui::CloseCurrentPopup();
                 sceneTreeContextObject = nullptr;
             }

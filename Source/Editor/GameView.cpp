@@ -31,7 +31,7 @@ struct GameView::PlayTheGame
         if (!played)
         {
             played = true;
-            auto& scene = *EditorState::activeScene;
+            auto& scene = *SceneManager::GetActiveScene();
 
             AssetDatabase::Singleton()->SaveAsset(scene);
             originalScenePath = AssetDatabase::Singleton()->GetAssetPath(scene.GetUUID());
@@ -43,7 +43,7 @@ struct GameView::PlayTheGame
             sceneCopy->SetFlags(AssetState::DontSave);
 
             gameView->gameCamera = sceneCopy->GetMainCamera();
-            EditorState::activeScene = sceneCopy;
+            SceneManager::SetActiveScene(sceneCopy);
             EditorState::gameLoop->SetScene(*sceneCopy);
             EngineState::GetSingleton().isPlaying = true;
             EditorState::gameLoop->Play();
@@ -67,7 +67,7 @@ struct GameView::PlayTheGame
             auto ori = (Scene*)AssetDatabase::Singleton()->LoadAsset(originalScenePath);
             if (ori)
             {
-                EditorState::activeScene = ori;
+                SceneManager::SetActiveScene(ori);
                 EditorState::gameLoop->SetScene(*ori);
             }
             // destroy sceneCopy

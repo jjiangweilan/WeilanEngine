@@ -98,7 +98,7 @@ GameEditor::GameEditor(const char* path)
     if (!lastActiveSceneUUID.IsEmpty())
     {
         auto scene = (Scene*)engine->assetDatabase->LoadAssetByID(lastActiveSceneUUID);
-        EditorState::activeScene = scene;
+        SceneManager::SetActiveScene(scene);
         loop->SetScene(*scene);
     }
 
@@ -128,8 +128,8 @@ GameEditor::~GameEditor()
     engine->DestroyGameLoop(loop);
     InspectorRegistry::DestroyAll();
 
-    if (EditorState::activeScene)
-        editorConfig["lastActiveScene"] = EditorState::activeScene->GetUUID().ToString();
+    if (SceneManager::GetActiveScene())
+        editorConfig["lastActiveScene"] = SceneManager::GetActiveScene()->GetUUID().ToString();
 
     loop = nullptr;
 
@@ -294,7 +294,7 @@ void GameEditor::OpenSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            EditorState::activeScene = (Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath));
+            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
             openSceneWindow = false;
         }
 
@@ -376,8 +376,8 @@ void GameEditor::MainMenuBar()
         }
         if (ImGui::MenuItem("Save Scene"))
         {
-            if (EditorState::activeScene)
-                engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+            if (SceneManager::GetActiveScene())
+                engine->assetDatabase->SaveAsset(*SceneManager::GetActiveScene());
         }
         ImGui::EndMenu();
     }
@@ -544,9 +544,9 @@ void GameEditor::GUIPass()
         SPDLOG_INFO("project saved");
     }
 
-    if (EditorState::activeScene)
+    if (SceneManager::GetActiveScene())
     {
-        ShowSceneTree(*EditorState::activeScene);
+        ShowSceneTree(*SceneManager::GetActiveScene());
     }
 
     ShowGameProfiler(Profiler::GetSingleton());
@@ -947,13 +947,12 @@ GameEditor* GameEditor::instance = nullptr;
 void GameEditor::SaveProject()
 {
     engine->assetDatabase->SaveDirtyAssets();
-    if (EditorState::activeScene)
-        engine->assetDatabase->SaveAsset(*EditorState::activeScene);
+    if (auto scene = SceneManager::GetActiveScene())
+        engine->assetDatabase->SaveAsset(*scene);
 }
 
 void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
-    EditorState::activeScene = scene;
     sceneEditor.SetActiveScene(scene);
 }
 

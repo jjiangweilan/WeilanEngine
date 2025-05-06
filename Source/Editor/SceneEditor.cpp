@@ -28,7 +28,8 @@ void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
     if (scene)
     {
-        editorCamera->GetGameObject()->SetScene(EditorState::activeScene);
+        SceneManager::SetActiveScene(scene.Get());
+        editorCamera->GetGameObject()->SetScene(SceneManager::GetActiveScene());
     }
 }
 
@@ -52,9 +53,9 @@ void SceneEditor::Init()
     editorFinalColorBlitPass.SetSubpass(0, colorVec);
 
     // setup camera state
-    if (EditorState::activeScene)
+    if (auto scene = SceneManager::GetActiveScene())
     {
-        SetActiveScene(EditorState::activeScene);
+        SetActiveScene(scene);
     }
 
     if (GameEditor::instance->editorConfig.contains("editorCamera"))
@@ -199,7 +200,7 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
 
 void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
-    auto scene = EditorState::activeScene;
+    auto scene = SceneManager::GetActiveScene();
     if (scene == nullptr)
         return;
 
@@ -208,7 +209,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
     cmd.BeginLabel("Scene Editor View", &renderPassLabelColor[0]);
     Rendering::RenderConfig renderConfig = {.drawGraphics = true, .cmdOverride = &cmd};
     renderPipeline->SetConfig(renderConfig);
-    renderPipeline->Render(*EditorState::activeScene, *editorCamera, d.resolution);
+    renderPipeline->Render(*scene, *editorCamera, d.resolution);
     auto gameImage = &renderPipeline->GetOutputColor();
     auto gameDepthImage = &renderPipeline->GetOutputDepth();
 
@@ -324,11 +325,11 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 
 bool SceneEditor::Tick()
 {
-    auto scene = EditorState::activeScene;
+    auto scene = SceneManager::GetActiveScene();
     if (scene == nullptr)
         return false;
 
-    gameCamera = EditorState::activeScene->GetMainCamera();
+    gameCamera = scene->GetMainCamera();
 
     for (auto& p : pendingDeleteSceneImages)
     {
@@ -381,7 +382,7 @@ bool SceneEditor::Tick()
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_C) && ImGui::IsWindowFocused())
     {
-        if (Scene* scene = EditorState::activeScene)
+        if (Scene* scene = SceneManager::GetActiveScene())
         {
             if (GameObject* selected = dynamic_cast<GameObject*>(EditorState::GetMainSelectedObject()))
             {
@@ -485,9 +486,9 @@ bool SceneEditor::Tick()
                     Gizmos::PickGizmos(ray, results);
                     if (results.empty())
                     {
-                        if (EditorState::activeScene)
+                        if (auto scene = SceneManager::GetActiveScene())
                         {
-                            auto sceneIntersected = PickGameObjectFromScene()(*EditorState::activeScene, ray, screenUV);
+                            auto sceneIntersected = PickGameObjectFromScene()(*scene, ray, screenUV);
                             intersected.insert(intersected.end(), sceneIntersected.begin(), sceneIntersected.end());
                         }
                     }

@@ -3,6 +3,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Core/Scene/SceneManager.hpp"
 #include "DragDropIDs.hpp"
 #include "EditorGUI.hpp"
 #include "Rendering/Graphics.hpp"
@@ -35,9 +36,9 @@ public:
         ImGui::NewLine();
         if (ImGui::Button("Set as main camera"))
         {
-            if (EditorState::activeScene)
+            if (auto scene = SceneManager::GetActiveScene())
             {
-                EditorState::activeScene->SetMainCamera(target);
+                scene->SetMainCamera(target);
             }
         }
 
