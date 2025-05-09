@@ -492,7 +492,10 @@ bool VKDriver::BeginFrame()
 #if __WIN32__
     if (captureFrame && IsRenderDocInitialized())
     {
-        renderDocAPI->LaunchReplayUI(1, NULL);
+        if (renderDocAPI->IsTargetControlConnected())
+            renderDocAPI->ShowReplayUI();
+        else
+            renderDocAPI->LaunchReplayUI(1, NULL);
 
         renderDocAPI->StartFrameCapture(
             RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(instance.handle),
