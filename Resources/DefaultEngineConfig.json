@@ -1,0 +1,8 @@
+{
+    "gfxDriver" :
+    {
+        "enableRenerDoc" : true,
+        "enableValidationLayer" : false,
+        "enableGPUTimestampQuery" : true
+    }
+}

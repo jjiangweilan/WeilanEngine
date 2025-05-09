@@ -9,14 +9,14 @@ float3 NormalReconstructionLow(float3 viewPos)
 // 5 tap reconstruction
 // expect clampped depth
 // invNDCToX takes invNDCProject or invNDCToWorld
-float3 NormalReconstructionMedium(Sampler2D depthTex, float2 uv, float2 depthTexelSize, float4 cameraZBufferParams, matrix<float,4,4> invNDCToX, out float3 centerPos)
+float3 NormalReconstructionMedium(Texture2D depthTex, SamplerState depthTexSampler, float2 uv, float2 depthTexelSize, float4 cameraZBufferParams, matrix<float,4,4> invNDCToX, out float3 centerPos)
 {
     float depths[5] = {
-        depthTex.Sample(uv).x,
-        depthTex.Sample(uv - float2(depthTexelSize.x, 0)).x,
-        depthTex.Sample(uv + float2(depthTexelSize.x, 0)).x,
-        depthTex.Sample(uv - float2(0, depthTexelSize.y)).x,
-        depthTex.Sample(uv + float2(0, depthTexelSize.y)).x
+        depthTex.SampleLevel(depthTexSampler, uv, 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv - float2(depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(depthTexelSize.x, 0), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv - float2(0, depthTexelSize.y), 0).x,
+        depthTex.SampleLevel(depthTexSampler, uv + float2(0, depthTexelSize.y), 0).x
     };
 
     const float depthC = LinearEyeDepth(depths[0], cameraZBufferParams);

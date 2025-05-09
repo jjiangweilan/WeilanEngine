@@ -3,8 +3,8 @@ import WeilanEngine;
 import Library.NormalReconstruction;
 import Library.PerScene;
 
-#define GTAO_SLICE_COUNT 8
-#define GTAO_DIRECTION_SAMPLE_COUNT 4
+#define GTAO_SLICE_COUNT 32
+#define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f
@@ -24,7 +24,8 @@ struct GTAOParameter
     float falloff;
     float bias;
 
-    Sampler2D depthTex;
+    Texture2D depthTex;
+    SamplerState sampler_linear_clamp;
 };
 
 [Global]
@@ -46,7 +47,7 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
         float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
         float2 scaling = perMaterial.rtSize.zw * perMaterial.scaling;
         float2 sTexCoord = input.uv + side * s * scaling * float2(omega[0], -omega[1]) / posVS.z;
-        float sDepth = perMaterial.depthTex.SampleLevel(sTexCoord, 0).x;
+        float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_linear_clamp, sTexCoord, 0).x;
         float3 sPosV = GetPostionVS(float3(sTexCoord * 2 - 1, sDepth));
 
         if(any(sPosV != posVS))
@@ -66,7 +67,7 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
 float GTAO(VertexOutput input)
 {
     float3 posVS;
-    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, input.uv, perMaterial.rtSize.zw, perScene.cameraZBufferParams, perScene.invProjection, posVS);
+    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_linear_clamp, input.uv, perMaterial.rtSize.zw, perScene.cameraZBufferParams, perScene.invProjection, posVS);
     float3 viewVS = normalize(-posVS);
 
     float visibility = 0;
@@ -105,7 +106,7 @@ float GTAO(VertexOutput input)
     }
 
     visibility /= GTAO_SLICE_COUNT;
-    return clamp(visibility * perMaterial.strength, 0, 1);
+    return clamp(visibility / perMaterial.strength, 0, 1);
 }
 #endif
 

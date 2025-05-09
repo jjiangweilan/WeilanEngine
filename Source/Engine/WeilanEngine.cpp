@@ -43,6 +43,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 {
     InitSDL();
     projectPath = createInfo.projectPath;
+
     try
     {
         ringBufferLoggerSink = std::make_shared<spdlog::sinks::ringbuffer_sink<std::mutex>>(1024);
@@ -58,10 +59,15 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
 
+    std::filesystem::path engineConfigPath =
+        std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources/DefaultEngineConfig.json";
+    std::ifstream engineConfigFile(engineConfigPath);
+    nlohmann::json engineConfig = nlohmann::json::parse(engineConfigFile);
+
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{
         .window = mainWindow.handle,
-        .enableRenderDoc = true,
-        .enableGfxDriverValidation = false
+        .enableRenderDoc = engineConfig.value("enableRenderDoc", false),
+        .enableGfxDriverValidation = engineConfig.value("enableGPUTimestampQuery", false)
     };
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
 

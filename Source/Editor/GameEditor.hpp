@@ -33,6 +33,7 @@ public:
     static GameEditor* instance;
 
 private:
+    std::string imguiInitPath;
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     GameLoop* loop;

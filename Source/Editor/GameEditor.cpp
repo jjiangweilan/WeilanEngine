@@ -76,21 +76,27 @@ GameEditor::GameEditor(const char* path)
     );
     spdlog::set_default_logger(logger);
 
+    this->imguiInitPath = (engine->GetProjectPath() / "imgui.ini").string();
     auto editorConfigPath = engine->GetProjectPath() / "editorConfig.json";
-    bool createEditorConfigJson = true;
     if (std::filesystem::exists(editorConfigPath))
     {
         try
         {
             editorConfig = nlohmann::json::parse(std::ifstream(editorConfigPath));
-            createEditorConfigJson = false;
         }
         catch (...)
-        {}
+        {
+            editorConfig = nlohmann::json::object();
+        }
     }
-    if (createEditorConfigJson)
+
+    if (!std::filesystem::exists(imguiInitPath))
     {
-        editorConfig = nlohmann::json::object();
+        std::filesystem::copy_file(
+            std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "imgui.ini",
+            imguiInitPath,
+            std::filesystem::copy_options::none
+        );
     }
 
     // load previous active scene
@@ -105,6 +111,7 @@ GameEditor::GameEditor(const char* path)
     auto& io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.IniFilename = imguiInitPath.c_str();
 
     // EnableMultiViewport();
 
@@ -294,7 +301,8 @@ void GameEditor::OpenSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
+            SceneManager::SetActiveScene((Scene*
+            )engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
             openSceneWindow = false;
         }
 

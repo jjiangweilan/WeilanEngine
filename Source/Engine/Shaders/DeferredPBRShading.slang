@@ -191,7 +191,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     }
 
     float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
-    float3 ambient = perScene.GetMainLight().ambientScale * baseColor * (1 - metallic);
+    float3 ambient = perScene.GetMainLight().ambientScale * baseColor * (1 - metallic) * ao;
     color += ambient;
 
     return float4(color, 1);
