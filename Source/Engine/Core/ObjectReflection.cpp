@@ -7,8 +7,8 @@
 
 void ObjectReflection::DefineReflection()
 {
-    REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Object, uuid);
-    REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Asset, name);
+    // REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Object, uuid);
+    // REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(Asset, name);
 
     //REGISTER_TYPE_REFLECTION_MEMBER_VARIABLE(GameObject, components);
     //

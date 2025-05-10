@@ -57,7 +57,6 @@ protected:
     std::string name;
     UUID uuid;
 
-    friend class ObjectReflection;
     friend class ObjectTracker;
 };
 
@@ -117,7 +116,6 @@ std::unique_ptr<T> ObjectRegistry::CreateObject(const ObjectTypeID& id)
 }
 
 #define DECLARE_OBJECT()                                                                                               \
-    friend class ::ObjectReflection;                                                                                   \
                                                                                                                        \
 public:                                                                                                                \
     static const ObjectTypeID& StaticGetObjectTypeID();                                                                \

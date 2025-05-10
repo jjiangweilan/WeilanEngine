@@ -25,8 +25,8 @@ public:
     template <class T>
     T* Sample(float nx, float ny, int face)
     {
-        int x = glm::clamp(nx * width + 0.5f, 0.f, width - 1);
-        int y = glm::clamp(ny * height + 0.5f, 0.f, height - 1);
+        int x = glm::clamp(nx * width + 0.5f, 0.f, width - 1.0f);
+        int y = glm::clamp(ny * height + 0.5f, 0.f, height - 1.0f);
 
         ASSERT(sizeof(T) == elementSize);
         ASSERT(face >= 0 && face < 6);
