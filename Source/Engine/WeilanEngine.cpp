@@ -63,11 +63,11 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources/DefaultEngineConfig.json";
     std::ifstream engineConfigFile(engineConfigPath);
     nlohmann::json engineConfig = nlohmann::json::parse(engineConfigFile);
-
+    const nlohmann::json& gfxDriverConfig = engineConfig.value("gfxDriver", nlohmann::json::object());
     Gfx::GfxDriver::CreateInfo gfxCreateInfo{
         .window = mainWindow.handle,
-        .enableRenderDoc = engineConfig.value("enableRenderDoc", false),
-        .enableGfxDriverValidation = engineConfig.value("enableGPUTimestampQuery", false)
+        .enableRenderDoc = gfxDriverConfig.value("enableRenderDoc", false),
+        .enableGfxDriverValidation = gfxDriverConfig.value("enableValidationLayer", false),
     };
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
 
