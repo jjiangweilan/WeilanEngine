@@ -91,8 +91,6 @@ struct InvalidObjPtrError : std::runtime_error
 
 static int Lua_UserData_Index(lua_State* L)
 {
-    int type = lua_type(L, 1);
-    ASSERT(lua_isuserdata(L, 1));         // 1
     const char* key = lua_tostring(L, 2); // 2
 
     int currentInspectingTable = 3;
@@ -613,7 +611,6 @@ private:
             {
                 int fIndex = lua_upvalueindex(1);
                 FT& f = *(FT*)lua_touserdata(L, fIndex);
-                ASSERT(lua_istable(L, 1));
 
                 return f(L);
             }
@@ -812,8 +809,8 @@ public:
             .Begin("GameScript", false)
             .BindFn("New", [](lua_State* L){
                     // expecting a `self` table on top of the stack
-                    ASSERT(lua_istable(L, 1));
-                    ASSERT(lua_isstring(L, 2));
+                    // ASSERT(lua_istable(L, 1));
+                    // ASSERT(lua_isstring(L, 2));
                     const char* className = lua_tostring(L, 2);
 
                     lua_newtable(L);
