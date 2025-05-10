@@ -18,18 +18,31 @@ VKDataUploader::VKDataUploader(VKDriver* driver) : driver(driver)
     rhiCmdAllocateInfo.commandPool = driver->mainCmdPool;
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     rhiCmdAllocateInfo.commandBufferCount = 1;
-    vkAllocateCommandBuffers(driver->device.handle, &rhiCmdAllocateInfo, &cmd);
+    vkAllocateCommandBuffers(driver->device.handle, &rhiCmdAllocateInfo, &takingOffCmd.cmd);
 
-    VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // pipeline waits for the cmd to be finished before it
-    vkCreateFence(driver->device.handle, &fenceCreateInfo, VK_NULL_HANDLE, &fence);
+    takingOffCmd.fence = fencePool.Allocate(driver->device.handle);
 }
 
 VKDataUploader::~VKDataUploader()
 {
     driver->Driver_DestroyBuffer(stagingBuffer);
 
-    vkDestroyFence(driver->device.handle, fence, VK_NULL_HANDLE);
+    WaitForUploadFinish();
+
+    if (takingOffCmd.fence != VK_NULL_HANDLE)
+    {
+        vkDestroyFence(driver->device.handle, takingOffCmd.fence, VK_NULL_HANDLE);
+    }
+
+    while (!inflightCmds.empty())
+    {
+        auto& cmd = inflightCmds.front();
+        vkDestroyFence(driver->device.handle, cmd.fence, VK_NULL_HANDLE);
+        inflightCmds.pop();
+    }
+
+    for (auto f : fencePool.fences)
+        vkDestroyFence(driver->device.handle, f, VK_NULL_HANDLE);
 }
 
 void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, size_t dstOffset)
@@ -40,15 +53,11 @@ void VKDataUploader::UploadBuffer(VKBuffer* dst, uint8_t* data, size_t size, siz
         return;
     }
 
-    if (offset + size > stagingBufferSize)
-    {
-        UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-        vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
-    }
+    EnsureEnoughSizeForUpload(takingOffCmd, size);
 
-    memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + offset, data, size);
-    pendingBufferUploads.push_back(PendingBufferUpload{dst->GetHandle(), offset, dstOffset, size});
-    offset += size;
+    memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + takingOffCmd.endOffset, data, size);
+    pendingBufferUploads.push_back(PendingBufferUpload{dst->GetHandle(), takingOffCmd.endOffset, dstOffset, size});
+    takingOffCmd.endOffset += size;
 }
 
 void VKDataUploader::UploadImage(
@@ -64,7 +73,7 @@ void VKDataUploader::UploadImage(
     auto vkDst = static_cast<VKImage*>(dst);
 
     size_t byteSize = MapGfxFormatToByteSize(vkDst->GetDescription().format);
-    size_t align = byteSize - (offset % byteSize);
+    size_t align = byteSize - (takingOffCmd.endOffset % byteSize);
 
     if (size + align > stagingBufferSize)
     {
@@ -72,13 +81,10 @@ void VKDataUploader::UploadImage(
         return;
     }
 
-    if (offset + size + align > stagingBufferSize)
+    if (!EnsureEnoughSizeForUpload(takingOffCmd, size + align))
     {
-        UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
-        vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
-
         // offset may change, recalculate alignment
-        align = byteSize - (offset % byteSize);
+        align = byteSize - (takingOffCmd.endOffset % byteSize);
         if (size + align > stagingBufferSize)
         {
             SPDLOG_ERROR("failed to upload buffer: buffer size is larger than 48 MB");
@@ -86,13 +92,13 @@ void VKDataUploader::UploadImage(
         }
     }
 
-    memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + offset + align, data, size);
+    memcpy((uint8_t*)stagingBuffer.allocationInfo.pMappedData + takingOffCmd.endOffset + align, data, size);
     float scale = glm::pow(0.5, mipLevel);
     pendingImageUploads.push_back(PendingImageUpload{
         vkDst->GetImage(),
         (uint32_t)(vkDst->GetDescription().width * scale),
         (uint32_t)(vkDst->GetDescription().height * scale),
-        offset + align,
+        takingOffCmd.endOffset + align,
         size,
         mipLevel,
         arayLayer,
@@ -100,13 +106,20 @@ void VKDataUploader::UploadImage(
         finalLayout
     });
 
-    offset += align + size;
+    takingOffCmd.endOffset += align + size;
 }
 
 void VKDataUploader::WaitForUploadFinish()
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::WaitForUploadFinish");
-    vkWaitForFences(driver->device.handle, 1, &fence, true, -1);
+    while (!inflightCmds.empty())
+    {
+        auto& cmd = inflightCmds.front();
+        vkWaitForFences(driver->device.handle, 1, &cmd.fence, true, -1);
+        vkFreeCommandBuffers(driver->device.handle, driver->mainCmdPool, 1, &cmd.cmd);
+        fencePool.Free(driver->device.handle, cmd.fence);
+        inflightCmds.pop();
+    }
 }
 
 void VKDataUploader::UploadAllPending(
@@ -115,13 +128,15 @@ void VKDataUploader::UploadAllPending(
 {
     ENGINE_SCOPED_PROFILE("VKDataUploader::UploadAllPending");
 
-    auto waitResult = vkWaitForFences(driver->device.handle, 1, &fence, true, std::numeric_limits<uint64_t>::max());
-    vkResetFences(driver->device.handle, 1, &fence);
-    vkResetCommandBuffer(cmd, 0);
+    VkCommandBufferAllocateInfo rhiCmdAllocateInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+    rhiCmdAllocateInfo.commandPool = driver->mainCmdPool;
+    rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    rhiCmdAllocateInfo.commandBufferCount = 1;
+    vkAllocateCommandBuffers(driver->device.handle, &rhiCmdAllocateInfo, &takingOffCmd.cmd);
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd, &beginInfo);
+    vkBeginCommandBuffer(takingOffCmd.cmd, &beginInfo);
 
     for (size_t i = 0; i < pendingBufferUploads.size(); ++i)
     {
@@ -136,7 +151,7 @@ void VKDataUploader::UploadAllPending(
 
         if (i == pendingBufferUploads.size() - 1 || pendingBufferUploads[i + 1].dst != p.dst)
         {
-            vkCmdCopyBuffer(cmd, stagingBuffer.handle, p.dst, copyRegions.size(), copyRegions.data());
+            vkCmdCopyBuffer(takingOffCmd.cmd, stagingBuffer.handle, p.dst, copyRegions.size(), copyRegions.data());
             copyRegions.clear();
         }
     }
@@ -185,7 +200,7 @@ void VKDataUploader::UploadAllPending(
             }
 
             vkCmdPipelineBarrier(
-                cmd,
+                takingOffCmd.cmd,
                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 0,
@@ -198,7 +213,7 @@ void VKDataUploader::UploadAllPending(
             );
 
             vkCmdCopyBufferToImage(
-                cmd,
+                takingOffCmd.cmd,
                 stagingBuffer.handle,
                 p.dst,
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -215,7 +230,7 @@ void VKDataUploader::UploadAllPending(
                 b.newLayout = p.finalLayout;
             }
             vkCmdPipelineBarrier(
-                cmd,
+                takingOffCmd.cmd,
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
                 VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
                 0,
@@ -229,19 +244,72 @@ void VKDataUploader::UploadAllPending(
         }
     }
 
-    vkEndCommandBuffer(cmd);
-    pendingBufferUploads.clear();
-    pendingImageUploads.clear();
-    offset = 0;
+    vkEndCommandBuffer(takingOffCmd.cmd);
 
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.waitSemaphoreCount = waitSemaphore == VK_NULL_HANDLE ? 0 : 1;
     submitInfo.pWaitSemaphores = &waitSemaphore;
     submitInfo.pWaitDstStageMask = &waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
+    submitInfo.pCommandBuffers = &takingOffCmd.cmd;
     submitInfo.signalSemaphoreCount = signalSemaphore == VK_NULL_HANDLE ? 0 : 1;
     submitInfo.pSignalSemaphores = &signalSemaphore;
-    vkQueueSubmit(driver->mainQueue.handle, 1, &submitInfo, fence);
+    vkQueueSubmit(driver->mainQueue.handle, 1, &submitInfo, takingOffCmd.fence);
+
+    pendingBufferUploads.clear();
+    pendingImageUploads.clear();
+    inflightCmds.push(takingOffCmd);
+
+    while (!inflightCmds.empty())
+    {
+        auto& cmd = inflightCmds.front();
+        auto result = vkGetFenceStatus(driver->device.handle, cmd.fence);
+        if (result == VK_SUCCESS)
+        {
+            vkFreeCommandBuffers(driver->device.handle, driver->mainCmdPool, 1, &cmd.cmd);
+            fencePool.Free(driver->device.handle, cmd.fence);
+            inflightCmds.pop();
+        }
+        else
+            break;
+    }
+
+    takingOffCmd =
+        {VK_NULL_HANDLE, fencePool.Allocate(driver->device.handle), takingOffCmd.endOffset, takingOffCmd.endOffset};
+}
+
+bool VKDataUploader::EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size)
+{
+    // check the tail
+    size_t head = inflightCmds.empty() ? 0 : inflightCmds.front().startOffset;
+    size_t freeSize = cmd.endOffset < head ? head - cmd.endOffset : stagingBufferSize - cmd.endOffset;
+    bool canContinue = size < freeSize;
+    if (canContinue)
+        return true;
+
+    // we can't continue because there isn't enought room for next upload
+    // first we upload what we have scheduled so far
+    UploadAllPending(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+
+    // check if we have enough room from beginning to head
+    if (head < cmd.endOffset && head > size)
+    {
+        // upload all pending takes care of creating a new takingOffCmd but it lacks information of if there is enough
+        // space for next upload so we need to override it
+        takingOffCmd.endOffset = 0;
+        takingOffCmd.startOffset = 0;
+    }
+    else
+    {
+        // there is no empty space anywhere, wait for all uploads
+        // to finish and reset the command buffer
+        // Note: a better approach is to wait front inflightCmds until there is enough space for next upload. No need to
+        // wait all inflightCmds
+        WaitForUploadFinish();
+
+        takingOffCmd = { VK_NULL_HANDLE, fencePool.Allocate(driver->device.handle), 0, 0 };
+    }
+
+    return false;
 }
 } // namespace Gfx

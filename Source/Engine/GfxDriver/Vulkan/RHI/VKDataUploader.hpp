@@ -1,5 +1,6 @@
 #pragma once
 #include "Buffer.hpp"
+#include <queue>
 #include <vector>
 #include <vulkan/vulkan.h>
 
@@ -49,16 +50,49 @@ private:
         VkImageLayout finalLayout;
     };
 
+    struct InflightUploadingCmd
+    {
+        VkCommandBuffer cmd; // filled when dispatching
+        VkFence fence = VK_NULL_HANDLE;
+        size_t startOffset; // filled when newly created
+        size_t endOffset;   // incremented as upload progresses
+    };
+    InflightUploadingCmd takingOffCmd = {VK_NULL_HANDLE, 0, 0};
+    std::queue<InflightUploadingCmd> inflightCmds = {};
+
+    struct FencePool
+    {
+        VkFence Allocate(VkDevice device)
+        {
+            if (fences.empty())
+            {
+                VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
+                VkFence fence;
+                vkCreateFence(device, &fenceInfo, nullptr, &fence);
+                fences.push_back(fence);
+            }
+            auto fence = fences.back();
+            fences.pop_back();
+            return fence;
+        }
+
+        void Free(VkDevice device, VkFence fence)
+        {
+            vkResetFences(device, 1, &fence);
+            fences.push_back(fence);
+        }
+        std::vector<VkFence> fences;
+    } fencePool;
+
     VKDriver* driver;
-    VkCommandBuffer cmd = VK_NULL_HANDLE;
-    VkFence fence;
     const size_t stagingBufferSize = 1024 * 1024 * 64;
-    size_t offset = 0;
     std::vector<PendingBufferUpload> pendingBufferUploads = {};
     std::vector<PendingImageUpload> pendingImageUploads = {};
     std::vector<VkBufferCopy> copyRegions = {};
     std::vector<VkImageMemoryBarrier> barriers = {};
     std::vector<VkBufferImageCopy> bufferImageCopies = {};
     Vulkan::Buffer stagingBuffer = {};
+
+    bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);
 };
 } // namespace Gfx

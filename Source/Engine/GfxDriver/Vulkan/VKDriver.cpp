@@ -690,11 +690,6 @@ bool VKDriver::EndFrame()
 
     FrameEndClear();
 
-    // we need to wait for the dataUploader to finish before we begin next frame, because all the command buffers
-    // execution shares the same staing buffer the staging buffer can be overriden by next frame CPU logics before GPU
-    // uploads it
-    dataUploader->WaitForUploadFinish();
-
 #if __WIN32__
     if (captureFrameBegin && IsRenderDocInitialized())
     {
