@@ -1452,6 +1452,8 @@ void ShaderLibrary::LoadSession()
     debugFormat.kind = slang::CompilerOptionValueKind::Int;
     debugFormat.intValue0 = SlangDebugInfoFormat::SLANG_DEBUG_INFO_FORMAT_DEFAULT;
 
+    // https://github.com/KhronosGroup/SPIRV-Tools/issues/5959 we need this being fixed, til then we can safely debug an
+    // optimized shader
     slang::CompilerOptionValue optimization{};
     optimization.kind = slang::CompilerOptionValueKind::Int;
     optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
