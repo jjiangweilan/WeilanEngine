@@ -104,6 +104,10 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
     ASSERT(driverConfig.swapchainImageCount + 1 <= 8);
     VkCommandBuffer cmds[8];
     vkAllocateCommandBuffers(device.handle, &rhiCmdAllocateInfo, cmds);
+    for (int i = 0; i < driverConfig.swapchainImageCount + 1; i++)
+    {
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)cmds[i], "VKDriver");
+    }
 
     VkFenceCreateInfo rhiFenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
     rhiFenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT; // pipeline waits for the cmd to be finished before it
@@ -117,6 +121,7 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
         inflightData[i].cmd = cmds[i];
         inflightData[i].swapchainIndex = i;
         vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &inflightData[i].cmdFence);
+        VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_FENCE, (uint64_t)inflightData[i].cmdFence, "VKDriver - fence");
 
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].imageAcquireSemaphore);
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
@@ -529,6 +534,25 @@ void VKDriver::FlushPendingCommands()
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(cmd, &beginInfo);
 
+    VkMemoryBarrier dataUploadBarrier{
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        .pNext = VK_NULL_HANDLE,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT,
+    };
+    vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+        VK_DEPENDENCY_BY_REGION_BIT,
+        1,
+        &dataUploadBarrier,
+        0,
+        VK_NULL_HANDLE,
+        0,
+        VK_NULL_HANDLE
+    );
+
     for (auto& f : internalPendingCommands)
     {
         f(cmd);
@@ -562,6 +586,11 @@ bool VKDriver::EndFrame()
     std::scoped_lock lock(driverMutex);
     ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
 
+    ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
+    WaitForCurrentInflightCmd();
+    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
+    ENGINE_END_PROFILE
+
     // acquire next swapchain
     VkResult acquireResult = vkAcquireNextImageKHR(
         device.handle,
@@ -586,11 +615,6 @@ bool VKDriver::EndFrame()
         w->swapchain.swapchainImage->SetActiveSwapChainImage(w->swapchainIndex);
     }
 
-    ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
-    WaitForCurrentInflightCmd();
-    vkResetFences(device.handle, 1, &inflightData[currentInflightIndex].cmdFence);
-    ENGINE_END_PROFILE
-
     dataUploader->UploadAllPending(
         transferSignalSemaphore,
         firstFrame ? VK_NULL_HANDLE : dataUploaderWaitSemaphore,
@@ -598,6 +622,7 @@ bool VKDriver::EndFrame()
     );
     firstFrame = false;
 
+    // this section adds present image layout transition to the end of cmd
     VKCommandBuffer cmd2(renderGraph.get());
     cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
     for (auto& w : extraWindows)
@@ -1084,8 +1109,14 @@ void VKDriver::CreateDevice()
     //     }
     // #endif
 
+    VkPhysicalDeviceShaderDrawParametersFeatures shaderDrawParametersFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
+        .pNext = VK_NULL_HANDLE,
+        .shaderDrawParameters = true
+    };
+
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pNext = VK_NULL_HANDLE;
+    deviceCreateInfo.pNext = &shaderDrawParametersFeatures;
     deviceCreateInfo.queueCreateInfoCount = queueCreateInfoCount;
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
@@ -1239,6 +1270,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     cmdAllocateInfo.commandBufferCount = 1;
     VkCommandBuffer vkcmd;
     vkAllocateCommandBuffers(device.handle, &cmdAllocateInfo, &vkcmd);
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)vkcmd, "VKDriver");
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;

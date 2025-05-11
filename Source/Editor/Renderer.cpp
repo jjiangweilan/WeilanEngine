@@ -57,10 +57,6 @@ Renderer::Renderer(Gfx::Image* finalImage, Gfx::Image* fontImage)
         GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Vertex | Gfx::BufferUsage::Transfer_Dst, 2048, false});
     VertexAttributes v = GetFixedVertexAttributes();
     vertexBuffer->SetVertexAttributes(0, v);
-    stagingBuffer =
-        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
-    stagingBuffer2 =
-        GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src | Gfx::BufferUsage::Transfer_Dst, 4096, true});
 
     shader = ShaderLibrary::GetShader(ShaderLibrary::ImGui);
 
@@ -113,32 +109,27 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
                 indexBuffer = Gfx::GfxDriver::Instance()->CreateBuffer(
                     {Gfx::BufferUsage::Index | Gfx::BufferUsage::Transfer_Dst, indexSize, false}
                 );
-            if (createStaging)
-            {
-                stagingBuffer = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
-                stagingBuffer2 = GetGfxDriver()->CreateBuffer({Gfx::BufferUsage::Transfer_Src, stagingSize, true});
-            }
         }
 
-        std::swap(stagingBuffer, stagingBuffer2);
+        if (vtxDst.size() < imguiDrawData->TotalVtxCount)
+            vtxDst.resize(imguiDrawData->TotalVtxCount);
+        if (idxDst.size() < imguiDrawData->TotalIdxCount)
+            idxDst.resize(imguiDrawData->TotalIdxCount);
 
-        ImDrawVert* vtxDst = (ImDrawVert*)stagingBuffer->GetCPUVisibleAddress();
-        ImDrawIdx* idxDst = (ImDrawIdx*)(((uint8_t*)stagingBuffer->GetCPUVisibleAddress()) + vertexSize);
+        ImDrawVert* vtxPtr = vtxDst.data();
+        ImDrawIdx* idxPtr = idxDst.data();
         for (int n = 0; n < imguiDrawData->CmdListsCount; n++)
         {
             const ImDrawList* cmd_list = imguiDrawData->CmdLists[n];
-            memcpy(vtxDst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-            memcpy(idxDst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-            vtxDst += cmd_list->VtxBuffer.Size;
-            idxDst += cmd_list->IdxBuffer.Size;
+            memcpy(vtxPtr, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+            memcpy(idxPtr, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+            vtxPtr += cmd_list->VtxBuffer.Size;
+            idxPtr += cmd_list->IdxBuffer.Size;
         }
 
-        Gfx::BufferCopyRegion vertexCopy[1];
-        Gfx::BufferCopyRegion indexCopy[1];
-        vertexCopy[0] = {0, 0, vertexSize};
-        indexCopy[0] = {vertexSize, 0, indexSize};
-        cmd.CopyBuffer(stagingBuffer, vertexBuffer, vertexCopy);
-        cmd.CopyBuffer(stagingBuffer, indexBuffer, indexCopy);
+        GetGfxDriver()->UploadBuffer(*vertexBuffer, (uint8_t*)vtxDst.data(), vertexSize);
+        GetGfxDriver()->UploadBuffer(*indexBuffer, (uint8_t*)idxDst.data(), indexSize);
+        int x = 0;
     }
 
     Gfx::Image* color = (Gfx::Image*)finalImage;

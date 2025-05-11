@@ -19,7 +19,7 @@ VKDataUploader::VKDataUploader(VKDriver* driver) : driver(driver)
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     rhiCmdAllocateInfo.commandBufferCount = 1;
     vkAllocateCommandBuffers(driver->device.handle, &rhiCmdAllocateInfo, &takingOffCmd.cmd);
-
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)takingOffCmd.cmd, "VKDataUploader");
     takingOffCmd.fence = fencePool.Allocate(driver->device.handle);
 }
 
@@ -133,10 +133,14 @@ void VKDataUploader::UploadAllPending(
     rhiCmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     rhiCmdAllocateInfo.commandBufferCount = 1;
     vkAllocateCommandBuffers(driver->device.handle, &rhiCmdAllocateInfo, &takingOffCmd.cmd);
+    VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)takingOffCmd.cmd, "VKDataUploader");
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(takingOffCmd.cmd, &beginInfo);
+
+    float4 color = {0.3f, 0.26f, 0.72f, 1.0f};
+    VKDebugUtils::CmdBeginLabel(takingOffCmd.cmd, "VKDataUploader", &color[0]);
 
     for (size_t i = 0; i < pendingBufferUploads.size(); ++i)
     {
@@ -244,6 +248,7 @@ void VKDataUploader::UploadAllPending(
         }
     }
 
+    VKDebugUtils::CmdEndLabel(takingOffCmd.cmd);
     vkEndCommandBuffer(takingOffCmd.cmd);
 
     VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -307,7 +312,8 @@ bool VKDataUploader::EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t
         // wait all inflightCmds
         WaitForUploadFinish();
 
-        takingOffCmd = { VK_NULL_HANDLE, fencePool.Allocate(driver->device.handle), 0, 0 };
+        fencePool.Free(driver->device.handle, takingOffCmd.fence);
+        takingOffCmd = {VK_NULL_HANDLE, fencePool.Allocate(driver->device.handle), 0, 0};
     }
 
     return false;

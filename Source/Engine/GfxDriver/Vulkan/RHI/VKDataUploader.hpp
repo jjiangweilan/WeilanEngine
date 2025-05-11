@@ -57,7 +57,8 @@ private:
         size_t startOffset; // filled when newly created
         size_t endOffset;   // incremented as upload progresses
     };
-    InflightUploadingCmd takingOffCmd = {VK_NULL_HANDLE, 0, 0};
+
+    InflightUploadingCmd takingOffCmd = {VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0};
     std::queue<InflightUploadingCmd> inflightCmds = {};
 
     struct FencePool

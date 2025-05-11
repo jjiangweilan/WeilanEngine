@@ -53,7 +53,7 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
 }
 
 [shader("fragment")]
-float4 FragmentMain(VertexOutput input)
+float4 FragmentMain(VertexOutput input) : SV_Target
 {
     int3 coord = int3(int2(input.position.xy), 0);
 

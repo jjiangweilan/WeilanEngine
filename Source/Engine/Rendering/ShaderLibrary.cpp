@@ -3,9 +3,9 @@
 #include "Rendering/EnumStringMapping.hpp"
 #include <Libs/Assert.hpp>
 #include <fstream>
+#include <regex>
 #include <ryml.hpp>
 #include <ryml_std.hpp>
-#include <regex>
 typedef SlangResult Result;
 using Slang::ComPtr;
 
@@ -300,12 +300,12 @@ public:
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(ParameterBlock, UniformBuffer);
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(RawBuffer, StorageBuffer);
                 MAP_SLANG_DESCRIPTOR_TYPE_CASE(MutableRawBuffer, StorageBuffer);
-            default:
-            {
-                ASSERT(0 && "Not Handled");
-                type = Gfx::DescriptorType::Invalid;
-                break;
-            }
+                default:
+                    {
+                        ASSERT(0 && "Not Handled");
+                        type = Gfx::DescriptorType::Invalid;
+                        break;
+                    }
             }
         }
         return type;
@@ -370,14 +370,14 @@ public:
     {
         switch (type)
         {
-        case slang::TypeReflection::ScalarType::Float32:
-        case slang::TypeReflection::ScalarType::Float16: return Gfx::PipelineInfo::MemberDataType::Float;
-        case slang::TypeReflection::ScalarType::Int32:
-        case slang::TypeReflection::ScalarType::Int16:
-        case slang::TypeReflection::ScalarType::Int8: return Gfx::PipelineInfo::MemberDataType::Int;
-        case slang::TypeReflection::ScalarType::UInt32:
-        case slang::TypeReflection::ScalarType::UInt64: return Gfx::PipelineInfo::MemberDataType::UInt;
-        default: ASSERT(0 && "Not Handled");
+            case slang::TypeReflection::ScalarType::Float32:
+            case slang::TypeReflection::ScalarType::Float16: return Gfx::PipelineInfo::MemberDataType::Float;
+            case slang::TypeReflection::ScalarType::Int32:
+            case slang::TypeReflection::ScalarType::Int16:
+            case slang::TypeReflection::ScalarType::Int8: return Gfx::PipelineInfo::MemberDataType::Int;
+            case slang::TypeReflection::ScalarType::UInt32:
+            case slang::TypeReflection::ScalarType::UInt64: return Gfx::PipelineInfo::MemberDataType::UInt;
+            default: ASSERT(0 && "Not Handled");
         }
 
         return Gfx::PipelineInfo::MemberDataType::Float;
@@ -398,70 +398,70 @@ public:
             int size = fieldTypeLayout->getSize();
             switch (fieldKind)
             {
-            case slang::TypeReflection::Kind::Struct:
-            case slang::TypeReflection::Kind::Array:
-            {
-                if (size != 0)
-                {
-                    Gfx::PipelineInfo::BufferMember member{};
-                    member.name = field->getName();
-                    member.count = 0;
-                    if (kind == slang::TypeReflection::Kind::Struct)
-                        member.type = Gfx::PipelineInfo::MemberDataType::Structure;
-                    else // Array
+                case slang::TypeReflection::Kind::Struct:
+                case slang::TypeReflection::Kind::Array:
                     {
-                        member.count = fieldTypeLayout->getElementCount();
-                        auto elementKind = fieldTypeLayout->getElementTypeLayout()->getKind();
-                        if (elementKind == slang::TypeReflection::Kind::Struct)
+                        if (size != 0)
                         {
-                            member.type = Gfx::PipelineInfo::MemberDataType::Structure;
+                            Gfx::PipelineInfo::BufferMember member{};
+                            member.name = field->getName();
+                            member.count = 0;
+                            if (kind == slang::TypeReflection::Kind::Struct)
+                                member.type = Gfx::PipelineInfo::MemberDataType::Structure;
+                            else // Array
+                            {
+                                member.count = fieldTypeLayout->getElementCount();
+                                auto elementKind = fieldTypeLayout->getElementTypeLayout()->getKind();
+                                if (elementKind == slang::TypeReflection::Kind::Struct)
+                                {
+                                    member.type = Gfx::PipelineInfo::MemberDataType::Structure;
+                                }
+                                else if (elementKind == slang::TypeReflection::Kind::Matrix)
+                                {
+                                    auto elementScalarType = fieldTypeLayout->getElementTypeLayout()->getScalarType();
+                                    member.type = MapSlangScalarType(elementScalarType);
+                                }
+                                else
+                                {
+                                    member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());
+                                }
+                            }
+                            member.columnCount = 1;
+                            member.rowCount = 1;                // as element count when type is a Vector
+                            member.offset = field->getOffset(); // byte offset in it's containning struct
+                            member.byteSize = size;
+
+                            members.push_back(member);
                         }
-                        else if (elementKind == slang::TypeReflection::Kind::Matrix)
-                        {
-                            auto elementScalarType = fieldTypeLayout->getElementTypeLayout()->getScalarType();
-                            member.type = MapSlangScalarType(elementScalarType);
-                        }
-                        else
-                        {
-                            member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());
-                        }
+                        break;
                     }
-                    member.columnCount = 1;
-                    member.rowCount = 1;                // as element count when type is a Vector
-                    member.offset = field->getOffset(); // byte offset in it's containning struct
-                    member.byteSize = size;
 
-                    members.push_back(member);
-                }
-                break;
-            }
+                case slang::TypeReflection::Kind::Matrix:
+                case slang::TypeReflection::Kind::Vector:
+                case slang::TypeReflection::Kind::Scalar:
+                    {
+                        Gfx::PipelineInfo::BufferMember member;
+                        member.name = field->getName();
+                        member.count = 0;
+                        member.columnCount = 1;
+                        member.rowCount = 1; // as element count when type is a Vector
+                        member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());
+                        if (kind == slang::TypeReflection::Kind::Matrix)
+                        {
+                            member.columnCount = fieldTypeLayout->getColumnCount();
+                            member.rowCount = fieldTypeLayout->getRowCount();
+                        }
+                        else if (kind == slang::TypeReflection::Kind::Vector)
+                        {
+                            member.rowCount = fieldTypeLayout->getElementCount();
+                        }
+                        member.offset = field->getOffset(); // byte offset in it's containning struct
+                        member.byteSize = size;
 
-            case slang::TypeReflection::Kind::Matrix:
-            case slang::TypeReflection::Kind::Vector:
-            case slang::TypeReflection::Kind::Scalar:
-            {
-                Gfx::PipelineInfo::BufferMember member;
-                member.name = field->getName();
-                member.count = 0;
-                member.columnCount = 1;
-                member.rowCount = 1; // as element count when type is a Vector
-                member.type = MapSlangScalarType(fieldTypeLayout->getScalarType());
-                if (kind == slang::TypeReflection::Kind::Matrix)
-                {
-                    member.columnCount = fieldTypeLayout->getColumnCount();
-                    member.rowCount = fieldTypeLayout->getRowCount();
-                }
-                else if (kind == slang::TypeReflection::Kind::Vector)
-                {
-                    member.rowCount = fieldTypeLayout->getElementCount();
-                }
-                member.offset = field->getOffset(); // byte offset in it's containning struct
-                member.byteSize = size;
-
-                members.push_back(member);
-                break;
-            }
-            default: break;
+                        members.push_back(member);
+                        break;
+                    }
+                default: break;
             }
         }
 
@@ -483,141 +483,141 @@ public:
 
         switch (kind)
         {
-        case slang::TypeReflection::Kind::SamplerState:
-        {
-            Gfx::PipelineInfo::Binding binding{};
-            binding.name = variableLayout->getName();
-            binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
-            binding.bindingNum = currentBinding;
-            binding.descriptorCount = 1; // TODO array binding
-            binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-            binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
-            binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
-            binding.bufferMembers = {};
-            binding.byteSize = 0;
-            binding.samplerIndex = AddSamplerConfig(set, variableLayout);
-
-            // TODO: currently slang can't report stage usage correctly
-            // https://github.com/shader-slang/slang/issues/5940
-            // if (binding.stages == Gfx::ShaderStage::None)
-            {
-                if (HasComputeEntryPoint())
+            case slang::TypeReflection::Kind::SamplerState:
                 {
-                    binding.stages = Gfx::ShaderStage::Compute;
-                }
-                else
-                {
-                    binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
-                }
-            }
+                    Gfx::PipelineInfo::Binding binding{};
+                    binding.name = variableLayout->getName();
+                    binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
+                    binding.bindingNum = currentBinding;
+                    binding.descriptorCount = 1; // TODO array binding
+                    binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
+                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
+                    binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
+                    binding.bufferMembers = {};
+                    binding.byteSize = 0;
+                    binding.samplerIndex = AddSamplerConfig(set, variableLayout);
 
-            outBindings.push_back(binding);
-
-            break;
-        }
-        case slang::TypeReflection::Kind::Resource:
-        {
-            Gfx::PipelineInfo::Binding binding{};
-            binding.name = variableLayout->getName();
-            binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
-            binding.bindingNum = currentBinding;
-            binding.descriptorCount = 1; // TODO array binding
-            binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
-            binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
-            if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
-                binding.descriptorType == Gfx::DescriptorType::SampledImage ||
-                binding.descriptorType == Gfx::DescriptorType::StorageImage)
-                binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
-            else
-                binding.textureType = Gfx::TextureType::Invalid;
-            binding.bufferMembers = {};
-            binding.byteSize = 0;
-            binding.samplerIndex = AddSamplerConfig(set, variableLayout);
-
-            // TODO: currently slang can't report stage usage correctly
-            // https://github.com/shader-slang/slang/issues/5940
-            // if (binding.stages == Gfx::ShaderStage::None)
-            {
-                if (HasComputeEntryPoint())
-                {
-                    binding.stages = Gfx::ShaderStage::Compute;
-                }
-                else
-                {
-                    binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
-                }
-            }
-
-            outBindings.push_back(binding);
-
-            break;
-        }
-        case slang::TypeReflection::Kind::Struct:
-        {
-            auto fieldCount = typeLayout->getFieldCount();
-            for (int fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
-            {
-                CollectBindings(
-                    typeLayout->getFieldByIndex(fieldIndex),
-                    nullptr,
-                    set,
-                    parentBinding + bindingOffset,
-                    outBindings
-                );
-            }
-            break;
-        }
-        case slang::TypeReflection::Kind::ConstantBuffer:
-        case slang::TypeReflection::Kind::ShaderStorageBuffer:
-        case slang::TypeReflection::Kind::ParameterBlock:
-        {
-            auto elementVarLayout = typeLayout->getElementVarLayout();
-            int size = elementVarLayout->getTypeLayout()->getStride();
-            if (size != 0)
-            {
-                Gfx::PipelineInfo::Binding binding{};
-                binding.name = variableLayout->getName();
-                binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
-                binding.bindingNum = currentBinding;
-                binding.descriptorCount = 1; // TODO array binding
-                binding.stages = MapSlangStageMask(
-                    slang::ParameterCategory::DescriptorTableSlot,
-                    set.setNum,
-                    currentBinding
-                );
-                binding.descriptorType =
-                    MapSlangDescriptorType(variableLayout, variableLayout->getType()->getResourceShape());
-                binding.textureType = Gfx::TextureType::Invalid;
-                binding.bufferMembers = CollectBufferMembers(elementVarLayout);
-                binding.byteSize = size;
-                binding.samplerIndex = -1;
-
-                // TODO: currently slang can't report stage usage correctly
-                // https://github.com/shader-slang/slang/issues/5940
-                // if (binding.stages == Gfx::ShaderStage::None)
-                {
-                    if (HasComputeEntryPoint())
+                    // TODO: currently slang can't report stage usage correctly
+                    // https://github.com/shader-slang/slang/issues/5940
+                    // if (binding.stages == Gfx::ShaderStage::None)
                     {
-                        binding.stages = Gfx::ShaderStage::Compute;
+                        if (HasComputeEntryPoint())
+                        {
+                            binding.stages = Gfx::ShaderStage::Compute;
+                        }
+                        else
+                        {
+                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        }
                     }
+
+                    outBindings.push_back(binding);
+
+                    break;
+                }
+            case slang::TypeReflection::Kind::Resource:
+                {
+                    Gfx::PipelineInfo::Binding binding{};
+                    binding.name = variableLayout->getName();
+                    binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
+                    binding.bindingNum = currentBinding;
+                    binding.descriptorCount = 1; // TODO array binding
+                    binding.stages = MapSlangStageMask(slang::DescriptorTableSlot, set.setNum, currentBinding);
+                    binding.descriptorType = MapSlangDescriptorType(variableLayout, typeLayout->getResourceShape());
+                    if (binding.descriptorType == Gfx::DescriptorType::CombinedImageSampler ||
+                        binding.descriptorType == Gfx::DescriptorType::SampledImage ||
+                        binding.descriptorType == Gfx::DescriptorType::StorageImage)
+                        binding.textureType = MapSlangTextureType(typeLayout->getResourceShape());
                     else
+                        binding.textureType = Gfx::TextureType::Invalid;
+                    binding.bufferMembers = {};
+                    binding.byteSize = 0;
+                    binding.samplerIndex = AddSamplerConfig(set, variableLayout);
+
+                    // TODO: currently slang can't report stage usage correctly
+                    // https://github.com/shader-slang/slang/issues/5940
+                    // if (binding.stages == Gfx::ShaderStage::None)
                     {
-                        binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        if (HasComputeEntryPoint())
+                        {
+                            binding.stages = Gfx::ShaderStage::Compute;
+                        }
+                        else
+                        {
+                            binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                        }
                     }
+
+                    outBindings.push_back(binding);
+
+                    break;
                 }
+            case slang::TypeReflection::Kind::Struct:
+                {
+                    auto fieldCount = typeLayout->getFieldCount();
+                    for (int fieldIndex = 0; fieldIndex < fieldCount; ++fieldIndex)
+                    {
+                        CollectBindings(
+                            typeLayout->getFieldByIndex(fieldIndex),
+                            nullptr,
+                            set,
+                            parentBinding + bindingOffset,
+                            outBindings
+                        );
+                    }
+                    break;
+                }
+            case slang::TypeReflection::Kind::ConstantBuffer:
+            case slang::TypeReflection::Kind::ShaderStorageBuffer:
+            case slang::TypeReflection::Kind::ParameterBlock:
+                {
+                    auto elementVarLayout = typeLayout->getElementVarLayout();
+                    int size = elementVarLayout->getTypeLayout()->getStride();
+                    if (size != 0)
+                    {
+                        Gfx::PipelineInfo::Binding binding{};
+                        binding.name = variableLayout->getName();
+                        binding.shaderBindingHandle = Gfx::ShaderBindingHandle(binding.name);
+                        binding.bindingNum = currentBinding;
+                        binding.descriptorCount = 1; // TODO array binding
+                        binding.stages = MapSlangStageMask(
+                            slang::ParameterCategory::DescriptorTableSlot,
+                            set.setNum,
+                            currentBinding
+                        );
+                        binding.descriptorType =
+                            MapSlangDescriptorType(variableLayout, variableLayout->getType()->getResourceShape());
+                        binding.textureType = Gfx::TextureType::Invalid;
+                        binding.bufferMembers = CollectBufferMembers(elementVarLayout);
+                        binding.byteSize = size;
+                        binding.samplerIndex = -1;
 
-                outBindings.push_back(binding);
-            }
-            CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
-            break;
-        }
-        // case slang::TypeReflection::Kind::Array:
-        //     ASSERT(false && "Not Implemented");
+                        // TODO: currently slang can't report stage usage correctly
+                        // https://github.com/shader-slang/slang/issues/5940
+                        // if (binding.stages == Gfx::ShaderStage::None)
+                        {
+                            if (HasComputeEntryPoint())
+                            {
+                                binding.stages = Gfx::ShaderStage::Compute;
+                            }
+                            else
+                            {
+                                binding.stages = Gfx::ShaderStage::Fragment | Gfx::ShaderStage::Vertex;
+                            }
+                        }
 
-        default:
-        {
-            break;
-        }
+                        outBindings.push_back(binding);
+                    }
+                    CollectBindings(elementVarLayout, variableLayout, set, parentBinding + bindingOffset, outBindings);
+                    break;
+                }
+                // case slang::TypeReflection::Kind::Array:
+                //     ASSERT(false && "Not Implemented");
+
+            default:
+                {
+                    break;
+                }
         }
     }
 
@@ -730,7 +730,7 @@ public:
                     if (vertexAttribute.format == Gfx::GfxFormat::Invalid)
                     {
                         spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
-                            "R32G32B32A32_SFloat");
+                                     "R32G32B32A32_SFloat");
                         vertexAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -798,7 +798,7 @@ public:
                     if (fragmentAttribute.format == Gfx::GfxFormat::Invalid)
                     {
                         spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
-                            "R32G32B32A32_SFloat");
+                                     "R32G32B32A32_SFloat");
                         fragmentAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -845,48 +845,48 @@ public:
         auto scopeTypeLayout = scopeVarLayout->getTypeLayout();
         const auto& kind = scopeTypeLayout->getKind();
         auto ProcessAsPushConstant = [&](slang::VariableLayoutReflection* var)
+        {
+            if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
             {
-                if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
-                {
-                    Gfx::PipelineInfo::PushConstant pushConstant;
-                    pushConstant.stages = Gfx::ShaderStage::Vertex |
-                        Gfx::ShaderStage::Fragment; // https://github.com/shader-slang/slang/issues/5685
-                    // push constant not supported to query yet
-                    pushConstant.size = var->getTypeLayout()->getElementTypeLayout()->getSize();
-                    outPipelineInfo.pushConstants.push_back(pushConstant);
-                }
-            };
+                Gfx::PipelineInfo::PushConstant pushConstant;
+                pushConstant.stages = Gfx::ShaderStage::Vertex |
+                                      Gfx::ShaderStage::Fragment; // https://github.com/shader-slang/slang/issues/5685
+                // push constant not supported to query yet
+                pushConstant.size = var->getTypeLayout()->getElementTypeLayout()->getSize();
+                outPipelineInfo.pushConstants.push_back(pushConstant);
+            }
+        };
         switch (kind)
         {
-            // #### Parameters are Grouped Into a Structure
-            //
-        case slang::TypeReflection::Kind::Struct:
-        {
-            int paramCount = scopeTypeLayout->getFieldCount();
-            for (int i = 0; i < paramCount; i++)
-            {
-                auto param = scopeTypeLayout->getFieldByIndex(i);
-                auto paramTypeLayout = param->getTypeLayout();
-                auto paramKind = paramTypeLayout->getKind();
-                std::string name = param->getName();
-                switch (paramKind)
+                // #### Parameters are Grouped Into a Structure
+                //
+            case slang::TypeReflection::Kind::Struct:
                 {
-                case slang::TypeReflection::Kind::ParameterBlock:
-                {
-                    AccessSet(param, outPipelineInfo);
-                }
-                break;
-                case slang::TypeReflection::Kind::ConstantBuffer:
-                {
-                    ProcessAsPushConstant(param);
+                    int paramCount = scopeTypeLayout->getFieldCount();
+                    for (int i = 0; i < paramCount; i++)
+                    {
+                        auto param = scopeTypeLayout->getFieldByIndex(i);
+                        auto paramTypeLayout = param->getTypeLayout();
+                        auto paramKind = paramTypeLayout->getKind();
+                        std::string name = param->getName();
+                        switch (paramKind)
+                        {
+                            case slang::TypeReflection::Kind::ParameterBlock:
+                                {
+                                    AccessSet(param, outPipelineInfo);
+                                }
+                                break;
+                            case slang::TypeReflection::Kind::ConstantBuffer:
+                                {
+                                    ProcessAsPushConstant(param);
+                                    break;
+                                }
+                            default: ASSERT(false && "Not handled");
+                        }
+                    }
                     break;
                 }
-                default: ASSERT(false && "Not handled");
-                }
-            }
-            break;
-        }
-        default: ASSERT(false && "Not handled"); break;
+            default: ASSERT(false && "Not handled"); break;
         }
     }
 
@@ -1452,9 +1452,15 @@ void ShaderLibrary::LoadSession()
     debugFormat.kind = slang::CompilerOptionValueKind::Int;
     debugFormat.intValue0 = SlangDebugInfoFormat::SLANG_DEBUG_INFO_FORMAT_DEFAULT;
 
+    slang::CompilerOptionValue optimization{};
+    optimization.kind = slang::CompilerOptionValueKind::Int;
+    optimization.intValue0 = debug ? SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_NONE
+                                   : SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+
     slang::CompilerOptionEntry compileOptions[] = {
         {slang::CompilerOptionName::DebugInformation, debugLevel},
-        {slang::CompilerOptionName::DebugInformationFormat, debugFormat}
+        {slang::CompilerOptionName::DebugInformationFormat, debugFormat},
+        {slang::CompilerOptionName::Optimization, optimization}
     };
     slang::SessionDesc sessionDesc{
         /** The size of this structure, in bytes.
