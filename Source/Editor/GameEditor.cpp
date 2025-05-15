@@ -177,7 +177,10 @@ static void ProfileTree(const ProfileScope& scope, int id)
 
 void GameEditor::ShowGameProfiler(Profiler& profiler)
 {
+    auto& gpuProfiler = GetGfxDriver()->GetGPUProfiler();
     auto& frameProfiles = profiler.GetFrameProfiles();
+    auto& gpuFrameProfiles = gpuProfiler.GetFrameProfiles();
+    // auto& gpuProfiles = GetGfxDriver()->GetFrameProfiles();
     ImGui::Begin("Profiler Module");
 
     ImGui::Text("Frame Profiler:");
@@ -193,28 +196,7 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
         auto selectedPos = ImPlot::GetPlotMousePos();
         if (!frameProfiles.empty())
         {
-            std::vector<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
-            int oldestFrameIndex =
-                (profiler.GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
-            if (profiler.GetTrackCycles() == 0) [[unlikely]]
-            {
-                for (int i = 0; i < oldestFrameIndex; i++)
-                {
-                    auto& rootScopeProfile = frameProfiles[i];
-                    frameTimes[i] = rootScopeProfile.GetMilliseconds();
-                }
-            }
-            else
-            {
-                for (int i = 0; i < Profiler::MAX_FRAME_TRACKED; i++)
-                {
-                    auto& rootScopeProfile = frameProfiles[oldestFrameIndex];
-                    frameTimes[i] = rootScopeProfile.GetMilliseconds();
-                    oldestFrameIndex++;
-                    oldestFrameIndex %= Profiler::MAX_FRAME_TRACKED;
-                }
-            }
-
+            std::vector<float> frameTimes = profiler.GetFlattendFrametime();
             ImPlot::PlotLine("GameLoop", frameTimes.data(), frameTimes.size(), 1, 0);
             if (profiler.IsPaused())
                 ImPlot::PlotInfLines("selected", &selectedFrame, 1);
@@ -222,9 +204,16 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
                 ImPlot::PlotInfLines("selected", &selectedPos.x, 1);
         }
 
+        if (!gpuFrameProfiles.empty())
+        {
+            std::vector<float> frameTimes = gpuProfiler.GetFlattendFrametime();
+            ImPlot::PlotLine("GPU", frameTimes.data(), frameTimes.size(), 1, 0);
+        }
+
         if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
         {
             profiler.Pause();
+            gpuProfiler.Pause();
             selectedFrame = std::round(selectedPos.x);
             actuallySelectedFrame =
                 profiler.GetTrackCycles() == 0
@@ -240,9 +229,15 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
         if (ImGui::Button("Resume"))
         {
             profiler.Resume();
+            gpuProfiler.Resume();
         }
 
-        auto frameProfiles = profiler.GetFrameProfiles();
+        static bool cpuOrGpu = true;
+        ImGui::SameLine();
+        if (ImGui::Button(cpuOrGpu ? "CPU" : "GPU"))
+            cpuOrGpu = !cpuOrGpu;
+
+        auto frameProfiles = cpuOrGpu ? profiler.GetFrameProfiles() : gpuProfiler.GetFrameProfiles();
         if (actuallySelectedFrame >= 0 && actuallySelectedFrame < frameProfiles.size())
         {
             ProfileTree(frameProfiles[actuallySelectedFrame], 0);
@@ -301,8 +296,8 @@ void GameEditor::OpenSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene((Scene*
-            )engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
+            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)
+            ));
             openSceneWindow = false;
         }
 

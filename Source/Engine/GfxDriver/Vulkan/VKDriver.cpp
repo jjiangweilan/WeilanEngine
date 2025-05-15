@@ -56,6 +56,9 @@ struct VKDriver::SDLInfo
 };
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
+    // TODO(feature): this should be able to dynamically enable and disable at runtime
+    featureSettings.enableGPUTimestamp = createInfo.gpuTimestampQueryMaxCount != 0;
+
 #if ENGINE_DEV_BUILD
     if (createInfo.enableRenderDoc)
         InitializeRenderDoc();
@@ -125,6 +128,16 @@ VKDriver::VKDriver(const CreateInfo& createInfo)
 
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].imageAcquireSemaphore);
         vkCreateSemaphore(device.handle, &semaphoreCreateInfo, VK_NULL_HANDLE, &inflightData[i].presentSemaphore);
+
+        if (createInfo.gpuTimestampQueryMaxCount != 0 && gpuFeatures.timestampPeriod)
+        {
+            VkQueryPoolCreateInfo query_pool_info{};
+            query_pool_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+            query_pool_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            query_pool_info.queryCount = static_cast<uint32_t>(createInfo.gpuTimestampQueryMaxCount);
+            inflightData[i].maxtimestapQueryCount = createInfo.gpuTimestampQueryMaxCount;
+            vkCreateQueryPool(device.handle, &query_pool_info, nullptr, &inflightData[i].timestapQueryPool);
+        }
     }
     immediateCmd = cmds[driverConfig.swapchainImageCount];
     vkCreateFence(device.handle, &rhiFenceCreateInfo, VK_NULL_HANDLE, &immediateCmdFence);
@@ -557,7 +570,9 @@ void VKDriver::FlushPendingCommands()
     {
         f(cmd);
     }
-    renderGraph->Execute(cmd, currentInflightIndex);
+
+    CmdBufExecutionReport report{};
+    renderGraph->Execute(inflightData[currentInflightIndex], currentInflightIndex, mainQueue, featureSettings, report);
 
     vkEndCommandBuffer(cmd);
 
@@ -649,7 +664,10 @@ bool VKDriver::EndFrame()
     {
         f(cmd);
     }
-    renderGraph->Execute(cmd, currentInflightIndex);
+
+    CmdBufExecutionReport execReport{};
+    renderGraph
+        ->Execute(inflightData[currentInflightIndex], currentInflightIndex, mainQueue, featureSettings, execReport);
     ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
@@ -685,6 +703,8 @@ bool VKDriver::EndFrame()
     ENGINE_BEGIN_PROFILE("VKDriver - submit")
     auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
+
+    QueryGPUTimestamp(execReport);
 
     allocator.Reset();
 
@@ -985,6 +1005,9 @@ void VKDriver::CreatePhysicalDevice()
 
         // This gpu passed all the tests!
         this->gpu = g;
+
+        // fill GPU features
+        gpuFeatures.timestampPeriod = gpu.physicalDeviceProperties.limits.timestampPeriod;
         return;
     }
 
@@ -1149,6 +1172,14 @@ void VKDriver::CreateDevice()
     mainQueue.handle = queue;
     mainQueue.queueIndex = queueIndex;
     mainQueue.queueFamilyIndex = queueFamilyIndices[mainQueueIndex];
+    if (gpu.physicalDeviceProperties.limits.timestampComputeAndGraphics)
+    {
+        mainQueue.supportTimestamp = true;
+    }
+    else
+    {
+        mainQueue.supportTimestamp = queueFamilyProperties[mainQueue.queueFamilyIndex].timestampValidBits;
+    }
 
     // get extension address
     VKExtensionFunc::vkCmdPushDescriptorSetKHR =
@@ -1268,14 +1299,18 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     cmdAllocateInfo.commandPool = mainCmdPool;
     cmdAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cmdAllocateInfo.commandBufferCount = 1;
+    VKInflightCmd fakeInflightCmd;
     VkCommandBuffer vkcmd;
     vkAllocateCommandBuffers(device.handle, &cmdAllocateInfo, &vkcmd);
+    fakeInflightCmd.cmd = vkcmd;
     VKDebugUtils::SetDebugName(VK_OBJECT_TYPE_COMMAND_BUFFER, (uint64_t)vkcmd, "VKDriver");
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(vkcmd, &beginInfo);
-    rg.Execute(vkcmd, 0);
+
+    CmdBufExecutionReport execReport{};
+    rg.Execute(fakeInflightCmd, 0, mainQueue, featureSettings, execReport);
     vkEndCommandBuffer(vkcmd);
 
     VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
@@ -1352,5 +1387,47 @@ void VKDriver::WaitForCurrentInflightCmd()
         f();
     }
     inflightData[currentInflightIndex].onCompleteCallbacks.clear();
+}
+
+void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
+{
+    // TODO(perf): we shouldn't wait in query (VK_QUERY_RESULT_WAIT_BIT)
+    timestamps.resize(execReport.timestampQueryLabels.size());
+    auto result = vkGetQueryPoolResults(
+        device.handle,
+        inflightData[currentInflightIndex].timestapQueryPool,
+        0,
+        execReport.timestampQueryLabels.size(),
+        timestamps.size() * sizeof(TimestampQuery),
+        timestamps.data(),
+        sizeof(TimestampQuery),
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT
+    );
+    int timestampIdx = 0;
+    for (auto& t : timestamps)
+    {
+        execReport.timestampQueryLabels[timestampIdx].timestamp =
+            t.timestamp * static_cast<uint64_t>(gpu.physicalDeviceProperties.limits.timestampPeriod
+                          ); // I am not sure if this cast is safe, I assume all timestampPeriod is integer even tho the
+                             // type is a float
+        timestampIdx += 1;
+    }
+
+    if (execReport.timestampQueryLabels.size() >= 2)
+    {
+        profiler.BeginFrameManual(execReport.timestampQueryLabels.front().timestamp);
+        for (auto& label : execReport.timestampQueryLabels)
+        {
+            if (label.type == TimestampLabelType::Begin)
+            {
+                profiler.BeginManual(label.name, label.timestamp);
+            }
+            else if (label.type == TimestampLabelType::End)
+            {
+                profiler.EndManual(label.timestamp);
+            }
+        }
+        profiler.EndFrameManual(execReport.timestampQueryLabels.back().timestamp);
+    }
 }
 } // namespace Gfx

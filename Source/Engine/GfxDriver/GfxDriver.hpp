@@ -10,6 +10,7 @@
 #include "Image.hpp"
 #include "ImageView.hpp"
 #include "Libs/EnumFlags.hpp"
+#include "Profiler/Profiler.hpp"
 #include "Semaphore.hpp"
 #include "ThirdParty/renderdoc/renderdoc_app.h"
 #include "Window.hpp"
@@ -35,6 +36,8 @@ struct GPUFeatures
     bool textureCompressionETC2 = false;
     bool textureCompressionBC = true;
     bool textureCompressionASTC4x4 = false;
+
+    bool timestampPeriod = false;
 };
 
 enum class AcquireNextSwapChainImageResult
@@ -58,6 +61,8 @@ public:
         SDL_Window* window = nullptr;
         bool enableRenderDoc = false;
         bool enableGfxDriverValidation = false;
+        bool enableGPUTimestamp = false;
+        int gpuTimestampQueryMaxCount = 128;
     };
 
     static RefPtr<GfxDriver> Instance();
@@ -67,6 +72,9 @@ public:
     GfxDriver();
     virtual ~GfxDriver();
 
+    // TODO(perf):
+    // 1. GPU profiler should be able to turn off when not needed
+    virtual const Profiler& GetGPUProfiler() = 0;
     virtual bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;
     virtual Image* GetSwapChainImage() = 0;
@@ -74,6 +82,7 @@ public:
     virtual Backend GetGfxBackendType() = 0;
     virtual Extent2D GetSurfaceSize() = 0;
 
+    // virtual const Profiler& GetFrameProfiler() const {return {};}
     virtual bool BeginFrame() = 0;
 
     // return true if swapchain recreated

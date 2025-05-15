@@ -52,13 +52,15 @@ public:
 
     struct SSAO : Serializable
     {
-        float strength;
-        float scaling;
-        float falloff;
-        float bias;
+        bool enabled = true;
+        float strength = 50.f;
+        float scaling = 1.f;
+        float falloff = 50.f;
+        float bias = 0.f;
 
         void Serialize(Serializer* s) const override
         {
+            SERIALIZE(s, enabled);
             SERIALIZE(s, strength);
             SERIALIZE(s, scaling);
             SERIALIZE(s, falloff);
@@ -67,6 +69,7 @@ public:
 
         void Deserialize(Serializer* s) override
         {
+            DESERIALIZE(s, enabled);
             DESERIALIZE(s, strength);
             DESERIALIZE(s, scaling);
             DESERIALIZE(s, falloff);

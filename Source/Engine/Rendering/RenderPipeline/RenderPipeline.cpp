@@ -373,7 +373,7 @@ void RenderPipeline::AmbientOcclusionPass::Execute(
     mat.SetVector("rtSize", renderingData.sceneInfo->screenSize);
     mat.SetTexture("depthTex", texDepth);
 
-    Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
     Gfx::RG::ImageDescription desc(
         renderingData.sceneInfo->screenSize.x,
         renderingData.sceneInfo->screenSize.y,
@@ -385,9 +385,15 @@ void RenderPipeline::AmbientOcclusionPass::Execute(
     pass.SetAttachment(0, ssao);
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
     cmd->BeginRenderPass(pass, clears);
-    cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
-    cmd->BindShaderProgram(ssaoShader->GetShaderProgram(), ssaoShader->GetShaderProgram()->GetDefaultShaderConfig());
-    cmd->Draw(6, 1, 0, 0);
+    if (setting->ssao.enabled)
+    {
+        cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
+        cmd->BindShaderProgram(
+            ssaoShader->GetShaderProgram(),
+            ssaoShader->GetShaderProgram()->GetDefaultShaderConfig()
+        );
+        cmd->Draw(6, 1, 0, 0);
+    }
     cmd->EndRenderPass();
     cmd->EndLabel(); // SSAO
 }

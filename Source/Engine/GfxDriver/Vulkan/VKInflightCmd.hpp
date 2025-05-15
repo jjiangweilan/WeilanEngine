@@ -13,6 +13,9 @@ struct VKInflightCmd
     VkSemaphore presentSemaphore = VK_NULL_HANDLE;
     uint32_t swapchainIndex = 0;
 
+    VkQueryPool timestapQueryPool = VK_NULL_HANDLE;
+    int maxtimestapQueryCount = 0;
+
     std::vector<std::function<void()>> onCompleteCallbacks{};
 };
 

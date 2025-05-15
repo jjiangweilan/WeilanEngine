@@ -101,6 +101,8 @@ public:
         VkImageLayout finalLayout
     );
 
+    const Profiler& GetGPUProfiler() override { return profiler; }
+
     void GenerateMipmaps(Gfx::Image& image) override
     {
         GenerateMipmaps(static_cast<VKImage&>(image).GetSRef<VKImage>());
@@ -147,6 +149,7 @@ public:
     Swapchain swapchain;
     Surface surface;
     GPUFeatures gpuFeatures;
+    GfxFeaturesSettings featureSettings;
     std::vector<std::unique_ptr<VKWindow>> extraWindows{};
 
     std::mutex driverMutex;
@@ -189,6 +192,14 @@ private:
     struct SDLInfo;
     std::unique_ptr<SDLInfo> sdlInfo;
 
+    // ====== profiler ======
+    struct TimestampQuery
+    {
+        uint64_t timestamp;
+    };
+    std::vector<TimestampQuery> timestamps;
+    Profiler profiler;
+
     bool captureFrame = false;
     bool captureFrameBegin = false;
 
@@ -210,5 +221,6 @@ private:
 
     ArenaAllocator<1024> allocator;
     void WaitForCurrentInflightCmd();
+    void QueryGPUTimestamp(CmdBufExecutionReport& execReport);
 };
 } // namespace Gfx

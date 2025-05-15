@@ -1,5 +1,6 @@
 #include "VKRenderGraph.hpp"
 #include "../VKBuffer.hpp"
+#include "../VKContext.hpp"
 #include "../VKDriver.hpp"
 #include "../VKExtensionFunc.hpp"
 #include "../VKShaderProgram.hpp"
@@ -7,7 +8,6 @@
 #include "../VKUtils.hpp"
 #include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
 #include "Libs/Assert.hpp"
-#include "Profiler/Profiler.hpp"
 
 namespace Gfx::VK::RenderGraph
 {
@@ -1024,9 +1024,27 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
     }
 }
 
-void Graph::Execute(VkCommandBuffer vkcmd, int inflightIndex)
+void Graph::Execute(
+    VKInflightCmd& inflightCmd,
+    int inflightIndex,
+    Queue& executionQueue,
+    const GfxFeaturesSettings& featureSettings,
+    CmdBufExecutionReport& report
+)
 {
+    report = CmdBufExecutionReport(); // reset report
+
+    VkCommandBuffer vkcmd = inflightCmd.cmd;
     ENGINE_SCOPED_PROFILE("VKRenderGraph::Execute");
+
+    // Begin
+    bool enableGPUTimestamp = inflightCmd.maxtimestapQueryCount > 0 && featureSettings.enableGPUTimestamp;
+    if (enableGPUTimestamp)
+    {
+        vkCmdResetQueryPool(vkcmd, inflightCmd.timestapQueryPool, 0, inflightCmd.maxtimestapQueryCount);
+        exeState.currentTimestapQueryIndex = 0;
+    }
+
     for (size_t i = 0; i < currentSchedulingCmds.size(); ++i)
     {
         auto& cmd = currentSchedulingCmds[i];
@@ -1519,11 +1537,33 @@ void Graph::Execute(VkCommandBuffer vkcmd, int inflightIndex)
                 {
                     auto& args = std::get<VKBeginLabelCmd>(cmd.args);
                     VKDebugUtils::CmdBeginLabel(vkcmd, args.label, args.color);
+                    if (enableGPUTimestamp && exeState.currentTimestapQueryIndex < inflightCmd.maxtimestapQueryCount)
+                    {
+                        vkCmdWriteTimestamp(
+                            vkcmd,
+                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            inflightCmd.timestapQueryPool,
+                            exeState.currentTimestapQueryIndex
+                        );
+                        exeState.currentTimestapQueryIndex += 1;
+                        report.timestampQueryLabels.push_back({TimestampLabelType::Begin, args.label});
+                    }
                     break;
                 }
             case Gfx::VKCmdType::EndLabel:
                 {
                     VKDebugUtils::CmdEndLabel(vkcmd);
+                    if (enableGPUTimestamp && exeState.currentTimestapQueryIndex < inflightCmd.maxtimestapQueryCount)
+                    {
+                        vkCmdWriteTimestamp(
+                            vkcmd,
+                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            inflightCmd.timestapQueryPool,
+                            exeState.currentTimestapQueryIndex
+                        );
+                        exeState.currentTimestapQueryIndex += 1;
+                        report.timestampQueryLabels.push_back({TimestampLabelType::End, ""});
+                    }
                     break;
                 }
             case Gfx::VKCmdType::InsertLabel:
@@ -1557,7 +1597,6 @@ void Graph::Execute(VkCommandBuffer vkcmd, int inflightIndex)
         }
     }
 
-    debugCurrentSchedulingCmds = currentSchedulingCmds;
     currentSchedulingCmds.clear();
     for (auto& r : resourceUsageTracks)
     {

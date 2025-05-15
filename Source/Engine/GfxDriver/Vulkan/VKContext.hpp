@@ -1,9 +1,8 @@
 #pragma once
-#include "Internal/VKDevice.hpp"
+#include "Core/Ptr.hpp"
 #include "Internal/VKMemAllocator.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
-#include "Core/Ptr.hpp"
 #include "VKDescriptorPool.hpp"
 #include "VKSharedResource.hpp"
 namespace Gfx
@@ -11,11 +10,37 @@ namespace Gfx
 class VKSwapChainImage;
 class VKDriver;
 
+enum class TimestampLabelType
+{
+    Begin,
+    End
+};
+
+struct TimestampQueryLabel
+{
+    TimestampLabelType type;
+    std::string name;
+    uint64_t timestamp;
+};
+
+struct CmdBufExecutionReport
+{
+    std::vector<TimestampQueryLabel> timestampQueryLabels{};
+};
+
+struct GfxFeaturesSettings
+{
+    bool enableGPUTimestamp = false;
+};
+
 struct Queue
 {
     VkQueue handle;
     uint32_t queueIndex;
     uint32_t queueFamilyIndex;
+
+    bool supportTimestamp;
+    int maxTimestampQueryCount = 0;
 };
 struct GPU
 {
@@ -71,10 +96,7 @@ private:
 class VKContext
 {
 public:
-    static inline VKContext* Instance()
-    {
-        return context;
-    }
+    static inline VKContext* Instance() { return context; }
     VKDriver* driver;
     VkDevice device;
     VkInstance instance;

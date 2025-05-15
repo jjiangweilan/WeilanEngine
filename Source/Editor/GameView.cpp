@@ -125,7 +125,7 @@ void GameView::Render(
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
     if (gameImage && gameDepthImage)
     {
-        cmd.BeginLabel("Game View", &renderPassLabelColor[0]);
+        cmd.BeginLabel("Game View Blit", &renderPassLabelColor[0]);
         auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(*gameImage);
         if (outputImage)
         {

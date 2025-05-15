@@ -1,7 +1,6 @@
 #include "GameLoop.hpp"
 #include "Core/Time.hpp"
 #include "GfxDriver/GfxDriver.hpp"
-#include "Libs/Profiler.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Scene/RenderingScene.hpp"

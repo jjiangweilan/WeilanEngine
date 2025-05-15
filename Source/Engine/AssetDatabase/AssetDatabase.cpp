@@ -4,7 +4,6 @@
 #include "Core/Scene/Scene.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Importers.hpp"
-#include "Libs/Profiler.hpp"
 #include "Libs/Utils.hpp"
 #include "Scripting/LuaBackend.hpp"
 #include <future>

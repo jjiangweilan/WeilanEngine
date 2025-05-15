@@ -1,6 +1,7 @@
 #pragma once
 #include "../VKCommandBuffer.hpp"
 #include "../VKInflightCmd.hpp"
+#include "GfxDriver/Vulkan/VKContext.hpp"
 #include <variant>
 
 namespace Gfx::VK::RenderGraph
@@ -47,7 +48,13 @@ public:
     ~Graph();
     void Schedule(VKFramePrepareData& framePrepare);
 
-    void Execute(VkCommandBuffer cmd, int inflightIndex);
+    void Execute(
+        VKInflightCmd& cmd,
+        int inflightIndex,
+        Queue& executionQueue,
+        const GfxFeaturesSettings& featureSettings,
+        CmdBufExecutionReport& report
+    );
 
     VKImage* GetImage(const UUID& id);
     VKImage* Request(const RG::ImageIdentifier& id, RG::ImageDescription& desc);
@@ -96,10 +103,10 @@ private:
         VKRenderPass* renderPass;
         bool overrideViewport = false;
         bool overrideScissor = false;
+        int currentTimestapQueryIndex = 0;
     } exeState;
 
     std::vector<VKCmd> currentSchedulingCmds{};
-    std::vector<VKCmd> debugCurrentSchedulingCmds;
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame

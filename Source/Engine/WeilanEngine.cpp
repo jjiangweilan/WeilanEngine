@@ -68,6 +68,8 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
         .window = mainWindow.handle,
         .enableRenderDoc = gfxDriverConfig.value("enableRenderDoc", false),
         .enableGfxDriverValidation = gfxDriverConfig.value("enableValidationLayer", false),
+        .enableGPUTimestamp = gfxDriverConfig.value("enableGPUTimestamp", false),
+        .gpuTimestampQueryMaxCount = gfxDriverConfig.value("gpuTimestampQueryMaxCount", 1024)
     };
     gfxDriver = Gfx::GfxDriver::CreateGfxDriver(Gfx::Backend::Vulkan, gfxCreateInfo);
 
