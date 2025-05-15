@@ -189,7 +189,7 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
 
     static int selectedFrame = 0;
     static int actuallySelectedFrame = 0;
-    if (ImPlot::BeginPlot("Frame Profiles", ImVec2(-1, 200)))
+    if (ImPlot::BeginPlot("Frame Profiles", ImVec2(-1, 300)))
     {
         ImPlotAxisFlags xAxesFlags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines;
         ImPlot::SetupAxes(nullptr, nullptr, xAxesFlags, 0);
