@@ -164,9 +164,10 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
         auto eye = go->GetPosition();
         auto lookAtDelta = leftRight * right + upDown * up;
-        auto final = glm::lookAt(eye, eye + (forward + lookAtDelta), glm::vec3(0, 1, 0));
+        auto final = glm::lookAt({0, 0, 0}, (forward + lookAtDelta), glm::vec3(0, 1, 0));
         final = glm::inverse(final);
         go->SetWorldMatrix(final);
+        go->SetPosition(eye);
     }
     else if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
     {
