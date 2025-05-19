@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_access.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/random.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #if GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
 #ifndef GLM_ENABLE_EXPERIMENTAL
