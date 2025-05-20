@@ -1,10 +1,11 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
 
+#define SOURCE_IN_GAMMA_SPACE 1
 #define FXAA_GATHER4_ALPHA 0
-#define FxaaTexOff(t, p, o, r) t.Sample(p + (o * r))
+#define FxaaTexOff(t, p, o, r) t.Sample(perMaterial.sampler_point_clamp, p + (o * r))
 #define FxaaSat(x) clamp(x, 0.0, 1.0)
-#define FxaaTexTop(t, p) t.SampleLevel(p, 0.0)
+#define FxaaTexTop(t, p) t.SampleLevel(perMaterial.sampler_point_clamp, p, 0.0)
 // FXAA_QUALITY__PRESET 26
 static const int edgeIteration = 9;
 static const float edgesWeights[edgeIteration] = {1.0, 1.5, 2.0, 2.0, 2.0, 2.0, 2.0, 4.0, 8.0};
@@ -18,7 +19,8 @@ PushConstant p;
 
 struct PerMaterial
 {
-    Sampler2D source;
+    Texture2D source;
+    SamplerState sampler_point_clamp;
 }
 
 [Material]
@@ -26,7 +28,9 @@ ParameterBlock<PerMaterial> perMaterial;
 
 float FxaaLuma(float4 rgb) 
 {
+#if SOURCE_IN_GAMMA_SPACE == 0
     rgb = pow(rgb, float4(2.2f));
+#endif
     return rgb.y * (0.587/0.299) + rgb.x; 
 }
 
@@ -41,7 +45,7 @@ float4 FxaaPixelShader(
         // {rgb_} = color in linear or perceptual color space
         // if (FXAA_GREEN_AS_LUMA == 0)
         //     {___a} = luma in perceptual color space (not linear)
-        Sampler2D tex,
+        Texture2D tex,
         //
         // Only used on FXAA Quality.
         // This must be from a constant/uniform.
