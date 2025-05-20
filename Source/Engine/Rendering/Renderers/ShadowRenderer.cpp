@@ -34,7 +34,10 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
 {
     auto light = renderingData.GetMainLight();
     auto view = renderingData.sceneInfo->view;
-    auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(light->GetShadowDistance(), renderingData.screenAspect);
+    auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(
+        light->GetShadowDistance(),
+        renderingData.screenAspect
+    );
     auto vp = projection * view;
     Frustum frustum(vp, Frustum::CornersOnly{});
     auto corners = frustum.corners;
@@ -61,6 +64,15 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
         shadowFrustumAABB.min = glm::min(shadowFrustumAABB.min, corners[i]);
         shadowFrustumAABB.max = glm::max(shadowFrustumAABB.max, corners[i]);
     }
+
+    // not the best solution, but it prevents shaow pixel swimming when the camera is moving
+    {
+        shadowFrustumAABB.min.x = glm::round(shadowFrustumAABB.min.x);
+        shadowFrustumAABB.min.y = glm::round(shadowFrustumAABB.min.y);
+        shadowFrustumAABB.max.x = glm::round(shadowFrustumAABB.max.x);
+        shadowFrustumAABB.max.y = glm::round(shadowFrustumAABB.max.y);
+    }
+
     shadowFrustumAABB.min.z -= 300.0f; // reserve some space for what's behind the camera
 
     // note: we swap min max of y in this case because the ortho is not symmetric in origin, simplely negate the y axis

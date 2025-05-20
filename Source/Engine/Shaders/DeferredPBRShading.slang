@@ -1,5 +1,6 @@
-import Library.PerScene;
 import WeilanEngine;
+import Shadows;
+import Library.PerScene;
 
 #if CONFIG
 depth:
@@ -10,7 +11,6 @@ depth:
 
 #include "DeferredPBRShading.hlsl"
 #include "DeferredPBRShadingInput.hlsl"
-#include "Shadows.hlsl"
 
 struct VertexOutput
 {
@@ -185,7 +185,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             float objShadowDepth = shadowCS.z - shadowBias;
             bool valid = all(float3(shadowUV, shadowCS.z) > 0) && all(float3(shadowUV, shadowCS.z) < 1);
             if (valid)
-                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.zw, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clamp);
+                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.xy, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clamp);
         }
         color += lighting * shadowAttenuation;
     }
