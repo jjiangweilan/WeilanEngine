@@ -1437,7 +1437,7 @@ void ShaderLibrary::LoadSession()
     slang::TargetDesc targetDesc{
         .structureSize = sizeof(slang::TargetDesc),
         .format = SlangCompileTarget::SLANG_SPIRV,
-        .profile = globalSession->findProfile("spirv_1_5"),
+        .profile = globalSession->findProfile("spirv_1_6+spv_image_gather_extended"),
         .flags = 0
     };
     const char* searchPaths[] = {shaderRootPath};

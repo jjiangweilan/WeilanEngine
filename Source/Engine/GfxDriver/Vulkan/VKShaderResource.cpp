@@ -128,7 +128,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 {
     if (shaderProgram == nullptr || !shaderProgram->HasSet(set))
         return VK_NULL_HANDLE;
-    SetGroup setGroup = { shaderProgram->GetUUID(), set };
+    SetGroup setGroup = {shaderProgram->GetUUID(), set};
 
     auto iter = sets.find(setGroup);
 
@@ -141,7 +141,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
         VkDescriptorSet descriptorSet = pool->Allocate();
         finalReturn = descriptorSet;
         rebuild = true;
-        sets[setGroup] = {shaderProgram, pool, set, finalReturn, false };
+        sets[setGroup] = {shaderProgram, pool, set, finalReturn, false};
         writableGPUResources = &sets[setGroup].writableGPUResources;
     }
     else
@@ -162,9 +162,9 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
             writableGPUResources = &iter->second.writableGPUResources;
         }
         else
-		{
-			finalReturn = iter->second.set;
-		}
+        {
+            finalReturn = iter->second.set;
+        }
     }
 
     if (rebuild)
@@ -198,14 +198,17 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                 writes[writeCount].pTexelBufferView = VK_NULL_HANDLE;
 
                 ShaderBindingHandle nameHash(b.name);
-                auto& binding = bindings[nameHash];
+                auto binding = bindings.find(nameHash);
 
-                int anyNonNullIndex = 0;
-                for (auto& bindingElement : binding)
+                if (binding != bindings.end())
                 {
-                    if (bindingElement.second.GetRef() != nullptr)
+                    int anyNonNullIndex = 0;
+                    for (auto& bindingElement : binding->second)
                     {
-                        anyNonNullIndex = bindingElement.first;
+                        if (bindingElement.second.GetRef() != nullptr)
+                        {
+                            anyNonNullIndex = bindingElement.first;
+                        }
                     }
                 }
 
@@ -223,7 +226,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 
                 for (int i = 0; i < writes[writeCount].descriptorCount; ++i)
                 {
-                    ResourceRef resRef = binding[i];
+                    ResourceRef resRef = binding != bindings.end() ? binding->second[i] : ResourceRef();
 
                     switch (b.descriptorType)
                     {
@@ -322,13 +325,14 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                     VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
                                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                                     imageInfo.sampler = sharedResource->GetDefaultSampler();
-                                    if (resRef.GetRef() != nullptr && resRef.type == ShaderBindingType::ImageView)
+                                    if (resRef.GetRef() != nullptr && (resRef.type == ShaderBindingType::ImageView))
                                     {
                                         imageInfo.imageView = imageView->GetHandle();
                                     }
                                     else
                                     {
-                                        ASSERT(false && "a storage image has to be set before use");
+                                        // using ImageID is not supported in shader resource because we don't have the chance to know if the underlying image is changed in shader resource
+                                        throw std::runtime_error("a storage image has to be set before use");
                                         // imageInfo.imageView =
                                         // sharedResource->GetDefaultTexture3D()->GetDefaultVkImageView();
                                     }
@@ -452,6 +456,7 @@ void* VKShaderResource::ResourceRef::GetRef()
         return std::get<ObjPtr<Buffer>>(res).Get();
     else if (type == ShaderBindingType::ImageView)
         return std::get<ObjPtr<ImageView>>(res).Get();
+    // not doing for ImageID because the underlying image may change
 
     return nullptr;
 }
@@ -460,7 +465,7 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
     uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
 )
 {
-    SetGroup setGroup = { shaderProgram->GetUUID(), set };
+    SetGroup setGroup = {shaderProgram->GetUUID(), set};
     auto iter = sets.find(setGroup);
     if (iter == sets.end() || iter->second.rebuild)
     {

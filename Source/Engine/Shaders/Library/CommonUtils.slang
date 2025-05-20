@@ -1,4 +1,7 @@
-import SpaceConversion;
+float LinearEyeDepth(float inDepth, float4 cameraZBufferParams)
+{
+    return 1.0 / (cameraZBufferParams.z * inDepth + cameraZBufferParams.w);
+}
 
 float3 NormalReconstructionLow(float3 viewPos)
 {
@@ -54,4 +57,16 @@ float3 NormalReconstructionMedium(Texture2D depthTex, SamplerState depthTexSampl
     centerPos = posC.xyz;
     return normal;
 }
+
+
+T Gaussian_v0<T>(T v, float sigma)
+{
+    return exp(-0.5 * (v * v) / (sigma * sigma)) / (sqrt(2 * 3.14159265358979323846) * sigma);
+}
+
+T Gaussian_v1<T>(T v, float sigma)
+{
+    return exp(-1/(sigma * sigma) * (v * v));
+}
+
 

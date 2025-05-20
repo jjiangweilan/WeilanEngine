@@ -3,6 +3,8 @@
 #include "GfxDriver/RenderGraph.hpp"
 #include "Libs/Math.hpp"
 #include "Modules/VolumetricCloud/Cloud.hpp"
+#include "Passes/DepthDownSampler.hpp"
+#include "Passes/SSAO.hpp"
 #include "RenderPipelineSetting.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
@@ -50,8 +52,6 @@ public:
     void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
 private:
-    // class ParticleRenderer;
-
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
@@ -59,6 +59,7 @@ private:
     Gfx::RG::ImageIdentifier mainColor = "mainColor";
     Gfx::RG::ImageIdentifier mainDepth = "mainDepth";
     Gfx::RG::ImageIdentifier depthCopy = "depthCopy";
+    Gfx::RG::ImageIdentifier downSampledDepthCopy = "downSampledDepthCopy";
     Gfx::RG::ImageIdentifier albedoGBuffer = "albedoGBuffer";
     Gfx::RG::ImageIdentifier normalGBuffer = "normalGBuffer";
     Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";
@@ -134,18 +135,7 @@ private:
 
     SkyboxPass skyboxPass{};
 
-    struct AmbientOcclusionPass
-    {
-        AmbientOcclusionPass();
-        ObjPtr<Shader2> ssaoShader;
-        Material mat;
-        Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
-
-        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("SSAO");
-        void Execute(
-            Gfx::CommandBuffer* cmd, Gfx::Image* texDepth, RenderPipelineSetting* setting, RenderingData& renderingData
-        );
-    } ambientOcclusionPass;
+    Passes::SSAO ambientOcclusionPass;
 
     struct FXAAPass
     {
@@ -171,6 +161,8 @@ private:
         ObjPtr<Shader2> shader{};
 
     } screenSpaceShadowPass{};
+
+    Passes::DepthDownSampler depthDownSamplerPass;
 
     struct
     {

@@ -834,7 +834,7 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
         else if (cmd.type == VKCmdType::RGBeginRenderPass)
         {
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
-            auto renderPass = resourceAllocator->Request(*args.renderPass);
+            auto renderPass = resourceAllocator->Request(args.renderPass);
             GoThroughRenderPass(*renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::BindResource)
@@ -1500,7 +1500,7 @@ void Graph::Execute(
             case VKCmdType::RGBeginRenderPass:
                 {
                     auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
-                    Gfx::VKRenderPass* renderPass = resourceAllocator->Request(*args.renderPass);
+                    Gfx::VKRenderPass* renderPass = resourceAllocator->Request(args.renderPass);
                     VkRenderPass vkRenderPass = renderPass->GetHandle();
                     exeState.renderPass = renderPass;
                     exeState.subpassIndex = 0;

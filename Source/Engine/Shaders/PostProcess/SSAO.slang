@@ -1,9 +1,9 @@
 #include "Utils/VertexFullScreen.hlsl"
 import WeilanEngine;
-import Library.NormalReconstruction;
+import Library.CommonUtils;
 import Library.PerScene;
 
-#define GTAO_SLICE_COUNT 32
+#define GTAO_SLICE_COUNT 6
 #define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
@@ -19,13 +19,14 @@ static extern const SSAOType aoType = SSAOType.GTAO;
 struct GTAOParameter
 {
     float4 rtSize;
+    float2 debugPoint;
     float strength;
     float scaling;
     float falloff;
     float bias;
 
     Texture2D depthTex;
-    SamplerState sampler_linear_clamp;
+    SamplerState sampler_point_clamp;
 };
 
 [Global]
@@ -33,32 +34,32 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<GTAOParameter> perMaterial;
 
+static float4 fragCoord;
+
 float3 GetPostionVS(float3 ndcPos)
 {
     float4 posVS = mul(perScene.invProjection, float4(ndcPos, 1.0));
     return posVS.xyz / posVS.w;
 }
 
+static float gDebugMaxSamplePointDistance = 0;
+
 float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, float3 viewVS)
 {
     float cHorizonCos = -1;
+    float2 offsetScaling = perMaterial.scaling * side * float2(omega[0], -omega[1]);
     for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
     {
-        float s = float(sampleIndex) / float(GTAO_DIRECTION_SAMPLE_COUNT);
-        float2 scaling = perMaterial.rtSize.zw * perMaterial.scaling;
-        float2 sTexCoord = input.uv + side * s * scaling * float2(omega[0], -omega[1]) / posVS.z;
-        float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_linear_clamp, sTexCoord, 0).x;
+        float2 sampleOffset = offsetScaling * sampleIndex;
+        float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw ;// / posVS.z;
+
+        float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sTexCoord, 0).x;
         float3 sPosV = GetPostionVS(float3(sTexCoord * 2 - 1, sDepth));
 
-        if(any(sPosV != posVS))
-        {
-            float distSqr = dot(sPosV - posVS, sPosV - posVS);
-            float distFalloff = clamp(distSqr * perMaterial.falloff, 0, 1);
-            float horizonCos = lerp(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
-            cHorizonCos = max(cHorizonCos, horizonCos);
-        }
-        else
-            cHorizonCos = -2;
+        float distSqr = dot(sPosV - posVS, sPosV - posVS);
+        float distFalloff = clamp(distSqr * perMaterial.falloff, 0, 1);
+        float horizonCos = lerp(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
+        cHorizonCos = max(cHorizonCos, horizonCos);
     }
 
     return cHorizonCos;
@@ -67,13 +68,14 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
 float GTAO(VertexOutput input)
 {
     float3 posVS;
-    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_linear_clamp, input.uv, perMaterial.rtSize.zw, perScene.cameraZBufferParams, perScene.invProjection, posVS);
+    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.cameraZBufferParams, perScene.invProjection, posVS);
     float3 viewVS = normalize(-posVS);
 
     float visibility = 0;
 
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
+        input.position.x + fmod(floor(input.position.y), 4) * 4;
         float phi = GTAO_PI * float(slice) / float(GTAO_SLICE_COUNT);
 
         float2 omega = float2(cos(phi), sin(phi));
@@ -106,13 +108,17 @@ float GTAO(VertexOutput input)
     }
 
     visibility /= GTAO_SLICE_COUNT;
+
+    
     return clamp(visibility / perMaterial.strength, 0, 1);
+    
 }
 #endif
 
 [shader("fragment")]
-float4 FragmentMain(VertexOutput input): SV_Target
+float4 FragmentMain(VertexOutput input, float4 screenPos : SV_Position): SV_Target
 {
+fragCoord = screenPos;
 if (aoType == SSAOType.GTAO)
 {
     return GTAO(input);

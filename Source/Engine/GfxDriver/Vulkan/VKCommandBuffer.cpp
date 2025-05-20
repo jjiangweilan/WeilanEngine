@@ -379,7 +379,7 @@ void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<Clea
         }
     }
 
-    cmd.renderPass = &renderPass;
+    cmd.renderPass = renderPass;
     int copySize = clearValues.size() <= 8 ? clearValues.size_bytes() : 8 * sizeof(ClearValue);
     memcpy(cmd.clearValues, clearValues.data(), copySize);
     cmd.clearValueCount = clearValues.size() <= 8 ? clearValues.size() : 8;
