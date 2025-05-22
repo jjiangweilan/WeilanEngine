@@ -287,8 +287,12 @@ Gfx::ShaderResource* Material::ValidateGetShaderResource()
 
 Gfx::ShaderProgram* Material::GetShaderProgram()
 {
-    if (needRequestNewShader && shaderFeatures)
+    if (needRequestNewShader)
     {
+        if (!shaderFeatures)
+        {
+            shaderFeatures = &ShaderLibrary::QueryShaderFeatures(shaderName.data());
+        }
         shaderInUse = ShaderLibrary::GetShader(shaderName.data(), shaderFeatures->GetPermutation(enabledFeatures));
         needRequestNewShader = false;
     }

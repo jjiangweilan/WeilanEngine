@@ -10,7 +10,7 @@ void JsonSerializer::Deserialize(std::string_view name, std::string& val)
 {
     try
     {
-        val = j.value(TO_JSON_PTR(name), "");
+        val = j.value(TO_JSON_PTR(name), val);
     }
     catch (...)
     {
@@ -82,7 +82,7 @@ void JsonSerializer::Serialize(std::string_view name, const uint32_t& v)
 
 void JsonSerializer::Deserialize(std::string_view name, uint32_t& v)
 {
-    v = j.value(TO_JSON_PTR(name), (uint32_t)0);
+    v = j.value(TO_JSON_PTR(name), v);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const int32_t& v)
@@ -92,7 +92,7 @@ void JsonSerializer::Serialize(std::string_view name, const int32_t& v)
 
 void JsonSerializer::Deserialize(std::string_view name, int32_t& v)
 {
-    v = j.value(TO_JSON_PTR(name), (int32_t)0);
+    v = j.value(TO_JSON_PTR(name), v);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const uint64_t& v)
@@ -101,7 +101,7 @@ void JsonSerializer::Serialize(std::string_view name, const uint64_t& v)
 }
 void JsonSerializer::Deserialize(std::string_view name, uint64_t& v)
 {
-    v = j.value(TO_JSON_PTR(name), (uint64_t)0);
+    v = j.value(TO_JSON_PTR(name), v);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const int64_t& v)
@@ -110,7 +110,7 @@ void JsonSerializer::Serialize(std::string_view name, const int64_t& v)
 }
 void JsonSerializer::Deserialize(std::string_view name, int64_t& v)
 {
-    v = j.value(TO_JSON_PTR(name), (int64_t)0);
+    v = j.value(TO_JSON_PTR(name), v);
 }
 
 void JsonSerializer::Serialize(std::string_view name, const float& v)
@@ -122,7 +122,7 @@ void JsonSerializer::Deserialize(std::string_view name, float& v)
 {
     try
     {
-        v = j.value(TO_JSON_PTR(name), 0.0f);
+        v = j.value(TO_JSON_PTR(name), v);
     }
     catch (const nlohmann::json::type_error& e)
     {
@@ -166,8 +166,6 @@ void JsonSerializer::Deserialize(std::string_view name, glm::mat4& v)
         v[2] = { c2[0], c2[1], c2[2], c2[3] };
         v[3] = { c3[0], c3[1], c3[2], c3[3] };
     }
-    else
-        v = glm::mat4();
 }
 
 void JsonSerializer::Serialize(std::string_view name, const glm::quat& v)
@@ -267,7 +265,7 @@ void JsonSerializer::Serialize(std::string_view name, const bool val)
 
 void JsonSerializer::Deserialize(std::string_view name, bool& val)
 {
-    val = j.value(TO_JSON_PTR(name), false);
+    val = j.value(TO_JSON_PTR(name), val);
 }
 
 void JsonSerializer::Serialize(std::string_view name, nullptr_t)
@@ -282,7 +280,7 @@ void JsonSerializer::Serialize(std::string_view name, const nlohmann::json& json
 
 void JsonSerializer::Deserialize(std::string_view name, nlohmann::json& json)
 {
-    json = j.value(TO_JSON_PTR(name), nlohmann::json());
+    json = j.value(TO_JSON_PTR(name), json);
 }
 
 bool JsonSerializer::IsNull(std::string_view name)
