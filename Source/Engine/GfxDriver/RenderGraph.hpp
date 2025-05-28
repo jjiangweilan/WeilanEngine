@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Image.hpp"
+#include "ImageView.hpp"
+#include "Libs/Hash.hpp"
 #include "Libs/UUID.hpp"
 #include "ResourceHandle.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
@@ -168,22 +170,25 @@ struct Subpass
 {
     std::vector<SubpassAttachment> colors;
     SubpassAttachment depth;
+    bool operator==(const Subpass& other) const = default;
 };
 
 class RenderPass
 {
 public:
-    RenderPass() : uuid(), name(std::to_string(GetDefaultNameId()++)) {}
-    RenderPass(int subpassCount, int attachmentCount) : uuid(), name(std::to_string(GetDefaultNameId()++))
+    RenderPass() : name(std::to_string(GetDefaultNameId()++)) { rehash = true; }
+    RenderPass(int subpassCount, int attachmentCount) : name(std::to_string(GetDefaultNameId()++))
     {
         attachments.resize(attachmentCount, ImageIdentifier::GetEmpty());
         subpasses.resize(subpassCount);
+        rehash = true;
     }
 
-    RenderPass(std::string_view name, int subpassCount, int attachmentCount) : uuid(), name(name)
+    RenderPass(std::string_view name, int subpassCount, int attachmentCount) : name(name)
     {
         attachments.resize(attachmentCount, ImageIdentifier::GetEmpty());
         subpasses.resize(subpassCount);
+        rehash = true;
     }
 
     void SetAttachment(int index, const ImageIdentifier& id)
@@ -193,7 +198,7 @@ public:
             if (attachments[index] != id)
             {
                 attachments[index] = id;
-                uuid = UUID();
+                rehash = true;
             }
         }
     }
@@ -214,7 +219,7 @@ public:
             {
                 subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
                 subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
-                uuid = UUID();
+                rehash = true;
             }
             else
             {
@@ -228,13 +233,66 @@ public:
                 {
                     subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
                     subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
-                    uuid = UUID();
+                    rehash = true;
                 }
             }
         }
     }
 
-    const UUID& GetUUID() const { return uuid; }
+    uint64_t GetHash() const
+    {
+        if (rehash)
+        {
+            uint64_t hash = 0;
+            for (auto& attachment : attachments)
+            {
+                Hash64(hash, attachment.GetType());
+                switch (attachment.GetType())
+                {
+                    case ImageIdentifier::Type::Image:
+                        {
+                            uint64_t imageHash = std::hash<UUID>()(attachment.GetAsImage()->GetUUID());
+                            Hash64(hash, imageHash);
+                            break;
+                        }
+                    case ImageIdentifier::Type::ImageView:
+                        {
+                            uint64_t imageViewHash = std::hash<UUID>()(attachment.GetAsImageView()->GetUUID());
+                            Hash64(hash, imageViewHash);
+                            break;
+                        }
+                    case ImageIdentifier::Type::Handle:
+                        {
+                            Hash64(hash, std::hash<UUID>()(attachment.GetAsUUID()));
+                            break;
+                        }
+                    default: break;
+                }
+            }
+
+            for (auto& subpass : subpasses)
+            {
+                for (auto& color : subpass.colors)
+                {
+                    Hash64(hash, color.attachmentIndex);
+                    Hash64(hash, color.loadOp);
+                    Hash64(hash, color.storeOp);
+                    Hash64(hash, color.stencilLoadOp);
+                    Hash64(hash, color.stencilStoreOp);
+                }
+
+                Hash64(hash, subpass.depth.attachmentIndex);
+                Hash64(hash, subpass.depth.loadOp);
+                Hash64(hash, subpass.depth.storeOp);
+                Hash64(hash, subpass.depth.stencilLoadOp);
+                Hash64(hash, subpass.depth.stencilStoreOp);
+            }
+
+            this->hash = hash;
+        }
+
+        return hash;
+    }
 
     static RenderPass Default(
         std::string_view name = "default render pass",
@@ -269,8 +327,14 @@ public:
 
     const std::string& GetName() { return name; }
 
+    bool operator==(const RenderPass& other) const
+    {
+        return name == other.name && attachments == other.attachments && subpasses == other.subpasses;
+    }
+
 private:
-    UUID uuid;
+    bool rehash = false;
+    mutable uint64_t hash = 0;
     std::string name;
     std::vector<ImageIdentifier> attachments;
     std::vector<Subpass> subpasses;
@@ -282,3 +346,10 @@ private:
     };
 };
 } // namespace Gfx::RG
+  //
+
+template <>
+struct std::hash<Gfx::RG::RenderPass>
+{
+    size_t operator()(const Gfx::RG::RenderPass& pass) const { return static_cast<size_t>(pass.GetHash()); }
+};

@@ -318,15 +318,15 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 )
 {
     PipelineRequestHash requestHash = config.GetHash();
-    HashCombine(
+    Hash64(
         requestHash,
         renderPass->GetUUID()
     ); // seems like vulkan implementation also reuses it's object handle when allocating/deallocating objects, we can't
        // reliablely use object handle as an unique source
-    HashCombine(requestHash, subpassIndex);
+    Hash64(requestHash, subpassIndex);
     for (int i = 0; i < vertexBindingBuffers.size(); ++i)
     {
-        HashCombine(requestHash, vertexBindingBuffers[i]->GetVertexAttributes(i));
+        Hash64(requestHash, vertexBindingBuffers[i]->GetVertexAttributes(i));
     }
 
     auto cacheIter = caches.find(requestHash);

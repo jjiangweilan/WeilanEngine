@@ -160,18 +160,18 @@ void Gfx::PipelineConfig::Rehash()
 {
 
     uint64_t seed = 0;
-    HashCombine(seed, v->cullMode);
-    HashCombine(seed, v->topology);
-    HashCombine(seed, v->polygonMode);
-    HashCombine(seed, v->depth);
-    HashCombine(seed, v->stencil);
+    Hash64(seed, v->cullMode);
+    Hash64(seed, v->topology);
+    Hash64(seed, v->polygonMode);
+    Hash64(seed, v->depth);
+    Hash64(seed, v->stencil);
     for (auto& c : v->color.blends)
     {
-        HashCombine(seed, c);
+        Hash64(seed, c);
     }
-    HashCombine(seed, v->color.blendConstants[0]);
-    HashCombine(seed, v->color.blendConstants[1]);
-    HashCombine(seed, v->color.blendConstants[2]);
-    HashCombine(seed, v->color.blendConstants[3]);
+    Hash64(seed, v->color.blendConstants[0]);
+    Hash64(seed, v->color.blendConstants[1]);
+    Hash64(seed, v->color.blendConstants[2]);
+    Hash64(seed, v->color.blendConstants[3]);
     hash = seed;
 }

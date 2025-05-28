@@ -480,8 +480,8 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
 size_t VKShaderResource::SetGroupHash::operator()(const SetGroup& group) const
 {
     uint64_t hash = 0;
-    HashCombine(hash, group.set);
-    HashCombine(hash, std::hash<UUID>()(group.id));
+    Hash64(hash, group.set);
+    Hash64(hash, std::hash<UUID>()(group.id));
     return hash;
 }
 } // namespace Gfx

@@ -16,9 +16,9 @@ void VertexAttributes::Rehash() const
     hash = 0;
     for (auto& a : attributes)
     {
-        HashCombine(hash, a.semanticName);
-        HashCombine(hash, a.semanticIndex);
-        HashCombine(hash, a.size);
+        Hash64(hash, a.semanticName);
+        Hash64(hash, a.semanticIndex);
+        Hash64(hash, a.size);
     }
 }
 

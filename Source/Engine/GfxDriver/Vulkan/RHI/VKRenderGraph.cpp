@@ -80,8 +80,7 @@ public:
 
     VKRenderPass* Request(RG::RenderPass& renderPass)
     {
-        auto uuid = renderPass.GetUUID();
-        auto iter = renderPasses.find(uuid);
+        auto iter = renderPasses.find(renderPass);
         if (iter != renderPasses.end() && iter->second.CheckValidationOfAttachments())
         {
             iter->second.frameCountFromLastRequest = 0;
@@ -152,8 +151,8 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            SPDLOG_TRACE("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), uuid.ToString());
-            renderPasses[uuid] =
+            SPDLOG_TRACE("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), renderPass.GetName());
+            renderPasses[renderPass] =
                 {std::move(renderPassObj), std::move(imageReferences), std::move(imageViewReferences), 0};
 
             return temp;
@@ -235,13 +234,32 @@ private:
 
     Graph* graph;
     std::unordered_map<UUID, AllocatedImage> images;
-    std::unordered_map<UUID, AllocatedRenderPass> renderPasses;
+    std::unordered_map<RG::RenderPass, AllocatedRenderPass> renderPasses;
 
     template <class T>
     void UpdateResources(std::unordered_map<UUID, T>& resources)
     {
         int removeCount = 0;
         const UUID* readyToRemove[8];
+        for (auto& iter : resources)
+        {
+            if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
+            {
+                readyToRemove[removeCount++] = &iter.first;
+            }
+            iter.second.frameCountFromLastRequest += 1;
+        }
+
+        for (int i = 0; i < removeCount; ++i)
+        {
+            resources.erase(*readyToRemove[i]);
+        }
+    }
+
+    void UpdateResources(std::unordered_map<RG::RenderPass, AllocatedRenderPass>& resources)
+    {
+        int removeCount = 0;
+        const RG::RenderPass* readyToRemove[8];
         for (auto& iter : resources)
         {
             if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
