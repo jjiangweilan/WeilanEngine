@@ -25,7 +25,8 @@ public:
     const void Tick(
         float2 screenSize,
         const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
-        const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
+        const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage,
+        bool offscreen
     );
 
     const Rendering::RenderPipeline& GetRenderPipeline() const { return renderPipeline; }

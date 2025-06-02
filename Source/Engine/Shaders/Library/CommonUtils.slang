@@ -59,12 +59,12 @@ float3 NormalReconstructionMedium(Texture2D depthTex, SamplerState depthTexSampl
 }
 
 
-T Gaussian_v0<T>(T v, float sigma)
+float4 Gaussian_v0(float4 v, float sigma)
 {
     return exp(-0.5 * (v * v) / (sigma * sigma)) / (sqrt(2 * 3.14159265358979323846) * sigma);
 }
 
-T Gaussian_v1<T>(T v, float sigma)
+float4 Gaussian_v1(float4 v, float sigma)
 {
     return exp(-1/(sigma * sigma) * (v * v));
 }

@@ -487,7 +487,8 @@ void GameEditor::Start()
             auto screenSize = gameScreenImage->GetDescription().GetSize();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage);
+            bool offscreen = !gameView.IsVisible();
+            loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
 
             endPopup.TickEnd();
             endEvents.TickEnd();
