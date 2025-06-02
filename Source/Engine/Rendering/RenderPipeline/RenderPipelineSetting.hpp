@@ -53,9 +53,9 @@ public:
     struct SSAO : Serializable
     {
         bool enabled = true;
-        float strength = 50.f;
-        float scaling = 1.f;
-        float falloff = 50.f;
+        float strength = 1.0;
+        float scaling = 3.0f;
+        float falloff = 1.5f;
         float bias = 0.f;
 
         void Serialize(Serializer* s) const override

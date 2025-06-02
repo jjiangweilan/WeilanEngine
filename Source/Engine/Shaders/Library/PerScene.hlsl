@@ -10,6 +10,10 @@ struct Light
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
+
+    float padding0;
+    float padding1;
+    float padding2;
 };
 
 struct SphericalHarmonics_2ndOrder
@@ -48,7 +52,7 @@ struct PerScene
             return lights[0];
         }
         else
-            return Light(0,0,0,0,0,0,0);
+            return Light(0,0,0,0,0,0,0,0,0,0);
     }
 
     float4 ModelToClipSpace(float4 position)

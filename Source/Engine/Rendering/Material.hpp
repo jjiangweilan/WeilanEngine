@@ -3,6 +3,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/Buffer.hpp"
+#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Libs/Allocator/GlobalTempAllocator.hpp"
@@ -30,6 +31,13 @@ public:
     Material(ObjPtr<Shader2> shader);
     Material(const Material& other) = delete;
     ~Material() override;
+
+    void SetName(std::string_view name) override
+    {
+        Asset::SetName(name);
+        if (shaderResource)
+            shaderResource->SetName(name);
+    }
 
     void SetShader(std::string_view shaderName);
     ObjPtr<Shader2> GetShader() { return shaderInUse; }

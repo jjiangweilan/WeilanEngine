@@ -16,6 +16,7 @@ class Light;
 class Scene;
 namespace Rendering
 {
+class RenderPipelineDebugger;
 struct LightInfo
 {
     glm::vec4 lightColor;
@@ -43,6 +44,7 @@ struct RenderingData
     Scene* scene;
     Camera* mainCamera;
     RenderPipelineSetting* renderPipelineSettings;
+    RenderPipelineDebugger* renderPipelineDebugger;
     Frustum cameraFrustum;
     GPUParameter::PerScene* sceneInfo;
     Gfx::Image* mainColor;

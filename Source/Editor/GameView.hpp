@@ -19,6 +19,7 @@ public:
     void Init();
     void Deinit();
 
+    bool IsVisible() const { return visible; }
     bool Tick();
 
     void Render(
@@ -42,6 +43,7 @@ private:
     std::list<PendingDelete> pendingDeleteSceneImages;
     Gfx::Image* graphOutputImage = nullptr;
     bool isAltDown = false;
+    bool visible = false;
     Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;

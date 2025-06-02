@@ -201,7 +201,7 @@ void SceneEditor::CreateRenderData(uint32_t width, uint32_t height)
 void SceneEditor::Render(Gfx::CommandBuffer& cmd)
 {
     auto scene = SceneManager::GetActiveScene();
-    if (scene == nullptr)
+    if (scene == nullptr || !isVisible)
         return;
 
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};
@@ -339,7 +339,7 @@ bool SceneEditor::Tick()
 
     bool open = true;
 
-    ImGui::Begin("Scene", &open, ImGuiWindowFlags_MenuBar);
+    isVisible = ImGui::Begin("Scene", &open, ImGuiWindowFlags_MenuBar);
 
     // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
     // MouseWheel so I track the down and release event individually

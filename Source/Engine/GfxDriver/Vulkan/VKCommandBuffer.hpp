@@ -79,7 +79,7 @@ struct VKSetLineWidthCmd
 
 struct VKRGBeginRenderPassCmd
 {
-    RG::RenderPass* renderPass;
+    RG::RenderPass renderPass;
     VkClearValue clearValues[8];
     int clearValueCount;
 

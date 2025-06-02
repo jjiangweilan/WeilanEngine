@@ -1,5 +1,4 @@
 #include "Material.hpp"
-#include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Libs/Assert.hpp"
@@ -9,18 +8,20 @@ DEFINE_ASSET(Material, "9D87873F-E8CB-45BB-AD28-225B95ECD941", "mat");
 
 Material::Material(std::string_view shaderName)
 {
+    shaderResource = GetGfxDriver()->CreateShaderResource();
     SetShader(shaderName);
 }
 
 Material::Material(ObjPtr<Shader2> shader)
 {
+    shaderResource = GetGfxDriver()->CreateShaderResource();
     SetShaderNoProtection(shader);
 }
 
 Material::Material() : shaderInUse(nullptr), shaderResource(nullptr)
 {
-    SetName("new material");
     shaderResource = GetGfxDriver()->CreateShaderResource();
+    SetName("new material");
 }
 
 Material::~Material() {};

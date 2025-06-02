@@ -176,6 +176,29 @@ struct Subpass
 class RenderPass
 {
 public:
+    RenderPass(
+        const ImageIdentifier& color,
+        Gfx::AttachmentLoadOperation colorLoadOp,
+        Gfx::AttachmentStoreOperation colorStoreOp,
+        const ImageIdentifier& depth,
+        Gfx::AttachmentLoadOperation loadOp,
+        Gfx::AttachmentStoreOperation storeOp
+    )
+        : name(std::to_string(GetDefaultNameId()++))
+    {
+        SetRenderTarget(color, colorLoadOp, colorStoreOp, depth, loadOp, storeOp);
+    }
+
+    RenderPass(
+        const ImageIdentifier& attachment,
+        Gfx::AttachmentLoadOperation attachmentLoadOp,
+        Gfx::AttachmentStoreOperation attachmentStoreOp
+    )
+        : name(std::to_string(GetDefaultNameId()++))
+    {
+        SetRenderTarget(attachment, attachmentLoadOp, attachmentStoreOp);
+    }
+
     RenderPass() : name(std::to_string(GetDefaultNameId()++)) { rehash = true; }
     RenderPass(int subpassCount, int attachmentCount) : name(std::to_string(GetDefaultNameId()++))
     {
@@ -201,6 +224,55 @@ public:
                 rehash = true;
             }
         }
+    }
+
+    void SetRenderTarget(
+        const ImageIdentifier& attachment,
+        Gfx::AttachmentLoadOperation attachmentLoadOp,
+        Gfx::AttachmentStoreOperation attachmentStoreOp
+    )
+    {
+        if (attachments.size() != 1)
+        {
+            attachments.resize(1, ImageIdentifier::GetEmpty());
+        }
+        if (subpasses.size() != 1)
+        {
+            subpasses.resize(1);
+        }
+        SetAttachment(0, attachment);
+
+        SubpassAttachment attachments[] = {{0, attachmentLoadOp, attachmentStoreOp}};
+
+        SetSubpass(0, attachments);
+        rehash = true;
+    }
+
+    void SetRenderTarget(
+        const ImageIdentifier& color,
+        Gfx::AttachmentLoadOperation colorLoadOp,
+        Gfx::AttachmentStoreOperation colorStoreOp,
+        const ImageIdentifier& depth,
+        Gfx::AttachmentLoadOperation loadOp,
+        Gfx::AttachmentStoreOperation storeOp
+    )
+    {
+        if (attachments.size() != 2)
+        {
+            attachments.resize(2, ImageIdentifier::GetEmpty());
+        }
+        if (subpasses.size() != 1)
+        {
+            subpasses.resize(1);
+        }
+        SetAttachment(0, color);
+        SetAttachment(1, depth);
+
+        SubpassAttachment colorAttachments[] = {{0, colorLoadOp, colorStoreOp, colorLoadOp, colorStoreOp}};
+        SubpassAttachment depthAttachment = {0, colorLoadOp, colorStoreOp, colorLoadOp, colorStoreOp};
+
+        SetSubpass(0, colorAttachments, depthAttachment);
+        rehash = true;
     }
 
     bool IsValidForRendering() const;
@@ -335,9 +407,9 @@ public:
 private:
     bool rehash = false;
     mutable uint64_t hash = 0;
-    std::string name;
-    std::vector<ImageIdentifier> attachments;
-    std::vector<Subpass> subpasses;
+    std::string name = "";
+    std::vector<ImageIdentifier> attachments = {};
+    std::vector<Subpass> subpasses = {};
 
     int& GetDefaultNameId()
     {

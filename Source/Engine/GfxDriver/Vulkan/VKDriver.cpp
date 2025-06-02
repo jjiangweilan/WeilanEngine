@@ -172,6 +172,7 @@ VKDriver::~VKDriver()
         vkDestroyFence(device.handle, inflight.cmdFence, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.imageAcquireSemaphore, VK_NULL_HANDLE);
         vkDestroySemaphore(device.handle, inflight.presentSemaphore, VK_NULL_HANDLE);
+        vkDestroyQueryPool(device.handle, inflight.timestapQueryPool, VK_NULL_HANDLE);
     }
     vkDestroySemaphore(device.handle, transferSignalSemaphore, VK_NULL_HANDLE);
     vkDestroySemaphore(device.handle, dataUploaderWaitSemaphore, VK_NULL_HANDLE);
@@ -598,8 +599,10 @@ void VKDriver::FlushPendingCommands()
 
 bool VKDriver::EndFrame()
 {
-    std::scoped_lock lock(driverMutex);
     ENGINE_SCOPED_PROFILE("VKDriver - EndFrame");
+    ENGINE_BEGIN_PROFILE("VKDriver - Lock");
+    std::scoped_lock lock(driverMutex);
+    ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("VKDriver - Wait for fences");
     WaitForCurrentInflightCmd();
@@ -607,6 +610,7 @@ bool VKDriver::EndFrame()
     ENGINE_END_PROFILE
 
     // acquire next swapchain
+    ENGINE_BEGIN_PROFILE("VKDriver - Acquire Next Image");
     VkResult acquireResult = vkAcquireNextImageKHR(
         device.handle,
         swapchain.handle,
@@ -616,6 +620,7 @@ bool VKDriver::EndFrame()
         &inflightData[currentInflightIndex].swapchainIndex
     );
     swapchain.swapchainImage->SetActiveSwapChainImage(inflightData[currentInflightIndex].swapchainIndex);
+    ENGINE_END_PROFILE
 
     for (auto& w : extraWindows)
     {
@@ -704,7 +709,9 @@ bool VKDriver::EndFrame()
     auto result = vkQueueSubmit(mainQueue.handle, 1, &submitInfo, inflightData[currentInflightIndex].cmdFence);
     ENGINE_END_PROFILE
 
+    ENGINE_BEGIN_PROFILE("VKDriver - Query GPU Timestamp");
     QueryGPUTimestamp(execReport);
+    ENGINE_END_PROFILE
 
     allocator.Reset();
 
@@ -733,7 +740,9 @@ bool VKDriver::EndFrame()
     }
     ENGINE_END_PROFILE
 
+    ENGINE_BEGIN_PROFILE("VKDriver - Frame End Clear");
     FrameEndClear();
+    ENGINE_END_PROFILE
 
 #if __WIN32__
     if (captureFrameBegin && IsRenderDocInitialized())

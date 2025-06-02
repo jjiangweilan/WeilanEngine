@@ -22,7 +22,7 @@ struct ShaderFeatures
     template <class Iterable>
     ShaderPermutation GetPermutation(const Iterable& names) const
     {
-        ShaderPermutation perm;
+        ShaderPermutation perm{};
         for (const std::string& name : names)
         {
             uint32_t bitIndex = 0;
@@ -82,6 +82,9 @@ enum class Shaders : int
     InterleavedGradientNoise,
     SHProbe,
     Particle,
+    Blit,
+    BilateralUpScale,
+    DepthDownSampler,
     MAX_COUNT
 };
 
@@ -113,6 +116,9 @@ public:
         "InterleavedGradientNoise",
         "SHProbe",
         "Particles/Particle",
+        "Blit",
+        "BilateralUpScale",
+        "DepthDownSampler"
     };
 
     // ***** Deprecating *****

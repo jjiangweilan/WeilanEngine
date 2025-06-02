@@ -16,6 +16,7 @@ class Terrain;
 class GrassSurface;
 class Cloud;
 class ParticleSystem;
+class ReflectionProbe;
 
 struct BoundingVolumeHierarchy
 {
@@ -52,7 +53,9 @@ public:
     void UpdateNode(int nodeIndex);
 
 private:
-    void QueryNodesInFrustum(const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum);
+    void QueryNodesInFrustum(
+        const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
+    );
 };
 
 class RenderingScene
@@ -109,6 +112,7 @@ public:
     RENDERING_SCENE_OBJECT_API(Cloud, cloud, clouds);
     RENDERING_SCENE_OBJECT_API(GrassSurface, grassSurface, grassSurfaces);
     RENDERING_SCENE_OBJECT_API(ParticleSystem, particleSystem, particleSystems);
+    RENDERING_SCENE_OBJECT_API(ReflectionProbe, reflectionProbe, reflectionProbes);
 
     void AddRenderer(MeshRenderer& renderingObject)
     {
@@ -153,6 +157,7 @@ private:
         }
     }
 
+    std::vector<ReflectionProbe*> reflectionProbes;
     std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;

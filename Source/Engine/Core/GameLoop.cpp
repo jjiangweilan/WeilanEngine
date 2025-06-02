@@ -37,7 +37,8 @@ static void IdleTickGameObject(GameObject* go)
 const void GameLoop::Tick(
     float2 screenSize,
     const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
-    const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage
+    const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage,
+    bool offscreen
 )
 {
     ENGINE_SCOPED_PROFILE("GameLoop - Tick");
@@ -71,7 +72,7 @@ const void GameLoop::Tick(
 
     // render
 
-    if (scene && scene->GetMainCamera())
+    if (scene && scene->GetMainCamera() && !offscreen)
     {
         ENGINE_BEGIN_PROFILE("GameLoop - Physics Debug Draw");
         scene->GetPhysicsScene().DebugDraw();
