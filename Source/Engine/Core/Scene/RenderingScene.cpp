@@ -341,7 +341,7 @@ std::vector<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const
         for (auto objIdx : n->objectIndices)
         {
             auto obj = objects[objIdx].Get();
-            if (Node::IsVisibleInFrustum(obj->GetAABB(), Frustum))
+            if (obj && Node::IsVisibleInFrustum(obj->GetAABB(), Frustum))
                 objs.push_back(obj);
         }
     }
