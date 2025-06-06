@@ -22,6 +22,7 @@ public:
     ObjPtr<GameObject> GetGameObject();
 
     bool IsEnabled() { return enabled; }
+    bool IsActiveInScene();
 
     void Enable();
 

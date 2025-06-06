@@ -146,7 +146,7 @@ void DrawList::Sort(const glm::vec3& cameraPos)
 void DrawList::Add(std::span<MeshRenderer*> meshRenderers)
 {
     for (auto r : meshRenderers)
-        if (r && r->IsEnabled())
+        if (r && r->IsActiveInScene())
         {
             this->Add(*r);
         }

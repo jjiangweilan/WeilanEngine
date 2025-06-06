@@ -107,6 +107,7 @@ public:
     bool HasPrefab() const { return prefab != nullptr; }
 
     bool IsEnabled() { return enabled; }
+    bool IsActiveInScene() const { return enabled && (parent != nullptr ? parent->IsActiveInScene() : true); }
 
     void SetEnable(bool isEnabled);
 

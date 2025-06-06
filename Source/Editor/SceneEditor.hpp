@@ -53,18 +53,6 @@ private:
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
 
-    struct EditorCameraLookAtController
-    {
-        enum class Mode
-        {
-            LookAt,
-            FlyAround
-        };
-
-        glm::vec3 lookAtCenter;
-        glm::vec3 lookAtOffset;
-    };
-
     struct
     {
         glm::ivec2 resolution;
@@ -75,6 +63,13 @@ private:
         bool useSnap = false;
         glm::vec3 snap = glm::vec3(0.25f);
     } gameObjectConfigs = {};
+
+    struct CameraLookAroundContext
+    {
+        bool isActive = false;
+        float3 startPos = {0, 0, 0};
+    } cameraLookAroundContext; // when user press mouse right click, a camera look around context is initialized
+                               // it provides some recording while user is moving the camera around
 
     struct EditorWorldSpaceGrid
     {
