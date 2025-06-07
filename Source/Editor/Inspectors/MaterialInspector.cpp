@@ -123,15 +123,19 @@ public:
                             }
                             std::filesystem::path path;
 
-                            auto windowPos = ImGui::GetWindowPos();
-                            auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
-                            if (GUI::DragDropTarget(path, {windowPos, windowMax}))
+                            auto regionMin = ImGui::GetItemRectMin();
+                            auto regionMax = ImGui::GetItemRectMax();
+                            if (GUI::DragDropTarget(path, {regionMin, regionMax}))
                             {
                                 auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
                                 if (tex)
-                                {
-                                    target->SetTexture(binding->name, tex);
-                                }
+                                    SetTexture(binding->name, tex);
+                            }
+
+                            ImGui::SameLine();
+                            if (ImGui::Button("x"))
+                            {
+                                SetTexture(binding->name, nullptr);
                             }
                         }
                         else
@@ -142,9 +146,7 @@ public:
                             {
                                 auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
                                 if (tex)
-                                {
-                                    target->SetTexture(binding->name, tex);
-                                }
+                                    SetTexture(binding->name, tex);
                             }
                         }
                     }
@@ -178,6 +180,39 @@ private:
         }
 
         return {imageWidth, imageHeight};
+    }
+
+    void SetTexture(const std::string& param, Texture* tex)
+    {
+        target->SetTexture(param, tex);
+        if (param == "baseColorTex")
+        {
+            if (tex != nullptr)
+                target->EnableFeature("_BaseColorMap");
+            else
+                target->DisableFeature("_BaseColorMap");
+        }
+        else if (param == "normalMap")
+        {
+            if (tex != nullptr)
+                target->EnableFeature("_NormalMap");
+            else
+                target->DisableFeature("_NormalMap");
+        }
+        else if (param == "emissiveMap")
+        {
+            if (tex != nullptr)
+                target->EnableFeature("_EmissiveMap");
+            else
+                target->DisableFeature("_EmissiveMap");
+        }
+        else if (param == "metallicRoughnessMap")
+        {
+            if (tex != nullptr)
+                target->EnableFeature("_MetallicRoughnessMap");
+            else
+                target->DisableFeature("_MetallicRoughnessMap");
+        }
     }
 };
 

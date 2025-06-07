@@ -39,6 +39,13 @@ void Material::SetTexture(
     const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption
 )
 {
+    // if texture is nullptr, redirect to nullptr implementation
+    if (texture == nullptr)
+    {
+        SetTexture(param, (std::nullptr_t) nullptr);
+        return;
+    }
+
     auto iter = textureValues.find(param);
     bool same = false;
     if (iter != textureValues.end())
