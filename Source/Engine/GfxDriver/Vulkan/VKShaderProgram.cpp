@@ -4,7 +4,7 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
-#include "Libs/Allocator/GlobalTempAllocator.hpp"
+#include "Libs/Allocator/LinearAllocator.hpp"
 #include "Libs/Assert.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include "VKBuffer.hpp"
@@ -207,7 +207,7 @@ void VKShaderProgram::GeneratePipelineLayout()
     pipelineLayoutCreateInfo.flags = 0;
     // prepare data
     using DescriptorSetLayoutBindingVector =
-        std::vector<VkDescriptorSetLayoutBinding, GlobalTempAllocator<VkDescriptorSetLayoutBinding>>;
+        std::vector<VkDescriptorSetLayoutBinding>;
     std::vector<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
     std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()
     ); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
@@ -520,7 +520,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     // protect unwritten output with color mask
     auto& subpass = renderPass->GetSubpesses()[subpassIndex];
     size_t subpassSize = subpass.colors.size();
-    std::vector<VkPipelineColorBlendAttachmentState, GlobalTempAllocator<VkPipelineColorBlendAttachmentState>>
+    std::vector<VkPipelineColorBlendAttachmentState>
         blendStates(subpassSize);
     for (uint32_t i = 0; i < subpassSize; ++i)
     {

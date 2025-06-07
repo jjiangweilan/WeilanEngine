@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 
+// fixme: a falsely named allocator, there can be replaced by Allocator/SlabAllocator
 template <size_t chunkSize>
 class ArenaAllocator
 {

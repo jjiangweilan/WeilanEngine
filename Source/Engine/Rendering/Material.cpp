@@ -1,4 +1,5 @@
 #include "Material.hpp"
+#include "Core/FrameContext.hpp"
 #include "GfxDriver/ShaderProgram.hpp"
 #include "GfxDriver/ShaderResource.hpp"
 #include "Libs/Assert.hpp"
@@ -441,14 +442,15 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
             }
 
             auto bufSize = binding->byteSize;
-            std::vector<uint8_t, GlobalTempAllocator<uint8_t>> tempUploadData(bufSize);
+
+            auto [tempBuf,tempUploadDataHandle] = GetFrameContext().GetTempAllocator().ScopedAllocate(bufSize);
 
             ASSERT(binding->descriptorType == Gfx::DescriptorType::UniformBuffer && "UBO should be a structure");
             for (auto& member : binding->bufferMembers)
             {
-                UploadDataToGPUInternal(pipelineInfo, member, tempUploadData);
+                UploadDataToGPUInternal(pipelineInfo, member, tempBuf, bufSize);
             }
-            GetGfxDriver()->UploadBuffer(*ubo.buffer, tempUploadData.data(), tempUploadData.size(), 0);
+            GetGfxDriver()->UploadBuffer(*ubo.buffer, tempBuf, bufSize, 0);
         }
     }
 }
@@ -456,11 +458,11 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 void Material::UploadDataToGPUInternal(
     const Gfx::PipelineInfo& pipelineInfo,
     const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
-    std::vector<uint8_t, GlobalTempAllocator<uint8_t>>& buf
+    uint8_t* buf,
+    size_t bufSize
 )
 {
     size_t offset = bufferDataDescription.offset;
-    size_t bufSize = buf.size();
     ASSERT(!bufferDataDescription.IsArray());
 
     if (bufferDataDescription.IsVector())
@@ -473,12 +475,12 @@ void Material::UploadDataToGPUInternal(
                 if (bufferDataDescription.rowCount == 3 || bufferDataDescription.rowCount == 4)
                 {
                     ASSERT(offset + sizeof(glm::vec4) <= bufSize);
-                    *((glm::vec4*)(buf.data() + offset)) = iter->second;
+                    *((glm::vec4*)(buf + offset)) = iter->second;
                 }
                 else if (bufferDataDescription.rowCount == 2)
                 {
                     ASSERT(offset + sizeof(glm::vec2) <= bufSize);
-                    *((glm::vec2*)(buf.data() + offset)) = glm::vec2(iter->second);
+                    *((glm::vec2*)(buf + offset)) = glm::vec2(iter->second);
                 }
             }
         }
@@ -491,7 +493,7 @@ void Material::UploadDataToGPUInternal(
             ASSERT(bufferDataDescription.rowCount == 4 && bufferDataDescription.columnCount == 4);
             {
                 ASSERT(offset + sizeof(glm::mat4) <= bufSize);
-                *((glm::mat4*)(buf.data() + offset)) = iter->second;
+                *((glm::mat4*)(buf + offset)) = iter->second;
             }
         }
     }
@@ -505,7 +507,7 @@ void Material::UploadDataToGPUInternal(
                     if (iter != ubo.floats.end())
                     {
                         ASSERT(offset + sizeof(float) <= bufSize);
-                        *((float*)(buf.data() + offset)) = iter->second;
+                        *((float*)(buf + offset)) = iter->second;
                     }
                     break;
                 }
@@ -515,7 +517,7 @@ void Material::UploadDataToGPUInternal(
                     if (iter != ubo.floats.end())
                     {
                         ASSERT(offset + sizeof(uint32_t) <= bufSize);
-                        *((uint32_t*)(buf.data() + offset)) = (uint32_t)iter->second;
+                        *((uint32_t*)(buf + offset)) = (uint32_t)iter->second;
                     }
                     break;
                 }
@@ -525,7 +527,7 @@ void Material::UploadDataToGPUInternal(
                     if (iter != ubo.floats.end())
                     {
                         ASSERT(offset + sizeof(int32_t) <= bufSize);
-                        *((int32_t*)(buf.data() + offset)) = (int32_t)iter->second;
+                        *((int32_t*)(buf + offset)) = (int32_t)iter->second;
                     }
                     break;
                 }

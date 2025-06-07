@@ -1,5 +1,6 @@
 #include "WeilanEngine.hpp"
 #include "Core/DelayDestroy.hpp"
+#include "Core/FrameContext.hpp"
 #include "Core/GameLoop.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
@@ -99,6 +100,7 @@ bool WeilanEngine::BeginFrame()
     ENGINE_END_PROFILE;
 
     Time::Tick();
+    GetFrameContext().BeginFrame();
 
     Input::Reset();
     // poll events, this is every important
@@ -127,7 +129,9 @@ void WeilanEngine::EndFrame()
 
     Graphics::GetSingleton().ClearDraws();
     DelayDestroy::Singleton()->Flush();
+    GetFrameContext().EndFrame();
     ENGINE_END_FRAME_PROFILE
+
 }
 
 GameLoop* WeilanEngine::CreateGameLoop()

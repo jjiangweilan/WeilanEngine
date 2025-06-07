@@ -6,7 +6,7 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include "Libs/Allocator/GlobalTempAllocator.hpp"
+#include "Libs/Allocator/LinearAllocator.hpp"
 #include "Rendering/Shader2.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
@@ -133,7 +133,8 @@ private:
     void UploadDataToGPUInternal(
         const Gfx::PipelineInfo& pipeline,
         const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
-        std::vector<uint8_t, GlobalTempAllocator<uint8_t>>& buf
+        uint8_t* buf,
+        size_t bufSize
     );
     void SetShaderNoProtection(ObjPtr<Shader2> shaderProgram);
     Gfx::ShaderResource* ValidateGetShaderResource();
