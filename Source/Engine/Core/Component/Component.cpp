@@ -53,3 +53,8 @@ void Component::Disable()
             OnDisable();
     }
 }
+
+bool Component::IsActiveInScene()
+{
+    return gameObject && gameObject->IsEnabled() && enabled;
+}
