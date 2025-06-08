@@ -24,6 +24,7 @@ public:
         Object::SetName(name);
         SetDirty();
     }
+    void SetName_Lua(const std::string& name) { SetName(name); }
     Asset() = default;
     Asset(const Asset& other) = default;
     Asset(Asset&& other) = default;

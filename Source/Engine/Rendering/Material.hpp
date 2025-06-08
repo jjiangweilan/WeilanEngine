@@ -39,6 +39,7 @@ public:
             shaderResource->SetName(name);
     }
 
+    void SetShader_Lua(const std::string& shaderName) { SetShader(shaderName); }
     void SetShader(std::string_view shaderName);
     ObjPtr<Shader2> GetShader() { return shaderInUse; }
     void SetShader(Shader2* shader);
@@ -59,9 +60,9 @@ public:
     int GetSet(const std::string& name) const;
     int GetSet(Gfx::DescriptorSetSemantics semantics) const;
 
-    void SetTexture(
-        const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
-    );
+    void SetTexture_Lua(const std::string& param, Texture* texture) { return SetTexture(param, texture, std::nullopt); }
+
+    void SetTexture(const std::string& param, Gfx::Image* image, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt);
     void SetTexture(
         const std::string& param, Texture* texture, std::optional<Gfx::ImageViewOption> imageViewOption = std::nullopt
     );

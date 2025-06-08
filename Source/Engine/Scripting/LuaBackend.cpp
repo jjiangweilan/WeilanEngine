@@ -1,7 +1,6 @@
 #include "LuaBackend.hpp"
-#include "ThirdParty/lua/lua.hpp"
-#include <spdlog/spdlog.h>
 
+#include <spdlog/spdlog.h>
 LuaBackend::LuaBackend() {}
 
 LuaBackend::~LuaBackend() {}
@@ -58,10 +57,6 @@ int LuaBackend::EnginePrint(lua_State* L)
 }
 
 lua_State* LuaBackend::L = nullptr;
-
-// define typeToName
-std::unordered_map<std::type_index, std::string> LuaTypeRegistery::typeToName =
-    std::unordered_map<std::type_index, std::string>();
 
 void LuaBackend::Destroy()
 {

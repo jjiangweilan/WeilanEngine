@@ -3,6 +3,7 @@
 #include "Scripting/LuaBackend.hpp"
 #include "ThirdParty/lua/lauxlib.h"
 #include "ThirdParty/lua/lua.h"
+#include "Core/GameObject.hpp"
 #include <cstring>
 #include <spdlog/spdlog.h>
 

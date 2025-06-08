@@ -63,6 +63,7 @@ void Material::SetTexture(
     if (same)
         return;
 
+    SetDirty();
     SetTextureInternal(param, texture, imageViewOption);
 }
 
@@ -84,7 +85,6 @@ void Material::SetTextureInternal(
             shaderResource->SetImage(param, texture->GetGfxImage());
         }
     }
-    SetDirty();
 }
 
 void Material::SetBuffer(const std::string& name, Gfx::Buffer* buffer)
@@ -318,6 +318,7 @@ void Material::EnableFeature(const std::string& name)
     {
         needRequestNewShader = true;
         enabledFeatures.emplace(name);
+        SetDirty();
     }
 }
 
@@ -327,6 +328,7 @@ void Material::DisableFeature(const std::string& name)
     {
         needRequestNewShader = true;
         enabledFeatures.erase(name);
+        SetDirty();
     }
 }
 
@@ -335,25 +337,7 @@ void Material::Deserialize(Serializer* s)
     Asset::Deserialize(s);
     // s->Deserialize("shader", shader);
     s->Deserialize("ubo", ubo);
-    s->Deserialize(
-        "textureValues",
-        textureValues,
-        [this](void* res)
-        {
-            if (res)
-            {
-                Texture* tex = (Texture*)res;
-                for (auto& kv : textureValues)
-                {
-                    if (kv.second.Get() == tex)
-                    {
-                        SetTextureInternal(kv.first, tex, std::nullopt);
-                        break;
-                    }
-                }
-            }
-        }
-    );
+    s->Deserialize("textureValues", textureValues);
     std::vector<std::string> enabledFeatureVec;
     s->Deserialize("enabledFeature", enabledFeatureVec);
     for (auto& f : enabledFeatureVec)
@@ -372,30 +356,9 @@ void Material::Deserialize(Serializer* s)
 
 void Material::OnLoaded()
 {
-    return;
-    uploadNeeded = true;
-
-    bool hasConfig = overrideShaderConfig;
-    using namespace Gfx;
-
-    CullMode cullMode = CullMode::Back;
-    Topology topology = Topology::TriangleList;
-
-    if (hasConfig)
+    for (auto& kv : textureValues)
     {
-        auto config = *shaderConfig;
-        cullMode = config.cullMode;
-        topology = config.topology;
-    }
-
-    this->SetShader(shaderName);
-
-    if (hasConfig)
-    {
-        auto copy = *shaderConfig;
-        copy.cullMode = cullMode;
-        copy.topology = topology;
-        *shaderConfig = copy;
+        SetTextureInternal(kv.first, kv.second, std::nullopt);
     }
 }
 
@@ -450,7 +413,7 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
 
             auto bufSize = binding->byteSize;
 
-            auto [tempBuf,tempUploadDataHandle] = GetFrameContext().GetTempAllocator().ScopedAllocate(bufSize);
+            auto [tempBuf, tempUploadDataHandle] = GetFrameContext().GetTempAllocator().ScopedAllocate(bufSize);
 
             ASSERT(binding->descriptorType == Gfx::DescriptorType::UniformBuffer && "UBO should be a structure");
             for (auto& member : binding->bufferMembers)
