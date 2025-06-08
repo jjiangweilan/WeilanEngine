@@ -1,4 +1,5 @@
 #include "WeilanEngine.hpp"
+#include "Core/Component/GameScript.hpp"
 #include "Core/DelayDestroy.hpp"
 #include "Core/FrameContext.hpp"
 #include "Core/GameLoop.hpp"
@@ -260,6 +261,5 @@ void WeilanEngine::DeinitSDL()
 
 void WeilanEngine::ReloadScripts()
 {
-    luaBackend->Destroy();
-    luaBackend->Init(assetDatabase->GetAssetDirectory().string().c_str());
+    assetDatabase->ReloadScripts();
 }

@@ -9,6 +9,12 @@
 
 #include <unordered_map>
 
+// LuaBindings
+// supported parameter types so far:
+// 1. when creating a runtime object, it's ok to pass by raw pointer in interface
+// 2. when passing ObjPtr, the interface should also accept an ObjPtr, raw pointer will not work
+// 3. const std::string&, const char*, int, float, are supported
+
 template <class T>
 T* GetLuaUserDataPackValue(lua_State* L, int idx)
 {
@@ -538,12 +544,20 @@ public:
             using RawType = std::remove_const_t<std::remove_reference_t<Type>>;
             if (type == LuaEngineUserDataType::RawPtr)
             {
-                return *((LuaUserDataPack<RawType*>*)mem)->val;
+                if constexpr (std::is_pointer_v<RawType>)
+                {
+                    return ((LuaUserDataPack<RawType>*)mem)->val;
+                }
+                else
+                {
+                    return *((LuaUserDataPack<RawType*>*)mem)->val;
+                }
             }
             else if (type == LuaEngineUserDataType::ObjPtr)
             {
                 if constexpr (std::is_base_of_v<Object, Type>)
                 {
+                    // because ObjPtr actually doesn't use Object's memory layout, it's kind of ok to cast mem to ObjPtr<Object>.
                     ObjPtr<Object> obj = ((LuaUserDataPack<ObjPtr<Object>>*)mem)->val;
                     if (obj == nullptr || obj->GetObjectTypeID() != Type::StaticGetObjectTypeID())
                     {
@@ -552,9 +566,10 @@ public:
                     }
                     return *obj;
                 }
+
                 // now falling back to Value type, this can happen in the following case
                 // T::f(const GameObject& go) <- lua: go:f(self.A_objPtr), calling above
-                // T::f(ObjPtr<GameObject> go) <- lua: go:f(self.A_objPtr), this will fall back to Value type which
+                // T::f(ObjPtr<GameObject> go) <- lua: go:f(self.A_objPtr), this will fall back to Value type because
                 // ObjPtr<GameObject> is not based of Object
 
                 // before falling back the Value type, we still need to do a type check
@@ -747,6 +762,14 @@ private:
     template <class Tuple, class R, size_t... I>
     static R CallbackDispatch_FunctionPointer(lua_State* L, auto& f, T* v, int argOffset, std::index_sequence<I...>)
     {
+        if (v == nullptr)
+        {
+            spdlog::error("calling function on null pointer");
+            if constexpr (std::is_null_pointer_v<R>)
+                return;
+            else
+                return R{};
+        }
         return (v->*f)(ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }
 

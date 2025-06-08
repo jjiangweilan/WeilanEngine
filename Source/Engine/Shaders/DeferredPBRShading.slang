@@ -7,6 +7,12 @@ depth:
     testEnable: true
     writeEnable: false
     compOp: notEqual
+stencil:
+    testEnable: true
+    writeMask: 0
+    reference: 0
+    compareOp: equal
+    compareMask: 0xFF
 #endif
 
 #include "DeferredPBRShading.hlsl"

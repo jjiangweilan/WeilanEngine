@@ -235,18 +235,19 @@ void Material::SetShader(std::string_view shaderName)
 {
     if (shaderInUse == nullptr || this->shaderName != shaderName)
     {
-        shaderFeatures = &ShaderLibrary::QueryShaderFeatures(shaderName.data());
+        auto shaderFeatures = &ShaderLibrary::QueryShaderFeatures(shaderName.data());
 
         if (shaderFeatures)
         {
             auto perm = shaderFeatures->GetPermutation(enabledFeatures);
             auto shader = ShaderLibrary::GetShader(shaderName.data(), perm);
-            needRequestNewShader = false;
-            this->shaderName = shaderName;
 
             if (shader == nullptr)
                 return;
 
+            needRequestNewShader = false;
+            this->shaderFeatures = shaderFeatures;
+            this->shaderName = shaderName;
             SetShaderNoProtection(shader);
             SetDirty();
         }

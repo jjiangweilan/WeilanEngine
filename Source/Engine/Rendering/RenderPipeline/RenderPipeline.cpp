@@ -135,7 +135,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->Blit(mainDepth, depthCopy);
 
-        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {0, 0}};
+        Gfx::ClearValue lightingPassClearValues[] = {{0, 0, 0, 0}, {1, 0}};
         auto shadingShader = shadingPass.shadingShader->GetShaderProgram();
         auto diffuseCube = camera.GetDiffuseEnv();
         auto specularCube = camera.GetDiffuseEnv();
@@ -279,7 +279,9 @@ RenderPipeline::ShadingPass::ShadingPass()
     Gfx::RG::SubpassAttachment depthAttachment{
         1,
         Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store
+        Gfx::AttachmentStoreOperation::Store,
+        Gfx::AttachmentLoadOperation::Load,
+        Gfx::AttachmentStoreOperation::DontCare,
     };
     Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
     pass.SetSubpass(0, lightingPassAttachments, depthAttachment);

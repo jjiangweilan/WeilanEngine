@@ -42,13 +42,15 @@ Gfx::PipelineConfig Gfx::PipelineConfig::FromJson(const nlohmann::json& j)
         };
 
         if (stencilJson.contains("front"))
-        {
             config.stencil.front = parseStencilOpState(stencilJson["front"]);
-        }
+        else
+            config.stencil.front = parseStencilOpState(stencilJson);
+
         if (stencilJson.contains("back"))
-        {
             config.stencil.back = parseStencilOpState(stencilJson["back"]);
-        }
+        else
+            config.stencil.front = parseStencilOpState(stencilJson);
+
     }
 
     // Color settings

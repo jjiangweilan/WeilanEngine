@@ -1032,6 +1032,13 @@ void AssetDatabase::UnloadAsset(Asset& asset)
 
 void AssetDatabase::ReloadScripts()
 {
+    auto gameScripts = Object::GetObjectsOfType<GameScript>();
+    std::vector<JsonSerializer> serializers(gameScripts.size());
+    for (size_t i = 0; i < gameScripts.size(); ++i)
+    {
+        gameScripts[i]->LuaSerialize(&serializers[i]);
+    }
+
     auto luaBackend = LuaBackend::GetInstance();
     luaBackend->Destroy();
     luaBackend->Init(GetAssetDirectory().string().c_str());
@@ -1042,10 +1049,11 @@ void AssetDatabase::ReloadScripts()
         lg->ReloadScript();
     }
 
-    auto gameScripts = Object::GetObjectsOfType<GameScript>();
-    for (auto& g : gameScripts)
+    for (size_t i = 0; i < gameScripts.size(); ++i)
     {
+        auto g = gameScripts[i];
         g->ReloadScript();
+        g->LuaDeserialize(&serializers[i]);
     }
 }
 

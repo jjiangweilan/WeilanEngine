@@ -203,6 +203,7 @@ public:
         SLANG_RETURN_ON_FAIL(CollectEntryPointMetadata(linkedProgram, 0, definedEntryPointCount));
 
         outPipelineInfo = {};
+        outPipelineInfo.name = shaderName;
 
         CollectSets(programLayout->getGlobalParamsVarLayout(), outPipelineInfo);
 
@@ -212,7 +213,6 @@ public:
             CollectFragmentOutput(outPipelineInfo);
         for (auto& set : outPipelineInfo.descriptorSets)
             set.UpdateBindingIndex();
-        outPipelineInfo.name = shaderName;
 
         // retrive pipelineConfig
         {
