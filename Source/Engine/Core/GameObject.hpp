@@ -99,6 +99,7 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
+    std::vector<ObjPtr<GameObject>> GetAllChildren();
     const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
 
     template <class T>

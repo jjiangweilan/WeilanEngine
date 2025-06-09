@@ -610,3 +610,21 @@ void GameObject::TransformChanged()
         child->TransformChanged();
     }
 }
+
+std::vector<ObjPtr<GameObject>> GameObject::GetAllChildren()
+{
+    auto f = [this]()
+    {
+        std::vector<ObjPtr<GameObject>> allChildren{};
+        for (auto& c : children)
+        {
+            allChildren.push_back(c);
+            auto subChildren = c->GetAllChildren();
+            allChildren.insert(allChildren.end(), subChildren.begin(), subChildren.end());
+        }
+
+        return allChildren;
+    };
+
+    return f();
+}

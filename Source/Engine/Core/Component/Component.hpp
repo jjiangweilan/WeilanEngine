@@ -82,10 +82,5 @@ public:
     ExampleComponent(GameObject* gameObject);
     ~ExampleComponent();
     const std::string& GetName() override;
-
-    std::unique_ptr<Component> Clone(GameObject& owner) override;
-    void Serialize(Serializer* s) const override;
-    void Deserialize(Serializer* s) override;
-    void OnLoaded() override;
 };
 */

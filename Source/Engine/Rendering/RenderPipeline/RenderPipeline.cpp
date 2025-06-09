@@ -255,6 +255,13 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         GetGfxDriver()->ExecuteCommandBuffer(*cmd);
         cmd->Reset(true);
     }
+
+    // UI
+    const auto& UIs = scene.GetRenderingScene().GetUIs();
+    for(int i = 0; i < UIs.size(); ++i)
+    {
+        auto ui = UIs[i];
+    }
 }
 
 RenderPipeline::PerScene::PerScene()

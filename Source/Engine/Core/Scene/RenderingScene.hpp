@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Component/UI.hpp"
 #include "Core/Ptr.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Libs/Math.hpp"
@@ -113,6 +114,7 @@ public:
     RENDERING_SCENE_OBJECT_API(GrassSurface, grassSurface, grassSurfaces);
     RENDERING_SCENE_OBJECT_API(ParticleSystem, particleSystem, particleSystems);
     RENDERING_SCENE_OBJECT_API(ReflectionProbe, reflectionProbe, reflectionProbes);
+    RENDERING_SCENE_OBJECT_API(UI, ui, UIs);
 
     void AddRenderer(MeshRenderer& renderingObject)
     {
@@ -157,6 +159,8 @@ private:
         }
     }
 
+
+    std::vector<UI*> UIs;
     std::vector<ReflectionProbe*> reflectionProbes;
     std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;
