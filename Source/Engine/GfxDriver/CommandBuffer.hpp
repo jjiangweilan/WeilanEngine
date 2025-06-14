@@ -190,5 +190,7 @@ public:
     }
 
     void SetBuffer(std::string_view name, Gfx::Buffer& buffer) { SetBuffer(ShaderBindingHandle(name), 0, buffer); }
+
+private:
 };
 } // namespace Gfx

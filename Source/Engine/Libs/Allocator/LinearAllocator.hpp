@@ -55,9 +55,9 @@ public:
         return std::tuple<T*, ScopedHandle>(ptr, std::move(handle));
     }
 
-    T* Allocate(size_t n)
+    T* Allocate(size_t n, const char* tag)
     {
-        ASSERT(offset + n > size);
+        ASSERT(offset + n < size);
 
         if (n == 0 || offset + n > size)
             return nullptr;
