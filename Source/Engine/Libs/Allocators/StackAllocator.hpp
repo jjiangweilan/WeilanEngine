@@ -4,11 +4,11 @@
 #include <tuple>
 
 template <typename T>
-class LinearAllocator
+class StackAllocator
 {
 public:
-    LinearAllocator(size_t size) : mem(new T[size]), size(size) {}
-    ~LinearAllocator() { delete[] mem; }
+    StackAllocator(size_t size) : mem(new T[size]), size(size) {}
+    ~StackAllocator() { delete[] mem; }
 
     class ScopedHandle
     {
@@ -29,10 +29,10 @@ public:
         }
 
     private:
-        LinearAllocator* parent = nullptr;
+        StackAllocator* parent = nullptr;
         size_t n = 0;
 
-        friend class LinearAllocator;
+        friend class StackAllocator;
     };
 
     // Allocate n elements of type T.
