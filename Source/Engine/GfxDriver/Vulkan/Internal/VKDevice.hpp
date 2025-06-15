@@ -1,7 +1,7 @@
 #pragma once
 #include "../VKCommandQueue.hpp"
 #include "VKPhysicalDevice.hpp"
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -40,13 +40,13 @@ private:
     VKPhysicalDevice gpu;
 
     VkPhysicalDeviceFeatures requiredDeviceFeatures{}; // no feature required yet
-    std::vector<const char*> deviceExtensions = {
+    DynamicArray<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
         // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME // for shader debug
     };
 
-    std::vector<VKCommandQueue> queues;
+    DynamicArray<VKCommandQueue> queues;
 
     friend class GfxContext;
 };

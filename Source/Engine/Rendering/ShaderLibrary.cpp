@@ -11,7 +11,7 @@ using Slang::ComPtr;
 
 struct ShaderCompiler
 {
-    std::vector<ComPtr<slang::IMetadata>> metadataForEntryPoints;
+    DynamicArray<ComPtr<slang::IMetadata>> metadataForEntryPoints;
     const int kTargetCount = 1;
 
     // results
@@ -92,7 +92,7 @@ public:
         return toggleModule;
     }
 
-    void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& features)
+    void CollectToggleFeatures(slang::IModule* module, DynamicArray<ShaderToggleFeature>& features)
     {
         auto moduleReflection = module->getModuleReflection();
         for (auto child : moduleReflection->getChildren())
@@ -124,7 +124,7 @@ public:
         const char* shaderName,
         Gfx::PipelineInfo& outPipelineInfo,
         Gfx::PipelineConfig& outPipelineConfig,
-        const std::vector<std::string>& enabledFeatures
+        const DynamicArray<std::string>& enabledFeatures
     )
     {
         globalSession = session->getGlobalSession();
@@ -138,7 +138,7 @@ public:
         if (!sourceModule)
             return SLANG_FAIL;
 
-        std::vector<slang::IComponentType*> componentsToLink{};
+        DynamicArray<slang::IComponentType*> componentsToLink{};
 
         for (auto& enabledFeature : enabledFeatures)
         {
@@ -383,9 +383,9 @@ public:
         return Gfx::PipelineInfo::MemberDataType::Float;
     }
 
-    std::vector<Gfx::PipelineInfo::BufferMember> CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
+    DynamicArray<Gfx::PipelineInfo::BufferMember> CollectBufferMembers(slang::VariableLayoutReflection* variableLayout)
     {
-        std::vector<Gfx::PipelineInfo::BufferMember> members{};
+        DynamicArray<Gfx::PipelineInfo::BufferMember> members{};
         auto typeLayout = variableLayout->getTypeLayout();
 
         auto fieldCount = typeLayout->getFieldCount();
@@ -473,7 +473,7 @@ public:
         slang::VariableLayoutReflection* container,
         Gfx::PipelineInfo::DescriptorSet& set,
         int parentBinding,
-        std::vector<Gfx::PipelineInfo::Binding>& outBindings
+        DynamicArray<Gfx::PipelineInfo::Binding>& outBindings
     )
     {
         auto typeLayout = variableLayout->getTypeLayout();
@@ -662,7 +662,7 @@ public:
     void CollectVertexVaryingInput(
         slang::VariableLayoutReflection* variableLayout,
         int locationOffset,
-        std::vector<Gfx::PipelineInfo::VertexAttribute>& outVertexAttributes
+        DynamicArray<Gfx::PipelineInfo::VertexAttribute>& outVertexAttributes
     )
     {
         auto category = variableLayout->getCategory();
@@ -758,7 +758,7 @@ public:
     void CollectFragmentOutput(
         slang::VariableLayoutReflection* variableLayout,
         int locationOffset,
-        std::vector<Gfx::PipelineInfo::FragmentOutput>& outFragmentOutputs
+        DynamicArray<Gfx::PipelineInfo::FragmentOutput>& outFragmentOutputs
     )
     {
         auto category = variableLayout->getCategory();
@@ -830,7 +830,7 @@ public:
 
     void CollectVertexInput(Gfx::PipelineInfo& outPipelineInfo)
     {
-        std::vector<Gfx::PipelineInfo::VertexAttribute> vertexAttributes{};
+        DynamicArray<Gfx::PipelineInfo::VertexAttribute> vertexAttributes{};
         auto vertexEntryPointReflection = linkedProgram->getLayout()->getEntryPointByIndex(vertexEntryPointIndex);
 
         for (int parameterIndex = 0; parameterIndex < vertexEntryPointReflection->getParameterCount(); ++parameterIndex)
@@ -1231,8 +1231,8 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
 
         if (compiler.fragmentEntryPointIndex != -1 && compiler.vertexEntryPointIndex != -1)
         {
-            createInfo.vertSpv = std::vector<uint8_t>(vertexKernelBlob->getBufferSize());
-            createInfo.fragSpv = std::vector<uint8_t>(fragmentKernelBlob->getBufferSize());
+            createInfo.vertSpv = DynamicArray<uint8_t>(vertexKernelBlob->getBufferSize());
+            createInfo.fragSpv = DynamicArray<uint8_t>(fragmentKernelBlob->getBufferSize());
             memcpy(createInfo.vertSpv.data(), vertexKernelBlob->getBufferPointer(), vertexKernelBlob->getBufferSize());
             memcpy(
                 createInfo.fragSpv.data(),
@@ -1242,7 +1242,7 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
         }
         else if (compiler.computeEntryPointIndex != -1)
         {
-            createInfo.computeSpv = std::vector<uint8_t>(computeKernelBlob->getBufferSize());
+            createInfo.computeSpv = DynamicArray<uint8_t>(computeKernelBlob->getBufferSize());
             memcpy(
                 createInfo.computeSpv.data(),
                 computeKernelBlob->getBufferPointer(),
@@ -1280,7 +1280,7 @@ std::unique_ptr<Gfx::ShaderProgram> ShaderLibrary::CompileShader(const char* sha
 void ShaderLibrary::CheckPushconstant(
     slang::VariableLayoutReflection* param,
     Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
-    std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstants,
+    DynamicArray<Gfx::PipelineInfo::PushConstant>& outPushConstants,
     int entryPointIndex,
     Gfx::ShaderStage stage
 )
@@ -1336,7 +1336,7 @@ ObjPtr<Shader2> ShaderLibrary::GetShaderImpl(const char* name, ShaderPermutation
     return &library.at(name).shaders.at(permutation).shaderHandle;
 }
 
-void ShaderLibrary::CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& features)
+void ShaderLibrary::CollectToggleFeatures(slang::IModule* module, DynamicArray<ShaderToggleFeature>& features)
 {
     auto moduleReflection = module->getModuleReflection();
     for (auto child : moduleReflection->getChildren())

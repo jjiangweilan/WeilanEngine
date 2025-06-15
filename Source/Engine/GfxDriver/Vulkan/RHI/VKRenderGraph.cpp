@@ -89,13 +89,13 @@ public:
         else
         {
             auto renderPassObj = std::make_unique<VKRenderPass>();
-            std::vector<ObjPtr<Image>> imageReferences;
-            std::vector<ObjPtr<ImageView>> imageViewReferences;
+            DynamicArray<ObjPtr<Image>> imageReferences;
+            DynamicArray<ObjPtr<ImageView>> imageViewReferences;
 
             auto attachments = renderPass.GetAttachments();
             for (auto& subpass : renderPass.GetSubpasses())
             {
-                std::vector<Attachment> colors;
+                DynamicArray<Attachment> colors;
                 for (RG::SubpassAttachment color : subpass.colors)
                 {
                     const auto& id = attachments[color.attachmentIndex];
@@ -210,8 +210,8 @@ private:
     struct AllocatedRenderPass
     {
         std::unique_ptr<VKRenderPass> renderPass;
-        std::vector<ObjPtr<Image>> attachments;
-        std::vector<ObjPtr<ImageView>> imageViews;
+        DynamicArray<ObjPtr<Image>> attachments;
+        DynamicArray<ObjPtr<ImageView>> imageViews;
         int frameCountFromLastRequest = 0;
 
         bool CheckValidationOfAttachments()
@@ -388,7 +388,7 @@ void Graph::GoThroughRenderPass(
     int barrierCount = 0;
 
     // handle case like shadow map being binded to global descriptor set but also set to render pass attachment
-    std::vector<VKImage*> shaderImageSampleIgnoreList;
+    DynamicArray<VKImage*> shaderImageSampleIgnoreList;
     shaderImageSampleIgnoreList.reserve(8);
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
@@ -511,7 +511,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
     auto& currentUsage = currentFrameUsages.back();
     size_t usageIndex = currentFrameUsages.size() - 1;
     size_t previousUsageIndex = 0;
-    std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
+    DynamicArray<ResourceUsage>* usagesSource = &currentFrameUsages;
     if (iter->second.type == ResourceType::Image)
     {
         VKImage* image = (VKImage*)std::get<ObjPtr<Image>>(iter->second.res).Get();
@@ -523,8 +523,8 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
         }
 
         // TODO: optimize heap allocation
-        std::vector<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
-        std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
+        DynamicArray<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
+        DynamicArray<Gfx::ImageSubresourceRange> remainingRangeSwap{};
         for (;;)
         {
             if (usageIndex == 0)
@@ -1024,7 +1024,7 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
         else if (cmd.type == VKCmdType::Dispatch)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatch");
-            std::vector<VKImage*> list;
+            DynamicArray<VKImage*> list;
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
@@ -1034,7 +1034,7 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatchIndir");
             auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
-            std::vector<VKImage*> list;
+            DynamicArray<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
             FlushAllBindedSetUpdate(list, args.barrierCount);
@@ -1298,7 +1298,7 @@ void Graph::Execute(
                 }
             case VKCmdType::CopyImageToBuffer:
                 {
-                    std::vector<VkBufferImageCopy> vkRegions;
+                    DynamicArray<VkBufferImageCopy> vkRegions;
                     auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
 
                     for (int i = 0; i < args.regionsCount; ++i)
@@ -1780,7 +1780,7 @@ Graph::Graph(int inflightCount)
 }
 Graph::~Graph() {}
 
-void Graph::FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded)
+void Graph::FlushAllBindedSetUpdate(DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded)
 {
     for (int i = 0; i < 4; ++i)
     {

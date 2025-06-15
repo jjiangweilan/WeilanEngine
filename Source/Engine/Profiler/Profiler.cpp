@@ -6,9 +6,9 @@ Profiler& Profiler::GetSingleton()
     return profiler;
 }
 
-std::vector<float> Profiler::GetFlattendFrametime() const
+DynamicArray<float> Profiler::GetFlattendFrametime() const
 {
-    std::vector<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
+    DynamicArray<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
     int oldestFrameIndex = (GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
     if (GetTrackCycles() == 0) [[unlikely]]
     {

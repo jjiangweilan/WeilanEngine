@@ -1,6 +1,6 @@
 #pragma once
 #include <functional>
-
+#include "Libs/DynamicArray.hpp"
 namespace Editor
 {
 class EditorTickModule
@@ -11,7 +11,7 @@ public:
     void TickAll();
 
 private:
-    std::vector<std::function<void(bool& close)>> registeredTick;
+    DynamicArray<std::function<void(bool& close)>> registeredTick;
 };
 
 } // namespace Editor

@@ -3,7 +3,7 @@
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Libs/EnumFlags.hpp"
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 enum class PickObjectLayer : int
 {
@@ -32,20 +32,20 @@ struct PickGameObjectFromScene
     // intersected with the GameObject. `consumerIndex` is incrementally increased by 1 each time the worker takes a
     // GameObject to process
 private:
-    std::vector<PickCandidate> pending;
+    DynamicArray<PickCandidate> pending;
     std::atomic<int> consumerIndex{0};
     std::mutex mutexLock;
-    std::vector<Intersected> results;
+    DynamicArray<Intersected> results;
 
 public:
-    std::vector<Intersected> operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV)
+    DynamicArray<Intersected> operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV)
     {
         results.clear();
         pending.clear();
 
         pending = GetCandidateFromScene(scene);
 
-        std::vector<std::thread> threads;
+        DynamicArray<std::thread> threads;
         int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
         for (int i = 0; i < maxThreads; ++i)
         {
@@ -77,9 +77,9 @@ public:
         results.push_back(Intersected{obj, distance});
     }
 
-    static std::vector<PickCandidate> GetCandidateFromScene(Scene& scene)
+    static DynamicArray<PickCandidate> GetCandidateFromScene(Scene& scene)
     {
-        std::vector<PickCandidate> pending;
+        DynamicArray<PickCandidate> pending;
         auto gameObjects = scene.GetAllGameObjects();
         for (auto obj : gameObjects)
         {

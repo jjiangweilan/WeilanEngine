@@ -17,7 +17,7 @@ public:
 
     void PutMemoryBarrierIfNeeded(VkCommandBuffer cmdBuf, VkPipelineStageFlags stageMask, VkAccessFlags accessMask);
     void FillMemoryBarrierIfNeeded(
-        std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
+        DynamicArray<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
     );
     void* GetCPUVisibleAddress() override;
     void SetDebugName(const char* name) override;

@@ -16,7 +16,7 @@ struct VKInflightCmd
     VkQueryPool timestapQueryPool = VK_NULL_HANDLE;
     int maxtimestapQueryCount = 0;
 
-    std::vector<std::function<void()>> onCompleteCallbacks{};
+    DynamicArray<std::function<void()>> onCompleteCallbacks{};
 };
 
 struct VKFramePrepareData
@@ -24,8 +24,8 @@ struct VKFramePrepareData
     void AppendVKCommandBuffer(VKCommandBuffer* cmd);
     void Clear();
 
-    std::vector<VKCmd> cmds{};
-    std::vector<VKCommandBuffer::TmpAllocator> memory{};
+    DynamicArray<VKCmd> cmds{};
+    DynamicArray<VKCommandBuffer::TmpAllocator> memory{};
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks{};
 };
 } // namespace Gfx

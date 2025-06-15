@@ -6,7 +6,7 @@
 //#include <cstdint>
 //#include <nlohmann/json.hpp>
 //#include <unordered_map>
-//#include <vector>
+//#include "Libs/DynamicArray.hpp"
 //#include <vulkan/vulkan.h>
 //
 //namespace Gfx
@@ -22,8 +22,8 @@
 //
 //    // vertex Data
 //    VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
-//    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
-//    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
+//    DynamicArray<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
+//    DynamicArray<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
 //};
 //
 //class VKShaderModule : public ShaderModule
@@ -33,7 +33,7 @@
 //    // when vertInterleaved is false: binding 0 is used for postion, binding 1 is interleaved for other attributes (this
 //    // should be the engine standard)
 //    VKShaderModule(
-//        const std::string& name, std::vector<uint32_t>& spv, const ShaderProgramCreateInfoVertex& vertexCreateInfo
+//        const std::string& name, DynamicArray<uint32_t>& spv, const ShaderProgramCreateInfoVertex& vertexCreateInfo
 //    );
 //    ~VKShaderModule();
 //

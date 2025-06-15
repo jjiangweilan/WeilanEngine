@@ -72,9 +72,9 @@ public:
         this->meta = meta;
     }
 
-    void SetImportedAssetPaths(const std::vector<std::filesystem::path>& paths) { importedAssetFilePaths = paths; }
+    void SetImportedAssetPaths(const DynamicArray<std::filesystem::path>& paths) { importedAssetFilePaths = paths; }
 
-    std::vector<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
+    DynamicArray<std::filesystem::path> GetImportedAssetPaths() { return importedAssetFilePaths; }
 
     const nlohmann::json& GetMeta() { return meta; }
 private:
@@ -98,7 +98,7 @@ private:
     std::filesystem::path assetPath;
     std::filesystem::path absolutePath;
 
-    std::vector<std::filesystem::path> importedAssetFilePaths;
+    DynamicArray<std::filesystem::path> importedAssetFilePaths;
 
     nlohmann::json meta = nlohmann::json::object();
 

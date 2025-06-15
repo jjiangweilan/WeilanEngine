@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 
 #include <string_view>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 // interleaving or not? mix them? https://developer.arm.com/documentation/102546/0100/Index-Driven-Geometry-Pipeline
 //
@@ -20,7 +20,7 @@ struct SkeletonBone
     glm::mat4 offsetMatrix;
 };
 
-using Skeleton = std::vector<SkeletonBone>;
+using Skeleton = DynamicArray<SkeletonBone>;
 
 class Submesh
 {
@@ -50,20 +50,20 @@ private:
     std::unique_ptr<Gfx::Buffer> gfxVertexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> gfxIndexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType = Gfx::IndexBufferType::UInt32;
-    std::vector<VertexBinding> bindings;
-    std::vector<Gfx::VertexBufferBinding> gfxBindings;
+    DynamicArray<VertexBinding> bindings;
+    DynamicArray<Gfx::VertexBufferBinding> gfxBindings;
     AABB aabb;
     int indexCount = 0;
     std::string name;
 
     // v0.2 API
 public:
-    void SetIndices(std::vector<uint32_t>&& indices);
-    void SetIndices(const std::vector<uint32_t>& indices);
-    void SetPositions(std::vector<glm::vec3>&& positions);
+    void SetIndices(DynamicArray<uint32_t>&& indices);
+    void SetIndices(const DynamicArray<uint32_t>& indices);
+    void SetPositions(DynamicArray<glm::vec3>&& positions);
     void SetVertexAttribute(VertexAttributes&& vertAttributes);
     void SetVertexAttribute(const VertexAttributes& vertAttributes);
-    void SetPositions(const std::vector<glm::vec3>& positions);
+    void SetPositions(const DynamicArray<glm::vec3>& positions);
     void Apply();
     const VertexAttributes& GetVertexAttribute() const { return attributes; }
     bool HasAttribute(std::string_view name) const
@@ -78,20 +78,20 @@ public:
         return false;
     }
 
-    const std::vector<uint32_t>& GetIndices() const;
-    const std::vector<glm::vec3>& GetPositions() const;
+    const DynamicArray<uint32_t>& GetIndices() const;
+    const DynamicArray<glm::vec3>& GetPositions() const;
     const VertexAttributes& GetAttribute() const;
 
 private:
-    std::vector<uint32_t> indices;
-    std::vector<glm::vec3> positions; // binding 0,
+    DynamicArray<uint32_t> indices;
+    DynamicArray<glm::vec3> positions; // binding 0,
     VertexAttributes attributes;      // binding 1, interleaved
 
     // v0.1 API
 public:
     Submesh(
         std::unique_ptr<unsigned char>&& vertexBuffer,
-        std::vector<VertexBinding>&& bindings,
+        DynamicArray<VertexBinding>&& bindings,
         std::unique_ptr<unsigned char>&& indexBuffer,
         Gfx::IndexBufferType indexBufferType,
         int indexCount,
@@ -122,7 +122,7 @@ public:
 
     bool LoadFromFile(const char* path) override;
 
-    const std::vector<Submesh>& GetSubmeshes() { return submeshes; };
+    const DynamicArray<Submesh>& GetSubmeshes() { return submeshes; };
 
     Submesh* GetSubmesh(int index)
     {
@@ -133,7 +133,7 @@ public:
         return nullptr;
     };
 
-    void SetSubmeshes(std::vector<Submesh>&& submeshes)
+    void SetSubmeshes(DynamicArray<Submesh>&& submeshes)
     {
         this->submeshes = std::move(submeshes);
 
@@ -160,7 +160,7 @@ public:
     bool HasSkeleton() const { return !skeleton.empty(); }
 
 private:
-    std::vector<Submesh> submeshes = {};
+    DynamicArray<Submesh> submeshes = {};
     Skeleton skeleton = {};
     AABB aabb = {{0, 0, 0}, {0, 0, 0}};
 };

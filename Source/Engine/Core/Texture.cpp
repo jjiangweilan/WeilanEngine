@@ -47,6 +47,7 @@ Texture::~Texture()
     if (desc.keepData && desc.data != nullptr)
     {
         delete[] desc.data;
+        desc.data = nullptr;
     }
 }
 
@@ -64,7 +65,11 @@ void Texture::CreateGfxImage(TextureDescription& texDesc)
     GetGfxDriver()->UploadImage(*image, data, byteSize);
     GetGfxDriver()->GenerateMipmaps(*image);
 
-    // mip map generation
+    if (!texDesc.keepData)
+    {
+        delete[] texDesc.data;
+        texDesc.data = nullptr;
+    }
 }
 
 bool IsKTX2File(ktx_uint8_t* imageData)
@@ -160,6 +165,7 @@ void Texture::LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels)
     desc.img.format = Gfx::MapVKFormat(ktxTexture2_GetVkFormat(texture));
     desc.img.multiSampling = Gfx::MultiSampling::Sample_Count_1;
     desc.data = nullptr;
+    desc.keepData = false;
 
     image = Gfx::GfxDriver::Instance()->CreateImage(desc.img, Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferDst);
 
@@ -397,27 +403,33 @@ void Texture::LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFo
     desc = texDesc;
 
     image = GetGfxDriver()->CreateImage(
-        desc.img,
+        texDesc.img,
         Gfx::ImageUsage::Texture | Gfx::ImageUsage::TransferSrc | Gfx::ImageUsage::TransferDst
     );
 
     int preLevelWidth = width;
     int preLevelHeight = height;
     int curLevelOffset = 0;
-    for (uint32_t level = 0; level < desc.img.mipLevels; ++level)
+    for (uint32_t level = 0; level < texDesc.img.mipLevels; ++level)
     {
         float scale = std::pow(0.5f, level);
         int lw = preLevelWidth * scale;
         int lh = preLevelHeight * scale;
         size_t byteSize = lw * lh * desiredChannels * elementSize;
 
-        GetGfxDriver()->UploadImage(*image, desc.data + curLevelOffset, byteSize, level, 0);
+        GetGfxDriver()->UploadImage(*image, texDesc.data + curLevelOffset, byteSize, level, 0);
 
         curLevelOffset += byteSize;
         preLevelWidth = lw;
         preLevelHeight = lh;
     }
     GetGfxDriver()->GenerateMipmaps(*image);
+
+    if (!texDesc.keepData)
+    {
+        delete[] texDesc.data;
+        texDesc.data = nullptr;
+    }
 
     // ConvertRawImageToKtx(desc);
 }
@@ -433,7 +445,7 @@ void Texture::SaveAsCubemap(const char* filename)
         if (f.good() && f.is_open())
         {
             size_t fileSize = std::filesystem::file_size(fpath);
-            std::vector<char> fileData(fileSize);
+            DynamicArray<char> fileData(fileSize);
             f.read(fileData.data(), fileSize);
 
             auto ext = fpath.extension();

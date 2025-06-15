@@ -27,7 +27,7 @@ std::array<float3, 9> SHProbe::BakeToSHCPU(
         float3 sample;
     };
     const int TotalSampleCount = 4096 * 10;
-    std::vector<Sample> samples(TotalSampleCount);
+    DynamicArray<Sample> samples(TotalSampleCount);
 
     for (int i = 0; i < TotalSampleCount; ++i)
     {

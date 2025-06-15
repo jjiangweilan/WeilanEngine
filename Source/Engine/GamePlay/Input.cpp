@@ -52,7 +52,7 @@ struct Input
      * @brief stores state of actual gamepad instances.
      * The index is matching the id of GamepadInstance.
      */
-    std::vector<std::unique_ptr<GamepadInstance>> gamepads;
+    DynamicArray<std::unique_ptr<GamepadInstance>> gamepads;
 
     const int JoyStickDeadZone = 5000;
     bool gameplayInput = false;

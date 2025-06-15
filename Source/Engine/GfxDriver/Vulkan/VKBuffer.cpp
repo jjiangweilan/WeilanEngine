@@ -92,7 +92,7 @@ void VKBuffer::SetDebugName(const char* name)
 }
 
 void VKBuffer::FillMemoryBarrierIfNeeded(
-    std::vector<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
+    DynamicArray<VkBufferMemoryBarrier>& barriers, VkPipelineStageFlags stageMask, VkAccessFlags accessMask
 )
 {
     if (this->stageMask != stageMask || this->accessMask != accessMask)

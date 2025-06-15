@@ -196,7 +196,7 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
         auto selectedPos = ImPlot::GetPlotMousePos();
         if (!frameProfiles.empty())
         {
-            std::vector<float> frameTimes = profiler.GetFlattendFrametime();
+            DynamicArray<float> frameTimes = profiler.GetFlattendFrametime();
             ImPlot::PlotLine("GameLoop", frameTimes.data(), frameTimes.size(), 1, 0);
             if (profiler.IsPaused())
                 ImPlot::PlotInfLines("selected", &selectedFrame, 1);
@@ -206,7 +206,7 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
 
         if (!gpuFrameProfiles.empty())
         {
-            std::vector<float> frameTimes = gpuProfiler.GetFlattendFrametime();
+            DynamicArray<float> frameTimes = gpuProfiler.GetFlattendFrametime();
             ImPlot::PlotLine("GPU", frameTimes.data(), frameTimes.size(), 1, 0);
         }
 
@@ -259,7 +259,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
-static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
+static void MenuVisitor(DynamicArray<std::string>::iterator iter, DynamicArray<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)
     {
@@ -519,7 +519,7 @@ void GameEditor::GUIPass()
 
     EngineResourceDebug();
 
-    std::vector<std::unique_ptr<Window>*> toClose;
+    DynamicArray<std::unique_ptr<Window>*> toClose;
     for (auto& w : activeWindows)
     {
         if (!w->Tick())
@@ -967,7 +967,7 @@ void GameEditor::EngineResourceDebug()
 
     ImGui::Begin("Engine Resource Debug", &debugEngineResources);
     using Info = std::tuple<UUID, Object*, const std::string*>;
-    std::vector<Info> allObjects;
+    DynamicArray<Info> allObjects;
     auto objs = Object::GetAllEngineObjects();
     for (auto& o : objs)
     {
@@ -1017,7 +1017,7 @@ void GameEditor::EngineResourceDebug()
     if (ImGui::TreeNode("Asset Data"))
     {
         using AssetDataInfo = std::tuple<AssetData*, UUID, std::filesystem::path, std::string>;
-        std::vector<AssetDataInfo> assetDatas;
+        DynamicArray<AssetDataInfo> assetDatas;
         for (auto& data : AssetDatabase::Singleton()->GetAssetData())
         {
             assetDatas
@@ -1103,7 +1103,7 @@ void GameEditor::ShowStaticEngineDebugs()
         bool* value;
     };
 
-    static std::vector<StaticEngineDebugsInfo> debugs = {
+    static DynamicArray<StaticEngineDebugsInfo> debugs = {
         {"Scene BVH", &EngineDebugVars::SceneBVH()},
         {"Shadow Frustum", &EngineDebugVars::ShadowFrustum()}
     };

@@ -52,13 +52,13 @@ public:
     // get a shader program with enabled global shader features
     Gfx::ShaderProgram* GetDefaultShaderProgram();
 
-    Gfx::ShaderProgram* GetShaderProgram(const std::vector<std::string>& enabledFeature)
+    Gfx::ShaderProgram* GetShaderProgram(const DynamicArray<std::string>& enabledFeature)
     {
         ShaderFeatureBitmask id = GetFeaturesID(enabledFeature);
 
         return GetShaderProgram(0, id);
     }
-    Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass, const std::vector<std::string>& enabledFeature);
+    Gfx::ShaderProgram* GetShaderProgram(std::string_view shaderPass, const DynamicArray<std::string>& enabledFeature);
     Gfx::ShaderProgram* GetShaderProgram(const ShaderFeatureBitmask& enabledFeatureHash);
     Gfx::ShaderProgram* GetShaderProgram(int shaderPass, const ShaderFeatureBitmask& enabledFeatureHash);
     int GetPassCount() const { return shaderPasses.size(); }
@@ -77,18 +77,18 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
     uint32_t GetContentHash() override;
-    ShaderFeatureBitmask GetFeaturesID(const std::vector<std::string>& enabledFeature)
+    ShaderFeatureBitmask GetFeaturesID(const DynamicArray<std::string>& enabledFeature)
     {
         return GetShaderFeatureBitmask(0, enabledFeature);
     }
-    ShaderFeatureBitmask GetShaderFeatureBitmask(int shaderPassIndex, const std::vector<std::string>& enabledFeature);
+    ShaderFeatureBitmask GetShaderFeatureBitmask(int shaderPassIndex, const DynamicArray<std::string>& enabledFeature);
 
     static const std::set<std::string>& GetEnabledFeatures() { return GetGlobalShaderFeature().GetEnabledFeatures(); }
     static uint64_t GetEnabledFeaturesHash() { return GetGlobalShaderFeature().GetEnabledFeaturesHash(); }
     static void EnableFeature(const char* name) { return GetGlobalShaderFeature().EnableFeature(name); }
     static void DisableFeature(const char* name) { return GetGlobalShaderFeature().DisableFeature(name); }
 
-    void SetShaderPasses(std::vector<std::unique_ptr<ShaderPass>>&& passes) { shaderPasses = std::move(passes); }
+    void SetShaderPasses(DynamicArray<std::unique_ptr<ShaderPass>>&& passes) { shaderPasses = std::move(passes); }
 
 protected:
     struct GlobalShaderFeature
@@ -108,12 +108,12 @@ protected:
     std::string shaderName;
     uint32_t contentHash = 0;
 
-    std::vector<std::unique_ptr<ShaderPass>> shaderPasses;
+    DynamicArray<std::unique_ptr<ShaderPass>> shaderPasses;
 
     struct IncludedFiles
     {
-        std::vector<std::filesystem::path> files;
-        std::vector<size_t> lastWriteTime;
+        DynamicArray<std::filesystem::path> files;
+        DynamicArray<size_t> lastWriteTime;
     } includedFiles;
 };
 

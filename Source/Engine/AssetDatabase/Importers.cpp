@@ -13,7 +13,7 @@
 
 void GetGLBData(
     const std::filesystem::path& path,
-    std::vector<uint32_t>& fullData,
+    DynamicArray<uint32_t>& fullData,
     nlohmann::json& jsonData,
     unsigned char*& binaryData
 );
@@ -38,7 +38,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
     // read uuid file
     std::filesystem::path path(cpath);
 
-    std::vector<uint32_t> fullData;
+    DynamicArray<uint32_t> fullData;
     nlohmann::json jsonData;
     unsigned char* binaryData;
     GetGLBData(path, fullData, jsonData, binaryData);
@@ -46,13 +46,13 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
     // extract mesh and submeshes
     int meshesSize = jsonData["meshes"].size();
     std::unordered_map<int, Mesh*> toOurMesh;
-    std::vector<std::unique_ptr<Mesh>> meshes;
+    DynamicArray<std::unique_ptr<Mesh>> meshes;
     for (int i = 0; i < meshesSize; ++i)
     {
         std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
         SetAssetNameAndUUID(mesh.get(), jsonData, "meshes", i);
 
-        std::vector<Submesh> submeshes;
+        DynamicArray<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
@@ -66,7 +66,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
 
     // extract textures
     std::unordered_map<int, Texture*> toOurTexture;
-    std::vector<std::unique_ptr<Texture>> textures;
+    DynamicArray<std::unique_ptr<Texture>> textures;
     int textureSize = jsonData["images"].size();
     for (int i = 0; i < textureSize; ++i)
     {
@@ -83,7 +83,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
     }
 
     // extract materials
-    std::vector<std::unique_ptr<Material>> materials;
+    DynamicArray<std::unique_ptr<Material>> materials;
     std::unordered_map<int, Material*> toOurMaterial;
     int materialSize = jsonData["materials"].size();
     nlohmann::json& texJson = jsonData["textures"];
@@ -162,8 +162,8 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
 
     // create game objects that are presented in glb file
     nlohmann::json& scenesJson = jsonData["scenes"];
-    std::vector<std::unique_ptr<GameObject>> gameObjects;
-    std::vector<GameObject*> rootGameObjects;
+    DynamicArray<std::unique_ptr<GameObject>> gameObjects;
+    DynamicArray<GameObject*> rootGameObjects;
     for (int i = 0; i < scenesJson.size(); ++i)
     {
         nlohmann::json& sceneJson = scenesJson[i];
@@ -195,7 +195,7 @@ std::unique_ptr<Model> Importers::GLB(const char* cpath, Obsolete::Shader* shade
 
 void GetGLBData(
     const std::filesystem::path& path,
-    std::vector<uint32_t>& fullData,
+    DynamicArray<uint32_t>& fullData,
     nlohmann::json& jsonData,
     unsigned char*& binaryData
 )
@@ -293,7 +293,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     }
 
     // vertexBuffer
-    std::vector<VertexBinding> bindings;
+    DynamicArray<VertexBinding> bindings;
     std::unique_ptr<unsigned char> vertexBuffer = std::unique_ptr<unsigned char>(new unsigned char[vertexBufferSize]);
 #define ATTRIBUTE_WRITE(attrName)                                                                                      \
     int index##attrName = primitiveJson["attributes"].value(#attrName, -1);                                            \
@@ -360,7 +360,7 @@ std::unique_ptr<GameObject> CreateGameObjectFromNode(
         int meshIndex = nodeJson["mesh"];
         meshRenderer->SetMesh(meshes[meshIndex]);
         int primitiveSize = j["meshes"][meshIndex]["primitives"].size();
-        std::vector<Material*> mats;
+        DynamicArray<Material*> mats;
         for (int i = 0; i < primitiveSize; ++i)
         {
             mats.push_back(materials[i]);

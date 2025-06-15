@@ -192,7 +192,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
 }
 
 void GameEditor::SceneTree(
-    GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
+    GameObject* go, int imguiID, GameObject* currentSelected, DynamicArray<ObjPtr<Object>>& selects, bool autoExpand
 )
 {
     ImGuiTreeNodeFlags nodeFlags =

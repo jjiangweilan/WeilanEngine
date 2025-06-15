@@ -4,7 +4,7 @@
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <glm/glm.hpp>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -16,7 +16,7 @@ public:
     ~VKAppWindow();
 
     void CreateVkSurface(VkInstance vkInstance, VkSurfaceKHR* vkSurface);
-    std::vector<const char*> GetVkRequiredExtensions();
+    DynamicArray<const char*> GetVkRequiredExtensions();
 
     SDL_Window* GetSDLWindow()
     {

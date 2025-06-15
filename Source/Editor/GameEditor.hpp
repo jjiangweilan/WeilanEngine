@@ -89,7 +89,7 @@ private:
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void ShowSceneTree(Scene& scene);
     void SceneTree(
-        GameObject* go, int imguiID, GameObject* currentSelected, std::vector<ObjPtr<Object>>& selects, bool autoExpand
+        GameObject* go, int imguiID, GameObject* currentSelected, DynamicArray<ObjPtr<Object>>& selects, bool autoExpand
     );
     void ShowGameProfiler(Profiler& profiler);
     void EngineResourceDebug();
@@ -113,7 +113,7 @@ private:
         }
 
     private:
-        std::vector<std::function<void()>> fs;
+        DynamicArray<std::function<void()>> fs;
     } endEvents;
 
     class EndPopup

@@ -1,7 +1,7 @@
 #pragma once
 #include "Buffer.hpp"
 #include <queue>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -82,16 +82,16 @@ private:
             vkResetFences(device, 1, &fence);
             fences.push_back(fence);
         }
-        std::vector<VkFence> fences;
+        DynamicArray<VkFence> fences;
     } fencePool;
 
     VKDriver* driver;
     const size_t stagingBufferSize = 1024 * 1024 * 64;
-    std::vector<PendingBufferUpload> pendingBufferUploads = {};
-    std::vector<PendingImageUpload> pendingImageUploads = {};
-    std::vector<VkBufferCopy> copyRegions = {};
-    std::vector<VkImageMemoryBarrier> barriers = {};
-    std::vector<VkBufferImageCopy> bufferImageCopies = {};
+    DynamicArray<PendingBufferUpload> pendingBufferUploads = {};
+    DynamicArray<PendingImageUpload> pendingImageUploads = {};
+    DynamicArray<VkBufferCopy> copyRegions = {};
+    DynamicArray<VkImageMemoryBarrier> barriers = {};
+    DynamicArray<VkBufferImageCopy> bufferImageCopies = {};
     Vulkan::Buffer stagingBuffer = {};
 
     bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);

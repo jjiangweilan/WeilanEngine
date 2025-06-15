@@ -6,7 +6,6 @@
 #include "GfxDriver/GfxDriver.hpp"
 #include "GfxDriver/Image.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
-#include "Libs/Allocator/LinearAllocator.hpp"
 #include "Rendering/Shader2.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 #include <glm/glm.hpp>
@@ -91,7 +90,7 @@ public:
     void Deserialize(Serializer* s) override;
     void CopyProperties(Material& other);
 
-    std::vector<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
+    DynamicArray<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
 
     const std::unordered_set<std::string>& GetEnabledFeatures() const { return enabledFeatures; }
     bool IsFeatureEnabled(const std::string& feature) const

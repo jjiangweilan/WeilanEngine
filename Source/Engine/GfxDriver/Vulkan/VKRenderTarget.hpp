@@ -3,7 +3,7 @@
 #include "VKImage.hpp"
 
 #include <memory>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 namespace Gfx
@@ -24,7 +24,7 @@ public:
 
     VkFramebuffer GetVkFrameBuffer();
 
-    const std::vector<VkClearValue>& GetClearValues();
+    const DynamicArray<VkClearValue>& GetClearValues();
     const VkExtent2D& GetSize();
     void SetRenderTargetDescription(const RenderTargetDescription& renderTargetDescription) override;
     VKImage& GetImage(uint32_t index);
@@ -35,7 +35,7 @@ private:
         RenderPassConfig config;
         VkRenderPass renderPass;
     };
-    std::vector<RenderPassStorage> renderPasses;
+    DynamicArray<RenderPassStorage> renderPasses;
 
     VkDevice device_vk;
     VkFramebuffer framebuffer_vk = VK_NULL_HANDLE;
@@ -43,9 +43,9 @@ private:
     VKMemAllocator* memAllocator;
     VKAppWindow* window;
     VKObjectManager* objectManager;
-    std::vector<VKImage> attachments;
-    std::vector<VkImageView> attachmentImageViews;
-    std::vector<VkClearValue> clearValues;
+    DynamicArray<VKImage> attachments;
+    DynamicArray<VkImageView> attachmentImageViews;
+    DynamicArray<VkClearValue> clearValues;
     VKContext* context;
     VkExtent2D resolution;
     friend class VKDriver;

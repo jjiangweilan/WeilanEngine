@@ -3,7 +3,7 @@
 // #include <slang-com-ptr.h>
 // #include <slang.h>
 // #include <spdlog/spdlog.h>
-// #include <vector>
+// #include "Libs/DynamicArray.hpp"
 //
 //
 // shaderc_include_result* ShaderCompiler::ShaderIncluder::GetInclude(
@@ -32,7 +32,7 @@
 //
 //     FileData* fileData = new FileData();
 //     fileData->sourceName = std::string(finalPath.string());
-//     fileData->content = std::vector<char>(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+//     fileData->content = DynamicArray<char>(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
 //
 //     shaderc_include_result* result = new shaderc_include_result;
 //     result->content = fileData->content.data();
@@ -43,19 +43,19 @@
 //     return result;
 // }
 //
-// std::vector<std::vector<std::string>> MakeCombination(
-//     std::vector<std::vector<std::string>> first, std::vector<std::vector<std::string>> second
+// DynamicArray<DynamicArray<std::string>> MakeCombination(
+//     DynamicArray<DynamicArray<std::string>> first, DynamicArray<DynamicArray<std::string>> second
 // )
 // {
-//     std::vector<std::vector<std::string>> comb{};
+//     DynamicArray<DynamicArray<std::string>> comb{};
 //     for (int i = 0; i < first.size(); i++)
 //     {
 //         for (int j = 0; j < second.size(); j++)
 //         {
-//             std::vector<std::string>& f = first[i];
-//             std::vector<std::string>& s = second[j];
+//             DynamicArray<std::string>& f = first[i];
+//             DynamicArray<std::string>& s = second[j];
 //
-//             std::vector<std::string> n(f.begin(), f.end());
+//             DynamicArray<std::string> n(f.begin(), f.end());
 //             n.insert(n.end(), s.begin(), s.end());
 //
 //             comb.push_back(std::move(n));
@@ -65,8 +65,8 @@
 //     return comb;
 // }
 //
-// std::vector<std::vector<std::string>> ShaderCompiler::FeatureToCombinations(
-//     const std::vector<std::vector<std::string>>& features
+// DynamicArray<DynamicArray<std::string>> ShaderCompiler::FeatureToCombinations(
+//     const DynamicArray<DynamicArray<std::string>>& features
 // )
 // {
 //     if (features.empty())
@@ -74,16 +74,16 @@
 //         return {{}};
 //     }
 //
-//     std::vector<std::vector<std::string>> combs{};
-//     std::vector<std::vector<std::vector<std::string>>> fs{};
+//     DynamicArray<DynamicArray<std::string>> combs{};
+//     DynamicArray<DynamicArray<DynamicArray<std::string>>> fs{};
 //
 //     // vectorize
 //     for (auto& v : features)
 //     {
-//         std::vector<std::vector<std::string>> vf{};
+//         DynamicArray<DynamicArray<std::string>> vf{};
 //         for (auto& s : v)
 //         {
-//             std::vector<std::string> singleFeature{};
+//             DynamicArray<std::string> singleFeature{};
 //             singleFeature.push_back(s);
 //             vf.push_back(std::move(singleFeature));
 //         }
@@ -114,10 +114,10 @@
 //     const char* buf,
 //     int bufSize,
 //     std::set<std::filesystem::path>& includedTrack,
-//     const std::vector<std::string>& features,
-//     const std::vector<std::string>& stagefeatures,
-//     std::vector<uint32_t>& optimized,
-//     std::vector<uint32_t>& unoptimized
+//     const DynamicArray<std::string>& features,
+//     const DynamicArray<std::string>& stagefeatures,
+//     DynamicArray<uint32_t>& optimized,
+//     DynamicArray<uint32_t>& unoptimized
 // )
 // {
 //     shaderc::CompileOptions option;
@@ -155,7 +155,7 @@
 //             auto msg = fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
 //             throw CompileError(msg);
 //         }
-//         unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
+//         unoptimized = DynamicArray<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
 //         optimized = unoptimized;
 //     }
 //     else
@@ -167,7 +167,7 @@
 //             auto msg = fmt::format("Shader[{}] failed: {}", name, unoptimizedCompiled.GetErrorMessage().c_str());
 //             throw CompileError(msg);
 //         }
-//         unoptimized = std::vector<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
+//         unoptimized = DynamicArray<uint32_t>(unoptimizedCompiled.begin(), unoptimizedCompiled.end());
 //
 //         // compile again for gpu
 //         option.SetOptimizationLevel(shaderc_optimization_level_performance);
@@ -177,7 +177,7 @@
 //             auto msg = fmt::format("Shader[{}] failed: {}", name, optimizedCompiled.GetErrorMessage().c_str());
 //             throw CompileError(msg);
 //         }
-//         optimized = std::vector<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
+//         optimized = DynamicArray<uint32_t>(optimizedCompiled.begin(), optimizedCompiled.end());
 //     }
 // }
 //
@@ -454,7 +454,7 @@
 // }
 //
 // ShaderFeatureBitmask ShaderCompiler::GenerateFeatureCombination(
-//     const std::vector<std::string>& combs,
+//     const DynamicArray<std::string>& combs,
 //     const std::unordered_map<std::string, ShaderFeatureBitmask>& featureToBitIndex
 // )
 // {
@@ -476,7 +476,7 @@
 // };
 //
 // void ShaderCompiler::FeaturesToBitmask(
-//     std::vector<std::vector<std::string>>& features, ShaderFeatureBitmaskStage shaderStage
+//     DynamicArray<DynamicArray<std::string>>& features, ShaderFeatureBitmaskStage shaderStage
 // )
 // {
 //     int globalBitIndex = 0;
@@ -538,7 +538,7 @@
 //     FeaturesToBitmask(config->fragFeatures, ShaderFeatureBitmaskStage::Frag);
 //
 //     includedTrack.clear();
-//     std::vector<std::future<CompileResult>> futures{};
+//     DynamicArray<std::future<CompileResult>> futures{};
 //     for (auto& c : featureCombs)
 //     {
 //         futures.push_back(std::async(
@@ -601,12 +601,12 @@
 //     FeaturesToBitmask(config->vertFeatures, ShaderFeatureBitmaskStage::Vert);
 //     FeaturesToBitmask(config->fragFeatures, ShaderFeatureBitmaskStage::Frag);
 //
-//     std::vector<CompileResult> finalCompiledResult{};
+//     DynamicArray<CompileResult> finalCompiledResult{};
 //     auto vertAndFragCombs = MakeCombination(vertFeatureCombs, fragFeatureCombs);
 //     for (auto& c : featureCombs)
 //     {
-//         std::vector<std::shared_future<CompileResult>> vertCompileResults;
-//         std::vector<std::shared_future<CompileResult>> fragCompileResults;
+//         DynamicArray<std::shared_future<CompileResult>> vertCompileResults;
+//         DynamicArray<std::shared_future<CompileResult>> fragCompileResults;
 //
 //         for (auto& vc : vertFeatureCombs)
 //         {
@@ -703,17 +703,17 @@
 //     }
 // }
 //
-// std::vector<std::vector<std::string>> ShaderCompiler::ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName)
+// DynamicArray<DynamicArray<std::string>> ShaderCompiler::ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName)
 // {
 //     if (root.has_child(featureName))
 //     {
 //         auto features = root[featureName];
-//         std::vector<std::vector<std::string>> featuresVal;
+//         DynamicArray<DynamicArray<std::string>> featuresVal;
 //         if (features.is_seq())
 //         {
 //             for (auto fs : features)
 //             {
-//                 std::vector<std::string> fval;
+//                 DynamicArray<std::string> fval;
 //                 if (fs.is_seq())
 //                 {
 //                     for (const auto& f : fs)

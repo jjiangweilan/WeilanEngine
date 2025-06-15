@@ -22,13 +22,13 @@ public:
     }
 
     void UpdateSkyboxProbe();
-    const std::vector<float4>& GetSkyboxProbeCoefficients() const
+    const DynamicArray<float4>& GetSkyboxProbeCoefficients() const
     {
         if (skyboxProbe.HasSH())
             return skyboxProbe.GetSHCoefficients();
         else
         {
-            static std::vector<float4> zeros(9);
+            static DynamicArray<float4> zeros(9);
             return zeros;
         }
     }

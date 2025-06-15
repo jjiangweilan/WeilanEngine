@@ -142,7 +142,7 @@ bool Swapchain::GetImagesFromVulkan()
     uint32_t imageCount = 0;
 
     vkGetSwapchainImagesKHR(c->device, handle, &imageCount, VK_NULL_HANDLE);
-    std::vector<VkImage> swapChainImagesTemp(imageCount);
+    DynamicArray<VkImage> swapChainImagesTemp(imageCount);
     if (vkGetSwapchainImagesKHR(c->device, handle, &imageCount, swapChainImagesTemp.data()) != VK_SUCCESS)
     {
         return false;

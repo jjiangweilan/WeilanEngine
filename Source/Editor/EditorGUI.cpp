@@ -5,7 +5,7 @@
 namespace Editor
 {
 const char* GUI::PayloadType = "_DragDropIntenralTypeID";
-std::vector<char> GUI::textArea = std::vector<char>(1024);
+DynamicArray<char> GUI::textArea = DynamicArray<char>(1024);
 void GUI::AutoObjectInspector(Object* target, bool readOnly)
 {
     if (target == nullptr)

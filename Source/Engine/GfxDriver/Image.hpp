@@ -12,7 +12,7 @@
 #include <span>
 #include <stdexcept>
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -31,11 +31,11 @@ struct ImageSubresourceRange
     uint32_t baseArrayLayer = 0;
     uint32_t layerCount = 1;
 
-    std::vector<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
+    DynamicArray<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
     {
         ASSERT((aspectMask & other.aspectMask) != ImageAspect::None && "image aspect mask must match");
 
-        std::vector<ImageSubresourceRange> rtn{};
+        DynamicArray<ImageSubresourceRange> rtn{};
         // bottom area
         if (other.baseArrayLayer > baseArrayLayer && other.baseMipLevel >= baseMipLevel &&
             other.baseMipLevel < baseMipLevel + levelCount)

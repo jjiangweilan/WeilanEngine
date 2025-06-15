@@ -142,21 +142,21 @@ public:
     bool debugDrawRequest = false;
 
     // get registered lua callback events
-    const std::vector<PhysicsLuaCallback>& GetContactAddedLuaCallbacks() const { return contactAddedLuaCallbacks; }
-    const std::vector<PhysicsLuaCallback>& GetContactRemovedLuaCallbacks() const { return contactRemovedLuaCallbacks; }
-    const std::vector<PhysicsLuaCallback>& GetContactPersistedLuaCallbacks() const
+    const DynamicArray<PhysicsLuaCallback>& GetContactAddedLuaCallbacks() const { return contactAddedLuaCallbacks; }
+    const DynamicArray<PhysicsLuaCallback>& GetContactRemovedLuaCallbacks() const { return contactRemovedLuaCallbacks; }
+    const DynamicArray<PhysicsLuaCallback>& GetContactPersistedLuaCallbacks() const
     {
         return contactPersistedLuaCallbacks;
     }
-    void SetContactAddedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    void SetContactAddedLuaCallbacks(const DynamicArray<PhysicsLuaCallback>& callbacks)
     {
         contactAddedLuaCallbacks = callbacks;
     }
-    void SetContactRemovedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    void SetContactRemovedLuaCallbacks(const DynamicArray<PhysicsLuaCallback>& callbacks)
     {
         contactRemovedLuaCallbacks = callbacks;
     }
-    void SetContactPersistedLuaCallbacks(const std::vector<PhysicsLuaCallback>& callbacks)
+    void SetContactPersistedLuaCallbacks(const DynamicArray<PhysicsLuaCallback>& callbacks)
     {
         contactPersistedLuaCallbacks = callbacks;
     }
@@ -179,12 +179,12 @@ private:
     PhysicsBodyShapes shapeType = PhysicsBodyShapes::Mesh;
 
     std::function<bool()> recreateShape = nullptr;
-    std::vector<ContactAddedEventCallbackType> contactAddedCallbacks = {};
-    std::vector<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
+    DynamicArray<ContactAddedEventCallbackType> contactAddedCallbacks = {};
+    DynamicArray<ContactRemovedEventCallbackType> contactRemovedCallbacks = {};
 
-    std::vector<PhysicsLuaCallback> contactAddedLuaCallbacks = {};
-    std::vector<PhysicsLuaCallback> contactRemovedLuaCallbacks = {};
-    std::vector<PhysicsLuaCallback> contactPersistedLuaCallbacks = {};
+    DynamicArray<PhysicsLuaCallback> contactAddedLuaCallbacks = {};
+    DynamicArray<PhysicsLuaCallback> contactRemovedLuaCallbacks = {};
+    DynamicArray<PhysicsLuaCallback> contactPersistedLuaCallbacks = {};
 
     void OnEnable() override;
     void OnDisable() override;

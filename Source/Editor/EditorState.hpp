@@ -13,7 +13,7 @@ public:
     static void SelectObject(ObjPtr<Object> obj, bool multiSelect = false);
     static Object* GetMainSelectedObject();
     static void DeselectObject(Object* obj);
-    static std::vector<ObjPtr<Object>> GetSelectedObjects();
+    static DynamicArray<ObjPtr<Object>> GetSelectedObjects();
 
     static GameLoop* gameLoop;
 
@@ -24,6 +24,6 @@ public:
     }
 
 private:
-    static std::vector<ObjPtr<Object>> selectedObjects;
+    static DynamicArray<ObjPtr<Object>> selectedObjects;
 };
 } // namespace Editor

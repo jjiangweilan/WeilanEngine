@@ -4,7 +4,7 @@
 #include <cinttypes>
 #include <glm/glm.hpp>
 #include <optional>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 union ClearColorValue
 {
@@ -51,7 +51,7 @@ struct RenderPassAttachmentConfig
 
 struct RenderPassConfig
 {
-    std::vector<RenderPassAttachmentConfig> colors;
+    DynamicArray<RenderPassAttachmentConfig> colors;
     RenderPassAttachmentConfig depthStencil;
 
     RenderPassConfig(uint32_t colorSize) : colors(colorSize) {}
@@ -73,7 +73,7 @@ struct RenderTargetDescription
     uint32_t width;
     uint32_t height;
 
-    std::vector<RenderTargetAttachmentDescription> colorsDescriptions;
+    DynamicArray<RenderTargetAttachmentDescription> colorsDescriptions;
     std::optional<RenderTargetAttachmentDescription> depthStencilDescription = std::nullopt;
 
     uint32_t GetColorAttachmentCount() const

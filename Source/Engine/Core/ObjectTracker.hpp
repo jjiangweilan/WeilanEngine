@@ -2,7 +2,7 @@
 #include "Libs/SpinLock.hpp"
 #include "Libs/UUID.hpp"
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 class Object;
 using ObjectTrackHandle = uint32_t;
@@ -53,8 +53,8 @@ private:
         uint32_t referenceCount = 0;
     };
 
-    std::vector<Slot> slots;
-    std::vector<uint32_t> freeSlotIndices;
+    DynamicArray<Slot> slots;
+    DynamicArray<uint32_t> freeSlotIndices;
     std::unordered_map<uint32_t, UUID> slotIndexToUUID;
     std::unordered_map<UUID, uint32_t> uuidToSlotIndex;
     Spinlock lock;

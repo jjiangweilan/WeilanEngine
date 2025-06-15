@@ -65,13 +65,13 @@ void JsonSerializer::AppendSubserializer(std::string_view name, Serializer* s)
 
 void JsonSerializer::Serialize(std::string_view name, unsigned char* p, size_t size)
 {
-    std::vector<std::uint8_t> d(p, p + size);
+    DynamicArray<std::uint8_t> d(p, p + size);
     j[TO_JSON_PTR(name)] = d;
 }
 
 void JsonSerializer::Deserialize(std::string_view name, unsigned char* p, size_t size)
 {
-    std::vector<std::uint8_t> d = j[TO_JSON_PTR(name)].get<std::vector<std::uint8_t>>();
+    DynamicArray<std::uint8_t> d = j[TO_JSON_PTR(name)].get<DynamicArray<std::uint8_t>>();
     memcpy(p, d.data(), d.size());
 }
 
@@ -304,11 +304,12 @@ size_t JsonSerializer::GetArraySize(std::string_view name)
 
 const nlohmann::json& JsonSerializer::GetJsonObject(std::string_view name)
 {
+    static nlohmann::json::object_t empty;
+
     if (j.is_object())
     {
         return j[TO_JSON_PTR(name)];
     }
 
-    static nlohmann::json::object_t empty;
     return empty;
 }

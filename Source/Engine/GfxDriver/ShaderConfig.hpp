@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -61,7 +61,7 @@ struct PipelineConfig
         struct Color
         {
             bool operator==(const Color& other) const = default;
-            std::vector<ColorBlendAttachmentState> blends;
+            DynamicArray<ColorBlendAttachmentState> blends;
             float blendConstants[4] = {1, 1, 1, 1};
         };
 
@@ -117,9 +117,9 @@ private:
 
 class ShaderFeatures
 {
-    std::vector<std::vector<std::string>> features;
-    std::vector<std::vector<std::string>> vertFeatures;
-    std::vector<std::vector<std::string>> fragFeatures;
+    DynamicArray<DynamicArray<std::string>> features;
+    DynamicArray<DynamicArray<std::string>> vertFeatures;
+    DynamicArray<DynamicArray<std::string>> fragFeatures;
     std::unordered_map<std::string, size_t> shaderInfoInputBaseTypeSizeOverride;
 };
 

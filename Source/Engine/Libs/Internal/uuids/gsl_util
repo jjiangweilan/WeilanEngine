@@ -118,7 +118,7 @@ T narrow(U u)
 }
 
 //
-// at() - Bounds-checked way of accessing builtin arrays, std::array, std::vector
+// at() - Bounds-checked way of accessing builtin arrays, std::array, DynamicArray
 //
 template <class T, std::size_t N>
 constexpr T& at(T (&arr)[N], const index i)

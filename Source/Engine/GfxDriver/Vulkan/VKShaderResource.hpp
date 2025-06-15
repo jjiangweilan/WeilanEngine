@@ -73,7 +73,7 @@ public:
     void RebuildAll() override;
 
     VkDescriptorSet GetDescriptorSet(uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph);
-    const std::vector<VKWritableGPUResource>& GetWritableResources(
+    const DynamicArray<VKWritableGPUResource>& GetWritableResources(
         uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
     );
 
@@ -119,7 +119,7 @@ protected:
         uint32_t creationSetIndex;
         VkDescriptorSet set;
         bool rebuild = false;
-        std::vector<VKWritableGPUResource> writableGPUResources;
+        DynamicArray<VKWritableGPUResource> writableGPUResources;
     };
 
     struct SetGroup

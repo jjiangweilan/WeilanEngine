@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 // fixme: a falsely named allocator, there can be replaced by Allocator/SlabAllocator
 template <size_t chunkSize>
@@ -107,7 +107,7 @@ public:
 
 private:
     uint32_t freeChunkIndex = 0;
-    std::vector<Chunk> chunks;
+    DynamicArray<Chunk> chunks;
 
     // inline size_t Align(size_t size, size_t align)
     // {

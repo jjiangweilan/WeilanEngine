@@ -120,7 +120,7 @@ void GenerateReflectanceCubemap(float* source, int width, int height, int output
 
     cmd->SetTexture("_EnvMap", *srcImage);
 
-    std::vector<std::unique_ptr<Material>> mats;
+    DynamicArray<std::unique_ptr<Material>> mats;
     for (int mip = 0; mip < mipLevels; ++mip)
     {
         mats.push_back(std::make_unique<Material>(compute));

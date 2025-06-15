@@ -3,7 +3,7 @@
 
 namespace Editor
 {
-static void SplitPath(std::string_view path, std::vector<std::string>& pathComponents)
+static void SplitPath(std::string_view path, DynamicArray<std::string>& pathComponents)
 {
     std::string_view::size_type pos = 0;
     std::string_view::size_type prev = 0;
@@ -17,7 +17,7 @@ static void SplitPath(std::string_view path, std::vector<std::string>& pathCompo
 
 bool MainMenuModule::RegisterMenuItem(std::string_view path, const std::function<void()>& f)
 {
-    std::vector<std::string> pathComponents;
+    DynamicArray<std::string> pathComponents;
     SplitPath(path, pathComponents);
     items.push_back({std::string(path), pathComponents, f});
     return true;
@@ -28,7 +28,7 @@ MainMenuModule& MainMenuModule::GetSingleton()
     return singleton;
 }
 
-static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
+static void MenuVisitor(DynamicArray<std::string>::iterator iter, DynamicArray<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)
     {

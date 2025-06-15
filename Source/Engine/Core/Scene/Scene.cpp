@@ -47,7 +47,7 @@ GameObject* Scene::AddGameObject(std::unique_ptr<GameObject>&& newGameObject)
     return temp;
 }
 
-const std::vector<ObjPtr<GameObject>>& Scene::GetRootObjects()
+const DynamicArray<ObjPtr<GameObject>>& Scene::GetRootObjects()
 {
     return roots;
 }
@@ -73,7 +73,7 @@ void Scene::MoveGameObjectToRoot(GameObject* obj)
     roots.push_back(obj);
 }
 
-static void GetAllGameObjects(GameObject* current, std::vector<GameObject*>& objs)
+static void GetAllGameObjects(GameObject* current, DynamicArray<GameObject*>& objs)
 {
     objs.push_back(current);
     for (auto& child : current->GetChildren())
@@ -83,9 +83,9 @@ static void GetAllGameObjects(GameObject* current, std::vector<GameObject*>& obj
     }
 }
 
-std::vector<GameObject*> Scene::GetAllGameObjects()
+DynamicArray<GameObject*> Scene::GetAllGameObjects()
 {
-    std::vector<GameObject*> objs;
+    DynamicArray<GameObject*> objs;
     objs.reserve(256);
 
     for (auto& obj : roots)
@@ -205,7 +205,7 @@ void Scene::PrePhysicsTickGameObject(GameObject* obj)
     }
 }
 
-void GetLights(GameObject* go, std::vector<Light*>& lights)
+void GetLights(GameObject* go, DynamicArray<Light*>& lights)
 {
     if (go == nullptr)
         return;
@@ -221,9 +221,9 @@ void GetLights(GameObject* go, std::vector<Light*>& lights)
     }
 }
 
-std::vector<Light*> Scene::GetActiveLights()
+DynamicArray<Light*> Scene::GetActiveLights()
 {
-    std::vector<Light*> lights;
+    DynamicArray<Light*> lights;
     for (auto child : roots)
     {
         GetLights(child, lights);
@@ -232,7 +232,7 @@ std::vector<Light*> Scene::GetActiveLights()
     return lights;
 }
 
-void Scene::AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects)
+void Scene::AddGameObjects(DynamicArray<std::unique_ptr<GameObject>>&& gameObjects)
 {
     for (auto&& v : gameObjects)
     {

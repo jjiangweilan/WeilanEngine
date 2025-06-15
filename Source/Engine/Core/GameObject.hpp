@@ -10,7 +10,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <memory>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 // clang-format off
 #include <Jolt/Jolt.h>
@@ -89,7 +89,7 @@ public:
     ObjPtr<Component> GetComponentInHierachy(const char* className);
     ObjPtr<Component> GetComponent(const char* className);
 
-    std::vector<std::unique_ptr<Component>>& GetComponents();
+    DynamicArray<std::unique_ptr<Component>>& GetComponents();
     void SetScene(Scene* scene);
     Scene* GetScene();
     void Tick();
@@ -99,10 +99,10 @@ public:
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
 
-    const std::vector<ObjPtr<GameObject>>& GetChildren() { return children; }
+    const DynamicArray<ObjPtr<GameObject>>& GetChildren() { return children; }
 
     template <class T>
-    std::vector<T*> GetComponentsInChildren();
+    DynamicArray<T*> GetComponentsInChildren();
 
     bool HasPrefab() const { return prefab != nullptr; }
 
@@ -283,12 +283,12 @@ private:
     mutable bool transformChanged = true;
     mutable bool updateLocalMatrix = true;
 
-    std::vector<PhysicsContactCallback> contactAddedCallbacks = {};
-    std::vector<PhysicsContactCallback> contactRemovedCallbacks = {};
+    DynamicArray<PhysicsContactCallback> contactAddedCallbacks = {};
+    DynamicArray<PhysicsContactCallback> contactRemovedCallbacks = {};
 
-    std::vector<ObjPtr<GameObject>> children;
-    std::vector<std::unique_ptr<GameObject>> owningChildren;
-    std::vector<std::unique_ptr<Component>> components;
+    DynamicArray<ObjPtr<GameObject>> children;
+    DynamicArray<std::unique_ptr<GameObject>> owningChildren;
+    DynamicArray<std::unique_ptr<Component>> components;
     ObjPtr<GameObject> parent = nullptr;
     ObjPtr<Scene> gameScene = nullptr;
 
@@ -332,9 +332,9 @@ T* GameObject::GetComponent()
 }
 
 template <class T>
-std::vector<T*> GameObject::GetComponentsInChildren()
+DynamicArray<T*> GameObject::GetComponentsInChildren()
 {
-    std::vector<T*> results;
+    DynamicArray<T*> results;
 
     if (auto comp = GetComponent<T>())
     {
@@ -345,7 +345,7 @@ std::vector<T*> GameObject::GetComponentsInChildren()
     {
         if (c == nullptr)
             continue;
-        std::vector<T*> cs = c->GetComponentsInChildren<T>();
+        DynamicArray<T*> cs = c->GetComponentsInChildren<T>();
         results.insert(results.end(), cs.begin(), cs.end());
     }
 

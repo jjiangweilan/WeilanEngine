@@ -5,7 +5,7 @@
 #include "Libs/ArenaAllocator.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -24,7 +24,7 @@ struct VKAsyncReadbackHandle : public AsyncReadbackHandle
     uint8_t* GetData() override { return nullptr; }
     bool IsComplete() override { return isComplete; }
 
-    std::vector<std::uint8_t> data;
+    DynamicArray<std::uint8_t> data;
     std::atomic_bool isComplete;
 };
 
@@ -478,7 +478,7 @@ private:
     bool beginLabelStarted = false;
     std::string currentLabel;
 
-    std::vector<VKCmd> cmds;
+    DynamicArray<VKCmd> cmds;
     TmpAllocator tmpMemory;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;

@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <variant>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 class Texture;
 class GameObject;
@@ -52,7 +52,7 @@ public:
     int GetSize() { return gizmos.size(); }
 
     static bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
-    static void PickGizmos(const Ray& ray, std::vector<GameObject*>& result);
+    static void PickGizmos(const Ray& ray, DynamicArray<GameObject*>& result);
     static void ClearAllRegisteredGizmos() { GetSingleton().gizmos.clear(); }
 
     template <std::derived_from<GizmoBase> T, class... Args>
@@ -66,5 +66,5 @@ public:
     static void ResourceCleanup();
 private:
     static Gizmos& GetSingleton();
-    std::vector<std::unique_ptr<GizmoBase>> gizmos;
+    DynamicArray<std::unique_ptr<GizmoBase>> gizmos;
 };

@@ -169,9 +169,9 @@ public:
         };
     }
 
-    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, std::vector<Probe>& outProbes)
+    void Bake(Gfx::CommandBuffer& cmd, DrawList* drawList, DynamicArray<Probe>& outProbes)
     {
-        std::vector<ProbeInfo> probeInfos(outProbes.size());
+        DynamicArray<ProbeInfo> probeInfos(outProbes.size());
         for (int i = 0; i < outProbes.size(); ++i)
         {
             probeInfos[i].positionWS = glm::float4(outProbes[i].position, 1.0);
@@ -179,7 +179,7 @@ public:
 
         for (auto& probe : outProbes)
         {
-            std::vector<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+            DynamicArray<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
             for (int face = 0; face < 6; ++face)
             {
                 // set scissor and viewport

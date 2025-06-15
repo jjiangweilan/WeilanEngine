@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 class GameObject;
 
@@ -35,9 +35,9 @@ public:
     struct Channel
     {
         std::string nodeName;                    // name of the GameObject or Bone in a Mesh in the engine sense
-        std::vector<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
-        std::vector<RotationKeyFrame> rotations;
-        std::vector<ScalingKeyFrame> scalings;
+        DynamicArray<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
+        DynamicArray<RotationKeyFrame> rotations;
+        DynamicArray<ScalingKeyFrame> scalings;
     };
 
     struct AnimationClip
@@ -45,7 +45,7 @@ public:
         std::string name;
         float tickPerSecond;
         float duration;
-        std::vector<Channel> channels;
+        DynamicArray<Channel> channels;
     };
 
     using AnimationClips = std::unordered_map<std::string, std::unique_ptr<const AnimationClip>>;

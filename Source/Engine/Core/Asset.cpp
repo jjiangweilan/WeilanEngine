@@ -1,6 +1,6 @@
 #include "Asset.hpp"
 char AssetRegistry::RegisterAsset(
-    const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
+    const ObjectTypeID& assetID, const DynamicArray<std::string>& exts, const Creator& creator
 )
 {
     GetAssetTypeRegistery()->emplace(assetID, creator);

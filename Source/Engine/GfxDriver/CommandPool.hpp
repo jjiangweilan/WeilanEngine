@@ -1,7 +1,7 @@
 #pragma once
 #include "CommandBuffer.hpp"
 #include "CommandQueue.hpp"
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -15,7 +15,7 @@ public:
 
     virtual ~CommandPool(){};
 
-    virtual std::vector<std::unique_ptr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
+    virtual DynamicArray<std::unique_ptr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
     // virtual void ReleaseCommandBuffer(RefPtr<Gfx::CommandBuffer> cmdBuf);
     virtual void ResetCommandPool() = 0;
 

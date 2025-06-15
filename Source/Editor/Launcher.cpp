@@ -6,7 +6,7 @@
 
 class Launcher
 {
-    using ArgList = std::vector<std::string_view>;
+    using ArgList = DynamicArray<std::string_view>;
 
 public:
     Launcher() {}

@@ -4,7 +4,7 @@
 #include "Core/Ptr.hpp"
 #include "ShaderConfig.hpp"
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 namespace Gfx
 {
 struct ShaderResourceLayout

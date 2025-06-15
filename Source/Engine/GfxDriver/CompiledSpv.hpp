@@ -5,20 +5,20 @@
 #include "ResourceHandle.hpp"
 #include <nlohmann/json.hpp>
 #include <sstream>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
 // replaced by ShaderPorgramCreateInfo. now CompiledSpv only used in importing process
 struct CompiledSpv
 {
-    std::vector<uint32_t> vertSpv;
-    std::vector<uint32_t> vertSpv_noOp;
-    std::vector<uint32_t> fragSpv;
-    std::vector<uint32_t> fragSpv_noOp;
+    DynamicArray<uint32_t> vertSpv;
+    DynamicArray<uint32_t> vertSpv_noOp;
+    DynamicArray<uint32_t> fragSpv;
+    DynamicArray<uint32_t> fragSpv_noOp;
 
-    std::vector<uint32_t> compSpv;
-    std::vector<uint32_t> compSpv_noOp;
+    DynamicArray<uint32_t> compSpv;
+    DynamicArray<uint32_t> compSpv_noOp;
 };
 
 struct ShaderProgramCreateInfoVertex
@@ -28,7 +28,7 @@ struct ShaderProgramCreateInfoVertex
     {
         int channelByteSize = 32;
     };
-    std::vector<InputAttribute> inputAttributes;
+    DynamicArray<InputAttribute> inputAttributes;
 };
 
 enum class DescriptorSetSemantics
@@ -75,7 +75,7 @@ struct PipelineInfo
         DescriptorType descriptorType = DescriptorType::Invalid;
         TextureType textureType = TextureType::Invalid;
 
-        std::vector<BufferMember> bufferMembers = {};
+        DynamicArray<BufferMember> bufferMembers = {};
         uint32_t byteSize = 0;
 
         int samplerIndex = -1;
@@ -114,9 +114,9 @@ struct PipelineInfo
         std::string name;
         int setNum = 0;
         DescriptorSetSemantics semantics = Gfx::DescriptorSetSemantics::Global;
-        std::vector<Binding> bindings = {};
+        DynamicArray<Binding> bindings = {};
         std::unordered_map<std::string, Binding*> nameToBinding = {};
-        std::vector<SamplerConfig> samplerConfigs = {};
+        DynamicArray<SamplerConfig> samplerConfigs = {};
 
         const Binding* GetBinding(int bindingIdx) const
         {
@@ -171,10 +171,10 @@ struct PipelineInfo
 
     // this just means the position is not interleaved, but all the other attributes are interleaved
     bool isVertexInterleaved = false;
-    std::vector<VertexAttribute> vertexInputs = {};
-    std::vector<FragmentOutput> fragmentOutputs = {};
-    std::vector<DescriptorSet> descriptorSets = {};
-    std::vector<PushConstant> pushConstants = {};
+    DynamicArray<VertexAttribute> vertexInputs = {};
+    DynamicArray<FragmentOutput> fragmentOutputs = {};
+    DynamicArray<DescriptorSet> descriptorSets = {};
+    DynamicArray<PushConstant> pushConstants = {};
 
     const DescriptorSet* GetDescriptorSet(DescriptorSetSemantics semantics) const
     {
@@ -228,9 +228,9 @@ struct PipelineInfo
 
 struct PipelineCreateInfo
 {
-    std::vector<uint8_t> vertSpv = {};
-    std::vector<uint8_t> fragSpv = {};
-    std::vector<uint8_t> computeSpv = {};
+    DynamicArray<uint8_t> vertSpv = {};
+    DynamicArray<uint8_t> fragSpv = {};
+    DynamicArray<uint8_t> computeSpv = {};
 
     PipelineInfo pipelineInfo = {};
     PipelineConfig defaultConfig = {};

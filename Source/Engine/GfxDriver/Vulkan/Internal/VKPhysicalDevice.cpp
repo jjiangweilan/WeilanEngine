@@ -5,7 +5,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 namespace Gfx
 {
 VKPhysicalDevice::VKPhysicalDevice(VkPhysicalDevice gpu, VKSurface* surface)
@@ -26,11 +26,11 @@ VKPhysicalDevice::VKPhysicalDevice(VkPhysicalDevice gpu, VKSurface* surface)
     vkEnumerateDeviceExtensionProperties(gpu, nullptr, &count, availableExtensions.data());
 }
 
-std::vector<VKPhysicalDevice> VKPhysicalDevice::GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface)
+DynamicArray<VKPhysicalDevice> VKPhysicalDevice::GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface)
 {
     // Get all physical devices
     uint32_t count;
-    std::vector<VkPhysicalDevice> vulkanPhysicalDevices;
+    DynamicArray<VkPhysicalDevice> vulkanPhysicalDevices;
 
     VkResult result = vkEnumeratePhysicalDevices(instance->GetHandle(), &count, nullptr);
     if (result != VK_SUCCESS)
@@ -46,7 +46,7 @@ std::vector<VKPhysicalDevice> VKPhysicalDevice::GetAllPhysicalDevices(VKInstance
         throw std::runtime_error("can't get physical devices");
     }
 
-    std::vector<VKPhysicalDevice> physicalDevices;
+    DynamicArray<VKPhysicalDevice> physicalDevices;
     for (auto& vulkanPhysicalDevice : vulkanPhysicalDevices)
     {
         physicalDevices.emplace_back(vulkanPhysicalDevice, surface);
@@ -86,7 +86,7 @@ VKPhysicalDevice VKPhysicalDevice::SelectGPUAndQueryDataForSurface(VKInstance& i
 }
 
 VkFormat VKPhysicalDevice::PickSupportedFormat(
-    const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
+    const DynamicArray<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
 )
 {
     for (VkFormat format : candidates)

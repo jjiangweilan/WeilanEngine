@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
@@ -26,12 +26,12 @@ public:
         return surfaceCapabilities;
     }
 
-    inline const std::vector<VkPresentModeKHR>& GetSurfacePresentModes()
+    inline const DynamicArray<VkPresentModeKHR>& GetSurfacePresentModes()
     {
         return surfacePresentModes;
     }
 
-    inline const std::vector<VkSurfaceFormatKHR>& GetSurfaceFormats()
+    inline const DynamicArray<VkSurfaceFormatKHR>& GetSurfaceFormats()
     {
         return surfaceFormats;
     }
@@ -42,8 +42,8 @@ private:
     VkSurfaceKHR surface;
 
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    std::vector<VkPresentModeKHR> surfacePresentModes;
-    std::vector<VkSurfaceFormatKHR> surfaceFormats;
+    DynamicArray<VkPresentModeKHR> surfacePresentModes;
+    DynamicArray<VkSurfaceFormatKHR> surfaceFormats;
 
     friend class GfxContext;
 };

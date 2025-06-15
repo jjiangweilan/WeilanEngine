@@ -16,7 +16,7 @@
 // #include <stack>
 // #include <stdexcept>
 // #include <unordered_map>
-// #include <vector>
+// #include "Libs/DynamicArray.hpp"
 //
 // class ShaderCompiler
 // {
@@ -33,7 +33,7 @@
 //         struct FileData
 //         {
 //         public:
-//             std::vector<char> content;
+//             DynamicArray<char> content;
 //             std::string sourceName;
 //         };
 //
@@ -70,12 +70,12 @@
 //     // compile compute shader
 //     void CompileComputeShader(const char* path, const std::string& buf);
 //
-//     const std::vector<uint32_t>& GetVertexSPV()
+//     const DynamicArray<uint32_t>& GetVertexSPV()
 //     {
 //         return compiledSpvs[0].vertSpv;
 //     }
 //
-//     const std::vector<uint32_t>& GetFragSPV()
+//     const DynamicArray<uint32_t>& GetFragSPV()
 //     {
 //         return compiledSpvs[0].fragSpv;
 //     }
@@ -134,17 +134,17 @@
 //         const char* buf,
 //         int bufSize,
 //         std::set<std::filesystem::path>& includedTrack,
-//         const std::vector<std::string>& features,
-//         const std::vector<std::string>& stagefeatures,
-//         std::vector<uint32_t>& unoptimized,
-//         std::vector<uint32_t>& optimized
+//         const DynamicArray<std::string>& features,
+//         const DynamicArray<std::string>& stagefeatures,
+//         DynamicArray<uint32_t>& unoptimized,
+//         DynamicArray<uint32_t>& optimized
 //     );
-//     std::vector<std::vector<std::string>> FeatureToCombinations(const std::vector<std::vector<std::string>>&);
+//     DynamicArray<DynamicArray<std::string>> FeatureToCombinations(const DynamicArray<DynamicArray<std::string>>&);
 //     ShaderFeatureBitmask GenerateFeatureCombination(
-//         const std::vector<std::string>& combs,
+//         const DynamicArray<std::string>& combs,
 //         const std::unordered_map<std::string, ShaderFeatureBitmask>& featureToBitIndex
 //     );
-//     void FeaturesToBitmask(std::vector<std::vector<std::string>>& features, ShaderFeatureBitmaskStage shaderStage);
-//     static std::vector<std::vector<std::string>> ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName);
+//     void FeaturesToBitmask(DynamicArray<DynamicArray<std::string>>& features, ShaderFeatureBitmaskStage shaderStage);
+//     static DynamicArray<DynamicArray<std::string>> ExtractFeatures(ryml::NodeRef& root, ryml::csubstr featureName);
 //     static Gfx::ShaderConfig MapShaderConfig(ryml::Tree& tree, std::string& name);
 // };

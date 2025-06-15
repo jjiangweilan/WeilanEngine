@@ -1,4 +1,5 @@
 #pragma once
+#include "Libs/DynamicArray.hpp"
 #include <functional>
 #include <memory>
 #include <span>
@@ -6,7 +7,6 @@
 #include <string>
 #include <typeindex>
 #include <typeinfo>
-#include <vector>
 
 namespace Editor
 {
@@ -17,7 +17,7 @@ public:
     virtual ~Window() {}
     virtual bool Tick() = 0;
     virtual void OnOpen() {};
-    virtual void OnClose(){};
+    virtual void OnClose() {};
 
 private:
 };
@@ -25,7 +25,7 @@ private:
 struct WindowRegisterInfo
 {
     std::function<std::unique_ptr<Window>()> factory;
-    std::vector<std::string> menuPath;
+    DynamicArray<std::string> menuPath;
 };
 
 class WindowRegistery
@@ -33,15 +33,12 @@ class WindowRegistery
 public:
     template <class T>
     static bool Register(const std::string& menuPath);
-    static std::span<WindowRegisterInfo> GetRegistery()
-    {
-        return GetSingleton().registery;
-    }
+    static std::span<WindowRegisterInfo> GetRegistery() { return GetSingleton().registery; }
 
 private:
     static WindowRegistery& GetSingleton();
 
-    std::vector<WindowRegisterInfo> registery;
+    DynamicArray<WindowRegisterInfo> registery;
 };
 
 // menuPath: / separated string
@@ -49,7 +46,7 @@ template <class T>
 bool WindowRegistery::Register(const std::string& menuPath)
 {
     std::stringstream ss(menuPath);
-    std::vector<std::string> pathTokens;
+    DynamicArray<std::string> pathTokens;
     std::string token;
     char delimiter = '/';
     while (getline(ss, token, delimiter))

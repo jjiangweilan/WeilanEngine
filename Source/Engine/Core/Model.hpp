@@ -15,8 +15,8 @@ struct ModelNode
         unsigned int materialIndex;
     };
     std::string name;
-    std::vector<MeshInfo> meshes;
-    std::vector<ModelNode> children;
+    DynamicArray<MeshInfo> meshes;
+    DynamicArray<ModelNode> children;
     glm::mat4 transform;
 };
 
@@ -27,11 +27,11 @@ class Model : public Asset
 public:
     Model() {}
     Model(
-        std::vector<GameObject*>&& rootGameObjects,
-        std::vector<std::unique_ptr<GameObject>>&& gameObjects,
-        std::vector<std::unique_ptr<Mesh>>&& meshes,
-        std::vector<std::unique_ptr<Texture>>&& textures,
-        std::vector<std::unique_ptr<Material>>&& materials,
+        DynamicArray<GameObject*>&& rootGameObjects,
+        DynamicArray<std::unique_ptr<GameObject>>&& gameObjects,
+        DynamicArray<std::unique_ptr<Mesh>>&& meshes,
+        DynamicArray<std::unique_ptr<Texture>>&& textures,
+        DynamicArray<std::unique_ptr<Material>>&& materials,
         UUID uuid = UUID::GetEmptyUUID()
     )
         : meshes(std::move(meshes)), textures(std::move(textures)), materials(std::move(materials))
@@ -52,10 +52,10 @@ public:
 
     bool LoadFromFile(const char* path) override { return false; }
 
-    std::vector<Asset*> GetInternalAssets() override;
+    DynamicArray<Asset*> GetInternalAssets() override;
 
     // the first one is the root object
-    std::vector<std::unique_ptr<GameObject>> CreateGameObject();
+    DynamicArray<std::unique_ptr<GameObject>> CreateGameObject();
 
     std::span<std::unique_ptr<Mesh>> GetMeshes() { return meshes; }
     std::span<std::unique_ptr<Texture>> GetTextures() { return textures; }
@@ -66,21 +66,21 @@ public:
 
     void SetModel(
         ModelNode root,
-        std::vector<std::unique_ptr<Mesh>>&& meshes,
-        std::vector<std::unique_ptr<Texture>>&& textures,
-        std::vector<std::unique_ptr<Material>>&& materials,
-        std::vector<std::unique_ptr<Animation>>&& animations
+        DynamicArray<std::unique_ptr<Mesh>>&& meshes,
+        DynamicArray<std::unique_ptr<Texture>>&& textures,
+        DynamicArray<std::unique_ptr<Material>>&& materials,
+        DynamicArray<std::unique_ptr<Animation>>&& animations
     );
 
 private:
     bool assimpLoaded = false;
-    std::vector<std::unique_ptr<Mesh>> meshes;
-    std::vector<std::unique_ptr<Texture>> textures;
-    std::vector<std::unique_ptr<Material>> materials;
-    std::vector<std::unique_ptr<Animation>> animations;
+    DynamicArray<std::unique_ptr<Mesh>> meshes;
+    DynamicArray<std::unique_ptr<Texture>> textures;
+    DynamicArray<std::unique_ptr<Material>> materials;
+    DynamicArray<std::unique_ptr<Animation>> animations;
 
     ModelNode rootNode;
-    std::vector<std::unique_ptr<GameObject>> gameObjects; // the first one is the root
+    DynamicArray<std::unique_ptr<GameObject>> gameObjects; // the first one is the root
 
     nlohmann::json jsonData;
     std::unordered_map<int, Mesh*> toOurMesh;
@@ -89,7 +89,7 @@ private:
     // per model default material
     std::unique_ptr<Material> material = nullptr;
 
-    std::vector<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
+    DynamicArray<std::unique_ptr<GameObject>> CreateGameObjectFromNode(
         nlohmann::json& j,
         int nodeIndex,
         std::unordered_map<int, Mesh*>& meshes,
@@ -97,7 +97,7 @@ private:
         Material* defaultMaterial
     );
 
-    std::vector<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n, GameObject* parent);
+    DynamicArray<std::unique_ptr<GameObject>> CreateGameObject(ModelNode& n, GameObject* parent);
     void SetMaterialKeywords(ModelNode& node);
 
 };

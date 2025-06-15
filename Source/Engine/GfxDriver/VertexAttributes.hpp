@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 struct VertexBinding
 {
@@ -46,11 +46,11 @@ public:
 
     size_t GetSize() const { return data.size(); }
 
-    auto GetData() -> const std::vector<uint8_t> { return data; }
-    void SetData(const std::vector<uint8_t>& data) { this->data = data; }
-    void SetData(std::vector<uint8_t>&& data) { this->data = std::move(data); }
+    auto GetData() -> const DynamicArray<uint8_t> { return data; }
+    void SetData(const DynamicArray<uint8_t>& data) { this->data = data; }
+    void SetData(DynamicArray<uint8_t>&& data) { this->data = std::move(data); }
 
-    const std::vector<Attribute>& GetDescription() const { return attributes; }
+    const DynamicArray<Attribute>& GetDescription() const { return attributes; }
 
     size_t GetAttributeHash() const;
 
@@ -69,11 +69,11 @@ public:
     }
 
 private:
-    std::vector<Attribute> attributes;
+    DynamicArray<Attribute> attributes;
     mutable uint64_t hash = 0;
 
     // raw attribute data, attributes should be interleaved
-    std::vector<uint8_t> data;
+    DynamicArray<uint8_t> data;
 
     void Rehash() const;
 };

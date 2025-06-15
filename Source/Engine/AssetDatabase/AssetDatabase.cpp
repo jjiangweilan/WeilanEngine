@@ -74,7 +74,7 @@ bool AssetDatabase::IsAssetInDatabase(Asset& asset)
     return assets.GetAssetData(asset.GetUUID()) != nullptr;
 }
 
-std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> pathes)
+DynamicArray<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> pathes)
 {
     struct AsyncImport
     {
@@ -88,7 +88,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
         std::unique_ptr<JsonSerializer> ser = nullptr;
     };
 
-    std::vector<std::filesystem::path> validPathes{};
+    DynamicArray<std::filesystem::path> validPathes{};
     for (auto& path : pathes)
     {
         if (AssetRegistry::IsExtensionAnAsset(path.extension().string()))
@@ -98,8 +98,8 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
     }
 
     const int size = validPathes.size();
-    std::vector<Asset*> results(size, nullptr);
-    std::vector<AsyncImport> asyncImport(size);
+    DynamicArray<Asset*> results(size, nullptr);
+    DynamicArray<AsyncImport> asyncImport(size);
 
     for (int i = 0; i < validPathes.size(); ++i)
     {
@@ -148,7 +148,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                 {
                     asyncImport[i].stateTrack = 4;
                     size_t fileSize = std::filesystem::file_size(asyncImport[i].absoluteAssetPath);
-                    std::vector<uint8_t> binary(fileSize);
+                    DynamicArray<uint8_t> binary(fileSize);
                     f.read((char*)binary.data(), fileSize);
                     asyncImport[i].resolveMap = std::make_unique<SerializeReferenceResolveMap>();
                     asyncImport[i].ser = std::make_unique<JsonSerializer>(binary, asyncImport[i].resolveMap.get());
@@ -198,7 +198,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
                 LoadAssetByID(uuid);
             }
 
-            auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+            auto ResolveAll = [this](DynamicArray<SerializeReferenceResolve>& resolves, Object* resolved)
             {
                 while (!resolves.empty())
                 {
@@ -335,7 +335,7 @@ std::vector<Asset*> AssetDatabase::LoadAssets(std::span<std::filesystem::path> p
 //             if (f.is_open() && f.good())
 //             {
 //                 size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
-//                 std::vector<uint8_t> binary(fileSize);
+//                 DynamicArray<uint8_t> binary(fileSize);
 //                 f.read((char*)binary.data(), fileSize);
 //                 SerializeReferenceResolveMap resolveMap;
 //                 JsonSerializer ser(binary, &resolveMap);
@@ -568,7 +568,7 @@ void AssetDatabase::SaveDirtyAssets()
 
 void AssetDatabase::LoadEngineInternal()
 {
-    std::vector<std::string> pathes;
+    DynamicArray<std::string> pathes;
     for (auto entry : std::filesystem::recursive_directory_iterator("./Assets"))
     {
         if (!entry.is_directory())
@@ -583,8 +583,8 @@ void AssetDatabase::LoadEngineInternal()
         }
     }
 
-    std::vector<std::filesystem::path> importPathes;
-    std::vector<AssetData*> validAssetData;
+    DynamicArray<std::filesystem::path> importPathes;
+    DynamicArray<AssetData*> validAssetData;
     for (int i = 0; i < pathes.size(); ++i)
     {
         UUID assetDataUUID(pathes[i], UUID::FromStrTag{});
@@ -646,12 +646,12 @@ void AssetDatabase::RefreshShader()
     }
 }
 
-void AssetDatabase::SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported)
+void AssetDatabase::SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported)
 {
     auto importedAssetPaths = assetData->GetImportedAssetPaths();
     assetData->SetImportedAssetPaths(newImported);
 
-    std::vector<std::filesystem::path> toRemove;
+    DynamicArray<std::filesystem::path> toRemove;
     for (auto& oldp : importedAssetPaths)
     {
         auto findResult = std::find(newImported.begin(), newImported.end(), oldp);
@@ -680,7 +680,7 @@ AssetDatabase*& AssetDatabase::SingletonReference()
 
 void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap)
 {
-    auto ResolveAll = [this](std::vector<SerializeReferenceResolve>& resolves, Object* resolved)
+    auto ResolveAll = [this](DynamicArray<SerializeReferenceResolve>& resolves, Object* resolved)
     {
         while (!resolves.empty())
         {
@@ -778,7 +778,7 @@ Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
     loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
     bool importNeeded = forceReimport || loader->ImportNeeded();
-    std::vector<std::filesystem::path> importedAssetFilePaths;
+    DynamicArray<std::filesystem::path> importedAssetFilePaths;
     if (importNeeded)
     {
         importedAssetFilePaths = loader->Import();
@@ -887,7 +887,7 @@ void AssetDatabase::Rename(const std::filesystem::path& oldPath, const std::file
     }
 
     // collect all data before we actually move any file
-    std::vector<AssetData*> moveAssetFiles;
+    DynamicArray<AssetData*> moveAssetFiles;
 
     if (std::filesystem::is_directory(fullOldPath))
     {
@@ -1033,7 +1033,7 @@ void AssetDatabase::UnloadAsset(Asset& asset)
 void AssetDatabase::ReloadScripts()
 {
     auto gameScripts = Object::GetObjectsOfType<GameScript>();
-    std::vector<JsonSerializer> serializers(gameScripts.size());
+    DynamicArray<JsonSerializer> serializers(gameScripts.size());
     for (size_t i = 0; i < gameScripts.size(); ++i)
     {
         gameScripts[i]->LuaSerialize(&serializers[i]);
@@ -1057,7 +1057,7 @@ void AssetDatabase::ReloadScripts()
     }
 }
 
-std::vector<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
+DynamicArray<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
 {
     auto iter = assets.byUUID.find(uuid);
     if (iter != assets.byUUID.end())
@@ -1067,7 +1067,7 @@ std::vector<uint8_t> AssetDatabase::ReadRawAssetData(const UUID& uuid)
         {
             std::ifstream f(absolutePath, std::ios::binary);
             size_t fileSize = std::filesystem::file_size(absolutePath);
-            std::vector<uint8_t> binary(fileSize);
+            DynamicArray<uint8_t> binary(fileSize);
             f.read((char*)binary.data(), fileSize);
 
             return binary;

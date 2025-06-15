@@ -12,7 +12,7 @@ public:
     {
         this->importDatabaseRoot = importDatabaseRoot;
     }
-    std::vector<uint8_t> ReadFile(const std::string& filename);
+    DynamicArray<uint8_t> ReadFile(const std::string& filename);
 
     std::filesystem::path GetImportAssetPath(const std::string& filename);
 
@@ -34,7 +34,7 @@ public:
     virtual bool ImportNeeded() = 0;
 
     // imported file path
-    virtual std::vector<std::filesystem::path> Import() = 0;
+    virtual DynamicArray<std::filesystem::path> Import() = 0;
     virtual void Load() = 0;
 
     // no need to override if this data import doesn't need reference resolving
@@ -60,7 +60,7 @@ protected:
     nlohmann::json meta;
     ImportDatabase* importDatabase;
 
-    static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
+    static DynamicArray<std::string> GenerateExtensions(const std::string& exts, char delimiter)
     {
         auto tokens = Utils::SplitString(exts, ',');
         for (auto& t : tokens)
@@ -81,7 +81,7 @@ public:
     static std::unique_ptr<AssetLoader> CreateAssetLoaderByExtension(const Extension& id);
     static std::unique_ptr<AssetLoader> CreateAssetLoaderByType(const std::type_info& type);
     static char RegisterAssetLoader(
-        const std::vector<std::string>& exts, const Creator& creator, const std::vector<std::type_index>& types
+        const DynamicArray<std::string>& exts, const Creator& creator, const DynamicArray<std::type_index>& types
     );
 
 private:
@@ -94,7 +94,7 @@ private:
 
 #define DECLARE_ASSET_LOADER()                                                                                         \
 public:                                                                                                                \
-    static const std::vector<std::string>& StaticGetExtensions();                                                      \
+    static const DynamicArray<std::string>& StaticGetExtensions();                                                      \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
@@ -105,8 +105,8 @@ private:                                                                        
         []() { return std::unique_ptr<AssetLoader>(new Type()); },                                                     \
         Type::GetImportTypes()                                                                                         \
     );                                                                                                                 \
-    const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
+    const DynamicArray<std::string>& Type::StaticGetExtensions()                                                        \
     {                                                                                                                  \
-        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                               \
+        static DynamicArray<std::string> extensions = GenerateExtensions(Extension, ',');                               \
         return extensions;                                                                                             \
     }

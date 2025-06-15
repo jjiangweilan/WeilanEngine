@@ -17,8 +17,8 @@ public:
 private:
     std::unique_ptr<Gfx::Buffer> indexBuffer = nullptr;
     std::unique_ptr<Gfx::Buffer> vertexBuffer = nullptr;
-    std::vector<ImDrawVert> vtxDst;
-    std::vector<ImDrawIdx> idxDst;
+    DynamicArray<ImDrawVert> vtxDst;
+    DynamicArray<ImDrawIdx> idxDst;
     ObjPtr<Shader2> shader = nullptr;
     Gfx::Image* fontImage = nullptr;
     Gfx::Image* finalImage = nullptr;

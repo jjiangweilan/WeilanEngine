@@ -282,10 +282,10 @@ void VKDriver::QueueSubmit(
     RefPtr<Fence> signalFence
 )
 {
-    std::vector<VkSemaphore> vkWaitSemaphores;
-    std::vector<VkSemaphore> vkSignalSemaphores;
-    std::vector<VkPipelineStageFlags> vkPipelineStageFlags;
-    std::vector<VkCommandBuffer> vkCmdBufs;
+    DynamicArray<VkSemaphore> vkWaitSemaphores;
+    DynamicArray<VkSemaphore> vkSignalSemaphores;
+    DynamicArray<VkPipelineStageFlags> vkPipelineStageFlags;
+    DynamicArray<VkCommandBuffer> vkCmdBufs;
 
     for (auto w : waitSemaphores)
     {
@@ -325,9 +325,9 @@ std::unique_ptr<CommandPool> VKDriver::CreateCommandPool(const CommandPool::Crea
     return std::make_unique<VKCommandPool>(createInfo);
 }
 
-void VKDriver::WaitForFence(std::vector<RefPtr<Fence>>&& fences, bool waitAll, uint64_t timeout)
+void VKDriver::WaitForFence(DynamicArray<RefPtr<Fence>>&& fences, bool waitAll, uint64_t timeout)
 {
-    std::vector<VkFence> vkFences;
+    DynamicArray<VkFence> vkFences;
     for (auto f : fences)
     {
         vkFences.push_back(static_cast<VKFence*>(f.Get())->GetHandle());
@@ -788,7 +788,7 @@ bool VKDriver::Present(
     return false;
 }
 
-std::vector<const char*> VKDriver::AppWindowGetRequiredExtensions()
+DynamicArray<const char*> VKDriver::AppWindowGetRequiredExtensions()
 {
     unsigned int count;
     if (!SDL_Vulkan_GetInstanceExtensions(window, &count, nullptr))
@@ -796,7 +796,7 @@ std::vector<const char*> VKDriver::AppWindowGetRequiredExtensions()
         SPDLOG_CRITICAL(SDL_GetError());
     }
 
-    std::vector<const char*> names(count);
+    DynamicArray<const char*> names(count);
     if (!SDL_Vulkan_GetInstanceExtensions(window, &count, names.data()))
     {
         SPDLOG_CRITICAL(SDL_GetError());
@@ -805,12 +805,12 @@ std::vector<const char*> VKDriver::AppWindowGetRequiredExtensions()
     return names;
 }
 
-bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers)
+bool VKDriver::Instance_CheckAvalibilityOfValidationLayers(const DynamicArray<const char*>& validationLayers)
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-    std::vector<VkLayerProperties> availableLayers(layerCount);
+    DynamicArray<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
     // for (auto& k : availableLayers)
     // {
@@ -861,14 +861,14 @@ void VKDriver::CreateInstance(bool enableValidationLayers)
     createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-    std::vector<const char*> extensions = AppWindowGetRequiredExtensions();
+    DynamicArray<const char*> extensions = AppWindowGetRequiredExtensions();
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #if __APPLE__
     extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
-    std::vector<const char*> validationLayers = {
+    DynamicArray<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_KHRONOS_synchronization2"
     }; // If you don't get syncrhonization validation work, be sure it's enabled
@@ -961,7 +961,7 @@ void VKDriver::CreatePhysicalDevice()
 {
     // Get all physical devices
     uint32_t count;
-    std::vector<VkPhysicalDevice> physicalDevices;
+    DynamicArray<VkPhysicalDevice> physicalDevices;
 
     VkResult result = vkEnumeratePhysicalDevices(instance.handle, &count, nullptr);
     if (result != VK_SUCCESS)
@@ -977,7 +977,7 @@ void VKDriver::CreatePhysicalDevice()
         throw std::runtime_error("can't get physical devices");
     }
 
-    std::vector<GPU> gpus;
+    DynamicArray<GPU> gpus;
     for (auto pd : physicalDevices)
     {
         GPU thisGPU{pd};
@@ -1153,7 +1153,7 @@ void VKDriver::CreateDevice()
     deviceCreateInfo.pQueueCreateInfos = queueCreateInfos;
 
     deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    std::vector<const char*> deviceExtensions = {
+    DynamicArray<const char*> deviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         // VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME
     };

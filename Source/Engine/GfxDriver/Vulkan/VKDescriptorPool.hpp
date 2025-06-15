@@ -2,7 +2,7 @@
 #include "Core/Ptr.hpp"
 #include <string>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
 {
@@ -35,12 +35,12 @@ public:
 private:
     VkDescriptorPoolCreateInfo createInfo{};
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-    std::vector<VkDescriptorPoolSize> poolSizes = {};
+    DynamicArray<VkDescriptorPoolSize> poolSizes = {};
     RefPtr<VKContext> context;
 
-    std::vector<VkDescriptorPool> fullPools{};
-    std::vector<VkDescriptorSet> freeSets;
-    std::vector<VkDescriptorSet> currFramefreeSets;
+    DynamicArray<VkDescriptorPool> fullPools{};
+    DynamicArray<VkDescriptorSet> freeSets;
+    DynamicArray<VkDescriptorSet> currFramefreeSets;
     VkDescriptorPool freePool = VK_NULL_HANDLE;
 
     VkDescriptorPool CreateNewPool();
@@ -63,7 +63,7 @@ struct VKDescriptorPoolCache
 
 private:
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
-    std::vector<std::unique_ptr<VKDescriptorPool>> descriptorLayoutPoolCache;
+    DynamicArray<std::unique_ptr<VKDescriptorPool>> descriptorLayoutPoolCache;
     RefPtr<VKContext> context;
 
 private:

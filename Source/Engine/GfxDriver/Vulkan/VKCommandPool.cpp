@@ -19,7 +19,7 @@ VKCommandPool::~VKCommandPool()
     vkDestroyCommandPool(GetDevice(), commandPool, VK_NULL_HANDLE);
 }
 
-std::vector<std::unique_ptr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
+DynamicArray<std::unique_ptr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandBuffers(CommandBufferType type, int count)
 {
     //VkCommandBuffer* cmdBufsTemp = new VkCommandBuffer[count];
 
@@ -32,14 +32,14 @@ std::vector<std::unique_ptr<Gfx::CommandBuffer>> VKCommandPool::AllocateCommandB
     //cmdAllocInfo.commandBufferCount = count;
     //vkAllocateCommandBuffers(GetDevice(), &cmdAllocInfo, cmdBufsTemp);
 
-    //std::vector<std::unique_ptr<Gfx::CommandBuffer>> rlt;
+    //DynamicArray<std::unique_ptr<Gfx::CommandBuffer>> rlt;
     //for (int i = 0; i < count; ++i)
     //{
     //    rlt.push_back(std::make_unique<VKCommandBuffer>(cmdBufsTemp[i]));
     //}
 
     //delete[] cmdBufsTemp;
-    return std::vector<std::unique_ptr<Gfx::CommandBuffer>>();
+    return DynamicArray<std::unique_ptr<Gfx::CommandBuffer>>();
 }
 
 void VKCommandPool::ResetCommandPool()

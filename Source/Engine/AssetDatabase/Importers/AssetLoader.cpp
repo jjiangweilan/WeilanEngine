@@ -1,7 +1,7 @@
 #include "AssetLoader.hpp"
 #include <fstream>
 
-std::vector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
+DynamicArray<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
 {
     std::fstream f;
     auto absoluteAssetPath = importDatabaseRoot / filename;
@@ -9,7 +9,7 @@ std::vector<uint8_t> ImportDatabase::ReadFile(const std::string& filename)
     if (f.good() && f.is_open())
     {
         auto fileSize = std::filesystem::file_size(absoluteAssetPath);
-        std::vector<uint8_t> d(fileSize);
+        DynamicArray<uint8_t> d(fileSize);
         f.read((char*)d.data(), fileSize);
 
         return d;
@@ -33,7 +33,7 @@ std::unique_ptr<AssetLoader> AssetLoaderRegistry::CreateAssetLoaderByExtension(c
     return nullptr;
 }
 char AssetLoaderRegistry::RegisterAssetLoader(
-    const std::vector<std::string>& exts, const Creator& creator, const std::vector<std::type_index>& types
+    const DynamicArray<std::string>& exts, const Creator& creator, const DynamicArray<std::type_index>& types
 )
 {
     for (auto& e : exts)

@@ -27,7 +27,7 @@
 //         int x, y;
 //     } page;
 // };
-// using AnalysisFeedback = std::vector<VTUpdate>;
+// using AnalysisFeedback = DynamicArray<VTUpdate>;
 //
 // class VirtualTextureRenderer::FeedbackAnalyzer
 //{
@@ -175,7 +175,7 @@
 //         // a quad tree represent the cache image
 //         UniPtr<LinearImage> tex;
 //
-//         std::vector<glm::ivec2> freePages;
+//         DynamicArray<glm::ivec2> freePages;
 //         std::list<glm::ivec2> usedPages;
 //     } cache;
 //
@@ -254,7 +254,7 @@
 //             int cacheX, cacheY;
 //         };
 //
-//         std::vector<ScheduledUpaload> scheduledUpload;
+//         DynamicArray<ScheduledUpaload> scheduledUpload;
 //         for (auto requestIter = cache.pageRequests.begin(); requestIter != cache.pageRequests.end(); ++requestIter)
 //         {
 //             auto node = *requestIter;
@@ -366,7 +366,7 @@
 //     Param param;
 //     bool pageChanged = false;
 //
-//     std::vector<FeedbackStruct> feedbackStructs;
+//     DynamicArray<FeedbackStruct> feedbackStructs;
 // };
 //
 // VirtualTextureRenderer::~VirtualTextureRenderer() = default;

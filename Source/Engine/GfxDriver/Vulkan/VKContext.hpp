@@ -25,7 +25,7 @@ struct TimestampQueryLabel
 
 struct CmdBufExecutionReport
 {
-    std::vector<TimestampQueryLabel> timestampQueryLabels{};
+    DynamicArray<TimestampQueryLabel> timestampQueryLabels{};
 };
 
 struct GfxFeaturesSettings
@@ -50,16 +50,16 @@ struct GPU
     VkPhysicalDeviceProperties physicalDeviceProperties{};
     VkPhysicalDeviceFeatures physicalDeviceFeatures{};
 
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-    std::vector<VkExtensionProperties> availableExtensions;
+    DynamicArray<VkQueueFamilyProperties> queueFamilyProperties;
+    DynamicArray<VkExtensionProperties> availableExtensions;
 };
 
 struct Surface
 {
     VkSurfaceKHR handle;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    std::vector<VkPresentModeKHR> surfacePresentModes;
-    std::vector<VkSurfaceFormatKHR> surfaceFormats;
+    DynamicArray<VkPresentModeKHR> surfacePresentModes;
+    DynamicArray<VkSurfaceFormatKHR> surfaceFormats;
 
     void QuerySurfaceProperties(VkPhysicalDevice gpu);
 };
@@ -84,7 +84,7 @@ struct Swapchain
         VkSemaphore presendSemaphore;
         uint32_t swapchainIndex;
     };
-    std::vector<InflightData> inflightData = {};
+    DynamicArray<InflightData> inflightData = {};
     uint32_t currentInflightIndex = 0;
 
     bool CreateOrOverrideSwapChain(Surface& surface, int& swapchainImageCount, uint32_t width = 0, uint32_t height = 0);

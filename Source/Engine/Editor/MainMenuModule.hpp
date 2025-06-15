@@ -1,8 +1,8 @@
 #pragma once
+#include "Libs/DynamicArray.hpp"
 #include <functional>
-#include <string_view>
-#include <vector>
 #include <string>
+#include <string_view>
 namespace Editor
 {
 class MainMenuModule
@@ -18,10 +18,10 @@ private:
     struct RegisteredMenuItem
     {
         std::string path;
-        std::vector<std::string> pathComponents;
+        DynamicArray<std::string> pathComponents;
         std::function<void()> func;
     };
-    std::vector<RegisteredMenuItem> items;
+    DynamicArray<RegisteredMenuItem> items;
 };
 
 } // namespace Editor

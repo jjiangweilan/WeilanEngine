@@ -37,8 +37,8 @@ struct ResourceUsageTrack
 
     std::variant<ObjPtr<Image>, ObjPtr<Buffer>> res;
 
-    std::vector<ResourceUsage> previousFrameUsages;
-    std::vector<ResourceUsage> currentFrameUsages;
+    DynamicArray<ResourceUsage> previousFrameUsages;
+    DynamicArray<ResourceUsage> currentFrameUsages;
 };
 
 class Graph
@@ -106,17 +106,17 @@ private:
         int currentTimestapQueryIndex = 0;
     } exeState;
 
-    std::vector<VKCmd> currentSchedulingCmds{};
+    DynamicArray<VKCmd> currentSchedulingCmds{};
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
     size_t evenRecordActiveSchedulingCmdsIndex;
 
-    std::vector<Barrier> barriers;
-    std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
-    std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
-    std::vector<VkMemoryBarrier> memoryBarriers;
-    std::vector<std::shared_ptr<AsyncReadbackHandle>> asyncReadbacks;
+    DynamicArray<Barrier> barriers;
+    DynamicArray<VkImageMemoryBarrier> imageMemoryBarriers;
+    DynamicArray<VkBufferMemoryBarrier> bufferMemoryBarriers;
+    DynamicArray<VkMemoryBarrier> memoryBarriers;
+    DynamicArray<std::shared_ptr<AsyncReadbackHandle>> asyncReadbacks;
 
     using ShaderProgramID = UUID;
     std::unordered_map<ShaderProgramID, VKShaderResource> globalResources;
@@ -127,7 +127,7 @@ private:
 
     void CreateRenderPassNode(int visitIndex);
     // scheduling
-    void FlushAllBindedSetUpdate(std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded);
+    void FlushAllBindedSetUpdate(DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded);
     bool TrackResource(
         VKImage* writableResource,
         Gfx::ImageSubresourceRange range,

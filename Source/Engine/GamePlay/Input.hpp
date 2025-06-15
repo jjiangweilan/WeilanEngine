@@ -1,5 +1,6 @@
 #pragma once
 #include "Libs/Math.hpp"
+#include "Libs/DynamicArray.hpp"
 #include <SDL.h>
 
 struct Gamepad

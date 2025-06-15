@@ -224,10 +224,10 @@ private:
     Rendering::ParticleDraw draw;
     Mesh* particleMesh = nullptr;
     int particleCount = 1024;
-    std::vector<Particle> particles;
+    DynamicArray<Particle> particles;
     std::unique_ptr<Gfx::Buffer> particleWorldMatrixBuffer;
     std::unique_ptr<Material> particleParameters = std::make_unique<Material>();
-    std::vector<std::unique_ptr<ParticleModifiers::Base>> particleModifiers;
+    DynamicArray<std::unique_ptr<ParticleModifiers::Base>> particleModifiers;
     size_t GetParticleBufferByteSize(int particleCount);
     void UpdatePositionBuffer();
 

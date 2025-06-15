@@ -4,7 +4,6 @@
 #include "Internal/VKEnumMapper.hpp"
 #include "Internal/VKObjectManager.hpp"
 #include "Internal/VKSwapChain.hpp"
-#include "Libs/Allocator/LinearAllocator.hpp"
 #include "Libs/Assert.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include "VKBuffer.hpp"
@@ -207,9 +206,9 @@ void VKShaderProgram::GeneratePipelineLayout()
     pipelineLayoutCreateInfo.flags = 0;
     // prepare data
     using DescriptorSetLayoutBindingVector =
-        std::vector<VkDescriptorSetLayoutBinding>;
-    std::vector<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
-    std::vector<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()
+        DynamicArray<VkDescriptorSetLayoutBinding>;
+    DynamicArray<VkDescriptorSetLayout> layouts(pipelineInfo.descriptorSets.size());
+    DynamicArray<DescriptorSetLayoutBindingVector> descriptorSetLayoutBindingVectors(pipelineInfo.descriptorSets.size()
     ); // an unique memory location is needed for each descriptorSetLayoutBindingVector because vulkan_hash uses the
        // memory address as hashing input
     const int MaxImmutableSamplerBindings = 512;
@@ -374,7 +373,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     createInfo.pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo;
 
     /******* Vertex Input ********/
-    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions{};
+    DynamicArray<VkVertexInputBindingDescription> vertexInputBindingDescriptions{};
     {
         int bindingIndex = 0;
         for (VKBuffer* vtxBuf : vertexBindingBuffers)
@@ -396,7 +395,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
         }
     }
 
-    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
+    DynamicArray<VkVertexInputAttributeDescription> vertexAttributeDescriptions{};
     {
         for (auto& vertexAttribute : pipelineInfo.vertexInputs)
         {
@@ -520,7 +519,7 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
     // protect unwritten output with color mask
     auto& subpass = renderPass->GetSubpesses()[subpassIndex];
     size_t subpassSize = subpass.colors.size();
-    std::vector<VkPipelineColorBlendAttachmentState>
+    DynamicArray<VkPipelineColorBlendAttachmentState>
         blendStates(subpassSize);
     for (uint32_t i = 0; i < subpassSize; ++i)
     {

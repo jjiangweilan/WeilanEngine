@@ -3,7 +3,7 @@
 #include "Libs/Math.hpp"
 
 #include <cstdint>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 class LinearCubemap
 {
 public:
@@ -144,5 +144,5 @@ private:
     uint32_t elementSize;
     uint32_t totalSize;
     uint32_t singleFaceSize;
-    std::vector<unsigned char> data;
+    DynamicArray<unsigned char> data;
 };

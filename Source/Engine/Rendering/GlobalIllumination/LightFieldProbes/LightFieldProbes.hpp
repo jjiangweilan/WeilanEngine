@@ -1,6 +1,6 @@
 #pragma once
 #include "Probe.hpp"
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 class Scene;
 namespace Rendering::LFP
 {
@@ -48,8 +48,8 @@ public:
     }
 
 private:
-    std::vector<Probe> probes = {};
+    DynamicArray<Probe> probes = {};
     glm::vec3 probeCount = {};
-    std::vector<std::unique_ptr<ProbeBaker>> probeBakers;
+    DynamicArray<std::unique_ptr<ProbeBaker>> probeBakers;
 };
 } // namespace Rendering::LFP

@@ -125,7 +125,7 @@
 //    uint32_t imageCount = 0;
 //
 //    vkGetSwapchainImagesKHR(attachedDevice->GetHandle(), swapChain, &imageCount, VK_NULL_HANDLE);
-//    std::vector<VkImage> swapChainImagesTemp(imageCount);
+//    DynamicArray<VkImage> swapChainImagesTemp(imageCount);
 //    if (vkGetSwapchainImagesKHR(attachedDevice->GetHandle(), swapChain, &imageCount, swapChainImagesTemp.data()) !=
 //        VK_SUCCESS)
 //    {

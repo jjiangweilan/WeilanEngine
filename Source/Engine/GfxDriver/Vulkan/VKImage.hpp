@@ -13,7 +13,7 @@
 
 #include <cinttypes>
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 namespace Gfx
 {
 class VKImageView;
@@ -109,7 +109,7 @@ protected:
     std::unique_ptr<VKImageView> imageView;
     std::unique_ptr<VKImageView> imageViewForShaderResource = nullptr;
     std::string name;
-    std::vector<VkImageLayout> layoutTrack;
+    DynamicArray<VkImageLayout> layoutTrack;
     bool isSwapchainProxy = false;
 
     ImageViewType GenerateDefaultImageViewViewType();

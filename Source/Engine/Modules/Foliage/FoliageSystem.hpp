@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 class FoliageSystem
 {
@@ -7,5 +7,5 @@ public:
     void Render();
 
 private:
-    std::vector<FoliagePatch> foliagePatches;
+    DynamicArray<FoliagePatch> foliagePatches;
 };

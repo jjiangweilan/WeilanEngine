@@ -44,7 +44,7 @@ public:
     // return false if loading failed
     virtual bool LoadFromFile(const char* path) { return false; }
 
-    virtual std::vector<Asset*> GetInternalAssets() { return std::vector<Asset*>{}; }
+    virtual DynamicArray<Asset*> GetInternalAssets() { return DynamicArray<Asset*>{}; }
 
     bool IsDirty() { return HasFlag(stateFlags, AssetState::DontSave) ? false : isDirty; }
 
@@ -75,7 +75,7 @@ protected:
     std::string name = "";
     std::filesystem::path sourceAssetFile = "";
 
-    static std::vector<std::string> GenerateExtensions(const std::string& exts, char delimiter)
+    static DynamicArray<std::string> GenerateExtensions(const std::string& exts, char delimiter)
     {
         auto tokens = Utils::SplitString(exts, ',');
         for (auto& t : tokens)
@@ -102,7 +102,7 @@ public:
     template <class T>
     static std::unique_ptr<T> CreateAsset(const ObjectTypeID& id);
     static char RegisterAsset(
-        const ObjectTypeID& assetID, const std::vector<std::string>& exts, const Creator& creator
+        const ObjectTypeID& assetID, const DynamicArray<std::string>& exts, const Creator& creator
     );
     static char RegisterExternalAsset(const ObjectTypeID& assetID, const char* ext, const Creator& creator);
     static bool IsExtensionAnAsset(const std::string& ext);
@@ -119,7 +119,7 @@ concept IsAsset = requires { std::derived_from<T, Asset>; };
     DECLARE_OBJECT()                                                                                                   \
 public:                                                                                                                \
     const std::string& GetExtension() override;                                                                        \
-    static const std::vector<std::string>& StaticGetExtensions();                                                      \
+    static const DynamicArray<std::string>& StaticGetExtensions();                                                      \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
@@ -128,7 +128,7 @@ private:                                                                        
     DECLARE_OBJECT()                                                                                                   \
 public:                                                                                                                \
     const std::string& GetExtension() override;                                                                        \
-    static const std::vector<std::string>& StaticGetExtensions();                                                      \
+    static const DynamicArray<std::string>& StaticGetExtensions();                                                      \
     bool IsExternalAsset() override                                                                                    \
     {                                                                                                                  \
         return true;                                                                                                   \
@@ -148,8 +148,8 @@ private:                                                                        
     {                                                                                                                  \
         return StaticGetExtensions()[0];                                                                               \
     }                                                                                                                  \
-    const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
+    const DynamicArray<std::string>& Type::StaticGetExtensions()                                                        \
     {                                                                                                                  \
-        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                               \
+        static DynamicArray<std::string> extensions = GenerateExtensions(Extension, ',');                               \
         return extensions;                                                                                             \
     }

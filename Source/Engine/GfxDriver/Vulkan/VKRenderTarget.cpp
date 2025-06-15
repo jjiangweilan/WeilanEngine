@@ -61,9 +61,9 @@ private:
     size_t attachmentCount;
 
     // render pass data
-    std::vector<VkAttachmentDescription> attachmentDescriptions;
-    std::vector<VkSubpassDescription> subpassDescriptions;
-    std::vector<VkAttachmentReference> colorAttachmentReferences;
+    DynamicArray<VkAttachmentDescription> attachmentDescriptions;
+    DynamicArray<VkSubpassDescription> subpassDescriptions;
+    DynamicArray<VkAttachmentReference> colorAttachmentReferences;
     VkAttachmentReference depthStencilAttachmentReference;
 
     void MakeRenderPassCreateInfos(const RenderTargetDescription& rtDescription,
@@ -72,8 +72,8 @@ private:
         bool hasDepthStencil = rtDescription.depthStencilDescription.has_value();
         attachmentCount = colorAttachmentCount + (hasDepthStencil ? 1 : 0);
 
-        attachmentDescriptions = std::vector<VkAttachmentDescription>(attachmentCount);
-        colorAttachmentReferences = std::vector<VkAttachmentReference>(colorAttachmentCount);
+        attachmentDescriptions = DynamicArray<VkAttachmentDescription>(attachmentCount);
+        colorAttachmentReferences = DynamicArray<VkAttachmentReference>(colorAttachmentCount);
 
         ASSERT(colorAttachmentCount == renderPassConfig.colors.size() && "color attachment size has to be same size");
 
@@ -116,7 +116,7 @@ private:
                 MapAttachmentStoreOp(renderPassConfig.depthStencil.stencilStoreOp);
         }
 
-        subpassDescriptions = std::vector<VkSubpassDescription>(1);
+        subpassDescriptions = DynamicArray<VkSubpassDescription>(1);
         auto& subpassDesc = subpassDescriptions[0];
         subpassDesc.flags = 0;
         subpassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -150,7 +150,7 @@ VKRenderTarget::~VKRenderTarget()
         objectManager->DestroyFramebuffer(framebuffer_vk);
 }
 
-const std::vector<VkClearValue>& VKRenderTarget::GetClearValues() { return clearValues; }
+const DynamicArray<VkClearValue>& VKRenderTarget::GetClearValues() { return clearValues; }
 
 VkRenderPass VKRenderTarget::RequestRenderPass(const RenderPassConfig& config)
 {

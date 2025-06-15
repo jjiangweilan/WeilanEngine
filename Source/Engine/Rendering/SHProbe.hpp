@@ -28,7 +28,7 @@ public:
 
     void DebugDrawProbe(const float3& position);
 
-    const std::vector<float4>& GetSHCoefficients() const { return shData; }
+    const DynamicArray<float4>& GetSHCoefficients() const { return shData; }
     bool HasSH() const { return !shData.empty(); }
 
 private:
@@ -36,7 +36,7 @@ private:
 
     std::unique_ptr<Gfx::Buffer> sh = nullptr;
     std::unique_ptr<Material> debugMaterial = nullptr;
-    std::vector<float4> shData = {};
+    DynamicArray<float4> shData = {};
 
     void BakeToSh();
     std::array<float3, 9> BakeToSHCPU(Gfx::ImageDescription& cubeMapDesc, std::unique_ptr<Gfx::Buffer>& readbackBuffer);

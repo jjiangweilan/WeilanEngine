@@ -5,7 +5,7 @@
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
 #include <variant>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -91,8 +91,8 @@ private:
 
     using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCustomCmd>;
 
-    std::vector<DrawCmds> drawCmds;
-    std::vector<std::vector<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
+    DynamicArray<DrawCmds> drawCmds;
+    DynamicArray<DynamicArray<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
         renderingEvents;
 
     static void DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& draw);

@@ -20,7 +20,7 @@
 #include <memory>
 #include <slang.h>
 #include <span>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -114,7 +114,7 @@ public:
 
     virtual void FlushPendingCommands() = 0;
     // return true if swapchain is recreated
-    virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
+    virtual void WaitForFence(DynamicArray<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;
 

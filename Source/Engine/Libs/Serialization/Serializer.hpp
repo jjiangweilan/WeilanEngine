@@ -17,7 +17,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 using ReferenceResolveCallback = std::function<void(void* resource)>;
 
@@ -65,13 +65,13 @@ struct SerializeReferenceResolve
     int** managedObjectRefCounter;
 };
 
-using SerializeReferenceResolveMap = std::unordered_map<UUID, std::vector<SerializeReferenceResolve>>;
+using SerializeReferenceResolveMap = std::unordered_map<UUID, DynamicArray<SerializeReferenceResolve>>;
 
 class Serializer
 {
 public:
     // used for deserialization
-    Serializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : resolveCallbacks(resolve) {}
+    Serializer(const DynamicArray<uint8_t>& data, SerializeReferenceResolveMap* resolve) : resolveCallbacks(resolve) {}
 
     // used for serialization
     Serializer() {};
@@ -86,9 +86,9 @@ public:
     );
 
     template <class T>
-    void Serialize(std::string_view name, const std::vector<T>& val, std::function<bool(const T&)> = nullptr);
+    void Serialize(std::string_view name, const DynamicArray<T>& val, std::function<bool(const T&)> = nullptr);
     template <class T>
-    void Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback = nullptr);
+    void Deserialize(std::string_view name, DynamicArray<T>& val, const ReferenceResolveCallback& callback = nullptr);
 
     template <class T>
     void Serialize(std::string_view name, const ObjPtr<T>& val);
@@ -178,12 +178,12 @@ public:
     virtual bool IsNull(std::string_view name) = 0;
     virtual bool IsNull() = 0;
 
-    virtual std::vector<uint8_t> GetBinary() = 0;
+    virtual DynamicArray<uint8_t> GetBinary() = 0;
     const std::unordered_map<UUID, Object*>& GetContainedObjects() { return objects; }
 
     const std::unordered_map<UUID, int*>& GetManagedObjects() { return managedObjects; }
 
-    const std::vector<UUID>& GetReferencedObjects() { return referencedObjects; }
+    const DynamicArray<UUID>& GetReferencedObjects() { return referencedObjects; }
 
     virtual std::unique_ptr<Serializer> CreateSubserializer() = 0;
     virtual std::unique_ptr<Serializer> CreateSubdeserializer(std::string_view name) = 0;
@@ -193,7 +193,7 @@ protected:
     SerializeReferenceResolveMap* resolveCallbacks;
     std::unordered_map<UUID, Object*> objects;
     std::unordered_map<UUID, int*> managedObjects;
-    std::vector<UUID> referencedObjects;
+    DynamicArray<UUID> referencedObjects;
 
     virtual void Serialize(std::string_view name, unsigned char* p, size_t size) = 0;
     virtual void Deserialize(std::string_view name, unsigned char* p, size_t size) = 0;
@@ -231,7 +231,7 @@ void Serializer::Deserialize(
 
 template <class T>
 void Serializer::Serialize(
-    std::string_view name, const std::vector<T>& val, std::function<bool(const T&)> shouldSerialize
+    std::string_view name, const DynamicArray<T>& val, std::function<bool(const T&)> shouldSerialize
 )
 {
     int serializeIndex = 0;
@@ -248,7 +248,7 @@ void Serializer::Serialize(
 }
 
 template <class T>
-void Serializer::Deserialize(std::string_view name, std::vector<T>& val, const ReferenceResolveCallback& callback)
+void Serializer::Deserialize(std::string_view name, DynamicArray<T>& val, const ReferenceResolveCallback& callback)
 {
     uint32_t size = GetArraySize(name);
     val.resize(size);

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stack>
 #include <string>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 struct ProfileScope
 {
@@ -11,7 +11,7 @@ struct ProfileScope
     std::chrono::time_point<std::chrono::nanoseconds> startTime;
     int64_t totalTime = 0;
     float GetMilliseconds() const { return totalTime * 1e-3f; }
-    std::vector<ProfileScope> children;
+    DynamicArray<ProfileScope> children;
 };
 
 class Profiler
@@ -40,9 +40,9 @@ public:
         return frameProfiles[inProfiling ? currentFrame : currentFrame - 1];
     }
 
-    std::vector<float> GetFlattendFrametime() const;
+    DynamicArray<float> GetFlattendFrametime() const;
     int GetLatestFrameIndex() const { return inProfiling ? currentFrame : currentFrame - 1; }
-    const std::vector<ProfileScope>& GetFrameProfiles() const { return frameProfiles; }
+    const DynamicArray<ProfileScope>& GetFrameProfiles() const { return frameProfiles; }
     int GetFrameIndex() const { return currentFrame; }
     int GetTrackCycles() const { return trackCycles; }
 
@@ -53,7 +53,7 @@ private:
     bool actuallyPaused = false;
     bool inProfiling = false;
     std::stack<ProfileScope*> activeScopes;
-    std::vector<ProfileScope> frameProfiles;
+    DynamicArray<ProfileScope> frameProfiles;
     int currentFrame = 0;
     int trackCycles = 0;
 };

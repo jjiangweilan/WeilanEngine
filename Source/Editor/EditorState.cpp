@@ -2,7 +2,7 @@
 
 namespace Editor
 {
-std::vector<ObjPtr<Object>> EditorState::selectedObjects = {};
+DynamicArray<ObjPtr<Object>> EditorState::selectedObjects = {};
 GameLoop* EditorState::gameLoop = nullptr;
 
 void EditorState::DeselectObject(Object* obj)
@@ -63,7 +63,7 @@ Object* EditorState::GetMainSelectedObject()
     return nullptr;
 }
 
-std::vector<ObjPtr<Object>> EditorState::GetSelectedObjects()
+DynamicArray<ObjPtr<Object>> EditorState::GetSelectedObjects()
 {
     return selectedObjects;
 }

@@ -7,7 +7,7 @@
 #include "ResourceHandle.hpp"
 #include "ThirdParty/xxHash/xxhash.h"
 #include <optional>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 namespace Gfx::VK::RenderGraph
 {
@@ -168,7 +168,7 @@ struct SubpassAttachment
 
 struct Subpass
 {
-    std::vector<SubpassAttachment> colors;
+    DynamicArray<SubpassAttachment> colors;
     SubpassAttachment depth;
     bool operator==(const Subpass& other) const = default;
 };
@@ -277,8 +277,8 @@ public:
 
     bool IsValidForRendering() const;
 
-    const std::vector<ImageIdentifier>& GetAttachments() { return attachments; }
-    const std::vector<Subpass>& GetSubpasses() { return subpasses; }
+    const DynamicArray<ImageIdentifier>& GetAttachments() { return attachments; }
+    const DynamicArray<Subpass>& GetSubpasses() { return subpasses; }
 
     void SetSubpass(
         int index, std::span<SubpassAttachment> colors, std::optional<SubpassAttachment> depth = std::nullopt
@@ -289,7 +289,7 @@ public:
             if (colors.size() != subpasses[index].colors.size() ||
                 subpasses[index].depth != depth.value_or(SubpassAttachment()))
             {
-                subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
+                subpasses[index].colors = DynamicArray<SubpassAttachment>(colors.begin(), colors.end());
                 subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
                 rehash = true;
             }
@@ -303,7 +303,7 @@ public:
 
                 if (diff)
                 {
-                    subpasses[index].colors = std::vector<SubpassAttachment>(colors.begin(), colors.end());
+                    subpasses[index].colors = DynamicArray<SubpassAttachment>(colors.begin(), colors.end());
                     subpasses[index].depth = depth.value_or(SubpassAttachment{-1});
                     rehash = true;
                 }
@@ -408,8 +408,8 @@ private:
     bool rehash = false;
     mutable uint64_t hash = 0;
     std::string name = "";
-    std::vector<ImageIdentifier> attachments = {};
-    std::vector<Subpass> subpasses = {};
+    DynamicArray<ImageIdentifier> attachments = {};
+    DynamicArray<Subpass> subpasses = {};
 
     int& GetDefaultNameId()
     {

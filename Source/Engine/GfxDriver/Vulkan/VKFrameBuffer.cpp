@@ -14,7 +14,7 @@ VKFrameBuffer::~VKFrameBuffer()
         VKContext::Instance()->objManager->DestroyFramebuffer(frameBuffer);
 }
 
-void VKFrameBuffer::SetAttachments(const std::vector<RefPtr<Image>>& attachments)
+void VKFrameBuffer::SetAttachments(const DynamicArray<RefPtr<Image>>& attachments)
 {
     this->attachments.clear();
     for (auto a : attachments)

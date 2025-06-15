@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 namespace Gfx
 {
@@ -19,12 +19,12 @@ public:
         return physicalDeviceFeatures;
     }
 
-    const std::vector<VkQueueFamilyProperties>& GetQueueFamilyProperties() const
+    const DynamicArray<VkQueueFamilyProperties>& GetQueueFamilyProperties() const
     {
         return queueFamilyProperties;
     }
 
-    const std::vector<VkExtensionProperties>& GetAvailableExtensions() const
+    const DynamicArray<VkExtensionProperties>& GetAvailableExtensions() const
     {
         return availableExtensions;
     }
@@ -37,7 +37,7 @@ public:
     }
 
     VkFormat PickSupportedFormat(
-        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
+        const DynamicArray<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
     );
 
     static VKPhysicalDevice SelectGPUAndQueryDataForSurface(VKInstance& instance, VKSurface& surface);
@@ -55,10 +55,10 @@ private:
     VkPhysicalDeviceProperties physicalDeviceProperties{};
     VkPhysicalDeviceFeatures physicalDeviceFeatures{};
 
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
-    std::vector<VkExtensionProperties> availableExtensions;
+    DynamicArray<VkQueueFamilyProperties> queueFamilyProperties;
+    DynamicArray<VkExtensionProperties> availableExtensions;
 
-    static std::vector<VKPhysicalDevice> GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface);
+    static DynamicArray<VKPhysicalDevice> GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface);
     void GetRequiredQueuesFamilyIndices(VKPhysicalDevice& physicalDevice);
     void QuerySurfaceData(VKInstance* attachedInstance);
 

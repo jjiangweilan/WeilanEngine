@@ -107,7 +107,7 @@ public:
         }
         return nullptr;
     }
-    std::vector<Node>& GetNodes() { return nodes; }
+    DynamicArray<Node>& GetNodes() { return nodes; }
     int GetMaxLevel() { return maxLevel; }
 
 private:
@@ -132,7 +132,7 @@ private:
         return x + y * mipExtentX + offset;
     }
 
-    std::vector<Node> nodes;
+    DynamicArray<Node> nodes;
     int extentX;
     int extentY;
     int maxLevel;

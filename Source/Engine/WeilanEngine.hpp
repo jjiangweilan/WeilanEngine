@@ -52,7 +52,7 @@ public:
 
     void ReloadScripts();
 
-    std::vector<std::function<void(SDL_Event& event)>> eventCallback;
+    DynamicArray<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;
@@ -65,7 +65,7 @@ private:
         Extent2D size = {1920, 1080};
     } mainWindow;
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
-    std::vector<std::unique_ptr<GameLoop>> gameLoops;
+    DynamicArray<std::unique_ptr<GameLoop>> gameLoops;
     // std::unique_ptr<Physics> physics;
 
     std::filesystem::path projectPath;

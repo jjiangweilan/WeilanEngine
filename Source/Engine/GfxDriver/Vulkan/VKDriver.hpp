@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
@@ -53,7 +53,7 @@ public:
         std::span<RefPtr<Semaphore>> signalSemaphroes,
         RefPtr<Fence> signalFence
     ) override;
-    void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
+    void WaitForFence(DynamicArray<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
     const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
 
     bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages) override;
@@ -151,15 +151,15 @@ public:
     Surface surface;
     GPUFeatures gpuFeatures;
     GfxFeaturesSettings featureSettings;
-    std::vector<std::unique_ptr<VKWindow>> extraWindows{};
+    DynamicArray<std::unique_ptr<VKWindow>> extraWindows{};
 
     std::mutex driverMutex;
 
-    std::vector<VKInflightCmd> inflightData = {};
+    DynamicArray<VKInflightCmd> inflightData = {};
     VKFramePrepareData framePrepareData;
     uint32_t currentInflightIndex = 0;
 
-    std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
+    DynamicArray<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
@@ -183,8 +183,8 @@ public:
         uint32_t swapchainIndex
     );
 
-    std::vector<const char*> AppWindowGetRequiredExtensions();
-    bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
+    DynamicArray<const char*> AppWindowGetRequiredExtensions();
+    bool Instance_CheckAvalibilityOfValidationLayers(const DynamicArray<const char*>& validationLayers);
 
     void AppendOnCompleteCallback(const std::function<void()>& callback);
 
@@ -198,7 +198,7 @@ private:
     {
         uint64_t timestamp;
     };
-    std::vector<TimestampQuery> timestamps;
+    DynamicArray<TimestampQuery> timestamps;
     Profiler profiler;
 
     bool captureFrame = false;

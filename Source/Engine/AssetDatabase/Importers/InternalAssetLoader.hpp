@@ -11,7 +11,7 @@ public:
     {
         return false;
     };
-    std::vector<std::filesystem::path> Import() override {return {};}
+    DynamicArray<std::filesystem::path> Import() override {return {};}
 
     void Load() override;
     void GetReferenceResolveData(Serializer*& serializer, SerializeReferenceResolveMap*& resolveMap) override;
@@ -20,7 +20,7 @@ public:
         return std::move(asset);
     }
 
-    static const std::vector<std::type_index>& GetImportTypes();
+    static const DynamicArray<std::type_index>& GetImportTypes();
 
 private:
     std::unique_ptr<Asset> asset;

@@ -74,6 +74,8 @@ private:
     TextureDescription desc;
     std::unique_ptr<Gfx::Image> image;
     void LoadKtxTexture(uint8_t* data, size_t byteSize);
+
+    // this method will not destory texture
     void LoadKtxTexture(ktxTexture2* texture, int gpuMipLevels);
     void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize, Gfx::GfxFormat format);
     void ConvertRawImageToKtx(TextureDescription& desc);

@@ -48,9 +48,9 @@ void BoundingVolumeHierarchy::UpdateNodeBounds(int nodeIndex)
     }
 }
 
-std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(const Frustum& Frustum)
+DynamicArray<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesInFrustum(const Frustum& Frustum)
 {
-    std::vector<BoundingVolumeHierarchy::Node*> result{};
+    DynamicArray<BoundingVolumeHierarchy::Node*> result{};
 
     auto& root = GetRoot();
     QueryNodesInFrustum(Frustum, root, result);
@@ -58,7 +58,7 @@ std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesI
 }
 
 void BoundingVolumeHierarchy::QueryNodesInFrustum(
-    const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
+    const Frustum& Frustum, Node& node, DynamicArray<BoundingVolumeHierarchy::Node*>& inFrustum
 )
 {
     // TODO(perf): we should be able to reuse the dot calculation in these two test functions
@@ -332,9 +332,9 @@ bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const AABB& aabb, const F
     return true;
 }
 
-std::vector<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const Frustum& Frustum)
+DynamicArray<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const Frustum& Frustum)
 {
-    std::vector<MeshRenderer*> objs{};
+    DynamicArray<MeshRenderer*> objs{};
     auto nodes = QueryNodesInFrustum(Frustum);
     for (auto n : nodes)
     {

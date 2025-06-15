@@ -134,7 +134,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
 
     VkDescriptorSet finalReturn = VK_NULL_HANDLE;
     bool rebuild = false;
-    std::vector<VKWritableGPUResource>* writableGPUResources;
+    DynamicArray<VKWritableGPUResource>* writableGPUResources;
     if (iter == sets.end())
     {
         auto pool = shaderProgram->GetDescriptorPool(set);
@@ -461,7 +461,7 @@ void* VKShaderResource::ResourceRef::GetRef()
     return nullptr;
 }
 
-const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
+const DynamicArray<VKWritableGPUResource>& VKShaderResource::GetWritableResources(
     uint32_t set, VKShaderProgram* shaderProgram, VK::RenderGraph::Graph* graph
 )
 {
@@ -478,7 +478,7 @@ const std::vector<VKWritableGPUResource>& VKShaderResource::GetWritableResources
         return iter->second.writableGPUResources;
     }
 
-    static std::vector<VKWritableGPUResource> empty;
+    static DynamicArray<VKWritableGPUResource> empty;
     return empty;
 }
 

@@ -106,7 +106,7 @@ Gfx::ShaderProgram* ShaderBase::GetShaderProgram(
 }
 
 ShaderFeatureBitmask ShaderBase::GetShaderFeatureBitmask(
-    int shaderPassIndex, const std::vector<std::string>& enabledFeature
+    int shaderPassIndex, const DynamicArray<std::string>& enabledFeature
 )
 {
     ASSERT(shaderPassIndex >= 0 && shaderPassIndex < shaderPasses.size());
@@ -154,7 +154,7 @@ Gfx::ShaderProgram* ShaderBase::GetDefaultShaderProgram()
         shaderPass->globalShaderFeaturesHash = globalShaderFeaturesHash;
         auto& globalEnabledFeatures = ShaderBase::GetEnabledFeatures();
         shaderPass->cachedShaderProgram =
-            GetShaderProgram(std::vector<std::string>(globalEnabledFeatures.begin(), globalEnabledFeatures.end()));
+            GetShaderProgram(DynamicArray<std::string>(globalEnabledFeatures.begin(), globalEnabledFeatures.end()));
     }
 
     return shaderPass->cachedShaderProgram;

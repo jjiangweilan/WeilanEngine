@@ -6,7 +6,7 @@
 #include <slang.h>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 
 #define MAX_SHADER_FEATURE_COUNT 64
 using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
@@ -37,9 +37,9 @@ struct ShaderFeatures
         return perm;
     }
 
-    std::vector<std::string> GetFeautresFromBitmask(ShaderPermutation permutation) const
+    DynamicArray<std::string> GetFeautresFromBitmask(ShaderPermutation permutation) const
     {
-        std::vector<std::string> result{};
+        DynamicArray<std::string> result{};
         for (int bit = 0; bit < permutation.size(); ++bit)
         {
             if (permutation.test(bit))
@@ -53,7 +53,7 @@ struct ShaderFeatures
 
     std::unordered_map<uint32_t, std::string> bitMaskToFeature{};
     std::unordered_map<std::string, uint32_t> featureToBitMask{};
-    std::vector<ShaderToggleFeature> toggleFeatures{};
+    DynamicArray<ShaderToggleFeature> toggleFeatures{};
 };
 
 enum class Shaders : int
@@ -161,7 +161,7 @@ public:
         return Singleton().GetShaderImpl(name, permutation);
     }
 
-    static ObjPtr<Shader2> GetShader(const char* name, const std::vector<std::string>& permutations)
+    static ObjPtr<Shader2> GetShader(const char* name, const DynamicArray<std::string>& permutations)
     {
         return Singleton().GetShaderImpl(name, QueryShaderFeatures(name).GetPermutation(permutations));
     }
@@ -219,11 +219,11 @@ private:
     inline const char* GetShaderRootPath() { return ENGINE_SOURCE_PATH "/Source/Engine/Shaders/"; }
     std::unique_ptr<Gfx::ShaderProgram> CompileShader(const char* shaderName, ShaderPermutation permutation);
     const ShaderFeatures& RetriveShaderFeatures(const char* shaderName);
-    void CollectToggleFeatures(slang::IModule* module, std::vector<ShaderToggleFeature>& outFeatures);
+    void CollectToggleFeatures(slang::IModule* module, DynamicArray<ShaderToggleFeature>& outFeatures);
     void CheckPushconstant(
         slang::VariableLayoutReflection* param,
         Slang::ComPtr<slang::IMetadata> entryPointMetaData[2],
-        std::vector<Gfx::PipelineInfo::PushConstant>& outPushConstants,
+        DynamicArray<Gfx::PipelineInfo::PushConstant>& outPushConstants,
         int entryPointIndex,
         Gfx::ShaderStage stage
     );

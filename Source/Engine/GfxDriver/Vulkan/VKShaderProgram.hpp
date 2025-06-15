@@ -7,7 +7,7 @@
 #include "VKShaderInfo.hpp"
 #include <memory>
 #include <unordered_map>
-#include <vector>
+#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_hash.hpp>
 namespace Gfx
@@ -63,11 +63,11 @@ private:
 
     struct DescriptorSetLayoutBindingWrap
     {
-        std::vector<VkDescriptorSetLayoutBinding> binding;
-        std::vector<std::vector<VkSampler>> samplers;
+        DynamicArray<VkDescriptorSetLayoutBinding> binding;
+        DynamicArray<DynamicArray<VkSampler>> samplers;
     };
     typedef std::unordered_map<SetNum, DescriptorSetLayoutBindingWrap> DescriptorSetBindings;
-    typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
+    typedef DynamicArray<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
 
     std::string name = "";
     VKObjectManager* objManager = nullptr;
@@ -76,7 +76,7 @@ private:
     VkShaderModule computeModule = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
-    std::vector<VKDescriptorPool*> descriptorPools = {};
+    DynamicArray<VKDescriptorPool*> descriptorPools = {};
     PipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
 

@@ -8,7 +8,7 @@ DEFINE_ASSET(Mesh, "8D66F112-935C-47B1-B62F-728CBEA20CBD", "mesh");
 Submesh::~Submesh() {}
 Submesh::Submesh(
     std::unique_ptr<unsigned char>&& vertexBuffer,
-    std::vector<VertexBinding>&& bindings,
+    DynamicArray<VertexBinding>&& bindings,
     std::unique_ptr<unsigned char>&& indexBuffer,
     Gfx::IndexBufferType indexBufferType,
     int indexCount,
@@ -67,24 +67,24 @@ Submesh::Submesh(
     // );
 };
 
-void Submesh::SetIndices(std::vector<uint32_t>&& indices)
+void Submesh::SetIndices(DynamicArray<uint32_t>&& indices)
 {
     this->indices = std::move(indices);
     indexCount = indices.size();
 }
 
-void Submesh::SetIndices(const std::vector<uint32_t>& indices)
+void Submesh::SetIndices(const DynamicArray<uint32_t>& indices)
 {
     this->indices = indices;
     indexCount = indices.size();
 }
 
-void Submesh::SetPositions(std::vector<glm::vec3>&& positions)
+void Submesh::SetPositions(DynamicArray<glm::vec3>&& positions)
 {
     this->positions = std::move(positions);
 }
 
-void Submesh::SetPositions(const std::vector<glm::vec3>& positions)
+void Submesh::SetPositions(const DynamicArray<glm::vec3>& positions)
 {
     this->positions = positions;
 }
@@ -160,7 +160,7 @@ void Submesh::Apply()
 
     if (indexBufferType == Gfx::IndexBufferType::UInt16)
     {
-        std::vector<uint16_t> temp(indices.size());
+        DynamicArray<uint16_t> temp(indices.size());
         const size_t indicesSize = indices.size();
         for (size_t i = 0; i < indicesSize; ++i)
         {
@@ -195,12 +195,12 @@ void Submesh::SetAABB(const AABB& aabb)
     this->aabb = aabb;
 }
 
-const std::vector<uint32_t>& Submesh::GetIndices() const
+const DynamicArray<uint32_t>& Submesh::GetIndices() const
 {
     return indices;
 }
 
-const std::vector<glm::vec3>& Submesh::GetPositions() const
+const DynamicArray<glm::vec3>& Submesh::GetPositions() const
 {
     return positions;
 }
@@ -212,7 +212,7 @@ const VertexAttributes& Submesh::GetAttribute() const
 
 bool Mesh::LoadFromFile(const char* path)
 {
-    std::vector<uint32_t> fullData;
+    DynamicArray<uint32_t> fullData;
     nlohmann::json jsonData;
     unsigned char* binaryData;
     Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);

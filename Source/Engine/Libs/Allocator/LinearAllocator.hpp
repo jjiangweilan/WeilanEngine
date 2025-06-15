@@ -47,7 +47,7 @@ public:
         if (n == 0)
         {
             handle.parent = nullptr;
-            return { nullptr, std::move(handle) };
+            return {nullptr, std::move(handle)};
         }
 
         T* ptr = mem + offset;
@@ -70,6 +70,10 @@ public:
     void Reset() { offset = 0; }
 
 private:
+    size_t Align(void* address, size_t alignment)
+    {
+        return ((std::intptr_t(address) + (alignment - 1)) & ~(alignment - 1));
+    }
     T* mem;
     size_t size;
     size_t offset;
