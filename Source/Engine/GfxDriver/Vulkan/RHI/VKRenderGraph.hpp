@@ -46,9 +46,9 @@ class Graph
 public:
     Graph(int inflightCount);
     ~Graph();
-    void Schedule(VKFramePrepareData& framePrepare);
 
     void Execute(
+        VKFramePrepareData& framePrepare,
         VKInflightCmd& cmd,
         int inflightIndex,
         Queue& executionQueue,
@@ -106,7 +106,6 @@ private:
         int currentTimestapQueryIndex = 0;
     } exeState;
 
-    DynamicArray<VKCmd> currentSchedulingCmds{};
     size_t previousActiveSchedulingCmdsSize;
     std::unordered_map<UUID, ResourceUsageTrack> resourceUsageTracks;
     // odd frame activeSchedulingCmds and resource usages are cleared in next odd frame
@@ -127,7 +126,9 @@ private:
 
     void CreateRenderPassNode(int visitIndex);
     // scheduling
-    void FlushAllBindedSetUpdate(DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded);
+    void FlushAllBindedSetUpdate(
+        DynamicArray<VKCmd>& cmds, DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+    );
     bool TrackResource(
         VKImage* writableResource,
         Gfx::ImageSubresourceRange range,
@@ -136,7 +137,13 @@ private:
         VkAccessFlags access
     );
     bool TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access);
-    void GoThroughRenderPass(VKRenderPass& renderPass, int& visitIndex, int& barrierCount, int& barrierOffset);
+    void GoThroughRenderPass(
+        DynamicArray<VKCmd>& exectedCmds,
+        VKRenderPass& renderPass,
+        int& visitIndex,
+        int& barrierCount,
+        int& barrierOffset
+    );
     size_t TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier);
     void FlushBindResourceTrack();
     int MakeBarrierForLastUsage(void* res, const UUID& resUUID);
@@ -146,6 +153,7 @@ private:
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint);
     void UpdateDescriptorSetBinding(VkCommandBuffer cmd, VkPipelineBindPoint bindPoint);
     void PutBarrier(VkCommandBuffer cmd, int index);
+    void PreExecute(VKFramePrepareData& framePrepare);
 };
 
 Gfx::VKImage* ImageIdentifier_GetImage(

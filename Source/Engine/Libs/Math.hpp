@@ -152,6 +152,18 @@ namespace Math
 {
 void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::quat& rot);
 
+template <std::unsigned_integral T>
+bool IsPowerOfTwo(T value)
+{
+    return (value & (value - 1)) == 0;
+}
+
+template <std::unsigned_integral T>
+T RoundToAlignmentPoT(T address, T alignment)
+{
+    return ((address + (alignment - 1)) & ~(alignment - 1));
+}
+
 } // namespace Math
 
 using glm::float2;

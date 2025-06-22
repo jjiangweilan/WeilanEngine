@@ -47,7 +47,7 @@ const void GameLoop::Tick(
     if (scene == nullptr)
         return;
 
-    auto rootObjects = scene->GetRootObjects();
+    auto& rootObjects = scene->GetRootObjects();
     if (isPlaying)
     {
         ENGINE_BEGIN_PROFILE("Physics Tick")

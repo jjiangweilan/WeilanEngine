@@ -332,16 +332,16 @@ bool BoundingVolumeHierarchy::Node::IsVisibleInFrustum(const AABB& aabb, const F
     return true;
 }
 
-DynamicArray<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const Frustum& Frustum)
+DynamicArray<MeshRenderer*> BoundingVolumeHierarchy::QueryRendererInFrustum(const Frustum& frustum)
 {
     DynamicArray<MeshRenderer*> objs{};
-    auto nodes = QueryNodesInFrustum(Frustum);
+    auto nodes = QueryNodesInFrustum(frustum);
     for (auto n : nodes)
     {
         for (auto objIdx : n->objectIndices)
         {
             auto obj = objects[objIdx].Get();
-            if (obj && Node::IsVisibleInFrustum(obj->GetAABB(), Frustum))
+            if (obj && Node::IsVisibleInFrustum(obj->GetAABB(), frustum))
                 objs.push_back(obj);
         }
     }

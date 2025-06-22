@@ -39,6 +39,7 @@ public:
     };
 
     DynamicArray<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
+    void QueryRendererInFrustum(const Frustum& frustum, std::pmr::vector<MeshRenderer*>& outRenderers);
     DynamicArray<Node*> QueryNodesInFrustum(const Frustum& frustum);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
 

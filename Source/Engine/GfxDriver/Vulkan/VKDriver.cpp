@@ -573,7 +573,14 @@ void VKDriver::FlushPendingCommands()
     }
 
     CmdBufExecutionReport report{};
-    renderGraph->Execute(inflightData[currentInflightIndex], currentInflightIndex, mainQueue, featureSettings, report);
+    renderGraph->Execute(
+        framePrepareData,
+        inflightData[currentInflightIndex],
+        currentInflightIndex,
+        mainQueue,
+        featureSettings,
+        report
+    );
 
     vkEndCommandBuffer(cmd);
 
@@ -642,19 +649,6 @@ bool VKDriver::EndFrame()
     );
     firstFrame = false;
 
-    // this section adds present image layout transition to the end of cmd
-    VKCommandBuffer cmd2(renderGraph.get());
-    cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
-    for (auto& w : extraWindows)
-    {
-        if (w->presentRequest.requested)
-        {
-            cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
-        }
-    }
-    framePrepareData.AppendVKCommandBuffer(&cmd2);
-    renderGraph->Schedule(framePrepareData);
-
     // record scheduled commands
     ENGINE_BEGIN_PROFILE("VKDriver - Record Commands")
     auto cmd = inflightData[currentInflightIndex].cmd;
@@ -671,8 +665,27 @@ bool VKDriver::EndFrame()
     }
 
     CmdBufExecutionReport execReport{};
-    renderGraph
-        ->Execute(inflightData[currentInflightIndex], currentInflightIndex, mainQueue, featureSettings, execReport);
+
+    // this section adds present image layout transition to the end of cmd
+    VKCommandBuffer cmd2(renderGraph.get());
+    cmd2.PresentImage(swapchain.swapchainImage->GetImage(inflightData[currentInflightIndex].swapchainIndex));
+    for (auto& w : extraWindows)
+    {
+        if (w->presentRequest.requested)
+        {
+            cmd2.PresentImage(w->swapchain.swapchainImage->GetImage(w->swapchain.swapchainImage->GetActiveIndex()));
+        }
+    }
+    framePrepareData.AppendVKCommandBuffer(&cmd2);
+
+    renderGraph->Execute(
+        framePrepareData,
+        inflightData[currentInflightIndex],
+        currentInflightIndex,
+        mainQueue,
+        featureSettings,
+        execReport
+    );
     ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
@@ -1298,7 +1311,6 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     VK::RenderGraph::Graph rg(1);
     VKFramePrepareData framePrepareData;
     framePrepareData.AppendVKCommandBuffer(static_cast<VKCommandBuffer*>(&cmd));
-    rg.Schedule(framePrepareData);
 
     VkFenceCreateInfo fenceCreateInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     VkFence fence;
@@ -1319,7 +1331,7 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     vkBeginCommandBuffer(vkcmd, &beginInfo);
 
     CmdBufExecutionReport execReport{};
-    rg.Execute(fakeInflightCmd, 0, mainQueue, featureSettings, execReport);
+    rg.Execute(framePrepareData, fakeInflightCmd, 0, mainQueue, featureSettings, execReport);
     vkEndCommandBuffer(vkcmd);
 
     VkPipelineStageFlags stageMask = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;

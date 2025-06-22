@@ -1,6 +1,6 @@
 #include "FrameContext.hpp"
 
-FrameContext::FrameContext() : tempAllocator(64 * 1024 * 1024) {}
+FrameContext::FrameContext() {}
 FrameContext& FrameContext::GetInstance()
 {
     static FrameContext instance;
@@ -13,7 +13,4 @@ FrameContext& GetFrameContext()
 }
 
 void FrameContext::BeginFrame() {}
-void FrameContext::EndFrame()
-{
-    tempAllocator.Reset();
-}
+void FrameContext::EndFrame() {}

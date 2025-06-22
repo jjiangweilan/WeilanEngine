@@ -151,7 +151,11 @@ public:
             }
 
             auto temp = renderPassObj.get();
-            SPDLOG_TRACE("VKRenderGraph: create render pass({}) {}", reinterpret_cast<size_t>(temp), renderPass.GetName());
+            SPDLOG_TRACE(
+                "VKRenderGraph: create render pass({}) {}",
+                reinterpret_cast<size_t>(temp),
+                renderPass.GetName()
+            );
             renderPasses[renderPass] =
                 {std::move(renderPassObj), std::move(imageReferences), std::move(imageViewReferences), 0};
 
@@ -380,7 +384,11 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
 }
 
 void Graph::GoThroughRenderPass(
-    VKRenderPass& renderPass, int& visitIndex, int& barrierCountResult, int& barrierOffsetResult
+    DynamicArray<VKCmd>& exectedCmds,
+    VKRenderPass& renderPass,
+    int& visitIndex,
+    int& barrierCountResult,
+    int& barrierOffsetResult
 )
 {
     ENGINE_SCOPED_PROFILE("VKRenderGraph - GoThroughRenderPass");
@@ -457,7 +465,7 @@ void Graph::GoThroughRenderPass(
     for (;;)
     {
         visitIndex += 1;
-        auto& cmd = currentSchedulingCmds[visitIndex];
+        auto& cmd = exectedCmds[visitIndex];
         if (cmd.type == VKCmdType::EndRenderPass)
             break;
         else if (cmd.type == VKCmdType::BindResource)
@@ -472,7 +480,7 @@ void Graph::GoThroughRenderPass(
         else if (cmd.type == VKCmdType::Draw || cmd.type == VKCmdType::DrawIndexed ||
                  cmd.type == VKCmdType::DrawIndirect || cmd.type == VKCmdType::DrawIndexedIndirect)
         {
-            FlushAllBindedSetUpdate(shaderImageSampleIgnoreList, barrierCount);
+            FlushAllBindedSetUpdate(exectedCmds, shaderImageSampleIgnoreList, barrierCount);
         }
         else if (cmd.type == VKCmdType::PushDescriptorSet)
         {
@@ -493,7 +501,7 @@ void Graph::GoThroughRenderPass(
             globalResourcePool[args.handle][args.index] =
                 {ResourceType::Buffer, ObjPtr<Buffer>(args.buffer), std::nullopt};
         }
-        else if (visitIndex >= currentSchedulingCmds.size())
+        else if (visitIndex >= exectedCmds.size())
             break;
     }
 
@@ -522,9 +530,10 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             return 0;
         }
 
-        // TODO: optimize heap allocation
-        DynamicArray<Gfx::ImageSubresourceRange> remainingRange{currentUsage.range};
-        DynamicArray<Gfx::ImageSubresourceRange> remainingRangeSwap{};
+        using ImgSubResourceArray = std::pmr::vector<Gfx::ImageSubresourceRange>;
+        LocalStackMemoryAllocator stackAllocator;
+        ImgSubResourceArray remainingRange({currentUsage.range}, &stackAllocator);
+        ImgSubResourceArray remainingRangeSwap(&stackAllocator);
         for (;;)
         {
             if (usageIndex == 0)
@@ -808,23 +817,21 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 
     return barrierCount;
 }
-void Graph::Schedule(VKFramePrepareData& framePrepare)
+void Graph::PreExecute(VKFramePrepareData& framePrepare)
 {
     ENGINE_SCOPED_PROFILE("VKRenderGraph: schedule");
 
-    ENGINE_BEGIN_PROFILE("VKRenderGraph: insert cmds");
-    int cmdIndexOffset = currentSchedulingCmds.size();
-    currentSchedulingCmds.insert(currentSchedulingCmds.end(), framePrepare.cmds.begin(), framePrepare.cmds.end());
-    ENGINE_END_PROFILE
+    auto& executedCmds = framePrepare.cmds;
 
+    int cmdIndexOffset = executedCmds.size();
     // track where to put barriers
-    for (int visitIndex = cmdIndexOffset; visitIndex < currentSchedulingCmds.size(); visitIndex++)
+    for (int visitIndex = cmdIndexOffset; visitIndex < executedCmds.size(); visitIndex++)
     {
-        auto& cmd = currentSchedulingCmds[visitIndex];
+        auto& cmd = executedCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
         {
             auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
-            GoThroughRenderPass(*args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(executedCmds, *args.renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::AsyncReadback)
         {
@@ -835,7 +842,7 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
         {
             auto& args = std::get<VKRGBeginRenderPassCmd>(cmd.args);
             auto renderPass = resourceAllocator->Request(args.renderPass);
-            GoThroughRenderPass(*renderPass, visitIndex, args.barrierCount, args.barrierOffset);
+            GoThroughRenderPass(executedCmds, *renderPass, visitIndex, args.barrierCount, args.barrierOffset);
         }
         else if (cmd.type == VKCmdType::BindResource)
         {
@@ -1028,7 +1035,7 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
-            FlushAllBindedSetUpdate(list, args.barrierCount);
+            FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
         else if (cmd.type == VKCmdType::DispatchIndirect)
         {
@@ -1037,12 +1044,13 @@ void Graph::Schedule(VKFramePrepareData& framePrepare)
             DynamicArray<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
-            FlushAllBindedSetUpdate(list, args.barrierCount);
+            FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
         }
     }
 }
 
 void Graph::Execute(
+    VKFramePrepareData& framePrepare,
     VKInflightCmd& inflightCmd,
     int inflightIndex,
     Queue& executionQueue,
@@ -1050,6 +1058,9 @@ void Graph::Execute(
     CmdBufExecutionReport& report
 )
 {
+    PreExecute(framePrepare);
+    auto& executedCmds = framePrepare.cmds;
+
     report = CmdBufExecutionReport(); // reset report
 
     VkCommandBuffer vkcmd = inflightCmd.cmd;
@@ -1063,9 +1074,9 @@ void Graph::Execute(
         exeState.currentTimestapQueryIndex = 0;
     }
 
-    for (size_t i = 0; i < currentSchedulingCmds.size(); ++i)
+    for (size_t i = 0; i < executedCmds.size(); ++i)
     {
-        auto& cmd = currentSchedulingCmds[i];
+        auto& cmd = executedCmds[i];
         switch (cmd.type)
         {
             case VKCmdType::SetLineWidth:
@@ -1615,7 +1626,6 @@ void Graph::Execute(
         }
     }
 
-    currentSchedulingCmds.clear();
     for (auto& r : resourceUsageTracks)
     {
         std::swap(r.second.currentFrameUsages, r.second.previousFrameUsages);
@@ -1780,7 +1790,9 @@ Graph::Graph(int inflightCount)
 }
 Graph::~Graph() {}
 
-void Graph::FlushAllBindedSetUpdate(DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded)
+void Graph::FlushAllBindedSetUpdate(
+    DynamicArray<VKCmd>& cmds, DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+)
 {
     for (int i = 0; i < 4; ++i)
     {
@@ -1789,9 +1801,9 @@ void Graph::FlushAllBindedSetUpdate(DynamicArray<VKImage*>& shaderImageSampleIgn
             recordState.bindedSetUpdateNeeded[i] = false;
             auto bindSetCmdIndex = recordState.bindSetCmdIndex[i];
             auto bindProgramIndex = recordState.bindProgramIndex;
-            auto& bindProgramArgs = std::get<VKBindShaderProgramCmd>(currentSchedulingCmds[bindProgramIndex].args);
+            auto& bindProgramArgs = std::get<VKBindShaderProgramCmd>(cmds[bindProgramIndex].args);
             auto program = bindProgramArgs.program;
-            VKBindResourceCmd* bindSetCmd = &std::get<VKBindResourceCmd>(currentSchedulingCmds[bindSetCmdIndex].args);
+            VKBindResourceCmd* bindSetCmd = &std::get<VKBindResourceCmd>(cmds[bindSetCmdIndex].args);
             uint32_t updateSet = bindSetCmd->set;
             VKShaderResource* resource = bindSetCmd->resource;
             if (resource == nullptr)

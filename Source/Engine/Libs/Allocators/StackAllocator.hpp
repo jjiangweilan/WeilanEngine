@@ -1,80 +1,126 @@
 #pragma once
 #include "Libs/Assert.hpp"
-#include <cinttypes>
+#if _WINDOWS
+#include "Libs/Platforms/Windows/WindowsMemory.hpp"
+#endif
+#include "Libs/Math.hpp"
 #include <tuple>
 
-template <typename T>
+namespace LowLevelAllocators
+{
+template <bool lts = true>
 class StackAllocator
 {
 public:
-    StackAllocator(size_t size) : mem(new T[size]), size(size) {}
-    ~StackAllocator() { delete[] mem; }
+    StackAllocator(size_t size) : mem(nullptr), size(size), offset(0)
+    {
+        mem = (unsigned char*)Platform_AllocateMemory(size, lts, "LowLevel - StackAllocator");
+    }
+
+    ~StackAllocator() { Platform_FreeMemory(mem, lts); }
 
     class ScopedHandle
     {
     public:
         ScopedHandle() {}
         ScopedHandle(const ScopedHandle&) = delete;
-        ScopedHandle(ScopedHandle&& other) noexcept : parent(other.parent), n(other.n)
+        ScopedHandle(ScopedHandle&& other) noexcept : parent(other.parent), n(other.n), ptr(other.ptr), alignment(other.alignment)
         {
             other.parent = nullptr;
             other.n = 0;
+            other.ptr = nullptr;
         }
         ~ScopedHandle()
         {
             if (parent != nullptr)
-            {
-                parent->offset -= n;
-            }
+                parent->Deallocate(ptr, n, alignment);
         }
 
     private:
+        void* ptr = nullptr; // pointer to the allocated memory
         StackAllocator* parent = nullptr;
         size_t n = 0;
+        size_t alignment = 0;
 
         friend class StackAllocator;
     };
 
+    void* Allocate(size_t bytes, size_t alignment)
+    {
+        ASSERT(alignment == 0 || Math::IsPowerOfTwo(alignment)); // Alignment must be a power of two
+        if (bytes == 0)
+            return nullptr;
+
+        size_t roundUpBytes = Math::RoundToAlignmentPoT(bytes, alignment);
+        size_t targetPtr = this->offset + roundUpBytes;
+
+        if (targetPtr > this->size)
+        {
+            GrowAllocation(targetPtr);
+        }
+
+        size_t padding = roundUpBytes - bytes;
+
+        void* ptr = mem + padding;
+        this->offset = targetPtr;
+        return ptr;
+    }
+
+    void Deallocate(void* ptr, size_t bytes, size_t alignment)
+    {
+        ASSERT(alignment == 0 || Math::IsPowerOfTwo(alignment)); // Alignment must be a power of two
+        if (bytes == 0)
+            return;
+
+        if ((unsigned char*)ptr + bytes == mem + offset)
+        {
+            size_t roundUpBytes = Math::RoundToAlignmentPoT(bytes, alignment);
+            this->offset -= roundUpBytes;
+        }
+    }
+
+    void Reset() { offset = 0; }
+
+    /*========================= Public Utilities =========================*/
+
     // Allocate n elements of type T.
     // It's the callee's responsibility to ensure that the handle is deallocated in a linearly way
     // DO NOT store the handle
-    std::tuple<T*, ScopedHandle> ScopedAllocate(size_t n)
+    template <class T>
+    std::tuple<T*, ScopedHandle> ScopedAllocate(size_t n, size_t alignment = alignof(T))
     {
         ScopedHandle handle{};
         handle.parent = this;
         handle.n = n;
+        handle.alignment = alignment;
 
-        if (n == 0)
+        T* allocated = (T*)Allocate(n, alignment);
+
+        if (allocated == nullptr)
         {
             handle.parent = nullptr;
             return {nullptr, std::move(handle)};
         }
 
-        T* ptr = mem + offset;
-        offset += n;
-        return std::tuple<T*, ScopedHandle>(ptr, std::move(handle));
+        handle.ptr = allocated;
+        return std::tuple<T*, ScopedHandle>(allocated, std::move(handle));
     }
-
-    T* Allocate(size_t n)
-    {
-        ASSERT(offset + n > size);
-
-        if (n == 0 || offset + n > size)
-            return nullptr;
-
-        T* ptr = mem + offset;
-        offset += n;
-        return ptr;
-    }
-
-    void Reset() { offset = 0; }
 
 private:
-    size_t Align(void* address, size_t alignment)
+    void GrowAllocation(size_t leastSize)
     {
-        return ((std::intptr_t(address) + (alignment - 1)) & ~(alignment - 1));
+        size_t newSize = size * 2; // double the size
+        while (newSize < leastSize)
+        {
+            newSize *= 2;
+        }
+        unsigned char* newMem = static_cast<unsigned char*>(Platform_ReAllocateMemory(mem, newSize, lts));
+        mem = newMem;
+        size = newSize;
     }
-    T* mem;
-    size_t size;
-    size_t offset;
+
+    unsigned char* mem;
+    size_t offset = 0;
+    size_t size = 0;
 };
+} // namespace LowLevelAllocators
