@@ -14,7 +14,7 @@ void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::
     row[1] = m[1];
     row[2] = m[2];
 
-    vec3 sign{1,1,1};
+    vec3 sign{1, 1, 1};
     auto Pdum3 = cross(row[1], row[2]); // v3Cross(row[1], row[2], Pdum3);
     if (dot(row[0], Pdum3) < 0)
     {
@@ -32,5 +32,13 @@ void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::
         (scale[2] == 0.0f) ? vec3(0, 0, sign.z) : (vec3(m[2] / scale[2]))
     );
     rot = glm::quat_cast(rotMtx);
+}
+
+float4x4 GetProjectionMatrix(float fovy, float aspect, float zNear, float zFar)
+{
+    float4x4 projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, zNear, zFar);
+    projectionMatrix[1] = -projectionMatrix[1];
+
+    return projectionMatrix;
 }
 } // namespace Math

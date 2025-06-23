@@ -5,10 +5,10 @@
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
 
+#include "Libs/DynamicArray.hpp"
 #include <algorithm>
 #include <glm/glm.hpp>
 #include <span>
-#include "Libs/DynamicArray.hpp"
 
 class MeshRenderer;
 class SceneEnvironment;
@@ -17,6 +17,20 @@ class GrassSurface;
 class Cloud;
 class ParticleSystem;
 class ReflectionProbe;
+
+#define RENDERING_SCENE_OBJECT_API(Type, name, container)                                                              \
+    void AddRenderObject(Type& name)                                                                                   \
+    {                                                                                                                  \
+        AddSpecialObject(name, container);                                                                             \
+    }                                                                                                                  \
+    void RemoveRenderObject(Type& name)                                                                                \
+    {                                                                                                                  \
+        RemoveSpecialObject(name, container);                                                                          \
+    }                                                                                                                  \
+    std::span<Type*> Get##Type##s()                                                                                    \
+    {                                                                                                                  \
+        return container;                                                                                              \
+    }
 
 struct BoundingVolumeHierarchy
 {
@@ -39,7 +53,6 @@ public:
     };
 
     DynamicArray<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
-    void QueryRendererInFrustum(const Frustum& frustum, std::pmr::vector<MeshRenderer*>& outRenderers);
     DynamicArray<Node*> QueryNodesInFrustum(const Frustum& frustum);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
 
@@ -62,11 +75,6 @@ private:
 class RenderingScene
 {
 public:
-#define RENDERING_SCENE_OBJECT_API(Type, name, container)                                                              \
-    void AddRenderObject(Type& name) { AddSpecialObject(name, container); }                                            \
-    void RemoveRenderObject(Type& name) { RemoveSpecialObject(name, container); }                                      \
-    std::span<Type*> Get##Type##s() { return container; }
-
     RenderingScene() {};
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;

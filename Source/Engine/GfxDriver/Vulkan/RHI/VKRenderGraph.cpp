@@ -819,13 +819,13 @@ size_t Graph::TrackResourceForPushDescriptorSet(VKCmd& cmd, bool addBarrier)
 }
 void Graph::PreExecute(VKFramePrepareData& framePrepare)
 {
-    ENGINE_SCOPED_PROFILE("VKRenderGraph: schedule");
+    ENGINE_SCOPED_PROFILE("VKRenderGraph::PreExecute");
 
     auto& executedCmds = framePrepare.cmds;
 
     int cmdIndexOffset = executedCmds.size();
     // track where to put barriers
-    for (int visitIndex = cmdIndexOffset; visitIndex < executedCmds.size(); visitIndex++)
+    for (int visitIndex = 0; visitIndex < executedCmds.size(); visitIndex++)
     {
         auto& cmd = executedCmds[visitIndex];
         if (cmd.type == VKCmdType::BeginRenderPass)
@@ -1064,6 +1064,7 @@ void Graph::Execute(
     report = CmdBufExecutionReport(); // reset report
 
     VkCommandBuffer vkcmd = inflightCmd.cmd;
+
     ENGINE_SCOPED_PROFILE("VKRenderGraph::Execute");
 
     // Begin

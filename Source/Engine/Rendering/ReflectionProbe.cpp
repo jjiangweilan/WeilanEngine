@@ -20,6 +20,7 @@ void ReflectionProbe::OnEnable()
         scene->GetRenderingScene().AddRenderObject(*this);
     }
 }
+
 void ReflectionProbe::OnDisable()
 {
     auto scene = GetScene();
@@ -28,3 +29,5 @@ void ReflectionProbe::OnDisable()
         scene->GetRenderingScene().RemoveRenderObject(*this);
     }
 }
+
+void ReflectionProbe::TransformChanged() {}

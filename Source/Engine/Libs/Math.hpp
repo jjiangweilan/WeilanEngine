@@ -148,8 +148,19 @@ typedef mat<4, 4, double, highp> double4x4; //!< \brief double-qualifier floatin
 /// @}
 } // namespace glm
 
+using glm::float2;
+using glm::float2x2;
+using glm::float3;
+using glm::float3x3;
+using glm::float4;
+using glm::float4x4;
+using glm::int2;
+using glm::int3;
+using glm::int4;
+
 namespace Math
 {
+float4x4 GetProjectionMatrix(float fov, float aspect, float near, float far);
 void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::quat& rot);
 
 template <std::unsigned_integral T>
@@ -165,13 +176,3 @@ T RoundToAlignmentPoT(T address, T alignment)
 }
 
 } // namespace Math
-
-using glm::float2;
-using glm::float2x2;
-using glm::float3;
-using glm::float3x3;
-using glm::float4;
-using glm::float4x4;
-using glm::int2;
-using glm::int3;
-using glm::int4;

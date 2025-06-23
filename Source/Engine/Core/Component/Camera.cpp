@@ -80,8 +80,7 @@ const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
 
         updateProjectionMatrix = false;
         this->aspect = aspect;
-        projectionMatrix = glm::perspectiveLH_ZO(fov, aspect, near, far);
-        projectionMatrix[1] = -projectionMatrix[1];
+        projectionMatrix = Math::GetProjectionMatrix(fov, aspect, near, far);
     }
 
     return projectionMatrix;
@@ -95,8 +94,7 @@ glm::mat4 Camera::CalculateProjectionMatrixWithOverride(float farPlane, float as
         aspect = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
     }
 
-    glm::float4x4 projectionMatrix = glm::perspectiveLH_ZO(fov, aspect, near, farPlane);
-    projectionMatrix[1] = -projectionMatrix[1];
+    glm::float4x4 projectionMatrix = Math::GetProjectionMatrix(fov, aspect, near, farPlane);
 
     return projectionMatrix;
 }

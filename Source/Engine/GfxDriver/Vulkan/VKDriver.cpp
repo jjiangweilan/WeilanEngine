@@ -649,7 +649,6 @@ bool VKDriver::EndFrame()
     firstFrame = false;
 
     // record scheduled commands
-    ENGINE_BEGIN_PROFILE("VKDriver - Record Commands")
     auto cmd = inflightData[currentInflightIndex].cmd;
 
     CHECK_VK_RESULT(vkResetCommandBuffer(cmd, 0));
@@ -685,13 +684,11 @@ bool VKDriver::EndFrame()
         featureSettings,
         execReport
     );
-    ENGINE_END_PROFILE
+    ENGINE_END_PROFILE // Render Graph Execution
 
     ENGINE_BEGIN_PROFILE("Vulkan End Command Buffer")
     CHECK_VK_RESULT(vkEndCommandBuffer(cmd));
-    ENGINE_END_PROFILE
-
-    ENGINE_END_PROFILE; // VKDriver - Record Commands
+    ENGINE_END_PROFILE // Vulkan End Command Buffer
 
     VkPipelineStageFlags* waitFlags = allocator.Allocate<VkPipelineStageFlags>(2 + extraWindows.size());
     VkSemaphore* waitSemaphores = allocator.Allocate<VkSemaphore>(2 + extraWindows.size());
