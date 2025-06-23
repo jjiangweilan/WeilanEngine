@@ -30,7 +30,7 @@ struct CmdBufExecutionReport
 
 struct GfxFeaturesSettings
 {
-    bool enableGPUTimestamp = false;
+    bool enableGPUProfiling = false;
 };
 
 struct Queue

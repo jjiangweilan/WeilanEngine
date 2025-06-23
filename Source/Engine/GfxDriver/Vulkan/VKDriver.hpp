@@ -1,9 +1,9 @@
 #pragma once
+#include "Libs/DynamicArray.hpp"
 #include <SDL.h>
 #include <glm/glm.hpp>
 #include <memory>
 #include <unordered_map>
-#include "Libs/DynamicArray.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
@@ -102,6 +102,7 @@ public:
         VkImageLayout finalLayout
     );
 
+    void SetGPUProfilerEnabled(bool enabled) override;
     const Profiler& GetGPUProfiler() override { return profiler; }
 
     void GenerateMipmaps(Gfx::Image& image) override

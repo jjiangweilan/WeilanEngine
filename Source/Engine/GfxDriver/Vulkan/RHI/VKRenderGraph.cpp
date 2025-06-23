@@ -1067,7 +1067,7 @@ void Graph::Execute(
     ENGINE_SCOPED_PROFILE("VKRenderGraph::Execute");
 
     // Begin
-    bool enableGPUTimestamp = inflightCmd.maxtimestapQueryCount > 0 && featureSettings.enableGPUTimestamp;
+    bool enableGPUTimestamp = inflightCmd.maxtimestapQueryCount > 0 && featureSettings.enableGPUProfiling;
     if (enableGPUTimestamp)
     {
         vkCmdResetQueryPool(vkcmd, inflightCmd.timestapQueryPool, 0, inflightCmd.maxtimestapQueryCount);

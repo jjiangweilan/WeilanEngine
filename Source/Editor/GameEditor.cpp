@@ -184,11 +184,17 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
     ImGui::Begin("Profiler Module");
 
     ImGui::Text("Frame Profiler:");
+
+    static bool enableGPUProfiling = false;
+    static int selectedFrame = 0;
+    static int actuallySelectedFrame = 0;
+    if (ImGui::Checkbox("Enable GPU Profiling", &enableGPUProfiling))
+    {
+        GetGfxDriver()->SetGPUProfilerEnabled(enableGPUProfiling);
+    }
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, Profiler::MAX_FRAME_TRACKED);
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, 16);
 
-    static int selectedFrame = 0;
-    static int actuallySelectedFrame = 0;
     if (ImPlot::BeginPlot("Frame Profiles", ImVec2(-1, 300)))
     {
         ImPlotAxisFlags xAxesFlags = ImPlotAxisFlags_Lock | ImPlotAxisFlags_NoGridLines;
@@ -259,7 +265,9 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
-static void MenuVisitor(DynamicArray<std::string>::iterator iter, DynamicArray<std::string>::iterator end, bool& clicked)
+static void MenuVisitor(
+    DynamicArray<std::string>::iterator iter, DynamicArray<std::string>::iterator end, bool& clicked
+)
 {
     if (iter == end)
     {

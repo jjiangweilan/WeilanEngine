@@ -56,8 +56,7 @@ struct VKDriver::SDLInfo
 };
 VKDriver::VKDriver(const CreateInfo& createInfo)
 {
-    // TODO(feature): this should be able to dynamically enable and disable at runtime
-    featureSettings.enableGPUTimestamp = createInfo.gpuTimestampQueryMaxCount != 0;
+    featureSettings.enableGPUProfiling = false;
 
 #if ENGINE_DEV_BUILD
     if (createInfo.enableRenderDoc)
@@ -723,7 +722,10 @@ bool VKDriver::EndFrame()
     ENGINE_END_PROFILE
 
     ENGINE_BEGIN_PROFILE("VKDriver - Query GPU Timestamp");
-    QueryGPUTimestamp(execReport);
+    if (featureSettings.enableGPUProfiling)
+    {
+        QueryGPUTimestamp(execReport);
+    }
     ENGINE_END_PROFILE
 
     allocator.Reset();
@@ -1450,5 +1452,10 @@ void VKDriver::QueryGPUTimestamp(CmdBufExecutionReport& execReport)
         }
         profiler.EndFrameManual(execReport.timestampQueryLabels.back().timestamp);
     }
+}
+
+void VKDriver::SetGPUProfilerEnabled(bool enabled)
+{
+    featureSettings.enableGPUProfiling = enabled && gpuFeatures.timestampPeriod;
 }
 } // namespace Gfx

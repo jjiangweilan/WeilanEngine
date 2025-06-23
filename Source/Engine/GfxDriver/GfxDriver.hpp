@@ -74,6 +74,7 @@ public:
 
     // TODO(perf):
     // 1. GPU profiler should be able to turn off when not needed
+    virtual void SetGPUProfilerEnabled(bool enabled) = 0;
     virtual const Profiler& GetGPUProfiler() = 0;
     virtual bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags uages) = 0;
     virtual const GPUFeatures& GetGPUFeatures() = 0;

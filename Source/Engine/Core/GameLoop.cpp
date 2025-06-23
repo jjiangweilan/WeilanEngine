@@ -72,7 +72,7 @@ const void GameLoop::Tick(
 
     // render
 
-    if (scene && scene->GetMainCamera() && !offscreen)
+    if (scene && scene->GetMainCamera())
     {
         ENGINE_BEGIN_PROFILE("GameLoop - Physics Debug Draw");
         scene->GetPhysicsScene().DebugDraw();
@@ -82,9 +82,12 @@ const void GameLoop::Tick(
         scene->GetRenderingScene().Tick();
         ENGINE_END_PROFILE
 
-        ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
-        renderPipeline.Render(*scene, *scene->GetMainCamera(), screenSize);
-        ENGINE_END_PROFILE
+        if (!offscreen)
+        {
+            ENGINE_BEGIN_PROFILE("GameLoop - Render Pipeline Render");
+            renderPipeline.Render(*scene, *scene->GetMainCamera(), screenSize);
+            ENGINE_END_PROFILE
+        }
 
         outGraphOutputImage = &renderPipeline.GetOutputColor();
         outGraphOutputDepthImage = &renderPipeline.GetOutputDepth();
