@@ -6,6 +6,7 @@
 #include "Passes/DepthDownSampler.hpp"
 #include "Passes/SSAO.hpp"
 #include "RenderPipelineSetting.hpp"
+#include "Rendering/RenderPipeline/Passes/ReflectionprobeUpdate.hpp"
 #include "Rendering/Renderers/ShadowRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "SkyboxPass.hpp"
@@ -54,6 +55,7 @@ public:
 private:
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
+    std::unique_ptr<Passes::ReflectionProbeUpdate> reflectionProbeUpdate;
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 
     Gfx::RG::ImageIdentifier mainColor = "mainColor";
@@ -82,8 +84,17 @@ private:
     {
         PerScene();
         GPUParameter::PerScene cpuParameter{};
+
+        GPUParameter::Camera cameraParameter{};
+        GPUParameter::Scene sceneParameter{};
+        GPUParameter::MainLightShadow mainLightShadowParameter{};
+
         std::unique_ptr<Gfx::Buffer> gpuBuffer{};
         std::unique_ptr<Gfx::ShaderResource> gpuResourceSet{};
+
+        std::unique_ptr<Gfx::Buffer> scene{};
+        std::unique_ptr<Gfx::Buffer> camera{};
+        std::unique_ptr<Gfx::Buffer> mainLightShadow{};
     } perScene{};
 
     struct GBufferPass

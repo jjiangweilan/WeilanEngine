@@ -2,11 +2,10 @@
 #include "Core/Math/Geometry.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Rendering/DrawList.hpp"
+#include "Rendering/GPUParameter.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
-#include <glm/glm.hpp>
 namespace GPUParameter
 {
-using namespace glm;
 #include "Shaders/DeferredPBRShadingInput.hlsl"
 #include "Shaders/Library/PerScene.hlsl"
 } // namespace GPUParameter
@@ -47,6 +46,9 @@ struct RenderingData
     RenderPipelineDebugger* renderPipelineDebugger;
     Frustum cameraFrustum;
     GPUParameter::PerScene* sceneInfo;
+    GPUParameter::Camera* gpuCamera;
+    GPUParameter::Scene* gpuScene;
+    GPUParameter::MainLightShadow* gpuMainLightShadow;
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
     Gfx::Image* depthCopy;

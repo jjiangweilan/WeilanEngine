@@ -34,7 +34,7 @@ void VertexMain(uint vertexId : SV_VertexID)
     float4 pos = float4(v.xyz, 1.0f);
 
     VertexOutput output;
-    output.positon= mul(perScene.viewProjection, pos);
+    output.positon= mul(perScene.camera.viewProjection, pos);
 }
 
 [shader("fragment")]

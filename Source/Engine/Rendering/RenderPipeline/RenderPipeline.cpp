@@ -12,6 +12,7 @@
 #include "Rendering/RenderingUtils.hpp"
 #include "Rendering/ShaderLibrary.hpp"
 
+using namespace Rendering::Passes;
 namespace Rendering
 {
 RenderPipeline::RenderPipeline()
@@ -19,6 +20,7 @@ RenderPipeline::RenderPipeline()
     particleRenderer = std::make_unique<ParticleRenderer>();
     shadowRenderer = std::make_unique<ShadowRenderer>();
     shadowRenderer->Init();
+    reflectionProbeUpdate = std::make_unique<ReflectionProbeUpdate>();
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
@@ -48,21 +50,30 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     renderingData.cameraFrustum = camera.GetFrustum(renderingData.screenAspect);
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
+    auto& renderingScene = scene.GetRenderingScene();
     DrawList sceneDrawList{};
     if (setting->frustumCull)
     {
-        auto renderers = scene.GetRenderingScene().QueryRendererInFrustum(renderingData.cameraFrustum);
+        auto renderers = renderingScene.QueryRendererInFrustum(renderingData.cameraFrustum);
         sceneDrawList.Add(renderers);
     }
     else
     {
-        sceneDrawList.Add(scene.GetRenderingScene().GetMeshRenderers());
+        sceneDrawList.Add(renderingScene.GetMeshRenderers());
     }
     sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
 
     ENGINE_END_PROFILE
 
     cmd->BindResource(0, perScene.gpuResourceSet.get());
+
+    // Reflection Probe Updateo
+
+    auto reflectionProbes = renderingScene.GetReflectionProbes();
+    for (auto r : reflectionProbes)
+    {
+        reflectionProbeUpdate->Execute(*cmd, renderingData, *r);
+    }
 
     // Shadow Pass
     shadowRenderer->Execute(*cmd, renderingData, sceneDrawList);
@@ -188,7 +199,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         cmd->EndRenderPass();
 
-        auto clouds = scene.GetRenderingScene().GetClouds();
+        auto& renderingScene = scene.GetRenderingScene();
+        auto clouds = renderingScene.GetClouds();
         if (!clouds.empty())
         {
             cloudPass.Execute(*clouds[0], *cmd, renderingData);
@@ -264,7 +276,19 @@ RenderPipeline::PerScene::PerScene()
     gpuResourceSet = GetGfxDriver()->CreateShaderResource();
     gpuResourceSet->SetBuffer("perScene", gpuBuffer.get());
 
-    ASSERT(gpuBuffer->GetSize() == sizeof(GPUParameter::PerScene));
+    scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform, false, false, "Scene");
+    camera =
+        GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Camera), Gfx::BufferUsage::Uniform, false, false, "Camera");
+    mainLightShadow = GetGfxDriver()->CreateBuffer(
+        sizeof(GPUParameter::MainLightShadow),
+        Gfx::BufferUsage::Uniform,
+        false,
+        false,
+        "MainLightShadow"
+    );
+    gpuResourceSet->SetBuffer("scene", scene.get());
+    gpuResourceSet->SetBuffer("camera", camera.get());
+    gpuResourceSet->SetBuffer("mainLightShadow", mainLightShadow.get());
 }
 
 RenderPipeline::ShadingPass::ShadingPass()
@@ -448,6 +472,9 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
     }
 
     renderingData.sceneInfo = &perScene.cpuParameter;
+    renderingData.gpuCamera = &perScene.cameraParameter;
+    renderingData.gpuScene = &perScene.sceneParameter;
+    renderingData.gpuMainLightShadow = &perScene.mainLightShadowParameter;
     renderingData.mainCamera = &camera;
     renderingData.mainColor = GetGfxDriver()->GetImageFromRenderGraph(mainColor);
     renderingData.mainDepth = GetGfxDriver()->GetImageFromRenderGraph(mainDepth);
@@ -469,34 +496,43 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
 
     auto& param = perScene.cpuParameter;
+    auto& cameraParam = perScene.cameraParameter;
+    auto& sceneParam = perScene.sceneParameter;
+    auto& mainLightShadowParam = perScene.mainLightShadowParameter;
 
-    param.projection = projectionMatrix;
-    param.viewProjection = vp;
-    param.viewPos = viewPos;
-    param.view = viewMatrix;
-    auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();
-    param.shadowMapSize = {
-        shadowMapTexelSize.z,
-        shadowMapTexelSize.w,
-        shadowMapTexelSize.x,
-        shadowMapTexelSize.y,
-    };
-    param.invProjection = glm::inverse(projectionMatrix);
-    param.invNDCToWorld = glm::inverse(viewMatrix) * glm::inverse(projectionMatrix);
-    param.cameraZBufferParams = glm::vec4(
+    // update camera parameters
+    cameraParam.position = viewPos;
+    cameraParam.cameraZBufferParams = glm::vec4(
         camera.GetNear(),
         camera.GetFar(),
         (camera.GetNear() - camera.GetFar()) / (camera.GetNear() * camera.GetFar()),
         1.0f / camera.GetNear()
     );
-    param.cameraFrustum = glm::vec4(
+    cameraParam.cameraFrustum = glm::vec4(
         -camera.GetProjectionRight(),
         camera.GetProjectionRight(),
         -camera.GetProjectionTop(),
         camera.GetProjectionTop()
     );
-    param.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
-    param.time = Time::TimeSinceLaunch();
+    cameraParam.view = viewMatrix;
+    cameraParam.projection = projectionMatrix;
+    cameraParam.viewProjection = vp;
+    cameraParam.invProjection = glm::inverse(projectionMatrix);
+    cameraParam.invNDCToWorld = glm::inverse(viewMatrix) * cameraParam.invProjection;
+    cameraParam.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
+
+    // update scene parameters
+    sceneParam.time = Time::TimeSinceLaunch();
+    
+    // update main light shadow parameters
+    auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();
+    mainLightShadowParam.shadowMapSize = {
+        shadowMapTexelSize.z,
+        shadowMapTexelSize.w,
+        shadowMapTexelSize.x,
+        shadowMapTexelSize.y,
+    };
+
     if (sceneEnvironment)
     {
         auto coefs = sceneEnvironment->GetSkyboxProbeCoefficients();
@@ -515,12 +551,12 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         ENGINE_END_PROFILE
         auto& lights = renderingData.lights;
 
-        param.lightCount = glm::float4(lights.size(), 0, 0, 0);
+        sceneParam.lightCount = lights.size();
         for (int i = 0; i < lights.size(); ++i)
         {
-            param.lights[i].ambientScale = lights[i]->GetAmbientScale();
-            param.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
-            param.lights[i].intensity = lights[i]->GetIntensity();
+            sceneParam.lights[i].ambientScale = lights[i]->GetAmbientScale();
+            sceneParam.lights[i].lightColor = glm::vec4(lights[i]->GetLightColor(), 1.0);
+            sceneParam.lights[i].intensity = lights[i]->GetIntensity();
             auto model = lights[i]->GetGameObject()->GetWorldMatrix();
             switch (lights[i]->GetLightType())
             {
@@ -528,7 +564,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                     {
                         mainLight = lights[i];
                         renderingData.mainLightIndex = i;
-                        param.lights[i].position = {mainLight->GetLightDirection(), 0};
+                        sceneParam.lights[i].position = {mainLight->GetLightDirection(), 0};
 
                         if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
                         {
@@ -540,9 +576,9 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                 case LightType::Point:
                     {
                         glm::vec3 pos = model[3];
-                        param.lights[i].position = {pos, 1};
-                        param.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
-                        param.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
+                        sceneParam.lights[i].position = {pos, 1};
+                        sceneParam.lights[i].pointLightTerm1 = lights[i]->GetPointLightLinear();
+                        sceneParam.lights[i].pointLightTerm2 = lights[i]->GetPointLightDistance();
                         break;
                     }
             }
@@ -552,20 +588,23 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         {
             state.renderMainLightShadow = mainLight->ShouldRenderShadowMap();
 
-            param.worldToShadow = shadowRenderer->GetShadowToWorldMatrix(renderingData);
+            mainLightShadowParam.worldToShadow = shadowRenderer->GetShadowToWorldMatrix(renderingData);
 
             if (mainLight->IsShadowCacheEnabled())
             {
-                param.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
+                mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetCachedLightDirection(), 1.0f);
             }
             else
             {
-                param.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
+                mainLightShadowParam.cachedMainLightDirection = glm::vec4(mainLight->GetLightDirection(), 0.0f);
             }
         }
     }
 
     GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
+    GetGfxDriver()->UploadBuffer(*perScene.camera, (uint8_t*)&cameraParam, sizeof(GPUParameter::Camera));
+    GetGfxDriver()->UploadBuffer(*perScene.scene, (uint8_t*)&sceneParam, sizeof(GPUParameter::Scene));
+    GetGfxDriver()->UploadBuffer(*perScene.mainLightShadow, (uint8_t*)&mainLightShadowParam, sizeof(GPUParameter::MainLightShadow));
 }
 
 void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)
@@ -625,7 +664,7 @@ void RenderPipeline::CloudPass::Execute(Cloud& cloud, Gfx::CommandBuffer& cmd, R
         volumetricCloud->GetSet(Gfx::DescriptorSetSemantics::Material),
         volumetricCloud->GetShaderResource()
     );
-    cmd.Dispatch((renderingData.sceneInfo->screenSize.x + 7) / 8, (renderingData.sceneInfo->screenSize.y + 7) / 8, 1);
+    cmd.Dispatch((renderingData.gpuCamera->screenSize.x + 7) / 8, (renderingData.gpuCamera->screenSize.y + 7) / 8, 1);
 }
 
 } // namespace Rendering

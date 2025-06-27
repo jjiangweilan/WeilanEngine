@@ -33,7 +33,7 @@ void ShadowRenderer::SetSettings(ShadowRendererSettigns settings) {}
 float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
 {
     auto light = renderingData.GetMainLight();
-    auto view = renderingData.sceneInfo->view;
+    auto view = renderingData.gpuCamera->view;
     auto projection = renderingData.mainCamera->CalculateProjectionMatrixWithOverride(
         light->GetShadowDistance(),
         renderingData.screenAspect
@@ -47,7 +47,7 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
     lightMatrix[1] = float4(glm::normalize(float3(lightMatrix[1])), 0.0);
     lightMatrix[2] = float4(glm::normalize(float3(lightMatrix[2])), 0.0);
     lightMatrix[2] = -lightMatrix[2];
-    lightMatrix[3] = float4(float3(renderingData.sceneInfo->viewPos), 1); // no translation
+    lightMatrix[3] = float4(float3(renderingData.gpuCamera->position), 1); // no translation
 
     float4x4 worldToLight = glm::inverse(lightMatrix);
     for (int i = 0; i < corners.size(); i++)
@@ -104,7 +104,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     DynamicArray<MeshRenderer*> renderers{};
     if (renderingData.renderPipelineSettings->shadowFrustumCull)
     {
-        Frustum frustum(renderingData.sceneInfo->worldToShadow);
+        Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow);
         auto renderers = renderingData.scene->GetRenderingScene().QueryRendererInFrustum(frustum);
         shadowDrawList.Add(renderers);
     }

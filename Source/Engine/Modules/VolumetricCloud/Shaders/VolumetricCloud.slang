@@ -121,7 +121,7 @@ CloudInfo SampleDensity(float3 worldPos)
     if (IsPosInsideCloud(worldPos))
     {
         float3 samplePos = (worldPos) / perMaterial.detailMapScale;
-        float3 offset = float3(perScene.time * 0.001,0,perScene.time * 0.001);
+        float3 offset = float3(perScene.scene.time * 0.001,0,perScene.scene.time * 0.001);
         float4 density = perMaterial.cloudDensity.SampleLevel(perMaterial.sampler_Linear_Repeat, samplePos.xyz + offset, 0);
         // info.dimensionalProfile *= density.x;
 
@@ -163,12 +163,12 @@ float3 LightMarch(float3 pos, float mu)
     {
         CloudInfo cloudInfo = SampleDensity(pos);
         extinction += cloudInfo.density * fixedStep;
-        pos += fixedStep * perScene.lights[0].position.xyz;
+        pos += fixedStep * perScene.scene.lights[0].position.xyz;
     }
     extinction *= perMaterial.lightExtinction;
 
     float powderEffect = 1.0f;//PowderEffect(extinction);
-    return Transmittance(extinction) * powderEffect * perScene.lights[0].lightColor.xyz * perMaterial.lightScale;
+    return Transmittance(extinction) * powderEffect * perScene.scene.lights[0].lightColor.xyz * perMaterial.lightScale;
 }
 
 
@@ -187,7 +187,7 @@ float4 RenderCloud(float3 dir, float3 start, float3 end) {
             float transmittance = Transmittance(extinction * step);
 
             float3 ambient =  perMaterial.ambientScale * perMaterial.ambientColor.xyz * pow(1.0f -  cloudInfo.dimensionalProfile, 0.5);// * lerp(0.3, 0.5, cloudInfo.normalizedHeight);
-            float3 ldir = normalize(perScene.lights[0].position.xyz * 1000000 - positionWS);
+            float3 ldir = normalize(perScene.scene.lights[0].position.xyz * 1000000 - positionWS);
             float mu = dot(ldir, dir);
             float phase = saturate(DualLobHenyeyGreenstein(perMaterial.lightPhase_g, mu, perMaterial.lightPhase_K));
             float3 luminance = phase * LightMarch(positionWS, mu) + ambient; // luminance should be scaled by scattering (density * perMaterial.scattering)
@@ -250,7 +250,7 @@ float RaySphereIntersect(float3 r0, float3 rd, float3 s0, float sr) {
 [numthreads(8, 8, 1)]
 void ComputeMain(uint3 id : SV_DispatchThreadID)
 {
-    if (any(id.xy >= perScene.screenSize.xy))
+    if (any(id.xy >= perScene.camera.screenSize.xy))
         return;
 
     float d = perMaterial.depthMap.Load(uint3(id.xy,0)).x;
@@ -259,24 +259,24 @@ void ComputeMain(uint3 id : SV_DispatchThreadID)
         return;
     }
 
-    float2 uv = (id.xy + 0.5) * perScene.screenSize.zw;
+    float2 uv = (id.xy + 0.5) * perScene.camera.screenSize.zw;
     float2 ndc = uv * 2 - 1;
     float3 screenCoord = float3(ndc, perMaterial.nearPlane);
-    float4 rayPoint = mul(perScene.invNDCToWorld, float4(screenCoord, 1.0));
+    float4 rayPoint = mul(perScene.camera.invNDCToWorld, float4(screenCoord, 1.0));
     rayPoint.xyz /= rayPoint.w;
-    float3 dir = normalize(rayPoint.xyz - perScene.viewPos.xyz);
+    float3 dir = normalize(rayPoint.xyz - perScene.camera.position.xyz);
 
     float noiseOffset = (perMaterial.interleavedGradientNoise.Load(int3(id.xy % 32, 0)).x) ;
     float tmin, tmax;
-    bool intersected = RayIntersectsBox(perScene.viewPos.xyz, dir, GetCloudMin(), GetCloudMax(), tmin, tmax);
+    bool intersected = RayIntersectsBox(perScene.camera.position.xyz, dir, GetCloudMin(), GetCloudMax(), tmin, tmax);
     tmin = max(tmin, 0.00001);
-    // float t = RaySphereIntersect(perScene.viewPos.xyz, dir, 0, perMaterial.radiusTest) + noiseOffset;
+    // float t = RaySphereIntersect(perScene.camera.position.xyz, dir, 0, perMaterial.radiusTest) + noiseOffset;
     if (!intersected)
         return;
 
     tmin += noiseOffset;
-    float3 start = perScene.viewPos.xyz + tmin * dir;
-    float3 end = perScene.viewPos.xyz + tmax * dir;
+    float3 start = perScene.camera.position.xyz + tmin * dir;
+    float3 end = perScene.camera.position.xyz + tmax * dir;
     float4 cloud = RenderCloud(dir, start, end);
 
     float4 mainColor = perMaterial.mainColor.Load(id.xy);

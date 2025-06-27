@@ -50,7 +50,7 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
 
     float4 vPos = c_Positions[vertexID];
     vPos.xy *= transform.scale.xy;
-    float3 lookat = perScene.viewPos.xyz - transform.position.xyz;
+    float3 lookat = perScene.camera.position.xyz - transform.position.xyz;
     float3 anyvec = all(lookat != float3(0, 1, 0)) ? float3(0, 1, 0) : float3(1, 1, 0);
     float3 right = cross(lookat, anyvec);
     float3 up = cross(right, lookat);
@@ -62,7 +62,7 @@ VertexOutput VertexMain(uint vertexID : SV_VertexID)
         float4(transform.position.xyz, 1)
         };
     billboardModelMatrix = transpose(billboardModelMatrix);
-    output.position = mul(perScene.viewProjection, mul(billboardModelMatrix, vPos));
+    output.position = mul(perScene.camera.viewProjection, mul(billboardModelMatrix, vPos));
 
     return output;
 }

@@ -55,12 +55,12 @@ ParameterBlock<PerScene> perScene;
 VertexOutput Vert(VertexInput input)
 {
     VertexOutput output;
-    float4x4 view = perScene.view;
+    float4x4 view = perScene.camera.view;
     view[0][3] = 0;
     view[1][3] = 0;
     view[2][3] = 0;
     view[3][3] = 1;
-    float4x4 projection = perScene.projection;
+    float4x4 projection = perScene.camera.projection;
     output.position = mul(projection, mul(view, float4(input.position, 1.0)));
     output.positionOS = input.position.xyz;
     output.position.z = output.position.w;
@@ -71,7 +71,7 @@ VertexOutput Vert(VertexInput input)
 [shader("fragment")]
 float4 Frag(VertexOutput input) : SV_Target
 {
-    bool hasSun = perScene.lightCount.x > 0;
-    return float4(saturate(Sky(0, normalize(input.positionOS.xyz), perScene.lights[0].position.xyz, hasSun)), 1.0);
+    bool hasSun = perScene.scene.lightCount > 0;
+    return float4(saturate(Sky(0, normalize(input.positionOS.xyz), perScene.scene.lights[0].position.xyz, hasSun)), 1.0);
 }
 

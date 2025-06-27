@@ -120,7 +120,7 @@ float3 ParallaxShadowReprojection(float3 P1, float3 L1, float3 L0)
     float sum = 0, cnt = 0; 
     for (int i = 0; i < 8; ++i) 
     { 
-        float4 Sp = mul(perScene.worldToShadow, float4(S, 1));
+        float4 Sp = mul(perScene.mainLightShadow.worldToShadow, float4(S, 1));
         Sp = Sp / Sp.w;
         float2 shadowUV = Sp.xy * 0.5 + 0.5;
         float occDepth = perMaterial.shadowMap.SampleLevel(perMaterial.sampler_point_clamp, shadowUV, 0).r; 
@@ -147,14 +147,14 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     float roughness = mask.y;
     float3 baseColor = perMaterial.albedoTex.Sample(input.uv).xyz;
     float depth = perMaterial.depthTex.Sample(input.uv).x;
-    float4 positionWS = mul(perScene.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
+    float4 positionWS = mul(perScene.camera.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
     positionWS /= positionWS.w;
-    float3 v = normalize(perScene.viewPos.xyz - positionWS.xyz);
+    float3 v = normalize(perScene.camera.position.xyz - positionWS.xyz);
 
     float3 color = float3(0, 0, 0);
-    for (int i = 0; i < perScene.lightCount.x; ++i)
+    for (int i = 0; i < perScene.scene.lightCount; ++i)
     {
-        float4 lightPos = perScene.lights[i].position;
+        float4 lightPos = perScene.scene.lights[i].position;
         float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
 
         float dotNL = max(dot(n, l), NearZero);
@@ -163,8 +163,8 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         float3 kd = 1 - F;
         kd *= 1 - metallic;
 
-        float3 light = dotNL * perScene.lights[i].intensity * perScene.lights[i].lightColor.xyz;
-        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  perScene.lights[i].pointLightTerm2);
+        float3 light = dotNL * perScene.scene.lights[i].intensity * perScene.scene.lights[i].lightColor.xyz;
+        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  perScene.scene.lights[i].pointLightTerm2);
 // global.perScene.lights[i].pointLightTerm1,;
 
         float3 lighting = light * (kd * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
@@ -180,12 +180,12 @@ float4 FragmentMain(VertexOutput input) : SV_Target
             const float shadowNormalBias = perMaterial.input.shadowNormalBias;
 
             float3 shadowWorldPos = positionWS.xyz;
-            if (perScene.cachedMainLightDirection.a == 1.0f)
+            if (perScene.mainLightShadow.cachedMainLightDirection.a == 1.0f)
             {
-                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, perScene.cachedMainLightDirection.xyz);
+                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, perScene.mainLightShadow.cachedMainLightDirection.xyz);
             }
 
-            float4 shadowCS = mul(perScene.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0));
+            float4 shadowCS = mul(perScene.mainLightShadow.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0));
             shadowCS = shadowCS / shadowCS.w;
             float2 shadowUV = shadowCS.xy * 0.5 + 0.5;
             float objShadowDepth = shadowCS.z - shadowBias;

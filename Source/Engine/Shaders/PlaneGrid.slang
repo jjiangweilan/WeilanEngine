@@ -35,7 +35,7 @@ VertexOutput VertexMain(VertexInput input)
 {
     VertexOutput output;
     output.positionWS = mul(transform.model, float4(input.position, 1.0));
-    output.position = mul(perScene.viewProjection, output.positionWS);
+    output.position = mul(perScene.camera.viewProjection, output.positionWS);
     output.uv = input.uv * 100;
 
     return output;

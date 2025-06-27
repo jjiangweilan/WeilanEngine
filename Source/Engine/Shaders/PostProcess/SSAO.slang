@@ -38,7 +38,7 @@ static float4 fragCoord;
 
 float3 GetPostionVS(float3 ndcPos)
 {
-    float4 posVS = mul(perScene.invProjection, float4(ndcPos, 1.0));
+    float4 posVS = mul(perScene.camera.invProjection, float4(ndcPos, 1.0));
     return posVS.xyz / posVS.w;
 }
 
@@ -68,7 +68,7 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
 float GTAO(VertexOutput input)
 {
     float3 posVS;
-    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.cameraZBufferParams, perScene.invProjection, posVS);
+    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
     float3 viewVS = normalize(-posVS);
 
     float visibility = 0;

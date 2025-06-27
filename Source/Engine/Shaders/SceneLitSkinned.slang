@@ -120,7 +120,7 @@ VertexOutput SceneLitVertex(IVertexInput input)
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
-    output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
+    output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     return output;
 }

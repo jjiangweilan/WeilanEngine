@@ -45,7 +45,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
     float output = 0;
     const int delta = (KernelSize - 1) / 2;
     float highDepth = input.highDepth.Load(int3(pixel, 0)).r;
-    float linearHighResDepth = LinearEyeDepth(highDepth, perScene.cameraZBufferParams);
+    float linearHighResDepth = LinearEyeDepth(highDepth, perScene.camera.cameraZBufferParams);
     for (int x = -delta; x <= delta; x++)
     {
         for (int y = -delta; y <= delta; y++)
@@ -54,7 +54,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
             float2 lowResUV = (lowResCoord.xy + 0.5) * input.lowTexelSize.xy;
             float lowDepth = input.lowdepth.Load(lowResCoord).r;
             float lowColor = input.lowColor.Load(lowResCoord).r;
-            float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.cameraZBufferParams);
+            float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.camera.cameraZBufferParams);
 
             float g = Gaussian_v0(length(lowResCoord.xy - pixel), delta);
             float j = Gaussian_v0(linearLowResDepth - linearHighResDepth, input.sigma);

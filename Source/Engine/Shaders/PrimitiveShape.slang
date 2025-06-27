@@ -67,7 +67,7 @@ VertexOutput VertexMain(VertexInput input)
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
-    output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
+    output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     float3 scale = float3(length(pconst.model[0].xyz), length(pconst.model[1].xyz), length(pconst.model[2].xyz));
     output.positionOS = input.GetPosition() * scale;

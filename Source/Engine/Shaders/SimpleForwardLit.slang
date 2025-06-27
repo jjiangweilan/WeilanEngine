@@ -60,7 +60,7 @@ VertexOutput VertexMain(VertexInput input)
     output.bitangentWS = tangent.w * cross(output.normalWS, output.tangentWS);
     output.uv = input.GetUV();
 
-    output.position = mul(perScene.viewProjection, float4(output.positionWS, 1));
+    output.position = mul(perScene.camera.viewProjection, float4(output.positionWS, 1));
 
     return output;
 }
@@ -69,9 +69,9 @@ VertexOutput VertexMain(VertexInput input)
 float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float3 color = float(0.6).xxx;
-    if(perScene.lightCount.x > 0)
+    if(perScene.scene.lightCount > 0)
     {
-        float3 ndol = dot(input.normalWS, perScene.lights[0].position.xyz);
+        float3 ndol = dot(input.normalWS, perScene.scene.lights[0].position.xyz);
         color *= ndol;
     }
 

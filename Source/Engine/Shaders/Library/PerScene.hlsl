@@ -10,10 +10,6 @@ struct Light
     float intensity;
     float pointLightTerm1;
     float pointLightTerm2;
-
-    float padding0;
-    float padding1;
-    float padding2;
 };
 
 struct SphericalHarmonics_2ndOrder
@@ -21,48 +17,60 @@ struct SphericalHarmonics_2ndOrder
     float4 colors[9];
 };
 
-struct PerScene
+struct Camera
 {
-    float4 viewPos;
-    matrix<float,4,4> view;
-    matrix<float,4,4> projection;
-    matrix<float,4,4> viewProjection;
-    matrix<float,4,4> worldToShadow;
-    matrix<float,4,4> invProjection;
-    matrix<float,4,4> invNDCToWorld;
-    float4 lightCount; // x: lightCount
-    float4 shadowMapSize;
+    float4 position;
     float4 cameraZBufferParams;
     float4 cameraFrustum;// left right bottom top
+    float4x4 view;
+    float4x4 projection;
+    float4x4 viewProjection;
+    float4x4 invProjection;
+    float4x4 invNDCToWorld;
     float4 screenSize;
-    float4 cachedMainLightDirection;
-    float time;
-    float padding0;
-    float padding1;
-    float padding2;
-    Light lights[MAX_LIGHT_COUNT];
+};
 
+struct MainLightShadow
+{
+    float4x4 worldToShadow;
+    float4 shadowMapSize;
+    float4 cachedMainLightDirection;
+};
+
+struct Scene
+{
+    float lightCount;
+    float time;
+    Light lights[MAX_LIGHT_COUNT];
+};
+
+struct PerScene
+{
     SphericalHarmonics_2ndOrder sh_2ndOrder;
 
 #if GPU_RESOURCE
+    ConstantBuffer<Scene> scene;
+    ConstantBuffer<Camera> camera;
+    ConstantBuffer<MainLightShadow> mainLightShadow;
+    
     Light GetMainLight()
     {
-        if (lightCount.x > 0)
+        if (scene.lightCount > 0)
         {
-            return lights[0];
+            return scene.lights[0];
         }
         else
-            return Light(0,0,0,0,0,0,0,0,0,0);
+            return Light(0,0,0,0,0,0,0);
     }
 
     float4 ModelToClipSpace(float4 position)
     {
-        return mul(viewProjection, position);
+        return mul(camera.viewProjection, position);
     }
 
     float4 ModelToClipSpace(float3 position)
     {
-        return mul(viewProjection, float4(position, 1.0));
+        return mul(camera.viewProjection, float4(position, 1.0));
     }
 #endif
 };

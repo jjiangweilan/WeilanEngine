@@ -44,7 +44,7 @@ PushConstant pconst;
 VertexOutput SpriteVertex(float3 position : POSITION, float2 uv : TEXCOORD0)
 {
     VertexOutput output;
-    output.position = mul(perScene.viewProjection, mul(pconst.model, float4(position, 1.0)));
+    output.position = mul(perScene.camera.viewProjection, mul(pconst.model, float4(position, 1.0)));
     output.uv = uv * uInput.uvScaleOffset.xy + uInput.uvScaleOffset.zw;
     return output;
 }

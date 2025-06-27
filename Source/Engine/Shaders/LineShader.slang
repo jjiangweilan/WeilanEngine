@@ -27,7 +27,7 @@ VertexOutput VertexMain(uint vertexId : SV_VertexID)
 {
     VertexOutput output;
     float4 pos = float4(vertexId == 0 ? p.fromWS.xyz : p.toWS.xyz, 1.0f);
-    output.position = mul(perScene.viewProjection, pos);
+    output.position = mul(perScene.camera.viewProjection, pos);
 
     return output;
 }
