@@ -31,11 +31,10 @@ WeilanEngine::~WeilanEngine()
 
     event->Deinit();
     gfxDriver->WaitForIdle();
-    ShaderLibrary::Singleton().RemoveAllShaders();
     DelayDestroy::Singleton()->Flush();
-    DeinitJoltPhysics();
     DeinitAssetDatabase();
-    // physics->Destroy();
+    ShaderLibrary::Singleton().DestoryShaderLibrary();
+    DeinitJoltPhysics();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     DeinitSDL();
@@ -132,7 +131,6 @@ void WeilanEngine::EndFrame()
     DelayDestroy::Singleton()->Flush();
     GetFrameContext().EndFrame();
     ENGINE_END_FRAME_PROFILE
-
 }
 
 GameLoop* WeilanEngine::CreateGameLoop()

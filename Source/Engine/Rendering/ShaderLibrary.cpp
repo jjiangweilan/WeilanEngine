@@ -1430,6 +1430,13 @@ void ShaderLibrary::CompiledShader::Recompile(ShaderLibrary* parent)
     }
 }
 
+void ShaderLibrary::DestoryShaderLibrary()
+{
+    session = nullptr;
+    globalSession = nullptr;
+    library.clear();
+}
+
 void ShaderLibrary::LoadSession()
 {
     session = nullptr;

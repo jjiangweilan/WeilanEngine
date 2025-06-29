@@ -30,6 +30,7 @@ public:
         DWORD flags = tls ? HEAP_NO_SERIALIZE : 0;
         flags |= HEAP_ZERO_MEMORY;
         flags |= HEAP_GENERATE_EXCEPTIONS;
+        flags |= HEAP_REALLOC_IN_PLACE_ONLY;
         void* newPtr = HeapReAlloc(processHeapHandle, flags, ptr, newSize);
         return newPtr;
     }

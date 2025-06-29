@@ -17,6 +17,7 @@ struct Input
     Texture2D lowdepth;
     Texture2D highDepth;
 
+    [format("r32f")]
     RWTexture2D<float> dst;
     SamplerState sampler_linear_clamp;
     SamplerState sampler_point_clamp;

@@ -2,6 +2,8 @@
 #include "Libs/Assert.hpp"
 #if _WINDOWS
 #include "Libs/Platforms/Windows/WindowsMemory.hpp"
+#elif __APPLE__
+#include "Libs/Platforms/MacOS/MacOSMemory.hpp"
 #endif
 #include "Libs/Math.hpp"
 #include <tuple>

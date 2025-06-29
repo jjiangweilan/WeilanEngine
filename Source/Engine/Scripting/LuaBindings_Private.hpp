@@ -767,6 +767,8 @@ private:
             spdlog::error("calling function on null pointer");
             if constexpr (std::is_null_pointer_v<R>)
                 return;
+            else if constexpr (std::is_void_v<R>)
+                return;
             else
                 return R{};
         }

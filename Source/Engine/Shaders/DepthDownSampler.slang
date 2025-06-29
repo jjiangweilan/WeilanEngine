@@ -9,6 +9,7 @@ struct Input
     float4 dstTexelSize;
 
     Texture2D src;
+    [format("r32f")]
     RWTexture2D<float> dst;
     SamplerState sampler_linear_clamp;
 };

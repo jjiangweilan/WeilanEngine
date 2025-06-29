@@ -179,6 +179,8 @@ public:
         library.clear();
     }
 
+    void DestoryShaderLibrary();
+
     static ShaderLibrary& Singleton();
 
 private:
