@@ -437,9 +437,7 @@ void VKCommandBuffer::BeginLabel(std::string_view label, const glm::float4& colo
     VKBeginLabelCmd cmd{};
     currentLabel = label;
 
-    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
-    strcpy(tmp, (char*)label.data());
-    cmd.label = tmp;
+    cmd.label = std::string(label);
     memcpy(cmd.color, &color[0], sizeof(float) * 4);
 
     cmds.push_back(VKCmd{VKCmdType::BeginLabel, cmd});
@@ -449,9 +447,7 @@ void VKCommandBuffer::BeginLabel(std::string_view label, float color[4])
 {
     VKBeginLabelCmd cmd{};
 
-    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
-    strcpy(tmp, (char*)label.data());
-    cmd.label = tmp;
+    cmd.label = std::string(label);
     memcpy(cmd.color, color, sizeof(float) * 4);
 
     cmds.push_back(VKCmd{VKCmdType::BeginLabel, cmd});
@@ -466,9 +462,7 @@ void VKCommandBuffer::InsertLabel(std::string_view label, float color[4])
 {
     VKInsertLabelCmd cmd{};
 
-    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
-    strcpy(tmp, (char*)label.data());
-    cmd.label = tmp;
+    cmd.label = std::string(label);
     memcpy(cmd.color, color, sizeof(float) * 4);
 
     cmds.push_back(VKCmd{VKCmdType::InsertLabel, cmd});
@@ -478,9 +472,7 @@ void VKCommandBuffer::InsertLabel(std::string_view label, const glm::float4& col
 {
     VKInsertLabelCmd cmd{};
 
-    char* tmp = tmpMemory.Allocate<char>(label.size() + 1);
-    strcpy(tmp, (char*)label.data());
-    cmd.label = tmp;
+    cmd.label = label;
     memcpy(cmd.color, &color[0], sizeof(float) * 4);
 
     cmds.push_back(VKCmd{VKCmdType::InsertLabel, cmd});

@@ -1,6 +1,5 @@
 #pragma once
 #include "GfxDriver/Vulkan/VKCommandBuffer.hpp"
-#include "Libs/ArenaAllocator.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -25,7 +24,6 @@ struct VKFramePrepareData
     void Clear();
 
     DynamicArray<VKCmd> cmds{};
-    DynamicArray<VKCommandBuffer::TmpAllocator> memory{};
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks{};
 };
 } // namespace Gfx

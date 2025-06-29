@@ -1566,7 +1566,7 @@ void Graph::Execute(
             case Gfx::VKCmdType::BeginLabel:
                 {
                     auto& args = std::get<VKBeginLabelCmd>(cmd.args);
-                    VKDebugUtils::CmdBeginLabel(vkcmd, args.label, args.color);
+                    VKDebugUtils::CmdBeginLabel(vkcmd, args.label.data(), args.color);
                     if (enableGPUTimestamp && exeState.currentTimestapQueryIndex < inflightCmd.maxtimestapQueryCount)
                     {
                         vkCmdWriteTimestamp(
@@ -1599,7 +1599,7 @@ void Graph::Execute(
             case Gfx::VKCmdType::InsertLabel:
                 {
                     auto& args = std::get<VKInsertLabelCmd>(cmd.args);
-                    VKDebugUtils::CmdInsertLabel(vkcmd, args.label, args.color);
+                    VKDebugUtils::CmdInsertLabel(vkcmd, args.label.data(), args.color);
                     break;
                 }
             case Gfx::VKCmdType::GraphicsBlit:

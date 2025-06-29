@@ -1,11 +1,9 @@
 #pragma once
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
-#include "Internal/VKMemAllocator.hpp"
-#include "Libs/ArenaAllocator.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
-#include "Libs/DynamicArray.hpp"
 #include <vulkan/vulkan.h>
 
 namespace Gfx
@@ -242,7 +240,7 @@ struct VKPresentCmd
 
 struct VKBeginLabelCmd
 {
-    char* label;
+    std::string label;
     float color[4];
 };
 
@@ -251,7 +249,7 @@ struct VKEndLabelCmd
 
 struct VKInsertLabelCmd
 {
-    char* label;
+    std::string label;
     float color[4];
 };
 
@@ -399,8 +397,6 @@ struct VKCmd
 class VKCommandBuffer : public CommandBuffer
 {
 public:
-    using TmpAllocator = ArenaAllocator<1024>;
-
     VKCommandBuffer(VK::RenderGraph::Graph* graph) : graph(graph) {}
     VKCommandBuffer(const VKCommandBuffer& other) = delete;
     ~VKCommandBuffer() {};
@@ -468,7 +464,6 @@ public:
     {
         readbacks.clear();
         cmds.clear();
-        tmpMemory.Reset();
     }
 
     std::span<VKCmd> GetCmds() { return cmds; }
@@ -479,7 +474,6 @@ private:
     std::string currentLabel;
 
     DynamicArray<VKCmd> cmds;
-    TmpAllocator tmpMemory;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 

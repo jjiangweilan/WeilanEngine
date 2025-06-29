@@ -4,11 +4,6 @@
 #include "Rendering/DrawList.hpp"
 #include "Rendering/GPUParameter.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
-namespace GPUParameter
-{
-#include "Shaders/DeferredPBRShadingInput.hlsl"
-#include "Shaders/Library/PerScene.hlsl"
-} // namespace GPUParameter
 class Camera;
 class Terrain;
 class Light;
@@ -45,7 +40,6 @@ struct RenderingData
     RenderPipelineSetting* renderPipelineSettings;
     RenderPipelineDebugger* renderPipelineDebugger;
     Frustum cameraFrustum;
-    GPUParameter::PerScene* sceneInfo;
     GPUParameter::Camera* gpuCamera;
     GPUParameter::Scene* gpuScene;
     GPUParameter::MainLightShadow* gpuMainLightShadow;

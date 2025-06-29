@@ -17,4 +17,7 @@ using uint4 = glm::aligned_uvec4;
 using float4x4 = glm::aligned_fmat4x4;
 using float3x3 = glm::aligned_fmat3x3;
 using float2x2 = glm::aligned_fmat2x2;
+
+#include "Shaders/DeferredPBRShadingInput.hlsl"
+#include "Shaders/Library/PerScene.hlsl"
 } // namespace GPUParameter

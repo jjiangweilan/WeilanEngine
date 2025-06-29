@@ -1,11 +1,7 @@
 #pragma once
 #include "Libs/Assert.hpp"
-#if _WINDOWS
-#include "Libs/Platforms/Windows/WindowsMemory.hpp"
-#elif __APPLE__
-#include "Libs/Platforms/MacOS/MacOSMemory.hpp"
-#endif
 #include "Libs/Math.hpp"
+#include "Libs/Platforms/Memory.hpp"
 #include <tuple>
 
 namespace LowLevelAllocators
@@ -26,7 +22,8 @@ public:
     public:
         ScopedHandle() {}
         ScopedHandle(const ScopedHandle&) = delete;
-        ScopedHandle(ScopedHandle&& other) noexcept : parent(other.parent), n(other.n), ptr(other.ptr), alignment(other.alignment)
+        ScopedHandle(ScopedHandle&& other) noexcept
+            : parent(other.parent), n(other.n), ptr(other.ptr), alignment(other.alignment)
         {
             other.parent = nullptr;
             other.n = 0;

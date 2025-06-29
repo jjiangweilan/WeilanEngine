@@ -20,6 +20,7 @@
 #include "VKSemaphore.hpp"
 #include "VKShaderProgram.hpp"
 
+#include "Libs/ArenaAllocator.hpp"
 #include "RHI/Buffer.hpp"
 
 namespace Gfx

@@ -83,13 +83,10 @@ private:
     struct PerScene
     {
         PerScene();
-        GPUParameter::PerScene cpuParameter{};
-
         GPUParameter::Camera cameraParameter{};
         GPUParameter::Scene sceneParameter{};
         GPUParameter::MainLightShadow mainLightShadowParameter{};
 
-        std::unique_ptr<Gfx::Buffer> gpuBuffer{};
         std::unique_ptr<Gfx::ShaderResource> gpuResourceSet{};
 
         std::unique_ptr<Gfx::Buffer> scene{};

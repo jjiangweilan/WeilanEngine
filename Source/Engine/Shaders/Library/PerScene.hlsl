@@ -46,8 +46,6 @@ struct Scene
 
 struct PerScene
 {
-    SphericalHarmonics_2ndOrder sh_2ndOrder;
-
 #if GPU_RESOURCE
     ConstantBuffer<Scene> scene;
     ConstantBuffer<Camera> camera;

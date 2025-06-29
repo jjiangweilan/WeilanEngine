@@ -26,5 +26,6 @@ private:
     Gfx::RG::ImageDescription depthImageDescription;
 
     Gfx::RG::RenderPass gbufferPass{};
+    std::unique_ptr<Gfx::Buffer> faceBuffers[6];
 };
 } // namespace Rendering::Passes

@@ -271,10 +271,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
 RenderPipeline::PerScene::PerScene()
 {
-    gpuBuffer = GetGfxDriver()
-                    ->CreateBuffer(sizeof(GPUParameter::PerScene), Gfx::BufferUsage::Uniform, false, false, "PerScene");
     gpuResourceSet = GetGfxDriver()->CreateShaderResource();
-    gpuResourceSet->SetBuffer("perScene", gpuBuffer.get());
 
     scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform, false, false, "Scene");
     camera =
@@ -471,7 +468,6 @@ bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& c
         return false;
     }
 
-    renderingData.sceneInfo = &perScene.cpuParameter;
     renderingData.gpuCamera = &perScene.cameraParameter;
     renderingData.gpuScene = &perScene.sceneParameter;
     renderingData.gpuMainLightShadow = &perScene.mainLightShadowParameter;
@@ -490,40 +486,11 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
     auto& renderingScene = scene.GetRenderingScene();
     auto sceneEnvironment = renderingScene.GetSceneEnvironment();
 
-    glm::matrix<float, 4, 4> viewMatrix = camera.GetViewMatrix();
-    glm::matrix<float, 4, 4> projectionMatrix = camera.GetAndUpdateProjectionMatrix(renderingData.screenAspect);
-    glm::matrix<float, 4, 4> vp = projectionMatrix * viewMatrix;
-    glm::float4 viewPos = glm::float4(camGo->GetPosition(), 1);
-
-    auto& param = perScene.cpuParameter;
     auto& cameraParam = perScene.cameraParameter;
     auto& sceneParam = perScene.sceneParameter;
     auto& mainLightShadowParam = perScene.mainLightShadowParameter;
+    cameraParam = RenderingUtils::CreateCameraGPUParameter(camera, screenSize);
 
-    // update camera parameters
-    cameraParam.position = viewPos;
-    cameraParam.cameraZBufferParams = glm::vec4(
-        camera.GetNear(),
-        camera.GetFar(),
-        (camera.GetNear() - camera.GetFar()) / (camera.GetNear() * camera.GetFar()),
-        1.0f / camera.GetNear()
-    );
-    cameraParam.cameraFrustum = glm::vec4(
-        -camera.GetProjectionRight(),
-        camera.GetProjectionRight(),
-        -camera.GetProjectionTop(),
-        camera.GetProjectionTop()
-    );
-    cameraParam.view = viewMatrix;
-    cameraParam.projection = projectionMatrix;
-    cameraParam.viewProjection = vp;
-    cameraParam.invProjection = glm::inverse(projectionMatrix);
-    cameraParam.invNDCToWorld = glm::inverse(viewMatrix) * cameraParam.invProjection;
-    cameraParam.screenSize = glm::vec4(screenSize.x, screenSize.y, 1.0f / screenSize.x, 1.0f / screenSize.y);
-
-    // update scene parameters
-    sceneParam.time = Time::TimeSinceLaunch();
-    
     // update main light shadow parameters
     auto shadowMapTexelSize = shadowRenderer->GetShadowMapTexelSize();
     mainLightShadowParam.shadowMapSize = {
@@ -533,16 +500,8 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         shadowMapTexelSize.y,
     };
 
-    if (sceneEnvironment)
-    {
-        auto coefs = sceneEnvironment->GetSkyboxProbeCoefficients();
-        for (int i = 0; i < 9 && i < coefs.size(); ++i)
-        {
-            param.sh_2ndOrder.colors[i] = coefs[i];
-        }
-    }
-
-    // light data
+    // update scene parameters
+    sceneParam.time = Time::TimeSinceLaunch();
     {
         Light* mainLight = nullptr;
         ENGINE_BEGIN_PROFILE("Get Active Lights")
@@ -601,10 +560,13 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
         }
     }
 
-    GetGfxDriver()->UploadBuffer(*perScene.gpuBuffer, (uint8_t*)&param, sizeof(GPUParameter::PerScene));
     GetGfxDriver()->UploadBuffer(*perScene.camera, (uint8_t*)&cameraParam, sizeof(GPUParameter::Camera));
     GetGfxDriver()->UploadBuffer(*perScene.scene, (uint8_t*)&sceneParam, sizeof(GPUParameter::Scene));
-    GetGfxDriver()->UploadBuffer(*perScene.mainLightShadow, (uint8_t*)&mainLightShadowParam, sizeof(GPUParameter::MainLightShadow));
+    GetGfxDriver()->UploadBuffer(
+        *perScene.mainLightShadow,
+        (uint8_t*)&mainLightShadowParam,
+        sizeof(GPUParameter::MainLightShadow)
+    );
 }
 
 void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)

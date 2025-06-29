@@ -21,6 +21,17 @@ ReflectionProbeUpdate::ReflectionProbeUpdate()
     Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
     gbufferPass = Gfx::RG::RenderPass(1, 5);
     gbufferPass.SetSubpass(0, subpassAttachments, depth);
+
+    for (int i = 0; i < 6; ++i)
+    {
+        faceBuffers[i] = GetGfxDriver()->CreateBuffer(
+            sizeof(GPUParameter::Camera),
+            Gfx::BufferUsage::Uniform,
+            false,
+            false,
+            "Reflection Probe Face"
+        );
+    }
 }
 
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
@@ -46,7 +57,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
     depthImageDescription.SetWidth(reflectionProbeSize);
     depthImageDescription.SetHeight(reflectionProbeSize);
 
-    cmd.BeginLabel("Reflection Probe Update", float4(0.23,0.112,0.65, 1.0));
+    cmd.BeginLabel("Reflection Probe Update", float4(0.23, 0.112, 0.65, 1.0));
     cmd.AllocateAttachment(mainColor, mainColorDescription);
     cmd.AllocateAttachment(albedo, albedoImageDescription);
     cmd.AllocateAttachment(normal, normalImageDescription);
