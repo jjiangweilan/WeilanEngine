@@ -121,7 +121,6 @@ public:
     void SetPosition(const glm::vec3& position);
     void SetLocalScale(const glm::vec3& scale);
     void SetScale(const glm::vec3& scale);
-    void LookAt(const float3& lookAtPos);
 
     int RegisterContactEventAdded(
         const std::function<void(PhysicsBody*, PhysicsBody*, const JPH::ContactManifold&, JPH::ContactSettings&)>& f
@@ -154,6 +153,29 @@ public:
         {
             c->OnStop();
         }
+    }
+
+    void LookAt(const glm::vec3& to)
+    {
+        if (glm::length(to) < compareEpsilon)
+            return;
+
+        glm::vec3 forward = glm::normalize(to);
+        glm::vec3 up = glm::vec3(0, 1, 0);
+
+        // Handle case where forward is parallel to up vector
+        if (glm::abs(glm::dot(forward, up)) > 0.99f)
+        {
+            up = glm::vec3(1, 0, 0);
+        }
+
+        glm::vec3 right = glm::normalize(glm::cross(forward, up));
+        up = glm::cross(right, forward);
+
+        glm::mat3 rotationMatrix = glm::mat3(right, up, -forward);
+        glm::quat newRotation = glm::quat_cast(rotationMatrix);
+
+        SetRotation(newRotation);
     }
 
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)

@@ -185,9 +185,7 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         auto upDown = 25 * glm::radians(mouseDelta.y) * Time::DeltaTime();
         auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
         auto lookAtDelta = leftRight * right + upDown * up;
-        auto final = glm::lookAt({0, 0, 0}, (forward + lookAtDelta), glm::vec3(0, 1, 0));
-        final = glm::inverse(final);
-        go->SetRotation(final);
+        go->LookAt(forward+lookAtDelta);
     }
     else if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
     {
