@@ -20,7 +20,8 @@ RenderPipeline::RenderPipeline()
     particleRenderer = std::make_unique<ParticleRenderer>();
     shadowRenderer = std::make_unique<ShadowRenderer>();
     shadowRenderer->Init();
-    reflectionProbeUpdate = std::make_unique<ReflectionProbeUpdate>();
+    reflectionProbeUpdate =
+        std::make_unique<ReflectionProbeUpdate>(perScene.scene.get(), perScene.mainLightShadow.get());
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
@@ -65,7 +66,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     ENGINE_END_PROFILE
 
-    cmd->BindResource(0, perScene.gpuResourceSet.get());
+    cmd->BindResource(0, perScene.globalResource.get());
 
     // Reflection Probe Updateo
 
@@ -122,7 +123,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     depthDownSamplerPass.Setup(mainDepth, downSampledDepthCopy, downSampledDepthCopyDesc);
     depthDownSamplerPass.Execute(*cmd);
 
-    cmd->BindResource(0, perScene.gpuResourceSet.get());
+    cmd->BindResource(0, perScene.globalResource.get());
     // ambient occlusion pass
     ambientOcclusionPass.Execute(cmd, downSampledDepthCopy, downSampledDepthCopyDesc, setting);
 
@@ -271,7 +272,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
 RenderPipeline::PerScene::PerScene()
 {
-    gpuResourceSet = GetGfxDriver()->CreateShaderResource();
+    globalResource = GetGfxDriver()->CreateShaderResource();
 
     scene = GetGfxDriver()->CreateBuffer(sizeof(GPUParameter::Scene), Gfx::BufferUsage::Uniform, false, false, "Scene");
     camera =
@@ -283,9 +284,9 @@ RenderPipeline::PerScene::PerScene()
         false,
         "MainLightShadow"
     );
-    gpuResourceSet->SetBuffer("scene", scene.get());
-    gpuResourceSet->SetBuffer("camera", camera.get());
-    gpuResourceSet->SetBuffer("mainLightShadow", mainLightShadow.get());
+    globalResource->SetBuffer("scene", scene.get());
+    globalResource->SetBuffer("camera", camera.get());
+    globalResource->SetBuffer("mainLightShadow", mainLightShadow.get());
 }
 
 RenderPipeline::ShadingPass::ShadingPass()
@@ -407,7 +408,7 @@ void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 
     if (!FrameSetup(cmd, scene, camera, screenSize))
         return;
 
-    cmd->BindResource(0, perScene.gpuResourceSet.get());
+    cmd->BindResource(0, perScene.globalResource.get());
 
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     auto finalColor = GetFinalColor();

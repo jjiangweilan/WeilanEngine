@@ -38,6 +38,7 @@ public:
         return frustums[faceIndex];
     }
 
+    Gfx::Image* GetCubemap();
 private:
     Frustum frustums[6];
     UpdateType updateType = UpdateType::Local;

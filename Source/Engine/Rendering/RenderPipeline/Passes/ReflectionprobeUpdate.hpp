@@ -9,7 +9,7 @@ namespace Rendering::Passes
 class ReflectionProbeUpdate
 {
 public:
-    ReflectionProbeUpdate();
+    ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer);
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe);
 
 private:
@@ -27,5 +27,7 @@ private:
 
     Gfx::RG::RenderPass gbufferPass{};
     std::unique_ptr<Gfx::Buffer> faceBuffers[6];
+    std::unique_ptr<Gfx::ShaderResource> faceResources[6];
+    std::unique_ptr<Gfx::Image> updatingFaces[6];
 };
 } // namespace Rendering::Passes

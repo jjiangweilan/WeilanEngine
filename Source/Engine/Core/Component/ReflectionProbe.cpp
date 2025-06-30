@@ -64,3 +64,8 @@ void ReflectionProbe::UpdateFrustums(float3 position)
         frustums[i] = proj * glm::inverse(view);
     }
 }
+
+Gfx::Image* ReflectionProbe::GetCubemap()
+{
+    return cubemap.get();
+}

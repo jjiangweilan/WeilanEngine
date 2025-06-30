@@ -48,7 +48,7 @@ public:
     const auto& GetOutputColor() const { return finalColor; }
     const auto& GetOutputDepth() const { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
-    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.gpuResourceSet.get(); }
+    Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
 
     void SetRenderPipelineSetting(auto setting) { this->setting = setting; }
 
@@ -87,7 +87,7 @@ private:
         GPUParameter::Scene sceneParameter{};
         GPUParameter::MainLightShadow mainLightShadowParameter{};
 
-        std::unique_ptr<Gfx::ShaderResource> gpuResourceSet{};
+        std::unique_ptr<Gfx::ShaderResource> globalResource{};
 
         std::unique_ptr<Gfx::Buffer> scene{};
         std::unique_ptr<Gfx::Buffer> camera{};

@@ -1,11 +1,12 @@
 #include "ReflectionProbeUpdate.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Rendering/RenderingUtils.hpp"
 
 namespace Rendering::Passes
 {
 
-ReflectionProbeUpdate::ReflectionProbeUpdate()
+ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buffer* mainLightShadowBuffer)
 {
     mainColorDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
     albedoImageDescription = Gfx::RG::ImageDescription(1, 1, Gfx::GfxFormat::R8G8B8A8_SRGB, false);
@@ -31,6 +32,10 @@ ReflectionProbeUpdate::ReflectionProbeUpdate()
             false,
             "Reflection Probe Face"
         );
+        faceResources[i] = GetGfxDriver()->CreateShaderResource();
+        faceResources[i]->SetBuffer("scene", sceneBuffer);
+        faceResources[i]->SetBuffer("camera", faceBuffers[i].get());
+        faceResources[i]->SetBuffer("mainLightShadow", mainLightShadowBuffer);
     }
 }
 
@@ -46,37 +51,40 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
         probeWorldPosition = probe.GetGameObject()->GetPosition();
     }
 
-    mainColorDescription.SetWidth(reflectionProbeSize);
-    mainColorDescription.SetHeight(reflectionProbeSize);
-    albedoImageDescription.SetWidth(reflectionProbeSize);
-    albedoImageDescription.SetHeight(reflectionProbeSize);
-    normalImageDescription.SetWidth(reflectionProbeSize);
-    normalImageDescription.SetHeight(reflectionProbeSize);
-    maskImageDescription.SetWidth(reflectionProbeSize);
-    maskImageDescription.SetHeight(reflectionProbeSize);
-    depthImageDescription.SetWidth(reflectionProbeSize);
-    depthImageDescription.SetHeight(reflectionProbeSize);
+    for (int i = 0; i < 6; ++i)
+    {
+        mainColorDescription.SetWidth(reflectionProbeSize);
+        mainColorDescription.SetHeight(reflectionProbeSize);
+        albedoImageDescription.SetWidth(reflectionProbeSize);
+        albedoImageDescription.SetHeight(reflectionProbeSize);
+        normalImageDescription.SetWidth(reflectionProbeSize);
+        normalImageDescription.SetHeight(reflectionProbeSize);
+        maskImageDescription.SetWidth(reflectionProbeSize);
+        maskImageDescription.SetHeight(reflectionProbeSize);
+        depthImageDescription.SetWidth(reflectionProbeSize);
+        depthImageDescription.SetHeight(reflectionProbeSize);
 
-    cmd.BeginLabel("Reflection Probe Update", float4(0.23, 0.112, 0.65, 1.0));
-    cmd.AllocateAttachment(mainColor, mainColorDescription);
-    cmd.AllocateAttachment(albedo, albedoImageDescription);
-    cmd.AllocateAttachment(normal, normalImageDescription);
-    cmd.AllocateAttachment(mask, maskImageDescription);
-    cmd.AllocateAttachment(depth, depthImageDescription);
+        cmd.BeginLabel("Reflection Probe Update", float4(0.23, 0.112, 0.65, 1.0));
+        cmd.AllocateAttachment(mainColor, mainColorDescription);
+        cmd.AllocateAttachment(albedo, albedoImageDescription);
+        cmd.AllocateAttachment(normal, normalImageDescription);
+        cmd.AllocateAttachment(mask, maskImageDescription);
+        cmd.AllocateAttachment(depth, depthImageDescription);
 
-    Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
-    gbufferPass.SetAttachment(0, mainColor);
-    gbufferPass.SetAttachment(1, albedo);
-    gbufferPass.SetAttachment(2, normal);
-    gbufferPass.SetAttachment(3, mask);
-    gbufferPass.SetAttachment(4, depth);
-    cmd.BeginRenderPass(gbufferPass, clears);
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+        gbufferPass.SetAttachment(0, mainColor);
+        gbufferPass.SetAttachment(1, albedo);
+        gbufferPass.SetAttachment(2, normal);
+        gbufferPass.SetAttachment(3, mask);
+        gbufferPass.SetAttachment(4, depth);
+        cmd.BeginRenderPass(gbufferPass, clears);
 
-    DrawList drawList{};
-    drawList.Add(renderers);
-    drawList.DrawRangeHelper(cmd, 0, drawList.opaqueIndex);
+        DrawList drawList{};
+        drawList.Add(renderers);
+        drawList.DrawRangeHelper(cmd, 0, drawList.opaqueIndex);
 
-    cmd.EndRenderPass();
-    cmd.EndLabel(); // "Reflection Probe Update"
+        cmd.EndRenderPass();
+        cmd.EndLabel(); // "Reflection Probe Update"
+    }
 }
 } // namespace Rendering::Passes
