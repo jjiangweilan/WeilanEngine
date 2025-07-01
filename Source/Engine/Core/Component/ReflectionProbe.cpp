@@ -47,7 +47,7 @@ void ReflectionProbe::TransformChanged()
 
 void ReflectionProbe::UpdateFrustums(float3 position)
 {
-    auto proj = Math::GetProjectionMatrix(90, 1, 0.1, 1000);
+    projectionMatrix = Math::GetProjectionMatrix(glm::radians(90.0f), 1, GetNear(), GetFar());
     float3 faces[] = {
         {1, 0, 0},  // +X
         {-1, 0, 0}, // -X
@@ -58,14 +58,48 @@ void ReflectionProbe::UpdateFrustums(float3 position)
     };
     for (int i = 0; i < 6; ++i)
     {
-        auto view = glm::translate(glm::mat4(1.0f), position) *
-                    glm::mat4_cast(glm::rotate(glm::quat(1, 0, 0, 0), 0.0f, faces[i]));
+        viewMatrices[i] = glm::lookAtRH(position, position + faces[i], (i != 2 && i != 3) ? float3(0, 1, 0) : float3(1, 0, 0));
 
-        frustums[i] = proj * glm::inverse(view);
+        frustums[i] = projectionMatrix * viewMatrices[i];
     }
 }
 
 Gfx::Image* ReflectionProbe::GetCubemap()
 {
     return cubemap.get();
+}
+
+const float4x4& ReflectionProbe::GetViewMatrix(int faceIdx)
+{
+    return viewMatrices[faceIdx];
+}
+
+const float4x4& ReflectionProbe::GetProjectionMatrix()
+{
+    return projectionMatrix;
+}
+
+float ReflectionProbe::GetNear()
+{
+    return near;
+}
+
+float ReflectionProbe::GetFar()
+{
+    return far;
+}
+
+float ReflectionProbe::GetProjectionTop()
+{
+    return near / projectionMatrix[0][0];
+}
+
+float ReflectionProbe::GetProjectionRight()
+{
+    return -near / projectionMatrix[1][1];
+}
+
+uint32_t ReflectionProbe::GetResolution()
+{
+    return resolution;
 }

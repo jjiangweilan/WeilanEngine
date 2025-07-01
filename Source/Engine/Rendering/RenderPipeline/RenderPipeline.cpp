@@ -66,7 +66,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     ENGINE_END_PROFILE
 
-    cmd->BindResource(0, perScene.globalResource.get());
 
     // Reflection Probe Updateo
 
@@ -75,6 +74,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         reflectionProbeUpdate->Execute(*cmd, renderingData, *r);
     }
+
+    cmd->BindResource(0, perScene.globalResource.get());
 
     // Shadow Pass
     shadowRenderer->Execute(*cmd, renderingData, sceneDrawList);

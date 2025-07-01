@@ -42,7 +42,6 @@ ReflectionProbeUpdate::ReflectionProbeUpdate(Gfx::Buffer* sceneBuffer, Gfx::Buff
 void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, ReflectionProbe& probe)
 {
     auto& renderingScene = renderingData.scene->GetRenderingScene();
-    auto renderers = renderingScene.QueryRendererInFrustum(probe.GetFrustum(0));
 
     float3 probeWorldPosition = float3(0);
 
@@ -51,8 +50,32 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
         probeWorldPosition = probe.GetGameObject()->GetPosition();
     }
 
+    const float4x4& projectionMatirx = probe.GetProjectionMatrix();
+
     for (int i = 0; i < 6; ++i)
     {
+        auto renderers = renderingScene.QueryRendererInFrustum(probe.GetFrustum(i));
+
+        float3 position = probe.GetGameObject()->GetPosition();
+        const float4x4& faceViewMatrix = probe.GetViewMatrix(i);
+        float near = probe.GetNear();
+        float far = probe.GetFar();
+        float top = probe.GetProjectionTop();
+        float right = probe.GetProjectionRight();
+        float2 screenSize = float2(probe.GetResolution());
+
+        auto cameraGPUParameter = RenderingUtils::CreateCameraGPUParameter(
+            position,
+            faceViewMatrix,
+            projectionMatirx,
+            near,
+            far,
+            top,
+            right,
+            screenSize
+        );
+        GetGfxDriver()->UploadBuffer(*faceBuffers[i], (uint8_t*)&cameraGPUParameter, sizeof(GPUParameter::Camera), 0);
+
         mainColorDescription.SetWidth(reflectionProbeSize);
         mainColorDescription.SetHeight(reflectionProbeSize);
         albedoImageDescription.SetWidth(reflectionProbeSize);
@@ -79,11 +102,14 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
         gbufferPass.SetAttachment(4, depth);
         cmd.BeginRenderPass(gbufferPass, clears);
 
+        cmd.BindResource(0, faceResources[i].get());
         DrawList drawList{};
         drawList.Add(renderers);
-        drawList.DrawRangeHelper(cmd, 0, drawList.opaqueIndex);
+        drawList.SortByDistance(position);
+        drawList.DrawRangeHelper(cmd, 0, drawList.transparentIndex);
 
         cmd.EndRenderPass();
+
         cmd.EndLabel(); // "Reflection Probe Update"
     }
 }
