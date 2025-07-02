@@ -9,6 +9,7 @@
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "WeilanEngine.hpp"
 #include "Window.hpp"
+#include "AssetBrowser.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
@@ -17,8 +18,11 @@ namespace Editor
 {
 
 class InspectorBase;
+class AssetBrowser;
 class GameEditor
 {
+    friend class AssetBrowser; // Allow AssetBrowser to access private members
+    
 public:
     GameEditor(const char* path);
     ~GameEditor();
@@ -40,6 +44,7 @@ private:
 
     GameView gameView;
     SceneEditor sceneEditor;
+    std::unique_ptr<AssetBrowser> assetBrowser;
 
     GameObject* sceneTreeContextObject = nullptr;
     bool beginSceneTreeContextPopup = false;
@@ -62,8 +67,6 @@ private:
     std::unique_ptr<Gfx::CommandBuffer> cmd;
     std::list<std::unique_ptr<Window>> activeWindows;
 
-    int currentDragDropAssetFileDepth = 0;
-
     void EnableMultiViewport();
 
     void OpenSceneWindow();
@@ -77,15 +80,12 @@ private:
     );
     void SaveProject();
 
-    void ShowAssetWindow();
     void ShowInspectorWindow();
     void ShowSurfelGIBakerWindow();
     void ShowConsoleOutputWindow();
     void ShowAssetDatabaseViewer();
     void ShowRenderPipelineSetting();
     void ShowStaticEngineDebugs();
-
-    void AssetShowDir(const std::filesystem::path& path, int depth);
     void AddPrimitiveAssetToScene(Scene& scene, std::string_view path);
     void ShowSceneTree(Scene& scene);
     void SceneTree(
@@ -96,6 +96,7 @@ private:
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
 
+public:
     // event handling
     class EndEvents
     {

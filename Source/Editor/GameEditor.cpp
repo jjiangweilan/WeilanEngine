@@ -67,6 +67,9 @@ GameEditor::GameEditor(const char* path)
     loop = engine->CreateGameLoop();
     EditorState::gameLoop = loop;
 
+    // Initialize asset browser
+    assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
+
     // engine is in another dynamic library which has different static logger instance, we need to register it for
     // editor too
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -519,7 +522,7 @@ void GameEditor::GUIPass()
     MainMenuBar();
     OpenSceneWindow();
 
-    ShowAssetWindow();
+    assetBrowser->Show(assetWindow);
     ShowInspectorWindow();
     ShowSurfelGIBakerWindow();
     ShowRenderPipelineSetting();

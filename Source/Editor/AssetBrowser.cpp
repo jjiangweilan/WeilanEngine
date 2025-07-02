@@ -1,15 +1,29 @@
+#include "AssetBrowser.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "FileIcons.hpp"
+#include "EditorState.hpp"
+#include "WeilanEngine.hpp"
+#include "AssetDatabase/AssetDatabase.hpp"
+#include "Core/Asset.hpp"
+#include "Core/GameObject.hpp"
+#include "ThirdParty/imgui/imgui.h"
+
 namespace Editor
 {
-void GameEditor::ShowAssetWindow()
+
+AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
+    : engine(engine), gameEditor(gameEditor), currentDragDropAssetFileDepth(0)
 {
-    if (assetWindow)
+}
+
+void AssetBrowser::Show(bool& isOpen)
+{
+    if (isOpen)
     {
         std::filesystem::path fullAssetsPath = engine->GetProjectPath() / "Assets";
 
-        ImGui::Begin("Assets", &assetWindow);
+        ImGui::Begin("Assets", &isOpen);
         if (ImGui::BeginPopupContextItem())
         {
             if (ImGui::MenuItem("Create Folder"))
@@ -20,57 +34,67 @@ void GameEditor::ShowAssetWindow()
             ImGui::EndPopup();
         }
 
-        if (ImGui::TreeNode("_engine_internal_asset"))
-        {
-            auto& internalAssets = engine->assetDatabase->GetInternalAssets();
-            for (AssetData* internalAsset : internalAssets)
-            {
-                auto path = std::filesystem::relative(internalAsset->GetAssetPath(), "_engine_internal/").string();
-                if (ImGui::TreeNodeEx(path.c_str(), ImGuiTreeNodeFlags_Leaf))
-                {
-                    if (GUI::DragDropSource(
-                            internalAsset->GetAssetPath().string().c_str(),
-                            [internalAsset](Object*& obj)
-                            {
-                                Asset* asset = AssetDatabase::Singleton()->LoadAsset(internalAsset->GetAssetPath());
-                                obj = asset;
-                            }
-                        ))
-                    {}
-                    else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-                    {
-                        Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
-                        if (asset)
-                        {
-                            EditorState::SelectObject(asset);
-                        }
-                    }
-
-                    if (ImGui::IsItemHovered())
-                    {
-                        if (ImGui::BeginTooltip())
-                        {
-                            ImGui::Text("%s", path.c_str());
-                            ImGui::EndTooltip();
-                        }
-                    }
-                    ImGui::TreePop();
-                }
-            }
-            ImGui::TreePop();
-        }
+        ShowInternalAssets();
         ImGui::Separator();
 
-        AssetShowDir(fullAssetsPath, 0);
+        ShowDir(fullAssetsPath, 0);
 
         ImGui::End();
     }
 }
 
-void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
+void AssetBrowser::ShowInternalAssets()
+{
+    if (ImGui::TreeNode("_engine_internal_asset"))
+    {
+        auto& internalAssets = engine->assetDatabase->GetInternalAssets();
+        for (AssetData* internalAsset : internalAssets)
+        {
+            auto path = std::filesystem::relative(internalAsset->GetAssetPath(), "_engine_internal/").string();
+            if (ImGui::TreeNodeEx(path.c_str(), ImGuiTreeNodeFlags_Leaf))
+            {
+                if (GUI::DragDropSource(
+                        internalAsset->GetAssetPath().string().c_str(),
+                        [internalAsset](Object*& obj)
+                        {
+                            Asset* asset = AssetDatabase::Singleton()->LoadAsset(internalAsset->GetAssetPath());
+                            obj = asset;
+                        }
+                    ))
+                {}
+                else if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    Asset* asset = engine->assetDatabase->LoadAsset(internalAsset->GetAssetPath());
+                    if (asset)
+                    {
+                        EditorState::SelectObject(asset);
+                    }
+                }
+
+                if (ImGui::IsItemHovered())
+                {
+                    if (ImGui::BeginTooltip())
+                    {
+                        ImGui::Text("%s", path.c_str());
+                        ImGui::EndTooltip();
+                    }
+                }
+                ImGui::TreePop();
+            }
+        }
+        ImGui::TreePop();
+    }
+}
+
+void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 {
     bool changeFileName = false;
     static std::filesystem::path changeFileNameTarget;
+    
+    // Need access to GameEditor's endEvents and endPopup
+    auto& endEvents = gameEditor->endEvents;
+    auto& endPopup = gameEditor->endPopup;
+    
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
@@ -147,7 +171,7 @@ void GameEditor::AssetShowDir(const std::filesystem::path& path, int depth)
             }
             if (treeOpen)
             {
-                AssetShowDir(entry.path(), depth + 1);
+                ShowDir(entry.path(), depth + 1);
                 ImGui::TreePop();
             }
         }
