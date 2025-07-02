@@ -3,6 +3,7 @@
 #include "Core/Asset.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
+
 class AssetDatabase
 {
 public:
@@ -145,4 +146,23 @@ private:
 
     // used to set instance
     friend class WeilanEngine;
+};
+
+template <class T>
+struct LazyLoadedAsset
+{
+    LazyLoadedAsset(const char* path) : path(path) {}
+
+    T* operator->() { return Get(); }
+
+    T* Get()
+    {
+        if (loaded == nullptr)
+            loaded = (T*)AssetDatabase::Singleton()->LoadAsset(path);
+
+        return loaded;
+    }
+
+    T* loaded = nullptr;
+    const char* path;
 };

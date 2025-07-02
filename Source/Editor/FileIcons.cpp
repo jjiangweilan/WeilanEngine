@@ -49,3 +49,9 @@ static std::unordered_map<std::type_index, char16_t> InitToIconType()
     return {{typeid(ModelLoader), 0xe735}, {typeid(TextureLoader), 0xf03e}};
 }
 std::unordered_map<std::type_index, char16_t> FileIcons::toIconType = InitToIconType();
+
+FileIcons& FileIcons::Instance()
+{
+    static FileIcons instance;
+    return instance;
+}

@@ -30,6 +30,7 @@ public:
     static Shader2& GetLineShader() { return *GetSingleton().lineShader; }
     static Shader2& GetTriangleShader() { return *GetSingleton().triangleShader; }
     static Shader2& GetJoltDebugShader() { return *GetSingleton().joltDebugShader; }
+    static Texture& GetBlackTexture() { return *GetSingleton().blackTexture; }
 
 private:
     Models models;
@@ -44,6 +45,8 @@ private:
 
     // jolt debug
     Shader2* joltDebugShader;
+
+    Texture* blackTexture;
 
     static EngineInternalResources& GetSingleton();
 };

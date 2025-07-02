@@ -1,4 +1,4 @@
-#include "AssetBrowser.hpp"
+﻿#include "AssetBrowser.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
@@ -8,6 +8,8 @@
 #include "GameEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "WeilanEngine.hpp"
+#include <vector>
+#include <algorithm>
 
 namespace Editor
 {
@@ -24,7 +26,10 @@ void AssetBrowser::Show(bool& isOpen)
     {
         std::filesystem::path fullAssetsPath = engine->GetProjectPath() / "Assets";
 
-        ImGui::Begin("Assets", &isOpen);
+        ImGui::Begin("Assets", &isOpen, ImGuiWindowFlags_MenuBar);
+
+        ShowMenuBar();
+
         if (ImGui::BeginPopupContextItem())
         {
             if (ImGui::MenuItem("Create Folder"))
@@ -38,12 +43,19 @@ void AssetBrowser::Show(bool& isOpen)
         ShowInternalAssets();
         ImGui::Separator();
 
-        switch (mode)
+        ShowIconSizeSlider();
+
+        // Determine mode based on icon size slider
+        Mode effectiveMode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
+
+        switch (effectiveMode)
         {
-            case Mode::Tree: ShowDir(fullAssetsPath, 0);
-            case Mode::Icon: ShowDirUsingIcon(currentDirectory, 0);
+            case Mode::Tree: ShowDir(fullAssetsPath, 0); break;
+            case Mode::Icon: ShowDirUsingIcon(currentDirectory, 0); break;
             default: break;
         }
+
+        // Show icon size slider in the lower right corner
 
         ImGui::End();
     }
@@ -157,7 +169,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
                     else
                     {
                         endEvents.Register(
-                            [entry]()
+                            [this, entry]()
                             {
                                 AssetDatabase::Singleton()->Remove(
                                     AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
@@ -284,35 +296,398 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 
 void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth)
 {
-    std::filesystem::path clickedPath = "";
-    auto OnIconClicked = [&clickedPath]() {};
-    auto OnIconRightClicked = []() {};
+    const float iconSize = iconSizeSlider; // Use the slider value instead of fixed size
+    const float iconPadding = 8.0f; // Padding between icons
+    const float labelHeight = 40.0f; // Height for the text label below icon
+    const float totalItemWidth = iconSize + iconPadding * 2;
+    const float totalItemHeight = iconSize + labelHeight + iconPadding * 2;
 
-    for (const auto& entry : std::filesystem::directory_iterator(path))
+    // Calculate how many icons fit horizontally
+    ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+    int itemsPerRow = std::max(1, (int)(contentRegion.x / totalItemWidth));
+
+    // Access to GameEditor's endEvents and endPopup
+    auto& endEvents = gameEditor->endEvents;
+    auto& endPopup = gameEditor->endPopup;
+
+    // Navigation breadcrumb
+    if (ImGui::Button("Up") && path != engine->GetProjectAssetPath())
     {
-        AssetIcon* assetIcon = GetEditorAssetIcon(entry);
-        ShowAssetIconWithName(path.filename(), assetIcon, GetIconSize(), OnIconClicked, OnIconRightClicked);
+        currentDirectory = path.parent_path();
+    }
+    ImGui::SameLine();
+    ImGui::Text("Current: %s", std::filesystem::relative(path, engine->GetProjectAssetPath()).string().c_str());
+
+    ImGui::Separator();
+
+    // Begin child region for scrolling
+    if (ImGui::BeginChild("IconGrid", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar))
+    {
+        int currentColumn = 0;
+
+        // Collect entries (directories first, then files)
+        std::vector<std::filesystem::directory_entry> directories;
+        std::vector<std::filesystem::directory_entry> files;
+
+        for (const auto& entry : std::filesystem::directory_iterator(path))
+        {
+            if (entry.is_directory())
+                directories.push_back(entry);
+            else if (entry.is_regular_file())
+                files.push_back(entry);
+        }
+
+        // Sort entries alphabetically
+        auto sortEntries = [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) {
+            return a.path().filename().string() < b.path().filename().string();
+        };
+        std::sort(directories.begin(), directories.end(), sortEntries);
+        std::sort(files.begin(), files.end(), sortEntries);
+
+        // Display directories first
+        for (const auto& entry : directories)
+        {
+            ShowAssetIconItem(entry, iconSize, currentColumn, itemsPerRow, true);
+        }
+
+        // Display files
+        for (const auto& entry : files)
+        {
+            ShowAssetIconItem(entry, iconSize, currentColumn, itemsPerRow, false);
+        }
+    }
+    ImGui::EndChild();
+
+    // Handle right-click context menu on empty space
+    if (ImGui::BeginPopupContextWindow("CreateMenu"))
+    {
+        if (ImGui::MenuItem("Create Folder"))
+        {
+            AssetDatabase::Singleton()->CreateFolderAtPath(path);
+        }
+        ImGui::EndPopup();
+    }
+}
+
+void AssetBrowser::ShowAssetIconItem(
+    const std::filesystem::directory_entry& entry,
+    float iconSize,
+    int& currentColumn,
+    int itemsPerRow,
+    bool isDirectory)
+{
+    // Access to GameEditor's endEvents and endPopup here since we can't pass them as parameters
+    auto& endEvents = gameEditor->endEvents;
+    auto& endPopup = gameEditor->endPopup;
+
+    ImGui::PushID(entry.path().string().c_str());
+
+    // Calculate position
+    if (currentColumn >= itemsPerRow)
+    {
+        currentColumn = 0;
     }
 
-    if (!clickedPath.empty())
+    if (currentColumn > 0)
     {
-        ChangeCurrentDirectory();
+        ImGui::SameLine();
     }
+
+    // Begin group for the entire icon + label
+    ImGui::BeginGroup();
+
+    // Get icon
+    Gfx::Image* iconImage = nullptr;
+    std::string iconText;
+    
+    if (isDirectory)
+    {
+        // Use folder icon - try to get a black texture as placeholder
+        // For now, we'll use a fallback
+        iconText = "📁"; // Folder emoji as fallback
+    }
+    else
+    {
+        // Try to get file type icon
+        iconText = FileIcons::GetIcon(entry.path().extension());
+        if (iconText.empty())
+        {
+            iconText = "📄"; // File emoji as fallback
+        }
+    }
+
+    // Draw icon background
+    ImVec2 cursorPos = ImGui::GetCursorPos();
+    ImVec2 iconMin = ImGui::GetCursorScreenPos();
+    ImVec2 iconMax = ImVec2(iconMin.x + iconSize, iconMin.y + iconSize);
+
+    bool isHovered = false;
+    bool isClicked = false;
+    bool isDoubleClicked = false;
+    bool isRightClicked = false;
+
+    // Create invisible button for interaction
+    ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
+    isHovered = ImGui::IsItemHovered();
+    isClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+    isDoubleClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+    isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
+
+    // Draw icon background
+    ImU32 bgColor = isHovered ? IM_COL32(100, 100, 100, 150) : IM_COL32(70, 70, 70, 100);
+    ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, bgColor, 4.0f);
+
+    // Draw text icon for now (until we can properly access texture system)
+    if (!iconText.empty())
+    {
+        // Draw text icon
+        ImVec2 textSize = ImGui::CalcTextSize(iconText.c_str());
+        ImVec2 textPos = ImVec2(
+            iconMin.x + (iconSize - textSize.x) * 0.5f,
+            iconMin.y + (iconSize - textSize.y) * 0.5f
+        );
+        ImGui::GetWindowDrawList()->AddText(textPos, IM_COL32(255, 255, 255, 255), iconText.c_str());
+    }
+
+    // File/folder name label
+    std::string filename = entry.path().filename().string();
+    
+    // Truncate long filenames
+    const int maxChars = 12;
+    if (filename.length() > maxChars)
+    {
+        filename = filename.substr(0, maxChars - 3) + "...";
+    }
+
+    ImVec2 labelSize = ImGui::CalcTextSize(filename.c_str());
+    ImVec2 labelPos = ImVec2(cursorPos.x + (iconSize - labelSize.x) * 0.5f, cursorPos.y + iconSize + 4);
+    ImGui::SetCursorPos(labelPos);
+    ImGui::Text("%s", filename.c_str());
+
+    ImGui::EndGroup();
+
+    // Handle interactions
+    if (isDoubleClicked)
+    {
+        if (isDirectory)
+        {
+            // Navigate into directory
+            currentDirectory = entry.path();
+        }
+        else
+        {
+            // Load and select asset
+            Asset* asset = engine->assetDatabase->LoadAsset(
+                std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+            );
+            if (asset)
+            {
+                EditorState::SelectObject(asset);
+            }
+        }
+    }
+    else if (isClicked)
+    {
+        // Single click selection
+        if (!isDirectory)
+        {
+            Asset* asset = engine->assetDatabase->LoadAsset(
+                std::filesystem::relative(entry.path(), engine->assetDatabase->GetAssetDirectory())
+            );
+            if (asset)
+            {
+                EditorState::SelectObject(asset);
+            }
+        }
+    }
+
+    // Handle drag and drop
+    if (isDirectory)
+    {
+        auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path());
+        GUI::DragDropSource(relative);
+
+        std::filesystem::path pathStr;
+        if (GUI::DragDropTarget(pathStr))
+        {
+            endEvents.Register(
+                [pathStr, newDirectory = entry.path().string()]()
+                {
+                    std::filesystem::path oldPath(pathStr);
+                    auto newPath = newDirectory / oldPath.filename();
+                    AssetDatabase::Singleton()->Rename(
+                        oldPath,
+                        std::filesystem::relative(newPath, AssetDatabase::Singleton()->GetAssetDirectory())
+                    );
+                }
+            );
+        }
+    }
+    else
+    {
+        std::filesystem::path filePath = entry.path().string();
+        filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
+        GUI::DragDropSource(filePath, [filePath](Object*& obj) { 
+            obj = AssetDatabase::Singleton()->LoadAsset(filePath); 
+        });
+    }
+
+    // Context menu
+    if (isRightClicked)
+    {
+        ImGui::OpenPopup("ItemContextMenu");
+    }
+
+    if (ImGui::BeginPopup("ItemContextMenu"))
+    {
+        if (isDirectory)
+        {
+            if (ImGui::MenuItem("Create Folder"))
+            {
+                AssetDatabase::Singleton()->CreateFolderAtPath(entry.path());
+            }
+
+            if (ImGui::MenuItem("Delete Folder"))
+            {
+                if (!std::filesystem::is_empty(entry.path()))
+                {
+                    endPopup.Show(
+                        "Folder is not empty, delete all?",
+                        [entry]()
+                        {
+                            AssetDatabase::Singleton()->Remove(
+                                AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                            );
+                        }
+                    );
+                }
+                else
+                {
+                    endEvents.Register(
+                        [this, entry]()
+                        {
+                            AssetDatabase::Singleton()->Remove(
+                                AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path())
+                            );
+                        }
+                    );
+                }
+            }
+
+            if (ImGui::MenuItem("Rename"))
+            {
+                // TODO: Implement rename functionality
+            }
+        }
+        else
+        {
+            if (ImGui::MenuItem("Delete"))
+            {
+                endEvents.Register(
+                    [entry]()
+                    {
+                        AssetDatabase::Singleton()->Remove(
+                            std::filesystem::relative(entry.path(), AssetDatabase::Singleton()->GetAssetDirectory())
+                        );
+                    }
+                );
+            }
+
+            if (ImGui::MenuItem("Rename"))
+            {
+                // TODO: Implement rename functionality
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+
+    currentColumn++;
+    ImGui::PopID();
 }
 
 void AssetBrowser::ShowAssetIconWithName(
     const std::filesystem::path& name,
     AssetIcon* icon,
     int2 iconSize,
-    std::function<void()> onClick,
+    std::function<void()> onLeftClick,
     std::function<void()> onRightClick
 )
 {
-    auto image = icon->GetImage();
+    // For now, just display a placeholder rectangle
+    ImVec2 size = {(float)iconSize.x, (float)iconSize.y};
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImU32 color = IM_COL32(100, 100, 100, 255);
+    ImGui::GetWindowDrawList()->AddRectFilled(pos, {pos.x + size.x, pos.y + size.y}, color);
+    ImGui::Dummy(size);
+}
+
+int2 AssetBrowser::GetIconSize()
+{
+    return {35, 35};
+}
+
+void AssetBrowser::ShowMenuBar()
+{
+    ImGui::BeginMenuBar();
+
+    // Show current mode status instead of switch button
+    if (iconSizeSlider <= TREE_MODE_THRESHOLD)
+    {
+        ImGui::Text("Mode: Tree (Icon Size: %.0f)", iconSizeSlider);
+    }
+    else
+    {
+        ImGui::Text("Mode: Icon (Icon Size: %.0f)", iconSizeSlider);
+    }
+
+    ImGui::EndMenuBar();
+}
+
+AssetIcon* AssetBrowser::GetEditorAssetIcon(const std::filesystem::path& path)
+{
+    static AssetIcon empty;
+    return &empty;
+}
+
+void AssetBrowser::ShowIconSizeSlider()
+{
+    const float sliderWidth = 120.0f;
+    const float sliderHeight = 20.0f;
+    const float margin = 10.0f;
+
+    // Set the local cursor position (relative to the window) for the slider
+
+    // Create the slider with the desired width.
+    ImGui::PushItemWidth(sliderWidth);
+    bool sliderChanged = ImGui::SliderFloat("##IconSize", &iconSizeSlider, MIN_ICON_SIZE, MAX_ICON_SIZE, "%.0f");
+    ImGui::PopItemWidth();
+
+    // Show a tooltip when hovering the slider
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        if (iconSizeSlider <= TREE_MODE_THRESHOLD)
+        {
+            ImGui::Text("Tree Mode (Icon Size: %.0f)", iconSizeSlider);
+        }
+        else
+        {
+            ImGui::Text("Icon Mode (Icon Size: %.0f)", iconSizeSlider);
+        }
+        ImGui::EndTooltip();
+    }
+
+    // Update the display mode based on slider changes
+    if (sliderChanged)
+    {
+        mode = (iconSizeSlider <= TREE_MODE_THRESHOLD) ? Mode::Tree : Mode::Icon;
+    }
 }
 
 Gfx::Image* AssetIcon::GetImage()
 {
+    // Return nullptr for now, let the calling code handle it
     return nullptr;
 }
 
