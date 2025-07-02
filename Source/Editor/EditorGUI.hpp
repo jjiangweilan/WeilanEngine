@@ -278,6 +278,11 @@ public:
         return selected;
     }
 
+    static void Image(Gfx::Image& image, const float2& size)
+    {
+        ImGui::Image(&image.GetDefaultImageView(), {size.x, size.y});
+    }
+
     static bool InputText(const char* label, std::string& text, const char* hind = nullptr)
     {
         if (textArea.size() < text.size() + 1)

@@ -1,13 +1,13 @@
 #include "AssetBrowser.hpp"
-#include "EditorGUI.hpp"
-#include "GameEditor.hpp"
-#include "FileIcons.hpp"
-#include "EditorState.hpp"
-#include "WeilanEngine.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
+#include "EditorGUI.hpp"
+#include "EditorState.hpp"
+#include "FileIcons.hpp"
+#include "GameEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"
+#include "WeilanEngine.hpp"
 
 namespace Editor
 {
@@ -15,6 +15,7 @@ namespace Editor
 AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     : engine(engine), gameEditor(gameEditor), currentDragDropAssetFileDepth(0)
 {
+    currentDirectory = engine->GetProjectAssetPath();
 }
 
 void AssetBrowser::Show(bool& isOpen)
@@ -37,7 +38,12 @@ void AssetBrowser::Show(bool& isOpen)
         ShowInternalAssets();
         ImGui::Separator();
 
-        ShowDir(fullAssetsPath, 0);
+        switch (mode)
+        {
+            case Mode::Tree: ShowDir(fullAssetsPath, 0);
+            case Mode::Icon: ShowDirUsingIcon(currentDirectory, 0);
+            default: break;
+        }
 
         ImGui::End();
     }
@@ -90,11 +96,11 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 {
     bool changeFileName = false;
     static std::filesystem::path changeFileNameTarget;
-    
+
     // Need access to GameEditor's endEvents and endPopup
     auto& endEvents = gameEditor->endEvents;
     auto& endPopup = gameEditor->endPopup;
-    
+
     for (auto entry : std::filesystem::directory_iterator(path))
     {
         if (entry.is_directory())
@@ -274,6 +280,40 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         }
         ImGui::EndPopup();
     }
+}
+
+void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth)
+{
+    std::filesystem::path clickedPath = "";
+    auto OnIconClicked = [&clickedPath]() {};
+    auto OnIconRightClicked = []() {};
+
+    for (const auto& entry : std::filesystem::directory_iterator(path))
+    {
+        AssetIcon* assetIcon = GetEditorAssetIcon(entry);
+        ShowAssetIconWithName(path.filename(), assetIcon, GetIconSize(), OnIconClicked, OnIconRightClicked);
+    }
+
+    if (!clickedPath.empty())
+    {
+        ChangeCurrentDirectory();
+    }
+}
+
+void AssetBrowser::ShowAssetIconWithName(
+    const std::filesystem::path& name,
+    AssetIcon* icon,
+    int2 iconSize,
+    std::function<void()> onClick,
+    std::function<void()> onRightClick
+)
+{
+    auto image = icon->GetImage();
+}
+
+Gfx::Image* AssetIcon::GetImage()
+{
+    return nullptr;
 }
 
 } // namespace Editor
