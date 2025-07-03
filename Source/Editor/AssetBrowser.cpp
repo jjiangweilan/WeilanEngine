@@ -20,12 +20,6 @@ AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     currentDirectory = engine->GetProjectAssetPath();
 }
 
-void AssetBrowser::Init()
-{
-    ImGui::Begin(GetWindowName());
-    ImGui::End();
-}
-
 void AssetBrowser::Show(bool& isOpen)
 {
     if (isOpen)

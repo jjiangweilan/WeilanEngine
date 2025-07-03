@@ -42,8 +42,8 @@ private:
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;
     GameLoop* loop;
 
-    GameView gameView;
-    SceneEditor sceneEditor;
+    std::unique_ptr<GameView> gameView;
+    std::unique_ptr<SceneEditor> sceneEditor;
     std::unique_ptr<AssetBrowser> assetBrowser;
 
     GameObject* sceneTreeContextObject = nullptr;
@@ -69,7 +69,7 @@ private:
 
     void EnableMultiViewport();
 
-    void OpenSceneWindow();
+    void ShowSceneWindow();
     void MainMenuBar();
     void OpenWindow();
     void GUIPass();
@@ -92,7 +92,7 @@ private:
         GameObject* go, int imguiID, GameObject* currentSelected, DynamicArray<ObjPtr<Object>>& selects, bool autoExpand
     );
     void ShowGameProfiler(Profiler& profiler);
-    void EngineResourceDebug();
+    void ShowEngineResourceDebug();
 
     void WindowRegisteryIteration(WindowRegisterInfo& info, int pathIndex);
 

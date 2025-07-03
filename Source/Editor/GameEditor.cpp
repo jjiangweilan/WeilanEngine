@@ -65,9 +65,6 @@ GameEditor::GameEditor(const char* path)
     loop = engine->CreateGameLoop();
     EditorState::gameLoop = loop;
 
-    // Initialize asset browser
-    assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
-
     // engine is in another dynamic library which has different static logger instance, we need to register it for
     // editor too
     auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -109,18 +106,18 @@ GameEditor::GameEditor(const char* path)
         loop->SetScene(*scene);
     }
 
+    // Initialize standalone window implementations
+    gameView = std::make_unique<GameView>();
+    sceneEditor = std::make_unique<SceneEditor>();
+    assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
+    gameView->Init();
+    sceneEditor->Init();
+
+    // Configure ImGui.io
     auto& io = ImGui::GetIO();
     io.ConfigWindowsMoveFromTitleBarOnly = true;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.IniFilename = imguiInitPath.c_str();
-
-    // Initialize standalone window implementations
-    gameView.Init();
-    sceneEditor.Init();
-    assetBrowser->Init(); // register to imgui so that we can focus
-
-    // Set focus window
-    ImGui::FocusWindow(ImGui::FindWindowByName(assetBrowser->GetWindowName()));
 
     fontImage = CreateImGuiFont(nullptr);
     gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());
@@ -144,7 +141,7 @@ GameEditor::~GameEditor()
 
     loop = nullptr;
 
-    if (Camera* cam = sceneEditor.GetEditorCamera())
+    if (Camera* cam = sceneEditor->GetEditorCamera())
     {
         nlohmann::json camJson = {};
         auto pos = cam->GetGameObject()->GetPosition();
@@ -294,7 +291,7 @@ static void MenuVisitor(
     }
 }
 
-void GameEditor::OpenSceneWindow()
+void GameEditor::ShowSceneWindow()
 {
     if (openSceneWindow)
     {
@@ -479,8 +476,8 @@ void GameEditor::Start()
 
             if (engine->event->GetWindowClose().state)
             {
-                gameView.Deinit(); // stop playing the game
-                sceneEditor.Deinit();
+                gameView->Deinit(); // stop playing the game
+                sceneEditor->Deinit();
                 endPopup.Show(
                     "Save Project?",
                     [this]()
@@ -495,11 +492,11 @@ void GameEditor::Start()
             GUIPass();
 
             // update gameloop
-            auto gameScreenImage = gameView.GetGameScreenImage();
+            auto gameScreenImage = gameView->GetGameScreenImage();
             auto screenSize = gameScreenImage->GetDescription().GetSize();
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
-            bool offscreen = !gameView.IsVisible();
+            bool offscreen = !gameView->IsVisible();
             loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
 
             endPopup.TickEnd();
@@ -521,15 +518,15 @@ void GameEditor::GUIPass()
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();
-    OpenSceneWindow();
 
+    ShowSceneWindow();
     assetBrowser->Show(assetWindow);
     ShowInspectorWindow();
     ShowSurfelGIBakerWindow();
     ShowRenderPipelineSetting();
     ShowStaticEngineDebugs();
 
-    EngineResourceDebug();
+    ShowEngineResourceDebug();
 
     DynamicArray<std::unique_ptr<Window>*> toClose;
     for (auto& w : activeWindows)
@@ -545,8 +542,8 @@ void GameEditor::GUIPass()
         activeWindows.remove(*close);
     }
 
-    gameView.Tick();
-    sceneEditor.Tick();
+    gameView->Tick();
+    sceneEditor->Tick();
 
     if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && ImGui::IsKeyPressed(ImGuiKey_R))
     {
@@ -582,6 +579,15 @@ void GameEditor::GUIPass()
 
         ImGui::End();
     }
+
+    // Configure for first frame
+    static bool firstFrame = true;
+    if (firstFrame)
+    {
+        // Set focus window
+        ImGui::SetWindowFocus(assetBrowser->GetWindowName());
+        firstFrame = false;
+    }
 }
 
 void GameEditor::ShowSurfelGIBakerWindow()
@@ -601,10 +607,10 @@ void GameEditor::Render(
 
     if (gameImage)
     {
-        gameView.Render(cmd, gameImage, gameDepthImage);
+        gameView->Render(cmd, gameImage, gameDepthImage);
     }
 
-    sceneEditor.Render(cmd);
+    sceneEditor->Render(cmd);
 
     gameEditorRenderer->Execute(ImGui::GetDrawData(), cmd);
 
@@ -969,10 +975,10 @@ void GameEditor::SaveProject()
 
 void GameEditor::SetActiveScene(ObjPtr<Scene> scene)
 {
-    sceneEditor.SetActiveScene(scene);
+    sceneEditor->SetActiveScene(scene);
 }
 
-void GameEditor::EngineResourceDebug()
+void GameEditor::ShowEngineResourceDebug()
 {
     if (!debugEngineResources)
         return;
