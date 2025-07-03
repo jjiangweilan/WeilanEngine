@@ -13,6 +13,36 @@ std::string FileIcons::Utf16ToUtf8(char16_t utf16_codepoint)
     return convert_utf16_to_utf8.to_bytes(utf16_str);
 }
 
+Gfx::Image* FileIcons::GetIconImage(const std::filesystem::path& ext)
+{
+    auto iter = toIconImage.find(ext.string());
+    if (iter != toIconImage.end())
+    {
+        return iter->second;
+    }
+    else
+    {
+        std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+
+        // Null protection
+        if (loader == nullptr)
+        {
+            return GetDefaultFileIcon();
+        }
+
+        // Load file icon from preset
+        auto configuredFileIcon = GetFileIcon(typeid(*loader), ext);
+
+        if (configuredFileIcon)
+        {
+            return configuredFileIcon;
+        }
+    }
+
+    // Nothing works, just return default file icon
+    return GetDefaultFileIcon();
+}
+
 std::string FileIcons::GetIcon(const std::filesystem::path& ext)
 {
     auto iter = toIcon.find(ext.string());
@@ -54,4 +84,15 @@ FileIcons& FileIcons::Instance()
 {
     static FileIcons instance;
     return instance;
+}
+
+Gfx::Image* FileIcons::GetFileIcon(const std::type_index& typeIndex, const std::filesystem::path& fallbackExtension)
+{
+    if (typeIndex == typeid(ModelLoader))
+        return modelIcon->GetGfxImage();
+    else if (typeIndex == typeid(TextureLoader))
+        return textureIcon->GetGfxImage();
+
+    if (fallbackExtension == ".lua")
+        return luaIcon->GetGfxImage();
 }

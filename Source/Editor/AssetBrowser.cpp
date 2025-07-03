@@ -8,8 +8,8 @@
 #include "GameEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "WeilanEngine.hpp"
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace Editor
 {
@@ -297,8 +297,8 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
 void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth)
 {
     const float iconSize = iconSizeSlider; // Use the slider value instead of fixed size
-    const float iconPadding = 8.0f; // Padding between icons
-    const float labelHeight = 40.0f; // Height for the text label below icon
+    const float iconPadding = 8.0f;        // Padding between icons
+    const float labelHeight = 40.0f;       // Height for the text label below icon
     const float totalItemWidth = iconSize + iconPadding * 2;
     const float totalItemHeight = iconSize + labelHeight + iconPadding * 2;
 
@@ -338,9 +338,8 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
         }
 
         // Sort entries alphabetically
-        auto sortEntries = [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) {
-            return a.path().filename().string() < b.path().filename().string();
-        };
+        auto sortEntries = [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
+        { return a.path().filename().string() < b.path().filename().string(); };
         std::sort(directories.begin(), directories.end(), sortEntries);
         std::sort(files.begin(), files.end(), sortEntries);
 
@@ -370,11 +369,8 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
 }
 
 void AssetBrowser::ShowAssetIconItem(
-    const std::filesystem::directory_entry& entry,
-    float iconSize,
-    int& currentColumn,
-    int itemsPerRow,
-    bool isDirectory)
+    const std::filesystem::directory_entry& entry, float iconSize, int& currentColumn, int itemsPerRow, bool isDirectory
+)
 {
     // Access to GameEditor's endEvents and endPopup here since we can't pass them as parameters
     auto& endEvents = gameEditor->endEvents;
@@ -398,25 +394,18 @@ void AssetBrowser::ShowAssetIconItem(
 
     // Get icon
     Gfx::Image* iconImage = nullptr;
-    std::string iconText;
-    
+
     if (isDirectory)
     {
-        // Use folder icon - try to get a black texture as placeholder
-        // For now, we'll use a fallback
-        iconText = "📁"; // Folder emoji as fallback
+        iconImage = FileIcons::Instance().GetDirectoryIconImage();
     }
     else
     {
-        // Try to get file type icon
-        iconText = FileIcons::GetIcon(entry.path().extension());
-        if (iconText.empty())
-        {
-            iconText = "📄"; // File emoji as fallback
-        }
+        iconImage = FileIcons::Instance().GetIconImage(entry.path().extension());
     }
 
     // Draw icon background
+    //  And create invisible button for interaction
     ImVec2 cursorPos = ImGui::GetCursorPos();
     ImVec2 iconMin = ImGui::GetCursorScreenPos();
     ImVec2 iconMax = ImVec2(iconMin.x + iconSize, iconMin.y + iconSize);
@@ -426,7 +415,6 @@ void AssetBrowser::ShowAssetIconItem(
     bool isDoubleClicked = false;
     bool isRightClicked = false;
 
-    // Create invisible button for interaction
     ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
     isHovered = ImGui::IsItemHovered();
     isClicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
@@ -438,31 +426,21 @@ void AssetBrowser::ShowAssetIconItem(
     ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, bgColor, 4.0f);
 
     // Draw text icon for now (until we can properly access texture system)
-    if (!iconText.empty())
+    if (iconImage)
     {
-        // Draw text icon
-        ImVec2 textSize = ImGui::CalcTextSize(iconText.c_str());
-        ImVec2 textPos = ImVec2(
-            iconMin.x + (iconSize - textSize.x) * 0.5f,
-            iconMin.y + (iconSize - textSize.y) * 0.5f
-        );
-        ImGui::GetWindowDrawList()->AddText(textPos, IM_COL32(255, 255, 255, 255), iconText.c_str());
+        GUI::Image(*iconImage, iconMin, iconMax);
     }
 
     // File/folder name label
     std::string filename = entry.path().filename().string();
-    
-    // Truncate long filenames
-    const int maxChars = 12;
-    if (filename.length() > maxChars)
-    {
-        filename = filename.substr(0, maxChars - 3) + "...";
-    }
 
-    ImVec2 labelSize = ImGui::CalcTextSize(filename.c_str());
-    ImVec2 labelPos = ImVec2(cursorPos.x + (iconSize - labelSize.x) * 0.5f, cursorPos.y + iconSize + 4);
+    // Display asset path
+    float textWidth = iconMax.x - iconMin.x;
+    ImVec2 labelPos = ImVec2(cursorPos.x, cursorPos.y + iconSize + 4);
     ImGui::SetCursorPos(labelPos);
+    ImGui::PushTextWrapPos(cursorPos.x + textWidth);
     ImGui::Text("%s", filename.c_str());
+    ImGui::PopTextWrapPos();
 
     ImGui::EndGroup();
 
@@ -527,9 +505,10 @@ void AssetBrowser::ShowAssetIconItem(
     {
         std::filesystem::path filePath = entry.path().string();
         filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
-        GUI::DragDropSource(filePath, [filePath](Object*& obj) { 
-            obj = AssetDatabase::Singleton()->LoadAsset(filePath); 
-        });
+        GUI::DragDropSource(
+            filePath,
+            [filePath](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(filePath); }
+        );
     }
 
     // Context menu

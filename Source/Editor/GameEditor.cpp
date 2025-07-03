@@ -37,10 +37,10 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     {
         static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
         font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-            (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "Cousine Regular Nerd Font Complete.ttf")
+            (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf")
                 .string()
                 .c_str(),
-            14,
+            16,
             &config,
             icon_ranges
         );
