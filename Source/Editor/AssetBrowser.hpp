@@ -28,7 +28,13 @@ public:
     AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor);
     ~AssetBrowser() = default;
 
+    /**
+     * @brief used to register the window to ImGui
+     */
+    void Init();
+    
     void Show(bool& isOpen);
+    const char* GetWindowName() { return "Asset Browser"; }
 
 private:
     enum class Mode

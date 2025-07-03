@@ -44,6 +44,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 {
     InitSDL();
     projectPath = createInfo.projectPath;
+    projectAssetPath = createInfo.projectPath / "Assets";
 
     try
     {

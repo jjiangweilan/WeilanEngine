@@ -37,9 +37,7 @@ static std::unique_ptr<Gfx::Image> CreateImGuiFont(const char* customFont)
     {
         static const ImWchar icon_ranges[] = {0x0020, 0xffff, 0};
         font = ImGui::GetIO().Fonts->AddFontFromFileTTF(
-            (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf")
-                .string()
-                .c_str(),
+            (std::filesystem::path(ENGINE_SOURCE_PATH) / "Resources" / "MononokiNerdFont-Regular.ttf").string().c_str(),
             16,
             &config,
             icon_ranges
@@ -102,7 +100,7 @@ GameEditor::GameEditor(const char* path)
         );
     }
 
-    // load previous active scene
+    // Load previous active scene
     UUID lastActiveSceneUUID(editorConfig.value("lastActiveScene", UUID::GetEmptyUUID().ToString()));
     if (!lastActiveSceneUUID.IsEmpty())
     {
@@ -116,10 +114,13 @@ GameEditor::GameEditor(const char* path)
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.IniFilename = imguiInitPath.c_str();
 
-    // EnableMultiViewport();
-
+    // Initialize standalone window implementations
     gameView.Init();
     sceneEditor.Init();
+    assetBrowser->Init(); // register to imgui so that we can focus
+
+    // Set focus window
+    ImGui::FocusWindow(ImGui::FindWindowByName(assetBrowser->GetWindowName()));
 
     fontImage = CreateImGuiFont(nullptr);
     gameEditorRenderer = std::make_unique<Editor::Renderer>(GetGfxDriver()->GetSwapChainImage(), fontImage.get());

@@ -20,13 +20,19 @@ AssetBrowser::AssetBrowser(WeilanEngine* engine, GameEditor* gameEditor)
     currentDirectory = engine->GetProjectAssetPath();
 }
 
+void AssetBrowser::Init()
+{
+    ImGui::Begin(GetWindowName());
+    ImGui::End();
+}
+
 void AssetBrowser::Show(bool& isOpen)
 {
     if (isOpen)
     {
         std::filesystem::path fullAssetsPath = engine->GetProjectPath() / "Assets";
 
-        ImGui::Begin("Assets", &isOpen, ImGuiWindowFlags_MenuBar);
+        ImGui::Begin(GetWindowName(), &isOpen, ImGuiWindowFlags_MenuBar);
 
         ShowMenuBar();
 
@@ -415,7 +421,7 @@ void AssetBrowser::ShowAssetIconItem(
     {
         iconImage = FileIcons::Instance().GetIconImage(entry.path().extension());
     }
-    
+
     // Draw icon background
     //  And create invisible button for interaction
     ImVec2 cursorPos = ImGui::GetCursorPos();

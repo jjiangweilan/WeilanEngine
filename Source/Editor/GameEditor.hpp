@@ -1,15 +1,15 @@
 #pragma once
+#include "AssetBrowser.hpp"
 #include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "GameView.hpp"
-#include "SceneEditor.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
+#include "SceneEditor.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_internal.h"
 #include "WeilanEngine.hpp"
 #include "Window.hpp"
-#include "AssetBrowser.hpp"
 #include <spdlog/sinks/ringbuffer_sink.h>
 #include <spdlog/spdlog.h>
 
@@ -22,7 +22,7 @@ class AssetBrowser;
 class GameEditor
 {
     friend class AssetBrowser; // Allow AssetBrowser to access private members
-    
+
 public:
     GameEditor(const char* path);
     ~GameEditor();
