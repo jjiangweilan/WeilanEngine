@@ -339,7 +339,19 @@ void AssetBrowser::ShowDirUsingIcon(const std::filesystem::path& path, int depth
 
         // Sort entries alphabetically
         auto sortEntries = [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b)
-        { return a.path().filename().string() < b.path().filename().string(); };
+        {
+            auto& pa = a.path();
+            auto& pb = b.path();
+
+            // first compare extensions
+            auto ext_a = pa.extension().string();
+            auto ext_b = pb.extension().string();
+            if (ext_a != ext_b)
+                return ext_a < ext_b;
+
+            // if extensions are the same, compare filenames
+            return pa.filename().string() < pb.filename().string();
+        };
         std::sort(directories.begin(), directories.end(), sortEntries);
         std::sort(files.begin(), files.end(), sortEntries);
 
@@ -403,7 +415,7 @@ void AssetBrowser::ShowAssetIconItem(
     {
         iconImage = FileIcons::Instance().GetIconImage(entry.path().extension());
     }
-
+    
     // Draw icon background
     //  And create invisible button for interaction
     ImVec2 cursorPos = ImGui::GetCursorPos();
@@ -414,6 +426,10 @@ void AssetBrowser::ShowAssetIconItem(
     bool isClicked = false;
     bool isDoubleClicked = false;
     bool isRightClicked = false;
+    bool isLastSelection = false;
+
+    // Update last selected path
+    isLastSelection = lastSelectedPath == entry.path();
 
     ImGui::InvisibleButton("##icon", ImVec2(iconSize, iconSize));
     isHovered = ImGui::IsItemHovered();
@@ -422,7 +438,11 @@ void AssetBrowser::ShowAssetIconItem(
     isRightClicked = ImGui::IsItemClicked(ImGuiMouseButton_Right);
 
     // Draw icon background
-    ImU32 bgColor = isHovered ? IM_COL32(100, 100, 100, 150) : IM_COL32(70, 70, 70, 100);
+    ImU32 bgColor = isHovered ? IM_COL32(140, 140, 140, 100) : IM_COL32(70, 70, 70, 100);
+    if (isLastSelection)
+    {
+        bgColor = IM_COL32(140, 140, 140, 200);
+    }
     ImGui::GetWindowDrawList()->AddRectFilled(iconMin, iconMax, bgColor, 4.0f);
 
     // Draw text icon for now (until we can properly access texture system)
@@ -461,6 +481,7 @@ void AssetBrowser::ShowAssetIconItem(
             if (asset)
             {
                 EditorState::SelectObject(asset);
+                UpdateLastSelection(entry.path());
             }
         }
     }
@@ -475,6 +496,7 @@ void AssetBrowser::ShowAssetIconItem(
             if (asset)
             {
                 EditorState::SelectObject(asset);
+                UpdateLastSelection(entry.path());
             }
         }
     }
@@ -515,6 +537,7 @@ void AssetBrowser::ShowAssetIconItem(
     if (isRightClicked)
     {
         ImGui::OpenPopup("ItemContextMenu");
+        UpdateLastSelection(entry.path());
     }
 
     if (ImGui::BeginPopup("ItemContextMenu"))

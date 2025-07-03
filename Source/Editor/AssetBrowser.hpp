@@ -40,6 +40,7 @@ private:
     WeilanEngine* engine;
     GameEditor* gameEditor;
     int currentDragDropAssetFileDepth = 0;
+    std::filesystem::path lastSelectedPath = "";
 
     // Icon size control
     float iconSizeSlider = 64.0f; // Default icon size
@@ -73,6 +74,8 @@ private:
         std::function<void()> onRightClick = nullptr
     );
 
+    void UpdateLastSelection(const std::filesystem::path& path) { this->lastSelectedPath = path; }
+
     /**
      * @brief Helper function to show individual asset icon items in grid layout
      */
@@ -88,7 +91,7 @@ private:
     std::filesystem::path GetCurrentDirectory();
 
     AssetIcon* GetEditorAssetIcon(const std::filesystem::path& path);
-    
+
     int2 GetIconSize();
     void ShowMenuBar();
 };

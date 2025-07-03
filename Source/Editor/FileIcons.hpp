@@ -31,9 +31,13 @@ private:
     std::unordered_map<std::string, Gfx::Image*> toIconImage;
 
     Gfx::Image* GetDefaultFileIcon() { return documentIcon->GetGfxImage(); }
+
     LazyLoadedAsset<Texture> fileIcon = "_engine_internal/Editor/Icons/folder.png";
     LazyLoadedAsset<Texture> textureIcon = "_engine_internal/Editor/Icons/texture.png";
     LazyLoadedAsset<Texture> luaIcon = "_engine_internal/Editor/Icons/lua.png";
     LazyLoadedAsset<Texture> modelIcon = "_engine_internal/Editor/Icons/3d-model.png";
     LazyLoadedAsset<Texture> documentIcon = "_engine_internal/Editor/Icons/document.png";
+    LazyLoadedAsset<Texture> sceneIcon = "_engine_internal/Editor/Icons/scene.png";
+    LazyLoadedAsset<Texture> prefabIcon = "_engine_internal/Editor/Icons/prefab.png";
+    LazyLoadedAsset<Texture> renderPipelineIcon = "_engine_internal/Editor/Icons/render-pipeline.png";
 };

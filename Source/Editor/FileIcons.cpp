@@ -95,4 +95,12 @@ Gfx::Image* FileIcons::GetFileIcon(const std::type_index& typeIndex, const std::
 
     if (fallbackExtension == ".lua")
         return luaIcon->GetGfxImage();
+    else if (fallbackExtension == ".scene")
+        return sceneIcon->GetGfxImage();
+    else if (fallbackExtension == ".prefab")
+        return prefabIcon->GetGfxImage();
+    else if (fallbackExtension == ".renderPipeline")
+        return renderPipelineIcon->GetGfxImage();
+
+    return GetDefaultFileIcon();
 }
