@@ -24,6 +24,11 @@ JobSystem::JobSystem() : mainThreadJobs(jobCapacityPerWorker), done(false)
 JobSystem::~JobSystem()
 {
     done = true;
+    for (auto& w : workers)
+    {
+        if (w->joinable())
+            w->join();
+    }
 }
 
 // Definition for static thread_local member
