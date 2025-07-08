@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+    cmake_policy(SET CMP0135 NEW)
+endif()
+
 if (MSVC)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
@@ -185,7 +189,7 @@ if (WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-option(UNIT_TEST "enable unit test" OFF)
+option(UNIT_TEST "enable unit test" ON)
 option(SHIP "ship build" OFF)
 option(EDITOR_ON "compile with game editor" ON)
 option(DEV_BUILD "Define ENGINE_DEV_BUILD" ON)
@@ -292,3 +296,29 @@ source_group(
     ${Dev_Tool_SRC}
 )
 
+if (UNIT_TEST)
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
+
+    file(GLOB_RECURSE CORE_TEST_ENGINE_SRC "./Source/Test/*.c" "./Source/Test/*.cpp" "./Source/Test/*.hpp" "./Source/Test/*.h" "./Source/Test/*.tpp")
+    add_executable(
+        WeilanEngineTest
+        ${CORE_TEST_ENGINE_SRC}
+    )
+    target_link_libraries(
+        WeilanEngineTest
+        WeilanEngine
+        GTest::gtest_main
+    )
+
+    include(GoogleTest)
+    gtest_discover_tests(WeilanEngineTest)
+endif()
