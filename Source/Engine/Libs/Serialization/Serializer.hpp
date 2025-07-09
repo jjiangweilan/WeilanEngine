@@ -2,6 +2,7 @@
 #include "Core/ManagedObject.hpp"
 #include "Core/Object.hpp"
 #include "Core/Ptr.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "Libs/UUID.hpp"
 #include "Serializable.hpp"
 #include "nlohmann/json_fwd.hpp"
@@ -17,7 +18,6 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
-#include "Libs/DynamicArray.hpp"
 
 using ReferenceResolveCallback = std::function<void(void* resource)>;
 
@@ -48,21 +48,14 @@ struct HasUUIDContained<T<U>> : std::true_type
 
 struct SerializeReferenceResolve
 {
-    SerializeReferenceResolve(
-        void** target,
-        const UUID& targetUUID,
-        const ReferenceResolveCallback& callback,
-        int** managedObjectRefCounter = nullptr
-    )
-        : target(target), targetUUID(targetUUID), callback(callback),
-          managedObjectRefCounter(managedObjectRefCounter) {};
+    SerializeReferenceResolve(void** target, const UUID& targetUUID, const ReferenceResolveCallback& callback)
+        : target(target), targetUUID(targetUUID), callback(callback) {};
     // add holder's UUID here so that we can check if the holder is still alive when we resolve target
     // note: holding a directly pointer doesn't work for moved object even if holder's UUID is checked.
     // maybe consider using pointer to member?
     void** target = nullptr;
     UUID targetUUID;
     ReferenceResolveCallback callback;
-    int** managedObjectRefCounter;
 };
 
 using SerializeReferenceResolveMap = std::unordered_map<UUID, DynamicArray<SerializeReferenceResolve>>;

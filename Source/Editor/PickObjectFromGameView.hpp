@@ -1,9 +1,10 @@
 #pragma once
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
+#include "Core/JobSystem.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Libs/EnumFlags.hpp"
 #include "Libs/DynamicArray.hpp"
+#include "Libs/EnumFlags.hpp"
 
 enum class PickObjectLayer : int
 {
@@ -45,28 +46,27 @@ public:
 
         pending = GetCandidateFromScene(scene);
 
-        DynamicArray<std::thread> threads;
+        JobSystem& jobSystem = JobSystem::Instance();
+        DynamicArray<JobHandle> jobs;
         int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
-        for (int i = 0; i < maxThreads; ++i)
-        {
-            threads.push_back(std::thread(
-                [this, &ray]()
-                {
-                    while (consumerIndex < pending.size())
-                    {
-                        int index = consumerIndex.fetch_add(1);
 
-                        pending[index].intersectionTest(
-                            ray,
-                            [this](GameObject* go, float distance) { this->PushbackIntersected(go, distance); }
-                        );
-                    };
+        for (int i = 0; i < pending.size(); ++i)
+        {
+            jobs.push_back(jobSystem.Scehdule(
+                [this, &ray, i]()
+                {
+                    pending[i].intersectionTest(
+                        ray,
+                        [this](GameObject* go, float distance) { this->PushbackIntersected(go, distance); }
+                    );
                 }
             ));
         }
 
-        for (auto& t : threads)
-            if (t.joinable()) t.join();
+        for (auto& j : jobs)
+        {
+            j.Wait();
+        }
 
         return results;
     }

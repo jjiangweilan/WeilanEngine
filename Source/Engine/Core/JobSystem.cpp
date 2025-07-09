@@ -104,3 +104,23 @@ bool JobSystem::TryPopMainThreadJob(Job& f)
 {
     return mainThreadJobs.try_pop(f);
 }
+
+void JobSystem::InitJobSystem()
+{
+    if (instance == nullptr)
+    {
+        instance = std::unique_ptr<JobSystem>(new JobSystem());
+    }
+}
+
+JobSystem& JobSystem::Instance()
+{
+    return *instance;
+}
+
+void JobSystem::DeinitJobSystem()
+{
+    instance = nullptr;
+}
+
+std::unique_ptr<JobSystem> JobSystem::instance = nullptr;

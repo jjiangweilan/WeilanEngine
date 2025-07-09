@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Asset.hpp"
+#include "Core/JobSystem.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
 
@@ -16,7 +17,7 @@ public:
     // Asset* LoadAsset(std::filesystem::path path);
     // Asset* LoadAssetByID(const UUID& uuid);
 
-    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
+    Asset* LoadAsset(const std::filesystem::path& path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
     DynamicArray<uint8_t> ReadRawAssetData(const UUID& uuid);
 
@@ -131,6 +132,26 @@ private:
         DynamicArray<std::unique_ptr<AssetData>> data;
     } assets;
 
+    /**
+     * @class ImportProcess
+     * @brief a struct used to batch processing loaded assets to enable parallel processing
+     *
+     */
+    struct ImportProcess
+    {
+        // Loader
+        std::shared_ptr<AssetLoader> loader;
+
+        // Import related data
+        bool importNeeded = false;
+        JobHandle importJob;
+        DynamicArray<std::filesystem::path> importedAssetFilePaths;
+
+        // Load related data
+        bool loadNeeded;
+        JobHandle loadJob;
+    };
+
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
 
@@ -140,6 +161,20 @@ private:
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
+
+    /**
+     * @brief Internal implementation to load an asset including all it's reference in an asynced way. Note that
+     * reference is resolved by ObjPtr mechanism so it's not directly handled in AssetDatabase, but loading process
+     * complete. All the referenced objects should be loaded and OnLoaded on the assets will be called
+     *
+     * @param path [TODO:parameter]
+     * @param forceReimport [TODO:parameter]
+     * @param importProcesses [TODO:parameter]
+     * @return [TODO:return]
+     */
+    Asset* LoadAssetInteral(
+        std::filesystem::path path, bool forceReimport, std::vector<ImportProcess>& importProcesses
+    );
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);

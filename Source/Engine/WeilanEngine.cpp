@@ -3,6 +3,7 @@
 #include "Core/DelayDestroy.hpp"
 #include "Core/FrameContext.hpp"
 #include "Core/GameLoop.hpp"
+#include "Core/JobSystem.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Rendering/Graphics.hpp"
 #if ENGINE_EDITOR
@@ -38,10 +39,13 @@ WeilanEngine::~WeilanEngine()
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
     DeinitSDL();
+
+    JobSystem::DeinitJobSystem();
 }
 
 void WeilanEngine::Init(const CreateInfo& createInfo)
 {
+    JobSystem::InitJobSystem();
     InitSDL();
     projectPath = createInfo.projectPath;
     projectAssetPath = createInfo.projectPath / "Assets";

@@ -8,6 +8,7 @@
 class JobHandle
 {
 public:
+    JobHandle() : f() {}
     JobHandle(std::future<void>&& f) : f(std::move(f)) {}
     bool IsFinished() { return f.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; }
     void Wait() { f.wait(); }
@@ -19,18 +20,22 @@ private:
 class JobSystem
 {
 public:
-    const int TotalWorkers = GetTotalWorkers();
-    const int jobCapacityPerWorker = 256;
-
     JobSystem();
     ~JobSystem();
+    const int TotalWorkers = GetTotalWorkers();
+    const int jobCapacityPerWorker = 256;
     JobHandle Scehdule(const std::function<void()>& f);
 
     void WaitAll();
 
     static int GetTotalWorkers();
+    static void DeinitJobSystem();
+    static void InitJobSystem();
+    static JobSystem& Instance();
 
 private:
+    static std::unique_ptr<JobSystem> instance;
+
     using Job = std::packaged_task<void()>;
     using JobQueue = MPMCQueue<Job>;
 
