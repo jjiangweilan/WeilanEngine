@@ -8,10 +8,7 @@
 class ImportDatabase
 {
 public:
-    void Init(const std::filesystem::path& importDatabaseRoot)
-    {
-        this->importDatabaseRoot = importDatabaseRoot;
-    }
+    void Init(const std::filesystem::path& importDatabaseRoot) { this->importDatabaseRoot = importDatabaseRoot; }
     DynamicArray<uint8_t> ReadFile(const std::string& filename);
 
     std::filesystem::path GetImportAssetPath(const std::string& filename);
@@ -23,14 +20,17 @@ private:
 class AssetLoader
 {
 public:
-    virtual ~AssetLoader(){}
-    virtual void Setup(ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta)
+    virtual ~AssetLoader() {}
+    virtual void Setup(
+        ImportDatabase& importDatabase, const std::filesystem::path& assetPath, const nlohmann::json& meta
+    )
     {
         this->absoluteAssetPath = assetPath;
         this->meta = meta;
         this->importDatabase = &importDatabase;
     }
 
+    virtual bool IsInternalAsset() { return false; }
     virtual bool ImportNeeded() = 0;
 
     // imported file path
@@ -44,13 +44,10 @@ public:
         resolveMap = nullptr;
     }
     virtual std::unique_ptr<Asset> RetrieveAsset() = 0;
-    virtual nlohmann::json GetMeta()
-    {
-        return meta;
-    }
+    virtual nlohmann::json GetMeta() { return meta; }
 
     // reload is called after RetrieveAsset so the loaded object is passed from outside
-    virtual void HandleReload(Asset* loaded){}
+    virtual void HandleReload(Asset* loaded) {}
 
 protected:
     // asset to import
@@ -94,7 +91,7 @@ private:
 
 #define DECLARE_ASSET_LOADER()                                                                                         \
 public:                                                                                                                \
-    static const DynamicArray<std::string>& StaticGetExtensions();                                                      \
+    static const DynamicArray<std::string>& StaticGetExtensions();                                                     \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
@@ -105,8 +102,8 @@ private:                                                                        
         []() { return std::unique_ptr<AssetLoader>(new Type()); },                                                     \
         Type::GetImportTypes()                                                                                         \
     );                                                                                                                 \
-    const DynamicArray<std::string>& Type::StaticGetExtensions()                                                        \
+    const DynamicArray<std::string>& Type::StaticGetExtensions()                                                       \
     {                                                                                                                  \
-        static DynamicArray<std::string> extensions = GenerateExtensions(Extension, ',');                               \
+        static DynamicArray<std::string> extensions = GenerateExtensions(Extension, ',');                              \
         return extensions;                                                                                             \
     }

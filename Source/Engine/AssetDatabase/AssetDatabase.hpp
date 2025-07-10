@@ -139,16 +139,17 @@ private:
      */
     struct ImportProcess
     {
-        // Loader
         std::shared_ptr<AssetLoader> loader;
+        AssetData* assetData = nullptr;
+        Asset* asset;
 
         // Import related data
         bool importNeeded = false;
         JobHandle importJob;
-        DynamicArray<std::filesystem::path> importedAssetFilePaths;
+        std::unique_ptr<DynamicArray<std::filesystem::path>> importedAssetFilePaths = std::make_unique<DynamicArray<std::filesystem::path>>();
 
         // Load related data
-        bool loadNeeded;
+        bool isReload = false;
         JobHandle loadJob;
     };
 
@@ -167,14 +168,13 @@ private:
      * reference is resolved by ObjPtr mechanism so it's not directly handled in AssetDatabase, but loading process
      * complete. All the referenced objects should be loaded and OnLoaded on the assets will be called
      *
-     * @param path [TODO:parameter]
-     * @param forceReimport [TODO:parameter]
-     * @param importProcesses [TODO:parameter]
-     * @return [TODO:return]
+     * @param path The file path to import.
+     * @param forceReimport If true, forces re-importing even if already imported.
+     * @param importProcesses List of processes to use during import.
+     * @return True if import was successful, false otherwise.
      */
-    Asset* LoadAssetInteral(
-        std::filesystem::path path, bool forceReimport, std::vector<ImportProcess>& importProcesses
-    );
+    void LoadAssetInteral(std::filesystem::path path, bool forceReimport, std::vector<ImportProcess>& importProcesses);
+    void LoadAssetByIDInternal(const UUID& uuid, bool forceReimport, std::vector<ImportProcess>& importProcesses);
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);
