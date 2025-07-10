@@ -422,9 +422,14 @@ void AssetDatabase::SaveDirtyAssets()
 }
 
 void AssetDatabase::LoadAssetInteral(
-    std::filesystem::path path, bool forceReimport, std::vector<ImportProcess>& importProcesses
+    std::filesystem::path path,
+    bool forceReimport,
+    std::vector<ImportProcess>& importProcesses,
+    std::set<std::filesystem::path>& loadings
 )
 {
+    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
+
     // Every LoadAssetInternal call should get a importProcess
     importProcesses.push_back({});
     ImportProcess& importProcess = importProcesses.back();
@@ -434,9 +439,22 @@ void AssetDatabase::LoadAssetInteral(
     {
         return;
     }
+
+    // Because loading process is asyned, we don't want to process a currently loading asset
+    if (Utils::strContians(Utils::strToLower(path.string()), "default.mat"))
+    {
+        int i = 0;
+    }
+    if (loadings.contains(path))
+    {
+        return;
+    }
+    loadings.insert(path);
+
     // Find the asset if it's already imported
     auto assetData = assets.GetAssetData(path);
     auto absoluteAssetPath = assetDirectory / path;
+    importProcess.assetData = assetData;
 
     // Copy json meta is slow, so we use pointer here
     static nlohmann::json empty = nlohmann::json::object();
@@ -470,11 +488,18 @@ void AssetDatabase::LoadAssetInteral(
     bool importNeeded = forceReimport || loader->ImportNeeded();
     if (importNeeded)
     {
-        // Fill importProcess
         importProcess.importNeeded = importNeeded;
-        importProcess.importJob =
-            JobSystem::Instance().Scehdule([importedAssetFilePaths = importProcess.importedAssetFilePaths.get(),
-                                            loader]() { *importedAssetFilePaths = loader->Import(); });
+        if (!isInternalAsset)
+        {
+            // Fill importProcess
+            importProcess.importJob =
+                JobSystem::Instance().Schedule([importedAssetFilePaths = importProcess.importedAssetFilePaths.get(),
+                    loader]() { *importedAssetFilePaths = loader->Import(); });
+        }
+        else
+        {
+            loader->Import();
+        }
     }
 
     // Try retrieving asset from assetData. If there is one, it means loading is not needed
@@ -492,7 +517,15 @@ void AssetDatabase::LoadAssetInteral(
     importProcess.isReload = asset != nullptr && loadNeeded;
     if (loadNeeded)
     {
-        importProcess.loadJob = JobSystem::Instance().Scehdule([loader]() { loader->Load(); });
+        importProcess.loadNeeded = loadNeeded;
+        if (!isInternalAsset)
+        {
+            importProcess.loadJob = JobSystem::Instance().Schedule([loader]() { loader->Load(); });
+        }
+        else
+        {
+            loader->Load();
+        }
     }
 
     // If this is a internal asset, referenced assets need to be loaded too
@@ -506,7 +539,7 @@ void AssetDatabase::LoadAssetInteral(
         {
             for (auto& uuid : serializer->GetReferencedObjects())
             {
-                LoadAssetByIDInternal(uuid, forceReimport, importProcesses);
+                LoadAssetByIDInternal(uuid, forceReimport, importProcesses, loadings);
             }
         }
     }
@@ -676,7 +709,8 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
 Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path, bool forceReimport)
 {
     std::vector<ImportProcess> importProcesses{};
-    LoadAssetInteral(path, forceReimport, importProcesses);
+    std::set<std::filesystem::path> loading{};
+    LoadAssetInteral(path, forceReimport, importProcesses, loading);
 
     for (auto& p : importProcesses)
     {
@@ -685,24 +719,30 @@ Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path, bool forceRei
         bool isReload = p.isReload;
         auto importedAssetFilePaths = p.importedAssetFilePaths.get();
         std::shared_ptr<AssetLoader> loader = p.loader;
-        p.importJob.Wait();
-        p.loadJob.Wait();
 
         if (importNeeded && assetData != nullptr)
         {
+            p.importJob.Wait();
             SyncImportedAssetFiles(assetData, *importedAssetFilePaths);
         }
 
+        // If we have a loader, we can retrieve the asset
         Asset* asset = nullptr;
         std::unique_ptr<Asset> retrieved = nullptr;
-        if (loader)
+        if (p.loadNeeded && loader)
         {
+            p.loadJob.Wait();
             retrieved = loader->RetrieveAsset();
             asset = retrieved.get();
+            p.asset = asset;
         }
-        p.asset = asset;
+        else
+        {
+            p.asset = assetData->GetAsset();
+        }
 
-        if (assetData)
+        // It possible an deprecated asset doesn't have a loader, in that case we just skip it
+        if (p.loadNeeded && assetData && loader)
         {
             // this needs to be done after importing becuase if not we don't have internal game object's name to
             // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
@@ -717,7 +757,7 @@ Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path, bool forceRei
                 loader->HandleReload(asset);
             }
         }
-        else
+        else if (retrieved != nullptr)
         {
             // A new asset needs to be recored/imported in assetDatabase
             std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(retrieved), path, projectRoot);
@@ -943,13 +983,18 @@ void AssetDatabase::ReloadScripts()
 }
 
 void AssetDatabase::LoadAssetByIDInternal(
-    const UUID& uuid, bool forceReimport, std::vector<ImportProcess>& importProcesses
+    const UUID& uuid,
+    bool forceReimport,
+    std::vector<ImportProcess>& importProcesses,
+    std::set<std::filesystem::path>& loading
 )
 {
+    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
+
     auto assetData = assets.GetAssetData(uuid);
     if (assetData)
     {
-        LoadAssetInteral(assetData->GetAssetPath(), forceReimport, importProcesses);
+        LoadAssetInteral(assetData->GetAssetPath(), forceReimport, importProcesses, loading);
     }
 }
 

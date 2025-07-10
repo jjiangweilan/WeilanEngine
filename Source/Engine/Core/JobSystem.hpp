@@ -11,7 +11,8 @@ public:
     JobHandle() : f() {}
     JobHandle(std::future<void>&& f) : f(std::move(f)) {}
     bool IsFinished() { return f.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready; }
-    void Wait() {
+    void Wait()
+    {
         if (f.valid())
             f.wait();
     }
@@ -27,10 +28,9 @@ public:
     ~JobSystem();
     const int TotalWorkers = GetTotalWorkers();
     const int jobCapacityPerWorker = 256;
-    JobHandle Scehdule(const std::function<void()>& f);
-
+    JobHandle Schedule(const std::function<void()>& f);
+    const std::thread::id& GetMainThreadID() { return mainThreadID; }
     void WaitAll();
-
     static int GetTotalWorkers();
     static void DeinitJobSystem();
     static void InitJobSystem();

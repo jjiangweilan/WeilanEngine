@@ -52,7 +52,7 @@ public:
 
         for (int i = 0; i < pending.size(); ++i)
         {
-            jobs.push_back(jobSystem.Scehdule(
+            jobs.push_back(jobSystem.Schedule(
                 [this, &ray, i]()
                 {
                     pending[i].intersectionTest(

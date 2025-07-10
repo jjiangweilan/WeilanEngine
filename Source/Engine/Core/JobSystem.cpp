@@ -47,7 +47,7 @@ int JobSystem::GetTotalWorkers()
     return totalWorkers;
 }
 
-JobHandle JobSystem::Scehdule(const std::function<void()>& f)
+JobHandle JobSystem::Schedule(const std::function<void()>& f)
 {
     auto packed = std::packaged_task<void()>(f);
     auto future = packed.get_future();

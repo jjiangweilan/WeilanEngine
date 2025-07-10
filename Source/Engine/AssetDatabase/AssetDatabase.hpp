@@ -4,6 +4,7 @@
 #include "Core/JobSystem.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
+#include <set>
 
 class AssetDatabase
 {
@@ -146,9 +147,11 @@ private:
         // Import related data
         bool importNeeded = false;
         JobHandle importJob;
-        std::unique_ptr<DynamicArray<std::filesystem::path>> importedAssetFilePaths = std::make_unique<DynamicArray<std::filesystem::path>>();
+        std::unique_ptr<DynamicArray<std::filesystem::path>> importedAssetFilePaths =
+            std::make_unique<DynamicArray<std::filesystem::path>>();
 
         // Load related data
+        bool loadNeeded = false;
         bool isReload = false;
         JobHandle loadJob;
     };
@@ -173,8 +176,18 @@ private:
      * @param importProcesses List of processes to use during import.
      * @return True if import was successful, false otherwise.
      */
-    void LoadAssetInteral(std::filesystem::path path, bool forceReimport, std::vector<ImportProcess>& importProcesses);
-    void LoadAssetByIDInternal(const UUID& uuid, bool forceReimport, std::vector<ImportProcess>& importProcesses);
+    void LoadAssetInteral(
+        std::filesystem::path path,
+        bool forceReimport,
+        std::vector<ImportProcess>& importProcesses,
+        std::set<std::filesystem::path>& loadings
+    );
+    void LoadAssetByIDInternal(
+        const UUID& uuid,
+        bool forceReimport,
+        std::vector<ImportProcess>& importProcesses,
+        std::set<std::filesystem::path>& loadings
+    );
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);
