@@ -1,10 +1,8 @@
 #pragma once
 #include "AssetDatabase/Importers/AssetLoader.hpp"
 #include "Core/Asset.hpp"
-#include "Core/JobSystem.hpp"
 #include "Internal/AssetData.hpp"
 #include <filesystem>
-#include <set>
 
 class AssetDatabase
 {
@@ -18,7 +16,7 @@ public:
     // Asset* LoadAsset(std::filesystem::path path);
     // Asset* LoadAssetByID(const UUID& uuid);
 
-    Asset* LoadAsset(const std::filesystem::path& path, bool forceReimport = false);
+    Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
     DynamicArray<uint8_t> ReadRawAssetData(const UUID& uuid);
 
@@ -133,29 +131,6 @@ private:
         DynamicArray<std::unique_ptr<AssetData>> data;
     } assets;
 
-    /**
-     * @class ImportProcess
-     * @brief a struct used to batch processing loaded assets to enable parallel processing
-     *
-     */
-    struct ImportProcess
-    {
-        std::shared_ptr<AssetLoader> loader;
-        AssetData* assetData = nullptr;
-        Asset* asset;
-
-        // Import related data
-        bool importNeeded = false;
-        JobHandle importJob;
-        std::unique_ptr<DynamicArray<std::filesystem::path>> importedAssetFilePaths =
-            std::make_unique<DynamicArray<std::filesystem::path>>();
-
-        // Load related data
-        bool loadNeeded = false;
-        bool isReload = false;
-        JobHandle loadJob;
-    };
-
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
 
@@ -165,29 +140,6 @@ private:
 
     void SerializeAssetToDisk(Asset& asset, const std::filesystem::path& path);
     void LoadEngineInternal();
-
-    /**
-     * @brief Internal implementation to load an asset including all it's reference in an asynced way. Note that
-     * reference is resolved by ObjPtr mechanism so it's not directly handled in AssetDatabase, but loading process
-     * complete. All the referenced objects should be loaded and OnLoaded on the assets will be called
-     *
-     * @param path The file path to import.
-     * @param forceReimport If true, forces re-importing even if already imported.
-     * @param importProcesses List of processes to use during import.
-     * @return True if import was successful, false otherwise.
-     */
-    void LoadAssetInteral(
-        std::filesystem::path path,
-        bool forceReimport,
-        std::vector<ImportProcess>& importProcesses,
-        std::set<std::filesystem::path>& loadings
-    );
-    void LoadAssetByIDInternal(
-        const UUID& uuid,
-        bool forceReimport,
-        std::vector<ImportProcess>& importProcesses,
-        std::set<std::filesystem::path>& loadings
-    );
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);

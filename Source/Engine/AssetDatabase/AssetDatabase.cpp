@@ -421,132 +421,6 @@ void AssetDatabase::SaveDirtyAssets()
     }
 }
 
-void AssetDatabase::LoadAssetInteral(
-    std::filesystem::path path,
-    bool forceReimport,
-    std::vector<ImportProcess>& importProcesses,
-    std::set<std::filesystem::path>& loadings
-)
-{
-    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
-
-    // Every LoadAssetInternal call should get a importProcess
-    importProcesses.push_back({});
-    ImportProcess& importProcess = importProcesses.back();
-
-    // Use path relative to AssetDirectory
-    if (path.is_absolute())
-    {
-        return;
-    }
-
-    // Because loading process is asyned, we don't want to process a currently loading asset
-    if (Utils::strContians(Utils::strToLower(path.string()), "default.mat"))
-    {
-        int i = 0;
-    }
-    if (loadings.contains(path))
-    {
-        return;
-    }
-    loadings.insert(path);
-
-    // Find the asset if it's already imported
-    auto assetData = assets.GetAssetData(path);
-    auto absoluteAssetPath = assetDirectory / path;
-    importProcess.assetData = assetData;
-
-    // Copy json meta is slow, so we use pointer here
-    static nlohmann::json empty = nlohmann::json::object();
-    const nlohmann::json* assetMeta = &empty;
-    // This asset is already imported once, we can read its meta if (assetData)
-    {
-        assetMeta = &assetData->GetMeta();
-
-        // Override the asset path because this asset may be an internal asset
-        absoluteAssetPath = assetData->GetAssetAbsolutePath();
-    }
-    if (!std::filesystem::exists(absoluteAssetPath))
-    {
-        return;
-    }
-
-    // Create the loader
-    std::filesystem::path ext = absoluteAssetPath.extension();
-    std::shared_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
-    if (loader == nullptr)
-    {
-        return;
-    }
-    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
-
-    // Now we start to work one some actual works
-    importProcess.loader = loader;
-    bool isInternalAsset = loader->IsInternalAsset();
-
-    // Check if asset needs importing, if so import it
-    bool importNeeded = forceReimport || loader->ImportNeeded();
-    if (importNeeded)
-    {
-        importProcess.importNeeded = importNeeded;
-        if (!isInternalAsset)
-        {
-            // Fill importProcess
-            importProcess.importJob =
-                JobSystem::Instance().Schedule([importedAssetFilePaths = importProcess.importedAssetFilePaths.get(),
-                    loader]() { *importedAssetFilePaths = loader->Import(); });
-        }
-        else
-        {
-            loader->Import();
-        }
-    }
-
-    // Try retrieving asset from assetData. If there is one, it means loading is not needed
-    Asset* asset = assetData ? assetData->GetAsset() : nullptr;
-    bool loadNeeded = importNeeded ? importNeeded : asset == nullptr;
-
-    // No import and load process taken, this asset is ready to be used
-    if (!importNeeded && !loadNeeded)
-    {
-        importProcess.asset = asset;
-        return;
-    }
-
-    // Check for reload and schedule loading
-    importProcess.isReload = asset != nullptr && loadNeeded;
-    if (loadNeeded)
-    {
-        importProcess.loadNeeded = loadNeeded;
-        if (!isInternalAsset)
-        {
-            importProcess.loadJob = JobSystem::Instance().Schedule([loader]() { loader->Load(); });
-        }
-        else
-        {
-            loader->Load();
-        }
-    }
-
-    // If this is a internal asset, referenced assets need to be loaded too
-    if (isInternalAsset)
-    {
-        Serializer* serializer;
-        SerializeReferenceResolveMap* localResolveMap;
-        loader->GetReferenceResolveData(serializer, localResolveMap);
-
-        if (serializer)
-        {
-            for (auto& uuid : serializer->GetReferencedObjects())
-            {
-                LoadAssetByIDInternal(uuid, forceReimport, importProcesses, loadings);
-            }
-        }
-    }
-
-    importProcess.asset = asset;
-}
-
 void AssetDatabase::LoadEngineInternal()
 {
     DynamicArray<std::string> pathes;
@@ -706,84 +580,127 @@ void AssetDatabase::ResolveSerializerReference(Serializer& ser, SerializeReferen
     }
 }
 
-Asset* AssetDatabase::LoadAsset(const std::filesystem::path& path, bool forceReimport)
+Asset* AssetDatabase::LoadAsset(std::filesystem::path path, bool forceReimport)
 {
-    std::vector<ImportProcess> importProcesses{};
-    std::set<std::filesystem::path> loading{};
-    LoadAssetInteral(path, forceReimport, importProcesses, loading);
+    // SCOPED_PROFILER(fmt::format("load asset {}", path.string()));
 
-    for (auto& p : importProcesses)
+    /* Debug Comment */
+    // std::filesystem::path debugPath = "SceneLit.shad";
+    // if (Utils::strContians(path.string(), debugPath.string()))
+    // {
+    //     spdlog::info("{}", debugPath.string());
+    // }
+
+    // use path relative to AssetDirectory
+    if (path.is_absolute())
+        return nullptr;
+
+    // find the asset if it's already imported
+    auto assetData = assets.GetAssetData(path);
+    auto absoluteAssetPath = assetDirectory / path;
+
+    // copy json meta is slow, so we use pointer here
+    static nlohmann::json empty = nlohmann::json::object();
+    const nlohmann::json* assetMeta = &empty;
+    // this asset is already imported once, we can read its meta
+    if (assetData)
     {
-        AssetData* assetData = p.assetData;
-        bool importNeeded = p.importNeeded;
-        bool isReload = p.isReload;
-        auto importedAssetFilePaths = p.importedAssetFilePaths.get();
-        std::shared_ptr<AssetLoader> loader = p.loader;
+        assetMeta = &assetData->GetMeta();
 
-        if (importNeeded && assetData != nullptr)
-        {
-            p.importJob.Wait();
-            SyncImportedAssetFiles(assetData, *importedAssetFilePaths);
-        }
+        // override the asset path because this asset may be an internal asset
+        absoluteAssetPath = assetData->GetAssetAbsolutePath();
+    }
+    if (!std::filesystem::exists(absoluteAssetPath))
+        return nullptr;
 
-        // If we have a loader, we can retrieve the asset
-        Asset* asset = nullptr;
-        std::unique_ptr<Asset> retrieved = nullptr;
-        if (p.loadNeeded && loader)
-        {
-            p.loadJob.Wait();
-            retrieved = loader->RetrieveAsset();
-            asset = retrieved.get();
-            p.asset = asset;
-        }
-        else
-        {
-            p.asset = assetData->GetAsset();
-        }
+    std::filesystem::path ext = absoluteAssetPath.extension();
+    std::unique_ptr<AssetLoader> loader = AssetLoaderRegistry::CreateAssetLoaderByExtension(ext.string());
+    if (loader == nullptr)
+        return nullptr;
+    loader->Setup(importDatabase, absoluteAssetPath, *assetMeta);
 
-        // It possible an deprecated asset doesn't have a loader, in that case we just skip it
-        if (p.loadNeeded && assetData && loader)
-        {
-            // this needs to be done after importing becuase if not we don't have internal game object's name to
-            // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
-            // happen before reference resolve so that it has the correct UUID
-            assetData->SetMeta(loader->GetMeta());
-            asset = assetData->SetAsset(std::move(retrieved), projectRoot);
-            assetData->SaveToDisk(projectRoot);
+    bool importNeeded = forceReimport || loader->ImportNeeded();
+    DynamicArray<std::filesystem::path> importedAssetFilePaths;
+    if (importNeeded)
+    {
+        importedAssetFilePaths = loader->Import();
 
-            // this asset has an aseet data and is already loaded, it's a reload!
-            if (isReload)
-            {
-                loader->HandleReload(asset);
-            }
-        }
-        else if (retrieved != nullptr)
+        if (assetData != nullptr)
         {
-            // A new asset needs to be recored/imported in assetDatabase
-            std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(retrieved), path, projectRoot);
-            assetData = ad.get();
-            assetData->SetMeta(loader->GetMeta());
-            ad->SaveToDisk(projectRoot);
-            assets.Add(std::move(ad));
-
-            SyncImportedAssetFiles(assetData, *importedAssetFilePaths);
+            SyncImportedAssetFiles(assetData, importedAssetFilePaths);
         }
     }
 
-    // All assets are prepared, call their onLoaded
-    for (auto& p : importProcesses)
+    Asset* asset = assetData ? assetData->GetAsset() : nullptr;
+    bool alreadyLoaded = asset != nullptr;
+    bool loadNeeded = importNeeded ? importNeeded : asset == nullptr;
+    if (loadNeeded)
     {
-        if (p.asset)
-            p.asset->OnLoaded();
+        loader->Load();
     }
 
-    if (!importProcesses.empty())
+    // no import and load process taken, this asset is ready to be used
+    if (!importNeeded && !loadNeeded)
     {
-        Asset* mainAsset = importProcesses.front().asset;
-        return mainAsset;
+        return asset;
     }
 
-    return nullptr;
+    std::unique_ptr<Asset> newAsset = loader->RetrieveAsset();
+
+    // failed to load asset
+    if (newAsset == nullptr)
+    {
+        return nullptr;
+    }
+
+    asset = newAsset.get();
+    if (assetData)
+    {
+        // this needs to be done after importing becuase if not we don't have internal game object's name to
+        // set UUID by SetAsset(implementation detail leakage, refactor may be needed). It also needs to
+        // happen before reference resolve so that it has the correct UUID
+        assetData->SetMeta(loader->GetMeta());
+        asset = assetData->SetAsset(std::move(newAsset), projectRoot);
+        assetData->SaveToDisk(projectRoot);
+
+        // this asset has a aseet data and is already loaded, it's a reload!
+        if (alreadyLoaded)
+        {
+            loader->HandleReload(asset);
+        }
+    }
+    // a new asset needs to be recored/imported in assetDatabase
+    else
+    {
+        std::unique_ptr<AssetData> ad = std::make_unique<AssetData>(std::move(newAsset), path, projectRoot);
+        assetData = ad.get();
+        assetData->SetMeta(loader->GetMeta());
+        ad->SaveToDisk(projectRoot);
+        assets.Add(std::move(ad));
+
+        SyncImportedAssetFiles(assetData, importedAssetFilePaths);
+    }
+
+    // newly imported or loaded, resolve references
+    Serializer* serializer;
+    SerializeReferenceResolveMap* localResolveMap;
+    loader->GetReferenceResolveData(serializer, localResolveMap);
+
+    // this asset is going to be loaded from disk, start the profiler
+    // SCOPED_PROFILER(path.string());
+
+    // see if the asset is an external asset(ktx, glb...), if so, start importing it
+
+    if (serializer)
+    {
+        for (auto& uuid : serializer->GetReferencedObjects())
+        {
+            LoadAssetByID(uuid);
+        }
+    }
+
+    asset->OnLoaded();
+    return asset;
 }
 
 void AssetDatabase::CreateFolderAtPath(const std::filesystem::path& path)
@@ -979,22 +896,6 @@ void AssetDatabase::ReloadScripts()
         auto g = gameScripts[i];
         g->ReloadScript();
         g->LuaDeserialize(&serializers[i]);
-    }
-}
-
-void AssetDatabase::LoadAssetByIDInternal(
-    const UUID& uuid,
-    bool forceReimport,
-    std::vector<ImportProcess>& importProcesses,
-    std::set<std::filesystem::path>& loading
-)
-{
-    ASSERT(std::this_thread::get_id() == JobSystem::Instance().GetMainThreadID());
-
-    auto assetData = assets.GetAssetData(uuid);
-    if (assetData)
-    {
-        LoadAssetInteral(assetData->GetAssetPath(), forceReimport, importProcesses, loading);
     }
 }
 
