@@ -31,6 +31,7 @@ public:
         {
             target->SetRootMotionAnimationPlayer(animationPlayer);
         }
+        ImGui::DragFloat("camera damping", &target->cameraDamping);
         ImGui::DragFloat("movementSpeed", &target->movementSpeed);
         ImGui::DragFloat("rotateSpeed", &target->rotateSpeed);
         ImGui::DragFloat("cameraOffset", &target->cameraDistance);
@@ -43,23 +44,23 @@ public:
 
         auto go = target->GetGameObject();
         float radius = target->GetCharacterCapsuleShapeRadius();
-        float height = target->GetCharacterCapsuleShapeHeight();
+        float halfHeight = target->GetCharacterCapsuleShapeHalfHeight();
 
         bool radiusOrHeightChanged = false;
-        radiusOrHeightChanged |= ImGui::DragFloat("height", &height);
+        radiusOrHeightChanged |= ImGui::DragFloat("halfHeight", &halfHeight);
         radiusOrHeightChanged |= ImGui::DragFloat("radius", &radius);
         if (radiusOrHeightChanged)
         {
-            target->SetCharacterCapsuleShape(height, radius);
+            target->SetCharacterCapsuleShape(halfHeight, radius);
         }
 
         ImGui::Checkbox("Debug Draw", &debugDraw);
         if (debugDraw)
         {
             Graphics::DrawCapsule(
-                height,
+                halfHeight,
                 radius,
-                go->GetPosition() + glm::vec3{0, height + radius, 0},
+                go->GetPosition() + glm::vec3{0, halfHeight, 0},
                 go->GetRotation(),
                 go->GetScale()
             );

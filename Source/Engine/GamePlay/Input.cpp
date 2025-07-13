@@ -175,6 +175,15 @@ struct Input
                     pad->axis[0].y = pressing ? -1 : 0;
                 }
             }
+            else if (event.type == SDL_CONTROLLERDEVICEADDED)
+            {
+                auto pad = GetGamepad(event.jbutton.which);
+                spdlog::info("Game Controller Added");
+            }
+            else if (event.type == SDL_CONTROLLERDEVICEREMOVED)
+            {
+                // If a gamepad is removed, there is no need to do anything
+            }
         }
     }
 
@@ -215,7 +224,7 @@ float Input::GetMovementX()
 
 float Input::GetMovementY()
 {
-    float y = input.GetGamepad(0)->axis[1].y;
+    float y = input.GetGamepad(0)->axis[0].y;
     return y;
 }
 
@@ -232,8 +241,8 @@ void Input::GetMovement(float& x, float& y)
 
 void Input::GetLookAround(float& x, float& y)
 {
-    x = input.GetGamepad(0)->axis[0].x;
-    y = input.GetGamepad(0)->axis[0].y;
+    x = input.GetGamepad(0)->axis[1].x;
+    y = input.GetGamepad(0)->axis[1].y;
 }
 
 float Input::GetLookAroundX()
@@ -248,7 +257,7 @@ float Input::GetLookAroundY()
 
 bool Input::Jump()
 {
-    return input.keyboard.space;
+    return input.keyboard.space || input.GetGamepad(0)->buttonPressed[0];
 }
 
 void Input::SetGameplayInput(bool enabled)

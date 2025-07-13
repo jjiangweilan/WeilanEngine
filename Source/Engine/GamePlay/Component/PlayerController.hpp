@@ -41,6 +41,7 @@ public:
     float cameraTheta = -0.81;
     float cameraPhi = 0;
     float cameraDistance = 7.28f;
+    float cameraDamping = 0.3f;
 
     JPH::RefConst<JPH::Shape> standingShape;
 
@@ -59,7 +60,7 @@ public:
     void SetRootMotionAnimationPlayer(AnimationPlayer* animationPlayer);
     AnimationPlayer* GetRootMotionAnimationPlayer() const { return rootMotionAnimationPlayer; }
     void SetCharacterCapsuleShape(float halfHeight, float radius);
-    float GetCharacterCapsuleShapeHeight() const { return characterCapsuleShapeHalfHeight; }
+    float GetCharacterCapsuleShapeHalfHeight() const { return characterCapsuleShapeHalfHeight; }
     float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
 
     void SetCamera(Camera* camera) { this->target = camera; }

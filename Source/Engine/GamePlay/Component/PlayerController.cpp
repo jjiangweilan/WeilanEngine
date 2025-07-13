@@ -41,6 +41,7 @@ std::unique_ptr<Component> PlayerController::Clone(GameObject& owner)
 
     return clone;
 }
+
 void PlayerController::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
@@ -187,18 +188,15 @@ void PlayerController::SetSmoothCameraSphericalPos(float xDelta, float yDelta, g
 
     auto targetCameraPos = playerPos + finalSphOffset;
     float cameraPosDistance = glm::length(cameraGO->GetPosition() - targetCameraPos);
-    auto newCameraPosition = glm::lerp(
-        cameraGO->GetPosition(),
-        playerPos + finalSphOffset,
-        glm::clamp(cameraPosDistance / maxCameraDistance, 0.0f, 1.0f)
-    );
+    auto newCameraPosition =
+        glm::lerp(cameraGO->GetPosition(), playerPos + finalSphOffset, Time::DeltaTime() * cameraDamping);
 
-    cameraGO->SetPosition(newCameraPosition);
+    cameraGO->SetPosition(targetCameraPos);
 }
 void PlayerController::OnEnable()
 {
-    auto targetGO = target->GetGameObject();
-    if (targetGO == GetGameObject())
+    auto targetGO = target ? target->GetGameObject() : nullptr;
+    if (targetGO == nullptr || targetGO == GetGameObject())
     {
         return;
     }
@@ -269,12 +267,14 @@ void PlayerController::Tick()
         // set camera lookat (camera position)
         auto characterPos = GetGameObject()->GetPosition();
         // characterPos.y = playerHorizonPos;
-        // set camera lookat character
+
+        // Set camera lookat character
         SetSmoothCameraSphericalPos(lx, ly, previousPlayerPos);
         auto cameraGO = target->GetGameObject();
         glm::vec3 cameraPos = cameraGO->GetPosition();
-        auto lookAtQuat = glm::quatLookAt(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
-        cameraGO->SetLocalRotation(lookAtQuat);
+        auto lookAtDir = glm::normalize(characterPos - cameraPos);
+        auto rot = glm::quatLookAtRH(lookAtDir, float3(0, 1, 0));
+        cameraGO->SetLocalRotation(rot);
 
         UpdatePlayerLookAt(-lx);
 

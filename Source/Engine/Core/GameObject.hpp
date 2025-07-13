@@ -5,12 +5,12 @@
 #include "Core/Prefab.hpp"
 #include "Core/Ptr.hpp"
 #include "EngineState.hpp"
+#include "Libs/DynamicArray.hpp"
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <memory>
-#include "Libs/DynamicArray.hpp"
 
 // clang-format off
 #include <Jolt/Jolt.h>
@@ -178,6 +178,8 @@ public:
         SetRotation(newRotation);
     }
 
+    void Rotate(glm::quat quaternion) { SetLocalRotation(quaternion * rotation); }
+
     void Rotate(float angle, glm::vec3 axis, RotationCoordinate coord)
     {
         updateLocalMatrix = true;
@@ -321,7 +323,7 @@ private:
         return glm::abs(v.x) < compareEpsilon && glm::abs(v.y) < compareEpsilon && glm::abs(v.z) < compareEpsilon;
     }
 
-    void TransformChanged(); 
+    void TransformChanged();
 
     inline static const float compareEpsilon = 1e-6f;
 
