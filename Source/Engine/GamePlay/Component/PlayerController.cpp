@@ -36,7 +36,7 @@ const std::string& PlayerController::GetName()
 std::unique_ptr<Component> PlayerController::Clone(GameObject& owner)
 {
     std::unique_ptr<PlayerController> clone = std::make_unique<PlayerController>(&owner);
-    clone->SetCamera(target);
+    clone->SetCamera(camera);
     clone->movementSpeed = movementSpeed;
 
     return clone;
@@ -45,7 +45,7 @@ std::unique_ptr<Component> PlayerController::Clone(GameObject& owner)
 void PlayerController::Serialize(Serializer* s) const
 {
     Component::Serialize(s);
-    s->Serialize("target", target);
+    s->Serialize("camera", camera);
     s->Serialize("movementSpeed", movementSpeed);
     s->Serialize("cameraDistance", cameraDistance);
     s->Serialize("rotateSpeed", rotateSpeed);
@@ -58,7 +58,7 @@ void PlayerController::Serialize(Serializer* s) const
 void PlayerController::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize("target", target);
+    s->Deserialize("camera", camera);
     s->Deserialize("movementSpeed", movementSpeed);
     s->Deserialize("cameraDistance", cameraDistance);
     s->Deserialize("rotateSpeed", rotateSpeed);
@@ -77,17 +77,17 @@ void PlayerController::PrePhysicsTick()
     }
 }
 
-void PlayerController::HandleInput()
+void PlayerController::UpdatePhysicalCharacterVelocity()
 {
-    // handle input
-    auto cameraGO = target->GetGameObject();
+    // Get CameraGO
+    auto cameraGO = camera->GetGameObject();
     if (cameraGO == GetGameObject())
         return;
 
-    character->UpdateGroundVelocity();
+    physicalCharacter->UpdateGroundVelocity();
     // check current vertical moving directional
-    float currentVerticalVelocity = character->GetLinearVelocity().Dot(character->GetUp());
-    JPH::Vec3 groundVelocity = character->GetGroundVelocity();
+    float currentVerticalVelocity = physicalCharacter->GetLinearVelocity().Dot(physicalCharacter->GetUp());
+    JPH::Vec3 groundVelocity = physicalCharacter->GetGroundVelocity();
     bool movingTowardsGround = (currentVerticalVelocity - groundVelocity.GetY()) < 0.1f;
 
     // don't lose gravity and vertical velocity
@@ -96,7 +96,7 @@ void PlayerController::HandleInput()
     auto gravity = GetScene()->GetPhysicsScene().GetPhysicsSystem().GetGravity() * Time::DeltaTime() * gravityScale;
     velocity += glm::vec3(gravity.GetX(), gravity.GetY(), gravity.GetZ());
 
-    if (character->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
+    if (physicalCharacter->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
     {
         velocity = {groundVelocity.GetX(), groundVelocity.GetY(), groundVelocity.GetZ()};
 
@@ -129,13 +129,13 @@ void PlayerController::HandleInput()
         // }
     }
 
-    character->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
+    physicalCharacter->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
 }
 
 void PlayerController::OnStart()
 {
     valid = false;
-    if (target == nullptr)
+    if (camera == nullptr)
     {
         return;
     }
@@ -165,7 +165,7 @@ glm::vec3 PlayerController::CalculateSphericalPosition(float xDelta, float yDelt
 
 void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
 {
-    auto cameraGO = target->GetGameObject();
+    auto cameraGO = camera->GetGameObject();
 
     xDelta *= rotateSpeed;
     yDelta *= rotateSpeed;
@@ -176,26 +176,35 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     cameraGO->SetPosition(playerPos + finalSphOffset);
 }
 
-void PlayerController::SetSmoothCameraSphericalPos(float xDelta, float yDelta, glm::vec3 previousPlayerPos)
+void PlayerController::UpdateCameraTransform(float xDelta, float yDelta, float3 preFramePlayerPos)
 {
-    auto cameraGO = target->GetGameObject();
+    auto cameraGO = camera->GetGameObject();
 
     xDelta *= rotateSpeed;
     yDelta *= rotateSpeed;
+
+    // Get current player position
     auto playerPos = GetGameObject()->GetPosition();
-    glm::vec3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
-    glm::vec3 finalSphOffset = sphPos * cameraDistance;
 
-    auto targetCameraPos = playerPos + finalSphOffset;
-    float cameraPosDistance = glm::length(cameraGO->GetPosition() - targetCameraPos);
-    auto newCameraPosition =
-        glm::lerp(cameraGO->GetPosition(), playerPos + finalSphOffset, Time::DeltaTime() * cameraDamping);
+    // Calculate new spherical position relative to the player
+    glm::vec3 newSphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
+    glm::vec3 sphOffset = newSphPos * cameraDistance;
 
-    cameraGO->SetPosition(targetCameraPos);
+    // Update camera position
+    auto dstCameraPos = playerPos + sphOffset;
+    auto srcCameraPos = cameraGO->GetPosition();
+    auto newCameraPosition = glm::lerp(srcCameraPos, dstCameraPos, glm::saturate(cameraDamping));
+    cameraGO->SetPosition(newCameraPosition);
+
+    // Set camera rotation
+    glm::vec3 cameraPos = cameraGO->GetPosition();
+    auto lookAtDir = glm::normalize(playerPos - cameraPos);
+    auto rot = glm::quatLookAt(lookAtDir, float3(0, 1, 0));
+    cameraGO->SetLocalRotation(rot);
 }
 void PlayerController::OnEnable()
 {
-    auto targetGO = target ? target->GetGameObject() : nullptr;
+    auto targetGO = camera ? camera->GetGameObject() : nullptr;
     if (targetGO == nullptr || targetGO == GetGameObject())
     {
         return;
@@ -222,16 +231,17 @@ void PlayerController::UpdateCharacter()
     if (!enableStickToFloor)
         update_settings.mStickToFloorStepDown = JPH::Vec3::sZero();
     else
-        update_settings.mStickToFloorStepDown = -character->GetUp() * update_settings.mStickToFloorStepDown.Length();
+        update_settings.mStickToFloorStepDown =
+            -physicalCharacter->GetUp() * update_settings.mStickToFloorStepDown.Length();
     if (!enableWalkStairs)
         update_settings.mWalkStairsStepUp = JPH::Vec3::sZero();
     else
-        update_settings.mWalkStairsStepUp = character->GetUp() * update_settings.mWalkStairsStepUp.Length();
+        update_settings.mWalkStairsStepUp = physicalCharacter->GetUp() * update_settings.mWalkStairsStepUp.Length();
 
-    // Update the character position
-    character->ExtendedUpdate(
+    // Update the physicalCharacter position
+    physicalCharacter->ExtendedUpdate(
         pscene.DeltaTime,
-        -character->GetUp() * physicsSystem.GetGravity().Length() * gravityScale,
+        -physicalCharacter->GetUp() * physicsSystem.GetGravity().Length() * gravityScale,
         update_settings,
         physicsSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
         physicsSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
@@ -248,37 +258,31 @@ void PlayerController::SetRootMotionAnimationPlayer(AnimationPlayer* animationPl
 
 void PlayerController::Tick()
 {
-    // update character
-    if (valid && character)
+    // update physicalCharacter
+    if (valid && physicalCharacter)
     {
-        HandleInput();
+        UpdatePhysicalCharacterVelocity();
 
-        // update player and camera position
-        auto previousPlayerPos = GetGameObject()->GetPosition();
-        auto pos = character->GetPosition();
-        GetGameObject()->SetPosition(
-            {pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()}
-        );
+        // Get player's position before updating it
+        auto preFramePlayerPosition = GetGameObject()->GetPosition();
 
+        // Update physicalCharacter's position
+        auto pos = physicalCharacter->GetPosition();
+        auto characterPos =
+            float3{pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()};
+        GetGameObject()->SetPosition(characterPos);
+
+        // Prepare data
         float lx, ly;
         Input::GetLookAround(lx, ly);
 
-        /* camera update */
-        // set camera lookat (camera position)
-        auto characterPos = GetGameObject()->GetPosition();
-        // characterPos.y = playerHorizonPos;
+        // Update camera transform
+        UpdateCameraTransform(lx, ly, preFramePlayerPosition);
 
-        // Set camera lookat character
-        SetSmoothCameraSphericalPos(lx, ly, previousPlayerPos);
-        auto cameraGO = target->GetGameObject();
-        glm::vec3 cameraPos = cameraGO->GetPosition();
-        auto lookAtDir = glm::normalize(characterPos - cameraPos);
-        auto rot = glm::quatLookAtRH(lookAtDir, float3(0, 1, 0));
-        cameraGO->SetLocalRotation(rot);
+        // Update rotation of physicalCharacter's visual representation
+        UpdateCharacterLookAt(-lx);
 
-        UpdatePlayerLookAt(-lx);
-
-        /****** update animation ******/
+        // Update animation blend factor
         if (rootMotionAnimationPlayer)
         {
             float speed = glm::length(velocity);
@@ -290,7 +294,7 @@ void PlayerController::Tick()
     }
 }
 
-void PlayerController::UpdatePlayerLookAt(float xDelta)
+void PlayerController::UpdateCharacterLookAt(float xDelta)
 {
     if (rotationRoot)
     {
@@ -315,7 +319,7 @@ void PlayerController::CreateCharacterPhysicsShape()
         return;
     }
 
-    // create character
+    // create physicalCharacter
     JPH::Ref<JPH::CharacterVirtualSettings> settings = new JPH::CharacterVirtualSettings();
     settings->mMaxSlopeAngle = maxSlopeAngle;
     settings->mMaxStrength = maxStrength;
@@ -328,19 +332,19 @@ void PlayerController::CreateCharacterPhysicsShape()
         JPH::Vec3::sAxisY(),
         -characterRadiusStanding
     ); // Accept contacts that touch the lower sphere of the capsule
-    character = new JPH::CharacterVirtual(
+    physicalCharacter = new JPH::CharacterVirtual(
         settings,
         JPH::RVec3::sZero(),
         JPH::Quat::sIdentity(),
         &scene->GetPhysicsScene().GetPhysicsSystem()
     );
-    character->SetListener(this);
+    physicalCharacter->SetListener(this);
 
     // create shape
     SetCharacterCapsuleShapeInternal();
 
     auto pos = gameObject->GetPosition();
-    character->SetPosition({pos.x, pos.y, pos.z});
+    physicalCharacter->SetPosition({pos.x, pos.y, pos.z});
 }
 
 void PlayerController::SetCharacterCapsuleShape(float height, float radius)
@@ -355,7 +359,7 @@ void PlayerController::SetCharacterCapsuleShapeInternal()
     standingShape = ss.Create().Get();
 
     auto& bSystem = GetScene()->GetPhysicsScene().GetPhysicsSystem();
-    character->SetShape(
+    physicalCharacter->SetShape(
         standingShape,
         1.5f * bSystem.GetPhysicsSettings().mPenetrationSlop,
         bSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
@@ -373,5 +377,5 @@ void PlayerController::DestroyCharacterPhysicsShape()
     if (standingShape)
         standingShape->Release();
 
-    character = nullptr;
+    physicalCharacter = nullptr;
 }

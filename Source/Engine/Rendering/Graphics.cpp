@@ -177,7 +177,7 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
 
     cmd.BindResource(2, mat->GetShaderResource());
 
-    // top half sphere
+    // Draw cylinder
     cmd.BindIndexBuffer(cylinder->GetIndexBuffer(), 0, cylinder->GetIndexBufferType());
     cmd.BindVertexBuffer(cylinder->GetGfxVertexBufferBindings(), 0);
     cmd.SetPushConstant(program, &cylinderMatrix);
@@ -193,13 +193,16 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     }
     cmd.DrawIndexed(cylinder->GetIndexCount(), 1, 0, 0, 0);
 
+    // Draw top and bottom half spheres
     float yOffset = draw.halfHeight;
     glm::mat4 halfSphereMatrix0 =
-        glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
+        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
+        glm::mat4_cast(draw.rotation) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 
     glm::mat4 halfSphereMatrix1 =
-        glm::mat4_cast(draw.rotation) * glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) *
+        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) *
+        glm::mat4_cast(draw.rotation) *
         glm::mat4_cast(glm::quat(glm::vec3(glm::radians(180.f), 0, 0))) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 

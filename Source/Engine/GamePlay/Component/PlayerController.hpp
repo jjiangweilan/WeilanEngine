@@ -21,7 +21,7 @@ public:
 
     float blendFactorScale = 1.3f;
 
-    // character creation setting
+    // physicalCharacter creation setting
     float maxSlopeAngle = JPH::DegreesToRadians(45.0f);
     float maxStrength = 100.f;
     float characterPadding = 0.02f;
@@ -63,13 +63,13 @@ public:
     float GetCharacterCapsuleShapeHalfHeight() const { return characterCapsuleShapeHalfHeight; }
     float GetCharacterCapsuleShapeRadius() const { return characterCapsuleShapeRadius; }
 
-    void SetCamera(Camera* camera) { this->target = camera; }
-    Camera* GetCamera() { return target; }
+    void SetCamera(Camera* camera) { this->camera = camera; }
+    Camera* GetCamera() { return camera; }
 
 private:
     float characterCapsuleShapeHalfHeight = 1.75;
     float characterCapsuleShapeRadius = 0.8;
-    ObjPtr<Camera> target = nullptr;
+    ObjPtr<Camera> camera = nullptr;
     ObjPtr<AnimationPlayer> rootMotionAnimationPlayer = nullptr;
 
     /**** Runtime Data ****/
@@ -78,15 +78,16 @@ private:
     float playerPhi = 0;
     // camera rotation around player
     bool valid = false;
-    JPH::Ref<JPH::CharacterVirtual> character;
+    JPH::Ref<JPH::CharacterVirtual> physicalCharacter;
     JPH::TempAllocatorImpl tempAllocator = JPH::TempAllocatorImpl(10 * 10 * 1024);
     float animationBlendFactor = 0.0f;
 
     void SetCameraSphericalPos(float xDelta, float yDelta);
-    void SetSmoothCameraSphericalPos(float xDelta, float yDelta, glm::vec3 previousPlayerPos);
-    void UpdatePlayerLookAt(float xDelta);
-    void
-    ContactAddedEventCallback(PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&);
+    void UpdateCameraTransform(float xDelta, float yDelta, float3 preFramePlayerPos);
+    void UpdateCharacterLookAt(float xDelta);
+    void ContactAddedEventCallback(
+        PhysicsBody* self, PhysicsBody* other, const JPH::ContactManifold&, JPH::ContactSettings&
+    );
     void ContactRemovedEventCallback(PhysicsBody* self, PhysicsBody* other);
 
     void OnStart() override;
@@ -94,7 +95,7 @@ private:
     void OnEnable() override;
     void OnDisable() override;
     void OnDrawGizmos() override;
-    void HandleInput();
+    void UpdatePhysicalCharacterVelocity();
 
     void CreateCharacterPhysicsShape();
     void SetCharacterCapsuleShapeInternal();

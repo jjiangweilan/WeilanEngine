@@ -60,7 +60,7 @@ public:
             Graphics::DrawCapsule(
                 halfHeight,
                 radius,
-                go->GetPosition() + glm::vec3{0, halfHeight, 0},
+                go->GetPosition() + glm::vec3{0, halfHeight + radius, 0},
                 go->GetRotation(),
                 go->GetScale()
             );
