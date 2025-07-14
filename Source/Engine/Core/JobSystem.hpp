@@ -29,6 +29,7 @@ public:
     const int TotalWorkers = GetTotalWorkers();
     const int jobCapacityPerWorker = 256;
     JobHandle Schedule(const std::function<void()>& f);
+    void Execute();
     const std::thread::id& GetMainThreadID() { return mainThreadID; }
     void WaitAll();
     static int GetTotalWorkers();
@@ -48,6 +49,8 @@ private:
     std::thread::id mainThreadID;
     std::vector<std::unique_ptr<std::thread>> workers{};
     std::vector<std::unique_ptr<JobQueue>> workerJobs{};
+    std::condition_variable workerSignal{};
+    std::mutex workerSignalMutex{};
     JobQueue mainThreadJobs;
 
     bool TryPopLocalJob(Job& f);

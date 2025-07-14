@@ -61,6 +61,9 @@ JobHandle JobSystem::Schedule(const std::function<void()>& f)
 
     scheduleTo->push(std::move(packed));
 
+    // Notify any thread to run
+    workerSignal.notify_one();
+
     return JobHandle(std::move(future));
 }
 
@@ -81,7 +84,10 @@ void JobSystem::WorkerThread(int threadIdx)
         if (TryPopLocalJob(job) || TryPopMainThreadJob(job) || TryStealOtherJob(job))
             job();
         else
-            std::this_thread::yield();
+        {
+            std::unique_lock lk{workerSignalMutex};
+            workerSignal.wait(lk);
+        }
     }
 }
 
