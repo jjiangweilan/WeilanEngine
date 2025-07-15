@@ -170,8 +170,8 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     xDelta *= rotateSpeed;
     yDelta *= rotateSpeed;
     auto playerPos = GetGameObject()->GetPosition();
-    glm::vec3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
-    glm::vec3 finalSphOffset = sphPos * cameraDistance;
+    float3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
+    float3 finalSphOffset = sphPos * cameraDistance;
 
     cameraGO->SetPosition(playerPos + finalSphOffset);
 }
@@ -187,18 +187,18 @@ void PlayerController::UpdateCameraTransform(float xDelta, float yDelta, float3 
     auto playerPos = GetGameObject()->GetPosition();
 
     // Calculate new spherical position relative to the player
-    glm::vec3 newSphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
-    glm::vec3 sphOffset = newSphPos * cameraDistance;
+    float3 newSphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
+    float3 sphOffset = newSphPos * cameraDistance;
 
     // Update camera position
-    auto dstCameraPos = playerPos + sphOffset;
-    auto srcCameraPos = cameraGO->GetPosition();
-    auto newCameraPosition = glm::lerp(srcCameraPos, dstCameraPos, glm::saturate(cameraDamping));
+    auto smooth = glm::max(0.25f, glm::length(playerPos - cameraFollowPosition));
+    cameraFollowPosition = glm::lerp(cameraFollowPosition, playerPos, glm::saturate(smooth * cameraDamping * Time::DeltaTime()));
+    float3 newCameraPosition = cameraFollowPosition + sphOffset;
     cameraGO->SetPosition(newCameraPosition);
 
     // Set camera rotation
-    glm::vec3 cameraPos = cameraGO->GetPosition();
-    auto lookAtDir = glm::normalize(playerPos - cameraPos);
+    float3 cameraPos = cameraGO->GetPosition();
+    auto lookAtDir = glm::normalize(cameraFollowPosition - cameraPos);
     auto rot = glm::quatLookAt(lookAtDir, float3(0, 1, 0));
     cameraGO->SetLocalRotation(rot);
 }
@@ -210,14 +210,15 @@ void PlayerController::OnEnable()
         return;
     }
 
-    // set camera's initial position
-    SetCameraSphericalPos(0, 0);
-
     // set camera's initial rotation
     auto characterPos = GetGameObject()->GetPosition();
     glm::vec3 cameraPos = targetGO->GetPosition();
     auto lookAtQuat = glm::quatLookAtLH(glm::normalize(characterPos - cameraPos), glm::vec3(0, 1, 0));
     targetGO->SetRotation(lookAtQuat);
+
+    // set camera's initial position
+    SetCameraSphericalPos(0, 0);
+    cameraFollowPosition = characterPos;
 }
 
 void PlayerController::OnDisable() {}

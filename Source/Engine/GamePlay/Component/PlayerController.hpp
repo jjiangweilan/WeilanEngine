@@ -73,7 +73,8 @@ private:
     ObjPtr<AnimationPlayer> rootMotionAnimationPlayer = nullptr;
 
     /**** Runtime Data ****/
-    glm::vec3 velocity{};
+    float3 cameraFollowPosition;
+    float3 velocity{};
     float playerTheta = 0;
     float playerPhi = 0;
     // camera rotation around player
