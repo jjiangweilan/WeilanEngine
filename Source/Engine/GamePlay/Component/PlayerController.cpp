@@ -6,7 +6,7 @@
 #include "Core/Scene/PhysicsScene.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Time.hpp"
-#include "GamePlay/Input.hpp"
+#include "Gameplay/Input.hpp"
 #include <spdlog/spdlog.h>
 #if ENGINE_EDITOR
 #include "Editor/HudDebug.hpp"

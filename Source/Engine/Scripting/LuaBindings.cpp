@@ -6,7 +6,7 @@
 #include "Core/Component/MeshRenderer.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Time.hpp"
-#include "GamePlay/Input.hpp"
+#include "Gameplay/Input.hpp"
 #include "LuaBindings_Private.hpp"
 #include "Rendering/Material.hpp"
 

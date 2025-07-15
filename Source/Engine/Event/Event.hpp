@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GamePlay/Input.hpp"
+#include "Gameplay/Input.hpp"
 #include <SDL_gamecontroller.h>
 #include <SDL_keyboard.h>
 #include <SDL_mouse.h>
