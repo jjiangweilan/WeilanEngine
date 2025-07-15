@@ -24,6 +24,7 @@ JobSystem::JobSystem() : mainThreadJobs(jobCapacityPerWorker), done(false)
 JobSystem::~JobSystem()
 {
     done = true;
+    workerSignal.notify_all();
     for (auto& w : workers)
     {
         if (w->joinable())
