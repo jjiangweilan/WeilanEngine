@@ -30,18 +30,18 @@ public:
     float characterRadiusStanding = 0.3f;
     bool enableWalkStairs = true;
     bool enableStickToFloor = true;
-    float playerRotationSpeed = 30.0f;
-    float maxCameraDistance = 1.0;
     float playerHorizonPos = 0.0f;
+
     // Usages:
     // 1. rotate by PlayerController to make the player facing to moving direction
     ObjPtr<GameObject> rotationRoot = nullptr;
 
     /******** Camera *********/
-    float cameraTheta = -0.81;
+    float cameraTheta = -0.8;
     float cameraPhi = 0;
-    float cameraDistance = 7.28f;
-    float cameraDamping = 0.3f;
+    float cameraElasticity = 6.0f;
+    float cameraMinElasticity = 3.65f;
+    float cameraOffset = 8.0f;
 
     JPH::RefConst<JPH::Shape> standingShape;
 

@@ -31,16 +31,20 @@ public:
         {
             target->SetRootMotionAnimationPlayer(animationPlayer);
         }
-        ImGui::DragFloat("camera damping", &target->cameraDamping);
-        ImGui::DragFloat("movementSpeed", &target->movementSpeed);
-        ImGui::DragFloat("rotateSpeed", &target->rotateSpeed);
-        ImGui::DragFloat("cameraOffset", &target->cameraDistance);
-        ImGui::DragFloat("jumpForce", &target->jumpImpulse);
+
+        ImGui::SeparatorText("Player");
+        ImGui::DragFloat("Movement Speed", &target->movementSpeed);
+
+        ImGui::SeparatorText("Camera");
+        ImGui::DragFloat("Rotate Speed", &target->rotateSpeed);
+        ImGui::DragFloat("Elasticity", &target->cameraElasticity);
+        ImGui::DragFloat("Min Elasticity", &target->cameraMinElasticity);
+        ImGui::DragFloat("Offset", &target->cameraOffset);
+        ImGui::Text("Phi %f", target->cameraPhi);
+        ImGui::Text("Theta %f", target->cameraTheta);
+
+        ImGui::SeparatorText("Animation");
         ImGui::DragFloat("blendFactorScale", &target->blendFactorScale);
-        ImGui::DragFloat("playerRotationSpeed", &target->playerRotationSpeed);
-        ImGui::DragFloat("camera phi", &target->cameraPhi);
-        ImGui::DragFloat("camera theta", &target->cameraTheta);
-        ImGui::DragFloat("max camera distance", &target->maxCameraDistance);
 
         auto go = target->GetGameObject();
         float radius = target->GetCharacterCapsuleShapeRadius();

@@ -47,32 +47,37 @@ void PlayerController::Serialize(Serializer* s) const
     Component::Serialize(s);
     s->Serialize("camera", camera);
     s->Serialize("movementSpeed", movementSpeed);
-    s->Serialize("cameraDistance", cameraDistance);
+    s->Serialize("cameraDistance", cameraOffset);
     s->Serialize("rotateSpeed", rotateSpeed);
     s->Serialize("jumpImpulse", jumpImpulse);
     s->Serialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Serialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Serialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
     s->Serialize("rotationRoot", rotationRoot);
+    s->Serialize("cameraElasticity", cameraElasticity);
+    SERIALIZE(s, cameraMinElasticity);
 }
 void PlayerController::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
     s->Deserialize("camera", camera);
     s->Deserialize("movementSpeed", movementSpeed);
-    s->Deserialize("cameraDistance", cameraDistance);
+    s->Deserialize("cameraDistance", cameraOffset);
     s->Deserialize("rotateSpeed", rotateSpeed);
     s->Deserialize("jumpImpulse", jumpImpulse);
     s->Deserialize("characterCapsuleShapeHalfHeight", characterCapsuleShapeHalfHeight);
     s->Deserialize("characterCapsuleShapeRadius", characterCapsuleShapeRadius);
     s->Deserialize("rootMotionAnimationPlayer", rootMotionAnimationPlayer);
     s->Deserialize("rotationRoot", rotationRoot);
+    s->Deserialize("cameraElasticity", cameraElasticity);
+    DESERIALIZE(s, cameraMinElasticity);
 }
 
 void PlayerController::PrePhysicsTick()
 {
     if (valid)
     {
+        UpdatePhysicalCharacterVelocity();
         UpdateCharacter();
     }
 }
@@ -171,7 +176,7 @@ void PlayerController::SetCameraSphericalPos(float xDelta, float yDelta)
     yDelta *= rotateSpeed;
     auto playerPos = GetGameObject()->GetPosition();
     float3 sphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
-    float3 finalSphOffset = sphPos * cameraDistance;
+    float3 finalSphOffset = sphPos * cameraOffset;
 
     cameraGO->SetPosition(playerPos + finalSphOffset);
 }
@@ -183,22 +188,23 @@ void PlayerController::UpdateCameraTransform(float xDelta, float yDelta, float3 
     xDelta *= rotateSpeed;
     yDelta *= rotateSpeed;
 
-    // Get current player position
+    // Data
     auto playerPos = GetGameObject()->GetPosition();
+    float3 cameraOldPos = cameraGO->GetPosition();
 
     // Calculate new spherical position relative to the player
     float3 newSphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
-    float3 sphOffset = newSphPos * cameraDistance;
+    float3 sphOffset = newSphPos * cameraOffset;
 
     // Update camera position
-    auto smooth = glm::max(0.25f, glm::length(playerPos - cameraFollowPosition));
-    cameraFollowPosition = glm::lerp(cameraFollowPosition, playerPos, glm::saturate(smooth * cameraDamping * Time::DeltaTime()));
-    float3 newCameraPosition = cameraFollowPosition + sphOffset;
-    cameraGO->SetPosition(newCameraPosition);
+    float elasticity = glm::abs(glm::length(cameraOldPos - playerPos) - cameraOffset) * cameraElasticity;
+    elasticity = glm::max(elasticity, cameraMinElasticity) ;
+    cameraFollowPosition = glm::lerp(cameraFollowPosition, playerPos, glm::saturate(elasticity * Time::DeltaTime()));
+    float3 cameraNewPosition = cameraFollowPosition + sphOffset;
+    cameraGO->SetPosition(cameraNewPosition);
 
-    // Set camera rotation
-    float3 cameraPos = cameraGO->GetPosition();
-    auto lookAtDir = glm::normalize(cameraFollowPosition - cameraPos);
+    // Update camera rotation
+    auto lookAtDir = glm::normalize(cameraFollowPosition - cameraNewPosition);
     auto rot = glm::quatLookAt(lookAtDir, float3(0, 1, 0));
     cameraGO->SetLocalRotation(rot);
 }
@@ -262,7 +268,7 @@ void PlayerController::Tick()
     // update physicalCharacter
     if (valid && physicalCharacter)
     {
-        UpdatePhysicalCharacterVelocity();
+        // UpdatePhysicalCharacterVelocity();
 
         // Get player's position before updating it
         auto preFramePlayerPosition = GetGameObject()->GetPosition();
