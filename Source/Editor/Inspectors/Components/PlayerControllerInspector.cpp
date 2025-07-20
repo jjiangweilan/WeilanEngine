@@ -37,7 +37,6 @@ public:
 
         ImGui::SeparatorText("Camera");
         ImGui::DragFloat("Rotate Speed", &target->rotateSpeed);
-        ImGui::DragFloat("Move Seed", &target->cameraMovementSpeed);
         ImGui::DragFloat("Elasticity", &target->cameraElasticity);
         ImGui::DragFloat("Min Elasticity", &target->cameraMinElasticity);
         ImGui::DragFloat("Offset", &target->cameraOffset);

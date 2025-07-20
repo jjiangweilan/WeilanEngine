@@ -79,6 +79,19 @@ void PlayerController::PrePhysicsTick()
     {
         UpdatePhysicalCharacterVelocity();
         UpdateCharacter();
+
+        // Get player's position before updating it
+        auto preFramePlayerPosition = GetGameObject()->GetPosition();
+
+        // Prepare data
+        float lx, ly;
+        Input::GetLookAround(lx, ly);
+
+        // Update camera transform
+        UpdateCameraTransform(lx, ly, preFramePlayerPosition);
+
+        // Update rotation of physicalCharacter's visual representation
+        UpdateCharacterLookAt(-lx);
     }
 }
 
@@ -185,6 +198,7 @@ void PlayerController::UpdateCameraTransform(float xDelta, float yDelta, float3 
     // Data
     auto playerPos = GetGameObject()->GetPosition();
     float3 cameraOldPos = cameraGO->GetPosition();
+    float physicsDeltatime = GetScene()->GetPhysicsScene().GetDeltaTime();
 
     // Calculate new spherical position relative to the player
     float3 newSphPos = CalculateSphericalPosition(xDelta, yDelta, cameraPhi, cameraTheta);
@@ -192,8 +206,8 @@ void PlayerController::UpdateCameraTransform(float xDelta, float yDelta, float3 
 
     // Update camera position
     float elasticity = glm::abs(glm::length(cameraOldPos - playerPos) - cameraOffset) * cameraElasticity;
-    elasticity = glm::max(elasticity, cameraMinElasticity) ;
-    cameraFollowPosition = glm::lerp(cameraFollowPosition, playerPos, glm::saturate(elasticity * Time::DeltaTime()));
+    elasticity = glm::max(elasticity, cameraMinElasticity);
+    cameraFollowPosition = glm::lerp(cameraFollowPosition, playerPos, glm::saturate(elasticity * physicsDeltatime));
     float3 cameraNewPosition = cameraFollowPosition + sphOffset;
     cameraGO->SetPosition(cameraNewPosition);
 
@@ -262,24 +276,11 @@ void PlayerController::Tick()
     // update physicalCharacter
     if (valid && physicalCharacter)
     {
-        // Get player's position before updating it
-        auto preFramePlayerPosition = GetGameObject()->GetPosition();
-
         // Update physicalCharacter's position
         auto pos = physicalCharacter->GetPosition();
         auto characterPos =
             float3{pos.GetX(), pos.GetY() - characterCapsuleShapeHalfHeight - characterCapsuleShapeRadius, pos.GetZ()};
         GetGameObject()->SetPosition(characterPos);
-
-        // Prepare data
-        float lx, ly;
-        Input::GetLookAround(lx, ly);
-
-        // Update camera transform
-        UpdateCameraTransform(lx, ly, preFramePlayerPosition);
-
-        // Update rotation of physicalCharacter's visual representation
-        UpdateCharacterLookAt(-lx);
 
         // Update animation blend factor
         if (rootMotionAnimationPlayer)

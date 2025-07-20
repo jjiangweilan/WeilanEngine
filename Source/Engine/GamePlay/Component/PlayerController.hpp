@@ -14,7 +14,7 @@ class PlayerController : public Component, JPH::CharacterContactListener
     DECLARE_OBJECT();
 
 public:
-    float movementSpeed = 1400.f;
+    float movementSpeed = 300.f;
     float rotateSpeed = 0.3f;
     float jumpImpulse = 3.0f;
     float gravityScale = 10.0f;
@@ -42,7 +42,6 @@ public:
     float cameraElasticity = 6.0f;
     float cameraMinElasticity = 3.65f;
     float cameraOffset = 8.0f;
-    float cameraMovementSpeed = 10.0f;
 
     JPH::RefConst<JPH::Shape> standingShape;
 
