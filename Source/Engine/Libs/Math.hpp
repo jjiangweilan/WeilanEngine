@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <spdlog/spdlog.h> // to extend spdlog
 
 #if GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
 #ifndef GLM_ENABLE_EXPERIMENTAL
@@ -176,3 +177,43 @@ T RoundToAlignmentPoT(T address, T alignment)
 }
 
 } // namespace Math
+  //
+
+// spdlog extension
+
+// Specialize fmt::formatter
+template <>
+struct fmt::formatter<float4>
+{
+    constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const float4& v, const FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f})", v.x, v.y);
+    }
+};
+
+template <>
+struct fmt::formatter<float3>
+{
+    constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const float3& v, const FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f}, {:.4f})", v.x, v.y, v.z);
+    }
+};
+
+template <>
+struct fmt::formatter<float2>
+{
+    constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const float2& v, const FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f})", v.x, v.y);
+    }
+};

@@ -63,13 +63,13 @@ void PhysicsScene::Tick()
     }
 
     physicsUpdateDeltaAccumulation += Time::DeltaTime();
-    int updateCount = physicsUpdateDeltaAccumulation / physicsUpdateHz;
-    physicsUpdateDeltaAccumulation -= updateCount * physicsUpdateHz;
+    int updateCount = physicsUpdateDeltaAccumulation / PhysicsDeltaTime;
+    physicsUpdateDeltaAccumulation -= updateCount * PhysicsDeltaTime;
     while (updateCount > 0)
     {
         scene->PrePhysicsTick();
 
-        physicsSystem.Update(physicsUpdateHz, CollisionSteps, &temp_allocator, &job_system);
+        physicsSystem.Update(PhysicsDeltaTime, CollisionSteps, &temp_allocator, &job_system);
 
         updateCount--;
     }

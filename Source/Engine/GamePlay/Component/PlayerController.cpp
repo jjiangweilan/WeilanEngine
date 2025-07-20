@@ -98,8 +98,9 @@ void PlayerController::UpdatePhysicalCharacterVelocity()
     // don't lose gravity and vertical velocity
     velocity = glm::vec3{0, 0, 0};
     velocity.y = currentVerticalVelocity;
-    auto gravity = GetScene()->GetPhysicsScene().GetPhysicsSystem().GetGravity() * Time::DeltaTime() * gravityScale;
-    velocity += glm::vec3(gravity.GetX(), gravity.GetY(), gravity.GetZ());
+    auto vDelta = GetScene()->GetPhysicsScene().GetPhysicsSystem().GetGravity() *
+                  GetScene()->GetPhysicsScene().GetDeltaTime() * gravityScale;
+    velocity += glm::vec3(vDelta.GetX(), vDelta.GetY(), vDelta.GetZ());
 
     if (physicalCharacter->GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
     {
@@ -124,14 +125,7 @@ void PlayerController::UpdatePhysicalCharacterVelocity()
         forward.y = 0;
         right.y = 0;
         glm::vec3 dir = glm::normalize(my * forward + mx * right);
-        // if (rootMotionAnimationPlayer)
-        // {
-        //     velocity += dir * glm::length(rootMotionAnimationPlayer->GetRootMotionDelta() / Time::DeltaTime()) ;
-        // }
-        // else
-        // {
-        velocity += dir * movementSpeed * Time::DeltaTime();
-        // }
+        velocity += dir * movementSpeed;
     }
 
     physicalCharacter->SetLinearVelocity({velocity.x, velocity.y, velocity.z});
@@ -247,8 +241,8 @@ void PlayerController::UpdateCharacter()
 
     // Update the physicalCharacter position
     physicalCharacter->ExtendedUpdate(
-        pscene.DeltaTime,
-        -physicalCharacter->GetUp() * physicsSystem.GetGravity().Length() * gravityScale,
+        pscene.GetDeltaTime(),
+        physicsSystem.GetGravity() * gravityScale,
         update_settings,
         physicsSystem.GetDefaultBroadPhaseLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
         physicsSystem.GetDefaultLayerFilter(static_cast<JPH::ObjectLayer>(PhysicsLayer::Moving)),
@@ -268,8 +262,6 @@ void PlayerController::Tick()
     // update physicalCharacter
     if (valid && physicalCharacter)
     {
-        // UpdatePhysicalCharacterVelocity();
-
         // Get player's position before updating it
         auto preFramePlayerPosition = GetGameObject()->GetPosition();
 

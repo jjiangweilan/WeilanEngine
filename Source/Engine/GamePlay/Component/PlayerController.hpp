@@ -42,6 +42,7 @@ public:
     float cameraElasticity = 6.0f;
     float cameraMinElasticity = 3.65f;
     float cameraOffset = 8.0f;
+    float cameraMovementSpeed = 10.0f;
 
     JPH::RefConst<JPH::Shape> standingShape;
 

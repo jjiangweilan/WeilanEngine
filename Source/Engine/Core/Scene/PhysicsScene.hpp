@@ -80,7 +80,6 @@ private:
     JPH::BroadPhaseLayer mObjectToBroadPhase[static_cast<int>(PhysicsLayer::NUM_LAYERS)];
 };
 
-
 /// Class that determines if two object layers can collide
 class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
 {
@@ -89,13 +88,13 @@ public:
     {
         switch (static_cast<PhysicsLayer>(inObject1))
         {
-        case PhysicsLayer::Scene:
-            return static_cast<PhysicsLayer>(inObject2) ==
-                PhysicsLayer::Moving || static_cast<PhysicsLayer>(inObject2) ==
-                PhysicsLayer::Interactable;        // Non moving only collides with moving
-        case PhysicsLayer::Moving: return true; // Moving collides with everything
-        case PhysicsLayer::Interactable: return true; // Moving collides with everything
-        default: JPH_ASSERT(false); return false;
+            case PhysicsLayer::Scene:
+                return static_cast<PhysicsLayer>(inObject2) == PhysicsLayer::Moving ||
+                       static_cast<PhysicsLayer>(inObject2) ==
+                           PhysicsLayer::Interactable;    // Non moving only collides with moving
+            case PhysicsLayer::Moving: return true;       // Moving collides with everything
+            case PhysicsLayer::Interactable: return true; // Moving collides with everything
+            default: JPH_ASSERT(false); return false;
         }
     }
 };
@@ -179,7 +178,7 @@ public:
 class PhysicsScene
 {
 public:
-    static constexpr float DeltaTime = 1.0f / 55.0f;
+    static constexpr float GetDeltaTime() { return PhysicsDeltaTime; };
     const int CollisionSteps = 1;
 
     PhysicsScene(Scene* scene);
@@ -214,7 +213,7 @@ private:
     std::unordered_map<JPH::BodyID, PhysicsBody*> bodies;
     bool optimizeNeeded = false;
     float physicsUpdateDeltaAccumulation;
-    const float physicsUpdateHz = 1.0f / 60;
+    static constexpr float PhysicsDeltaTime = 1.0f / 50;
 
     class DebugBodyDrawFilter : public JPH::BodyDrawFilter
     {
