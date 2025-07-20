@@ -19,6 +19,7 @@ public:
     void Init();
     void Deinit();
 
+    bool IsWindowFocused() { return isWindowFocused; };
     bool IsVisible() const { return visible; }
     bool Tick();
 
@@ -47,6 +48,7 @@ private:
     Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
+    bool isWindowFocused = false;
 
     struct
     {

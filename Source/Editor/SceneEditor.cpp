@@ -103,8 +103,10 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     // Get the mouse delta for the right mouse button
     auto mouseDelta = mouseTrack.GetMouseDelta(ImGuiMouseButton_Right);
     bool isMouseRightButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+    bool isMiddleButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
     if (isMouseRightButtonDown)
     {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         if (!cameraLookAroundContext.isActive)
         {
             cameraLookAroundContext.isActive = true;
@@ -185,9 +187,9 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         auto upDown = 25 * glm::radians(mouseDelta.y) * Time::DeltaTime();
         auto leftRight = 25 * glm::radians(mouseDelta.x) * Time::DeltaTime();
         auto lookAtDelta = leftRight * right + upDown * up;
-        go->LookAt(forward+lookAtDelta);
+        go->LookAt(forward + lookAtDelta);
     }
-    else if (ImGui::IsMouseDown(ImGuiMouseButton_Middle))
+    else if (isMiddleButtonDown)
     {
         // Handle panning movement when the middle mouse button is held down
         auto upDown = glm::radians(mouseDelta.y * 100) * Time::DeltaTime();
@@ -202,6 +204,11 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     if (!isMouseRightButtonDown)
     {
         cameraLookAroundContext.isActive = false;
+    }
+
+    if (!isMouseRightButtonDown && !isMiddleButtonDown)
+    {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     }
 
     // Print the current position of the editor camera to the HUD
@@ -355,6 +362,12 @@ bool SceneEditor::Tick()
     if (scene == nullptr)
         return false;
 
+    // Focus on this window we player want to move the camera, which is triggered by right mouse button
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        ImGui::FocusWindow(ImGui::FindWindowByName("Scene"));
+    }
+
     gameCamera = scene->GetMainCamera();
 
     for (auto& p : pendingDeleteSceneImages)
@@ -364,8 +377,11 @@ bool SceneEditor::Tick()
     pendingDeleteSceneImages.remove_if([](PendingDelete& p) { return p.frameCount > 5; });
 
     bool open = true;
-
     isVisible = ImGui::Begin("Scene", &open, ImGuiWindowFlags_MenuBar);
+
+    // is able gameplay input if user is working on the scene editor
+    bool isWindowFocused = ImGui::IsWindowFocused();
+    Input::SetGameplayInput(!isWindowFocused);
 
     // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
     // MouseWheel so I track the down and release event individually

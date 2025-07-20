@@ -257,7 +257,7 @@ float Input::GetLookAroundY()
 
 bool Input::Jump()
 {
-    return input.keyboard.space || input.GetGamepad(0)->buttonPressed[0];
+    return input.keyboard.space || input.GetGamepad(0)->buttons[0];
 }
 
 void Input::SetGameplayInput(bool enabled)

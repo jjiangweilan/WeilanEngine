@@ -156,6 +156,7 @@ bool GameView::Tick()
     bool open = true;
 
     visible = ImGui::Begin("Game", &open, ImGuiWindowFlags_MenuBar);
+    isWindowFocused = ImGui::IsWindowFocused();
 
     // seems like ImGui::IsKeyPressed(ImGuiKey_XXXAlt/XXXShift) most of time can't be registered at the same with with
     // MouseWheel so I track the down and release event individually

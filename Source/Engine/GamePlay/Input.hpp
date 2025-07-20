@@ -1,6 +1,6 @@
 #pragma once
-#include "Libs/Math.hpp"
 #include "Libs/DynamicArray.hpp"
+#include "Libs/Math.hpp"
 #include <SDL.h>
 
 struct Gamepad
@@ -54,6 +54,12 @@ private:
     uint8_t ButtonRemap(uint8_t idx) { return idx; }
 };
 
+/**
+ * @class Input
+ * @brief We need an improvement on Input handling, like jump command should append to a process queue instead of
+ * directly query the button state. An input command queue is very command specific, so just specialize it
+ *
+ */
 class Input
 {
 public:
