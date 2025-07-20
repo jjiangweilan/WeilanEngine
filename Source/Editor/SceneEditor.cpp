@@ -106,7 +106,6 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     bool isMiddleButtonDown = ImGui::IsMouseDown(ImGuiMouseButton_Middle);
     if (isMouseRightButtonDown)
     {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
         if (!cameraLookAroundContext.isActive)
         {
             cameraLookAroundContext.isActive = true;
@@ -204,11 +203,6 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
     if (!isMouseRightButtonDown)
     {
         cameraLookAroundContext.isActive = false;
-    }
-
-    if (!isMouseRightButtonDown && !isMiddleButtonDown)
-    {
-        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     }
 
     // Print the current position of the editor camera to the HUD
