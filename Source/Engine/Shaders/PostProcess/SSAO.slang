@@ -3,7 +3,7 @@ import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
 
-#define GTAO_SLICE_COUNT 6
+#define GTAO_SLICE_COUNT 16
 #define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
@@ -109,9 +109,8 @@ float GTAO(VertexOutput input)
 
     visibility /= GTAO_SLICE_COUNT;
 
-    
-    return clamp(visibility / perMaterial.strength, 0, 1);
-    
+    visibility = (1 - visibility) * perMaterial.strength;
+    return saturate(1 - visibility);
 }
 #endif
 

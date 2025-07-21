@@ -15,7 +15,7 @@ stencil:
     compareMask: 0xFF
 #endif
 
-#include "DeferredPBRShading.hlsl"
+import Lighting;
 #include "DeferredPBRShadingInput.hlsl"
 
 struct VertexOutput
@@ -68,11 +68,6 @@ ParameterBlock<PerScene> perScene;
 [Material]
 ParameterBlock<DeferredInput> perMaterial;
 
-float pow2(float x)
-{
-    return x * x;
-}
-
 float2 SphericalToUV(float3 v)
 {
     const float2 invAtan = float2(0.1591, 0.3183);
@@ -97,16 +92,6 @@ float PointLightAttenuation(float distance, float t1, float t2)
     }
     else
         return 0;
-}
-
-// Real Shading in Unreal Engine 4
-float PointLightInverseSquareFalloff(float distance, float lightRadius)
-{
-    float dis_light = distance / lightRadius;
-    dis_light *= dis_light;
-    dis_light *= dis_light;
-    const float artisticControll = 1.0f;
-    return pow2(clamp(1 - dis_light, 0, 1)) / (distance * distance + artisticControll);
 }
 
 #define OCCLUDER_SEARCH_ITS 100
@@ -143,62 +128,34 @@ float4 FragmentMain(VertexOutput input) : SV_Target
 {
     float3 n = normalize(DecodeGBufferNormal(perMaterial.normalTex.Sample(input.uv).xyz));
     float4 mask = perMaterial.maskTex.Sample(input.uv);
-    float metallic = mask.x;
-    float roughness = mask.y;
-    float3 baseColor = perMaterial.albedoTex.Sample(input.uv).xyz;
     float depth = perMaterial.depthTex.Sample(input.uv).x;
     float4 positionWS = mul(perScene.camera.invNDCToWorld, float4(input.uv * 2 - 1, depth, 1.0));
     positionWS /= positionWS.w;
-    float3 v = normalize(perScene.camera.position.xyz - positionWS.xyz);
+    float3 viewDir = normalize(perScene.camera.position.xyz - positionWS.xyz);
 
+    ShadingObject shadingObject;
+    shadingObject.positionWS = positionWS.xyz;
+    shadingObject.normalWS = n;
+    shadingObject.baseColor = perMaterial.albedoTex.Sample(input.uv).xyz;
+    shadingObject.viewDir = viewDir;
+    shadingObject.metallic = mask.x;
+    shadingObject.roughness = mask.y;
+
+    MainLightShadowData mainLightShadowData;
+    mainLightShadowData.shadowConstantBias = perMaterial.input.shadowConstantBias;
+    mainLightShadowData.shadowNormalBias = perMaterial.input.shadowNormalBias;
+    mainLightShadowData.shadowMap = perMaterial.shadowMap;
+    mainLightShadowData.shadowSampler = perMaterial.samplerShadow_clamp;
+
+    GI gi;
+    gi.ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
+
+    // Add direct lightings
     float3 color = float3(0, 0, 0);
     for (int i = 0; i < perScene.scene.lightCount; ++i)
     {
-        float4 lightPos = perScene.scene.lights[i].position;
-        float3 l = lightPos.a == 0 ? lightPos.xyz : normalize(lightPos.xyz - positionWS.xyz);
-
-        float dotNL = max(dot(n, l), NearZero);
-        float3 F = 0.0f;
-        float3 brdf = SpecularBRDF(baseColor, l, v, n, metallic, roughness, F);
-        float3 kd = 1 - F;
-        kd *= 1 - metallic;
-
-        float3 light = dotNL * perScene.scene.lights[i].intensity * perScene.scene.lights[i].lightColor.xyz;
-        float attenuation = lightPos.a == 0 ? 1 : PointLightInverseSquareFalloff(distance(lightPos.xyz, positionWS.xyz),  perScene.scene.lights[i].pointLightTerm2);
-// global.perScene.lights[i].pointLightTerm1,;
-
-        float3 lighting = light * (kd * baseColor / M_PI + brdf) * attenuation; // this looks wrong for metal, metal shouldn't diffuse too much
-        // possible solution https://bruop.github.io/ibl/
-        // const float DIELECTRIC_SPECULAR = 0.04;
-        // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)
-
-        // shadow mask
-        float shadowAttenuation = 1.0;
-        if (lightPos.a == 0)
-        {
-            const float shadowBias = perMaterial.input.shadowConstantBias;
-            const float shadowNormalBias = perMaterial.input.shadowNormalBias;
-
-            float3 shadowWorldPos = positionWS.xyz;
-            if (perScene.mainLightShadow.cachedMainLightDirection.a == 1.0f)
-            {
-                shadowWorldPos = ParallaxShadowReprojection(positionWS.xyz, l, perScene.mainLightShadow.cachedMainLightDirection.xyz);
-            }
-
-            float4 shadowCS = mul(perScene.mainLightShadow.worldToShadow, float4(shadowWorldPos.xyz + shadowNormalBias * n, 1.0));
-            shadowCS = shadowCS / shadowCS.w;
-            float2 shadowUV = shadowCS.xy * 0.5 + 0.5;
-            float objShadowDepth = shadowCS.z - shadowBias;
-            bool valid = all(float3(shadowUV, shadowCS.z) > 0) && all(float3(shadowUV, shadowCS.z) < 1);
-            if (valid)
-                shadowAttenuation = PcfShadow(shadowUV, perMaterial.input.shadowMapTexelSize.xy, objShadowDepth, perMaterial.shadowMap, perMaterial.samplerShadow_clamp);
-        }
-        color += lighting * shadowAttenuation;
+        color += StandardLightShading(perScene.scene.lights[i], perScene.mainLightShadow, shadingObject, mainLightShadowData, gi);
     }
-
-    float ao = perMaterial.ambientOcclusion.SampleLevel(input.uv, 0).x;
-    float3 ambient = perScene.GetMainLight().ambientScale * baseColor * (1 - metallic) * ao;
-    color += ambient;
 
     return float4(color, 1);
 }

@@ -1,6 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
-#include "DeferredPBRShading.hlsl"
+import Lighting;
 
 static extern const bool _AlphaTest = false;
 static extern const bool _BaseColorMap = false;

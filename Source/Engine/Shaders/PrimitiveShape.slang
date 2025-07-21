@@ -1,6 +1,6 @@
 import WeilanEngine;
 import Library.PerScene;
-#include "DeferredPBRShading.hlsl"
+import Lighting;
 #include "Library/Grid.hlsl"
 
 interface IVertexInput

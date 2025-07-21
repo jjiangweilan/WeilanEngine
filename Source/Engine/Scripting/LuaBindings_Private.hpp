@@ -770,7 +770,10 @@ private:
             else if constexpr (std::is_void_v<R>)
                 return;
             else
-                return R{};
+            {
+                static R tmp{};
+                return tmp;
+            }
         }
         return (v->*f)(ProcessArg<std::tuple_element_t<I, Tuple>>(L, argOffset, I)...);
     }

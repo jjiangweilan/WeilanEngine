@@ -133,7 +133,7 @@ FetchContent_MakeAvailable(ktx_software)
 FetchContent_Declare(
         assimp
         GIT_REPOSITORY "https://github.com/assimp/assimp.git"
-        GIT_TAG "v5.4.3"
+        GIT_TAG "v6.0.2"
         UPDATE_DISCONNECTED TRUE
         SOURCE_SUBDIR "assimp"
 )
