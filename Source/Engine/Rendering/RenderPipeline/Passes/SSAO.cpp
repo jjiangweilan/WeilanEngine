@@ -53,7 +53,7 @@ void SSAO::Execute(
     // upscale
     DepthAwareBilateralUpsampler::GPUInput upscalerInput{
         .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
-        .kernelSize = 1,
+        .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
         .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
         .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
     };

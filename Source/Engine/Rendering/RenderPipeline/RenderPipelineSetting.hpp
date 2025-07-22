@@ -57,6 +57,7 @@ public:
         float scaling = 3.0f;
         float falloff = 1.5f;
         float bias = 0.f;
+        float bilateralUpScaleKernelSize = 0.6;
         float bilateralUpScaleIntegerCoordSigma = 0.6;
         float bilateralUpScaleDepthDiffSigma = 0.6;
 
@@ -67,6 +68,7 @@ public:
             SERIALIZE(s, scaling);
             SERIALIZE(s, falloff);
             SERIALIZE(s, bias);
+            SERIALIZE(s, bilateralUpScaleKernelSize);
             SERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
             SERIALIZE(s, bilateralUpScaleDepthDiffSigma);
         }
@@ -78,6 +80,7 @@ public:
             DESERIALIZE(s, scaling);
             DESERIALIZE(s, falloff);
             DESERIALIZE(s, bias);
+            DESERIALIZE(s, bilateralUpScaleKernelSize);
             DESERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
             DESERIALIZE(s, bilateralUpScaleDepthDiffSigma);
         }
