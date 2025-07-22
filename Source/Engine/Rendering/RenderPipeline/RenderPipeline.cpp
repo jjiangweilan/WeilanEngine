@@ -66,7 +66,6 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     ENGINE_END_PROFILE
 
-
     // Reflection Probe Updateo
 
     auto reflectionProbes = renderingScene.GetReflectionProbes();
@@ -125,8 +124,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     depthDownSamplerPass.Execute(*cmd);
 
     cmd->BindResource(0, perScene.globalResource.get());
-    // ambient occlusion pass
-    ambientOcclusionPass.Execute(cmd, downSampledDepthCopy, downSampledDepthCopyDesc, setting);
+
+    // ssao pass
+    ssaoPass.Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting);
 
     // Shading
     cmd->BeginLabel("Shading", &labelColors.passColor[0]);
@@ -161,7 +161,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
         shadingPass.gpuResource->SetImage("depthTex"_shaderBinding, &depthImageView);
         shadingPass.gpuResource->SetImage("shadowMap"_shaderBinding, shadowRenderer->GetShadowMap());
-        shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ambientOcclusionPass.ssao);
+        shadingPass.gpuResource->SetImage("ambientOcclusion"_shaderBinding, ssaoPass.GetSSAOTex());
         if (diffuseCube)
             shadingPass.gpuResource->SetImage("diffuseCube"_shaderBinding, diffuseCube->GetGfxImage());
         if (specularCube)

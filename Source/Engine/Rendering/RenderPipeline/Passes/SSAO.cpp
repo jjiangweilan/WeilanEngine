@@ -10,8 +10,9 @@ SSAO::SSAO()
 
 void SSAO::Execute(
     Gfx::CommandBuffer* cmd,
-    const Gfx::RG::ImageIdentifier& texDepth,
-    const Gfx::RG::ImageDescription& depthTexDesc,
+    const Gfx::RG::ImageIdentifier& halfResDepth,
+    const Gfx::RG::ImageIdentifier& fullResDepth,
+    const Gfx::RG::ImageDescription& fullResDepthDesc,
     RenderPipelineSetting* setting
 )
 {
@@ -20,23 +21,22 @@ void SSAO::Execute(
     mat.SetFloat("falloff", setting->ssao.falloff);
     mat.SetFloat("bias", setting->ssao.bias);
 
-    mat.SetVector(
-        "rtSize",
-        glm::float4(
-            depthTexDesc.GetWidth(),
-            depthTexDesc.GetHeight(),
-            1.0f / depthTexDesc.GetWidth(),
-            1.0f / depthTexDesc.GetHeight()
-        )
-    );
-    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(texDepth));
+    float2 rtSize = {fullResDepthDesc.GetWidth() / 2, fullResDepthDesc.GetHeight() / 2};
+    mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
+    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(halfResDepth));
 
     Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
-    Gfx::RG::ImageDescription desc(depthTexDesc.GetWidth(), depthTexDesc.GetHeight(), Gfx::GfxFormat::R32_SFloat);
+    Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
+    Gfx::RG::ImageDescription fullDesc(
+        fullResDepthDesc.GetWidth(),
+        fullResDepthDesc.GetHeight(),
+        Gfx::GfxFormat::R32_SFloat
+    );
 
-    cmd->AllocateAttachment(ssao, desc);
+    cmd->AllocateAttachment(ssaoDownSampled, desc);
+    cmd->AllocateAttachment(ssao, fullDesc);
 
-    pass.SetAttachment(0, ssao);
+    pass.SetAttachment(0, ssaoDownSampled);
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
     cmd->BeginRenderPass(pass, clears);
     if (setting->ssao.enabled)
@@ -48,6 +48,16 @@ void SSAO::Execute(
     }
     cmd->EndRenderPass();
     cmd->EndLabel(); // SSAO
+
+    // upscale
+    DepthAwareBilateralUpsampler::GPUInput upscalerInput{
+        .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
+        .kernelSize = 1,
+        .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
+        .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
+    };
+    upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
+    upscaler.Execute(*cmd);
 }
 
 } // namespace Rendering::Passes

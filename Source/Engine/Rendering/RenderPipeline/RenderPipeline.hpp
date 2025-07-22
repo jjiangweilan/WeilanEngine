@@ -56,6 +56,7 @@ private:
     std::unique_ptr<ParticleRenderer> particleRenderer;
     std::unique_ptr<ShadowRenderer> shadowRenderer;
     std::unique_ptr<Passes::ReflectionProbeUpdate> reflectionProbeUpdate;
+
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 
     Gfx::RG::ImageIdentifier mainColor = "mainColor";
@@ -143,7 +144,7 @@ private:
 
     SkyboxPass skyboxPass{};
 
-    Passes::SSAO ambientOcclusionPass;
+    Passes::SSAO ssaoPass;
 
     struct FXAAPass
     {

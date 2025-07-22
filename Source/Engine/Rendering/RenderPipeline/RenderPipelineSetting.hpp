@@ -57,6 +57,8 @@ public:
         float scaling = 3.0f;
         float falloff = 1.5f;
         float bias = 0.f;
+        float bilateralUpScaleIntegerCoordSigma = 0.6;
+        float bilateralUpScaleDepthDiffSigma = 0.6;
 
         void Serialize(Serializer* s) const override
         {
@@ -65,6 +67,8 @@ public:
             SERIALIZE(s, scaling);
             SERIALIZE(s, falloff);
             SERIALIZE(s, bias);
+            SERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
+            SERIALIZE(s, bilateralUpScaleDepthDiffSigma);
         }
 
         void Deserialize(Serializer* s) override
@@ -74,6 +78,8 @@ public:
             DESERIALIZE(s, scaling);
             DESERIALIZE(s, falloff);
             DESERIALIZE(s, bias);
+            DESERIALIZE(s, bilateralUpScaleIntegerCoordSigma);
+            DESERIALIZE(s, bilateralUpScaleDepthDiffSigma);
         }
     } ssao;
 
