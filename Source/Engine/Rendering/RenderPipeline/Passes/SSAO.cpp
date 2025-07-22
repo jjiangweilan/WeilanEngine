@@ -32,6 +32,7 @@ void SSAO::Execute(
         fullResDepthDesc.GetHeight(),
         Gfx::GfxFormat::R32_SFloat
     );
+    fullDesc.SetRandomWrite(true);
 
     cmd->AllocateAttachment(ssaoDownSampled, desc);
     cmd->AllocateAttachment(ssao, fullDesc);
