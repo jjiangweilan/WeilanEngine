@@ -16,21 +16,15 @@ void SSAO::Execute(
     RenderPipelineSetting* setting
 )
 {
+    // Prepare data
     bool useUpscaler = setting->ssao.enableUpscaler;
-
     float scale = useUpscaler ? 0.5f : 1.0f;
     int2 rtSize = {fullResDepthDesc.GetWidth() * scale, fullResDepthDesc.GetHeight() * scale};
     auto halfResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(halfResDepth);
     auto fullResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(fullResDepth);
     auto depthTex = useUpscaler ? halfResDepthImage : fullResDepthImage;
 
-    mat.SetFloat("strength", setting->ssao.strength);
-    mat.SetFloat("scaling", setting->ssao.scaling);
-    mat.SetFloat("falloff", setting->ssao.falloff);
-    mat.SetFloat("bias", setting->ssao.bias);
-    mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
-    mat.SetTexture("depthTex", depthTex);
-
+    // Create GPU resources
     Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
     Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
     Gfx::RG::ImageDescription fullDesc(
@@ -40,17 +34,26 @@ void SSAO::Execute(
     );
     fullDesc.SetRandomWrite(true);
 
+    // Allocate resources
+    // TODO: when ssao is not needed we can return a small white built in texture to save these allocations
     if (useUpscaler)
-    {
         cmd->AllocateAttachment(ssaoDownSampled, desc);
-    }
     cmd->AllocateAttachment(ssao, fullDesc);
     Gfx::RG::ImageIdentifier& ssaoSrc = useUpscaler ? ssaoDownSampled : ssao;
 
-    pass.SetAttachment(0, ssaoSrc);
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
     if (setting->ssao.enabled)
     {
+        // Setup pass data
+        mat.SetFloat("strength", setting->ssao.strength);
+        mat.SetFloat("scaling", setting->ssao.scaling);
+        mat.SetFloat("falloff", setting->ssao.falloff);
+        mat.SetFloat("bias", setting->ssao.bias);
+        mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
+        mat.SetTexture("depthTex", depthTex);
+
+        // Dispatch SSAO
+        pass.SetAttachment(0, ssaoSrc);
         cmd->BeginRenderPass(pass, clears);
         auto shaderProgram = mat.GetShaderProgram();
         cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
