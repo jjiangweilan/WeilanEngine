@@ -3,8 +3,8 @@ import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
 
-#define GTAO_SLICE_COUNT 16
-#define GTAO_DIRECTION_SAMPLE_COUNT 8
+#define GTAO_SLICE_COUNT 4
+#define GTAO_DIRECTION_SAMPLE_COUNT 6
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f
@@ -76,7 +76,7 @@ float GTAO(VertexOutput input)
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
         input.position.x + fmod(floor(input.position.y), 4) * 4;
-        float phi = GTAO_PI * float(slice) / float(GTAO_SLICE_COUNT);
+        float phi = GTAO_PI * (input.position.x / 4.0f + float(slice) / float(GTAO_SLICE_COUNT));
 
         float2 omega = float2(cos(phi), sin(phi));
 
@@ -95,16 +95,9 @@ float GTAO(VertexOutput input)
         cHorizonCos.x = UpdateHorizon(input, omega, -1, posVS, viewVS);
         cHorizonCos.y = UpdateHorizon(input, omega, 1, posVS, viewVS);
 
-        if (any(cHorizonCos == float2(-2)))
-        {
-            visibility += 1;
-        }
-        else
-        {
-            float2 hSide = n + clamp(float2(-1, 1) * acos(cHorizonCos) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
-            float2 finalSide = cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
-            visibility += 0.25 * projNormalLength * (finalSide.x + finalSide.y);
-        }
+        float2 hSide = n + clamp(float2(-1, 1) * acos(cHorizonCos) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
+        float2 finalSide = cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
+        visibility += 0.25 * projNormalLength * (finalSide.x + finalSide.y);
     }
 
     visibility /= GTAO_SLICE_COUNT;

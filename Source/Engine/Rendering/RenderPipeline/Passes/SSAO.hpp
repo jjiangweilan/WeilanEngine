@@ -20,7 +20,7 @@ public:
         RenderPipelineSetting* setting
     );
 
-    const Gfx::RG::ImageIdentifier& GetSSAOTex() { return ssao; }
+    const Gfx::RG::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
 
 private:
     ObjPtr<Shader2> ssaoShader;
@@ -29,5 +29,6 @@ private:
     Material bilateralMat;
     Gfx::RG::ImageIdentifier ssaoDownSampled = Gfx::RG::ImageIdentifier("SSAO Down Sampled");
     Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
+    Gfx::RG::ImageIdentifier* result = nullptr;
 };
 } // namespace Rendering::Passes

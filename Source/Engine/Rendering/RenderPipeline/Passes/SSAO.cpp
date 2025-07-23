@@ -51,14 +51,21 @@ void SSAO::Execute(
     cmd->EndLabel(); // SSAO
 
     // upscale
-    DepthAwareBilateralUpsampler::GPUInput upscalerInput{
-        .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
-        .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
-        .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
-        .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
-    };
-    upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
-    upscaler.Execute(*cmd);
+    if (setting->ssao.enableUpscaler)
+    {
+        DepthAwareBilateralUpsampler::GPUInput upscalerInput{
+            .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
+            .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
+            .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
+            .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
+        };
+        upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
+        upscaler.Execute(*cmd);
+
+        result = &ssao;
+    }
+    else
+        result = &ssaoDownSampled;
 }
 
 } // namespace Rendering::Passes
