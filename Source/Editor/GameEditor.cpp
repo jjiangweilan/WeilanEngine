@@ -176,23 +176,54 @@ static void ProfileTree(const ProfileScope& scope, int id)
     ImGui::PopID();
 }
 
-void GameEditor::ShowGameProfiler(Profiler& profiler)
+void GameEditor::ShowGameProfiler(Profiler& cpuProfiler)
 {
-    auto& gpuProfiler = GetGfxDriver()->GetGPUProfiler();
-    auto& frameProfiles = profiler.GetFrameProfiles();
-    auto& gpuFrameProfiles = gpuProfiler.GetFrameProfiles();
+
     // auto& gpuProfiles = GetGfxDriver()->GetFrameProfiles();
     ImGui::Begin("Profiler Module");
 
     ImGui::Text("Frame Profiler:");
 
-    static bool enableGPUProfiling = false;
     static int selectedFrame = 0;
     static int actuallySelectedFrame = 0;
-    if (ImGui::Checkbox("Enable GPU Profiling", &enableGPUProfiling))
+    static bool cpuOrGpu = true;
+
+    auto& gpuProfiler = GetGfxDriver()->GetGPUProfiler();
+    auto& profiler = cpuOrGpu ? cpuProfiler : gpuProfiler;
+    auto& frameProfiles = cpuOrGpu ? cpuProfiler.GetFrameProfiles() : gpuProfiler.GetFrameProfiles();
+    const char* profileName = cpuOrGpu ? "CPU" : "GPU";
+
+    if (ImGui::Button(profileName))
     {
-        GetGfxDriver()->SetGPUProfilerEnabled(enableGPUProfiling);
+        cpuOrGpu = !cpuOrGpu;
+        if (cpuOrGpu)
+        {
+            cpuProfiler.Resume();
+            gpuProfiler.Pause();
+        }
+        else
+        {
+            gpuProfiler.Resume();
+            cpuProfiler.Pause();
+        }
+
+        GetGfxDriver()->SetGPUProfilerEnabled(!cpuOrGpu);
     }
+
+    ImGui::SameLine();
+    if (profiler.IsPaused())
+    {
+        if (ImGui::Button("Resume"))
+            profiler.Resume();
+    }
+    else
+    {
+        if (ImGui::Button("Pause"))
+        {
+            profiler.Pause();
+        }
+    }
+
     ImPlot::SetNextAxisLimits(ImAxis_X1, 0, Profiler::MAX_FRAME_TRACKED);
     ImPlot::SetNextAxisLimits(ImAxis_Y1, 0, 16);
 
@@ -204,23 +235,15 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
         if (!frameProfiles.empty())
         {
             DynamicArray<float> frameTimes = profiler.GetFlattendFrametime();
-            ImPlot::PlotLine("GameLoop", frameTimes.data(), frameTimes.size(), 1, 0);
+            ImPlot::PlotLine(profileName, frameTimes.data(), frameTimes.size(), 1, 0);
             if (profiler.IsPaused())
                 ImPlot::PlotInfLines("selected", &selectedFrame, 1);
             else if (ImGui::IsWindowHovered())
                 ImPlot::PlotInfLines("selected", &selectedPos.x, 1);
         }
 
-        if (!gpuFrameProfiles.empty())
-        {
-            DynamicArray<float> frameTimes = gpuProfiler.GetFlattendFrametime();
-            ImPlot::PlotLine("GPU", frameTimes.data(), frameTimes.size(), 1, 0);
-        }
-
         if (ImGui::IsItemHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Left))
         {
-            profiler.Pause();
-            gpuProfiler.Pause();
             selectedFrame = std::round(selectedPos.x);
             actuallySelectedFrame =
                 profiler.GetTrackCycles() == 0
@@ -233,18 +256,6 @@ void GameEditor::ShowGameProfiler(Profiler& profiler)
 
     if (profiler.IsPaused())
     {
-        if (ImGui::Button("Resume"))
-        {
-            profiler.Resume();
-            gpuProfiler.Resume();
-        }
-
-        static bool cpuOrGpu = true;
-        ImGui::SameLine();
-        if (ImGui::Button(cpuOrGpu ? "CPU" : "GPU"))
-            cpuOrGpu = !cpuOrGpu;
-
-        auto frameProfiles = cpuOrGpu ? profiler.GetFrameProfiles() : gpuProfiler.GetFrameProfiles();
         if (actuallySelectedFrame >= 0 && actuallySelectedFrame < frameProfiles.size())
         {
             ProfileTree(frameProfiles[actuallySelectedFrame], 0);
@@ -305,8 +316,8 @@ void GameEditor::ShowSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)
-            ));
+            SceneManager::SetActiveScene((Scene*
+            )engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
             openSceneWindow = false;
         }
 

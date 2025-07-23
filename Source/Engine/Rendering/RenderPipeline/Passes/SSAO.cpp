@@ -16,14 +16,20 @@ void SSAO::Execute(
     RenderPipelineSetting* setting
 )
 {
+    bool useUpscaler = setting->ssao.enableUpscaler;
+
+    float scale = useUpscaler ? 0.5f : 1.0f;
+    int2 rtSize = {fullResDepthDesc.GetWidth() * scale, fullResDepthDesc.GetHeight() * scale};
+    auto halfResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(halfResDepth);
+    auto fullResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(fullResDepth);
+    auto depthTex = useUpscaler ? halfResDepthImage : fullResDepthImage;
+
     mat.SetFloat("strength", setting->ssao.strength);
     mat.SetFloat("scaling", setting->ssao.scaling);
     mat.SetFloat("falloff", setting->ssao.falloff);
     mat.SetFloat("bias", setting->ssao.bias);
-
-    float2 rtSize = {fullResDepthDesc.GetWidth() / 2, fullResDepthDesc.GetHeight() / 2};
     mat.SetVector("rtSize", glm::float4(rtSize.x, rtSize.y, 1.0f / rtSize.x, 1.0f / rtSize.y));
-    mat.SetTexture("depthTex", GetGfxDriver()->GetImageFromRenderGraph(halfResDepth));
+    mat.SetTexture("depthTex", depthTex);
 
     Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
     Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
@@ -34,38 +40,41 @@ void SSAO::Execute(
     );
     fullDesc.SetRandomWrite(true);
 
-    cmd->AllocateAttachment(ssaoDownSampled, desc);
+    if (useUpscaler)
+    {
+        cmd->AllocateAttachment(ssaoDownSampled, desc);
+    }
     cmd->AllocateAttachment(ssao, fullDesc);
+    Gfx::RG::ImageIdentifier& ssaoSrc = useUpscaler ? ssaoDownSampled : ssao;
 
-    pass.SetAttachment(0, ssaoDownSampled);
+    pass.SetAttachment(0, ssaoSrc);
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
-    cmd->BeginRenderPass(pass, clears);
     if (setting->ssao.enabled)
     {
+        cmd->BeginRenderPass(pass, clears);
         auto shaderProgram = mat.GetShaderProgram();
         cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
         cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
         cmd->Draw(6, 1, 0, 0);
+        cmd->EndRenderPass();
+
+        // upscale
+        if (setting->ssao.enableUpscaler)
+        {
+            DepthAwareBilateralUpsampler::GPUInput upscalerInput{
+                .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
+                .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
+                .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
+                .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
+            };
+            upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
+            upscaler.Execute(*cmd);
+        }
     }
-    cmd->EndRenderPass();
+
     cmd->EndLabel(); // SSAO
 
-    // upscale
-    if (setting->ssao.enableUpscaler)
-    {
-        DepthAwareBilateralUpsampler::GPUInput upscalerInput{
-            .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
-            .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
-            .integerCoordSigma = setting->ssao.bilateralUpScaleIntegerCoordSigma,
-            .depthDiffSigma = setting->ssao.bilateralUpScaleDepthDiffSigma
-        };
-        upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
-        upscaler.Execute(*cmd);
-
-        result = &ssao;
-    }
-    else
-        result = &ssaoDownSampled;
+    result = &ssao;
 }
 
 } // namespace Rendering::Passes

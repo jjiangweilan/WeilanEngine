@@ -356,12 +356,6 @@ bool SceneEditor::Tick()
     if (scene == nullptr)
         return false;
 
-    // Focus on this window we player want to move the camera, which is triggered by right mouse button
-    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-    {
-        ImGui::FocusWindow(ImGui::FindWindowByName("Scene"));
-    }
-
     gameCamera = scene->GetMainCamera();
 
     for (auto& p : pendingDeleteSceneImages)
@@ -372,6 +366,15 @@ bool SceneEditor::Tick()
 
     bool open = true;
     isVisible = ImGui::Begin("Scene", &open, ImGuiWindowFlags_MenuBar);
+
+    if (ImGui::IsWindowHovered())
+    {
+        // Focus on this window we player want to move the camera, which is triggered by right mouse button
+        if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            ImGui::FocusWindow(ImGui::FindWindowByName("Scene"));
+        }
+    }
 
     // is able gameplay input if user is working on the scene editor
     bool isWindowFocused = ImGui::IsWindowFocused();
