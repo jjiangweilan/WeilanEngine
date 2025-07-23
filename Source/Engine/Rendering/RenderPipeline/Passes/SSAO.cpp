@@ -17,7 +17,7 @@ void SSAO::Execute(
 )
 {
     // Prepare data
-    bool useUpscaler = setting->ssao.enableUpscaler;
+    bool useUpscaler = setting->ssao.enabled && setting->ssao.enableUpscaler;
     float scale = useUpscaler ? 0.5f : 1.0f;
     int2 rtSize = {fullResDepthDesc.GetWidth() * scale, fullResDepthDesc.GetHeight() * scale};
     auto halfResDepthImage = GetGfxDriver()->GetImageFromRenderGraph(halfResDepth);
@@ -73,6 +73,13 @@ void SSAO::Execute(
             upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
             upscaler.Execute(*cmd);
         }
+    }
+    else
+    {
+        // We need to clear ssao if it's not needed
+        pass.SetAttachment(0, ssaoSrc);
+        cmd->BeginRenderPass(pass, clears);
+        cmd->EndRenderPass();
     }
 
     cmd->EndLabel(); // SSAO
