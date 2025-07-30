@@ -3,8 +3,8 @@ import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
 
-#define GTAO_SLICE_COUNT 4
-#define GTAO_DIRECTION_SAMPLE_COUNT 6
+#define GTAO_SLICE_COUNT 16
+#define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f
@@ -51,13 +51,16 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
     for (uint sampleIndex = 1; sampleIndex <= GTAO_DIRECTION_SAMPLE_COUNT; ++sampleIndex)
     {
         float2 sampleOffset = offsetScaling * sampleIndex;
-        float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw ;// / posVS.z;
+        float2 sTexCoord = input.uv + sampleOffset * perMaterial.rtSize.zw;
 
+        // Sample view position
         float sDepth = perMaterial.depthTex.SampleLevel(perMaterial.sampler_point_clamp, sTexCoord, 0).x;
         float3 sPosV = GetPostionVS(float3(sTexCoord * 2 - 1, sDepth));
 
+        // Calculate falloff
         float distSqr = dot(sPosV - posVS, sPosV - posVS);
         float distFalloff = clamp(distSqr * perMaterial.falloff, 0, 1);
+
         float horizonCos = lerp(dot(normalize(sPosV - posVS), viewVS), -1, distFalloff);
         cHorizonCos = max(cHorizonCos, horizonCos);
     }
@@ -75,28 +78,33 @@ float GTAO(VertexOutput input)
 
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
-        input.position.x + fmod(floor(input.position.y), 4) * 4;
-        float phi = GTAO_PI * (input.position.x / 4.0f + float(slice) / float(GTAO_SLICE_COUNT));
+        float phi = GTAO_PI * float(slice) / float(GTAO_SLICE_COUNT);
 
-        float2 omega = float2(cos(phi), sin(phi));
+        float2 omega = normalize(float2(cos(phi), sin(phi)));
 
-        float3 dirV = float3(omega, 0);
+        float3 dirV = float3(omega.x, omega.y, 0);
         float3 orthoDirectionV = dirV - dot(dirV, viewVS) * viewVS;
-        float3 axisV = normalize(cross(dirV, viewVS));
+        float3 axisV = normalize(cross(orthoDirectionV, viewVS));
         float3 projNormalV = normalVS - axisV * dot(normalVS, axisV);
 
         const float projNormalLength = length(projNormalV);
 
         float signN = sign(dot(orthoDirectionV, projNormalV));
-        float cosN = clamp(dot(projNormalV, viewVS) / projNormalLength, 0.0f, 1.0f);
+        float cosN = saturate(dot(projNormalV, viewVS) / projNormalLength);
         float n = signN * acos(cosN);
 
         float2 cHorizonCos = float2(-1.0f, -1.0f);
-        cHorizonCos.x = UpdateHorizon(input, omega, -1, posVS, viewVS);
-        cHorizonCos.y = UpdateHorizon(input, omega, 1, posVS, viewVS);
+        cHorizonCos.x = UpdateHorizon(input, omega, -1, posVS.xyz, viewVS);
+        cHorizonCos.y = UpdateHorizon(input, omega, 1, posVS.xyz, viewVS);
 
-        float2 hSide = n + clamp(float2(-1, 1) * acos(cHorizonCos) - n, -GTAO_PI_HALF, GTAO_PI_HALF);
-        float2 finalSide = cosN + 2 * hSide * sin(n) - cos(2 * hSide - n);
+        float2 angle = acos(cHorizonCos);
+
+        // clampping the value to prevent it exceeding normal's semi-sphere
+        float2 hSide = n + clamp(float2(-1, 1) * angle  - n, -GTAO_PI_HALF, GTAO_PI_HALF);
+
+        float2 finalSide;
+        finalSide.x = cosN + 2 * hSide.x * sin(n) - cos(2 * hSide.x - n);
+        finalSide.y = cosN + 2 * hSide.y * sin(n) - cos(2 * hSide.y - n);
         visibility += 0.25 * projNormalLength * (finalSide.x + finalSide.y);
     }
 
@@ -110,7 +118,6 @@ float GTAO(VertexOutput input)
 [shader("fragment")]
 float4 FragmentMain(VertexOutput input, float4 screenPos : SV_Position): SV_Target
 {
-fragCoord = screenPos;
 if (aoType == SSAOType.GTAO)
 {
     return GTAO(input);
