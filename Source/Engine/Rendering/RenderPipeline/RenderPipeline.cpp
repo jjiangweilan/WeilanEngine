@@ -98,7 +98,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
         // clear albedo to black
         // masks to 1 (mainly for ao)
-        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1.0f, 1.0f, 1.0f, 1.0f}, {1, 0}};
+        Gfx::ClearValue clears[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {1.0f, 1.0f, 1.0f, 1.0f}, {0, 0}};
         gbufferPass.pass.SetAttachment(0, mainColor);
         gbufferPass.pass.SetAttachment(1, albedoGBuffer);
         gbufferPass.pass.SetAttachment(2, normalGBuffer);

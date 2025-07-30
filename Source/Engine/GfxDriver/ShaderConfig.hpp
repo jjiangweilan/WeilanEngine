@@ -44,7 +44,7 @@ struct PipelineConfig
             bool operator==(const Depth& other) const = default;
             bool writeEnable = true;
             bool testEnable = true;
-            CompareOp compOp = CompareOp::Less_or_Equal;
+            CompareOp compOp = CompareOp::Greater_Or_Equal;
             bool boundTestEnable = false;
             float minBounds = 0;
             float maxBounds = 1;

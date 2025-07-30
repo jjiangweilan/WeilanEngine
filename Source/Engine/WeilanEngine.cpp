@@ -95,14 +95,14 @@ bool WeilanEngine::BeginFrame()
 {
     ENGINE_BEGIN_FRAME_PROFILE
 
-    //ENGINE_BEGIN_PROFILE("Frame Cap");
-    //const float frameCap = 1.0f / 60.0f;
-    //float delta = Time::RealtimedDeltaTime();
-    //if (delta < frameCap)
-    //{
-    //    std::this_thread::sleep_for(std::chrono::milliseconds((int)((frameCap - delta) * 1000)));
-    //}
-    //ENGINE_END_PROFILE;
+    ENGINE_BEGIN_PROFILE("Frame Cap");
+    const float frameCap = 1.0f / 60.0f;
+    float delta = Time::RealtimedDeltaTime();
+    if (delta < frameCap)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds((int)((frameCap - delta) * 1000)));
+    }
+    ENGINE_END_PROFILE;
 
     Time::Tick();
     GetFrameContext().BeginFrame();

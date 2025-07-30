@@ -5,7 +5,7 @@ cull: none
 depth:
     testEnable: True
     writeEnable: False
-    compareOp: equal
+    compOp: greaterOrEqual
 #endif
 
 // https://www.shadertoy.com/view/wslyWs
@@ -63,7 +63,7 @@ VertexOutput Vert(VertexInput input)
     float4x4 projection = perScene.camera.projection;
     output.position = mul(projection, mul(view, float4(input.position, 1.0)));
     output.positionOS = input.position.xyz;
-    output.position.z = output.position.w;
+    output.position.z = 0;
 
     return output;
 }
