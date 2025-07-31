@@ -1,12 +1,13 @@
 #pragma once
 #include "DepthAwareBilateralUpsampler.hpp"
+#include "Pass.hpp"
 #include "Rendering/Material.hpp"
 #include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 #include "Rendering/Shader2.hpp"
 
 namespace Rendering::Passes
 {
-class SSAO
+class SSAO : public RenderingModule
 {
 public:
     SSAO();
@@ -21,6 +22,7 @@ public:
     );
 
     const Gfx::RG::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
+    bool DebugBlit(Gfx::RG::ImageIdentifier& src) override;
 
 private:
     ObjPtr<Shader2> ssaoShader;
@@ -30,5 +32,12 @@ private:
     Gfx::RG::ImageIdentifier ssaoDownSampled = Gfx::RG::ImageIdentifier("SSAO Down Sampled");
     Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
     Gfx::RG::ImageIdentifier* result = nullptr;
+
+    /**
+     * @brief lazily initialized debug image
+     */
+    std::unique_ptr<Gfx::Image> debugImage;
+
+    Gfx::Image& GetDebugImage();
 };
 } // namespace Rendering::Passes

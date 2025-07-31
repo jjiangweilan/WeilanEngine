@@ -54,6 +54,7 @@ public:
     {
         bool enabled = true;
         bool enableUpscaler = true;
+        bool debug_showNormal = false;
         float strength = 1.0;
         float scaling = 3.0f;
         float falloff = 1.5f;
@@ -66,6 +67,7 @@ public:
         {
             SERIALIZE(s, enabled);
             SERIALIZE(s, enableUpscaler);
+            SERIALIZE(s, debug_showNormal);
             SERIALIZE(s, strength);
             SERIALIZE(s, scaling);
             SERIALIZE(s, falloff);
@@ -79,6 +81,7 @@ public:
         {
             DESERIALIZE(s, enabled);
             DESERIALIZE(s, enableUpscaler);
+            DESERIALIZE(s, debug_showNormal);
             DESERIALIZE(s, strength);
             DESERIALIZE(s, scaling);
             DESERIALIZE(s, falloff);

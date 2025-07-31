@@ -87,4 +87,8 @@ void SSAO::Execute(
     result = &ssao;
 }
 
+Gfx::Image& SSAO::GetDebugImage() {}
+
+bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& src) {}
+
 } // namespace Rendering::Passes

@@ -38,7 +38,7 @@ void Main(uint3 dispatchThreadID : SV_DispatchThreadID)
         {
             float2 lowResUv = lowResCentralUv + float2(x, y) * input.lowResTexSize.zw;
             float lowDepth = input.lowDepth.SampleLevel(input.sampler_point_clamp, lowResUv, 0).r;
-            float lowColor = input.lowColor.SampleLevel(input.sampler_linear_clamp, lowResUv, 0).r;
+            float lowColor = input.lowColor.SampleLevel(input.sampler_point_clamp, lowResUv, 0).r;
             float linearLowResDepth = LinearEyeDepth(lowDepth, perScene.camera.cameraZBufferParams);
 
             float2 highResPixel = lowResUv * input.highResTexSize.xy;

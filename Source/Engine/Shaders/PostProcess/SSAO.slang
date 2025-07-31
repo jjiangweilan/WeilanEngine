@@ -3,11 +3,15 @@ import WeilanEngine;
 import Library.CommonUtils;
 import Library.PerScene;
 
+static extern const bool DEBUG_show_normal_reconstruction = false;
+
 #define GTAO_SLICE_COUNT 16
 #define GTAO_DIRECTION_SAMPLE_COUNT 8
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f
+
+#define NORMAL_RECONSTRUCTION_INPLACE 1
 
 enum SSAOType
 {
@@ -26,6 +30,7 @@ struct GTAOParameter
     float bias;
 
     Texture2D depthTex;
+    RWTexture2D<float4> debugTex;
     SamplerState sampler_point_clamp;
 };
 
@@ -71,7 +76,10 @@ float UpdateHorizon(VertexOutput input, float2 omega, int side, float3 posVS, fl
 float GTAO(VertexOutput input)
 {
     float3 posVS;
+
+#if NORMAL_RECONSTRUCTION_INPLACE
     float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
+#endif
     float3 viewVS = normalize(-posVS);
 
     float visibility = 0;
