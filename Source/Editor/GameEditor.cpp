@@ -169,7 +169,7 @@ static void ProfileTree(const ProfileScope& scope, int id)
     {
         for (auto& child : scope.children)
         {
-            ProfileTree(child, ++id);
+            ProfileTree(*child, ++id);
         }
         ImGui::TreePop();
     }
@@ -234,7 +234,7 @@ void GameEditor::ShowGameProfiler(Profiler& cpuProfiler)
         auto selectedPos = ImPlot::GetPlotMousePos();
         if (!frameProfiles.empty())
         {
-            DynamicArray<float> frameTimes = profiler.GetFlattendFrametime();
+            std::vector<float> frameTimes = profiler.GetFlattendFrametime();
             ImPlot::PlotLine(profileName, frameTimes.data(), frameTimes.size(), 1, 0);
             if (profiler.IsPaused())
                 ImPlot::PlotInfLines("selected", &selectedFrame, 1);
@@ -258,7 +258,7 @@ void GameEditor::ShowGameProfiler(Profiler& cpuProfiler)
     {
         if (actuallySelectedFrame >= 0 && actuallySelectedFrame < frameProfiles.size())
         {
-            ProfileTree(frameProfiles[actuallySelectedFrame], 0);
+            ProfileTree(*frameProfiles[actuallySelectedFrame], 0);
         }
     }
 

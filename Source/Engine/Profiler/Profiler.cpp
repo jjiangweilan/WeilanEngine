@@ -6,16 +6,16 @@ Profiler& Profiler::GetSingleton()
     return profiler;
 }
 
-DynamicArray<float> Profiler::GetFlattendFrametime() const
+std::vector<float> Profiler::GetFlattendFrametime() const
 {
-    DynamicArray<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
+    std::vector<float> frameTimes(Profiler::MAX_FRAME_TRACKED, 0);
     int oldestFrameIndex = (GetLatestFrameIndex() + 1) % Profiler::MAX_FRAME_TRACKED; // get oldest index
     if (GetTrackCycles() == 0) [[unlikely]]
     {
         for (int i = 0; i < oldestFrameIndex; i++)
         {
             auto& rootScopeProfile = frameProfiles[i];
-            frameTimes[i] = rootScopeProfile.GetMilliseconds();
+            frameTimes[i] = rootScopeProfile->GetMilliseconds();
         }
     }
     else
@@ -23,7 +23,7 @@ DynamicArray<float> Profiler::GetFlattendFrametime() const
         for (int i = 0; i < Profiler::MAX_FRAME_TRACKED; i++)
         {
             auto& rootScopeProfile = frameProfiles[oldestFrameIndex];
-            frameTimes[i] = rootScopeProfile.GetMilliseconds();
+            frameTimes[i] = rootScopeProfile->GetMilliseconds();
             oldestFrameIndex++;
             oldestFrameIndex %= Profiler::MAX_FRAME_TRACKED;
         }
@@ -47,17 +47,17 @@ void Profiler::BeginManual(std::string_view label, uint64_t timestamp)
     if (actuallyPaused)
         return;
     auto now = std::chrono::time_point<std::chrono::nanoseconds>(std::chrono::nanoseconds(timestamp));
-    ProfileScope newScope{std::string(label), now, 0, {}};
+    std::unique_ptr<ProfileScope> newScope = std::make_unique<ProfileScope>(ProfileScope(std::string(label), now, 0, {}));
 
     if (!activeScopes.empty())
     {
-        activeScopes.top()->children.push_back(newScope);
-        activeScopes.push(&activeScopes.top()->children.back());
+        activeScopes.top()->children.push_back(std::move(newScope));
+        activeScopes.push(activeScopes.top()->children.back().get());
     }
     else
     {
-        frameProfiles[currentFrame] = newScope;
-        activeScopes.push(&frameProfiles[currentFrame]);
+        frameProfiles[currentFrame] = std::move(newScope);
+        activeScopes.push(frameProfiles[currentFrame].get());
     }
 }
 void Profiler::EndManual(uint64_t timestamp)

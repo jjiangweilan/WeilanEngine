@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stack>
 #include <string>
-#include "Libs/DynamicArray.hpp"
+#include <memory>
 
 struct ProfileScope
 {
@@ -11,7 +11,7 @@ struct ProfileScope
     std::chrono::time_point<std::chrono::nanoseconds> startTime;
     int64_t totalTime = 0;
     float GetMilliseconds() const { return totalTime * 1e-3f; }
-    DynamicArray<ProfileScope> children;
+    std::vector<std::unique_ptr<ProfileScope>> children;
 };
 
 class Profiler
@@ -37,12 +37,12 @@ public:
 
     const ProfileScope& GetLatestProfile() const
     {
-        return frameProfiles[inProfiling ? currentFrame : currentFrame - 1];
+        return *frameProfiles[inProfiling ? currentFrame : currentFrame - 1];
     }
 
-    DynamicArray<float> GetFlattendFrametime() const;
+    std::vector<float> GetFlattendFrametime() const;
     int GetLatestFrameIndex() const { return inProfiling ? currentFrame : currentFrame - 1; }
-    const DynamicArray<ProfileScope>& GetFrameProfiles() const { return frameProfiles; }
+    const std::vector< std::unique_ptr<ProfileScope>>& GetFrameProfiles() const { return frameProfiles; }
     int GetFrameIndex() const { return currentFrame; }
     int GetTrackCycles() const { return trackCycles; }
 
@@ -53,7 +53,7 @@ private:
     bool actuallyPaused = false;
     bool inProfiling = false;
     std::stack<ProfileScope*> activeScopes;
-    DynamicArray<ProfileScope> frameProfiles;
+    std::vector<std::unique_ptr<ProfileScope>> frameProfiles;
     int currentFrame = 0;
     int trackCycles = 0;
 };

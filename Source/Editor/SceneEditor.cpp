@@ -681,7 +681,7 @@ bool SceneEditor::Tick()
     return open;
 }
 
-void SceneEditor::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj)
+void SceneEditor::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4 proj)
 {
 
     if (ImGui::IsWindowFocused() && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -718,9 +718,19 @@ void SceneEditor::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& de
 
     ImGui::Checkbox("Snap to xy", &gameObjectConfigs.useSnap);
     glm::mat4 view = camera.GetViewMatrix();
+
+    float4x4 reverzedZFix =
+    {
+        1,0,0,0,
+        0,1,0,0,
+        0,0,-1,0,
+        0,0,1,1
+    };
+    float4x4 imGuizmoProj = reverzedZFix * proj;
+
     ImGuizmo::Manipulate(
         &view[0][0],
-        &proj[0][0],
+        &imGuizmoProj[0][0],
         currentGizmoOperation,
         currentGizmoMode,
         &matrix[0][0],

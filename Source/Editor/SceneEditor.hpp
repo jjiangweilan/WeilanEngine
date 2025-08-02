@@ -138,7 +138,7 @@ private:
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
 
     void CreateRenderData(uint32_t width, uint32_t height);
-    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4& proj);
+    void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4 proj);
     void ChangeGameScreenResolution(glm::ivec2 resolution);
     void FocusOnObject(Camera& camera, GameObject& gameObject);
     Camera* GetCurrentlyActiveCamera();
