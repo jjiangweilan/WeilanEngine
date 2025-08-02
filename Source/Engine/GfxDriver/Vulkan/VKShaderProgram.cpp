@@ -155,7 +155,7 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::Pipel
     samplerCreateInfo.anisotropyEnable = samplerConfig.anisotropic;
     samplerCreateInfo.maxAnisotropy = 0;
     samplerCreateInfo.compareEnable = samplerConfig.enbaleCompare;
-    samplerCreateInfo.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    samplerCreateInfo.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     samplerCreateInfo.minLod = 0;
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
     samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;

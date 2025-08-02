@@ -20,11 +20,11 @@ public:
     void SetLightType(LightType type);
     void SetRange(float range) { this->range = range; }
     void SetIntensity(float intensity) { this->intensity = intensity; }
+
+    [[deprecated("Implementation moved to ShadowRenderer")]]
     glm::mat4 WorldToShadowMatrix(const glm::vec3& follow);
 
     LightType GetLightType() const { return lightType; }
-
-    Frustum GetLightFrusutmPlanes(const float3& follow);
 
     float GetRange() const { return range; }
     float GetIntensity() const { return intensity; }

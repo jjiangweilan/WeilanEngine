@@ -1,5 +1,5 @@
-static const float NearZero = 0.000001;
-static const float M_PI = 3.1415926;
+static const float NearZero = 0.00000001;
+static const float M_PI = 3.14159265359;
 
 import Library.PerScene;
 import Shadows;
@@ -118,20 +118,22 @@ float D_GGX_half(float roughness, float NoH, const float3 n, const float3 h) {
     return saturateMediump(d);
 }
 
-// original
-float D_GGX(float NoH, float roughness) {
-    // float r2 = roughness * roughness;
-    // r2 / (M_PI * pow2(pow2(dotNH) * (r2 - 1) + 1));
-    float a = NoH * roughness;
-    float k = roughness / (1.0 - NoH * NoH + a * a);
-    return k * k * (1.0 / M_PI);
+float Pow2(float x, float y)
+{
+    return x * y;
 }
 
-float V_SmithGGXCorrelated(float NoV, float NoL, float roughness) {
-    float a2 = roughness * roughness;
-    float GGXV = NoL * sqrt(NoV * NoV * (1.0 - a2) + a2);
-    float GGXL = NoV * sqrt(NoL * NoL * (1.0 - a2) + a2);
-    return 0.5 / (GGXV + GGXL);
+float D_GGX(float NoH, float roughness) {
+    float r2 = roughness * roughness;
+    return r2 / (M_PI * Pow2(NoH * NoH * (r2 - 1) + 1));
+}
+
+float G_SmithGGX(float NoV, float NoL, float roughness) {
+    float k = Pow2(roughness + 1) / 8;
+    float Gv = NoV / ((NoV)*(1-k) + k);
+    float Gl = NoL / ((NoL)*(1-k) + k);
+
+    return Gv * Gl;
 }
 
 float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic, float roughness, out float3 F)
@@ -142,15 +144,15 @@ float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic,
     float dotNL = clamp(dot(n, l), NearZero, 1);
     float dotVH = clamp(dot(v, h), NearZero, 1);
 
-    float D = D_GGX_half(roughness, dotNH, n, h);
+    float D = D_GGX(dotNH, roughness);
 
     // geometry
-    float V = V_SmithGGXCorrelated(dotNV, dotNL, roughness);
+    float G = G_SmithGGX(dotNV, dotNL, roughness);
 
     // fresnel
     F = Fresnel(albedo, metallic, dotVH);
 
-    float3 brdf = V * D * F;
+    float3 brdf = G * D * F / (4 * dotNL * dotNV);
     return brdf;
 }
 
@@ -165,6 +167,7 @@ float3 StandardLightShading(Light light, MainLightShadow mainLightShadow, Shadin
         float dotNL = max(dot(objNormal, l), NearZero);
         float3 F = 0.0f;
         float3 specularBrdf = SpecularBRDF(object.baseColor, l, object.viewDir, object.normalWS, object.metallic, object.roughness, F);
+
         float3 kd = 1 - F;
         kd *= 1 - object.metallic;
 
@@ -177,7 +180,7 @@ float3 StandardLightShading(Light light, MainLightShadow mainLightShadow, Shadin
             falloff = PointLightInverseSquareFalloff(distance(lightPos.xyz, object.positionWS.xyz),  light.pointLightTerm2);
         }
 
-        float3 lighting = inputLight * (light.ambientScale * kd * object.baseColor / M_PI * gi.ao + specularBrdf) * falloff; // this looks wrong for metal, metal shouldn't diffuse too much
+        float3 lighting = inputLight * (kd * object.baseColor / M_PI * gi.ao + specularBrdf) * falloff; // this looks wrong for metal, metal shouldn't diffuse too much
         // possible solution https://bruop.github.io/ibl/
         // const float DIELECTRIC_SPECULAR = 0.04;
         // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)

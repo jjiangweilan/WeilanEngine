@@ -54,16 +54,19 @@ void SSAO::Execute(
 
         // Dispatch SSAO
         pass.SetAttachment(0, ssaoSrc);
+        cmd->BeginLabel("SSAO Gather", {0.215, 0.567, 0.763, 1.0});
         cmd->BeginRenderPass(pass, clears);
         auto shaderProgram = mat.GetShaderProgram();
         cmd->BindResource(mat.GetSet(Gfx::DescriptorSetSemantics::Material), mat.GetShaderResource());
         cmd->BindShaderProgram(shaderProgram, shaderProgram->GetDefaultShaderConfig());
         cmd->Draw(6, 1, 0, 0);
         cmd->EndRenderPass();
+        cmd->EndLabel();
 
         // upscale
         if (setting->ssao.enableUpscaler)
         {
+            cmd->BeginLabel("Upsample", {0.215, 0.567, 0.763, 1.0});
             DepthAwareBilateralUpsampler::GPUInput upscalerInput{
                 .highResTexSize = {fullDesc.GetWidth(), fullDesc.GetHeight()},
                 .kernelSize = setting->ssao.bilateralUpScaleKernelSize,
@@ -72,6 +75,7 @@ void SSAO::Execute(
             };
             upscaler.Setup(ssaoDownSampled, halfResDepth, fullResDepth, ssao, upscalerInput);
             upscaler.Execute(*cmd);
+            cmd->EndLabel();
         }
     }
     else
@@ -87,8 +91,14 @@ void SSAO::Execute(
     result = &ssao;
 }
 
-Gfx::Image& SSAO::GetDebugImage() {}
+Gfx::Image& SSAO::GetDebugImage()
+{
+    return *debugImage;
+}
 
-bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& src) {}
+bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& src)
+{
+    return false;
+}
 
 } // namespace Rendering::Passes

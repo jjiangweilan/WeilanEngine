@@ -157,5 +157,7 @@ float4 FragmentMain(VertexOutput input) : SV_Target
         color += StandardLightShading(perScene.scene.lights[i], perScene.mainLightShadow, shadingObject, mainLightShadowData, gi);
     }
 
+    color += shadingObject.baseColor.xyz * perScene.GetMainLight().ambientScale / M_PI * gi.ao;
+
     return float4(color, 1);
 }

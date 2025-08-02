@@ -5,13 +5,19 @@ import Library.PerScene;
 
 static extern const bool DEBUG_show_normal_reconstruction = false;
 
-#define GTAO_SLICE_COUNT 16
-#define GTAO_DIRECTION_SAMPLE_COUNT 8
+#define GTAO_SLICE_COUNT 8
+#define GTAO_DIRECTION_SAMPLE_COUNT 4
 #define GTAO_PI 3.1415926f
 #define GTAO_PI_HALF 1.5707963267f
 #define GTAO_PI_2 6.283185307f
 
 #define NORMAL_RECONSTRUCTION_INPLACE 1
+
+// It seems there is an un-normalized term which is missing from the original GTAO paper
+// Sims proposed a different way to normalize the final result which is described below
+// using this can help eliminate unwanted occlusion
+// https://x.com/BenSimsTech/status/1936667581060182395
+#define NORMALIZATION_CORRECTION 1
 
 enum SSAOType
 {
@@ -83,6 +89,9 @@ float GTAO(VertexOutput input)
     float3 viewVS = normalize(-posVS);
 
     float visibility = 0;
+#if NORMALIZATION_CORRECTION
+    float normalizationCorrection = 0.0f;
+#endif
 
     for (int slice = 0; slice < GTAO_SLICE_COUNT; ++slice)
     {
@@ -114,12 +123,21 @@ float GTAO(VertexOutput input)
         finalSide.x = cosN + 2 * hSide.x * sin(n) - cos(2 * hSide.x - n);
         finalSide.y = cosN + 2 * hSide.y * sin(n) - cos(2 * hSide.y - n);
         visibility += 0.25 * projNormalLength * (finalSide.x + finalSide.y);
+
+        #if NORMALIZATION_CORRECTION
+        normalizationCorrection += projNormalLength * (n * sin(n) + cosN);
+        #endif
     }
 
+#if NORMALIZATION_CORRECTION
+    visibility /= normalizationCorrection;
+#else
     visibility /= GTAO_SLICE_COUNT;
+#endif
 
-    visibility = (1 - visibility) * perMaterial.strength;
-    return saturate(1 - visibility);
+    visibility = pow(visibility, perMaterial.strength);
+    // visibility = (1 - visibility) * perMaterial.strength;
+    return saturate(visibility);
 }
 #endif
 

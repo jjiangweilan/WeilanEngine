@@ -95,9 +95,3 @@ glm::vec3 Light::GetLightDirection()
     glm::vec3 pos = glm::normalize(glm::vec3(model[2]));
     return pos;
 }
-
-Frustum Light::GetLightFrusutmPlanes(const float3& follow)
-{
-    auto worldToShadow = WorldToShadowMatrix(follow);
-    return Frustum(worldToShadow);
-}   

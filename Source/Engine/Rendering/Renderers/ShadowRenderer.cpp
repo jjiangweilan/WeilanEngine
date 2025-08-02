@@ -82,8 +82,8 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
         shadowFrustumAABB.max.x,
         shadowFrustumAABB.max.y,
         shadowFrustumAABB.min.y,
-        shadowFrustumAABB.min.z,
-        shadowFrustumAABB.max.z
+        shadowFrustumAABB.max.z,
+        shadowFrustumAABB.min.z
     );
     auto ret = proj * worldToLight;
 
@@ -122,7 +122,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     {
         if (updateMainLightShadow)
         {
-            Gfx::ClearValue shadowMapClears[] = {{1.0f, 0}};
+            Gfx::ClearValue shadowMapClears[] = {{0.0f, 0}};
             cmd.BeginRenderPass(pass, shadowMapClears);
             auto program = shadowMapShader->GetShaderProgram();
             auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
