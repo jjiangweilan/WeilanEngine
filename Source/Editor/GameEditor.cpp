@@ -1012,6 +1012,7 @@ void GameEditor::ShowEngineResourceDebug()
             ImGui::TableSetupColumn("type");
             ImGui::TableSetupColumn("UUID");
             ImGui::TableSetupColumn("asset path");
+            ImGui::TableHeadersRow();
 
             for (auto& obj : allObjects)
             {
@@ -1066,6 +1067,7 @@ void GameEditor::ShowEngineResourceDebug()
             ImGui::TableSetupColumn("loaded");
             ImGui::TableSetupColumn("asset path");
             ImGui::TableSetupColumn("delete");
+            ImGui::TableHeadersRow();
 
             int uid = 0;
             for (auto& ad : assetDatas)
