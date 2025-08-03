@@ -35,7 +35,7 @@ TEST_F(JobSystemTestFixture, ScehduleAndWaitAll) {
     auto start = std::chrono::high_resolution_clock::now();
     
     std::atomic<int> counter = 0;
-    auto job = jobSystem->Scehdule([&counter] { counter++; });
+    auto job = jobSystem->Schedule([&counter] { counter++; });
     job.Wait();
     EXPECT_EQ(counter, 1);
     
@@ -51,7 +51,7 @@ TEST_F(JobSystemTestFixture, MultipleJobs) {
     std::atomic<int> counter = 0;
     std::vector<JobHandle> jobs;
     for (int i = 0; i < 10; ++i) {
-        jobs.push_back(jobSystem->Scehdule([&counter] { counter++; }));
+        jobs.push_back(jobSystem->Schedule([&counter] { counter++; }));
     }
     for (auto& job : jobs) {
         job.Wait();
@@ -76,7 +76,7 @@ TEST_F(JobSystemTestFixture, TryPopAndStealJob) {
     int counter = 0;
     std::vector<JobHandle> jobs;
     for (int i = 0; i < 20; ++i) {
-        jobs.push_back(jobSystem->Scehdule([&counter] { counter++; }));
+        jobs.push_back(jobSystem->Schedule([&counter] { counter++; }));
     }
     for (auto& job : jobs) {
         job.Wait();
@@ -99,11 +99,11 @@ TEST_F(JobSystemTestFixture, NestedJobScheduling) {
     
     // Create parent jobs that will schedule child jobs
     for (int i = 0; i < 5; ++i) {
-        parentJobs.push_back(jobSystem->Scehdule([this, &counter, &childJobs, &lk, i] {
+        parentJobs.push_back(jobSystem->Schedule([this, &counter, &childJobs, &lk, i] {
             // Each parent job schedules 2 child jobs
             for (int j = 0; j < 2; ++j) {
                 std::lock_guard l(lk);
-                childJobs.push_back(jobSystem->Scehdule([&counter] {
+                childJobs.push_back(jobSystem->Schedule([&counter] {
                     counter++;
                 }));
             }

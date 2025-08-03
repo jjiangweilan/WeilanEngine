@@ -1018,9 +1018,9 @@ void GameEditor::ShowEngineResourceDebug()
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                auto asAsset = dynamic_cast<Asset*>(std::get<1>(obj));
+                auto engineObject = std::get<1>(obj);
                 std::string uuid = std::get<0>(obj).ToString();
-                const std::string& name = asAsset ? asAsset->GetName() : uuid;
+                const std::string& name = engineObject ? engineObject->GetName() : uuid;
                 ImGui::Text("%s", name.c_str());
 
                 ImGui::TableSetColumnIndex(1);
@@ -1032,6 +1032,7 @@ void GameEditor::ShowEngineResourceDebug()
                 ImGui::Text("%s", uuid.c_str());
 
                 ImGui::TableSetColumnIndex(3);
+                Asset* asAsset = dynamic_cast<Asset*>(engineObject);
                 if (asAsset)
                 {
                     ImGui::Text("%s", AssetDatabase::Singleton()->GetAssetPath(asAsset->GetUUID()).string().c_str());
@@ -1059,9 +1060,8 @@ void GameEditor::ShowEngineResourceDebug()
             [](AssetDataInfo& l, AssetDataInfo& r) { return std::get<3>(l) < std::get<3>(r); }
         );
 
-        if (ImGui::BeginTable("AssetData Table", 5))
+        if (ImGui::BeginTable("AssetData Table", 4))
         {
-            ImGui::TableSetupColumn("uuid");
             ImGui::TableSetupColumn("filename");
             ImGui::TableSetupColumn("loaded");
             ImGui::TableSetupColumn("asset path");
@@ -1073,16 +1073,19 @@ void GameEditor::ShowEngineResourceDebug()
                 ImGui::PushID(uid++);
                 ImGui::TableNextRow();
 
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", std::get<3>(ad).c_str());
-
                 // filename
-                ImGui::TableSetColumnIndex(1);
+                ImGui::TableSetColumnIndex(0);
                 std::filesystem::path& path = std::get<2>(ad);
                 ImGui::Text("%s", path.filename().string().c_str());
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+                {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("GUID: %s", std::get<3>(ad).c_str());
+                    ImGui::EndTooltip();
+                }
 
                 // loaded
-                ImGui::TableSetColumnIndex(2);
+                ImGui::TableSetColumnIndex(1);
                 auto objIter = objs.find(std::get<1>(ad));
                 bool loaded = objIter != objs.end();
                 ImGui::PushStyleColor(ImGuiCol_Text, loaded ? ImVec4{0, 1, 0, 1} : ImVec4{1, 0, 0, 1});
@@ -1090,7 +1093,7 @@ void GameEditor::ShowEngineResourceDebug()
                 ImGui::PopStyleColor();
 
                 // asset path
-                ImGui::TableSetColumnIndex(3);
+                ImGui::TableSetColumnIndex(2);
                 ImGui::PushStyleColor(
                     ImGuiCol_Text,
                     (std::filesystem::exists(std::get<0>(ad)->GetAssetAbsolutePath()) || !std::get<0>(ad)->IsValid())
@@ -1098,13 +1101,23 @@ void GameEditor::ShowEngineResourceDebug()
                         : ImVec4{1, 0, 0, 1}
                 );
                 ImGui::Text("%s", path.string().c_str());
+                
+                // Add hover tooltip with delay for full path
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
+                {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Full path: %s", path.string().c_str());
+                    ImGui::EndTooltip();
+                }
+                
                 ImGui::PopStyleColor();
 
-                ImGui::TableSetColumnIndex(4);
+                ImGui::TableSetColumnIndex(3);
                 if (ImGui::Button("Delete"))
                 {
                     AssetDatabase::Singleton()->RemoveAssetData(std::get<0>(ad));
                 }
+
                 ImGui::PopID();
             }
             ImGui::EndTable();
