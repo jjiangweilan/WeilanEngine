@@ -16,6 +16,7 @@ public:
     // Asset* LoadAsset(std::filesystem::path path);
     // Asset* LoadAssetByID(const UUID& uuid);
 
+    void LoadAssetAsync(const std::filesystem::path& path);
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
     DynamicArray<uint8_t> ReadRawAssetData(const UUID& uuid);
@@ -143,6 +144,7 @@ private:
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
     void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);
+    void LoadAssetDatas();
 
     // used to set instance
     friend class WeilanEngine;
