@@ -106,40 +106,53 @@ void DrawList::Add(MeshRenderer& meshRenderer)
     }
 }
 
+void DrawList::Lock()
+{
+    sorted.clear();
+    for (int i = 0; i < this->size(); ++i)
+    {
+        sorted.push_back(i);
+    }
+}
+
 void DrawList::Sort(const glm::vec3& cameraPos)
 {
     std::sort(
-        this->begin(),
-        this->end(),
-        [&cameraPos](const SceneObjectDrawData& left, const SceneObjectDrawData& right)
+        sorted.begin(),
+        sorted.end(),
+        [&cameraPos, this](int left, int right)
         {
-            return glm::distance2(cameraPos, glm::vec3(left.model[3])) <
-                   glm::distance2(cameraPos, glm::vec3(right.model[3]));
+            return glm::distance2(cameraPos, glm::vec3(this->at(left).model[3])) <
+                   glm::distance2(cameraPos, glm::vec3(this->at(right).model[3]));
         }
     );
 
     // partition transparent object to the end
     auto transparentIter = std::stable_partition(
-        this->begin(),
-        this->end(),
-        [](const SceneObjectDrawData& val)
-        { return (*val.shaderConfig)->color.blends.empty() ? true : !(*val.shaderConfig)->color.blends[0].blendEnable; }
+        sorted.begin(),
+        sorted.end(),
+        [this](int val)
+        {
+            return (*this->at(val).shaderConfig)->color.blends.empty()
+                       ? true
+                       : !(*this->at(val).shaderConfig)->color.blends[0].blendEnable;
+        }
     );
-    this->transparentIndex = std::distance(this->begin(), transparentIter);
+    this->transparentIndex = std::distance(sorted.begin(), transparentIter);
 
     // partition opaque and alpha tested objects
     auto alphaTestIter = std::stable_partition(
-        this->begin(),
+        sorted.begin(),
         transparentIter,
-        [](const SceneObjectDrawData& val)
+        [this](int val)
         {
             static std::string alphaTest = "_AlphaTest";
 
-            auto features = val.material->GetCachedShaderProgramFeatureUsed();
+            auto features = this->at(val).material->GetCachedShaderProgramFeatureUsed();
             return std::find(features.begin(), features.end(), alphaTest) == features.end();
         }
     );
-    this->alphaTestIndex = std::distance(this->begin(), alphaTestIter);
+    this->alphaTestIndex = std::distance(sorted.begin(), alphaTestIter);
     this->opaqueIndex = 0;
 }
 
@@ -160,7 +173,7 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
 {
     for (int i = from; i < to; ++i)
     {
-        auto& draw = this->at(i);
+        auto& draw = this->at(sorted.at(i));
         auto shaderProgram = draw.material->GetShaderProgram();
         if (shaderProgram)
         {
@@ -180,14 +193,13 @@ void DrawList::DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const
 
 void DrawList::SortByDistance(const glm::vec3& cameraPos)
 {
-
     std::sort(
-        this->begin(),
-        this->end(),
-        [&cameraPos](const SceneObjectDrawData& left, const SceneObjectDrawData& right)
+        sorted.begin(),
+        sorted.end(),
+        [&cameraPos, this](int left, int right)
         {
-            return glm::distance2(cameraPos, glm::vec3(left.model[3])) <
-                   glm::distance2(cameraPos, glm::vec3(right.model[3]));
+            return glm::distance2(cameraPos, glm::vec3(this->at(left).model[3])) <
+                   glm::distance2(cameraPos, glm::vec3(this->at(right).model[3]));
         }
     );
 }

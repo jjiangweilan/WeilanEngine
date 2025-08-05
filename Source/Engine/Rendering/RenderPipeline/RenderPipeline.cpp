@@ -62,6 +62,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         sceneDrawList.Add(renderingScene.GetMeshRenderers());
     }
+
+    sceneDrawList.Lock();
     sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
 
     ENGINE_END_PROFILE
@@ -77,7 +79,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.globalResource.get());
 
     // Shadow Pass
-    shadowRenderer->Execute(*cmd, renderingData, sceneDrawList);
+    shadowRenderer->Execute(*cmd, renderingData);
 
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);

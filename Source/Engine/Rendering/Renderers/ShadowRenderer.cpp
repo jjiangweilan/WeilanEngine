@@ -92,7 +92,7 @@ float4x4 ShadowRenderer::GetShadowToWorldMatrix(RenderingData& renderingData)
     return ret;
 }
 
-void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, DrawList& sceneDrawList)
+void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData)
 {
     auto mainLight = renderingData.GetMainLight();
     if (!mainLight)
@@ -113,6 +113,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
         shadowDrawList.Add(renderingData.scene->GetRenderingScene().GetMeshRenderers());
     }
 
+    shadowDrawList.Lock();
     shadowDrawList.SortByDistance(
         renderingData.mainCamera->GetGameObject()->GetPosition() -
         mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane()
@@ -127,8 +128,9 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
             auto program = shadowMapShader->GetShaderProgram();
             auto programSkinned = shadowMapShaderSkinned->GetShaderProgram();
 
-            for (auto& draw : shadowDrawList)
+            for (auto& drawIdx : shadowDrawList.GetSortedIndices())
             {
+                auto& draw = shadowDrawList[drawIdx];
                 auto programUsed = program;
                 [[unlikely]]
                 if (draw.skinned)
