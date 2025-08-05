@@ -95,6 +95,8 @@ bool WeilanEngine::BeginFrame()
 {
     ENGINE_BEGIN_FRAME_PROFILE
 
+    ENGINE_BEGIN_PROFILE("Begin Frame");
+
     ENGINE_BEGIN_PROFILE("Frame Cap");
     const float frameCap = 1.0f / 60.0f;
     float delta = Time::RealtimedDeltaTime();
@@ -102,8 +104,9 @@ bool WeilanEngine::BeginFrame()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds((int)((frameCap - delta) * 1000)));
     }
-    ENGINE_END_PROFILE;
+    ENGINE_END_PROFILE; // Frame Cap
 
+    ENGINE_BEGIN_PROFILE("Prepare Frame");
     Time::Tick();
     GetFrameContext().BeginFrame();
 
@@ -111,15 +114,20 @@ bool WeilanEngine::BeginFrame()
     // poll events, this is every important
     // the events are polled by SDL, somehow to show up the the window, we need it to poll the events!
     event->Poll();
+    ENGINE_END_PROFILE; // Prepare Frame
 
-    if (!gfxDriver->BeginFrame())
-        return false;
+    ENGINE_BEGIN_PROFILE("GfxDriver BeginFrame");
+    bool shouldBeginFrame = gfxDriver->BeginFrame();
+    ENGINE_END_PROFILE; // GfxDriver BeginFrame
 
-    return true;
+    ENGINE_END_PROFILE; // Begin Frame
+
+    return shouldBeginFrame;
 }
 
 void WeilanEngine::EndFrame()
 {
+    ENGINE_BEGIN_PROFILE("End Frame");
     event->Reset();
 
     // submit anything in the active command and present the surface
@@ -135,6 +143,9 @@ void WeilanEngine::EndFrame()
     Graphics::GetSingleton().ClearDraws();
     DelayDestroy::Singleton()->Flush();
     GetFrameContext().EndFrame();
+
+    ENGINE_END_PROFILE; // End Frame
+
     ENGINE_END_FRAME_PROFILE
 }
 

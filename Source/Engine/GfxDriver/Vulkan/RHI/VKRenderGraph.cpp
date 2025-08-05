@@ -530,10 +530,8 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
             return 0;
         }
 
-        using ImgSubResourceArray = std::pmr::vector<Gfx::ImageSubresourceRange>;
-        LocalStackMemoryAllocator stackAllocator;
-        ImgSubResourceArray remainingRange({currentUsage.range}, &stackAllocator);
-        ImgSubResourceArray remainingRangeSwap(&stackAllocator);
+        std::vector<Gfx::ImageSubresourceRange> remainingRange({currentUsage.range});
+        std::vector<Gfx::ImageSubresourceRange> remainingRangeSwap{};
         for (;;)
         {
             if (usageIndex == 0)

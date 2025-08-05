@@ -110,7 +110,7 @@ public:
 
     static const char* ShaderPicker(const char* shaderName);
 
-    static bool DragDropSource(const char* text, std::function<void(Object*& obj)> onDrag)
+    static bool DragDropSource(const char* text, std::function<void(Object*& obj)> onDrag, ImGuiDragDropFlags flags = 0)
     {
         bool isValid = false;
         if (ImGui::BeginDragDropSource())
@@ -130,14 +130,14 @@ public:
         return isValid;
     }
 
-    static bool DragDropSource(const std::filesystem::path& path)
+    static bool DragDropSource(const std::filesystem::path& path, ImGuiDragDropFlags flags = 0)
     {
         std::string asString = path.string();
         if (asString.size() > 1024)
             return false;
 
         bool isValid = false;
-        if (ImGui::BeginDragDropSource())
+        if (ImGui::BeginDragDropSource(flags))
         {
             DragDrop d;
             strcpy(d.pathString, asString.data());
@@ -151,7 +151,7 @@ public:
         return isValid;
     }
 
-    static bool DragDropSource(const std::filesystem::path& path, std::function<void(Object*& obj)> onDrag)
+    static bool DragDropSource(const std::filesystem::path& path, std::function<void(Object*& obj)> onDrag, ImGuiDragDropFlags flags = 0)
     {
         std::string asString = path.string();
         if (asString.size() > 1024)
@@ -159,7 +159,7 @@ public:
 
         bool isValid = false;
 
-        if (ImGui::BeginDragDropSource())
+        if (ImGui::BeginDragDropSource(flags))
         {
             DragDrop d;
             Object* payload = nullptr;
@@ -186,10 +186,10 @@ public:
         return isValid;
     }
 
-    static bool DragDropSource(const char* text, Object* object)
+    static bool DragDropSource(const char* text, Object* object, ImGuiDragDropFlags flags = 0)
     {
         bool isValid = false;
-        if (ImGui::BeginDragDropSource())
+        if (ImGui::BeginDragDropSource(flags))
         {
             DragDrop d;
             d.objectPayload = object;

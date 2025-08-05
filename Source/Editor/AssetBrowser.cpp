@@ -30,7 +30,7 @@ void AssetBrowser::Show(bool& isOpen)
 
         ShowMenuBar();
 
-        if (ImGui::BeginPopupContextItem())
+        if (ImGui::BeginPopupContextItem("Asset Browser Context Popup"))
         {
             if (ImGui::MenuItem("Create Folder"))
             {
@@ -505,7 +505,7 @@ void AssetBrowser::ShowAssetIconItem(
     if (isDirectory)
     {
         auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path());
-        GUI::DragDropSource(relative);
+        GUI::DragDropSource(relative, ImGuiDragDropFlags_SourceAllowNullID);
 
         std::filesystem::path pathStr;
         if (GUI::DragDropTarget(pathStr))
@@ -529,7 +529,8 @@ void AssetBrowser::ShowAssetIconItem(
         filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
         GUI::DragDropSource(
             filePath,
-            [filePath](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(filePath); }
+            [filePath](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(filePath); },
+            ImGuiDragDropFlags_SourceAllowNullID
         );
     }
 

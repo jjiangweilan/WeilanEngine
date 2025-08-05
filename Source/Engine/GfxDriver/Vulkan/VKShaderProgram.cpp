@@ -583,13 +583,19 @@ VkPipeline VKShaderProgram::RequestGraphicsPipeline(
 
 void VKShaderProgram::CleanUpInvalidCaches()
 {
+    std::vector<PipelineRequestHash> eraseList{};
     for (auto& cache : caches)
     {
         if (cache.second.first == nullptr)
         {
             objManager->DestroyPipeline(cache.second.second);
-            caches.erase(cache.first);
+            eraseList.push_back(cache.first);
         }
+    }
+
+    for(auto hash : eraseList)
+    {
+        caches.erase(hash);
     }
 }
 

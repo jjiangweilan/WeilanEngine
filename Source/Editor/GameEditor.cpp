@@ -258,7 +258,11 @@ void GameEditor::ShowGameProfiler(Profiler& cpuProfiler)
     {
         if (actuallySelectedFrame >= 0 && actuallySelectedFrame < frameProfiles.size())
         {
-            ProfileTree(*frameProfiles[actuallySelectedFrame], 0);
+            auto& frameProfile = frameProfiles[actuallySelectedFrame];
+            if (frameProfile != nullptr)
+            {
+                ProfileTree(*frameProfiles[actuallySelectedFrame], 0);
+            }
         }
     }
 
@@ -485,6 +489,7 @@ void GameEditor::Start()
             endEvents.TickBegin();
             endPopup.TickBegin();
 
+            ENGINE_BEGIN_PROFILE("Before Game Tick")
             if (engine->event->GetWindowClose().state)
             {
                 gameView->Deinit(); // stop playing the game
@@ -500,7 +505,9 @@ void GameEditor::Start()
                 );
             }
 
+            ENGINE_BEGIN_PROFILE("GUI")
             GUIPass();
+            ENGINE_END_PROFILE; // GUI
 
             // update gameloop
             auto gameScreenImage = gameView->GetGameScreenImage();
@@ -508,16 +515,27 @@ void GameEditor::Start()
             const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
             const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
             bool offscreen = !gameView->IsVisible();
+
+            ENGINE_END_PROFILE; // Before Game Tick
+
             loop->Tick(screenSize, gameOutputImage, gameOutputDepthImage, offscreen);
 
+            ENGINE_BEGIN_PROFILE("After Game Tick");
             endPopup.TickEnd();
             endEvents.TickEnd();
 
+            ENGINE_BEGIN_PROFILE("ImGui Render");
             ImGui::Render();
+            ENGINE_END_PROFILE; // ImGui Render
 
+            ENGINE_BEGIN_PROFILE("Render");
             Render(*cmd, gameOutputImage, gameOutputDepthImage);
+            ENGINE_END_PROFILE; // Render
+
             GetGfxDriver()->ExecuteCommandBuffer(*cmd);
             cmd->Reset(true);
+
+            ENGINE_END_PROFILE; // After Game Tick
 
             engine->EndFrame();
         }
