@@ -84,7 +84,7 @@ float GTAO(VertexOutput input)
     float3 posVS;
 
 #if NORMAL_RECONSTRUCTION_INPLACE
-    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
+    float3 normalVS = NormalReconstructionHigh(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
 #endif
     float3 viewVS = normalize(-posVS);
 
