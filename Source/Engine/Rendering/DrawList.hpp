@@ -45,7 +45,11 @@ public:
     void Add(MeshRenderer& meshRenderer);
     void Sort(const glm::vec3& cameraPos);
     void SortByDistance(const glm::vec3& cameraPos);
+    const auto& GetSortedIndices() const { return sorted; }
+    void Lock();
 
     void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const;
+
+    DynamicArray<int> sorted;
 };
 } // namespace Rendering

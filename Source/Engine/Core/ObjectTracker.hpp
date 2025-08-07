@@ -6,6 +6,7 @@
 
 class Object;
 using ObjectTrackHandle = uint32_t;
+
 class ObjectTracker
 {
 public:

@@ -15,7 +15,7 @@ public:
     void Init();
     void SetSettings(ShadowRendererSettigns settings);
     void Setup(RenderingData& renderingData);
-    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, DrawList& sceneDrawList);
+    void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData);
     Gfx::Image* GetShadowMap() { return shadowMap.get(); }
     float4 GetShadowMapTexelSize() { return shadowMapTexelSize; }
     float4x4 GetShadowToWorldMatrix(RenderingData& renderingData);

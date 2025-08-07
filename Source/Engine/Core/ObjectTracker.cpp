@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Libs/Assert.hpp"
 #include "Object.hpp"
+
 ObjectTracker& ObjectTracker::Singleton()
 {
     static ObjectTracker singleton;

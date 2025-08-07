@@ -52,6 +52,8 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     glm::float2 mainRTSize = {mainColorDescription.GetWidth(), mainColorDescription.GetHeight()};
 
     auto& renderingScene = scene.GetRenderingScene();
+
+    ENGINE_BEGIN_PROFILE("Bulid Scene Draw List");
     DrawList sceneDrawList{};
     if (setting->frustumCull)
     {
@@ -64,9 +66,14 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     }
 
     sceneDrawList.Lock();
-    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
 
-    ENGINE_END_PROFILE
+    ENGINE_BEGIN_PROFILE("Sort");
+    sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
+    ENGINE_END_PROFILE; // Sort
+
+    ENGINE_END_PROFILE;// Bulid Scene Draw List
+
+    ENGINE_END_PROFILE; // RenderPipeline - Setup
 
     // Reflection Probe Updateo
 
@@ -79,7 +86,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     cmd->BindResource(0, perScene.globalResource.get());
 
     // Shadow Pass
+    ENGINE_BEGIN_PROFILE("Shadow")
     shadowRenderer->Execute(*cmd, renderingData);
+    ENGINE_END_PROFILE;// Shadow
 
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);

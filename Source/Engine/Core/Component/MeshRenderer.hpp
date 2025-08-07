@@ -75,6 +75,7 @@ private:
     bool wantsToEnableSkinning = false;
 
     /**** Runtime Data *******/
+    bool hasSkeleton = false;
     bool aabbBoundsNeedUpdate = true;
     bool aabbPositionNeedUpdate = true;
     std::unique_ptr<Gfx::ShaderResource> gpuResource;
