@@ -58,6 +58,70 @@ float3 NormalReconstructionMedium(Texture2D depthTex, SamplerState depthTexSampl
     return normal;
 }
 
+// From Intel's XeGTAO
+float4 CalculateEdges( const float centerZ, const float leftZ, const float rightZ, const float topZ, const float bottomZ )
+{
+    float4 edgesLRTB = float4( leftZ, rightZ, topZ, bottomZ ) - (float)centerZ;
+
+    float slopeLR = (edgesLRTB.y - edgesLRTB.x) * 0.5;
+    float slopeTB = (edgesLRTB.w - edgesLRTB.z) * 0.5;
+    float4 edgesLRTBSlopeAdjusted = edgesLRTB + float4( slopeLR, -slopeLR, slopeTB, -slopeTB );
+    edgesLRTB = min( abs( edgesLRTB ), abs( edgesLRTBSlopeAdjusted ) );
+    return float4(saturate( ( 1.25 - edgesLRTB / (centerZ * 0.011) ) ));
+}
+
+float3 NormalReconstructionHigh(Texture2D depthTex, SamplerState depthTexSampler, float2 uv, float2 depthTexelSize, float4 cameraZBufferParams, float4x4 invNDCToX, out float3 centerPos)
+{
+    float centerZ = depthTex.SampleLevel(depthTexSampler, uv, 0).x;
+    float leftZ = depthTex.SampleLevel(depthTexSampler, uv - float2(depthTexelSize.x, 0), 0).x;
+    float rightZ = depthTex.SampleLevel(depthTexSampler, uv + float2(depthTexelSize.x, 0), 0).x;
+    float topZ = depthTex.SampleLevel(depthTexSampler, uv - float2(0, depthTexelSize.y), 0).x;
+    float bottomZ = depthTex.SampleLevel(depthTexSampler, uv + float2(0, depthTexelSize.y), 0).x;
+
+    float2 ndcCenter = uv * 2 - 1;
+    float2 ndcLeft = (uv - float2(depthTexelSize.x, 0)) * 2 - 1;
+    float2 ndcRight = (uv + float2(depthTexelSize.x, 0)) * 2 - 1;
+    float2 ndcTop = (uv - float2(0, depthTexelSize.y)) * 2 - 1;
+    float2 ndcBottom = (uv + float2(0, depthTexelSize.y)) * 2 - 1;
+    float4 pixCenterPosNDC = mul(invNDCToX, float4(ndcCenter, centerZ, 1.0f));
+    float4 pixLPosNDC = mul(invNDCToX, float4(ndcLeft, leftZ, 1.0f));
+    float4 pixRPosNDC = mul(invNDCToX, float4(ndcRight, rightZ, 1.0f));
+    float4 pixTPosNDC = mul(invNDCToX, float4(ndcTop, topZ, 1.0f));
+    float4 pixBPosNDC = mul(invNDCToX, float4(ndcBottom, bottomZ, 1.0f));
+
+    float3 pixCenterPos = pixCenterPosNDC.xyz / pixCenterPosNDC.w;
+    float3 pixLPos = pixLPosNDC.xyz / pixLPosNDC.w;
+    float3 pixRPos = pixRPosNDC.xyz / pixRPosNDC.w;
+    float3 pixTPos = pixTPosNDC.xyz / pixTPosNDC.w;
+    float3 pixBPos = pixBPosNDC.xyz / pixBPosNDC.w;
+    centerPos = pixCenterPos;
+
+    // Calculate edges
+    float4 edgesLRTB = float4( pixLPos.z, pixRPos.z, pixTPos.z, pixBPos.z ) - (float)pixCenterPos.z;
+
+    float slopeLR = (edgesLRTB.y - edgesLRTB.x) * 0.5;
+    float slopeTB = (edgesLRTB.w - edgesLRTB.z) * 0.5;
+    float4 edgesLRTBSlopeAdjusted = edgesLRTB + float4( slopeLR, -slopeLR, slopeTB, -slopeTB );
+    edgesLRTB = min(abs(edgesLRTB), abs(edgesLRTBSlopeAdjusted ));
+    edgesLRTB = float4(saturate(( 1.25 - edgesLRTB / (pixCenterPos.z * 0.011))));
+
+    float4 acceptedNormals  = saturate( float4( edgesLRTB.x*edgesLRTB.z, edgesLRTB.z*edgesLRTB.y, edgesLRTB.y*edgesLRTB.w, edgesLRTB.w*edgesLRTB.x ) + 0.01 );
+
+    //
+    pixLPos = normalize(pixLPos - pixCenterPos);
+    pixRPos = normalize(pixRPos - pixCenterPos);
+    pixTPos = normalize(pixTPos - pixCenterPos);
+    pixBPos = normalize(pixBPos - pixCenterPos);
+
+    float3 pixelNormal =  acceptedNormals.x * cross( pixLPos, pixTPos ) +
+                        + acceptedNormals.y * cross( pixTPos, pixRPos ) +
+                        + acceptedNormals.z * cross( pixRPos, pixBPos ) +
+                        + acceptedNormals.w * cross( pixBPos, pixLPos );
+    pixelNormal = normalize( pixelNormal );
+
+    return pixelNormal;
+}
+
 
 float Gaussian_v0(float v, float sigma)
 {

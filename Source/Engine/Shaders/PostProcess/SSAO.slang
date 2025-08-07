@@ -84,7 +84,7 @@ float GTAO(VertexOutput input)
     float3 posVS;
 
 #if NORMAL_RECONSTRUCTION_INPLACE
-    float3 normalVS = NormalReconstructionMedium(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
+    float3 normalVS = NormalReconstructionHigh(perMaterial.depthTex, perMaterial.sampler_point_clamp, input.uv, perMaterial.rtSize.zw, perScene.camera.cameraZBufferParams, perScene.camera.invProjection, posVS);
 #endif
     float3 viewVS = normalize(-posVS);
 
@@ -134,6 +134,11 @@ float GTAO(VertexOutput input)
 #else
     visibility /= GTAO_SLICE_COUNT;
 #endif
+
+    if (DEBUG_show_normal_reconstruction)
+    {
+        perMaterial.debugTex[int2(input.uv * perMaterial.rtSize.xy)] = float4(normalVS, 1.0);
+    }
 
     visibility = pow(visibility, perMaterial.strength);
     // visibility = (1 - visibility) * perMaterial.strength;

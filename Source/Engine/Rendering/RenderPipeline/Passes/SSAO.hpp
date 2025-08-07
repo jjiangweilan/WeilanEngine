@@ -22,7 +22,7 @@ public:
     );
 
     const Gfx::RG::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
-    bool DebugBlit(Gfx::RG::ImageIdentifier& src) override;
+    bool DebugBlit(Gfx::RG::ImageIdentifier& dst) override;
 
 private:
     ObjPtr<Shader2> ssaoShader;
@@ -33,11 +33,11 @@ private:
     Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
     Gfx::RG::ImageIdentifier* result = nullptr;
 
+    bool needDebug = false;
+
     /**
      * @brief lazily initialized debug image
      */
-    std::unique_ptr<Gfx::Image> debugImage;
-
-    Gfx::Image& GetDebugImage();
+    Gfx::RG::ImageIdentifier debugImage;
 };
 } // namespace Rendering::Passes

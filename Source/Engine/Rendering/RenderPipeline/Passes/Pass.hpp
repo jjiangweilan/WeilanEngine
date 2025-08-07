@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxDriver/GfxDriver.hpp"
+#include "Rendering/RenderPipeline/RenderPipelineSetting.hpp"
 
 namespace Rendering::Passes
 {

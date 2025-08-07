@@ -34,6 +34,25 @@ void SSAO::Execute(
     );
     fullDesc.SetRandomWrite(true);
 
+    // Setup debug if needed
+    if (setting->ssao.debug_showNormal)
+    {
+
+        Gfx::RG::ImageDescription desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32G32B32A32_SFloat);
+        desc.SetRandomWrite(true);
+
+        cmd->AllocateAttachment(debugImage, desc);
+        mat.EnableFeature("DEBUG_show_normal_reconstruction");
+        mat.SetTexture("debugTex", GetGfxDriver()->GetImageFromRenderGraph(debugImage));
+        needDebug = true;
+    }
+    else
+    {
+        needDebug = false;
+        mat.DisableFeature("DEBUG_show_normal_reconstruction");
+        mat.SetTexture("debugTex", nullptr);
+    }
+
     // Allocate resources
     // TODO: when ssao is not needed we can return a small white built in texture to save these allocations
     if (useUpscaler)
@@ -91,14 +110,10 @@ void SSAO::Execute(
     result = &ssao;
 }
 
-Gfx::Image& SSAO::GetDebugImage()
+bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& dst)
 {
-    return *debugImage;
-}
-
-bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& src)
-{
-    return false;
+    dst = debugImage;
+    return needDebug;
 }
 
 } // namespace Rendering::Passes
