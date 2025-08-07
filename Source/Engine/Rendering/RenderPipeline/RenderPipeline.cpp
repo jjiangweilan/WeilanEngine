@@ -598,6 +598,18 @@ bool RenderPipeline::IsCommandBufferOverriden()
     return renderConfig.cmdOverride.has_value();
 }
 
+const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
+{
+    Gfx::RG::ImageIdentifier debugImage;
+    Gfx::RG::ImageIdentifier finalColorId;
+    if (ssaoPass.DebugBlit(debugImage))
+    {
+        finalColor = debugImage;
+    }
+
+    return finalColor;
+}
+
 Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
 {
     if (renderConfig.colorOutputOverride.has_value())
@@ -605,7 +617,16 @@ Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
         return *renderConfig.colorOutputOverride.value();
     }
 
-    return finalColor;
+    Gfx::RG::ImageIdentifier debugImage;
+    Gfx::RG::ImageIdentifier finalColorId;
+    if (ssaoPass.DebugBlit(debugImage))
+    {
+        finalColorId = debugImage;
+    }
+    else
+        Gfx::RG::ImageIdentifier finalColorId = finalColor;
+
+    return finalColorId;
 }
 
 RenderPipeline::CloudPass::CloudPass()

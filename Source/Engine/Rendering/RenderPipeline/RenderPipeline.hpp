@@ -45,8 +45,8 @@ public:
     void SetConfig(const RenderConfig& config) { this->renderConfig = config; }
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
     void RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize);
-    const auto& GetOutputColor() const { return finalColor; }
-    const auto& GetOutputDepth() const { return mainDepth; }
+    const Gfx::RG::ImageIdentifier& GetOutputColor();
+    const auto& GetOutputDepth() { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
     Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
 

@@ -135,6 +135,11 @@ float GTAO(VertexOutput input)
     visibility /= GTAO_SLICE_COUNT;
 #endif
 
+    if (DEBUG_show_normal_reconstruction)
+    {
+        perMaterial.debugTex[int2(input.uv * perMaterial.rtSize.xy)] = float4(normalVS, 1.0);
+    }
+
     visibility = pow(visibility, perMaterial.strength);
     // visibility = (1 - visibility) * perMaterial.strength;
     return saturate(visibility);
