@@ -41,6 +41,13 @@ float Camera::GetFar()
     return far;
 }
 
+void Camera::SetViewMatrix(const float4x4& view)
+{
+    auto v = glm::inverse(view);
+    v[2] = -v[2];
+    gameObject->SetWorldMatrix(v);
+}
+
 glm::mat4 Camera::GetViewMatrix() const
 {
     auto view = gameObject->GetWorldMatrix();

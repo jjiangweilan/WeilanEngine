@@ -667,6 +667,13 @@ bool SceneEditor::Tick()
                     ImVec2(100, -100),
                     0x10101010
                 );
+                view[0] = glm::normalize(view[0]);
+                view[1] = glm::normalize(view[1]);
+                view[2] = glm::normalize(view[2]);
+                mainCam->SetViewMatrix(view);
+
+                float3 scale = mainCam->GetGameObject()->GetScale();
+                HudDebug::Print(fmt::format("{}", scale));
             }
         }
 
@@ -719,13 +726,7 @@ void SceneEditor::EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& de
     ImGui::Checkbox("Snap to xy", &gameObjectConfigs.useSnap);
     glm::mat4 view = camera.GetViewMatrix();
 
-    float4x4 reverzedZFix =
-    {
-        1,0,0,0,
-        0,1,0,0,
-        0,0,-1,0,
-        0,0,1,1
-    };
+    float4x4 reverzedZFix = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 1, 1};
     float4x4 imGuizmoProj = reverzedZFix * proj;
 
     ImGuizmo::Manipulate(

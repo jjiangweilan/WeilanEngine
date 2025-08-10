@@ -3,7 +3,7 @@
 #include "Core/Component/Camera.hpp"
 #include "Core/GameObject.hpp"
 #include "EditorGUI.hpp"
-#include "Gameplay/Component/PlayerController.hpp"
+#include "GamePlay/Component/PlayerController.hpp"
 #include "Rendering/Graphics.hpp"
 
 namespace Editor

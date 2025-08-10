@@ -190,7 +190,7 @@ struct fmt::formatter<float4>
     template <typename FormatContext>
     auto format(const float4& v, const FormatContext& ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f})", v.x, v.y);
+        return fmt::format_to(ctx.out(), "[float4]({:.4f}, {:.4f}, {:.4f}, {:.4f})", v.x, v.y, v.z, v.w);
     }
 };
 
@@ -202,7 +202,7 @@ struct fmt::formatter<float3>
     template <typename FormatContext>
     auto format(const float3& v, const FormatContext& ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f}, {:.4f})", v.x, v.y, v.z);
+        return fmt::format_to(ctx.out(), "[float3]({:.4f}, {:.4f}, {:.4f})", v.x, v.y, v.z);
     }
 };
 
@@ -214,6 +214,18 @@ struct fmt::formatter<float2>
     template <typename FormatContext>
     auto format(const float2& v, const FormatContext& ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(ctx.out(), "({:.4f}, {:.4f})", v.x, v.y);
+        return fmt::format_to(ctx.out(), "[float2]({:.4f}, {:.4f})", v.x, v.y);
+    }
+};
+
+template <>
+struct fmt::formatter<glm::quat>
+{
+    constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const glm::quat& v, const FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "[quaternion]({:.4f}, {:.4f}, {:.4f}, {:.4f})", v.x, v.y, v.z, v.w);
     }
 };

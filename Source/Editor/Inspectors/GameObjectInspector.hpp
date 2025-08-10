@@ -12,7 +12,7 @@
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/GameObject.hpp"
 #include "Core/Scene/Scene.hpp"
-#include "Gameplay/Component/PlayerController.hpp"
+#include "GamePlay/Component/PlayerController.hpp"
 #include "Inspector.hpp"
 #include "Modules/VolumetricCloud/Cloud.hpp"
 #include "ThirdParty/imgui/imgui.h"

@@ -20,6 +20,7 @@ public:
     ~Camera() override {};
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     glm::mat4 GetViewMatrix() const;
+    void SetViewMatrix(const float4x4& view);
     const glm::mat4& GetAndUpdateProjectionMatrix(float aspect = 0.0f);
     glm::mat4 CalculateProjectionMatrixWithOverride(float farPlane, float aspect = 0.0f);
     glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
