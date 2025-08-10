@@ -92,7 +92,7 @@ public:
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Bake"))
+        if (ImGui::Button("Capture Probe"))
         {
             // TODO: Add method to bake the reflection probe
             // target->Bake();

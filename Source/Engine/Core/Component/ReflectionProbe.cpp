@@ -58,7 +58,8 @@ void ReflectionProbe::UpdateFrustums(float3 position)
     };
     for (int i = 0; i < 6; ++i)
     {
-        viewMatrices[i] = glm::lookAtRH(position, position + faces[i], (i != 2 && i != 3) ? float3(0, 1, 0) : float3(1, 0, 0));
+        viewMatrices[i] =
+            glm::lookAtRH(position, position + faces[i], (i != 2 && i != 3) ? float3(0, 1, 0) : float3(1, 0, 0));
 
         frustums[i] = projectionMatrix * viewMatrices[i];
     }
@@ -102,4 +103,27 @@ float ReflectionProbe::GetProjectionRight()
 uint32_t ReflectionProbe::GetResolution()
 {
     return resolution;
+}
+
+void ReflectionProbe::Serialize(Serializer* s) const
+{
+    SERIALIZE(s, updateType);
+    SERIALIZE(s, sourceType);
+}
+
+void ReflectionProbe::Deserialize(Serializer* s)
+{
+    int iUpdateType;
+    int iSourceType;
+    DESERIALIZE(s, iSourceType);
+    DESERIALIZE(s, iUpdateType);
+    updateType = static_cast<UpdateType>(iUpdateType);
+    sourceType = static_cast<SourceType>(iSourceType);
+}
+
+void ReflectionProbe::CaptureProbe()
+{
+    auto cmd = GetGfxDriver()->CreateCommandBuffer();
+
+    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
 }

@@ -7,6 +7,12 @@ class ReflectionProbe : public Component
     DECLARE_OBJECT();
 
 public:
+    enum class SourceType
+    {
+        Static,
+        Runtime
+    };
+
     enum class UpdateType
     {
         Local
@@ -28,14 +34,22 @@ public:
     float GetProjectionRight();
     uint32_t GetResolution();
 
-    // void Serialize(Serializer* s) const override;
-    // void Deserialize(Serializer* s) override;
+    /**
+     * @brief Used in editor to capture the surrounding environment into texture (specular IBL)
+     */
+    void CaptureProbe();
+
+    void Serialize(Serializer* s) const override;
+    void Deserialize(Serializer* s) override;
     void OnInit() override;
     void OnEnable() override;
     void OnDisable() override;
 
     void SetUpdateType(UpdateType type) { updateType = type; }
     auto GetUpdateType() { return updateType; }
+
+    void SetSourceType(SourceType type) { sourceType = type; }
+    auto GetSourceType() { return sourceType; }
 
     Frustum GetFrustum(int faceIndex)
     {
@@ -56,6 +70,7 @@ private:
     Frustum frustums[6];
     float4x4 viewMatrices[6];
     UpdateType updateType = UpdateType::Local;
+    SourceType sourceType = SourceType::Static;
     std::unique_ptr<Gfx::Image> cubemap;
     uint32_t resolution = 512;
 
