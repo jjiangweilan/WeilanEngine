@@ -32,13 +32,7 @@ void MeshRenderer::SetMeshes(std::span<Mesh*> meshes)
         this->meshes.push_back(m);
     this->materials.resize(meshes.size());
     aabbBoundsNeedUpdate = true;
-
-    if (!meshes.empty())
-    {
-        hasSkeleton = meshes[0]->HasSkeleton();
-    }
-    else
-        hasSkeleton = false;
+    CheckSkeleton();
 }
 
 void MeshRenderer::UpdateAABB()
@@ -107,21 +101,7 @@ void MeshRenderer::Serialize(Serializer* s) const
 void MeshRenderer::Deserialize(Serializer* s)
 {
     Component::Deserialize(s);
-    s->Deserialize(
-        "meshes",
-        meshes,
-        [this](void* res)
-        {
-            aabbBoundsNeedUpdate = true;
-
-            if (!meshes.empty())
-            {
-                hasSkeleton = meshes[0]->HasSkeleton();
-            }
-            else
-                hasSkeleton = false;
-        }
-    );
+    s->Deserialize("meshes", meshes);
     s->Deserialize("materials", materials);
     s->Deserialize("aabbMin", aabb.min);
     s->Deserialize("aabbMax", aabb.max);
@@ -304,4 +284,19 @@ void MeshRenderer::TransformChanged()
 {
     aabbPositionNeedUpdate = true;
     GetScene()->GetRenderingScene().RebuildBVH();
+}
+
+void MeshRenderer::CheckSkeleton()
+{
+    if (!meshes.empty())
+    {
+        hasSkeleton = meshes[0]->HasSkeleton();
+    }
+    else
+        hasSkeleton = false;
+}
+
+void MeshRenderer::OnLoaded()
+{
+    CheckSkeleton();
 }

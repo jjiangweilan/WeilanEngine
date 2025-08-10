@@ -61,6 +61,7 @@ public:
     void Deserialize(Serializer* s) override;
     std::unique_ptr<Component> Clone(GameObject& owner) override;
     const std::string& GetName() override;
+    void OnLoaded() override;
 
     // called by RenderingScene
     void UpdateSkinning();
@@ -97,6 +98,7 @@ private:
     void AddToRenderingScene();
     void RemoveFromRenderingScene();
     void UpdateAABB();
+    void CheckSkeleton();
 
     void OnEnable() override;
     void OnDisable() override;

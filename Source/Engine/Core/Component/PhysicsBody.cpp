@@ -203,7 +203,6 @@ PhysicsBody::~PhysicsBody()
         auto& bodyInterface = physicsWorld.GetBodyInterface();
         bodyInterface.RemoveBody(body->GetID());
         bodyInterface.DestroyBody(body->GetID());
-        shapeRef->Release();
     }
 }
 

@@ -156,11 +156,11 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         {
             dir -= right * speed; // Move left
         }
-        if (ImGui::IsKeyDown(ImGuiKey_W))
+        if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::GetIO().MouseWheel > 0.0f)
         {
             dir += forward * speed; // Move forward
         }
-        if (ImGui::IsKeyDown(ImGuiKey_S))
+        if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::GetIO().MouseWheel < 0.0f)
         {
             dir -= forward * speed; // Move backward
         }
@@ -498,15 +498,24 @@ bool SceneEditor::Tick()
         cursorPos.x = cursorPos.x + contentRegionWidth / 2.0f - imageWidth / 2.0f;
         ImGui::SetCursorPos(cursorPos);
 
+        auto windowPos = ImGui::GetWindowPos();
+
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
         bool isGameViewHovered = ImGui::IsItemHovered();
 
-        auto windowPos = ImGui::GetWindowPos();
-        if (!ImGuizmo::IsUsing())
+        // Calcualte view gizmo related information
+        bool hoveringViewGizmo = false;
+        auto cursorX = imageWidth - 105;
+        auto cursorY = 5;
+        glm::vec4 viewGizmoRect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
+        auto viewManipulateRectMin = ImVec2(viewGizmoRect.x + cursorX, viewGizmoRect.y + cursorY);
+        hoveringViewGizmo = ImGui::IsMouseHoveringRect(viewManipulateRectMin, viewManipulateRectMin + ImVec2(100, 100));
+
+        if (!ImGuizmo::IsUsing() && !hoveringViewGizmo)
         {
             // pick a GameObject trough ray
-            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && isGameViewHovered && ImGui::IsWindowFocused())
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && isGameViewHovered && ImGui::IsWindowFocused())
             {
                 auto mousePos = ImGui::GetMousePos();
                 glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
@@ -594,10 +603,9 @@ bool SceneEditor::Tick()
             auto mainCam = editorCamera;
             if (mainCam)
             {
-                glm::vec4 rect = {imagePos.x + windowPos.x, imagePos.y + windowPos.y, imageWidth, imageHeight};
                 ImGuizmo::SetDrawlist();
                 ImGuizmo::SetGizmoSizeClipSpace(0.2f);
-                ImGuizmo::SetRect(rect.x, rect.y, rect.z, rect.w);
+                ImGuizmo::SetRect(viewGizmoRect.x, viewGizmoRect.y, viewGizmoRect.z, viewGizmoRect.w);
 
                 glm::mat4 proj = mainCam->GetAndUpdateProjectionMatrix(imageWidth / imageHeight);
                 proj[1] *= -1;
@@ -659,21 +667,20 @@ bool SceneEditor::Tick()
                 {
                     distance = glm::length(go->GetPosition() - mainCam->GetGameObject()->GetPosition());
                 }
-                glm::mat4 view = mainCam->GetViewMatrix();
-                ImGuizmo::ViewManipulate(
-                    &view[0][0],
-                    distance,
-                    ImVec2(rect.x + imageWidth - 105, rect.y + 105),
-                    ImVec2(100, -100),
-                    0x10101010
-                );
-                view[0] = glm::normalize(view[0]);
-                view[1] = glm::normalize(view[1]);
-                view[2] = glm::normalize(view[2]);
-                mainCam->SetViewMatrix(view);
 
-                float3 scale = mainCam->GetGameObject()->GetScale();
-                HudDebug::Print(fmt::format("{}", scale));
+                // inverse inverse ... because ImGuizmo is using right hand coordinate system :(
+                const glm::mat4& oriView = mainCam->GetViewMatrix();
+                auto view = oriView;
+                float4x4 invView = glm::inverse(view);
+                invView[2] = -invView[2];
+                view = glm::inverse(invView);
+
+                ImGuizmo::ViewManipulate(&view[0][0], distance, viewManipulateRectMin, ImVec2(100, 100), 0x10101010);
+
+                invView = glm::inverse(view);
+                invView[2] = -invView[2];
+                view = glm::inverse(invView);
+                mainCam->SetViewMatrix(view);
             }
         }
 
