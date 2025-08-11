@@ -151,7 +151,9 @@ public:
         return isValid;
     }
 
-    static bool DragDropSource(const std::filesystem::path& path, std::function<void(Object*& obj)> onDrag, ImGuiDragDropFlags flags = 0)
+    static bool DragDropSource(
+        const std::filesystem::path& path, std::function<void(Object*& obj)> onDrag, ImGuiDragDropFlags flags = 0
+    )
     {
         std::string asString = path.string();
         if (asString.size() > 1024)

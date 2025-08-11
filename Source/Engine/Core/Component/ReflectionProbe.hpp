@@ -30,14 +30,12 @@ public:
 
     float GetNear();
     float GetFar();
+    void SetFar(float far);
+    void SetNear(float near);
+
     float GetProjectionTop();
     float GetProjectionRight();
     uint32_t GetResolution();
-
-    /**
-     * @brief Used in editor to capture the surrounding environment into texture (specular IBL)
-     */
-    void CaptureProbe();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -64,8 +62,8 @@ public:
     Gfx::Image* GetCubemap();
 
 private:
-    const float near = 0.1f;
-    const float far = 1000.f;
+    float near = 0.1f;
+    float far = 1000.f;
     float4x4 projectionMatrix;
     Frustum frustums[6];
     float4x4 viewMatrices[6];

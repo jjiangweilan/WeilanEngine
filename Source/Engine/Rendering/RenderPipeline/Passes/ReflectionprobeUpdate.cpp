@@ -105,6 +105,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
         cmd.BindResource(0, faceResources[i].get());
         DrawList drawList{};
         drawList.Add(renderers);
+        drawList.Lock();
         drawList.SortByDistance(position);
         drawList.DrawRangeHelper(cmd, 0, drawList.transparentIndex);
 

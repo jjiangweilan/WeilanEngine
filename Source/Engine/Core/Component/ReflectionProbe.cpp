@@ -107,12 +107,14 @@ uint32_t ReflectionProbe::GetResolution()
 
 void ReflectionProbe::Serialize(Serializer* s) const
 {
+    Component::Serialize(s);
     SERIALIZE(s, updateType);
     SERIALIZE(s, sourceType);
 }
 
 void ReflectionProbe::Deserialize(Serializer* s)
 {
+    Component::Deserialize(s);
     int iUpdateType;
     int iSourceType;
     DESERIALIZE(s, iSourceType);
@@ -121,9 +123,13 @@ void ReflectionProbe::Deserialize(Serializer* s)
     sourceType = static_cast<SourceType>(iSourceType);
 }
 
-void ReflectionProbe::CaptureProbe()
+void ReflectionProbe::SetFar(float far)
 {
-    auto cmd = GetGfxDriver()->CreateCommandBuffer();
-
-    GetGfxDriver()->ExecuteCommandBuffer(*cmd);
+    this->far = far;
+    UpdateFrustums(gameObject->GetPosition());
+}
+void ReflectionProbe::SetNear(float near)
+{
+    this->near = near;
+    UpdateFrustums(gameObject->GetPosition());
 }

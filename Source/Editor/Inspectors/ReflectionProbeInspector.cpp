@@ -50,8 +50,11 @@ public:
         float projRight = target->GetProjectionRight();
         uint32_t resolution = target->GetResolution();
 
-        ImGui::Text("Near: %.3f", nearPlane);
-        ImGui::Text("Far: %.3f", farPlane);
+        if (ImGui::DragFloat("Near: %.3f", &nearPlane))
+            target->SetNear(nearPlane);
+        if (ImGui::DragFloat("Far: %.3f", &farPlane))
+            target->SetFar(farPlane);
+
         ImGui::Text("Projection Top: %.3f", projTop);
         ImGui::Text("Projection Right: %.3f", projRight);
         ImGui::Text("Resolution: %u", resolution);
@@ -73,7 +76,7 @@ public:
             ImGui::Text("No cubemap generated");
         }
 
-        ImGui::Separator();
+        ImGui::SeparatorText("Debug");
 
         // Debug information
         ImGui::Text("Debug Information");
@@ -84,7 +87,7 @@ public:
         ImGui::Unindent();
 
         // Actions
-        ImGui::Separator();
+        ImGui::SeparatorText("Actions");
         if (ImGui::Button("Force Update"))
         {
             // TODO: Add method to force update the reflection probe

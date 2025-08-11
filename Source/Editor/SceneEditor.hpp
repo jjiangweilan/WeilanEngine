@@ -42,6 +42,7 @@ private:
         std::unique_ptr<Gfx::Image> image;
         int frameCount = 0;
     };
+    bool activeViewGizmos = false;
     bool isVisible = false;
     std::list<PendingDelete> pendingDeleteSceneImages;
     std::unique_ptr<GameObject> editorCameraGO;

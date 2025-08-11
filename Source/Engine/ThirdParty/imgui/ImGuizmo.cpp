@@ -2509,7 +2509,7 @@ namespace ImGuizmo
       }
    }
 
-   void ViewManipulate(float* view, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor)
+   void ViewManipulate(float* view, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor, bool disableDragging)
    {
       static bool isDraging = false;
       static bool isClicking = false;
@@ -2686,7 +2686,7 @@ namespace ImGuizmo
       isInside = ImRect(position, position + size).Contains(io.MousePos);
 
       // drag view
-      if (!isDraging && io.MouseDown[0] && isInside && (fabsf(io.MouseDelta.x) > 0.f || fabsf(io.MouseDelta.y) > 0.f))
+      if (!isDraging && io.MouseDown[0] && isInside &&(fabsf(io.MouseDelta.x) > 0.f || fabsf(io.MouseDelta.y) > 0.f))
       {
          isDraging = true;
          isClicking = false;
@@ -2695,6 +2695,9 @@ namespace ImGuizmo
       {
          isDraging = false;
       }
+      
+      if (disableDragging)
+          isDraging = false;
 
       if (isDraging)
       {

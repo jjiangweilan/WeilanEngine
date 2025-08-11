@@ -503,6 +503,8 @@ bool SceneEditor::Tick()
         auto imagePos = ImGui::GetCursorPos();
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
         bool isGameViewHovered = ImGui::IsItemHovered();
+        bool isMouseClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+        bool isMouseReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
 
         // Calcualte view gizmo related information
         bool hoveringViewGizmo = false;
@@ -512,10 +514,21 @@ bool SceneEditor::Tick()
         auto viewManipulateRectMin = ImVec2(viewGizmoRect.x + cursorX, viewGizmoRect.y + cursorY);
         hoveringViewGizmo = ImGui::IsMouseHoveringRect(viewManipulateRectMin, viewManipulateRectMin + ImVec2(100, 100));
 
-        if (!ImGuizmo::IsUsing() && !hoveringViewGizmo)
+        if (isMouseClicked && hoveringViewGizmo)
+        {
+            activeViewGizmos = true;
+        }
+
+        if (isMouseReleased)
+        {
+            activeViewGizmos = false;
+        }
+
+        
+        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo)
         {
             // pick a GameObject trough ray
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && isGameViewHovered && ImGui::IsWindowFocused())
+            if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
             {
                 auto mousePos = ImGui::GetMousePos();
                 glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
@@ -597,6 +610,7 @@ bool SceneEditor::Tick()
             }
         }
 
+        // Draw View Gizmos
         ImGui::SetCursorPos(imagePos);
         if (scene != nullptr && imageWidth > 0 && imageHeight > 0)
         {
@@ -675,7 +689,8 @@ bool SceneEditor::Tick()
                 invView[2] = -invView[2];
                 view = glm::inverse(invView);
 
-                ImGuizmo::ViewManipulate(&view[0][0], distance, viewManipulateRectMin, ImVec2(100, 100), 0x10101010);
+                bool disableDragging = !activeViewGizmos;
+                ImGuizmo::ViewManipulate(&view[0][0], distance, viewManipulateRectMin, ImVec2(100, 100), 0x10101010, disableDragging);
 
                 invView = glm::inverse(view);
                 invView[2] = -invView[2];
