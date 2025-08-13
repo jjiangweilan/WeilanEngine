@@ -200,7 +200,7 @@ glm::vec3 Camera::GetForward()
 
 void Camera::OnDrawGizmos()
 {
-    // gizmos.Add<GizmoCamera>();
+    Gizmos::DrawCamera(gameObject->GetPosition());
 }
 
 float Camera::GetFoV()

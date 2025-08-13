@@ -1,7 +1,7 @@
 #include "Geometry.hpp"
 #include <glm/gtx/intersect.hpp>
 
-bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
+bool RayVsMesh(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
     uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
@@ -30,7 +30,7 @@ bool RayMeshIntersection(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, flo
     return false;
 }
 
-bool RayMeshIntersection(
+bool RayVsMesh(
     Ray ray,
     RefPtr<Submesh> mesh,
     glm::mat4 transform,
@@ -140,4 +140,43 @@ Frustum::Frustum(const glm::mat4& vp, CornersOnly)
 
         this->corners[i++] = v;
     }
+}
+
+bool RayVsAABB(const Ray& r, const AABB& aabb, float& t)
+{
+    glm::vec3 lb = aabb.min;
+    glm::vec3 rt = aabb.max;
+    glm::vec3 dirfrac;
+    // r.dir is unit direction vector of ray
+    dirfrac.x = 1.0f / r.direction.x;
+    dirfrac.y = 1.0f / r.direction.y;
+    dirfrac.z = 1.0f / r.direction.z;
+    // lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
+    // r.org is origin of ray
+    float t1 = (lb.x - r.origin.x) * dirfrac.x;
+    float t2 = (rt.x - r.origin.x) * dirfrac.x;
+    float t3 = (lb.y - r.origin.y) * dirfrac.y;
+    float t4 = (rt.y - r.origin.y) * dirfrac.y;
+    float t5 = (lb.z - r.origin.z) * dirfrac.z;
+    float t6 = (rt.z - r.origin.z) * dirfrac.z;
+
+    float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
+    float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
+
+    // if tmax < 0, ray (line) is intersecting AABB, but the whole AABB is behind us
+    if (tmax < 0)
+    {
+        t = tmax;
+        return false;
+    }
+
+    // if tmin > tmax, ray doesn't intersect AABB
+    if (tmin > tmax)
+    {
+        t = tmax;
+        return false;
+    }
+
+    t = tmin;
+    return true;
 }
