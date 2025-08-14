@@ -68,7 +68,7 @@ public:
             // For matrices, we'll display them as 4 rows of 4 floats using table layout
             if (ImGui::BeginTable("##matrix_table", 2, ImGuiTableFlags_SizingStretchProp))
             {
-                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
                 ImGui::TableNextRow();
@@ -120,7 +120,7 @@ public:
 
         if (ImGui::BeginTable("##enum_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -463,7 +463,7 @@ public:
     {
         if (ImGui::BeginTable("##text_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -487,7 +487,7 @@ public:
     {
         if (ImGui::BeginTable("##text_formatted_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -506,7 +506,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##dragfloat_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -526,7 +526,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##dragfloat2_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -546,7 +546,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##dragfloat3_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -566,7 +566,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##dragfloat4_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -586,7 +586,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##dragint_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -606,7 +606,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##checkbox_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -626,7 +626,7 @@ public:
         bool clicked = false;
         if (ImGui::BeginTable("##button_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -646,7 +646,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##inputtext_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -673,7 +673,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##inputtext_string_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -699,7 +699,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##combo_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -719,7 +719,7 @@ public:
         bool changed = false;
         if (ImGui::BeginTable("##combo_separated_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
@@ -739,7 +739,7 @@ public:
     {
         if (ImGui::BeginTable("##image_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
             ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
             ImGui::TableNextRow();
