@@ -89,6 +89,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
 #endif
 
     luaBackend->Init(assetDatabase->GetAssetDirectory().string().c_str());
+    gameLoop = std::make_unique<GameLoop>();
 }
 
 bool WeilanEngine::BeginFrame()
@@ -147,21 +148,6 @@ void WeilanEngine::EndFrame()
     ENGINE_END_PROFILE; // End Frame
 
     ENGINE_END_FRAME_PROFILE
-}
-
-GameLoop* WeilanEngine::CreateGameLoop()
-{
-    std::unique_ptr<GameLoop> loop = std::make_unique<GameLoop>();
-    auto temp = loop.get();
-    gameLoops.push_back(std::move(loop));
-    return temp;
-}
-
-void WeilanEngine::DestroyGameLoop(GameLoop* loop)
-{
-    auto iter = std::find_if(gameLoops.begin(), gameLoops.end(), [loop](auto& l) { return l.get() == loop; });
-    std::swap(*iter, gameLoops.back());
-    gameLoops.pop_back();
 }
 
 static void TraceImpl(const char* inFMT, ...)

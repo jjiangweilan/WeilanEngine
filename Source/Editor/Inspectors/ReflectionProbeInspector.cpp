@@ -59,6 +59,14 @@ public:
         ImGui::Text("Projection Right: %.3f", projRight);
         ImGui::Text("Resolution: %u", resolution);
 
+        GUI::ObjectPropertyEnum(
+            "SourceType",
+            {"Static", "Runtime"},
+            *target,
+            &ReflectionProbe::GetSourceType,
+            &ReflectionProbe::SetSourceType
+        );
+
         ImGui::Unindent();
 
         ImGui::Separator();

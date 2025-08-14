@@ -4,6 +4,7 @@
 #include "Core/GameLoop.hpp"
 #include "Core/Scene/SceneManager.hpp"
 #include "Core/Time.hpp"
+#include "Editor/IGameEditor.hpp"
 #include "Event/Event.hpp"
 #include "GfxDriver/GfxDriver.hpp"
 #include "Scripting/LuaBackend.hpp"
@@ -27,9 +28,8 @@ public:
     void Init(const CreateInfo& createInfo);
 
     bool BeginFrame();
-    GameLoop* CreateGameLoop();
-    void DestroyGameLoop(GameLoop* loop);
     void EndFrame();
+    GameLoop* GetGameLoop() { return gameLoop.get(); };
     SDL_Window* GetMainWindow() { return mainWindow.handle; }
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> GetRingBufferLoggerSink()
@@ -55,8 +55,10 @@ private:
         SDL_Window* handle;
         Extent2D size = {1920, 1080};
     } mainWindow;
+
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
-    DynamicArray<std::unique_ptr<GameLoop>> gameLoops;
+    std::unique_ptr<GameLoop> gameLoop;
+    IGameEditor* gameEditor;
     // std::unique_ptr<Physics> physics;
 
     std::filesystem::path projectPath;

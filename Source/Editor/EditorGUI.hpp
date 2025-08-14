@@ -4,6 +4,7 @@
 #include "Core/Object.hpp"
 #include "EditorState.hpp"
 #include "Libs/EnumFlags.hpp"
+#include "Libs/Math.hpp"
 #include "Libs/Serialization/JsonSerializer.hpp"
 #include "ThirdParty/imgui/imgui.h"
 #include "ThirdParty/imgui/imgui_internal.h"
@@ -32,6 +33,130 @@ ENUM_FLAGS(DragDropTag, int);
 class GUI
 {
 public:
+    template <class T, class TGetter, class TSetter>
+    static bool ObjectProperty(const char* name, T& obj, TGetter getter, TSetter setter = nullptr)
+    {
+        using TReturn = decltype((obj.*getter)());
+
+        const TReturn mutableVal = (obj.*getter)();
+
+        bool changed = false;
+
+        // Handle different types using constexpr if
+        if constexpr (std::is_same_v<TReturn, int>)
+        {
+            changed = ImGui::DragInt(name, &mutableVal);
+        }
+        else if constexpr (std::is_same_v<TReturn, float>)
+        {
+            changed = ImGui::DragFloat(name, &mutableVal);
+        }
+        else if constexpr (std::is_same_v<TReturn, float2>)
+        {
+            changed = ImGui::DragFloat2(name, &mutableVal[0]);
+        }
+        else if constexpr (std::is_same_v<TReturn, float3>)
+        {
+            changed = ImGui::DragFloat3(name, &mutableVal[0]);
+        }
+        else if constexpr (std::is_same_v<TReturn, float4>)
+        {
+            changed = ImGui::DragFloat4(name, &mutableVal[0]);
+        }
+        else if constexpr (std::is_same_v<TReturn, float4x4>)
+        {
+            // For matrices, we'll display them as 4 rows of 4 floats
+            ImGui::Text(name);
+            ImGui::Indent(1);
+            ImGui::PushID("matrix");
+            for (int r = 0; r < 4; ++r)
+            {
+                ImGui::PushID(r);
+                float4 row = glm::row(mutableVal, r);
+                if (ImGui::DragFloat4("##row", &row[0]))
+                {
+                    mutableVal = glm::row(mutableVal, r, row);
+                    changed = true;
+                }
+                ImGui::PopID();
+            }
+            ImGui::PopID();
+            ImGui::Unindent(1);
+        }
+        else if constexpr (std::is_same_v<TReturn, std::string>)
+        {
+            changed = InputText("##property", mutableVal);
+        }
+
+        // If the value changed, call the setter
+        if (setter != nullptr && changed)
+        {
+            (obj.*setter)(mutableVal);
+        }
+
+        return changed;
+    }
+
+    template <class T, class TGetter, class TSetter>
+    static bool ObjectPropertyEnum(
+        const char* name, const std::vector<std::string>& nameList, T& obj, TGetter getter, TSetter setter = nullptr
+    )
+    {
+        using TReturn = decltype((obj.*getter)());
+
+        TReturn currentValue = (obj.*getter)();
+        int currentIndex = static_cast<int>(currentValue);
+
+        bool changed = false;
+
+        if (ImGui::BeginTable("##enum_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s: ", name);
+
+            ImGui::TableSetColumnIndex(1);
+
+            if (currentIndex >= 0 && currentIndex < static_cast<int>(nameList.size()))
+            {
+                if (ImGui::BeginCombo("##combo", nameList[currentIndex].c_str()))
+                {
+                    for (int i = 0; i < static_cast<int>(nameList.size()); ++i)
+                    {
+                        bool isSelected = (i == currentIndex);
+                        if (ImGui::Selectable(nameList[i].c_str(), isSelected))
+                        {
+                            if (setter != nullptr && i != currentIndex)
+                            {
+                                TReturn newValue = static_cast<TReturn>(i);
+                                (obj.*setter)(newValue);
+                                changed = true;
+                            }
+                        }
+
+                        if (isSelected)
+                        {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            else
+            {
+                // Handle invalid enum value
+                ImGui::Text("Invalid enum value (%d)", currentIndex);
+            }
+
+            ImGui::EndTable();
+        }
+
+        return changed;
+    }
+
     template <std::derived_from<Object> T>
     static bool ObjectField(std::string_view name, T*& curr)
     {

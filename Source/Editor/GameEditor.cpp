@@ -62,7 +62,7 @@ GameEditor::GameEditor(const char* path)
     instance = this;
     engine = std::make_unique<WeilanEngine>();
     engine->Init({.projectPath = path});
-    loop = engine->CreateGameLoop();
+    loop = engine->GetGameLoop();
     EditorState::gameLoop = loop;
 
     // engine is in another dynamic library which has different static logger instance, we need to register it for
@@ -133,7 +133,6 @@ GameEditor::~GameEditor()
     ImPlot::DestroyContext();
     fontImage = nullptr;
     engine->gfxDriver->WaitForIdle();
-    engine->DestroyGameLoop(loop);
     InspectorRegistry::DestroyAll();
 
     if (SceneManager::GetActiveScene())
@@ -320,8 +319,8 @@ void GameEditor::ShowSceneWindow()
         ImGui::InputText("Path", openScenePath, 1024);
         if (ImGui::Button("Open"))
         {
-            SceneManager::SetActiveScene((Scene*
-            )engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)));
+            SceneManager::SetActiveScene((Scene*)engine->assetDatabase->LoadAsset(fmt::format("{}.scene", openScenePath)
+            ));
             openSceneWindow = false;
         }
 
@@ -1127,7 +1126,7 @@ void GameEditor::ShowEngineResourceDebug()
                         : ImVec4{1, 0, 0, 1}
                 );
                 ImGui::Text("%s", path.string().c_str());
-                
+
                 // Add hover tooltip with delay for full path
                 if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal))
                 {
@@ -1135,7 +1134,7 @@ void GameEditor::ShowEngineResourceDebug()
                     ImGui::Text("Full path: %s", path.string().c_str());
                     ImGui::EndTooltip();
                 }
-                
+
                 ImGui::PopStyleColor();
 
                 ImGui::TableSetColumnIndex(3);

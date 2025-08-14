@@ -49,6 +49,11 @@ public:
     void SetSourceType(SourceType type) { sourceType = type; }
     auto GetSourceType() { return sourceType; }
 
+    void SetExtent(const float3& newExtent) { extent = newExtent; }
+    const float3& GetExtent() const { return extent; }
+
+    uint32_t GetResolution() const { return resolution; }
+
     Frustum GetFrustum(int faceIndex)
     {
         if (faceIndex < 0 || faceIndex > 5)
@@ -69,7 +74,12 @@ private:
     float4x4 viewMatrices[6];
     UpdateType updateType = UpdateType::Local;
     SourceType sourceType = SourceType::Static;
+    /**
+     * @brief extent of local reflection probe cube
+     */
+    float3 extent;
     std::unique_ptr<Gfx::Image> cubemap;
+
     uint32_t resolution = 512;
 
     void TransformChanged() override;
