@@ -14,9 +14,9 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         // object information
-        ImGui::Text("%s", target->GetName().c_str());
+        GUI::Text("Name", target->GetName().c_str());
 
-        ImGui::Text("Meshes");
+        GUI::SeparatorTextLabeled("Meshes");
         ImGui::Indent();
         for (auto& mesh : target->GetMeshes())
         {
@@ -31,7 +31,7 @@ public:
         }
         ImGui::Unindent();
 
-        ImGui::Text("Materials");
+        GUI::SeparatorTextLabeled("Materials");
         ImGui::Indent();
         size_t pushID = 0;
         for (auto& material : target->GetMaterials())
@@ -49,7 +49,7 @@ public:
             }
 
             ImGui::SameLine();
-            if (ImGui::Button("copy"))
+            if (GUI::ButtonSimple("copy"))
             {
                 auto copy = material->Clone();
                 auto& db = editor.GetEngine()->assetDatabase;
@@ -65,7 +65,7 @@ public:
         }
         ImGui::Unindent();
 
-        ImGui::Text("Textures");
+        GUI::SeparatorTextLabeled("Textures");
         ImGui::Indent();
         for (auto& texture : target->GetTextures())
         {
@@ -73,7 +73,7 @@ public:
             auto width = tex->GetDescription().img.width;
             auto height = tex->GetDescription().img.height;
             auto size = ResizeKeepRatio(width, height, 100, 100);
-            ImGui::Text("%s", tex->GetName().c_str());
+            GUI::Text("Name", tex->GetName().c_str());
             ImGui::SameLine();
             ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
 
@@ -86,7 +86,7 @@ public:
         }
         ImGui::Unindent();
 
-        ImGui::Text("Animations");
+        GUI::SeparatorTextLabeled("Animations");
         ImGui::Indent();
         for (auto& animation : target->GetAnimations())
         {

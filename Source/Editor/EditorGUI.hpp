@@ -45,47 +45,56 @@ public:
         // Handle different types using constexpr if
         if constexpr (std::is_same_v<TReturn, int>)
         {
-            changed = ImGui::DragInt(name, &mutableVal);
+            changed = DragInt(name, &mutableVal);
         }
         else if constexpr (std::is_same_v<TReturn, float>)
         {
-            changed = ImGui::DragFloat(name, &mutableVal);
+            changed = DragFloat(name, &mutableVal);
         }
         else if constexpr (std::is_same_v<TReturn, float2>)
         {
-            changed = ImGui::DragFloat2(name, &mutableVal[0]);
+            changed = DragFloat2(name, &mutableVal[0]);
         }
         else if constexpr (std::is_same_v<TReturn, float3>)
         {
-            changed = ImGui::DragFloat3(name, &mutableVal[0]);
+            changed = DragFloat3(name, &mutableVal[0]);
         }
         else if constexpr (std::is_same_v<TReturn, float4>)
         {
-            changed = ImGui::DragFloat4(name, &mutableVal[0]);
+            changed = DragFloat4(name, &mutableVal[0]);
         }
         else if constexpr (std::is_same_v<TReturn, float4x4>)
         {
-            // For matrices, we'll display them as 4 rows of 4 floats
-            ImGui::Text(name);
-            ImGui::Indent(1);
-            ImGui::PushID("matrix");
-            for (int r = 0; r < 4; ++r)
+            // For matrices, we'll display them as 4 rows of 4 floats using table layout
+            if (ImGui::BeginTable("##matrix_table", 2, ImGuiTableFlags_SizingStretchProp))
             {
-                ImGui::PushID(r);
-                float4 row = glm::row(mutableVal, r);
-                if (ImGui::DragFloat4("##row", &row[0]))
+                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s:", name);
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::PushID("matrix");
+                for (int r = 0; r < 4; ++r)
                 {
-                    mutableVal = glm::row(mutableVal, r, row);
-                    changed = true;
+                    ImGui::PushID(r);
+                    float4 row = glm::row(mutableVal, r);
+                    if (ImGui::DragFloat4("##row", &row[0]))
+                    {
+                        mutableVal = glm::row(mutableVal, r, row);
+                        changed = true;
+                    }
+                    ImGui::PopID();
                 }
                 ImGui::PopID();
+                ImGui::EndTable();
             }
-            ImGui::PopID();
-            ImGui::Unindent(1);
         }
         else if constexpr (std::is_same_v<TReturn, std::string>)
         {
-            changed = InputText("##property", mutableVal);
+            changed = InputTextLabeled(name, mutableVal);
         }
 
         // If the value changed, call the setter
@@ -448,6 +457,320 @@ public:
     static void AutoObjectInspector(Object* target, bool readOnly = false);
     static bool JsonInspector(nlohmann::json& j);
     static void JsonInspector(nlohmann::json& j, bool& valueChanged);
+
+    // Wrapper functions for consistent UI layout using table API
+    static void Text(const char* label, const char* value)
+    {
+        if (ImGui::BeginTable("##text_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%s", value);
+
+            ImGui::EndTable();
+        }
+    }
+
+    static void Text(const char* label, const std::string& value)
+    {
+        Text(label, value.c_str());
+    }
+
+    template<typename... Args>
+    static void TextFormatted(const char* label, const char* format, Args... args)
+    {
+        if (ImGui::BeginTable("##text_formatted_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(format, args...);
+
+            ImGui::EndTable();
+        }
+    }
+
+    static bool DragFloat(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##dragfloat_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::DragFloat("##value", value, speed, min, max);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool DragFloat2(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##dragfloat2_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::DragFloat2("##value", value, speed, min, max);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool DragFloat3(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##dragfloat3_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::DragFloat3("##value", value, speed, min, max);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool DragFloat4(const char* label, float* value, float speed = 1.0f, float min = 0.0f, float max = 0.0f)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##dragfloat4_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::DragFloat4("##value", value, speed, min, max);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool DragInt(const char* label, int* value, float speed = 1.0f, int min = 0, int max = 0)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##dragint_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::DragInt("##value", value, speed, min, max);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool Checkbox(const char* label, bool* value)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##checkbox_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::Checkbox("##value", value);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool Button(const char* label, const char* buttonText)
+    {
+        bool clicked = false;
+        if (ImGui::BeginTable("##button_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            clicked = ImGui::Button(buttonText);
+
+            ImGui::EndTable();
+        }
+        return clicked;
+    }
+
+    static bool InputTextLabeled(const char* label, char* buffer, size_t bufferSize, ImGuiInputTextFlags flags = 0)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##inputtext_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::InputText("##value", buffer, bufferSize, flags);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool InputTextLabeled(const char* label, std::string& text, ImGuiInputTextFlags flags = 0)
+    {
+        if (textArea.size() < text.size() + 1)
+        {
+            textArea.resize((text.size() + 1) * 2);
+        }
+
+        std::strcpy(textArea.data(), text.data());
+        
+        bool changed = false;
+        if (ImGui::BeginTable("##inputtext_string_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::InputText("##value", textArea.data(), textArea.size(), flags);
+
+            ImGui::EndTable();
+        }
+
+        if (changed)
+        {
+            text = textArea.data();
+        }
+
+        return changed;
+    }
+
+    static bool ComboLabeled(const char* label, int* currentItem, const char* const items[], int itemsCount)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##combo_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::Combo("##value", currentItem, items, itemsCount);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    static bool ComboLabeled(const char* label, int* currentItem, const char* itemsSeparatedByZeros)
+    {
+        bool changed = false;
+        if (ImGui::BeginTable("##combo_separated_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            changed = ImGui::Combo("##value", currentItem, itemsSeparatedByZeros);
+
+            ImGui::EndTable();
+        }
+        return changed;
+    }
+
+    // Image display with label
+    static void ImageLabeled(const char* label, Gfx::ImageView* imageView, const ImVec2& size)
+    {
+        if (ImGui::BeginTable("##image_table", 2, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%s:", label);
+
+            ImGui::TableSetColumnIndex(1);
+            if (imageView)
+            {
+                ImGui::Image(imageView, size);
+            }
+            else
+            {
+                ImGui::Text("No image");
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    // Utility function for consistent spacing
+    static void SeparatorTextLabeled(const char* text)
+    {
+        ImGui::SeparatorText(text);
+    }
+
+    // For simple buttons without labels (maintain backward compatibility)
+    static bool ButtonSimple(const char* buttonText)
+    {
+        return ImGui::Button(buttonText);
+    }
 
 private:
     static const char* PayloadType;

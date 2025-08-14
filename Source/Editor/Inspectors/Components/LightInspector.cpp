@@ -20,26 +20,37 @@ public:
         float shadowDistance = light->GetShadowDistance();
         const char* lightTypes[] = {"Directional", "Point"};
 
-        ImGui::Combo("light type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
+        GUI::ComboLabeled("Light Type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
         if (light->GetLightType() != static_cast<LightType>(lightType))
         {
             light->SetLightType(static_cast<LightType>(lightType));
         }
 
-        if (ImGui::InputFloat("Shadow Distance", &shadowDistance))
+        if (GUI::DragFloat("Shadow Distance", &shadowDistance))
         {
             light->SetShadowDistance(shadowDistance);
         }
 
-        if (ImGui::DragFloat("ambient scale", &ambientScale))
+        if (GUI::DragFloat("Ambient Scale", &ambientScale))
         {
             light->SetAmbientScale(ambientScale);
         }
-        if (ImGui::ColorPicker3("lightColor", &lightColor[0]))
+        if (ImGui::BeginTable("##lightcolor_table", 2, ImGuiTableFlags_SizingStretchProp))
         {
-            light->SetLightColor(lightColor);
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TableSetColumnIndex(1);
+            if (ImGui::ColorPicker3("##lightcolor", &lightColor[0]))
+            {
+                light->SetLightColor(lightColor);
+            }
+
+            ImGui::EndTable();
         }
-        if (ImGui::DragFloat("intensity", &intensity))
+        if (GUI::DragFloat("Intensity", &intensity))
         {
             light->SetIntensity(intensity);
         }
@@ -47,32 +58,30 @@ public:
         if (light->GetLightType() == LightType::Point)
         {
             float v1 = light->GetPointLightDistance();
-            if (ImGui::DragFloat("point light distance", &v1))
+            if (GUI::DragFloat("Point Light Distance", &v1))
             {
                 light->SetPointLightDistance(v1);
             }
         }
 
-        ImGui::Text("Shadow Cache");
-        ImGui::SameLine();
-        ImGui::Separator();
+        GUI::SeparatorTextLabeled("Shadow Cache");
         if (!light->IsShadowCacheEnabled())
         {
-            if (ImGui::Button("Enable Shadow Cache"))
+            if (GUI::ButtonSimple("Enable Shadow Cache"))
             {
                 light->EnableShadowCache();
             }
         }
         else
         {
-            if (ImGui::Button("Disable Shadow Cache"))
+            if (GUI::ButtonSimple("Disable Shadow Cache"))
             {
                 light->DisableShadowCache();
             }
         }
 
         int targetFrames = light->GetShadowCacheTargetFrames();
-        if (ImGui::InputInt("target frames", &targetFrames))
+        if (GUI::DragInt("Target Frames", &targetFrames))
         {
             light->SetShadowUpdateFrames(targetFrames);
         }

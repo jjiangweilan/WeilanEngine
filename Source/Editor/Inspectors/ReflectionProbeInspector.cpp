@@ -41,8 +41,7 @@ public:
         ImGui::Separator();
 
         // Projection settings (read-only display)
-        ImGui::Text("Projection Settings");
-        ImGui::Indent();
+        GUI::SeparatorTextLabeled("Projection Settings");
 
         float nearPlane = target->GetNear();
         float farPlane = target->GetFar();
@@ -50,14 +49,14 @@ public:
         float projRight = target->GetProjectionRight();
         uint32_t resolution = target->GetResolution();
 
-        if (ImGui::DragFloat("Near: %.3f", &nearPlane))
+        if (GUI::DragFloat("Near", &nearPlane))
             target->SetNear(nearPlane);
-        if (ImGui::DragFloat("Far: %.3f", &farPlane))
+        if (GUI::DragFloat("Far", &farPlane))
             target->SetFar(farPlane);
 
-        ImGui::Text("Projection Top: %.3f", projTop);
-        ImGui::Text("Projection Right: %.3f", projRight);
-        ImGui::Text("Resolution: %u", resolution);
+        GUI::TextFormatted("Projection Top", "%.3f", projTop);
+        GUI::TextFormatted("Projection Right", "%.3f", projRight);
+        GUI::TextFormatted("Resolution", "%u", resolution);
 
         GUI::ObjectPropertyEnum(
             "SourceType",
@@ -67,43 +66,38 @@ public:
             &ReflectionProbe::SetSourceType
         );
 
-        ImGui::Unindent();
-
         ImGui::Separator();
 
         // Cubemap display
-        ImGui::Text("Generated Cubemap");
+        GUI::SeparatorTextLabeled("Generated Cubemap");
         if (Gfx::Image* cubemap = target->GetCubemap())
         {
-            ImGui::Text("Cubemap: %p", cubemap);
+            GUI::TextFormatted("Cubemap", "%p", cubemap);
             // TODO: Add cubemap preview when texture display is available
             // ImGui::Image(&cubemap->GetDefaultImageView(), {100, 100});
         }
         else
         {
-            ImGui::Text("No cubemap generated");
+            GUI::Text("Cubemap", "No cubemap generated");
         }
 
-        ImGui::SeparatorText("Debug");
+        GUI::SeparatorTextLabeled("Debug");
 
         // Debug information
-        ImGui::Text("Debug Information");
-        ImGui::Indent();
-        ImGui::Text("Component Name: %s", target->GetName().c_str());
-        ImGui::Text("Component UUID: %s", target->GetUUID().ToString().c_str());
-        ImGui::Text("GameObject: %s", target->GetGameObject() ? target->GetGameObject()->GetName().c_str() : "None");
-        ImGui::Unindent();
+        GUI::Text("Component Name", target->GetName().c_str());
+        GUI::Text("Component UUID", target->GetUUID().ToString().c_str());
+        GUI::Text("GameObject", target->GetGameObject() ? target->GetGameObject()->GetName().c_str() : "None");
 
         // Actions
-        ImGui::SeparatorText("Actions");
-        if (ImGui::Button("Force Update"))
+        GUI::SeparatorTextLabeled("Actions");
+        if (GUI::ButtonSimple("Force Update"))
         {
             // TODO: Add method to force update the reflection probe
             // target->ForceUpdate();
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Capture Probe"))
+        if (GUI::ButtonSimple("Capture Probe"))
         {
             // TODO: Add method to bake the reflection probe
             // target->Bake();

@@ -17,8 +17,7 @@ public:
         Inspector<Camera>::DrawInspector(editor);
 
         ImGui::NewLine();
-        ImGui::Text("Environment");
-        ImGui::Separator();
+        GUI::SeparatorTextLabeled("Environment");
         Texture* skybox = target->GetDiffuseEnv().Get();
         Texture* specularEnv = target->GetSpecularEnv().Get();
         if (GUI::ObjectField("Diffuse Environment Map", skybox))
@@ -34,7 +33,7 @@ public:
         }
 
         ImGui::NewLine();
-        if (ImGui::Button("Set as main camera"))
+        if (GUI::ButtonSimple("Set as main camera"))
         {
             if (auto scene = SceneManager::GetActiveScene())
             {

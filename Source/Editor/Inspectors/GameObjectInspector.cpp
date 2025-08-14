@@ -32,10 +32,10 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     }
     ImGui::EndMenuBar();
 
-    ImGui::Text("%s", target->GetUUID().ToString().c_str());
+    GUI::Text("UUID", target->GetUUID().ToString().c_str());
 
     // Object information
-    ImGui::SeparatorText("Object Information");
+    GUI::SeparatorTextLabeled("Object Information");
     auto& name = target->GetName();
     char cname[1024];
     strcpy(cname, name.data());
@@ -47,7 +47,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
     ImGui::SameLine();
 
-    if (ImGui::InputText("Name", cname, 1024))
+    if (GUI::InputTextLabeled("Name", cname, 1024))
     {
         target->SetName(cname);
     }
