@@ -30,9 +30,69 @@ struct DragDrop
 
 ENUM_FLAGS(DragDropTag, int);
 
-class GUI
+class EditorGUI
 {
 public:
+    template<class T>
+    static bool Property(const char* name, T& val)
+    {
+        if constexpr (std::is_same_v<T, int>)
+        {
+            return DragInt(name, &val);
+        }
+        else if constexpr (std::is_same_v<T, float>)
+        {
+            return DragFloat(name, &val);
+        }
+        else if constexpr (std::is_same_v<T, float2>)
+        {
+            return DragFloat2(name, &val[0]);
+        }
+        else if constexpr (std::is_same_v<T, float3>)
+        {
+            return DragFloat3(name, &val[0]);
+        }
+        else if constexpr (std::is_same_v<T, float4>)
+        {
+            return DragFloat4(name, &val[0]);
+        }
+        else if constexpr (std::is_same_v<T, float4x4>)
+        {
+            bool changed = false;
+            // For matrices, we'll display them as 4 rows of 4 floats using table layout
+            if (ImGui::BeginTable("##matrix_table", 2))
+            {
+                ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+                ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s:", name);
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::PushID("matrix");
+                for (int r = 0; r < 4; ++r)
+                {
+                    ImGui::PushID(r);
+                    float4 row = glm::row(val, r);
+                    if (ImGui::DragFloat4("##row", &row[0]))
+                    {
+                        val = glm::row(val, r, row);
+                        changed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::PopID();
+                ImGui::EndTable();
+            }
+            return changed;
+        }
+        else if constexpr (std::is_same_v<T, std::string>)
+        {
+            return InputTextLabeled(name, val);
+        }
+    }
+
     template <class T, class TGetter, class TSetter>
     static bool ObjectProperty(const char* name, T& obj, TGetter getter, TSetter setter = nullptr)
     {

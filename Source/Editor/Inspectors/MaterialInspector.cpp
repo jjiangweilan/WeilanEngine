@@ -17,12 +17,12 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         std::string name = target->GetName();
-        if (GUI::InputText("Name", name))
+        if (EditorGUI::InputText("Name", name))
             target->SetName(name);
 
         auto shader = target->GetShaderProgram();
         const char* shaderName = shader ? shader->GetName().c_str() : "";
-        if (const char* picked = GUI::ShaderPicker(shaderName))
+        if (const char* picked = EditorGUI::ShaderPicker(shaderName))
         {
             target->SetShader(picked);
         }
@@ -31,7 +31,7 @@ public:
 
         if (ImGui::TreeNode("Auto Inspector"))
         {
-            GUI::AutoObjectInspector(target, true);
+            EditorGUI::AutoObjectInspector(target, true);
             ImGui::TreePop();
         }
     }
@@ -125,7 +125,7 @@ public:
 
                             auto regionMin = ImGui::GetItemRectMin();
                             auto regionMax = ImGui::GetItemRectMax();
-                            if (GUI::DragDropTarget(path, {regionMin, regionMax}))
+                            if (EditorGUI::DragDropTarget(path, {regionMin, regionMax}))
                             {
                                 auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
                                 if (tex)
@@ -142,7 +142,7 @@ public:
                         {
                             ImGui::Button(binding->name.c_str());
                             std::filesystem::path path;
-                            if (GUI::DragDropTarget(path))
+                            if (EditorGUI::DragDropTarget(path))
                             {
                                 auto tex = dynamic_cast<Texture*>(AssetDatabase::Singleton()->LoadAsset(path));
                                 if (tex)

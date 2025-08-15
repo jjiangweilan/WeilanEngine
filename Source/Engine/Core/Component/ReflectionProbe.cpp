@@ -1,5 +1,6 @@
 #include "ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Rendering/RenderPipeline/RenderPipeline.hpp"
 
 DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
 
@@ -119,7 +120,7 @@ void ReflectionProbe::Deserialize(Serializer* s)
     int iSourceType;
     DESERIALIZE(s, iSourceType);
     DESERIALIZE(s, iUpdateType);
-    updateType = static_cast<UpdateType>(iUpdateType);
+    updateType = static_cast<ProbeType>(iUpdateType);
     sourceType = static_cast<SourceType>(iSourceType);
 }
 
@@ -132,4 +133,12 @@ void ReflectionProbe::SetNear(float near)
 {
     this->near = near;
     UpdateFrustums(gameObject->GetPosition());
+}
+
+void ReflectionProbe::BakeStaticReflectionProbe()
+{
+    for (int face = 0; face < 6; face++)
+    {
+        std::unique_ptr<Rendering::RenderPipeline> renderPipeline = std::make_unique<Rendering::RenderPipeline>();
+    }
 }

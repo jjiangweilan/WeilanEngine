@@ -10,19 +10,19 @@ public:
     {
         // object information
         auto& name = target->GetName();
-        GUI::Text("Name", name.c_str());
-        GUI::Text("UUID", target->GetUUID().ToString().c_str());
+        EditorGUI::Text("Name", name.c_str());
+        EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
         ImGui::Spacing();
 
         int c = 0;
         for (auto& submesh : target->GetSubmeshes())
         {
-            GUI::TextFormatted("Submesh", "Submesh-%i", c);
+            EditorGUI::TextFormatted("Submesh", "Submesh-%i", c);
             ImGui::Indent();
             auto& attr = submesh.GetAttribute();
             for (auto& desc : attr.GetDescription())
             {
-                GUI::TextFormatted("Attribute", "%s - %i", desc.name.c_str(), desc.size);
+                EditorGUI::TextFormatted("Attribute", "%s - %i", desc.name.c_str(), desc.size);
             }
             ImGui::Unindent();
             c++;
@@ -30,7 +30,7 @@ public:
 
         if (target->HasSkeleton())
         {
-            if (GUI::ButtonSimple("Generate Skeleton"))
+            if (EditorGUI::ButtonSimple("Generate Skeleton"))
             {
             }
         }

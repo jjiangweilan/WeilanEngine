@@ -32,10 +32,10 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
     }
     ImGui::EndMenuBar();
 
-    GUI::Text("UUID", target->GetUUID().ToString().c_str());
+    EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
 
     // Object information
-    GUI::SeparatorTextLabeled("Object Information");
+    EditorGUI::SeparatorTextLabeled("Object Information");
     auto& name = target->GetName();
     char cname[1024];
     strcpy(cname, name.data());
@@ -47,7 +47,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
 
     ImGui::SameLine();
 
-    if (GUI::InputTextLabeled("Name", cname, 1024))
+    if (EditorGUI::InputTextLabeled("Name", cname, 1024))
     {
         target->SetName(cname);
     }
@@ -107,7 +107,7 @@ void GameObjectInspector::DrawInspector(GameEditor& editor)
                 (contextComponent == co.get() || EditorState::GetMainSelectedObject() == contextComponent);
             ImGuiTreeNodeFlags treeNodeFlags = showAsSelected ? ImGuiTreeNodeFlags_Selected : 0;
             bool expandComponent = ImGui::TreeNodeEx(c.GetName().c_str(), treeNodeFlags);
-            GUI::DragDropSource(c.GetName().c_str(), &c);
+            EditorGUI::DragDropSource(c.GetName().c_str(), &c);
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Right) && ImGui::IsItemHovered())
             {
                 if (!popupTriggered)

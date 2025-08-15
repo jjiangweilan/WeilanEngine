@@ -45,7 +45,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
     auto windowMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
     std::filesystem::path filePath;
     // drop a external object
-    if (GUI::DragDropTarget(filePath, {windowPos, windowMax}))
+    if (EditorGUI::DragDropTarget(filePath, {windowPos, windowMax}))
     {
         Object* asset = AssetDatabase::Singleton()->LoadAsset(filePath);
         if (Model* model = dynamic_cast<Model*>(asset))
@@ -63,7 +63,7 @@ void GameEditor::ShowSceneTree(Scene& scene)
     }
 
     Object* moveToRoot = nullptr;
-    if (GUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
+    if (EditorGUI::DragDropTarget(typeid(GameObject), moveToRoot, {windowPos, windowMax}))
     {
         GameObject* casted = static_cast<GameObject*>(moveToRoot);
         casted->SetParent(nullptr, true);
@@ -244,10 +244,10 @@ void GameEditor::SceneTree(
         }
     }
 
-    GUI::DragDropSource(go->GetName().c_str(), go);
+    EditorGUI::DragDropSource(go->GetName().c_str(), go);
 
     Object* dropGO;
-    if (GUI::DragDropTarget(typeid(GameObject), dropGO))
+    if (EditorGUI::DragDropTarget(typeid(GameObject), dropGO))
     {
         ((GameObject*)dropGO)->SetParent(go);
     }

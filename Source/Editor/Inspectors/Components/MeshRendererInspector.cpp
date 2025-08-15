@@ -58,7 +58,7 @@ public:
 
         bool bp = ImGui::Button(meshGUIID.c_str());
         Object* meshPayload = nullptr;
-        if (GUI::DragDropTarget(typeid(Mesh), meshPayload))
+        if (EditorGUI::DragDropTarget(typeid(Mesh), meshPayload))
         {
             Mesh* mesh = static_cast<Mesh*>(meshPayload);
             meshRenderer->SetMesh(mesh);
@@ -87,7 +87,7 @@ public:
             };
 
             Object* materialPayload;
-            if (GUI::DragDropTarget(typeid(Material), materialPayload))
+            if (EditorGUI::DragDropTarget(typeid(Material), materialPayload))
             {
 
                 mats[i] = (Material*)materialPayload;

@@ -20,18 +20,18 @@ public:
         float shadowDistance = light->GetShadowDistance();
         const char* lightTypes[] = {"Directional", "Point"};
 
-        GUI::ComboLabeled("Light Type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
+        EditorGUI::ComboLabeled("Light Type", &lightType, lightTypes, IM_ARRAYSIZE(lightTypes));
         if (light->GetLightType() != static_cast<LightType>(lightType))
         {
             light->SetLightType(static_cast<LightType>(lightType));
         }
 
-        if (GUI::DragFloat("Shadow Distance", &shadowDistance))
+        if (EditorGUI::DragFloat("Shadow Distance", &shadowDistance))
         {
             light->SetShadowDistance(shadowDistance);
         }
 
-        if (GUI::DragFloat("Ambient Scale", &ambientScale))
+        if (EditorGUI::DragFloat("Ambient Scale", &ambientScale))
         {
             light->SetAmbientScale(ambientScale);
         }
@@ -50,7 +50,7 @@ public:
 
             ImGui::EndTable();
         }
-        if (GUI::DragFloat("Intensity", &intensity))
+        if (EditorGUI::DragFloat("Intensity", &intensity))
         {
             light->SetIntensity(intensity);
         }
@@ -58,30 +58,30 @@ public:
         if (light->GetLightType() == LightType::Point)
         {
             float v1 = light->GetPointLightDistance();
-            if (GUI::DragFloat("Point Light Distance", &v1))
+            if (EditorGUI::DragFloat("Point Light Distance", &v1))
             {
                 light->SetPointLightDistance(v1);
             }
         }
 
-        GUI::SeparatorTextLabeled("Shadow Cache");
+        EditorGUI::SeparatorTextLabeled("Shadow Cache");
         if (!light->IsShadowCacheEnabled())
         {
-            if (GUI::ButtonSimple("Enable Shadow Cache"))
+            if (EditorGUI::ButtonSimple("Enable Shadow Cache"))
             {
                 light->EnableShadowCache();
             }
         }
         else
         {
-            if (GUI::ButtonSimple("Disable Shadow Cache"))
+            if (EditorGUI::ButtonSimple("Disable Shadow Cache"))
             {
                 light->DisableShadowCache();
             }
         }
 
         int targetFrames = light->GetShadowCacheTargetFrames();
-        if (GUI::DragInt("Target Frames", &targetFrames))
+        if (EditorGUI::DragInt("Target Frames", &targetFrames))
         {
             light->SetShadowUpdateFrames(targetFrames);
         }

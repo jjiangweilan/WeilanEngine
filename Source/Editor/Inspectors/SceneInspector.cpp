@@ -14,23 +14,23 @@ public:
         auto& name = target->GetName();
         char cname[1024];
         strcpy(cname, name.data());
-        if (GUI::InputTextLabeled("Name", cname, 1024))
+        if (EditorGUI::InputTextLabeled("Name", cname, 1024))
         {
             target->SetName(cname);
         }
 
-        if (GUI::ButtonSimple("Set as active scene"))
+        if (EditorGUI::ButtonSimple("Set as active scene"))
         {
             editor.SetActiveScene(target);
         }
 
-        if (GUI::ButtonSimple("Fix Undestroied GameObject Not In Scene Tree"))
+        if (EditorGUI::ButtonSimple("Fix Undestroied GameObject Not In Scene Tree"))
         {
             target->FixUndestroiedGameObjectNotInSceneTree();
         }
 
         auto renderPipelineSetting = target->GetRenderPipelineSetting().Get();
-        if (GUI::ObjectField("Render Pipeline", renderPipelineSetting))
+        if (EditorGUI::ObjectField("Render Pipeline", renderPipelineSetting))
         {
             target->SetRenderPipelineSetting(renderPipelineSetting);
         }

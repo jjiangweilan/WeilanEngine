@@ -45,7 +45,7 @@ void ReflectionProbeUpdate::Execute(Gfx::CommandBuffer& cmd, RenderingData& rend
 
     float3 probeWorldPosition = float3(0);
 
-    if (probe.GetUpdateType() == ReflectionProbe::UpdateType::Local)
+    if (probe.GetUpdateType() == ReflectionProbe::ProbeType::Local)
     {
         probeWorldPosition = probe.GetGameObject()->GetPosition();
     }

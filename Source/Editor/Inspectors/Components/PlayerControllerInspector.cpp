@@ -16,43 +16,43 @@ public:
         Inspector<PlayerController>::DrawInspector(editor);
 
         Camera* camera = target->GetCamera();
-        if (GUI::ObjectField("camera", camera))
+        if (EditorGUI::ObjectField("camera", camera))
         {
             target->SetCamera(camera);
         }
         auto obj = target->rotationRoot.Get();
-        if (GUI::ObjectField("rotation root", obj))
+        if (EditorGUI::ObjectField("rotation root", obj))
         {
             target->rotationRoot = obj;
         }
 
         AnimationPlayer* animationPlayer = target->GetRootMotionAnimationPlayer();
-        if (GUI::ObjectField("root motion animation player", animationPlayer))
+        if (EditorGUI::ObjectField("root motion animation player", animationPlayer))
         {
             target->SetRootMotionAnimationPlayer(animationPlayer);
         }
 
         ImGui::SeparatorText("Player");
-        ImGui::DragFloat("Movement Speed", &target->movementSpeed);
+        EditorGUI::Property("Movement Speed", target->movementSpeed);
 
         ImGui::SeparatorText("Camera");
-        ImGui::DragFloat("Rotate Speed", &target->rotateSpeed);
-        ImGui::DragFloat("Elasticity", &target->cameraElasticity);
-        ImGui::DragFloat("Min Elasticity", &target->cameraMinElasticity);
-        ImGui::DragFloat("Offset", &target->cameraOffset);
+        EditorGUI::Property("Rotate Speed", target->rotateSpeed);
+        EditorGUI::Property("Elasticity", target->cameraElasticity);
+        EditorGUI::Property("Min Elasticity", target->cameraMinElasticity);
+        EditorGUI::Property("Offset", target->cameraOffset);
         ImGui::Text("Phi %f", target->cameraPhi);
         ImGui::Text("Theta %f", target->cameraTheta);
 
         ImGui::SeparatorText("Animation");
-        ImGui::DragFloat("blendFactorScale", &target->blendFactorScale);
+        EditorGUI::Property("blendFactorScale", target->blendFactorScale);
 
         auto go = target->GetGameObject();
         float radius = target->GetCharacterCapsuleShapeRadius();
         float halfHeight = target->GetCharacterCapsuleShapeHalfHeight();
 
         bool radiusOrHeightChanged = false;
-        radiusOrHeightChanged |= ImGui::DragFloat("halfHeight", &halfHeight);
-        radiusOrHeightChanged |= ImGui::DragFloat("radius", &radius);
+        radiusOrHeightChanged |= EditorGUI::Property("halfHeight", halfHeight);
+        radiusOrHeightChanged |= EditorGUI::Property("radius", radius);
         if (radiusOrHeightChanged)
         {
             target->SetCharacterCapsuleShape(halfHeight, radius);

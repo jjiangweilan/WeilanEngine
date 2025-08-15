@@ -35,7 +35,7 @@ public:
                 }
             ))
         {
-            target->SetUpdateType(static_cast<ReflectionProbe::UpdateType>(updateType));
+            target->SetUpdateType(static_cast<ReflectionProbe::ProbeType>(updateType));
         }
 
         ImGui::Separator();

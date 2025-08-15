@@ -13,9 +13,10 @@ public:
         Runtime
     };
 
-    enum class UpdateType
+    enum class ProbeType
     {
-        Local
+        Local,
+        Global
     };
 
     ReflectionProbe();
@@ -43,7 +44,8 @@ public:
     void OnEnable() override;
     void OnDisable() override;
 
-    void SetUpdateType(UpdateType type) { updateType = type; }
+    void BakeStaticReflectionProbe();
+    void SetUpdateType(ProbeType type) { updateType = type; }
     auto GetUpdateType() { return updateType; }
 
     void SetSourceType(SourceType type) { sourceType = type; }
@@ -72,7 +74,7 @@ private:
     float4x4 projectionMatrix;
     Frustum frustums[6];
     float4x4 viewMatrices[6];
-    UpdateType updateType = UpdateType::Local;
+    ProbeType updateType = ProbeType::Local;
     SourceType sourceType = SourceType::Static;
     /**
      * @brief extent of local reflection probe cube
@@ -81,6 +83,8 @@ private:
     std::unique_ptr<Gfx::Image> cubemap;
 
     uint32_t resolution = 512;
+
+    ObjPtr<Texture> staticReflectionProbe;
 
     void TransformChanged() override;
     void UpdateFrustums(float3 position);

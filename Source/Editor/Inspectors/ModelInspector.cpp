@@ -14,15 +14,15 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         // object information
-        GUI::Text("Name", target->GetName().c_str());
+        EditorGUI::Text("Name", target->GetName().c_str());
 
-        GUI::SeparatorTextLabeled("Meshes");
+        EditorGUI::SeparatorTextLabeled("Meshes");
         ImGui::Indent();
         for (auto& mesh : target->GetMeshes())
         {
             ImGui::Button(mesh->GetName().c_str());
 
-            GUI::DragDropSource(mesh->GetName().c_str(), mesh.get());
+            EditorGUI::DragDropSource(mesh->GetName().c_str(), mesh.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
@@ -31,7 +31,7 @@ public:
         }
         ImGui::Unindent();
 
-        GUI::SeparatorTextLabeled("Materials");
+        EditorGUI::SeparatorTextLabeled("Materials");
         ImGui::Indent();
         size_t pushID = 0;
         for (auto& material : target->GetMaterials())
@@ -41,7 +41,7 @@ public:
             Material* mat = material.get();
             ImGui::Button(mat->GetName().c_str());
 
-            GUI::DragDropSource(material->GetName().c_str(), material.get());
+            EditorGUI::DragDropSource(material->GetName().c_str(), material.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
@@ -49,7 +49,7 @@ public:
             }
 
             ImGui::SameLine();
-            if (GUI::ButtonSimple("copy"))
+            if (EditorGUI::ButtonSimple("copy"))
             {
                 auto copy = material->Clone();
                 auto& db = editor.GetEngine()->assetDatabase;
@@ -65,7 +65,7 @@ public:
         }
         ImGui::Unindent();
 
-        GUI::SeparatorTextLabeled("Textures");
+        EditorGUI::SeparatorTextLabeled("Textures");
         ImGui::Indent();
         for (auto& texture : target->GetTextures())
         {
@@ -73,11 +73,11 @@ public:
             auto width = tex->GetDescription().img.width;
             auto height = tex->GetDescription().img.height;
             auto size = ResizeKeepRatio(width, height, 100, 100);
-            GUI::Text("Name", tex->GetName().c_str());
+            EditorGUI::Text("Name", tex->GetName().c_str());
             ImGui::SameLine();
             ImGui::Image(&tex->GetGfxImage()->GetDefaultImageView(), {size.x, size.y});
 
-            GUI::DragDropSource(texture->GetName().c_str(), texture.get());
+            EditorGUI::DragDropSource(texture->GetName().c_str(), texture.get());
 
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
             {
@@ -86,7 +86,7 @@ public:
         }
         ImGui::Unindent();
 
-        GUI::SeparatorTextLabeled("Animations");
+        EditorGUI::SeparatorTextLabeled("Animations");
         ImGui::Indent();
         for (auto& animation : target->GetAnimations())
         {
@@ -101,7 +101,7 @@ public:
             {
                 EditorState::SelectObject(anim);
             }
-            GUI::DragDropSource(anim->GetName().c_str(), anim);
+            EditorGUI::DragDropSource(anim->GetName().c_str(), anim);
         }
         ImGui::Unindent();
     }

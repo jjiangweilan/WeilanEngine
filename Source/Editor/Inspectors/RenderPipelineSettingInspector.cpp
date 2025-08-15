@@ -12,7 +12,7 @@ public:
     void DrawInspector(GameEditor& editor) override
     {
         Inspector<RenderPipelineSetting>::DrawInspector(editor);
-        GUI::AutoObjectInspector(target);
+        EditorGUI::AutoObjectInspector(target);
     }
 
 private:

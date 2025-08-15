@@ -9,16 +9,16 @@ class SceneSettingsInspector : public Inspector<SceneSettings>
 public:
     void DrawInspector(GameEditor& editor) override
     {
-        if (GUI::ButtonSimple("Update Skybox Probe"))
+        if (EditorGUI::ButtonSimple("Update Skybox Probe"))
         {
             target->UpdateSkyboxProbe();
         }
 
-        GUI::Checkbox("Debug Skybox Probe", &enableSkyboxProbeDebug);
+        EditorGUI::Checkbox("Debug Skybox Probe", &enableSkyboxProbeDebug);
         if (enableSkyboxProbeDebug)
         {
             target->DebugDrawSkyboxProbe(skyboxProbeDebugPosition);
-            GUI::DragFloat3("Skybox Probe Position", &skyboxProbeDebugPosition[0]);
+            EditorGUI::DragFloat3("Skybox Probe Position", &skyboxProbeDebugPosition[0]);
         }
     }
 

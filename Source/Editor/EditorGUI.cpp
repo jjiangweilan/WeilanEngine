@@ -4,9 +4,9 @@
 
 namespace Editor
 {
-const char* GUI::PayloadType = "_DragDropIntenralTypeID";
-DynamicArray<char> GUI::textArea = DynamicArray<char>(1024);
-void GUI::AutoObjectInspector(Object* target, bool readOnly)
+const char* EditorGUI::PayloadType = "_DragDropIntenralTypeID";
+DynamicArray<char> EditorGUI::textArea = DynamicArray<char>(1024);
+void EditorGUI::AutoObjectInspector(Object* target, bool readOnly)
 {
     if (target == nullptr)
         return;
@@ -24,7 +24,7 @@ void GUI::AutoObjectInspector(Object* target, bool readOnly)
     }
 }
 
-void GUI::AutoObjectInspector(const Object* target)
+void EditorGUI::AutoObjectInspector(const Object* target)
 {
     if (target == nullptr)
         return;
@@ -35,14 +35,14 @@ void GUI::AutoObjectInspector(const Object* target)
     JsonInspector(j, valueChanged);
 }
 
-bool GUI::JsonInspector(nlohmann::json& j)
+bool EditorGUI::JsonInspector(nlohmann::json& j)
 {
     bool valueChanged = false;
     JsonInspector(j, valueChanged);
     return valueChanged;
 }
 
-const char* GUI::ShaderPicker(const char* shaderName)
+const char* EditorGUI::ShaderPicker(const char* shaderName)
 {
     int currentIdx = -1;
     for (int i = 0; i < (int)Shaders::MAX_COUNT; i++)
@@ -64,7 +64,7 @@ const char* GUI::ShaderPicker(const char* shaderName)
     return nullptr;
 }
 
-void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
+void EditorGUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
 {
     const float BaseInputWidth = 60;
     for (auto& item : j.items())
@@ -193,7 +193,7 @@ void GUI::JsonInspector(nlohmann::json& j, bool& valueChanged)
 
             if (!isUUID)
             {
-                if (GUI::InputText(key.c_str(), text))
+                if (EditorGUI::InputText(key.c_str(), text))
                 {
                     value = text;
                     valueChanged = true;

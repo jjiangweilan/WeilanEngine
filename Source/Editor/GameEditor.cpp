@@ -1157,7 +1157,7 @@ void GameEditor::ShowRenderPipelineSetting()
 {
     ImGui::Begin("Render Pipeline");
     auto setting = loop->GetRenderPipeline().GetRenderPipelineSetting();
-    GUI::AutoObjectInspector(setting);
+    EditorGUI::AutoObjectInspector(setting);
     ImGui::End();
 }
 

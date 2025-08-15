@@ -8,7 +8,7 @@ class GameScriptInspector : public Inspector<GameScript>
 public:
     void DrawInspector(GameEditor& editor) override {
         LuaScript* script = target->GetScript().Get();
-        if(GUI::ObjectField("Lua Script", script))
+        if(EditorGUI::ObjectField("Lua Script", script))
         {
             target->SetScript(script);
         }
@@ -17,7 +17,7 @@ public:
         target->LuaSerialize(&s);
         auto j = s.GetJson();
         bool valueChanged = false;
-        GUI::JsonInspector(j, valueChanged);
+        EditorGUI::JsonInspector(j, valueChanged);
         if (valueChanged)
         {
             JsonSerializer des(j);

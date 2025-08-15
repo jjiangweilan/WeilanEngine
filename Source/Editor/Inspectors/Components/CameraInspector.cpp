@@ -17,23 +17,23 @@ public:
         Inspector<Camera>::DrawInspector(editor);
 
         ImGui::NewLine();
-        GUI::SeparatorTextLabeled("Environment");
+        EditorGUI::SeparatorTextLabeled("Environment");
         Texture* skybox = target->GetDiffuseEnv().Get();
         Texture* specularEnv = target->GetSpecularEnv().Get();
-        if (GUI::ObjectField("Diffuse Environment Map", skybox))
+        if (EditorGUI::ObjectField("Diffuse Environment Map", skybox))
         {
             if (skybox)
                 target->SetDiffuseEnv(skybox);
         }
 
-        if (GUI::ObjectField("Specular Environment Map", specularEnv))
+        if (EditorGUI::ObjectField("Specular Environment Map", specularEnv))
         {
             if (specularEnv)
                 target->SetSpecularEnv(specularEnv);
         }
 
         ImGui::NewLine();
-        if (GUI::ButtonSimple("Set as main camera"))
+        if (EditorGUI::ButtonSimple("Set as main camera"))
         {
             if (auto scene = SceneManager::GetActiveScene())
             {

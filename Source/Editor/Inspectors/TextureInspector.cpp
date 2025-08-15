@@ -21,11 +21,11 @@ public:
         auto& name = target->GetName();
         char cname[1024];
         strcpy(cname, name.data());
-        if (GUI::InputTextLabeled("Name", cname, 1024))
+        if (EditorGUI::InputTextLabeled("Name", cname, 1024))
         {
             target->SetName(cname);
         }
-        GUI::Text("UUID", target->GetUUID().ToString().c_str());
+        EditorGUI::Text("UUID", target->GetUUID().ToString().c_str());
 
         if (reimport)
         {
@@ -33,14 +33,14 @@ public:
         }
 
         ImGui::NewLine();
-        GUI::SeparatorTextLabeled("Preview");
+        EditorGUI::SeparatorTextLabeled("Preview");
         imageInspector.ShowImage(imageScale);
         ImGui::Separator();
-        GUI::DragFloat("Image Scale", &imageScale, 0.01, 0.01, 1.0);
+        EditorGUI::DragFloat("Image Scale", &imageScale, 0.01, 0.01, 1.0);
         float mb = target->GetDescription().img.GetByteSize() / 1024.0f / 1024.0f;
-        GUI::TextFormatted("Size", "%d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
-        GUI::TextFormatted("Memory Size (without mip)", "%.2f Mb", mb);
-        GUI::Text("Format", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
+        EditorGUI::TextFormatted("Size", "%d x %d", target->GetDescription().img.width, target->GetDescription().img.height);
+        EditorGUI::TextFormatted("Memory Size (without mip)", "%.2f Mb", mb);
+        EditorGUI::Text("Format", Gfx::MapGfxFormatToString(target->GetDescription().img.format));
 
         // show and update meta
         ImGui::NewLine();
@@ -52,13 +52,13 @@ public:
         bool converToCubemap = options.value("convertToCubemap", false);
         bool convertToReflectanceCubemap = options.value("convertToReflectanceCubemap", false);
 
-        GUI::SeparatorTextLabeled("Import Options");
+        EditorGUI::SeparatorTextLabeled("Import Options");
         bool metaChanged = false;
-        metaChanged |= GUI::Checkbox("Linear Format", &linearFormat);
-        metaChanged |= GUI::Checkbox("Generate Mipmap", &generateMipmap);
-        metaChanged |= GUI::Checkbox("Convert To Cubemap", &converToCubemap);
-        metaChanged |= GUI::Checkbox("Convert To Irradiance Cubemap", &convertToIrradianceCubemap);
-        metaChanged |= GUI::Checkbox("Convert To Reflectance Cubemap", &convertToReflectanceCubemap);
+        metaChanged |= EditorGUI::Checkbox("Linear Format", &linearFormat);
+        metaChanged |= EditorGUI::Checkbox("Generate Mipmap", &generateMipmap);
+        metaChanged |= EditorGUI::Checkbox("Convert To Cubemap", &converToCubemap);
+        metaChanged |= EditorGUI::Checkbox("Convert To Irradiance Cubemap", &convertToIrradianceCubemap);
+        metaChanged |= EditorGUI::Checkbox("Convert To Reflectance Cubemap", &convertToReflectanceCubemap);
         if (metaChanged)
         {
             meta["importOption"]["generateMipmap"] = generateMipmap;
@@ -71,7 +71,7 @@ public:
             AssetDatabase::Singleton()->SetAssetMeta(*target, meta);
 
         // import button
-        if (GUI::ButtonSimple("Reimport"))
+        if (EditorGUI::ButtonSimple("Reimport"))
         {
             reimport = true;
             imageInspector.SetReimport(true);
