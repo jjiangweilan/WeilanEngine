@@ -14,6 +14,9 @@ namespace Gfx
 class CommandBuffer;
 }
 
+class GizmoContext
+{};
+
 class GizmoBase
 {
 public:

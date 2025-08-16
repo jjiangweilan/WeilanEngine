@@ -1,4 +1,4 @@
-﻿#include "AssetBrowser.hpp"
+#include "AssetBrowser.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Asset.hpp"
 #include "Core/GameObject.hpp"
@@ -71,7 +71,7 @@ void AssetBrowser::ShowInternalAssets()
             auto path = std::filesystem::relative(internalAsset->GetAssetPath(), "_engine_internal/").string();
             if (ImGui::TreeNodeEx(path.c_str(), ImGuiTreeNodeFlags_Leaf))
             {
-                if (GUI::DragDropSource(
+                if (EditorGUI::DragDropSource(
                         internalAsset->GetAssetPath().string().c_str(),
                         [internalAsset](Object*& obj)
                         {
@@ -121,13 +121,13 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
             bool treeOpen = ImGui::TreeNodeEx(path.filename().string().c_str());
 
-            if (GUI::DragDropSource(relative))
+            if (EditorGUI::DragDropSource(relative))
             {
                 currentDragDropAssetFileDepth = depth;
             }
 
             std::filesystem::path pathStr;
-            if (GUI::DragDropTarget(pathStr))
+            if (EditorGUI::DragDropTarget(pathStr))
             {
                 endEvents.Register(
                     [pathStr, newDirectory = entry.path().string()]()
@@ -143,7 +143,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             }
 
             Object* gameObject;
-            GUI::DragDropTarget(typeid(GameObject), gameObject);
+            EditorGUI::DragDropTarget(typeid(GameObject), gameObject);
 
             if (ImGui::BeginPopupContextItem())
             {
@@ -201,7 +201,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
         auto currentCursor = ImGui::GetCursorPos() + windowPos - ImVec2{ImGui::GetScrollX(), ImGui::GetScrollY()};
         auto contextRegionMax = windowPos + ImVec2{ImGui::GetWindowWidth(), ImGui::GetWindowHeight()};
         std::filesystem::path pathStr;
-        if (GUI::DragDropTarget(pathStr, {currentCursor, contextRegionMax}))
+        if (EditorGUI::DragDropTarget(pathStr, {currentCursor, contextRegionMax}))
         {
             endEvents.Register(
                 [pathStr]()
@@ -251,7 +251,7 @@ void AssetBrowser::ShowDir(const std::filesystem::path& path, int depth)
             {
                 std::filesystem::path path = entry.path().string();
                 path = AssetDatabase::Singleton()->AbsolutePathToAssetPath(path);
-                GUI::DragDropSource(path, [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); });
+                EditorGUI::DragDropSource(path, [path](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(path); });
 
                 if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
@@ -448,7 +448,7 @@ void AssetBrowser::ShowAssetIconItem(
     // Draw text icon for now (until we can properly access texture system)
     if (iconImage)
     {
-        GUI::Image(*iconImage, iconMin, iconMax);
+        EditorGUI::Image(*iconImage, iconMin, iconMax);
     }
 
     // File/folder name label
@@ -505,10 +505,10 @@ void AssetBrowser::ShowAssetIconItem(
     if (isDirectory)
     {
         auto relative = AssetDatabase::Singleton()->AbsolutePathToAssetPath(entry.path());
-        GUI::DragDropSource(relative, ImGuiDragDropFlags_SourceAllowNullID);
+        EditorGUI::DragDropSource(relative, ImGuiDragDropFlags_SourceAllowNullID);
 
         std::filesystem::path pathStr;
-        if (GUI::DragDropTarget(pathStr))
+        if (EditorGUI::DragDropTarget(pathStr))
         {
             endEvents.Register(
                 [pathStr, newDirectory = entry.path().string()]()
@@ -527,7 +527,7 @@ void AssetBrowser::ShowAssetIconItem(
     {
         std::filesystem::path filePath = entry.path().string();
         filePath = AssetDatabase::Singleton()->AbsolutePathToAssetPath(filePath);
-        GUI::DragDropSource(
+        EditorGUI::DragDropSource(
             filePath,
             [filePath](Object*& obj) { obj = AssetDatabase::Singleton()->LoadAsset(filePath); },
             ImGuiDragDropFlags_SourceAllowNullID

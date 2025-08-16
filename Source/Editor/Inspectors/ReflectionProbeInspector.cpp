@@ -21,7 +21,7 @@ public:
 
         // Update Type
         int updateType = static_cast<int>(target->GetUpdateType());
-        if (GUI::EnumDropDown(
+        if (EditorGUI::EnumDropDown(
                 "Update Type",
                 updateType,
                 1,
@@ -41,7 +41,7 @@ public:
         ImGui::Separator();
 
         // Projection settings (read-only display)
-        GUI::SeparatorTextLabeled("Projection Settings");
+        EditorGUI::SeparatorTextLabeled("Projection Settings");
 
         float nearPlane = target->GetNear();
         float farPlane = target->GetFar();
@@ -49,16 +49,16 @@ public:
         float projRight = target->GetProjectionRight();
         uint32_t resolution = target->GetResolution();
 
-        if (GUI::DragFloat("Near", &nearPlane))
+        if (EditorGUI::DragFloat("Near", &nearPlane))
             target->SetNear(nearPlane);
-        if (GUI::DragFloat("Far", &farPlane))
+        if (EditorGUI::DragFloat("Far", &farPlane))
             target->SetFar(farPlane);
 
-        GUI::TextFormatted("Projection Top", "%.3f", projTop);
-        GUI::TextFormatted("Projection Right", "%.3f", projRight);
-        GUI::TextFormatted("Resolution", "%u", resolution);
+        EditorGUI::TextFormatted("Projection Top", "%.3f", projTop);
+        EditorGUI::TextFormatted("Projection Right", "%.3f", projRight);
+        EditorGUI::TextFormatted("Resolution", "%u", resolution);
 
-        GUI::ObjectPropertyEnum(
+        EditorGUI::ObjectPropertyEnum(
             "SourceType",
             {"Static", "Runtime"},
             *target,
@@ -69,35 +69,35 @@ public:
         ImGui::Separator();
 
         // Cubemap display
-        GUI::SeparatorTextLabeled("Generated Cubemap");
+        EditorGUI::SeparatorTextLabeled("Generated Cubemap");
         if (Gfx::Image* cubemap = target->GetCubemap())
         {
-            GUI::TextFormatted("Cubemap", "%p", cubemap);
+            EditorGUI::TextFormatted("Cubemap", "%p", cubemap);
             // TODO: Add cubemap preview when texture display is available
             // ImGui::Image(&cubemap->GetDefaultImageView(), {100, 100});
         }
         else
         {
-            GUI::Text("Cubemap", "No cubemap generated");
+            EditorGUI::Text("Cubemap", "No cubemap generated");
         }
 
-        GUI::SeparatorTextLabeled("Debug");
+        EditorGUI::SeparatorTextLabeled("Debug");
 
         // Debug information
-        GUI::Text("Component Name", target->GetName().c_str());
-        GUI::Text("Component UUID", target->GetUUID().ToString().c_str());
-        GUI::Text("GameObject", target->GetGameObject() ? target->GetGameObject()->GetName().c_str() : "None");
+        EditorGUI::Text("Component Name", target->GetName().c_str());
+        EditorGUI::Text("Component UUID", target->GetUUID().ToString().c_str());
+        EditorGUI::Text("GameObject", target->GetGameObject() ? target->GetGameObject()->GetName().c_str() : "None");
 
         // Actions
-        GUI::SeparatorTextLabeled("Actions");
-        if (GUI::ButtonSimple("Force Update"))
+        EditorGUI::SeparatorTextLabeled("Actions");
+        if (EditorGUI::ButtonSimple("Force Update"))
         {
             // TODO: Add method to force update the reflection probe
             // target->ForceUpdate();
         }
 
         ImGui::SameLine();
-        if (GUI::ButtonSimple("Capture Probe"))
+        if (EditorGUI::ButtonSimple("Capture Probe"))
         {
             // TODO: Add method to bake the reflection probe
             // target->Bake();

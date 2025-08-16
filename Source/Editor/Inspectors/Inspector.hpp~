@@ -39,7 +39,7 @@ public:
         else
             name = target->GetUUID().ToString().c_str();
 
-        GUI::DragDropSource(name, target);
+        EditorGUI::DragDropSource(name, target);
 
         if (Asset* asset = dynamic_cast<Asset*>(target.Get()))
         {
