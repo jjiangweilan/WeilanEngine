@@ -142,3 +142,13 @@ void ReflectionProbe::BakeStaticReflectionProbe()
         std::unique_ptr<Rendering::RenderPipeline> renderPipeline = std::make_unique<Rendering::RenderPipeline>();
     }
 }
+
+void ReflectionProbe::OnDrawGizmos()
+{
+    Gizmos::DrawInteractiveBox(gizmoState, GetGameObject()->GetPosition(), extent);
+}
+
+void ReflectionProbe::OnDrawGizmos(GizmoContext& gizmoContext)
+{
+    gizmoContext.DrawInteractiveBox(scaleBoxGizmoHandle, gameObject->GetPosition(), extent);
+}

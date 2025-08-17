@@ -87,7 +87,7 @@ private:
     ObjPtr<Texture> staticReflectionProbe;
     InteractiveBox gizmoState{};
 
-    GizmoHandle scaleBoxGizmoHandle{};
+    GizmoHandle ScaleBoxGizmoHandle;
 
     void TransformChanged() override;
     void UpdateFrustums(float3 position);

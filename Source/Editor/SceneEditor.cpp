@@ -19,7 +19,10 @@
 namespace Editor
 {
 
-SceneEditor::SceneEditor() {}
+SceneEditor::SceneEditor()
+{
+    gizmoContext = std::make_unique<GizmoContext>();
+}
 SceneEditor::~SceneEditor() {}
 
 void SceneEditor::Deinit() {}
@@ -487,9 +490,17 @@ bool SceneEditor::Tick()
                 for (auto& c : g->GetComponents())
                 {
                     if (c)
-                        c->OnDrawGizmos();
+                    {
+                        c->OnDrawGizmos(); // TODO: remove this
+                        c->OnDrawGizmos(*gizmoContext);
+                    }
                 }
                 GizmoBase::ClearActiveCarrier();
+            }
+
+            for (auto& gizmo : gizmoContext->GetActiveGizmos())
+            {
+                gizmo->Tick();
             }
         }
 
@@ -524,7 +535,6 @@ bool SceneEditor::Tick()
             activeViewGizmos = false;
         }
 
-        
         if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo)
         {
             // pick a GameObject trough ray
@@ -690,7 +700,14 @@ bool SceneEditor::Tick()
                 view = glm::inverse(invView);
 
                 bool disableDragging = !activeViewGizmos;
-                ImGuizmo::ViewManipulate(&view[0][0], distance, viewManipulateRectMin, ImVec2(100, 100), 0x10101010, disableDragging);
+                ImGuizmo::ViewManipulate(
+                    &view[0][0],
+                    distance,
+                    viewManipulateRectMin,
+                    ImVec2(100, 100),
+                    0x10101010,
+                    disableDragging
+                );
 
                 invView = glm::inverse(view);
                 invView[2] = -invView[2];

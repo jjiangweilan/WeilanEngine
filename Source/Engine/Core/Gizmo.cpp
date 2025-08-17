@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
+#include "Rendering/Graphics.hpp"
 #include "Rendering/Shader.hpp"
 #include <glm/glm.hpp>
 
@@ -264,6 +265,17 @@ private:
     }
 };
 
+class GizmoDrawInteractiveBox : public GizmoBase
+{
+public:
+    GizmoDrawInteractiveBox(const float3& position, const float3& size) : position(position), size(size) {}
+    virtual void Draw(Gfx::CommandBuffer& cmd) {};
+
+private:
+    float3 position;
+    float3 size;
+};
+
 Gizmos& Gizmos::GetSingleton()
 {
     static Gizmos gizmos;
@@ -374,6 +386,14 @@ GizmoBase* Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, ObjPtr<Shader2> shader
 GizmoBase* Gizmos::DrawMesh(Mesh& mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
 {
     auto g = std::make_unique<GizmoDrawMesh>(&mesh, submeshIndex, material, modelMatrix);
+    auto t = g.get();
+    GetSingleton().gizmos.push_back(std::move(g));
+    return t;
+}
+
+GizmoBase* Gizmos::DrawInteractiveBox(InteractiveBox& box, const float3& position, float3& size)
+{
+    auto g = std::make_unique<GizmoDrawInteractiveBox>(position, size);
     auto t = g.get();
     GetSingleton().gizmos.push_back(std::move(g));
     return t;

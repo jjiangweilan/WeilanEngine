@@ -2,6 +2,7 @@
 #include "Core/Asset.hpp"
 #include "Core/Gizmo.hpp"
 #include "Core/Ptr.hpp"
+#include "Editor/Gizmos/GizmoContext.hpp"
 #include <functional>
 #include <string>
 #include <string_view>
@@ -35,9 +36,8 @@ public:
     // called when play mode enter
     virtual void OnStart() {}
     virtual void OnStop() {}
-    [[deprecated("Use Gizmos::DrawXXX instead")]]
-    virtual void OnDrawGizmos()
-    {}
+    virtual void OnDrawGizmos() {}
+    virtual void OnDrawGizmos(GizmoContext& gizmoContext) {}
     virtual void OnLoaded() {}
 
 protected:
