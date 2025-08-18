@@ -1,6 +1,7 @@
 #include "Gizmo.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Texture.hpp"
+#include "Editor/Gizmos/MeshGizmo.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Rendering/Graphics.hpp"
 #include "Rendering/Shader.hpp"
@@ -197,72 +198,6 @@ private:
     }
 
     friend class Gizmos;
-};
-
-class GizmoDrawMesh : public GizmoBase
-{
-public:
-    GizmoDrawMesh(Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix)
-        : mesh(mesh), submeshIndex(submeshIndex), shader(shader), material(nullptr), modelMatrix(modelMatrix)
-    {}
-
-    GizmoDrawMesh(Mesh* mesh, int submeshIndex, Material* material, const glm::mat4& modelMatrix)
-        : mesh(mesh), submeshIndex(submeshIndex), shader(nullptr), material(material), modelMatrix(modelMatrix)
-    {}
-
-    void Draw(Gfx::CommandBuffer& cmd) override
-    {
-        auto& submeshes = mesh->GetSubmeshes();
-        if (submeshIndex < submeshes.size())
-        {
-            auto& submesh = submeshes[submeshIndex];
-            cmd.BindIndexBuffer(submesh.GetIndexBuffer(), 0, submesh.GetIndexBufferType());
-            cmd.BindVertexBuffer(submesh.GetGfxVertexBufferBindings(), 0);
-            if (material != nullptr)
-            {
-                Gfx::ShaderProgram* program = material->GetShaderProgram();
-                cmd.BindResource(
-                    material->GetSet(Gfx::DescriptorSetSemantics::Material),
-                    material->GetShaderResource()
-                );
-                cmd.SetPushConstant(program, &modelMatrix);
-                cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
-            }
-            else
-            {
-                cmd.SetPushConstant(shader->GetShaderProgram(), &modelMatrix);
-                cmd.BindShaderProgram(shader->GetShaderProgram(), shader->GetShaderProgram()->GetDefaultShaderConfig());
-            }
-            cmd.DrawIndexed(submesh.GetIndexCount(), 1, 0, 0, 0);
-        }
-    }
-
-    bool Pick(const Ray& ray) override
-    {
-        float t;
-        return RayVsAABB(ray, GetAABB(), t) && t > 0;
-    }
-
-private:
-    Mesh* mesh;
-    int submeshIndex;
-    ObjPtr<Shader2> shader;
-    Material* material;
-    glm::mat4 modelMatrix;
-
-    AABB GetAABB()
-    {
-        auto& submeshes = mesh->GetSubmeshes();
-        if (submeshIndex < submeshes.size())
-        {
-            auto aabb = submeshes[submeshIndex].GetAABB();
-            aabb.max += glm::vec3(modelMatrix[3]);
-            aabb.min += glm::vec3(modelMatrix[3]);
-            return aabb;
-        }
-        else
-            return AABB(glm::vec3(0), glm::vec3(0));
-    }
 };
 
 class GizmoDrawInteractiveBox : public GizmoBase

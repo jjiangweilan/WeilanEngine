@@ -11,6 +11,11 @@ public:
     GizmoContext();
     using GizmoList = std::list<GizmoState>;
 
+    void DrawMesh(
+        GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix
+    );
+    void DrawMesh(GizmoHandle& handle, Mesh* mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix);
+
     template <class GizmoType, class... Params>
         requires std::is_base_of_v<GizmoBase, GizmoType>
     void Draw(GizmoHandle& handle, Params&&... params)
@@ -25,7 +30,7 @@ public:
 
         auto* gizmo = static_cast<GizmoType*>(handle.selfNode->ptr.get());
 
-        gizmo->ProcessUserInput(params...);
+        gizmo->ProcessUserInput(std::forward<Params>(params)...);
     }
 
     const GizmoList& GetActiveGizmos() { return *activeGizmos; }

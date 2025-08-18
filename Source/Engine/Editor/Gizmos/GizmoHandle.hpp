@@ -6,8 +6,8 @@
 class GizmoHandle
 {
 public:
-    GizmoHandle() { selfNode = invalidList.end(); }
-    bool IsValid() const { return selfNode != invalidList.end(); }
+    GizmoHandle();
+    bool IsValid() const;
     bool IsActive() const
     {
         if (IsValid())
@@ -16,9 +16,11 @@ public:
             return false;
     }
 
+
 private:
-    static std::list<GizmoState> invalidList;
+    static std::list<GizmoState>& GetInvalidList();
     std::list<GizmoState>::iterator selfNode;
+    std::shared_ptr<bool> isNodeValid = std::make_shared<bool>(false);
 
     friend class GizmoContext;
 };

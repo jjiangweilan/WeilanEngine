@@ -159,11 +159,11 @@ void SceneEditor::EditorCameraWalkAround(Camera& editorCamera, float& editorCame
         {
             dir -= right * speed; // Move left
         }
-        if (ImGui::IsKeyDown(ImGuiKey_W) || ImGui::GetIO().MouseWheel > 0.0f)
+        if (ImGui::IsKeyDown(ImGuiKey_W))
         {
             dir += forward * speed; // Move forward
         }
-        if (ImGui::IsKeyDown(ImGuiKey_S) || ImGui::GetIO().MouseWheel < 0.0f)
+        if (ImGui::IsKeyDown(ImGuiKey_S))
         {
             dir -= forward * speed; // Move backward
         }
@@ -317,8 +317,9 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             {
                 glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
                 pos.y = 0;
-                Gizmos::DrawMesh(
-                    *editorWorldSpaceGrid.plane,
+                gizmoContext->DrawMesh(
+                    gridGizmo,
+                    editorWorldSpaceGrid.plane,
                     0,
                     editorWorldSpaceGrid.gridShader,
                     glm::scale(glm::translate(glm::mat4(1), pos), editorWorldSpaceGrid.scale)

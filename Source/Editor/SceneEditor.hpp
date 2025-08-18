@@ -140,6 +140,7 @@ private:
 
     ImGuizmo::OPERATION currentGizmoOperation = ImGuizmo::TRANSLATE;
     ImGuizmo::MODE currentGizmoMode = ImGuizmo::LOCAL;
+    GizmoHandle gridGizmo;
 
     void CreateRenderData(uint32_t width, uint32_t height);
     void EditTransform(Camera& camera, glm::mat4& matrix, glm::mat4& deltaMatrix, glm::mat4 proj);
