@@ -1,14 +1,24 @@
 #pragma once
+#include "./GizmoState.hpp"
 #include <cstdint>
+#include <list>
 
 class GizmoHandle
 {
 public:
-    bool Initialized() { return idx != 0; }
+    GizmoHandle() { selfNode = invalidList.end(); }
+    bool IsValid() const { return selfNode != invalidList.end(); }
+    bool IsActive() const
+    {
+        if (IsValid())
+            return selfNode->active;
+        else
+            return false;
+    }
 
 private:
-    uint32_t idx;
-    uint32_t generation;
+    static std::list<GizmoState> invalidList;
+    std::list<GizmoState>::iterator selfNode;
 
     friend class GizmoContext;
 };

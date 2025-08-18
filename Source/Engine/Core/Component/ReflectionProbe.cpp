@@ -1,5 +1,6 @@
 #include "ReflectionProbe.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
 
 DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
@@ -150,5 +151,5 @@ void ReflectionProbe::OnDrawGizmos()
 
 void ReflectionProbe::OnDrawGizmos(GizmoContext& gizmoContext)
 {
-    gizmoContext.DrawInteractiveBox(scaleBoxGizmoHandle, gameObject->GetPosition(), extent);
+    gizmoContext.Draw<ScaleBoxGizmo>(scaleBoxGizmoHandle, gameObject->GetPosition(), extent);
 }

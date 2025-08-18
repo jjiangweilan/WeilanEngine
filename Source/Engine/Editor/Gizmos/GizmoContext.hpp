@@ -1,32 +1,51 @@
 #pragma once
 #include "./GizmoBase.hpp"
 #include "./GizmoHandle.hpp"
+#include "./GizmoRenderer.hpp"
 #include "Libs/Math.hpp"
 #include <unordered_map>
-
-struct GizmoState
-{
-    bool isHot = false;
-    std::function<void()> draw;
-};
 
 class GizmoContext
 {
 public:
-    using GizmoList = std::vector<GizmoState>;
+    GizmoContext();
+    using GizmoList = std::list<GizmoState>;
 
-    void DrawScaleBox(GizmoHandle& handle, const float3& position, float3& inoutSize);
+    template <class GizmoType, class... Params>
+        requires std::is_base_of_v<GizmoBase, GizmoType>
+    void Draw(GizmoHandle& handle, Params&&... params)
+    {
+        if (!ValidateGizmoHandle(handle))
+        {
+            return;
+        }
 
-    const GizmoList& GetActiveGizmos() { return allGizmos; }
+        if (handle.selfNode->ptr == nullptr)
+            handle.selfNode->ptr = std::make_unique<GizmoType>();
+
+        auto* gizmo = static_cast<GizmoType*>(handle.selfNode->ptr.get());
+
+        gizmo->ProcessUserInput(params...);
+    }
+
+    const GizmoList& GetActiveGizmos() { return *activeGizmos; }
 
     void ClearInactiveGizmos();
-
-    GizmoState GetGizmoState(GizmoHandle& handle);
-    bool IsHandleCreated(GizmoHandle& handle);
+    void Render(Gfx::ShaderResource* perScene, Gfx::CommandBuffer& cmd)
+    {
+        renderer.SetupDraw(perScene);
+        renderer.Draw(*this, cmd);
+    }
 
 private:
-    GizmoList allGizmos;
-    GizmoList freeGizmos;
+    const int maximumActiveGizmos = 64;
+    GizmoList gizmoList0;
+    GizmoList gizmoList1;
+    GizmoList* activeGizmos = &gizmoList0;
+    GizmoList* inactiveGizmos = &gizmoList1;
+    GizmoRenderer renderer;
+
+    bool ValidateGizmoHandle(GizmoHandle& handle);
 
     void GetHandleID(uint32_t& outID, uint32_t& outGeneration);
 };

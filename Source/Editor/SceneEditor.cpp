@@ -326,6 +326,8 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             }
         }
 
+        gizmoContext->Render(renderPipeline->GetPerSceneGPUResource(), cmd);
+        gizmoContext->ClearInactiveGizmos();
         Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
         Gizmos::ClearAllRegisteredGizmos();
         cmd.EndRenderPass();
@@ -496,11 +498,6 @@ bool SceneEditor::Tick()
                     }
                 }
                 GizmoBase::ClearActiveCarrier();
-            }
-
-            for (auto& gizmo : gizmoContext->GetActiveGizmos())
-            {
-                gizmo->Tick();
             }
         }
 

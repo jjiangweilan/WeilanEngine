@@ -1,7 +1,7 @@
 #pragma once
 #include "GfxDriver/CommandBuffer.hpp"
-#include "GizmoContext.hpp"
 
+class GizmoContext;
 class GizmoRenderer
 {
 public:

@@ -1,10 +1,11 @@
 #include "./GizmoRenderer.hpp"
+#include "./GizmoContext.hpp"
 
 void GizmoRenderer::Draw(GizmoContext& context, Gfx::CommandBuffer& cmd)
 {
     for (const auto& gizmo : context.GetActiveGizmos())
     {
-        gizmo->SetupDraw(perScene);
-        gizmo->Draw(cmd);
+        gizmo.ptr->SetupDraw(perScene);
+        gizmo.ptr->Draw(cmd);
     }
 }
