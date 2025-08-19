@@ -38,7 +38,7 @@ public:
     static GameEditor* instance;
 
 private:
-    std::unique_ptr<EditorContext> editorContext = std::make_unique;
+    std::unique_ptr<EditorContext> editorContext = std::make_unique<EditorContext>();
     std::string imguiInitPath;
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;

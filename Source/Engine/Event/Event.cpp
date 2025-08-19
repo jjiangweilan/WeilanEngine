@@ -45,4 +45,5 @@ void Event::Poll()
         }
         Input::PushEvent(event);
     }
+    Input::UpdateState();
 }

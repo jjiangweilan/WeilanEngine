@@ -49,6 +49,7 @@ void WeilanEngine::Init(const CreateInfo& createInfo)
     InitSDL();
     projectPath = createInfo.projectPath;
     projectAssetPath = createInfo.projectPath / "Assets";
+    gameContext = std::make_unique<GameContext>();
 
     try
     {

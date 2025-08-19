@@ -6,6 +6,8 @@ namespace Details
 {
 struct Input
 {
+    int2 mousePosition;
+
     struct GamepadInstance
     {
         /*
@@ -216,6 +218,11 @@ void Input::PushEvent(SDL_Event& event)
     input.PushEvent(event);
 }
 
+void Input::UpdateState()
+{
+    SDL_GetMouseState(&input.mousePosition.x, &input.mousePosition.y);
+}
+
 float Input::GetMovementX()
 {
     float x = input.GetGamepad(0)->axis[0].x;
@@ -237,6 +244,11 @@ void Input::GetMovement(float& x, float& y)
 {
     x = GetMovementX();
     y = GetMovementY();
+}
+
+int2 Input::GetMousePosition()
+{
+    return input.mousePosition;
 }
 
 void Input::GetLookAround(float& x, float& y)

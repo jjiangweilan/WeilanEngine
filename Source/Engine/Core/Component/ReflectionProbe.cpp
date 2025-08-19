@@ -149,7 +149,7 @@ void ReflectionProbe::OnDrawGizmos()
     Gizmos::DrawInteractiveBox(gizmoState, GetGameObject()->GetPosition(), extent);
 }
 
-void ReflectionProbe::OnDrawGizmos(GizmoContext& gizmoContext)
+void ReflectionProbe::OnDrawGizmos(GizmoManager& gizmoContext)
 {
     gizmoContext.Draw<ScaleBoxGizmo>(scaleBoxGizmoHandle, gameObject->GetPosition(), gameObject->GetRotation(), extent);
 }

@@ -21,7 +21,7 @@ namespace Editor
 
 SceneEditor::SceneEditor()
 {
-    gizmoContext = std::make_unique<GizmoContext>();
+    gizmoContext = std::make_unique<GizmoManager>();
 }
 SceneEditor::~SceneEditor() {}
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Math/Geometry.hpp"
+#include "Editor/EditorContext.hpp"
 #include "Libs/DynamicArray.hpp"
 #include "Rendering/Material.hpp"
 #include "Rendering/Structs.hpp"
@@ -47,23 +48,21 @@ public:
      */
     virtual bool Pick(const Ray& ray) { return false; }
 
+    void FrameSetup(EditorContext* editorContext) { this->editorContext = editorContext; }
+
     /**
      * @brief Used to prepare drawing
      *
      * @param perScene the scene shader resource of currently rendering scene
      */
-    void SetupDraw(EditorContext* editorContext, Camera* camera, Gfx::ShaderResource* perScene)
-    {
-        this->camera = camera;
-        this->perScene = perScene;
-    }
+    void SetupDraw(Gfx::ShaderResource* perScene) { this->perScene = perScene; }
 
     GameObject* GetCarrier() { return carrier; }
 
     bool m_IsActive = false;
 
 protected:
-    Camera* camera;
+    EditorContext* editorContext;
     Gfx::ShaderResource* perScene;
 
 private:

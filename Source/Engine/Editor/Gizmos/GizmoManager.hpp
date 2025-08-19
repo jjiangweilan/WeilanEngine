@@ -5,10 +5,10 @@
 #include "Libs/Math.hpp"
 #include <unordered_map>
 
-class GizmoContext
+class GizmoManager
 {
 public:
-    GizmoContext();
+    GizmoManager();
     using GizmoList = std::list<GizmoState>;
 
     void DrawMesh(

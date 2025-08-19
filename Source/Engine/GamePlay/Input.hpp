@@ -64,6 +64,7 @@ class Input
 {
 public:
     static Gamepad GetGamepad(int padIdx = 0);
+    static int2 GetMousePosition();
     static float GetMovementX();
     static float GetMovementY();
     static bool IsInteractPressed();
@@ -75,4 +76,5 @@ public:
     static void PushEvent(SDL_Event& event);
     static void SetGameplayInput(bool enabled);
     static void Reset();
+    static void UpdateState();
 };

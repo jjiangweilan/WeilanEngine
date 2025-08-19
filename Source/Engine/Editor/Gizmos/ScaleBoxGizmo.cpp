@@ -1,5 +1,6 @@
 #include "ScaleBoxGizmo.hpp"
 #include "Core/Component/Camera.hpp"
+#include "GamePlay/Input.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
 void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize)
@@ -13,7 +14,9 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
     {
         if (isMouseClicked)
         {
-            camera->ScreenUVToWorldSpaceRay();
+            // auto editorCamera = editorContext->GetEditorCamera();
+            int2 mousePosition = Input::GetMousePosition();
+            spdlog::info("{}", mousePosition);
         }
     }
 };

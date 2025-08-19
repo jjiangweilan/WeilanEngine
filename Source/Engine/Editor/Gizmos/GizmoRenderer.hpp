@@ -2,7 +2,7 @@
 #include "GfxDriver/CommandBuffer.hpp"
 
 class Camera;
-class GizmoContext;
+class GizmoManager;
 class GizmoRenderer
 {
 public:
@@ -11,7 +11,7 @@ public:
         this->camera = camera;
         this->perScene = perScene;
     }
-    void Draw(GizmoContext& context, Gfx::CommandBuffer& cmd);
+    void Draw(GizmoManager& gizmoManager, Gfx::CommandBuffer& cmd);
 
 private:
     Camera* camera;

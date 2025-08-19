@@ -1,11 +1,11 @@
-#include "GizmoContext.hpp"
+#include "./GizmoManager.hpp"
 #include "./MeshGizmo.hpp"
 #include "./ScaleBoxGizmo.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
-GizmoContext::GizmoContext() {}
+GizmoManager::GizmoManager() {}
 
-void GizmoContext::ClearInactiveGizmos()
+void GizmoManager::ClearInactiveGizmos()
 {
     for (auto& g : *activeGizmos)
     {
@@ -21,9 +21,9 @@ void GizmoContext::ClearInactiveGizmos()
     std::swap(activeGizmos, inactiveGizmos);
 }
 
-void GizmoContext::GetHandleID(uint32_t& outID, uint32_t& outGeneration) {}
+void GizmoManager::GetHandleID(uint32_t& outID, uint32_t& outGeneration) {}
 
-bool GizmoContext::ValidateGizmoHandle(GizmoHandle& handle)
+bool GizmoManager::ValidateGizmoHandle(GizmoHandle& handle)
 {
     // If this handle is already activated, then we can't draw it again, return false to prevent it
     if (handle.IsActive())
@@ -44,14 +44,14 @@ bool GizmoContext::ValidateGizmoHandle(GizmoHandle& handle)
     return true;
 }
 
-void GizmoContext::DrawMesh(
+void GizmoManager::DrawMesh(
     GizmoHandle& handle, Mesh* mesh, int submeshIndex, ObjPtr<Shader2> shader, const glm::mat4& modelMatrix
 )
 {
     Draw<GizmoDrawMesh>(handle, mesh, submeshIndex, shader, modelMatrix);
 }
 
-void GizmoContext::DrawMesh(
+void GizmoManager::DrawMesh(
     GizmoHandle& handle, Mesh* mesh, int submeshIndex, Material* shader, const glm::mat4& modelMatrix
 )
 {

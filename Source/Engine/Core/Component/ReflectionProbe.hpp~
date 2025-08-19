@@ -68,7 +68,7 @@ public:
 
     Gfx::Image* GetCubemap();
     void OnDrawGizmos() override;
-    void OnDrawGizmos(GizmoContext& gizmoContext) override;
+    void OnDrawGizmos(GizmoManager& gizmoManager) override;
 
 private:
     float near = 0.1f;

@@ -22,5 +22,5 @@ private:
     std::list<GizmoState>::iterator selfNode;
     std::shared_ptr<bool> isNodeValid = std::make_shared<bool>(false);
 
-    friend class GizmoContext;
+    friend class GizmoManager;
 };

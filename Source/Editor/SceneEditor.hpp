@@ -3,7 +3,7 @@
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
 #include "Editor/EditorContext.hpp"
-#include "Editor/Gizmos/GizmoContext.hpp"
+#include "Editor/Gizmos/GizmoManager.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "Rendering/Shader.hpp"
 #include "ThirdParty/imgui/ImGuizmo.h"
@@ -129,7 +129,7 @@ private:
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
-    std::unique_ptr<GizmoContext> gizmoContext;
+    std::unique_ptr<GizmoManager> gizmoContext;
 
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();

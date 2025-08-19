@@ -58,6 +58,7 @@ private:
 
     std::shared_ptr<spdlog::sinks::ringbuffer_sink<std::mutex>> ringBufferLoggerSink;
     std::unique_ptr<GameLoop> gameLoop;
+    std::unique_ptr<GameContext> gameContext;
     IGameEditor* gameEditor;
     // std::unique_ptr<Physics> physics;
 

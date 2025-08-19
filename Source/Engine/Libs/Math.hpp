@@ -219,6 +219,18 @@ struct fmt::formatter<float2>
 };
 
 template <>
+struct fmt::formatter<int2>
+{
+    constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const int2& v, const FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "[int2]({}, {})", v.x, v.y);
+    }
+};
+
+template <>
 struct fmt::formatter<glm::quat>
 {
     constexpr auto parse(const format_parse_context& ctx) const -> decltype(ctx.begin()) { return ctx.begin(); }
