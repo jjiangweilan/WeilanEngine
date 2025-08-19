@@ -9,6 +9,7 @@
 
 class Texture;
 class GameObject;
+class Camera;
 
 class GizmoBase
 {
@@ -51,13 +52,18 @@ public:
      *
      * @param perScene the scene shader resource of currently rendering scene
      */
-    void SetupDraw(Gfx::ShaderResource* perScene) { this->perScene = perScene; }
+    void SetupDraw(EditorContext* editorContext, Camera* camera, Gfx::ShaderResource* perScene)
+    {
+        this->camera = camera;
+        this->perScene = perScene;
+    }
 
     GameObject* GetCarrier() { return carrier; }
 
     bool m_IsActive = false;
 
 protected:
+    Camera* camera;
     Gfx::ShaderResource* perScene;
 
 private:

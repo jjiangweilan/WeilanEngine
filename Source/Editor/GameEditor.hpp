@@ -2,6 +2,7 @@
 #include "AssetBrowser.hpp"
 #include "Core/Ptr.hpp"
 #include "Core/Scene/Scene.hpp"
+#include "Editor/EditorContext.hpp"
 #include "GameView.hpp"
 #include "Profiler/Profiler.hpp"
 #include "Renderer.hpp"
@@ -37,6 +38,7 @@ public:
     static GameEditor* instance;
 
 private:
+    std::unique_ptr<EditorContext> editorContext = std::make_unique;
     std::string imguiInitPath;
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;

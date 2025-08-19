@@ -1,4 +1,5 @@
 #pragma once
+#include "Core/Math/Geometry.hpp"
 #include "GizmoBase.hpp"
 
 class ScaleBoxGizmo : public GizmoBase
@@ -6,9 +7,18 @@ class ScaleBoxGizmo : public GizmoBase
 public:
     ScaleBoxGizmo() {}
 
-    void ProcessUserInput(const float3& position, float3& inoutSize) {};
-    virtual void Draw(Gfx::CommandBuffer& cmd) {};
+    void ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize);
+    virtual void Draw(Gfx::CommandBuffer& cmd);
 
+private:
+    struct DragHandle
+    {
+        bool isActive = false;
+        Box box;
+    };
+
+    DragHandle handles[6];
     float3 position;
+    glm::quat rotation;
     float3 size;
 };

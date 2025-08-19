@@ -151,5 +151,5 @@ void ReflectionProbe::OnDrawGizmos()
 
 void ReflectionProbe::OnDrawGizmos(GizmoContext& gizmoContext)
 {
-    gizmoContext.Draw<ScaleBoxGizmo>(scaleBoxGizmoHandle, gameObject->GetPosition(), extent);
+    gizmoContext.Draw<ScaleBoxGizmo>(scaleBoxGizmoHandle, gameObject->GetPosition(), gameObject->GetRotation(), extent);
 }

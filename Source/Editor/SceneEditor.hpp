@@ -2,6 +2,7 @@
 #include "Core/Gizmo.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Scene/SceneManager.hpp"
+#include "Editor/EditorContext.hpp"
 #include "Editor/Gizmos/GizmoContext.hpp"
 #include "Rendering/RenderPipeline/RenderPipeline.hpp"
 #include "Rendering/Shader.hpp"
@@ -30,6 +31,8 @@ public:
     Camera* GetEditorCamera() const { return editorCamera; }
 
     Gfx::Image* GetSceneImage() { return sceneImage.get(); }
+
+    EditorContext* editorContext;
 
 private:
     std::unique_ptr<Rendering::RenderPipeline> renderPipeline;

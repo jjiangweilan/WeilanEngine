@@ -1,7 +1,30 @@
 #include "Geometry.hpp"
 #include <glm/gtx/intersect.hpp>
 
-bool RayVsMesh(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
+bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance)
+{
+    float2 bary;
+    if (glm::intersectRayTriangle(ray.origin, ray.direction, quad.p0, quad.p1, quad.p2, bary, distance) ||
+        glm::intersectRayTriangle(ray.origin, ray.direction, quad.p1, quad.p2, quad.p3, bary, distance))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance)
+{
+    float2 bary;
+    if (glm::intersectRayTriangle(ray.origin, ray.direction, triangle.p0, triangle.p1, triangle.p2, bary, distance))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool RayVsMesh(const Ray& ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance)
 {
     glm::vec2 bary;
     uint16_t* indices = (uint16_t*)mesh->GetIndexBufferData();
@@ -31,7 +54,7 @@ bool RayVsMesh(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distan
 }
 
 bool RayVsMesh(
-    Ray ray,
+    const Ray& ray,
     RefPtr<Submesh> mesh,
     glm::mat4 transform,
     float& distance,

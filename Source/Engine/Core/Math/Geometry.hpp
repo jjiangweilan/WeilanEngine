@@ -19,7 +19,64 @@ struct Frustum
     std::array<float3, 8> corners;
 };
 
-bool RayVsMesh(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance);
+struct Triangle
+{
+    float3 p0;
+    float3 p1;
+    float3 p2;
+
+    Triangle Transform(const float4x4& model)
+    {
+        Triangle retval{
+            model * float4(p0, 1.0),
+            model * float4(p1, 1.0),
+            model * float4(p2, 1.0),
+        };
+
+        return retval;
+    }
+};
+
+struct Quad
+{
+    float3 p0;
+    float3 p1;
+    float3 p2;
+    float3 p3;
+
+    Quad Transform(const float4x4& model)
+    {
+        Quad retval{
+            model * float4(p0, 1.0),
+            model * float4(p1, 1.0),
+            model * float4(p2, 1.0),
+            model * float4(p3, 1.0),
+        };
+
+        return retval;
+    }
+};
+
+struct Box
+{
+    Quad faces[6];
+
+    Box Transform(const float4x4& model)
+    {
+        Box retval;
+        for (int face = 0; face < 6; ++face)
+        {
+            retval.faces[face] = faces[face].Transform(model);
+        }
+
+        return retval;
+    }
+};
+
+bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);
+bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance);
+
+bool RayVsMesh(const Ray& ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance);
 
 /**
  * @brief Checks for an intersection between a ray and a submesh, returning details of the intersected triangle.
@@ -38,8 +95,13 @@ bool RayVsMesh(Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distan
  * @return True if an intersection is found, false otherwise.
  */
 bool RayVsMesh(
-    Ray ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance, glm::vec3& p0, glm::vec3& p1, glm::vec3& p2
+    const Ray& ray,
+    RefPtr<Submesh> mesh,
+    glm::mat4 transform,
+    float& distance,
+    glm::vec3& p0,
+    glm::vec3& p1,
+    glm::vec3& p2
 );
 
 bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
-

@@ -36,9 +36,9 @@ public:
     const GizmoList& GetActiveGizmos() { return *activeGizmos; }
 
     void ClearInactiveGizmos();
-    void Render(Gfx::ShaderResource* perScene, Gfx::CommandBuffer& cmd)
+    void Render(Camera* camera, Gfx::ShaderResource* perScene, Gfx::CommandBuffer& cmd)
     {
-        renderer.SetupDraw(perScene);
+        renderer.SetupDraw(camera, perScene);
         renderer.Draw(*this, cmd);
     }
 

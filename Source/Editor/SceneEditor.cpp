@@ -327,7 +327,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             }
         }
 
-        gizmoContext->Render(renderPipeline->GetPerSceneGPUResource(), cmd);
+        gizmoContext->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
         gizmoContext->ClearInactiveGizmos();
         Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
         Gizmos::ClearAllRegisteredGizmos();
@@ -484,24 +484,6 @@ bool SceneEditor::Tick()
             imageWidth *= ratio;
         }
 
-        if (scene)
-        {
-            // Gizmo
-            for (auto g : scene->GetAllGameObjects())
-            {
-                GizmoBase::SetActiveCarrier(g);
-                for (auto& c : g->GetComponents())
-                {
-                    if (c)
-                    {
-                        c->OnDrawGizmos(); // TODO: remove this
-                        c->OnDrawGizmos(*gizmoContext);
-                    }
-                }
-                GizmoBase::ClearActiveCarrier();
-            }
-        }
-
         auto contentRegionWidth = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
         auto cursorPos = ImGui::GetCursorPos();
         cursorPos.x = cursorPos.x + contentRegionWidth / 2.0f - imageWidth / 2.0f;
@@ -533,16 +515,33 @@ bool SceneEditor::Tick()
             activeViewGizmos = false;
         }
 
+        auto mousePos = ImGui::GetMousePos();
+        glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
+        glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
+
+        if (scene)
+        {
+            // Gizmo
+            for (auto g : scene->GetAllGameObjects())
+            {
+                GizmoBase::SetActiveCarrier(g);
+                for (auto& c : g->GetComponents())
+                {
+                    if (c)
+                    {
+                        c->OnDrawGizmos(); // TODO: remove this
+                        c->OnDrawGizmos(*gizmoContext);
+                    }
+                }
+                GizmoBase::ClearActiveCarrier();
+            }
+        }
+
         if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo)
         {
             // pick a GameObject trough ray
             if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
             {
-                auto mousePos = ImGui::GetMousePos();
-                glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
-
-                glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
-
                 auto mainCam = GetCurrentlyActiveCamera();
                 if (mainCam != nullptr)
                 {
