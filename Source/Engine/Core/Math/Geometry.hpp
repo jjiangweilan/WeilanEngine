@@ -44,7 +44,7 @@ struct Quad
     float3 p2;
     float3 p3;
 
-    Quad Transform(const float4x4& model)
+    Quad Transform(const float4x4& model) const
     {
         Quad retval{
             model * float4(p0, 1.0),
@@ -61,7 +61,7 @@ struct Box
 {
     Quad faces[6];
 
-    Box Transform(const float4x4& model)
+    Box Transform(const float4x4& model) const
     {
         Box retval;
         for (int face = 0; face < 6; ++face)

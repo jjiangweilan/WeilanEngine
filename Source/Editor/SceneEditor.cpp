@@ -36,8 +36,7 @@ void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
 void SceneEditor::Init(EditorContext* editorContext)
 {
     this->editorContext = editorContext;
-    gizmoManager = std::make_unique<GizmoManager>();
-    gizmoManager->SetEditorContext(editorContext);
+    this->gizmoManager = editorContext->GetGizmoManager();
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");

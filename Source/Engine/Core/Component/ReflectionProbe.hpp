@@ -81,13 +81,11 @@ private:
     /**
      * @brief extent of local reflection probe cube
      */
-    float3 extent;
+    float3 extent = {1, 1, 1};
     std::unique_ptr<Gfx::Image> cubemap;
     uint32_t resolution = 512;
     ObjPtr<Texture> staticReflectionProbe;
     InteractiveBox gizmoState{};
-
-    GizmoHandle scaleBoxGizmoHandle{};
 
     void TransformChanged() override;
     void UpdateFrustums(float3 position);

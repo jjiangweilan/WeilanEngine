@@ -37,8 +37,8 @@ public:
 
 private:
     std::unique_ptr<Rendering::RenderPipeline> renderPipeline;
-
     std::unique_ptr<Gfx::Image> sceneImage;
+    GizmoManager* gizmoManager;
 
     // scene image can't be deleted immediately because it's tracked by the VKDriver for at least two frame (it holds a
     // pointer and doesn't check its validity)
@@ -131,8 +131,6 @@ private:
     ObjPtr<Shader2> outlineRawColorPassShader;
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
-
-    std::unique_ptr<GizmoManager> gizmoManager;
 
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();

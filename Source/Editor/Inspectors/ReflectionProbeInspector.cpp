@@ -1,5 +1,6 @@
 #include "../EditorState.hpp"
 #include "Core/Component/ReflectionProbe.hpp"
+#include "Editor/Gizmos/ScaleBoxGizmo.hpp"
 #include "EditorGUI.hpp"
 #include "GameEditor.hpp"
 #include "Inspector.hpp"
@@ -107,10 +108,20 @@ public:
         {
             Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix(i));
         }
+
+        auto extent = target->GetExtent();
+        editor.GetEditorContext()->GetGizmoManager()->Draw<ScaleBoxGizmo>(
+            scaleBoxGizmoHandle,
+            target->GetGameObject()->GetPosition(),
+            target->GetGameObject()->GetRotation(),
+            extent
+        );
+        target->SetExtent(extent); // Update the extent from the gizmo if modified
     }
 
 private:
     static const char _register;
+    GizmoHandle scaleBoxGizmoHandle{};
 };
 
 const char ReflectionProbeInspector::_register =

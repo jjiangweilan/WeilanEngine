@@ -37,8 +37,12 @@ public:
     nlohmann::json editorConfig;
     static GameEditor* instance;
 
+    EditorContext* GetEditorContext() { return editorContext.get(); }
+
 private:
     std::unique_ptr<EditorContext> editorContext = std::make_unique<EditorContext>();
+    std::unique_ptr<GizmoManager> gizmoManager;
+
     std::string imguiInitPath;
     std::unique_ptr<WeilanEngine> engine;
     std::unique_ptr<Editor::Renderer> gameEditorRenderer;

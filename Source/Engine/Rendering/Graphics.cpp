@@ -27,6 +27,11 @@ void Graphics::DrawCapsule(
     GetSingleton().drawCmds.push_back(DrawCapsuleCmd{halfHeight, radius, pos, rotation, scale});
 }
 
+void Graphics::DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm::quat& rotation)
+{
+    GetSingleton().drawCmds.push_back(DrawCubeCmd{pos, scale, rotation});
+}
+
 void Graphics::AddRenderingEvent(
     std::string_view name,
     RenderingEvent event,
@@ -104,9 +109,13 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 {
                     DrawCapsuleCommand(cmd, draw);
                 }
-                else if constexpr (std::is_same_v<T, DrawCapsuleCmd>)
+                else if constexpr (std::is_same_v<T, DrawCustomCmd>)
                 {
                     DrawCmdCommand(cmd, draw);
+                }
+                else if constexpr (std::is_same_v<T, DrawCubeCmd>)
+                {
+                    DrawCubeCommand(cmd, draw);
                 }
             },
             drawCmd
@@ -164,12 +173,29 @@ void Graphics::DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& drawLine)
 
 void Graphics::DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw) {}
 
+void Graphics::DrawCubeCommand(Gfx::CommandBuffer& cmd, DrawCubeCmd& draw)
+{
+    Submesh* cube = EngineInternalResources::GetCubeMesh();
+    Material* mat = EngineInternalResources::GetDefaultMaterial();
+    Gfx::ShaderProgram* program = mat->GetShader()->GetShaderProgram();
+
+    glm::mat4 m =
+        glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) * glm::scale(glm::mat4(1), draw.scale);
+
+    cmd.BindResource(2, mat->GetShaderResource());
+    cmd.BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());
+    cmd.BindVertexBuffer(cube->GetGfxVertexBufferBindings(), 0);
+    cmd.SetPushConstant(program, &m);
+    cmd.BindShaderProgram(program, mat->GetShaderConfig());
+    cmd.DrawIndexed(cube->GetIndexCount(), 1, 0, 0, 0);
+}
+
 void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
 {
     Submesh* halfSphere = EngineInternalResources::GetHalfSphereMesh();
     Submesh* cylinder = EngineInternalResources::GetCylinderMesh();
     Material* mat = EngineInternalResources::GetDefaultMaterial();
-    auto program = mat->GetShader()->GetShaderProgram();
+    Gfx::ShaderProgram* program = mat->GetShader()->GetShaderProgram();
 
     glm::mat4 cylinderMatrix =
         glm::translate(glm::mat4(1), draw.pos) * glm::mat4_cast(draw.rotation) *
@@ -196,13 +222,11 @@ void Graphics::DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw)
     // Draw top and bottom half spheres
     float yOffset = draw.halfHeight;
     glm::mat4 halfSphereMatrix0 =
-        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) *
-        glm::mat4_cast(draw.rotation) *
+        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, yOffset, 0)) * glm::mat4_cast(draw.rotation) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 
     glm::mat4 halfSphereMatrix1 =
-        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) *
-        glm::mat4_cast(draw.rotation) *
+        glm::translate(glm::mat4(1), draw.pos + glm::vec3(0, -yOffset, 0)) * glm::mat4_cast(draw.rotation) *
         glm::mat4_cast(glm::quat(glm::vec3(glm::radians(180.f), 0, 0))) *
         glm::scale(glm::mat4(1), draw.scale * glm::vec3(draw.radius, draw.radius, draw.radius));
 

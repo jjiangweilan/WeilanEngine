@@ -5,7 +5,7 @@
 class ScaleBoxGizmo : public GizmoBase
 {
 public:
-    ScaleBoxGizmo() {}
+    ScaleBoxGizmo() { forwardLitShader = ShaderLibrary::GetShader(Shaders::SimpleForwardLit); }
 
     void ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize);
     virtual void Draw(Gfx::CommandBuffer& cmd);
@@ -20,5 +20,6 @@ private:
     DragHandle handles[6];
     float3 position;
     glm::quat rotation;
-    float3 size;
+    float3 extent;
+    ObjPtr<Shader2> forwardLitShader = nullptr;
 };

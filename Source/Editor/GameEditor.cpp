@@ -110,7 +110,11 @@ GameEditor::GameEditor(const char* path)
     gameView = std::make_unique<GameView>();
     sceneEditor = std::make_unique<SceneEditor>();
     assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
+    gizmoManager = std::make_unique<GizmoManager>();
+
     gameView->Init();
+    editorContext->SetGizmoManager(gizmoManager.get());
+    gizmoManager->SetEditorContext(editorContext.get());
     sceneEditor->Init(editorContext.get());
 
     // Configure ImGui.io

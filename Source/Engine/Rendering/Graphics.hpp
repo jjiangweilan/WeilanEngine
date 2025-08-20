@@ -1,11 +1,11 @@
 #pragma once
 #include "Core/SafeReferenceable.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
+#include "Libs/DynamicArray.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
 #include <variant>
-#include "Libs/DynamicArray.hpp"
 
 namespace Gfx
 {
@@ -19,9 +19,7 @@ class Graphics
 public:
     static void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color = {1, 1, 1, 1});
     static void DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
-    static void DrawCube(
-        const glm::float3& positin, const glm::float3& exent, const glm::mat4& model, Material& material
-    );
+    static void DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm::quat& rotation);
     static void DrawCapsule(
         float height, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
     );
@@ -77,6 +75,13 @@ private:
         glm::vec3 scale;
     };
 
+    struct DrawCubeCmd
+    {
+        glm::vec3 pos;
+        glm::vec3 scale;
+        glm::quat rotation;
+    };
+
     struct DrawCustomCmd
     {
         DrawCustomCmd(
@@ -89,7 +94,8 @@ private:
         std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)> f;
     };
 
-    using DrawCmds = std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCustomCmd>;
+    using DrawCmds =
+        std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCubeCmd, DrawCustomCmd>;
 
     DynamicArray<DrawCmds> drawCmds;
     DynamicArray<DynamicArray<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
@@ -100,4 +106,5 @@ private:
     static void DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& draw);
     static void DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw);
     static void DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw);
+    static void DrawCubeCommand(Gfx::CommandBuffer& cmd, DrawCubeCmd& draw);
 };
