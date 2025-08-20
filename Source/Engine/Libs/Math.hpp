@@ -7,6 +7,7 @@
 #include <glm/gtc/random.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <spdlog/spdlog.h> // to extend spdlog
+                           //
 
 #if GLM_MESSAGES == GLM_ENABLE && !defined(GLM_EXT_INCLUDED)
 #ifndef GLM_ENABLE_EXPERIMENTAL

@@ -111,7 +111,7 @@ GameEditor::GameEditor(const char* path)
     sceneEditor = std::make_unique<SceneEditor>();
     assetBrowser = std::make_unique<AssetBrowser>(engine.get(), this);
     gameView->Init();
-    sceneEditor->Init();
+    sceneEditor->Init(editorContext.get());
 
     // Configure ImGui.io
     auto& io = ImGui::GetIO();

@@ -19,10 +19,7 @@
 namespace Editor
 {
 
-SceneEditor::SceneEditor()
-{
-    gizmoContext = std::make_unique<GizmoManager>();
-}
+SceneEditor::SceneEditor() {}
 SceneEditor::~SceneEditor() {}
 
 void SceneEditor::Deinit() {}
@@ -36,8 +33,11 @@ void SceneEditor::SetActiveScene(ObjPtr<Scene> scene)
     }
 }
 
-void SceneEditor::Init()
+void SceneEditor::Init(EditorContext* editorContext)
 {
+    this->editorContext = editorContext;
+    gizmoManager = std::make_unique<GizmoManager>();
+    gizmoManager->SetEditorContext(editorContext);
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
     editorCameraGO = std::make_unique<GameObject>();
     editorCameraGO->SetName("editor camera");
@@ -317,7 +317,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             {
                 glm::vec3 pos = glm::floor(activeCamera->GetGameObject()->GetPosition());
                 pos.y = 0;
-                gizmoContext->DrawMesh(
+                gizmoManager->DrawMesh(
                     gridGizmo,
                     editorWorldSpaceGrid.plane,
                     0,
@@ -327,8 +327,8 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
             }
         }
 
-        gizmoContext->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
-        gizmoContext->ClearInactiveGizmos();
+        gizmoManager->Render(editorCamera, renderPipeline->GetPerSceneGPUResource(), cmd);
+        gizmoManager->ClearInactiveGizmos();
         Gizmos::DispatchAllDiszmos(cmd, renderPipeline->GetPerSceneGPUResource());
         Gizmos::ClearAllRegisteredGizmos();
         cmd.EndRenderPass();
@@ -490,8 +490,11 @@ bool SceneEditor::Tick()
         ImGui::SetCursorPos(cursorPos);
 
         auto windowPos = ImGui::GetWindowPos();
-
         auto imagePos = ImGui::GetCursorPos();
+
+        sceneImageOrigin = int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y);
+        editorContext->SetSceneViewPosition(sceneImageOrigin);
+
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
         bool isGameViewHovered = ImGui::IsItemHovered();
         bool isMouseClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
@@ -530,7 +533,7 @@ bool SceneEditor::Tick()
                     if (c)
                     {
                         c->OnDrawGizmos(); // TODO: remove this
-                        c->OnDrawGizmos(*gizmoContext);
+                        c->OnDrawGizmos(*gizmoManager);
                     }
                 }
                 GizmoBase::ClearActiveCarrier();

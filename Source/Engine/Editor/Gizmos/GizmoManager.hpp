@@ -26,7 +26,10 @@ public:
         }
 
         if (handle.selfNode->ptr == nullptr)
+        {
             handle.selfNode->ptr = std::make_unique<GizmoType>();
+            handle.selfNode->ptr->Setup(ediotrContext);
+        }
 
         auto* gizmo = static_cast<GizmoType*>(handle.selfNode->ptr.get());
 
@@ -41,9 +44,11 @@ public:
         renderer.SetupDraw(camera, perScene);
         renderer.Draw(*this, cmd);
     }
+    void SetEditorContext(EditorContext* context) { ediotrContext = context; }
 
 private:
     const int maximumActiveGizmos = 64;
+    EditorContext* ediotrContext = nullptr;
     GizmoList gizmoList0;
     GizmoList gizmoList1;
     GizmoList* activeGizmos = &gizmoList0;

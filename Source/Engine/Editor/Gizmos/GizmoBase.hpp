@@ -48,7 +48,7 @@ public:
      */
     virtual bool Pick(const Ray& ray) { return false; }
 
-    void FrameSetup(EditorContext* editorContext) { this->editorContext = editorContext; }
+    void Setup(EditorContext* editorContext) { this->editorContext = editorContext; }
 
     /**
      * @brief Used to prepare drawing

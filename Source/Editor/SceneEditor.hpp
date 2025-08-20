@@ -19,7 +19,7 @@ public:
     ~SceneEditor();
 
 public:
-    void Init();
+    void Init(EditorContext* editorContext);
     void Deinit();
 
     bool Tick();
@@ -31,6 +31,7 @@ public:
     Camera* GetEditorCamera() const { return editorCamera; }
 
     Gfx::Image* GetSceneImage() { return sceneImage.get(); }
+    int2 GetSceneImageOrigin() const { return sceneImageOrigin; }
 
     EditorContext* editorContext;
 
@@ -122,6 +123,8 @@ private:
         }
     } mouseTrack;
 
+    int2 sceneImageOrigin{0, 0};
+
     bool firstFrame = true;
     ObjPtr<Camera> gameCamera = nullptr;
     ObjPtr<Camera> editorCamera = nullptr;
@@ -129,7 +132,7 @@ private:
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
-    std::unique_ptr<GizmoManager> gizmoContext;
+    std::unique_ptr<GizmoManager> gizmoManager;
 
     Gfx::RG::ImageIdentifier outlineSrcRT;
     Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
