@@ -492,7 +492,7 @@ bool SceneEditor::Tick()
         auto imagePos = ImGui::GetCursorPos();
 
         sceneImageOrigin = int2(windowPos.x + imagePos.x, windowPos.y + imagePos.y);
-        editorContext->SetSceneViewPosition(sceneImageOrigin);
+        editorContext->SetSceneViewRect(glm::int4(sceneImageOrigin.x, sceneImageOrigin.y, imageWidth, imageHeight));
 
         ImGui::Image(&sceneImage->GetDefaultImageView(), {imageWidth, imageHeight});
         bool isGameViewHovered = ImGui::IsItemHovered();
@@ -521,6 +521,7 @@ bool SceneEditor::Tick()
         glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
         glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
 
+        GizmoBase::s_GizmoIsInteracting = false;
         if (scene)
         {
             // Gizmo
@@ -601,14 +602,15 @@ bool SceneEditor::Tick()
                         }
                         else
                         {
-                            if (isAltDown)
-                            {
-                                EditorState::DeselectObject(picked);
-                            }
-                            else
-                            {
-                                EditorState::SelectObject(picked, false);
-                            }
+                            EditorState::DeselectObject(picked);
+                            // if (isAltDown)
+                            // {
+                            //     EditorState::DeselectObject(picked);
+                            // }
+                            // else
+                            // {
+                            //     EditorState::SelectObject(picked, false);
+                            // }
                         }
                     }
                     else

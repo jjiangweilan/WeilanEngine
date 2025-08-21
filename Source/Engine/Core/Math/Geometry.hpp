@@ -74,8 +74,8 @@ struct Box
 };
 
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);
+bool RayVsBox(const Ray& ray, const Box& quad, float& distance);
 bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance);
-
 bool RayVsMesh(const Ray& ray, RefPtr<Submesh> mesh, glm::mat4 transform, float& distance);
 
 /**

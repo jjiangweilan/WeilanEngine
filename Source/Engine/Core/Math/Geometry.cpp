@@ -13,6 +13,17 @@ bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance)
     return false;
 }
 
+bool RayVsBox(const Ray& ray, const Box& box, float& distance)
+{
+    for (int i = 0; i < 6; ++i)
+    {
+        if (RayVsQuad(ray, box.faces[i], distance))
+            return true;
+    }
+
+    return false;
+}
+
 bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance)
 {
     float2 bary;

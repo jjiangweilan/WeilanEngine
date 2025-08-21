@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/GameContext.hpp"
 #include "Libs/Math.hpp"
+#include "ThirdParty/imgui/imgui.h"
 
 class Camera;
 class GizmoManager;
@@ -13,16 +14,24 @@ public:
     GameContext* GetGameContext() { return gameContext; }
     void SetGameContext(GameContext* context) { gameContext = context; }
 
-    int2 GetSceneViewPosition() const { return sceneViewPosition; }
-    void SetSceneViewPosition(const int2& position) { sceneViewPosition = position; }
+    int4 GetSceneViewRect() const { return sceneViewRect; }
+    void SetSceneViewRect(const int4& position) { sceneViewRect = position; }
 
     GizmoManager* GetGizmoManager() { return gizmoManager; }
     void SetGizmoManager(GizmoManager* manager) { gizmoManager = manager; }
+
+    float2 GetUVInSceneView()
+    {
+        auto sceneViewPos = GetSceneViewRect();
+        auto mousePos = float2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);
+        auto uv = (mousePos - float2(sceneViewPos)) / float2(sceneViewPos.z, sceneViewPos.w);
+        return uv;
+    }
 
 private:
     Camera* editorCamera;
     GameContext* gameContext;
     GizmoManager* gizmoManager;
 
-    int2 sceneViewPosition;
+    int4 sceneViewRect;
 };

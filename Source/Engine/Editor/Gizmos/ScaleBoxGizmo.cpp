@@ -19,8 +19,9 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
     {
         if (isMouseClicked)
         {
-            auto sceneViewPos = editorContext->GetSceneViewPosition();
-            auto mousePos = ImGui::GetMousePos();
+            auto uv = editorContext->GetUVInSceneView();
+            auto camera = editorContext->GetEditorCamera();
+            auto ray = camera->ScreenUVToWorldSpaceRay(uv);
         }
     }
 };
