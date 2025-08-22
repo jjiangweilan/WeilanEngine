@@ -22,4 +22,7 @@ private:
     glm::quat rotation;
     float3 extent;
     ObjPtr<Shader2> forwardLitShader = nullptr;
+
+    float4x4 GetBoxTransformMatrix(const float3& dir);
+    
 };

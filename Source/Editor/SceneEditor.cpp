@@ -37,10 +37,15 @@ void SceneEditor::Init(EditorContext* editorContext)
 {
     this->editorContext = editorContext;
     this->gizmoManager = editorContext->GetGizmoManager();
+
     renderPipeline = std::make_unique<Rendering::RenderPipeline>();
     editorCameraGO = std::make_unique<GameObject>();
+
     editorCameraGO->SetName("editor camera");
     editorCamera = editorCameraGO->AddComponent<Camera>();
+
+    editorContext->SetEditorCamera(editorCamera.Get());
+
     outlineGPUResource = GetGfxDriver()->CreateShaderResource();
     const char* editorFinalColorBlitShaderKeyword[] = {"_ResetAlpha"};
     editorFinalColorBlitShader = ShaderLibrary::GetShader(
@@ -521,7 +526,7 @@ bool SceneEditor::Tick()
         glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
         glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
 
-        GizmoBase::s_GizmoIsInteracting = false;
+        GizmoBase::s_GizmoIsInteracting() = false;
         if (scene)
         {
             // Gizmo
@@ -540,7 +545,7 @@ bool SceneEditor::Tick()
             }
         }
 
-        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo)
+        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo && !GizmoBase::s_GizmoIsInteracting())
         {
             // pick a GameObject trough ray
             if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
