@@ -39,10 +39,25 @@ struct Triangle
 
 struct Quad
 {
+    Quad(const float3& p0, const float3& p1, const float3& p2, const float3& p3) : p0(p0), p1(p1), p2(p2), p3(p3) {}
+    Quad() { SetSize(1.0); }
+    Quad(const Quad& other) = default;
+    Quad& operator=(const Quad& other) = default;
+
     float3 p0;
     float3 p1;
     float3 p2;
     float3 p3;
+
+    void SetSize(float size)
+    {
+        float extent = size / 2.0f;
+
+        p0 = float3(extent, 0, extent);
+        p1 = float3(-extent, 0, extent);
+        p2 = float3(extent, 0, -extent);
+        p3 = float3(-extent, 0, -extent);
+    }
 
     Quad Transform(const float4x4& model) const
     {
@@ -59,7 +74,45 @@ struct Quad
 
 struct Box
 {
+    Box() { SetSize(1.0); }
+    Box(const Box& other) = default;
+    Box& operator=(const Box& other) = default;
+
     Quad faces[6];
+
+    void SetSize(float size)
+    {
+        float extent = size / 2.0f;
+        faces[0].p0 = float3(-extent, extent, -extent);
+        faces[0].p1 = float3(-extent, -extent, -extent);
+        faces[0].p2 = float3(-extent, -extent, extent);
+        faces[0].p3 = float3(-extent, extent, extent);
+
+        faces[1].p0 = float3(extent, extent, -extent);
+        faces[1].p1 = float3(extent, -extent, -extent);
+        faces[1].p2 = float3(extent, -extent, extent);
+        faces[1].p3 = float3(extent, extent, extent);
+
+        faces[2].p0 = float3(extent, -extent, extent);
+        faces[2].p1 = float3(-extent, -extent, extent);
+        faces[2].p2 = float3(extent, -extent, -extent);
+        faces[2].p3 = float3(-extent, -extent, -extent);
+
+        faces[3].p0 = float3(-extent, extent, extent);
+        faces[3].p1 = float3(extent, extent, -extent);
+        faces[3].p2 = float3(-extent, extent, -extent);
+        faces[3].p3 = float3(extent, extent, extent);
+
+        faces[4].p0 = float3(extent, extent, -extent);
+        faces[4].p1 = float3(-extent, extent, -extent);
+        faces[4].p2 = float3(extent, -extent, -extent);
+        faces[4].p3 = float3(-extent, -extent, -extent);
+
+        faces[5].p0 = float3(extent, extent, extent);
+        faces[5].p1 = float3(-extent, extent, extent);
+        faces[5].p2 = float3(extent, -extent, extent);
+        faces[5].p3 = float3(-extent, -extent, extent);
+    }
 
     Box Transform(const float4x4& model) const
     {

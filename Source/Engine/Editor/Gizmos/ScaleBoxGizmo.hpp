@@ -5,18 +5,28 @@
 class ScaleBoxGizmo : public GizmoBase
 {
 public:
-    ScaleBoxGizmo() { forwardLitShader = ShaderLibrary::GetShader(Shaders::SimpleForwardLit); }
+    ScaleBoxGizmo()
+    {
+        forwardLitShader = ShaderLibrary::GetShader(Shaders::SimpleForwardLit);
+        for (int i = 0; i < 6; ++i)
+        {
+            handles[i].box.SetSize(1.0f);
+        }
+    }
 
     void ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize);
-    virtual void Draw(Gfx::CommandBuffer& cmd);
+    void Draw(Gfx::CommandBuffer& cmd) override;
+
+    bool IsActive() override { return activeHandle != -1; }
 
 private:
     struct DragHandle
     {
         bool isActive = false;
-        Box box;
+        Box box{};
     };
 
+    int activeHandle = -1;
     DragHandle handles[6];
     float3 position;
     glm::quat rotation;
@@ -24,5 +34,5 @@ private:
     ObjPtr<Shader2> forwardLitShader = nullptr;
 
     float4x4 GetBoxTransformMatrix(const float3& dir);
-    
+    void UpdateHandleState(float scale);
 };

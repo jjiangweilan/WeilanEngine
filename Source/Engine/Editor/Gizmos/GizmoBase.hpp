@@ -15,12 +15,6 @@ class Camera;
 class GizmoBase
 {
 public:
-    /**
-     * @brief true if a gizmo is be interacting, this is used by SceneEditor to prevent other mouse clicking event on
-     * SceneEditor
-     */
-    static bool& s_GizmoIsInteracting();
-
     GizmoBase() { carrier = GetActiveCarrier(); }
     virtual ~GizmoBase() {}
 
@@ -54,6 +48,8 @@ public:
      */
     virtual bool Pick(const Ray& ray) { return false; }
 
+    virtual bool IsActive() = 0;
+
     void Setup(EditorContext* editorContext) { this->editorContext = editorContext; }
 
     /**
@@ -70,8 +66,6 @@ public:
 protected:
     EditorContext* editorContext;
     Gfx::ShaderResource* perScene;
-
-    void MarkActive() { s_GizmoIsInteracting() = true; }
 
 private:
     GameObject* carrier;

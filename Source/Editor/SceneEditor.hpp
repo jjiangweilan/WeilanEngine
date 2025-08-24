@@ -22,6 +22,7 @@ public:
     void Init(EditorContext* editorContext);
     void Deinit();
 
+    void ResetGizmoState();
     bool Tick();
 
     void Render(Gfx::CommandBuffer& cmd);

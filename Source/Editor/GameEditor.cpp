@@ -547,6 +547,9 @@ void GameEditor::Start()
 
 void GameEditor::GUIPass()
 {
+    // gizmo states needs to be reset as nearly as possible to that calls to mark gizmo actived can be correctly set
+    sceneEditor->ResetGizmoState();
+
     ImGui::DockSpaceOverViewport();
 
     MainMenuBar();

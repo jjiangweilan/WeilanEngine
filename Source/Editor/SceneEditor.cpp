@@ -526,7 +526,6 @@ bool SceneEditor::Tick()
         glm::vec2 mouseContentPos{mousePos.x - windowPos.x - imagePos.x, mousePos.y - windowPos.y - imagePos.y};
         glm::vec2 screenUV = mouseContentPos / glm::vec2{imageWidth, imageHeight};
 
-        GizmoBase::s_GizmoIsInteracting() = false;
         if (scene)
         {
             // Gizmo
@@ -545,7 +544,7 @@ bool SceneEditor::Tick()
             }
         }
 
-        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo && !GizmoBase::s_GizmoIsInteracting())
+        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
         {
             // pick a GameObject trough ray
             if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
@@ -871,5 +870,10 @@ void SceneEditor::FocusOnObject(Camera& cam, GameObject& gameObject)
 Camera* SceneEditor::GetCurrentlyActiveCamera()
 {
     return editorCamera.Get();
+}
+
+void SceneEditor::ResetGizmoState()
+{
+    gizmoManager->ResetState();
 }
 } // namespace Editor

@@ -20,7 +20,7 @@ public:
     GizmoManager* GetGizmoManager() { return gizmoManager; }
     void SetGizmoManager(GizmoManager* manager) { gizmoManager = manager; }
 
-    float2 GetUVInSceneView()
+    float2 GetMouseUVInSceneView()
     {
         auto sceneViewPos = GetSceneViewRect();
         auto mousePos = float2(ImGui::GetMousePos().x, ImGui::GetMousePos().y);

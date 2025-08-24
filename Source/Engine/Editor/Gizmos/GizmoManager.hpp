@@ -34,7 +34,11 @@ public:
         auto* gizmo = static_cast<GizmoType*>(handle.selfNode->ptr.get());
 
         gizmo->ProcessUserInput(std::forward<Params>(params)...);
+        anyActiveGizmo = anyActiveGizmo || gizmo->IsActive();
     }
+
+    bool AnyGizmoActive() { return anyActiveGizmo; }
+    void ResetState() { anyActiveGizmo = false; }
 
     const GizmoList& GetActiveGizmos() { return *activeGizmos; }
 
@@ -54,6 +58,7 @@ private:
     GizmoList* activeGizmos = &gizmoList0;
     GizmoList* inactiveGizmos = &gizmoList1;
     GizmoRenderer renderer;
+    bool anyActiveGizmo = false;
 
     bool ValidateGizmoHandle(GizmoHandle& handle);
 

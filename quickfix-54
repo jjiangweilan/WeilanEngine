@@ -1,0 +1,4 @@
+Source\Engine\Editor\Gizmos\GizmoBase.hpp static bool& s_GizmoIsInteracting();
+Source\Engine\Editor\Gizmos\GizmoBase.hpp void MarkActive() { s_GizmoIsInteracting() = true; }
+Source\Engine\Editor\Gizmos\GizmoBase.cpp bool& GizmoBase::s_GizmoIsInteracting()
+Source/Editor/SceneEditor.cpp                     if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo && !GizmoBase::s_GizmoIsInteracting())

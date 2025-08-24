@@ -12,17 +12,13 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
     this->position = position;
     this->rotation = rotation;
     this->extent = inoutSize / 2.0f;
-    bool anyHandleActive = false;
 
-    for (int handleIdx = 0; handleIdx < 6; ++handleIdx)
-    {
-        anyHandleActive = anyHandleActive || handles[handleIdx].isActive;
-    }
+    bool isMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
+    bool isMouseDragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+    auto camera = editorContext->GetEditorCamera();
+    auto uv = editorContext->GetMouseUVInSceneView();
 
-    bool isMouseClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-    bool IsMouseDragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
-
-    float3 dir[6] = {
+    float3 dirs[6] = {
         float3(-1, 0, 0),
         float3(1, 0, 0),
         float3(0, -1, 0),
@@ -32,38 +28,42 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
 
     };
 
-    if (isMouseClicked)
+    if (isMouseDown && activeHandle == -1)
     {
+        auto ray = camera->ScreenUVToWorldSpaceRay(uv);
+
         for (int handleIdx = 0; handleIdx < 6; ++handleIdx)
         {
-            auto uv = editorContext->GetUVInSceneView();
-            auto camera = editorContext->GetEditorCamera();
-            auto ray = camera->ScreenUVToWorldSpaceRay(uv);
-
             bool activate = false;
-            for (int i = 0; i < 6; ++i)
-            {
-                float distance = -1;
-                activate = RayVsBox(ray, handles[i].box.Transform(GetBoxTransformMatrix(dir[i])), distance);
-
-                if (activate)
-                    break;
-            }
+            float distance = -1;
+            activate =
+                RayVsBox(ray, handles[handleIdx].box.Transform(GetBoxTransformMatrix(dirs[handleIdx])), distance);
 
             if (activate)
             {
-                MarkActive();
-                spdlog::info("ScaleBoxGizmo activated");
-            }
-            else
-            {
-                spdlog::info("ScaleBoxGizmo deactivated");
+                activeHandle = handleIdx;
+                break;
             }
         }
     }
 
-    if (IsMouseDragging)
-    {}
+    if (!isMouseDown && !isMouseDragging)
+    {
+        activeHandle = -1;
+    }
+
+    // Update inoutSize
+    auto mouseDelta = ImGui::GetMouseDragDelta();
+    if (activeHandle != -1 && isMouseDragging)
+    {
+        // Project hanle
+        auto dir = glm::rotate(rotation, dirs[activeHandle]);
+        float3 dir_v = camera->GetViewMatrix() * float4(dir, 0.0);
+        dir_v = glm::normalize(dir);
+        float3 mouseDir_v = glm::normalize(camera->ScreenUVToViewSpace(uv));
+        float t = glm::dot(dir_v, mouseDir_v);
+        spdlog::info("{}", t);
+    }
 };
 
 void ScaleBoxGizmo::Draw(Gfx::CommandBuffer& cmd)
@@ -102,4 +102,10 @@ float4x4 ScaleBoxGizmo::GetBoxTransformMatrix(const float3& dir)
                   glm::scale(glm::mat4(1), float3(0.1, 0.1, 0.1));
 
     return m * ml;
+}
+
+void ScaleBoxGizmo::UpdateHandleState(float scale)
+{
+    for (int i = 0; i < 6; ++i)
+    {}
 }
