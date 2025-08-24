@@ -108,7 +108,15 @@ glm::mat4 Camera::CalculateProjectionMatrixWithOverride(float farPlane, float as
 
 RefPtr<Camera> Camera::mainCamera = nullptr;
 
-glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
+glm::vec3 Camera::ScreenUVToCameraNearPlaneInViewSpace(glm::vec2 screenUV)
+{
+    return glm::vec3(
+        (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), -GetProjectionTop()},
+        GetNear()
+    );
+}
+
+glm::vec3 Camera::ScreenUVToCameraNearPlaneInObjectSpace(glm::vec2 screenUV)
 {
     return glm::vec3(
         (screenUV - glm::vec2(0.5)) * glm::vec2(2) * glm::vec2{GetProjectionRight(), -GetProjectionTop()},
@@ -119,7 +127,7 @@ glm::vec3 Camera::ScreenUVToViewSpace(glm::vec2 screenUV)
 glm::vec3 Camera::ScreenUVToWorldPos(glm::vec2 screenUV)
 {
     glm::mat4 camModelMatrix = GetGameObject()->GetWorldMatrix();
-    return camModelMatrix * glm::vec4(ScreenUVToViewSpace(screenUV), 1.0);
+    return camModelMatrix * glm::vec4(ScreenUVToCameraNearPlaneInObjectSpace(screenUV), 1.0);
 }
 
 Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
@@ -127,7 +135,7 @@ Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
     Ray ray;
     ray.origin = GetGameObject()->GetPosition();
     glm::mat4 camModelMatrix = GetGameObject()->GetWorldMatrix();
-    glm::vec3 viewSpacePosition = ScreenUVToViewSpace(screenUV);
+    glm::vec3 viewSpacePosition = ScreenUVToCameraNearPlaneInObjectSpace(screenUV);
     glm::vec3 clickInWS = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
     ray.direction = glm::normalize(clickInWS - ray.origin);
     return ray;

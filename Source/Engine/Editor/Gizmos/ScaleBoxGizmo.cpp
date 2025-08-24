@@ -42,6 +42,7 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
             if (activate)
             {
                 activeHandle = handleIdx;
+                previousMousePosVS = camera->ScreenUVToCameraNearPlaneInViewSpace(uv);
                 break;
             }
         }
@@ -59,10 +60,17 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
         // Project hanle
         auto dir = glm::rotate(rotation, dirs[activeHandle]);
         float3 dir_v = camera->GetViewMatrix() * float4(dir, 0.0);
-        dir_v = glm::normalize(dir);
-        float3 mouseDir_v = glm::normalize(camera->ScreenUVToViewSpace(uv));
-        float t = glm::dot(dir_v, mouseDir_v);
-        spdlog::info("{}", t);
+
+        float3 mousePosVS = camera->ScreenUVToCameraNearPlaneInViewSpace(uv);
+        float3 moveDelta_v = mousePosVS - previousMousePosVS;
+        previousMousePosVS = mousePosVS;
+
+        moveDelta_v.z = 0;
+        dir_v.z = 0;
+
+        dir_v = glm::normalize(dir_v);
+        float t = glm::dot(dir_v, moveDelta_v);
+        spdlog::info("mousePosVS: {}, uv: {}, t: {}", mousePosVS, uv, t);
     }
 };
 
@@ -71,7 +79,7 @@ void ScaleBoxGizmo::Draw(Gfx::CommandBuffer& cmd)
     Submesh* cube = EngineInternalResources::GetCubeMesh();
     Gfx::ShaderProgram* program = forwardLitShader->GetShaderProgram();
 
-    float3 dir[6] = {
+    float3 dirs[6] = {
         float3(-1, 0, 0),
         float3(1, 0, 0),
         float3(0, -1, 0),
@@ -83,7 +91,7 @@ void ScaleBoxGizmo::Draw(Gfx::CommandBuffer& cmd)
 
     for (int i = 0; i < 6; ++i)
     {
-        glm::mat4 finalM = GetBoxTransformMatrix(dir[i]);
+        glm::mat4 finalM = GetBoxTransformMatrix(dirs[i]);
 
         cmd.BindResource(0, perScene);
         cmd.BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());

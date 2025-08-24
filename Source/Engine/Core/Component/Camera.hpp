@@ -23,7 +23,15 @@ public:
     void SetViewMatrix(const float4x4& view);
     const glm::mat4& GetAndUpdateProjectionMatrix(float aspect = 0.0f);
     glm::mat4 CalculateProjectionMatrixWithOverride(float farPlane, float aspect = 0.0f);
-    glm::vec3 ScreenUVToViewSpace(glm::vec2 screenUV);
+
+    glm::vec3 ScreenUVToCameraNearPlaneInViewSpace(glm::vec2 screenUV);
+
+    /**
+     * @brief This returns the screen UV position when the screen plane in placed in camera's object space
+     *
+     * @param screenUV [TODO:parameter]
+     */
+    glm::vec3 ScreenUVToCameraNearPlaneInObjectSpace(glm::vec2 screenUV);
     glm::vec3 ScreenUVToWorldPos(glm::vec2 screenUV);
     glm::vec3 GetForward();
     Ray ScreenUVToWorldSpaceRay(glm::vec2 screenUV);
