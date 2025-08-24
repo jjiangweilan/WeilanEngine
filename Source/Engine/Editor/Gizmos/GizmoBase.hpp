@@ -48,7 +48,7 @@ public:
      */
     virtual bool Pick(const Ray& ray) { return false; }
 
-    virtual bool IsActive() = 0;
+    virtual bool IsActive() { return false; }
 
     void Setup(EditorContext* editorContext) { this->editorContext = editorContext; }
 
