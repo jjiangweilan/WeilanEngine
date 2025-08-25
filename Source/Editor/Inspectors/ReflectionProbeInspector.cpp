@@ -110,13 +110,15 @@ public:
         }
 
         auto extent = target->GetExtent();
+        auto position = target->GetGameObject()->GetPosition();
         editor.GetEditorContext()->GetGizmoManager()->Draw<ScaleBoxGizmo>(
             scaleBoxGizmoHandle,
-            target->GetGameObject()->GetPosition(),
+            position,
             target->GetGameObject()->GetRotation(),
             extent
         );
-        target->SetExtent(extent); // Update the extent from the gizmo if modified
+        target->SetExtent(extent);
+        target->GetGameObject()->SetPosition(position);
     }
 
 private:

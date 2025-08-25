@@ -14,7 +14,7 @@ public:
         }
     }
 
-    void ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize);
+    void ProcessUserInput(float3& position, const glm::quat& rotation, float3& inoutSize);
     void Draw(Gfx::CommandBuffer& cmd) override;
 
     bool IsActive() override { return activeHandle != -1; }

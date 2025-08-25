@@ -7,7 +7,7 @@
 #include "Rendering/Graphics.hpp"
 #include "ThirdParty/imgui/imgui.h"
 
-void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& rotation, float3& inoutSize)
+void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation, float3& inoutSize)
 {
     this->position = position;
     this->rotation = rotation;
@@ -70,7 +70,11 @@ void ScaleBoxGizmo::ProcessUserInput(const float3& position, const glm::quat& ro
 
         dir_v = glm::normalize(dir_v);
         float t = glm::dot(dir_v, moveDelta_v);
-        spdlog::info("mousePosVS: {}, uv: {}, t: {}", mousePosVS, uv, t);
+
+        spdlog::info("t: {}", t);
+        // move handlePos
+        inoutSize += glm::abs(dirs[activeHandle]) * t * 60.f;
+        position += dirs[activeHandle] * t * 30.f;
     }
 };
 
