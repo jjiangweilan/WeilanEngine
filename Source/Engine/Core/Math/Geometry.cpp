@@ -1,6 +1,36 @@
 #include "Geometry.hpp"
 #include <glm/gtx/intersect.hpp>
 
+Triangle Box::GetTriangle(int idx) const
+{
+    if (idx < 0 || idx >= 12)
+        return { float3(0, 0, 0), float3(0, 0, 0), float3(0, 0, 0) };
+
+    // returns counter clockwise facing triangle (outward facing for the box)
+    static const int faces[6][4] = {
+        {0, 2, 6, 4}, // -X
+        {1, 5, 7, 3}, // +X
+        {0, 4, 5, 1}, // -Y
+        {2, 3, 7, 6}, // +Y
+        {0, 1, 3, 2}, // -Z
+        {4, 6, 7, 5}, // +Z
+    };
+
+    int face = idx / 2;
+    int tri = idx % 2;
+
+    int a = faces[face][0];
+    int b = faces[face][1];
+    int c = faces[face][2];
+    int d = faces[face][3];
+
+    // Use diagonal (a-c). To ensure outward CCW orientation, reverse the winding from (a,b,c)/(a,c,d)
+    if (tri == 0)
+        return { points[a], points[c], points[b] };
+    else
+        return { points[a], points[d], points[c] };
+};
+
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance)
 {
     float2 bary;

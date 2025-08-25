@@ -76,24 +76,37 @@ struct Box
 {
     Box() { SetSize(1.0); }
     Box(const Box& other) = default;
+    Box(const float3& position, const float3& scale, const glm::quat& rotation)
+    {
+        SetSize(scale);
+        auto m = glm::translate(glm::float4x4(1.0), position) * glm::mat4_cast(rotation);
+        *this = Transform(m);
+    }
     Box& operator=(const Box& other) = default;
 
     // 8 corner points of the box
     float3 points[8];
 
+    void SetSize(const float3& size)
+    {
+        float3 extent = size / 2.0f;
+
+        // Define corners: (-x,-y,-z) .. (x,y,z)
+        points[0] = float3(-extent.x, -extent.y, -extent.z);
+        points[1] = float3(extent.x, -extent.y, -extent.z);
+        points[2] = float3(-extent.x, extent.y, -extent.z);
+        points[3] = float3(extent.x, extent.y, -extent.z);
+        points[4] = float3(-extent.x, -extent.y, extent.z);
+        points[5] = float3(extent.x, -extent.y, extent.z);
+        points[6] = float3(-extent.x, extent.y, extent.z);
+        points[7] = float3(extent.x, extent.y, extent.z);
+    }
+
     void SetSize(float size)
     {
         float extent = size / 2.0f;
 
-        // Define corners: (-x,-y,-z) .. (x,y,z)
-        points[0] = float3(-extent, -extent, -extent);
-        points[1] = float3( extent, -extent, -extent);
-        points[2] = float3(-extent,  extent, -extent);
-        points[3] = float3( extent,  extent, -extent);
-        points[4] = float3(-extent, -extent,  extent);
-        points[5] = float3( extent, -extent,  extent);
-        points[6] = float3(-extent,  extent,  extent);
-        points[7] = float3( extent,  extent,  extent);
+        SetSize(float3(size, size, size));
     }
 
     Box Transform(const float4x4& model) const
@@ -106,6 +119,10 @@ struct Box
 
         return retval;
     }
+
+    int GetTriangleCount() const { return 12; }
+
+    Triangle GetTriangle(int idx) const;
 };
 
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);

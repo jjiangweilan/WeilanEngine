@@ -1,5 +1,6 @@
 #if CONFIG
-topology : lineList
+topology : triangleList
+polygonMode: line
 cull : off
 #endif
 
@@ -24,7 +25,7 @@ struct VertexOutput
 }
 
 [shader("vertex")]
-void VertexMain(uint vertexId : SV_VertexID)
+VertexOutput VertexMain(uint vertexId : SV_VertexID)
 {
     float4 v;
     if (vertexId == 0) v= p.v0;
@@ -35,6 +36,8 @@ void VertexMain(uint vertexId : SV_VertexID)
 
     VertexOutput output;
     output.positon= mul(perScene.camera.viewProjection, pos);
+
+    return output;
 }
 
 [shader("fragment")]

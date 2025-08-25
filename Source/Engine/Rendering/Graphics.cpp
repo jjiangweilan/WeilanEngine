@@ -253,7 +253,7 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
     data.v2 = glm::vec4(draw.v2, 1.0f);
     data.color = draw.color;
 
-    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetLineShader().GetShaderProgram();
+    Gfx::ShaderProgram* triangleShaderProgram = EngineInternalResources::GetTriangleShader().GetShaderProgram();
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
     cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(3, 1, 0, 0);

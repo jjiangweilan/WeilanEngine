@@ -104,19 +104,16 @@ public:
             // target->Bake();
         }
 
-        for (int i = 0; i < 6; ++i)
-        {
-            Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix(i));
-        }
+        // for (int i = 0; i < 6; ++i)
+        // {
+        //     Graphics::DrawFrustum(target->GetProjectionMatrix() * target->GetViewMatrix(i));
+        // }
 
         auto extent = target->GetExtent();
         auto position = target->GetGameObject()->GetPosition();
-        editor.GetEditorContext()->GetGizmoManager()->Draw<ScaleBoxGizmo>(
-            scaleBoxGizmoHandle,
-            position,
-            target->GetGameObject()->GetRotation(),
-            extent
-        );
+        editor.GetEditorContext()
+            ->GetGizmoManager()
+            ->Draw<ScaleBoxGizmo>(scaleBoxGizmoHandle, position, target->GetGameObject()->GetRotation(), extent);
         target->SetExtent(extent);
         target->GetGameObject()->SetPosition(position);
     }

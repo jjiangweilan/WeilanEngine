@@ -2,6 +2,7 @@
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/Camera.hpp"
 #include "Core/EngineInternalResources.hpp"
+#include "Core/Math/GeometryRendering.hpp"
 #include "GamePlay/Input.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/Graphics.hpp"
@@ -92,17 +93,21 @@ void ScaleBoxGizmo::Draw(Gfx::CommandBuffer& cmd)
 
     };
 
+    cmd.BindResource(0, perScene);
     for (int i = 0; i < 6; ++i)
     {
         glm::mat4 finalM = GetBoxTransformMatrix(dirs[i]);
 
-        cmd.BindResource(0, perScene);
         cmd.BindIndexBuffer(cube->GetIndexBuffer(), 0, cube->GetIndexBufferType());
         cmd.BindVertexBuffer(cube->GetGfxVertexBufferBindings(), 0);
         cmd.SetPushConstant(program, &finalM);
         cmd.BindShaderProgram(program, program->GetDefaultShaderConfig());
         cmd.DrawIndexed(cube->GetIndexCount(), 1, 0, 0, 0);
     }
+
+    // TODO(perf)
+    Box box(position, extent * 2.0f, rotation);
+    GeometryRendering::DrawWireBox(cmd, box);
 };
 
 float4x4 ScaleBoxGizmo::GetBoxTransformMatrix(const float3& dir)
