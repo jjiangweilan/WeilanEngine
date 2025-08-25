@@ -15,10 +15,42 @@ bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance)
 
 bool RayVsBox(const Ray& ray, const Box& box, float& distance)
 {
+    // Define faces from 8 points and test against each as a quad
+    const int faces[6][4] = {
+        {0, 1, 3, 2}, // -Z
+        {4, 6, 7, 5}, // +Z
+        {0, 2, 6, 4}, // -X
+        {1, 5, 7, 3}, // +X
+        {0, 4, 5, 1}, // -Y
+        {2, 3, 7, 6}  // +Y
+    };
+
+    bool hit = false;
+    float best = 1e30f;
+
     for (int i = 0; i < 6; ++i)
     {
-        if (RayVsQuad(ray, box.faces[i], distance))
-            return true;
+        Quad q(
+            box.points[faces[i][0]],
+            box.points[faces[i][1]],
+            box.points[faces[i][2]],
+            box.points[faces[i][3]]
+        );
+        float d;
+        if (RayVsQuad(ray, q, d))
+        {
+            if (d < best)
+            {
+                best = d;
+                hit = true;
+            }
+        }
+    }
+
+    if (hit)
+    {
+        distance = best;
+        return true;
     }
 
     return false;

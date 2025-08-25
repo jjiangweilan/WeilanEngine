@@ -78,48 +78,30 @@ struct Box
     Box(const Box& other) = default;
     Box& operator=(const Box& other) = default;
 
-    Quad faces[6];
+    // 8 corner points of the box
+    float3 points[8];
 
     void SetSize(float size)
     {
         float extent = size / 2.0f;
-        faces[0].p0 = float3(-extent, extent, -extent);
-        faces[0].p1 = float3(-extent, -extent, -extent);
-        faces[0].p2 = float3(-extent, -extent, extent);
-        faces[0].p3 = float3(-extent, extent, extent);
 
-        faces[1].p0 = float3(extent, extent, -extent);
-        faces[1].p1 = float3(extent, -extent, -extent);
-        faces[1].p2 = float3(extent, -extent, extent);
-        faces[1].p3 = float3(extent, extent, extent);
-
-        faces[2].p0 = float3(extent, -extent, extent);
-        faces[2].p1 = float3(-extent, -extent, extent);
-        faces[2].p2 = float3(extent, -extent, -extent);
-        faces[2].p3 = float3(-extent, -extent, -extent);
-
-        faces[3].p0 = float3(-extent, extent, extent);
-        faces[3].p1 = float3(extent, extent, -extent);
-        faces[3].p2 = float3(-extent, extent, -extent);
-        faces[3].p3 = float3(extent, extent, extent);
-
-        faces[4].p0 = float3(extent, extent, -extent);
-        faces[4].p1 = float3(-extent, extent, -extent);
-        faces[4].p2 = float3(extent, -extent, -extent);
-        faces[4].p3 = float3(-extent, -extent, -extent);
-
-        faces[5].p0 = float3(extent, extent, extent);
-        faces[5].p1 = float3(-extent, extent, extent);
-        faces[5].p2 = float3(extent, -extent, extent);
-        faces[5].p3 = float3(-extent, -extent, extent);
+        // Define corners: (-x,-y,-z) .. (x,y,z)
+        points[0] = float3(-extent, -extent, -extent);
+        points[1] = float3( extent, -extent, -extent);
+        points[2] = float3(-extent,  extent, -extent);
+        points[3] = float3( extent,  extent, -extent);
+        points[4] = float3(-extent, -extent,  extent);
+        points[5] = float3( extent, -extent,  extent);
+        points[6] = float3(-extent,  extent,  extent);
+        points[7] = float3( extent,  extent,  extent);
     }
 
     Box Transform(const float4x4& model) const
     {
         Box retval;
-        for (int face = 0; face < 6; ++face)
+        for (int i = 0; i < 8; ++i)
         {
-            retval.faces[face] = faces[face].Transform(model);
+            retval.points[i] = model * float4(points[i], 1.0);
         }
 
         return retval;
