@@ -71,7 +71,6 @@ void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation
         dir_v = glm::normalize(dir_v);
         float t = glm::dot(dir_v, moveDelta_v);
 
-        spdlog::info("t: {}", t);
         // move handlePos
         inoutSize += glm::abs(dirs[activeHandle]) * t * 60.f;
         position += dirs[activeHandle] * t * 30.f;
