@@ -544,7 +544,9 @@ bool SceneEditor::Tick()
             }
         }
 
-        if (!ImGuizmo::IsOver() && !ImGuizmo::IsUsing() && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
+        bool anyItemHovered = ImGui::IsAnyItemHovered();
+        auto selected = EditorState::GetMainSelectedObject();
+        if (!anyItemHovered && (selected == nullptr || !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) && !hoveringViewGizmo && !gizmoManager->AnyGizmoActive())
         {
             // pick a GameObject trough ray
             if (isMouseClicked && isGameViewHovered && ImGui::IsWindowFocused())
@@ -606,11 +608,10 @@ bool SceneEditor::Tick()
                         }
                         else
                         {
-                            EditorState::DeselectObject(picked);
-                            // if (isAltDown)
-                            // {
-                            //     EditorState::DeselectObject(picked);
-                            // }
+                            if (isAltDown)
+                            {
+                                EditorState::DeselectObject(picked);
+                            }
                             // else
                             // {
                             //     EditorState::SelectObject(picked, false);

@@ -111,6 +111,7 @@ public:
     {
         distance = std::numeric_limits<float>::max();
         auto mr = obj->GetComponent<MeshRenderer>();
+        bool intersected = false;
         if (mr)
         {
             auto model = obj->GetWorldMatrix();
@@ -142,6 +143,7 @@ public:
                                 // newDistance > 0 means the triangle is in front of the camera
                                 if (newDistance > 0)
                                 {
+                                    intersected = true;
                                     distance = glm::min(distance, newDistance);
                                 }
                             }
@@ -149,10 +151,8 @@ public:
                     }
                 }
             }
-            
-            return distance > 0;
         }
-        else
-            return false;
+
+        return intersected;
     }
 };
