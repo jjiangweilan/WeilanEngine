@@ -718,6 +718,35 @@ bool SceneEditor::Tick()
                 invView[2] = -invView[2];
                 view = glm::inverse(invView);
                 mainCam->SetViewMatrix(view);
+
+                // Projection mode toggle under the view gizmo
+                {
+                    bool isOrtho = mainCam->GetProjectionMode() == Camera::ProjectionMode::Orthographic;
+                    ImVec2 prev = ImGui::GetCursorScreenPos();
+                    ImGui::SetCursorScreenPos(ImVec2(viewManipulateRectMin.x, viewManipulateRectMin.y + 100.0f + 4.0f));
+                    if (ImGui::Checkbox("Ortho", &isOrtho))
+                    {
+                        mainCam->SetProjectionMode(
+                            isOrtho ? Camera::ProjectionMode::Orthographic : Camera::ProjectionMode::Perspective
+                        );
+                    }
+
+                    // If orthographic, show size slider just below the checkbox
+                    if (isOrtho)
+                    {
+                        float y = viewManipulateRectMin.y + 100.0f + 4.0f + ImGui::GetFrameHeightWithSpacing();
+                        ImGui::SetCursorScreenPos(ImVec2(viewManipulateRectMin.x, y));
+                        float orthoSize = mainCam->GetOrthographicSize();
+                        ImGui::PushItemWidth(100.0f);
+                        if (ImGui::SliderFloat("Size", &orthoSize, 0.1f, 20.0f, "%.2f"))
+                        {
+                            mainCam->SetOrthographicSize(orthoSize);
+                        }
+                        ImGui::PopItemWidth();
+                    }
+
+                    ImGui::SetCursorScreenPos(prev);
+                }
             }
         }
 

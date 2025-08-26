@@ -48,7 +48,6 @@ public:
 
         JobSystem& jobSystem = JobSystem::Instance();
         DynamicArray<JobHandle> jobs;
-        int maxThreads = std::max(1.0f, std::thread::hardware_concurrency() - 2.0f);
 
         for (int i = 0; i < pending.size(); ++i)
         {
@@ -83,22 +82,26 @@ public:
         auto gameObjects = scene.GetAllGameObjects();
         for (auto obj : gameObjects)
         {
-            if (obj != nullptr && obj->IsEnabled())
+            if (obj != nullptr && obj->IsActiveInScene())
             {
-                pending.push_back(PickCandidate{
-                    PickObjectLayer::GameObject,
-                    [obj](const Ray& ray, const std::function<void(GameObject*, float)>& intersectedPushback)
-                    {
-                        auto ori = ray.origin;
-                        auto dir = ray.direction;
-                        float distance = std::numeric_limits<float>::max();
-
-                        if (IsRayObjectIntersect(ori, dir, obj, distance))
+                auto mr = obj->GetComponent<MeshRenderer>();
+                if (mr)
+                {
+                    pending.push_back(PickCandidate{
+                        PickObjectLayer::GameObject,
+                        [obj](const Ray& ray, const std::function<void(GameObject*, float)>& intersectedPushback)
                         {
-                            intersectedPushback(obj, distance);
+                            auto ori = ray.origin;
+                            auto dir = ray.direction;
+                            float distance = std::numeric_limits<float>::max();
+
+                            if (IsRayObjectIntersect(ori, dir, obj, distance))
+                            {
+                                intersectedPushback(obj, distance);
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
         }
         return pending;
@@ -146,8 +149,10 @@ public:
                     }
                 }
             }
+            
+            return distance > 0;
         }
-
-        return distance > 0;
+        else
+            return false;
     }
 };

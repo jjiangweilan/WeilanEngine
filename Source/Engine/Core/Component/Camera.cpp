@@ -44,8 +44,7 @@ float Camera::GetProjectionTop()
 {
     if (projectionMode == ProjectionMode::Orthographic)
     {
-        // Return negative half height to keep existing sign convention
-        return -0.5f * orthographicSize;
+        return 0.5f * orthographicSize;
     }
 
     // Perspective: derive from projection matrix (negative by convention used elsewhere)
@@ -178,12 +177,23 @@ glm::vec3 Camera::ScreenUVToWorldPos(glm::vec2 screenUV)
 Ray Camera::ScreenUVToWorldSpaceRay(glm::vec2 screenUV)
 {
     Ray ray;
-    ray.origin = GetGameObject()->GetPosition();
     glm::mat4 camModelMatrix = GetGameObject()->GetWorldMatrix();
     glm::vec3 viewSpacePosition = ScreenUVToCameraNearPlaneInObjectSpace(screenUV);
-    glm::vec3 clickInWS = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
-    ray.direction = glm::normalize(clickInWS - ray.origin);
-    return ray;
+
+    if (projectionMode == ProjectionMode::Orthographic)
+    {
+        // in orthographic mode, the ray direction is the camera forward direction
+        ray.origin = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
+        ray.direction = GetForward();
+        return ray;
+    }
+    else
+    {
+        glm::vec3 clickInWS = camModelMatrix * glm::vec4(viewSpacePosition, 1.0);
+        ray.origin = GetGameObject()->GetPosition();
+        ray.direction = glm::normalize(clickInWS - ray.origin);
+        return ray;
+    }
 }
 
 void Camera::Serialize(Serializer* s) const
