@@ -162,7 +162,9 @@ using glm::int4;
 
 namespace Math
 {
-float4x4 GetProjectionMatrix(float fov, float aspect, float near, float far);
+float4x4 PerspectiveProjectionMatrix(float fov, float aspect, float near, float far);
+float4x4 OrthographicProjectionMatrix(float left, float right, float bottom, float top, float near, float far);
+
 void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::quat& rot);
 
 template <std::unsigned_integral T>

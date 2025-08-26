@@ -15,6 +15,12 @@ class Camera : public Component
     DECLARE_OBJECT();
 
 public:
+    enum class ProjectionMode
+    {
+        Perspective = 0,
+        Orthographic = 1
+    };
+
     Camera();
     Camera(GameObject* gameObject);
     ~Camera() override {};
@@ -44,12 +50,13 @@ public:
 
     static RefPtr<Camera> mainCamera;
 
-    // get camera fov half angle
+    // get camera fov half angle (returns 0 for Orthographic mode)
     float GetFoV();
     float GetProjectionRight();
     float GetProjectionTop();
     float GetNear();
     float GetFar();
+
     void SetFoV(float fov)
     {
         this->fov = fov;
@@ -64,6 +71,28 @@ public:
     {
         this->far = far;
         updateProjectionMatrix = true;
+    }
+
+    // Projection mode and orthographic controls
+    ProjectionMode GetProjectionMode() const { return projectionMode; }
+    void SetProjectionMode(ProjectionMode mode)
+    {
+        if (projectionMode != mode)
+        {
+            projectionMode = mode;
+            updateProjectionMatrix = true;
+        }
+    }
+
+    // Orthographic size describes the full height of the orthographic projection volume
+    float GetOrthographicSize() const { return orthographicSize; }
+    void SetOrthographicSize(float size)
+    {
+        if (size != orthographicSize)
+        {
+            orthographicSize = (size > 0.0f) ? size : 0.0001f;
+            updateProjectionMatrix = true;
+        }
     }
 
     void LookAt(const float3& lookAtPos);
@@ -83,4 +112,8 @@ private:
     float fov = glm::radians(60.0);
     float aspect = -1.0f;
     bool updateProjectionMatrix = true;
+
+    ProjectionMode projectionMode = ProjectionMode::Perspective;
+    // Orthographic projection height (the width is computed as orthographicSize * aspect)
+    float orthographicSize = 10.0f;
 };

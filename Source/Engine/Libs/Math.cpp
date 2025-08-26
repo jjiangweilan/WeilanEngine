@@ -34,9 +34,17 @@ void DecomposeMatrix(const glm::mat4& m, glm::vec3& pos, glm::vec3& scale, glm::
     rot = glm::quat_cast(rotMtx);
 }
 
-float4x4 GetProjectionMatrix(float fovy, float aspect, float zNear, float zFar)
+float4x4 PerspectiveProjectionMatrix(float fovy, float aspect, float zNear, float zFar)
 {
     float4x4 projectionMatrix = glm::perspectiveLH_ZO(fovy, aspect, zFar, zNear); // swap near and far plane for reverzed z
+    projectionMatrix[1] = -projectionMatrix[1];
+
+    return projectionMatrix;
+}
+
+float4x4 OrthographicProjectionMatrix(float left, float right, float bottom, float top, float zNear, float zFar)
+{
+    float4x4 projectionMatrix = glm::orthoLH_ZO(left, right, bottom, top, zFar, zNear);
     projectionMatrix[1] = -projectionMatrix[1];
 
     return projectionMatrix;

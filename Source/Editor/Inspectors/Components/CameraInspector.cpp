@@ -16,6 +16,26 @@ public:
     {
         Inspector<Camera>::DrawInspector(editor);
 
+        // Projection controls
+        ImGui::NewLine();
+        EditorGUI::SeparatorTextLabeled("Projection");
+        EditorGUI::ObjectPropertyEnum(
+            "Projection Mode",
+            std::vector<std::string>{"Perspective", "Orthographic"},
+            *target,
+            &Camera::GetProjectionMode,
+            &Camera::SetProjectionMode
+        );
+
+        if (target->GetProjectionMode() == Camera::ProjectionMode::Orthographic)
+        {
+            float orthoSize = target->GetOrthographicSize();
+            if (EditorGUI::DragFloat("Orthographic Size", &orthoSize, 0.05f, 0.0001f))
+            {
+                target->SetOrthographicSize(orthoSize);
+            }
+        }
+
         ImGui::NewLine();
         EditorGUI::SeparatorTextLabeled("Environment");
         Texture* skybox = target->GetDiffuseEnv().Get();

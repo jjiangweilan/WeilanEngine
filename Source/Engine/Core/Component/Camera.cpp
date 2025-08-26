@@ -23,11 +23,32 @@ Camera::Camera() : Component(nullptr), projectionMatrix(), viewMatrix()
 
 float Camera::GetProjectionRight()
 {
+    if (projectionMode == ProjectionMode::Orthographic)
+    {
+        // Determine aspect if not set
+        float a = aspect;
+        if (a <= 0.0f)
+        {
+            auto screenSize = SystemInfo::Singleton().GetScreenSize();
+            a = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
+        }
+        const float orthoWidth = orthographicSize * a;
+        return 0.5f * orthoWidth;
+    }
+
+    // Perspective: derive from projection matrix
     return near / projectionMatrix[0][0];
 }
 
 float Camera::GetProjectionTop()
 {
+    if (projectionMode == ProjectionMode::Orthographic)
+    {
+        // Return negative half height to keep existing sign convention
+        return -0.5f * orthographicSize;
+    }
+
+    // Perspective: derive from projection matrix (negative by convention used elsewhere)
     return -near / projectionMatrix[1][1];
 }
 
@@ -87,7 +108,21 @@ const glm::mat4& Camera::GetAndUpdateProjectionMatrix(float aspect)
 
         updateProjectionMatrix = false;
         this->aspect = aspect;
-        projectionMatrix = Math::GetProjectionMatrix(fov, aspect, near, far);
+
+        if (projectionMode == ProjectionMode::Orthographic)
+        {
+            const float halfHeight = 0.5f * orthographicSize;
+            const float halfWidth = 0.5f * (orthographicSize * aspect);
+            const float left = -halfWidth;
+            const float right = halfWidth;
+            const float bottom = -halfHeight;
+            const float top = halfHeight;
+            projectionMatrix = Math::OrthographicProjectionMatrix(left, right, bottom, top, near, far);
+        }
+        else
+        {
+            projectionMatrix = Math::PerspectiveProjectionMatrix(fov, aspect, near, far);
+        }
     }
 
     return projectionMatrix;
@@ -101,8 +136,18 @@ glm::mat4 Camera::CalculateProjectionMatrixWithOverride(float farPlane, float as
         aspect = (screenSize.x != 0.0f && screenSize.y != 0.0f) ? screenSize.x / screenSize.y : 1920.0f / 1080.0f;
     }
 
-    glm::float4x4 projectionMatrix = Math::GetProjectionMatrix(fov, aspect, near, farPlane);
+    if (projectionMode == ProjectionMode::Orthographic)
+    {
+        const float halfHeight = 0.5f * orthographicSize;
+        const float halfWidth = 0.5f * (orthographicSize * aspect);
+        const float left = -halfWidth;
+        const float right = halfWidth;
+        const float bottom = -halfHeight;
+        const float top = halfHeight;
+        return Math::OrthographicProjectionMatrix(left, right, bottom, top, near, farPlane);
+    }
 
+    glm::float4x4 projectionMatrix = Math::PerspectiveProjectionMatrix(fov, aspect, near, farPlane);
     return projectionMatrix;
 }
 
@@ -198,6 +243,8 @@ std::unique_ptr<Component> Camera::Clone(GameObject& owner)
     clone->aspect = aspect;
     clone->diffuseEnv = diffuseEnv;
     clone->specularEnv = specularEnv;
+    clone->projectionMode = projectionMode;
+    clone->orthographicSize = orthographicSize;
     return clone;
 }
 
@@ -213,6 +260,10 @@ void Camera::OnDrawGizmos()
 
 float Camera::GetFoV()
 {
+    if (projectionMode == ProjectionMode::Orthographic)
+    {
+        return 0.0f;
+    }
     return glm::atan(GetProjectionTop() / GetNear());
 }
 

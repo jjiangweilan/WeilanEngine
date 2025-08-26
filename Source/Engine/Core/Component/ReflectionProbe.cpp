@@ -49,7 +49,7 @@ void ReflectionProbe::TransformChanged()
 
 void ReflectionProbe::UpdateFrustums(float3 position)
 {
-    projectionMatrix = Math::GetProjectionMatrix(glm::radians(90.0f), 1, GetNear(), GetFar());
+    projectionMatrix = Math::PerspectiveProjectionMatrix(glm::radians(90.0f), 1, GetNear(), GetFar());
     float3 faces[] = {
         {1, 0, 0},  // +X
         {-1, 0, 0}, // -X
