@@ -125,6 +125,13 @@ struct Box
     Triangle GetTriangle(int idx) const;
 };
 
+struct Plane
+{
+    float3 n;
+    float w;
+};
+
+bool RayVsPlane(const Ray& ray, const Plane& plane, float& distance);
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance);
 bool RayVsBox(const Ray& ray, const Box& quad, float& distance);
 bool RayVsTriangle(const Ray& ray, const Triangle& triangle, float& distance);

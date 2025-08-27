@@ -32,6 +32,11 @@ void Graphics::DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm:
     GetSingleton().drawCmds.push_back(DrawCubeCmd{pos, scale, rotation});
 }
 
+void Graphics::DrawPlane(const glm::vec3& normal, float w)
+{
+    GetSingleton().drawCmds.push_back(DrawPlaneCmd{normal, w});
+}
+
 void Graphics::AddRenderingEvent(
     std::string_view name,
     RenderingEvent event,
@@ -116,6 +121,10 @@ void Graphics::DispatchDraws(Gfx::CommandBuffer& cmd)
                 else if constexpr (std::is_same_v<T, DrawCubeCmd>)
                 {
                     DrawCubeCommand(cmd, draw);
+                }
+                else if constexpr (std::is_same_v<T, DrawPlaneCmd>)
+                {
+                    DrawPlaneCommand(cmd, draw);
                 }
             },
             drawCmd
@@ -257,6 +266,57 @@ void Graphics::DrawTriangleCommand(Gfx::CommandBuffer& cmd, DrawTriangleCmd& dra
     cmd.SetPushConstant(triangleShaderProgram, (void*)&data);
     cmd.BindShaderProgram(triangleShaderProgram, triangleShaderProgram->GetDefaultShaderConfig());
     cmd.Draw(3, 1, 0, 0);
+}
+
+void Graphics::DrawPlaneCommand(Gfx::CommandBuffer& cmd, DrawPlaneCmd& draw)
+{
+    Submesh* planeMesh = EngineInternalResources::GetPlaneMesh();
+    Material* mat = EngineInternalResources::GetDefaultMaterial();
+    Gfx::ShaderProgram* program = mat->GetShader()->GetShaderProgram();
+    static auto GetConfig = []()
+    {
+        Material* mat = EngineInternalResources::GetDefaultMaterial();
+        const Gfx::PipelineConfig& config = mat->GetShaderConfig();
+        auto config_v = *config;
+        config_v.cullMode = Gfx::CullMode::None;  // Because the plane is single sided
+        return config_v;
+    };
+    static Gfx::PipelineConfig planeConfig = GetConfig();
+
+    float3 norm = draw.normal;
+
+    // Calculate plane position from normal and distance
+    // The plane equation is: normal.x * x + normal.y * y + normal.z * z + w = 0
+    // So the closest point on the plane to origin is at distance -w along the normal
+    glm::vec3 planePosition = norm * (-draw.w);
+    
+    // Calculate rotation to align the plane with the normal
+    glm::vec3 up = glm::vec3(0, 1, 0);
+    glm::vec3 right = glm::normalize(glm::cross(up, norm));
+    if (glm::length(right) < 0.001f) // Handle case where normal is parallel to up
+    {
+        up = glm::vec3(1, 0, 0);
+        right = glm::normalize(glm::cross(up, norm));
+    }
+    up = glm::cross(norm, right);
+    
+    glm::mat3 horizontalFlip = glm::mat3(
+        float3(1, 0, 0),
+        float3(0, 0, 1),
+        float3(0, -1, 0)
+    ); // Because the plane mesh is created in the XZ plane
+
+    glm::mat3 rotationMatrix = glm::mat3(right, up, norm) * horizontalFlip;
+    
+    // Create transformation matrix
+    glm::mat4 transform = glm::translate(glm::mat4(1), planePosition) * float4x4(rotationMatrix);
+
+    cmd.BindResource(2, mat->GetShaderResource());
+    cmd.BindIndexBuffer(planeMesh->GetIndexBuffer(), 0, planeMesh->GetIndexBufferType());
+    cmd.BindVertexBuffer(planeMesh->GetGfxVertexBufferBindings(), 0);
+    cmd.SetPushConstant(program, &transform);
+    cmd.BindShaderProgram(program, planeConfig);
+    cmd.DrawIndexed(planeMesh->GetIndexCount(), 1, 0, 0, 0);
 }
 
 Graphics::Graphics()

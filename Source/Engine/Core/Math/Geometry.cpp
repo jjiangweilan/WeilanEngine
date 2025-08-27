@@ -4,7 +4,7 @@
 Triangle Box::GetTriangle(int idx) const
 {
     if (idx < 0 || idx >= 12)
-        return { float3(0, 0, 0), float3(0, 0, 0), float3(0, 0, 0) };
+        return {float3(0, 0, 0), float3(0, 0, 0), float3(0, 0, 0)};
 
     // returns counter clockwise facing triangle (outward facing for the box)
     static const int faces[6][4] = {
@@ -26,9 +26,9 @@ Triangle Box::GetTriangle(int idx) const
 
     // Use diagonal (a-c). To ensure outward CCW orientation, reverse the winding from (a,b,c)/(a,c,d)
     if (tri == 0)
-        return { points[a], points[c], points[b] };
+        return {points[a], points[c], points[b]};
     else
-        return { points[a], points[d], points[c] };
+        return {points[a], points[d], points[c]};
 };
 
 bool RayVsQuad(const Ray& ray, const Quad& quad, float& distance)
@@ -60,12 +60,7 @@ bool RayVsBox(const Ray& ray, const Box& box, float& distance)
 
     for (int i = 0; i < 6; ++i)
     {
-        Quad q(
-            box.points[faces[i][0]],
-            box.points[faces[i][1]],
-            box.points[faces[i][2]],
-            box.points[faces[i][3]]
-        );
+        Quad q(box.points[faces[i][0]], box.points[faces[i][1]], box.points[faces[i][2]], box.points[faces[i][3]]);
         float d;
         if (RayVsQuad(ray, q, d))
         {
@@ -275,4 +270,19 @@ bool RayVsAABB(const Ray& r, const AABB& aabb, float& t)
 
     t = tmin;
     return true;
+}
+
+bool RayVsPlane(const Ray& ray, const Plane& plane, float& distance)
+{
+    float denom = glm::dot(plane.n, ray.direction);
+    if (glm::abs(denom) > 1e-6)
+    {
+        float t = (plane.w - glm::dot(plane.n, ray.origin)) / denom;
+        if (t >= 0)
+        {
+            distance = t;
+            return true;
+        }
+    }
+    return false;
 }

@@ -296,3 +296,13 @@ void Camera::LookAt(const float3& lookAtPos)
     auto rot = glm::quat_cast(rotMat);
     GetGameObject()->SetRotation(rot);
 }
+
+float3 Camera::GetRight()
+{
+    return gameObject->GetRight();
+}
+
+float3 Camera::GetUp()
+{
+    return gameObject->GetUp();
+}

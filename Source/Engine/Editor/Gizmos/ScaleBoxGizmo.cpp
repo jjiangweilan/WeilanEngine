@@ -15,7 +15,7 @@ void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation
     this->extent = inoutSize / 2.0f;
 
     bool isMouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
-    bool isMouseDragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+    bool isMouseDragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left, 1);
     auto camera = editorContext->GetEditorCamera();
     auto uv = editorContext->GetMouseUVInSceneView();
 
@@ -29,10 +29,9 @@ void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation
 
     };
 
+    auto ray = camera->ScreenUVToWorldSpaceRay(uv);
     if (isMouseDown && activeHandle == -1)
     {
-        auto ray = camera->ScreenUVToWorldSpaceRay(uv);
-
         for (int handleIdx = 0; handleIdx < 6; ++handleIdx)
         {
             bool activate = false;
@@ -43,7 +42,6 @@ void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation
             if (activate)
             {
                 activeHandle = handleIdx;
-                previousMousePosVS = camera->ScreenUVToCameraNearPlaneInViewSpace(uv);
                 break;
             }
         }
@@ -55,26 +53,49 @@ void ScaleBoxGizmo::ProcessUserInput(float3& position, const glm::quat& rotation
     }
 
     // Update inoutSize
-    auto mouseDelta = ImGui::GetMouseDragDelta();
     if (activeHandle != -1 && isMouseDragging)
     {
-        // Project hanle
+        float4x4 viewMatrix = camera->GetViewMatrix();
+        float3 cameraAxis[] = {camera->GetRight(), camera->GetUp()};
+        float3 cameraAxis_v[] = {float3(1, 0, 0), float3(0, 1, 0)};
+
+        // Project handle to world and view space
+        auto vec = glm::rotate(rotation, dirs[activeHandle] * extent);
         auto dir = glm::rotate(rotation, dirs[activeHandle]);
-        float3 dir_v = camera->GetViewMatrix() * float4(dir, 0.0);
+        float3 dir_v = viewMatrix * float4(dir, 0.0);
 
-        float3 mousePosVS = camera->ScreenUVToCameraNearPlaneInViewSpace(uv);
-        float3 moveDelta_v = mousePosVS - previousMousePosVS;
-        previousMousePosVS = mousePosVS;
+        // Found major axis
+        int majorAxis = 0;
+        {
+            float d0 = glm::abs(glm::dot(float2(dir_v), float2(cameraAxis_v[0])));
+            float d1 = glm::abs(glm::dot(float2(dir_v), float2(cameraAxis_v[1])));
+            if (d0 > d1)
+                majorAxis = 0;
+            else
+                majorAxis = 1;
+        }
 
-        moveDelta_v.z = 0;
-        dir_v.z = 0;
+        // Define main plane
+        float3 planeN = camera->GetForward();
+        float3 handlePos = position + vec;
+        float planeW = glm::dot(handlePos, planeN);
+        Plane plane = { planeN, planeW };
 
-        dir_v = glm::normalize(dir_v);
-        float t = glm::dot(dir_v, moveDelta_v);
+        // Find intersection point of main plane
+        float distance = -1;
+        if (!RayVsPlane(ray, plane, distance))
+        {
+            return;
+        }
+        float3 intersectionPoint = ray.origin + ray.direction * distance;
 
-        // move handlePos
-        inoutSize += glm::abs(dirs[activeHandle]) * t * 60.f;
-        position += dirs[activeHandle] * t * 30.f;
+        // Project intersectionPoint to axis and calculate the diff
+        float projectedLength = glm::dot(intersectionPoint - position, dir);
+        float diff = projectedLength - glm::length(vec);
+
+        // Move handlePos
+        inoutSize += glm::abs(dirs[activeHandle]) * diff;
+        position += dirs[activeHandle] * diff * 0.5f;
     }
 };
 

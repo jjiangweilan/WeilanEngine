@@ -15,6 +15,7 @@ public:
         Mesh* halfSphere;
         Mesh* cylinder;
         Mesh* cube;
+        Mesh* plane;
     };
 
     static void Init();
@@ -24,6 +25,7 @@ public:
     static Submesh* GetHalfSphereMesh() { return GetSingleton().models.halfSphere->GetSubmesh(0); }
     static Submesh* GetCylinderMesh() { return GetSingleton().models.cylinder->GetSubmesh(0); }
     static Submesh* GetCubeMesh() { return GetSingleton().models.cube->GetSubmesh(0); }
+    static Submesh* GetPlaneMesh() { return GetSingleton().models.plane->GetSubmesh(0); }
     static Models& GetModels() { return GetSingleton().models; }
     static Material* GetDefaultMaterial() { return GetSingleton().defaultMaterial; }
     static Material* GetDefaultGridMaterial() { return GetSingleton().defaultGridMaterial; }

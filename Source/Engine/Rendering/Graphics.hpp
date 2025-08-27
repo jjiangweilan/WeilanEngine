@@ -1,12 +1,12 @@
 #pragma once
 #include "Core/SafeReferenceable.hpp"
+#include "Core/Math/Geometry.hpp"
 #include "GfxDriver/ShaderConfig.hpp"
 #include "Libs/DynamicArray.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
 #include <variant>
-
 namespace Gfx
 {
 class CommandBuffer;
@@ -20,6 +20,7 @@ public:
     static void DrawLine(const glm::vec3& from, const glm::vec3& to, const glm::vec4& color = {1, 1, 1, 1});
     static void DrawMesh(Mesh& mesh, int submeshIndex, const glm::mat4& model, Material& material);
     static void DrawCube(const glm::vec3& pos, const glm::vec3& scale, const glm::quat& rotation);
+    static void DrawPlane(const glm::vec3& normal, float w);
     static void DrawCapsule(
         float height, float radius, const glm::vec3& pos, const glm::quat& rotation, const glm::vec3& scale
     );
@@ -82,6 +83,12 @@ private:
         glm::quat rotation;
     };
 
+    struct DrawPlaneCmd
+    {
+        glm::vec3 normal;
+        float w;
+    };
+
     struct DrawCustomCmd
     {
         DrawCustomCmd(
@@ -95,7 +102,7 @@ private:
     };
 
     using DrawCmds =
-        std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCubeCmd, DrawCustomCmd>;
+        std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCubeCmd, DrawPlaneCmd, DrawCustomCmd>;
 
     DynamicArray<DrawCmds> drawCmds;
     DynamicArray<DynamicArray<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
@@ -107,4 +114,5 @@ private:
     static void DrawCapsuleCommand(Gfx::CommandBuffer& cmd, DrawCapsuleCmd& draw);
     static void DrawCmdCommand(Gfx::CommandBuffer& cmd, DrawCustomCmd& draw);
     static void DrawCubeCommand(Gfx::CommandBuffer& cmd, DrawCubeCmd& draw);
+    static void DrawPlaneCommand(Gfx::CommandBuffer& cmd, DrawPlaneCmd& draw);
 };
