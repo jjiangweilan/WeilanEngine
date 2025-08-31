@@ -354,44 +354,6 @@ struct VKCmd
         VKAsyncReadbackCmd,
         VKGraphicsBlitCmd>
         args;
-    // union
-    // {
-    //     VKDrawIndexedCmd drawIndexed;
-    //     VKDrawIndirectCmd drawIndirect;
-    //     VKDrawIndexedIndirectCmd drawIndexedIndirect;
-    //     VKDrawCmd draw;
-    //     VKBeginRenderPassCmd beginRenderPass;
-    //     VKRGBeginRenderPassCmd rgBeginRenderPass;
-    //     VKEndRenderPassCmd endRenderPass;
-    //     VKBlitCmd blit;
-    //     VKBindResourceCmd bindResource;
-    //     VKBindShaderProgramCmd bindShaderProgram;
-    //     VKBindVertexBufferCmd bindVertexBuffer;
-    //     VKBindIndexBufferCmd bindIndexBuffer;
-    //
-    //     VKSetLineWidthCmd setLineWidth;
-    //     VKAsyncReadback asyncReadback;
-    //     VKSetViewportCmd setViewport;
-    //     VKCopyImageToBufferCmd copyImageToBuffer;
-    //     VKSetPushConstantCmd setPushConstant;
-    //     VKSetScissorCmd setScissor;
-    //     VKDispatchCmd dispatch;
-    //     VKDispatchIndirectCmd dispatchIndir;
-    //     VKNextRenderPassCmd nextRenderPass;
-    //     VKPushDescriptorCmd pushDescriptor;
-    //     VKCopyBufferCmd copyBuffer;
-    //     VKCopyBufferToImageCmd copyBufferToImage;
-    //
-    //     VKSetTextureCmd setTexture;
-    //     VKSetBufferCmd setBuffer;
-    //     VKPresentCmd present;
-    //
-    //     VKBeginLabelCmd beginLabel;
-    //     VKEndLabelCmd endLabel;
-    //     VKInsetLabelCmd insertLabel;
-    //
-    //     VKAllocateAttachmentCmd allocateAttachment;
-    // };
 };
 
 class VKCommandBuffer : public CommandBuffer
