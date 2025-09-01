@@ -7,6 +7,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS True)
 
+# Enable folder organization in Visual Studio
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
     cmake_policy(SET CMP0135 NEW)
 endif()
@@ -25,6 +28,70 @@ include(FetchContent)
 if (ENABLE_ADDRESS_SANITIZER)
 add_compile_options("/fsanitize=address")
 endif()
+
+function(GetTargetDependenciesInternal target outDependencies)
+    set(dependencies)
+    
+    # Get direct link libraries
+    get_target_property(link_libs ${target} LINK_LIBRARIES)
+    if(link_libs)
+        foreach(lib ${link_libs})
+            if(TARGET ${lib})
+                get_target_property(aliased ${lib} ALIASED_TARGET)
+                if(NOT aliased STREQUAL "aliased-NOTFOUND")
+                    set(resolved_lib ${aliased})
+                else()
+                    set(resolved_lib ${lib})
+                endif()
+
+                list(APPEND dependencies ${resolved_lib})
+                # Recursively get dependencies of this target
+                GetTargetDependenciesInternal(${resolved_lib} sub_deps)
+                list(APPEND dependencies ${sub_deps})
+            endif()
+        endforeach()
+    endif()
+    
+    # Get interface link libraries
+    get_target_property(interface_libs ${target} INTERFACE_LINK_LIBRARIES)
+    if(interface_libs)
+        foreach(lib ${interface_libs})
+            if(TARGET ${lib})
+                get_target_property(aliased ${lib} ALIASED_TARGET)
+                if(NOT aliased STREQUAL "aliased-NOTFOUND")
+                    set(resolved_lib ${aliased})
+                else()
+                    set(resolved_lib ${lib})
+                endif()
+
+                list(APPEND dependencies ${resolved_lib})
+                GetTargetDependenciesInternal(${resolved_lib} sub_deps)
+                list(APPEND dependencies ${sub_deps})
+            endif()
+        endforeach()
+    endif()
+    
+    # Remove duplicates
+    list(REMOVE_DUPLICATES dependencies)
+
+    set(${outDependencies} ${dependencies} PARENT_SCOPE)
+endfunction()
+
+function(GetTargetDependencies target outDependencies)
+    set(dependencies)
+    list(APPEND dependencies ${target})
+    GetTargetDependenciesInternal(${target} sub_deps)
+    list(APPEND dependencies ${sub_deps})
+    set(${outDependencies} ${dependencies} PARENT_SCOPE)
+endfunction()
+
+function(SetDependencyFolder target folder_name)
+    GetTargetDependencies(${target} dependencies)
+
+    foreach(target ${dependencies})
+        set_target_properties(${target} PROPERTIES FOLDER "Dependencies/${folder_name}")
+    endforeach(target ${dependencies})
+endfunction()
 
 FetchContent_Declare(Slang
     GIT_REPOSITORY https://github.com/shader-slang/slang.git
@@ -62,6 +129,8 @@ if (ENABLE_ADDRESS_SANITIZER)
 else()
     set(SDL_SHARED ON)
 endif()
+set(SDL2_DISABLE_SDL2MAIN ON)
+set(SDL_TEST_ENABLED_BY_DEFAULT OFF)
 
 FetchContent_MakeAvailable(SDL2)
 
@@ -127,6 +196,7 @@ FetchContent_Declare(ktx_software
     )
 set(BASISU_SUPPORT_SSE "${BASISU_SUPPORT_SSE}")
 set(KTX_FEATURE_TESTS OFF)
+set(KTX_FEATURE_TOOLS OFF)
 FetchContent_MakeAvailable(ktx_software)
 
 
@@ -245,9 +315,6 @@ target_link_libraries( WeilanEngine
     ktx
     glm
     slang
-    fmt
-    ktx
-    glm
     Jolt
     nlohmann_json::nlohmann_json
     GPUOpen::VulkanMemoryAllocator
@@ -321,4 +388,21 @@ if (UNIT_TEST)
 
     include(GoogleTest)
     gtest_discover_tests(WeilanEngineTest)
+
+    SetDependencyFolder(gtest_main GoogleTest)
+    SetDependencyFolder(gmock_main GoogleTest)
 endif()
+
+SetDependencyFolder(slang Slang)
+SetDependencyFolder(slang-glslang Slang)
+SetDependencyFolder(ryml ryml)
+SetDependencyFolder(SDL2 SDL2)
+SetDependencyFolder(spdlog spdlog)
+SetDependencyFolder(fmt fmt)
+SetDependencyFolder(ktx ktx)
+SetDependencyFolder(ktx_read ktx) # not used yet, but good for runtime
+SetDependencyFolder(glm glm)
+SetDependencyFolder(nlohmann_json nlohmann_json)
+SetDependencyFolder(VulkanMemoryAllocator VulkanMemoryAllocator)
+SetDependencyFolder(assimp assimp)
+SetDependencyFolder(Jolt JoltPhysics)
