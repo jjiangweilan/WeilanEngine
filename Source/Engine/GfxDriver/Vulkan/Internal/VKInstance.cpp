@@ -6,7 +6,7 @@
 
 namespace Gfx
 {
-VKInstance::VKInstance(const DynamicArray<const char*>& requiredExtension)
+VKInstance::VKInstance(const std::vector<const char*>& requiredExtension)
 {
     bool enableValidationLayers = true;
 
@@ -31,10 +31,10 @@ VKInstance::VKInstance(const DynamicArray<const char*>& requiredExtension)
 #if __APPLE__
     createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
-    DynamicArray<const char*> extensions = requiredExtension;
+    std::vector<const char*> extensions = requiredExtension;
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{};
-    DynamicArray<const char*> validationLayers = {
+    std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_KHRONOS_synchronization2"}; // If you don't get syncrhonization validation work, be sure it's enabled
                                               // and overrided in vkconfig app in VulkanSDK
@@ -106,12 +106,12 @@ VKInstance::~VKInstance()
     vkDestroyInstance(vulkanInstance, nullptr);
 }
 
-bool VKInstance::CheckAvalibilityOfValidationLayers(const DynamicArray<const char*>& validationLayers)
+bool VKInstance::CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers)
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-    DynamicArray<VkLayerProperties> availableLayers(layerCount);
+    std::vector<VkLayerProperties> availableLayers(layerCount);
     vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
     for (auto& k : availableLayers)
     {

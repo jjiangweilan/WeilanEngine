@@ -48,8 +48,8 @@ public:
     }
 
 private:
-    DynamicArray<Probe> probes = {};
+    std::vector<Probe> probes = {};
     glm::vec3 probeCount = {};
-    DynamicArray<std::unique_ptr<ProbeBaker>> probeBakers;
+    std::vector<std::unique_ptr<ProbeBaker>> probeBakers;
 };
 } // namespace Rendering::LFP

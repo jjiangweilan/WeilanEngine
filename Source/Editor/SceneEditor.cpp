@@ -557,9 +557,9 @@ bool SceneEditor::Tick()
                     using Intersected = PickGameObjectFromScene::Intersected;
                     Ray ray = mainCam->ScreenUVToWorldSpaceRay(screenUV);
 
-                    DynamicArray<Intersected> intersected;
+                    std::vector<Intersected> intersected;
                     intersected.reserve(32);
-                    DynamicArray<GameObject*> results;
+                    std::vector<GameObject*> results;
                     Gizmos::PickGizmos(ray, results);
                     if (results.empty())
                     {

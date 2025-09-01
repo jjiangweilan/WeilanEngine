@@ -35,12 +35,12 @@ public:
 private:
     VkDescriptorPoolCreateInfo createInfo{};
     VkDescriptorSetLayout layout = VK_NULL_HANDLE;
-    DynamicArray<VkDescriptorPoolSize> poolSizes = {};
+    std::vector<VkDescriptorPoolSize> poolSizes = {};
     RefPtr<VKContext> context;
 
-    DynamicArray<VkDescriptorPool> fullPools{};
-    DynamicArray<VkDescriptorSet> freeSets;
-    DynamicArray<VkDescriptorSet> currFramefreeSets;
+    std::vector<VkDescriptorPool> fullPools{};
+    std::vector<VkDescriptorSet> freeSets;
+    std::vector<VkDescriptorSet> currFramefreeSets;
     VkDescriptorPool freePool = VK_NULL_HANDLE;
 
     VkDescriptorPool CreateNewPool();
@@ -63,7 +63,7 @@ struct VKDescriptorPoolCache
 
 private:
     // we hash manually and use std::size_t as key to avoid dangling pointer of createInfo
-    DynamicArray<std::unique_ptr<VKDescriptorPool>> descriptorLayoutPoolCache;
+    std::vector<std::unique_ptr<VKDescriptorPool>> descriptorLayoutPoolCache;
     RefPtr<VKContext> context;
 
 private:

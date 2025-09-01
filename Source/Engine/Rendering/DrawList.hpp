@@ -21,7 +21,7 @@ struct SceneObjectDrawData
     Gfx::ShaderResource* objectResource = nullptr;
     Gfx::Buffer* indexBuffer = nullptr;
     Gfx::IndexBufferType indexBufferType;
-    DynamicArray<Gfx::VertexBufferBinding> vertexBufferBinding;
+    std::vector<Gfx::VertexBufferBinding> vertexBufferBinding;
     uint32_t indexCount;
     glm::float4x4 model;
     glm::float4x4 invTspModel;
@@ -35,7 +35,7 @@ struct SceneObjectDrawData
 };
 void swap(SceneObjectDrawData&& a, SceneObjectDrawData&& b);
 
-class DrawList : public DynamicArray<SceneObjectDrawData>
+class DrawList : public std::vector<SceneObjectDrawData>
 {
 public:
     int opaqueIndex;
@@ -50,6 +50,6 @@ public:
 
     void DrawRangeHelper(Gfx::CommandBuffer& cmd, int from, int to) const;
 
-    DynamicArray<int> sorted;
+    std::vector<int> sorted;
 };
 } // namespace Rendering

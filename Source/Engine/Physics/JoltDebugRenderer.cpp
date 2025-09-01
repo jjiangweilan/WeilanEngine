@@ -33,10 +33,10 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
 
     Submesh submesh;
     std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-    DynamicArray<glm::vec3> positions;
-    DynamicArray<uint32_t> indices;
+    std::vector<glm::vec3> positions;
+    std::vector<uint32_t> indices;
     VertexAttributes attributes;
-    DynamicArray<uint8_t> attributeData;
+    std::vector<uint8_t> attributeData;
     attributes.AddAttribute("normal", VertexAttributeSemantics::Normal, 0, 3 * sizeof(float));
     attributes.AddAttribute("color", VertexAttributeSemantics::Color, 0, 4 * sizeof(float));
     attributes.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 2 * sizeof(float));
@@ -68,7 +68,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(const Triangle* 
     submesh.SetPositions(std::move(positions));
     submesh.SetVertexAttribute(std::move(attributes));
     submesh.Apply();
-    DynamicArray<Submesh> submeshes;
+    std::vector<Submesh> submeshes;
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);
@@ -84,10 +84,10 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
 
     Submesh submesh;
     std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-    DynamicArray<glm::vec3> positions;
-    DynamicArray<uint32_t> indices;
+    std::vector<glm::vec3> positions;
+    std::vector<uint32_t> indices;
     VertexAttributes attributes;
-    DynamicArray<uint8_t> attributeData;
+    std::vector<uint8_t> attributeData;
     attributes.AddAttribute("normal", VertexAttributeSemantics::Normal, 0, 3 * sizeof(float));
     attributes.AddAttribute("color", VertexAttributeSemantics::Color, 0, 4 * sizeof(float));
     attributes.AddAttribute("uv", VertexAttributeSemantics::Texcoord, 0, 2 * sizeof(float));
@@ -117,7 +117,7 @@ JoltDebugRenderer::Batch JoltDebugRenderer::CreateTriangleBatch(
     submesh.SetPositions(std::move(positions));
     submesh.SetVertexAttribute(std::move(attributes));
     submesh.Apply();
-    DynamicArray<Submesh> submeshes;
+    std::vector<Submesh> submeshes;
     submeshes.push_back(std::move(submesh));
     mesh->SetSubmeshes(std::move(submeshes));
     batch->mesh = std::move(mesh);

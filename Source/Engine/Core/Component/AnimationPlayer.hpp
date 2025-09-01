@@ -60,7 +60,7 @@ private:
         glm::vec3 scale{1, 1, 1};
         glm::quat rotation{1, 0, 0, 0};
     };
-    DynamicArray<AnimatedGameObject> animatedObjects;
+    std::vector<AnimatedGameObject> animatedObjects;
     float mainClipTimePassed = 0;
     float mainClipDurationInSeconds = 0;
     float blendClipTimePassed = 0;

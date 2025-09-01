@@ -106,7 +106,7 @@ VkDescriptorPool VKDescriptorPool::CreateNewPool()
     createInfo.pNext = VK_NULL_HANDLE;
     createInfo.flags = 0;
     createInfo.maxSets = createInfo.maxSets == 0 ? 2 : createInfo.maxSets * 2;
-    DynamicArray<VkDescriptorPoolSize> poolSizesCopy = poolSizes;
+    std::vector<VkDescriptorPoolSize> poolSizesCopy = poolSizes;
     for (int i = 0; i < poolSizesCopy.size(); ++i)
     {
         poolSizesCopy[i].descriptorCount = poolSizes[i].descriptorCount * createInfo.maxSets;

@@ -7,5 +7,5 @@ public:
     void Render();
 
 private:
-    DynamicArray<FoliagePatch> foliagePatches;
+    std::vector<FoliagePatch> foliagePatches;
 };

@@ -104,8 +104,8 @@ private:
     using DrawCmds =
         std::variant<DrawLineCmd, DrawMeshCmd, DrawTriangleCmd, DrawCapsuleCmd, DrawCubeCmd, DrawPlaneCmd, DrawCustomCmd>;
 
-    DynamicArray<DrawCmds> drawCmds;
-    DynamicArray<DynamicArray<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
+    std::vector<DrawCmds> drawCmds;
+    std::vector<std::vector<std::function<void(Gfx::CommandBuffer&, const Rendering::RenderingData& renderingData)>>>
         renderingEvents;
 
     static void DrawLineCommand(Gfx::CommandBuffer& cmd, DrawLineCmd& draw);

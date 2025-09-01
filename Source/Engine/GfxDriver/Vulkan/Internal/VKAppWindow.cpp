@@ -53,7 +53,7 @@ void VKAppWindow::CreateVkSurface(VkInstance vkInstance, VkSurfaceKHR* vkSurface
     }
 }
 
-DynamicArray<const char*> VKAppWindow::GetVkRequiredExtensions()
+std::vector<const char*> VKAppWindow::GetVkRequiredExtensions()
 {
     unsigned int count;
     if (!SDL_Vulkan_GetInstanceExtensions(window, &count, nullptr))
@@ -62,7 +62,7 @@ DynamicArray<const char*> VKAppWindow::GetVkRequiredExtensions()
         std::cout << "GetVkRequiredExtensions failed" << std::endl;
     }
 
-    DynamicArray<const char*> names(count);
+    std::vector<const char*> names(count);
     if (!SDL_Vulkan_GetInstanceExtensions(window, &count, names.data()))
     {
         std::cout << SDL_GetError() << std::endl;

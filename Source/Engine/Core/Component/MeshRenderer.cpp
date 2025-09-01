@@ -62,7 +62,7 @@ void MeshRenderer::UpdateAABB()
 }
 void MeshRenderer::SetMaterials(std::span<ObjPtr<Material>> materials)
 {
-    this->materials = DynamicArray<ObjPtr<Material>>(materials.begin(), materials.end());
+    this->materials = std::vector<ObjPtr<Material>>(materials.begin(), materials.end());
 }
 void MeshRenderer::SetMaterials(std::span<Material*> materials)
 {
@@ -83,7 +83,7 @@ std::span<ObjPtr<Mesh>> MeshRenderer::GetMeshes()
     return meshes;
 }
 
-const DynamicArray<ObjPtr<Material>>& MeshRenderer::GetMaterials()
+const std::vector<ObjPtr<Material>>& MeshRenderer::GetMaterials()
 {
     return materials;
 }

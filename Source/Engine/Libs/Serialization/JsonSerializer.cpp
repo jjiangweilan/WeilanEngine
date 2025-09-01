@@ -65,13 +65,13 @@ void JsonSerializer::AppendSubserializer(std::string_view name, Serializer* s)
 
 void JsonSerializer::Serialize(std::string_view name, unsigned char* p, size_t size)
 {
-    DynamicArray<std::uint8_t> d(p, p + size);
+    std::vector<std::uint8_t> d(p, p + size);
     j[TO_JSON_PTR(name)] = d;
 }
 
 void JsonSerializer::Deserialize(std::string_view name, unsigned char* p, size_t size)
 {
-    DynamicArray<std::uint8_t> d = j[TO_JSON_PTR(name)].get<DynamicArray<std::uint8_t>>();
+    std::vector<std::uint8_t> d = j[TO_JSON_PTR(name)].get<std::vector<std::uint8_t>>();
     memcpy(p, d.data(), d.size());
 }
 

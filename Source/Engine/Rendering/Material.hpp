@@ -90,7 +90,7 @@ public:
     void Deserialize(Serializer* s) override;
     void CopyProperties(Material& other);
 
-    DynamicArray<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
+    std::vector<std::string> GetCachedShaderProgramFeatureUsed() const { return {}; }
 
     const std::unordered_set<std::string>& GetEnabledFeatures() const { return enabledFeatures; }
     bool IsFeatureEnabled(const std::string& feature) const

@@ -43,7 +43,7 @@ public:
 
     void ReloadScripts();
 
-    DynamicArray<std::function<void(SDL_Event& event)>> eventCallback;
+    std::vector<std::function<void(SDL_Event& event)>> eventCallback;
     std::unique_ptr<Event> event;
     std::unique_ptr<Gfx::GfxDriver> gfxDriver;
     std::unique_ptr<AssetDatabase> assetDatabase;

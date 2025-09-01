@@ -15,7 +15,7 @@ void VKSwapChainImage::Recreate(
     std::span<VkImage> swapchainImages, VkFormat format, uint32_t width, uint32_t height, VkImageUsageFlags usageFlags
 )
 {
-    DynamicArray<std::unique_ptr<VKImage>> newImages;
+    std::vector<std::unique_ptr<VKImage>> newImages;
 
     format_vk = format;
     imageDescription.format = MapVKFormat(format);

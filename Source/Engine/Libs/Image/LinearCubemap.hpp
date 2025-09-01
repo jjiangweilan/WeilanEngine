@@ -144,5 +144,5 @@ private:
     uint32_t elementSize;
     uint32_t totalSize;
     uint32_t singleFaceSize;
-    DynamicArray<unsigned char> data;
+    std::vector<unsigned char> data;
 };

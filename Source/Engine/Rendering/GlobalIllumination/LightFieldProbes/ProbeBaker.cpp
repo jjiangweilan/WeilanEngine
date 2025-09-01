@@ -98,7 +98,7 @@ static void DispatchBake(Gfx::CommandBuffer& cmd, DrawList*& drawList, int from,
 
 void ProbeBaker::Bake(Gfx::CommandBuffer& cmd, DrawList* drawList)
 {
-    DynamicArray<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
+    std::vector<Gfx::ClearValue> clears = {{0, 0, 0, 0}, {0, 0, 0, 0}, {1, 0}};
     for (int face = 0; face < 6; ++face)
     {
         // set scissor and viewport

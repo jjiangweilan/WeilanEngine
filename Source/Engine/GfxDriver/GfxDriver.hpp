@@ -115,7 +115,7 @@ public:
 
     virtual void FlushPendingCommands() = 0;
     // return true if swapchain is recreated
-    virtual void WaitForFence(DynamicArray<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
+    virtual void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) = 0;
 
     virtual void ClearResources() = 0;
 

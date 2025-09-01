@@ -108,7 +108,7 @@ void ParticleSystem::IdleTick()
         }
     }
 
-    DynamicArray<GPUParticle> particleMatrices(particleCount);
+    std::vector<GPUParticle> particleMatrices(particleCount);
     draw.particleCount = 0;
     for (int i = 0; i < particleCount; ++i)
     {

@@ -62,7 +62,7 @@
 //    std::string name = "";
 //    std::unique_ptr<StructuredData> data = nullptr;
 //    uint32_t offset = 0;
-//    DynamicArray<uint8_t> dimension{};
+//    std::vector<uint8_t> dimension{};
 //};
 //
 //struct StructuredData
@@ -134,9 +134,9 @@
 //    bool enableCompare;
 //};
 //
-//using Outputs = DynamicArray<Output>;
-//using Inputs = DynamicArray<Input>;
-//using UBOs = DynamicArray<UBO>;
+//using Outputs = std::vector<Output>;
+//using Inputs = std::vector<Input>;
+//using UBOs = std::vector<UBO>;
 //
 //namespace ShaderStage
 //{
@@ -312,7 +312,7 @@
 //    std::string vertName;
 //    std::string fragName;
 //    std::string compName;
-//    std::unordered_map<SetNum, DynamicArray<Binding*>> descriptorSetBindingMap;
+//    std::unordered_map<SetNum, std::vector<Binding*>> descriptorSetBindingMap;
 //    Bindings bindings;
 //    PushConstants pushConstants;
 //};

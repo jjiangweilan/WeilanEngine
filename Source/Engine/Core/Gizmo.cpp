@@ -256,7 +256,7 @@ bool Gizmos::RayVsAABB(const Ray& r, const AABB& aabb, float& t)
     return true;
 }
 
-void Gizmos::PickGizmos(const Ray& ray, DynamicArray<GameObject*>& result)
+void Gizmos::PickGizmos(const Ray& ray, std::vector<GameObject*>& result)
 {
     result.clear();
     for (auto& g : GetSingleton().gizmos)

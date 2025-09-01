@@ -8,7 +8,7 @@
 class JsonSerializer : public Serializer
 {
 public:
-    JsonSerializer(const DynamicArray<uint8_t>& data, SerializeReferenceResolveMap* resolve) : Serializer(data, resolve)
+    JsonSerializer(const std::vector<uint8_t>& data, SerializeReferenceResolveMap* resolve) : Serializer(data, resolve)
     {
         j = nlohmann::json::parse(data.begin(), data.end());
     }
@@ -62,10 +62,10 @@ public:
     bool IsNull(std::string_view name) override;
     bool IsNull() override;
 
-    DynamicArray<uint8_t> GetBinary() override
+    std::vector<uint8_t> GetBinary() override
     {
         std::string b = j.dump(1);
-        DynamicArray<uint8_t> a(b.begin(), b.end());
+        std::vector<uint8_t> a(b.begin(), b.end());
         return a;
     }
 

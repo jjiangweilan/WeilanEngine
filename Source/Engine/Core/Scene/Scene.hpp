@@ -20,10 +20,10 @@ public:
     ~Scene();
     GameObject* CreateGameObject();
     GameObject* AddGameObject(std::unique_ptr<GameObject>&& newGameObject);
-    void AddGameObjects(DynamicArray<std::unique_ptr<GameObject>>&& gameObjects);
+    void AddGameObjects(std::vector<std::unique_ptr<GameObject>>&& gameObjects);
     GameObject* CopyGameObject(GameObject& gameObject);
 
-    const DynamicArray<ObjPtr<GameObject>>& GetRootObjects();
+    const std::vector<ObjPtr<GameObject>>& GetRootObjects();
 
     void Tick();
     void PrePhysicsTick();
@@ -38,8 +38,8 @@ public:
                  "AssetDatabse::CopyThroughSerialization instead")]]
     std::unique_ptr<Asset> Clone() override;
 
-    DynamicArray<GameObject*> GetAllGameObjects();
-    DynamicArray<Light*> GetActiveLights();
+    std::vector<GameObject*> GetAllGameObjects();
+    std::vector<Light*> GetActiveLights();
 
     void Serialize(Serializer* s) const override;
     void Deserialize(Serializer* s) override;
@@ -78,8 +78,8 @@ protected:
 
     ObjPtr<Rendering::RenderPipelineSetting> renderPipelineSetting;
 
-    DynamicArray<std::unique_ptr<GameObject>> gameObjects;
-    DynamicArray<ObjPtr<GameObject>> roots;
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
+    std::vector<ObjPtr<GameObject>> roots;
 
     Camera* camera = nullptr;
 

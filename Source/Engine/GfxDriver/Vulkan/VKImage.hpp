@@ -109,7 +109,7 @@ protected:
     std::unique_ptr<VKImageView> imageView;
     std::unique_ptr<VKImageView> imageViewForShaderResource = nullptr;
     std::string name;
-    DynamicArray<VkImageLayout> layoutTrack;
+    std::vector<VkImageLayout> layoutTrack;
     bool isSwapchainProxy = false;
 
     ImageViewType GenerateDefaultImageViewViewType();

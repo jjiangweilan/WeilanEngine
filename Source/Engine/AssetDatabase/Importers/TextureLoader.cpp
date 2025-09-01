@@ -14,9 +14,9 @@
 
 DEFINE_ASSET_LOADER(TextureLoader, "ktx2,ktx,jpg,png,jpeg,bmp,hdr,psd,tga,gif,pic,pgm,ppm")
 
-const DynamicArray<std::type_index>& TextureLoader::GetImportTypes()
+const std::vector<std::type_index>& TextureLoader::GetImportTypes()
 {
-    static DynamicArray<std::type_index> types = {typeid(Texture)};
+    static std::vector<std::type_index> types = {typeid(Texture)};
     return types;
 }
 
@@ -37,7 +37,7 @@ bool TextureLoader::ImportNeeded()
     return reimport;
 }
 
-DynamicArray<std::filesystem::path> TextureLoader::Import()
+std::vector<std::filesystem::path> TextureLoader::Import()
 {
     auto IsLinearFormat = [this](bool is16Bit, bool isHDR)
     {
@@ -82,7 +82,7 @@ DynamicArray<std::filesystem::path> TextureLoader::Import()
         if (absoluteAssetPath.extension() != ".ktx" && absoluteAssetPath.extension() != ".ktx2")
         {
             size_t fileSize = std::filesystem::file_size(absoluteAssetPath);
-            DynamicArray<char> fileData(fileSize);
+            std::vector<char> fileData(fileSize);
             f.read(fileData.data(), fileSize);
 
             uint8_t* data = (uint8_t*)fileData.data();

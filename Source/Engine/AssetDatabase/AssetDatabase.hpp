@@ -19,9 +19,9 @@ public:
     void LoadAssetAsync(const std::filesystem::path& path);
     Asset* LoadAsset(std::filesystem::path path, bool forceReimport = false);
     Asset* LoadAssetByID(const UUID& uuid, bool forceReimport = false);
-    DynamicArray<uint8_t> ReadRawAssetData(const UUID& uuid);
+    std::vector<uint8_t> ReadRawAssetData(const UUID& uuid);
 
-    DynamicArray<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
+    std::vector<Asset*> LoadAssets(std::span<std::filesystem::path> pathes);
 
     void UnloadAsset(Asset& asset);
     Asset* SaveAsset(std::unique_ptr<Asset>&& asset, std::filesystem::path path);
@@ -48,7 +48,7 @@ public:
 
     const std::filesystem::path& GetAssetDirectory() const { return assetDirectory; }
 
-    const DynamicArray<AssetData*>& GetInternalAssets() const { return internalAssets; }
+    const std::vector<AssetData*>& GetInternalAssets() const { return internalAssets; }
 
     std::filesystem::path AbsolutePathToAssetPath(const std::filesystem::path& absolutePath)
     {
@@ -96,7 +96,7 @@ public:
             data->SetMeta(meta);
         }
     }
-    const DynamicArray<std::unique_ptr<AssetData>>& GetAssetData() { return assets.data; }
+    const std::vector<std::unique_ptr<AssetData>>& GetAssetData() { return assets.data; }
 
     // file system
     void CreateFolderAtPath(const std::filesystem::path& path);
@@ -129,13 +129,13 @@ private:
 
         std::unordered_map<std::filesystem::path, AssetData*, PathHasher> byPath;
         std::unordered_map<UUID, AssetData*> byUUID;
-        DynamicArray<std::unique_ptr<AssetData>> data;
+        std::vector<std::unique_ptr<AssetData>> data;
     } assets;
 
     SerializeReferenceResolveMap referenceResolveMap;
     std::unordered_map<UUID, int*> managedObjectCounters;
 
-    DynamicArray<AssetData*> internalAssets;
+    std::vector<AssetData*> internalAssets;
     bool requestShaderRefresh = false;
     bool requestShaderRefreshAll = false;
 
@@ -143,7 +143,7 @@ private:
     void LoadEngineInternal();
 
     void ResolveSerializerReference(Serializer& ser, SerializeReferenceResolveMap& resolveMap);
-    void SyncImportedAssetFiles(AssetData* assetData, const DynamicArray<std::filesystem::path>& newImported);
+    void SyncImportedAssetFiles(AssetData* assetData, const std::vector<std::filesystem::path>& newImported);
     void LoadAssetDatas();
 
     // used to set instance

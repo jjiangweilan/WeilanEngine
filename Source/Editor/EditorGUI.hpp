@@ -834,7 +834,7 @@ public:
 
 private:
     static const char* PayloadType;
-    static DynamicArray<char> textArea;
+    static std::vector<char> textArea;
 
     static bool DragDropTarget(Object*& obj, ImRect rect, const std::type_info* type)
     {

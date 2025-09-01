@@ -17,7 +17,7 @@ bool EditorTickModule::AddTick(const std::function<void(bool& disable)>& f)
 
 void EditorTickModule::TickAll()
 {
-    DynamicArray<DynamicArray<std::function<void(bool& close)>>::iterator> toDeletes;
+    std::vector<std::vector<std::function<void(bool& close)>>::iterator> toDeletes;
 
     for (auto iter = registeredTick.begin(); iter != registeredTick.end(); ++iter)
     {

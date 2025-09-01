@@ -82,16 +82,16 @@ private:
             vkResetFences(device, 1, &fence);
             fences.push_back(fence);
         }
-        DynamicArray<VkFence> fences;
+        std::vector<VkFence> fences;
     } fencePool;
 
     VKDriver* driver;
     const size_t stagingBufferSize = 1024 * 1024 * 64;
-    DynamicArray<PendingBufferUpload> pendingBufferUploads = {};
-    DynamicArray<PendingImageUpload> pendingImageUploads = {};
-    DynamicArray<VkBufferCopy> copyRegions = {};
-    DynamicArray<VkImageMemoryBarrier> barriers = {};
-    DynamicArray<VkBufferImageCopy> bufferImageCopies = {};
+    std::vector<PendingBufferUpload> pendingBufferUploads = {};
+    std::vector<PendingImageUpload> pendingImageUploads = {};
+    std::vector<VkBufferCopy> copyRegions = {};
+    std::vector<VkImageMemoryBarrier> barriers = {};
+    std::vector<VkBufferImageCopy> bufferImageCopies = {};
     Vulkan::Buffer stagingBuffer = {};
 
     bool EnsureEnoughSizeForUpload(InflightUploadingCmd& cmd, size_t size);

@@ -26,12 +26,12 @@ public:
         return surfaceCapabilities;
     }
 
-    inline const DynamicArray<VkPresentModeKHR>& GetSurfacePresentModes()
+    inline const std::vector<VkPresentModeKHR>& GetSurfacePresentModes()
     {
         return surfacePresentModes;
     }
 
-    inline const DynamicArray<VkSurfaceFormatKHR>& GetSurfaceFormats()
+    inline const std::vector<VkSurfaceFormatKHR>& GetSurfaceFormats()
     {
         return surfaceFormats;
     }
@@ -42,8 +42,8 @@ private:
     VkSurfaceKHR surface;
 
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    DynamicArray<VkPresentModeKHR> surfacePresentModes;
-    DynamicArray<VkSurfaceFormatKHR> surfaceFormats;
+    std::vector<VkPresentModeKHR> surfacePresentModes;
+    std::vector<VkSurfaceFormatKHR> surfaceFormats;
 
     friend class GfxContext;
 };

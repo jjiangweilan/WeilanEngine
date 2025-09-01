@@ -101,7 +101,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
     }
 
     DrawList shadowDrawList;
-    DynamicArray<MeshRenderer*> renderers{};
+    std::vector<MeshRenderer*> renderers{};
     if (renderingData.renderPipelineSettings->shadowFrustumCull)
     {
         Frustum frustum(renderingData.gpuMainLightShadow->worldToShadow);

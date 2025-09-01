@@ -43,7 +43,7 @@ private:
     ObjPtr<LuaScript> luaScript;
     using LuaRef = int;
     UUID luaBackendUUID;
-    DynamicArray<std::string> serializationValKeys;
+    std::vector<std::string> serializationValKeys;
     std::string luaClassName = "";
 
     // lua state

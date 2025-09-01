@@ -33,13 +33,13 @@ struct PickGameObjectFromScene
     // intersected with the GameObject. `consumerIndex` is incrementally increased by 1 each time the worker takes a
     // GameObject to process
 private:
-    DynamicArray<PickCandidate> pending;
+    std::vector<PickCandidate> pending;
     std::atomic<int> consumerIndex{0};
     std::mutex mutexLock;
-    DynamicArray<Intersected> results;
+    std::vector<Intersected> results;
 
 public:
-    DynamicArray<Intersected> operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV)
+    std::vector<Intersected> operator()(Scene& scene, const Ray& ray, glm::vec2 screenUV)
     {
         results.clear();
         pending.clear();
@@ -47,7 +47,7 @@ public:
         pending = GetCandidateFromScene(scene);
 
         JobSystem& jobSystem = JobSystem::Instance();
-        DynamicArray<JobHandle> jobs;
+        std::vector<JobHandle> jobs;
 
         for (int i = 0; i < pending.size(); ++i)
         {
@@ -76,9 +76,9 @@ public:
         results.push_back(Intersected{obj, distance});
     }
 
-    static DynamicArray<PickCandidate> GetCandidateFromScene(Scene& scene)
+    static std::vector<PickCandidate> GetCandidateFromScene(Scene& scene)
     {
-        DynamicArray<PickCandidate> pending;
+        std::vector<PickCandidate> pending;
         auto gameObjects = scene.GetAllGameObjects();
         for (auto obj : gameObjects)
         {

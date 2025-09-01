@@ -22,7 +22,7 @@ struct VKAsyncReadbackHandle : public AsyncReadbackHandle
     uint8_t* GetData() override { return nullptr; }
     bool IsComplete() override { return isComplete; }
 
-    DynamicArray<std::uint8_t> data;
+    std::vector<std::uint8_t> data;
     std::atomic_bool isComplete;
 };
 
@@ -435,7 +435,7 @@ private:
     bool beginLabelStarted = false;
     std::string currentLabel;
 
-    DynamicArray<VKCmd> cmds;
+    std::vector<VKCmd> cmds;
     VK::RenderGraph::Graph* graph;
     std::list<std::shared_ptr<AsyncReadbackHandle>> readbacks;
 

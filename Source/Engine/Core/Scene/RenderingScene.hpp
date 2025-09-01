@@ -46,21 +46,21 @@ public:
         bool HasLeftChild() const { return childNodeLeft != -1; }
         bool HasRightChild() const { return childNodeRight != -1; }
 
-        DynamicArray<int> objectIndices{};
+        std::vector<int> objectIndices{};
 
         static bool IsVisibleInFrustum(const AABB& aabb, const Frustum& frustum);
         bool IsFullyVisibleInFrustum(const Frustum& frustum);
     };
 
-    DynamicArray<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
-    DynamicArray<Node*> QueryNodesInFrustum(const Frustum& frustum);
+    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum);
+    std::vector<Node*> QueryNodesInFrustum(const Frustum& frustum);
     void Build(MeshRenderer** bvhObjects, int objectsCount, int maxNodeLevel);
 
     Node& GetRoot() { return nodes[0]; }
 
-    DynamicArray<Node> nodes{};
-    DynamicArray<ObjPtr<MeshRenderer>> objects{};
-    DynamicArray<glm::float3> objectCenters{};
+    std::vector<Node> nodes{};
+    std::vector<ObjPtr<MeshRenderer>> objects{};
+    std::vector<glm::float3> objectCenters{};
     int maxNonLeafNodeIndex = 0;
 
     void UpdateNodeBounds(int nodeIndex);
@@ -68,7 +68,7 @@ public:
 
 private:
     void QueryNodesInFrustum(
-        const Frustum& Frustum, Node& node, DynamicArray<BoundingVolumeHierarchy::Node*>& inFrustum
+        const Frustum& Frustum, Node& node, std::vector<BoundingVolumeHierarchy::Node*>& inFrustum
     );
 };
 
@@ -79,12 +79,12 @@ public:
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
-    DynamicArray<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum)
+    std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum)
     {
         return rendererNodeHierarchy.QueryRendererInFrustum(frustum);
     }
 
-    DynamicArray<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(const Frustum& frustum)
+    std::vector<BoundingVolumeHierarchy::Node*> QueryNodesInFrustum(const Frustum& frustum)
     {
         return rendererNodeHierarchy.QueryNodesInFrustum(frustum);
     }
@@ -150,13 +150,13 @@ private:
     Scene* scene;
 
     template <class T>
-    void AddSpecialObject(T& obj, DynamicArray<T*>& addTo)
+    void AddSpecialObject(T& obj, std::vector<T*>& addTo)
     {
         addTo.push_back(&obj);
     }
 
     template <class T>
-    void RemoveSpecialObject(T& obj, DynamicArray<T*>& removeFrom)
+    void RemoveSpecialObject(T& obj, std::vector<T*>& removeFrom)
     {
         auto iter = std::find(removeFrom.begin(), removeFrom.end(), &obj);
         if (iter != removeFrom.end())
@@ -166,11 +166,11 @@ private:
         }
     }
 
-    DynamicArray<ReflectionProbe*> reflectionProbes;
-    DynamicArray<ParticleSystem*> particleSystems;
-    DynamicArray<MeshRenderer*> meshRenderers;
-    DynamicArray<GrassSurface*> grassSurfaces;
-    DynamicArray<Cloud*> clouds;
+    std::vector<ReflectionProbe*> reflectionProbes;
+    std::vector<ParticleSystem*> particleSystems;
+    std::vector<MeshRenderer*> meshRenderers;
+    std::vector<GrassSurface*> grassSurfaces;
+    std::vector<Cloud*> clouds;
 
     SceneEnvironment* sceneEnvironment = nullptr;
     Terrain* terrain = nullptr;

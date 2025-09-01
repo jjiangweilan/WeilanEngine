@@ -23,7 +23,7 @@ VKRenderPass::~VKRenderPass()
         VKContext::Instance()->objManager->DestroyFramebuffer(fb);
 }
 
-void VKRenderPass::AddSubpass(const DynamicArray<Attachment>& colors, std::optional<Attachment> depth)
+void VKRenderPass::AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth)
 {
     if (depth.has_value())
     {

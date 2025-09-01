@@ -61,7 +61,7 @@ struct PipelineConfig
         struct Color
         {
             bool operator==(const Color& other) const = default;
-            DynamicArray<ColorBlendAttachmentState> blends;
+            std::vector<ColorBlendAttachmentState> blends;
             float blendConstants[4] = {1, 1, 1, 1};
         };
 
@@ -117,9 +117,9 @@ private:
 
 class ShaderFeatures
 {
-    DynamicArray<DynamicArray<std::string>> features;
-    DynamicArray<DynamicArray<std::string>> vertFeatures;
-    DynamicArray<DynamicArray<std::string>> fragFeatures;
+    std::vector<std::vector<std::string>> features;
+    std::vector<std::vector<std::string>> vertFeatures;
+    std::vector<std::vector<std::string>> fragFeatures;
     std::unordered_map<std::string, size_t> shaderInfoInputBaseTypeSizeOverride;
 };
 

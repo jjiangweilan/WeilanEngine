@@ -1,4 +1,4 @@
-vkrendergra#include "VKRenderGraph.hpp"
+#include "VKRenderGraph.hpp"
 #include "../VKBuffer.hpp"
 #include "../VKContext.hpp"
 #include "../VKDriver.hpp"
@@ -89,13 +89,13 @@ public:
         else
         {
             auto renderPassObj = std::make_unique<VKRenderPass>();
-            DynamicArray<ObjPtr<Image>> imageReferences;
-            DynamicArray<ObjPtr<ImageView>> imageViewReferences;
+            std::vector<ObjPtr<Image>> imageReferences;
+            std::vector<ObjPtr<ImageView>> imageViewReferences;
 
             auto attachments = renderPass.GetAttachments();
             for (auto& subpass : renderPass.GetSubpasses())
             {
-                DynamicArray<Attachment> colors;
+                std::vector<Attachment> colors;
                 for (RG::SubpassAttachment color : subpass.colors)
                 {
                     const auto& id = attachments[color.attachmentIndex];
@@ -214,8 +214,8 @@ private:
     struct AllocatedRenderPass
     {
         std::unique_ptr<VKRenderPass> renderPass;
-        DynamicArray<ObjPtr<Image>> attachments;
-        DynamicArray<ObjPtr<ImageView>> imageViews;
+        std::vector<ObjPtr<Image>> attachments;
+        std::vector<ObjPtr<ImageView>> imageViews;
         int frameCountFromLastRequest = 0;
 
         bool CheckValidationOfAttachments()
@@ -384,7 +384,7 @@ bool Graph::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stage
 }
 
 void Graph::GoThroughRenderPass(
-    DynamicArray<VKCmd>& exectedCmds,
+    std::vector<VKCmd>& exectedCmds,
     VKRenderPass& renderPass,
     int& visitIndex,
     int& barrierCountResult,
@@ -396,7 +396,7 @@ void Graph::GoThroughRenderPass(
     int barrierCount = 0;
 
     // handle case like shadow map being binded to global descriptor set but also set to render pass attachment
-    DynamicArray<VKImage*> shaderImageSampleIgnoreList;
+    std::vector<VKImage*> shaderImageSampleIgnoreList;
     shaderImageSampleIgnoreList.reserve(8);
 
     // 18/01/2024: I haven't actually use subpass now, so I treat the first subpass as a combination of SetAttachment
@@ -519,7 +519,7 @@ int Graph::MakeBarrierForLastUsage(void* res, const UUID& uuid)
     auto& currentUsage = currentFrameUsages.back();
     size_t usageIndex = currentFrameUsages.size() - 1;
     size_t previousUsageIndex = 0;
-    DynamicArray<ResourceUsage>* usagesSource = &currentFrameUsages;
+    std::vector<ResourceUsage>* usagesSource = &currentFrameUsages;
     if (iter->second.type == ResourceType::Image)
     {
         VKImage* image = (VKImage*)std::get<ObjPtr<Image>>(iter->second.res).Get();
@@ -1029,7 +1029,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         else if (cmd.type == VKCmdType::Dispatch)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatch");
-            DynamicArray<VKImage*> list;
+            std::vector<VKImage*> list;
             auto& args = std::get<VKDispatchCmd>(cmd.args);
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
@@ -1039,7 +1039,7 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: dispatchIndir");
             auto& args = std::get<VKDispatchIndirectCmd>(cmd.args);
-            DynamicArray<VKImage*> list;
+            std::vector<VKImage*> list;
             args.barrierOffset = barriers.size();
             args.barrierCount = 0;
             FlushAllBindedSetUpdate(executedCmds, list, args.barrierCount);
@@ -1308,7 +1308,7 @@ void Graph::Execute(
                 }
             case VKCmdType::CopyImageToBuffer:
                 {
-                    DynamicArray<VkBufferImageCopy> vkRegions;
+                    std::vector<VkBufferImageCopy> vkRegions;
                     auto& args = std::get<VKCopyImageToBufferCmd>(cmd.args);
 
                     for (int i = 0; i < args.regionsCount; ++i)
@@ -1790,7 +1790,7 @@ Graph::Graph(int inflightCount)
 Graph::~Graph() {}
 
 void Graph::FlushAllBindedSetUpdate(
-    DynamicArray<VKCmd>& cmds, DynamicArray<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
+    std::vector<VKCmd>& cmds, std::vector<VKImage*>& shaderImageSampleIgnoreList, int& barrierCountAdded
 )
 {
     for (int i = 0; i < 4; ++i)

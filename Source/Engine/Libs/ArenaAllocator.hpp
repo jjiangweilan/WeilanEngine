@@ -107,7 +107,7 @@ public:
 
 private:
     uint32_t freeChunkIndex = 0;
-    DynamicArray<Chunk> chunks;
+    std::vector<Chunk> chunks;
 
     // inline size_t Align(size_t size, size_t align)
     // {

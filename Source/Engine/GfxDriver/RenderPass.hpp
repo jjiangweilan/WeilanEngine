@@ -53,7 +53,7 @@ public:
     virtual ~RenderPass() {}
 
     // TODO: better split this into SetAttachments and AddSubpass
-    virtual void AddSubpass(const DynamicArray<Attachment>& colors, std::optional<Attachment> depth) = 0;
+    virtual void AddSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) = 0;
     virtual void ClearSubpass() = 0;
     virtual bool RenderPassRenderingValidationCheck() = 0;
 

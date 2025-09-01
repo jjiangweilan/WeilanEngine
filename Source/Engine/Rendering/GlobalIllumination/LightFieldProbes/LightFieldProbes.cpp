@@ -52,7 +52,7 @@ void LightFieldProbes::BakeProbeGBuffers(Scene* scene, bool debug)
     if (!debug)
     {
         probeBakers.clear();
-        probeBakers = DynamicArray<std::unique_ptr<ProbeBaker>>();
+        probeBakers = std::vector<std::unique_ptr<ProbeBaker>>();
     }
 }
 } // namespace Rendering::LFP

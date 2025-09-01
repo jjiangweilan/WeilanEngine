@@ -8,14 +8,14 @@ class HudDebug
 {
 public:
     static void Print(std::string_view log);
-    DynamicArray<std::string>&& FlushLogs()
+    std::vector<std::string>&& FlushLogs()
     {
         return std::move(logs);
     }
     static HudDebug& Singleton();
 
 private:
-    DynamicArray<std::string> logs;
+    std::vector<std::string> logs;
 };
 } // namespace Editor
   //

@@ -72,7 +72,7 @@ public:
     }
 
 private:
-    DynamicArray<std::unique_ptr<VKImage>> swapchainImages;
+    std::vector<std::unique_ptr<VKImage>> swapchainImages;
     int activeIndex;
     UUID id;
 

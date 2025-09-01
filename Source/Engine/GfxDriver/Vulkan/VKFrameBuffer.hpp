@@ -13,9 +13,9 @@ public:
     VKFrameBuffer(const VKFrameBuffer& other) = delete;
     ~VKFrameBuffer() override;
 
-    void SetAttachments(const DynamicArray<RefPtr<Image>>& attachments) override;
+    void SetAttachments(const std::vector<RefPtr<Image>>& attachments) override;
 
-    DynamicArray<RefPtr<VKImage>>& GetAttachments()
+    std::vector<RefPtr<VKImage>>& GetAttachments()
     {
         return attachments;
     };
@@ -35,7 +35,7 @@ private:
     VkFramebuffer frameBuffer = VK_NULL_HANDLE;
     RefPtr<VKRenderPass> baseRenderPass;
 
-    DynamicArray<RefPtr<VKImage>> attachments;
+    std::vector<RefPtr<VKImage>> attachments;
     void CreateFrameBuffer();
 };
 } // namespace Gfx

@@ -53,7 +53,7 @@ public:
     void ValidateSkinning();
     void DisableSkinning();
     bool IsSkinningEnabled();
-    const DynamicArray<ObjPtr<Material>>& GetMaterials();
+    const std::vector<ObjPtr<Material>>& GetMaterials();
     Gfx::ShaderResource* GetObjectResource() { return gpuResource.get(); }
 
     void OnDrawGizmos() override;
@@ -68,8 +68,8 @@ public:
 
 private:
     /***** Serialized Data ******/
-    DynamicArray<ObjPtr<Mesh>> meshes{};
-    DynamicArray<ObjPtr<Material>> materials = {};
+    std::vector<ObjPtr<Mesh>> meshes{};
+    std::vector<ObjPtr<Material>> materials = {};
     bool multipass = false;
     AABB aabb {};
     AABB aabbWS {};
@@ -88,8 +88,8 @@ private:
             std::array<glm::mat4, MaxBoneSize> boneTrnasforms;
         };
         bool enabled = false;
-        DynamicArray<GameObject*> bones = {};
-        DynamicArray<glm::mat4> tposeMatrix = {}; // copy from mesh
+        std::vector<GameObject*> bones = {};
+        std::vector<glm::mat4> tposeMatrix = {}; // copy from mesh
         std::unique_ptr<Gfx::Buffer> bonesBuffer = nullptr;
 
         glm::vec3 rootMotionDelta;

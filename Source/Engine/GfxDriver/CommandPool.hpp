@@ -15,7 +15,7 @@ public:
 
     virtual ~CommandPool(){};
 
-    virtual DynamicArray<std::unique_ptr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
+    virtual std::vector<std::unique_ptr<Gfx::CommandBuffer>> AllocateCommandBuffers(CommandBufferType type, int count) = 0;
     // virtual void ReleaseCommandBuffer(RefPtr<Gfx::CommandBuffer> cmdBuf);
     virtual void ResetCommandPool() = 0;
 

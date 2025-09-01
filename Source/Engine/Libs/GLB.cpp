@@ -25,7 +25,7 @@ static Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, in
 
 void GLB::GetGLBData(
     const std::filesystem::path& path,
-    DynamicArray<uint32_t>& fullData,
+    std::vector<uint32_t>& fullData,
     nlohmann::json& jsonData,
     unsigned char*& binaryData
 )
@@ -107,18 +107,18 @@ void GLB::SetGameObjectName(GameObject* asset, nlohmann::json& j, const std::str
     }
 }
 
-DynamicArray<std::unique_ptr<Mesh>> GLB::ExtractMeshes(
+std::vector<std::unique_ptr<Mesh>> GLB::ExtractMeshes(
     nlohmann::json& jsonData, unsigned char*& binaryData, int maximumMesh
 )
 {
-    DynamicArray<std::unique_ptr<Mesh>> meshes;
+    std::vector<std::unique_ptr<Mesh>> meshes;
     int meshesSize = jsonData["meshes"].size();
     for (int i = 0; i < meshesSize && i < maximumMesh; ++i)
     {
         std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
         SetAssetName(mesh.get(), jsonData, "meshes", i);
 
-        DynamicArray<Submesh> submeshes;
+        std::vector<Submesh> submeshes;
         int primitiveSize = jsonData["meshes"][i]["primitives"].size();
         for (int j = 0; j < primitiveSize; ++j)
         {
@@ -181,7 +181,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     }
 
     //     // vertexBuffer
-    //     DynamicArray<VertexBinding> bindings;
+    //     std::vector<VertexBinding> bindings;
     //     std::unique_ptr<unsigned char> vertexBuffer = std::unique_ptr<unsigned char>(new unsigned
     //     char[vertexBufferSize]);
     // #define ATTRIBUTE_WRITE(attrName) \
@@ -204,9 +204,9 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
     // this is using Submesh API version 0.1, we will use Submesh API version 0.2 now
     // return Submesh(std::move(vertexBuffer), std::move(bindings), std::move(indexBuffer), indexBufferType,
     // indexCount);
-    DynamicArray<glm::vec3> positions;
-    DynamicArray<uint32_t> indices;
-    DynamicArray<uint8_t> vertAttrs;
+    std::vector<glm::vec3> positions;
+    std::vector<uint32_t> indices;
+    std::vector<uint8_t> vertAttrs;
     Submesh submesh;
 
     // get index buffer size and count
@@ -237,7 +237,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
 
     // get position data and aabb
     VertexAttributes attribute;
-    DynamicArray<uint8_t> attributeData(attributesSize);
+    std::vector<uint8_t> attributeData(attributesSize);
     size_t attributeOffset = 0;
     size_t attributeStride = 0;
     for (auto& attr : primitiveJson["attributes"].items())
@@ -294,7 +294,7 @@ Submesh ExtractPrimitive(nlohmann::json& j, unsigned char* binaryData, int meshI
         }
     }
 
-    for (auto attributeName : DynamicArray<std::string>{
+    for (auto attributeName : std::vector<std::string>{
              "NORMAL",     "TANGENT",    "TEXCOORD_0", "TEXCOORD_1", "TEXCOORD_2", "TEXCOORD_3", "TEXCOORD_4",
              "TEXCOORD_5", "TEXCOORD_6", "TEXCOORD_7", "COLOR_0",    "COLOR_1",    "COLOR_2",    "COLOR_3",
              "COLOR_4",    "COLOR_5",    "COLOR_6",    "COLOR_7",    "JOINTS_0",   "JOINTS_1",   "JOINTS_2",

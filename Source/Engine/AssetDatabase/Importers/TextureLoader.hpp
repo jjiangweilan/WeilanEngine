@@ -13,7 +13,7 @@ class TextureLoader : public AssetLoader
 
 public:
     bool ImportNeeded() override;
-    DynamicArray<std::filesystem::path> Import() override;
+    std::vector<std::filesystem::path> Import() override;
     void Load() override;
     std::unique_ptr<Asset> RetrieveAsset() override
     {
@@ -21,7 +21,7 @@ public:
     }
 
     void HandleReload(Asset* loaded) override;
-    static const DynamicArray<std::type_index>& GetImportTypes();
+    static const std::vector<std::type_index>& GetImportTypes();
 
 private:
     void LoadStbSupoprtedTexture(uint8_t* data, size_t byteSize);

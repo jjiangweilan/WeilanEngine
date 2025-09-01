@@ -118,7 +118,7 @@ class LightFieldProbesInspector : public Inspector<LightFieldProbes>
 private:
     bool showCubemapFrustum = false;
     bool debug = false;
-    DynamicArray<std::unique_ptr<Material>> previewMaterials;
+    std::vector<std::unique_ptr<Material>> previewMaterials;
     Obsolete::Shader* GetLightFieldProbePreviewShader()
     {
         static Obsolete::Shader* previewShader;

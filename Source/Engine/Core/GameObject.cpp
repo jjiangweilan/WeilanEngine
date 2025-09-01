@@ -94,7 +94,7 @@ void GameObject::PrePhysicsTick()
     }
 }
 
-DynamicArray<std::unique_ptr<Component>>& GameObject::GetComponents()
+std::vector<std::unique_ptr<Component>>& GameObject::GetComponents()
 {
     return components;
 }

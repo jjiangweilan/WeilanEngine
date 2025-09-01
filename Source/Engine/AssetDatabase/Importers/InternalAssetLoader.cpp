@@ -7,9 +7,9 @@
 DEFINE_ASSET_LOADER(InternalAssetLoader, "mat,scene,prefab,fgraph,renderPipeline")
 
 class Material;
-const DynamicArray<std::type_index>& InternalAssetLoader::GetImportTypes()
+const std::vector<std::type_index>& InternalAssetLoader::GetImportTypes()
 {
-    static DynamicArray<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject)};
+    static std::vector<std::type_index> types = {typeid(Material), typeid(Scene), typeid(GameObject)};
     return types;
 }
 
@@ -23,7 +23,7 @@ void InternalAssetLoader::Load()
         std::ifstream f(absoluteAssetPath, std::ios::binary);
         if (f.is_open() && f.good())
         {
-            DynamicArray<uint8_t> binary(std::istreambuf_iterator<char>(f), {});
+            std::vector<uint8_t> binary(std::istreambuf_iterator<char>(f), {});
             ser = JsonSerializer(binary, &resolveMap);
             asset->Deserialize(&ser);
         }

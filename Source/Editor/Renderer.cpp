@@ -136,7 +136,7 @@ void Renderer::RenderEditor(Gfx::CommandBuffer& cmd)
     uint32_t width = color->GetDescription().width;
     uint32_t height = color->GetDescription().height;
     cmd.SetViewport({.x = 0, .y = 0, .width = (float)width, .height = (float)height, .minDepth = 0, .maxDepth = 1});
-    DynamicArray<Gfx::ClearValue> clears{{0, 0, 0, 0}};
+    std::vector<Gfx::ClearValue> clears{{0, 0, 0, 0}};
     mainPass.SetAttachment(0, *finalImage);
     cmd.BeginRenderPass(mainPass, clears);
 

@@ -11,7 +11,7 @@ public:
     void TickAll();
 
 private:
-    DynamicArray<std::function<void(bool& close)>> registeredTick;
+    std::vector<std::function<void(bool& close)>> registeredTick;
 };
 
 } // namespace Editor

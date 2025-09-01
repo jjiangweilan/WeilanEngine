@@ -54,7 +54,7 @@ public:
         std::span<RefPtr<Semaphore>> signalSemaphroes,
         RefPtr<Fence> signalFence
     ) override;
-    void WaitForFence(DynamicArray<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
+    void WaitForFence(std::vector<RefPtr<Fence>>&& fence, bool waitAll, uint64_t timeout) override;
     const GPUFeatures& GetGPUFeatures() override { return gpuFeatures; }
 
     bool IsFormatAvaliable(GfxFormat format, ImageUsageFlags usages) override;
@@ -153,15 +153,15 @@ public:
     Surface surface;
     GPUFeatures gpuFeatures;
     GfxFeaturesSettings featureSettings;
-    DynamicArray<std::unique_ptr<VKWindow>> extraWindows{};
+    std::vector<std::unique_ptr<VKWindow>> extraWindows{};
 
     std::mutex driverMutex;
 
-    DynamicArray<VKInflightCmd> inflightData = {};
+    std::vector<VKInflightCmd> inflightData = {};
     VKFramePrepareData framePrepareData;
     uint32_t currentInflightIndex = 0;
 
-    DynamicArray<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
+    std::vector<std::function<void(VkCommandBuffer&)>> internalPendingCommands = {};
     VkSemaphore transferSignalSemaphore;
     VkSemaphore dataUploaderWaitSemaphore = VK_NULL_HANDLE;
     bool firstFrame = true;
@@ -185,8 +185,8 @@ public:
         uint32_t swapchainIndex
     );
 
-    DynamicArray<const char*> AppWindowGetRequiredExtensions();
-    bool Instance_CheckAvalibilityOfValidationLayers(const DynamicArray<const char*>& validationLayers);
+    std::vector<const char*> AppWindowGetRequiredExtensions();
+    bool Instance_CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
 
     void AppendOnCompleteCallback(const std::function<void()>& callback);
 
@@ -200,7 +200,7 @@ private:
     {
         uint64_t timestamp;
     };
-    DynamicArray<TimestampQuery> timestamps;
+    std::vector<TimestampQuery> timestamps;
     Profiler profiler;
 
     bool captureFrame = false;

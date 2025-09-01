@@ -45,7 +45,7 @@ public:
     }
     static EngineObjectMap GetAllEngineObjects();
     template <class T>
-    static DynamicArray<T*> GetObjectsOfType();
+    static std::vector<T*> GetObjectsOfType();
 
     virtual void SetName(std::string_view name) { this->name = name; }
     const std::string& GetName() const { return name; }
@@ -85,7 +85,7 @@ public:
         return '0';
     }
 
-    static const DynamicArray<std::string>& GetComponentTypeNames() { return GetComponentTypeNamesRegistry(); }
+    static const std::vector<std::string>& GetComponentTypeNames() { return GetComponentTypeNamesRegistry(); }
     static const std::string& GetTypeName(const ObjectTypeID& id)
     {
         auto iter = GetObjectTypeToTypeNameMap()->find(id);
@@ -101,7 +101,7 @@ private:
     static std::unordered_map<ObjectTypeID, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistry();
     static std::unordered_map<std::string, std::function<std::unique_ptr<Object>()>>* GetObjectTypeRegistryByName();
     static std::unordered_map<ObjectTypeID, std::string>* GetObjectTypeToTypeNameMap();
-    static DynamicArray<std::string>& GetComponentTypeNamesRegistry();
+    static std::vector<std::string>& GetComponentTypeNamesRegistry();
 };
 
 template <class T>
@@ -152,9 +152,9 @@ private:                                                                        
     }
 
 template <class T>
-DynamicArray<T*> Object::GetObjectsOfType()
+std::vector<T*> Object::GetObjectsOfType()
 {
-    DynamicArray<T*> result;
+    std::vector<T*> result;
     auto objs = GetAllEngineObjects();
     for (auto obj : objs)
     {

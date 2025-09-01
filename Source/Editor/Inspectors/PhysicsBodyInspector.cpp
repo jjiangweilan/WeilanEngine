@@ -228,7 +228,7 @@ public:
 private:
     static const char _register;
 
-    bool DrawPhysicsLuaCallbackInspector(DynamicArray<PhysicsLuaCallback>& callbacks)
+    bool DrawPhysicsLuaCallbackInspector(std::vector<PhysicsLuaCallback>& callbacks)
     {
         bool changed = false;
         for (size_t i = 0; i < callbacks.size(); ++i)

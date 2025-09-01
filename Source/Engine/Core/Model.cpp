@@ -14,7 +14,7 @@ static std::size_t WriteAccessorDataToBuffer(
     nlohmann::json& j, unsigned char* dstBuffer, std::size_t dstOffset, unsigned char* srcBuffer, int accessorIndex
 );
 
-DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
     nlohmann::json& j,
     int nodeIndex,
     std::unordered_map<int, Mesh*>& meshes,
@@ -79,7 +79,7 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
         meshRenderer->SetMesh(meshes[meshIndex]);
         auto& primitives = j["meshes"][meshIndex]["primitives"];
         int primitiveSize = primitives.size();
-        DynamicArray<Material*> mats;
+        std::vector<Material*> mats;
         for (int i = 0; i < primitiveSize; ++i)
         {
             auto& p = primitives[i];
@@ -123,7 +123,7 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObjectFromNode(
         meshRenderer->SetMaterials(mats);
     }
 
-    DynamicArray<std::unique_ptr<GameObject>> rlt;
+    std::vector<std::unique_ptr<GameObject>> rlt;
     auto temp = gameObject.get();
     if (parent)
         temp->SetParent(parent);
@@ -168,7 +168,7 @@ static int GetImageIndex(nlohmann::json& texJson)
 //{
 //     std::filesystem::path path(cpath);
 //
-//     DynamicArray<uint32_t> fullData;
+//     std::vector<uint32_t> fullData;
 //     unsigned char* binaryData;
 //     Utils::GLB::GetGLBData(path, fullData, jsonData, binaryData);
 //
@@ -186,7 +186,7 @@ static int GetImageIndex(nlohmann::json& texJson)
 //     int materialSize = jsonData["materials"].size();
 //     nlohmann::json& texJson = jsonData["textures"];
 //     int textureSize = jsonData["images"].size();
-//     DynamicArray<Gfx::GfxFormat> textureFormats(textureSize, Gfx::GfxFormat::Invalid);
+//     std::vector<Gfx::GfxFormat> textureFormats(textureSize, Gfx::GfxFormat::Invalid);
 //     for (int i = 0; i < materialSize; ++i)
 //     {
 //         nlohmann::json& matJson = jsonData["materials"][i];
@@ -405,7 +405,7 @@ static int GetImageIndex(nlohmann::json& texJson)
 //     return true;
 // }
 
-DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node, GameObject* parent)
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& node, GameObject* parent)
 {
     std::unique_ptr<GameObject> go = std::make_unique<GameObject>();
 
@@ -421,8 +421,8 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& nod
     go->SetLocalRotation(rotation);
     if (!node.meshes.empty())
     {
-        DynamicArray<Material*> mats;
-        DynamicArray<Mesh*> meshes;
+        std::vector<Material*> mats;
+        std::vector<Mesh*> meshes;
 
         auto meshRenderer = go->AddComponent<MeshRenderer>();
         auto physicsBody = go->AddComponent<PhysicsBody>();
@@ -440,7 +440,7 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& nod
         meshRenderer->SetMeshes(meshes);
     }
 
-    DynamicArray<std::unique_ptr<GameObject>> gos{};
+    std::vector<std::unique_ptr<GameObject>> gos{};
     auto goTmp = go.get();
     gos.push_back(std::move(go));
 
@@ -455,10 +455,10 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject(ModelNode& nod
 
 void Model::SetModel(
     ModelNode root,
-    DynamicArray<std::unique_ptr<Mesh>>&& meshes,
-    DynamicArray<std::unique_ptr<Texture>>&& textures,
-    DynamicArray<std::unique_ptr<Material>>&& materials,
-    DynamicArray<std::unique_ptr<Animation>>&& animations
+    std::vector<std::unique_ptr<Mesh>>&& meshes,
+    std::vector<std::unique_ptr<Texture>>&& textures,
+    std::vector<std::unique_ptr<Material>>&& materials,
+    std::vector<std::unique_ptr<Animation>>&& animations
 )
 {
     assimpLoaded = true;
@@ -471,7 +471,7 @@ void Model::SetModel(
     SetMaterialKeywords(rootNode);
 }
 
-DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject()
+std::vector<std::unique_ptr<GameObject>> Model::CreateGameObject()
 {
     if (assimpLoaded)
     {
@@ -489,8 +489,8 @@ DynamicArray<std::unique_ptr<GameObject>> Model::CreateGameObject()
 
     // create game objects that are presented in glb file
     nlohmann::json& scenesJson = jsonData["scenes"];
-    DynamicArray<GameObject*> rootGameObjects;
-    DynamicArray<std::unique_ptr<GameObject>> gameObjects;
+    std::vector<GameObject*> rootGameObjects;
+    std::vector<std::unique_ptr<GameObject>> gameObjects;
     for (int i = 0; i < scenesJson.size(); ++i)
     {
         nlohmann::json& sceneJson = scenesJson[i];
@@ -530,9 +530,9 @@ Material* Model::GetDefaultMaterial()
     return EngineInternalResources::GetDefaultMaterial();
 }
 
-DynamicArray<Asset*> Model::GetInternalAssets()
+std::vector<Asset*> Model::GetInternalAssets()
 {
-    DynamicArray<Asset*> assets(meshes.size() + textures.size() + materials.size() + animations.size());
+    std::vector<Asset*> assets(meshes.size() + textures.size() + materials.size() + animations.size());
 
     int i = 0;
     for (auto& obj : meshes)

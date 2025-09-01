@@ -35,9 +35,9 @@ public:
     struct Channel
     {
         std::string nodeName;                    // name of the GameObject or Bone in a Mesh in the engine sense
-        DynamicArray<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
-        DynamicArray<RotationKeyFrame> rotations;
-        DynamicArray<ScalingKeyFrame> scalings;
+        std::vector<PositionKeyFrame> positions; // the frame needs to be per unit time (1) right now
+        std::vector<RotationKeyFrame> rotations;
+        std::vector<ScalingKeyFrame> scalings;
     };
 
     struct AnimationClip
@@ -45,7 +45,7 @@ public:
         std::string name;
         float tickPerSecond;
         float duration;
-        DynamicArray<Channel> channels;
+        std::vector<Channel> channels;
     };
 
     using AnimationClips = std::unordered_map<std::string, std::unique_ptr<const AnimationClip>>;

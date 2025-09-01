@@ -6,9 +6,9 @@
 
 DEFINE_ASSET_LOADER(ShaderLoader, "shad,comp")
 
-const DynamicArray<std::type_index>& ShaderLoader::GetImportTypes()
+const std::vector<std::type_index>& ShaderLoader::GetImportTypes()
 {
-    static DynamicArray<std::type_index> types = {typeid(Obsolete::Shader), typeid(Obsolete::ComputeShader)};
+    static std::vector<std::type_index> types = {typeid(Obsolete::Shader), typeid(Obsolete::ComputeShader)};
     return types;
 }
 
@@ -20,7 +20,7 @@ bool ShaderLoader::ImportNeeded()
 void ShaderLoader::Load()
 {
     nlohmann::json shaderPasses = meta["compiledShaderPasses"];
-    DynamicArray<std::unique_ptr<Obsolete::ShaderPass>> passes;
+    std::vector<std::unique_ptr<Obsolete::ShaderPass>> passes;
 
     std::unique_ptr<Obsolete::ShaderBase> shader;
     if (absoluteAssetPath.extension() == ".shad")

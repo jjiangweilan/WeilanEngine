@@ -31,11 +31,11 @@ struct ImageSubresourceRange
     uint32_t baseArrayLayer = 0;
     uint32_t layerCount = 1;
 
-    DynamicArray<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
+    std::vector<ImageSubresourceRange> Subtract(const ImageSubresourceRange& other)
     {
         ASSERT((aspectMask & other.aspectMask) != ImageAspect::None && "image aspect mask must match");
 
-        DynamicArray<ImageSubresourceRange> rtn{};
+        std::vector<ImageSubresourceRange> rtn{};
         // bottom area
         if (other.baseArrayLayer > baseArrayLayer && other.baseMipLevel >= baseMipLevel &&
             other.baseMipLevel < baseMipLevel + levelCount)

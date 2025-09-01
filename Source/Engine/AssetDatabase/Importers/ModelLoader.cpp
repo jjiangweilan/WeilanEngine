@@ -12,10 +12,10 @@ DEFINE_ASSET_LOADER(ModelLoader, "glb,gltf,fbx")
 
 struct ModelImporterImple
 {
-    DynamicArray<std::unique_ptr<Mesh>> meshes;
-    DynamicArray<std::unique_ptr<Texture>> textures;
-    DynamicArray<std::unique_ptr<Material>> materials;
-    DynamicArray<std::unique_ptr<Animation>> animations;
+    std::vector<std::unique_ptr<Mesh>> meshes;
+    std::vector<std::unique_ptr<Texture>> textures;
+    std::vector<std::unique_ptr<Material>> materials;
+    std::vector<std::unique_ptr<Animation>> animations;
     ModelNode rootNode;
 
     std::filesystem::path absoluteAssetPath;
@@ -100,7 +100,7 @@ private:
         {
             aiMesh* mesh = scene->mMeshes[meshIndex];
 
-            DynamicArray<glm::vec3> positions(mesh->mNumVertices);
+            std::vector<glm::vec3> positions(mesh->mNumVertices);
             for (int i = 0; i < mesh->mNumVertices; ++i)
             {
                 auto& v = mesh->mVertices[i];
@@ -167,7 +167,7 @@ private:
                 attributes.AddAttribute("BONE0", VertexAttributeSemantics::Bone, 0, boneSize);
             }
 
-            DynamicArray<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices, 0);
+            std::vector<uint8_t> attributeData(attributeStrideSize * mesh->mNumVertices, 0);
 
             uint8_t* data = attributeData.data();
             if (mesh->HasNormals())
@@ -239,7 +239,7 @@ private:
             }
 
             Skeleton skeleton;
-            DynamicArray<int> vertexBoneIndexOffset(mesh->mNumVertices, 0);
+            std::vector<int> vertexBoneIndexOffset(mesh->mNumVertices, 0);
             for (int boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex)
             {
                 skeleton.push_back(
@@ -261,7 +261,7 @@ private:
 
             attributes.SetData(std::move(attributeData));
 
-            DynamicArray<uint32_t> indices;
+            std::vector<uint32_t> indices;
             for (int faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex)
             {
                 for (int i = 0; i < mesh->mFaces[faceIndex].mNumIndices; ++i)
@@ -280,7 +280,7 @@ private:
             aabb.max = {mesh->mAABB.mMax.x, mesh->mAABB.mMax.y, mesh->mAABB.mMax.z};
             submesh.SetAABB(aabb);
             submesh.Apply();
-            DynamicArray<Submesh> submeshes;
+            std::vector<Submesh> submeshes;
             submeshes.push_back(std::move(submesh));
             myMesh->SetSubmeshes(std::move(submeshes));
             myMesh->SetName(fmt::format("{} {}", mesh->mName.C_Str(), meshIndex));
@@ -341,7 +341,7 @@ private:
                 }
             }
         }
-        DynamicArray<std::filesystem::path> texturePathsAsVec(texturePaths.begin(), texturePaths.end());
+        std::vector<std::filesystem::path> texturePathsAsVec(texturePaths.begin(), texturePaths.end());
         for (const auto& p : texturePathsAsVec)
         {
             AssetDatabase::Singleton()->LoadAsset(p);
@@ -439,7 +439,7 @@ private:
         for (size_t i = 0; i < scene->mNumAnimations; i++)
         {
             auto clip = scene->mAnimations[i];
-            DynamicArray<Animation::Channel> channels;
+            std::vector<Animation::Channel> channels;
             for (size_t ni = 0; ni < clip->mNumChannels; ni++)
             {
                 auto node = scene->mRootNode->FindNode(clip->mChannels[ni]->mNodeName);
@@ -504,9 +504,9 @@ private:
     const aiScene* scene;
 };
 
-const DynamicArray<std::type_index>& ModelLoader::GetImportTypes()
+const std::vector<std::type_index>& ModelLoader::GetImportTypes()
 {
-    static DynamicArray<std::type_index> types = {typeid(Model)};
+    static std::vector<std::type_index> types = {typeid(Model)};
     return types;
 }
 

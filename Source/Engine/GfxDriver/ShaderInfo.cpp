@@ -378,7 +378,7 @@
 //                    }
 //                default: ASSERT(0 && "Not implemented");
 //            }
-//            b.count = bindingJson.value("array", DynamicArray<int>{1})[0];
+//            b.count = bindingJson.value("array", std::vector<int>{1})[0];
 //            b.actualName = name;
 //            b.name = RemoveShaderNameConfigText(name);
 //            b.resourceHandle = ShaderBindingHandle(b.name);

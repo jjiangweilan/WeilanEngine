@@ -445,7 +445,7 @@ void Texture::SaveAsCubemap(const char* filename)
         if (f.good() && f.is_open())
         {
             size_t fileSize = std::filesystem::file_size(fpath);
-            DynamicArray<char> fileData(fileSize);
+            std::vector<char> fileData(fileSize);
             f.read(fileData.data(), fileSize);
 
             auto ext = fpath.extension();

@@ -9,5 +9,5 @@ public:
 
 private:
     ObjPtr<GameObject> parent;
-    DynamicArray<ObjPtr<GameObject>> children;
+    std::vector<ObjPtr<GameObject>> children;
 };

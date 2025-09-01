@@ -19,12 +19,12 @@ public:
         return physicalDeviceFeatures;
     }
 
-    const DynamicArray<VkQueueFamilyProperties>& GetQueueFamilyProperties() const
+    const std::vector<VkQueueFamilyProperties>& GetQueueFamilyProperties() const
     {
         return queueFamilyProperties;
     }
 
-    const DynamicArray<VkExtensionProperties>& GetAvailableExtensions() const
+    const std::vector<VkExtensionProperties>& GetAvailableExtensions() const
     {
         return availableExtensions;
     }
@@ -37,7 +37,7 @@ public:
     }
 
     VkFormat PickSupportedFormat(
-        const DynamicArray<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
+        const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags featureFlags
     );
 
     static VKPhysicalDevice SelectGPUAndQueryDataForSurface(VKInstance& instance, VKSurface& surface);
@@ -55,10 +55,10 @@ private:
     VkPhysicalDeviceProperties physicalDeviceProperties{};
     VkPhysicalDeviceFeatures physicalDeviceFeatures{};
 
-    DynamicArray<VkQueueFamilyProperties> queueFamilyProperties;
-    DynamicArray<VkExtensionProperties> availableExtensions;
+    std::vector<VkQueueFamilyProperties> queueFamilyProperties;
+    std::vector<VkExtensionProperties> availableExtensions;
 
-    static DynamicArray<VKPhysicalDevice> GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface);
+    static std::vector<VKPhysicalDevice> GetAllPhysicalDevices(VKInstance* instance, VKSurface* surface);
     void GetRequiredQueuesFamilyIndices(VKPhysicalDevice& physicalDevice);
     void QuerySurfaceData(VKInstance* attachedInstance);
 

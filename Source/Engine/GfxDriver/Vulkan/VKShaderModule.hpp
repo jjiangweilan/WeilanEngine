@@ -22,8 +22,8 @@
 //
 //    // vertex Data
 //    VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo;
-//    DynamicArray<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
-//    DynamicArray<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
+//    std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions;
+//    std::vector<VkVertexInputAttributeDescription> vertexAttributeDescriptions;
 //};
 //
 //class VKShaderModule : public ShaderModule
@@ -33,7 +33,7 @@
 //    // when vertInterleaved is false: binding 0 is used for postion, binding 1 is interleaved for other attributes (this
 //    // should be the engine standard)
 //    VKShaderModule(
-//        const std::string& name, DynamicArray<uint32_t>& spv, const ShaderProgramCreateInfoVertex& vertexCreateInfo
+//        const std::string& name, std::vector<uint32_t>& spv, const ShaderProgramCreateInfoVertex& vertexCreateInfo
 //    );
 //    ~VKShaderModule();
 //

@@ -46,7 +46,7 @@ struct RenderingData
     Gfx::Image* mainColor;
     Gfx::Image* mainDepth;
     Gfx::Image* depthCopy;
-    DynamicArray<Light*> lights{};
+    std::vector<Light*> lights{};
     int mainLightIndex;
     float2 screenSize;
     float screenAspect;

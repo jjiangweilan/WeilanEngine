@@ -11,5 +11,5 @@ public:
     void Flush();
 
 private:
-    DynamicArray<std::unique_ptr<Object>> pending;
+    std::vector<std::unique_ptr<Object>> pending;
 };

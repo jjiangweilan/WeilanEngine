@@ -285,7 +285,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     scene.AddGameObject(std::move(firstModelClone));
 }
 static void MenuVisitor(
-    DynamicArray<std::string>::iterator iter, DynamicArray<std::string>::iterator end, bool& clicked
+    std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked
 )
 {
     if (iter == end)
@@ -563,7 +563,7 @@ void GameEditor::GUIPass()
 
     ShowEngineResourceDebug();
 
-    DynamicArray<std::unique_ptr<Window>*> toClose;
+    std::vector<std::unique_ptr<Window>*> toClose;
     for (auto& w : activeWindows)
     {
         if (!w->Tick())
@@ -1026,7 +1026,7 @@ void GameEditor::ShowEngineResourceDebug()
 
     ImGui::Begin("Engine Resource Debug", &debugEngineResources);
     using Info = std::tuple<UUID, Object*, const std::string*>;
-    DynamicArray<Info> allObjects;
+    std::vector<Info> allObjects;
     auto objs = Object::GetAllEngineObjects();
     for (auto& o : objs)
     {
@@ -1078,7 +1078,7 @@ void GameEditor::ShowEngineResourceDebug()
     if (ImGui::TreeNode("Asset Data"))
     {
         using AssetDataInfo = std::tuple<AssetData*, UUID, std::filesystem::path, std::string>;
-        DynamicArray<AssetDataInfo> assetDatas;
+        std::vector<AssetDataInfo> assetDatas;
         for (auto& data : AssetDatabase::Singleton()->GetAssetData())
         {
             assetDatas
@@ -1177,7 +1177,7 @@ void GameEditor::ShowStaticEngineDebugs()
         bool* value;
     };
 
-    static DynamicArray<StaticEngineDebugsInfo> debugs = {
+    static std::vector<StaticEngineDebugsInfo> debugs = {
         {"Scene BVH", &EngineDebugVars::SceneBVH()},
         {"Shadow Frustum", &EngineDebugVars::ShadowFrustum()}
     };

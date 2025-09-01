@@ -839,7 +839,7 @@ namespace uuids
          DWORD len = 0;
          auto ret = GetAdaptersInfo(nullptr, &len);
          if (ret != ERROR_BUFFER_OVERFLOW) return false;
-         DynamicArray<unsigned char> buf(len);
+         std::vector<unsigned char> buf(len);
          auto pips = reinterpret_cast<PIP_ADAPTER_INFO>(&buf.front());
          ret = GetAdaptersInfo(pips, &len);
          if (ret != ERROR_SUCCESS) return false;

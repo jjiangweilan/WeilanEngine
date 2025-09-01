@@ -51,7 +51,7 @@ struct RenderPassAttachmentConfig
 
 struct RenderPassConfig
 {
-    DynamicArray<RenderPassAttachmentConfig> colors;
+    std::vector<RenderPassAttachmentConfig> colors;
     RenderPassAttachmentConfig depthStencil;
 
     RenderPassConfig(uint32_t colorSize) : colors(colorSize) {}
@@ -73,7 +73,7 @@ struct RenderTargetDescription
     uint32_t width;
     uint32_t height;
 
-    DynamicArray<RenderTargetAttachmentDescription> colorsDescriptions;
+    std::vector<RenderTargetAttachmentDescription> colorsDescriptions;
     std::optional<RenderTargetAttachmentDescription> depthStencilDescription = std::nullopt;
 
     uint32_t GetColorAttachmentCount() const

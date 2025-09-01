@@ -267,7 +267,7 @@ void Material::Serialize(Serializer* s) const
     s->Serialize("shader", shaderInUse);
     s->Serialize("ubo", ubo);
     s->Serialize("textureValues", textureValues);
-    DynamicArray<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
+    std::vector<std::string> enabledFeatureVec(enabledFeatures.begin(), enabledFeatures.end());
     s->Serialize("enabledFeature", enabledFeatureVec);
     s->Serialize("overrideShaderConfig", overrideShaderConfig);
     s->Serialize("shaderConfig", overrideShaderConfig ? shaderConfig.ToJson() : nlohmann::json());
@@ -339,7 +339,7 @@ void Material::Deserialize(Serializer* s)
     // s->Deserialize("shader", shader);
     s->Deserialize("ubo", ubo);
     s->Deserialize("textureValues", textureValues);
-    DynamicArray<std::string> enabledFeatureVec;
+    std::vector<std::string> enabledFeatureVec;
     s->Deserialize("enabledFeature", enabledFeatureVec);
     for (auto& f : enabledFeatureVec)
     {

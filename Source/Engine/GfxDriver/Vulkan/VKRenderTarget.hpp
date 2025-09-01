@@ -24,7 +24,7 @@ public:
 
     VkFramebuffer GetVkFrameBuffer();
 
-    const DynamicArray<VkClearValue>& GetClearValues();
+    const std::vector<VkClearValue>& GetClearValues();
     const VkExtent2D& GetSize();
     void SetRenderTargetDescription(const RenderTargetDescription& renderTargetDescription) override;
     VKImage& GetImage(uint32_t index);
@@ -35,7 +35,7 @@ private:
         RenderPassConfig config;
         VkRenderPass renderPass;
     };
-    DynamicArray<RenderPassStorage> renderPasses;
+    std::vector<RenderPassStorage> renderPasses;
 
     VkDevice device_vk;
     VkFramebuffer framebuffer_vk = VK_NULL_HANDLE;
@@ -43,9 +43,9 @@ private:
     VKMemAllocator* memAllocator;
     VKAppWindow* window;
     VKObjectManager* objectManager;
-    DynamicArray<VKImage> attachments;
-    DynamicArray<VkImageView> attachmentImageViews;
-    DynamicArray<VkClearValue> clearValues;
+    std::vector<VKImage> attachments;
+    std::vector<VkImageView> attachmentImageViews;
+    std::vector<VkClearValue> clearValues;
     VKContext* context;
     VkExtent2D resolution;
     friend class VKDriver;

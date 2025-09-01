@@ -4,9 +4,9 @@
 
 DEFINE_ASSET_LOADER(LuaLoader, "lua")
 
-const DynamicArray<std::type_index>& LuaLoader::GetImportTypes()
+const std::vector<std::type_index>& LuaLoader::GetImportTypes()
 {
-    static DynamicArray<std::type_index> types = {typeid(LuaScript)};
+    static std::vector<std::type_index> types = {typeid(LuaScript)};
     return types;
 }
 

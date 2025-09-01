@@ -56,7 +56,7 @@
 //
 //VKShaderModule::VKShaderModule(
 //    const std::string& name,
-//    DynamicArray<uint32_t>& spv,
+//    std::vector<uint32_t>& spv,
 //    const ShaderProgramCreateInfoVertex& vertexCreateInfo
 //)
 //    : vertInterleaved(vertexCreateInfo.vertInterleaved), gpuProperties(GetGPU()->physicalDeviceProperties)

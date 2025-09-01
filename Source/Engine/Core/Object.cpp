@@ -59,9 +59,9 @@ std::unique_ptr<Object> ObjectRegistry::CreateObjectByName(std::string_view name
     return nullptr;
 }
 
-DynamicArray<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
+std::vector<std::string>& ObjectRegistry::GetComponentTypeNamesRegistry()
 {
-    static DynamicArray<std::string> s{};
+    static std::vector<std::string> s{};
     return s;
 }
 

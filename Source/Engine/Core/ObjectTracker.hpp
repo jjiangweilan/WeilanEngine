@@ -54,8 +54,8 @@ private:
         uint32_t referenceCount = 0;
     };
 
-    DynamicArray<Slot> slots;
-    DynamicArray<uint32_t> freeSlotIndices;
+    std::vector<Slot> slots;
+    std::vector<uint32_t> freeSlotIndices;
     std::unordered_map<uint32_t, UUID> slotIndexToUUID;
     std::unordered_map<UUID, uint32_t> uuidToSlotIndex;
     Spinlock lock;

@@ -33,7 +33,7 @@ public:
     int swapchainCount;
     uint32_t swapchainIndex;
     uint32_t activeIndex;
-    DynamicArray<VkSemaphore> imageAcquireSemaphores;
-    DynamicArray<VkSemaphore> presentSemaphores;
+    std::vector<VkSemaphore> imageAcquireSemaphores;
+    std::vector<VkSemaphore> presentSemaphores;
 };
 } // namespace Gfx

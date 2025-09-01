@@ -63,11 +63,11 @@ private:
 
     struct DescriptorSetLayoutBindingWrap
     {
-        DynamicArray<VkDescriptorSetLayoutBinding> binding;
-        DynamicArray<DynamicArray<VkSampler>> samplers;
+        std::vector<VkDescriptorSetLayoutBinding> binding;
+        std::vector<std::vector<VkSampler>> samplers;
     };
     typedef std::unordered_map<SetNum, DescriptorSetLayoutBindingWrap> DescriptorSetBindings;
-    typedef DynamicArray<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
+    typedef std::vector<std::unordered_map<VkDescriptorType, VkDescriptorPoolSize>> PoolSizeMap;
 
     std::string name = "";
     VKObjectManager* objManager = nullptr;
@@ -76,7 +76,7 @@ private:
     VkShaderModule computeModule = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     std::unordered_map<PipelineRequestHash, std::pair<ObjPtr<VKRenderPass>, VkPipeline>> caches = {};
-    DynamicArray<VKDescriptorPool*> descriptorPools = {};
+    std::vector<VKDescriptorPool*> descriptorPools = {};
     PipelineInfo pipelineInfo;
     PipelineConfig defaultPipelineConfig;
 

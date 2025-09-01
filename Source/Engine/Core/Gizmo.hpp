@@ -27,7 +27,7 @@ public:
     int GetSize() { return gizmos.size(); }
 
     static bool RayVsAABB(const Ray& r, const AABB& aabb, float& t);
-    static void PickGizmos(const Ray& ray, DynamicArray<GameObject*>& result);
+    static void PickGizmos(const Ray& ray, std::vector<GameObject*>& result);
     static void ClearAllRegisteredGizmos() { GetSingleton().gizmos.clear(); }
 
     template <std::derived_from<GizmoBase> T, class... Args>
@@ -42,5 +42,5 @@ public:
 
 private:
     static Gizmos& GetSingleton();
-    DynamicArray<std::unique_ptr<GizmoBase>> gizmos;
+    std::vector<std::unique_ptr<GizmoBase>> gizmos;
 };

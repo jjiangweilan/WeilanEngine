@@ -6,7 +6,7 @@ namespace Gfx
 class VKInstance
 {
 public:
-    VKInstance(const DynamicArray<const char*>& requiredExtension);
+    VKInstance(const std::vector<const char*>& requiredExtension);
     ~VKInstance();
     VkInstance GetHandle()
     {
@@ -17,7 +17,7 @@ private:
     VkInstance vulkanInstance;
     VkDebugUtilsMessengerEXT debugMessenger;
 
-    bool CheckAvalibilityOfValidationLayers(const DynamicArray<const char*>& validationLayers);
+    bool CheckAvalibilityOfValidationLayers(const std::vector<const char*>& validationLayers);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

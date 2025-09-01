@@ -25,7 +25,7 @@ private:
 struct WindowRegisterInfo
 {
     std::function<std::unique_ptr<Window>()> factory;
-    DynamicArray<std::string> menuPath;
+    std::vector<std::string> menuPath;
 };
 
 class WindowRegistery
@@ -38,7 +38,7 @@ public:
 private:
     static WindowRegistery& GetSingleton();
 
-    DynamicArray<WindowRegisterInfo> registery;
+    std::vector<WindowRegisterInfo> registery;
 };
 
 // menuPath: / separated string
@@ -46,7 +46,7 @@ template <class T>
 bool WindowRegistery::Register(const std::string& menuPath)
 {
     std::stringstream ss(menuPath);
-    DynamicArray<std::string> pathTokens;
+    std::vector<std::string> pathTokens;
     std::string token;
     char delimiter = '/';
     while (getline(ss, token, delimiter))

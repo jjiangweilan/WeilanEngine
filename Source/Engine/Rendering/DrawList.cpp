@@ -38,7 +38,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         uint32_t indexCount = submesh.GetIndexCount();
 
                         SceneObjectDrawData drawData;
-                        drawData.vertexBufferBinding = DynamicArray<Gfx::VertexBufferBinding>();
+                        drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
                         for (auto& binding : submesh.GetBindings())
                         {
                             drawData.vertexBufferBinding.push_back({submesh.GetVertexBuffer(), binding.byteOffset});
@@ -82,7 +82,7 @@ void DrawList::Add(MeshRenderer& meshRenderer)
                         uint32_t indexCount = submesh.GetIndexCount();
 
                         SceneObjectDrawData drawData;
-                        drawData.vertexBufferBinding = DynamicArray<Gfx::VertexBufferBinding>();
+                        drawData.vertexBufferBinding = std::vector<Gfx::VertexBufferBinding>();
                         for (auto& binding : submesh.GetBindings())
                         {
                             drawData.vertexBufferBinding.push_back({submesh.GetVertexBuffer(), binding.byteOffset});

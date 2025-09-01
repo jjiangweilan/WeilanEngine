@@ -18,10 +18,10 @@ private:
     struct RegisteredMenuItem
     {
         std::string path;
-        DynamicArray<std::string> pathComponents;
+        std::vector<std::string> pathComponents;
         std::function<void()> func;
     };
-    DynamicArray<RegisteredMenuItem> items;
+    std::vector<RegisteredMenuItem> items;
 };
 
 } // namespace Editor

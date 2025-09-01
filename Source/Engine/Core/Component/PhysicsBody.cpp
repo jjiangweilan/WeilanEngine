@@ -498,7 +498,7 @@ void PhysicsBody::SetSensor(bool isSensor)
 void PhysicsBody::RegisterLuaCallback(PhysicsContactEvent event, GameScript* gameScript, const char* luaCallbackName)
 {
 
-    DynamicArray<PhysicsLuaCallback>* callbacks = nullptr;
+    std::vector<PhysicsLuaCallback>* callbacks = nullptr;
     switch (event)
     {
         case PhysicsContactEvent::Added: callbacks = &contactAddedLuaCallbacks;

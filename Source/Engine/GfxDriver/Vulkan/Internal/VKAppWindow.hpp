@@ -16,7 +16,7 @@ public:
     ~VKAppWindow();
 
     void CreateVkSurface(VkInstance vkInstance, VkSurfaceKHR* vkSurface);
-    DynamicArray<const char*> GetVkRequiredExtensions();
+    std::vector<const char*> GetVkRequiredExtensions();
 
     SDL_Window* GetSDLWindow()
     {
