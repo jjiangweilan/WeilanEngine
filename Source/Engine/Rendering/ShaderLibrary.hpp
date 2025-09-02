@@ -1,4 +1,5 @@
 #pragma once
+#include "Libs/DynamicArray.hpp"
 #include "Libs/Hash.hpp"
 #include "Rendering/Shader.hpp"
 #include "Shader2.hpp"
@@ -6,7 +7,6 @@
 #include <slang.h>
 #include <spdlog/spdlog.h>
 #include <unordered_map>
-#include "Libs/DynamicArray.hpp"
 
 #define MAX_SHADER_FEATURE_COUNT 64
 using ShaderPermutation = std::bitset<MAX_SHADER_FEATURE_COUNT>;
@@ -171,6 +171,8 @@ public:
         return Singleton().QueryShaderFeaturesImpl(name);
     }
 
+    static void DestorySlangInstance() { return Singleton().DestorySlangInstanceImpl(); }
+
     static void ReloadAllShaders() { return Singleton().ReloadAllShadersImpl(); }
 
     void RemoveAllShaders()
@@ -215,6 +217,7 @@ private:
 
     void Init();
     void LoadSession();
+    void DestorySlangInstanceImpl();
     ObjPtr<Shader2> GetShaderImpl(const char* name, ShaderPermutation permutation = ShaderPermutation());
     const ShaderFeatures& QueryShaderFeaturesImpl(const char* name);
     void ReloadAllShadersImpl();

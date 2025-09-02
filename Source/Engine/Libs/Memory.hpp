@@ -18,6 +18,7 @@ class PermenentMemoryAllocator
 {};
 
 StackAllocator& GetStackAllocator();
+StackAllocator& GetSharedStackAllocator();
 
 class LocalStackMemoryAllocator : public std::pmr::memory_resource
 {

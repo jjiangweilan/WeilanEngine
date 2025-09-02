@@ -1521,3 +1521,9 @@ void ShaderLibrary::Init()
 
     LoadSession();
 }
+
+void ShaderLibrary::DestorySlangInstanceImpl()
+{
+    session = nullptr;
+    globalSession = nullptr;
+}

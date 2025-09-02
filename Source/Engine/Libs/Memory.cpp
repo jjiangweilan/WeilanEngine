@@ -1,4 +1,5 @@
 #include "Memory.hpp"
+#include "Libs/LazyInit.hpp"
 
 class MemoryManager
 {
@@ -8,16 +9,21 @@ public:
         static MemoryManager instance;
         return instance;
     }
-    auto& GetTLSStackAllocator() { return stackAllocator; }
+    auto& GetTLSStackAllocator() { return *stackAllocator.Get(); }
 
 private:
-    static thread_local StackAllocator stackAllocator; // 1 MB stack allocator
+    static thread_local LazyInit<StackAllocator> stackAllocator;
 };
 
-thread_local StackAllocator MemoryManager::stackAllocator(1024 * 1024 * 8); // 8 MB
+thread_local LazyInit<StackAllocator> MemoryManager::stackAllocator(1024 * 1024 * 1); // 1 MB
 
 StackAllocator& GetStackAllocator()
 {
     return MemoryManager::Instance().GetTLSStackAllocator();
 }
 
+StackAllocator& GetSharedStackAllocator()
+{
+    static StackAllocator stackAllocator(1024 * 1024 * 1);
+    return stackAllocator;
+}

@@ -284,9 +284,7 @@ void GameEditor::AddPrimitiveAssetToScene(Scene& scene, std::string_view path)
     firstModelClone->GetComponent<MeshRenderer>()->SetMaterials(mats);
     scene.AddGameObject(std::move(firstModelClone));
 }
-static void MenuVisitor(
-    std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked
-)
+static void MenuVisitor(std::vector<std::string>::iterator iter, std::vector<std::string>::iterator end, bool& clicked)
 {
     if (iter == end)
     {
@@ -468,6 +466,16 @@ void GameEditor::MainMenuBar()
         {
             GetGfxDriver()->CaptureFrameRenderDoc();
         }
+    }
+
+    if (ImGui::BeginMenu("Debug"))
+    {
+        if (ImGui::MenuItem("Destroy slang instance"))
+        {
+            ShaderLibrary::DestorySlangInstance();
+        }
+
+        ImGui::EndMenu();
     }
 
     for (auto& windowInfo : WindowRegistery::GetRegistery())
