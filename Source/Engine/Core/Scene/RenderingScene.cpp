@@ -52,8 +52,12 @@ std::vector<BoundingVolumeHierarchy::Node*> BoundingVolumeHierarchy::QueryNodesI
 {
     std::vector<BoundingVolumeHierarchy::Node*> result{};
 
-    auto& root = GetRoot();
-    QueryNodesInFrustum(Frustum, root, result);
+    if (!nodes.empty())
+    {
+        auto& root = GetRoot();
+        QueryNodesInFrustum(Frustum, root, result);
+    }
+
     return result;
 }
 

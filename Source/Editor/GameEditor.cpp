@@ -88,6 +88,11 @@ GameEditor::GameEditor(const char* path)
         }
     }
 
+    if (editorConfig.is_null())
+    {
+        editorConfig = nlohmann::json::object();
+    }
+
     if (!std::filesystem::exists(imguiInitPath))
     {
         std::filesystem::copy_file(
