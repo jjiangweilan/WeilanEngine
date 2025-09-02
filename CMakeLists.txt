@@ -29,9 +29,20 @@ if (ENABLE_ADDRESS_SANITIZER)
 add_compile_options("/fsanitize=address")
 endif()
 
-function(GetTargetDependenciesInternal target outDependencies)
+function(ResolveTargetAlias target resolved)
+    get_target_property(aliased ${target} ALIASED_TARGET)
+    if(NOT aliased STREQUAL "aliased-NOTFOUND")
+        set(${resolved} ${aliased} PARENT_SCOPE)
+    else()
+        set(${resolved} ${target} PARENT_SCOPE)
+    endif()
+endfunction()
+
+function(GetTargetDependenciesInternal inTarget outDependencies)
     set(dependencies)
-    
+
+    ResolveTargetAlias(${inTarget} target)
+
     # Get direct link libraries
     get_target_property(link_libs ${target} LINK_LIBRARIES)
     if(link_libs)
@@ -77,15 +88,20 @@ function(GetTargetDependenciesInternal target outDependencies)
     set(${outDependencies} ${dependencies} PARENT_SCOPE)
 endfunction()
 
-function(GetTargetDependencies target outDependencies)
+function(GetTargetDependencies inTarget outDependencies)
     set(dependencies)
+
+    ResolveTargetAlias(${inTarget} target)
+
     list(APPEND dependencies ${target})
     GetTargetDependenciesInternal(${target} sub_deps)
     list(APPEND dependencies ${sub_deps})
     set(${outDependencies} ${dependencies} PARENT_SCOPE)
 endfunction()
 
-function(SetDependencyFolder target folder_name)
+function(SetDependencyFolder inTarget folder_name)
+    ResolveTargetAlias(${inTarget} target)
+
     GetTargetDependencies(${target} dependencies)
 
     foreach(target ${dependencies})
@@ -125,13 +141,14 @@ FetchContent_Declare(SDL2
     )
 
 if (ENABLE_ADDRESS_SANITIZER)
+    set(SDL_STATIC ON)
     set(SDL_SHARED OFF)
 else()
     set(SDL_SHARED ON)
+    set(SDL_STATIC OFF)
 endif()
 set(SDL2_DISABLE_SDL2MAIN ON)
-set(SDL_TEST_ENABLED_BY_DEFAULT OFF)
-
+set(SDL_TEST OFF)
 FetchContent_MakeAvailable(SDL2)
 
 FetchContent_Declare(fmt
@@ -391,12 +408,14 @@ if (UNIT_TEST)
 
     SetDependencyFolder(gtest_main GoogleTest)
     SetDependencyFolder(gmock_main GoogleTest)
+    SetDependencyFolder(gmock GoogleTest)
 endif()
 
 SetDependencyFolder(slang Slang)
 SetDependencyFolder(slang-glslang Slang)
-SetDependencyFolder(ryml ryml)
-SetDependencyFolder(SDL2 SDL2)
+SetDependencyFolder(ryml::ryml ryml)
+SetDependencyFolder(SDL2::SDL2 SDL2)
+SetDependencyFolder(sdl_headers_copy SDL2)
 SetDependencyFolder(spdlog spdlog)
 SetDependencyFolder(fmt fmt)
 SetDependencyFolder(ktx ktx)
