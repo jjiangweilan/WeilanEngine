@@ -67,7 +67,7 @@ public:
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
-    void SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId) override;
+    void SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifierimageId) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
     void RebuildAll() override;

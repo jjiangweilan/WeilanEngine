@@ -140,7 +140,7 @@ private:
         Gfx::RG::ImageIdentifier colorGradingId = Gfx::RG::ImageIdentifier("Color Grading");
         Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("Color Grading");
         ObjPtr<Shader2> colorGradingShader;
-        Material mat;
+        std::unique_ptr<Gfx::ShaderResource> gpuBinding;
     } colorGradingPass;
 
     SkyboxPass skyboxPass{};

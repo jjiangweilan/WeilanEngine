@@ -37,8 +37,16 @@ VkBufferUsageFlags MapBufferUsage(BufferUsageFlags usageIn)
 
 VKBuffer::VKBuffer() : Buffer(BufferUsage::None, false) {}
 VKBuffer::VKBuffer(const CreateInfo& createInfo)
-    : Buffer(createInfo.usages, createInfo.gpuWrite), allocator(VKContext::Instance()->allocator)
+    : Buffer(BufferUsage::None, false), allocator(VKContext::Instance()->allocator)
 {
+    CreateBuffer(createInfo);
+}
+
+void* VKBuffer::CreateBuffer(const VKBuffer::CreateInfo& createInfo)
+{
+    bufferUsages = createInfo.usages;
+    gpuWrite = createInfo.gpuWrite;
+
     usage = MapBufferUsage(createInfo.usages);
     size = createInfo.size;
 
@@ -72,6 +80,8 @@ VKBuffer::VKBuffer(const CreateInfo& createInfo)
     {
         SetDebugName(createInfo.debugName);
     }
+
+    return GetCPUVisibleAddress();
 }
 
 VKBuffer::VKBuffer(VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& allocationCreateInfo, const char* debugName)

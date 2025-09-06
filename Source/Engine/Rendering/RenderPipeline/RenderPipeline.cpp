@@ -71,7 +71,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     sceneDrawList.Sort(camera.GetGameObject()->GetPosition());
     ENGINE_END_PROFILE; // Sort
 
-    ENGINE_END_PROFILE;// Bulid Scene Draw List
+    ENGINE_END_PROFILE; // Bulid Scene Draw List
 
     ENGINE_END_PROFILE; // RenderPipeline - Setup
 
@@ -88,7 +88,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // Shadow Pass
     ENGINE_BEGIN_PROFILE("Shadow")
     shadowRenderer->Execute(*cmd, renderingData);
-    ENGINE_END_PROFILE;// Shadow
+    ENGINE_END_PROFILE; // Shadow
 
     // GBuffer Pass
     cmd->BeginLabel("GBuffer", &labelColors.passColor[0]);
@@ -244,16 +244,17 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     if (setting->postProcess.colorGrading)
     {
+        auto shader = colorGradingPass.colorGradingShader->GetShaderProgram();
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
         // TODO
         Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
         cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
         colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
-        colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
+        colorGradingPass.gpuBinding->SetImage("mainColor", renderingData.mainColor);
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
         cmd->BeginRenderPass(colorGradingPass.pass, clears);
-        cmd->BindShaderProgram(colorGradingPass.mat.GetShaderProgram(), colorGradingPass.mat.GetShaderConfig());
-        cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
+        cmd->BindShaderProgram(shader, shader->GetDefaultShaderConfig());
+        cmd->BindResource(0, colorGradingPass.gpuBinding.get());
         cmd->Draw(6, 1, 0, 0);
         cmd->EndRenderPass();
         finalColor = colorGradingPass.colorGradingId;

@@ -23,6 +23,7 @@ public:
     void SetDebugName(const char* name) override;
     size_t GetSize() override { return size; }
 
+    void* CreateBuffer(const CreateInfo& createInfo) override;
     inline VkBuffer GetHandle() { return buffer; }
 
 private:
