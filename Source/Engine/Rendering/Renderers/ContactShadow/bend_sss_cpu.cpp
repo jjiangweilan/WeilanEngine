@@ -11,7 +11,7 @@ DispatchList BuildDispatchList(
     int inWaveSize
 )
 {
-    DispatchList result = {};
+    DispatchList result{};
 
     // Floating point division in the shader has a practical limit for precision when the light is *very* far off screen
     // (~1m pixels+) So when computing the light XY coordinate, use an adjusted w value to handle these extreme values

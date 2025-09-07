@@ -10,6 +10,7 @@
 #include "Rendering/Renderers/ShadowRenderer.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "SkyboxPass.hpp"
+#include "Rendering/Renderers/ContactShadow/ContactShadowPass.hpp"
 
 class Scene;
 class Camera;
@@ -191,5 +192,7 @@ private:
     Gfx::RG::ImageIdentifier GetFinalColor();
     Gfx::CommandBuffer* GetCommandBuffer();
     bool IsCommandBufferOverriden();
+
+    ContactShadowPass contactShadowPass; // new contact shadow pass (deferred insertion point)
 };
 } // namespace Rendering

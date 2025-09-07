@@ -139,9 +139,23 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     // ssao pass
     ssaoPass.Execute(cmd, downSampledDepthCopy, mainDepth, mainDepthDescription, setting);
 
+    // Contact Shadow (directional main light only) - BEFORE shading so future shaders can consume
+    {
+        Light* mainLight = nullptr;
+        if (renderingData.mainLightIndex >= 0 && renderingData.mainLightIndex < renderingData.lights.size())
+            mainLight = renderingData.lights[renderingData.mainLightIndex];
+        if (mainLight)
+        {
+            // Ensure we have an up-to-date depthCopy for compute sampling
+            contactShadowPass
+                .Execute(*cmd, renderingData, mainLight, GetGfxDriver()->GetImageFromRenderGraph(mainDepth));
+        }
+    }
+
     // Shading
     cmd->BeginLabel("Shading", &labelColors.passColor[0]);
     {
+        cmd->BindResource(0, perScene.globalResource.get());
         // Upload GPU Parameter
         {
             shadingPass.cpuParameter = GPUParameter::DeferredPBRShadingInput{

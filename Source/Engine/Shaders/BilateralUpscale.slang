@@ -7,9 +7,9 @@ import Library.PerScene;
 import Library.CommonUtils;
 #include "BilateralUpscaleInput.hlsl"
 
-[Global]
+[[Global]]
 ParameterBlock<PerScene> perScene;
-[Material]
+[[Material]]
 ParameterBlock<Input> input;
 
 [numthreads(8,8,1)]
