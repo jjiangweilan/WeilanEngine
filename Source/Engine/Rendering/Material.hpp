@@ -130,7 +130,7 @@ private:
     bool needRequestNewShader = false;
 
     void UploadDataToGPU(Gfx::ShaderProgram* shaderProgram);
-    void UploadDataToGPUInternal(
+    void WriteParameterDataToBuffer(
         const Gfx::PipelineInfo& pipeline,
         const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
         uint8_t* buf,

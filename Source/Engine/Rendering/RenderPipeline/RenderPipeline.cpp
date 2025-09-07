@@ -250,11 +250,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         Gfx::RG::ImageDescription resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
         cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
         colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
-        colorGradingPass.gpuBinding->SetImage("mainColor", renderingData.mainColor);
+        colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
         Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
         cmd->BeginRenderPass(colorGradingPass.pass, clears);
         cmd->BindShaderProgram(shader, shader->GetDefaultShaderConfig());
-        cmd->BindResource(0, colorGradingPass.gpuBinding.get());
+        cmd->BindResource(0, colorGradingPass.mat.GetShaderResource());
         cmd->Draw(6, 1, 0, 0);
         cmd->EndRenderPass();
         finalColor = colorGradingPass.colorGradingId;

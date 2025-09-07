@@ -419,14 +419,14 @@ void Material::UploadDataToGPU(Gfx::ShaderProgram* shaderProgram)
             ASSERT(binding->descriptorType == Gfx::DescriptorType::UniformBuffer && "UBO should be a structure");
             for (auto& member : binding->bufferMembers)
             {
-                UploadDataToGPUInternal(pipelineInfo, member, tempBuf, bufSize);
+                WriteParameterDataToBuffer(pipelineInfo, member, tempBuf, bufSize);
             }
             GetGfxDriver()->UploadBuffer(*ubo.buffer, tempBuf, bufSize, 0);
         }
     }
 }
 
-void Material::UploadDataToGPUInternal(
+void Material::WriteParameterDataToBuffer(
     const Gfx::PipelineInfo& pipelineInfo,
     const Gfx::PipelineInfo::BufferMember& bufferDataDescription,
     uint8_t* buf,
