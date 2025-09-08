@@ -47,7 +47,7 @@ DispatchList BuildDispatchList(
     // Process 4 quadrants around the light center,
     // They each form a rectangle with one corner on the light XY coordinate
     // If the rectangle isn't square, it will need breaking in two on the larger axis
-    // 0 = bottom left, 1 = bottom right, 2 = top left, 2 = top right
+    // 0 = bottom left, 1 = bottom right, 2 = top left, 3 = top right
     for (int q = 0; q < 4; q++)
     {
         // Quads 0 and 3 needs to be +1 vertically, 1 and 2 need to be +1 horizontally
