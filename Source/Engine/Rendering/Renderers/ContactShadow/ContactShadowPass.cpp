@@ -40,14 +40,31 @@ void ContactShadowPass::Execute(
     if (list.DispatchCount == 0)
         return;
 
-    Gfx::RG::ImageDescription desc(viewport[0], viewport[1], Gfx::GfxFormat::R8_UNorm);
+    desc.SetWidth(viewport[0]);
+    desc.SetHeight(viewport[1]);
+    desc.SetFormat(Gfx::GfxFormat::R8_UNorm);
     desc.SetRandomWrite(true);
     cmd.AllocateAttachment(outputId, desc);
-    cachedSize = {viewport[0], viewport[1]};
 
-    // Bind static images
     mat.SetTexture("DepthTexture", depthTex);
     mat.SetTexture("OutputTexture", GetGfxDriver()->GetImageFromRenderGraph(outputId));
+    mat.SetVector(
+        "lightCoord",
+        float4(
+            list.LightCoordinate_Shader[0],
+            list.LightCoordinate_Shader[1],
+            list.LightCoordinate_Shader[2],
+            list.LightCoordinate_Shader[3]
+        )
+    );
+    mat.SetFloat("farDepthValue", 0.0f);
+    mat.SetFloat("nearDepthValue", 1.0f);
+    mat.SetVector(
+        "invDepthTextureSize",
+        float4(1.0f / depthTex->GetDescription().width, 1.0f / depthTex->GetDescription().height, 0, 0)
+    );
+    mat.SetFloat("thickness", renderingData.renderPipelineSettings->contactShadow.thickness);
+
     // TODO: set PointBorderSampler if explicit binding required (engine default sampler might suffice)
 
     cmd.BeginLabel("ContactShadow", {0.15f, 0.15f, 0.4f, 1.0f});
@@ -56,22 +73,6 @@ void ContactShadowPass::Execute(
     for (int i = 0; i < list.DispatchCount; ++i)
     {
         // Minimal parameter block (matches subset used early in shader). Layout must match shader expectation.
-        mat.SetVector(
-            "lightCoord",
-            float4(
-                list.LightCoordinate_Shader[0],
-                list.LightCoordinate_Shader[1],
-                list.LightCoordinate_Shader[2],
-                list.LightCoordinate_Shader[3]
-            )
-        );
-        mat.SetFloat("farDepth", camera->GetFar());
-        mat.SetFloat("nearDepthValue", camera->GetNear());
-        mat.SetVector(
-            "invDepthTextureSize",
-            float4(depthTex->GetDescription().width, depthTex->GetDescription().height, 0, 0)
-        );
-
         ContactShadowPushConstant ps;
         ps.waveOffset = {list.Dispatch[i].WaveOffset_Shader[0], list.Dispatch[i].WaveOffset_Shader[1]};
 

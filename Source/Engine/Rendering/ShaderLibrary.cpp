@@ -156,17 +156,17 @@ public:
             size_t size;
             const char* f = attribute->getArgumentValueString(0, &size);
             std::string name = std::string(f, size);
-            if (name == "\"fragment\"")
+            if (name == "fragment")
             {
                 outPipelineInfo.fragmentShaderName = entryPoint->getFunctionReflection()->getName();
                 fragmentEntryPointIndex = i;
             }
-            else if (name == "\"vertex\"")
+            else if (name == "vertex")
             {
                 outPipelineInfo.vertexShaderName = entryPoint->getFunctionReflection()->getName();
                 vertexEntryPointIndex = i;
             }
-            else if (name == "\"compute\"")
+            else if (name == "compute")
             {
                 outPipelineInfo.computeShaderName = entryPoint->getFunctionReflection()->getName();
                 computeEntryPointIndex = i;
@@ -315,11 +315,11 @@ public:
     {
         Gfx::TextureType type = Gfx::TextureType::Invalid;
 
-        if (shape == SlangResourceShape::SLANG_TEXTURE_2D)
+        if ((shape & SlangResourceShape::SLANG_TEXTURE_2D) != 0)
             type = Gfx::TextureType::Tex2D;
-        else if (shape == SlangResourceShape::SLANG_TEXTURE_3D)
+        else if ((shape & SlangResourceShape::SLANG_TEXTURE_3D) != 0)
             type = Gfx::TextureType::Tex3D;
-        else if (shape == SlangResourceShape::SLANG_TEXTURE_CUBE)
+        else if ((shape & SlangResourceShape::SLANG_TEXTURE_CUBE) != 0)
             type = Gfx::TextureType::TexCube;
         else if (shape == SlangResourceShape::SLANG_RESOURCE_NONE)
             type = Gfx::TextureType::Invalid;
@@ -335,7 +335,7 @@ public:
         std::string name = variableLayout->getName();
         bool pointFilter = Utils::strContians(Utils::strToLower(name), "point");
 
-        bool clampSampleToBorder = Utils::strContians(Utils::strToLower(name), "clamptoborder");
+        bool clampSampleToBorder = Utils::strContians(Utils::strToLower(name), "border");
         bool clampSample = Utils::strContians(Utils::strToLower(name), "clamp");
 
         std::string samplerTypeName = variableLayout->getType()->getName();
@@ -725,7 +725,7 @@ public:
                 {
                     size_t strLen = 0;
                     const char* str = byteSizeAttribute->getArgumentValueString(0, &strLen);
-                    std::string_view strView(str + 1, str + strLen - 1);
+                    std::string_view strView(str, str + strLen);
                     vertexAttribute.format = MapSlangFormat(strView);
                     if (vertexAttribute.format == Gfx::GfxFormat::Invalid)
                     {

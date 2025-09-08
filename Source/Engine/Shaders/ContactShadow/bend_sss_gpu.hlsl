@@ -1,4 +1,3 @@
-#pragma once
 #include "./ContactShadowParameters.hlsl"
 
 // Copyright 2023 Sony Interactive Entertainment.
@@ -140,7 +139,7 @@ struct DispatchParameters
     // Set sensible starting tuning values
     __init(ContactShadowParameters params, int2 waveOffset)
     {
-        SurfaceThickness = 0.005f;
+        SurfaceThickness = params.thickness;
         BilinearThreshold = 0.02;
         ShadowContrast = 4;
         IgnoreEdgePixels = false;
@@ -148,7 +147,7 @@ struct DispatchParameters
         BilinearSamplingOffsetMode = false;
         DebugOutputEdgeMask = false;
         DebugOutputThreadIndex = false;
-        DebugOutputWaveIndex = false;
+        DebugOutputWaveIndex = true;
         DepthBounds = float2(0, 1);
         UseEarlyOut = false;
 
@@ -298,7 +297,7 @@ void WriteScreenSpaceShadow(DispatchParameters inParameters, int3 inGroupID, int
     ComputeWavefrontExtents(
         inParameters,
         (int3)inGroupID,
-        inGroupThreadID.x,
+        inGroupThreadID,
         xy_delta,
         pixel_xy,
         pixel_distance,
@@ -461,8 +460,8 @@ void WriteScreenSpaceShadow(DispatchParameters inParameters, int3 inGroupID, int
     GroupMemoryBarrierWithGroupSync();
 
     // If the starting depth isn't in depth bounds, then we don't need a shadow
-    if (skip_pixel)
-        return;
+    // if (skip_pixel)
+    //     return;
 
     float start_depth = sampling_depth[0];
 

@@ -158,7 +158,7 @@ VkSamplerCreateInfo SamplerCachePool::GenerateSamplerCreateInfo(const Gfx::Pipel
     samplerCreateInfo.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     samplerCreateInfo.minLod = 0;
     samplerCreateInfo.maxLod = VK_LOD_CLAMP_NONE;
-    samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+    samplerCreateInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
     samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
 
     return samplerCreateInfo;

@@ -18,13 +18,6 @@ public:
         void Deserialize(Serializer* s) override { DESERIALIZE(s, colorGrading); }
     } postProcess;
 
-    struct ScreenSpaceShadow : Serializable
-    {
-        bool enabled;
-        void Serialize(Serializer* s) const override { SERIALIZE(s, enabled); }
-        void Deserialize(Serializer* s) override { DESERIALIZE(s, enabled); }
-    } screenSpaceShadow;
-
     struct ShadowMap : Serializable
     {
         float constantBias = 0.01f;
@@ -41,6 +34,13 @@ public:
             DESERIALIZE(s, normalBias);
         }
     } shadowMap;
+
+    struct ContactShadow : Serializable
+    {
+        float thickness = 0.005f;
+        void Serialize(Serializer* s) const override { SERIALIZE(s, thickness); }
+        void Deserialize(Serializer* s) override { DESERIALIZE(s, thickness); }
+    } contactShadow;
 
     struct DebugDraw : Serializable
     {

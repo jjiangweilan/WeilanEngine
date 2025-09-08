@@ -12,7 +12,7 @@ struct Vertex
 {
     float2 position : POSITION;
     float2 uv : TEXCOORD0;
-    [format("rgba8")]
+    [[format("rgba8")]]
     float4 color : COLOR0;
 }
 

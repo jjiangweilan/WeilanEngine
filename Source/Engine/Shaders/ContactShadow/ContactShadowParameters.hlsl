@@ -6,9 +6,12 @@ struct ContactShadowParameters
     float farDepthValue;
     float nearDepthValue;
     float2 invDepthTextureSize;
+    float thickness;
 
 #if GPU_RESOURCE
     Texture2D<float> DepthTexture;
+
+    [[format("r8")]]
     RWTexture2D<float> OutputTexture;
     SamplerState PointClampSampler;
 #endif

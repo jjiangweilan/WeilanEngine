@@ -633,6 +633,8 @@ const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
         finalColor = debugImage;
     }
 
+    finalColor = contactShadowPass.GetOutputId();
+
     return finalColor;
 }
 

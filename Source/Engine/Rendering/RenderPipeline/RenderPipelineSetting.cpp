@@ -7,7 +7,7 @@ void RenderPipelineSetting::Serialize(Serializer* s) const
 {
     Asset::Serialize(s);
     SERIALIZE(s, shadowMap);
-    SERIALIZE(s, screenSpaceShadow);
+    SERIALIZE(s, contactShadow);
     SERIALIZE(s, fxaa);
     SERIALIZE(s, postProcess);
     SERIALIZE(s, ssao);
@@ -19,7 +19,7 @@ void RenderPipelineSetting::Deserialize(Serializer* s)
 {
     Asset::Deserialize(s);
     DESERIALIZE(s, shadowMap);
-    DESERIALIZE(s, screenSpaceShadow);
+    DESERIALIZE(s, contactShadow);
     DESERIALIZE(s, fxaa);
     DESERIALIZE(s, postProcess);
     DESERIALIZE(s, ssao);

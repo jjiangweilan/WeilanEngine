@@ -21,7 +21,9 @@ public:
 private:
     ObjPtr<Shader2> shader;
     Gfx::RG::ImageIdentifier outputId = "ContactShadow";
+    Gfx::RG::ImageDescription desc;
     Material mat;
-    glm::ivec2 cachedSize{-1, -1};
+
+    Material* RequestMaterial(int idx);
 };
 } // namespace Rendering
