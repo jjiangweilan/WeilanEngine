@@ -7,7 +7,7 @@ ParameterBlock<ContactShadowParameters> props;
 [[vk_push_constant]]
 ContactShadowPushConstant ps;
 
-[shader("compute")]
+[[shader("compute")]]
 [numthreads(64,1,1)]
 void Main(uint3 groupID : SV_GroupID, uint3 groupThreadID : SV_GroupThreadID)
 {

@@ -129,6 +129,7 @@ public:
     virtual void Begin() = 0;
     virtual void End() = 0;
     virtual void Reset(bool releaseResource) = 0;
+    virtual void ClearColorImage(Image* image, const ClearColor& color) = 0;
 
     virtual void SetTexture(
         ShaderBindingHandle name,

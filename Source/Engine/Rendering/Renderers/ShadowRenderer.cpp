@@ -115,7 +115,7 @@ void ShadowRenderer::Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingDa
 
     shadowDrawList.Lock();
     shadowDrawList.SortByDistance(
-        renderingData.mainCamera->GetGameObject()->GetPosition() -
+        renderingData.mainCamera->GetGameObject()->GetPosition() +
         mainLight->GetLightDirection() * mainLight->GetMainLightNearPlane()
     );
 

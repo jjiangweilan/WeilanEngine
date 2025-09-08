@@ -92,6 +92,7 @@ private:
             VKShaderResource* resource = VK_NULL_HANDLE;
         } setResources[4] = {};
 
+        VkPipeline lastBindedPipeline = VK_NULL_HANDLE;
         VKShaderProgram* lastBindedShader; // shader that is set to be binded
         VKShaderProgram* bindedShader;     // shader that is actually binded
         PipelineConfig shaderConfig;

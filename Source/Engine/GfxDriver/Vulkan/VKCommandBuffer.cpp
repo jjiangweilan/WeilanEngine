@@ -19,8 +19,10 @@ void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx
 
     if (validationCheck && !renderPass.RenderPassRenderingValidationCheck())
     {
-        spdlog::critical("failed to execute render pass because it's not ready for rendering, you need to set subpass "
-                         "and also set attachments in subpass");
+        spdlog::critical(
+            "failed to execute render pass because it's not ready for rendering, you need to set subpass "
+            "and also set attachments in subpass"
+        );
     }
 
     cmd.renderPass = static_cast<VKRenderPass*>(&renderPass);
@@ -509,6 +511,15 @@ void VKCommandBuffer::GraphicsBlit(const RG::ImageIdentifier& from, const RG::Im
     cmd.to = to;
 
     cmds.push_back(VKCmd{VKCmdType::GraphicsBlit, cmd});
+}
+
+void VKCommandBuffer::ClearColorImage(Image* image, const ClearColor& color)
+{
+    VKClearColorImageCmd cmd{};
+    cmd.image = image;
+    cmd.clearValue = color;
+
+    cmds.push_back(VKCmd{VKCmdType::ClearColorImage, cmd});
 }
 
 } // namespace Gfx

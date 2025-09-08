@@ -551,7 +551,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
                     {
                         mainLight = lights[i];
                         renderingData.mainLightIndex = i;
-                        sceneParam.lights[i].position = {mainLight->GetLightDirection(), 0};
+                        sceneParam.lights[i].position = {-mainLight->GetLightDirection(), 0};
 
                         if (mainLight == nullptr || mainLight->GetIntensity() < lights[i]->GetIntensity())
                         {
@@ -632,8 +632,6 @@ const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
     {
         finalColor = debugImage;
     }
-
-    finalColor = contactShadowPass.GetOutputId();
 
     return finalColor;
 }

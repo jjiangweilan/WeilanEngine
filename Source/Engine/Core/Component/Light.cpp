@@ -93,5 +93,5 @@ glm::vec3 Light::GetLightDirection()
 {
     auto model = GetGameObject()->GetWorldMatrix();
     glm::vec3 pos = glm::normalize(glm::vec3(model[2]));
-    return pos;
+    return -pos;
 }

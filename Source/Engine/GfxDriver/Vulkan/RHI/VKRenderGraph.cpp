@@ -64,11 +64,13 @@ public:
             };
 
             auto& image = images[id.GetAsUUID()].image;
-            image->SetName(fmt::format(
-                "rg-{}-{}",
-                id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName(),
-                reinterpret_cast<size_t>(image->GetImage())
-            ));
+            image->SetName(
+                fmt::format(
+                    "rg-{}-{}",
+                    id.GetName().empty() ? id.GetAsUUID().ToString() : id.GetName(),
+                    reinterpret_cast<size_t>(image->GetImage())
+                )
+            );
             SPDLOG_TRACE(
                 "VKRenderGraph: create new iamge({}) {}",
                 reinterpret_cast<size_t>(image.get()),
@@ -111,14 +113,16 @@ public:
                         imageViewReferences.push_back(imageView);
                     }
 
-                    colors.push_back(Attachment{
-                        imageView,
-                        Gfx::MultiSampling::Sample_Count_1,
-                        color.loadOp,
-                        color.storeOp,
-                        color.stencilLoadOp,
-                        color.stencilStoreOp,
-                    });
+                    colors.push_back(
+                        Attachment{
+                            imageView,
+                            Gfx::MultiSampling::Sample_Count_1,
+                            color.loadOp,
+                            color.storeOp,
+                            color.stencilLoadOp,
+                            color.stencilStoreOp,
+                        }
+                    );
                 }
 
                 std::optional<Attachment> depth;
@@ -868,6 +872,8 @@ void Graph::PreExecute(VKFramePrepareData& framePrepare)
             args.barrierOffset = barrierOffset;
             args.barrierCount = barrierCount;
         }
+        else if (cmd.type == VKCmdType::CopyBuffer)
+        {}
         else if (cmd.type == VKCmdType::Blit)
         {
             ENGINE_SCOPED_PROFILE("VKRenderGraph: blit");
@@ -1106,6 +1112,32 @@ void Graph::Execute(
                     TryBindShader(vkcmd);
                     UpdateDescriptorSetBinding(vkcmd, VK_PIPELINE_BIND_POINT_GRAPHICS);
                     vkCmdDraw(vkcmd, args.vertexCount, args.instanceCount, args.firstVertex, args.firstInstance);
+                    break;
+                }
+            case Gfx::VKCmdType::ClearColorImage:
+                {
+                    auto& args = std::get<VKClearColorImageCmd>(cmd.args);
+
+                    VKImage* image = static_cast<VKImage*>(args.image);
+
+                    VkImage vkimage = image->GetImage();
+                    VkClearColorValue clearValue;
+                    memcpy(&clearValue, &args.clearValue, sizeof(VkClearColorValue));
+                    VkImageSubresourceRange range{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .baseMipLevel = 0,
+                        .levelCount = VK_REMAINING_MIP_LEVELS,
+                        .baseArrayLayer = 0,
+                        .layerCount = VK_REMAINING_ARRAY_LAYERS,
+                    };
+
+                    int barrierOffset = args.barrierOffset;
+                    int barrierCount = args.barrierCount;
+                    for (int b = barrierOffset; b < barrierOffset + barrierCount; ++b)
+                    {
+                        PutBarrier(vkcmd, b);
+                    }
+                    vkCmdClearColorImage(vkcmd, vkimage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearValue, 1, &range);
                     break;
                 }
             case VKCmdType::DrawIndirect:
@@ -1659,7 +1691,11 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
         {
             auto pipeline = exeState.lastBindedShader->RequestComputePipeline();
 
-            vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+            if (pipeline != exeState.lastBindedPipeline)
+            {
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+                exeState.lastBindedPipeline = pipeline;
+            }
         }
         else
         {
@@ -1674,7 +1710,12 @@ void Graph::TryBindShader(VkCommandBuffer cmd)
                     exeState.renderPass,
                     exeState.subpassIndex
                 );
-                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+                if (pipeline != exeState.lastBindedPipeline)
+                {
+                    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+                    exeState.lastBindedPipeline = pipeline;
+                }
             }
             else
                 spdlog::error("draw call outside of renderpass");

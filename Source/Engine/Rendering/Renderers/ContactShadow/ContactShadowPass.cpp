@@ -28,7 +28,7 @@ void ContactShadowPass::Execute(
     // Acquire view-projection
     const float4x4& vp = renderingData.gpuCamera->viewProjection;
 
-    float3 dir = renderingData.gpuScene->lights[0].position; // assumed normalized
+    float3 dir = mainLight->GetLightDirection(); // assumed normalized
     float4 lightProj = vp * float4(dir, 0.0f);
 
     int viewport[2] = {(int)renderingData.gpuCamera->screenSize.x, (int)renderingData.gpuCamera->screenSize.y};
@@ -36,7 +36,7 @@ void ContactShadowPass::Execute(
     int minBounds[2] = {0, 0};
     int maxBounds[2] = {viewport[0], viewport[1]};
 
-    Bend::DispatchList list = Bend::BuildDispatchList(&lightProj[0], viewport, minBounds, maxBounds, false, 64);
+    Bend::DispatchList list = Bend::BuildDispatchList(&lightProj[0], viewport, minBounds, maxBounds);
     if (list.DispatchCount == 0)
         return;
 
@@ -46,8 +46,9 @@ void ContactShadowPass::Execute(
     desc.SetRandomWrite(true);
     cmd.AllocateAttachment(outputId, desc);
 
+    auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(outputId);
     mat.SetTexture("DepthTexture", depthTex);
-    mat.SetTexture("OutputTexture", GetGfxDriver()->GetImageFromRenderGraph(outputId));
+    mat.SetTexture("OutputTexture", outputImage);
     mat.SetVector(
         "lightCoord",
         float4(
@@ -69,10 +70,16 @@ void ContactShadowPass::Execute(
 
     cmd.BeginLabel("ContactShadow", {0.15f, 0.15f, 0.4f, 1.0f});
 
+    Gfx::ClearColor clear;
+    clear.float32[0] = 1.0f;
+    clear.float32[1] = 1.0f;
+    clear.float32[2] = 1.0f;
+    clear.float32[3] = 1.0f;
+    cmd.ClearColorImage(outputImage, clear);
+
     // For each dispatch configure push constants (WaveOffset + LightCoordinate)
     for (int i = 0; i < list.DispatchCount; ++i)
     {
-        // Minimal parameter block (matches subset used early in shader). Layout must match shader expectation.
         ContactShadowPushConstant ps;
         ps.waveOffset = {list.Dispatch[i].WaveOffset_Shader[0], list.Dispatch[i].WaveOffset_Shader[1]};
 

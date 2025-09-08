@@ -9,6 +9,7 @@
 
 namespace Gfx
 {
+// Should matching the layout of VkClearColorValue
 union ClearColor
 {
     float float32[4];

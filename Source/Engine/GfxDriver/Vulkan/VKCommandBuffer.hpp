@@ -276,6 +276,16 @@ struct VKGraphicsBlitCmd
     RG::ImageIdentifier to;
 };
 
+struct VKClearColorImageCmd
+{
+    Image* image;
+    ClearColor clearValue;
+
+    // used in VKRenderGraph
+    int barrierOffset;
+    int barrierCount;
+};
+
 struct VKNoneCmd
 {};
 
@@ -313,7 +323,8 @@ enum class VKCmdType
     EndLabel,
     InsertLabel,
     AsyncReadback,
-    GraphicsBlit
+    GraphicsBlit,
+    ClearColorImage,
 };
 
 struct VKCmd
@@ -352,7 +363,8 @@ struct VKCmd
         VKEndLabelCmd,
         VKInsertLabelCmd,
         VKAsyncReadbackCmd,
-        VKGraphicsBlitCmd>
+        VKGraphicsBlitCmd,
+        VKClearColorImageCmd>
         args;
 };
 
@@ -376,6 +388,7 @@ public:
     void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
     void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;
+    void ClearColorImage(Image* image, const ClearColor& color) override;
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
     void GraphicsBlit(const RG::ImageIdentifier& from, const RG::ImageIdentifier& to) override;
@@ -383,14 +396,16 @@ public:
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
     void BindResource(uint32_t set, Gfx::ShaderResource* resource) override;
-    void BindVertexBuffer(std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex)
-        override;
+    void BindVertexBuffer(
+        std::span<const VertexBufferBinding> vertexBufferBindings, uint32_t firstBindingIndex
+    ) override;
     void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) override;
     void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) override;
 
     void SetViewport(const Viewport& viewport) override;
-    void CopyImageToBuffer(RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions)
-        override;
+    void CopyImageToBuffer(
+        RefPtr<Gfx::Image> src, RefPtr<Gfx::Buffer> dst, std::span<BufferImageCopyRegion> regions
+    ) override;
     void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) override;
     void SetScissor(uint32_t firstScissor, uint32_t scissorCount, Rect2D* rect) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
@@ -398,10 +413,12 @@ public:
     void NextRenderPass() override;
     void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) override;
 
-    void CopyBuffer(RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions)
-        override;
-    void CopyBufferToImage(RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions)
-        override;
+    void CopyBuffer(
+        RefPtr<Gfx::Buffer> bSrc, RefPtr<Gfx::Buffer> bDst, std::span<BufferCopyRegion> copyRegions
+    ) override;
+    void CopyBufferToImage(
+        RefPtr<Gfx::Buffer> src, RefPtr<Gfx::Image> dst, std::span<BufferImageCopyRegion> regions
+    ) override;
     void Begin() override {}
     void End() override {}
 

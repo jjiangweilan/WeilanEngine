@@ -66,7 +66,7 @@
 #define FADE_OUT_SAMPLES 8 // Number of samples that will fade out at the end of the shadow (for a minor cost).
 //													// Recommended starting value: 8
 
-#define USE_HALF_PIXEL_OFFSET 1
+#define USE_HALF_PIXEL_OFFSET 0
 // Apply a 0.5 texel offset when sampling a texture. Toggle this macro if the output shadow has odd, regular
 // grid-like artefacts.
 
@@ -139,15 +139,15 @@ struct DispatchParameters
     // Set sensible starting tuning values
     __init(ContactShadowParameters params, int2 waveOffset)
     {
-        SurfaceThickness = params.thickness;
+        SurfaceThickness = 0.005;
         BilinearThreshold = 0.02;
         ShadowContrast = 4;
         IgnoreEdgePixels = false;
         UsePrecisionOffset = false;
         BilinearSamplingOffsetMode = false;
         DebugOutputEdgeMask = false;
-        DebugOutputThreadIndex = false;
-        DebugOutputWaveIndex = true;
+        DebugOutputThreadIndex = true;
+        DebugOutputWaveIndex = false;
         DepthBounds = float2(0, 1);
         UseEarlyOut = false;
 
