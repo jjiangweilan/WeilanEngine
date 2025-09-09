@@ -124,6 +124,7 @@ enum class GfxFormat
     B10G11R11_UFloat_Pack32,
     A2B10G10R10_UNorm,
     R8_UNorm,
+    R8_UInt,
     Invalid
 };
 

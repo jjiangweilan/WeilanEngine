@@ -729,8 +729,10 @@ public:
                     vertexAttribute.format = MapSlangFormat(strView);
                     if (vertexAttribute.format == Gfx::GfxFormat::Invalid)
                     {
-                        spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
-                                     "R32G32B32A32_SFloat");
+                        spdlog::warn(
+                            "provided shader UnderlyingFormat type is not supported, fall back to "
+                            "R32G32B32A32_SFloat"
+                        );
                         vertexAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -797,8 +799,10 @@ public:
                     fragmentAttribute.format = MapSlangFormat(strView);
                     if (fragmentAttribute.format == Gfx::GfxFormat::Invalid)
                     {
-                        spdlog::warn("provided shader UnderlyingFormat type is not supported, fall back to "
-                                     "R32G32B32A32_SFloat");
+                        spdlog::warn(
+                            "provided shader UnderlyingFormat type is not supported, fall back to "
+                            "R32G32B32A32_SFloat"
+                        );
                         fragmentAttribute.format = Gfx::GfxFormat::R32G32B32A32_SFloat;
                     }
                 }
@@ -849,8 +853,8 @@ public:
             if (var->getCategory() == slang::ParameterCategory::PushConstantBuffer)
             {
                 Gfx::PipelineInfo::PushConstant pushConstant;
-                pushConstant.stages = Gfx::ShaderStage::Vertex |
-                                      Gfx::ShaderStage::Fragment; // https://github.com/shader-slang/slang/issues/5685
+                pushConstant.stages = Gfx::ShaderStage::Vertex | Gfx::ShaderStage::Fragment |
+                                      Gfx::ShaderStage::Compute; // https://github.com/shader-slang/slang/issues/5685
                 // push constant not supported to query yet
                 pushConstant.size = var->getTypeLayout()->getElementTypeLayout()->getSize();
                 outPipelineInfo.pushConstants.push_back(pushConstant);

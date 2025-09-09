@@ -73,13 +73,6 @@ void ContactShadowPass::Execute(
 
     cmd.BeginLabel("ContactShadow", {0.15f, 0.15f, 0.4f, 1.0f});
 
-    Gfx::ClearColor clear;
-    clear.float32[0] = 0.0f;
-    clear.float32[1] = 0.0f;
-    clear.float32[2] = 0.0f;
-    clear.float32[3] = 0.0f;
-    cmd.ClearColorImage(outputImage, clear);
-
     // For each dispatch configure push constants (WaveOffset + LightCoordinate)
     for (int i = 0; i < list.DispatchCount; ++i)
     {

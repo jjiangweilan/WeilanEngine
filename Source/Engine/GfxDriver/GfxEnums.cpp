@@ -211,6 +211,8 @@ const char* MapGfxFormatToString(GfxFormat format)
         return "R16G16B16_SFloat";
     else if (format == GfxFormat::R8_UNorm)
         return "R8_UNorm";
+    else if (format == GfxFormat::R8_UInt)
+        return "R8_UInt";
     else if (format == GfxFormat::R16_UNorm)
         return "R16_UNorm";
     return "Invalid";
@@ -233,6 +235,7 @@ uint32_t MapGfxFormatToByteSize(GfxFormat format)
         case GfxFormat::B8G8R8A8_SRGB: return 4;
         case GfxFormat::R8G8B8A8_SRGB: return 4;
         case GfxFormat::R8_UNorm: return 1;
+        case GfxFormat::R8_UInt: return 1;
         case GfxFormat::R8G8B8_SRGB: return 3;
         case GfxFormat::R8G8_SRGB: return 2;
         case GfxFormat::R8_SRGB: return 1;

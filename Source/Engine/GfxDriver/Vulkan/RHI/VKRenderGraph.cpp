@@ -1414,6 +1414,25 @@ void Graph::Execute(
                     {
                         PutBarrier(vkcmd, b);
                     }
+
+                    VkMemoryBarrier b{
+                        VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+                        VK_NULL_HANDLE,
+                        VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT,
+                        VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT
+                    };
+                    vkCmdPipelineBarrier(
+                        vkcmd,
+                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                        VK_DEPENDENCY_BY_REGION_BIT,
+                        1,
+                        &b,
+                        0,
+                        VK_NULL_HANDLE,
+                        0,
+                        VK_NULL_HANDLE
+                    );
                     vkCmdDispatch(vkcmd, args.groupCountX, args.groupCountY, args.groupCountZ);
                     break;
                 }

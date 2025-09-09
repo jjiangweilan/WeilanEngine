@@ -66,7 +66,7 @@
 #define FADE_OUT_SAMPLES 8 // Number of samples that will fade out at the end of the shadow (for a minor cost).
 //													// Recommended starting value: 8
 
-#define USE_HALF_PIXEL_OFFSET 0
+#define USE_HALF_PIXEL_OFFSET 1
 // Apply a 0.5 texel offset when sampling a texture. Toggle this macro if the output shadow has odd, regular
 // grid-like artefacts.
 
@@ -146,7 +146,7 @@ struct DispatchParameters
         UsePrecisionOffset = false;
         BilinearSamplingOffsetMode = false;
         DebugOutputEdgeMask = false;
-        DebugOutputThreadIndex = true;
+        DebugOutputThreadIndex = false;
         DebugOutputWaveIndex = false;
         DepthBounds = float2(0, 1);
         UseEarlyOut = false;
