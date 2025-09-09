@@ -159,7 +159,7 @@ struct DispatchParameters
 
         DepthTexture = params.DepthTexture;
         OutputTexture = params.OutputTexture;
-        PointBorderSampler = params.PointClampSampler;
+        PointBorderSampler = params.PointBorderSampler;
     }
 
     // Runtime data returned from BuildDispatchList():

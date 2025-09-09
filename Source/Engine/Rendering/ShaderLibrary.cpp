@@ -1453,7 +1453,7 @@ void ShaderLibrary::LoadSession()
 
     slang::CompilerOptionValue debugLevel{};
     debugLevel.kind = slang::CompilerOptionValueKind::Int;
-    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_MAXIMAL : 0;
+    debugLevel.intValue0 = debug ? SLANG_DEBUG_INFO_LEVEL_MAXIMAL : SLANG_DEBUG_INFO_LEVEL_NONE;
 
     slang::CompilerOptionValue debugFormat{};
     debugFormat.kind = slang::CompilerOptionValueKind::Int;

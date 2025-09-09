@@ -26,9 +26,12 @@ void ContactShadowPass::Execute(
         return;
 
     // Acquire view-projection
-    const float4x4& vp = renderingData.gpuCamera->viewProjection;
+    float4x4 p = renderingData.gpuCamera->projection;
+    float4x4 v = renderingData.gpuCamera->view;
+    p[1] = -p[1]; // Seems Bend's algorithm is expecting a left hand NDC space
+    const auto& vp = p * v;
 
-    float3 dir = mainLight->GetLightDirection(); // assumed normalized
+    float3 dir = -mainLight->GetLightDirection(); // assumed normalized
     float4 lightProj = vp * float4(dir, 0.0f);
 
     int viewport[2] = {(int)renderingData.gpuCamera->screenSize.x, (int)renderingData.gpuCamera->screenSize.y};
@@ -42,7 +45,7 @@ void ContactShadowPass::Execute(
 
     desc.SetWidth(viewport[0]);
     desc.SetHeight(viewport[1]);
-    desc.SetFormat(Gfx::GfxFormat::R8_UNorm);
+    desc.SetFormat(Gfx::GfxFormat::R32_SFloat);
     desc.SetRandomWrite(true);
     cmd.AllocateAttachment(outputId, desc);
 
@@ -71,10 +74,10 @@ void ContactShadowPass::Execute(
     cmd.BeginLabel("ContactShadow", {0.15f, 0.15f, 0.4f, 1.0f});
 
     Gfx::ClearColor clear;
-    clear.float32[0] = 1.0f;
-    clear.float32[1] = 1.0f;
-    clear.float32[2] = 1.0f;
-    clear.float32[3] = 1.0f;
+    clear.float32[0] = 0.0f;
+    clear.float32[1] = 0.0f;
+    clear.float32[2] = 0.0f;
+    clear.float32[3] = 0.0f;
     cmd.ClearColorImage(outputImage, clear);
 
     // For each dispatch configure push constants (WaveOffset + LightCoordinate)

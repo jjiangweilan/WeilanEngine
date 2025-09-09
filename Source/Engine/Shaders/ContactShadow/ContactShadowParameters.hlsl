@@ -11,9 +11,8 @@ struct ContactShadowParameters
 #if GPU_RESOURCE
     Texture2D<float> DepthTexture;
 
-    [[format("r8")]]
     RWTexture2D<float> OutputTexture;
-    SamplerState PointClampSampler;
+    SamplerState PointBorderSampler;
 #endif
 };
 
