@@ -1,4 +1,5 @@
 #include "ContactShadowPass.hpp"
+#include "Core/EngineInternalResources.hpp"
 #include "Shaders/ContactShadow/ContactShadowParameters.hlsl"
 
 namespace Rendering
@@ -10,20 +11,23 @@ ContactShadowPass::ContactShadowPass()
     mat.SetShader(shader);
 }
 
+const Gfx::RG::ImageIdentifier& ContactShadowPass::GetOutputId() const
+{
+    return outputID;
+}
+
 void ContactShadowPass::Execute(
     Gfx::CommandBuffer& cmd, RenderingData& renderingData, Light* mainLight, Gfx::Image* depthTex
 )
 {
-    if (!mainLight)
-        return;
+    valid = renderingData.renderPipelineSettings->contactShadow.enabled && mainLight && mainLight->GetLightType() == LightType::Directional;
 
-    auto* camera = renderingData.mainCamera;
-    if (!camera)
+    if (!valid)
+    {
+        outputID = *EngineInternalResources::GetWhiteTexture().GetGfxImage();
         return;
-
-    // Build light projection (directional only). If not directional, skip.
-    if (mainLight->GetLightType() != LightType::Directional)
-        return;
+    }
+    outputID = contactShadowMap;
 
     // Acquire view-projection
     float4x4 p = renderingData.gpuCamera->projection;
@@ -47,9 +51,9 @@ void ContactShadowPass::Execute(
     desc.SetHeight(viewport[1]);
     desc.SetFormat(Gfx::GfxFormat::R32_SFloat);
     desc.SetRandomWrite(true);
-    cmd.AllocateAttachment(outputId, desc);
+    cmd.AllocateAttachment(contactShadowMap, desc);
 
-    auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(outputId);
+    auto outputImage = GetGfxDriver()->GetImageFromRenderGraph(contactShadowMap);
     mat.SetTexture("DepthTexture", depthTex);
     mat.SetTexture("OutputTexture", outputImage);
     mat.SetVector(

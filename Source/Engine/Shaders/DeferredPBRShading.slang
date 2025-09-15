@@ -56,11 +56,13 @@ struct DeferredInput
     Sampler2D maskTex;
     Sampler2D depthTex;
     Texture2D shadowMap;
+    Texture2D contactShadowMap;
     SamplerCube diffuseCube;
     SamplerCube specularCube;
     Sampler2D specularBRDFIntegrationMap;
     Sampler2D ambientOcclusion;
     SamplerState sampler_point_clamp;
+    SamplerState sampler_linear_clamp;
     SamplerComparisonState samplerShadow_clamp;
 }
 
@@ -154,7 +156,12 @@ float4 FragmentMain(VertexOutput input) : SV_Target
     float3 color = float3(0, 0, 0);
     for (int i = 0; i < perScene.scene.lightCount; ++i)
     {
-        color += StandardLightShading(perScene.scene.lights[i], perScene.mainLightShadow, shadingObject, mainLightShadowData, gi);
+        color += StandardLightShading(
+        perMaterial.sampler_linear_clamp,
+        perMaterial.sampler_point_clamp,
+        input.uv,
+        perScene.scene.lights[i],
+        perScene.mainLightShadow, shadingObject, mainLightShadowData, gi, perMaterial.contactShadowMap);
     }
 
     color += shadingObject.baseColor.xyz * perScene.GetMainLight().ambientScale / M_PI * gi.ao;

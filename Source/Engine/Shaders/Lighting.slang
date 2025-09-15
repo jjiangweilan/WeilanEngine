@@ -156,7 +156,16 @@ float3 SpecularBRDF(float3 albedo, float3 l, float3 v, float3 n, float metallic,
     return brdf;
 }
 
-float3 StandardLightShading(Light light, MainLightShadow mainLightShadow, ShadingObject object, MainLightShadowData mainLightShadowData, GI gi)
+float3 StandardLightShading(
+        SamplerState linearClamp,
+        SamplerState pointClamp,
+        float2 screenUV,
+        Light light,
+        MainLightShadow mainLightShadow,
+        ShadingObject object,
+        MainLightShadowData mainLightShadowData,
+        GI gi,
+        Texture2D contactShadowMap)
 {
         float4 lightPos = light.position;
         float3 objPos = object.positionWS;
@@ -186,7 +195,7 @@ float3 StandardLightShading(Light light, MainLightShadow mainLightShadow, Shadin
         // diffuseColor = albedo.rgb * (1 - DIELECTRIC_SPECULAR) * (1.0 - metalness)
 
         // shadow mask
-        float shadowAttenuation = 1.0;
+        float mainLightShadowAttenuation = 1.0;
         if (lightPos.a == 0)
         {
             const float shadowBias = mainLightShadowData.shadowConstantBias;
@@ -205,9 +214,16 @@ float3 StandardLightShading(Light light, MainLightShadow mainLightShadow, Shadin
             float objShadowDepth = shadowCS.z - shadowBias;
             bool valid = all(float3(shadowUV, shadowCS.z) > 0) && all(float3(shadowUV, shadowCS.z) < 1);
             if (valid)
-                shadowAttenuation = PcfShadow(shadowUV, mainLightShadow.shadowMapSize.zw, objShadowDepth, mainLightShadowData.shadowMap, mainLightShadowData.shadowSampler);
+            {
+                mainLightShadowAttenuation = PcfShadow(shadowUV, mainLightShadow.shadowMapSize.zw, objShadowDepth, mainLightShadowData.shadowMap, mainLightShadowData.shadowSampler);
+            }
         }
 
-        float3 color = lighting * shadowAttenuation;
+        // Apply screen space shadow
+        float contactShadow = contactShadowMap.SampleLevel(linearClamp, screenUV, 0.0).x;
+
+        float shadowAttenuation = min(contactShadow, mainLightShadowAttenuation);
+
+        float3 color = lighting * contactShadow;
         return color;
 }

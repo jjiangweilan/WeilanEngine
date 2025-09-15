@@ -37,9 +37,18 @@ public:
 
     struct ContactShadow : Serializable
     {
+        bool enabled = true;
         float thickness = 0.005f;
-        void Serialize(Serializer* s) const override { SERIALIZE(s, thickness); }
-        void Deserialize(Serializer* s) override { DESERIALIZE(s, thickness); }
+        void Serialize(Serializer* s) const override
+        {
+            SERIALIZE(s, enabled);
+            SERIALIZE(s, thickness);
+        }
+        void Deserialize(Serializer* s) override
+        {
+            DESERIALIZE(s, enabled);
+            DESERIALIZE(s, thickness);
+        }
     } contactShadow;
 
     struct DebugDraw : Serializable

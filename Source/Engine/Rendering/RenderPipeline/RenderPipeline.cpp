@@ -181,6 +181,9 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         auto depthImage = GetGfxDriver()->GetImageFromRenderGraph(depthCopy);
         auto& depthImageView = depthImage->GetImageView({Gfx::ImageAspect::Depth});
 
+        auto contactShadowMap = contactShadowPass.GetOutputId();
+
+        shadingPass.gpuResource->SetImage("contactShadowMap"_shaderBinding, contactShadowMap);
         shadingPass.gpuResource->SetImage("albedoTex"_shaderBinding, albedoGBuffer);
         shadingPass.gpuResource->SetImage("normalTex"_shaderBinding, normalGBuffer);
         shadingPass.gpuResource->SetImage("maskTex"_shaderBinding, maskGBuffer);
@@ -632,8 +635,6 @@ const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
     {
         finalColor = debugImage;
     }
-
-    finalColor = contactShadowPass.GetOutputId();
 
     return finalColor;
 }

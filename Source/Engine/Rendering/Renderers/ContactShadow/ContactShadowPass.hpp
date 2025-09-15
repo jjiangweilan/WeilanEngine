@@ -14,15 +14,17 @@ class ContactShadowPass
 public:
     ContactShadowPass();
 
-    const Gfx::RG::ImageIdentifier& GetOutputId() const { return outputId; }
+    const Gfx::RG::ImageIdentifier& GetOutputId() const;
 
     void Execute(Gfx::CommandBuffer& cmd, RenderingData& renderingData, Light* mainLight, Gfx::Image* depthTex);
 
 private:
     ObjPtr<Shader2> shader;
-    Gfx::RG::ImageIdentifier outputId = "ContactShadow";
+    Gfx::RG::ImageIdentifier outputID;
+    Gfx::RG::ImageIdentifier contactShadowMap = "ContactShadow";
     Gfx::RG::ImageDescription desc;
     Material mat;
+    bool valid = false;
 
     Material* RequestMaterial(int idx);
 };

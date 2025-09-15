@@ -22,7 +22,8 @@ EngineInternalResources::EngineInternalResources()
         (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/HalfSphere.fbx")))->GetMeshes()[0].get();
     models.cylinder =
         (static_cast<Model*>(db->LoadAsset("_engine_internal/Models/Cylinder.fbx")))->GetMeshes()[0].get();
-    blackTexture = static_cast<Texture*>(db->LoadAsset("_engine_internal/Textures/black.ktx"));
+    blackTexture = static_cast<Texture*>(db->LoadAsset("_engine_internal/Textures/black.png"));
+    whiteTexture = static_cast<Texture*>(db->LoadAsset("_engine_internal/Textures/white.png"));
 }
 
 EngineInternalResources& EngineInternalResources::GetSingleton()

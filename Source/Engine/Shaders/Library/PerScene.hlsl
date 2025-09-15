@@ -42,9 +42,6 @@ struct Scene
     float lightCount;
     float time;
     Light lights[MAX_LIGHT_COUNT];
-#if GPU_RESOURCE
-    TextureCube headTopReflectionProbe;
-#endif
 };
 
 struct PerScene

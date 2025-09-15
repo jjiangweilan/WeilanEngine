@@ -347,9 +347,20 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 if (resRef.IsImageView())
                                     imageView = (VKImageView*)resRef.GetRef();
                                 else if (resRef.IsValidRef())
-                                    imageView =
-                                        static_cast<VKImageView*>(&graph->GetImage(resRef.GetID().GetAsUUID())
-                                                                       ->GetDefaultImageViewForShaderResource());
+                                {
+                                    auto& imageIdentifier = resRef.GetID();
+                                    if (imageIdentifier.GetType() == Gfx::RG::ImageIdentifier::Type::Image)
+                                    {
+                                        imageView = static_cast<VKImageView*>(&imageIdentifier.GetAsImage()->GetDefaultImageView());
+                                    }
+                                    else
+                                    {
+                                        imageView =
+                                            static_cast<VKImageView*>(&graph->GetImage(resRef.GetID().GetAsUUID())
+                                                ->GetDefaultImageViewForShaderResource());
+                                    }
+                                }
+
                                 if (b.textureType == TextureType::Tex2D || b.textureType == TextureType::Tex3D)
                                 {
                                     VkDescriptorImageInfo& imageInfo = imageInfos[imageWriteIndex++];
