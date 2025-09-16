@@ -5,8 +5,8 @@
 
 DEFINE_OBJECT(ReflectionProbe, "E93609AC-6D6C-4F13-9538-CD63E2D58567")
 
-ReflectionProbe::ReflectionProbe() : Component(nullptr) {}
-ReflectionProbe::ReflectionProbe(GameObject* go) : Component(go) {}
+ReflectionProbe::ReflectionProbe() : RenderingComponent() {}
+ReflectionProbe::ReflectionProbe(GameObject* go) : RenderingComponent(go) {}
 ReflectionProbe::~ReflectionProbe() {}
 const std::string& ReflectionProbe::GetName()
 {
@@ -16,6 +16,8 @@ const std::string& ReflectionProbe::GetName()
 
 void ReflectionProbe::OnEnable()
 {
+    RenderingComponent::OnEnable();
+
     auto scene = GetScene();
     if (scene)
     {
@@ -27,6 +29,8 @@ void ReflectionProbe::OnEnable()
 
 void ReflectionProbe::OnDisable()
 {
+    RenderingComponent::OnDisable();
+
     auto scene = GetScene();
     if (scene)
     {

@@ -1,8 +1,9 @@
 #pragma once
-#include "Core/Component/Component.hpp"
+#include "Core/Component/RenderingComponent.hpp"
 #include "Core/Math/Geometry.hpp"
+#include "Core/Scene/RenderingObject.hpp"
 
-class ReflectionProbe : public Component
+class ReflectionProbe : public RenderingComponent<ReflectionProbe>
 {
     DECLARE_OBJECT();
 

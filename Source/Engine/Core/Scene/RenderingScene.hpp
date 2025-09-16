@@ -1,9 +1,11 @@
 #pragma once
 #include "Core/Ptr.hpp"
+#include "Core/Scene/RenderingObject.hpp"
 #include "GfxDriver/CommandBuffer.hpp"
 #include "Libs/Math.hpp"
 #include "Rendering/RenderingData.hpp"
 #include "Rendering/Structs.hpp"
+#include "RenderingObjectList.hpp"
 
 #include "Libs/DynamicArray.hpp"
 #include <algorithm>
@@ -79,6 +81,21 @@ public:
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
+    RenderingObjectList::ObjectList GetRenderingObjects(uint32_t typeID)
+    {
+        return renderingObjects.GetRenderingObjects(typeID);
+    }
+
+    RenderingObjectList::ObjectIndex AddRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)
+    {
+        return renderingObjects.AddToList(objectTypeID, object);
+    }
+
+    void RemoveRenderingObject(uint32_t objectTypeID, RenderingObjectList::ObjectIndex index)
+    {
+        renderingObjects.RemoveFromList(objectTypeID, index);
+    }
+
     std::vector<MeshRenderer*> QueryRendererInFrustum(const Frustum& frustum)
     {
         return rendererNodeHierarchy.QueryRendererInFrustum(frustum);
@@ -148,6 +165,7 @@ public:
 
 private:
     Scene* scene;
+    RenderingObjectList renderingObjects;
 
     template <class T>
     void AddSpecialObject(T& obj, std::vector<T*>& addTo)
