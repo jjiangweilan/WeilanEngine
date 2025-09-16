@@ -184,7 +184,6 @@ private:
         }
     }
 
-    std::vector<ReflectionProbe*> reflectionProbes;
     std::vector<ParticleSystem*> particleSystems;
     std::vector<MeshRenderer*> meshRenderers;
     std::vector<GrassSurface*> grassSurfaces;
