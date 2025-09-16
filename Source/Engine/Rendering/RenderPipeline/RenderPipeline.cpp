@@ -1,6 +1,7 @@
 #include "RenderPipeline.hpp"
 #include "AssetDatabase/AssetDatabase.hpp"
 #include "Core/Component/ParticleSystem.hpp"
+#include "Core/Component/ReflectionProbe.hpp"
 #include "Core/Component/SceneEnvironment.hpp"
 #include "Core/Scene/Scene.hpp"
 #include "Core/Texture.hpp"
@@ -77,10 +78,11 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
 
     // Reflection Probe Updateo
 
-    auto reflectionProbes = renderingScene.GetReflectionProbes();
-    for (auto r : reflectionProbes)
+    auto reflectionProbes = renderingScene.GetRenderingObjects<ReflectionProbe>();
+    for (RenderingObjectBase* r : reflectionProbes)
     {
-        reflectionProbeUpdate->Execute(*cmd, renderingData, *r);
+        ReflectionProbe* reflectionProbe = static_cast<ReflectionProbe*>(r);
+        reflectionProbeUpdate->Execute(*cmd, renderingData, *reflectionProbe);
     }
 
     cmd->BindResource(0, perScene.globalResource.get());

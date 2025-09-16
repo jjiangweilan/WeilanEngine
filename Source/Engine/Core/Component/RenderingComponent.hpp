@@ -17,7 +17,7 @@ private:
 };
 
 template <class T>
-class RenderingComponent : public RenderingComponentBase, RenderingObject<T>
+class RenderingComponent : public RenderingComponentBase, public RenderingObject<T>
 {
 public:
     RenderingComponent() : RenderingComponentBase(nullptr) {}

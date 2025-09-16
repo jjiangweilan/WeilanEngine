@@ -18,7 +18,6 @@ class Terrain;
 class GrassSurface;
 class Cloud;
 class ParticleSystem;
-class ReflectionProbe;
 
 #define RENDERING_SCENE_OBJECT_API(Type, name, container)                                                              \
     void AddRenderObject(Type& name)                                                                                   \
@@ -81,9 +80,11 @@ public:
     RenderingScene(const RenderingScene& other) = delete;
     RenderingScene(RenderingScene&& other) = delete;
 
-    RenderingObjectList::ObjectList GetRenderingObjects(uint32_t typeID)
+    template <class T>
+        requires std::derived_from<T, RenderingObject<T>>
+    RenderingObjectList::ObjectList GetRenderingObjects()
     {
-        return renderingObjects.GetRenderingObjects(typeID);
+        return renderingObjects.GetRenderingObjects(RenderingObject<T>::renderObjectTypeID);
     }
 
     RenderingObjectList::ObjectIndex AddRenderingObject(uint32_t objectTypeID, RenderingObjectBase* object)
@@ -138,7 +139,6 @@ public:
     RENDERING_SCENE_OBJECT_API(Cloud, cloud, clouds);
     RENDERING_SCENE_OBJECT_API(GrassSurface, grassSurface, grassSurfaces);
     RENDERING_SCENE_OBJECT_API(ParticleSystem, particleSystem, particleSystems);
-    RENDERING_SCENE_OBJECT_API(ReflectionProbe, reflectionProbe, reflectionProbes);
 
     void AddRenderer(MeshRenderer& renderingObject)
     {

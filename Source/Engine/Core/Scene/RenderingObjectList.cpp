@@ -28,3 +28,14 @@ void RenderingObjectList::RemoveFromList(uint32_t objectTypeID, ObjectIndex obje
 
     renderingObjects[objectTypeID]->pop_back();
 }
+
+RenderingObjectList::ObjectList RenderingObjectList::GetRenderingObjects(uint32_t typeID)
+{
+    if (typeID >= renderingObjects.size())
+    {
+        static std::vector<RenderingObjectBase*> empty{};
+        return empty;
+    }
+
+    return *renderingObjects[typeID];
+}

@@ -15,7 +15,7 @@ public:
     ObjectIndex AddToList(uint32_t objectTypeID, RenderingObjectBase* object);
     void RemoveFromList(uint32_t objectTypeID, ObjectIndex object);
 
-    ObjectList GetRenderingObjects(uint32_t typeID) { return *renderingObjects[typeID]; }
+    ObjectList GetRenderingObjects(uint32_t typeID);
 
 private:
     std::vector<std::unique_ptr<std::vector<RenderingObjectBase*>>> renderingObjects;

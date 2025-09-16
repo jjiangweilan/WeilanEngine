@@ -18,24 +18,12 @@ void ReflectionProbe::OnEnable()
 {
     RenderingComponent::OnEnable();
 
-    auto scene = GetScene();
-    if (scene)
-    {
-        scene->GetRenderingScene().AddRenderObject(*this);
-    }
-
     UpdateFrustums(GetGameObject()->GetPosition());
 }
 
 void ReflectionProbe::OnDisable()
 {
     RenderingComponent::OnDisable();
-
-    auto scene = GetScene();
-    if (scene)
-    {
-        scene->GetRenderingScene().RemoveRenderObject(*this);
-    }
 }
 
 void ReflectionProbe::OnInit()
