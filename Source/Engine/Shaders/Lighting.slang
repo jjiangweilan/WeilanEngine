@@ -224,6 +224,6 @@ float3 StandardLightShading(
 
         float shadowAttenuation = min(contactShadow, mainLightShadowAttenuation);
 
-        float3 color = lighting * contactShadow;
+        float3 color = lighting * shadowAttenuation;
         return color;
 }
