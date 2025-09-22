@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Asset.hpp"
+#include "Libs/PodVector.hpp"
 #include "Libs/Serialization/Serializer.hpp"
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -9,11 +10,13 @@ class ImportDatabase
 {
 public:
     void Init(const std::filesystem::path& importDatabaseRoot) { this->importDatabaseRoot = importDatabaseRoot; }
-    std::vector<uint8_t> ReadFile(const std::string& filename);
+    PodVector<uint8_t> ReadFile(const std::string& filename);
 
     std::filesystem::path GetImportAssetPath(const std::string& filename);
 
 private:
+    const size_t streamBufSize = 1024 * 1024;
+    PodVector<char> streamBuf = PodVector<char>(streamBufSize);
     std::filesystem::path importDatabaseRoot;
 };
 
@@ -91,7 +94,7 @@ private:
 
 #define DECLARE_ASSET_LOADER()                                                                                         \
 public:                                                                                                                \
-    static const std::vector<std::string>& StaticGetExtensions();                                                     \
+    static const std::vector<std::string>& StaticGetExtensions();                                                      \
                                                                                                                        \
 private:                                                                                                               \
     static char _register;
@@ -102,8 +105,8 @@ private:                                                                        
         []() { return std::unique_ptr<AssetLoader>(new Type()); },                                                     \
         Type::GetImportTypes()                                                                                         \
     );                                                                                                                 \
-    const std::vector<std::string>& Type::StaticGetExtensions()                                                       \
+    const std::vector<std::string>& Type::StaticGetExtensions()                                                        \
     {                                                                                                                  \
-        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                              \
+        static std::vector<std::string> extensions = GenerateExtensions(Extension, ',');                               \
         return extensions;                                                                                             \
     }
