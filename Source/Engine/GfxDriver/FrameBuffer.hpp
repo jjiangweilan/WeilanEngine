@@ -3,7 +3,7 @@
 #include "Libs/DynamicArray.hpp"
 namespace Gfx
 {
-class RenderPass;
+class RenderPass_Deprecated;
 class Image;
 class FrameBuffer
 {

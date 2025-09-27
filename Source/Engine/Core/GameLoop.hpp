@@ -24,8 +24,8 @@ public:
     // mode?), currently I just use it to pass some information about the screen (size)
     const void Tick(
         float2 screenSize,
-        const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
-        const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage,
+        const Gfx::ImageIdentifier*& outGraphOutputImage,
+        const Gfx::ImageIdentifier*& outGraphOutputDepthImage,
         bool offscreen
     );
 

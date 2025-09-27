@@ -55,8 +55,8 @@ void SceneEditor::Init(EditorContext* editorContext)
     editorFinalColorBlitMaterial = std::make_unique<Material>();
     editorFinalColorBlitMaterial->SetShader(editorFinalColorBlitShader);
 
-    Gfx::RG::SubpassAttachment color = {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
-    Gfx::RG::SubpassAttachment colorVec[] = {color};
+    Gfx::SubpassAttachment color = {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
+    Gfx::SubpassAttachment colorVec[] = {color};
     editorFinalColorBlitPass.SetSubpass(0, colorVec);
 
     // setup camera state
@@ -251,7 +251,7 @@ void SceneEditor::Render(Gfx::CommandBuffer& cmd)
     bool hasGameObjectSelected = false;
     // selection outline src pass
     {
-        Gfx::RG::RenderImageDescriptor desc{
+        Gfx::RenderImageDescriptor desc{
             sceneImage->GetDescription().width,
             sceneImage->GetDescription().height,
             sceneImage->GetDescription().format

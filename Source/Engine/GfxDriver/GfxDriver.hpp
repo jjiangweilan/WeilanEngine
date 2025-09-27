@@ -92,8 +92,8 @@ public:
     virtual std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) = 0;
     virtual std::unique_ptr<ShaderResource> CreateShaderResource() = 0;
-    virtual std::unique_ptr<RenderPass> CreateRenderPass() = 0;
-    virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) = 0;
+    virtual std::unique_ptr<RenderPass_Deprecated> CreateRenderPass() = 0;
+    virtual std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass_Deprecated> renderPass) = 0;
     virtual std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) = 0;
     virtual std::unique_ptr<ShaderProgram> CreateShaderProgram(PipelineCreateInfo& createInfo) = 0;
 
@@ -124,7 +124,7 @@ public:
     virtual void UploadBuffer(Gfx::Buffer& dst, uint8_t* data, size_t size, size_t dstOffset = 0) = 0;
 
     // use this with caution, the image may be destroyed and recreated everyframe for the same id
-    virtual Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) = 0;
+    virtual Gfx::Image* GetImageFromRenderGraph(const Gfx::ImageIdentifier& id) = 0;
 
     virtual void UploadImage(
         Gfx::Image& dst,

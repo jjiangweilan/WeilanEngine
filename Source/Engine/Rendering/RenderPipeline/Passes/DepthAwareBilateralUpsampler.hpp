@@ -20,10 +20,10 @@ public:
     DepthAwareBilateralUpsampler();
 
     void Setup(
-        const Gfx::RG::ImageIdentifier& lowResColor,
-        const Gfx::RG::ImageIdentifier& lowResDepth,
-        const Gfx::RG::ImageIdentifier& highResDepth,
-        const Gfx::RG::ImageIdentifier& destination,
+        const Gfx::ImageIdentifier& lowResColor,
+        const Gfx::ImageIdentifier& lowResDepth,
+        const Gfx::ImageIdentifier& highResDepth,
+        const Gfx::ImageIdentifier& destination,
         const GPUInput& gpuInput
     );
 
@@ -34,10 +34,10 @@ private:
 
     Material resource;
 
-    Gfx::RG::ImageIdentifier lowResColor;
-    Gfx::RG::ImageIdentifier lowResDepth;
-    Gfx::RG::ImageIdentifier highResDepth;
-    Gfx::RG::ImageIdentifier destination;
+    Gfx::ImageIdentifier lowResColor;
+    Gfx::ImageIdentifier lowResDepth;
+    Gfx::ImageIdentifier highResDepth;
+    Gfx::ImageIdentifier destination;
     GPUInput gpuInput{};
 };
 } // namespace Rendering::Passes

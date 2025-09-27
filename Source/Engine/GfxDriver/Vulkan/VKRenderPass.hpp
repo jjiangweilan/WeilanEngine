@@ -10,13 +10,13 @@ namespace Gfx
 {
 class VKContext;
 class VKImage;
-struct Subpass
+struct VKSubpass
 {
-    Subpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) : colors(colors), depth(depth) {}
+    VKSubpass(const std::vector<Attachment>& colors, std::optional<Attachment> depth) : colors(colors), depth(depth) {}
     std::vector<Attachment> colors;
     std::optional<Attachment> depth;
 };
-class VKRenderPass : public RenderPass
+class VKRenderPass : public RenderPass_Deprecated
 {
     DECLARE_OBJECT();
 
@@ -35,7 +35,7 @@ public:
     VkRenderPass GetHandle();
     Extent2D GetExtent();
 
-    const std::vector<Subpass>& GetSubpesses() { return subpasses; }
+    const std::vector<VKSubpass>& GetSubpesses() { return subpasses; }
 
 protected:
     void CreateRenderPass();
@@ -49,6 +49,6 @@ protected:
     VKSwapChainImage* swapChainProxy = nullptr;
     UUID swapChainProxyUUIDCopy;
     Extent2D extent = {0, 0};
-    std::vector<Subpass> subpasses;
+    std::vector<VKSubpass> subpasses;
 };
 } // namespace Gfx

@@ -5,7 +5,7 @@
 
 namespace Rendering
 {
-void RenderingUtils::DynamicScaleImageDescription(Gfx::RG::RenderImageDescriptor& desc, const glm::vec2& scale)
+void RenderingUtils::DynamicScaleImageDescription(Gfx::RenderImageDescriptor& desc, const glm::vec2& scale)
 {
     const auto& baseSize = glm::vec2{desc.GetWidth(), desc.GetHeight()};
     if (scale.x == 0)

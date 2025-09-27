@@ -96,8 +96,8 @@ void GameView::Init()
     editorFinalColorBlitMaterial = std::make_unique<Material>();
     editorFinalColorBlitMaterial->SetShader(editorFinalColorBlitShader);
 
-    Gfx::RG::SubpassAttachment color = {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
-    Gfx::RG::SubpassAttachment colorVec[] = {color};
+    Gfx::SubpassAttachment color = {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
+    Gfx::SubpassAttachment colorVec[] = {color};
     editorFinalColorBlitPass.SetSubpass(0, colorVec);
 
     outlineRawColorPassShader = ShaderLibrary::GetShader(ShaderLibrary::PostProcess_OutlineRawColorPass);
@@ -119,7 +119,7 @@ void GameView::CreateRenderData(uint32_t width, uint32_t height)
 }
 
 void GameView::Render(
-    Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage, const Gfx::RG::ImageIdentifier* gameDepthImage
+    Gfx::CommandBuffer& cmd, const Gfx::ImageIdentifier* gameImage, const Gfx::ImageIdentifier* gameDepthImage
 )
 {
     glm::float4 renderPassLabelColor{0.4, 0.5, 0.13, 1.0};

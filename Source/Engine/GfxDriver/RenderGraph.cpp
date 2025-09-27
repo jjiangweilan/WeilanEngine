@@ -1,21 +1,21 @@
 #include "RenderGraph.hpp"
 #include "GfxDriver/RenderGraph.hpp"
 
-Gfx::RG::ImageIdentifier Gfx::RG::ImageIdentifier::CreateEmpty()
+Gfx::ImageIdentifier Gfx::ImageIdentifier::CreateEmpty()
 {
-    Gfx::RG::ImageIdentifier id;
+    Gfx::ImageIdentifier id;
     id.image = nullptr;
     id.type = Type::None;
     id.rtHandle = UUID::GetEmptyUUID();
     return id;
 }
-const Gfx::RG::ImageIdentifier& Gfx::RG::ImageIdentifier::GetEmpty()
+const Gfx::ImageIdentifier& Gfx::ImageIdentifier::GetEmpty()
 {
     static ImageIdentifier empty = CreateEmpty();
     return empty;
 }
 
-bool Gfx::RG::RenderPass::IsValidForRendering() const
+bool Gfx::RenderPass::IsValidForRendering() const
 {
     for (auto& subpass : subpasses)
     {

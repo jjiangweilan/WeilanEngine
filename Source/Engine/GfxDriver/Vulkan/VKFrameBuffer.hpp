@@ -9,7 +9,7 @@ class VKImage;
 class VKFrameBuffer : public FrameBuffer
 {
 public:
-    VKFrameBuffer(RefPtr<RenderPass> baseRenderPass);
+    VKFrameBuffer(RefPtr<RenderPass_Deprecated> baseRenderPass);
     VKFrameBuffer(const VKFrameBuffer& other) = delete;
     ~VKFrameBuffer() override;
 

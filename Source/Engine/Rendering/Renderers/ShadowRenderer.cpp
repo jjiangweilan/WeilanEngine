@@ -7,11 +7,11 @@ namespace Rendering
 {
 void ShadowRenderer::Init()
 {
-    pass = Gfx::RG::RenderPass(1, 1);
+    pass = Gfx::RenderPass(1, 1);
     pass.SetSubpass(
         0,
         {},
-        Gfx::RG::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
+        Gfx::SubpassAttachment{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
     );
     pass.SetName("ShadowMap pass");
     shadowMapShader = ShaderLibrary::GetShader(ShaderLibrary::ShadowMapObject);

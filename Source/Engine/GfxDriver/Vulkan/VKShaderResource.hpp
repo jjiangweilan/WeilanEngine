@@ -64,7 +64,7 @@ public:
     // Note: don't bind swapchain image, we didn't handle it (it's actually multiple images)
     void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* image) override;
     void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) override;
-    void SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId) override;
+    void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) override;
     void Remove(ShaderBindingHandle handle) override;
     void Clear() override;
     void RebuildAll() override;
@@ -103,9 +103,9 @@ protected:
 
         bool IsImageView() const { return type == ShaderBindingType::ImageView; }
 
-        const Gfx::RG::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::RG::ImageIdentifier>(res) : Gfx::RG::ImageIdentifier::GetEmpty(); }
+        const Gfx::ImageIdentifier& GetID() const { return res.index() == 2 ? std::get<Gfx::ImageIdentifier>(res) : Gfx::ImageIdentifier::GetEmpty(); }
 
-        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::RG::ImageIdentifier> res = ObjPtr<ImageView>(nullptr);
+        std::variant<ObjPtr<ImageView>, ObjPtr<Buffer>, Gfx::ImageIdentifier> res = ObjPtr<ImageView>(nullptr);
         ShaderBindingType type = ShaderBindingType::None;
     };
 

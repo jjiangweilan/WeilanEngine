@@ -33,7 +33,7 @@ public:
     {
         SetImage(handle, 0, imageView);
     }
-    void SetImage(ShaderBindingHandle handle, const Gfx::RG::ImageIdentifier& imageId)
+    void SetImage(ShaderBindingHandle handle, const Gfx::ImageIdentifier& imageId)
     {
         SetImage(handle, 0, imageId);
     }
@@ -43,7 +43,7 @@ public:
     virtual void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::Image* buffer) = 0;
     virtual void SetImage(ShaderBindingHandle handle, int index, Gfx::ImageView* imageView) = 0;
-    virtual void SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId) = 0;
+    virtual void SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId) = 0;
     virtual void RebuildAll() = 0;
     virtual void Clear() = 0;
 

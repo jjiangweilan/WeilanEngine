@@ -25,8 +25,8 @@ public:
 
     void Render(
         Gfx::CommandBuffer& cmd,
-        const Gfx::RG::ImageIdentifier* gameImage,
-        const Gfx::RG::ImageIdentifier* gameDepthImage
+        const Gfx::ImageIdentifier* gameImage,
+        const Gfx::ImageIdentifier* gameDepthImage
     );
 
     Gfx::Image* GetGameScreenImage() { return sceneImage.get(); }
@@ -45,7 +45,7 @@ private:
     Gfx::Image* graphOutputImage = nullptr;
     bool isAltDown = false;
     bool visible = false;
-    Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
+    Gfx::RenderPass editorFinalColorBlitPass = Gfx::RenderPass(1, 1);
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
     bool isWindowFocused = false;
@@ -102,9 +102,9 @@ private:
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
-    Gfx::RG::ImageIdentifier outlineSrcRT;
-    Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
-    Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::Default(
+    Gfx::ImageIdentifier outlineSrcRT;
+    Gfx::RenderPass outlineSrcPass = Gfx::RenderPass::SingleColor();
+    Gfx::RenderPass gameImagePass = Gfx::RenderPass::Default(
         "gameImage pass",
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store,

@@ -10,9 +10,9 @@ SSAO::SSAO()
 
 void SSAO::Execute(
     Gfx::CommandBuffer* cmd,
-    const Gfx::RG::ImageIdentifier& halfResDepth,
-    const Gfx::RG::ImageIdentifier& fullResDepth,
-    const Gfx::RG::RenderImageDescriptor& fullResDepthDesc,
+    const Gfx::ImageIdentifier& halfResDepth,
+    const Gfx::ImageIdentifier& fullResDepth,
+    const Gfx::RenderImageDescriptor& fullResDepthDesc,
     RenderPipelineSetting* setting
 )
 {
@@ -26,8 +26,8 @@ void SSAO::Execute(
 
     // Create GPU resources
     Gfx::ClearValue clears[] = {{1.0f, 1.0f, 1.0f, 1.0f}};
-    Gfx::RG::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
-    Gfx::RG::RenderImageDescriptor fullDesc(
+    Gfx::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32_SFloat);
+    Gfx::RenderImageDescriptor fullDesc(
         fullResDepthDesc.GetWidth(),
         fullResDepthDesc.GetHeight(),
         Gfx::GfxFormat::R32_SFloat
@@ -38,7 +38,7 @@ void SSAO::Execute(
     if (setting->ssao.debug_showNormal)
     {
 
-        Gfx::RG::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32G32B32A32_SFloat);
+        Gfx::RenderImageDescriptor desc(rtSize.x, rtSize.y, Gfx::GfxFormat::R32G32B32A32_SFloat);
         desc.SetRandomWrite(true);
 
         cmd->AllocateAttachment(debugImage, desc);
@@ -58,7 +58,7 @@ void SSAO::Execute(
     if (useUpscaler)
         cmd->AllocateAttachment(ssaoDownSampled, desc);
     cmd->AllocateAttachment(ssao, fullDesc);
-    Gfx::RG::ImageIdentifier& ssaoSrc = useUpscaler ? ssaoDownSampled : ssao;
+    Gfx::ImageIdentifier& ssaoSrc = useUpscaler ? ssaoDownSampled : ssao;
 
     cmd->BeginLabel("SSAO", {0.3, 0.1, 0.5, 1.0});
     if (setting->ssao.enabled)
@@ -110,7 +110,7 @@ void SSAO::Execute(
     result = &ssao;
 }
 
-bool SSAO::DebugBlit(Gfx::RG::ImageIdentifier& dst)
+bool SSAO::DebugBlit(Gfx::ImageIdentifier& dst)
 {
     dst = debugImage;
     return needDebug;

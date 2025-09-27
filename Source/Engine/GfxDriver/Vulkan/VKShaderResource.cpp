@@ -74,7 +74,7 @@ void VKShaderResource::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buf
     }
 }
 
-void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, const Gfx::RG::ImageIdentifier& imageId)
+void VKShaderResource::SetImage(ShaderBindingHandle handle, int index, const Gfx::ImageIdentifier& imageId)
 {
     auto& binding = bindings[handle][index];
     if (binding.GetID() != imageId)
@@ -349,7 +349,7 @@ VkDescriptorSet VKShaderResource::GetDescriptorSet(
                                 else if (resRef.IsValidRef())
                                 {
                                     auto& imageIdentifier = resRef.GetID();
-                                    if (imageIdentifier.GetType() == Gfx::RG::ImageIdentifier::Type::Image)
+                                    if (imageIdentifier.GetType() == Gfx::ImageIdentifier::Type::Image)
                                     {
                                         imageView = static_cast<VKImageView*>(&imageIdentifier.GetAsImage()->GetDefaultImageView());
                                     }

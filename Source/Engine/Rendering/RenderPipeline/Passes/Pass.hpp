@@ -6,6 +6,6 @@ namespace Rendering::Passes
 {
 class RenderingModule
 {
-    virtual bool DebugBlit(Gfx::RG::ImageIdentifier& dst) { return false; }
+    virtual bool DebugBlit(Gfx::ImageIdentifier& dst) { return false; }
 };
 } // namespace Rendering::Passes

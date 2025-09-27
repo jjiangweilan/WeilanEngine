@@ -57,8 +57,8 @@ public:
     );
 
     VKImage* GetImage(const UUID& id);
-    VKImage* Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc);
-    VKRenderPass* Request(RG::RenderPass& renderPass);
+    VKImage* Request(const ImageIdentifier& id, RenderImageDescriptor& desc);
+    VKRenderPass* Request(RenderPass& renderPass);
 
 private:
     class ResourceAllocator;
@@ -157,8 +157,8 @@ private:
     void PreExecute(VKFramePrepareData& framePrepare);
 };
 
-VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);
+VKImage* ImageIdentifier_GetImage(const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);
 VKImageView* ImageIdentifier_GetImageView(
-    const Gfx::RG::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr
+    const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr
 );
 } // namespace Gfx

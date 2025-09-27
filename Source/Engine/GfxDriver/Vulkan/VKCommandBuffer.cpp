@@ -11,7 +11,7 @@
 namespace Gfx
 {
 
-void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues)
+void VKCommandBuffer::BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<Gfx::ClearValue> clearValues)
 {
     ASSERT(clearValues.size() <= 8);
 
@@ -306,10 +306,10 @@ void VKCommandBuffer::PresentImage(VKImage* image)
 }
 
 void VKCommandBuffer::SetTexture(
-    ShaderBindingHandle handle, int index, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
+    ShaderBindingHandle handle, int index, ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
 )
 {
-    if (id.GetType() == RG::ImageIdentifier::Type::Image)
+    if (id.GetType() == ImageIdentifier::Type::Image)
     {
         VKSetTextureCmd cmd{};
 
@@ -320,11 +320,11 @@ void VKCommandBuffer::SetTexture(
 
         cmds.push_back(VKCmd{VKCmdType::SetTexture, cmd});
     }
-    else if (id.GetType() == RG::ImageIdentifier::Type::ImageView)
+    else if (id.GetType() == ImageIdentifier::Type::ImageView)
     {
         ASSERT(false && "use Texture+imageViewOption");
     }
-    else if (id.GetType() == RG::ImageIdentifier::Type::Handle)
+    else if (id.GetType() == ImageIdentifier::Type::Handle)
     {
         auto image = graph->GetImage(id.GetAsUUID());
 
@@ -364,12 +364,12 @@ void VKCommandBuffer::SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buff
     cmds.push_back(VKCmd{VKCmdType::SetBuffer, cmd});
 }
 
-void VKCommandBuffer::AllocateAttachment(const RG::ImageIdentifier& id, RG::RenderImageDescriptor& desc)
+void VKCommandBuffer::AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc)
 {
     graph->Request(id, desc);
 }
 
-void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues)
+void VKCommandBuffer::BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues)
 {
     VKRGBeginRenderPassCmd cmd{};
 
@@ -389,34 +389,34 @@ void VKCommandBuffer::BeginRenderPass(RG::RenderPass& renderPass, std::span<Clea
     cmds.push_back(VKCmd{VKCmdType::RGBeginRenderPass, cmd});
 }
 
-void VKCommandBuffer::Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp)
+void VKCommandBuffer::Blit(ImageIdentifier src, ImageIdentifier dst, BlitOp blitOp)
 {
     VKBlitCmd cmd{};
 
     VKImage* from = nullptr;
     VKImage* to = nullptr;
-    if (src.GetType() == RG::ImageIdentifier::Type::Image)
+    if (src.GetType() == ImageIdentifier::Type::Image)
     {
         from = static_cast<VKImage*>(src.GetAsImage());
     }
-    else if (src.GetType() == RG::ImageIdentifier::Type::ImageView)
+    else if (src.GetType() == ImageIdentifier::Type::ImageView)
     {
         ASSERT(false && "not implemented");
     }
-    else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
+    else if (src.GetType() == ImageIdentifier::Type::Handle)
     {
         from = graph->GetImage(src.GetAsUUID());
     }
 
-    if (dst.GetType() == RG::ImageIdentifier::Type::Image)
+    if (dst.GetType() == ImageIdentifier::Type::Image)
     {
         to = static_cast<VKImage*>(dst.GetAsImage());
     }
-    else if (src.GetType() == RG::ImageIdentifier::Type::ImageView)
+    else if (src.GetType() == ImageIdentifier::Type::ImageView)
     {
         ASSERT(false && "not implemented");
     }
-    else if (src.GetType() == RG::ImageIdentifier::Type::Handle)
+    else if (src.GetType() == ImageIdentifier::Type::Handle)
     {
         to = graph->GetImage(dst.GetAsUUID());
     }
@@ -504,7 +504,7 @@ std::shared_ptr<AsyncReadbackHandle> VKCommandBuffer::AsyncReadback(Gfx::Buffer&
     return handle;
 }
 
-void VKCommandBuffer::GraphicsBlit(const RG::ImageIdentifier& from, const RG::ImageIdentifier& to)
+void VKCommandBuffer::GraphicsBlit(const ImageIdentifier& from, const ImageIdentifier& to)
 {
     VKGraphicsBlitCmd cmd{};
     cmd.from = from;

@@ -50,7 +50,7 @@ private:
     std::unique_ptr<Material> noiseGenerator = std::make_unique<Material>();
     std::unique_ptr<Material> highFrequencyNoiseGenerator = std::make_unique<Material>();
 
-    Gfx::RG::RenderPass debugRenderPass = Gfx::RG::RenderPass::SingleColor("a debug pass");
+    Gfx::RenderPass debugRenderPass = Gfx::RenderPass::SingleColor("a debug pass");
     inline static const char* cloudNoiseGeneratorShader =
         "Source/Engine/Modules/VolumetricCloud/Shaders/CloudNoiseGenerator";
 

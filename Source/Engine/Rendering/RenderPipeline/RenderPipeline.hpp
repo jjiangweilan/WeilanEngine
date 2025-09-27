@@ -47,7 +47,7 @@ public:
     void Render(Scene& scene, Camera& camera, glm::float2 screenSize);
     void RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 screenSize);
 
-    const Gfx::RG::ImageIdentifier& GetOutputColor();
+    const Gfx::ImageIdentifier& GetOutputColor();
     const auto& GetOutputDepth() { return mainDepth; }
     auto GetRenderPipelineSetting() const { return setting; }
     Gfx::ShaderResource* GetPerSceneGPUResource() const { return perScene.globalResource.get(); }
@@ -61,20 +61,20 @@ private:
 
     std::unique_ptr<Gfx::CommandBuffer> commandBuffer;
 
-    Gfx::RG::ImageIdentifier mainColor = "mainColor";
-    Gfx::RG::ImageIdentifier mainDepth = "mainDepth";
-    Gfx::RG::ImageIdentifier depthCopy = "depthCopy";
-    Gfx::RG::ImageIdentifier downSampledDepthCopy = "downSampledDepthCopy";
-    Gfx::RG::ImageIdentifier albedoGBuffer = "albedoGBuffer";
-    Gfx::RG::ImageIdentifier normalGBuffer = "normalGBuffer";
-    Gfx::RG::ImageIdentifier maskGBuffer = "maskGBuffer";
-    Gfx::RG::ImageIdentifier finalColor;
+    Gfx::ImageIdentifier mainColor = "mainColor";
+    Gfx::ImageIdentifier mainDepth = "mainDepth";
+    Gfx::ImageIdentifier depthCopy = "depthCopy";
+    Gfx::ImageIdentifier downSampledDepthCopy = "downSampledDepthCopy";
+    Gfx::ImageIdentifier albedoGBuffer = "albedoGBuffer";
+    Gfx::ImageIdentifier normalGBuffer = "normalGBuffer";
+    Gfx::ImageIdentifier maskGBuffer = "maskGBuffer";
+    Gfx::ImageIdentifier finalColor;
 
-    Gfx::RG::RenderImageDescriptor mainColorDescription;
-    Gfx::RG::RenderImageDescriptor mainDepthDescription;
-    Gfx::RG::RenderImageDescriptor albedoGBufferDescription;
-    Gfx::RG::RenderImageDescriptor normalGBufferDescription;
-    Gfx::RG::RenderImageDescriptor maskGBufferDescription;
+    Gfx::RenderImageDescriptor mainColorDescription;
+    Gfx::RenderImageDescriptor mainDepthDescription;
+    Gfx::RenderImageDescriptor albedoGBufferDescription;
+    Gfx::RenderImageDescriptor normalGBufferDescription;
+    Gfx::RenderImageDescriptor maskGBufferDescription;
 
     RenderConfig renderConfig;
 
@@ -100,20 +100,20 @@ private:
     struct GBufferPass
     {
         GBufferPass();
-        Gfx::RG::RenderPass pass;
+        Gfx::RenderPass pass;
     } gbufferPass{};
 
     struct ForwardPass
     {
         ForwardPass();
-        Gfx::RG::RenderPass pass;
+        Gfx::RenderPass pass;
     } forwardPass{};
 
     struct ShadingPass
     {
         ShadingPass();
 
-        Gfx::RG::RenderPass pass;
+        Gfx::RenderPass pass;
         GPUParameter::DeferredPBRShadingInput cpuParameter{};
         std::unique_ptr<Gfx::ShaderResource> gpuResource;
         std::unique_ptr<Gfx::Buffer> perMaterialBuffer;
@@ -138,8 +138,8 @@ private:
     struct ColorGradingPass
     {
         ColorGradingPass();
-        Gfx::RG::ImageIdentifier colorGradingId = Gfx::RG::ImageIdentifier("Color Grading");
-        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("Color Grading");
+        Gfx::ImageIdentifier colorGradingId = Gfx::ImageIdentifier("Color Grading");
+        Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("Color Grading");
         ObjPtr<Shader2> colorGradingShader;
         Material mat;
     } colorGradingPass;
@@ -152,13 +152,13 @@ private:
     {
         FXAAPass();
 
-        Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 1);
-        Gfx::RG::ImageIdentifier fxaaId = "FXAA";
+        Gfx::RenderPass pass = Gfx::RenderPass(1, 1);
+        Gfx::ImageIdentifier fxaaId = "FXAA";
         void Execute(
             Gfx::CommandBuffer& cmd,
             const glm::float4& sourceSize,
-            const Gfx::RG::ImageIdentifier& src,
-            const Gfx::RG::ImageIdentifier& dst
+            const Gfx::ImageIdentifier& src,
+            const Gfx::ImageIdentifier& dst
         );
 
         ObjPtr<Shader2> shader;
@@ -184,12 +184,12 @@ private:
     ObjPtr<RenderPipelineSetting> setting;
     RenderingData renderingData;
 
-    Gfx::RG::RenderPass skyboxOnlyPass = Gfx::RG::RenderPass(1, 1);
+    Gfx::RenderPass skyboxOnlyPass = Gfx::RenderPass(1, 1);
 
     bool FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize);
     void UpdateSceneInfo(Scene& scene, Camera& camera, float2 screenSize);
     void BlitToFinalColor(Gfx::CommandBuffer* cmd);
-    Gfx::RG::ImageIdentifier GetFinalColor();
+    Gfx::ImageIdentifier GetFinalColor();
     Gfx::CommandBuffer* GetCommandBuffer();
     bool IsCommandBufferOverriden();
 

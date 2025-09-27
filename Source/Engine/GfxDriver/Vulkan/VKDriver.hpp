@@ -70,8 +70,8 @@ public:
     std::unique_ptr<Buffer> CreateBuffer(const Buffer::CreateInfo& createInfo) override;
     std::unique_ptr<ShaderResource> CreateShaderResource() override;
     std::unique_ptr<ImageView> CreateImageView(const ImageView::CreateInfo& createInfo) override;
-    std::unique_ptr<RenderPass> CreateRenderPass() override;
-    std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass> renderPass) override;
+    std::unique_ptr<RenderPass_Deprecated> CreateRenderPass() override;
+    std::unique_ptr<FrameBuffer> CreateFrameBuffer(RefPtr<RenderPass_Deprecated> renderPass) override;
     std::unique_ptr<Image> CreateImage(const ImageDescription& description, ImageUsageFlags usages) override;
     Window* CreateExtraWindow(SDL_Window* window) override;
     void DestroyExtraWindow(Window* window) override;
@@ -115,7 +115,7 @@ public:
 
     void GenerateMipmaps(SRef<VKImage> image);
 
-    Gfx::Image* GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id) override;
+    Gfx::Image* GetImageFromRenderGraph(const Gfx::ImageIdentifier& id) override;
 
     void FlushPendingCommands() override;
 

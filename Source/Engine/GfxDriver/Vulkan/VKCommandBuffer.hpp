@@ -74,7 +74,7 @@ struct VKSetLineWidthCmd
 
 struct VKRGBeginRenderPassCmd
 {
-    RG::RenderPass renderPass;
+    RenderPass renderPass;
     VkClearValue clearValues[8];
     int clearValueCount;
 
@@ -252,7 +252,7 @@ struct VKInsertLabelCmd
 
 struct VKAllocateAttachmentCmd
 {
-    RG::ImageIdentifier* id;
+    ImageIdentifier* id;
     RenderImageDescriptor desc;
 };
 
@@ -269,8 +269,8 @@ struct VKAsyncReadbackCmd
 
 struct VKGraphicsBlitCmd
 {
-    RG::ImageIdentifier from;
-    RG::ImageIdentifier to;
+    ImageIdentifier from;
+    ImageIdentifier to;
 };
 
 struct VKClearColorImageCmd
@@ -383,12 +383,12 @@ public:
     ) override;
     void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
     void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
-    void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
+    void BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;
     void ClearColorImage(Image* image, const ClearColor& color) override;
 
     void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) override;
-    void GraphicsBlit(const RG::ImageIdentifier& from, const RG::ImageIdentifier& to) override;
+    void GraphicsBlit(const ImageIdentifier& from, const ImageIdentifier& to) override;
     // renderpass and framebuffer have to be compatible.
     // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/chap8.html#renderpass-compatibility
     // void BindResource(RefPtr<Gfx::ShaderResource> resource) override;
@@ -419,17 +419,17 @@ public:
     void Begin() override {}
     void End() override {}
 
-    void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp) override;
+    void Blit(ImageIdentifier src, ImageIdentifier dst, BlitOp blitOp) override;
     void SetTexture(
-        ShaderBindingHandle handle, int index, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
+        ShaderBindingHandle handle, int index, ImageIdentifier id, std::optional<ImageViewOption> imageViewOption
     ) override;
     void SetTexture(
         ShaderBindingHandle handle, int index, Gfx::Image& image, std::optional<ImageViewOption> imageViewOption
     ) override;
     void SetBuffer(ShaderBindingHandle handle, int index, Gfx::Buffer& buffer) override;
 
-    void AllocateAttachment(const RG::ImageIdentifier& id, RenderImageDescriptor& desc) override;
-    void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) override;
+    void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) override;
+    void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) override;
     void SetLineWidth(float lineWidth) override;
 
     void PresentImage(VKImage* image);

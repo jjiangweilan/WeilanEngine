@@ -21,8 +21,8 @@ public:
     float4x4 GetShadowToWorldMatrix(RenderingData& renderingData);
 
 private:
-    Gfx::RG::RenderPass pass = Gfx::RG::RenderPass(1, 1);
-    Gfx::RG::ImageIdentifier shadowMapId;
+    Gfx::RenderPass pass = Gfx::RenderPass(1, 1);
+    Gfx::ImageIdentifier shadowMapId;
     Gfx::ImageDescription shadowDescription;
     std::unique_ptr<Gfx::Image> shadowMap;
     ObjPtr<Shader2> shadowMapShader;

@@ -528,8 +528,8 @@ void GameEditor::Start()
             // update gameloop
             auto gameScreenImage = gameView->GetGameScreenImage();
             auto screenSize = gameScreenImage->GetDescription().GetSize();
-            const Gfx::RG::ImageIdentifier* gameOutputImage = nullptr;
-            const Gfx::RG::ImageIdentifier* gameOutputDepthImage = nullptr;
+            const Gfx::ImageIdentifier* gameOutputImage = nullptr;
+            const Gfx::ImageIdentifier* gameOutputDepthImage = nullptr;
             bool offscreen = !gameView->IsVisible();
 
             ENGINE_END_PROFILE; // Before Game Tick
@@ -645,7 +645,7 @@ void GameEditor::ShowSurfelGIBakerWindow()
 }
 
 void GameEditor::Render(
-    Gfx::CommandBuffer& cmd, const Gfx::RG::ImageIdentifier* gameImage, const Gfx::RG::ImageIdentifier* gameDepthImage
+    Gfx::CommandBuffer& cmd, const Gfx::ImageIdentifier* gameImage, const Gfx::ImageIdentifier* gameDepthImage
 )
 {
     // make sure we don't have sync issue with game rendering

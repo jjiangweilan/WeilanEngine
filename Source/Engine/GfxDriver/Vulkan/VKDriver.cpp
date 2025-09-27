@@ -254,13 +254,13 @@ std::unique_ptr<Buffer> VKDriver::CreateBuffer(const Gfx::Buffer::CreateInfo& cr
     return std::make_unique<VKBuffer>(createInfo);
 }
 
-std::unique_ptr<RenderPass> VKDriver::CreateRenderPass()
+std::unique_ptr<RenderPass_Deprecated> VKDriver::CreateRenderPass()
 {
     std::scoped_lock lock(driverMutex);
     return std::make_unique<VKRenderPass>();
 }
 
-std::unique_ptr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass> renderPass)
+std::unique_ptr<FrameBuffer> VKDriver::CreateFrameBuffer(RefPtr<RenderPass_Deprecated> renderPass)
 {
     std::scoped_lock lock(driverMutex);
     return std::make_unique<VKFrameBuffer>(renderPass);
@@ -1349,17 +1349,17 @@ void VKDriver::ExecuteCommandBufferImmediately(Gfx::CommandBuffer& cmd)
     vkFreeCommandBuffers(device.handle, mainCmdPool, 1, &vkcmd);
 }
 
-Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::RG::ImageIdentifier& id)
+Gfx::Image* VKDriver::GetImageFromRenderGraph(const Gfx::ImageIdentifier& id)
 {
-    if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Image)
+    if (id.GetType() == Gfx::ImageIdentifier::Type::Image)
     {
         return id.GetAsImage();
     }
-    else if (id.GetType() == Gfx::RG::ImageIdentifier::Type::ImageView)
+    else if (id.GetType() == Gfx::ImageIdentifier::Type::ImageView)
     {
         return &id.GetAsImageView()->GetImage();
     }
-    else if (id.GetType() == Gfx::RG::ImageIdentifier::Type::Handle)
+    else if (id.GetType() == Gfx::ImageIdentifier::Type::Handle)
     {
         return renderGraph->GetImage(id.GetAsUUID());
     }

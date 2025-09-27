@@ -11,10 +11,10 @@ DepthAwareBilateralUpsampler::DepthAwareBilateralUpsampler()
 }
 
 void DepthAwareBilateralUpsampler::Setup(
-    const Gfx::RG::ImageIdentifier& lowResColor,
-    const Gfx::RG::ImageIdentifier& lowResDepth,
-    const Gfx::RG::ImageIdentifier& highResDepth,
-    const Gfx::RG::ImageIdentifier& destination,
+    const Gfx::ImageIdentifier& lowResColor,
+    const Gfx::ImageIdentifier& lowResDepth,
+    const Gfx::ImageIdentifier& highResDepth,
+    const Gfx::ImageIdentifier& destination,
     const GPUInput& gpuInput
 )
 {

@@ -25,7 +25,7 @@ public:
         return nullptr;
     }
 
-    VKImage* Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc)
+    VKImage* Request(const ImageIdentifier& id, RenderImageDescriptor& desc)
     {
         auto iter = images.find(id.GetAsUUID());
         if (iter != images.end() && iter->second.desc == desc)
@@ -41,7 +41,7 @@ public:
                 images.erase(iter);
             }
 
-            // id = RG::ImageIdentifier();
+            // id = ImageIdentifier();
             Gfx::ImageDescription imageDesc;
             imageDesc.width = desc.GetWidth();
             imageDesc.height = desc.GetHeight();
@@ -80,7 +80,7 @@ public:
         }
     }
 
-    VKRenderPass* Request(RG::RenderPass& renderPass)
+    VKRenderPass* Request(RenderPass& renderPass)
     {
         auto iter = renderPasses.find(renderPass);
         if (iter != renderPasses.end() && iter->second.CheckValidationOfAttachments())
@@ -98,17 +98,17 @@ public:
             for (auto& subpass : renderPass.GetSubpasses())
             {
                 std::vector<Attachment> colors;
-                for (RG::SubpassAttachment color : subpass.colors)
+                for (SubpassAttachment color : subpass.colors)
                 {
                     const auto& id = attachments[color.attachmentIndex];
                     auto idType = id.GetType();
                     Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
-                    Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
+                    Gfx::VKImageView* imageView = idType == ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
                     imageReferences.push_back(image);
 
-                    if (idType == RG::ImageIdentifier::Type::ImageView)
+                    if (idType == ImageIdentifier::Type::ImageView)
                     {
                         imageViewReferences.push_back(imageView);
                     }
@@ -131,12 +131,12 @@ public:
                     const auto& id = attachments[subpass.depth.attachmentIndex];
                     auto idType = id.GetType();
                     Gfx::VKImage* image = ImageIdentifier_GetImage(id, graph);
-                    Gfx::VKImageView* imageView = idType == RG::ImageIdentifier::Type::ImageView
+                    Gfx::VKImageView* imageView = idType == ImageIdentifier::Type::ImageView
                                                       ? static_cast<Gfx::VKImageView*>(id.GetAsImageView())
                                                       : static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
                     imageReferences.push_back(image);
 
-                    if (idType == RG::ImageIdentifier::Type::ImageView)
+                    if (idType == ImageIdentifier::Type::ImageView)
                     {
                         imageViewReferences.push_back(imageView);
                     }
@@ -242,7 +242,7 @@ private:
 
     VKCommandBufferProcessor* graph;
     std::unordered_map<UUID, AllocatedImage> images;
-    std::unordered_map<RG::RenderPass, AllocatedRenderPass> renderPasses;
+    std::unordered_map<RenderPass, AllocatedRenderPass> renderPasses;
 
     template <class T>
     void UpdateResources(std::unordered_map<UUID, T>& resources)
@@ -264,10 +264,10 @@ private:
         }
     }
 
-    void UpdateResources(std::unordered_map<RG::RenderPass, AllocatedRenderPass>& resources)
+    void UpdateResources(std::unordered_map<RenderPass, AllocatedRenderPass>& resources)
     {
         int removeCount = 0;
-        const RG::RenderPass* readyToRemove[8];
+        const RenderPass* readyToRemove[8];
         for (auto& iter : resources)
         {
             if (iter.second.frameCountFromLastRequest > maxResourceUnusedFrames && removeCount < 8)
@@ -333,12 +333,12 @@ bool VKCommandBufferProcessor::TrackResource(
     return false;
 }
 
-VKImage* VKCommandBufferProcessor::Request(const RG::ImageIdentifier& id, RenderImageDescriptor& desc)
+VKImage* VKCommandBufferProcessor::Request(const ImageIdentifier& id, RenderImageDescriptor& desc)
 {
     return resourceAllocator->Request(id, desc);
 }
 
-VKRenderPass* VKCommandBufferProcessor::Request(RG::RenderPass& renderPass)
+VKRenderPass* VKCommandBufferProcessor::Request(RenderPass& renderPass)
 {
     return resourceAllocator->Request(renderPass);
 }
@@ -1915,20 +1915,20 @@ void VKCommandBufferProcessor::FlushAllBindedSetUpdate(
     }
 }
 
-Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
+Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
 {
     auto idType = id.GetType();
-    if (idType == RG::ImageIdentifier::Type::Image)
+    if (idType == ImageIdentifier::Type::Image)
     {
         auto image = id.GetAsImage();
         return static_cast<Gfx::VKImage*>(image);
     }
-    else if (idType == RG::ImageIdentifier::Type::ImageView)
+    else if (idType == ImageIdentifier::Type::ImageView)
     {
         auto imageView = id.GetAsImageView();
         return static_cast<Gfx::VKImage*>(&imageView->GetImage());
     }
-    else if (idType == RG::ImageIdentifier::Type::Handle && graph != nullptr)
+    else if (idType == ImageIdentifier::Type::Handle && graph != nullptr)
     {
         return graph->GetImage(id.GetAsUUID());
     }
@@ -1936,20 +1936,20 @@ Gfx::VKImage* ImageIdentifier_GetImage(const Gfx::RG::ImageIdentifier& id, Gfx::
     return nullptr;
 }
 
-Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::RG::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
+Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::ImageIdentifier& id, Gfx::VKCommandBufferProcessor* graph)
 {
     auto idType = id.GetType();
-    if (idType == RG::ImageIdentifier::Type::Image)
+    if (idType == ImageIdentifier::Type::Image)
     {
         auto image = id.GetAsImage();
         return static_cast<Gfx::VKImageView*>(&image->GetDefaultImageView());
     }
-    else if (idType == RG::ImageIdentifier::Type::ImageView)
+    else if (idType == ImageIdentifier::Type::ImageView)
     {
         auto imageView = id.GetAsImageView();
         return static_cast<Gfx::VKImageView*>(imageView);
     }
-    else if (idType == RG::ImageIdentifier::Type::Handle && graph != nullptr)
+    else if (idType == ImageIdentifier::Type::Handle && graph != nullptr)
     {
         return static_cast<Gfx::VKImageView*>(&graph->GetImage(id.GetAsUUID())->GetDefaultImageView());
     }

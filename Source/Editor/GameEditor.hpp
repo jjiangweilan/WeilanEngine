@@ -81,8 +81,8 @@ private:
     void GUIPass();
     void Render(
         Gfx::CommandBuffer& cmd,
-        const Gfx::RG::ImageIdentifier* gameImage,
-        const Gfx::RG::ImageIdentifier* gameDepthImage
+        const Gfx::ImageIdentifier* gameImage,
+        const Gfx::ImageIdentifier* gameDepthImage
     );
     void SaveProject();
 

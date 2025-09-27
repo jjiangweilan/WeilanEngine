@@ -5,7 +5,7 @@ namespace Rendering::LFP
 {
 struct ProbeFace
 {
-    std::unique_ptr<Gfx::RenderPass> gbufferPass;
+    std::unique_ptr<Gfx::RenderPass_Deprecated> gbufferPass;
     std::unique_ptr<Gfx::ImageView> albedoView;
     std::unique_ptr<Gfx::ImageView> normalView;
     std::unique_ptr<Gfx::ImageView> depthView;
@@ -121,7 +121,7 @@ private:
     const uint32_t rtWidth = 128;
     const uint32_t rtHeight = 128;
 
-    std::unique_ptr<Gfx::RenderPass> probeOctahedralPass;
+    std::unique_ptr<Gfx::RenderPass_Deprecated> probeOctahedralPass;
     Probe* probe;
     Obsolete::Shader* probeCubemapShader;
     Obsolete::Shader* octahedralRemapShader;

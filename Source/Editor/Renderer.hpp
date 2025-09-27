@@ -26,7 +26,7 @@ private:
 
     std::unordered_map<UUID, std::unique_ptr<Gfx::ShaderResource>> imageViewToResource;
 
-    Gfx::RG::RenderPass mainPass = Gfx::RG::RenderPass::SingleColor("Editor Pass");
+    Gfx::RenderPass mainPass = Gfx::RenderPass::SingleColor("Editor Pass");
 
     void RenderEditor(Gfx::CommandBuffer& cmd);
 

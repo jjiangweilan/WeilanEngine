@@ -119,7 +119,7 @@ Gfx::Image* Cloud::UpdateDebugImage(int debugImageIndex)
     );
 
     auto cmd = GetGfxDriver()->CreateCommandBuffer();
-    debugRenderPass.SetAttachment(0, Gfx::RG::ImageIdentifier(*debugImage));
+    debugRenderPass.SetAttachment(0, Gfx::ImageIdentifier(*debugImage));
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
     cmd->BeginRenderPass(debugRenderPass, clears);
     cmd->BindResource(debugImageMaterial->GetSet(Gfx::DescriptorSetSemantics::Material), debugImageMaterial->GetShaderResource());

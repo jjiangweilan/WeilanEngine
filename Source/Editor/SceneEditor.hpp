@@ -56,7 +56,7 @@ private:
     bool useViewCamera = true;
     bool isAltDown = false;
     float editorCameraSpeed = 5.0f;
-    Gfx::RG::RenderPass editorFinalColorBlitPass = Gfx::RG::RenderPass(1, 1);
+    Gfx::RenderPass editorFinalColorBlitPass = Gfx::RenderPass(1, 1);
     ObjPtr<Shader2> editorFinalColorBlitShader;
     std::unique_ptr<Material> editorFinalColorBlitMaterial;
 
@@ -133,9 +133,9 @@ private:
     ObjPtr<Shader2> outlineFullScreenPassShader;
     std::unique_ptr<Gfx::ShaderResource> outlineGPUResource;
 
-    Gfx::RG::ImageIdentifier outlineSrcRT;
-    Gfx::RG::RenderPass outlineSrcPass = Gfx::RG::RenderPass::SingleColor();
-    Gfx::RG::RenderPass gameImagePass = Gfx::RG::RenderPass::Default(
+    Gfx::ImageIdentifier outlineSrcRT;
+    Gfx::RenderPass outlineSrcPass = Gfx::RenderPass::SingleColor();
+    Gfx::RenderPass gameImagePass = Gfx::RenderPass::Default(
         "gameImage pass",
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store,

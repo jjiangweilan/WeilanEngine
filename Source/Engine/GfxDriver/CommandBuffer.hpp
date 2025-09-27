@@ -86,7 +86,7 @@ public:
     virtual void BindIndexBuffer(RefPtr<Gfx::Buffer> buffer, uint64_t offset, Gfx::IndexBufferType indexBufferType) = 0;
     virtual void BindShaderProgram(RefPtr<Gfx::ShaderProgram> program, const PipelineConfig& config) = 0;
 
-    virtual void BeginRenderPass(Gfx::RenderPass& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
+    virtual void BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<Gfx::ClearValue> clearValues) = 0;
     virtual void NextRenderPass() = 0;
     virtual void EndRenderPass() = 0;
 
@@ -97,7 +97,7 @@ public:
     virtual void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) = 0;
     virtual void Blit(RefPtr<Gfx::Image> from, RefPtr<Gfx::Image> to, BlitOp blitOp = {}) = 0;
-    virtual void GraphicsBlit(const Gfx::RG::ImageIdentifier& from, const Gfx::RG::ImageIdentifier& to) = 0;
+    virtual void GraphicsBlit(const Gfx::ImageIdentifier& from, const Gfx::ImageIdentifier& to) = 0;
 
     virtual void PushDescriptor(ShaderProgram& shader, uint32_t set, std::span<DescriptorBinding> bindings) = 0;
     virtual void SetPushConstant(RefPtr<Gfx::ShaderProgram> shaderProgram, void* data) = 0;
@@ -134,7 +134,7 @@ public:
     virtual void SetTexture(
         ShaderBindingHandle name,
         int index,
-        RG::ImageIdentifier id,
+        ImageIdentifier id,
         std::optional<ImageViewOption> imageViewOption = std::nullopt
     ) = 0;
     virtual void SetTexture(
@@ -147,10 +147,10 @@ public:
 
     virtual std::shared_ptr<AsyncReadbackHandle> AsyncReadback(Gfx::Buffer& buffer, size_t size, size_t offset = 0) = 0;
 
-    virtual void AllocateAttachment(const RG::ImageIdentifier& id, RenderImageDescriptor& desc) = 0;
-    virtual void BeginRenderPass(RG::RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
+    virtual void AllocateAttachment(const ImageIdentifier& id, RenderImageDescriptor& desc) = 0;
+    virtual void BeginRenderPass(RenderPass& renderPass, std::span<ClearValue> clearValues) = 0;
 
-    virtual void Blit(RG::ImageIdentifier src, RG::ImageIdentifier dst, BlitOp blitOp = {}) = 0;
+    virtual void Blit(ImageIdentifier src, ImageIdentifier dst, BlitOp blitOp = {}) = 0;
     void UpdateViewportAndScissor(uint32_t width, uint32_t height)
     {
         Rect2D scissor = {{0, 0}, {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}};
@@ -161,7 +161,7 @@ public:
 
     // note: currently to correctly setup global binding, this function should be called before BindShaderProgram
     void SetTexture(
-        ShaderBindingHandle name, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
+        ShaderBindingHandle name, ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
     )
     {
         SetTexture(name, 0, id, imageViewOption);
@@ -184,7 +184,7 @@ public:
     }
 
     void SetTexture(
-        std::string_view name, RG::ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
+        std::string_view name, ImageIdentifier id, std::optional<ImageViewOption> imageViewOption = std::nullopt
     )
     {
         SetTexture(ShaderBindingHandle(name), 0, id, imageViewOption);

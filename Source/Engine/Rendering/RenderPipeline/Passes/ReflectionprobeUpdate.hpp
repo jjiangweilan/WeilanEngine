@@ -14,18 +14,18 @@ public:
 
 private:
     uint32_t reflectionProbeSize = 256;
-    Gfx::RG::ImageIdentifier mainColor;
-    Gfx::RG::ImageIdentifier albedo;
-    Gfx::RG::ImageIdentifier normal;
-    Gfx::RG::ImageIdentifier mask;
-    Gfx::RG::ImageIdentifier depth;
-    Gfx::RG::RenderImageDescriptor mainColorDescription;
-    Gfx::RG::RenderImageDescriptor albedoImageDescription;
-    Gfx::RG::RenderImageDescriptor normalImageDescription;
-    Gfx::RG::RenderImageDescriptor maskImageDescription;
-    Gfx::RG::RenderImageDescriptor depthImageDescription;
+    Gfx::ImageIdentifier mainColor;
+    Gfx::ImageIdentifier albedo;
+    Gfx::ImageIdentifier normal;
+    Gfx::ImageIdentifier mask;
+    Gfx::ImageIdentifier depth;
+    Gfx::RenderImageDescriptor mainColorDescription;
+    Gfx::RenderImageDescriptor albedoImageDescription;
+    Gfx::RenderImageDescriptor normalImageDescription;
+    Gfx::RenderImageDescriptor maskImageDescription;
+    Gfx::RenderImageDescriptor depthImageDescription;
 
-    Gfx::RG::RenderPass gbufferPass{};
+    Gfx::RenderPass gbufferPass{};
     std::unique_ptr<Gfx::Buffer> faceBuffers[6];
     std::unique_ptr<Gfx::ShaderResource> faceResources[6];
     std::unique_ptr<Gfx::Image> updatingFaces[6];

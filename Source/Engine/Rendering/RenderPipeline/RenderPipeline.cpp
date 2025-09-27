@@ -26,7 +26,7 @@ RenderPipeline::RenderPipeline()
 
     commandBuffer = GetGfxDriver()->CreateCommandBuffer();
 
-    Gfx::RG::SubpassAttachment skyboxOnlyPassAttachment[] = {
+    Gfx::SubpassAttachment skyboxOnlyPassAttachment[] = {
         {0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store}
     };
     skyboxOnlyPass.SetSubpass(0, skyboxOnlyPassAttachment);
@@ -266,7 +266,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
         auto shader = colorGradingPass.colorGradingShader->GetShaderProgram();
         cmd->BeginLabel("Color Grading", &labelColors.passColor[0]);
         // TODO
-        Gfx::RG::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+        Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
         cmd->AllocateAttachment(colorGradingPass.colorGradingId, resultDesc);
         colorGradingPass.pass.SetAttachment(0, colorGradingPass.colorGradingId);
         colorGradingPass.mat.SetTexture("mainColor", renderingData.mainColor);
@@ -285,7 +285,7 @@ void RenderPipeline::Render(Scene& scene, Camera& camera, glm::float2 screenSize
     {
         cmd->BeginLabel("FXAA", &labelColors.passColor[0]);
         {
-            Gfx::RG::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
+            Gfx::RenderImageDescriptor resultDesc(mainRTSize.x, mainRTSize.y, Gfx::GfxFormat::R8G8B8A8_SRGB);
             cmd->AllocateAttachment(fxaaPass.fxaaId, resultDesc);
             fxaaPass.Execute(*cmd, {mainRTSize.x, mainRTSize.y, 0, 0}, finalColor, fxaaPass.fxaaId);
             finalColor = fxaaPass.fxaaId;
@@ -323,21 +323,21 @@ RenderPipeline::PerScene::PerScene()
 
 RenderPipeline::ShadingPass::ShadingPass()
 {
-    pass = Gfx::RG::RenderPass("shading", 1, 2);
-    Gfx::RG::SubpassAttachment lightingPassAttachment{
+    pass = Gfx::RenderPass("shading", 1, 2);
+    Gfx::SubpassAttachment lightingPassAttachment{
         0,
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store
     };
 
-    Gfx::RG::SubpassAttachment depthAttachment{
+    Gfx::SubpassAttachment depthAttachment{
         1,
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store,
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::DontCare,
     };
-    Gfx::RG::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
+    Gfx::SubpassAttachment lightingPassAttachments[] = {lightingPassAttachment};
     pass.SetSubpass(0, lightingPassAttachments, depthAttachment);
     gpuResource = GetGfxDriver()->CreateShaderResource();
     perMaterialBuffer = GetGfxDriver()->CreateBuffer(
@@ -355,13 +355,13 @@ RenderPipeline::ShadingPass::ShadingPass()
 
 RenderPipeline::GBufferPass::GBufferPass()
 {
-    pass = Gfx::RG::RenderPass("gbuffer", 1, 5);
-    Gfx::RG::SubpassAttachment lighting{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
-    Gfx::RG::SubpassAttachment albedo{1};
-    Gfx::RG::SubpassAttachment normal{2};
-    Gfx::RG::SubpassAttachment property{3};
-    Gfx::RG::SubpassAttachment depth{4};
-    Gfx::RG::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
+    pass = Gfx::RenderPass("gbuffer", 1, 5);
+    Gfx::SubpassAttachment lighting{0, Gfx::AttachmentLoadOperation::Clear, Gfx::AttachmentStoreOperation::Store};
+    Gfx::SubpassAttachment albedo{1};
+    Gfx::SubpassAttachment normal{2};
+    Gfx::SubpassAttachment property{3};
+    Gfx::SubpassAttachment depth{4};
+    Gfx::SubpassAttachment subpassAttachments[] = {lighting, albedo, normal, property};
     pass.SetSubpass(0, subpassAttachments, depth);
 }
 
@@ -375,18 +375,18 @@ RenderPipeline::FXAAPass::FXAAPass()
     shader = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
     resource = GetGfxDriver()->CreateShaderResource();
 
-    Gfx::RG::SubpassAttachment attachmentDesc{
+    Gfx::SubpassAttachment attachmentDesc{
         0,
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store
     };
-    Gfx::RG::SubpassAttachment attachments[] = {attachmentDesc};
+    Gfx::SubpassAttachment attachments[] = {attachmentDesc};
     pass.SetSubpass(0, attachments);
 }
 
 RenderPipeline::ForwardPass::ForwardPass()
 {
-    pass = Gfx::RG::RenderPass::Default(
+    pass = Gfx::RenderPass::Default(
         "Forward Pass",
         Gfx::AttachmentLoadOperation::Load,
         Gfx::AttachmentStoreOperation::Store,
@@ -398,8 +398,8 @@ RenderPipeline::ForwardPass::ForwardPass()
 void RenderPipeline::FXAAPass::Execute(
     Gfx::CommandBuffer& cmd,
     const glm::float4& sourceSize,
-    const Gfx::RG::ImageIdentifier& src,
-    const Gfx::RG::ImageIdentifier& dst
+    const Gfx::ImageIdentifier& src,
+    const Gfx::ImageIdentifier& dst
 )
 {
     pass.SetAttachment(0, dst);
@@ -459,11 +459,11 @@ void RenderPipeline::RenderSkyboxOnly(Scene& scene, Camera& camera, glm::float2 
 bool RenderPipeline::FrameSetup(Gfx::CommandBuffer* cmd, Scene& scene, Camera& camera, float2 screenSize)
 {
     auto AllocateImage = [](Gfx::CommandBuffer& cmd,
-                            const Gfx::RG::ImageIdentifier& id,
+                            const Gfx::ImageIdentifier& id,
                             glm::float2 size,
                             glm::float2 screenSize,
                             Gfx::GfxFormat format,
-                            Gfx::RG::RenderImageDescriptor& desc)
+                            Gfx::RenderImageDescriptor& desc)
     {
         if (size.x == 0)
         {
@@ -604,7 +604,7 @@ void RenderPipeline::UpdateSceneInfo(Scene& scene, Camera& camera, float2 screen
 
 void RenderPipeline::BlitToFinalColor(Gfx::CommandBuffer* cmd)
 {
-    Gfx::RG::ImageIdentifier finalColorId = finalColor;
+    Gfx::ImageIdentifier finalColorId = finalColor;
 
     bool isColorOverriden = renderConfig.colorOutputOverride.has_value();
     if (isColorOverriden)
@@ -629,10 +629,10 @@ bool RenderPipeline::IsCommandBufferOverriden()
     return renderConfig.cmdOverride.has_value();
 }
 
-const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
+const Gfx::ImageIdentifier& RenderPipeline::GetOutputColor()
 {
-    Gfx::RG::ImageIdentifier debugImage;
-    Gfx::RG::ImageIdentifier finalColorId;
+    Gfx::ImageIdentifier debugImage;
+    Gfx::ImageIdentifier finalColorId;
     if (ssaoPass.DebugBlit(debugImage))
     {
         finalColor = debugImage;
@@ -641,21 +641,21 @@ const Gfx::RG::ImageIdentifier& RenderPipeline::GetOutputColor()
     return finalColor;
 }
 
-Gfx::RG::ImageIdentifier RenderPipeline::GetFinalColor()
+Gfx::ImageIdentifier RenderPipeline::GetFinalColor()
 {
     if (renderConfig.colorOutputOverride.has_value())
     {
         return *renderConfig.colorOutputOverride.value();
     }
 
-    Gfx::RG::ImageIdentifier debugImage;
-    Gfx::RG::ImageIdentifier finalColorId;
+    Gfx::ImageIdentifier debugImage;
+    Gfx::ImageIdentifier finalColorId;
     if (ssaoPass.DebugBlit(debugImage))
     {
         finalColorId = debugImage;
     }
     else
-        Gfx::RG::ImageIdentifier finalColorId = finalColor;
+        Gfx::ImageIdentifier finalColorId = finalColor;
 
     return finalColorId;
 }

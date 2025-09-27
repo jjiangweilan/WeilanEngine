@@ -12,32 +12,32 @@ class SSAO : public RenderingModule
 public:
     SSAO();
 
-    Gfx::RG::RenderPass pass = Gfx::RG::RenderPass::SingleColor("SSAO");
+    Gfx::RenderPass pass = Gfx::RenderPass::SingleColor("SSAO");
     void Execute(
         Gfx::CommandBuffer* cmd,
-        const Gfx::RG::ImageIdentifier& halfResDepth,
-        const Gfx::RG::ImageIdentifier& fullResDepth,
-        const Gfx::RG::RenderImageDescriptor& fullResDepthDesc,
+        const Gfx::ImageIdentifier& halfResDepth,
+        const Gfx::ImageIdentifier& fullResDepth,
+        const Gfx::RenderImageDescriptor& fullResDepthDesc,
         RenderPipelineSetting* setting
     );
 
-    const Gfx::RG::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
-    bool DebugBlit(Gfx::RG::ImageIdentifier& dst) override;
+    const Gfx::ImageIdentifier& GetSSAOTex() { return result == nullptr ? ssao : *result; }
+    bool DebugBlit(Gfx::ImageIdentifier& dst) override;
 
 private:
     ObjPtr<Shader2> ssaoShader;
     DepthAwareBilateralUpsampler upscaler;
     Material mat;
     Material bilateralMat;
-    Gfx::RG::ImageIdentifier ssaoDownSampled = Gfx::RG::ImageIdentifier("SSAO Down Sampled");
-    Gfx::RG::ImageIdentifier ssao = Gfx::RG::ImageIdentifier("SSAO");
-    Gfx::RG::ImageIdentifier* result = nullptr;
+    Gfx::ImageIdentifier ssaoDownSampled = Gfx::ImageIdentifier("SSAO Down Sampled");
+    Gfx::ImageIdentifier ssao = Gfx::ImageIdentifier("SSAO");
+    Gfx::ImageIdentifier* result = nullptr;
 
     bool needDebug = false;
 
     /**
      * @brief lazily initialized debug image
      */
-    Gfx::RG::ImageIdentifier debugImage;
+    Gfx::ImageIdentifier debugImage;
 };
 } // namespace Rendering::Passes

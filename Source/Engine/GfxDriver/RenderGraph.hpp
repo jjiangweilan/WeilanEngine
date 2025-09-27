@@ -9,7 +9,7 @@
 #include <optional>
 #include "Libs/DynamicArray.hpp"
 
-namespace Gfx::RG
+namespace Gfx
 {
 struct RenderImageDescriptor
 {
@@ -412,15 +412,10 @@ private:
         return id;
     };
 };
-} // namespace Gfx::RG
-
-namespace Gfx
-{
-    using RenderImageDescriptor = Gfx::RG::RenderImageDescriptor;
-}
+} // namespace Gfx
 
 template <>
-struct std::hash<Gfx::RG::RenderPass>
+struct std::hash<Gfx::RenderPass>
 {
-    size_t operator()(const Gfx::RG::RenderPass& pass) const { return static_cast<size_t>(pass.GetHash()); }
+    size_t operator()(const Gfx::RenderPass& pass) const { return static_cast<size_t>(pass.GetHash()); }
 };

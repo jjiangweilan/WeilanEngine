@@ -6,7 +6,7 @@
 #include "Libs/Assert.hpp"
 namespace Gfx
 {
-VKFrameBuffer::VKFrameBuffer(RefPtr<RenderPass> baseRenderPass) : baseRenderPass((VKRenderPass*)baseRenderPass.Get()) {}
+VKFrameBuffer::VKFrameBuffer(RefPtr<RenderPass_Deprecated> baseRenderPass) : baseRenderPass((VKRenderPass*)baseRenderPass.Get()) {}
 
 VKFrameBuffer::~VKFrameBuffer()
 {

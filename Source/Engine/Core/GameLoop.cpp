@@ -36,8 +36,8 @@ static void IdleTickGameObject(GameObject* go)
 
 const void GameLoop::Tick(
     float2 screenSize,
-    const Gfx::RG::ImageIdentifier*& outGraphOutputImage,
-    const Gfx::RG::ImageIdentifier*& outGraphOutputDepthImage,
+    const Gfx::ImageIdentifier*& outGraphOutputImage,
+    const Gfx::ImageIdentifier*& outGraphOutputDepthImage,
     bool offscreen
 )
 {
