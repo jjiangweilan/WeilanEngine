@@ -2,6 +2,7 @@
 #include "../CommandBuffer.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Libs/DynamicArray.hpp"
+#include "Libs/PodVector.hpp"
 #include "VKRenderPass.hpp"
 #include <list>
 #include <vulkan/vulkan.h>
@@ -21,6 +22,11 @@ struct VKAsyncReadbackHandle : public AsyncReadbackHandle
 
     std::vector<std::uint8_t> data;
     std::atomic_bool isComplete;
+};
+
+struct VKSetClearValuesCmd
+{
+    std::vector<Gfx::ClearValue> clearValues;
 };
 
 struct VKDrawIndexedCmd
@@ -81,6 +87,11 @@ struct VKRGBeginRenderPassCmd
     // used in VKCommandBufferProcessor
     int barrierOffset;
     int barrierCount;
+};
+
+struct VKDynamicRenderPassCmd
+{
+    PodVector<ImageIdentifier> imageIdentifiers;
 };
 
 struct VKEndRenderPassCmd
@@ -262,8 +273,8 @@ struct VKAsyncReadbackCmd
     size_t size;
     size_t offset;
 
-    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to VKCommandBufferProcessor
-    // later
+    // the readback handle is temporarily stored in the command buffer, the owner ship will be moved to
+    // VKCommandBufferProcessor later
     std::shared_ptr<AsyncReadbackHandle>* handle;
 };
 
@@ -289,12 +300,14 @@ struct VKNoneCmd
 enum class VKCmdType
 {
     None,
+    SetClearValues,
     DrawIndexed,
     DrawIndexedIndirect,
     DrawIndirect,
     Draw,
     BeginRenderPass,
     RGBeginRenderPass,
+    DynamicBeginRenderPass,
     EndRenderPass,
     Blit,
     BindResource,
@@ -329,12 +342,14 @@ struct VKCmd
     VKCmdType type;
     std::variant<
         VKNoneCmd,
+        VKSetClearValuesCmd,
         VKDrawIndexedCmd,
         VKDrawIndexedIndirectCmd,
         VKDrawIndirectCmd,
         VKDrawCmd,
         VKBeginRenderPassCmd,
         VKRGBeginRenderPassCmd,
+        VKDynamicRenderPassCmd,
         VKEndRenderPassCmd,
         VKBlitCmd,
         VKBindResourceCmd,
@@ -383,6 +398,10 @@ public:
     ) override;
     void DrawIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
     void DrawIndexedIndirect(Gfx::Buffer* buffer, size_t offset, uint32_t drawCount, uint32_t stride) override;
+
+    void SetClearValues(std::span<Gfx::ClearValue> clearValues) override;
+    void BeginRenderPass(std::span<const Gfx::ImageIdentifier> images) override;
+
     void BeginRenderPass(Gfx::RenderPass_Deprecated& renderPass, std::span<ClearValue> clearValues) override;
     void EndRenderPass() override;
     void ClearColorImage(Image* image, const ClearColor& color) override;

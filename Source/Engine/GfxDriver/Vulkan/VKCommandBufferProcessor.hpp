@@ -1,5 +1,6 @@
 #pragma once
 #include "GfxDriver/Vulkan/VKContext.hpp"
+#include "Libs/PodVector.hpp"
 #include "VKCommandBuffer.hpp"
 #include "VKInflightCmd.hpp"
 #include <variant>
@@ -104,6 +105,8 @@ private:
         VKRenderPass* renderPass;
         bool overrideViewport = false;
         bool overrideScissor = false;
+        bool overrideRenderPassClearValues = false;
+        PodVector<Gfx::ClearValue> renderPassClearValues;
         int currentTimestapQueryIndex = 0;
     } exeState;
 
@@ -158,7 +161,5 @@ private:
 };
 
 VKImage* ImageIdentifier_GetImage(const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);
-VKImageView* ImageIdentifier_GetImageView(
-    const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr
-);
+VKImageView* ImageIdentifier_GetImageView(const Gfx::ImageIdentifier& id, VKCommandBufferProcessor* graph = nullptr);
 } // namespace Gfx

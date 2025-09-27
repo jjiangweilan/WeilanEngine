@@ -1,4 +1,6 @@
 #include "VKCommandBufferProcessor.hpp"
+#include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
+#include "Libs/Assert.hpp"
 #include "VKBuffer.hpp"
 #include "VKContext.hpp"
 #include "VKDriver.hpp"
@@ -6,8 +8,6 @@
 #include "VKShaderProgram.hpp"
 #include "VKShaderResource.hpp"
 #include "VKUtils.hpp"
-#include "GfxDriver/Vulkan/Internal/VKEnumMapper.hpp"
-#include "Libs/Assert.hpp"
 
 namespace Gfx
 {
@@ -343,7 +343,9 @@ VKRenderPass* VKCommandBufferProcessor::Request(RenderPass& renderPass)
     return resourceAllocator->Request(renderPass);
 }
 
-bool VKCommandBufferProcessor::TrackResource(VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access)
+bool VKCommandBufferProcessor::TrackResource(
+    VKBuffer* writableResource, VkPipelineStageFlags stages, VkAccessFlags access
+)
 {
     ENGINE_SCOPED_PROFILE("TrackResource");
     auto iter = resourceUsageTracks.find(writableResource->GetUUID());
@@ -1173,6 +1175,20 @@ void VKCommandBufferProcessor::Execute(
                     // vkCmdSetEvent(vkcmd, cmd.asyncReadback.event, VK_PIPELINE_STAGE_TRANSFER_BIT);
                     break;
                 }
+            case VKCmdType::SetClearValues:
+                {
+                    auto& args = std::get<VKSetClearValuesCmd>(cmd.args);
+                    exeState.overrideRenderPassClearValues = true;
+                    exeState.renderPassClearValues = args.clearValues;
+                    break;
+                }
+            case Gfx::VKCmdType::DynamicBeginRenderPass:
+                {
+                    auto& args = std::get<VKDynamicRenderPassCmd>(cmd.args);
+
+                    // TODO:...
+                    break;
+                }
             case VKCmdType::BeginRenderPass:
                 {
                     auto& args = std::get<VKBeginRenderPassCmd>(cmd.args);
@@ -1750,7 +1766,9 @@ void VKCommandBufferProcessor::TryBindShader(VkCommandBuffer cmd)
     }
 }
 
-void VKCommandBufferProcessor::UpdateDescriptorSetBinding(VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint)
+void VKCommandBufferProcessor::UpdateDescriptorSetBinding(
+    VkCommandBuffer cmd, uint32_t index, VkPipelineBindPoint bindPoint
+)
 {
     if (exeState.setResources[index].needUpdate && exeState.setResources[index].resource)
     {
@@ -1957,4 +1975,4 @@ Gfx::VKImageView* ImageIdentifier_GetImageView(const Gfx::ImageIdentifier& id, G
     return nullptr;
 }
 
-} // namespace Gfx::VK
+} // namespace Gfx

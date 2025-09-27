@@ -375,11 +375,7 @@ RenderPipeline::FXAAPass::FXAAPass()
     shader = ShaderLibrary::GetShader(ShaderLibrary::FXAA);
     resource = GetGfxDriver()->CreateShaderResource();
 
-    Gfx::SubpassAttachment attachmentDesc{
-        0,
-        Gfx::AttachmentLoadOperation::Load,
-        Gfx::AttachmentStoreOperation::Store
-    };
+    Gfx::SubpassAttachment attachmentDesc{0, Gfx::AttachmentLoadOperation::Load, Gfx::AttachmentStoreOperation::Store};
     Gfx::SubpassAttachment attachments[] = {attachmentDesc};
     pass.SetSubpass(0, attachments);
 }
@@ -405,6 +401,7 @@ void RenderPipeline::FXAAPass::Execute(
     pass.SetAttachment(0, dst);
     resource->SetImage("source", GetGfxDriver()->GetImageFromRenderGraph(src));
     Gfx::ClearValue clears[] = {{0, 0, 0, 0}};
+    cmd.BeginRenderPass(dst);
     cmd.BeginRenderPass(pass, clears);
     cmd.SetPushConstant(shader->GetShaderProgram(), (void*)&sourceSize[0]);
     cmd.BindResource(0, resource.get());

@@ -4,8 +4,8 @@
 #include "GfxDriver/Vulkan/VKShaderProgram.hpp"
 #include "GfxDriver/Vulkan/VKShaderResource.hpp"
 #include "Libs/Assert.hpp"
-#include "VKCommandBufferProcessor.hpp"
 #include "VKBuffer.hpp"
+#include "VKCommandBufferProcessor.hpp"
 #include "VKImage.hpp"
 
 namespace Gfx
@@ -520,6 +520,22 @@ void VKCommandBuffer::ClearColorImage(Image* image, const ClearColor& color)
     cmd.clearValue = color;
 
     cmds.push_back(VKCmd{VKCmdType::ClearColorImage, cmd});
+}
+
+void VKCommandBuffer::SetClearValues(std::span<Gfx::ClearValue> clearValues)
+{
+    VKSetClearValuesCmd cmd{};
+    cmd.clearValues = std::vector(clearValues.begin(), clearValues.end());
+
+    cmds.push_back(VKCmd{VKCmdType::SetClearValues, cmd});
+}
+
+void VKCommandBuffer::BeginRenderPass(std::span<const Gfx::ImageIdentifier> images)
+{
+    VKDynamicRenderPassCmd cmd{};
+    cmd.imageIdentifiers = images;
+
+    cmds.push_back(VKCmd{VKCmdType::DynamicBeginRenderPass, cmd});
 }
 
 } // namespace Gfx
